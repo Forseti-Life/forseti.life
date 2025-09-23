@@ -1,0 +1,129 @@
+name: Deploy to Server
+on:
+  push:
+    branches: [ main ]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy custom modules to server
+      uses: appleboy/ssh-action@v0.1.5
+      env:
+        HUBGIT_PAT: ${{ secrets.HUBGIT_PAT }}
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        envs: HUBGIT_PAT
+        script: |
+          set -e  # Exit on any error
+          
+          echo "=== Starting job_application_automation module deployment ==="
+          
+          # Define server paths
+          DRUPAL_ROOT="/var/www/html/drupal"
+          CUSTOM_MODULES_DIR="$DRUPAL_ROOT/web/modules/custom"
+          MODULE_NAME="job_application_automation"
+          TEMP_DIR="/tmp/module-deploy-$(date +%s)"
+          
+          # Create temporary directory
+          mkdir -p "$TEMP_DIR"
+          cd "$TEMP_DIR"
+          
+          echo "=== Downloading module from repository ==="
+          
+          # Clone only the specific module directory we need
+          git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
+          git sparse-checkout set drupal/web/modules/custom/$MODULE_NAME
+          
+          # Verify module was downloaded
+          if [ ! -d "drupal/web/modules/custom/$MODULE_NAME" ]; then
+            echo "ERROR: Module $MODULE_NAME not found in repository"
+            exit 1
+          fi
+          
+          echo "=== Module downloaded successfully ==="
+          ls -la drupal/web/modules/custom/$MODULE_NAME/
+          
+          echo "=== Deploying $MODULE_NAME module to server ==="
+          
+          # Ensure custom modules directory exists
+          sudo mkdir -p "$CUSTOM_MODULES_DIR"
+          
+          # Remove existing module (if any) and deploy new version
+          sudo rm -rf "$CUSTOM_MODULES_DIR/$MODULE_NAME"
+          sudo cp -r "drupal/web/modules/custom/$MODULE_NAME" "$CUSTOM_MODULES_DIR/"
+          
+          # Set proper permissions
+          sudo chown -R www-data:www-data "$CUSTOM_MODULES_DIR/$MODULE_NAME"
+          sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type f -exec chmod 644 {} \;
+          sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type d -exec chmod 755 {} \;
+          
+          echo "=== Module deployed successfully ==="
+          echo "Module location: $CUSTOM_MODULES_DIR/$MODULE_NAME"
+          echo "Files deployed:"
+          ls -la "$CUSTOM_MODULES_DIR/$MODULE_NAME/"
+          
+          # Enable the module if not already enabled
+          echo "=== Checking module status ==="
+          cd "$DRUPAL_ROOT"
+          
+          if ! sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^$MODULE_NAME$"; then
+            echo "=== Enabling $MODULE_NAME module ==="
+            if sudo -u www-data ./vendor/bin/drush en "$MODULE_NAME" -y; then
+              echo "=== $MODULE_NAME module enabled successfully ==="
+            else
+              echo "WARNING: Failed to enable $MODULE_NAME module - check for dependencies or errors"
+              echo "You can manually enable it later with: drush en $MODULE_NAME"
+            fi
+          else
+            echo "=== $MODULE_NAME module is already enabled ==="
+          fi
+          
+          # Clean up temp directory
+          rm -rf "$TEMP_DIR"
+          echo "=== Module deployment completed successfully ==="
+
+    - name: Clear Drupal cache and finalize
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        script: |
+          set -e  # Exit on any error
+          
+          echo "=== Finalizing module deployment ==="
+          
+          DRUPAL_ROOT="/var/www/html/drupal"
+          cd "$DRUPAL_ROOT"
+          
+          # Ensure proper permissions for Drupal files
+          sudo chown -R www-data:www-data "$DRUPAL_ROOT/web/sites/default/files"
+          sudo find "$DRUPAL_ROOT/web/sites/default/files" -type f -exec chmod 664 {} \;
+          sudo find "$DRUPAL_ROOT/web/sites/default/files" -type d -exec chmod 775 {} \;
+          
+          # Clear Drupal cache to recognize new module
+          echo "=== Clearing Drupal cache ==="
+          if sudo -u www-data ./vendor/bin/drush cr; then
+            echo "=== Cache cleared successfully ==="
+          else
+            echo "ERROR: Failed to clear Drupal cache"
+            exit 1
+          fi
+          
+          # Verify module is properly recognized
+          echo "=== Verifying module deployment ==="
+          if sudo -u www-data ./vendor/bin/drush pm:list | grep -q "job_application_automation"; then
+            echo "✅ job_application_automation module is recognized by Drupal"
+            
+            # Show module status
+            sudo -u www-data ./vendor/bin/drush pm:list | grep job_application_automation
+          else
+            echo "⚠️  WARNING: Module may not be properly recognized - check for syntax errors"
+          fi
+          
+          echo "=== Module deployment completed successfully ==="

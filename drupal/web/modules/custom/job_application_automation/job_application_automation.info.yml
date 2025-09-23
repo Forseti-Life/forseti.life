@@ -1,0 +1,21 @@
+name: 'Job Application Automation'
+type: module
+description: 'Automates job application processes including job tracking, application workflow, and integration with external services.'
+core_version_requirement: ^10 || ^11
+version: '1.0.0'
+package: 'St. Louis Integration'
+
+dependencies:
+  - drupal:node
+  - drupal:user
+  - drupal:field
+  - drupal:system
+  - drupal:views
+  - drupal:datetime
+
+configure: job_application_automation.settings
+
+# Module maintainer information
+author: 'St. Louis Integration Development Team'
+homepage: 'https://stlouisintegration.com'
+support: 'https://github.com/keithaumiller/stlouisintegration.com'

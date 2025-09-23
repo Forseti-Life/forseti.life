@@ -1,0 +1,33 @@
+# Job Application Automation Permissions
+
+administer job application automation:
+  title: 'Administer Job Application Automation'
+  description: 'Full administrative access to job application automation settings and configuration.'
+
+administer job applications:
+  title: 'Administer Job Applications'
+  description: 'Create, edit, delete, and manage all job applications.'
+
+create job applications:
+  title: 'Create Job Applications'
+  description: 'Create new job applications.'
+
+edit job applications:
+  title: 'Edit Job Applications'
+  description: 'Edit existing job applications.'
+
+view job applications:
+  title: 'View Job Applications'
+  description: 'View job applications and related data.'
+
+delete job applications:
+  title: 'Delete Job Applications'
+  description: 'Delete job applications.'
+
+manage job application workflow:
+  title: 'Manage Job Application Workflow'
+  description: 'Manage workflow states and transitions for job applications.'
+
+view job application reports:
+  title: 'View Job Application Reports'
+  description: 'Access reports and analytics for job applications.'
