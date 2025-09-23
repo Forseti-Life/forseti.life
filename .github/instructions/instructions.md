@@ -74,6 +74,10 @@ I will copy and paste any command lines required.
 Remember to sudo into www-data when appropriate
 The autodeploy clears the cache on the server during deployment. Do not recomend a drush cr.
 
+**Development Environment Notes:**
+- Use `service` command instead of `systemctl` in GitHub Codespaces (systemd not available)
+- Example: `sudo service apache2 restart` instead of `sudo systemctl restart apache2`
+
 # St. Louis Integration Website - AI Coding Instructions
 
 ## Project Context
