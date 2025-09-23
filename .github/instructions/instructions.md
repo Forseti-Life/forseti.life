@@ -20,7 +20,8 @@ The environment is a Drupal 11 website repository for St. Louis Integration, a p
 
 Dev/prod environment: The code is deployed on a production server with the following specifications:
 - **Server**: Ubuntu 22.04 LTS
-- **Drupal Root**: /var/www/html/drupal
+- **Drupal Root**: /var/www/html/stlouisintegration
+- **Web Directory**: /var/www/html/stlouisintegration/web
 - **Site Path**: sites/default
 - **Drush Access**: Available via SSH to production server
 
@@ -32,7 +33,7 @@ Copyright (c) The PHP Group
 Zend Engine v4.3.6, Copyright (c) Zend Technologies
     with Zend OPcache v8.3.6, Copyright (c), by Zend Technologies
 
-ubuntu@ip-172-16-4-59:/var/www/html/drupal$ drush status
+ubuntu@ip-172-16-4-59:/var/www/html/stlouisintegration$ drush status
 Drupal version   : 11.2.2
 DB driver        : mysql
 DB hostname      : localhost
@@ -45,7 +46,7 @@ Default theme    : olivero
 Admin theme      : claro
 PHP binary       : /usr/bin/php8.3
 Drush version    : 13.6.0.0
-Drupal root      : /var/www/html/drupal
+Drupal root      : /var/www/html/stlouisintegration
 
 
 Skip giving "Immediate Fix:" solutions
