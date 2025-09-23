@@ -1,6 +1,19 @@
 ---
 applyTo: '**'
 ---
+# DEVELOPMENT PROCESS POLICY
+
+**NO QUICK FIXES**: Always follow proper diagnostic and testing procedures. Never apply band-aid solutions or workarounds without understanding the root cause. Every issue must be:
+1. Properly diagnosed with evidence gathering
+2. Root cause analysis performed
+3. Solution designed and validated
+4. Changes tested before deployment
+5. Documentation updated as needed
+
+**PROCESS OVER SPEED**: Take time to understand the system, investigate thoroughly, and implement sustainable solutions that won't create technical debt.
+
+---
+
 Provide project context and coding guidelines that AI should follow when generating code, answering questions, or reviewing changes.
 
 The environment is a Drupal 11 website repository for St. Louis Integration, a professional website focused on integration services and business solutions.
