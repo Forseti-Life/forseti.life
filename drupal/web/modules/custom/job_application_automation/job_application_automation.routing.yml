@@ -1,5 +1,13 @@
 # Job Application Automation Routes
 
+job_application_automation.home:
+  path: '/job-applications'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\JobApplicationController::home'
+    _title: 'My Job Applications'
+  requirements:
+    _user: 'TRUE'
+
 job_application_automation.dashboard:
   path: '/admin/job-applications'
   defaults:
