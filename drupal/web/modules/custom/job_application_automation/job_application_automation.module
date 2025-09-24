@@ -65,18 +65,3 @@ function job_application_automation_cron() {
   // Future implementation: Automated status checks and notifications
   \Drupal::logger('job_application_automation')->info('Cron tasks executed.');
 }
-
-/**
- * Implements hook_install().
- */
-function job_application_automation_install() {
-  \Drupal::messenger()->addMessage(t('Job Application Automation module has been installed successfully.'));
-}
-
-/**
- * Implements hook_uninstall().
- */
-function job_application_automation_uninstall() {
-  // Clean up any configuration or data when module is uninstalled
-  \Drupal::configFactory()->getEditable('job_application_automation.settings')->delete();
-}
