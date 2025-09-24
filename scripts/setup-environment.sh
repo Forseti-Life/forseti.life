@@ -209,3 +209,13 @@ print_warning "Remember to:"
 echo "- Run 'sudo mysql_secure_installation' to secure MySQL"
 echo "- Configure your database credentials"
 echo "- Set up your development domain in /etc/hosts if needed"
+
+# Test website availability
+print_status "Testing website availability..."
+if curl -s -o /dev/null -w "%{http_code}" "http://localhost" | grep -q "200\|302\|301"; then
+    print_status "✅ Website is accessible at http://localhost"
+    print_status "🌐 Homepage response: $(curl -s -w "HTTP %{http_code}" "http://localhost" | tail -n1)"
+else
+    print_warning "⚠️  Website may not be fully configured yet"
+    print_status "📝 Check Apache configuration and Drupal setup"
+fi
