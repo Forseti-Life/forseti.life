@@ -1,0 +1,4 @@
+services:
+  job_application_automation.user_profile_service:
+    class: Drupal\job_application_automation\Service\UserProfileService
+    arguments: []

@@ -12,3 +12,13 @@ home-page:
   dependencies:
     - core/drupal
     - core/jquery
+
+user_profile:
+  css:
+    theme:
+      css/user-profile.css: {}
+  js:
+    js/user-profile.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery

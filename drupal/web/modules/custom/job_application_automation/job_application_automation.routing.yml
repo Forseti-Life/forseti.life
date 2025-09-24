@@ -66,3 +66,39 @@ job_application_automation.bulk_actions:
     _title: 'Bulk Actions'
   requirements:
     _permission: 'administer job applications'
+
+# User Profile Management Routes
+job_application_automation.user_profile_dashboard:
+  path: '/user/{user}/job-profile'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\UserProfileController::dashboard'
+    _title: 'Job Application Profile'
+  requirements:
+    _permission: 'view own job application profile'
+    user: \d+
+
+job_application_automation.user_profile_edit:
+  path: '/user/{user}/job-profile/edit'
+  defaults:
+    _form: '\Drupal\job_application_automation\Form\UserProfileForm'
+    _title: 'Edit Job Application Profile'
+  requirements:
+    _permission: 'edit own job application profile'
+    user: \d+
+
+# Current user profile shortcuts
+job_application_automation.my_profile:
+  path: '/my/job-profile'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\UserProfileController::myProfile'
+    _title: 'My Job Application Profile'
+  requirements:
+    _permission: 'view own job application profile'
+
+job_application_automation.my_profile_edit:
+  path: '/my/job-profile/edit'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\UserProfileController::myProfileEdit'
+    _title: 'Edit My Job Application Profile'
+  requirements:
+    _permission: 'edit own job application profile'

@@ -125,3 +125,24 @@ manage job scraping:
 access user job applications:
   title: 'Access User Job Applications'
   description: 'Access and manage own job applications and profile.'
+
+# User Profile Management Permissions
+edit own job application profile:
+  title: 'Edit Own Job Application Profile'
+  description: 'Edit and manage own extended job application profile.'
+  
+view own job application profile:
+  title: 'View Own Job Application Profile'
+  description: 'View own job application profile dashboard and information.'
+
+view any job application profile:
+  title: 'View Any Job Application Profile'
+  description: 'View any user job application profile (admin access).'
+  
+edit any job application profile:
+  title: 'Edit Any Job Application Profile'
+  description: 'Edit any user job application profile (admin access).'
+
+manage user profiles:
+  title: 'Manage User Profiles'
+  description: 'Administrative access to user profile management and completeness tracking.'

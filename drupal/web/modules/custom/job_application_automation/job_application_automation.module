@@ -65,3 +65,114 @@ function job_application_automation_cron() {
   // Future implementation: Automated status checks and notifications
   \Drupal::logger('job_application_automation')->info('Cron tasks executed.');
 }
+
+/**
+ * Implements hook_user_login().
+ * 
+ * Display profile completeness message to users on login.
+ */
+function job_application_automation_user_login($account) {
+  // Check if user has job application profile fields
+  if ($account->hasField('field_profile_completeness')) {
+    $completeness = $account->get('field_profile_completeness')->value ?? 0;
+    
+    // Show message if profile is incomplete
+    if ($completeness < 70) {
+      $profile_url = \Drupal\Core\Url::fromRoute('job_application_automation.my_profile');
+      \Drupal::messenger()->addWarning(
+        t('Your job application profile is @percent% complete. <a href="@url">Complete your profile</a> to start applying for jobs.', [
+          '@percent' => $completeness,
+          '@url' => $profile_url->toString(),
+        ])
+      );
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_view_alter().
+ * 
+ * Add profile management links to user profile pages.
+ */
+function job_application_automation_entity_view_alter(array &$build, \Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display) {
+  if ($entity->getEntityTypeId() === 'user' && $display->getMode() === 'full') {
+    $current_user = \Drupal::currentUser();
+    
+    // Only show for the profile owner or admins
+    if ($current_user->id() == $entity->id() || $current_user->hasPermission('administer users')) {
+      $profile_url = \Drupal\Core\Url::fromRoute('job_application_automation.user_profile_dashboard', ['user' => $entity->id()]);
+      
+      $build['job_profile_link'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['job-profile-actions']],
+        '#weight' => -10,
+      ];
+      
+      $build['job_profile_link']['link'] = [
+        '#type' => 'link',
+        '#title' => t('Manage Job Application Profile'),
+        '#url' => $profile_url,
+        '#attributes' => [
+          'class' => ['button', 'button--primary', 'job-profile-button'],
+        ],
+      ];
+      
+      // Add completeness indicator if available
+      if ($entity->hasField('field_profile_completeness')) {
+        $completeness = $entity->get('field_profile_completeness')->value ?? 0;
+        $status_class = $completeness >= 70 ? 'complete' : ($completeness >= 40 ? 'partial' : 'incomplete');
+        
+        $build['job_profile_link']['status'] = [
+          '#type' => 'html_tag',
+          '#tag' => 'div',
+          '#value' => t('Profile @percent% complete', ['@percent' => $completeness]),
+          '#attributes' => [
+            'class' => ['profile-status', 'status-' . $status_class],
+          ],
+        ];
+      }
+      
+      $build['#attached']['library'][] = 'job_application_automation/user_profile';
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for user registration form.
+ * 
+ * Add link to job profile setup after registration.
+ */
+function job_application_automation_form_user_register_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+  $form['job_profile_info'] = [
+    '#type' => 'details',
+    '#title' => t('Job Application Profile'),
+    '#description' => t('After registration, you can set up your comprehensive job application profile to start applying for positions automatically.'),
+    '#open' => FALSE,
+    '#weight' => 10,
+  ];
+  
+  $form['job_profile_info']['info'] = [
+    '#type' => 'markup',
+    '#markup' => '<p>' . t('Your job application profile will include:') . '</p>
+      <ul>
+        <li>' . t('Resume upload and management') . '</li>
+        <li>' . t('Professional summary and skills') . '</li>
+        <li>' . t('Work authorization and salary preferences') . '</li>
+        <li>' . t('LinkedIn and portfolio links') . '</li>
+        <li>' . t('Job search preferences and keywords') . '</li>
+      </ul>',
+  ];
+}
+
+/**
+ * Implements hook_user_insert().
+ * 
+ * Initialize profile completeness for new users.
+ */
+function job_application_automation_user_insert(\Drupal\user\UserInterface $user) {
+  // Initialize profile completeness to 0 for new users
+  if ($user->hasField('field_profile_completeness')) {
+    $user->set('field_profile_completeness', 0);
+    $user->save();
+  }
+}
