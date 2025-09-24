@@ -65,4 +65,3 @@ function job_application_automation_cron() {
   // Future implementation: Automated status checks and notifications
   \Drupal::logger('job_application_automation')->info('Cron tasks executed.');
 }
-

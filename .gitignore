@@ -1,0 +1,90 @@
+# St. Louis Integration - Drupal Job Application Automation
+# Repository .gitignore
+
+# Drupal cache and temporary files
+drupal/web/sites/default/files/php/
+drupal/web/sites/default/files/css/
+drupal/web/sites/default/files/js/
+drupal/web/sites/default/files/styles/
+drupal/web/sites/*/files/twig/
+**/twig/
+
+# Drupal configuration and settings
+drupal/web/sites/*/settings.local.php
+drupal/web/sites/*/services.local.yml
+drupal/web/sites/*/local.settings.php
+drupal/web/.ht.router.php
+
+# Drupal log files
+drupal/web/sites/default/files/logs/
+**/logs/
+*.log
+error.log
+access.log
+
+# Drupal temporary files
+drupal/web/sites/default/files/tmp/
+drupal/web/sites/default/files/private/
+drupal/web/sites/default/files/translations/
+drupal/web/sites/default/files/config_*/
+**/tmp/
+**/temp/
+
+# System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env.local
+.env.*.local
+
+# Node modules and package files
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Apache/Nginx logs
+*_error.log
+*_access.log
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Composer cache (keep composer.json and composer.lock)
+drupal/vendor/
+drupal/composer.phar
+
+# Database dumps
+*.sql
+*.sql.gz
+*.mysql
+
+# File uploads (but allow structure)
+drupal/web/sites/default/files/*
+!drupal/web/sites/default/files/.htaccess
+!drupal/web/sites/default/files/README.txt
+
+# Drush cache
+.drush/
+
+# OS generated files
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*

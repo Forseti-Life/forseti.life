@@ -1,6 +1,6 @@
 name: 'Job Application Automation'
 type: module
-description: 'Automates job application processes including job tracking, application workflow, and integration with external services.'
+description: 'AI-powered job application automation with comprehensive job tracking, application workflow, and external service integration.'
 core_version_requirement: ^10 || ^11
 version: '1.0.0'
 package: 'St. Louis Integration'
@@ -16,6 +16,7 @@ dependencies:
   - drupal:link
   - drupal:file
   - drupal:image
+  - drupal:text
 
 configure: job_application_automation.settings
 
