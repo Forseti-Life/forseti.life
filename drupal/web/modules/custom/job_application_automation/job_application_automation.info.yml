@@ -12,10 +12,10 @@ dependencies:
   - drupal:system
   - drupal:views
   - drupal:datetime
+  - drupal:options
+  - drupal:link
   - drupal:file
   - drupal:image
-  - drupal:link
-  - drupal:options
   - drupal:text
 
 configure: job_application_automation.settings
