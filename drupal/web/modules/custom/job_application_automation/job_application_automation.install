@@ -11,6 +11,7 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\NodeType;
 use Drupal\views\Views;
+use Drupal\menu_link_content\Entity\MenuLinkContent;
 
 /**
  * Implements hook_install().
@@ -37,6 +38,9 @@ function job_application_automation_install() {
     // Set default permissions
     _job_application_automation_set_permissions();
     
+    // Create main menu links
+    _job_application_automation_create_menu_links();
+    
     $messenger->addMessage(t('Job Application Automation module has been installed successfully. All content types and fields have been created.'));
     $logger->info('Job Application Automation module installation completed successfully.');
     
@@ -57,6 +61,9 @@ function job_application_automation_uninstall() {
   
   try {
     $logger->info('Starting Job Application Automation module uninstallation...');
+    
+    // Remove menu links
+    _job_application_automation_remove_menu_links();
     
     // Remove custom configuration
     \Drupal::configFactory()->getEditable('job_application_automation.settings')->delete();
@@ -857,4 +864,96 @@ function _job_application_automation_configure_displays() {
 function _job_application_automation_set_permissions() {
   // Basic permission setup - detailed permissions should be configured by admins
   \Drupal::logger('job_application_automation')->info('Default permissions noted for admin configuration.');
+}
+
+/**
+ * Create main menu links for job application automation.
+ */
+function _job_application_automation_create_menu_links() {
+  try {
+    // Create main Job Application menu item in Admin menu
+    $menu_link = MenuLinkContent::create([
+      'title' => 'Job Applications',
+      'link' => ['uri' => 'internal:/admin/content/job-application/companies'],
+      'menu_name' => 'admin',
+      'expanded' => TRUE,
+      'weight' => 0,
+    ]);
+    $menu_link->save();
+    
+    // Create submenu items
+    $submenu_items = [
+      [
+        'title' => 'Companies',
+        'uri' => 'internal:/admin/content/job-application/companies',
+        'weight' => 0,
+        'parent' => 'menu_link_content:' . $menu_link->uuid(),
+      ],
+      [
+        'title' => 'Job Postings', 
+        'uri' => 'internal:/admin/content/job-application/job-postings',
+        'weight' => 1,
+        'parent' => 'menu_link_content:' . $menu_link->uuid(),
+      ],
+      [
+        'title' => 'Applications',
+        'uri' => 'internal:/admin/content/job-application/applications', 
+        'weight' => 2,
+        'parent' => 'menu_link_content:' . $menu_link->uuid(),
+      ],
+      [
+        'title' => 'Error Queue',
+        'uri' => 'internal:/admin/content/job-application/errors',
+        'weight' => 3,
+        'parent' => 'menu_link_content:' . $menu_link->uuid(),
+      ],
+    ];
+    
+    foreach ($submenu_items as $item) {
+      $submenu_link = MenuLinkContent::create([
+        'title' => $item['title'],
+        'link' => ['uri' => $item['uri']],
+        'menu_name' => 'admin',
+        'parent' => $item['parent'],
+        'weight' => $item['weight'],
+      ]);
+      $submenu_link->save();
+    }
+    
+    \Drupal::logger('job_application_automation')->info('Menu links created successfully.');
+    
+  } catch (Exception $e) {
+    \Drupal::logger('job_application_automation')->error('Error creating menu links: @error', ['@error' => $e->getMessage()]);
+  }
+}
+
+/**
+ * Remove menu links created by the module.
+ */
+function _job_application_automation_remove_menu_links() {
+  try {
+    // Find and remove menu links by title
+    $menu_titles = [
+      'Job Applications',
+      'Companies', 
+      'Job Postings',
+      'Applications',
+      'Error Queue'
+    ];
+    
+    foreach ($menu_titles as $title) {
+      $menu_links = \Drupal::entityTypeManager()
+        ->getStorage('menu_link_content')
+        ->loadByProperties(['title' => $title, 'menu_name' => 'admin']);
+      
+      foreach ($menu_links as $menu_link) {
+        $menu_link->delete();
+      }
+    }
+    
+    \Drupal::logger('job_application_automation')->info('Menu links removed successfully.');
+    
+  } catch (Exception $e) {
+    \Drupal::logger('job_application_automation')->error('Error removing menu links: @error', ['@error' => $e->getMessage()]);
+  }
 }
