@@ -1,0 +1,1014 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Job Application Automation module.
+ */
+
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\node\Entity\NodeType;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+
+/**
+ * Implements hook_install().
+ * 
+ * Creates all required content types, fields, and configurations when the module is installed.
+ */
+function job_application_automation_install() {
+  $messenger = \Drupal::messenger();
+  $logger = \Drupal::logger('job_application_automation');
+  
+  try {
+    // Log installation start
+    $logger->info('Job Application Automation module installation started.');
+    
+    // Create content types with fields
+    _job_application_automation_create_content_types();
+    
+    // Extend user entity with custom fields
+    _job_application_automation_create_user_fields();
+    
+    // Set up permissions
+    _job_application_automation_configure_permissions();
+    
+    // Create default configuration
+    _job_application_automation_create_default_config();
+    
+    // Create administrative views
+    require_once __DIR__ . '/job_application_automation.views.inc';
+    _job_application_automation_create_admin_views();
+    
+    // Success message
+    $messenger->addStatus(t('Job Application Automation module installed successfully. All content types and fields have been created.'));
+    $logger->info('Job Application Automation module installation completed successfully.');
+    
+  } catch (\Exception $e) {
+    $error_message = t('Error during Job Application Automation module installation: @message', ['@message' => $e->getMessage()]);
+    $messenger->addError($error_message);
+    $logger->error($error_message);
+    throw $e;
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ * 
+ * Cleans up content types, fields, and configurations when the module is uninstalled.
+ */
+function job_application_automation_uninstall() {
+  $messenger = \Drupal::messenger();
+  $logger = \Drupal::logger('job_application_automation');
+  
+  try {
+    $logger->info('Job Application Automation module uninstallation started.');
+    
+    // Remove custom user fields
+    _job_application_automation_remove_user_fields();
+    
+    // Remove content types (this will also remove associated fields)
+    _job_application_automation_remove_content_types();
+    
+    // Remove administrative views
+    require_once __DIR__ . '/job_application_automation.views.inc';
+    _job_application_automation_remove_admin_views();
+    
+    // Remove module configuration
+    \Drupal::configFactory()->getEditable('job_application_automation.settings')->delete();
+    
+    $messenger->addStatus(t('Job Application Automation module uninstalled successfully.'));
+    $logger->info('Job Application Automation module uninstallation completed successfully.');
+    
+  } catch (\Exception $e) {
+    $error_message = t('Error during Job Application Automation module uninstallation: @message', ['@message' => $e->getMessage()]);
+    $messenger->addWarning($error_message);
+    $logger->error($error_message);
+  }
+}
+
+/**
+ * Creates all required content types with their fields.
+ */
+function _job_application_automation_create_content_types() {
+  $logger = \Drupal::logger('job_application_automation');
+  
+  // Content types to create
+  $content_types = [
+    'company' => _job_application_automation_get_company_config(),
+    'job_posting' => _job_application_automation_get_job_posting_config(),
+    'application' => _job_application_automation_get_application_config(),
+    'error_queue' => _job_application_automation_get_error_queue_config(),
+  ];
+  
+  foreach ($content_types as $type_id => $config) {
+    // Check if content type already exists
+    $node_type = NodeType::load($type_id);
+    if (!$node_type) {
+      // Create content type
+      $node_type = NodeType::create([
+        'type' => $type_id,
+        'name' => $config['name'],
+        'description' => $config['description'],
+      ]);
+      $node_type->save();
+      $logger->info('Created content type: @type', ['@type' => $type_id]);
+    } else {
+      $logger->info('Content type @type already exists, skipping creation.', ['@type' => $type_id]);
+    }
+    
+    // Create fields for this content type
+    _job_application_automation_create_fields_for_content_type($type_id, $config['fields']);
+  }
+}
+
+/**
+ * Creates fields for a specific content type.
+ */
+function _job_application_automation_create_fields_for_content_type($bundle, $fields) {
+  $logger = \Drupal::logger('job_application_automation');
+  
+  foreach ($fields as $field_name => $field_config) {
+    // Create field storage if it doesn't exist
+    $field_storage = FieldStorageConfig::loadByName('node', $field_name);
+    if (!$field_storage) {
+      $field_storage = FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => $field_config['type'],
+        'settings' => $field_config['storage_settings'] ?? [],
+        'cardinality' => $field_config['cardinality'] ?? 1,
+      ]);
+      $field_storage->save();
+      $logger->info('Created field storage: @field_name', ['@field_name' => $field_name]);
+    }
+    
+    // Create field instance if it doesn't exist
+    $field = FieldConfig::loadByName('node', $bundle, $field_name);
+    if (!$field) {
+      $field = FieldConfig::create([
+        'field_storage' => $field_storage,
+        'bundle' => $bundle,
+        'label' => $field_config['label'],
+        'description' => $field_config['description'] ?? '',
+        'required' => $field_config['required'] ?? FALSE,
+        'settings' => $field_config['field_settings'] ?? [],
+      ]);
+      $field->save();
+      $logger->info('Created field instance: @field_name for @bundle', [
+        '@field_name' => $field_name, 
+        '@bundle' => $bundle
+      ]);
+    }
+  }
+}
+
+/**
+ * Get company content type configuration.
+ */
+function _job_application_automation_get_company_config() {
+  return [
+    'name' => 'Company',
+    'description' => 'Employer companies for job application automation',
+    'fields' => [
+      'field_website' => [
+        'type' => 'link',
+        'label' => 'Company Website URL',
+        'description' => 'Primary company website URL',
+        'required' => TRUE,
+        'field_settings' => [
+          'link_type' => 16, // External links only
+          'title' => 1, // Optional title
+        ],
+      ],
+      'field_careers_url' => [
+        'type' => 'link',
+        'label' => 'Career Page URL',
+        'description' => 'Career page URL for job scraping',
+        'required' => TRUE,
+        'field_settings' => [
+          'link_type' => 16, // External links only
+          'title' => 1, // Optional title
+        ],
+      ],
+      'field_description' => [
+        'type' => 'text_long',
+        'label' => 'Company Description',
+        'description' => 'Detailed company description and overview',
+        'required' => FALSE,
+      ],
+      'field_industry' => [
+        'type' => 'list_string',
+        'label' => 'Industry Category',
+        'description' => 'Primary industry classification',
+        'required' => TRUE,
+        'storage_settings' => [
+          'allowed_values' => [
+            'technology' => 'Technology',
+            'healthcare' => 'Healthcare',
+            'finance' => 'Finance',
+            'manufacturing' => 'Manufacturing',
+            'retail' => 'Retail',
+            'education' => 'Education',
+            'government' => 'Government',
+            'nonprofit' => 'Non-profit',
+            'other' => 'Other',
+          ],
+        ],
+      ],
+      'field_size' => [
+        'type' => 'list_string',
+        'label' => 'Company Size',
+        'description' => 'Number of employees',
+        'required' => TRUE,
+        'storage_settings' => [
+          'allowed_values' => [
+            'startup' => 'Startup (1-50)',
+            'small' => 'Small (51-200)',
+            'medium' => 'Medium (201-1000)',
+            'large' => 'Large (1001-5000)',
+            'enterprise' => 'Enterprise (5000+)',
+          ],
+        ],
+      ],
+      'field_active' => [
+        'type' => 'boolean',
+        'label' => 'Active Job Scraping',
+        'description' => 'Enable job scraping for this company',
+        'required' => FALSE,
+      ],
+      'field_scraping_notes' => [
+        'type' => 'text_long',
+        'label' => 'Scraping Configuration Notes',
+        'description' => 'Admin notes for scraping configuration and requirements',
+        'required' => FALSE,
+      ],
+      'field_location' => [
+        'type' => 'string',
+        'label' => 'Headquarters Location',
+        'description' => 'Primary company location',
+        'required' => FALSE,
+      ],
+      'field_company_logo' => [
+        'type' => 'image',
+        'label' => 'Company Logo',
+        'description' => 'Company logo for display purposes',
+        'required' => FALSE,
+        'field_settings' => [
+          'file_extensions' => 'png gif jpg jpeg',
+          'max_filesize' => '2 MB',
+          'max_resolution' => '800x600',
+        ],
+      ],
+    ],
+  ];
+}
+
+/**
+ * Get job posting content type configuration.
+ */
+function _job_application_automation_get_job_posting_config() {
+  return [
+    'name' => 'Job Posting',
+    'description' => 'Individual job opportunities discovered through scraping',
+    'fields' => [
+      'field_company_ref' => [
+        'type' => 'entity_reference',
+        'label' => 'Company',
+        'description' => 'Reference to the company offering this position',
+        'required' => TRUE,
+        'field_settings' => [
+          'target_type' => 'node',
+          'handler' => 'default:node',
+          'handler_settings' => [
+            'target_bundles' => ['company' => 'company'],
+          ],
+        ],
+      ],
+      'field_job_title' => [
+        'type' => 'string',
+        'label' => 'Job Title',
+        'description' => 'Position title',
+        'required' => TRUE,
+      ],
+      'field_job_description' => [
+        'type' => 'text_long',
+        'label' => 'Job Description',
+        'description' => 'Full job description and responsibilities',
+        'required' => FALSE,
+      ],
+      'field_requirements' => [
+        'type' => 'text_long',
+        'label' => 'Job Requirements',
+        'description' => 'Job requirements and qualifications',
+        'required' => FALSE,
+      ],
+      'field_salary_range' => [
+        'type' => 'string',
+        'label' => 'Salary Range',
+        'description' => 'Salary information if available',
+        'required' => FALSE,
+      ],
+      'field_location' => [
+        'type' => 'string',
+        'label' => 'Job Location',
+        'description' => 'Primary job location',
+        'required' => FALSE,
+      ],
+      'field_remote_option' => [
+        'type' => 'list_string',
+        'label' => 'Remote Work Options',
+        'description' => 'Available remote work options',
+        'required' => FALSE,
+        'storage_settings' => [
+          'allowed_values' => [
+            'remote' => 'Remote',
+            'hybrid' => 'Hybrid',
+            'onsite' => 'On-site',
+          ],
+        ],
+      ],
+      'field_employment_type' => [
+        'type' => 'list_string',
+        'label' => 'Employment Type',
+        'description' => 'Type of employment offered',
+        'required' => FALSE,
+        'storage_settings' => [
+          'allowed_values' => [
+            'fulltime' => 'Full-time',
+            'parttime' => 'Part-time',
+            'contract' => 'Contract',
+            'temporary' => 'Temporary',
+            'internship' => 'Internship',
+          ],
+        ],
+      ],
+      'field_job_url' => [
+        'type' => 'link',
+        'label' => 'Job Application URL',
+        'description' => 'Direct link to job posting',
+        'required' => FALSE,
+        'field_settings' => [
+          'link_type' => 16, // External links only
+          'title' => 1, // Optional title
+        ],
+      ],
+      'field_posting_date' => [
+        'type' => 'datetime',
+        'label' => 'Posting Date',
+        'description' => 'When the job was originally posted',
+        'required' => FALSE,
+        'field_settings' => [
+          'datetime_type' => 'date',
+        ],
+      ],
+      'field_application_deadline' => [
+        'type' => 'datetime',
+        'label' => 'Application Deadline',
+        'description' => 'Application deadline if specified',
+        'required' => FALSE,
+        'field_settings' => [
+          'datetime_type' => 'date',
+        ],
+      ],
+      'field_skills_required' => [
+        'type' => 'text_long',
+        'label' => 'Required Skills',
+        'description' => 'Extracted skills and technologies',
+        'required' => FALSE,
+      ],
+      'field_experience_level' => [
+        'type' => 'list_string',
+        'label' => 'Experience Level',
+        'description' => 'Required experience level',
+        'required' => FALSE,
+        'storage_settings' => [
+          'allowed_values' => [
+            'entry' => 'Entry Level',
+            'mid' => 'Mid Level', 
+            'senior' => 'Senior Level',
+            'executive' => 'Executive',
+            'lead' => 'Lead/Principal',
+          ],
+        ],
+      ],
+      'field_job_status' => [
+        'type' => 'list_string',
+        'label' => 'Job Status',
+        'description' => 'Current status of the job posting',
+        'required' => TRUE,
+        'storage_settings' => [
+          'allowed_values' => [
+            'active' => 'Active',
+            'applied' => 'Applied',
+            'archived' => 'Archived',
+            'expired' => 'Expired',
+          ],
+        ],
+      ],
+    ],
+  ];
+}
+
+/**
+ * Get application content type configuration.
+ */
+function _job_application_automation_get_application_config() {
+  return [
+    'name' => 'Application',
+    'description' => 'User job applications and their status',
+    'fields' => [
+      'field_user_ref' => [
+        'type' => 'entity_reference',
+        'label' => 'User',
+        'description' => 'Reference to the user who submitted the application',
+        'required' => TRUE,
+        'field_settings' => [
+          'target_type' => 'user',
+          'handler' => 'default:user',
+        ],
+      ],
+      'field_company_ref' => [
+        'type' => 'entity_reference',
+        'label' => 'Company',
+        'description' => 'Reference to the company',
+        'required' => TRUE,
+        'field_settings' => [
+          'target_type' => 'node',
+          'handler' => 'default:node',
+          'handler_settings' => [
+            'target_bundles' => ['company' => 'company'],
+          ],
+        ],
+      ],
+      'field_job_posting_ref' => [
+        'type' => 'entity_reference',
+        'label' => 'Job Posting',
+        'description' => 'Reference to the job posting',
+        'required' => FALSE,
+        'field_settings' => [
+          'target_type' => 'node',
+          'handler' => 'default:node',
+          'handler_settings' => [
+            'target_bundles' => ['job_posting' => 'job_posting'],
+          ],
+        ],
+      ],
+      'field_application_date' => [
+        'type' => 'datetime',
+        'label' => 'Application Date',
+        'description' => 'When the application was submitted',
+        'required' => TRUE,
+        'field_settings' => [
+          'datetime_type' => 'datetime',
+        ],
+      ],
+      'field_application_status' => [
+        'type' => 'list_string',
+        'label' => 'Application Status',
+        'description' => 'Current status of the application',
+        'required' => TRUE,
+        'storage_settings' => [
+          'allowed_values' => [
+            'submitted' => 'Submitted',
+            'under_review' => 'Under Review',
+            'interview_scheduled' => 'Interview Scheduled',
+            'interview_completed' => 'Interview Completed',
+            'offer_received' => 'Offer Received',
+            'rejected' => 'Rejected',
+            'withdrawn' => 'Withdrawn',
+            'archived' => 'Archived',
+          ],
+        ],
+      ],
+      'field_resume_used' => [
+        'type' => 'file',
+        'label' => 'Resume Used',
+        'description' => 'Copy of resume used for this application',
+        'required' => FALSE,
+        'field_settings' => [
+          'file_extensions' => 'pdf doc docx',
+          'max_filesize' => '5 MB',
+        ],
+      ],
+      'field_cover_letter_used' => [
+        'type' => 'file',
+        'label' => 'Cover Letter Used',
+        'description' => 'Cover letter used for this application',
+        'required' => FALSE,
+        'field_settings' => [
+          'file_extensions' => 'pdf doc docx',
+          'max_filesize' => '5 MB',
+        ],
+      ],
+      'field_notes' => [
+        'type' => 'text_long',
+        'label' => 'Application Notes',
+        'description' => 'User notes about the application',
+        'required' => FALSE,
+      ],
+      'field_automated' => [
+        'type' => 'boolean',
+        'label' => 'Automated Application',
+        'description' => 'Whether application was automated or manual',
+        'required' => FALSE,
+      ],
+      'field_tailored_content' => [
+        'type' => 'text_long',
+        'label' => 'Tailored Content',
+        'description' => 'AI-generated tailored resume content',
+        'required' => FALSE,
+      ],
+      'field_application_url' => [
+        'type' => 'link',
+        'label' => 'Application URL',
+        'description' => 'URL to employer application if available',
+        'required' => FALSE,
+        'field_settings' => [
+          'link_type' => 16, // External links only
+          'title' => 1, // Optional title
+        ],
+      ],
+    ],
+  ];
+}
+
+/**
+ * Get error queue content type configuration.
+ */
+function _job_application_automation_get_error_queue_config() {
+  return [
+    'name' => 'Error Queue',
+    'description' => 'System errors requiring admin attention',
+    'fields' => [
+      'field_company_ref' => [
+        'type' => 'entity_reference',
+        'label' => 'Company',
+        'description' => 'Reference to company node',
+        'required' => FALSE,
+        'field_settings' => [
+          'target_type' => 'node',
+          'handler' => 'default:node',
+          'handler_settings' => [
+            'target_bundles' => ['company' => 'company'],
+          ],
+        ],
+      ],
+      'field_user_ref' => [
+        'type' => 'entity_reference',
+        'label' => 'Affected User',
+        'description' => 'Reference to affected user',
+        'required' => FALSE,
+        'field_settings' => [
+          'target_type' => 'user',
+          'handler' => 'default:user',
+        ],
+      ],
+      'field_job_posting_ref' => [
+        'type' => 'entity_reference',
+        'label' => 'Job Posting',
+        'description' => 'Reference to job posting if applicable',
+        'required' => FALSE,
+        'field_settings' => [
+          'target_type' => 'node',
+          'handler' => 'default:node',
+          'handler_settings' => [
+            'target_bundles' => ['job_posting' => 'job_posting'],
+          ],
+        ],
+      ],
+      'field_error_type' => [
+        'type' => 'list_string',
+        'label' => 'Error Type',
+        'description' => 'Type of error that occurred',
+        'required' => TRUE,
+        'storage_settings' => [
+          'allowed_values' => [
+            'authentication' => 'Authentication Error',
+            'scraping' => 'Scraping Error',
+            'submission' => 'Submission Error',
+            'technical' => 'Technical Error',
+            'configuration' => 'Configuration Error',
+          ],
+        ],
+      ],
+      'field_error_message' => [
+        'type' => 'text_long',
+        'label' => 'Error Message',
+        'description' => 'Detailed error description',
+        'required' => TRUE,
+      ],
+      'field_error_data' => [
+        'type' => 'text_long',
+        'label' => 'Error Data',
+        'description' => 'Technical error data and stack traces',
+        'required' => FALSE,
+      ],
+      'field_priority' => [
+        'type' => 'list_string',
+        'label' => 'Priority',
+        'description' => 'Error priority level',
+        'required' => TRUE,
+        'storage_settings' => [
+          'allowed_values' => [
+            'low' => 'Low',
+            'medium' => 'Medium',
+            'high' => 'High',
+            'critical' => 'Critical',
+          ],
+        ],
+      ],
+      'field_status' => [
+        'type' => 'list_string',
+        'label' => 'Status',
+        'description' => 'Current status of error resolution',
+        'required' => TRUE,
+        'storage_settings' => [
+          'allowed_values' => [
+            'new' => 'New',
+            'in_progress' => 'In Progress',
+            'resolved' => 'Resolved',
+            'deferred' => 'Deferred',
+          ],
+        ],
+      ],
+      'field_assigned_admin' => [
+        'type' => 'entity_reference',
+        'label' => 'Assigned Admin',
+        'description' => 'Reference to admin user assigned to fix',
+        'required' => FALSE,
+        'field_settings' => [
+          'target_type' => 'user',
+          'handler' => 'default:user',
+        ],
+      ],
+      'field_resolution_notes' => [
+        'type' => 'text_long',
+        'label' => 'Resolution Notes',
+        'description' => 'Admin resolution documentation',
+        'required' => FALSE,
+      ],
+      'field_fixed' => [
+        'type' => 'boolean',
+        'label' => 'Fixed',
+        'description' => 'Simple checkbox for MVP queue management',
+        'required' => FALSE,
+      ],
+      'field_screenshot' => [
+        'type' => 'image',
+        'label' => 'Error Screenshot',
+        'description' => 'Screenshot of error if available',
+        'required' => FALSE,
+        'field_settings' => [
+          'file_extensions' => 'png gif jpg jpeg',
+          'max_filesize' => '5 MB',
+        ],
+      ],
+    ],
+  ];
+}
+
+/**
+ * Creates custom fields for the user entity.
+ */
+function _job_application_automation_create_user_fields() {
+  $logger = \Drupal::logger('job_application_automation');
+  
+  $user_fields = _job_application_automation_get_user_field_config();
+  
+  foreach ($user_fields as $field_name => $field_config) {
+    // Create field storage if it doesn't exist
+    $field_storage = FieldStorageConfig::loadByName('user', $field_name);
+    if (!$field_storage) {
+      $field_storage = FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'user',
+        'type' => $field_config['type'],
+        'settings' => $field_config['storage_settings'] ?? [],
+        'cardinality' => $field_config['cardinality'] ?? 1,
+      ]);
+      $field_storage->save();
+      $logger->info('Created user field storage: @field_name', ['@field_name' => $field_name]);
+    }
+    
+    // Create field instance if it doesn't exist
+    $field = FieldConfig::loadByName('user', 'user', $field_name);
+    if (!$field) {
+      $field = FieldConfig::create([
+        'field_storage' => $field_storage,
+        'bundle' => 'user',
+        'label' => $field_config['label'],
+        'description' => $field_config['description'] ?? '',
+        'required' => $field_config['required'] ?? FALSE,
+        'settings' => $field_config['field_settings'] ?? [],
+      ]);
+      $field->save();
+      $logger->info('Created user field instance: @field_name', ['@field_name' => $field_name]);
+    }
+  }
+}
+
+/**
+ * Get user field configuration for extended profile.
+ */
+function _job_application_automation_get_user_field_config() {
+  return [
+    'field_resume_file' => [
+      'type' => 'file',
+      'label' => 'Primary Resume',
+      'description' => 'Upload your primary resume file (PDF or Word format)',
+      'required' => TRUE,
+      'field_settings' => [
+        'file_extensions' => 'pdf doc docx',
+        'max_filesize' => '10 MB',
+      ],
+    ],
+    'field_professional_summary' => [
+      'type' => 'text_long',
+      'label' => 'Professional Summary',
+      'description' => 'Brief professional summary or objective statement',
+      'required' => FALSE,
+    ],
+    'field_skills_summary' => [
+      'type' => 'text_long',
+      'label' => 'Skills Summary',
+      'description' => 'Overview of your technical and professional skills',
+      'required' => FALSE,
+    ],
+    'field_work_authorization' => [
+      'type' => 'list_string',
+      'label' => 'Work Authorization',
+      'description' => 'Legal work authorization status',
+      'required' => TRUE,
+      'storage_settings' => [
+        'allowed_values' => [
+          'us_citizen' => 'US Citizen',
+          'permanent_resident' => 'Permanent Resident',
+          'h1b' => 'Work Visa (H1B)',
+          'f1' => 'Student Visa (F1)',
+          'visa_required' => 'Visa Sponsorship Required',
+          'other' => 'Other',
+        ],
+      ],
+    ],
+    'field_salary_expectation_min' => [
+      'type' => 'integer',
+      'label' => 'Minimum Salary Expectation',
+      'description' => 'Minimum acceptable salary (annual)',
+      'required' => FALSE,
+      'field_settings' => [
+        'min' => 0,
+        'max' => 999999,
+      ],
+    ],
+    'field_salary_expectation_max' => [
+      'type' => 'integer',
+      'label' => 'Maximum Salary Expectation',
+      'description' => 'Maximum salary expectation (annual)',
+      'required' => FALSE,
+      'field_settings' => [
+        'min' => 0,
+        'max' => 999999,
+      ],
+    ],
+    'field_available_start_date' => [
+      'type' => 'datetime',
+      'label' => 'Available Start Date',
+      'description' => 'Earliest date you can start work',
+      'required' => FALSE,
+      'field_settings' => [
+        'datetime_type' => 'date',
+      ],
+    ],
+    'field_remote_preference' => [
+      'type' => 'list_string',
+      'label' => 'Remote Work Preference',
+      'description' => 'Your preference for remote work arrangements',
+      'required' => FALSE,
+      'storage_settings' => [
+        'allowed_values' => [
+          'remote' => 'Remote',
+          'hybrid' => 'Hybrid',
+          'onsite' => 'On-site',
+          'no_preference' => 'No Preference',
+        ],
+      ],
+    ],
+    'field_relocation_willing' => [
+      'type' => 'boolean',
+      'label' => 'Willing to Relocate',
+      'description' => 'Are you willing to relocate for the right opportunity?',
+      'required' => FALSE,
+    ],
+    'field_keywords_interested' => [
+      'type' => 'text_long',
+      'label' => 'Job Keywords of Interest',
+      'description' => 'Keywords and job types you are interested in',
+      'required' => FALSE,
+    ],
+    'field_target_companies' => [
+      'type' => 'entity_reference',
+      'label' => 'Target Companies',
+      'description' => 'Companies you are interested in working for',
+      'required' => FALSE,
+      'cardinality' => -1, // Unlimited
+      'field_settings' => [
+        'target_type' => 'node',
+        'handler' => 'default:node',
+        'handler_settings' => [
+          'target_bundles' => ['company' => 'company'],
+        ],
+      ],
+    ],
+    'field_target_job_titles' => [
+      'type' => 'text_long',
+      'label' => 'Target Job Titles',
+      'description' => 'Desired job titles and roles',
+      'required' => FALSE,
+    ],
+    'field_experience_years' => [
+      'type' => 'integer',
+      'label' => 'Years of Experience',
+      'description' => 'Total years of professional experience',
+      'required' => FALSE,
+      'field_settings' => [
+        'min' => 0,
+        'max' => 50,
+      ],
+    ],
+    'field_education_level' => [
+      'type' => 'list_string',
+      'label' => 'Education Level',
+      'description' => 'Highest level of education completed',
+      'required' => FALSE,
+      'storage_settings' => [
+        'allowed_values' => [
+          'high_school' => 'High School',
+          'associates' => 'Associates Degree',
+          'bachelors' => 'Bachelors Degree',
+          'masters' => 'Masters Degree',
+          'doctoral' => 'Doctoral Degree',
+          'professional' => 'Professional Degree',
+        ],
+      ],
+    ],
+    'field_certifications' => [
+      'type' => 'text_long',
+      'label' => 'Professional Certifications',
+      'description' => 'Professional certifications and licenses',
+      'required' => FALSE,
+    ],
+    'field_portfolio_url' => [
+      'type' => 'link',
+      'label' => 'Portfolio URL',
+      'description' => 'Portfolio or personal website URL',
+      'required' => FALSE,
+      'field_settings' => [
+        'link_type' => 16, // External links only
+        'title' => 1, // Optional title
+      ],
+    ],
+    'field_linkedin_url' => [
+      'type' => 'link',
+      'label' => 'LinkedIn Profile URL',
+      'description' => 'Your LinkedIn profile URL',
+      'required' => FALSE,
+      'field_settings' => [
+        'link_type' => 16, // External links only
+        'title' => 1, // Optional title
+      ],
+    ],
+    'field_github_url' => [
+      'type' => 'link',
+      'label' => 'GitHub Profile URL',
+      'description' => 'Your GitHub profile URL',
+      'required' => FALSE,
+      'field_settings' => [
+        'link_type' => 16, // External links only
+        'title' => 1, // Optional title
+      ],
+    ],
+    'field_references_available' => [
+      'type' => 'boolean',
+      'label' => 'References Available',
+      'description' => 'References available upon request',
+      'required' => FALSE,
+    ],
+    'field_cover_letter_template' => [
+      'type' => 'text_long',
+      'label' => 'Cover Letter Template',
+      'description' => 'Default cover letter template for applications',
+      'required' => FALSE,
+    ],
+    'field_ai_analysis_data' => [
+      'type' => 'text_long',
+      'label' => 'AI Analysis Data',
+      'description' => 'JSON storage for AI-analyzed profile data (system use)',
+      'required' => FALSE,
+    ],
+    'field_profile_completeness' => [
+      'type' => 'integer',
+      'label' => 'Profile Completeness',
+      'description' => 'Profile completion percentage (system calculated)',
+      'required' => FALSE,
+      'field_settings' => [
+        'min' => 0,
+        'max' => 100,
+      ],
+    ],
+    'field_last_profile_update' => [
+      'type' => 'datetime',
+      'label' => 'Last Profile Update',
+      'description' => 'Last time profile was updated (system managed)',
+      'required' => FALSE,
+      'field_settings' => [
+        'datetime_type' => 'datetime',
+      ],
+    ],
+    'field_notification_preferences' => [
+      'type' => 'text_long',
+      'label' => 'Notification Preferences',
+      'description' => 'JSON storage for notification settings (system use)',
+      'required' => FALSE,
+    ],
+  ];
+}
+
+/**
+ * Removes custom user fields during uninstall.
+ */
+function _job_application_automation_remove_user_fields() {
+  $logger = \Drupal::logger('job_application_automation');
+  $user_fields = _job_application_automation_get_user_field_config();
+  
+  foreach (array_keys($user_fields) as $field_name) {
+    // Remove field instance
+    $field = FieldConfig::loadByName('user', 'user', $field_name);
+    if ($field) {
+      $field->delete();
+      $logger->info('Removed user field instance: @field_name', ['@field_name' => $field_name]);
+    }
+    
+    // Remove field storage
+    $field_storage = FieldStorageConfig::loadByName('user', $field_name);
+    if ($field_storage) {
+      $field_storage->delete();
+      $logger->info('Removed user field storage: @field_name', ['@field_name' => $field_name]);
+    }
+  }
+}
+
+/**
+ * Removes content types during uninstall.
+ */
+function _job_application_automation_remove_content_types() {
+  $logger = \Drupal::logger('job_application_automation');
+  $content_types = ['company', 'job_posting', 'application', 'error_queue'];
+  
+  foreach ($content_types as $type_id) {
+    $node_type = NodeType::load($type_id);
+    if ($node_type) {
+      $node_type->delete();
+      $logger->info('Removed content type: @type', ['@type' => $type_id]);
+    }
+  }
+}
+
+/**
+ * Configures permissions for the module.
+ */
+function _job_application_automation_configure_permissions() {
+  // Permissions will be handled by the permissions.yml file
+  // This is a placeholder for any dynamic permission setup
+}
+
+/**
+ * Creates default module configuration.
+ */
+function _job_application_automation_create_default_config() {
+  $config = \Drupal::configFactory()->getEditable('job_application_automation.settings');
+  
+  $default_settings = [
+    'api_keys' => [
+      'openai' => '',
+      'scraping_service' => '',
+    ],
+    'scraping_settings' => [
+      'rate_limit' => 10,
+      'user_agent' => 'Job Application Automation Bot 1.0',
+      'timeout' => 30,
+    ],
+    'notification_settings' => [
+      'admin_email' => \Drupal::config('system.site')->get('mail'),
+      'error_notifications' => TRUE,
+      'success_notifications' => FALSE,
+    ],
+    'general_settings' => [
+      'max_applications_per_day' => 10,
+      'require_resume_upload' => TRUE,
+      'auto_archive_old_applications' => TRUE,
+    ],
+  ];
+  
+  $config->setData($default_settings)->save();
+}
