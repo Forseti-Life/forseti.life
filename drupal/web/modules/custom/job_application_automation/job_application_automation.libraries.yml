@@ -1,0 +1,14 @@
+global-styling:
+  css:
+    theme:
+      css/job_application_automation.css: {}
+  dependencies:
+    - core/drupal
+
+home-page:
+  css:
+    theme:
+      css/job_application_automation.css: {}
+  dependencies:
+    - core/drupal
+    - core/jquery

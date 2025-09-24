@@ -15,98 +15,140 @@ class JobApplicationController extends ControllerBase {
    * Returns a home page for authenticated users.
    *
    * @return array
-   *   A simple renderable array with basic information about the module.
+   *   A simple renderable array with Hello World message.
    */
   public function home() {
-    $current_user = $this->currentUser();
-    
-    $build = [];
-    $build['#markup'] = '<div class="job-application-home">';
-    $build['#markup'] .= '<h2>Welcome to Job Application Automation</h2>';
-    $build['#markup'] .= '<p>Hello, ' . $current_user->getDisplayName() . '!</p>';
-    $build['#markup'] .= '<p>This system helps you track and manage job applications efficiently.</p>';
-    
-    // Add some basic navigation for authenticated users
-    $build['#markup'] .= '<h3>Available Actions:</h3>';
-    $build['#markup'] .= '<ul>';
-    
-    // Check if user has permission to view job applications
-    if ($current_user->hasPermission('view job applications')) {
-      $build['#markup'] .= '<li>View your job applications</li>';
-    }
-    
-    // Check if user has permission to create job applications
-    if ($current_user->hasPermission('create job applications')) {
-      $add_url = Url::fromRoute('job_application_automation.add');
-      $add_link = Link::fromTextAndUrl('Create new job application', $add_url);
-      $build['#markup'] .= '<li>' . $add_link->toString() . '</li>';
-    }
-    
-    // Check if user has admin permissions
-    if ($current_user->hasPermission('administer job applications')) {
-      $dashboard_url = Url::fromRoute('job_application_automation.dashboard');
-      $dashboard_link = Link::fromTextAndUrl('Access Admin Dashboard', $dashboard_url);
-      $build['#markup'] .= '<li>' . $dashboard_link->toString() . '</li>';
-    }
-    
-    $build['#markup'] .= '</ul>';
-    
-    // Add some basic information about the system
-    $build['#markup'] .= '<h3>Features:</h3>';
-    $build['#markup'] .= '<ul>';
-    $build['#markup'] .= '<li>Track job application status and progress</li>';
-    $build['#markup'] .= '<li>Automated workflow management</li>';
-    $build['#markup'] .= '<li>Integration with external job boards</li>';
-    $build['#markup'] .= '<li>Comprehensive reporting and analytics</li>';
-    $build['#markup'] .= '</ul>';
-    
-    $build['#markup'] .= '</div>';
-    
-    return $build;
+    return [
+      '#markup' => '<h1>Hello World!</h1><p>Job Application Automation Module is working for regular users!</p><p>Welcome, you are logged in successfully!</p>',
+    ];
   }
 
   /**
    * Returns an administrative dashboard for job applications.
    *
    * @return array
-   *   A renderable array for the administrative dashboard.
+   *   A comprehensive renderable array for the administrative dashboard.
    */
   public function dashboard() {
     $build = [];
-    $build['#markup'] = '<div class="job-application-dashboard">';
-    $build['#markup'] .= '<h2>Job Application Administrative Dashboard</h2>';
-    $build['#markup'] .= '<p>Welcome to the administrative interface for job application management.</p>';
     
-    // Add dashboard sections
-    $build['#markup'] .= '<div class="dashboard-sections">';
+    // Attach our custom CSS library
+    $build['#attached']['library'][] = 'job_application_automation/home-page';
     
-    $build['#markup'] .= '<div class="dashboard-section">';
-    $build['#markup'] .= '<h3>Quick Stats</h3>';
-    $build['#markup'] .= '<p>Total Applications: <strong>0</strong></p>';
-    $build['#markup'] .= '<p>Active Applications: <strong>0</strong></p>';
-    $build['#markup'] .= '<p>Completed Applications: <strong>0</strong></p>';
-    $build['#markup'] .= '</div>';
+    // Dashboard Header
+    $build['header'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => ['class' => ['job-application-hero']],
+      '#value' => '<h1>Administrative Dashboard</h1>
+                   <div class="subtitle">Comprehensive Job Application Management Center</div>',
+    ];
     
-    $build['#markup'] .= '<div class="dashboard-section">';
-    $build['#markup'] .= '<h3>Recent Activity</h3>';
-    $build['#markup'] .= '<p>No recent activity to display.</p>';
-    $build['#markup'] .= '</div>';
+    // Quick Stats Section
+    $build['stats'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => ['class' => ['stats-overview']],
+      '#value' => '<div class="stat-card">
+                     <div class="stat-number">0</div>
+                     <div class="stat-label">Total Applications</div>
+                   </div>
+                   <div class="stat-card">
+                     <div class="stat-number">0</div>
+                     <div class="stat-label">Active Applications</div>
+                   </div>
+                   <div class="stat-card">
+                     <div class="stat-number">0</div>
+                     <div class="stat-label">Pending Reviews</div>
+                   </div>
+                   <div class="stat-card">
+                     <div class="stat-number">0</div>
+                     <div class="stat-label">This Month</div>
+                   </div>',
+    ];
     
-    $build['#markup'] .= '<div class="dashboard-section">';
-    $build['#markup'] .= '<h3>Administrative Actions</h3>';
-    
-    // Add action links
+    // Administrative Actions
     $add_url = Url::fromRoute('job_application_automation.add');
-    $add_link = Link::fromTextAndUrl('Add New Job Application', $add_url);
-    $build['#markup'] .= '<p>' . $add_link->toString() . '</p>';
+    $settings_url = Url::fromRoute('job_application_automation.settings');
     
-    $build['#markup'] .= '<p><em>Additional management features will be available as the module develops.</em></p>';
-    $build['#markup'] .= '</div>';
+    $build['actions'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => ['class' => ['quick-actions']],
+      '#value' => '<h3>Administrative Actions</h3>
+                   <div class="action-buttons">
+                     <a href="' . $add_url->toString() . '" class="action-button primary">+ Add New Application</a>
+                     <a href="#" class="action-button">View All Applications</a>
+                     <a href="' . $settings_url->toString() . '" class="action-button secondary">System Settings</a>
+                     <a href="#" class="action-button">Export Reports</a>
+                   </div>',
+    ];
     
-    $build['#markup'] .= '</div>'; // Close dashboard-sections
-    $build['#markup'] .= '</div>'; // Close dashboard
+    // Management Features Grid
+    $build['management'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => ['class' => ['features-grid']],
+      '#value' => '<div class="feature-card">
+                     <h3>Application Management</h3>
+                     <p>View, edit, and manage all job applications in the system. Monitor status changes and track progress across all users.</p>
+                   </div>
+                   <div class="feature-card">
+                     <h3>User Permissions</h3>
+                     <p>Configure user access levels and permissions for different aspects of the job application system.</p>
+                   </div>
+                   <div class="feature-card">
+                     <h3>System Configuration</h3>
+                     <p>Customize application workflows, notification settings, and integration parameters.</p>
+                   </div>
+                   <div class="feature-card">
+                     <h3>Reporting & Analytics</h3>
+                     <p>Generate comprehensive reports and analyze job application trends and performance metrics.</p>
+                   </div>',
+    ];
+    
+    // Recent Activity Section (placeholder)
+    $build['recent_activity'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => ['class' => ['no-applications']],
+      '#value' => '<h4>Recent Activity</h4>
+                   <p>No recent activity to display. Application activity will appear here as users interact with the system.</p>',
+    ];
+    
+    // Main container wrapper
+    $build['#prefix'] = '<div class="job-application-home">';
+    $build['#suffix'] = '</div>';
     
     return $build;
+  }
+
+  /**
+   * View a specific job application.
+   *
+   * @param mixed $job_application
+   *   The job application entity.
+   *
+   * @return array
+   *   A renderable array for the job application view.
+   */
+  public function view($job_application) {
+    return [
+      '#markup' => '<h2>Job Application View</h2><p>Details for job application ID: ' . $job_application . '</p>',
+    ];
+  }
+
+  /**
+   * Get the title for a job application.
+   *
+   * @param mixed $job_application
+   *   The job application entity.
+   *
+   * @return string
+   *   The title for the job application.
+   */
+  public function getTitle($job_application) {
+    return 'Job Application #' . $job_application;
   }
 
 }

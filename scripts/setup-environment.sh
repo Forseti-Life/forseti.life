@@ -59,20 +59,25 @@ else
 fi
 
 # Install required PHP extensions
-print_status "Installing required PHP extensions..."
-sudo apt install -y \
-    php8.3-mysql \
-    php8.3-gd \
-    php8.3-xml \
-    php8.3-mbstring \
-    php8.3-curl \
-    php8.3-zip \
-    php8.3-bcmath \
-    php8.3-json \
-    php8.3-tokenizer \
-    php8.3-fileinfo \
-    php8.3-intl \
-    php8.3-opcache
+print_status "Checking PHP extensions..."
+REQUIRED_EXTENSIONS=("mysql" "gd" "xml" "mbstring" "curl" "zip" "bcmath" "json" "tokenizer" "fileinfo" "intl" "opcache")
+MISSING_EXTENSIONS=()
+
+for ext in "${REQUIRED_EXTENSIONS[@]}"; do
+    if ! php -m | grep -q "^$ext$"; then
+        MISSING_EXTENSIONS+=("php8.3-$ext")
+        print_warning "PHP extension '$ext' is missing"
+    else
+        print_status "PHP extension '$ext' is already installed"
+    fi
+done
+
+if [ ${#MISSING_EXTENSIONS[@]} -gt 0 ]; then
+    print_status "Installing missing PHP extensions: ${MISSING_EXTENSIONS[*]}"
+    sudo apt install -y "${MISSING_EXTENSIONS[@]}"
+else
+    print_status "All required PHP extensions are already installed"
+fi
 
 # Install Composer
 print_status "Checking Composer installation..."
@@ -128,13 +133,25 @@ else
 fi
 
 # Install additional development tools
-print_status "Installing additional development tools..."
-sudo apt install -y \
-    unzip \
-    wget \
-    curl \
-    vim \
-    htop
+print_status "Checking additional development tools..."
+TOOLS=("unzip" "wget" "curl" "vim" "htop")
+MISSING_TOOLS=()
+
+for tool in "${TOOLS[@]}"; do
+    if ! command -v "$tool" &> /dev/null; then
+        MISSING_TOOLS+=("$tool")
+        print_warning "Tool '$tool' is missing"
+    else
+        print_status "Tool '$tool' is already installed"
+    fi
+done
+
+if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
+    print_status "Installing missing development tools: ${MISSING_TOOLS[*]}"
+    sudo apt install -y "${MISSING_TOOLS[@]}"
+else
+    print_status "All development tools are already installed"
+fi
 
 # Set up PHP configuration for development
 print_status "Configuring PHP for development..."
@@ -156,12 +173,19 @@ fi
 
 # Start services
 print_status "Starting services..."
-sudo systemctl start mysql
-sudo systemctl start apache2
-
-print_status "Enabling services to start on boot..."
-sudo systemctl enable mysql
-sudo systemctl enable apache2
+if command -v systemctl &> /dev/null && systemctl is-system-running &> /dev/null; then
+    sudo systemctl start mysql
+    sudo systemctl start apache2
+    
+    print_status "Enabling services to start on boot..."
+    sudo systemctl enable mysql
+    sudo systemctl enable apache2
+else
+    print_status "Using service command (systemd not available)..."
+    sudo service mysql start
+    sudo service apache2 start
+    print_status "Services started (auto-enable not available in container)"
+fi
 
 # Verify installations
 print_status "Verifying installations..."
