@@ -26,9 +26,9 @@ job_application_automation.applications:
   parent: job_application_automation.admin
   weight: 2
 
-job_application_automation.error_queue:
-  title: 'Error Queue'
-  route_name: view.job_application_error_queue.page_1
+job_application_automation.issues:
+  title: 'Issues'
+  route_name: view.job_application_issues.page_1
   description: 'Manage system errors'
   parent: job_application_automation.admin
   weight: 3

@@ -81,29 +81,29 @@ view application content:
   description: 'View published application content.'
 
 # Error queue content type permissions
-create error_queue content:
-  title: 'Create Error Queue Content'
-  description: 'Create new error queue entries.'
-
-edit own error_queue content:
-  title: 'Edit Own Error Queue Content'
-  description: 'Edit own error queue content.'
-
-edit any error_queue content:
-  title: 'Edit Any Error Queue Content'
-  description: 'Edit any error queue content.'
-
-delete own error_queue content:
-  title: 'Delete Own Error Queue Content'
-  description: 'Delete own error queue content.'
-
-delete any error_queue content:
-  title: 'Delete Any Error Queue Content'
-  description: 'Delete any error queue content.'
-
-view error_queue content:
-  title: 'View Error Queue Content'
-  description: 'View error queue entries.'
+create issue content:
+  title: 'Create issue content'
+  description: 'Create new issue content'
+  
+edit own issue content:
+  title: 'Edit own issue content'
+  description: 'Edit own issue content'
+  
+edit any issue content:
+  title: 'Edit any issue content'
+  description: 'Edit any issue content'
+  
+delete own issue content:
+  title: 'Delete own issue content'
+  description: 'Delete own issue content'
+  
+delete any issue content:
+  title: 'Delete any issue content'
+  description: 'Delete any issue content'
+  
+view issue content:
+  title: 'View issue content'
+  description: 'View published issue content'
 
 # Workflow and management permissions
 manage job application workflow:

@@ -91,9 +91,9 @@ function _job_application_automation_create_content_types() {
       'label' => 'Application',
       'description' => 'User job applications and their status',
     ],
-    'error_queue' => [
-      'label' => 'Error Queue',
-      'description' => 'System errors requiring admin attention',
+    'issue' => [
+      'label' => 'Issue',
+      'description' => 'Support requests and system issues requiring attention',
     ],
   ];
 
@@ -525,7 +525,7 @@ function _job_application_automation_get_field_definitions() {
           'required' => FALSE,
         ],
       ],
-      'error_queue' => [
+      'issue' => [
         'field_company_ref' => [
           'type' => 'entity_reference',
           'label' => 'Company',

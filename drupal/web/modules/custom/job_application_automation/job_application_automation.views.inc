@@ -18,7 +18,7 @@ function _job_application_automation_create_admin_views() {
     'admin_companies' => _job_application_automation_get_companies_view_config(),
     'admin_job_postings' => _job_application_automation_get_job_postings_view_config(),
     'admin_applications' => _job_application_automation_get_applications_view_config(),
-    'admin_error_queue' => _job_application_automation_get_error_queue_view_config(),
+    'admin_issues' => _job_application_automation_get_issues_view_config(),
   ];
   
   foreach ($views_configs as $view_id => $config) {
@@ -553,13 +553,13 @@ function _job_application_automation_get_applications_view_config() {
 }
 
 /**
- * Get configuration for Error Queue administrative view.
+ * Get configuration for Issues administrative view.
  */
-function _job_application_automation_get_error_queue_view_config() {
+function _job_application_automation_get_issues_view_config() {
   return [
     'langcode' => 'en',
     'status' => TRUE,
-    'id' => 'admin_error_queue',
+    'id' => 'admin_issues',
     'label' => 'Admin: Error Queue',
     'module' => 'views',
     'description' => 'Administrative view for managing error queue items',
@@ -602,7 +602,7 @@ function _job_application_automation_get_error_queue_view_config() {
               'plugin_id' => 'bundle',
               'operator' => 'in',
               'value' => [
-                'error_queue' => 'error_queue',
+                'issue' => 'issue',
               ],
               'group' => 1,
               'exposed' => FALSE,
@@ -645,7 +645,7 @@ function _job_application_automation_get_error_queue_view_config() {
  */
 function _job_application_automation_remove_admin_views() {
   $logger = \Drupal::logger('job_application_automation');
-  $view_ids = ['admin_companies', 'admin_job_postings', 'admin_applications', 'admin_error_queue'];
+  $view_ids = ['admin_companies', 'admin_job_postings', 'admin_applications', 'admin_issues'];
   
   foreach ($view_ids as $view_id) {
     $view = View::load($view_id);
