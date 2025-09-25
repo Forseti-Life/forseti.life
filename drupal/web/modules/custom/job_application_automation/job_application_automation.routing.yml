@@ -42,13 +42,13 @@ job_application_automation.view:
     _permission: 'view job applications'
     _entity_access: 'job_application.view'
 
-job_application_automation.settings:
-  path: '/admin/config/services/job-application-automation'
-  defaults:
-    _form: '\Drupal\job_application_automation\Form\SettingsForm'
-    _title: 'Job Application Automation Settings'
-  requirements:
-    _permission: 'administer job application automation'
+# job_application_automation.settings:
+#   path: '/admin/config/services/job-application-automation'
+#   defaults:
+#     _form: '\Drupal\job_application_automation\Form\SettingsForm'
+#     _title: 'Job Application Automation Settings'
+#   requirements:
+#     _permission: 'administer job application automation'
 
 job_application_automation.workflow:
   path: '/admin/job-applications/workflow/{job_application}'

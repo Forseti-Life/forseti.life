@@ -5,6 +5,46 @@ This document outlines the architecture for the Job Application Automation modul
 
 **⚠️ IMPORTANT: This document must be read and understood before beginning any development work on this module.**
 
+## 🏗️ **CORE DEVELOPMENT PRINCIPLES** 
+
+### **Drupal-Native Architecture - MANDATORY**
+This module MUST follow Drupal best practices and utilize built-in functionality:
+
+#### ✅ **REQUIRED: Use Native Drupal Systems**
+- **Content Storage**: Use **NODES** with custom fields for all data storage (Company, Job Posting, Application, Issue)
+- **User Interface**: Use **DEFAULT DRUPAL FORMS** (`/node/add`, `/node/edit`) for content creation/editing  
+- **Data Display**: Use **VIEWS MODULE** for all listing and administrative interfaces
+- **User Profiles**: Extend **USER ENTITY** with custom fields, use default user edit forms
+- **Permissions**: Use **DRUPAL'S PERMISSION SYSTEM** for access control
+- **File Management**: Use **DRUPAL'S FILE SYSTEM** with managed files and field attachments
+- **Configuration**: Use **CONFIGURATION MANAGEMENT** for exportable settings
+
+#### 🚫 **AVOID: Custom Development Unless Absolutely Necessary**
+- **No Custom Controllers** unless explicitly required for automation/API integrations
+- **No Custom Forms** - use Drupal's node forms with form_alter hooks if customization needed
+- **No Custom Pages** - use Views for listing pages, node pages for detail views
+- **No Custom Services** - use existing Drupal services and extend via dependency injection only when required
+- **No Custom Database Tables** - use content entities (nodes) with fields for all data
+
+#### 🎯 **Implementation Strategy**
+1. **Content-First**: Create content types with appropriate fields
+2. **Views-Second**: Create Views for administrative and user interfaces  
+3. **Forms-Third**: Customize existing forms only if default behavior insufficient
+4. **Custom Code-Last**: Add custom code only for automation, API integration, or complex business logic
+
+#### 📋 **Validation Checklist**
+Before implementing any custom code, verify:
+- [ ] Can this be accomplished with content types and fields?
+- [ ] Can this be displayed using Views?
+- [ ] Can this use default Drupal forms?
+- [ ] Is custom code absolutely necessary for core functionality?
+
+### **User Experience Standards**
+- Users create/manage content via **standard Drupal node forms** (`/node/add/company`, `/node/edit/123`)
+- Administrators manage content via **Views-based interfaces** (`/admin/content`)
+- All data accessible via **standard Drupal APIs** (REST, JSON:API when needed)
+- Configuration managed via **Drupal's admin interface** and exported configurations
+
 ## Development Status Legend
 - **[TODO]** - Feature needs to be implemented
 - **[TODO - MVP PRIORITY]** - Critical MVP feature requiring immediate implementation
@@ -1214,27 +1254,41 @@ The AI system calculates profile completeness based on:
 *This entire flow is noted but not implemented in MVP.* **[SHELVED]**
 
 ### Flow 11: Web Scraping Maintenance & Updates Process (MVP Priority) **[TODO - MVP PRIORITY]**
+**WEB SCRAPING SOLUTION: Diffbot API Integration**
+**API Configuration**: Environment variable storage for Diffbot API authentication
 
-#### MVP Implementation: Single Employer Focus
-**Scraping Development Priority:**
-1. **Single Employer Implementation:**
-   - Focus on completing one employer's scraping and submission automation
-   - Perfect the process for one company before expanding to others
-   - Manual handling of scraping rule updates initially
-   - Basic error detection and admin notification
+#### **Diffbot Implementation Strategy:**
+- **Primary Solution**: Diffbot API for all career page data extraction
+- **API Authentication**: Secure environment variable configuration (never hardcoded)
+- **Job Data Extraction**: Utilize Diffbot's Job Board API for career portal scraping
+- **Content Analysis**: Leverage Diffbot's Natural Language Processing for job description analysis
+- **Structured Data**: Receive JSON-formatted job data directly from Diffbot API
 
-**MVP Scraping Features:**
-- Single employer job discovery and parsing
-- Basic job posting storage and user notification
-- Simple automated application submission for one employer
-- Manual scraping rule updates when employer website changes
+#### MVP Implementation: Single Employer Focus (Johnson & Johnson)
+**Diffbot Scraping Development Priority:**
+1. **Single Employer Implementation with Diffbot:**
+   - Configure Diffbot API for Johnson & Johnson career portal (https://www.careers.jnj.com/en/)
+   - Use Diffbot's Article API for job posting content extraction
+   - Implement Diffbot webhook integration for real-time job updates
+   - Store Diffbot API responses in Job Posting content type nodes
 
-**Development Approach:**
-1. Select one target employer for initial implementation
-2. Build complete scraping, analysis, and submission workflow for that employer
-3. Test and refine automation process thoroughly
-4. Document lessons learned for scaling to additional employers
-5. Use insights to build scalable scraping framework **[TODO]**
+**MVP Diffbot Features:**
+- Johnson & Johnson job discovery through Diffbot API calls
+- Structured job posting data storage in Drupal nodes
+- Real-time job updates via Diffbot webhook notifications
+- Automated job categorization using Diffbot's content analysis
+
+**Diffbot Development Approach:**
+1. **API Configuration**: Set up Diffbot API credentials in environment variables
+2. **J&J Integration**: Configure Diffbot crawling for Johnson & Johnson career portal
+3. **Data Processing**: Map Diffbot API responses to Drupal Job Posting fields
+4. **Webhook Setup**: Implement Diffbot webhook receivers for job updates
+5. **Error Handling**: Implement Diffbot API error logging and retry mechanisms
+
+**Security Requirements:**
+- **API Key Management**: Store Diffbot API key in secure environment variables only
+- **Access Control**: Restrict API key access to authorized system processes only
+- **Monitoring**: Log all Diffbot API usage for billing and performance tracking
 
 #### Phase 2+ (Future Enhancement): Multi-Employer Scaling **[SHELVED]**
 *Future implementation will address:* **[SHELVED]**
@@ -1319,6 +1373,212 @@ The AI system calculates profile completeness based on:
 **Note:** Third-party integrations are placeholder for future implementation phases. **[SHELVED]**
 
 *This flow is noted but not included in MVP scope.* **[SHELVED]**
+
+### Flow 16: Individual Company Job Search Process **[TODO - MVP PRIORITY]**
+**TARGET IMPLEMENTATION: Johnson & Johnson (J&J)**
+**Company Career Portal**: https://www.careers.jnj.com/en/
+
+#### Process Overview
+This flow enables users to perform targeted job searches specifically for Johnson & Johnson opportunities through the Drupal-native interface, utilizing Company and Job Posting content type nodes with direct integration to J&J's career portal data.
+
+#### **Johnson & Johnson Implementation Specifications:**
+- **Company Node**: Create J&J company node with career portal URL field
+- **Diffbot Integration**: Configure Diffbot API for https://www.careers.jnj.com/en/ data extraction
+- **Job Posting Nodes**: Store J&J opportunities as individual content nodes via Diffbot API responses
+- **Real-time Updates**: Implement Diffbot webhooks for automatic J&J job updates
+- **Structured Data**: Utilize Diffbot's parsed JSON format for consistent job data structure
+
+#### **Diffbot API Configuration for J&J:**
+- **API Endpoint**: Diffbot Article API for J&J job posting extraction
+- **Webhook Setup**: Real-time notifications for new J&J job postings
+- **Data Mapping**: Diffbot JSON response fields → Drupal Job Posting node fields
+- **Update Frequency**: Automated daily crawls with webhook-triggered immediate updates
+- **Security**: Environment variable storage for Diffbot API authentication
+
+#### **Drupal-Native Implementation Requirements:**
+- **Company Data**: Use Company content type node for Johnson & Johnson profile
+- **Job Storage**: Use Job Posting content type nodes for J&J opportunities
+- **Search Interface**: Use Views module with J&J-specific exposed filters
+- **User Interaction**: Standard Drupal node view pages for J&J job details
+
+#### Step 1: Johnson & Johnson Company Selection & Search Initiation
+**User Actions:**
+1. Navigate to Johnson & Johnson company node page (`/node/[j&j-company-id]`)
+2. Access J&J-specific job search through company node view
+3. Configure search parameters using J&J career categories (Healthcare, Pharmaceutical, Medical Devices, Consumer Products)
+4. Apply location filters specific to J&J global offices
+
+**System Actions:**
+- Display Johnson & Johnson company node with career portal integration
+- Generate filtered View of J&J job posting nodes from career portal data
+- Apply J&J-specific search filters (business units, experience levels, locations)
+- Log J&J job search activity for user preference learning
+
+**Johnson & Johnson Data Structure:**
+```
+J&J Company Node → J&J Job Posting Nodes → Filtered J&J Jobs View → Individual J&J Job Pages
+```
+
+**J&J-Specific Field Configuration:**
+- **Company Node Fields**: 
+  - `field_careers_url`: https://www.careers.jnj.com/en/
+  - `field_company_sectors`: Healthcare, Pharmaceutical, Medical Devices, Consumer
+  - `field_global_locations`: New Brunswick NJ, Europe, Asia-Pacific, Americas
+- **Job Posting Node Fields**:
+  - `field_jnj_business_unit`: Janssen, J&J MedTech, J&J Innovative Medicine, Kenvue
+  - `field_jnj_job_category`: R&D, Manufacturing, Sales, Marketing, Operations, IT
+  - `field_jnj_career_level`: Entry, Experienced, Manager, Director, Executive
+
+#### Step 2: Johnson & Johnson Job Discovery & Results Processing
+**User Actions:**
+1. Review J&J job posting nodes returned by filtered View
+2. Use J&J-specific search filters (business unit, therapeutic area, location)
+3. Access individual J&J job posting detail pages (`/node/[jnj-job-id]`)
+4. Compare J&J opportunities across different business divisions
+5. Access original J&J career portal links for additional job details
+
+**System Actions:**
+- Execute View queries against J&J Job Posting content type nodes
+- Apply field-based filtering for J&J-specific job requirements and locations
+- Display J&J results using standard Drupal theming with J&J branding elements
+- Track user J&J job search behavior through Drupal's analytics hooks
+- Maintain synchronization with https://www.careers.jnj.com/en/ job data
+
+**J&J-Specific Data Processing:**
+- **Job Categorization**: Filter by J&J business units (Janssen Pharmaceuticals, J&J MedTech, etc.)
+- **Therapeutic Areas**: Filter by healthcare specializations (Oncology, Immunology, Neuroscience)
+- **Career Levels**: Match user experience to J&J career progression paths
+- **Location Matching**: Cross-reference user location preferences with J&J global offices
+
+#### Step 3: J&J Search Results Management & Career Portal Integration
+**User Actions:**
+1. Review J&J search results using standard Drupal pagination and sorting
+2. Access detailed J&J job information through node view pages
+3. Use native Drupal bookmarking for J&J job interest tracking
+4. Navigate to original J&J career portal for official application submission
+5. Save J&J application preferences for future search refinement
+
+**System Actions:**
+- Maintain J&J search state through Drupal's session management
+- Update user J&J search history using node access logging
+- Track J&J job interaction metrics through standard Drupal hooks
+- Prepare J&J-specific application data for submission process integration
+
+**Johnson & Johnson Integration Points:**
+- **Career Portal Sync**: Regular synchronization with https://www.careers.jnj.com/en/
+- **Job Data Accuracy**: Maintain current J&J job posting information
+- **Application Referral**: Direct users to official J&J application process
+- **Preference Learning**: Track user J&J job preferences for improved matching
+
+**Technical Specifications:**
+- **Views Configuration**: J&J-specific exposed filters for business unit, location, career level
+- **Content Relationships**: Entity reference fields linking J&J Job Posting → J&J Company node
+- **Performance**: Implement Views caching for frequently accessed J&J job searches
+- **User Experience**: J&J-branded theming elements within standard Drupal interface
+- **Diffbot Integration**: Diffbot API configuration for automated https://www.careers.jnj.com/en/ data extraction
+- **Real-time Updates**: Diffbot webhook processing for immediate job posting updates
+- **API Security**: Environment variable storage for Diffbot API key (never hardcoded)
+
+### Flow 17: Individual Company Job Application Process **[TODO - MVP PRIORITY]**
+**TARGET IMPLEMENTATION: Johnson & Johnson (J&J) Applications**
+**Integration Point**: https://www.careers.jnj.com/en/ application system
+
+#### Process Overview  
+This flow manages the complete job application submission process for Johnson & Johnson opportunities using Drupal's native content creation and management system, with integration points to J&J's official application portal.
+
+#### **Johnson & Johnson Application Integration:**
+- **J&J Application Preparation**: Use Application content type nodes for J&J-specific applications
+- **Career Portal Integration**: Maintain references to official J&J application URLs
+- **J&J-Specific Data**: Capture J&J business unit, therapeutic area, and position-specific requirements
+- **Application Tracking**: Monitor J&J application status through both internal and external systems
+
+#### **Drupal-Native Implementation Requirements:**
+- **Application Storage**: Use Application content type nodes (`/node/add/application`)
+- **Form Processing**: Use default Drupal node creation forms
+- **Status Tracking**: Use field values and node status for application management
+- **File Management**: Use Drupal's managed file system for resume/cover letter attachments
+
+#### Step 1: Application Initiation
+**User Actions:**
+1. From Job Posting node page, click "Apply" link
+2. Navigate to Application node creation form (`/node/add/application`)
+3. Review pre-populated application data from user profile fields
+4. Verify job posting and company information auto-referenced in form
+
+**System Actions:**
+- Pre-populate Application node form with user entity field data
+- Auto-reference selected Job Posting node and related Company node
+- Validate user profile completeness for application readiness
+- Initialize application status as "Draft" using field default values
+
+**Drupal Implementation:**
+- **Form Pre-population**: Use form_alter hooks to populate fields from user entity
+- **Entity References**: Auto-populate Company and Job Posting references
+- **Validation**: Use field validation rules for required application data
+- **Draft Saving**: Use Drupal's node save functionality for draft applications
+
+#### Step 2: Application Data Completion
+**User Actions:**
+1. Complete application form fields using standard Drupal form interface
+2. Upload tailored resume using managed file field
+3. Upload customized cover letter using managed file field
+4. Add application-specific notes in text field
+5. Review application completeness before submission
+
+**System Actions:**
+- Validate all required fields using Drupal's form validation system
+- Process file uploads through Drupal's managed file system
+- Store application data in Application content type node
+- Calculate application completeness score using field validation
+
+**Data Validation (Drupal-Native):**
+- **Required Fields**: Use field configuration to enforce required application data
+- **File Validation**: Use managed file field validation for resume/cover letter formats
+- **Reference Integrity**: Validate entity references to User, Company, and Job Posting nodes
+- **Status Management**: Use field options to control application workflow states
+
+#### Step 3: Application Submission & Tracking
+**User Actions:**
+1. Submit completed application using standard Drupal node save
+2. Receive confirmation through Drupal's message system
+3. Access application tracking through user's content View
+4. Monitor application status updates through node field changes
+
+**System Actions:**
+- Save Application node with "Submitted" status
+- Generate application tracking reference number using node ID
+- Log application submission event through Drupal's logging system
+- Trigger notification workflows using standard Drupal hooks
+
+**Application Tracking (Drupal-Native):**
+```
+User → Application Nodes (View) → Status Field Updates → Email Notifications (Rules/Custom Module)
+```
+
+#### Step 4: Post-Submission Management
+**User Actions:**
+1. View application status through user's Application content View
+2. Edit application notes using standard node edit form (`/node/[app-id]/edit`)
+3. Upload additional documents using file field updates
+4. Track communication history through application node updates
+
+**System Actions:**
+- Maintain application status history through node revision system
+- Update application timestamps using Drupal's built-in date tracking
+- Process status changes through field updates and workflow state management
+- Archive completed applications using node publishing status
+
+**Administrative Oversight:**
+- **Admin Interface**: Use Views module for application management (`/admin/content/applications`)
+- **Status Updates**: Use bulk operations for application status management
+- **Reporting**: Use Views and reporting modules for application analytics
+- **Data Export**: Use standard Drupal content export functionality
+
+**Technical Implementation Notes:**
+- **Form Customization**: Use form_alter hooks for application-specific form modifications
+- **Workflow Integration**: Use core workflow modules for application status management
+- **Email Integration**: Use mail system hooks for application notifications
+- **Performance**: Implement caching strategies for frequently accessed application data
 
 ## Core Entities & Data Structure
 
@@ -1562,19 +1822,30 @@ The AI system calculates profile completeness based on:
 - ATS keyword optimization algorithms
 
 ### 3. Job Scraping & Analysis Service
+**PRIMARY SOLUTION: Diffbot API Integration**
 **Responsibilities:**
-- Automated scraping of employer career pages
-- Job posting change detection and monitoring
-- Keyword matching against user preferences
-- Job description analysis and categorization
-- Integration with employer ATS systems where possible
+- Automated career page data extraction via Diffbot API
+- Job posting monitoring and change detection through Diffbot webhooks
+- Keyword matching against user preferences using Diffbot's NLP capabilities
+- Job description analysis and categorization via Diffbot's content understanding
+- Integration with multiple employer career portals through unified Diffbot interface
 
-**Technical Components:**
-- Web scraping frameworks (Scrapy, BeautifulSoup)
-- Anti-bot detection circumvention
-- Rate limiting and respectful scraping practices
-- Job posting deduplication algorithms
-- Content change detection systems
+**Diffbot Technical Components:**
+- **Diffbot API Integration**: RESTful API calls for job data extraction
+- **Webhook Processing**: Real-time job updates via Diffbot webhook notifications
+- **Content Analysis**: Diffbot's Natural Language Processing for job categorization
+- **Rate Limiting**: Built-in Diffbot API rate management and respectful scraping
+- **Data Normalization**: Consistent job posting structure across all employers
+
+**Diffbot Implementation Architecture:**
+```
+Employer Career Portals → Diffbot API → Structured JSON Data → Drupal Job Posting Nodes
+```
+
+**Security & Configuration:**
+- **Environment Variables**: Diffbot API key stored securely, never in code
+- **Error Handling**: Comprehensive Diffbot API error logging and retry mechanisms
+- **Monitoring**: Track API usage, billing, and performance metrics
 
 ### 4. Automated Application Submission Service
 **Responsibilities:**

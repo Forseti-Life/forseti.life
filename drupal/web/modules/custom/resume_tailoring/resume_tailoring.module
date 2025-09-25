@@ -1,0 +1,35 @@
+<?php
+
+use Drupal\node\Entity\Node;
+use Drupal\resume_tailoring\ResumeTailoringManager;
+
+/**
+ * Implements hook_entity_insert().
+ */
+function resume_tailoring_entity_insert(\Drupal\Core\Entity\EntityInterface $entity) {
+  // Only act on Job Description nodes.
+  if ($entity->getEntityTypeId() === 'node' && $entity->bundle() === 'job_description') {
+    // Fetch the Original Resume node.
+    $resume_nodes = \Drupal::entityTypeManager()
+      ->getStorage('node')
+      ->loadByProperties(['type' => 'resume', 'title' => 'Original Resume']);
+    $original_resume = reset($resume_nodes);
+    if ($original_resume) {
+      // Get job description fields.
+      $job_title = $entity->get('title')->value;
+      $company = $entity->get('field_company')->value;
+      $body = $entity->get('body')->value;
+      $resume_text = $original_resume->get('body')->value;
+
+      // Generate tailored resume using service.
+      /** @var \Drupal\resume_tailoring\ResumeTailoringManager $manager */
+      $manager = \Drupal::service('resume_tailoring.manager');
+      $tailored_resume = $manager->generateTailoredResume($resume_text, $job_title, $company, $body);
+
+      // Save tailored resume to the node.
+      $entity->set('field_tailored_resume', $tailored_resume);
+      $entity->save();
+    }
+  }
+}
+

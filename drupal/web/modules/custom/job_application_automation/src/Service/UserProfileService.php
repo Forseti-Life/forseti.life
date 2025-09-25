@@ -198,35 +198,90 @@ class UserProfileService {
     $completeness = $this->calculateProfileCompleteness($user);
     $errors = [];
     $warnings = [];
+    $recommendations = [];
 
-    // Check minimum requirements
+    // Critical Requirements (Blocking - cannot apply without these)
     if (!$this->isFieldCompleted($user, 'field_resume_file')) {
-      $errors[] = $this->t('Resume upload is required for job applications.');
+      $errors[] = $this->t('Resume upload is required - employers need to see your qualifications.');
     }
 
     if (!$this->isFieldCompleted($user, 'field_work_authorization')) {
-      $errors[] = $this->t('Work authorization status is required.');
+      $errors[] = $this->t('Work authorization status is required - employers must verify eligibility.');
     }
 
-    // Check recommended fields
+    // Contact Information Validation (Critical for employer contact)
+    $email = $user->getEmail();
+    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+      $errors[] = $this->t('Valid email address is required for application responses.');
+    }
+
+    // Enhanced Data Quality Checks
+    if ($this->isFieldCompleted($user, 'field_salary_expectation_min') && $this->isFieldCompleted($user, 'field_salary_expectation_max')) {
+      $min_salary = $user->get('field_salary_expectation_min')->value;
+      $max_salary = $user->get('field_salary_expectation_max')->value;
+      
+      if ($min_salary >= $max_salary) {
+        $errors[] = $this->t('Minimum salary must be less than maximum salary.');
+      }
+      
+      if ($min_salary < 20000 || $max_salary > 500000) {
+        $warnings[] = $this->t('Salary expectations seem unusual - verify amounts are accurate.');
+      }
+    }
+
+    // Professional Presence Validation
+    if ($this->isFieldCompleted($user, 'field_linkedin_url')) {
+      $linkedin_url = $user->get('field_linkedin_url')->uri;
+      if (!preg_match('/linkedin\.com\/in\//i', $linkedin_url)) {
+        $warnings[] = $this->t('LinkedIn URL should be a profile link (linkedin.com/in/yourname).');
+      }
+    }
+
+    if ($this->isFieldCompleted($user, 'field_github_url')) {
+      $github_url = $user->get('field_github_url')->uri;
+      if (!preg_match('/github\.com\//i', $github_url)) {
+        $warnings[] = $this->t('GitHub URL should be a valid GitHub profile or repository link.');
+      }
+    }
+
+    // Application Success Factors (High-impact recommendations)
     if (!$this->isFieldCompleted($user, 'field_professional_summary')) {
-      $warnings[] = $this->t('Professional summary helps improve application success.');
+      $recommendations[] = $this->t('Professional summary significantly improves application success rates.');
+    }
+
+    if (!$this->isFieldCompleted($user, 'field_skills_summary')) {
+      $recommendations[] = $this->t('Skills summary helps employers match you to relevant positions.');
     }
 
     if (!$this->isFieldCompleted($user, 'field_linkedin_url')) {
-      $warnings[] = $this->t('LinkedIn profile adds credibility to applications.');
+      $recommendations[] = $this->t('LinkedIn profile adds credibility and helps employers learn about you.');
     }
 
-    // Overall completeness check
-    if ($completeness < 70) {
-      $warnings[] = $this->t('Profile completeness below 70% may reduce application success rate.');
+    if (!$this->isFieldCompleted($user, 'field_experience_years')) {
+      $warnings[] = $this->t('Years of experience helps employers assess your career level.');
     }
+
+    if (!$this->isFieldCompleted($user, 'field_available_start_date')) {
+      $warnings[] = $this->t('Start date availability is commonly requested in applications.');
+    }
+
+    // Completeness-based Validation
+    if ($completeness < 50) {
+      $errors[] = $this->t('Profile must be at least 50% complete for reliable application submissions.');
+    } elseif ($completeness < 70) {
+      $warnings[] = $this->t('Profile completeness below 70% significantly reduces application success rate.');
+    }
+
+    // Application Readiness Score
+    $readiness_score = $this->calculateApplicationReadinessScore($user, $completeness, $errors, $warnings);
 
     return [
       'ready' => empty($errors),
       'completeness' => $completeness,
+      'readiness_score' => $readiness_score,
       'errors' => $errors,
       'warnings' => $warnings,
+      'recommendations' => $recommendations,
     ];
   }
 

@@ -1,0 +1,339 @@
+<?php
+
+/**
+ * @file
+ * Install file for AI Conversation module.
+ */
+
+use Drupal\node\Entity\NodeType;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+
+/**
+ * Implements hook_install().
+ */
+function ai_conversation_install() {
+  // Create the conversation content type.
+  $conversation_type = NodeType::create([
+    'type' => 'ai_conversation',
+    'name' => 'AI Conversation',
+    'description' => 'A conversation with an AI model',
+    'settings' => [
+      'node' => [
+        'options' => [
+          'status' => TRUE,
+          'promote' => FALSE,
+          'sticky' => FALSE,
+          'revision' => TRUE,
+        ],
+        'preview' => DRUPAL_DISABLED,
+        'submitted' => TRUE,
+      ],
+    ],
+  ]);
+  $conversation_type->save();
+
+  // Create fields for the conversation content type.
+  _ai_conversation_create_fields();
+
+  // Set default permissions.
+  _ai_conversation_set_permissions();
+}
+
+/**
+ * Create fields for the conversation content type.
+ */
+function _ai_conversation_create_fields() {
+  // Messages field - stores the conversation history.
+  $field_storage = FieldStorageConfig::create([
+    'field_name' => 'field_messages',
+    'entity_type' => 'node',
+    'type' => 'text_long',
+    'cardinality' => -1, // Unlimited values
+    'settings' => [],
+  ]);
+  $field_storage->save();
+
+  $field_config = FieldConfig::create([
+    'field_storage' => $field_storage,
+    'bundle' => 'ai_conversation',
+    'label' => 'Messages',
+    'description' => 'Conversation messages',
+    'required' => FALSE,
+    'settings' => [],
+  ]);
+  $field_config->save();
+
+  // Model field - stores which AI model to use.
+  $field_storage = FieldStorageConfig::create([
+    'field_name' => 'field_ai_model',
+    'entity_type' => 'node',
+    'type' => 'string',
+    'cardinality' => 1,
+    'settings' => [
+      'max_length' => 255,
+    ],
+  ]);
+  $field_storage->save();
+
+  $field_config = FieldConfig::create([
+    'field_storage' => $field_storage,
+    'bundle' => 'ai_conversation',
+    'label' => 'AI Model',
+    'description' => 'The AI model to use for this conversation',
+    'required' => TRUE,
+    'default_value' => [
+      ['value' => 'anthropic.claude-3-5-sonnet-20240620-v1:0'],
+    ],
+    'settings' => [],
+  ]);
+  $field_config->save();
+
+  // Context field - stores conversation context/system prompt.
+  $field_storage = FieldStorageConfig::create([
+    'field_name' => 'field_context',
+    'entity_type' => 'node',
+    'type' => 'text_long',
+    'cardinality' => 1,
+    'settings' => [],
+  ]);
+  $field_storage->save();
+
+  $field_config = FieldConfig::create([
+    'field_storage' => $field_storage,
+    'bundle' => 'ai_conversation',
+    'label' => 'Context',
+    'description' => 'System prompt or conversation context',
+    'required' => FALSE,
+    'settings' => [],
+  ]);
+  $field_config->save();
+
+  // NEW: Conversation summary field - stores rolling summary of older messages.
+  $field_storage = FieldStorageConfig::create([
+    'field_name' => 'field_conversation_summary',
+    'entity_type' => 'node',
+    'type' => 'text_long',
+    'cardinality' => 1,
+    'settings' => [],
+  ]);
+  $field_storage->save();
+
+  $field_config = FieldConfig::create([
+    'field_storage' => $field_storage,
+    'bundle' => 'ai_conversation',
+    'label' => 'Conversation Summary',
+    'description' => 'Rolling summary of older conversation messages',
+    'required' => FALSE,
+    'settings' => [],
+  ]);
+  $field_config->save();
+
+  // NEW: Message count field - tracks total messages (for summary logic).
+  $field_storage = FieldStorageConfig::create([
+    'field_name' => 'field_message_count',
+    'entity_type' => 'node',
+    'type' => 'integer',
+    'cardinality' => 1,
+    'settings' => [],
+  ]);
+  $field_storage->save();
+
+  $field_config = FieldConfig::create([
+    'field_storage' => $field_storage,
+    'bundle' => 'ai_conversation',
+    'label' => 'Message Count',
+    'description' => 'Total number of messages in this conversation',
+    'required' => FALSE,
+    'default_value' => [
+      ['value' => 0],
+    ],
+    'settings' => [],
+  ]);
+  $field_config->save();
+
+  // NEW: Summary updated timestamp - tracks when summary was last updated.
+  $field_storage = FieldStorageConfig::create([
+    'field_name' => 'field_summary_updated',
+    'entity_type' => 'node',
+    'type' => 'timestamp',
+    'cardinality' => 1,
+    'settings' => [],
+  ]);
+  $field_storage->save();
+
+  $field_config = FieldConfig::create([
+    'field_storage' => $field_storage,
+    'bundle' => 'ai_conversation',
+    'label' => 'Summary Updated',
+    'description' => 'When the conversation summary was last updated',
+    'required' => FALSE,
+    'settings' => [],
+  ]);
+  $field_config->save();
+}
+
+/**
+ * Set default permissions for the conversation content type.
+ */
+function _ai_conversation_set_permissions() {
+  $role_storage = \Drupal::entityTypeManager()->getStorage('user_role');
+  
+  // Give authenticated users permission to create conversations.
+  $authenticated_role = $role_storage->load('authenticated');
+  if ($authenticated_role) {
+    $authenticated_role->grantPermission('create ai_conversation content');
+    $authenticated_role->grantPermission('edit own ai_conversation content');
+    $authenticated_role->grantPermission('delete own ai_conversation content');
+    $authenticated_role->grantPermission('view own ai_conversation content');
+    $authenticated_role->save();
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function ai_conversation_uninstall() {
+  // Remove the conversation content type.
+  $conversation_type = NodeType::load('ai_conversation');
+  if ($conversation_type) {
+    $conversation_type->delete();
+  }
+
+  // Remove fields.
+  $fields = [
+    'field_messages', 
+    'field_ai_model', 
+    'field_context',
+    'field_conversation_summary',
+    'field_message_count',
+    'field_summary_updated'
+  ];
+  foreach ($fields as $field_name) {
+    $field_config = FieldConfig::loadByName('node', 'ai_conversation', $field_name);
+    if ($field_config) {
+      $field_config->delete();
+    }
+    
+    $field_storage = FieldStorageConfig::loadByName('node', $field_name);
+    if ($field_storage) {
+      $field_storage->delete();
+    }
+  }
+}
+
+/**
+ * Update hook to add new summary fields to existing installations.
+ */
+function ai_conversation_update_8001() {
+  // Add the new summary fields to existing installations.
+  $fields_to_add = [
+    'field_conversation_summary' => [
+      'type' => 'text_long',
+      'cardinality' => 1,
+      'label' => 'Conversation Summary',
+      'description' => 'Rolling summary of older conversation messages',
+    ],
+    'field_message_count' => [
+      'type' => 'integer',
+      'cardinality' => 1,
+      'label' => 'Message Count',
+      'description' => 'Total number of messages in this conversation',
+      'default_value' => [['value' => 0]],
+    ],
+    'field_summary_updated' => [
+      'type' => 'timestamp',
+      'cardinality' => 1,
+      'label' => 'Summary Updated',
+      'description' => 'When the conversation summary was last updated',
+    ],
+  ];
+
+  foreach ($fields_to_add as $field_name => $field_info) {
+    // Create field storage if it doesn't exist.
+    $field_storage = FieldStorageConfig::loadByName('node', $field_name);
+    if (!$field_storage) {
+      $field_storage = FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => $field_info['type'],
+        'cardinality' => $field_info['cardinality'],
+        'settings' => $field_info['settings'] ?? [],
+      ]);
+      $field_storage->save();
+    }
+
+    // Create field config if it doesn't exist.
+    $field_config = FieldConfig::loadByName('node', 'ai_conversation', $field_name);
+    if (!$field_config) {
+      $field_config = FieldConfig::create([
+        'field_storage' => $field_storage,
+        'bundle' => 'ai_conversation',
+        'label' => $field_info['label'],
+        'description' => $field_info['description'],
+        'required' => FALSE,
+        'default_value' => $field_info['default_value'] ?? NULL,
+        'settings' => [],
+      ]);
+      $field_config->save();
+    }
+  }
+
+  // Update existing conversations to set initial message counts.
+  $node_storage = \Drupal::entityTypeManager()->getStorage('node');
+  $query = $node_storage->getQuery()
+    ->condition('type', 'ai_conversation')
+    ->accessCheck(FALSE);
+  $nids = $query->execute();
+
+  foreach ($nids as $nid) {
+    $node = $node_storage->load($nid);
+    if ($node) {
+      // Count existing messages.
+      $message_count = 0;
+      if ($node->hasField('field_messages') && !$node->get('field_messages')->isEmpty()) {
+        $message_count = count($node->get('field_messages')->getValue());
+      }
+      
+      // Set the message count.
+      $node->set('field_message_count', $message_count);
+      $node->save();
+    }
+  }
+
+  return t('Added conversation summary fields and updated existing conversations.');
+}
+
+/**
+ * Update hook to add total tokens field.
+ */
+function ai_conversation_update_8002() {
+  // Add the total tokens field.
+  $field_storage = FieldStorageConfig::loadByName('node', 'field_total_tokens');
+  if (!$field_storage) {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => 'field_total_tokens',
+      'entity_type' => 'node',
+      'type' => 'integer',
+      'cardinality' => 1,
+      'settings' => [],
+    ]);
+    $field_storage->save();
+  }
+
+  $field_config = FieldConfig::loadByName('node', 'ai_conversation', 'field_total_tokens');
+  if (!$field_config) {
+    $field_config = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => 'ai_conversation',
+      'label' => 'Total Tokens',
+      'description' => 'Total tokens used in this conversation',
+      'required' => FALSE,
+      'default_value' => [['value' => 0]],
+      'settings' => [],
+    ]);
+    $field_config->save();
+  }
+
+  return t('Added total tokens field to AI conversations.');
+}
