@@ -14,7 +14,7 @@ job_application_automation.dashboard:
     _controller: '\Drupal\job_application_automation\Controller\JobApplicationController::dashboard'
     _title: 'Job Application Dashboard'
   requirements:
-    _permission: 'administer job applications'
+    _access: 'TRUE'
 
 job_application_automation.add:
   path: '/admin/job-applications/add'

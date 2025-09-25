@@ -1,0 +1,24 @@
+resume_tailoring.dashboard:
+  path: '/resume-tailoring'
+  defaults:
+    _controller: '\Drupal\resume_tailoring\Controller\ResumeTailoringController::dashboard'
+    _title: 'Resume Tailoring Dashboard'
+  requirements:
+    _permission: 'access content'
+
+resume_tailoring.admin_dashboard:
+  path: '/admin/resume-tailoring'
+  defaults:
+    _controller: '\Drupal\resume_tailoring\Controller\ResumeTailoringController::dashboard'
+    _title: 'Resume Tailoring Administration'
+  requirements:
+    _permission: 'administer content'
+
+resume_tailoring.generate:
+  path: '/resume-tailoring/generate/{job_posting_id}'
+  defaults:
+    _controller: '\Drupal\resume_tailoring\Controller\ResumeTailoringController::generateTailoredResume'
+    _title: 'Generate Tailored Resume'
+  requirements:
+    _permission: 'create tailored_resume content'
+    job_posting_id: \d+

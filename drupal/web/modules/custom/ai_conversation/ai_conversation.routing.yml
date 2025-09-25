@@ -1,3 +1,11 @@
+ai_conversation.settings:
+  path: '/admin/config/ai-conversation/settings'
+  defaults:
+    _form: '\Drupal\ai_conversation\Form\AIConversationSettingsForm'
+    _title: 'AI Conversation Settings'
+  requirements:
+    _permission: 'administer site configuration'
+
 ai_conversation.chat_interface:
   path: '/node/{node}/chat'
   defaults:
@@ -43,11 +51,3 @@ ai_conversation.trigger_summary:
     parameters:
       node:
         type: entity:node
-
-ai_conversation.settings:
-  path: '/admin/config/ai-conversation'
-  defaults:
-    _form: '\Drupal\ai_conversation\Form\SettingsForm'
-    _title: 'AI Conversation Settings'
-  requirements:
-    _permission: 'administer site configuration'

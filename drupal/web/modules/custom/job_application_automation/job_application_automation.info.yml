@@ -18,8 +18,6 @@ dependencies:
   - drupal:image
   - drupal:text
 
-configure: job_application_automation.settings
-
 # Module maintainer information
 author: 'St. Louis Integration Development Team'
 homepage: 'https://stlouisintegration.com'

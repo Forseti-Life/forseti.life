@@ -71,16 +71,36 @@ class AIApiService {
       // Check if we need to update the summary before processing.
       $this->checkAndUpdateSummary($conversation);
 
-      // Use the same AWS SDK approach as news_extractor module.
-      $sdk = new \Aws\Sdk([
-        'region' => 'us-west-2',
+      // Get AWS configuration from settings, with fallback to environment variables.
+      $config = $this->configFactory->get('ai_conversation.settings');
+      $aws_access_key = $config->get('aws_access_key_id') ?: getenv('AWS_ACCESS_KEY_ID');
+      $aws_secret_key = $config->get('aws_secret_access_key') ?: getenv('AWS_SECRET_ACCESS_KEY');
+      $aws_region = $config->get('aws_region') ?: getenv('AWS_DEFAULT_REGION') ?: 'us-west-2';
+
+      // Use the AWS SDK with credentials (either from config or environment).
+      $sdk_config = [
+        'region' => $aws_region,
         'version' => 'latest',
-      ]);
+      ];
+      
+      // Only set explicit credentials if we have them, otherwise let AWS SDK use default credential chain
+      if (!empty($aws_access_key) && !empty($aws_secret_key)) {
+        $sdk_config['credentials'] = [
+          'key' => $aws_access_key,
+          'secret' => $aws_secret_key,
+        ];
+        $this->logInfo('Using AWS credentials from configuration');
+      } else {
+        // Let AWS SDK use its default credential chain (env vars, IAM roles, etc.)
+        $this->logInfo('Using AWS SDK default credential chain (environment variables, IAM roles, etc.)');
+      }
+
+      $sdk = new \Aws\Sdk($sdk_config);
       
       $bedrock = $sdk->createBedrockRuntime();
       
-      // Get the AI model from the conversation.
-      $model = $conversation->get('field_ai_model')->value ?: 'anthropic.claude-3-5-sonnet-20240620-v1:0';
+      // Get the AI model from configuration or conversation.
+      $model = $conversation->get('field_ai_model')->value ?: $config->get('aws_model') ?: 'anthropic.claude-3-5-sonnet-20240620-v1:0';
       
       // Validate and fix common model ID issues
       if (strpos($model, 'claude-sonnet-4') !== false) {
@@ -95,7 +115,6 @@ class AIApiService {
       $input_tokens = $this->estimateTokens($context);
 
       // Get max tokens from config.
-      $config = $this->configFactory->get('ai_conversation.settings');
       $max_tokens = $config->get('max_tokens') ?: 4000;
 
       $response = $bedrock->invokeModel([

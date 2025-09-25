@@ -1,8 +1,8 @@
-# Job Application Automation Module
+# Resume Tailoring Module
 
 ## 🎯 Overview
 
-The Job Application Automation module streamlines the job application process by automatically generating tailored resumes using AI technology. When a job description is added to the site, it automatically creates a customized resume based on your original resume and the specific job requirements.
+The Resume Tailoring module streamlines the job application process by automatically generating tailored resumes using AI technology. When a job description is added to the site, it automatically creates a customized resume based on your original resume and the specific job requirements.
 
 ## ✨ Features
 
@@ -27,37 +27,39 @@ The Job Application Automation module streamlines the job application process by
 - **Automatic Processing**: No manual intervention required
 - **Error Handling**: Graceful fallback if AI service is unavailable
 
-#### Service Class: `JobApplicationManager`
+#### Service Class: `ResumeTailoringManager`
 Main service responsible for AI integration and resume generation.
 
 **Key Method**: `generateTailoredResume($resume_text, $job_title, $company, $job_description)`
 
 ### Content Type Requirements
 
-#### Resume Content Type
+#### Resume Content Type  
 - **Title**: Must be "Original Resume" (exact match)
 - **Body**: Contains the master resume content
 - **Type**: `resume`
 
-#### Job Description Content Type
-- **Title**: Job title
-- **Company**: Company name (field: `field_company`)
-- **Body**: Job description content
+#### Job Posting Content Type (from job_application_automation module)
+- **Job Title**: Job title (field: `field_job_title`)
+- **Company**: Company reference (field: `field_company_ref`)  
+- **Job Description**: Job description content (field: `field_job_description`)
 - **Tailored Resume**: AI-generated tailored resume (field: `field_tailored_resume`)
-- **Type**: `job_description`
+- **Type**: `job_posting`
 
 ## 🚀 Installation
 
-1. Enable the module in Drupal admin: `/admin/modules`
-2. Create required content types (Resume and Job Description)
-3. Configure AWS credentials for Bedrock access
-4. Create the "Original Resume" node
-5. Clear cache: `drush cr`
+1. **Prerequisites**: Install and enable the Job Application Automation module first
+2. Enable the Resume Tailoring module in Drupal admin: `/admin/modules`
+3. The module will automatically create the Resume content type and add the tailored resume field to job postings
+4. Configure AWS credentials for Bedrock access
+5. Create the "Original Resume" node
+6. Clear cache: `drush cr`
 
 ## 📋 Requirements
 
 - Drupal 9, 10, or 11
 - Node module
+- **Job Application Automation module** (provides job_posting content type)
 - AWS SDK for PHP
 - AWS Bedrock access with Claude model permissions
 
@@ -70,22 +72,22 @@ Ensure your server has AWS credentials configured with access to:
 
 ### Content Type Setup
 
-#### Resume Content Type
+#### Resume Content Type (created automatically)
 ```yaml
 Machine name: resume
 Fields:
   - title (required)
-  - body (long text, required)
+  - body (long text, required - stores resume content)
 ```
 
-#### Job Description Content Type
+#### Job Posting Content Type (from job_application_automation module)
 ```yaml
-Machine name: job_description
+Machine name: job_posting
 Fields:
-  - title (required)
-  - field_company (text, required)
-  - body (long text, required)
-  - field_tailored_resume (long text, optional)
+  - field_job_title (text, required)
+  - field_company_ref (entity reference to company, required)
+  - field_job_description (long text, required)
+  - field_tailored_resume (long text, optional - added by this module)
 ```
 
 ### Original Resume Setup
@@ -93,22 +95,153 @@ Fields:
 2. Add your master resume content to the body field
 3. Save the node
 
-## 📊 Usage
+## ⚠️ **Important Development Guidelines**
 
-### Automatic Workflow
-1. **Create Job Description**: Add a new Job Description node
-2. **Fill Required Fields**: 
-   - Title (job title)
-   - Company name
-   - Job description in body
-3. **Save Node**: The module automatically triggers
-4. **AI Processing**: Resume is tailored in the background
-5. **Result**: Tailored resume appears in the "Tailored Resume" field
+### **Content Type and Field Creation Policy**
 
-### Manual Process
-If you need to regenerate a tailored resume:
-1. Edit the Job Description node
-2. Save it again to retrigger the process
+**❌ DO NOT create content types or custom fields manually through the Drupal admin interface.**
+
+**✅ ALL content types and custom fields MUST be created programmatically through module install hooks.**
+
+#### **Why This Matters:**
+- **Version Control**: Manual changes aren't tracked in code repositories
+- **Environment Consistency**: Ensures dev, staging, and production environments match exactly
+- **Deployment Safety**: Prevents configuration drift between environments
+- **Team Collaboration**: All developers get the same field configurations
+- **Rollback Capability**: Changes can be reverted through code versioning
+
+#### **Proper Implementation:**
+- Content types are created in `resume_tailoring.install` using `NodeType::create()`
+- Custom fields are created using `FieldStorageConfig::create()` and `FieldConfig::create()`
+- Install functions include existence checks to prevent duplicate creation errors
+- Uninstall functions properly clean up created content types and fields
+
+#### **If You Need Changes:**
+1. Update the install functions in `resume_tailoring.install`
+2. Create update hooks (e.g., `resume_tailoring_update_9003()`) for existing installations
+3. Test the changes by uninstalling/reinstalling the module in development
+4. Deploy through standard code deployment processes
+
+## 🏠 **Home Page & Dashboard**
+
+### **Primary Dashboard Location**: `/resume-tailoring`
+
+The Resume Tailoring Dashboard is the central hub for managing your entire resume tailoring workflow. Access it at:
+- **Public Dashboard**: `/resume-tailoring` 
+- **Admin Dashboard**: `/admin/resume-tailoring`
+- **Menu Navigation**: Available in main navigation menu
+
+### **Dashboard Features**
+- **5-Step Process Tracker**: Visual progress indicators for each workflow step
+- **Authentication Control**: Must be logged in to access full functionality  
+- **Progress Statistics**: Count of master resumes, job postings, and tailored resumes
+- **Job Postings Table**: List of your job postings with "Generate" buttons
+- **Tailored Resumes Table**: View and manage generated tailored resumes
+- **Quick Actions**: Direct links to create new content
+- **Status Tracking**: Visual indicators for completion status
+
+## 📊 Resume Tailoring Process Flow
+
+### **Complete Workflow Steps**
+
+The Resume Tailoring module follows a structured 5-step process managed from the central dashboard at `/resume-tailoring`:
+
+#### **Step 1: Create User Profile**
+- Create an account and complete your user profile
+- Ensure you have proper authentication to access resume tailoring features
+
+#### **Step 2: Create Your Master Resume**
+- **Content Type**: Resume
+- **Requirements**: Comprehensive resume that can be trimmed and tailored
+- **Instructions**: Include all your experience, skills, achievements, and education
+- **Purpose**: This serves as the source material for all tailored resumes
+- **Access**: Must be authenticated to create and view
+
+#### **Step 3: Create Job Posting**
+- **Content Type**: Job Posting (existing from job_application_automation module)
+- **Purpose**: Store job postings you want to apply for
+- **Fields**: Job title, company, full job description, requirements
+
+#### **Step 4: Generate Tailored Resume**
+- **Action**: Select a job posting from the dashboard and click "Generate Tailored Resume"
+- **Process**: AI analyzes your master resume against the job posting requirements
+- **Output**: Creates a new "Tailored Resume" content type linked to the job posting
+
+#### **Step 5: Access Tailored Resume**
+- **Content Type**: Tailored Resume
+- **Location**: Available via dashboard link next to each job posting
+- **Usage**: Copy/download for your job application
+- **Management**: Edit, regenerate, or archive as needed
+
+### **Dashboard-Controlled Process**
+All steps are managed from the central Resume Tailoring Dashboard (`/resume-tailoring`):
+- **Authentication Check**: Must be logged in to proceed
+- **Progress Tracking**: Shows completion status of each step
+- **Quick Actions**: Direct links to create content for each step
+- **Status Overview**: Visual indicators for completed/pending items
+- **Generation Controls**: One-click tailored resume generation
+
+## 🔧 **Technical Implementation Standards**
+
+### **Module Installation Process**
+The Resume Tailoring module follows Drupal best practices for programmatic content type and field creation:
+
+#### **Content Types Created During Installation:**
+1. **Resume** (`resume`) - Master resume storage with comprehensive help text
+2. **Tailored Resume** (`tailored_resume`) - AI-generated tailored resumes with status tracking
+
+#### **Custom Fields Created During Installation:**
+- `field_job_posting_ref` - Entity reference to job_posting nodes
+- `field_original_resume_ref` - Entity reference to original resume nodes  
+- `field_tailoring_status` - List field with generation status options
+- `field_tailored_resume` - Text field added to job_posting content type
+
+#### **Install Function Features:**
+- **Existence Checking**: All functions check for existing content before creation
+- **Error Prevention**: Prevents duplicate key errors during installation
+- **Logging**: Comprehensive logging of all creation/skipping actions
+- **Field Storage Management**: Proper field storage and field config separation
+- **Clean Uninstall**: Removes all created content types and fields on uninstall
+
+#### **File Structure:**
+```
+resume_tailoring/
+├── resume_tailoring.install          # Content type and field creation
+├── resume_tailoring.module           # Hook implementations
+├── resume_tailoring.routing.yml      # URL routing configuration
+├── resume_tailoring.libraries.yml    # CSS/JS asset definitions
+├── resume_tailoring.links.menu.yml   # Menu link definitions
+├── src/Controller/                   # Dashboard controller
+├── css/                             # Styling assets
+└── js/                              # JavaScript enhancements
+```
+
+### **Making Configuration Changes**
+
+#### **Adding New Fields:**
+1. Update `_resume_tailoring_create_[content_type]_content_type()` function in `resume_tailoring.install`
+2. Add existence checks: `FieldConfig::loadByName()` and `FieldStorageConfig::loadByName()`
+3. Create update hook: `function resume_tailoring_update_9004() { ... }`
+4. Test by running: `drush updb -y`
+
+#### **Modifying Existing Fields:**
+1. Create update hook with field modification logic
+2. Use `FieldConfig::loadByName()` to load existing field
+3. Update field properties and save
+4. Test thoroughly in development environment
+
+#### **Best Practice Commands:**
+```bash
+# Test clean installation
+drush pm:uninstall resume_tailoring -y
+drush pm:install resume_tailoring -y
+
+# Run updates for existing installations  
+drush updb -y
+
+# Clear caches after changes
+drush cr
+```
 
 ## 🎨 AI Prompt Engineering
 
@@ -129,7 +262,7 @@ The module provides comprehensive logging:
 - **API Responses**: Unexpected response format logging
 - **Performance Tracking**: Monitor processing times
 
-Access logs: **Reports > Recent log messages > job_application_automation**
+Access logs: **Reports > Recent log messages > resume_tailoring**
 
 ## 🛠️ Troubleshooting
 
@@ -146,31 +279,34 @@ Access logs: **Reports > Recent log messages > job_application_automation**
 - Verify job description content is substantial
 - Review AI service response in logs
 
-**Permission Errors**
-- Confirm AWS credentials are properly configured
-- Verify Bedrock service permissions
-- Check network connectivity to AWS
+## 🏠 Resume Tailoring Home Page
 
-### Debug Steps
-1. Check if "Original Resume" node exists: `/admin/content`
-2. Review recent log messages: `/admin/reports/dblog`
-3. Test AWS connectivity manually
-4. Verify field machine names match code expectations
+The Resume Tailoring module provides a dedicated dashboard to manage your resume tailoring workflow:
+
+### **Access the Dashboard**
+- **URL**: `/resume-tailoring` or `/admin/resume-tailoring`
+- **Navigation**: Admin menu > Resume Tailoring Dashboard
+
+### **Dashboard Features**
+- **Resume Management**: View and manage your "Original Resume" node
+- **Job Postings**: List all job postings with tailored resumes
+- **Tailoring Status**: See which job postings have tailored resumes generated
+- **Quick Actions**: Direct links to create resumes and job postings
+- **Activity Log**: Recent resume tailoring activities
+
+### **Quick Navigation**
+- **Create Original Resume**: `/node/add/resume`
+- **Create Job Posting**: `/node/add/job_posting`
+- **View All Content**: `/admin/content`
+- **Module Logs**: `/admin/reports/dblog` (filter: resume_tailoring)
 
 ## 🔄 Customization
 
 ### Prompt Modification
-Edit `buildResumePrompt()` method in `JobApplicationManager.php` to customize:
-- AI instructions
-- Resume focus areas
-- Output format requirements
-- Specific industry adaptations
-
-### Field Mapping
-Update field machine names in `job_application_automation.module` if using different field configurations.
+Edit `buildResumePrompt()` method in `ResumeTailoringManager.php` to customize AI instructions and focus areas.
 
 ### Model Configuration
-Change AI model by updating the `modelId` in `JobApplicationManager.php`.
+Change AI model by updating the `modelId` in `ResumeTailoringManager.php`.
 
 ## 🚀 Future Enhancements
 
@@ -180,12 +316,3 @@ Potential improvements:
 - Cover letter generation
 - Integration with job board APIs
 - Resume format conversion (PDF, Word, etc.)
-
-## 📞 Support
-
-For issues or questions:
-1. Check module logs for specific error messages
-2. Verify content type and field configurations
-3. Test AWS Bedrock connectivity
-4. Confirm "Original Resume" node setup
-5. Review field machine name mappings

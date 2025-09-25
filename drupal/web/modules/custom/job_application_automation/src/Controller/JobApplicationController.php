@@ -69,7 +69,7 @@ class JobApplicationController extends ControllerBase {
     
     // Administrative Actions
     $add_url = Url::fromRoute('job_application_automation.add');
-    $settings_url = Url::fromRoute('job_application_automation.settings');
+    // $settings_url = Url::fromRoute('job_application_automation.settings');
     
     $build['actions'] = [
       '#type' => 'html_tag',
@@ -79,7 +79,7 @@ class JobApplicationController extends ControllerBase {
                    <div class="action-buttons">
                      <a href="' . $add_url->toString() . '" class="action-button primary">+ Add New Application</a>
                      <a href="#" class="action-button">View All Applications</a>
-                     <a href="' . $settings_url->toString() . '" class="action-button secondary">System Settings</a>
+                     <a href="#" class="action-button secondary disabled">System Settings</a>
                      <a href="#" class="action-button">Export Reports</a>
                    </div>',
     ];

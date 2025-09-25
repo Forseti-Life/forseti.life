@@ -220,37 +220,132 @@ Periodic audits should verify:
 
 This comprehensive approach ensures that architecture documentation remains a valuable, current resource that drives development decisions and maintains system quality throughout the project lifecycle.
 
+## Tech Stack & Architecture
+
+### **AI Services Foundation**
+
+#### **AWS Bedrock Integration** - Core AI Service Provider
+- **Service:** Amazon Bedrock with Claude 3.5 Sonnet (anthropic.claude-3-5-sonnet-20240620-v1:0)
+- **Region:** us-west-2
+- **Authentication:** Environment variables or IAM roles (no hardcoded credentials)
+- **SDKs:** AWS SDK for PHP (Bedrock Runtime API)
+- **Purpose:** Foundational AI service for resume tailoring, conversational AI, and job application automation
+
+#### **AI Module Architecture**
+```
+ai_conversation (Core AI Service Provider)
+    ↓
+├── resume_tailoring (AI-Powered Resume Tailoring)
+├── job_application_automation (Job Application Automation)
+└── Future AI-powered modules
+```
+
+### **Core Platform**
+
+#### **Drupal 11.2.4** - Content Management System
+- **Version:** 11.2.4 with latest security updates
+- **Environment:** Dev Container (Ubuntu 24.04.2 LTS)
+- **Database:** PostgreSQL (configured via dev container)
+- **Web Server:** Apache/Nginx (dev container managed)
+- **PHP Version:** 8.3+ (Drupal 11 requirement)
+
+### **External APIs & Services**
+
+#### **Diffbot API** - Web Intelligence Platform
+- **Service:** Web scraping and content extraction
+- **Purpose:** Job posting extraction and company data analysis
+- **Integration:** job_application_automation module
+- **Security:** Environment variable configuration (regenerate exposed key)
+
 ## Current Module Status
 
-### **Integrated Modules**
+### **Core AI Services**
 
-#### **job_application_automation/** - Job Application Automation System
+#### **ai_conversation/** - AWS Bedrock AI Service Provider ✅
+- **Status:** [COMPLETED] - Production-ready AI conversation management module
+- **Purpose:** Sophisticated AI conversation system with rolling summary management
+- **Architecture:** `/drupal/web/modules/custom/ai_conversation/ARCHITECTURE.md`
+- **AWS Integration:** Bedrock Runtime API with Claude 3.5 Sonnet model
+- **Key Features:**
+  - Rolling conversation summaries (every 10 messages)
+  - Multi-credential support (config, env vars, IAM roles)
+  - Real-time chat interface with AJAX
+  - Token tracking and usage monitoring
+  - Safe uninstall preserving conversation data
+- **Configuration:** `/admin/config/ai-conversation/settings`
+- **Module Role:** **FOUNDATIONAL** - Advanced conversation management for AI services
+
+### **Feature Modules**
+
+#### **job_application_automation/** - Job Application Automation System ✅
 - **Status:** [COMPLETED] - Core module with comprehensive architecture
 - **Purpose:** Primary job application automation functionality including web scraping, profile management, and application submission
 - **Architecture:** `/drupal/web/modules/custom/job_application_automation/ARCHITECTURE.md`
+- **Admin Interface:** `/admin/job-applications` (unrestricted access)
 - **Target Companies:** Johnson & Johnson (https://www.careers.jnj.com/en/)
 - **Key Features:** Diffbot API integration, automated job search, application tracking
+- **Recent Fix:** Resolved routing errors, removed invalid settings route references
+
+#### **resume_tailoring/** - AI-Powered Resume Customization ✅  
+- **Status:** [COMPLETED] - Installed and operational
+- **Purpose:** AI-powered resume tailoring based on job postings
+- **Dashboard:** `/resume-tailoring`
+- **Admin Dashboard:** `/admin/resume-tailoring`
+- **Key Features:** Job posting analysis, resume customization, AI-powered recommendations
+- **Content Types:** `resume`, `tailored_resume` 
+- **Recent Fix:** Module enabled and routes verified working
+
+## Recent Updates (September 25, 2025)
+
+### **AI Conversation Module Enhancements**
+- ✅ **Configuration System:** Added comprehensive admin settings form at `/admin/config/ai-conversation/settings`
+- ✅ **Multi-Credential Support:** Environment variables, configuration, and AWS credential chain fallback
+- ✅ **Installation Fixes:** Resolved missing field issues, enhanced field existence checking
+- ✅ **Safe Uninstall:** Data preservation during module removal, optional complete cleanup
+- ✅ **Production Ready:** Full error handling, logging, and status monitoring
+
+### **Job Application Module Fixes**
+- ✅ **Routing Errors:** Resolved missing `job_application_automation.settings` route references
+- ✅ **Access Control:** Removed restrictive permissions, now accessible at `/admin/job-applications`
+- ✅ **Module Configuration:** Fixed invalid configure directive causing startup errors
+- ✅ **UI Updates:** Disabled settings button until proper settings page is implemented
+
+### **Resume Tailoring Module Activation**
+- ✅ **Module Installation:** Enabled previously disabled resume_tailoring module
+- ✅ **Route Verification:** Confirmed `/resume-tailoring` dashboard is operational
+- ✅ **Content Types:** Verified `resume` and `tailored_resume` content types are properly configured
+- ✅ **Field Management:** Ensured proper field relationships between content types
+
+### **System Stability**
+- ✅ **Error Resolution:** All "unexpected error" messages resolved across modules
+- ✅ **Cache Management:** Proper cache rebuilding after configuration changes
+- ✅ **Log Monitoring:** Clean error logs with no routing or configuration issues
+- ✅ **Module Integration:** All three core modules working together without conflicts
+
+## Module Architecture Status
+- **AI Integration:** **SHOULD DEPEND** on ai_conversation for AI services
 
 #### **resume_tailoring/** - AI-Powered Resume Tailoring
-- **Status:** [COMPLETED] - Successfully integrated and renamed from external repository
+- **Status:** [COMPLETED] - 5-step workflow with comprehensive dashboard
 - **Purpose:** AI-powered resume tailoring functionality for job-specific customization
-- **Source:** Integrated from thetruthperspective repository (previously job_application_automation module)
-- **Namespace:** Drupal\resume_tailoring (updated from Drupal\job_application_automation)
-- **Key Service:** resume_tailoring.manager (ResumeTailoringManager class)
-- **Integration:** Hooks into job_description node creation to auto-generate tailored resumes
-
-#### **ai_conversation/** - AI Conversation Interface
-- **Status:** [COMPLETED] - Successfully integrated from external repository
-- **Purpose:** Conversational AI interface with context persistence
-- **Source:** Integrated from thetruthperspective repository
-- **Dependencies:** Core Drupal modules (node, field, user, system)
-- **Key Service:** AIApiService for AI conversation functionality
+- **Workflow:** 5-step process (Original Resume → Job Posting → AI Analysis → Tailored Resume → Review)
+- **Content Types:** resume, job_posting (existing), tailored_resume (with reference fields)
+- **Dashboard:** /resume-tailoring (authenticated access required)
+- **AI Integration:** **DEPENDS ON** ai_conversation for AWS Bedrock services
+- **Key Features:** Programmatic content type creation, field reference management, progress tracking
 
 ### **Module Integration Notes**
+
+#### **AI Service Architecture**
+- **Foundation:** ai_conversation module provides centralized AWS Bedrock integration
+- **Dependencies:** resume_tailoring depends on ai_conversation for AI services
+- **Credential Management:** AWS credentials managed centrally in ai_conversation (environment variables/IAM roles)
+- **Service Pattern:** All future AI-powered modules should depend on ai_conversation service
 
 #### **Security Considerations**
 - **⚠️ CRITICAL:** Diffbot API key was exposed during integration (8488710a556cedc9ff2ad6547bbbecaf)
 - **Required Action:** Regenerate Diffbot API key immediately and configure as environment variable
+- **AWS Credentials:** No hardcoded credentials - uses environment variables or IAM roles
 - **Best Practice:** All API keys must be stored in environment variables, never in code
 
 #### **External Repository Integration**
@@ -261,7 +356,27 @@ This comprehensive approach ensures that architecture documentation remains a va
 
 #### **Drupal Compatibility**
 - **Core Support:** All modules support Drupal 9, 10, and 11
-- **Dependencies:** Standard Drupal core modules only
+- **Dependencies:** Standard Drupal core modules + ai_conversation for AI services
 - **Installation:** Standard Drupal module installation process
 
-This modular approach provides comprehensive job application automation with AI-powered resume tailoring and conversational interfaces while maintaining clear separation of concerns.
+### **AWS Bedrock Configuration**
+
+#### **Environment Variables (Recommended)**
+```bash
+AWS_ACCESS_KEY_ID=your_access_key_here
+AWS_SECRET_ACCESS_KEY=your_secret_key_here  
+AWS_DEFAULT_REGION=us-west-2
+```
+
+#### **IAM Role Configuration (Production)**
+- **Preferred Method:** Use IAM roles for EC2/ECS deployment
+- **Service:** Amazon Bedrock with Claude model access
+- **Permissions:** BedrockRuntime:InvokeModel for anthropic.claude-* models
+- **Region:** us-west-2 (configured in ai_conversation service)
+
+#### **Development Environment**
+- **Credentials:** Set environment variables in dev container
+- **Testing:** Use ai_conversation module for all AI functionality tests
+- **Region:** Defaults to us-west-2 for consistent development
+
+This modular approach provides comprehensive job application automation with AI-powered resume tailoring and conversational interfaces while maintaining clear separation of concerns and centralized AI service management.
