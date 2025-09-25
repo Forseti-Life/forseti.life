@@ -75,14 +75,14 @@ function _resume_tailoring_create_tailored_resume_content_type() {
   // Create tailored_resume content type.
   $tailored_resume_type = NodeType::create([
     'type' => 'tailored_resume',
-    'label' => t('Tailored Resume'),
-    'description' => t('A resume tailored for a specific job posting.'),
+    'name' => 'Tailored Resume',
+    'description' => 'A resume tailored for a specific job posting.',
     'has_title' => TRUE,
-    'title_label' => t('Resume Title'),
+    'title_label' => 'Resume Title',
     'display_submitted' => FALSE,
     'new_revision' => TRUE,
     'preview_mode' => DRUPAL_OPTIONAL,
-    'help' => t('This resume has been specifically tailored for a job posting using AI.'),
+    'help' => 'This resume has been specifically tailored for a job posting using AI.',
   ]);
   $tailored_resume_type->save();
 
@@ -211,14 +211,14 @@ function _resume_tailoring_create_resume_content_type() {
     // Create resume content type.
     $resume_type = NodeType::create([
       'type' => 'resume',
-      'label' => t('Resume'),
-      'description' => t('Your original comprehensive resume.'),
+      'name' => 'Resume',
+      'description' => 'Your original comprehensive resume.',
       'has_title' => TRUE,
-      'title_label' => t('Resume Title'),
+      'title_label' => 'Resume Title',
       'display_submitted' => FALSE,
       'new_revision' => TRUE,
       'preview_mode' => DRUPAL_OPTIONAL,
-      'help' => t('Create your master resume with comprehensive details. Include ALL your experience, skills, achievements, and education. This comprehensive resume will be used as the source material for AI-powered tailoring to specific job postings. The more detailed and complete your master resume, the better the AI can tailor it for specific opportunities.'),
+      'help' => 'Create your master resume with comprehensive details. Include ALL your experience, skills, achievements, and education. This comprehensive resume will be used as the source material for AI-powered tailoring to specific job postings. The more detailed and complete your master resume, the better the AI can tailor it for specific opportunities.',
     ]);
     $resume_type->save();
     
