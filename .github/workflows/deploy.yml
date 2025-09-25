@@ -21,71 +21,110 @@ jobs:
         script: |
           set -e  # Exit on any error
           
-          echo "=== Starting job_application_automation module deployment ==="
+          echo "=== Starting custom modules deployment ==="
           
           # Define server paths (corrected for actual server structure)
           DRUPAL_ROOT="/var/www/html/stlouisintegration"
           CUSTOM_MODULES_DIR="$DRUPAL_ROOT/web/modules/custom"
-          MODULE_NAME="job_application_automation"
           TEMP_DIR="/tmp/module-deploy-$(date +%s)"
+          
+          # List of modules to deploy
+          MODULES=(
+            "job_application_automation"
+            "ai_conversation" 
+            "resume_tailoring"
+          )
           
           # Create temporary directory
           mkdir -p "$TEMP_DIR"
           cd "$TEMP_DIR"
           
-          echo "=== Downloading module from repository ==="
+          echo "=== Downloading modules from repository ==="
           
-          # Clone only the specific module directory we need
+          # Clone the entire custom modules directory
           git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
-          git sparse-checkout set drupal/web/modules/custom/$MODULE_NAME
+          git sparse-checkout set drupal/web/modules/custom
           
-          # Verify module was downloaded
-          if [ ! -d "drupal/web/modules/custom/$MODULE_NAME" ]; then
-            echo "ERROR: Module $MODULE_NAME not found in repository"
-            exit 1
-          fi
+          # Verify modules were downloaded
+          echo "=== Available modules in repository: ==="
+          ls -la drupal/web/modules/custom/
           
-          echo "=== Module downloaded successfully ==="
-          ls -la drupal/web/modules/custom/$MODULE_NAME/
-          
-          echo "=== Deploying $MODULE_NAME module to server ==="
-          
-          # Ensure custom modules directory exists
+          # Ensure custom modules directory exists on server
           sudo mkdir -p "$CUSTOM_MODULES_DIR"
           
-          # Remove existing module (if any) and deploy new version
-          sudo rm -rf "$CUSTOM_MODULES_DIR/$MODULE_NAME"
-          sudo cp -r "drupal/web/modules/custom/$MODULE_NAME" "$CUSTOM_MODULES_DIR/"
+          echo "=== Deploying modules to server ==="
           
-          # Set proper permissions
-          sudo chown -R www-data:www-data "$CUSTOM_MODULES_DIR/$MODULE_NAME"
-          sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type f -exec chmod 644 {} \;
-          sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type d -exec chmod 755 {} \;
+          # Deploy each module
+          for MODULE_NAME in "${MODULES[@]}"; do
+            echo "--- Processing module: $MODULE_NAME ---"
+            
+            if [ -d "drupal/web/modules/custom/$MODULE_NAME" ]; then
+              echo "Deploying $MODULE_NAME module..."
+              
+              # Remove existing module (if any) and deploy new version
+              sudo rm -rf "$CUSTOM_MODULES_DIR/$MODULE_NAME"
+              sudo cp -r "drupal/web/modules/custom/$MODULE_NAME" "$CUSTOM_MODULES_DIR/"
+              
+              # Set proper permissions
+              sudo chown -R www-data:www-data "$CUSTOM_MODULES_DIR/$MODULE_NAME"
+              sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type f -exec chmod 644 {} \;
+              sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type d -exec chmod 755 {} \;
+              
+              echo "✅ $MODULE_NAME deployed successfully"
+              echo "Files in $MODULE_NAME:"
+              ls -la "$CUSTOM_MODULES_DIR/$MODULE_NAME/" | head -10
+            else
+              echo "⚠️  WARNING: Module $MODULE_NAME not found in repository"
+            fi
+            echo ""
+          done
+
+    - name: Enable custom modules
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        script: |
+          set -e  # Exit on any error
           
-          echo "=== Module deployed successfully ==="
-          echo "Module location: $CUSTOM_MODULES_DIR/$MODULE_NAME"
-          echo "Files deployed:"
-          ls -la "$CUSTOM_MODULES_DIR/$MODULE_NAME/"
+          echo "=== Enabling custom modules ==="
           
-          # Enable the module if not already enabled
-          echo "=== Checking module status ==="
+          DRUPAL_ROOT="/var/www/html/stlouisintegration"
           cd "$DRUPAL_ROOT"
           
-          if ! sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^$MODULE_NAME$"; then
-            echo "=== Enabling $MODULE_NAME module ==="
-            if sudo -u www-data ./vendor/bin/drush en "$MODULE_NAME" -y; then
-              echo "=== $MODULE_NAME module enabled successfully ==="
-            else
-              echo "WARNING: Failed to enable $MODULE_NAME module - check for dependencies or errors"
-              echo "You can manually enable it later with: drush en $MODULE_NAME"
-            fi
-          else
-            echo "=== $MODULE_NAME module is already enabled ==="
-          fi
+          # Enable modules in proper dependency order
+          MODULES=(
+            "ai_conversation"           # Core AI service (foundation)
+            "job_application_automation" # Main automation system
+            "resume_tailoring"          # Resume customization
+          )
           
-          # Clean up temp directory
-          rm -rf "$TEMP_DIR"
-          echo "=== Module deployment completed successfully ==="
+          for MODULE_NAME in "${MODULES[@]}"; do
+            echo "--- Checking $MODULE_NAME module status ---"
+            
+            # Check if module exists in the modules directory
+            if [ -d "$DRUPAL_ROOT/web/modules/custom/$MODULE_NAME" ]; then
+              # Check if module is already enabled
+              if ! sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^$MODULE_NAME$"; then
+                echo "Enabling $MODULE_NAME module..."
+                if sudo -u www-data ./vendor/bin/drush en "$MODULE_NAME" -y; then
+                  echo "✅ $MODULE_NAME module enabled successfully"
+                else
+                  echo "⚠️  WARNING: Failed to enable $MODULE_NAME module"
+                  echo "You can manually enable it later with: drush en $MODULE_NAME"
+                  # Don't exit on module enable failure - continue with other modules
+                fi
+              else
+                echo "✅ $MODULE_NAME module is already enabled"
+              fi
+            else
+              echo "⚠️  Module $MODULE_NAME not found in deployment"
+            fi
+            echo ""
+          done
+          
+          echo "=== Module enablement completed ==="
 
     - name: Clear Drupal cache and finalize
       uses: appleboy/ssh-action@v0.1.5
@@ -115,15 +154,43 @@ jobs:
             exit 1
           fi
           
-          # Verify module is properly recognized
+          # Verify modules are properly recognized
           echo "=== Verifying module deployment ==="
-          if sudo -u www-data ./vendor/bin/drush pm:list | grep -q "job_application_automation"; then
-            echo "✅ job_application_automation module is recognized by Drupal"
-            
-            # Show module status
-            sudo -u www-data ./vendor/bin/drush pm:list | grep job_application_automation
-          else
-            echo "⚠️  WARNING: Module may not be properly recognized - check for syntax errors"
-          fi
           
-          echo "=== Module deployment completed successfully ==="
+          MODULES=(
+            "ai_conversation"
+            "job_application_automation" 
+            "resume_tailoring"
+          )
+          
+          ALL_MODULES_OK=true
+          
+          for MODULE_NAME in "${MODULES[@]}"; do
+            if sudo -u www-data ./vendor/bin/drush pm:list | grep -q "$MODULE_NAME"; then
+              echo "✅ $MODULE_NAME module is recognized by Drupal"
+              
+              # Show module status
+              MODULE_STATUS=$(sudo -u www-data ./vendor/bin/drush pm:list | grep "$MODULE_NAME" || true)
+              echo "   Status: $MODULE_STATUS"
+            else
+              echo "⚠️  WARNING: $MODULE_NAME may not be properly recognized"
+              ALL_MODULES_OK=false
+            fi
+          done
+          
+          if [ "$ALL_MODULES_OK" = true ]; then
+            echo ""
+            echo "🎉 All custom modules deployment completed successfully!"
+            echo ""
+            echo "=== Deployment Summary ==="
+            echo "✅ ai_conversation - AI conversation management with AWS Bedrock"
+            echo "✅ job_application_automation - Automated job application system"  
+            echo "✅ resume_tailoring - AI-powered resume customization"
+            echo ""
+            echo "Access your modules at:"
+            echo "- AI Conversation Settings: /admin/config/ai-conversation/settings"
+            echo "- Job Applications: /admin/job-applications"
+            echo "- Resume Tailoring: /resume-tailoring"
+          else
+            echo "⚠️  Some modules may have issues - check Drupal logs"
+          fi
