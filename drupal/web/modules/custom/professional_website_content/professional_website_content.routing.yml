@@ -1,0 +1,39 @@
+professional_website_content.install_content:
+  path: '/admin/install-content'
+  defaults:
+    _controller: '\Drupal\professional_website_content\Controller\ContentInstallController::installContent'
+    _title: 'Install Professional Content'
+  requirements:
+    _permission: 'administer site configuration'
+
+professional_website_content.services:
+  path: '/services'
+  defaults:
+    _controller: '\Drupal\professional_website_content\Controller\ProfessionalContentController::servicesPage'
+    _title: 'Services'
+  requirements:
+    _access: 'TRUE'
+
+professional_website_content.fintech:
+  path: '/industries/fintech'
+  defaults:
+    _controller: '\Drupal\professional_website_content\Controller\ProfessionalContentController::fintechPage'
+    _title: 'FinTech Solutions'
+  requirements:
+    _access: 'TRUE'
+
+professional_website_content.healthcare:
+  path: '/industries/healthcare'
+  defaults:
+    _controller: '\Drupal\professional_website_content\Controller\ProfessionalContentController::healthcarePage'
+    _title: 'Healthcare Solutions'
+  requirements:
+    _access: 'TRUE'
+
+professional_website_content.energy:
+  path: '/industries/energy'
+  defaults:
+    _controller: '\Drupal\professional_website_content\Controller\ProfessionalContentController::energyPage'
+    _title: 'Energy Solutions'
+  requirements:
+    _access: 'TRUE'

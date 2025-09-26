@@ -1,0 +1,81 @@
+professional_website_content.main_menu:
+  title: 'Professional Website Main Menu'
+  description: 'Professional website navigation menu with industry dropdowns'
+  menu_name: main
+
+# Main navigation items
+professional_website_content.menu.about:
+  title: 'About Us'
+  route_name: '<none>'
+  menu_name: main
+  weight: 1
+  options:
+    attributes:
+      class: ['nav-item']
+
+professional_website_content.menu.services:
+  title: 'Services'
+  route_name: '<none>'
+  menu_name: main
+  weight: 2
+  options:
+    attributes:
+      class: ['nav-item', 'dropdown']
+
+professional_website_content.menu.industries:
+  title: 'Industries'
+  route_name: '<none>'
+  menu_name: main
+  weight: 3
+  options:
+    attributes:
+      class: ['nav-item', 'dropdown']
+
+professional_website_content.menu.case_studies:
+  title: 'Case Studies'
+  route_name: '<none>'
+  menu_name: main
+  weight: 4
+  options:
+    attributes:
+      class: ['nav-item']
+
+professional_website_content.menu.leadership:
+  title: 'Leadership'
+  route_name: '<none>'
+  menu_name: main
+  weight: 5
+  options:
+    attributes:
+      class: ['nav-item']
+
+professional_website_content.menu.contact:
+  title: 'Contact'
+  route_name: '<none>'
+  menu_name: main
+  weight: 6
+  options:
+    attributes:
+      class: ['nav-item']
+
+# Industry dropdown items
+professional_website_content.menu.industries.fintech:
+  title: 'FinTech'
+  route_name: 'professional_website_content.fintech'
+  parent: 'professional_website_content.menu.industries'
+  menu_name: main
+  weight: 1
+
+professional_website_content.menu.industries.healthcare:
+  title: 'Healthcare'
+  route_name: 'professional_website_content.healthcare'
+  parent: 'professional_website_content.menu.industries'
+  menu_name: main
+  weight: 2
+
+professional_website_content.menu.industries.energy:
+  title: 'Energy'
+  route_name: 'professional_website_content.energy'
+  parent: 'professional_website_content.menu.industries'
+  menu_name: main
+  weight: 3
