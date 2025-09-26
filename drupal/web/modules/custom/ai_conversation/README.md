@@ -1,8 +1,66 @@
 # AI Conversation Module
 
+# AI Conversation Module
+
 ## Overview
 
 The AI Conversation module provides a sophisticated conversational AI interface powered by AWS Bedrock and Claude 3.5 Sonnet. It features an intelligent **rolling summary system** that allows for unlimited conversation length while maintaining context efficiency and managing token costs.
+
+## Complete Workflow
+
+### 🎯 **Node-Based Architecture**
+
+The AI Conversation module uses a **node-centric approach** where each conversation is stored as a Drupal content entity:
+
+1. **Create AI Conversation Node** → Each conversation is a `ai_conversation` content type node
+2. **Node as Storage Container** → All messages, settings, and metadata stored in node fields  
+3. **Chat Interface via Node** → Access chat at `/node/{nid}/chat`
+4. **Persistent Conversations** → Full conversation history maintained in the node
+
+### 📋 **Step-by-Step User Workflow**
+
+#### **Step 1: Create Conversation Node**
+1. Navigate to **Content → Add content → AI Conversation**
+2. **Required fields:**
+   - **Title:** Name your conversation (e.g., "Project Planning Discussion")
+   - **AI Model:** Select model (defaults to Claude 3.5 Sonnet)
+   - **Context:** Optional system prompt to guide AI behavior
+
+3. **Optional configuration:**
+   - Set custom system prompt for specialized conversations
+   - Choose different AI model if needed
+   - Add description or notes
+
+4. **Save the node** → This creates your conversation container
+
+#### **Step 2: Start Chatting**
+1. **Access chat interface:** Navigate to `/node/{nid}/chat` 
+   - Example: `https://stlouisintegration.com/node/11/chat`
+   - Or click "Start Chat" link from node view page
+
+2. **Chat interface loads:**
+   - Message history area (empty for new conversations)
+   - Message input field with Send button
+   - Conversation statistics panel
+   - Loading indicators and controls
+
+#### **Step 3: Send Messages**
+1. **Type message** in the textarea input field
+2. **Send methods:**
+   - Click "Send" button
+   - Press Enter (Shift+Enter for new line)
+   
+3. **Message processing:**
+   - User message immediately appears in chat
+   - Loading indicator shows "AI is thinking..."
+   - AI response appears when complete
+   - Statistics update in real-time
+
+#### **Step 4: Ongoing Conversation**
+1. **Continue chatting** - all messages stored in the node
+2. **Statistics tracking** - monitor token usage and message count
+3. **Automatic summarization** - when conversation gets long
+4. **Persistent storage** - conversation preserved between sessions
 
 ## Key Features
 
@@ -34,56 +92,216 @@ The AI Conversation module provides a sophisticated conversational AI interface 
 
 ## Technical Architecture
 
-### **Content Type: `ai_conversation`**
+## Technical Architecture Deep Dive
 
-The module creates a custom content type with the following fields:
+### 🏗️ **Node-Centric Storage System**
 
-#### **Core Fields**
-- **`field_messages`** (text_long, unlimited): Stores conversation history as JSON-encoded message objects
+The module creates a custom content type `ai_conversation` that serves as the complete storage container:
+
+#### **Content Type: `ai_conversation`**
+
+**Node URL Pattern:** `/node/{nid}/chat` for chat interface
+
+**Core Fields:**
+- **`field_messages`** (text_long, unlimited): JSON-encoded message objects
+  ```json
+  {
+    "role": "user|assistant", 
+    "content": "message text",
+    "timestamp": 1704067200
+  }
+  ```
 - **`field_ai_model`** (string): AI model identifier (defaults to Claude 3.5 Sonnet)
 - **`field_context`** (text_long): System prompt/conversation context
 
-#### **Rolling Summary Fields**
+**Rolling Summary Fields:**
 - **`field_conversation_summary`** (text_long): AI-generated summary of older messages
 - **`field_message_count`** (integer): Total message count for the conversation
 - **`field_summary_updated`** (timestamp): When summary was last regenerated
+- **`field_summary_message_count`** (integer): Counter for summary frequency logic
 - **`field_total_tokens`** (integer): Cumulative token usage tracking
 
-#### **Missing Field** ⚠️
-- **`field_summary_message_count`** (integer): Counter for summary frequency logic (referenced in code but not created in install)
+### 🔄 **Request/Response Flow**
 
-### **Service Architecture**
+#### **Chat Interface Loading (`/node/{nid}/chat`)**
+1. **Route:** `ai_conversation.chat_interface`
+2. **Controller:** `ChatController::chatInterface()`
+3. **Access Control:** Node owner or admin only
+4. **Data Loading:**
+   - Load conversation node
+   - Extract recent messages for display
+   - Calculate conversation statistics
+   - Build render array with JavaScript settings
 
-#### **AIApiService** (`ai_conversation.api_service`)
+#### **AJAX Message Sending (`/ai-conversation/send-message`)**
+1. **Route:** `ai_conversation.send_message` (POST with CSRF)
+2. **Controller:** `ChatController::sendMessage()`
+3. **Process Flow:**
+   ```php
+   // 1. Validate CSRF token and parameters
+   $token = $request->request->get('csrf_token');
+   $node_id = $request->request->get('node_id');
+   $message = $request->request->get('message');
+   
+   // 2. Load and validate conversation node
+   $node = $this->entityTypeManager->getStorage('node')->load($node_id);
+   
+   // 3. Add user message to node
+   $user_message = [
+     'role' => 'user',
+     'content' => $message,
+     'timestamp' => time(),
+   ];
+   $this->addMessageToNode($node, $user_message);
+   $node->save();
+   
+   // 4. Get AI response (includes summary check)
+   $ai_response = $this->aiApiService->sendMessage($node, $message);
+   
+   // 5. Add AI message to node
+   $ai_message = [
+     'role' => 'assistant', 
+     'content' => $ai_response,
+     'timestamp' => time(),
+   ];
+   $this->addMessageToNode($node, $ai_message);
+   $node->save();
+   
+   // 6. Return response with updated stats
+   return new JsonResponse([
+     'success' => TRUE,
+     'response' => $ai_response,
+     'stats' => $this->aiApiService->getConversationStats($node),
+   ]);
+   ```
+
+### 🧠 **AIApiService - Core AI Logic**
+
 **Location:** `src/Service/AIApiService.php`
 
-**Core Methods:**
-- **`sendMessage()`**: Primary AI interaction with rolling summary management
-- **`testConnection()`**: AWS Bedrock connectivity validation
-- **`getConversationStats()`**: Real-time conversation analytics
-- **`checkAndUpdateSummary()`**: Automatic summary generation logic
-- **`buildOptimizedContext()`**: Context construction (summary + recent messages)
+**Primary Method:** `sendMessage(NodeInterface $conversation, string $message)`
 
-**Rolling Summary Logic:**
-1. **Message Addition**: Each new message increments summary counter
-2. **Frequency Check**: When counter reaches configured frequency (default: 10), trigger summary
-3. **Summary Generation**: AI summarizes older messages beyond recent limit (20)
-4. **Context Optimization**: Recent messages + summary provide optimal context
-5. **Counter Reset**: Summary counter resets to 0 after generation
+**Processing Steps:**
+1. **Context Building:**
+   ```php
+   // Build optimized context from node data
+   $context = $this->buildOptimizedContext($conversation, $message);
+   // Context = system prompt + summary + recent messages + current message
+   ```
 
-#### **ChatController** (`ai_conversation.controller.chat`)
-**Location:** `src/Controller/ChatController.php`
+2. **Summary Check:**
+   ```php
+   // Auto-summarize if thresholds exceeded
+   $this->checkAndUpdateSummary($conversation);
+   // Triggers when: message_count > threshold OR tokens > limit
+   ```
 
-**Key Routes:**
-- **`/node/{nid}/chat`**: Main chat interface
-- **`/ai-conversation/send-message`**: AJAX message endpoint (POST)
-- **`/ai-conversation/stats`**: Live statistics endpoint (GET)
-- **`/node/{nid}/trigger-summary`**: Manual summary generation (admin)
+3. **AWS Bedrock Call:**
+   ```php
+   // Send to Claude 3.5 Sonnet
+   $response = $bedrock->invokeModel([
+     'modelId' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+     'contentType' => 'application/json',
+     'body' => json_encode($request_body)
+   ]);
+   ```
 
-**Security Features:**
-- **Access Control**: Owner-only or admin access
-- **CSRF Protection**: Token validation for all POST requests
-- **Input Validation**: Message content and node ID validation
+4. **Response Processing:**
+   ```php
+   // Extract AI response and update node statistics
+   $content = json_decode($response['body'], true);
+   return $content['content'][0]['text'];
+   ```
+
+### 🎛️ **Frontend JavaScript Integration**
+
+**File:** `js/chat-interface.js`
+
+**Initialization:**
+```javascript
+Drupal.behaviors.aiConversationChat = {
+  attach: function(context, settings) {
+    const chatSettings = settings.aiConversation || {};
+    // Settings include: nodeId, sendMessageUrl, csrfToken, stats
+  }
+};
+```
+
+**AJAX Message Flow:**
+```javascript
+function sendMessage() {
+  console.log('🚀 Starting sendMessage for node:', chatSettings.nodeId);
+  
+  $.ajax({
+    url: chatSettings.sendMessageUrl,  // '/ai-conversation/send-message'
+    type: 'POST',
+    data: {
+      node_id: chatSettings.nodeId,    // The conversation node ID
+      message: message,
+      csrf_token: chatSettings.csrfToken
+    },
+    success: function(response) {
+      // Add AI response to chat interface
+      addMessageToChat('assistant', response.response);
+      // Update statistics display
+      updateMetricsDisplay(response.stats);
+    }
+  });
+}
+```
+
+### 🔐 **Security & Access Control**
+
+**Access Method:** `ChatController::chatAccess()`
+```php
+public function chatAccess(NodeInterface $node, AccountInterface $account) {
+  // Only ai_conversation nodes
+  if ($node->bundle() !== 'ai_conversation') {
+    return AccessResult::forbidden();
+  }
+  
+  // Node owner or admin only
+  if ($node->getOwnerId() === $account->id() || 
+      $account->hasPermission('administer content')) {
+    return AccessResult::allowed();
+  }
+  
+  return AccessResult::forbidden();
+}
+```
+
+**CSRF Protection:** All POST requests require valid CSRF tokens
+
+### 📊 **Statistics & Monitoring**
+
+**Real-time Stats Endpoint:** `/ai-conversation/stats?node_id={nid}`
+
+**Statistics Calculated:**
+- **Total Messages:** Complete message count from `field_message_count`
+- **Recent Messages:** Count of messages currently stored in `field_messages`
+- **Has Summary:** Boolean if `field_conversation_summary` exists
+- **Token Estimates:** Calculated from message content length
+- **Summary Status:** Last update timestamp
+
+### 🔄 **Rolling Summary System Implementation**
+
+**Trigger Logic:** `checkAndUpdateSummary()` in `AIApiService`
+```php
+$message_count = $conversation->get('field_message_count')->value ?: 0;
+$max_recent = $this->config->get('max_recent_messages') ?: 10;
+
+if ($message_count > $max_recent) {
+  $this->updateConversationSummary($conversation);
+  $this->pruneOldMessages($conversation);
+}
+```
+
+**Summary Generation:**
+1. **Collect older messages** beyond recent limit
+2. **Send to AI** with summarization prompt
+3. **Update** `field_conversation_summary` 
+4. **Remove old messages** from `field_messages`
+5. **Update timestamps** and counters
 
 ### **Frontend Integration**
 
