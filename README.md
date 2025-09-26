@@ -262,17 +262,20 @@ ai_conversation (Core AI Service Provider)
 ### **Core AI Services**
 
 #### **ai_conversation/** - AWS Bedrock AI Service Provider ✅
-- **Status:** [COMPLETED] - Production-ready AI conversation management module
+- **Status:** [COMPLETED] - Production-ready and TESTED working AI conversation management module
 - **Purpose:** Sophisticated AI conversation system with rolling summary management
 - **Architecture:** `/drupal/web/modules/custom/ai_conversation/ARCHITECTURE.md`
 - **AWS Integration:** Bedrock Runtime API with Claude 3.5 Sonnet model
+- **Recent Fix (Sept 26, 2025):** Resolved 500 error by fixing missing service dependency
 - **Key Features:**
-  - Rolling conversation summaries (every 10 messages)
+  - Rolling conversation summaries (every 10 messages)  
   - Multi-credential support (config, env vars, IAM roles)
-  - Real-time chat interface with AJAX
+  - Real-time chat interface with AJAX (VERIFIED WORKING)
   - Token tracking and usage monitoring
   - Safe uninstall preserving conversation data
+  - Standard Drupal logging integration
 - **Configuration:** `/admin/config/ai-conversation/settings`
+- **Live Testing:** Confirmed working at `/node/13/chat` and other conversation nodes
 - **Module Role:** **FOUNDATIONAL** - Advanced conversation management for AI services
 
 ### **Feature Modules**
@@ -295,9 +298,19 @@ ai_conversation (Core AI Service Provider)
 - **Content Types:** `resume`, `tailored_resume` 
 - **Recent Fix:** Module enabled and routes verified working
 
-## Recent Updates (September 25, 2025)
+## Recent Updates
 
-### **AI Conversation Module Enhancements**
+### **September 26, 2025 - AI Conversation Critical Fix**
+- ✅ **500 Error Resolution:** Fixed ServiceNotFoundException for 'newsmotivationmetrics.logging_config'
+- ✅ **Logging System:** Replaced non-existent service calls with standard Drupal::logger('ai_conversation')
+- ✅ **Production Testing:** Live error reproduced and resolved at `/node/13/chat`
+- ✅ **Error Analysis:** Complete logging infrastructure documented (Apache, PHP, Drupal)
+- ✅ **Chat Interface:** AI conversation messaging now fully operational
+- ✅ **Code Quality:** Removed 3 service dependency errors in ChatController.php
+
+### **September 25, 2025 - Module System Enhancements**
+
+#### **AI Conversation Module Enhancements**
 - ✅ **Configuration System:** Added comprehensive admin settings form at `/admin/config/ai-conversation/settings`
 - ✅ **Multi-Credential Support:** Environment variables, configuration, and AWS credential chain fallback
 - ✅ **Installation Fixes:** Resolved missing field issues, enhanced field existence checking
@@ -358,6 +371,15 @@ ai_conversation (Core AI Service Provider)
 - **Core Support:** All modules support Drupal 9, 10, and 11
 - **Dependencies:** Standard Drupal core modules + ai_conversation for AI services
 - **Installation:** Standard Drupal module installation process
+
+### **Production Server Documentation**
+
+#### **Comprehensive Logging Infrastructure** (Updated Sept 26, 2025)
+- **Apache Logs**: Site-specific logs at `/var/log/apache2/stlouisintegration_access.log` and `stlouisintegration_error.log`
+- **PHP Logging**: mod_php configuration sends errors to Apache error logs
+- **Drupal Logging**: Database logging (dblog) enabled, accessed via `drush --uri=stlouisintegration.com watchdog:show`
+- **Multisite Context**: All drush commands require `--uri=stlouisintegration.com` specification
+- **Complete Documentation**: All logging details documented in `.github/instructions/instructions.md`
 
 ### **AWS Bedrock Configuration**
 
