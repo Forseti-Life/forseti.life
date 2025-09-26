@@ -75,7 +75,7 @@ class AIApiService {
       $config = $this->configFactory->get('ai_conversation.settings');
       $aws_access_key = $config->get('aws_access_key_id') ?: getenv('AWS_ACCESS_KEY_ID');
       $aws_secret_key = $config->get('aws_secret_access_key') ?: getenv('AWS_SECRET_ACCESS_KEY');
-      $aws_region = $config->get('aws_region') ?: getenv('AWS_DEFAULT_REGION') ?: 'us-west-2';
+      $aws_region = $config->get('aws_region') ?: getenv('AWS_DEFAULT_REGION') ?: 'us-east-1';
 
       // Use the AWS SDK with credentials (either from config or environment).
       $sdk_config = [
