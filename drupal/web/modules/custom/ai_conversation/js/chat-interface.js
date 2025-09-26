@@ -3,13 +3,22 @@
 
   Drupal.behaviors.aiConversationChat = {
     attach: function(context, settings) {
+      console.log('🔧 AI Conversation Chat - Behavior attaching');
+      console.log('📍 Context:', context);
+      console.log('📍 Settings:', settings);
+      
       const $chatContainer = $('.ai-conversation-chat', context);
+      console.log('📦 Chat container found:', $chatContainer.length > 0);
       
       if ($chatContainer.length === 0) {
+        console.warn('❌ No chat container found, exiting behavior');
         return;
       }
 
       const chatSettings = settings.aiConversation || {};
+      console.log('⚙️ AI Conversation settings loaded:', chatSettings);
+      
+      // Log all the required elements
       const $messageInput = $('#message-input', $chatContainer);
       const $sendButton = $('#send-button', $chatContainer);
       const $clearButton = $('#clear-input', $chatContainer);
@@ -18,6 +27,27 @@
       const $metricsContainer = $('.ai-conversation-metrics', $chatContainer);
       const $messagesContainer = $('#chat-messages', $chatContainer);
       const $loadingIndicator = $('#loading-indicator', $chatContainer);
+
+      console.log('📋 UI Elements check:');
+      console.log('  💬 Message input:', $messageInput.length > 0);
+      console.log('  📤 Send button:', $sendButton.length > 0);
+      console.log('  🧹 Clear button:', $clearButton.length > 0);
+      console.log('  📊 Metrics container:', $metricsContainer.length > 0);
+      console.log('  💭 Messages container:', $messagesContainer.length > 0);
+      console.log('  ⏳ Loading indicator:', $loadingIndicator.length > 0);
+
+      // Validate critical settings
+      if (!chatSettings.sendMessageUrl) {
+        console.error('❌ CRITICAL: sendMessageUrl not configured');
+      } else {
+        console.log('✅ Send message URL configured:', chatSettings.sendMessageUrl);
+      }
+      
+      if (!chatSettings.csrfToken) {
+        console.error('❌ CRITICAL: CSRF token not configured');
+      } else {
+        console.log('✅ CSRF token configured');
+      }
 
       // Metrics toggle functionality
       let metricsVisible = true;
@@ -139,7 +169,12 @@
       function sendMessage() {
         const message = $messageInput.val().trim();
         
+        console.log('🚀 AI Conversation - Starting sendMessage');
+        console.log('📝 Message content:', message);
+        console.log('⚙️ Chat settings:', chatSettings);
+        
         if (!message) {
+          console.warn('❌ Empty message, aborting send');
           return;
         }
 
@@ -153,6 +188,13 @@
         // Clear input
         $messageInput.val('');
 
+        console.log('📡 Sending AJAX request to:', chatSettings.sendMessageUrl);
+        console.log('📦 Request data:', {
+          node_id: chatSettings.nodeId,
+          message: message,
+          csrf_token: chatSettings.csrfToken ? 'present' : 'MISSING'
+        });
+
         // Send to server
         $.ajax({
           url: chatSettings.sendMessageUrl,
@@ -162,33 +204,70 @@
             message: message,
             csrf_token: chatSettings.csrfToken
           },
+          beforeSend: function(xhr, settings) {
+            console.log('🔄 AJAX beforeSend - Request starting');
+            console.log('🌐 XHR settings:', {
+              url: settings.url,
+              type: settings.type,
+              data: settings.data
+            });
+          },
           success: function(response) {
+            console.log('✅ AJAX Success - Server response received');
+            console.log('📥 Response data:', response);
+            
             if (response.success) {
+              console.log('🎉 Response indicates success');
               // Add AI response to chat
               addMessageToChat('assistant', response.response);
               
               // Update statistics if provided
               if (response.stats) {
+                console.log('📊 Updating metrics with stats:', response.stats);
                 updateMetricsDisplay(response.stats);
                 chatSettings.stats = response.stats;
               }
               
               // Show/hide summary button based on message count
               if (response.stats && response.stats.total_messages > 20) {
+                console.log('🔘 Showing summary button (>20 messages)');
                 $triggerSummaryButton.show();
               }
             } else {
+              console.error('❌ Server returned error in success response:', response.error);
               showError(response.error || 'Unknown error occurred');
             }
           },
           error: function(xhr, status, error) {
+            console.error('❌ AJAX Error occurred');
+            console.error('📊 XHR status:', xhr.status);
+            console.error('📊 XHR readyState:', xhr.readyState);
+            console.error('📊 Status text:', status);
+            console.error('📊 Error message:', error);
+            console.error('📊 Response text:', xhr.responseText);
+            
             let errorMessage = 'Failed to send message';
             if (xhr.responseJSON && xhr.responseJSON.error) {
+              console.error('📊 Parsed JSON error:', xhr.responseJSON.error);
               errorMessage = xhr.responseJSON.error;
+            } else if (xhr.responseText) {
+              try {
+                const parsed = JSON.parse(xhr.responseText);
+                console.error('📊 Manual JSON parse:', parsed);
+                if (parsed.error) {
+                  errorMessage = parsed.error;
+                }
+              } catch (parseError) {
+                console.error('📊 JSON parse failed:', parseError);
+                console.error('📊 Raw response:', xhr.responseText);
+              }
             }
+            
+            console.error('📊 Final error message shown to user:', errorMessage);
             showError(errorMessage);
           },
           complete: function() {
+            console.log('🏁 AJAX Complete - Request finished');
             $loadingIndicator.hide();
             $sendButton.prop('disabled', false);
             $messageInput.focus();
