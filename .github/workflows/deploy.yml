@@ -41,13 +41,16 @@ jobs:
           
           echo "=== Downloading modules from repository ==="
           
-          # Clone the entire custom modules directory
+          # Clone the repository with both modules and composer files
           git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
-          git sparse-checkout set drupal/web/modules/custom
+          git sparse-checkout set drupal/web/modules/custom drupal/composer.json drupal/composer.lock
           
-          # Verify modules were downloaded
+          # Verify modules and composer files were downloaded
           echo "=== Available modules in repository: ==="
           ls -la drupal/web/modules/custom/
+          
+          echo "=== Composer files available: ==="
+          ls -la drupal/composer.json drupal/composer.lock 2>/dev/null || echo "Composer files not found"
           
           # Ensure custom modules directory exists on server
           sudo mkdir -p "$CUSTOM_MODULES_DIR"
@@ -78,6 +81,44 @@ jobs:
             fi
             echo ""
           done
+          
+          echo "=== Deploying composer.json and composer.lock ==="
+          
+          # Deploy composer files to update dependencies
+          if [ -f "drupal/composer.json" ]; then
+            echo "Deploying composer.json..."
+            sudo cp "drupal/composer.json" "$DRUPAL_ROOT/"
+            sudo chown www-data:www-data "$DRUPAL_ROOT/composer.json"
+            echo "✅ composer.json deployed successfully"
+          else
+            echo "⚠️  WARNING: composer.json not found in repository"
+          fi
+          
+          if [ -f "drupal/composer.lock" ]; then
+            echo "Deploying composer.lock..."
+            sudo cp "drupal/composer.lock" "$DRUPAL_ROOT/"
+            sudo chown www-data:www-data "$DRUPAL_ROOT/composer.lock"
+            echo "✅ composer.lock deployed successfully"
+          else
+            echo "⚠️  WARNING: composer.lock not found in repository"
+          fi
+          
+          echo "=== Installing composer dependencies ==="
+          cd "$DRUPAL_ROOT"
+          
+          # Install dependencies using composer
+          if sudo -u www-data composer install --no-dev --optimize-autoloader; then
+            echo "✅ Composer dependencies installed successfully"
+            echo "Installed packages:"
+            sudo -u www-data composer show | grep -E "(aws/aws-sdk-php|drupal)" | head -10
+          else
+            echo "⚠️  WARNING: Composer install failed"
+            echo "You may need to run 'composer install' manually on the server"
+          fi
+          
+          # Clean up temporary directory
+          echo "=== Cleaning up temporary files ==="
+          rm -rf "$TEMP_DIR"
 
     - name: Enable custom modules
       uses: appleboy/ssh-action@v0.1.5
