@@ -30,8 +30,6 @@ applyTo: '**'
 **MANDATORY CONTEXT INCLUSION PROTOCOL**: 
 1. **Instructions File**: Always include /workspaces/stlouisintegration.com/.github/instructions/instructions.md in context
 2. **Architecture Documentation**: Always include drupal/web/modules/custom/job_application_automation/ARCHITECTURE.md when working on module development
-3. **Context Validation**: Verify both documents are accessible before beginning any development work
-4. **Compliance Verification**: Confirm all actions align with documented architectural principles
 
 **DRUPAL MODULE DEVELOPMENT REQUIREMENTS**: When working on the Job Application Automation module, these architectural constraints are mandatory:
 
@@ -47,7 +45,6 @@ applyTo: '**'
 1. **Read ARCHITECTURE.md**: Always include drupal/web/modules/custom/job_application_automation/ARCHITECTURE.md in context
 2. **Verify Drupal-native approach**: Confirm implementation uses nodes, fields, Views, and default forms
 3. **Validate necessity**: Ensure any custom code serves automation/integration purposes only
-4. **Document rationale**: Provide technical justification for any deviation from native Drupal patterns
 
 **BEFORE FILE EDITING**:
 1. **Read README.md** in the target directory to understand current project state and documentation
@@ -56,8 +53,7 @@ applyTo: '**'
 
 **AFTER FILE EDITING**:
 1. **Re-read README.md** in the affected directory to verify it reflects current state
-2. **Update README.md** if changes made are not properly documented
-3. **Ensure documentation accuracy** matches the actual implementation
+2. **Update README.md** after all changes made to ensure currentness
 
 **POST-EDIT REVIEW PROTOCOL**:
 - **Always reread this instructions file** after every file edit to maintain guideline adherence
@@ -65,17 +61,11 @@ applyTo: '**'
 - **Maintain consistency** across all project documentation
 
 **REGULAR REVIEW REQUIREMENT**: This instructions file must be reviewed and updated regularly to maintain accuracy and relevance:
-- Review after major system changes or deployments
-- Update when new technologies or processes are introduced
-- Verify tech stack information and system specifications quarterly
-- Ensure all documented procedures match current production environment
-- Keep persona guidelines fresh and effective ("Is very important for great success!")
 
 **COMPLEX PROCESS DOCUMENTATION**: For multi-phase, complex development workflows that require detailed planning and coordination:
 - **Plans Directory**: All comprehensive project plans are documented in `/workspaces/stlouisintegration.com/plans/`
 - **Process Breakdown**: Complex tasks are broken down into manageable phases with clear success criteria
 - **Multi-Environment Coordination**: Plans address differences between development, staging, and production environments
-- **Risk Mitigation**: Plans include identification of potential issues and mitigation strategies
 - **Progress Tracking**: Plans serve as living documents updated throughout project execution
 - **Examples**: Multi-environment synchronization, major module deployments, architectural changes
 - **Purpose**: Enables splitting complex workflows into smaller, manageable tasks while maintaining overall project coherence
@@ -91,7 +81,7 @@ applyTo: '**'
 - **Development**: Ubuntu 24.04.2 LTS (dev containers)
 - **Kernel**: 6.8.0-1031-aws (x86_64 architecture)
 
-## Apache Web Server
+## Production Apache Web Server
 - **Version**: Apache 2.4.58
 - **Configuration**: Multi-site virtual hosts
 - **Document Root**: `/var/www/html/stlouisintegration/web`
@@ -111,11 +101,33 @@ applyTo: '**'
   - `drupal_db` (149 tables) - Secondary site database
 - **Connection**: localhost:3306 with dedicated drupal_user
 
-## PHP Runtime
-- **Version**: PHP 8.3.6 (CLI and FPM)
+## Production PHP Runtime
+- **Version**: PHP 8.3.6 (CLI and mod_php for Apache)
+- **Server API**: mod_php (shared module, not PHP-FPM)
+- **Configuration Files**:
+  - **CLI**: `/etc/php/8.3/cli/php.ini`
+  - **Apache**: `/etc/php/8.3/apache2/php.ini`
+- **Error Logging Configuration**:
+  - **log_errors**: On (enabled)
+  - **error_log**: No value (defaults to Apache error logs)
+  - **PHP errors logged to**: `/var/log/apache2/stlouisintegration_error.log` (site-specific Apache error log)
 - **Extensions**: OPcache enabled, Zend Engine v4.3.6
 - **Memory Limit**: Configured for Drupal 11 requirements
-- **Execution**: Both CLI and web server SAPI
+
+## Drupal Logging System
+- **Drupal Root**: `/var/www/html/stlouisintegration` (multisite: stlouisintegration.com)
+- **Drush Context**: All commands require `--uri=stlouisintegration.com` for multisite
+- **Logging Modules**:
+  - **Database Logging (dblog)**: **Enabled** - All logs stored in database
+  - **Syslog (syslog)**: **Disabled** - Not using system syslog
+- **Error Level**: `some` (errors, warnings, notices - excludes debug messages)
+- **Storage**: Database watchdog table in `stlouisintegration_drupal` database
+- **Commands**:
+  - **View logs**: `cd /var/www/html/stlouisintegration && drush --uri=stlouisintegration.com watchdog:show --count=10`
+  - **Check config**: `cd /var/www/html/stlouisintegration && drush --uri=stlouisintegration.com config:get system.logging`
+  - **Module status**: `cd /var/www/html/stlouisintegration && drush --uri=stlouisintegration.com pm:list | grep -E "dblog|syslog"`
+- **Status**: **Active and functional** (confirmed with recent PHP deprecation entries)
+- **Integration**: Works alongside Apache error logs for comprehensive error tracking
 
 ## Additional Stack Components
 - **Drupal**: 11.2.3 (latest stable)
@@ -125,10 +137,6 @@ applyTo: '**'
 - **SMTP**: Gmail relay (smtp-relay.gmail.com:587) for email services
 
 ---
-
-Provide project context and coding guidelines that AI should follow when generating code, answering questions, or reviewing changes.
-
-The environment is a Drupal 11 website repository for St. Louis Integration, a professional website focused on integration services and business solutions, built on a complete LAMP stack infrastructure.
 
 Dev/prod environment: The code is deployed on a production server with the following specifications:
 - **Server**: Ubuntu 22.04 LTS
@@ -192,8 +200,10 @@ https://stlouisintegration.com
 - **stlouisintegration.com logs**:
   - Access Log: `/var/log/apache2/stlouisintegration_access.log`
   - Error Log: `/var/log/apache2/stlouisintegration_error.log`
+  - **PHP Errors**: Logged to Apache error log (no separate PHP log file)
 - **Global Apache logs**: `/var/log/apache2/access.log` and `/var/log/apache2/error.log` (not site-specific)
 - **Drupal logs**: Use site-specific Drush: `cd /var/www/html/stlouisintegration/web && ../vendor/bin/drush --uri=stlouisintegration.com watchdog:show`
+- **PHP Configuration**: mod_php using `/etc/php/8.3/apache2/php.ini` with errors directed to Apache logs
 
 Do not SSH out or create debug php files to be deployed to the server.
 Always use the logging system outlined in the README.md for error handling and debugging.
