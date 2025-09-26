@@ -43,7 +43,7 @@ jobs:
           
           # Clone the repository with both modules and composer files
           git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
-          git sparse-checkout set drupal/web/modules/custom drupal/composer.json drupal/composer.lock
+          git sparse-checkout set drupal/web/modules/custom drupal
           
           # Verify modules and composer files were downloaded
           echo "=== Available modules in repository: ==="
