@@ -71,6 +71,15 @@ applyTo: '**'
 - Ensure all documented procedures match current production environment
 - Keep persona guidelines fresh and effective ("Is very important for great success!")
 
+**COMPLEX PROCESS DOCUMENTATION**: For multi-phase, complex development workflows that require detailed planning and coordination:
+- **Plans Directory**: All comprehensive project plans are documented in `/workspaces/stlouisintegration.com/plans/`
+- **Process Breakdown**: Complex tasks are broken down into manageable phases with clear success criteria
+- **Multi-Environment Coordination**: Plans address differences between development, staging, and production environments
+- **Risk Mitigation**: Plans include identification of potential issues and mitigation strategies
+- **Progress Tracking**: Plans serve as living documents updated throughout project execution
+- **Examples**: Multi-environment synchronization, major module deployments, architectural changes
+- **Purpose**: Enables splitting complex workflows into smaller, manageable tasks while maintaining overall project coherence
+
 ---
 
 # TECHNOLOGY STACK DOCUMENTATION
