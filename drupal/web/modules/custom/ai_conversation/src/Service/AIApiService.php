@@ -64,10 +64,81 @@ class AIApiService {
   }
 
   /**
+   * Check if we're running in a development environment.
+   *
+   * @return bool
+   *   TRUE if in development environment, FALSE if in production.
+   */
+  protected function isDevelopmentEnvironment(): bool {
+    // Check for GitHub Codespaces environment variable
+    if (getenv('CODESPACES') === 'true') {
+      return TRUE;
+    }
+    
+    // Check for common development indicators
+    if (getenv('ENVIRONMENT') === 'development' || 
+        getenv('APP_ENV') === 'dev' ||
+        $_SERVER['SERVER_NAME'] === 'localhost' ||
+        strpos($_SERVER['HTTP_HOST'] ?? '', 'codespace') !== FALSE) {
+      return TRUE;
+    }
+    
+    // Check Drupal site URI for development patterns
+    $request = \Drupal::request();
+    $host = $request->getHost();
+    if (strpos($host, 'localhost') !== FALSE || 
+        strpos($host, '127.0.0.1') !== FALSE ||
+        strpos($host, 'codespace') !== FALSE ||
+        strpos($host, '.local') !== FALSE) {
+      return TRUE;
+    }
+    
+    return FALSE;
+  }
+
+  /**
+   * Generate a mock AI response for development environment.
+   *
+   * @param string $message
+   *   The user message to respond to.
+   *
+   * @return array
+   *   Mock response array with AI message and usage stats.
+   */
+  protected function generateMockResponse(string $message): array {
+    $mock_responses = [
+      "Service was called successfully. In a production environment, this would be Claude 3.5 Sonnet's actual response to: \"" . substr($message, 0, 100) . (strlen($message) > 100 ? '...' : '') . "\"",
+      "Development mode active. AWS Bedrock service simulated. Your message was received and processed.",
+      "Mock AI Response: I understand your message. This is a development environment simulation of Claude 3.5 Sonnet.",
+      "Development Environment: AI service call completed. In production, this would connect to AWS Bedrock Claude."
+    ];
+    
+    // Rotate through responses based on message hash for variety
+    $response_index = abs(crc32($message)) % count($mock_responses);
+    $ai_response = $mock_responses[$response_index];
+    
+    return [
+      'ai_message' => $ai_response,
+      'usage' => [
+        'input_tokens' => strlen($message) / 4, // Rough token estimate
+        'output_tokens' => strlen($ai_response) / 4,
+        'total_tokens' => (strlen($message) + strlen($ai_response)) / 4
+      ]
+    ];
+  }
+
+  /**
    * Send a message to the AI model with rolling summary management.
    */
   public function sendMessage(NodeInterface $conversation, string $message) {
     try {
+      // Check if we're in development environment and return mock response
+      if ($this->isDevelopmentEnvironment()) {
+        $this->logger->info('Development environment detected. Returning mock AI response.');
+        $mock_response = $this->generateMockResponse($message);
+        return $mock_response['ai_message']; // Return just the message string, not the full array
+      }
+
       // Check if we need to update the summary before processing.
       $this->checkAndUpdateSummary($conversation);
 
@@ -304,6 +375,12 @@ class AIApiService {
    */
   private function generateSummary(string $context) {
     try {
+      // Check if we're in development environment and return mock summary
+      if ($this->isDevelopmentEnvironment()) {
+        $this->logger->info('Development environment detected. Returning mock summary.');
+        return "Development Mode Summary: This conversation has been simulated for development purposes. The conversation contains user messages and mock AI responses for testing the chat interface functionality.";
+      }
+
       $sdk = new \Aws\Sdk([
         'region' => 'us-west-2',
         'version' => 'latest',

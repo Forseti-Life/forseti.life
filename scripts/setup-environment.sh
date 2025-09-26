@@ -42,7 +42,9 @@ if command -v php &> /dev/null; then
     print_status "PHP $PHP_VERSION is installed"
     
     # Check if PHP version is 8.1 or higher
-    if php -r "exit(version_compare(PHP_VERSION, '8.1.0', '<') ? 1 : 0);"; then
+    if php -r "exit(version_compare(PHP_VERSION, '8.1.0', '>=') ? 0 : 1);"; then
+        print_status "PHP $PHP_VERSION meets Drupal 11 requirements (8.1+)"
+    else
         print_error "PHP 8.1 or higher is required for Drupal 11. Current version: $PHP_VERSION"
         print_status "Installing PHP 8.3..."
         sudo apt install -y software-properties-common
@@ -60,9 +62,10 @@ fi
 
 # Install required PHP extensions
 print_status "Checking PHP extensions..."
-REQUIRED_EXTENSIONS=("mysql" "gd" "xml" "mbstring" "curl" "zip" "bcmath" "json" "tokenizer" "fileinfo" "intl" "opcache")
+REQUIRED_EXTENSIONS=("gd" "xml" "mbstring" "curl" "zip" "bcmath" "json" "tokenizer" "fileinfo" "intl")
 MISSING_EXTENSIONS=()
 
+# Check standard extensions
 for ext in "${REQUIRED_EXTENSIONS[@]}"; do
     if ! php -m | grep -q "^$ext$"; then
         MISSING_EXTENSIONS+=("php8.3-$ext")
@@ -71,6 +74,22 @@ for ext in "${REQUIRED_EXTENSIONS[@]}"; do
         print_status "PHP extension '$ext' is already installed"
     fi
 done
+
+# Check MySQL extensions (mysqli, pdo_mysql, or mysqlnd)
+if ! php -m | grep -qE "^(mysqli|pdo_mysql|mysqlnd)$"; then
+    MISSING_EXTENSIONS+=("php8.3-mysql")
+    print_warning "PHP MySQL extension is missing"
+else
+    print_status "PHP MySQL extension is already installed"
+fi
+
+# Check OPcache (shows as "Zend OPcache")
+if ! php -m | grep -qi "opcache"; then
+    MISSING_EXTENSIONS+=("php8.3-opcache")
+    print_warning "PHP OPcache extension is missing"
+else
+    print_status "PHP OPcache extension is already installed"
+fi
 
 if [ ${#MISSING_EXTENSIONS[@]} -gt 0 ]; then
     print_status "Installing missing PHP extensions: ${MISSING_EXTENSIONS[*]}"
