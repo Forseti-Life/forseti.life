@@ -97,6 +97,10 @@ applyTo: '**'
 - **Document Root**: `/var/www/html/stlouisintegration/web`
 - **SSL/HTTPS**: Enabled with proper certificate management
 - **Multi-domain**: Supports stlouisintegration.com and thetruthperspective.org
+- **Site-Specific Logging**: 
+  - **stlouisintegration.com Access Log**: `/var/log/apache2/stlouisintegration_access.log`
+  - **stlouisintegration.com Error Log**: `/var/log/apache2/stlouisintegration_error.log`
+  - **Configuration**: Custom log format "cloudflare" for both sites
 
 ## MySQL Database
 - **Version**: MySQL 8.0+
@@ -183,6 +187,13 @@ https://stlouisintegration.com
 **PRODUCTION SERVER DATABASE SEPARATION**: Each site has its own database and Drush installation:
 - stlouisintegration.com → `/var/www/html/stlouisintegration/web` → `stlouisintegration_drupal` database
 - thetruthperspective.org → `/var/www/html/drupal` → `drupal_db` database
+
+**PRODUCTION SERVER LOG LOCATIONS**: Site-specific Apache logging for troubleshooting:
+- **stlouisintegration.com logs**:
+  - Access Log: `/var/log/apache2/stlouisintegration_access.log`
+  - Error Log: `/var/log/apache2/stlouisintegration_error.log`
+- **Global Apache logs**: `/var/log/apache2/access.log` and `/var/log/apache2/error.log` (not site-specific)
+- **Drupal logs**: Use site-specific Drush: `cd /var/www/html/stlouisintegration/web && ../vendor/bin/drush --uri=stlouisintegration.com watchdog:show`
 
 Do not SSH out or create debug php files to be deployed to the server.
 Always use the logging system outlined in the README.md for error handling and debugging.
