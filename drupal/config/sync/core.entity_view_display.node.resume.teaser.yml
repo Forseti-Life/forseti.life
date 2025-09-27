@@ -1,0 +1,30 @@
+uuid: cbeb9918-6758-4bb2-bf86-d61d36d1a216
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.teaser
+    - field.field.node.resume.body
+    - node.type.resume
+  module:
+    - text
+    - user
+id: node.resume.teaser
+targetEntityType: node
+bundle: resume
+mode: teaser
+content:
+  body:
+    type: text_summary_or_trimmed
+    label: hidden
+    settings:
+      trim_length: 600
+    third_party_settings: {  }
+    weight: 101
+    region: content
+  links:
+    settings: {  }
+    third_party_settings: {  }
+    weight: 100
+    region: content
+hidden: {  }

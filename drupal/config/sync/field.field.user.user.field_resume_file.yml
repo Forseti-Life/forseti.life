@@ -1,0 +1,27 @@
+uuid: 1faf2c0f-32f4-4922-bee0-652584f34f09
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_resume_file
+  module:
+    - file
+    - user
+id: user.user.field_resume_file
+field_name: field_resume_file
+entity_type: user
+bundle: user
+label: 'Primary Resume'
+description: 'Upload your primary resume file (PDF or Word format)'
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:file'
+  handler_settings: {  }
+  file_directory: '[date:custom:Y]-[date:custom:m]'
+  file_extensions: 'pdf doc docx'
+  max_filesize: '10 MB'
+  description_field: false
+field_type: file

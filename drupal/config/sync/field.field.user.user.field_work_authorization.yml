@@ -1,0 +1,21 @@
+uuid: d0cdf988-c25e-4f01-817d-5272cd9245a1
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_work_authorization
+  module:
+    - options
+    - user
+id: user.user.field_work_authorization
+field_name: field_work_authorization
+entity_type: user
+bundle: user
+label: 'Work Authorization'
+description: 'Legal work authorization status'
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

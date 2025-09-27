@@ -1,0 +1,39 @@
+uuid: d4c7e68b-c762-4c4e-8057-d4943ce915e1
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+    - user
+id: user.field_work_authorization
+field_name: field_work_authorization
+entity_type: user
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: us_citizen
+      label: 'US Citizen'
+    -
+      value: permanent_resident
+      label: 'Permanent Resident'
+    -
+      value: h1b
+      label: 'Work Visa (H1B)'
+    -
+      value: f1
+      label: 'Student Visa (F1)'
+    -
+      value: visa_required
+      label: 'Visa Sponsorship Required'
+    -
+      value: other
+      label: Other
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

@@ -847,6 +847,21 @@ $settings['migrate_node_migrate_type_classic'] = FALSE;
 if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
   include $app_root . '/' . $site_path . '/settings.local.php';
 }
+
+/**
+ * Load production configuration settings.
+ *
+ * This file contains production-specific configurations including:
+ * - Database connection settings
+ * - Caching configuration 
+ * - Security settings
+ * - Performance optimizations
+ * - Custom module configurations
+ * - Environment-specific overrides
+ */
+if (file_exists($app_root . '/' . $site_path . '/settings.production.php')) {
+  include $app_root . '/' . $site_path . '/settings.production.php';
+}
 $databases['default']['default'] = array (
   'database' => 'stlouisintegration_dev',
   'username' => 'drupal_user',

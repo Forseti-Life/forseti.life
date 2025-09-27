@@ -1,0 +1,21 @@
+uuid: bb429a1e-fede-4437-8df2-3f99aefe4431
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_last_profile_update
+  module:
+    - datetime
+    - user
+id: user.user.field_last_profile_update
+field_name: field_last_profile_update
+entity_type: user
+bundle: user
+label: 'Last Profile Update'
+description: 'Last time profile was updated (system managed)'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: datetime

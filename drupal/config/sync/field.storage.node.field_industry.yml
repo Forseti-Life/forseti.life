@@ -1,0 +1,48 @@
+uuid: bf991cdf-60a1-4027-977d-9b9e84bf0e6e
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_industry
+field_name: field_industry
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: technology
+      label: Technology
+    -
+      value: healthcare
+      label: Healthcare
+    -
+      value: finance
+      label: Finance
+    -
+      value: manufacturing
+      label: Manufacturing
+    -
+      value: retail
+      label: Retail
+    -
+      value: education
+      label: Education
+    -
+      value: government
+      label: Government
+    -
+      value: nonprofit
+      label: Non-profit
+    -
+      value: other
+      label: Other
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

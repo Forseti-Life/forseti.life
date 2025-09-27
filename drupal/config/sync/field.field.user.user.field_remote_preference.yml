@@ -1,0 +1,21 @@
+uuid: 4115840b-9d5e-4398-944f-32065c649476
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_remote_preference
+  module:
+    - options
+    - user
+id: user.user.field_remote_preference
+field_name: field_remote_preference
+entity_type: user
+bundle: user
+label: 'Remote Work Preference'
+description: 'Your preference for remote work arrangements'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

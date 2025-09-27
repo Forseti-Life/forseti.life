@@ -1,0 +1,24 @@
+uuid: 52061bcc-f5fa-4494-9249-1aeb9b872f6e
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_profile_completeness
+  module:
+    - user
+id: user.user.field_profile_completeness
+field_name: field_profile_completeness
+entity_type: user
+bundle: user
+label: 'Profile Completeness'
+description: 'Profile completion percentage (system calculated)'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 0
+  max: 100
+  prefix: ''
+  suffix: ''
+field_type: integer

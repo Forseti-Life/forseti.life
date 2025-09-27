@@ -1,0 +1,21 @@
+uuid: c9247aa3-1ddd-490c-abc6-219670bb3c8d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_remote_option
+    - node.type.job_posting
+  module:
+    - options
+id: node.job_posting.field_remote_option
+field_name: field_remote_option
+entity_type: node
+bundle: job_posting
+label: 'Remote Work Options'
+description: 'Available remote work options'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

@@ -1,0 +1,22 @@
+uuid: 69231b64-6e6e-4c74-bed6-e0825adf40a7
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_references_available
+  module:
+    - user
+id: user.user.field_references_available
+field_name: field_references_available
+entity_type: user
+bundle: user
+label: 'References Available'
+description: 'References available upon request'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

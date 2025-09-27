@@ -1,0 +1,22 @@
+uuid: aa33ffff-08c1-4a5e-970e-9003b2d00b5d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_resolution_notes
+    - node.type.error_queue
+  module:
+    - text
+id: node.error_queue.field_resolution_notes
+field_name: field_resolution_notes
+entity_type: node
+bundle: error_queue
+label: 'Resolution Notes'
+description: 'Admin resolution documentation'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

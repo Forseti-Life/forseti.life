@@ -1,0 +1,27 @@
+uuid: e75ebc0e-e075-4c40-ac33-ff8f0dc7daf0
+langcode: en
+status: true
+dependencies:
+  config:
+    - filter.format.restricted_html
+  module:
+    - comment
+    - contact
+    - filter
+    - search
+    - system
+_core:
+  default_config_hash: 6WavjUYXIegP9AAg2zXGx54MWIVoomC3SZhNiqe-Dyk
+id: anonymous
+label: 'Anonymous user'
+weight: 0
+is_admin: false
+permissions:
+  - 'access administration pages'
+  - 'access comments'
+  - 'access content'
+  - 'access site-wide contact form'
+  - 'administer modules'
+  - 'search content'
+  - 'use text format restricted_html'
+  - 'view the administration theme'

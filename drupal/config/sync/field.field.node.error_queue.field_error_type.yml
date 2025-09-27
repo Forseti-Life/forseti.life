@@ -1,0 +1,21 @@
+uuid: b23b0481-4f93-4114-89bf-732b7b9321c0
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_error_type
+    - node.type.error_queue
+  module:
+    - options
+id: node.error_queue.field_error_type
+field_name: field_error_type
+entity_type: node
+bundle: error_queue
+label: 'Error Type'
+description: 'Type of error that occurred'
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

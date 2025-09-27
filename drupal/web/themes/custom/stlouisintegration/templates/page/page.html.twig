@@ -42,4 +42,99 @@
  * @see html.html.twig
  */
 #}
-{% include 'radix:page' %}
+
+{{ attach_library('stlouisintegration/animated-header') }}
+
+<div class="page-wrapper">
+  {# Simplified Header Section for non-front pages #}
+  <div id="large-header" class="large-header page-header">
+    <canvas id="demo-canvas"></canvas>
+    <h1 class="main-title main-title--simple">
+      <span class="highlight">St. Louis</span> <span class="thin">Integration</span>
+    </h1>
+  </div>
+
+  {# Navigation and Header #}
+  {% if page.navbar_branding or page.navbar_left or page.navbar_right %}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container">
+        {% if page.navbar_branding %}
+          {{ page.navbar_branding }}
+        {% endif %}
+        
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="navbarNav">
+          {% if page.navbar_left %}
+            {{ page.navbar_left }}
+          {% endif %}
+          {% if page.navbar_right %}
+            <div class="ms-auto">
+              {{ page.navbar_right }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </nav>
+  {% endif %}
+
+  {# Main Content Area #}
+  <div class="container-fluid">
+    <div class="row">
+      {# Sidebar First #}
+      {% if page.sidebar_first %}
+        <aside class="col-lg-3 col-md-4 sidebar-first" role="complementary">
+          {{ page.sidebar_first }}
+        </aside>
+      {% endif %}
+
+      {# Main Content #}
+      <main class="{% if page.sidebar_first and page.sidebar_second %}col-lg-6 col-md-4{% elseif page.sidebar_first or page.sidebar_second %}col-lg-9 col-md-8{% else %}col-12{% endif %} main-content" role="main">
+        
+        {# Highlighted Content #}
+        {% if page.highlighted %}
+          <div class="highlighted">
+            {{ page.highlighted }}
+          </div>
+        {% endif %}
+
+        {# Help Text #}
+        {% if page.help %}
+          <div class="help">
+            {{ page.help }}
+          </div>
+        {% endif %}
+
+        {# Breadcrumb #}
+        {% if page.breadcrumb %}
+          <nav class="breadcrumb-nav" role="navigation" aria-labelledby="breadcrumb">
+            {{ page.breadcrumb }}
+          </nav>
+        {% endif %}
+
+        {# Main Page Content #}
+        <div class="page-content">
+          {{ page.content }}
+        </div>
+      </main>
+
+      {# Sidebar Second #}
+      {% if page.sidebar_second %}
+        <aside class="col-lg-3 col-md-4 sidebar-second" role="complementary">
+          {{ page.sidebar_second }}
+        </aside>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Footer #}
+  {% if page.footer %}
+    <footer class="footer" role="contentinfo">
+      <div class="container">
+        {{ page.footer }}
+      </div>
+    </footer>
+  {% endif %}
+</div>

@@ -1,0 +1,22 @@
+uuid: 3d6422dc-f56b-43ef-a08a-a3015780e860
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_job_description
+    - node.type.job_posting
+  module:
+    - text
+id: node.job_posting.field_job_description
+field_name: field_job_description
+entity_type: node
+bundle: job_posting
+label: 'Job Description'
+description: 'Full job description and responsibilities'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

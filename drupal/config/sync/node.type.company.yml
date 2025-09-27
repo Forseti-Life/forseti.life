@@ -1,0 +1,11 @@
+uuid: 82b5b662-27d1-4911-b3de-531960b26055
+langcode: en
+status: true
+dependencies: {  }
+name: Company
+type: company
+description: 'Employer companies for job application automation'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: false

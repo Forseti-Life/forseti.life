@@ -1,0 +1,22 @@
+uuid: aba77918-f53e-48b7-9802-201914f0c8cf
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_target_job_titles
+  module:
+    - text
+    - user
+id: user.user.field_target_job_titles
+field_name: field_target_job_titles
+entity_type: user
+bundle: user
+label: 'Target Job Titles'
+description: 'Desired job titles and roles'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

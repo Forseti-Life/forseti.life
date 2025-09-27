@@ -13,6 +13,12 @@
   min-height: 80vh;
 }
 
+/* Simplified header for non-front pages */
+.large-header.page-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 25vh; /* Much shorter than home page */
+}
+
 .main-title {
   position: absolute;
   margin: 0;
@@ -27,6 +33,12 @@
   letter-spacing: 0.1em;
   z-index: 10;
   line-height: 1.1;
+}
+
+/* Simplified title styling for page headers */
+.main-title--simple {
+  top: 50%; /* Center vertically in shorter header */
+  font-size: 3.5em; /* Smaller than home page */
 }
 
 .main-title .thin {
@@ -48,10 +60,10 @@
   z-index: 1;
 }
 
-/* Subtitle styling */
+/* Subtitle styling - only for home page */
 .main-subtitle {
   position: absolute;
-  top: 55%;
+  top: 60%;
   left: 50%;
   transform: translate3d(-50%, -50%, 0);
   color: rgba(249, 241, 233, 0.9);
@@ -61,16 +73,20 @@
   line-height: 1.6;
   z-index: 10;
   padding: 0 1rem;
-  margin-top: 2rem;
+  margin-top: 3rem;
+  /* Prevent overlap with buttons */
+  margin-bottom: 5rem;
 }
 
-/* CTA Buttons */
+/* CTA Buttons - only for home page */
 .hero-cta {
   position: absolute;
-  top: 78%;
+  top: 85%; /* Moved down to prevent overlap */
   left: 50%;
   transform: translate3d(-50%, -50%, 0);
   z-index: 10;
+  /* Ensure minimum distance from subtitle */
+  margin-top: 2rem;
 }
 
 .hero-cta .btn {
@@ -111,47 +127,156 @@
   .main-title {
     font-size: 3.2em;
     padding: 0 1rem;
-    top: 30%;
+    top: 25%; /* Moved up to create more space */
+  }
+  
+  .main-title--simple {
+    font-size: 2.5em; /* Even smaller on mobile for page headers */
+    top: 50%; /* Keep centered for page headers */
   }
   
   .main-subtitle {
     font-size: 1.1em;
     padding: 0 1rem;
-    top: 50%;
-    margin-top: 1rem;
+    top: 50%; /* Adjusted for better spacing */
+    margin-top: 2rem;
+    margin-bottom: 4rem; /* More space for buttons */
   }
   
   .hero-cta {
-    top: 70%;
+    top: 80%; /* Increased spacing from subtitle */
+    margin-top: 3rem; /* Additional margin for safety */
+    width: 90%; /* Constrain width for better mobile layout */
+    left: 50%;
+    transform: translate(-50%, -50%);
   }
   
   .hero-cta .btn {
     display: block;
-    margin: 0.5rem auto;
-    width: 200px;
+    margin: 0.75rem auto; /* Increased spacing between buttons */
+    width: 250px; /* Wider buttons for mobile */
+    padding: 1rem 2rem; /* More padding for touch targets */
+    font-size: 1rem; /* Slightly smaller text */
   }
   
   .large-header {
-    min-height: 70vh;
+    min-height: 90vh; /* Extra height for button spacing */
+  }
+  
+  .large-header.page-header {
+    min-height: 30vh; /* Slightly taller on mobile for better proportion */
   }
 }
 
 @media only screen and (max-width: 480px) {
   .main-title {
     font-size: 2.5em;
-    top: 28%;
+    top: 20%; /* More compact on small screens */
+  }
+  
+  .main-title--simple {
+    font-size: 2em; /* Smaller for page headers on small screens */
+    top: 50%;
   }
   
   .main-subtitle {
     font-size: 1em;
-    top: 48%;
+    top: 45%; /* Better positioning for small screens */
+    margin-top: 1.5rem;
+    margin-bottom: 3rem;
   }
   
   .hero-cta {
-    top: 65%;
+    top: 78%; /* Adjusted for small screens */
+    margin-top: 2.5rem;
+    width: 95%; /* Even wider constraint for small screens */
+    padding: 0 1rem; /* Add padding to container */
+  }
+  
+  .hero-cta .btn {
+    margin: 1rem auto; /* More spacing between buttons on small screens */
+    width: 100%; /* Full width buttons on small screens */
+    max-width: 280px; /* But not too wide */
+    padding: 1.2rem 2rem; /* Larger touch targets */
+    font-size: 1.1rem; /* Readable text size */
+    border-radius: 25px; /* Rounder buttons for mobile */
   }
   
   .large-header {
-    min-height: 60vh;
+    min-height: 85vh; /* Appropriate height for small screens with buttons */
   }
+  
+  .large-header.page-header {
+    min-height: 25vh; /* Compact on small screens */
+  }
+}
+
+/* Portrait phone specific adjustments */
+@media only screen and (max-width: 414px) and (orientation: portrait) {
+  .main-title {
+    font-size: 2.2em;
+    top: 18%;
+  }
+  
+  .main-subtitle {
+    font-size: 0.95em;
+    top: 42%;
+    line-height: 1.4;
+    padding: 0 1.5rem;
+  }
+  
+  .hero-cta {
+    top: 75%;
+    margin-top: 2rem;
+    width: 100%;
+    padding: 0 1.5rem;
+  }
+  
+  .hero-cta .btn {
+    margin: 1.2rem auto;
+    width: 100%;
+    max-width: 260px;
+    padding: 1.1rem 1.5rem;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+  }
+  
+  .large-header.home-header {
+    min-height: 100vh; /* Full viewport height for portrait phones */
+  }
+}
+
+/* Page content spacing adjustments */
+.page-header + .navbar {
+  margin-top: 0; /* Remove any gap between simplified header and navigation */
+}
+
+.page-header ~ .container-fluid {
+  margin-top: 2rem; /* Add space between header and main content */
+}
+
+/* Ensure main content has proper spacing */
+.main-content {
+  padding: 2rem 1rem;
+}
+
+.page-content {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  margin-top: 1rem;
+}
+
+/* Sidebar styling */
+.sidebar-first,
+.sidebar-second {
+  padding: 2rem 1rem;
+}
+
+/* Breadcrumb styling for page headers */
+.breadcrumb-nav {
+  margin-bottom: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #dee2e6;
 }

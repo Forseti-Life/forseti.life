@@ -1,0 +1,22 @@
+uuid: ba7b166b-92b9-4403-87d3-133acb4e2dc1
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_professional_summary
+  module:
+    - text
+    - user
+id: user.user.field_professional_summary
+field_name: field_professional_summary
+entity_type: user
+bundle: user
+label: 'Professional Summary'
+description: 'Brief professional summary or objective statement'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

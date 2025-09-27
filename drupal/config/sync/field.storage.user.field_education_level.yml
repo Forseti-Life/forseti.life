@@ -1,0 +1,39 @@
+uuid: cf616892-5686-4976-801d-39653662ed10
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+    - user
+id: user.field_education_level
+field_name: field_education_level
+entity_type: user
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: high_school
+      label: 'High School'
+    -
+      value: associates
+      label: 'Associates Degree'
+    -
+      value: bachelors
+      label: 'Bachelors Degree'
+    -
+      value: masters
+      label: 'Masters Degree'
+    -
+      value: doctoral
+      label: 'Doctoral Degree'
+    -
+      value: professional
+      label: 'Professional Degree'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

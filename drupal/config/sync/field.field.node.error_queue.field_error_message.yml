@@ -1,0 +1,22 @@
+uuid: 4c04bc56-c390-49d8-8823-848a30b7d511
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_error_message
+    - node.type.error_queue
+  module:
+    - text
+id: node.error_queue.field_error_message
+field_name: field_error_message
+entity_type: node
+bundle: error_queue
+label: 'Error Message'
+description: 'Detailed error description'
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

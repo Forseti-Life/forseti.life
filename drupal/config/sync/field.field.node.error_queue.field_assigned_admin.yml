@@ -1,0 +1,21 @@
+uuid: f16f7d0a-ec68-481c-99bb-027136c1a36a
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_assigned_admin
+    - node.type.error_queue
+id: node.error_queue.field_assigned_admin
+field_name: field_assigned_admin
+entity_type: node
+bundle: error_queue
+label: 'Assigned Admin'
+description: 'Reference to admin user assigned to fix'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings: {  }
+field_type: entity_reference

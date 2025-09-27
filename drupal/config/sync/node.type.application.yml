@@ -1,0 +1,11 @@
+uuid: e76274b8-e4fb-4aa5-bfdf-428009cca2a5
+langcode: en
+status: true
+dependencies: {  }
+name: Application
+type: application
+description: 'User job applications and their status'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: false

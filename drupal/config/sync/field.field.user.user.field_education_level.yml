@@ -1,0 +1,21 @@
+uuid: baab0df9-2044-432b-9bfd-78652045b5e6
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_education_level
+  module:
+    - options
+    - user
+id: user.user.field_education_level
+field_name: field_education_level
+entity_type: user
+bundle: user
+label: 'Education Level'
+description: 'Highest level of education completed'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

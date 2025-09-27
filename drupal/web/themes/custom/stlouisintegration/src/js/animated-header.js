@@ -1,12 +1,86 @@
 /**
  * Animated Particle Background for St. Louis Integration
- * Based on connected particles network animation
+ * Enhanced with rotating favicon elements
  */
 
 (function() {
   'use strict';
 
   var width, height, canvas, ctx, points, target, animateHeader = true;
+  var faviconImage, faviconLoaded = false;
+  var rotatingIcons = [];
+
+  // Load favicon image
+  function loadFavicon() {
+    faviconImage = new Image();
+    faviconImage.onload = function() {
+      faviconLoaded = true;
+      console.log('Favicon loaded successfully');
+    };
+    faviconImage.onerror = function() {
+      console.log('Failed to load favicon, using fallback');
+    };
+    // Try favicon from build directory - use PNG for better canvas compatibility
+    faviconImage.src = '/themes/custom/stlouisintegration/build/assets/images/favicon.png';
+  }
+
+  // Create rotating icon elements
+  function createRotatingIcons() {
+    rotatingIcons = [];
+    var iconCount = Math.floor(width * height / 60000); // Doubled density (was 120000)
+    iconCount = Math.max(6, Math.min(iconCount, 12)); // Between 6-12 icons (was 3-6)
+    
+    for(var i = 0; i < iconCount; i++) {
+      rotatingIcons.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.015,
+        size: 72 + Math.random() * 36,
+        opacity: 0.15 + Math.random() * 0.25,
+        drift: {
+          x: (Math.random() - 0.5) * 0.3,
+          y: (Math.random() - 0.5) * 0.3
+        }
+      });
+    }
+  }
+
+  // Draw rotating favicon icons
+  function drawRotatingIcons() {
+    if (!faviconLoaded || !faviconImage) return;
+    
+    for(var i = 0; i < rotatingIcons.length; i++) {
+      var icon = rotatingIcons[i];
+      
+      // Update position and rotation
+      icon.x += icon.drift.x;
+      icon.y += icon.drift.y;
+      icon.rotation += icon.rotationSpeed;
+      
+      // Wrap around screen edges
+      if (icon.x < -icon.size) icon.x = width + icon.size;
+      if (icon.x > width + icon.size) icon.x = -icon.size;
+      if (icon.y < -icon.size) icon.y = height + icon.size;
+      if (icon.y > height + icon.size) icon.y = -icon.size;
+      
+      // Draw rotating icon
+      ctx.save();
+      ctx.globalAlpha = icon.opacity;
+      ctx.translate(icon.x, icon.y);
+      ctx.rotate(icon.rotation);
+      
+      try {
+        ctx.drawImage(faviconImage, -icon.size/2, -icon.size/2, icon.size, icon.size);
+      } catch(e) {
+        // Fallback: draw a rotating square if favicon fails
+        ctx.fillStyle = 'rgba(0, 212, 255, 0.3)';
+        ctx.fillRect(-icon.size/2, -icon.size/2, icon.size, icon.size);
+      }
+      
+      ctx.restore();
+    }
+  }
 
   // Main initialization function
   function initHeader() {
@@ -18,6 +92,10 @@
     canvas.width = width;
     canvas.height = height;
     ctx = canvas.getContext('2d');
+
+    // Load favicon and create rotating icons
+    loadFavicon();
+    createRotatingIcons();
 
     // Create particle points
     points = [];
@@ -100,6 +178,7 @@
     height = window.innerHeight;
     canvas.width = width;
     canvas.height = height;
+    createRotatingIcons(); // Recreate icons for new screen size
   }
 
   // Animation loop
@@ -113,6 +192,10 @@
   function animate() {
     if(animateHeader) {
       ctx.clearRect(0,0,width,height);
+      
+      // Draw rotating favicon icons first (behind particles)
+      drawRotatingIcons();
+      
       for(var i in points) {
         // Detect points in range
         if(Math.abs(getDistance(target, points[i])) < 4000) {

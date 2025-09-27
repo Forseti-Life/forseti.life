@@ -1,0 +1,19 @@
+uuid: 7dbd2785-78b3-4335-bd9d-eb4d0efa21cc
+langcode: en
+status: true
+dependencies:
+  module:
+    - text
+    - user
+id: user.field_certifications
+field_name: field_certifications
+entity_type: user
+type: text_long
+settings: {  }
+module: text
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

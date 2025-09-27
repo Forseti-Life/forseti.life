@@ -1,0 +1,25 @@
+uuid: 0172e3fb-91c5-467a-9641-bc873b153f40
+langcode: en
+status: true
+dependencies:
+  config:
+    - system.menu.main
+  module:
+    - system
+  theme:
+    - stlouisintegration
+id: stlouisintegration_main_menu
+theme: stlouisintegration
+region: navbar_left
+weight: 0
+provider: null
+plugin: 'system_menu_block:main'
+settings:
+  id: 'system_menu_block:main'
+  label: 'Main navigation'
+  label_display: ''
+  provider: system
+  level: 1
+  depth: 2
+  expand_all_items: false
+visibility: {  }

@@ -1,0 +1,22 @@
+uuid: 2ea411b9-06f6-4c74-aa85-8748ecbfca25
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_certifications
+  module:
+    - text
+    - user
+id: user.user.field_certifications
+field_name: field_certifications
+entity_type: user
+bundle: user
+label: 'Professional Certifications'
+description: 'Professional certifications and licenses'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long
