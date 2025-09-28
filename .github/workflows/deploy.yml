@@ -398,16 +398,16 @@ jobs:
           
           echo "Downloading configuration from repository..."
           git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
-          git sparse-checkout set config/sync
+          git sparse-checkout set drupal/config/sync
           
           # Verify configuration files were downloaded
-          if [ -d "config/sync" ] && [ "$(ls -A config/sync)" ]; then
+          if [ -d "drupal/config/sync" ] && [ "$(ls -A drupal/config/sync)" ]; then
             echo "✅ Configuration files downloaded successfully"
-            echo "Configuration files available: $(ls -1 config/sync | wc -l) files"
+            echo "Configuration files available: $(ls -1 drupal/config/sync | wc -l) files"
             
             # Show some key configuration files for verification
             echo "Key configuration files found:"
-            ls config/sync/ | grep -E "(system\.|contact\.|menu\.|user\.)" | head -5
+            ls drupal/config/sync/ | grep -E "(system\.|contact\.|menu\.|user\.)" | head -5
           else
             echo "❌ No configuration files found in repository"
             exit 1
@@ -418,7 +418,7 @@ jobs:
           
           # Deploy new configuration files
           echo "Deploying new configuration..."
-          sudo rsync -av --delete config/sync/ "$CONFIG_DIR/"
+          sudo rsync -av --delete drupal/config/sync/ "$CONFIG_DIR/"
           sudo chown -R www-data:www-data "$CONFIG_DIR"
           sudo find "$CONFIG_DIR" -type f -exec chmod 644 {} \;
           
