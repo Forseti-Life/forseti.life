@@ -265,19 +265,7 @@ class AIApiService {
    * Build optimized context using summary + recent messages.
    */
   private function buildOptimizedContext(NodeInterface $conversation, string $new_message) {
-    // Check if this is the start of a conversation (no previous messages).
-    $recent_messages = $this->getRecentMessages($conversation);
-    $is_conversation_start = empty($recent_messages) && 
-      (!$conversation->hasField('field_conversation_summary') || $conversation->get('field_conversation_summary')->isEmpty());
-    
-    // For new conversations, use enhanced context with St. Louis Integration info.
-    if ($is_conversation_start) {
-      $context = $this->buildInitialContext();
-    } else {
-      // For existing conversations, use the original system prompt.
-      $system_prompt = $conversation->get('field_context')->value ?: 'You are a helpful AI assistant.';
-      $context = $system_prompt . "\n\n";
-    }
+    $context = "";
 
     // Add conversation summary if it exists.
     if ($conversation->hasField('field_conversation_summary') && !$conversation->get('field_conversation_summary')->isEmpty()) {
