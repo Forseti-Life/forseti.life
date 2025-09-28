@@ -14,6 +14,9 @@ ai_conversation.settings:
     aws_model:
       type: string
       label: 'AWS Bedrock Model ID'
+    system_prompt:
+      type: text
+      label: 'System Prompt'
     max_tokens:
       type: integer
       label: 'Maximum tokens per response'

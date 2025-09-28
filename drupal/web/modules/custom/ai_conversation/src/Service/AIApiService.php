@@ -198,18 +198,29 @@ class AIApiService {
       // Get max tokens from config.
       $max_tokens = $config->get('max_tokens') ?: 4000;
 
+      // Get system prompt from config if available.
+      $system_prompt = $config->get('system_prompt');
+
+      // Build the request body.
+      $request_body = [
+        'anthropic_version' => 'bedrock-2023-05-31',
+        'max_tokens' => $max_tokens,
+        'messages' => [
+          [
+            'role' => 'user',
+            'content' => $context
+          ]
+        ]
+      ];
+
+      // Add system prompt if configured.
+      if (!empty($system_prompt)) {
+        $request_body['system'] = $system_prompt;
+      }
+
       $response = $bedrock->invokeModel([
         'modelId' => $model,
-        'body' => json_encode([
-          'anthropic_version' => 'bedrock-2023-05-31',
-          'max_tokens' => $max_tokens,
-          'messages' => [
-            [
-              'role' => 'user',
-              'content' => $context
-            ]
-          ]
-        ])
+        'body' => json_encode($request_body)
       ]);
 
       $result = json_decode($response['body']->getContents(), true);

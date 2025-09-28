@@ -112,6 +112,15 @@ class AIConversationSettingsForm extends ConfigFormBase {
       '#required' => TRUE,
     ];
 
+    $form['aws_settings']['system_prompt'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('System Prompt'),
+      '#default_value' => $config->get('system_prompt'),
+      '#description' => $this->t('The system prompt that defines the AI assistant\'s role, personality, and knowledge context.'),
+      '#rows' => 15,
+      '#required' => FALSE,
+    ];
+
     $form['conversation_settings'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Conversation Settings'),
@@ -166,6 +175,7 @@ class AIConversationSettingsForm extends ConfigFormBase {
     
     $config->set('aws_region', $form_state->getValue('aws_region'))
       ->set('aws_model', $form_state->getValue('aws_model'))
+      ->set('system_prompt', $form_state->getValue('system_prompt'))
       ->set('max_tokens', $form_state->getValue('max_tokens'))
       ->set('max_recent_messages', $form_state->getValue('max_recent_messages'))
       ->set('summary_frequency', $form_state->getValue('summary_frequency'))
