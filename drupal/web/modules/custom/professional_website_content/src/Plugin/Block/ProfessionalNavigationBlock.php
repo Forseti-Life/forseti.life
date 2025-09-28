@@ -77,6 +77,12 @@ class ProfessionalNavigationBlock extends BlockBase {
         'class' => 'nav-item',
         'children' => [],
       ],
+      [
+        'title' => $this->t('Claude Demo'),
+        'url' => Url::fromRoute('ai_conversation.claude_demo'),
+        'class' => 'nav-item',
+        'children' => [],
+      ],
     ];
 
     $build['professional_navigation'] = [

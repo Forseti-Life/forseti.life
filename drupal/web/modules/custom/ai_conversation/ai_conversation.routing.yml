@@ -6,6 +6,14 @@ ai_conversation.settings:
   requirements:
     _permission: 'administer site configuration'
 
+ai_conversation.claude_demo:
+  path: '/clauddemo'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\ChatController::claudeDemo'
+    _title: 'Claude Demo'
+  requirements:
+    _permission: 'access content'
+
 ai_conversation.chat_interface:
   path: '/node/{node}/chat'
   defaults:

@@ -328,4 +328,44 @@ class ChatController extends ControllerBase {
     }
   }
 
+  /**
+   * Create a new AI conversation node and redirect to chat interface.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   Redirect to the chat interface for the newly created node.
+   */
+  public function claudeDemo() {
+    try {
+      // Create a new AI conversation node for the current user
+      $node = $this->entityTypeManager->getStorage('node')->create([
+        'type' => 'ai_conversation',
+        'title' => 'AI Chat Session - ' . date('Y-m-d H:i:s'),
+        'uid' => $this->currentUser->id(),
+        'status' => 1,
+        'field_conversation_data' => [
+          'value' => json_encode([
+            'messages' => [],
+            'summary' => '',
+            'created' => time(),
+          ]),
+          'format' => 'plain_text',
+        ],
+      ]);
+      
+      $node->save();
+
+      // Redirect to the chat interface for this node
+      $url = \Drupal::url('ai_conversation.chat_interface', ['node' => $node->id()]);
+      return $this->redirect('ai_conversation.chat_interface', ['node' => $node->id()]);
+      
+    } catch (\Exception $e) {
+      // Log error and show user-friendly message
+      \Drupal::logger('ai_conversation')->error('Error creating Claude demo chat: @error', ['@error' => $e->getMessage()]);
+      $this->messenger()->addError($this->t('Unable to create chat session. Please try again.'));
+      
+      // Redirect to home page on error
+      return $this->redirect('<front>');
+    }
+  }
+
 }
