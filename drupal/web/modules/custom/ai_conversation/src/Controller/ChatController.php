@@ -355,7 +355,6 @@ class ChatController extends ControllerBase {
       $node->save();
 
       // Redirect to the chat interface for this node
-      $url = \Drupal::url('ai_conversation.chat_interface', ['node' => $node->id()]);
       return $this->redirect('ai_conversation.chat_interface', ['node' => $node->id()]);
       
     } catch (\Exception $e) {
