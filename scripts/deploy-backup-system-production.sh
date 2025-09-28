@@ -43,7 +43,50 @@ else
 fi
 
 echo ""
-echo "3. Configuring backup destinations..."
+echo "3. Configuring backup sources..."
+
+# Configure Default Drupal Database source
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db uuid null -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db langcode en -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db status true -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db id default_db -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db label "Default Drupal Database" -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db type DefaultDB -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db config.name "Default Drupal Database" -y || true
+
+# Configure Entire Site source
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.entire_site uuid null -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.entire_site langcode en -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.entire_site status true -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.entire_site id entire_site -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.entire_site label "Entire Site (do not use)" -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.entire_site type EntireSite -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.entire_site config.name "Entire Site (do not use)" -y || true
+
+# Configure Public Files Directory source
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files uuid null -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files langcode en -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files status true -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files id public_files -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files label "Public Files Directory" -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files type DrupalFiles -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files config.name "Public Files Directory" -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files config.directory "public://" -y || true
+
+# Configure Private Files Directory source
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files uuid null -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files langcode en -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files status true -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files id private_files -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files label "Private Files Directory" -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files type DrupalFiles -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files config.name "Private Files Directory" -y || true
+sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files config.directory "private://" -y || true
+
+echo "✅ Backup sources configured"
+
+echo ""
+echo "4. Configuring backup destinations..."
 
 # Create daily backup destination
 sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups uuid null -y
@@ -75,7 +118,7 @@ sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.
 echo "✅ Backup destinations configured"
 
 echo ""
-echo "4. Creating backup schedules..."
+echo "5. Creating backup schedules..."
 
 # Create daily backup schedule
 sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup uuid null -y
@@ -104,7 +147,7 @@ sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.
 echo "✅ Backup schedules configured"
 
 echo ""
-echo "5. Clearing cache and final verification..."
+echo "6. Clearing cache and final verification..."
 sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" cache:rebuild
 
 echo ""
@@ -118,14 +161,15 @@ sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" backup_migrate:schedules
 
 echo ""
 echo "=== BACKUP SYSTEM DEPLOYMENT COMPLETE ==="
+echo "✅ Backup sources: Default DB, Entire Site, Public Files, Private Files"
 echo "✅ Daily backups: $BACKUP_BASE_DIR/daily (7-day retention)"
 echo "✅ Weekly backups: $BACKUP_BASE_DIR/weekly (20-week retention)"
 echo "✅ Private files: $PRIVATE_FILES_DIR/backup_migrate"
 echo "✅ Encryption library: Installed and ready"
 echo ""
 echo "🌐 Admin URLs:"
+echo "   - Manual backup: https://stlouisintegration.com/admin/config/development/backup_migrate/advanced"
 echo "   - Schedules: https://stlouisintegration.com/admin/config/development/backup_migrate/schedule"
 echo "   - Destinations: https://stlouisintegration.com/admin/config/development/backup_migrate/destination"
-echo "   - Manual backup: https://stlouisintegration.com/admin/config/development/backup_migrate"
 echo ""
 echo "Deployment completed: $(date)"
