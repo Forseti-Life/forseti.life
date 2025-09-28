@@ -48,6 +48,42 @@
       </div>
     {% endif %}
     
+    {# Show introduction message for new conversations #}
+    {% if not messages or messages|length == 0 %}
+      <div class="message message--assistant message--introduction">
+        <div class="message-content">
+          <h3>Welcome to the St. Louis Integration AI Demo!</h3>
+          <p><strong>Hello! I'm Keith Aumiller</strong>, Founder and Principal Consultant at St. Louis Integration. This AI-powered chat demonstrates our expertise in implementing cutting-edge conversational AI solutions.</p>
+          
+          <div class="demo-highlights">
+            <p><strong>🎯 What This Demo Showcases:</strong></p>
+            <ul>
+              <li><strong>Enterprise AI Integration:</strong> AWS Bedrock with Claude 3.5 Sonnet</li>
+              <li><strong>Professional Context Awareness:</strong> AI configured with my background and our company expertise</li>
+              <li><strong>Custom Implementation:</strong> Built on Drupal with our proprietary conversation management system</li>
+              <li><strong>Scalable Architecture:</strong> Production-ready design for enterprise deployment</li>
+            </ul>
+          </div>
+          
+          <div class="demo-purpose">
+            <p><strong>💬 Try asking me about:</strong></p>
+            <ul>
+              <li>St. Louis Integration's services and expertise</li>
+              <li>Our successful client implementations (Citigroup, MasterCard, etc.)</li>
+              <li>AI/ML solutions for Financial Services, Healthcare, or Energy sectors</li>
+              <li>How we can help solve your organization's data and AI challenges</li>
+            </ul>
+          </div>
+          
+          <p><strong>Ready to experience our AI capabilities?</strong> Ask me anything about our services, my background, or how we can help transform your business with AI!</p>
+          
+          <div class="transparency-note">
+            <em><strong>Transparency:</strong> This chat is powered by Anthropic's Claude 3.5 Sonnet through AWS Bedrock, demonstrating the enterprise AI solutions we implement for our clients.</em>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+    
     {% for message in messages %}
       <div class="message message--{{ message.role }}">
         <div class="message-content">
