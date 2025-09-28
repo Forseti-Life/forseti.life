@@ -791,7 +791,13 @@ jobs:
           echo "✅ Backup directories created and configured"
 
           echo ""
-          echo "2. Installing Defuse PHP encryption library..."
+          echo "2. Configuring private files path..."
+          # Set private files path configuration
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set system.file private_path "$PRIVATE_FILES_DIR" -y
+          echo "✅ Private files path configured: $PRIVATE_FILES_DIR"
+
+          echo ""
+          echo "3. Installing Defuse PHP encryption library..."
           # Install encryption library (should already be done via composer.json)
           if ! grep -q "defuse/php-encryption" composer.json; then
               composer require defuse/php-encryption
@@ -801,7 +807,7 @@ jobs:
           fi
 
           echo ""
-          echo "3. Configuring backup sources..."
+          echo "4. Configuring backup sources..."
 
           # Configure Default Drupal Database source
           sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db uuid null -y || true
@@ -844,7 +850,7 @@ jobs:
           echo "✅ Backup sources configured"
 
           echo ""
-          echo "4. Configuring backup destinations..."
+          echo "5. Configuring backup destinations..."
 
           # Create daily backup destination
           sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups uuid null -y || true
@@ -876,7 +882,7 @@ jobs:
           echo "✅ Backup destinations configured"
 
           echo ""
-          echo "5. Creating backup schedules..."
+          echo "6. Creating backup schedules..."
 
           # Create daily backup schedule
           sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup uuid null -y || true
@@ -905,7 +911,7 @@ jobs:
           echo "✅ Backup schedules configured"
 
           echo ""
-          echo "6. Clearing cache and final verification..."
+          echo "7. Clearing cache and final verification..."
           sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" cache:rebuild
 
           echo ""
