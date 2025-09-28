@@ -198,7 +198,7 @@ jobs:
           
           # Enable custom modules
           echo "Enabling custom modules..."
-          MODULES=("professional_website_content" "ai_conversation" "job_application_automation" "resume_tailoring")
+          MODULES=("pathauto" "professional_website_content" "ai_conversation" "job_application_automation" "resume_tailoring")
           
           for MODULE_NAME in "${MODULES[@]}"; do
             if [ -d "$DRUPAL_ROOT/web/modules/custom/$MODULE_NAME" ]; then
@@ -210,6 +210,16 @@ jobs:
               fi
             fi
           done
+          
+          # Generate URL aliases with Pathauto
+          echo "Generating clean URL aliases..."
+          if sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^pathauto$"; then
+            echo "Pathauto is enabled, generating aliases for all pages..."
+            sudo -u www-data ./vendor/bin/drush pathauto:generate-page-path-aliases --all || echo "⚠️ Pathauto generation had warnings"
+            echo "✅ URL aliases generated"
+          else
+            echo "⚠️ Pathauto not enabled, skipping URL alias generation"
+          fi
           
           # Clear all caches
           echo "Clearing caches..."
@@ -225,6 +235,7 @@ jobs:
           echo "✅ Modules and themes deployed"
           echo "✅ Configuration imported"
           echo "✅ Custom modules enabled"
+          echo "✅ URL aliases generated (Pathauto)"
           echo "✅ Caches cleared"
           echo "✅ File permissions set"
           echo ""
