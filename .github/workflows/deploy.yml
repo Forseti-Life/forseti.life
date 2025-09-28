@@ -521,8 +521,8 @@ jobs:
             exit 1
           fi
           
-          # Cleanup
-          rm -rf "$TEMP_DIR"
+          # Cleanup (don't fail deployment if temp cleanup fails)
+          rm -rf "$TEMP_DIR" || echo "Warning: Could not remove temp directory"
           echo "=== Database import completed ==="
 
     - name: Import configuration and enable custom modules
