@@ -505,6 +505,14 @@ jobs:
           
           echo "=== Importing Drupal Configuration (Content-Safe) ==="
           
+          # Fix drush permissions that may have been lost during deployment
+          echo "Fixing drush permissions..."
+          sudo chmod +x ./vendor/bin/drush
+          sudo chmod +x ./vendor/bin/drush.php
+          if [ -f ./vendor/drush/drush/drush ]; then
+            sudo chmod +x ./vendor/drush/drush/drush
+          fi
+          
           # Import configuration using Drupal's built-in system
           if sudo -u www-data ./vendor/bin/drush config:import -y; then
             echo "✅ Configuration imported successfully"
