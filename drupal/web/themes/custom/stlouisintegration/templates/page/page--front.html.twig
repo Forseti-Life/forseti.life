@@ -40,47 +40,6 @@
             {{ page.navbar_left }}
           {% endif %}
           
-          {# Enhanced navigation with dropdown support #}
-          <ul class="navbar-nav ms-auto">
-            <li class="nav-item">
-              <a class="nav-link" href="/">Home</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/about-us">About Us</a>
-            </li>
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="/services" id="servicesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                Services
-              </a>
-              <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="/services">All Services</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="/industries/fintech">FinTech Solutions</a></li>
-                <li><a class="dropdown-item" href="/industries/healthcare">Healthcare Solutions</a></li>
-                <li><a class="dropdown-item" href="/industries/energy">Energy Solutions</a></li>
-              </ul>
-            </li>
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="industriesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                Industries
-              </a>
-              <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="/industries/fintech">FinTech</a></li>
-                <li><a class="dropdown-item" href="/industries/healthcare">Healthcare</a></li>
-                <li><a class="dropdown-item" href="/industries/energy">Energy</a></li>
-              </ul>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/case-studies">Case Studies</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/leadership">Leadership</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="/contact">Contact</a>
-            </li>
-          </ul>
-          
           {% if page.navbar_right %}
             <div class="ms-auto">
               {{ page.navbar_right }}
