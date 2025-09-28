@@ -6,6 +6,14 @@ ai_conversation.settings:
   requirements:
     _permission: 'administer site configuration'
 
+ai_conversation.update_prompt:
+  path: '/admin/ai-conversation/update-prompt'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\AdminController::updateSystemPrompt'
+    _title: 'Update System Prompt'
+  requirements:
+    _permission: 'administer site configuration'
+
 ai_conversation.claude_demo:
   path: '/clauddemo'
   defaults:
