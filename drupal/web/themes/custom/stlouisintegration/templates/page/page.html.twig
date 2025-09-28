@@ -114,6 +114,13 @@
           </nav>
         {% endif %}
 
+        {# Header region for page title and other header content #}
+        {% if page.header %}
+          <header class="page-header">
+            {{ page.header }}
+          </header>
+        {% endif %}
+
         {# Main Page Content #}
         <div class="page-content">
           {{ page.content }}
