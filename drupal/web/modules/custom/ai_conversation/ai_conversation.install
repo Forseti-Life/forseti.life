@@ -544,4 +544,3 @@ EOD;
   
   return t('Updated AI conversation system prompt with Keith Aumiller persona.');
 }
-}
