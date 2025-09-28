@@ -134,6 +134,20 @@
   margin-bottom: 5px;
 }
 
+.message--introduction a {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px dotted #007bff;
+  transition: all 0.3s ease;
+}
+
+.message--introduction a:hover {
+  color: #0056b3;
+  border-bottom: 1px solid #0056b3;
+  text-decoration: none;
+}
+
 .message--introduction .transparency-note {
   background: #fff3cd;
   padding: 10px;
