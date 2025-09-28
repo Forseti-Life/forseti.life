@@ -1114,3 +1114,15 @@ function professional_website_content_update_9001() {
   
   return t('Added URL aliases and placed professional navigation block.');
 }
+
+/**
+ * Implements hook_update_N().
+ * 
+ * Fix missing URL aliases for professional pages.
+ */
+function professional_website_content_update_9002() {
+  // Recreate URL aliases to ensure they exist
+  _professional_website_content_create_url_aliases();
+  
+  return t('Fixed URL aliases for professional pages (Contact should now be /contact).');
+}
