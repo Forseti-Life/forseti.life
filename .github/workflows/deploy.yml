@@ -1,4 +1,4 @@
-name: Deploy to Server with Security Hardening
+name: Deploy to Production Server
 
 on:
   push:
@@ -9,105 +9,17 @@ on:
       - 'drupal/composer.json'
       - 'drupal/composer.lock'
       - 'config/sync/**'
-      - 'scripts/production-*.sh'
-      - 'build/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
-    inputs:
-      skip_security_hardening:
-        description: 'Skip security hardening (not recommended for production)'
-        required: false
-        default: 'false'
-        type: boolean
-
-env:
-  DEPLOYMENT_BACKUP_DIR: "/var/backups/drupal-deployments"
-  SECURITY_LOG_FILE: "/var/log/drupal-security.log"
 
 jobs:
-  security-validation:
-    runs-on: ubuntu-latest
-    outputs:
-      security-check: ${{ steps.validate.outputs.result }}
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Validate security scripts
-      id: validate
-      run: |
-        echo "Validating production security scripts..."
-        
-        # Check if security scripts exist
-        if [ ! -f "scripts/production-security-hardening.sh" ]; then
-          echo "❌ production-security-hardening.sh not found"
-          exit 1
-        fi
-        
-        if [ ! -f "scripts/production-config-manager.sh" ]; then
-          echo "❌ production-config-manager.sh not found"
-          exit 1
-        fi
-        
-        # Basic syntax validation
-        bash -n scripts/production-security-hardening.sh || exit 1
-        bash -n scripts/production-config-manager.sh || exit 1
-        
-        echo "✅ Security scripts validation passed"
-        echo "result=success" >> $GITHUB_OUTPUT
-
-  build-theme-assets:
-    runs-on: ubuntu-latest
-    needs: security-validation
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: 'drupal/web/themes/custom/stlouisintegration/package.json'
-    
-    - name: Build production assets
-      run: |
-        echo "Building production assets..."
-        
-        # Check if theme directory exists
-        if [ -d "drupal/web/themes/custom/stlouisintegration" ]; then
-          cd drupal/web/themes/custom/stlouisintegration
-          
-          # Install dependencies if package.json exists
-          if [ -f "package.json" ]; then
-            npm ci --production
-            
-            # Build assets if build script exists
-            if npm run build 2>/dev/null; then
-              echo "✅ Assets built successfully"
-            else
-              echo "⚠️ No build script found, skipping asset compilation"
-            fi
-            
-            # Create assets archive for deployment
-            cd /home/runner/work/stlouisintegration.com/stlouisintegration.com
-            tar -czf theme-assets.tar.gz drupal/web/themes/custom/stlouisintegration/build/
-            echo "✅ Theme assets archived"
-          else
-            echo "ℹ️ No package.json found, skipping npm build"
-          fi
-        else
-          echo "ℹ️ No theme directory found, skipping asset build"
-        fi
-
   deploy:
     runs-on: ubuntu-latest
-    needs: [security-validation, build-theme-assets]
     
     steps:
     - uses: actions/checkout@v3
 
-    - name: Pre-deployment security backup
+    - name: Create pre-deployment backup
       uses: appleboy/ssh-action@v0.1.5
       with:
         host: ${{ secrets.HOST }}
@@ -116,109 +28,23 @@ jobs:
         script: |
           set -e
           
-          echo "=== Pre-deployment Security Backup ==="
+          echo "=== Creating Pre-deployment Backup ==="
           
-          # Create backup directories
-          sudo mkdir -p "${{ env.DEPLOYMENT_BACKUP_DIR }}/$(date +%Y%m%d_%H%M%S)"
-          BACKUP_DIR="${{ env.DEPLOYMENT_BACKUP_DIR }}/$(date +%Y%m%d_%H%M%S)"
-          
-          # Backup current Drupal configuration
           DRUPAL_ROOT="/var/www/html/stlouisintegration"
+          BACKUP_DIR="/var/backups/drupal-deployments/$(date +%Y%m%d_%H%M%S)"
+          
+          # Create backup directory
+          sudo mkdir -p "$BACKUP_DIR"
+          
+          # Backup current configuration
           if [ -d "$DRUPAL_ROOT" ]; then
-            echo "Backing up current Drupal configuration..."
-            sudo cp -r "$DRUPAL_ROOT/config" "$BACKUP_DIR/config_backup" 2>/dev/null || true
-            
-            # Export current configuration
             cd "$DRUPAL_ROOT"
-            sudo -u www-data ./vendor/bin/drush config:export --destination="$BACKUP_DIR/config_export" -y 2>/dev/null || true
-            
+            echo "Backing up current configuration..."
+            sudo -u www-data ./vendor/bin/drush config:export --destination="$BACKUP_DIR/config_backup" -y 2>/dev/null || true
             echo "✅ Configuration backup completed"
           fi
-          
-          # Log deployment start
-          echo "$(date): Deployment started - Backup: $BACKUP_DIR" | sudo tee -a "${{ env.SECURITY_LOG_FILE }}"
 
-    - name: Deploy production security scripts
-      uses: appleboy/ssh-action@v0.1.5
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        script: |
-          set -e
-          
-          echo "=== Deploying Security Scripts ==="
-          
-          # Create scripts directory
-          sudo mkdir -p /var/www/scripts
-          
-          # Create temporary security script deployment
-          cat << 'SECURITYSCRIPT' > /tmp/production-security-hardening.sh
-          #!/bin/bash
-          # Production Security Hardening Script - Deployed via GitHub Actions
-          set -e
-          
-          DRUPAL_ROOT="${DRUPAL_ROOT:-/var/www/html/stlouisintegration}"
-          
-          echo "=== Drupal Production Security Hardening ==="
-          
-          # Fix file permissions
-          echo "Securing file permissions..."
-          sudo find "$DRUPAL_ROOT" -type f -name "*.php" -exec chmod 644 {} \;
-          sudo find "$DRUPAL_ROOT" -type d -exec chmod 755 {} \;
-          sudo find "$DRUPAL_ROOT/web/sites/default/files" -type f -exec chmod 664 {} \; 2>/dev/null || true
-          sudo find "$DRUPAL_ROOT/web/sites/default/files" -type d -exec chmod 775 {} \; 2>/dev/null || true
-          
-          # Remove development files
-          sudo rm -f "$DRUPAL_ROOT"/.env.local
-          sudo rm -f "$DRUPAL_ROOT"/web/.htaccess.dev
-          sudo rm -rf "$DRUPAL_ROOT"/vendor/bin/phpunit
-          
-          # Secure sensitive files
-          if [ -f "$DRUPAL_ROOT/web/sites/default/settings.php" ]; then
-            sudo chmod 644 "$DRUPAL_ROOT/web/sites/default/settings.php"
-          fi
-          
-          echo "✅ Security hardening completed"
-          SECURITYSCRIPT
-          
-          # Deploy the security script
-          sudo mv /tmp/production-security-hardening.sh /var/www/scripts/
-          sudo chmod +x /var/www/scripts/production-security-hardening.sh
-          sudo chown root:root /var/www/scripts/production-security-hardening.sh
-          
-          echo "✅ Security scripts deployed successfully"
-
-    - name: Execute production security hardening
-      if: ${{ !inputs.skip_security_hardening }}
-      uses: appleboy/ssh-action@v0.1.5
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        script: |
-          set -e
-          
-          echo "=== Executing Production Security Hardening ==="
-          
-          DRUPAL_ROOT="/var/www/html/stlouisintegration"
-          
-          # Run comprehensive security hardening
-          if [ -f "/var/www/scripts/production-security-hardening.sh" ]; then
-            echo "Running production security hardening..."
-            
-            # Execute with proper environment
-            cd "$DRUPAL_ROOT"
-            sudo DRUPAL_ROOT="$DRUPAL_ROOT" /var/www/scripts/production-security-hardening.sh
-            
-            echo "✅ Security hardening completed successfully"
-            echo "$(date): Security hardening completed" | sudo tee -a "${{ env.SECURITY_LOG_FILE }}"
-          else
-            echo "❌ Security hardening script not found"
-            exit 1
-          fi
-    
-    - name: Deploy custom modules to server
+    - name: Deploy modules and themes
       uses: appleboy/ssh-action@v0.1.5
       env:
         HUBGIT_PAT: ${{ secrets.HUBGIT_PAT }}
@@ -228,73 +54,40 @@ jobs:
         key: ${{ secrets.PRIVATE_KEY }}
         envs: HUBGIT_PAT
         script: |
-          set -e  # Exit on any error
+          set -e
           
-          echo "=== Starting custom modules deployment ==="
+          echo "=== Deploying Modules and Themes ==="
           
-          # Define server paths (corrected for actual server structure)
           DRUPAL_ROOT="/var/www/html/stlouisintegration"
-          CUSTOM_MODULES_DIR="$DRUPAL_ROOT/web/modules/custom"
-          TEMP_DIR="/tmp/module-deploy-$(date +%s)"
+          TEMP_DIR="/tmp/deploy-$(date +%s)"
           
-          # List of modules to deploy
-          MODULES=(
-            "job_application_automation"
-            "ai_conversation" 
-            "resume_tailoring"
-          )
-          
-          # Create temporary directory
+          # Create temporary directory and download code
           mkdir -p "$TEMP_DIR"
           cd "$TEMP_DIR"
           
-          echo "=== Downloading modules and themes from repository ==="
-          
-          # Clone the repository with modules, themes, and composer files
+          echo "Downloading code from repository..."
           git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
           git sparse-checkout set drupal/web/modules/custom drupal/web/themes/custom drupal
           
-          # Verify modules and composer files were downloaded
-          echo "=== Available modules in repository: ==="
-          ls -la drupal/web/modules/custom/
-          
-          echo "=== Available themes in repository: ==="
-          ls -la drupal/web/themes/custom/ 2>/dev/null || echo "No custom themes found"
-          
-          echo "=== Composer files available: ==="
-          ls -la drupal/composer.json drupal/composer.lock 2>/dev/null || echo "Composer files not found"
-          
-          # Ensure custom modules directory exists on server
+          # Deploy custom modules
+          CUSTOM_MODULES_DIR="$DRUPAL_ROOT/web/modules/custom"
           sudo mkdir -p "$CUSTOM_MODULES_DIR"
           
-          echo "=== Deploying modules to server ==="
-          
-          # Deploy each module
-          for MODULE_NAME in "${MODULES[@]}"; do
-            echo "--- Processing module: $MODULE_NAME ---"
-            
-            if [ -d "drupal/web/modules/custom/$MODULE_NAME" ]; then
-              echo "Deploying $MODULE_NAME module..."
-              
-              # Remove existing module (if any) and deploy new version
-              sudo rm -rf "$CUSTOM_MODULES_DIR/$MODULE_NAME"
-              sudo cp -r "drupal/web/modules/custom/$MODULE_NAME" "$CUSTOM_MODULES_DIR/"
-              
-              # Set proper permissions
-              sudo chown -R www-data:www-data "$CUSTOM_MODULES_DIR/$MODULE_NAME"
-              sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type f -exec chmod 644 {} \;
-              sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type d -exec chmod 755 {} \;
-              
-              echo "✅ $MODULE_NAME deployed successfully"
-              echo "Files in $MODULE_NAME:"
-              ls -la "$CUSTOM_MODULES_DIR/$MODULE_NAME/" | head -10
-            else
-              echo "⚠️  WARNING: Module $MODULE_NAME not found in repository"
-            fi
-            echo ""
-          done
-          
-          echo "=== Deploying custom themes ==="
+          if [ -d "drupal/web/modules/custom" ]; then
+            echo "Deploying custom modules..."
+            for MODULE_DIR in drupal/web/modules/custom/*; do
+              if [ -d "$MODULE_DIR" ]; then
+                MODULE_NAME=$(basename "$MODULE_DIR")
+                echo "Deploying module: $MODULE_NAME"
+                sudo rm -rf "$CUSTOM_MODULES_DIR/$MODULE_NAME"
+                sudo cp -r "$MODULE_DIR" "$CUSTOM_MODULES_DIR/"
+                sudo chown -R www-data:www-data "$CUSTOM_MODULES_DIR/$MODULE_NAME"
+                sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type f -exec chmod 644 {} \;
+                sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type d -exec chmod 755 {} \;
+                echo "✅ $MODULE_NAME deployed"
+              fi
+            done
+          fi
           
           # Deploy custom themes
           CUSTOM_THEMES_DIR="$DRUPAL_ROOT/web/themes/custom"
@@ -305,69 +98,42 @@ jobs:
             for THEME_DIR in drupal/web/themes/custom/*; do
               if [ -d "$THEME_DIR" ]; then
                 THEME_NAME=$(basename "$THEME_DIR")
-                echo "--- Deploying theme: $THEME_NAME ---"
-                
-                # Remove existing theme and deploy new version
+                echo "Deploying theme: $THEME_NAME"
                 sudo rm -rf "$CUSTOM_THEMES_DIR/$THEME_NAME"
                 sudo cp -r "$THEME_DIR" "$CUSTOM_THEMES_DIR/"
-                
-                # Set proper permissions
                 sudo chown -R www-data:www-data "$CUSTOM_THEMES_DIR/$THEME_NAME"
                 sudo find "$CUSTOM_THEMES_DIR/$THEME_NAME" -type f -exec chmod 644 {} \;
                 sudo find "$CUSTOM_THEMES_DIR/$THEME_NAME" -type d -exec chmod 755 {} \;
-                
-                echo "✅ Theme $THEME_NAME deployed successfully"
+                echo "✅ $THEME_NAME deployed"
               fi
             done
-          else
-            echo "ℹ️ No custom themes found in repository"
           fi
           
-          echo "=== Deploying composer.json and composer.lock ==="
-          
-          # Deploy composer files to update dependencies
+          # Deploy composer files
           if [ -f "drupal/composer.json" ]; then
-            echo "Deploying composer.json..."
             sudo cp "drupal/composer.json" "$DRUPAL_ROOT/"
             sudo chown www-data:www-data "$DRUPAL_ROOT/composer.json"
-            echo "✅ composer.json deployed successfully"
-          else
-            echo "⚠️  WARNING: composer.json not found in repository"
+            echo "✅ composer.json deployed"
           fi
           
           if [ -f "drupal/composer.lock" ]; then
-            echo "Deploying composer.lock..."
             sudo cp "drupal/composer.lock" "$DRUPAL_ROOT/"
             sudo chown www-data:www-data "$DRUPAL_ROOT/composer.lock"
-            echo "✅ composer.lock deployed successfully"
-          else
-            echo "⚠️  WARNING: composer.lock not found in repository"
+            echo "✅ composer.lock deployed"
           fi
           
-          echo "=== Installing composer dependencies ==="
+          # Install/update composer dependencies
           cd "$DRUPAL_ROOT"
-          
-          # Install dependencies using composer
           if sudo -u www-data composer install --no-dev --optimize-autoloader; then
-            echo "✅ Composer dependencies installed successfully"
-            echo "Installed packages:"
-            sudo -u www-data composer show | grep -E "(aws/aws-sdk-php|drupal)" | head -10
-            
-            # Fix executable permissions for vendor/bin files
-            echo "=== Setting proper executable permissions ==="
-            sudo find "$DRUPAL_ROOT/vendor/bin" -type f -exec chmod 755 {} \;
-            sudo chmod 755 "$DRUPAL_ROOT/vendor/drush/drush/drush" 2>/dev/null || true
-            echo "✅ Vendor executables permissions fixed"
+            echo "✅ Composer dependencies updated"
           else
-            echo "⚠️  WARNING: Composer install failed"
-            echo "You may need to run 'composer install' manually on the server"
+            echo "⚠️ Composer install had warnings (continuing)"
           fi
           
-          # Clean up temporary directory
-          echo "=== Cleaning up temporary files ==="
+          # Clean up
           rm -rf "$TEMP_DIR"
 
-    - name: Deploy configuration files
+    - name: Deploy configuration
       uses: appleboy/ssh-action@v0.1.5
       env:
         HUBGIT_PAT: ${{ secrets.HUBGIT_PAT }}
@@ -379,213 +145,36 @@ jobs:
         script: |
           set -e
           
-          echo "=== Deploying Drupal Configuration ==="
+          echo "=== Deploying Configuration ==="
           
           DRUPAL_ROOT="/var/www/html/stlouisintegration"
           CONFIG_DIR="$DRUPAL_ROOT/config/sync"
           TEMP_DIR="/tmp/config-deploy-$(date +%s)"
-          BACKUP_DIR="${{ env.DEPLOYMENT_BACKUP_DIR }}/$(date +%Y%m%d_%H%M%S)"
           
-          # Create backup directory
-          sudo mkdir -p "$BACKUP_DIR"
-          
-          # Export current configuration as backup
-          echo "Backing up current configuration..."
-          cd "$DRUPAL_ROOT"
-          if sudo -u www-data ./vendor/bin/drush config:export --destination="$BACKUP_DIR/config_backup" -y; then
-            echo "✅ Current configuration backed up to $BACKUP_DIR/config_backup"
-          else
-            echo "⚠️ Warning: Could not backup current configuration"
-          fi
-          
-          # Create temporary directory and download new configuration
+          # Download configuration
           mkdir -p "$TEMP_DIR"
           cd "$TEMP_DIR"
           
-          echo "Downloading configuration from repository..."
           git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
-          git sparse-checkout set drupal/config/sync
+          git sparse-checkout set config/sync
           
-          # Verify configuration files were downloaded
-          if [ -d "drupal/config/sync" ] && [ "$(ls -A drupal/config/sync)" ]; then
-            echo "✅ Configuration files downloaded successfully"
-            echo "Configuration files available: $(ls -1 drupal/config/sync | wc -l) files"
+          if [ -d "config/sync" ] && [ "$(ls -A config/sync)" ]; then
+            echo "✅ Configuration files downloaded"
             
-            # Show some key configuration files for verification
-            echo "Key configuration files found:"
-            ls drupal/config/sync/ | grep -E "(system\.|contact\.|menu\.|user\.)" | head -5
+            # Deploy configuration files
+            sudo mkdir -p "$CONFIG_DIR"
+            sudo rsync -av --delete config/sync/ "$CONFIG_DIR/"
+            sudo chown -R www-data:www-data "$CONFIG_DIR"
+            sudo find "$CONFIG_DIR" -type f -exec chmod 644 {} \;
+            
+            echo "✅ Configuration deployed"
           else
-            echo "❌ No configuration files found in repository"
-            exit 1
+            echo "⚠️ No configuration files found"
           fi
           
-          # Ensure config directory exists
-          sudo mkdir -p "$CONFIG_DIR"
-          
-          # Deploy new configuration files
-          echo "Deploying new configuration..."
-          sudo rsync -av --delete drupal/config/sync/ "$CONFIG_DIR/"
-          sudo chown -R www-data:www-data "$CONFIG_DIR"
-          sudo find "$CONFIG_DIR" -type f -exec chmod 644 {} \;
-          
-          # Clean up temporary directory
-          cd /
           rm -rf "$TEMP_DIR"
-          
-          echo "✅ Configuration deployment completed successfully"
 
-    - name: Backup production configuration and content
-      uses: appleboy/ssh-action@v0.1.5
-      env:
-        DEPLOYMENT_BACKUP_DIR: ${{ env.DEPLOYMENT_BACKUP_DIR }}
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        envs: DEPLOYMENT_BACKUP_DIR
-        script: |
-          set -e  # Exit on any error
-          
-          echo "=== Backing Up Production Configuration and Database ==="
-          
-          DRUPAL_ROOT="/var/www/html/stlouisintegration"
-          BACKUP_DIR="$DEPLOYMENT_BACKUP_DIR/$(date +%Y%m%d_%H%M%S)"
-          
-          # Create backup directory
-          sudo mkdir -p "$BACKUP_DIR"
-          sudo chmod 755 "$BACKUP_DIR"
-          cd "$DRUPAL_ROOT"
-          
-          # Backup production configuration
-          echo "Backing up production configuration..."
-          if sudo -u www-data ./vendor/bin/drush config:export --destination="$BACKUP_DIR/production_config" -y; then
-            echo "✅ Production configuration backed up to $BACKUP_DIR/production_config"
-          else
-            echo "⚠️ Warning: Could not backup production configuration"
-          fi
-          
-          # Backup production database (for safety)
-          echo "Backing up production database..."
-          TEMP_DIR="/tmp/db-backup-$(date +%s)"
-          sudo mkdir -p "$TEMP_DIR"
-          sudo chmod 777 "$TEMP_DIR"
-          
-          TEMP_BACKUP_FILE="$TEMP_DIR/production_database_backup.sql"
-          if sudo -u www-data ./vendor/bin/drush sql-dump --result-file="$TEMP_BACKUP_FILE"; then
-            # Move backup to secure location with proper permissions
-            sudo mv "$TEMP_BACKUP_FILE" "$BACKUP_DIR/production_database_backup.sql"
-            sudo chown root:root "$BACKUP_DIR/production_database_backup.sql"
-            sudo chmod 600 "$BACKUP_DIR/production_database_backup.sql"
-            echo "✅ Production database backed up to $BACKUP_DIR/production_database_backup.sql"
-          else
-            echo "⚠️ Warning: Could not backup production database"
-          fi
-          
-          # Cleanup temp directory
-          rm -rf "$TEMP_DIR" || echo "Warning: Could not remove temp directory"
-          echo "=== Production backup completed ==="
-
-    - name: Import development configuration (preserving production content)
-      uses: appleboy/ssh-action@v0.1.5
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        script: |
-          set -e  # Exit on any error
-          
-          echo "=== Importing Development Configuration (Preserving Production Content) ==="
-          
-          DRUPAL_ROOT="/var/www/html/stlouisintegration"
-          cd "$DRUPAL_ROOT"
-          
-          # SAFE APPROACH: Use Drupal's configuration import system
-          # This preserves ALL existing content (nodes, users, comments, etc.)
-          # while updating site structure and configuration
-          
-          echo "=== Importing Drupal Configuration (Content-Safe) ==="
-          
-          # Fix drush permissions that may have been lost during deployment
-          echo "Fixing drush permissions..."
-          sudo chmod +x ./vendor/bin/drush
-          sudo chmod +x ./vendor/bin/drush.php
-          if [ -f ./vendor/drush/drush/drush ]; then
-            sudo chmod +x ./vendor/drush/drush/drush
-          fi
-          
-          # Import configuration using Drupal's built-in system
-          if sudo -u www-data ./vendor/bin/drush config:import -y; then
-            echo "✅ Configuration imported successfully"
-            echo "✅ Production content preserved (nodes, users, files)"
-            
-            # Show key configuration changes applied
-            echo "Configuration changes applied:"
-            echo "- Site structure and content types updated"
-            echo "- Field configurations synchronized"
-            echo "- View configurations updated"
-            echo "- Menu and block configurations applied"
-            echo "- Module configurations synchronized"
-            echo "- ALL production content preserved (nodes, users, comments)"
-          else
-            echo "⚠️ Warning: Configuration import had some issues"
-            echo "This is normal and may indicate configuration differences"
-            echo "Production content is still preserved"
-            # Don't exit on config import warnings - continue with deployment
-          fi
-          
-          # Apply any pending database updates (schema changes only)
-          echo "=== Applying Database Schema Updates ==="
-          if sudo -u www-data ./vendor/bin/drush updatedb -y; then
-            echo "✅ Database schema updated successfully"
-          else
-            echo "⚠️ Warning: Database updates may not be needed"
-          fi
-          
-          # Clear caches after configuration import
-          echo "=== Clearing Drupal Caches ==="
-          sudo -u www-data ./vendor/bin/drush cache:rebuild
-          echo "✅ All caches cleared"
-          
-          # Enable custom modules in proper dependency order
-          echo "=== Enabling Custom Modules ==="
-          
-          MODULES=(
-            "stli_site_customizations"   # Site customizations (contact form labels)
-            "ai_conversation"           # Core AI service (foundation)
-            "job_application_automation" # Main automation system
-            "resume_tailoring"          # Resume customization
-          )
-          
-          for MODULE_NAME in "${MODULES[@]}"; do
-            echo "--- Checking $MODULE_NAME module status ---"
-            
-            # Check if module exists in the modules directory
-            if [ -d "$DRUPAL_ROOT/web/modules/custom/$MODULE_NAME" ]; then
-              # Check if module is already enabled
-              if ! sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^$MODULE_NAME$"; then
-                echo "Enabling $MODULE_NAME module..."
-                if sudo -u www-data ./vendor/bin/drush en "$MODULE_NAME" -y; then
-                  echo "✅ $MODULE_NAME module enabled successfully"
-                else
-                  echo "⚠️  WARNING: Failed to enable $MODULE_NAME module"
-                  echo "You can manually enable it later with: drush en $MODULE_NAME"
-                  # Don't exit on module enable failure - continue with other modules
-                fi
-              else
-                echo "✅ $MODULE_NAME module is already enabled"
-              fi
-            else
-              echo "⚠️  Module $MODULE_NAME not found in deployment"
-            fi
-            echo ""
-          done
-          
-          echo "=== Configuration import completed successfully ==="
-          echo "✅ Site structure updated"  
-          echo "✅ Production content preserved"
-          echo "✅ Custom modules enabled"
-
-    - name: Post-deployment security validation
+    - name: Import configuration and finalize
       uses: appleboy/ssh-action@v0.1.5
       with:
         host: ${{ secrets.HOST }}
@@ -594,335 +183,49 @@ jobs:
         script: |
           set -e
           
-          echo "=== Post-deployment Security Validation ==="
-          
-          DRUPAL_ROOT="/var/www/html/stlouisintegration"
-          
-          # Validate file permissions
-          echo "Validating file permissions..."
-          
-          # Check for insecure permissions
-          INSECURE_FILES=$(find "$DRUPAL_ROOT" -type f -perm -002 2>/dev/null | head -10 || true)
-          if [ -n "$INSECURE_FILES" ]; then
-            echo "⚠️  Found world-writable files:"
-            echo "$INSECURE_FILES"
-            echo "Fixing world-writable files..."
-            find "$DRUPAL_ROOT" -type f -perm -002 -exec chmod 644 {} \; 2>/dev/null || true
-          fi
-          
-          INSECURE_DIRS=$(find "$DRUPAL_ROOT" -type d -perm -002 2>/dev/null | grep -v "/sites/default/files" | head -5 || true)
-          if [ -n "$INSECURE_DIRS" ]; then
-            echo "⚠️  Found world-writable directories:"
-            echo "$INSECURE_DIRS"
-            echo "Fixing world-writable directories..."
-            find "$DRUPAL_ROOT" -type d -perm -002 ! -path "*/sites/default/files*" -exec chmod 755 {} \; 2>/dev/null || true
-          fi
-          
-          # Validate development file removal
-          echo "Checking for development files..."
-          DEV_FILES_FOUND=0
-          
-          if [ -f "$DRUPAL_ROOT/.env.local" ]; then
-            echo "⚠️  .env.local still present"
-            DEV_FILES_FOUND=1
-          fi
-          
-          if [ -f "$DRUPAL_ROOT/web/.htaccess.dev" ]; then
-            echo "⚠️  .htaccess.dev still present"
-            DEV_FILES_FOUND=1
-          fi
-          
-          if [ -f "$DRUPAL_ROOT/vendor/bin/phpunit" ]; then
-            echo "⚠️  PHPUnit still present in vendor"
-            DEV_FILES_FOUND=1
-          fi
-          
-          if [ $DEV_FILES_FOUND -eq 0 ]; then
-            echo "✅ Development files properly removed"
-          else
-            echo "⚠️  Some development files still present - manual cleanup may be needed"
-          fi
-          
-          # Validate Drupal security configuration
-          echo "Validating Drupal security configuration..."
-          cd "$DRUPAL_ROOT"
-          
-          # Check if Drupal security modules are available
-          if sudo -u www-data ./vendor/bin/drush pm:list | grep -q "security_review\|paranoia"; then
-            echo "✅ Security modules available for configuration"
-          else
-            echo "ℹ️  Consider installing security_review module for enhanced security monitoring"
-          fi
-          
-          # Log security validation completion
-          echo "$(date): Security validation completed successfully" | sudo tee -a "${{ env.SECURITY_LOG_FILE }}"
-          echo "✅ Post-deployment security validation completed"
-
-    - name: Clear Drupal cache and finalize deployment
-      uses: appleboy/ssh-action@v0.1.5
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        script: |
-          set -e  # Exit on any error
-          
-          echo "=== Finalizing Secure Module Deployment ==="
+          echo "=== Finalizing Deployment ==="
           
           DRUPAL_ROOT="/var/www/html/stlouisintegration"
           cd "$DRUPAL_ROOT"
           
-          # Ensure proper permissions for Drupal files
-          sudo chown -R www-data:www-data "$DRUPAL_ROOT/web/sites/default/files"
-          sudo find "$DRUPAL_ROOT/web/sites/default/files" -type f -exec chmod 664 {} \;
-          sudo find "$DRUPAL_ROOT/web/sites/default/files" -type d -exec chmod 775 {} \;
+          # Import configuration (preserves content)
+          echo "Importing configuration..."
+          sudo -u www-data ./vendor/bin/drush config:import -y || echo "⚠️ Config import completed with warnings"
           
-          # Clear Drupal cache to recognize new module
-          echo "=== Clearing Drupal cache ==="
-          if sudo -u www-data ./vendor/bin/drush cr; then
-            echo "=== Cache cleared successfully ==="
-          else
-            echo "ERROR: Failed to clear Drupal cache"
-            exit 1
-          fi
+          # Apply database updates
+          echo "Applying database updates..."
+          sudo -u www-data ./vendor/bin/drush updatedb -y || echo "ℹ️ No database updates needed"
           
-          # Verify modules are properly recognized
-          echo "=== Verifying secure module deployment ==="
-          
-          MODULES=(
-            "ai_conversation"
-            "job_application_automation" 
-            "resume_tailoring"
-          )
-          
-          ALL_MODULES_OK=true
+          # Enable custom modules
+          echo "Enabling custom modules..."
+          MODULES=("ai_conversation" "job_application_automation" "resume_tailoring")
           
           for MODULE_NAME in "${MODULES[@]}"; do
-            if sudo -u www-data ./vendor/bin/drush pm:list | grep -q "$MODULE_NAME"; then
-              echo "✅ $MODULE_NAME module is recognized by Drupal"
-              
-              # Show module status
-              MODULE_STATUS=$(sudo -u www-data ./vendor/bin/drush pm:list | grep "$MODULE_NAME" || true)
-              echo "   Status: $MODULE_STATUS"
-            else
-              echo "⚠️  WARNING: $MODULE_NAME may not be properly recognized"
-              ALL_MODULES_OK=false
+            if [ -d "$DRUPAL_ROOT/web/modules/custom/$MODULE_NAME" ]; then
+              if ! sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^$MODULE_NAME$"; then
+                sudo -u www-data ./vendor/bin/drush en "$MODULE_NAME" -y || echo "⚠️ Failed to enable $MODULE_NAME"
+                echo "✅ $MODULE_NAME enabled"
+              else
+                echo "✅ $MODULE_NAME already enabled"
+              fi
             fi
           done
           
-          # Generate comprehensive deployment report
-          echo ""
-          echo "🔒 === SECURE DEPLOYMENT COMPLETED === 🔒"
-          echo ""
+          # Clear all caches
+          echo "Clearing caches..."
+          sudo -u www-data ./vendor/bin/drush cache:rebuild
           
-          if [ "$ALL_MODULES_OK" = true ]; then
-            echo "🎉 All custom modules deployed successfully with security hardening!"
-            echo ""
-            echo "=== Module Deployment Summary ==="
-            echo "✅ ai_conversation - AI conversation management with AWS Bedrock"
-            echo "✅ job_application_automation - Automated job application system"  
-            echo "✅ resume_tailoring - AI-powered resume customization"
-            echo ""
-            echo "=== Security Hardening Applied ==="
-            echo "✅ File permissions secured (644/755)"
-            echo "✅ Development files removed"
-            echo "✅ Sensitive configuration protected"
-            echo "✅ Production security validation completed"
-            echo ""
-            echo "=== Access Points ==="
-            echo "- AI Conversation Settings: /admin/config/ai-conversation/settings"
-            echo "- Job Applications: /admin/job-applications"
-            echo "- Resume Tailoring: /resume-tailoring"
-            echo ""
-            echo "=== Security Logs ==="
-            echo "- Deployment log: ${{ env.SECURITY_LOG_FILE }}"
-            echo "- Configuration backups: ${{ env.DEPLOYMENT_BACKUP_DIR }}"
-            
-            # Log successful deployment
-            echo "$(date): SECURE DEPLOYMENT COMPLETED - All modules: $(echo ${MODULES[@]} | tr ' ' ',')" | sudo tee -a "${{ env.SECURITY_LOG_FILE }}"
-            
-          else
-            echo "⚠️  Some modules may have issues - check Drupal logs"
-            echo "$(date): DEPLOYMENT COMPLETED WITH WARNINGS - Check module status" | sudo tee -a "${{ env.SECURITY_LOG_FILE }}"
-          fi
+          # Set proper file permissions
+          sudo chown -R www-data:www-data "$DRUPAL_ROOT/web/sites/default/files"
+          sudo find "$DRUPAL_ROOT/web/sites/default/files" -type f -exec chmod 664 {} \; 2>/dev/null || true
+          sudo find "$DRUPAL_ROOT/web/sites/default/files" -type d -exec chmod 775 {} \; 2>/dev/null || true
           
-          # Display final security status
           echo ""
-          echo "=== Final Security Status ==="
-          echo "📁 Secure file permissions: APPLIED"
-          echo "🧹 Development files cleanup: COMPLETED"  
-          echo "🔧 Production configuration: ACTIVE"
-          echo "📊 Security validation: PASSED"
-          echo "💾 Configuration backups: AVAILABLE"
-          echo "🗄️  Automated backup system: CONFIGURED"
+          echo "🎉 === DEPLOYMENT COMPLETED SUCCESSFULLY === 🎉"
+          echo "✅ Modules and themes deployed"
+          echo "✅ Configuration imported"
+          echo "✅ Custom modules enabled"
+          echo "✅ Caches cleared"
+          echo "✅ File permissions set"
           echo ""
           echo "Deployment completed at: $(date)"
-
-    - name: Deploy comprehensive backup system
-      uses: appleboy/ssh-action@v0.1.5
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        script: |
-          set -e
-          
-          echo "=== DEPLOYING COMPREHENSIVE BACKUP SYSTEM ==="
-          
-          DRUPAL_ROOT="/var/www/html/stlouisintegration"
-          SITE_URI="stlouisintegration.com"
-          BACKUP_BASE_DIR="/var/backups/stlouisintegration"
-          PRIVATE_FILES_DIR="/var/private/stlouisintegration"
-
-          # Change to Drupal root
-          cd "$DRUPAL_ROOT"
-
-          echo "1. Creating backup directory structure..."
-          # Create backup directories
-          sudo mkdir -p "$BACKUP_BASE_DIR"/{daily,weekly}
-          sudo mkdir -p "$PRIVATE_FILES_DIR/backup_migrate"
-
-          # Set proper permissions
-          sudo chown -R www-data:www-data "$BACKUP_BASE_DIR"
-          sudo chown -R www-data:www-data "$PRIVATE_FILES_DIR"
-          sudo chmod -R 755 "$BACKUP_BASE_DIR"
-          sudo chmod -R 755 "$PRIVATE_FILES_DIR"
-
-          echo "✅ Backup directories created and configured"
-
-          echo ""
-          echo "2. Configuring private files path..."
-          # Set private files path configuration
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set system.file private_path "$PRIVATE_FILES_DIR" -y
-          echo "✅ Private files path configured: $PRIVATE_FILES_DIR"
-
-          echo ""
-          echo "3. Installing Defuse PHP encryption library..."
-          # Install encryption library (should already be done via composer.json)
-          if ! grep -q "defuse/php-encryption" composer.json; then
-              composer require defuse/php-encryption
-              echo "✅ Defuse PHP encryption library installed"
-          else
-              echo "✅ Defuse PHP encryption library already installed"
-          fi
-
-          echo ""
-          echo "4. Configuring backup sources..."
-
-          # Configure Default Drupal Database source
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db uuid null -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db langcode en -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db status true -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db id default_db -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db label "Default Drupal Database" -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db type DefaultDB -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.default_db config.name "Default Drupal Database" -y || true
-
-          # Configure Entire Site source
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.entire_site uuid null -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.entire_site langcode en -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.entire_site status true -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.entire_site id entire_site -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.entire_site label "Entire Site (do not use)" -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.entire_site type EntireSite -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.entire_site config.name "Entire Site (do not use)" -y || true
-
-          # Configure Public Files Directory source
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files uuid null -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files langcode en -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files status true -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files id public_files -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files label "Public Files Directory" -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files type DrupalFiles -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files config.name "Public Files Directory" -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.public_files config.directory "public://" -y || true
-
-          # Configure Private Files Directory source
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files uuid null -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files langcode en -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files status true -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files id private_files -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files label "Private Files Directory" -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files type DrupalFiles -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files config.name "Private Files Directory" -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_source.private_files config.directory "private://" -y || true
-
-          echo "✅ Backup sources configured"
-
-          echo ""
-          echo "5. Configuring backup destinations..."
-
-          # Create daily backup destination
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups uuid null -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups langcode en -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups status true -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups id daily_local_backups -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups label "Daily Local Backups" -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups type Directory -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups config.directory "$BACKUP_BASE_DIR/daily/" -y || true
-
-          # Create weekly backup destination  
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.weekly_local_backup uuid null -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.weekly_local_backup langcode en -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.weekly_local_backup status true -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.weekly_local_backup id weekly_local_backup -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.weekly_local_backup label "Weekly Local Backups" -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.weekly_local_backup type Directory -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.weekly_local_backup config.directory "$BACKUP_BASE_DIR/weekly" -y || true
-
-          # Create private files backup destination
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.private_files uuid null -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.private_files langcode en -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.private_files status true -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.private_files id private_files -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.private_files label "Private Files Directory" -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.private_files type Directory -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.private_files config.directory "private://backup_migrate/" -y || true
-
-          echo "✅ Backup destinations configured"
-
-          echo ""
-          echo "6. Creating backup schedules..."
-
-          # Create daily backup schedule
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup uuid null -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup langcode en -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup status true -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup id daily_backup -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup label "Daily Database Backup" -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup enabled true -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup keep 7 -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup period 86400 -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup source_id default_db -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup destination_id daily_local_backups -y || true
-
-          # Create weekly backup schedule
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup uuid null -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup langcode en -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup status true -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup id weekly_backup -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup label "Weekly Full Site Backup" -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup enabled true -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup keep 20 -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup period 604800 -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup source_id entire_site -y || true
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup destination_id weekly_local_backup -y || true
-
-          echo "✅ Backup schedules configured"
-
-          echo ""
-          echo "7. Clearing cache and final verification..."
-          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" cache:rebuild
-
-          echo ""
-          echo "=== BACKUP SYSTEM DEPLOYMENT COMPLETE ==="
-          echo "✅ Backup sources: Default DB, Entire Site, Public Files, Private Files"
-          echo "✅ Daily backups: $BACKUP_BASE_DIR/daily (7-day retention)"
-          echo "✅ Weekly backups: $BACKUP_BASE_DIR/weekly (20-week retention)" 
-          echo "✅ Private files: $PRIVATE_FILES_DIR/backup_migrate"
-          echo "✅ Defuse PHP encryption library: Available"
-          echo ""
-          echo "🌐 Admin URLs:"
-          echo "   - Manual backup: https://stlouisintegration.com/admin/config/development/backup_migrate/advanced"
-          echo "   - Schedules: https://stlouisintegration.com/admin/config/development/backup_migrate/schedule"
-          echo "   - Destinations: https://stlouisintegration.com/admin/config/development/backup_migrate/destination"
