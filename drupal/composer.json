@@ -18,6 +18,7 @@
         "aws/aws-sdk-php": "^3.356",
         "composer/installers": "^2.3",
         "drupal/admin_toolbar": "^3.6",
+        "drupal/backup_migrate": "^5.1",
         "drupal/bootstrap5": "^4.0",
         "drupal/core-composer-scaffold": "^11.2",
         "drupal/core-project-message": "^11.2",
@@ -111,4 +112,3 @@
         "drupal/coder": "^8.3"
     }
 }
-# Trigger deployment Sun Sep 28 14:02:25 UTC 2025
