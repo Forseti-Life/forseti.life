@@ -200,6 +200,12 @@ class AIApiService {
 
       // Get system prompt from config if available.
       $system_prompt = $config->get('system_prompt');
+      
+      // Debug logging for system prompt
+      $this->logInfo('System prompt length: @length, First 100 chars: @preview', [
+        '@length' => strlen($system_prompt ?? ''),
+        '@preview' => substr($system_prompt ?? 'EMPTY', 0, 100),
+      ]);
 
       // Build the request body.
       $request_body = [
@@ -216,6 +222,9 @@ class AIApiService {
       // Add system prompt if configured.
       if (!empty($system_prompt)) {
         $request_body['system'] = $system_prompt;
+        $this->logInfo('System prompt added to request body');
+      } else {
+        $this->logInfo('No system prompt found in configuration');
       }
 
       $response = $bedrock->invokeModel([
