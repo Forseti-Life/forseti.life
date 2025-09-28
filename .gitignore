@@ -65,6 +65,16 @@ yarn-error.log*
 *.backup
 *.orig
 
+# Backup directories (system-wide backup locations)
+/var/backups/
+/var/private/stlouisintegration/
+/tmp/backups/
+
+# Backup and Migrate module files
+drupal/web/sites/default/files/backup_migrate/
+drupal/web/sites/*/files/backup_migrate/
+private://backup_migrate/
+
 # Composer cache (keep composer.json and composer.lock)
 drupal/vendor/
 drupal/composer.phar
