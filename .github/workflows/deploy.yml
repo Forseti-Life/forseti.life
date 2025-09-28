@@ -434,6 +434,87 @@ jobs:
           
           echo "✅ Configuration deployment completed successfully"
 
+    - name: Import development database
+      uses: appleboy/ssh-action@v0.1.5
+      env:
+        HUBGIT_PAT: ${{ secrets.HUBGIT_PAT }}
+        DEPLOYMENT_BACKUP_DIR: ${{ env.DEPLOYMENT_BACKUP_DIR }}
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        envs: HUBGIT_PAT,DEPLOYMENT_BACKUP_DIR
+        script: |
+          set -e  # Exit on any error
+          
+          echo "=== Importing Development Database ==="
+          
+          DRUPAL_ROOT="/var/www/html/stlouisintegration"
+          TEMP_DIR="/tmp/database-import-$(date +%s)"
+          BACKUP_DIR="$DEPLOYMENT_BACKUP_DIR/$(date +%Y%m%d_%H%M%S)"
+          
+          # Create backup and temp directories
+          sudo mkdir -p "$BACKUP_DIR" "$TEMP_DIR"
+          cd "$TEMP_DIR"
+          
+          # Backup current production database
+          echo "Backing up current production database..."
+          cd "$DRUPAL_ROOT"
+          if sudo -u www-data ./vendor/bin/drush sql-dump --result-file="$BACKUP_DIR/production_database_backup.sql"; then
+            echo "✅ Production database backed up to $BACKUP_DIR/production_database_backup.sql"
+          else
+            echo "⚠️ Warning: Could not backup production database"
+          fi
+          
+          # Download database export from repository
+          echo "Downloading development database export..."
+          cd "$TEMP_DIR"
+          
+          # Use GitHub API to download the database export
+          echo "Downloading database-export.sql from repository..."
+          if curl -H "Authorization: token $HUBGIT_PAT" \
+               -H "Accept: application/vnd.github.v3.raw" \
+               -L "https://api.github.com/repos/keithaumiller/stlouisintegration.com/contents/database-export.sql" \
+               -o database-export.sql; then
+            echo "✅ Database export downloaded successfully"
+            
+            # Verify file was downloaded and has content
+            if [ -s "database-export.sql" ]; then
+              echo "Database export file size: $(wc -l < database-export.sql) lines"
+              
+              # Import the database
+              echo "Importing development database to production..."
+              cd "$DRUPAL_ROOT"
+              if sudo -u www-data ./vendor/bin/drush sql-cli < "$TEMP_DIR/database-export.sql"; then
+                echo "✅ Development database imported successfully"
+                
+                # Clear all caches after database import
+                echo "Clearing Drupal caches after database import..."
+                sudo -u www-data ./vendor/bin/drush cr
+                echo "✅ Caches cleared"
+              else
+                echo "❌ ERROR: Failed to import development database"
+                echo "Attempting to restore production database backup..."
+                if [ -f "$BACKUP_DIR/production_database_backup.sql" ]; then
+                  sudo -u www-data ./vendor/bin/drush sql-cli < "$BACKUP_DIR/production_database_backup.sql"
+                  echo "Production database restored from backup"
+                fi
+                exit 1
+              fi
+            else
+              echo "❌ ERROR: Database export file is empty or not found"
+              exit 1
+            fi
+          else
+            echo "❌ ERROR: Failed to download database export"
+            echo "Cannot proceed with database import"
+            exit 1
+          fi
+          
+          # Cleanup
+          rm -rf "$TEMP_DIR"
+          echo "=== Database import completed ==="
+
     - name: Import configuration and enable custom modules
       uses: appleboy/ssh-action@v0.1.5
       with:
