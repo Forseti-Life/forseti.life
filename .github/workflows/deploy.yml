@@ -352,6 +352,12 @@ jobs:
             echo "✅ Composer dependencies installed successfully"
             echo "Installed packages:"
             sudo -u www-data composer show | grep -E "(aws/aws-sdk-php|drupal)" | head -10
+            
+            # Fix executable permissions for vendor/bin files
+            echo "=== Setting proper executable permissions ==="
+            sudo find "$DRUPAL_ROOT/vendor/bin" -type f -exec chmod 755 {} \;
+            sudo chmod 755 "$DRUPAL_ROOT/vendor/drush/drush/drush" 2>/dev/null || true
+            echo "✅ Vendor executables permissions fixed"
           else
             echo "⚠️  WARNING: Composer install failed"
             echo "You may need to run 'composer install' manually on the server"
