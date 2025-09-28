@@ -453,14 +453,24 @@ jobs:
           TEMP_DIR="/tmp/database-import-$(date +%s)"
           BACKUP_DIR="$DEPLOYMENT_BACKUP_DIR/$(date +%Y%m%d_%H%M%S)"
           
-          # Create backup and temp directories
-          sudo mkdir -p "$BACKUP_DIR" "$TEMP_DIR"
+          # Create backup and temp directories with proper permissions
+          sudo mkdir -p "$BACKUP_DIR"
+          sudo chmod 755 "$BACKUP_DIR"
+          sudo mkdir -p "$TEMP_DIR"
+          sudo chmod 777 "$TEMP_DIR"  # Temporary directory needs write permissions for all
           cd "$TEMP_DIR"
           
           # Backup current production database
           echo "Backing up current production database..."
           cd "$DRUPAL_ROOT"
-          if sudo -u www-data ./vendor/bin/drush sql-dump --result-file="$BACKUP_DIR/production_database_backup.sql"; then
+          
+          # Use temp directory for database dump to avoid permission issues
+          TEMP_BACKUP_FILE="$TEMP_DIR/production_database_backup.sql"
+          if sudo -u www-data ./vendor/bin/drush sql-dump --result-file="$TEMP_BACKUP_FILE"; then
+            # Move backup to secure location with proper permissions
+            sudo mv "$TEMP_BACKUP_FILE" "$BACKUP_DIR/production_database_backup.sql"
+            sudo chown root:root "$BACKUP_DIR/production_database_backup.sql"
+            sudo chmod 600 "$BACKUP_DIR/production_database_backup.sql"
             echo "✅ Production database backed up to $BACKUP_DIR/production_database_backup.sql"
           else
             echo "⚠️ Warning: Could not backup production database"
@@ -470,7 +480,7 @@ jobs:
           echo "Downloading development database export..."
           cd "$TEMP_DIR"
           
-          # Use GitHub API to download the database export
+          # Use GitHub API to download the database export with proper permissions
           echo "Downloading database-export.sql from repository..."
           if curl -H "Authorization: token $HUBGIT_PAT" \
                -H "Accept: application/vnd.github.v3.raw" \
