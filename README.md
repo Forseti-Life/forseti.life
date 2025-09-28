@@ -402,3 +402,4 @@ AWS_DEFAULT_REGION=us-west-2
 - **Region:** Defaults to us-west-2 for consistent development
 
 This modular approach provides comprehensive job application automation with AI-powered resume tailoring and conversational interfaces while maintaining clear separation of concerns and centralized AI service management.
+# Deployment test Sun Sep 28 13:58:23 UTC 2025
