@@ -3,7 +3,7 @@ _core:
 langcode: en
 uuid: 1784132f-76e6-4c93-b737-8167a73bcdf2
 name: 'St. Louis Integration'
-mail: info@stlouisintegration.com
+mail: admin@example.com
 slogan: ''
 page:
   403: /user/login

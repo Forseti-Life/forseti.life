@@ -1,0 +1,5 @@
+id: daily_local_backup
+label: 'Daily Local Backups'
+type: Directory
+settings:
+  directory: /var/backups/stlouisintegration/daily
