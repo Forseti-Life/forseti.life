@@ -55,5 +55,11 @@ function professional_website_content_theme() {
       ],
       'template' => 'case-study',
     ],
+    'professional_navigation_menu' => [
+      'variables' => [
+        'menu_items' => [],
+      ],
+      'template' => 'professional-navigation-menu',
+    ],
   ];
 }

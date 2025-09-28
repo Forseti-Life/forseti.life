@@ -43,6 +43,12 @@ function professional_website_content_install() {
   // Create enhanced contact page
   _professional_website_content_create_contact_page();
 
+  // Create URL aliases for pages
+  _professional_website_content_create_url_aliases();
+
+  // Place the professional navigation block
+  _professional_website_content_place_navigation_block();
+
   \Drupal::messenger()->addStatus(t('Professional website content has been created successfully.'));
 }
 
@@ -1021,4 +1027,90 @@ function _professional_website_content_create_contact_page() {
       'uid' => 1,
     ]);
   $contact_node->save();
+}
+
+/**
+ * Create URL aliases for professional pages.
+ */
+function _professional_website_content_create_url_aliases() {
+  $alias_storage = \Drupal::entityTypeManager()->getStorage('path_alias');
+
+  // Get node IDs
+  $query = \Drupal::entityQuery('node')
+    ->condition('type', 'page')
+    ->condition('status', 1)
+    ->accessCheck(TRUE);
+  
+  $titles_to_aliases = [
+    'About Us' => '/about-us',
+    'Case Studies' => '/case-studies', 
+    'Leadership' => '/leadership',
+    'Contact' => '/contact',
+  ];
+
+  foreach ($titles_to_aliases as $title => $alias) {
+    $title_query = clone $query;
+    $nids = $title_query->condition('title', $title)->execute();
+    
+    if (!empty($nids)) {
+      $nid = reset($nids);
+      
+      // Check if alias already exists
+      $existing = $alias_storage->loadByProperties(['alias' => $alias]);
+      if (empty($existing)) {
+        $alias_entity = $alias_storage->create([
+          'path' => '/node/' . $nid,
+          'alias' => $alias,
+          'langcode' => 'en',
+        ]);
+        $alias_entity->save();
+      }
+    }
+  }
+}
+
+/**
+ * Place the professional navigation block in the navbar_left region.
+ */
+function _professional_website_content_place_navigation_block() {
+  $theme = 'stlouisintegration';
+  
+  // Check if block already exists
+  $block_storage = \Drupal::entityTypeManager()->getStorage('block');
+  $existing_blocks = $block_storage->loadByProperties([
+    'plugin' => 'professional_navigation_block',
+    'theme' => $theme,
+  ]);
+  
+  if (empty($existing_blocks)) {
+    $block = $block_storage->create([
+      'id' => 'professional_navigation_block',
+      'theme' => $theme,
+      'region' => 'navbar_left',
+      'plugin' => 'professional_navigation_block',
+      'weight' => 0,
+      'settings' => [
+        'id' => 'professional_navigation_block',
+        'label' => 'Professional Website Navigation',
+        'label_display' => FALSE,
+      ],
+      'visibility' => [],
+    ]);
+    $block->save();
+  }
+}
+
+/**
+ * Implements hook_update_N().
+ * 
+ * Add URL aliases and navigation block placement.
+ */
+function professional_website_content_update_9001() {
+  // Create URL aliases
+  _professional_website_content_create_url_aliases();
+  
+  // Place navigation block
+  _professional_website_content_place_navigation_block();
+  
+  return t('Added URL aliases and placed professional navigation block.');
 }

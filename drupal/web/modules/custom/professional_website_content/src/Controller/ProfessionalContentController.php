@@ -105,25 +105,3 @@ class ProfessionalContentController extends ControllerBase {
   }
 
 }
-
-/**
- * Controller for content installation.
- */
-class ContentInstallController extends ControllerBase {
-
-  /**
-   * Install professional website content.
-   */
-  public function installContent() {
-    // Call the install function
-    module_load_include('install', 'professional_website_content');
-    professional_website_content_install();
-    
-    $this->messenger()->addStatus($this->t('Professional website content has been installed successfully.'));
-    
-    return [
-      '#markup' => $this->t('Professional website content installation completed. <a href="/">Return to homepage</a>.'),
-    ];
-  }
-
-}

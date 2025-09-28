@@ -170,7 +170,7 @@ Drupal root      : /var/www/html/stlouisintegration
 
 
 Skip giving "Immediate Fix:" solutions
-Always generate the commit and push commands for the code changes after changes are generated and applied to the workspace. Do not include curl commands or testing commands just commit and push commands
+Always generate the commit commands for the code changes after changes are generated and applied to the workspace. Do not include curl commands, testing commands, or push commands - just commit commands
 Always highlight which file is recomended to update.
 Always include the ARCHITECTURE.md and README.md files in the context.
 
