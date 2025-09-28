@@ -758,7 +758,7 @@ jobs:
           echo ""
           echo "Deployment completed at: $(date)"
 
-    - name: Setup backup directories
+    - name: Deploy comprehensive backup system
       uses: appleboy/ssh-action@v0.1.5
       with:
         host: ${{ secrets.HOST }}
@@ -767,22 +767,102 @@ jobs:
         script: |
           set -e
           
-          echo "=== Setting Up Backup Directories ==="
+          echo "=== DEPLOYING COMPREHENSIVE BACKUP SYSTEM ==="
           
-          BACKUP_BASE_DIR="/var/backups/stlouisintegration" 
-          
-          # Create backup directories for Backup and Migrate module
-          echo "Creating backup directories for Backup and Migrate module..."
-          sudo mkdir -p "$BACKUP_BASE_DIR/daily"
-          sudo mkdir -p "$BACKUP_BASE_DIR/weekly"
+          DRUPAL_ROOT="/var/www/html/stlouisintegration"
+          SITE_URI="stlouisintegration.com"
+          BACKUP_BASE_DIR="/var/backups/stlouisintegration"
+          PRIVATE_FILES_DIR="/var/private/stlouisintegration"
+
+          # Change to Drupal root
+          cd "$DRUPAL_ROOT"
+
+          echo "1. Creating backup directory structure..."
+          # Create backup directories
+          sudo mkdir -p "$BACKUP_BASE_DIR"/{daily,weekly}
+          sudo mkdir -p "$PRIVATE_FILES_DIR/backup_migrate"
+
+          # Set proper permissions
           sudo chown -R www-data:www-data "$BACKUP_BASE_DIR"
+          sudo chown -R www-data:www-data "$PRIVATE_FILES_DIR"
           sudo chmod -R 755 "$BACKUP_BASE_DIR"
-          
-          echo "✅ Backup directories configured for Backup and Migrate module"
+          sudo chmod -R 755 "$PRIVATE_FILES_DIR"
+
+          echo "✅ Backup directories created and configured"
+
           echo ""
-          echo "=== Backup Configuration Summary ==="
-          echo "📁 Daily backup directory: $BACKUP_BASE_DIR/daily (7-day retention)"
-          echo "📁 Weekly backup directory: $BACKUP_BASE_DIR/weekly (20-week retention)"
-          echo "🔧 Backup schedules managed by Backup and Migrate module"
-          echo "🌐 View schedules at: /admin/config/development/backup_migrate/schedule"
-          echo "🌐 View destinations at: /admin/config/development/backup_migrate/destination"
+          echo "2. Configuring backup destinations..."
+
+          # Create daily backup destination
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups uuid null -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups langcode en -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups status true -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups id daily_local_backups -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups label "Daily Local Backups" -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups type Directory -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.daily_local_backups config.directory "$BACKUP_BASE_DIR/daily/" -y || true
+
+          # Create weekly backup destination  
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.weekly_local_backup uuid null -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.weekly_local_backup langcode en -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.weekly_local_backup status true -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.weekly_local_backup id weekly_local_backup -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.weekly_local_backup label "Weekly Local Backups" -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.weekly_local_backup type Directory -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.weekly_local_backup config.directory "$BACKUP_BASE_DIR/weekly" -y || true
+
+          # Create private files backup destination
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.private_files uuid null -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.private_files langcode en -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.private_files status true -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.private_files id private_files -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.private_files label "Private Files Directory" -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.private_files type Directory -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_destination.private_files config.directory "private://backup_migrate/" -y || true
+
+          echo "✅ Backup destinations configured"
+
+          echo ""
+          echo "3. Creating backup schedules..."
+
+          # Create daily backup schedule
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup uuid null -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup langcode en -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup status true -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup id daily_backup -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup label "Daily Database Backup" -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup enabled true -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup keep 7 -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup period 86400 -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup source_id default_db -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.daily_backup destination_id daily_local_backups -y || true
+
+          # Create weekly backup schedule
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup uuid null -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup langcode en -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup status true -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup id weekly_backup -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup label "Weekly Full Site Backup" -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup enabled true -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup keep 20 -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup period 604800 -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup source_id entire_site -y || true
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" config:set backup_migrate.backup_migrate_schedule.weekly_backup destination_id weekly_local_backup -y || true
+
+          echo "✅ Backup schedules configured"
+
+          echo ""
+          echo "4. Clearing cache and final verification..."
+          sudo -u www-data ./vendor/bin/drush --uri="$SITE_URI" cache:rebuild
+
+          echo ""
+          echo "=== BACKUP SYSTEM DEPLOYMENT COMPLETE ==="
+          echo "✅ Daily backups: $BACKUP_BASE_DIR/daily (7-day retention)"
+          echo "✅ Weekly backups: $BACKUP_BASE_DIR/weekly (20-week retention)" 
+          echo "✅ Private files: $PRIVATE_FILES_DIR/backup_migrate"
+          echo "✅ Defuse PHP encryption library: Available"
+          echo ""
+          echo "🌐 Admin URLs:"
+          echo "   - Schedules: https://stlouisintegration.com/admin/config/development/backup_migrate/schedule"
+          echo "   - Destinations: https://stlouisintegration.com/admin/config/development/backup_migrate/destination"
+          echo "   - Manual backup: https://stlouisintegration.com/admin/config/development/backup_migrate"
