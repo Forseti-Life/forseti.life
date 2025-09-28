@@ -25,9 +25,6 @@ function professional_website_content_install() {
     ]);
   $resume_node->save();
 
-  // Create About Us page
-  _professional_website_content_create_about_page();
-
   // Create Services page
   _professional_website_content_create_services_page();
 
@@ -227,7 +224,9 @@ function _professional_website_content_get_resume_data() {
 
 /**
  * Create the About Us page with leadership profile.
+ * DISABLED - About Us page removed from navigation
  */
+/*
 function _professional_website_content_create_about_page() {
   $about_content = '
 <div class="about-us-section">
@@ -288,6 +287,7 @@ function _professional_website_content_create_about_page() {
     ]);
   $about_node->save();
 }
+*/
 
 /**
  * Create the Services page with industry solutions.
@@ -1042,7 +1042,6 @@ function _professional_website_content_create_url_aliases() {
     ->accessCheck(TRUE);
   
   $titles_to_aliases = [
-    'About Us' => '/about-us',
     'Case Studies' => '/case-studies', 
     'Leadership' => '/leadership',
     'Contact' => '/contact',

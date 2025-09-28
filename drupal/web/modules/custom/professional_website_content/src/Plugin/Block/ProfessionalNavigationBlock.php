@@ -32,12 +32,6 @@ class ProfessionalNavigationBlock extends BlockBase {
         'children' => [],
       ],
       [
-        'title' => $this->t('About Us'),
-        'url' => Url::fromUserInput('/about-us'),
-        'class' => 'nav-item',
-        'children' => [],
-      ],
-      [
         'title' => $this->t('Services'),
         'url' => Url::fromRoute('professional_website_content.services'),
         'class' => 'nav-item',
