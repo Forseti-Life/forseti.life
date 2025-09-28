@@ -18,8 +18,16 @@ function ai_conversation_theme() {
       'variables' => [
         'conversation' => NULL,
         'messages' => [],
+        'stats' => NULL,
       ],
       'template' => 'ai-conversation-chat',
+    ],
+    'user_ai_conversations' => [
+      'variables' => [
+        'conversations' => [],
+        'total' => 0,
+      ],
+      'template' => 'user-ai-conversations',
     ],
   ];
 }
