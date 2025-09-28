@@ -254,20 +254,18 @@ class AIApiService {
    * Build optimized context using summary + recent messages.
    */
   private function buildOptimizedContext(NodeInterface $conversation, string $new_message) {
-    // Get system prompt/context.
-    $system_prompt = $conversation->get('field_context')->value ?: 'You are a helpful AI assistant.';
-    
     // Check if this is the start of a conversation (no previous messages).
     $recent_messages = $this->getRecentMessages($conversation);
     $is_conversation_start = empty($recent_messages) && 
       (!$conversation->hasField('field_conversation_summary') || $conversation->get('field_conversation_summary')->isEmpty());
     
-    // Start building context.
-    $context = $system_prompt . "\n\n";
-    
-    // For new conversations, add St. Louis Integration context including resume and services.
+    // For new conversations, use enhanced context with St. Louis Integration info.
     if ($is_conversation_start) {
-      $context = $this->buildInitialContext() . "\n\n";
+      $context = $this->buildInitialContext();
+    } else {
+      // For existing conversations, use the original system prompt.
+      $system_prompt = $conversation->get('field_context')->value ?: 'You are a helpful AI assistant.';
+      $context = $system_prompt . "\n\n";
     }
 
     // Add conversation summary if it exists.
@@ -309,7 +307,7 @@ class AIApiService {
     // Load resume content from node 10.
     $resume_content = $this->getResumeContent();
     if ($resume_content) {
-      $context .= "KEITH MILLER'S RESUME (Company Principal):\n";
+      $context .= "KEITH MILLER'S BACKGROUND (Company Principal):\n";
       $context .= $resume_content . "\n\n";
     }
     
@@ -317,26 +315,27 @@ class AIApiService {
     $context .= "St. Louis Integration provides comprehensive data and AI services including:\n\n";
     
     $context .= "DATA SERVICES:\n";
-    $context .= "- Data Integration: ETL/ELT pipelines, data warehousing, real-time streaming\n";
-    $context .= "- Data Science: Advanced analytics, machine learning, predictive modeling\n";
-    $context .= "- Business Intelligence: Dashboard development, reporting, data visualization\n";
-    $context .= "- Data Architecture: Database design, data lakes, cloud data platforms\n\n";
+    $context .= "• Data Integration: ETL/ELT pipelines, data warehousing, real-time streaming\n";
+    $context .= "• Data Science: Advanced analytics, machine learning, predictive modeling\n";
+    $context .= "• Business Intelligence: Dashboard development, reporting, data visualization\n";
+    $context .= "• Data Architecture: Database design, data lakes, cloud data platforms\n\n";
     
     $context .= "AI/AUTOMATION SERVICES:\n";
-    $context .= "- AI Strategy & Implementation: Help organizations become full artificial intelligence shops\n";
-    $context .= "- Process Automation: Workflow automation, robotic process automation (RPA)\n";
-    $context .= "- Custom AI Solutions: Natural language processing, computer vision, predictive analytics\n";
-    $context .= "- On-Premises AI: Local AI implementations for security-sensitive environments\n\n";
+    $context .= "• AI Strategy & Implementation: Help organizations become full artificial intelligence shops\n";
+    $context .= "• Process Automation: Workflow automation, robotic process automation (RPA)\n";
+    $context .= "• Custom AI Solutions: Natural language processing, computer vision, predictive analytics\n";
+    $context .= "• On-Premises AI: Local AI implementations for security-sensitive environments\n\n";
     
     $context .= "INDUSTRY EXPERTISE:\n";
-    $context .= "- Financial Services: Risk modeling, fraud detection, regulatory compliance\n";
-    $context .= "- Healthcare: Clinical data analysis, patient outcomes, operational efficiency\n";
-    $context .= "- Energy Sector: Grid optimization, demand forecasting, asset management\n\n";
+    $context .= "• Financial Services: Risk modeling, fraud detection, regulatory compliance\n";
+    $context .= "• Healthcare: Clinical data analysis, patient outcomes, operational efficiency\n";
+    $context .= "• Energy Sector: Grid optimization, demand forecasting, asset management\n\n";
     
-    $context .= "PHILOSOPHY:\n";
+    $context .= "COMPANY PHILOSOPHY:\n";
     $context .= "\"Everything can be automated - it's just a matter of time and resources. We help organizations identify the right automation opportunities and implement them effectively.\"\n\n";
     
-    $context .= "Use this context to provide informed, helpful responses about St. Louis Integration's capabilities and how we can assist with data integration, AI implementation, and digital transformation projects.\n\n";
+    $context .= "GUIDANCE FOR RESPONSES:\n";
+    $context .= "Use this context to provide informed, helpful responses about St. Louis Integration's capabilities and how we can assist with data integration, AI implementation, and digital transformation projects. Always maintain professionalism while being transparent about the technology behind this chat interface.\n\n";
     
     return $context;
   }
@@ -350,7 +349,14 @@ class AIApiService {
       if ($node && $node->access('view')) {
         // Try to get body field content.
         if ($node->hasField('body') && !$node->get('body')->isEmpty()) {
-          return strip_tags($node->get('body')->value);
+          $body_content = $node->get('body')->value;
+          // Strip HTML tags and limit length to prevent context bloat.
+          $clean_content = strip_tags($body_content);
+          // Limit to reasonable length for AI context (about 2000 characters).
+          if (strlen($clean_content) > 2000) {
+            $clean_content = substr($clean_content, 0, 2000) . '... [Content truncated for brevity]';
+          }
+          return $clean_content;
         }
         // Fallback to title if no body.
         return $node->getTitle();
@@ -361,7 +367,8 @@ class AIApiService {
       ]);
     }
     
-    return NULL;
+    // Return fallback content if node loading fails.
+    return "Keith Miller - Principal at St. Louis Integration. Experienced in data integration, business intelligence, and AI implementations across Financial Services, Healthcare, and Energy sectors.";
   }
 
   /**
