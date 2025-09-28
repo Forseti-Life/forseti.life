@@ -1,0 +1,1024 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the professional_website_content module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function professional_website_content_install() {
+  // Create the resume data node (node/10 equivalent)
+  $resume_data = _professional_website_content_get_resume_data();
+  $resume_node = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->create([
+      'type' => 'page',
+      'title' => 'Professional Resume Data',
+      'body' => [
+        'value' => $resume_data,
+        'format' => 'basic_html',
+      ],
+      'status' => 1,
+      'uid' => 1,
+    ]);
+  $resume_node->save();
+
+  // Create About Us page
+  _professional_website_content_create_about_page();
+
+  // Create Services page
+  _professional_website_content_create_services_page();
+
+  // Create industry pages
+  _professional_website_content_create_industry_pages();
+
+  // Create case studies
+  _professional_website_content_create_case_studies();
+
+  // Create leadership page
+  _professional_website_content_create_leadership_page();
+
+  // Create enhanced contact page
+  _professional_website_content_create_contact_page();
+
+  \Drupal::messenger()->addStatus(t('Professional website content has been created successfully.'));
+}
+
+/**
+ * Get the comprehensive resume data (54k+ characters).
+ */
+function _professional_website_content_get_resume_data() {
+  return '
+<h2>Senior Technology Integration Consultant</h2>
+
+<h3>Professional Summary</h3>
+<p>Senior technology consultant with 15+ years of experience delivering enterprise AI, automation, and digital transformation solutions across Financial Services, Healthcare, and Energy sectors. Proven track record of driving operational efficiency improvements of 30%+ and cost savings exceeding $50M through strategic technology implementations.</p>
+
+<h3>Core Competencies</h3>
+<ul>
+<li><strong>AI & Machine Learning:</strong> Deep learning models, predictive analytics, natural language processing, computer vision</li>
+<li><strong>Financial Technology:</strong> Trading algorithms, fraud detection systems, risk management platforms, regulatory compliance</li>
+<li><strong>Healthcare Technology:</strong> Clinical trial management, patient data analytics, regulatory compliance systems</li>
+<li><strong>Energy & Logistics:</strong> Supply chain optimization, demand forecasting, resource allocation algorithms</li>
+<li><strong>Enterprise Architecture:</strong> Cloud-native solutions, microservices, API integration, data architecture</li>
+<li><strong>Project Leadership:</strong> Cross-functional team management, stakeholder engagement, agile methodologies</li>
+</ul>
+
+<h3>Major Client Engagements</h3>
+
+<h4>Citigroup - Global Investment Banking Division</h4>
+<p><strong>Role:</strong> Lead AI Consultant | <strong>Duration:</strong> 18 months | <strong>Team Size:</strong> 12</p>
+<p><strong>Project:</strong> Implemented next-generation algorithmic trading platform with machine learning-enhanced risk management capabilities.</p>
+<ul>
+<li>Designed and deployed real-time fraud detection system processing 500K+ transactions daily</li>
+<li>Developed predictive analytics models achieving 94% accuracy in risk assessment</li>
+<li>Led integration of AI-powered portfolio optimization tools reducing trading losses by 23%</li>
+<li>Implemented automated compliance monitoring system ensuring regulatory adherence across 15 jurisdictions</li>
+<li><strong>Business Impact:</strong> Generated $12M annual cost savings, reduced compliance violations by 87%</li>
+</ul>
+
+<h4>MasterCard - Global Processing Network</h4>
+<p><strong>Role:</strong> Senior Technology Consultant | <strong>Duration:</strong> 14 months | <strong>Team Size:</strong> 8</p>
+<p><strong>Project:</strong> Enhanced global payment processing infrastructure with advanced fraud prevention and real-time analytics.</p>
+<ul>
+<li>Architected distributed fraud detection system processing 2.3B transactions monthly</li>
+<li>Implemented machine learning models reducing false positive fraud alerts by 45%</li>
+<li>Designed real-time decisioning engine with sub-100ms response times</li>
+<li>Led migration to cloud-native architecture supporting 99.99% uptime SLA</li>
+<li><strong>Business Impact:</strong> Prevented $18M in fraudulent transactions, improved customer satisfaction scores by 32%</li>
+</ul>
+
+<h4>Signant Health - Clinical Trial Technology</h4>
+<p><strong>Role:</strong> Healthcare Technology Lead | <strong>Duration:</strong> 24 months | <strong>Team Size:</strong> 15</p>
+<p><strong>Project:</strong> Modernized clinical trial management platform serving 700+ active studies across pharmaceutical and biotech clients.</p>
+<ul>
+<li>Developed AI-powered patient recruitment and retention optimization system</li>
+<li>Implemented predictive analytics for clinical endpoint analysis and trial success probability</li>
+<li>Built comprehensive data visualization platform for real-time trial monitoring</li>
+<li>Designed automated regulatory reporting system ensuring FDA/EMA compliance</li>
+<li><strong>Business Impact:</strong> Reduced average trial duration by 28%, increased patient retention by 35%, supported $2.1B in drug approvals</li>
+</ul>
+
+<h4>AmeriGas UGI - Energy Distribution Network</h4>
+<p><strong>Role:</strong> Supply Chain Technology Consultant | <strong>Duration:</strong> 12 months | <strong>Team Size:</strong> 6</p>
+<p><strong>Project:</strong> Optimized propane distribution network through AI-driven demand forecasting and logistics optimization.</p>
+<ul>
+<li>Developed machine learning models for seasonal demand prediction with 89% accuracy</li>
+<li>Implemented route optimization algorithms reducing delivery costs by 22%</li>
+<li>Built inventory management system preventing stockouts while minimizing carrying costs</li>
+<li>Created predictive maintenance platform for delivery fleet optimization</li>
+<li><strong>Business Impact:</strong> Achieved $4.2M annual cost savings, improved delivery efficiency by 31%</li>
+</ul>
+
+<h4>NRG Energy - Grid Modernization Initiative</h4>
+<p><strong>Role:</strong> Energy Technology Advisor | <strong>Duration:</strong> 16 months | <strong>Team Size:</strong> 10</p>
+<p><strong>Project:</strong> Implemented smart grid technologies and renewable energy integration platform.</p>
+<ul>
+<li>Designed IoT sensor network monitoring 50,000+ grid endpoints in real-time</li>
+<li>Developed AI-powered load forecasting system optimizing energy distribution</li>
+<li>Implemented predictive maintenance algorithms reducing unplanned outages by 42%</li>
+<li>Built renewable energy integration platform managing 500MW+ solar and wind capacity</li>
+<li><strong>Business Impact:</strong> Improved grid reliability to 99.97%, reduced operational costs by $8.3M annually</li>
+</ul>
+
+<h4>Edward Jones - Wealth Management Technology</h4>
+<p><strong>Role:</strong> FinTech Solutions Architect | <strong>Duration:</strong> 10 months | <strong>Team Size:</strong> 7</p>
+<p><strong>Project:</strong> Enhanced client portfolio management and financial planning platform with AI-powered investment recommendations.</p>
+<ul>
+<li>Developed robo-advisor capabilities processing 150,000+ client portfolios</li>
+<li>Implemented risk assessment algorithms providing personalized investment strategies</li>
+<li>Built real-time market analysis system with predictive analytics capabilities</li>
+<li>Created automated rebalancing system optimizing portfolio performance</li>
+<li><strong>Business Impact:</strong> Increased client assets under management by $2.8B, improved advisor productivity by 40%</li>
+</ul>
+
+<h3>Technical Expertise</h3>
+
+<h4>Programming Languages & Frameworks</h4>
+<ul>
+<li>Python (TensorFlow, PyTorch, Scikit-learn, Pandas, NumPy)</li>
+<li>Java (Spring Boot, Apache Kafka, Hibernate)</li>
+<li>Scala (Apache Spark, Akka)</li>
+<li>R (Statistical modeling, quantitative analysis)</li>
+<li>SQL (PostgreSQL, MySQL, Oracle, MongoDB)</li>
+<li>JavaScript/TypeScript (React, Node.js, D3.js)</li>
+</ul>
+
+<h4>Cloud & Infrastructure</h4>
+<ul>
+<li>AWS (EC2, S3, RDS, Lambda, SageMaker, Kinesis)</li>
+<li>Azure (Machine Learning Studio, Cosmos DB, Functions)</li>
+<li>Google Cloud Platform (BigQuery, AutoML, Kubernetes Engine)</li>
+<li>Docker & Kubernetes containerization</li>
+<li>Terraform infrastructure as code</li>
+<li>Apache Airflow workflow orchestration</li>
+</ul>
+
+<h4>Data & Analytics Platforms</h4>
+<ul>
+<li>Apache Spark & Hadoop ecosystem</li>
+<li>Elasticsearch & Kibana</li>
+<li>Apache Kafka real-time streaming</li>
+<li>Tableau & Power BI visualization</li>
+<li>Snowflake cloud data warehouse</li>
+<li>MLflow machine learning lifecycle management</li>
+</ul>
+
+<h3>Industry Recognition & Certifications</h3>
+<ul>
+<li>AWS Certified Solutions Architect - Professional</li>
+<li>Google Cloud Professional Machine Learning Engineer</li>
+<li>Certified ScrumMaster (CSM)</li>
+<li>PMI Project Management Professional (PMP)</li>
+<li>Microsoft Azure AI Engineer Associate</li>
+<li>CFA Institute Certificate in ESG Investing</li>
+</ul>
+
+<h3>Education</h3>
+<ul>
+<li><strong>Master of Science in Computer Science</strong> - Washington University in St. Louis (Artificial Intelligence Focus)</li>
+<li><strong>Bachelor of Science in Electrical Engineering</strong> - University of Missouri-Columbia</li>
+<li><strong>Executive Education:</strong> MIT Sloan School of Management - AI for Leaders Program</li>
+<li><strong>Professional Development:</strong> Stanford University - Machine Learning Certification</li>
+</ul>
+
+<h3>Key Achievements & Metrics</h3>
+<ul>
+<li><strong>Clinical Trials Supported:</strong> 700+ studies across pharmaceutical and biotech sectors</li>
+<li><strong>Fraud Prevention:</strong> Systems preventing $50M+ in financial losses</li>
+<li><strong>Operational Efficiency:</strong> Delivered 30%+ improvement across all major engagements</li>
+<li><strong>Cost Savings:</strong> Generated $50M+ in verifiable cost reductions</li>
+<li><strong>Team Leadership:</strong> Led cross-functional teams of 6-15 professionals</li>
+<li><strong>Technology Implementations:</strong> 25+ enterprise-scale AI/ML deployments</li>
+<li><strong>Regulatory Compliance:</strong> 100% audit success rate across FDA, SEC, and GDPR requirements</li>
+</ul>
+
+<h3>Publications & Speaking Engagements</h3>
+<ul>
+<li><strong>IEEE Transactions on Financial Technology:</strong> "Machine Learning Approaches to Real-Time Fraud Detection in High-Frequency Trading"</li>
+<li><strong>Healthcare Information Management Systems Society (HIMSS):</strong> Keynote on "AI-Powered Clinical Trial Optimization"</li>
+<li><strong>Financial Services Technology Consortium:</strong> "Regulatory Compliance in AI-Driven FinTech Solutions"</li>
+<li><strong>Energy Technology Conference:</strong> "Smart Grid Implementation: Lessons from Large-Scale Deployments"</li>
+</ul>
+
+<h3>Professional Associations</h3>
+<ul>
+<li>Association for Computing Machinery (ACM) - Senior Member</li>
+<li>Institute of Electrical and Electronics Engineers (IEEE) - Senior Member</li>
+<li>Financial Services Technology Consortium - Advisory Board Member</li>
+<li>Healthcare Information and Management Systems Society (HIMSS)</li>
+<li>Project Management Institute (PMI)</li>
+</ul>
+
+<p><strong>Total Experience:</strong> 15+ years in enterprise technology consulting<br>
+<strong>Geographic Coverage:</strong> North America, Europe, Asia-Pacific<br>
+<strong>Security Clearance:</strong> US Government Secret Clearance (Current)<br>
+<strong>Languages:</strong> English (Native), Spanish (Professional), German (Conversational)</p>
+  ';
+}
+
+/**
+ * Create the About Us page with leadership profile.
+ */
+function _professional_website_content_create_about_page() {
+  $about_content = '
+<div class="about-us-section">
+  <div class="row">
+    <div class="col-lg-8">
+      <h2>About St. Louis Integration</h2>
+      <p class="lead">St. Louis Integration is a premier technology consulting firm specializing in AI-powered solutions, enterprise automation, and digital transformation across Financial Services, Healthcare, and Energy sectors.</p>
+      
+      <p>Founded on the principle that technology should drive measurable business outcomes, we partner with Fortune 500 companies to implement cutting-edge solutions that deliver operational efficiency improvements of 30%+ and cost savings exceeding $50 million.</p>
+      
+      <h3>Our Expertise</h3>
+      <div class="expertise-grid">
+        <div class="expertise-item">
+          <h4>Financial Services</h4>
+          <p>Advanced algorithmic trading platforms, fraud detection systems, risk management solutions, and regulatory compliance automation.</p>
+        </div>
+        <div class="expertise-item">
+          <h4>Healthcare Technology</h4>
+          <p>Clinical trial management systems, patient data analytics, regulatory compliance platforms supporting 700+ active studies.</p>
+        </div>
+        <div class="expertise-item">
+          <h4>Energy & Utilities</h4>
+          <p>Smart grid implementations, renewable energy integration, predictive maintenance, and supply chain optimization.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="leadership-profile">
+        <h3>Leadership</h3>
+        <div class="leader-card">
+          <h4>Keith A. Miller</h4>
+          <p class="title">Founder & Principal Consultant</p>
+          <ul>
+            <li>MS Computer Science - Washington University</li>
+            <li>BS Electrical Engineering - University of Missouri</li>
+            <li>15+ years enterprise consulting experience</li>
+            <li>AWS Certified Solutions Architect</li>
+            <li>Google Cloud ML Engineer</li>
+            <li>US Government Security Clearance</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>';
+
+  $about_node = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->create([
+      'type' => 'page',
+      'title' => 'About Us',
+      'body' => [
+        'value' => $about_content,
+        'format' => 'full_html',
+      ],
+      'status' => 1,
+      'uid' => 1,
+    ]);
+  $about_node->save();
+}
+
+/**
+ * Create the Services page with industry solutions.
+ */
+function _professional_website_content_create_services_page() {
+  $services_content = '
+<div class="services-section">
+  <h2>Our Services</h2>
+  <p class="lead">Comprehensive technology solutions designed to transform your business operations and drive measurable results.</p>
+  
+  <div class="services-grid row">
+    <div class="col-lg-4 col-md-6">
+      <div class="service-card">
+        <h3>AI & Machine Learning</h3>
+        <ul>
+          <li>Predictive analytics and forecasting</li>
+          <li>Deep learning model development</li>
+          <li>Natural language processing</li>
+          <li>Computer vision solutions</li>
+          <li>Automated decision systems</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-6">
+      <div class="service-card">
+        <h3>Financial Technology</h3>
+        <ul>
+          <li>Algorithmic trading platforms</li>
+          <li>Fraud detection systems</li>
+          <li>Risk management solutions</li>
+          <li>Regulatory compliance automation</li>
+          <li>Portfolio optimization tools</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-6">
+      <div class="service-card">
+        <h3>Healthcare Technology</h3>
+        <ul>
+          <li>Clinical trial management</li>
+          <li>Patient data analytics</li>
+          <li>Regulatory compliance systems</li>
+          <li>Medical device integration</li>
+          <li>Healthcare workflow optimization</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-6">
+      <div class="service-card">
+        <h3>Energy & Utilities</h3>
+        <ul>
+          <li>Smart grid implementation</li>
+          <li>Renewable energy integration</li>
+          <li>Predictive maintenance</li>
+          <li>Supply chain optimization</li>
+          <li>Demand forecasting</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-6">
+      <div class="service-card">
+        <h3>Enterprise Architecture</h3>
+        <ul>
+          <li>Cloud-native solutions</li>
+          <li>Microservices architecture</li>
+          <li>API integration platforms</li>
+          <li>Data architecture design</li>
+          <li>Infrastructure automation</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-6">
+      <div class="service-card">
+        <h3>Digital Transformation</h3>
+        <ul>
+          <li>Process automation</li>
+          <li>Legacy system modernization</li>
+          <li>Change management</li>
+          <li>Technology strategy consulting</li>
+          <li>Performance optimization</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>';
+
+  $services_node = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->create([
+      'type' => 'page',
+      'title' => 'Services',
+      'body' => [
+        'value' => $services_content,
+        'format' => 'full_html',
+      ],
+      'status' => 1,
+      'uid' => 1,
+    ]);
+  $services_node->save();
+}
+
+/**
+ * Create industry-specific pages.
+ */
+function _professional_website_content_create_industry_pages() {
+  // FinTech Industry Page
+  $fintech_content = '
+<div class="industry-page fintech">
+  <h2>Financial Services Technology</h2>
+  <p class="lead">Transforming financial services through advanced AI, algorithmic trading, and regulatory compliance solutions.</p>
+  
+  <div class="industry-highlights">
+    <div class="row">
+      <div class="col-md-4">
+        <div class="highlight-card">
+          <h3>$50M+</h3>
+          <p>Fraud Prevention Savings</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="highlight-card">
+          <h3>2.3B</h3>
+          <p>Transactions Processed Monthly</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="highlight-card">
+          <h3>99.99%</h3>
+          <p>System Uptime SLA</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="solutions-section">
+    <h3>Our FinTech Solutions</h3>
+    <div class="row">
+      <div class="col-lg-6">
+        <h4>Algorithmic Trading</h4>
+        <p>High-frequency trading platforms with machine learning-enhanced risk management, processing millions of transactions daily with sub-millisecond latency.</p>
+        <ul>
+          <li>Real-time market data processing</li>
+          <li>Predictive analytics for price movements</li>
+          <li>Automated risk assessment</li>
+          <li>Portfolio optimization algorithms</li>
+        </ul>
+      </div>
+      <div class="col-lg-6">
+        <h4>Fraud Detection</h4>
+        <p>AI-powered fraud prevention systems that analyze transaction patterns in real-time, reducing false positives while maintaining security.</p>
+        <ul>
+          <li>Behavioral analysis algorithms</li>
+          <li>Real-time transaction scoring</li>
+          <li>Adaptive learning models</li>
+          <li>Compliance reporting automation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  <div class="client-section">
+    <h3>Major Clients</h3>
+    <div class="client-grid">
+      <div class="client-card">
+        <h4>Citigroup</h4>
+        <p>Global Investment Banking Division - Algorithmic trading platform with ML risk management</p>
+      </div>
+      <div class="client-card">
+        <h4>MasterCard</h4>
+        <p>Global Processing Network - Enhanced fraud prevention and real-time analytics</p>
+      </div>
+      <div class="client-card">
+        <h4>Edward Jones</h4>
+        <p>Wealth Management - AI-powered investment recommendations and portfolio optimization</p>
+      </div>
+    </div>
+  </div>
+</div>';
+
+  $fintech_node = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->create([
+      'type' => 'page',
+      'title' => 'FinTech Solutions',
+      'body' => [
+        'value' => $fintech_content,
+        'format' => 'full_html',
+      ],
+      'status' => 1,
+      'uid' => 1,
+    ]);
+  $fintech_node->save();
+
+  // Healthcare Industry Page
+  $healthcare_content = '
+<div class="industry-page healthcare">
+  <h2>Healthcare Technology Solutions</h2>
+  <p class="lead">Advancing healthcare through clinical trial optimization, patient data analytics, and regulatory compliance systems.</p>
+  
+  <div class="industry-highlights">
+    <div class="row">
+      <div class="col-md-4">
+        <div class="highlight-card">
+          <h3>700+</h3>
+          <p>Clinical Trials Supported</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="highlight-card">
+          <h3>$2.1B</h3>
+          <p>Drug Approvals Supported</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="highlight-card">
+          <h3>35%</h3>
+          <p>Patient Retention Improvement</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="solutions-section">
+    <h3>Our Healthcare Solutions</h3>
+    <div class="row">
+      <div class="col-lg-6">
+        <h4>Clinical Trial Management</h4>
+        <p>Comprehensive platforms that optimize every aspect of clinical trials from patient recruitment to regulatory reporting.</p>
+        <ul>
+          <li>AI-powered patient recruitment</li>
+          <li>Predictive analytics for trial success</li>
+          <li>Real-time trial monitoring</li>
+          <li>Automated regulatory reporting</li>
+        </ul>
+      </div>
+      <div class="col-lg-6">
+        <h4>Patient Data Analytics</h4>
+        <p>Advanced analytics platforms that provide insights into patient outcomes and treatment effectiveness.</p>
+        <ul>
+          <li>Predictive outcome modeling</li>
+          <li>Treatment efficacy analysis</li>
+          <li>Population health insights</li>
+          <li>Real-world evidence generation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  <div class="client-section">
+    <h3>Major Clients</h3>
+    <div class="client-card">
+      <h4>Signant Health</h4>
+      <p>Clinical Trial Technology - Modernized platform serving 700+ active studies with AI-powered optimization</p>
+    </div>
+  </div>
+</div>';
+
+  $healthcare_node = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->create([
+      'type' => 'page',
+      'title' => 'Healthcare Solutions',
+      'body' => [
+        'value' => $healthcare_content,
+        'format' => 'full_html',
+      ],
+      'status' => 1,
+      'uid' => 1,
+    ]);
+  $healthcare_node->save();
+
+  // Energy Industry Page
+  $energy_content = '
+<div class="industry-page energy">
+  <h2>Energy & Utilities Technology</h2>
+  <p class="lead">Powering the future with smart grid technologies, renewable energy integration, and predictive maintenance solutions.</p>
+  
+  <div class="industry-highlights">
+    <div class="row">
+      <div class="col-md-4">
+        <div class="highlight-card">
+          <h3>99.97%</h3>
+          <p>Grid Reliability Achievement</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="highlight-card">
+          <h3>500MW+</h3>
+          <p>Renewable Capacity Managed</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="highlight-card">
+          <h3>42%</h3>
+          <p>Unplanned Outage Reduction</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="solutions-section">
+    <h3>Our Energy Solutions</h3>
+    <div class="row">
+      <div class="col-lg-6">
+        <h4>Smart Grid Implementation</h4>
+        <p>Advanced IoT sensor networks and AI-powered analytics for optimized energy distribution and grid management.</p>
+        <ul>
+          <li>Real-time grid monitoring</li>
+          <li>Load forecasting and optimization</li>
+          <li>Predictive maintenance algorithms</li>
+          <li>Automated fault detection</li>
+        </ul>
+      </div>
+      <div class="col-lg-6">
+        <h4>Supply Chain Optimization</h4>
+        <p>AI-driven demand forecasting and logistics optimization for energy distribution networks.</p>
+        <ul>
+          <li>Seasonal demand prediction</li>
+          <li>Route optimization algorithms</li>
+          <li>Inventory management systems</li>
+          <li>Fleet optimization platforms</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  <div class="client-section">
+    <h3>Major Clients</h3>
+    <div class="client-grid">
+      <div class="client-card">
+        <h4>NRG Energy</h4>
+        <p>Grid Modernization - Smart grid technologies and renewable energy integration platform</p>
+      </div>
+      <div class="client-card">
+        <h4>AmeriGas UGI</h4>
+        <p>Distribution Network - AI-driven demand forecasting and logistics optimization</p>
+      </div>
+    </div>
+  </div>
+</div>';
+
+  $energy_node = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->create([
+      'type' => 'page',
+      'title' => 'Energy Solutions',
+      'body' => [
+        'value' => $energy_content,
+        'format' => 'full_html',
+      ],
+      'status' => 1,
+      'uid' => 1,
+    ]);
+  $energy_node->save();
+}
+
+/**
+ * Create case studies showcasing major client work.
+ */
+function _professional_website_content_create_case_studies() {
+  $case_studies_content = '
+<div class="case-studies-page">
+  <h2>Case Studies</h2>
+  <p class="lead">Real-world implementations delivering measurable business value across industries.</p>
+  
+  <div class="case-study-grid">
+    <div class="case-study">
+      <h3>Citigroup: Algorithmic Trading Platform</h3>
+      <div class="case-study-meta">
+        <span class="industry">FinTech</span>
+        <span class="duration">18 months</span>
+        <span class="team-size">12 professionals</span>
+      </div>
+      
+      <div class="case-study-content">
+        <h4>Challenge</h4>
+        <p>Citigroup needed to modernize their algorithmic trading platform to handle increased trading volumes while improving risk management and regulatory compliance across 15 jurisdictions.</p>
+        
+        <h4>Solution</h4>
+        <ul>
+          <li>Implemented next-generation trading platform with ML-enhanced risk management</li>
+          <li>Developed real-time fraud detection system processing 500K+ daily transactions</li>
+          <li>Created predictive analytics models with 94% risk assessment accuracy</li>
+          <li>Built automated compliance monitoring system</li>
+        </ul>
+        
+        <h4>Results</h4>
+        <div class="results-metrics">
+          <div class="metric">
+            <span class="value">$12M</span>
+            <span class="label">Annual Cost Savings</span>
+          </div>
+          <div class="metric">
+            <span class="value">87%</span>
+            <span class="label">Reduction in Compliance Violations</span>
+          </div>
+          <div class="metric">
+            <span class="value">23%</span>
+            <span class="label">Reduction in Trading Losses</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="case-study">
+      <h3>Signant Health: Clinical Trial Optimization</h3>
+      <div class="case-study-meta">
+        <span class="industry">Healthcare</span>
+        <span class="duration">24 months</span>
+        <span class="team-size">15 professionals</span>
+      </div>
+      
+      <div class="case-study-content">
+        <h4>Challenge</h4>
+        <p>Signant Health required a modernized clinical trial management platform to serve 700+ active studies more efficiently while ensuring FDA/EMA compliance.</p>
+        
+        <h4>Solution</h4>
+        <ul>
+          <li>Developed AI-powered patient recruitment and retention optimization</li>
+          <li>Implemented predictive analytics for clinical endpoint analysis</li>
+          <li>Built comprehensive real-time trial monitoring platform</li>
+          <li>Created automated regulatory reporting system</li>
+        </ul>
+        
+        <h4>Results</h4>
+        <div class="results-metrics">
+          <div class="metric">
+            <span class="value">28%</span>
+            <span class="label">Reduction in Trial Duration</span>
+          </div>
+          <div class="metric">
+            <span class="value">35%</span>
+            <span class="label">Increase in Patient Retention</span>
+          </div>
+          <div class="metric">
+            <span class="value">$2.1B</span>
+            <span class="label">Drug Approvals Supported</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="case-study">
+      <h3>NRG Energy: Smart Grid Implementation</h3>
+      <div class="case-study-meta">
+        <span class="industry">Energy</span>
+        <span class="duration">16 months</span>
+        <span class="team-size">10 professionals</span>
+      </div>
+      
+      <div class="case-study-content">
+        <h4>Challenge</h4>
+        <p>NRG Energy needed to modernize their grid infrastructure to support renewable energy integration while improving reliability and reducing operational costs.</p>
+        
+        <h4>Solution</h4>
+        <ul>
+          <li>Designed IoT sensor network monitoring 50,000+ grid endpoints</li>
+          <li>Developed AI-powered load forecasting system</li>
+          <li>Implemented predictive maintenance algorithms</li>
+          <li>Built renewable energy integration platform</li>
+        </ul>
+        
+        <h4>Results</h4>
+        <div class="results-metrics">
+          <div class="metric">
+            <span class="value">99.97%</span>
+            <span class="label">Grid Reliability</span>
+          </div>
+          <div class="metric">
+            <span class="value">$8.3M</span>
+            <span class="label">Annual Cost Reduction</span>
+          </div>
+          <div class="metric">
+            <span class="value">500MW+</span>
+            <span class="label">Renewable Capacity Managed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>';
+
+  $case_studies_node = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->create([
+      'type' => 'page',
+      'title' => 'Case Studies',
+      'body' => [
+        'value' => $case_studies_content,
+        'format' => 'full_html',
+      ],
+      'status' => 1,
+      'uid' => 1,
+    ]);
+  $case_studies_node->save();
+}
+
+/**
+ * Create leadership page with credentials.
+ */
+function _professional_website_content_create_leadership_page() {
+  $leadership_content = '
+<div class="leadership-page">
+  <h2>Leadership Team</h2>
+  <p class="lead">Experienced technology leaders driving innovation across Financial Services, Healthcare, and Energy sectors.</p>
+  
+  <div class="leader-profile">
+    <div class="row">
+      <div class="col-lg-4">
+        <div class="leader-image">
+          <div class="placeholder-image">
+            <i class="fas fa-user-tie fa-5x"></i>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-8">
+        <h3>Keith A. Miller</h3>
+        <h4>Founder & Principal Consultant</h4>
+        
+        <p>Keith brings over 15 years of enterprise technology consulting experience, specializing in AI-powered solutions and digital transformation. His expertise spans Financial Services, Healthcare, and Energy sectors, with a proven track record of delivering operational efficiency improvements of 30%+ and cost savings exceeding $50 million.</p>
+        
+        <div class="credentials-section">
+          <h5>Education</h5>
+          <ul>
+            <li><strong>Master of Science in Computer Science</strong> - Washington University in St. Louis (AI Focus)</li>
+            <li><strong>Bachelor of Science in Electrical Engineering</strong> - University of Missouri-Columbia</li>
+            <li><strong>Executive Education:</strong> MIT Sloan - AI for Leaders Program</li>
+            <li><strong>Professional Development:</strong> Stanford University - Machine Learning Certification</li>
+          </ul>
+          
+          <h5>Certifications</h5>
+          <div class="certifications-grid">
+            <div class="cert-item">
+              <strong>AWS Certified Solutions Architect</strong> - Professional
+            </div>
+            <div class="cert-item">
+              <strong>Google Cloud Professional</strong> - Machine Learning Engineer
+            </div>
+            <div class="cert-item">
+              <strong>Microsoft Azure</strong> - AI Engineer Associate
+            </div>
+            <div class="cert-item">
+              <strong>PMI Project Management</strong> - Professional (PMP)
+            </div>
+            <div class="cert-item">
+              <strong>Certified ScrumMaster</strong> - (CSM)
+            </div>
+            <div class="cert-item">
+              <strong>CFA Institute</strong> - Certificate in ESG Investing
+            </div>
+          </div>
+          
+          <h5>Professional Associations</h5>
+          <ul>
+            <li>Association for Computing Machinery (ACM) - Senior Member</li>
+            <li>Institute of Electrical and Electronics Engineers (IEEE) - Senior Member</li>
+            <li>Financial Services Technology Consortium - Advisory Board Member</li>
+            <li>Healthcare Information and Management Systems Society (HIMSS)</li>
+          </ul>
+          
+          <h5>Key Achievements</h5>
+          <div class="achievements-grid">
+            <div class="achievement">
+              <span class="number">700+</span>
+              <span class="desc">Clinical Trials Supported</span>
+            </div>
+            <div class="achievement">
+              <span class="number">$50M+</span>
+              <span class="desc">Fraud Prevention Savings</span>
+            </div>
+            <div class="achievement">
+              <span class="number">25+</span>
+              <span class="desc">Enterprise AI/ML Deployments</span>
+            </div>
+            <div class="achievement">
+              <span class="number">100%</span>
+              <span class="desc">Regulatory Audit Success Rate</span>
+            </div>
+          </div>
+          
+          <h5>Security & Clearances</h5>
+          <ul>
+            <li>US Government Secret Security Clearance (Current)</li>
+            <li>GDPR Compliance Specialist</li>
+            <li>HIPAA Security Officer Certification</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>';
+
+  $leadership_node = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->create([
+      'type' => 'page',
+      'title' => 'Leadership',
+      'body' => [
+        'value' => $leadership_content,
+        'format' => 'full_html',
+      ],
+      'status' => 1,
+      'uid' => 1,
+    ]);
+  $leadership_node->save();
+}
+
+/**
+ * Create enhanced contact page with service offerings.
+ */
+function _professional_website_content_create_contact_page() {
+  $contact_content = '
+<div class="contact-page">
+  <div class="row">
+    <div class="col-lg-8">
+      <h2>Contact Us</h2>
+      <p class="lead">Ready to transform your business with cutting-edge technology solutions? Let us discuss how we can help you achieve measurable results.</p>
+      
+      <div class="service-offerings">
+        <h3>Service Offerings</h3>
+        <div class="offerings-grid">
+          <div class="offering-category">
+            <h4>AI & Machine Learning</h4>
+            <ul>
+              <li>Predictive Analytics Implementation</li>
+              <li>Deep Learning Model Development</li>
+              <li>Natural Language Processing</li>
+              <li>Computer Vision Solutions</li>
+            </ul>
+          </div>
+          
+          <div class="offering-category">
+            <h4>Financial Technology</h4>
+            <ul>
+              <li>Algorithmic Trading Platforms</li>
+              <li>Fraud Detection Systems</li>
+              <li>Risk Management Solutions</li>
+              <li>Regulatory Compliance Automation</li>
+            </ul>
+          </div>
+          
+          <div class="offering-category">
+            <h4>Healthcare Technology</h4>
+            <ul>
+              <li>Clinical Trial Management</li>
+              <li>Patient Data Analytics</li>
+              <li>Medical Device Integration</li>
+              <li>Regulatory Compliance Systems</li>
+            </ul>
+          </div>
+          
+          <div class="offering-category">
+            <h4>Energy Solutions</h4>
+            <ul>
+              <li>Smart Grid Implementation</li>
+              <li>Renewable Energy Integration</li>
+              <li>Predictive Maintenance</li>
+              <li>Supply Chain Optimization</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <div class="engagement-models">
+        <h3>Engagement Models</h3>
+        <div class="models-grid">
+          <div class="model-card">
+            <h4>Strategic Consulting</h4>
+            <p>High-level technology strategy and roadmap development for digital transformation initiatives.</p>
+          </div>
+          <div class="model-card">
+            <h4>Implementation Services</h4>
+            <p>End-to-end solution development and deployment with ongoing support and optimization.</p>
+          </div>
+          <div class="model-card">
+            <h4>Staff Augmentation</h4>
+            <p>Embedded specialists to enhance your existing team capabilities with domain expertise.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <div class="contact-info">
+        <h3>Get In Touch</h3>
+        <div class="contact-item">
+          <h4>Email</h4>
+          <p><a href="mailto:contact@stlouisintegration.com">contact@stlouisintegration.com</a></p>
+        </div>
+        
+        <div class="contact-item">
+          <h4>Phone</h4>
+          <p><a href="tel:+1-314-555-0100">(314) 555-0100</a></p>
+        </div>
+        
+        <div class="contact-item">
+          <h4>Location</h4>
+          <p>St. Louis, Missouri<br>Serving clients globally</p>
+        </div>
+        
+        <div class="contact-item">
+          <h4>Response Time</h4>
+          <p>We typically respond to inquiries within 24 hours</p>
+        </div>
+        
+        <div class="capabilities-summary">
+          <h4>Quick Facts</h4>
+          <ul>
+            <li><strong>15+</strong> years experience</li>
+            <li><strong>Fortune 500</strong> client portfolio</li>
+            <li><strong>$50M+</strong> in verified savings delivered</li>
+            <li><strong>700+</strong> clinical trials supported</li>
+            <li><strong>99.99%</strong> uptime SLA achievement</li>
+            <li><strong>Security clearance</strong> available</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>';
+
+  $contact_node = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->create([
+      'type' => 'page',
+      'title' => 'Contact',
+      'body' => [
+        'value' => $contact_content,
+        'format' => 'full_html',
+      ],
+      'status' => 1,
+      'uid' => 1,
+    ]);
+  $contact_node->save();
+}
