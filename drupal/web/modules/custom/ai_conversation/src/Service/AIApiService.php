@@ -5,6 +5,8 @@ namespace Drupal\ai_conversation\Service;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\node\NodeInterface;
+use Drupal\node\Entity\Node;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\ai_conversation\Traits\ConfigurableLoggingTrait;
 
 /**
@@ -27,6 +29,13 @@ class AIApiService {
    * @var \Drupal\Core\Logger\LoggerChannelInterface
    */
   protected $logger;
+
+  /**
+   * The entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
 
   /**
    * Maximum number of recent messages to keep (configurable).
@@ -52,9 +61,10 @@ class AIApiService {
   /**
    * Constructs a new AIApiService object.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, LoggerChannelFactoryInterface $logger_factory) {
+  public function __construct(ConfigFactoryInterface $config_factory, LoggerChannelFactoryInterface $logger_factory, EntityTypeManagerInterface $entity_type_manager) {
     $this->configFactory = $config_factory;
     $this->logger = $logger_factory->get('ai_conversation');
+    $this->entityTypeManager = $entity_type_manager;
     
     // Load configuration.
     $config = $this->configFactory->get('ai_conversation.settings');
@@ -247,8 +257,18 @@ class AIApiService {
     // Get system prompt/context.
     $system_prompt = $conversation->get('field_context')->value ?: 'You are a helpful AI assistant.';
     
+    // Check if this is the start of a conversation (no previous messages).
+    $recent_messages = $this->getRecentMessages($conversation);
+    $is_conversation_start = empty($recent_messages) && 
+      (!$conversation->hasField('field_conversation_summary') || $conversation->get('field_conversation_summary')->isEmpty());
+    
     // Start building context.
     $context = $system_prompt . "\n\n";
+    
+    // For new conversations, add St. Louis Integration context including resume and services.
+    if ($is_conversation_start) {
+      $context = $this->buildInitialContext() . "\n\n";
+    }
 
     // Add conversation summary if it exists.
     if ($conversation->hasField('field_conversation_summary') && !$conversation->get('field_conversation_summary')->isEmpty()) {
@@ -259,18 +279,89 @@ class AIApiService {
     }
 
     // Add recent messages.
-    $context .= "RECENT CONVERSATION:\n";
-    $recent_messages = $this->getRecentMessages($conversation);
-    
-    foreach ($recent_messages as $msg) {
-      $role = $msg['role'] === 'user' ? 'Human' : 'Assistant';
-      $context .= $role . ": " . $msg['content'] . "\n\n";
+    if (!empty($recent_messages)) {
+      $context .= "RECENT CONVERSATION:\n";
+      
+      foreach ($recent_messages as $msg) {
+        $role = $msg['role'] === 'user' ? 'Human' : 'Assistant';
+        $context .= $role . ": " . $msg['content'] . "\n\n";
+      }
     }
 
     // Add current message.
     $context .= "Human: " . $new_message . "\n\n";
 
     return $context;
+  }
+
+  /**
+   * Build initial context for new conversations including resume and services.
+   */
+  private function buildInitialContext() {
+    $context = "You are an AI assistant representing St. Louis Integration, a professional consulting firm specializing in data integration, data science, business intelligence, and artificial intelligence services.\n\n";
+    
+    $context .= "IMPORTANT TRANSPARENCY NOTICE:\n";
+    $context .= "Please be transparent with users that this is an AI integration powered by Anthropic's Claude model through AWS Bedrock. While St. Louis Integration can provide on-premises AI implementations when necessary, this particular chat interface utilizes cloud-based AI services.\n\n";
+    
+    $context .= "PROFESSIONAL TONE:\n";
+    $context .= "Always respond with a professional and caring demeanor. Show genuine interest in helping clients with their data and AI challenges while being honest about capabilities and limitations.\n\n";
+    
+    // Load resume content from node 10.
+    $resume_content = $this->getResumeContent();
+    if ($resume_content) {
+      $context .= "KEITH MILLER'S RESUME (Company Principal):\n";
+      $context .= $resume_content . "\n\n";
+    }
+    
+    $context .= "ST. LOUIS INTEGRATION SERVICES:\n";
+    $context .= "St. Louis Integration provides comprehensive data and AI services including:\n\n";
+    
+    $context .= "DATA SERVICES:\n";
+    $context .= "- Data Integration: ETL/ELT pipelines, data warehousing, real-time streaming\n";
+    $context .= "- Data Science: Advanced analytics, machine learning, predictive modeling\n";
+    $context .= "- Business Intelligence: Dashboard development, reporting, data visualization\n";
+    $context .= "- Data Architecture: Database design, data lakes, cloud data platforms\n\n";
+    
+    $context .= "AI/AUTOMATION SERVICES:\n";
+    $context .= "- AI Strategy & Implementation: Help organizations become full artificial intelligence shops\n";
+    $context .= "- Process Automation: Workflow automation, robotic process automation (RPA)\n";
+    $context .= "- Custom AI Solutions: Natural language processing, computer vision, predictive analytics\n";
+    $context .= "- On-Premises AI: Local AI implementations for security-sensitive environments\n\n";
+    
+    $context .= "INDUSTRY EXPERTISE:\n";
+    $context .= "- Financial Services: Risk modeling, fraud detection, regulatory compliance\n";
+    $context .= "- Healthcare: Clinical data analysis, patient outcomes, operational efficiency\n";
+    $context .= "- Energy Sector: Grid optimization, demand forecasting, asset management\n\n";
+    
+    $context .= "PHILOSOPHY:\n";
+    $context .= "\"Everything can be automated - it's just a matter of time and resources. We help organizations identify the right automation opportunities and implement them effectively.\"\n\n";
+    
+    $context .= "Use this context to provide informed, helpful responses about St. Louis Integration's capabilities and how we can assist with data integration, AI implementation, and digital transformation projects.\n\n";
+    
+    return $context;
+  }
+
+  /**
+   * Get resume content from node 10.
+   */
+  private function getResumeContent() {
+    try {
+      $node = $this->entityTypeManager->getStorage('node')->load(10);
+      if ($node && $node->access('view')) {
+        // Try to get body field content.
+        if ($node->hasField('body') && !$node->get('body')->isEmpty()) {
+          return strip_tags($node->get('body')->value);
+        }
+        // Fallback to title if no body.
+        return $node->getTitle();
+      }
+    } catch (\Exception $e) {
+      $this->logError('Error loading resume content from node 10: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+    
+    return NULL;
   }
 
   /**
