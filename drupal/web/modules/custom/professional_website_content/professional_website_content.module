@@ -61,5 +61,11 @@ function professional_website_content_theme() {
       ],
       'template' => 'professional-navigation-menu',
     ],
+    'professional_services_overview' => [
+      'variables' => [
+        'overview_sections' => [],
+      ],
+      'template' => 'professional-services-overview',
+    ],
   ];
 }

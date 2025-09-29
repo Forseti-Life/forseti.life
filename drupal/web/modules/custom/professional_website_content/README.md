@@ -99,9 +99,27 @@ If needed, the Professional Navigation Block can be manually configured:
 - `/contact` - Contact page
 
 ## Blocks Created
+
+### Professional Website Navigation Block
 - **Professional Website Navigation** - Custom navigation block with dropdown functionality
 - **Automatic Placement** - Placed in `navbar_left` region during installation
 - **Bootstrap 5 Compatible** - Uses proper Bootstrap navigation classes and structure
+
+### Professional Services Overview Block
+- **Professional Services Overview** - Configurable block showcasing key business sections
+- **Three Section Layout**: Our Services, Case Studies, Get Started  
+- **Responsive Design** - 3-column desktop, stacked mobile layout
+- **Professional Styling** - Gradient backgrounds, hover effects, Bootstrap Icons
+- **Easy Placement** - Can be placed in any theme region via block admin
+- **Call-to-Action Ready** - Direct links to services, case studies, and contact pages
+
+**Block Features:**
+- Bootstrap 5 responsive grid system
+- Professional card-based design with hover animations  
+- Bootstrap Icons integration (bi-gear-fill, bi-bar-chart-line-fill, bi-rocket-takeoff-fill)
+- Configurable button text and URLs
+- Mobile-optimized responsive breakpoints
+- Professional color schemes (primary, success, info)
 
 ## Files Modified
 - `drupal/web/themes/custom/stlouisintegration/templates/page/page--front.html.twig` - Enhanced navigation
