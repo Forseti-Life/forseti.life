@@ -199,7 +199,10 @@ class AIApiService {
       $max_tokens = $config->get('max_tokens') ?: 4000;
 
       // Get system prompt from config if available.
-      $system_prompt = $config->get('system_prompt');
+      $base_system_prompt = $config->get('system_prompt');
+      
+      // Dynamically load Keith's resume from node 10 and append to system prompt
+      $system_prompt = $this->buildDynamicSystemPrompt($base_system_prompt);
       
       // Debug logging for system prompt
       $this->logInfo('System prompt length: @length, First 100 chars: @preview', [
@@ -298,6 +301,80 @@ class AIApiService {
     $context .= "Human: " . $new_message . "\n\n";
 
     return $context;
+  }
+
+  /**
+   * Build dynamic system prompt by combining base prompt with live node 10 content.
+   */
+  private function buildDynamicSystemPrompt($base_system_prompt) {
+    if (empty($base_system_prompt)) {
+      $base_system_prompt = "You are Keith Aumiller, a technology consultant from the Midwest, Founder & Principal Consultant of St. Louis Integration.";
+    }
+    
+    // Get fresh resume content from node 10
+    $resume_content = $this->getResumeContent();
+    
+    if (!empty($resume_content)) {
+      // Parse the resume to extract key information
+      $parsed_resume = $this->parseResumeContent($resume_content);
+      
+      // Build dynamic system prompt with actual education and background
+      $dynamic_prompt = $base_system_prompt . "\n\n";
+      $dynamic_prompt .= "KEITH AUMILLER'S ACTUAL BACKGROUND (from current resume):\n";
+      $dynamic_prompt .= "Education:\n";
+      $dynamic_prompt .= "- " . $parsed_resume['education'] . "\n\n";
+      $dynamic_prompt .= "Professional Summary:\n";
+      $dynamic_prompt .= $parsed_resume['summary'] . "\n\n";
+      $dynamic_prompt .= "Current Experience:\n";
+      $dynamic_prompt .= $parsed_resume['experience'] . "\n\n";
+      $dynamic_prompt .= "Technical Expertise:\n";
+      $dynamic_prompt .= $parsed_resume['technical'] . "\n\n";
+      
+      $this->logInfo('Dynamic system prompt built with resume content from node 10');
+      return $dynamic_prompt;
+    }
+    
+    $this->logInfo('Using base system prompt only - node 10 content not available');
+    return $base_system_prompt;
+  }
+
+  /**
+   * Parse resume content to extract key sections.
+   */
+  private function parseResumeContent($resume_content) {
+    $parsed = [
+      'education' => '',
+      'summary' => '',
+      'experience' => '',
+      'technical' => ''
+    ];
+    
+    // Extract education information
+    if (preg_match('/Master of Business Administration \(MBA\)[^<]+/i', $resume_content, $matches)) {
+      $parsed['education'] .= $matches[0] . "\n";
+    }
+    if (preg_match('/Bachelor of Science in Psychology[^<]+/i', $resume_content, $matches)) {
+      $parsed['education'] .= $matches[0];
+    }
+    
+    // Extract executive profile/summary
+    if (preg_match('/<strong>Executive Profile<\/strong><\/p><p>([^<]+(?:<[^>]*>[^<]*<\/[^>]*>[^<]*)*)/i', $resume_content, $matches)) {
+      $summary = strip_tags($matches[1]);
+      $parsed['summary'] = substr($summary, 0, 800) . (strlen($summary) > 800 ? '...' : '');
+    }
+    
+    // Extract recent professional experience (St. Louis Integration)
+    if (preg_match('/<strong>St\. Louis Integration LLC[^<]*<\/strong><br><strong>([^<]+)<\/strong>/i', $resume_content, $matches)) {
+      $parsed['experience'] = "St. Louis Integration LLC - " . strip_tags($matches[1]);
+    }
+    
+    // Extract technical expertise section
+    if (preg_match('/<strong>Technical Expertise<\/strong>(.*?)(?=<strong>|$)/is', $resume_content, $matches)) {
+      $tech_content = strip_tags($matches[1]);
+      $parsed['technical'] = substr($tech_content, 0, 600) . (strlen($tech_content) > 600 ? '...' : '');
+    }
+    
+    return $parsed;
   }
 
   /**
