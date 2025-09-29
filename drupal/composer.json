@@ -29,6 +29,7 @@
         "drupal/metatag": "^2.2",
         "drupal/pathauto": "^1.13",
         "drupal/radix": "^6.0",
+        "drupal/recaptcha": "^3.4",
         "drush/drush": "^13.6"
     },
     "conflict": {

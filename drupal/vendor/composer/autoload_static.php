@@ -86,6 +86,7 @@ class ComposerStaticInit9d559ab354f63dc7e9a3fc1a03ad7d46
         array (
             'Robo\\' => 5,
             'Revolt\\' => 7,
+            'ReCaptcha\\' => 10,
         ),
         'P' => 
         array (
@@ -321,6 +322,10 @@ class ComposerStaticInit9d559ab354f63dc7e9a3fc1a03ad7d46
         'Revolt\\' => 
         array (
             0 => __DIR__ . '/..' . '/revolt/event-loop/src',
+        ),
+        'ReCaptcha\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/google/recaptcha/src/ReCaptcha',
         ),
         'Psy\\' => 
         array (
