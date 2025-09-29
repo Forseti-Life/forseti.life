@@ -31,6 +31,12 @@ function professional_website_content_install() {
   // Create Product Prototyping page
   _professional_website_content_create_product_prototyping_page();
 
+  // Create AI & Machine Learning page
+  _professional_website_content_create_ai_machine_learning_page();
+
+  // Create Data Engineering & Architecture page
+  _professional_website_content_create_data_engineering_page();
+
   // Create industry pages
   _professional_website_content_create_industry_pages();
 
@@ -385,6 +391,34 @@ function _professional_website_content_create_services_page() {
     
     <div class="col-lg-4 col-md-6">
       <div class="service-card">
+        <h3><a href="/services/ai-machine-learning">AI & Machine Learning</a></h3>
+        <ul>
+          <li>Custom AI solutions and generative AI</li>
+          <li>Deep learning frameworks (TensorFlow, PyTorch)</li>
+          <li>MLOps and automated model deployment</li>
+          <li>Statistical modeling and predictive analytics</li>
+          <li>Computer vision and NLP solutions</li>
+        </ul>
+        <p class="service-cta"><a href="/services/ai-machine-learning" class="btn btn-outline-primary btn-sm">Learn More</a></p>
+      </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-6">
+      <div class="service-card">
+        <h3><a href="/services/data-engineering-architecture">Data Engineering & Architecture</a></h3>
+        <ul>
+          <li>Cloud-native platforms (AWS, Azure, GCP)</li>
+          <li>Enterprise data architecture and data lakes</li>
+          <li>Real-time processing and API strategy</li>
+          <li>Databricks, Snowflake, and modern data stack</li>
+          <li>Streaming pipelines and data governance</li>
+        </ul>
+        <p class="service-cta"><a href="/services/data-engineering-architecture" class="btn btn-outline-primary btn-sm">Learn More</a></p>
+      </div>
+    </div>
+    
+    <div class="col-lg-4 col-md-6">
+      <div class="service-card">
         <h3><a href="/services/product-prototyping">Product Prototyping</a></h3>
         <ul>
           <li>Rapid 2-week development</li>
@@ -515,6 +549,303 @@ function _professional_website_content_create_product_prototyping_page() {
       'uid' => 1,
     ]);
   $product_prototyping_node->save();
+}
+
+/**
+ * Create the AI & Machine Learning page.
+ */
+function _professional_website_content_create_ai_machine_learning_page() {
+  $content = '
+<div class="ai-machine-learning-page">
+  <div class="hero-section">
+    <h1>AI & Machine Learning</h1>
+    <p class="lead">Custom AI Solutions and Generative AI Implementation</p>
+  </div>
+  
+  <div class="main-content">
+    <div class="row">
+      <div class="col-lg-8">
+        <h2>Core Technology Capabilities</h2>
+        <p>We deliver cutting-edge AI and machine learning solutions that transform how businesses operate, make decisions, and serve their customers. Our expertise spans the entire AI ecosystem, from research and development to production deployment.</p>
+        
+        <div class="capabilities-grid">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="capability-card">
+                <h3>Custom AI Solutions</h3>
+                <ul>
+                  <li>Generative AI implementation</li>
+                  <li>Large Language Model (LLM) integration</li>
+                  <li>Computer vision applications</li>
+                  <li>Natural language processing</li>
+                  <li>Conversational AI and chatbots</li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="capability-card">
+                <h3>Deep Learning Frameworks</h3>
+                <ul>
+                  <li>TensorFlow and PyTorch expertise</li>
+                  <li>Neural network architecture design</li>
+                  <li>Model optimization and fine-tuning</li>
+                  <li>Transfer learning implementation</li>
+                  <li>Custom algorithm development</li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="capability-card">
+                <h3>MLOps & Deployment</h3>
+                <ul>
+                  <li>Automated model deployment pipelines</li>
+                  <li>Model monitoring and maintenance</li>
+                  <li>A/B testing for ML models</li>
+                  <li>Continuous integration/deployment</li>
+                  <li>Scalable inference architecture</li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="capability-card">
+                <h3>Statistical Modeling</h3>
+                <ul>
+                  <li>Predictive analytics implementation</li>
+                  <li>Time series forecasting</li>
+                  <li>Statistical analysis and modeling</li>
+                  <li>Risk assessment algorithms</li>
+                  <li>Business intelligence solutions</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="industry-applications">
+          <h3>Industry Applications</h3>
+          <p>Our AI solutions have been successfully deployed across various sectors:</p>
+          <ul class="industry-list">
+            <li><strong>Financial Services:</strong> Fraud detection, algorithmic trading, risk management</li>
+            <li><strong>Healthcare:</strong> Medical imaging analysis, patient outcome prediction, clinical decision support</li>
+            <li><strong>Energy:</strong> Demand forecasting, predictive maintenance, grid optimization</li>
+            <li><strong>Retail:</strong> Recommendation engines, inventory optimization, customer analytics</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="col-lg-4">
+        <div class="technology-sidebar">
+          <h3>Technology Stack</h3>
+          <div class="tech-categories">
+            <h4>Frameworks & Libraries</h4>
+            <ul>
+              <li>TensorFlow / Keras</li>
+              <li>PyTorch / Lightning</li>
+              <li>scikit-learn</li>
+              <li>Hugging Face Transformers</li>
+              <li>OpenAI API</li>
+            </ul>
+            
+            <h4>Cloud Platforms</h4>
+            <ul>
+              <li>AWS SageMaker</li>
+              <li>Azure Machine Learning</li>
+              <li>Google AI Platform</li>
+              <li>Databricks ML</li>
+            </ul>
+            
+            <h4>Languages & Tools</h4>
+            <ul>
+              <li>Python, R, Julia</li>
+              <li>Docker & Kubernetes</li>
+              <li>MLflow, Weights & Biases</li>
+              <li>Apache Spark</li>
+            </ul>
+          </div>
+          
+          <div class="cta-section mt-4">
+            <h4>Ready to Implement AI?</h4>
+            <p>Let\'s discuss how AI can transform your business operations.</p>
+            <a href="/contact" class="btn btn-primary btn-lg">Get Started</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>';
+
+  $ai_ml_node = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->create([
+      'type' => 'page',
+      'title' => 'AI & Machine Learning',
+      'body' => [
+        'value' => $content,
+        'format' => 'full_html',
+      ],
+      'status' => 1,
+      'uid' => 1,
+    ]);
+  $ai_ml_node->save();
+}
+
+/**
+ * Create the Data Engineering & Architecture page.
+ */
+function _professional_website_content_create_data_engineering_page() {
+  $content = '
+<div class="data-engineering-page">
+  <div class="hero-section">
+    <h1>Data Engineering & Architecture</h1>
+    <p class="lead">Cloud-Native Platforms and Enterprise Data Solutions</p>
+  </div>
+  
+  <div class="main-content">
+    <div class="row">
+      <div class="col-lg-8">
+        <h2>Enterprise Data Engineering</h2>
+        <p>We design and implement robust data architectures that enable organizations to harness the full power of their data. Our solutions span from real-time streaming to enterprise data lakes, built on modern cloud-native platforms.</p>
+        
+        <div class="capabilities-grid">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="capability-card">
+                <h3>Cloud-Native Platforms</h3>
+                <ul>
+                  <li>AWS (S3, Redshift, EMR, Glue)</li>
+                  <li>Azure (Data Factory, Synapse, Data Lake)</li>
+                  <li>Google Cloud Platform (BigQuery, Dataflow)</li>
+                  <li>Multi-cloud architecture design</li>
+                  <li>Cloud migration strategies</li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="capability-card">
+                <h3>Enterprise Data Architecture</h3>
+                <ul>
+                  <li>Data lake and data warehouse design</li>
+                  <li>Data mesh architecture implementation</li>
+                  <li>Master data management (MDM)</li>
+                  <li>Data governance frameworks</li>
+                  <li>Data quality and lineage tracking</li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="capability-card">
+                <h3>Real-Time Processing</h3>
+                <ul>
+                  <li>Apache Kafka and streaming pipelines</li>
+                  <li>Event-driven architecture</li>
+                  <li>Real-time analytics and dashboards</li>
+                  <li>Change data capture (CDC)</li>
+                  <li>Stream processing frameworks</li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="capability-card">
+                <h3>API Strategy</h3>
+                <ul>
+                  <li>RESTful API design and development</li>
+                  <li>GraphQL implementation</li>
+                  <li>API gateway and management</li>
+                  <li>Microservices architecture</li>
+                  <li>API security and authentication</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modern-data-stack">
+          <h3>Modern Data Stack Expertise</h3>
+          <div class="row">
+            <div class="col-md-6">
+              <h4>Databricks</h4>
+              <ul>
+                <li>Unified analytics platform setup</li>
+                <li>Delta Lake implementation</li>
+                <li>Collaborative notebook environments</li>
+                <li>MLflow integration</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h4>Snowflake</h4>
+              <ul>
+                <li>Cloud data warehouse architecture</li>
+                <li>Data sharing and marketplace</li>
+                <li>Performance optimization</li>
+                <li>Security and compliance setup</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-lg-4">
+        <div class="technology-sidebar">
+          <h3>Technology Stack</h3>
+          <div class="tech-categories">
+            <h4>Data Platforms</h4>
+            <ul>
+              <li>Databricks</li>
+              <li>Snowflake</li>
+              <li>Apache Spark</li>
+              <li>Hadoop Ecosystem</li>
+              <li>Elasticsearch</li>
+            </ul>
+            
+            <h4>Streaming & ETL</h4>
+            <ul>
+              <li>Apache Kafka</li>
+              <li>Apache Airflow</li>
+              <li>dbt (data build tool)</li>
+              <li>Fivetran, Stitch</li>
+              <li>AWS Glue, Azure Data Factory</li>
+            </ul>
+            
+            <h4>Languages & Tools</h4>
+            <ul>
+              <li>Python, Scala, SQL</li>
+              <li>Docker & Kubernetes</li>
+              <li>Terraform, CloudFormation</li>
+              <li>Git, CI/CD pipelines</li>
+            </ul>
+            
+            <h4>Visualization</h4>
+            <ul>
+              <li>Tableau, Power BI</li>
+              <li>Looker, Grafana</li>
+              <li>Custom dashboard development</li>
+            </ul>
+          </div>
+          
+          <div class="cta-section mt-4">
+            <h4>Need Data Architecture?</h4>
+            <p>Let\'s design a scalable data platform for your organization.</p>
+            <a href="/contact" class="btn btn-primary btn-lg">Discuss Your Needs</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>';
+
+  $data_eng_node = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->create([
+      'type' => 'page',
+      'title' => 'Data Engineering & Architecture',
+      'body' => [
+        'value' => $content,
+        'format' => 'full_html',
+      ],
+      'status' => 1,
+      'uid' => 1,
+    ]);
+  $data_eng_node->save();
 }
 
 /**

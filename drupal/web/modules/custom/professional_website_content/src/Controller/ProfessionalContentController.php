@@ -127,4 +127,50 @@ class ProfessionalContentController extends ControllerBase {
     ];
   }
 
+  /**
+   * Display the AI & Machine Learning page.
+   */
+  public function aiMachineLearningPage() {
+    $query = \Drupal::entityQuery('node')
+      ->condition('type', 'page')
+      ->condition('title', 'AI & Machine Learning')
+      ->condition('status', 1)
+      ->accessCheck(TRUE)
+      ->range(0, 1);
+    
+    $nids = $query->execute();
+    if (!empty($nids)) {
+      $nid = reset($nids);
+      $url = Url::fromRoute('entity.node.canonical', ['node' => $nid]);
+      return new RedirectResponse($url->toString());
+    }
+    
+    return [
+      '#markup' => $this->t('AI & Machine Learning page not found. Please install the professional content first.'),
+    ];
+  }
+
+  /**
+   * Display the Data Engineering & Architecture page.
+   */
+  public function dataEngineeringPage() {
+    $query = \Drupal::entityQuery('node')
+      ->condition('type', 'page')
+      ->condition('title', 'Data Engineering & Architecture')
+      ->condition('status', 1)
+      ->accessCheck(TRUE)
+      ->range(0, 1);
+    
+    $nids = $query->execute();
+    if (!empty($nids)) {
+      $nid = reset($nids);
+      $url = Url::fromRoute('entity.node.canonical', ['node' => $nid]);
+      return new RedirectResponse($url->toString());
+    }
+    
+    return [
+      '#markup' => $this->t('Data Engineering & Architecture page not found. Please install the professional content first.'),
+    ];
+  }
+
 }

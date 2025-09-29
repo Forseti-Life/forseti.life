@@ -34,8 +34,24 @@ class ProfessionalNavigationBlock extends BlockBase {
       [
         'title' => $this->t('Services'),
         'url' => Url::fromRoute('professional_website_content.services'),
-        'class' => 'nav-item',
-        'children' => [],
+        'class' => 'nav-item dropdown',
+        'children' => [
+          [
+            'title' => $this->t('AI & Machine Learning'),
+            'url' => Url::fromRoute('professional_website_content.ai_machine_learning'),
+            'class' => 'dropdown-item',
+          ],
+          [
+            'title' => $this->t('Data Engineering & Architecture'),
+            'url' => Url::fromRoute('professional_website_content.data_engineering'),
+            'class' => 'dropdown-item',
+          ],
+          [
+            'title' => $this->t('Product Prototyping'),
+            'url' => Url::fromRoute('professional_website_content.product_prototyping'),
+            'class' => 'dropdown-item',
+          ],
+        ],
       ],
       [
         'title' => $this->t('Industries'),
