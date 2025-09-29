@@ -30,6 +30,7 @@
         "drupal/pathauto": "^1.13",
         "drupal/radix": "^6.0",
         "drupal/recaptcha": "^3.4",
+        "drupal/recaptcha_v3": "^2.0",
         "drush/drush": "^13.6"
     },
     "conflict": {
