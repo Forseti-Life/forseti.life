@@ -349,12 +349,22 @@ class AIApiService {
       'technical' => ''
     ];
     
-    // Extract education information
-    if (preg_match('/Master of Business Administration \(MBA\)[^<]+/i', $resume_content, $matches)) {
-      $parsed['education'] .= $matches[0] . "\n";
+    // Extract education information - look for MBA and BS Psychology patterns
+    if (preg_match('/MBA[^<\n]*(?:[^<\n]*Washington University[^<\n]*)?/i', $resume_content, $matches)) {
+      $parsed['education'] .= "MBA from Washington University in St. Louis\n";
     }
-    if (preg_match('/Bachelor of Science in Psychology[^<]+/i', $resume_content, $matches)) {
-      $parsed['education'] .= $matches[0];
+    if (preg_match('/BS Psychology[^<\n]*(?:[^<\n]*Truman State[^<\n]*)?/i', $resume_content, $matches)) {
+      $parsed['education'] .= "BS Psychology from Truman State University";
+    }
+    
+    // If we didn't find specific patterns, try to extract from the header
+    if (empty($parsed['education'])) {
+      if (preg_match('/<strong>Keith Aumiller[^<]*<\/strong>.*?<p><strong>([^<]*)<\/strong><\/p>/s', $resume_content, $matches)) {
+        $header_text = strip_tags($matches[1]);
+        if (strpos($header_text, 'MBA') !== false || strpos($header_text, 'BS Psychology') !== false) {
+          $parsed['education'] = "MBA from Washington University in St. Louis, BS Psychology from Truman State University";
+        }
+      }
     }
     
     // Extract executive profile/summary
