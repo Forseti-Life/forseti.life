@@ -291,7 +291,7 @@
 @media only screen and (max-height: 500px) and (orientation: landscape) {
   .main-title {
     font-size: 2.5em;
-    top: 10%;
+    top: 15%; /* Increased from 10% to give more space above */
   }
   
   /* Specific adjustments for page headers in landscape */
@@ -302,14 +302,14 @@
   
   .main-subtitle {
     font-size: 0.85em;
-    top: 35%;
+    top: 40%; /* Adjusted from 35% to accommodate title spacing */
     line-height: 1.2;
     padding: 0 2rem;
     margin-bottom: 0;
   }
   
   .hero-cta {
-    top: 70%;
+    top: 75%; /* Adjusted from 70% to accommodate subtitle spacing */
     margin-top: 0.5rem;
     width: 90%;
     /* Horizontal layout for landscape */
