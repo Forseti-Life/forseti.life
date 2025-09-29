@@ -28,6 +28,9 @@ function professional_website_content_install() {
   // Create Services page
   _professional_website_content_create_services_page();
 
+  // Create Product Prototyping page
+  _professional_website_content_create_product_prototyping_page();
+
   // Create industry pages
   _professional_website_content_create_industry_pages();
 
@@ -379,6 +382,20 @@ function _professional_website_content_create_services_page() {
         </ul>
       </div>
     </div>
+    
+    <div class="col-lg-4 col-md-6">
+      <div class="service-card">
+        <h3><a href="/services/product-prototyping">Product Prototyping</a></h3>
+        <ul>
+          <li>Rapid 2-week development</li>
+          <li>Any technology product</li>
+          <li>Large or small companies</li>
+          <li>Flexible pricing model</li>
+          <li>Proven track record</li>
+        </ul>
+        <p class="service-cta"><a href="/services/product-prototyping" class="btn btn-outline-primary btn-sm">Learn More</a></p>
+      </div>
+    </div>
   </div>
 </div>';
 
@@ -395,6 +412,109 @@ function _professional_website_content_create_services_page() {
       'uid' => 1,
     ]);
   $services_node->save();
+}
+
+/**
+ * Create the Product Prototyping page.
+ */
+function _professional_website_content_create_product_prototyping_page() {
+  $content = '
+<div class="product-prototyping-page">
+  <div class="hero-section">
+    <h1>Product Prototyping</h1>
+    <p class="lead">From Concept to Reality in Just 2 Weeks</p>
+  </div>
+  
+  <div class="main-content">
+    <div class="row">
+      <div class="col-lg-8">
+        <h2>Build Any Technology Product Your Company Needs</h2>
+        <p>Whether you need a simple web application or a complex enterprise solution, we can build any technology product your company requires. Our rapid prototyping process ensures you get from concept to working product in just 2 weeks, regardless of company size.</p>
+        
+        <div class="key-benefits">
+          <h3>Why Choose Our Product Prototyping?</h3>
+          <ul class="benefit-list">
+            <li><strong>Lightning Fast:</strong> 2-week turnaround from concept to working prototype</li>
+            <li><strong>Any Scale:</strong> Perfect for large enterprises and small startups alike</li>
+            <li><strong>Full Stack:</strong> Web applications, mobile apps, APIs, databases, and integrations</li>
+            <li><strong>Proven Results:</strong> See our live example at <a href="https://thetruthperspective.org" target="_blank" rel="noopener">The Truth Perspective</a></li>
+            <li><strong>Flexible Pricing:</strong> Costs tailored to your level of commitment and complexity</li>
+          </ul>
+        </div>
+        
+        <div class="example-showcase">
+          <h3>Real Example: The Truth Perspective</h3>
+          <p>Visit <a href="https://thetruthperspective.org" target="_blank" rel="noopener" class="btn btn-primary">thetruthperspective.org</a> to see a live example of our rapid prototyping capabilities. This comprehensive news and analysis platform showcases our ability to build feature-rich, scalable applications quickly.</p>
+        </div>
+        
+        <div class="process-overview">
+          <h3>Our 2-Week Process</h3>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="process-step">
+                <h4>Week 1: Foundation</h4>
+                <ul>
+                  <li>Requirements analysis</li>
+                  <li>Architecture design</li>
+                  <li>Core functionality development</li>
+                  <li>Database setup</li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="process-step">
+                <h4>Week 2: Polish & Deploy</h4>
+                <ul>
+                  <li>UI/UX implementation</li>
+                  <li>Testing & optimization</li>
+                  <li>Integration setup</li>
+                  <li>Deployment & handoff</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-lg-4">
+        <div class="pricing-sidebar">
+          <h3>Flexible Pricing</h3>
+          <p>Our pricing model adapts to your specific needs:</p>
+          
+          <div class="pricing-factors">
+            <h4>Pricing Factors:</h4>
+            <ul>
+              <li><strong>Complexity Level:</strong> Simple to enterprise-grade</li>
+              <li><strong>Feature Count:</strong> Basic to comprehensive</li>
+              <li><strong>Integration Needs:</strong> Standalone to multi-system</li>
+              <li><strong>Commitment Level:</strong> One-time to ongoing partnership</li>
+            </ul>
+          </div>
+          
+          <div class="cta-section">
+            <h4>Ready to Get Started?</h4>
+            <p>Contact us today to discuss your project and get a customized quote.</p>
+            <a href="/contact" class="btn btn-primary btn-lg">Get Your Quote</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>';
+
+  $product_prototyping_node = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->create([
+      'type' => 'page',
+      'title' => 'Product Prototyping',
+      'body' => [
+        'value' => $content,
+        'format' => 'full_html',
+      ],
+      'status' => 1,
+      'uid' => 1,
+    ]);
+  $product_prototyping_node->save();
 }
 
 /**

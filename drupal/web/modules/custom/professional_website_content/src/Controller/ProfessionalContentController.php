@@ -104,4 +104,27 @@ class ProfessionalContentController extends ControllerBase {
     ];
   }
 
+  /**
+   * Display the Product Prototyping page.
+   */
+  public function productPrototypingPage() {
+    $query = \Drupal::entityQuery('node')
+      ->condition('type', 'page')
+      ->condition('title', 'Product Prototyping')
+      ->condition('status', 1)
+      ->accessCheck(TRUE)
+      ->range(0, 1);
+    
+    $nids = $query->execute();
+    if (!empty($nids)) {
+      $nid = reset($nids);
+      $url = Url::fromRoute('entity.node.canonical', ['node' => $nid]);
+      return new RedirectResponse($url->toString());
+    }
+    
+    return [
+      '#markup' => $this->t('Product Prototyping page not found. Please install the professional content first.'),
+    ];
+  }
+
 }

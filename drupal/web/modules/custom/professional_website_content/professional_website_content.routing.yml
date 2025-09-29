@@ -37,3 +37,11 @@ professional_website_content.energy:
     _title: 'Energy Solutions'
   requirements:
     _access: 'TRUE'
+
+professional_website_content.product_prototyping:
+  path: '/services/product-prototyping'
+  defaults:
+    _controller: '\Drupal\professional_website_content\Controller\ProfessionalContentController::productPrototypingPage'
+    _title: 'Product Prototyping'
+  requirements:
+    _access: 'TRUE'

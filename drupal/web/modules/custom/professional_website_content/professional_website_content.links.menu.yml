@@ -79,3 +79,11 @@ professional_website_content.menu.industries.energy:
   parent: 'professional_website_content.menu.industries'
   menu_name: main
   weight: 3
+
+# Services dropdown items
+professional_website_content.menu.services.product_prototyping:
+  title: 'Product Prototyping'
+  route_name: 'professional_website_content.product_prototyping'
+  parent: 'professional_website_content.menu.services'
+  menu_name: main
+  weight: 1
