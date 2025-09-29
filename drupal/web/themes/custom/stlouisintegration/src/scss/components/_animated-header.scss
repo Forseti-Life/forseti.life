@@ -280,11 +280,24 @@
   }
 }
 
+/* General landscape adjustments for page headers */
+@media only screen and (orientation: landscape) and (max-height: 600px) {
+  .main-title--simple {
+    font-size: 2.2em; /* Smaller for page headers in landscape */
+  }
+}
+
 /* Landscape phone specific adjustments */
 @media only screen and (max-height: 500px) and (orientation: landscape) {
   .main-title {
     font-size: 2.5em;
     top: 10%;
+  }
+  
+  /* Specific adjustments for page headers in landscape */
+  .main-title--simple {
+    font-size: 1.6em; /* Much smaller for page headers in landscape phones */
+    top: 50%; /* Keep centered in page header */
   }
   
   .main-subtitle {
