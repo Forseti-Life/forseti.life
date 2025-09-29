@@ -67,5 +67,11 @@ function professional_website_content_theme() {
       ],
       'template' => 'professional-services-overview',
     ],
+    'professional_footer' => [
+      'variables' => [
+        'footer_data' => [],
+      ],
+      'template' => 'professional-footer',
+    ],
   ];
 }

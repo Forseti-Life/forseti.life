@@ -40,6 +40,9 @@ function professional_website_content_install() {
   // Create enhanced contact page
   _professional_website_content_create_contact_page();
 
+  // Create legal pages
+  _professional_website_content_create_legal_pages();
+
   // Create URL aliases for pages
   _professional_website_content_create_url_aliases();
 
@@ -1100,6 +1103,207 @@ function _professional_website_content_place_navigation_block() {
 }
 
 /**
+ * Creates legal and informational pages.
+ */
+function _professional_website_content_create_legal_pages() {
+  $legal_pages = [
+    'privacy-policy' => [
+      'title' => 'Privacy Policy',
+      'content' => '
+        <h2>Privacy Policy</h2>
+        <p><strong>Last updated:</strong> September 29, 2025</p>
+        
+        <h3>Information We Collect</h3>
+        <p>St. Louis Integration LLC is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you visit our website or use our services.</p>
+        
+        <h3>Types of Information We Collect</h3>
+        <ul>
+          <li><strong>Personal Information:</strong> Name, email address, phone number, and other contact details you provide</li>
+          <li><strong>Usage Data:</strong> Information about how you use our website and services</li>
+          <li><strong>Technical Data:</strong> IP address, browser type, device information, and cookies</li>
+        </ul>
+        
+        <h3>How We Use Information</h3>
+        <p>We use the information we collect to:</p>
+        <ul>
+          <li>Provide, maintain, and improve our services</li>
+          <li>Communicate with you about our services</li>
+          <li>Respond to your inquiries and support requests</li>
+          <li>Comply with legal obligations</li>
+        </ul>
+        
+        <h3>Information Sharing</h3>
+        <p>We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, except as described in this policy or as required by law.</p>
+        
+        <h3>Data Security</h3>
+        <p>We implement appropriate technical and organizational security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.</p>
+        
+        <h3>Your Rights</h3>
+        <p>You have the right to access, update, or delete your personal information. Contact us to exercise these rights.</p>
+        
+        <h3>Contact Information</h3>
+        <p>If you have questions about this Privacy Policy, please contact us through our website contact form.</p>
+      ',
+    ],
+    'terms-of-service' => [
+      'title' => 'Terms of Service',
+      'content' => '
+        <h2>Terms of Service</h2>
+        <p><strong>Last updated:</strong> September 29, 2025</p>
+        
+        <h3>Agreement to Terms</h3>
+        <p>By accessing and using the services provided by St. Louis Integration LLC, you agree to be bound by these Terms of Service.</p>
+        
+        <h3>Description of Services</h3>
+        <p>St. Louis Integration LLC provides AI solutions, data engineering, cloud migration, and system integration services to enterprise clients.</p>
+        
+        <h3>User Responsibilities</h3>
+        <ul>
+          <li>Use our services in compliance with applicable laws and regulations</li>
+          <li>Provide accurate and complete information when requested</li>
+          <li>Maintain the confidentiality of any login credentials</li>
+          <li>Not use our services for any unlawful or prohibited purposes</li>
+        </ul>
+        
+        <h3>Intellectual Property</h3>
+        <p>All content, trademarks, and intellectual property on this website are owned by St. Louis Integration LLC and are protected by applicable laws.</p>
+        
+        <h3>Limitation of Liability</h3>
+        <p>St. Louis Integration LLC shall not be liable for any indirect, incidental, special, or consequential damages arising from the use of our services.</p>
+        
+        <h3>Modification of Terms</h3>
+        <p>We reserve the right to modify these terms at any time. Changes will be effective immediately upon posting.</p>
+        
+        <h3>Contact Information</h3>
+        <p>For questions about these Terms of Service, please contact us through our website.</p>
+      ',
+    ],
+    'sitemap' => [
+      'title' => 'Sitemap',
+      'content' => '
+        <h2>Site Map</h2>
+        <p>Navigate our website easily with this comprehensive site map.</p>
+        
+        <div class="row">
+          <div class="col-md-6">
+            <h3>Main Pages</h3>
+            <ul>
+              <li><a href="/">Home</a></li>
+              <li><a href="/services">Services</a></li>
+              <li><a href="/contact">Contact</a></li>
+              <li><a href="/leadership">Leadership</a></li>
+            </ul>
+            
+            <h3>Services</h3>
+            <ul>
+              <li><a href="/services">AI Solutions</a></li>
+              <li><a href="/services">Data Engineering</a></li>
+              <li><a href="/services">Cloud Migration</a></li>
+              <li><a href="/services">System Integration</a></li>
+              <li><a href="/services">Digital Transformation</a></li>
+            </ul>
+          </div>
+          
+          <div class="col-md-6">
+            <h3>Industries</h3>
+            <ul>
+              <li><a href="/fintech">Financial Services</a></li>
+              <li><a href="/healthcare">Healthcare</a></li>
+              <li><a href="/energy">Energy & Utilities</a></li>
+            </ul>
+            
+            <h3>Resources</h3>
+            <ul>
+              <li><a href="/case-studies">Case Studies</a></li>
+              <li><a href="/clauddemo">AI Demo</a></li>
+            </ul>
+            
+            <h3>Legal</h3>
+            <ul>
+              <li><a href="/privacy-policy">Privacy Policy</a></li>
+              <li><a href="/terms-of-service">Terms of Service</a></li>
+              <li><a href="/accessibility">Accessibility</a></li>
+            </ul>
+          </div>
+        </div>
+      ',
+    ],
+    'accessibility' => [
+      'title' => 'Accessibility Statement',
+      'content' => '
+        <h2>Accessibility Statement</h2>
+        <p><strong>Last updated:</strong> September 29, 2025</p>
+        
+        <h3>Our Commitment</h3>
+        <p>St. Louis Integration LLC is committed to ensuring digital accessibility for people with disabilities. We are continually improving the user experience for everyone and applying the relevant accessibility standards.</p>
+        
+        <h3>Standards</h3>
+        <p>We strive to conform to the Web Content Accessibility Guidelines (WCAG) 2.1 Level AA standards. These guidelines help make web content more accessible to people with disabilities.</p>
+        
+        <h3>Accessibility Features</h3>
+        <ul>
+          <li>Semantic HTML markup for screen readers</li>
+          <li>Keyboard navigation support</li>
+          <li>High contrast color schemes</li>
+          <li>Descriptive alt text for images</li>
+          <li>Proper heading structure</li>
+          <li>Focus indicators for interactive elements</li>
+        </ul>
+        
+        <h3>Known Issues</h3>
+        <p>We are continuously working to improve accessibility. If you encounter any accessibility barriers, please let us know.</p>
+        
+        <h3>Third-Party Content</h3>
+        <p>Some content on our website may be provided by third parties. We work with these providers to ensure accessibility compliance where possible.</p>
+        
+        <h3>Feedback</h3>
+        <p>We welcome your feedback on the accessibility of our website. Please contact us if you encounter accessibility barriers or have suggestions for improvement.</p>
+        
+        <h3>Contact Information</h3>
+        <p>For accessibility-related questions or concerns, please contact us through our website contact form.</p>
+      ',
+    ],
+  ];
+
+  foreach ($legal_pages as $alias => $page_data) {
+    // Check if page already exists
+    $existing = \Drupal::entityQuery('node')
+      ->condition('type', 'page')
+      ->condition('title', $page_data['title'])
+      ->accessCheck(FALSE)
+      ->execute();
+
+    if (empty($existing)) {
+      $node = \Drupal::entityTypeManager()
+        ->getStorage('node')
+        ->create([
+          'type' => 'page',
+          'title' => $page_data['title'],
+          'body' => [
+            'value' => $page_data['content'],
+            'format' => 'full_html',
+          ],
+          'status' => 1,
+          'uid' => 1,
+        ]);
+      $node->save();
+
+      // Create URL alias
+      $path_alias = \Drupal::entityTypeManager()
+        ->getStorage('path_alias')
+        ->create([
+          'path' => '/node/' . $node->id(),
+          'alias' => '/' . $alias,
+          'langcode' => 'en',
+        ]);
+      $path_alias->save();
+
+      \Drupal::logger('professional_website_content')->info('Created legal page: @title', ['@title' => $page_data['title']]);
+    }
+  }
+}
+
+/**
  * Implements hook_update_N().
  * 
  * Add URL aliases and navigation block placement.
@@ -1124,4 +1328,16 @@ function professional_website_content_update_9002() {
   _professional_website_content_create_url_aliases();
   
   return t('Fixed URL aliases for professional pages (Contact should now be /contact).');
+}
+
+/**
+ * Implements hook_update_N().
+ * 
+ * Create legal pages (Privacy Policy, Terms of Service, Sitemap, Accessibility).
+ */
+function professional_website_content_update_9003() {
+  // Create legal pages
+  _professional_website_content_create_legal_pages();
+  
+  return t('Created legal pages: Privacy Policy, Terms of Service, Sitemap, and Accessibility Statement.');
 }

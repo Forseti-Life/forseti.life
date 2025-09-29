@@ -73,18 +73,6 @@
 
   {# Footer #}
   {% if page.footer %}
-    <footer class="footer bg-dark text-light py-4">
-      <div class="container">
-        <div class="row">
-          <div class="col-md-6">
-            <h5><i class="fas fa-cog me-2"></i>St. Louis Integration</h5>
-            <p>Transforming businesses through AI, automation, and digital innovation.</p>
-          </div>
-          <div class="col-md-6 text-md-end">
-            {{ page.footer }}
-          </div>
-        </div>
-      </div>
-    </footer>
+    {{ page.footer }}
   {% endif %}
 </div>
