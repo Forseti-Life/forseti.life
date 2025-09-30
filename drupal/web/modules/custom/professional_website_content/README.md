@@ -67,10 +67,11 @@ The module provides a custom navigation block (`professional_navigation_block`) 
 ## Installation
 
 1. Enable the module: `drush en professional_website_content`
-2. Install content automatically via hook_install() 
-3. Or visit `/admin/install-content` to manually install
-4. Clear cache: `drush cr`
-5. Rebuild theme: `npm run production` in theme directory
+2. Module will place navigation block automatically
+3. Clear cache: `drush cr`
+4. Rebuild theme: `npm run production` in theme directory
+
+**NOTE:** Page creation functions have been removed from the install hook to prevent overwriting manually edited content. Original page creation logic is preserved in `professional_website_content.install.backup` for reference.
 
 ## Updates
 
@@ -84,6 +85,9 @@ This update adds three healthcare clients in client-grid format matching other i
 
 ### Safe Uninstall Policy
 The module implements safe uninstall that preserves all content, blocks, and URL aliases to prevent accidental data loss.
+
+### Page Creation Backup
+All original page creation functions are preserved in `professional_website_content.install.backup` file for reference and potential future use.
 
 ### Automated Setup
 The module installation automatically:
