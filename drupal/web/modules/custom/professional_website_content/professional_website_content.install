@@ -997,9 +997,19 @@ function _professional_website_content_create_industry_pages() {
   
   <div class="client-section">
     <h3>Major Clients</h3>
-    <div class="client-card">
-      <h4>Signant Health</h4>
-      <p>Clinical Trial Technology - Modernized platform serving 700+ active studies with AI-powered optimization</p>
+    <div class="client-grid">
+      <div class="client-card">
+        <h4>Signant Health</h4>
+        <p>Clinical Trial Technology - Modernized platform serving 700+ active studies with AI-powered optimization</p>
+      </div>
+      <div class="client-card">
+        <h4>Centers for Disease Control</h4>
+        <p>Public Health Analytics - National health surveillance systems and epidemic response platforms</p>
+      </div>
+      <div class="client-card">
+        <h4>AbbVie</h4>
+        <p>Pharmaceutical Research - Clinical data management and regulatory compliance systems</p>
+      </div>
     </div>
   </div>
 </div>';
