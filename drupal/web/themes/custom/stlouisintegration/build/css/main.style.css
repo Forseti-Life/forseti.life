@@ -12658,7 +12658,7 @@ textarea.form-control-lg {
   -webkit-transform: translate3d(-50%, -50%, 0);
           transform: translate3d(-50%, -50%, 0);
   color: rgba(249, 241, 233, 0.9);
-  font-size: 1.4em;
+  font-size: 1.12em; /* Reduced by 20% from 1.4em */
   text-align: center;
   max-width: 800px;
   line-height: 1.6;
@@ -12736,7 +12736,7 @@ textarea.form-control-lg {
     top: 50%; /* Keep centered for page headers */
   }
   .main-subtitle {
-    font-size: 1em;
+    font-size: 0.8em; /* Reduced by 20% from 1.0em */
     padding: 0 1.5rem;
     top: 35%; /* Moved higher to prevent overlap */
     margin-top: 0.5rem;
@@ -12788,7 +12788,7 @@ textarea.form-control-lg {
     top: 50%;
   }
   .main-subtitle {
-    font-size: 0.85em;
+    font-size: 0.68em; /* Reduced by 20% from 0.85em */
     top: 30%; /* Higher positioning to prevent overlap */
     margin-top: 0.5rem;
     margin-bottom: 0.5rem;
@@ -12837,7 +12837,7 @@ textarea.form-control-lg {
     top: 50%; /* Keep centered for page headers */
   }
   .main-subtitle {
-    font-size: 0.8em;
+    font-size: 0.64em; /* Reduced by 20% from 0.8em */
     top: 27%; /* High positioning to prevent overlap */
     line-height: 1.2;
     padding: 0 1.5rem;
@@ -12881,7 +12881,7 @@ textarea.form-control-lg {
     line-height: 0.9;
   }
   .main-subtitle {
-    font-size: 0.7em;
+    font-size: 0.56em; /* Reduced by 20% from 0.7em */
     top: 25%; /* Higher positioning */
     line-height: 1.1;
     padding: 0 2rem;
@@ -12923,7 +12923,7 @@ textarea.form-control-lg {
     line-height: 0.85;
   }
   .main-subtitle {
-    font-size: 0.65em;
+    font-size: 0.52em; /* Reduced by 20% from 0.65em */
     top: 20%;
     line-height: 1;
     padding: 0 1.5rem;
@@ -12959,7 +12959,7 @@ textarea.form-control-lg {
     top: 45%; /* Slightly higher for page headers */
   }
   .main-subtitle {
-    font-size: 0.75em;
+    font-size: 0.6em; /* Reduced by 20% from 0.75em */
     top: 35%; /* Higher positioning to prevent overlap */
     line-height: 1.1;
     padding: 0 3rem;
