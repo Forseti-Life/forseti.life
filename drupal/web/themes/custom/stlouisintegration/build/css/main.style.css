@@ -12873,6 +12873,79 @@ textarea.form-control-lg {
     font-size: 2.2em; /* Smaller for page headers in landscape */
   }
 }
+/* Very short window height fixes - prevents button border overlap */
+@media only screen and (max-height: 400px) {
+  .main-title {
+    font-size: 1.8em;
+    top: 5%; /* Very high positioning for extremely short windows */
+    line-height: 0.9;
+  }
+  .main-subtitle {
+    font-size: 0.7em;
+    top: 25%; /* Higher positioning */
+    line-height: 1.1;
+    padding: 0 2rem;
+    margin-bottom: 0;
+    max-width: 60%; /* More constrained */
+  }
+  .hero-cta {
+    top: 50%; /* Much higher to prevent any border overlap */
+    margin-top: 0;
+    width: 80%;
+    max-width: 400px;
+    /* Horizontal compact layout */
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.2rem;
+  }
+  .hero-cta .btn {
+    margin: 0;
+    padding: 0.25rem 0.4rem; /* Very compact padding */
+    font-size: 0.6rem;
+    letter-spacing: 0;
+    border-radius: 8px;
+    border-width: 1px; /* Thinner border to reduce visual footprint */
+    flex: 0 0 auto;
+    min-width: 80px;
+    max-width: 100px;
+  }
+  .large-header.home-header {
+    min-height: 100vh; /* Still ensure full height */
+  }
+}
+/* Extra short window height fixes - for very compressed layouts */
+@media only screen and (max-height: 300px) {
+  .main-title {
+    font-size: 1.5em;
+    top: 3%;
+    line-height: 0.85;
+  }
+  .main-subtitle {
+    font-size: 0.65em;
+    top: 20%;
+    line-height: 1;
+    padding: 0 1.5rem;
+    max-width: 50%;
+  }
+  .hero-cta {
+    top: 45%; /* Very high positioning to prevent overlap */
+    margin-top: 0;
+    width: 75%;
+    max-width: 350px;
+    gap: 0.15rem;
+  }
+  .hero-cta .btn {
+    margin: 0;
+    padding: 0.2rem 0.3rem; /* Minimal padding */
+    font-size: 0.55rem;
+    border-radius: 6px;
+    border-width: 1px; /* Minimal border */
+    min-width: 70px;
+    max-width: 90px;
+  }
+}
 /* Landscape phone specific adjustments */
 @media only screen and (max-height: 500px) and (orientation: landscape) {
   .main-title {
