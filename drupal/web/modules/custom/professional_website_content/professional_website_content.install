@@ -1802,3 +1802,83 @@ function professional_website_content_update_9003() {
   
   return t('Created legal pages: Privacy Policy, Terms of Service, Sitemap, and Accessibility Statement.');
 }
+
+/**
+ * Implements hook_update_N().
+ * 
+ * Update Healthcare Solutions page with standardized Major Clients section.
+ */
+function professional_website_content_update_9004() {
+  // Find and update the Healthcare Solutions node
+  $query = \Drupal::entityQuery('node')
+    ->condition('type', 'page')
+    ->condition('title', 'Healthcare Solutions')
+    ->condition('status', 1)
+    ->accessCheck(FALSE)
+    ->range(0, 1);
+  
+  $nids = $query->execute();
+  if (!empty($nids)) {
+    $nid = reset($nids);
+    $node = \Drupal::entityTypeManager()->getStorage('node')->load($nid);
+    
+    if ($node) {
+      $current_body = $node->get('body')->value;
+      
+      // Replace the old single client-card format with new client-grid format
+      $old_client_section = '<div class="client-section">
+    <h3>Major Clients</h3>
+    <div class="client-card">
+      <h4>Signant Health</h4>
+      <p>Clinical Trial Technology - Modernized platform serving 700+ active studies with AI-powered optimization</p>
+    </div>
+  </div>';
+      
+      $new_client_section = '<div class="client-section">
+    <h3>Major Clients</h3>
+    <div class="client-grid">
+      <div class="client-card">
+        <h4>Signant Health</h4>
+        <p>Clinical Trial Technology - Modernized platform serving 700+ active studies with AI-powered optimization</p>
+      </div>
+      <div class="client-card">
+        <h4>Centers for Disease Control</h4>
+        <p>Public Health Analytics - National health surveillance systems and epidemic response platforms</p>
+      </div>
+      <div class="client-card">
+        <h4>AbbVie</h4>
+        <p>Pharmaceutical Research - Clinical data management and regulatory compliance systems</p>
+      </div>
+    </div>
+  </div>';
+      
+      $updated_body = str_replace($old_client_section, $new_client_section, $current_body);
+      
+      $node->set('body', [
+        'value' => $updated_body,
+        'format' => 'full_html',
+      ]);
+      $node->save();
+      
+      return t('Updated Healthcare Solutions page with standardized Major Clients section featuring three clients.');
+    }
+  }
+  
+  return t('Healthcare Solutions page not found - no update needed.');
+}
+
+/**
+ * Implements hook_uninstall().
+ * 
+ * SAFE UNINSTALL - Does not remove any content, nodes, or blocks to prevent data loss.
+ */
+function professional_website_content_uninstall() {
+  // Log uninstall but DO NOT remove any content
+  \Drupal::logger('professional_website_content')->info('Module uninstalled - All content and blocks preserved.');
+  
+  // Note: We intentionally do NOT remove:
+  // - Nodes created by this module (About, Services, Case Studies, etc.)
+  // - Blocks placed by this module (Navigation, Footer, Services blocks)
+  // - URL aliases created by this module
+  // This prevents accidental data loss during module management.
+}

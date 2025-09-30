@@ -72,6 +72,19 @@ The module provides a custom navigation block (`professional_navigation_block`) 
 4. Clear cache: `drush cr`
 5. Rebuild theme: `npm run production` in theme directory
 
+## Updates
+
+### Healthcare Page Client Section (Update 9004)
+To update existing Healthcare page with standardized Major Clients section:
+```bash
+cd /var/www/html/stlouisintegration/web && ../vendor/bin/drush --uri=stlouisintegration.com updatedb -y
+```
+
+This update adds three healthcare clients in client-grid format matching other industry pages.
+
+### Safe Uninstall Policy
+The module implements safe uninstall that preserves all content, blocks, and URL aliases to prevent accidental data loss.
+
 ### Automated Setup
 The module installation automatically:
 - Creates all professional content pages
