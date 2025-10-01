@@ -22,7 +22,8 @@ function job_application_automation_install() {
   try {
     $logger->info('Starting Job Application Automation module installation...');
     
-    // Create content types
+    // Create content types if they don't exist
+    // This checks for existing types and only creates missing ones
     _job_application_automation_create_content_types();
     
     // Create and attach fields to content types
@@ -33,6 +34,9 @@ function job_application_automation_install() {
     
     // Configure field displays
     _job_application_automation_configure_displays();
+    
+    // Create administrative Views
+    _job_application_automation_create_views();
     
     // Set default permissions
     _job_application_automation_set_permissions();
@@ -75,7 +79,8 @@ function job_application_automation_uninstall() {
 }
 
 /**
- * Create all required content types.
+ * Create all required content types if they don't exist.
+ * This function checks for existing content types and only creates missing ones.
  */
 function _job_application_automation_create_content_types() {
   $content_types = [
@@ -846,9 +851,275 @@ function _job_application_automation_get_user_field_definitions() {
  * Configure field displays for content types.
  */
 function _job_application_automation_configure_displays() {
-  // This function can be expanded to configure form and view displays
-  // For now, we rely on default displays
-  \Drupal::logger('job_application_automation')->info('Field displays configured with defaults.');
+  // Configure form displays for all content types
+  _job_application_automation_configure_company_form_display();
+  _job_application_automation_configure_job_posting_form_display();
+  _job_application_automation_configure_application_form_display();
+  _job_application_automation_configure_issue_form_display();
+  _job_application_automation_configure_user_form_display();
+  
+  \Drupal::logger('job_application_automation')->info('Field displays configured successfully.');
+}
+
+/**
+ * Configure form display for company content type.
+ */
+function _job_application_automation_configure_company_form_display() {
+  $form_display = EntityFormDisplay::load('node.company.default');
+  
+  if (!$form_display) {
+    $form_display = EntityFormDisplay::create([
+      'targetEntityType' => 'node',
+      'bundle' => 'company',
+      'mode' => 'default',
+      'status' => TRUE,
+    ]);
+  }
+
+  // Configure field displays with proper weights
+  $form_display->setComponent('field_website', [
+    'type' => 'link_default',
+    'weight' => 1,
+    'settings' => [
+      'placeholder_url' => 'https://example.com',
+      'placeholder_title' => 'Company Website',
+    ],
+  ]);
+
+  $form_display->setComponent('field_careers_url', [
+    'type' => 'link_default',
+    'weight' => 2,
+    'settings' => [
+      'placeholder_url' => 'https://example.com/careers',
+      'placeholder_title' => 'Careers Page',
+    ],
+  ]);
+
+  $form_display->setComponent('field_description', [
+    'type' => 'text_textarea',
+    'weight' => 3,
+    'settings' => [
+      'rows' => 5,
+      'placeholder' => 'Enter company description...',
+    ],
+  ]);
+
+  $form_display->setComponent('field_industry', [
+    'type' => 'options_select',
+    'weight' => 4,
+  ]);
+
+  $form_display->setComponent('field_size', [
+    'type' => 'options_select',
+    'weight' => 5,
+  ]);
+
+  $form_display->setComponent('field_location', [
+    'type' => 'string_textfield',
+    'weight' => 6,
+    'settings' => [
+      'placeholder' => 'City, State/Country',
+    ],
+  ]);
+
+  $form_display->setComponent('field_active', [
+    'type' => 'boolean_checkbox',
+    'weight' => 7,
+    'settings' => [
+      'display_label' => TRUE,
+    ],
+  ]);
+
+  $form_display->setComponent('field_company_logo', [
+    'type' => 'image_image',
+    'weight' => 8,
+  ]);
+
+  $form_display->setComponent('field_scraping_notes', [
+    'type' => 'text_textarea',
+    'weight' => 9,
+    'settings' => [
+      'rows' => 3,
+      'placeholder' => 'Internal notes about job scraping for this company...',
+    ],
+  ]);
+
+  $form_display->save();
+  
+  \Drupal::logger('job_application_automation')->info('Company form display configured successfully.');
+}
+
+/**
+ * Configure form display for job_posting content type.
+ */
+function _job_application_automation_configure_job_posting_form_display() {
+  $form_display = EntityFormDisplay::load('node.job_posting.default');
+  
+  if (!$form_display) {
+    $form_display = EntityFormDisplay::create([
+      'targetEntityType' => 'node',
+      'bundle' => 'job_posting',
+      'mode' => 'default',
+      'status' => TRUE,
+    ]);
+  }
+
+  // Configure key job posting fields
+  $form_display->setComponent('field_company_ref', [
+    'type' => 'entity_reference_autocomplete',
+    'weight' => 1,
+  ]);
+
+  $form_display->setComponent('field_job_type', [
+    'type' => 'options_select',
+    'weight' => 2,
+  ]);
+
+  $form_display->setComponent('field_salary_range', [
+    'type' => 'string_textfield',
+    'weight' => 3,
+  ]);
+
+  $form_display->setComponent('field_location', [
+    'type' => 'string_textfield',
+    'weight' => 4,
+  ]);
+
+  $form_display->save();
+  \Drupal::logger('job_application_automation')->info('Job posting form display configured successfully.');
+}
+
+/**
+ * Configure form display for application content type.
+ */
+function _job_application_automation_configure_application_form_display() {
+  $form_display = EntityFormDisplay::load('node.application.default');
+  
+  if (!$form_display) {
+    $form_display = EntityFormDisplay::create([
+      'targetEntityType' => 'node',
+      'bundle' => 'application',
+      'mode' => 'default',
+      'status' => TRUE,
+    ]);
+  }
+
+  // Configure key application fields
+  $form_display->setComponent('field_company_ref', [
+    'type' => 'entity_reference_autocomplete',
+    'weight' => 1,
+  ]);
+
+  $form_display->setComponent('field_application_status', [
+    'type' => 'options_select',
+    'weight' => 2,
+  ]);
+
+  $form_display->setComponent('field_application_date', [
+    'type' => 'datetime_default',
+    'weight' => 3,
+  ]);
+
+  $form_display->save();
+  \Drupal::logger('job_application_automation')->info('Application form display configured successfully.');
+}
+
+/**
+ * Configure form display for issue content type.
+ */
+function _job_application_automation_configure_issue_form_display() {
+  $form_display = EntityFormDisplay::load('node.issue.default');
+  
+  if (!$form_display) {
+    $form_display = EntityFormDisplay::create([
+      'targetEntityType' => 'node',
+      'bundle' => 'issue',
+      'mode' => 'default',
+      'status' => TRUE,
+    ]);
+  }
+
+  // Configure key issue fields
+  $form_display->setComponent('field_priority', [
+    'type' => 'options_select',
+    'weight' => 1,
+  ]);
+
+  $form_display->setComponent('field_issue_status', [
+    'type' => 'options_select',
+    'weight' => 2,
+  ]);
+
+  $form_display->save();
+  \Drupal::logger('job_application_automation')->info('Issue form display configured successfully.');
+}
+
+/**
+ * Configure form display for user profile fields.
+ */
+function _job_application_automation_configure_user_form_display() {
+  $form_display = EntityFormDisplay::load('user.user.default');
+  
+  if (!$form_display) {
+    $form_display = EntityFormDisplay::create([
+      'targetEntityType' => 'user',
+      'bundle' => 'user',
+      'mode' => 'default',
+      'status' => TRUE,
+    ]);
+  }
+
+  // Configure key user profile fields with proper weights
+  $weight = 10; // Start after default fields
+  
+  $user_fields = [
+    'field_first_name' => 'string_textfield',
+    'field_last_name' => 'string_textfield',
+    'field_phone_number' => 'telephone_default',
+    'field_city' => 'string_textfield',
+    'field_state' => 'string_textfield',
+    'field_country' => 'string_textfield',
+    'field_job_title' => 'string_textfield',
+    'field_years_experience' => 'number',
+    'field_skills' => 'text_textarea',
+    'field_education_level' => 'options_select',
+    'field_resume_file' => 'file_generic',
+    'field_desired_salary_min' => 'number',
+    'field_desired_salary_max' => 'number',
+    'field_job_search_status' => 'options_select',
+    'field_remote_preference' => 'options_select',
+  ];
+
+  foreach ($user_fields as $field_name => $widget_type) {
+    $form_display->setComponent($field_name, [
+      'type' => $widget_type,
+      'weight' => $weight++,
+    ]);
+  }
+
+  $form_display->save();
+  \Drupal::logger('job_application_automation')->info('User form display configured successfully.');
+}
+
+/**
+ * Update 8001: Configure field displays for existing installations.
+ */
+function job_application_automation_update_8001() {
+  // Configure field displays that were missing from initial install
+  _job_application_automation_configure_displays();
+  
+  return t('Field displays have been configured for all content types.');
+}
+
+/**
+ * Create administrative Views for content management.
+ */
+function _job_application_automation_create_views() {
+  // For MVP, we'll rely on the default content management views
+  // Advanced administrative Views can be created in later phases
+  // Users can access content via /admin/content filtered by content type
+  
+  \Drupal::logger('job_application_automation')->info('Administrative Views can be accessed via /admin/content with content type filtering.');
 }
 
 /**

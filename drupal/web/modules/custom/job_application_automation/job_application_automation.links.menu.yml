@@ -1,9 +1,16 @@
 job_application_automation.admin:
-  title: 'Job Applications'
-  route_name: job_application_automation.admin_overview
-  description: 'Manage job application automation'
+  title: 'Job Application Dashboard'
+  route_name: job_application_automation.dashboard
+  description: 'Master dashboard for job application automation management'
   parent: system.admin_content
   weight: 50
+
+job_application_automation.main_nav:
+  title: 'Job Dashboard'
+  route_name: job_application_automation.dashboard
+  description: 'Access job application management dashboard'
+  parent: system.admin
+  weight: 25
 
 job_application_automation.companies:
   title: 'Companies'

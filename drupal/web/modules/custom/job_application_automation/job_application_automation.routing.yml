@@ -1,21 +1,60 @@
 # Job Application Automation Routes
+# Complete routing configuration for job application automation module
 
-job_application_automation.home:
-  path: '/job-applications'
-  defaults:
-    _controller: '\Drupal\job_application_automation\Controller\JobApplicationController::home'
-    _title: 'My Job Applications'
-  requirements:
-    _permission: 'access content'
-
+# 1. Master Dashboard Routes
 job_application_automation.dashboard:
-  path: '/admin/job-applications'
+  path: '/job-dashboard'
   defaults:
     _controller: '\Drupal\job_application_automation\Controller\JobApplicationController::dashboard'
     _title: 'Job Application Dashboard'
   requirements:
     _access: 'TRUE'
 
+# Alternative dashboard route (more intuitive URL)
+job_application_automation.dashboard_alt:
+  path: '/job-applications'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\JobApplicationController::dashboard'
+    _title: 'Job Application Dashboard'
+  requirements:
+    _access: 'TRUE'
+
+# Target Companies Management
+job_application_automation.manage_target_companies:
+  path: '/job-applications/manage-target-companies'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\JobApplicationController::manageTargetCompanies'
+    _title: 'Manage Target Companies'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+job_application_automation.save_target_companies:
+  path: '/job-applications/save-target-companies'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\JobApplicationController::saveTargetCompanies'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+  methods: [POST]
+
+# Bulk Company Import
+job_application_automation.bulk_import_companies:
+  path: '/job-applications/bulk-import-companies'
+  defaults:
+    _form: '\Drupal\job_application_automation\Form\BulkCompanyImportForm'
+    _title: 'Bulk Import Companies'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+# Companies Overview
+job_application_automation.companies_overview:
+  path: '/job-applications/companies-overview'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\JobApplicationController::companiesOverview'
+    _title: 'Companies Overview'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+# 2. Application Management Routes
 job_application_automation.add:
   path: '/admin/job-applications/add'
   defaults:
@@ -42,14 +81,7 @@ job_application_automation.view:
     _permission: 'view job applications'
     _entity_access: 'job_application.view'
 
-# job_application_automation.settings:
-#   path: '/admin/config/services/job-application-automation'
-#   defaults:
-#     _form: '\Drupal\job_application_automation\Form\SettingsForm'
-#     _title: 'Job Application Automation Settings'
-#   requirements:
-#     _permission: 'administer job application automation'
-
+# 3. Workflow Management Routes
 job_application_automation.workflow:
   path: '/admin/job-applications/workflow/{job_application}'
   defaults:
@@ -67,7 +99,7 @@ job_application_automation.bulk_actions:
   requirements:
     _permission: 'administer job applications'
 
-# User Profile Management Routes
+# 4. User Profile Management Routes
 job_application_automation.user_profile_dashboard:
   path: '/user/{user}/job-profile'
   defaults:
@@ -86,7 +118,7 @@ job_application_automation.user_profile_edit:
     _permission: 'edit own job application profile'
     user: \d+
 
-# Current user profile shortcuts
+# 5. Current User Profile Shortcuts
 job_application_automation.my_profile:
   path: '/my/job-profile'
   defaults:
@@ -102,3 +134,12 @@ job_application_automation.my_profile_edit:
     _title: 'Edit My Job Application Profile'
   requirements:
     _permission: 'edit own job application profile'
+
+# 6. Future Routes (Commented Out)
+# job_application_automation.settings:
+#   path: '/admin/config/services/job-application-automation'
+#   defaults:
+#     _form: '\Drupal\job_application_automation\Form\SettingsForm'
+#     _title: 'Job Application Automation Settings'
+#   requirements:
+#     _permission: 'administer job application automation'
