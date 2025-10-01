@@ -2,6 +2,7 @@
 
 # St. Louis Integration - Environment Setup Script
 # This script installs all necessary dependencies for Drupal 11 development
+# including resume text extraction tools for the Job Application Automation module
 
 set -e  # Exit on any error
 
@@ -170,6 +171,32 @@ if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
     sudo apt install -y "${MISSING_TOOLS[@]}"
 else
     print_status "All development tools are already installed"
+fi
+
+# Install resume text extraction dependencies (Required for Job Application Automation)
+print_status "Checking resume text extraction tools..."
+TEXT_EXTRACTION_TOOLS=("pdftotext" "docx2txt" "antiword")
+TEXT_EXTRACTION_PACKAGES=("poppler-utils" "docx2txt" "antiword")
+MISSING_TEXT_TOOLS=()
+
+for i in "${!TEXT_EXTRACTION_TOOLS[@]}"; do
+    tool="${TEXT_EXTRACTION_TOOLS[$i]}"
+    package="${TEXT_EXTRACTION_PACKAGES[$i]}"
+    
+    if ! command -v "$tool" &> /dev/null; then
+        MISSING_TEXT_TOOLS+=("$package")
+        print_warning "Text extraction tool '$tool' is missing"
+    else
+        print_status "Text extraction tool '$tool' is already installed"
+    fi
+done
+
+if [ ${#MISSING_TEXT_TOOLS[@]} -gt 0 ]; then
+    print_status "Installing missing text extraction tools: ${MISSING_TEXT_TOOLS[*]}"
+    sudo apt install -y "${MISSING_TEXT_TOOLS[@]}"
+    print_status "Resume text extraction dependencies installed successfully"
+else
+    print_status "All text extraction tools are already installed"
 fi
 
 # Set up PHP configuration for development

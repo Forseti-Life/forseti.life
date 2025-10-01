@@ -162,6 +162,11 @@ function job_application_automation_form_user_register_form_alter(&$form, \Drupa
         <li>' . t('Job search preferences and keywords') . '</li>
       </ul>',
   ];
+  
+  // Hide the auto-populated primary resume text field from user edit forms
+  if (isset($form['field_primary_resume_text'])) {
+    $form['field_primary_resume_text']['#access'] = FALSE;
+  }
 }
 
 /**
@@ -175,4 +180,106 @@ function job_application_automation_user_insert(\Drupal\user\UserInterface $user
     $user->set('field_profile_completeness', 0);
     $user->save();
   }
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function job_application_automation_entity_update(\Drupal\Core\Entity\EntityInterface $entity) {
+  // Handle user entity updates, specifically resume file uploads
+  if ($entity->getEntityTypeId() === 'user' && $entity->hasField('field_resume_file')) {
+    _job_application_automation_extract_resume_text($entity);
+  }
+}
+
+/**
+ * Extract text from uploaded resume file and populate text field.
+ */
+function _job_application_automation_extract_resume_text(\Drupal\user\Entity\User $user) {
+  if (!$user->hasField('field_resume_file') || !$user->hasField('field_primary_resume_text')) {
+    return;
+  }
+  
+  $resume_file_field = $user->get('field_resume_file');
+  if ($resume_file_field->isEmpty()) {
+    return;
+  }
+  
+  $file_id = $resume_file_field->target_id;
+  $file = \Drupal\file\Entity\File::load($file_id);
+  
+  if (!$file) {
+    return;
+  }
+  
+  $file_uri = $file->getFileUri();
+  $file_path = \Drupal::service('file_system')->realpath($file_uri);
+  $mime_type = $file->getMimeType();
+  
+  $extracted_text = '';
+  
+  try {
+    switch ($mime_type) {
+      case 'application/pdf':
+        $extracted_text = _job_application_automation_extract_pdf_text($file_path);
+        break;
+        
+      case 'application/msword':
+      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        $extracted_text = _job_application_automation_extract_doc_text($file_path, $mime_type);
+        break;
+        
+      default:
+        \Drupal::logger('job_application_automation')->warning('Unsupported file type for text extraction: @mime_type', ['@mime_type' => $mime_type]);
+        return;
+    }
+    
+    if (!empty($extracted_text)) {
+      $user->set('field_primary_resume_text', $extracted_text);
+      $user->save();
+      
+      \Drupal::logger('job_application_automation')->info('Resume text extracted and saved for user @uid', ['@uid' => $user->id()]);
+    }
+    
+  } catch (Exception $e) {
+    \Drupal::logger('job_application_automation')->error('Error extracting resume text: @error', ['@error' => $e->getMessage()]);
+  }
+}
+
+/**
+ * Extract text from PDF file.
+ */
+function _job_application_automation_extract_pdf_text($file_path) {
+  $text = '';
+  
+  // Try pdftotext command first (most reliable)
+  if (shell_exec('which pdftotext')) {
+    $command = sprintf('pdftotext %s -', escapeshellarg($file_path));
+    $text = shell_exec($command);
+  }
+  
+  return trim($text);
+}
+
+/**
+ * Extract text from Word document.
+ */
+function _job_application_automation_extract_doc_text($file_path, $mime_type) {
+  $text = '';
+  
+  if ($mime_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    // DOCX file
+    if (shell_exec('which docx2txt')) {
+      $command = sprintf('docx2txt %s -', escapeshellarg($file_path));
+      $text = shell_exec($command);
+    }
+  } else {
+    // DOC file (older format)
+    if (shell_exec('which antiword')) {
+      $command = sprintf('antiword %s', escapeshellarg($file_path));
+      $text = shell_exec($command);
+    }
+  }
+  
+  return trim($text);
 }

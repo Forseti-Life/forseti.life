@@ -668,6 +668,12 @@ function _job_application_automation_get_user_field_definitions() {
         'file_extensions' => 'pdf doc docx',
       ],
     ],
+    'field_primary_resume_text' => [
+      'type' => 'text_long',
+      'label' => 'Primary Resume Text',
+      'description' => 'Extracted text content from uploaded resume file (automatically populated)',
+      'required' => FALSE,
+    ],
     'field_professional_summary' => [
       'type' => 'text_long',
       'label' => 'Professional Summary',
@@ -1120,6 +1126,35 @@ function _job_application_automation_create_views() {
   // Users can access content via /admin/content filtered by content type
   
   \Drupal::logger('job_application_automation')->info('Administrative Views can be accessed via /admin/content with content type filtering.');
+}
+
+/**
+ * Add primary resume text field for automatic text extraction.
+ */
+function job_application_automation_update_8002() {
+  $logger = \Drupal::logger('job_application_automation');
+  
+  try {
+    // Create the new field for storing extracted resume text
+    $field_config = [
+      'type' => 'text_long',
+      'label' => 'Primary Resume Text',
+      'description' => 'Extracted text content from uploaded resume file (automatically populated)',
+      'required' => FALSE,
+    ];
+    
+    _job_application_automation_create_field('user', 'user', 'field_primary_resume_text', $field_config);
+    
+    // Configure form and view displays for the new field
+    _job_application_automation_configure_displays();
+    
+    $logger->info('Primary resume text field added successfully.');
+    return t('Primary resume text field has been added for automatic text extraction.');
+    
+  } catch (Exception $e) {
+    $logger->error('Error adding primary resume text field: @error', ['@error' => $e->getMessage()]);
+    throw $e;
+  }
 }
 
 /**
