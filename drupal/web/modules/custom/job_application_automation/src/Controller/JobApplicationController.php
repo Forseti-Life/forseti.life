@@ -315,9 +315,7 @@ class JobApplicationController extends ControllerBase {
           '#type' => 'html_tag',
           '#tag' => 'div',
           '#attributes' => ['class' => ['phase-actions']],
-          '#value' => '<a href="' . $user_edit_url->toString() . '" class="phase-button">Edit Profile</a>
-                       <a href="#" class="phase-button">Upload Resume</a>
-                       <a href="#" class="phase-button">Set Preferences</a>',
+          '#value' => '<a href="' . $user_edit_url->toString() . '" class="phase-button">Edit Profile</a>',
         ],
       ],
     ];
@@ -588,12 +586,118 @@ class JobApplicationController extends ControllerBase {
       ->condition('type', 'company')
       ->condition('status', 1)
       ->accessCheck(TRUE);
-    $company_count = count($query->execute());
+    $company_ids = $query->execute();
+    $company_count = count($company_ids);
 
     $build = [];
-    $build['content'] = [
+    $build['header'] = [
       '#markup' => '<h2>Companies Overview</h2><p>Total companies: ' . $company_count . '</p>',
     ];
+
+    if ($company_count > 0) {
+      // Load companies and build table
+      $companies = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($company_ids);
+      
+      // Table header
+      $table_header = '<table class="companies-table">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Industry</th>
+            <th>Size</th>
+            <th>Profile Complete</th>
+            <th>Jobs Found</th>
+            <th>Applications</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>';
+      
+      $table_rows = '';
+      foreach ($companies as $company) {
+        $company_name = $company->getTitle();
+        $company_url = $company->hasField('field_company_website') && !$company->get('field_company_website')->isEmpty() 
+          ? $company->get('field_company_website')->value : '#';
+        $company_industry = $company->hasField('field_company_industry') && !$company->get('field_company_industry')->isEmpty()
+          ? $company->get('field_company_industry')->value : 'Not specified';
+        $company_size = $company->hasField('field_company_size') && !$company->get('field_company_size')->isEmpty()
+          ? $company->get('field_company_size')->value : 'Not specified';
+        
+        // Calculate completion percentage (mock data for now)
+        $completion_fields = 0;
+        $total_fields = 5; // Name, industry, size, website, description
+        
+        if (!empty($company_name)) $completion_fields++;
+        if ($company->hasField('field_company_industry') && !$company->get('field_company_industry')->isEmpty()) $completion_fields++;
+        if ($company->hasField('field_company_size') && !$company->get('field_company_size')->isEmpty()) $completion_fields++;
+        if ($company->hasField('field_company_website') && !$company->get('field_company_website')->isEmpty()) $completion_fields++;
+        if ($company->hasField('field_company_description') && !$company->get('field_company_description')->isEmpty()) $completion_fields++;
+        
+        $completion_percentage = round(($completion_fields / $total_fields) * 100);
+        
+        // Mock job and application counts (replace with real queries later)
+        $jobs_found = rand(0, 15);
+        $applications_count = rand(0, 5);
+        $status = $completion_percentage >= 80 ? 'Active' : 'Incomplete';
+        
+        $table_rows .= '<tr>
+          <td><a href="/node/' . $company->id() . '">' . $company_name . '</a></td>
+          <td>' . $company_industry . '</td>
+          <td>' . $company_size . '</td>
+          <td>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ' . $completion_percentage . '%"></div>
+              <span class="progress-text">' . $completion_percentage . '%</span>
+            </div>
+          </td>
+          <td>' . $jobs_found . '</td>
+          <td>' . $applications_count . '</td>
+          <td><span class="status-badge status-' . strtolower($status) . '">' . $status . '</span></td>
+          <td>
+            <a href="/node/' . $company->id() . '/edit" class="btn btn-sm">Edit</a>
+            <a href="/node/' . $company->id() . '" class="btn btn-sm">View</a>
+          </td>
+        </tr>';
+      }
+      
+      $table_footer = '</tbody></table>';
+      
+      $build['companies'] = [
+        '#markup' => $table_header . $table_rows . $table_footer,
+      ];
+      
+      // Add CSS styles for the table
+      $build['#attached']['html_head'][] = [
+        [
+          '#type' => 'html_tag',
+          '#tag' => 'style',
+          '#value' => '
+            .companies-table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+            .companies-table th { background: #f7fafc; padding: 12px; text-align: left; font-weight: 600; color: #2d3748; border-bottom: 2px solid #e2e8f0; }
+            .companies-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+            .companies-table tr:hover { background: #f7fafc; }
+            .progress-bar { position: relative; width: 100px; height: 20px; background: #e2e8f0; border-radius: 10px; overflow: hidden; }
+            .progress-fill { height: 100%; background: linear-gradient(90deg, #48bb78 0%, #38a169 100%); border-radius: 10px; transition: width 0.3s ease; }
+            .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: bold; color: #2d3748; }
+            .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+            .status-active { background: #c6f6d5; color: #22543d; }
+            .status-incomplete { background: #fed7d7; color: #742a2a; }
+            .btn { display: inline-block; padding: 6px 12px; margin-right: 4px; text-decoration: none; border-radius: 4px; font-size: 12px; background: #4299e1; color: white; }
+            .btn:hover { background: #3182ce; }
+            .btn-sm { padding: 4px 8px; font-size: 11px; }
+          ',
+        ],
+        'companies-table-styles'
+      ];
+    } else {
+      $build['no_companies'] = [
+        '#markup' => '<div class="no-companies">
+          <p>No companies found. <a href="/job-applications/bulk-import-companies">Add companies via bulk import</a> or <a href="/node/add/company">add a single company</a>.</p>
+        </div>',
+      ];
+    }
+
     return $build;
   }
 
