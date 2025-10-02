@@ -7,8 +7,8 @@ dependencies:
     - stlouisintegration
 id: stlouisintegration_breadcrumbs
 theme: stlouisintegration
-region: header
-weight: -5
+region: breadcrumb
+weight: 0
 provider: null
 plugin: system_breadcrumb_block
 settings:

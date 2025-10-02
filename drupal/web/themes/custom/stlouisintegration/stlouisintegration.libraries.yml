@@ -7,6 +7,16 @@ style:
   dependencies:
     - core/drupal
 
+professional_breadcrumb:
+  css:
+    theme:
+      build/css/main.style.css: {}
+  js:
+    src/js/breadcrumb-enhancement.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+
 drupal.ajax:
   js:
     src/js/overrides/ajax.js: {}
@@ -67,3 +77,13 @@ animated-header:
     src/js/animated-header.js: {}
   dependencies:
     - core/drupal
+
+breadcrumb:
+  css:
+    theme:
+      build/css/main.style.css: {}
+  js:
+    src/js/breadcrumb-enhancement.js: {}
+  dependencies:
+    - core/drupal
+    - core/drupal.ajax

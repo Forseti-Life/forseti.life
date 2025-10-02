@@ -8,7 +8,7 @@ job_application_automation.dashboard:
     _controller: '\Drupal\job_application_automation\Controller\JobApplicationController::dashboard'
     _title: 'Job Application Dashboard'
   requirements:
-    _access: 'TRUE'
+    _permission: 'access user job applications'
 
 # Alternative dashboard route (more intuitive URL)
 job_application_automation.dashboard_alt:
@@ -17,7 +17,7 @@ job_application_automation.dashboard_alt:
     _controller: '\Drupal\job_application_automation\Controller\JobApplicationController::dashboard'
     _title: 'Job Application Dashboard'
   requirements:
-    _access: 'TRUE'
+    _permission: 'access user job applications'
 
 # Target Companies Management
 job_application_automation.manage_target_companies:
@@ -26,14 +26,14 @@ job_application_automation.manage_target_companies:
     _controller: '\Drupal\job_application_automation\Controller\JobApplicationController::manageTargetCompanies'
     _title: 'Manage Target Companies'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _user: 'user.is_authenticated'
 
 job_application_automation.save_target_companies:
   path: '/job-applications/save-target-companies'
   defaults:
     _controller: '\Drupal\job_application_automation\Controller\JobApplicationController::saveTargetCompanies'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _user: 'user.is_authenticated'
   methods: [POST]
 
 # Bulk Company Import
@@ -43,7 +43,7 @@ job_application_automation.bulk_import_companies:
     _form: '\Drupal\job_application_automation\Form\BulkCompanyImportForm'
     _title: 'Bulk Import Companies'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _user: 'user.is_authenticated'
 
 # Companies Overview
 job_application_automation.companies_overview:
@@ -52,7 +52,7 @@ job_application_automation.companies_overview:
     _controller: '\Drupal\job_application_automation\Controller\JobApplicationController::companiesOverview'
     _title: 'Companies Overview'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _user: 'user.is_authenticated'
 
 # 2. Application Management Routes
 job_application_automation.add:
