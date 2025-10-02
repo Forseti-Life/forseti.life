@@ -17,6 +17,8 @@ dependencies:
   - drupal:file
   - drupal:image
   - drupal:text
+  - profile:profile
+  - professional_website_content:professional_website_content
 
 # Module maintainer information
 author: 'St. Louis Integration Development Team'

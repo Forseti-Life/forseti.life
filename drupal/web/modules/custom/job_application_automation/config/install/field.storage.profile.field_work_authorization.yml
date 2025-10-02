@@ -1,0 +1,27 @@
+# Work Authorization Field
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+    - profile
+id: profile.field_work_authorization
+field_name: field_work_authorization
+entity_type: profile
+type: list_string
+settings:
+  allowed_values:
+    - us_citizen: 'US Citizen'
+    - permanent_resident: 'Permanent Resident'
+    - work_visa: 'Work Visa (H1B)'
+    - student_visa: 'Student Visa (F1)'
+    - visa_sponsorship: 'Visa Sponsorship Required'
+    - other: 'Other'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

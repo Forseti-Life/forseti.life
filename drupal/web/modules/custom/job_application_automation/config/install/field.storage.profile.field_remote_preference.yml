@@ -1,0 +1,25 @@
+# Remote Preference Field
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+    - profile
+id: profile.field_remote_preference
+field_name: field_remote_preference
+entity_type: profile
+type: list_string
+settings:
+  allowed_values:
+    - remote: 'Remote'
+    - hybrid: 'Hybrid'
+    - onsite: 'On-site'
+    - no_preference: 'No Preference'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

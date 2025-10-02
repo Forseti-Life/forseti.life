@@ -16,9 +16,18 @@ home-page:
 user_profile:
   css:
     theme:
-      css/user-profile.css: {}
+      css/user-profile-custom.css: {}
   js:
     js/user-profile.js: {}
   dependencies:
+    - professional_website_content/professional_theme
+    - professional_website_content/form_styling
     - core/drupal
     - core/jquery
+
+company_profile:
+  css:
+    theme:
+      css/company-profile.css: {}
+  dependencies:
+    - core/drupal

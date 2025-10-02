@@ -1,0 +1,19 @@
+# Professional Summary Field
+langcode: en
+status: true
+dependencies:
+  module:
+    - profile
+    - text
+id: profile.field_professional_summary
+field_name: field_professional_summary
+entity_type: profile
+type: text_long
+settings: {  }
+module: text
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

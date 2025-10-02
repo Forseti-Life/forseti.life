@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_available_start_date
+    - profile.type.job_seeker
+  module:
+    - datetime
+    - profile
+id: profile.job_seeker.field_available_start_date
+field_name: field_available_start_date
+entity_type: profile
+bundle: job_seeker
+label: 'Available Start Date'
+description: 'Earliest start date'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: datetime

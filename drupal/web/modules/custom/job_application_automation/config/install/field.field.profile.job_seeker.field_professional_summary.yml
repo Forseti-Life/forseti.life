@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_professional_summary
+    - profile.type.job_seeker
+  module:
+    - profile
+    - text
+id: profile.job_seeker.field_professional_summary
+field_name: field_professional_summary
+entity_type: profile
+bundle: job_seeker
+label: 'Professional Summary'
+description: 'Professional summary/objective'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: text_long

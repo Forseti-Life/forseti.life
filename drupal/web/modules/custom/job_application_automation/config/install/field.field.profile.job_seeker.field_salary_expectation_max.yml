@@ -1,0 +1,24 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_salary_expectation_max
+    - profile.type.job_seeker
+  module:
+    - profile
+id: profile.job_seeker.field_salary_expectation_max
+field_name: field_salary_expectation_max
+entity_type: profile
+bundle: job_seeker
+label: 'Maximum Salary Expectation'
+description: 'Maximum salary expectation'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 0
+  max: 500000
+  prefix: '$'
+  thousand_separator: ','
+field_type: integer

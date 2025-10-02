@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_skills_summary
+    - profile.type.job_seeker
+  module:
+    - profile
+    - text
+id: profile.job_seeker.field_skills_summary
+field_name: field_skills_summary
+entity_type: profile
+bundle: job_seeker
+label: 'Skills Summary'
+description: 'Skills and technologies overview'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: text_long

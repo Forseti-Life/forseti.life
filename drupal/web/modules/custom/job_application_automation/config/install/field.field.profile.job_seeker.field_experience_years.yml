@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_experience_years
+    - profile.type.job_seeker
+  module:
+    - profile
+id: profile.job_seeker.field_experience_years
+field_name: field_experience_years
+entity_type: profile
+bundle: job_seeker
+label: 'Years of Experience'
+description: 'Years of professional experience'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 0
+  max: 50
+  suffix: ' years'
+field_type: integer

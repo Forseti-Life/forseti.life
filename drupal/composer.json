@@ -28,6 +28,7 @@
         "drupal/devel": "^5.4",
         "drupal/metatag": "^2.2",
         "drupal/pathauto": "^1.13",
+        "drupal/profile": "^1.12",
         "drupal/radix": "^6.0",
         "drupal/recaptcha": "^3.4",
         "drupal/recaptcha_v3": "^2.0",

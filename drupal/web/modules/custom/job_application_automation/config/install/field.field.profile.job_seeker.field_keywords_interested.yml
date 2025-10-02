@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_keywords_interested
+    - profile.type.job_seeker
+  module:
+    - profile
+    - text
+id: profile.job_seeker.field_keywords_interested
+field_name: field_keywords_interested
+entity_type: profile
+bundle: job_seeker
+label: 'Job Search Keywords'
+description: 'Job search keywords and interests'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: text_long

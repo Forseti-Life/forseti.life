@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_education_level
+    - profile.type.job_seeker
+  module:
+    - options
+    - profile
+id: profile.job_seeker.field_education_level
+field_name: field_education_level
+entity_type: profile
+bundle: job_seeker
+label: 'Education Level'
+description: 'Highest education level'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

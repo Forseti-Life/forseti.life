@@ -22,6 +22,17 @@ function job_application_automation_install() {
   try {
     $logger->info('Starting Job Application Automation module installation...');
     
+    // Ensure Profile module is enabled
+    $module_handler = \Drupal::service('module_handler');
+    if (!$module_handler->moduleExists('profile')) {
+      \Drupal::service('module_installer')->install(['profile']);
+      $logger->info('Profile module has been enabled.');
+    }
+    
+    // Import profile configurations that may not have been imported automatically
+    _job_application_automation_import_profile_configs();
+    $logger->info('Profile configurations imported.');
+    
     // Create content types if they don't exist
     // This checks for existing types and only creates missing ones
     _job_application_automation_create_content_types();
@@ -29,10 +40,7 @@ function job_application_automation_install() {
     // Create and attach fields to content types
     _job_application_automation_create_content_type_fields();
     
-    // Extend user entity with custom fields
-    _job_application_automation_create_user_fields();
-    
-    // Configure field displays
+    // Configure field displays (content types only - profile fields are handled by config)
     _job_application_automation_configure_displays();
     
     // Create administrative Views
@@ -143,13 +151,13 @@ function _job_application_automation_create_content_type_fields() {
 
 /**
  * Create user entity fields.
+ * 
+ * @deprecated This function is no longer used since all profile fields 
+ * are now handled by the Profile module and config files.
  */
 function _job_application_automation_create_user_fields() {
-  $user_fields = _job_application_automation_get_user_field_definitions();
-  
-  foreach ($user_fields as $field_name => $field_config) {
-    _job_application_automation_create_field('user', 'user', $field_name, $field_config);
-  }
+  // No longer needed - profile fields are handled by Profile module config
+  \Drupal::logger('job_application_automation')->info('User field creation skipped - using Profile module instead.');
 }
 
 /**
@@ -1145,8 +1153,8 @@ function job_application_automation_update_8002() {
     
     _job_application_automation_create_field('user', 'user', 'field_primary_resume_text', $field_config);
     
-    // Configure form and view displays for the new field
-    _job_application_automation_configure_displays();
+    // Configure the field display to be visible
+    _job_application_automation_configure_primary_resume_display();
     
     $logger->info('Primary resume text field added successfully.');
     return t('Primary resume text field has been added for automatic text extraction.');
@@ -1158,9 +1166,223 @@ function job_application_automation_update_8002() {
 }
 
 /**
+ * Configure the primary resume text field display.
+ */
+function _job_application_automation_configure_primary_resume_display() {
+  // Configure view display
+  $view_display = EntityViewDisplay::load('user.user.default');
+  if ($view_display) {
+    $view_display->setComponent('field_primary_resume_text', [
+      'type' => 'text_default',
+      'label' => 'above',
+      'weight' => 15,
+      'settings' => [],
+      'third_party_settings' => [],
+    ]);
+    $view_display->save();
+    
+    \Drupal::logger('job_application_automation')->info('Primary resume text field display configured.');
+  }
+  
+  // Keep field hidden in edit forms (it's auto-populated)
+  $form_display = EntityFormDisplay::load('user.user.default');
+  if ($form_display) {
+    $form_display->removeComponent('field_primary_resume_text');
+    $form_display->save();
+    
+    \Drupal::logger('job_application_automation')->info('Primary resume text field hidden from forms.');
+  }
+}
+
+/**
+ * Configure primary resume text field display for existing installations.
+ */
+function job_application_automation_update_8003() {
+  $logger = \Drupal::logger('job_application_automation');
+  
+  try {
+    _job_application_automation_configure_primary_resume_display();
+    
+    $logger->info('Primary resume text field display configured successfully.');
+    return t('Primary resume text field is now visible in user profiles.');
+    
+  } catch (Exception $e) {
+    $logger->error('Error configuring primary resume text field display: @error', ['@error' => $e->getMessage()]);
+    throw $e;
+  }
+}
+
+/**
  * Set default permissions for the module.
  */
 function _job_application_automation_set_permissions() {
   // Basic permission setup - detailed permissions should be configured by admins
   \Drupal::logger('job_application_automation')->info('Default permissions noted for admin configuration.');
+}
+
+/**
+ * Safely import profile configurations, checking for existing configs first.
+ */
+function _job_application_automation_import_profile_configs() {
+  $config_factory = \Drupal::configFactory();
+  $logger = \Drupal::logger('job_application_automation');
+  
+  // List of configuration files that should be imported
+  $config_files = [
+    'profile.type.job_seeker',
+    'field.storage.profile.field_resume_file',
+    'field.storage.profile.field_primary_resume_text',
+    'field.storage.profile.field_professional_summary',
+    'field.storage.profile.field_skills_summary',
+    'field.storage.profile.field_work_authorization',
+    'field.storage.profile.field_salary_expectation_min',
+    'field.storage.profile.field_salary_expectation_max',
+    'field.storage.profile.field_available_start_date',
+    'field.storage.profile.field_remote_preference',
+    'field.storage.profile.field_education_level',
+    'field.storage.profile.field_relocation_willing',
+    'field.storage.profile.field_references_available',
+    'field.storage.profile.field_keywords_interested',
+    'field.storage.profile.field_target_job_titles',
+    'field.storage.profile.field_experience_years',
+    'field.storage.profile.field_certifications',
+    'field.storage.profile.field_portfolio_url',
+    'field.storage.profile.field_linkedin_url',
+    'field.storage.profile.field_github_url',
+    'field.storage.profile.field_cover_letter_template',
+    'field.storage.profile.field_target_companies',
+    'field.storage.profile.field_ai_analysis_data',
+    'field.storage.profile.field_profile_completeness',
+    'field.storage.profile.field_last_profile_update',
+    // Field instances
+    'field.field.profile.job_seeker.field_resume_file',
+    'field.field.profile.job_seeker.field_primary_resume_text',
+    'field.field.profile.job_seeker.field_professional_summary',
+    'field.field.profile.job_seeker.field_skills_summary',
+    'field.field.profile.job_seeker.field_work_authorization',
+    'field.field.profile.job_seeker.field_salary_expectation_min',
+    'field.field.profile.job_seeker.field_salary_expectation_max',
+    'field.field.profile.job_seeker.field_available_start_date',
+    'field.field.profile.job_seeker.field_remote_preference',
+    'field.field.profile.job_seeker.field_education_level',
+    'field.field.profile.job_seeker.field_relocation_willing',
+    'field.field.profile.job_seeker.field_references_available',
+    'field.field.profile.job_seeker.field_keywords_interested',
+    'field.field.profile.job_seeker.field_target_job_titles',
+    'field.field.profile.job_seeker.field_experience_years',
+    'field.field.profile.job_seeker.field_certifications',
+    'field.field.profile.job_seeker.field_portfolio_url',
+    'field.field.profile.job_seeker.field_linkedin_url',
+    'field.field.profile.job_seeker.field_github_url',
+    'field.field.profile.job_seeker.field_cover_letter_template',
+    'field.field.profile.job_seeker.field_target_companies',
+    'field.field.profile.job_seeker.field_ai_analysis_data',
+    'field.field.profile.job_seeker.field_profile_completeness',
+    'field.field.profile.job_seeker.field_last_profile_update',
+    // Display configurations
+    'core.entity_form_display.profile.job_seeker.default',
+    'core.entity_view_display.profile.job_seeker.default',
+  ];
+  
+  $skipped = 0;
+  $imported = 0;
+  
+  foreach ($config_files as $config_name) {
+    // Check if configuration already exists
+    $existing_config = $config_factory->get($config_name);
+    if (!$existing_config->isNew()) {
+      $logger->info('Configuration @config already exists, skipping import.', ['@config' => $config_name]);
+      $skipped++;
+      continue;
+    }
+    
+    // Configuration doesn't exist, it will be imported automatically by Drupal
+    // during module installation from the config/install directory
+    $logger->info('Configuration @config will be imported.', ['@config' => $config_name]);
+    $imported++;
+  }
+  
+  $logger->info('Profile configuration import completed. Imported: @imported, Skipped: @skipped', [
+    '@imported' => $imported,
+    '@skipped' => $skipped
+  ]);
+}
+
+/**
+ * Update 8004: Import Job Seeker profile configuration safely.
+ */
+function job_application_automation_update_8004() {
+  $logger = \Drupal::logger('job_application_automation');
+  
+  try {
+    // Ensure Profile module is enabled
+    $module_handler = \Drupal::service('module_handler');
+    if (!$module_handler->moduleExists('profile')) {
+      \Drupal::service('module_installer')->install(['profile']);
+      $logger->info('Profile module has been enabled.');
+    }
+    
+    // Import profile configurations from config/install directory
+    $config_installer = \Drupal::service('config.installer');
+    $storage = \Drupal::service('config.storage');
+    $config_factory = \Drupal::configFactory();
+    
+    // Get the module path and config install directory
+    $module_path = \Drupal::service('extension.path.resolver')->getPath('module', 'job_application_automation');
+    $config_install_path = $module_path . '/config/install';
+    
+    if (!file_exists($config_install_path)) {
+      throw new \Exception('Config install directory not found: ' . $config_install_path);
+    }
+    
+    // Get all YAML files from config/install
+    $config_files = glob($config_install_path . '/*.yml');
+    $imported = 0;
+    $skipped = 0;
+    
+    foreach ($config_files as $config_file) {
+      $config_name = basename($config_file, '.yml');
+      
+      // Skip if not profile-related
+      if (!preg_match('/^(profile\.|field\..*\.profile\.|core\.entity_.*display\.profile\.)/', $config_name)) {
+        continue;
+      }
+      
+      // Check if config already exists
+      $existing_config = $config_factory->get($config_name);
+      if (!$existing_config->isNew()) {
+        $logger->info('Configuration @config already exists, skipping.', ['@config' => $config_name]);
+        $skipped++;
+        continue;
+      }
+      
+      // Load config data from file
+      $config_data = \Drupal\Component\Serialization\Yaml::decode(file_get_contents($config_file));
+      
+      // Create the configuration
+      $config_factory->getEditable($config_name)
+        ->setData($config_data)
+        ->save();
+      
+      $logger->info('Imported configuration: @config', ['@config' => $config_name]);
+      $imported++;
+    }
+    
+    // Clear caches
+    drupal_flush_all_caches();
+    
+    $logger->info('Profile configuration import completed. Imported: @imported, Skipped: @skipped', [
+      '@imported' => $imported,
+      '@skipped' => $skipped
+    ]);
+    
+    return t('Job Seeker profile configuration imported. Imported: @imported, Skipped: @skipped', [
+      '@imported' => $imported,
+      '@skipped' => $skipped
+    ]);
+    
+  } catch (\Exception $e) {
+    $logger->error('Error importing profile configurations: @error', ['@error' => $e->getMessage()]);
+    throw $e;
+  }
 }

@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies: {  }
+id: job_seeker
+label: 'Job Seeker'
+display_label: 'Job Seeker Profile'
+multiple: false
+registration: true
+roles:
+  - authenticated
+weight: 0

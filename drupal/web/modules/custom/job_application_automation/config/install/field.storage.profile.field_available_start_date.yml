@@ -1,0 +1,20 @@
+# Available Start Date Field
+langcode: en
+status: true
+dependencies:
+  module:
+    - datetime
+    - profile
+id: profile.field_available_start_date
+field_name: field_available_start_date
+entity_type: profile
+type: datetime
+settings:
+  datetime_type: date
+module: datetime
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

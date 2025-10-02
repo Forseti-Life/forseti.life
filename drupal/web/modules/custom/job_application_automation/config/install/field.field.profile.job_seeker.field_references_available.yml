@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_references_available
+    - profile.type.job_seeker
+  module:
+    - profile
+id: profile.job_seeker.field_references_available
+field_name: field_references_available
+entity_type: profile
+bundle: job_seeker
+label: 'References Available'
+description: 'References available upon request'
+required: false
+translatable: false
+default_value:
+  - value: 1
+default_value_callback: ''
+settings:
+  on_label: 'Yes'
+  off_label: 'No'
+field_type: boolean

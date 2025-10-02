@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_ai_analysis_data
+    - profile.type.job_seeker
+  module:
+    - profile
+    - text
+id: profile.job_seeker.field_ai_analysis_data
+field_name: field_ai_analysis_data
+entity_type: profile
+bundle: job_seeker
+label: 'AI Analysis Data'
+description: 'JSON storage for AI-analyzed profile data'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: text_long

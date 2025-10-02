@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_last_profile_update
+    - profile.type.job_seeker
+  module:
+    - datetime
+    - profile
+id: profile.job_seeker.field_last_profile_update
+field_name: field_last_profile_update
+entity_type: profile
+bundle: job_seeker
+label: 'Last Profile Update'
+description: 'Last time profile was updated'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: datetime
