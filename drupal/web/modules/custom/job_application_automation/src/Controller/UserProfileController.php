@@ -1061,8 +1061,7 @@ class UserProfileController extends ControllerBase {
     try {
       $request = \Drupal::request();
       $job_id = $request->request->get('job_id');
-      $user_id = $request->request->get('user_id');
-      $options = $request->request->get('options', []);
+      $user_id = $request->request->get('user_id', \Drupal::currentUser()->id());
       
       // Load job posting
       $job_entity = $this->entityTypeManager->getStorage('node')->load($job_id);
@@ -1072,24 +1071,16 @@ class UserProfileController extends ControllerBase {
         ], 400);
       }
 
-      // Load resume from node 10
-      $resume_entity = $this->entityTypeManager->getStorage('node')->load(10);
-      if (!$resume_entity) {
-        return new \Symfony\Component\HttpFoundation\JsonResponse([
-          'error' => 'Resume not found',
-        ], 400);
-      }
-
-      // Check environment and generate tailored resume
-      $tailored_resume = $this->generateTailoredResume($resume_entity, $job_entity, $options);
+      // Simple tailored resume content (just for testing)
+      $tailored_content = 'This is a tailored resume for: ' . $job_entity->getTitle();
       
-      // Create Tailored Resume content entity
+      // Create Tailored Resume node - SIMPLE VERSION
       $tailored_resume_node = $this->entityTypeManager->getStorage('node')->create([
         'type' => 'tailored_resume',
         'title' => 'Tailored Resume: ' . $job_entity->getTitle(),
         'body' => [
-          'value' => $tailored_resume,
-          'format' => 'full_html',
+          'value' => $tailored_content,
+          'format' => 'basic_html',
         ],
         'field_job_posting' => $job_entity->id(),
         'field_resume' => 10, // Reference to node 10 (Keith Aumiller Base Resume)
@@ -1100,16 +1091,16 @@ class UserProfileController extends ControllerBase {
       
       return new \Symfony\Component\HttpFoundation\JsonResponse([
         'success' => TRUE,
-        'tailored_resume' => $tailored_resume,
+        'message' => 'Tailored resume created successfully!',
         'job_title' => $job_entity->getTitle(),
         'tailored_resume_node_id' => $tailored_resume_node->id(),
       ]);
 
     } catch (\Exception $e) {
-      \Drupal::logger('job_application_automation')->error('Error tailoring resume: @error', ['@error' => $e->getMessage()]);
+      \Drupal::logger('job_application_automation')->error('Error creating tailored resume: @error', ['@error' => $e->getMessage()]);
       
       return new \Symfony\Component\HttpFoundation\JsonResponse([
-        'error' => 'Failed to tailor resume: ' . $e->getMessage(),
+        'error' => 'Failed to create tailored resume: ' . $e->getMessage(),
       ], 500);
     }
   }
