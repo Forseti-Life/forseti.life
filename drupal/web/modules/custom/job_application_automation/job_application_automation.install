@@ -108,6 +108,11 @@ function _job_application_automation_create_content_types() {
       'label' => 'Issue',
       'description' => 'Support requests and system issues requiring attention',
     ],
+    'tailored_resume' => [
+      'label' => 'Tailored Resume',
+      'description' => 'AI-generated resumes tailored for specific job opportunities',
+      'create_body' => TRUE,
+    ],
   ];
 
   foreach ($content_types as $type => $info) {
@@ -119,7 +124,7 @@ function _job_application_automation_create_content_types() {
         'name' => $info['label'],
         'description' => $info['description'],
         'title_label' => 'Title',
-        'create_body' => FALSE,
+        'create_body' => isset($info['create_body']) ? $info['create_body'] : FALSE,
         'promote' => FALSE,
         'sticky' => FALSE,
         'locked' => FALSE,
@@ -656,6 +661,32 @@ function _job_application_automation_get_field_definitions() {
           'label' => 'Screenshot',
           'description' => 'Screenshot of error if available',
           'required' => FALSE,
+        ],
+      ],
+      'tailored_resume' => [
+        'field_job_posting' => [
+          'type' => 'entity_reference',
+          'label' => 'Job Posting',
+          'description' => 'Reference to the job posting this resume was tailored for',
+          'required' => TRUE,
+          'settings' => [
+            'target_type' => 'node',
+            'handler_settings' => [
+              'target_bundles' => ['job_posting' => 'job_posting'],
+            ],
+          ],
+        ],
+        'field_resume' => [
+          'type' => 'entity_reference',
+          'label' => 'Original Resume',
+          'description' => 'Reference to the original resume that was tailored',
+          'required' => TRUE,
+          'settings' => [
+            'target_type' => 'node',
+            'handler_settings' => [
+              'target_bundles' => ['resume' => 'resume'],
+            ],
+          ],
         ],
       ],
     ],
@@ -1216,8 +1247,54 @@ function job_application_automation_update_8003() {
  * Set default permissions for the module.
  */
 function _job_application_automation_set_permissions() {
-  // Basic permission setup - detailed permissions should be configured by admins
-  \Drupal::logger('job_application_automation')->info('Default permissions noted for admin configuration.');
+  $role_storage = \Drupal::entityTypeManager()->getStorage('user_role');
+  
+  // Get the authenticated user role
+  $authenticated_role = $role_storage->load('authenticated');
+  
+  if ($authenticated_role) {
+    // Grant permissions to authenticated users
+    $permissions = [
+      'access user job applications',
+      'edit own job application profile',
+      'view own job application profile',
+      'create application content',
+      'edit own application content',
+      'view application content',
+      'create tailored_resume content',
+      'edit own tailored_resume content',
+      'view tailored_resume content',
+      'create company content',
+      'view company content',
+      'create job_posting content',
+      'view job_posting content',
+      'access job discovery',
+      'tailor resume',
+      'access companies overview',
+    ];
+    
+    foreach ($permissions as $permission) {
+      try {
+        $authenticated_role->grantPermission($permission);
+      } catch (\Exception $e) {
+        \Drupal::logger('job_application_automation')->warning('Could not grant permission @permission: @error', [
+          '@permission' => $permission,
+          '@error' => $e->getMessage(),
+        ]);
+      }
+    }
+    
+    $authenticated_role->save();
+    \Drupal::logger('job_application_automation')->info('Permissions granted to authenticated users.');
+  }
+}
+
+/**
+ * Update 8005: Grant permissions to authenticated users for job discovery functionality.
+ */
+function job_application_automation_update_8005() {
+  _job_application_automation_set_permissions();
+  return 'Permissions have been updated for authenticated users to access job discovery functionality.';
 }
 
 /**

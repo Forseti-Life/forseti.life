@@ -3,6 +3,58 @@
   padding: 20px 0;
 }
 
+.current-resume {
+  margin-bottom: 20px;
+}
+
+.current-resume h5 {
+  color: #495057;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.resume-content {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 5px;
+  border-left: 4px solid #28a745;
+  max-height: 400px;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+.resume-content h1, .resume-content h2, .resume-content h3, 
+.resume-content h4, .resume-content h5, .resume-content h6 {
+  color: #2c3e50;
+  margin-top: 15px;
+  margin-bottom: 10px;
+}
+
+.resume-content h1 {
+  font-size: 1.5rem;
+}
+
+.resume-content h2 {
+  font-size: 1.3rem;
+}
+
+.resume-content h3 {
+  font-size: 1.1rem;
+}
+
+.resume-content p {
+  margin-bottom: 10px;
+}
+
+.resume-content ul, .resume-content ol {
+  margin-bottom: 15px;
+  padding-left: 20px;
+}
+
+.resume-content li {
+  margin-bottom: 5px;
+}
+
 .tailor-resume-header {
   margin-bottom: 30px;
 }

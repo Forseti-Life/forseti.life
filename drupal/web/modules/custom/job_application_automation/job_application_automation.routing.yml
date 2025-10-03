@@ -105,7 +105,7 @@ job_application_automation.companies_overview:
     _controller: '\Drupal\job_application_automation\Controller\JobApplicationController::companiesOverview'
     _title: 'Companies Overview'
   requirements:
-    _user: 'user.is_authenticated'
+    _permission: 'access companies overview'
 
 # 2. Application Management Routes
 job_application_automation.add:
@@ -198,6 +198,17 @@ job_application_automation.tailor_resume:
     _permission: 'edit own job application profile'
     user: \d+
     job: \d+
+
+# AJAX endpoint for resume tailoring
+job_application_automation.tailor_resume_ajax:
+  path: '/tailor-resume/ajax'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\UserProfileController::tailorResumeAjax'
+  requirements:
+    _access: 'TRUE'
+  methods: [POST]
+  options:
+    _csrf_token: FALSE
 
 # 6. Future Routes (Commented Out)
 # job_application_automation.settings:

@@ -24,18 +24,54 @@
           $('#tailoring-results').hide();
           button.prop('disabled', true);
           
-          // Simulate AI processing (replace with actual AI service call)
-          setTimeout(function() {
-            // Hide loading status
-            $('#tailoring-status').hide();
-            
-            // Show mock tailored resume
-            const mockResumeContent = generateMockTailoredResume(jobId);
-            $('#resume-content').html(mockResumeContent);
-            $('#tailoring-results').show();
-            
-            button.prop('disabled', false);
-          }, 3000);
+          // Get selected tailoring options
+          const options = [];
+          $('.form-check-input:checked').each(function() {
+            options.push($(this).attr('id'));
+          });
+          
+          // Call the AI service
+          $.ajax({
+            url: '/tailor-resume/ajax',
+            type: 'POST',
+            data: {
+              job_id: jobId,
+              user_id: userId,
+              options: options
+            },
+            success: function(response) {
+              // Hide loading status
+              $('#tailoring-status').hide();
+              
+              if (response.success) {
+                // Show tailored resume
+                $('#resume-content').html(response.tailored_resume);
+                $('#tailoring-results').show();
+                
+                var successMessage = 'Resume successfully tailored for ' + response.job_title;
+                if (response.tailored_resume_node_id) {
+                  successMessage += '. <a href="/node/' + response.tailored_resume_node_id + '" target="_blank">View saved tailored resume</a>';
+                }
+                
+                Drupal.Message.add(successMessage, {type: 'status', allowHtml: true});
+              } else {
+                Drupal.Message.add('Error: ' + (response.error || 'Unknown error occurred'), {type: 'error'});
+              }
+              
+              button.prop('disabled', false);
+            },
+            error: function(xhr, status, error) {
+              // Hide loading status
+              $('#tailoring-status').hide();
+              button.prop('disabled', false);
+              
+              let errorMessage = 'Failed to tailor resume. Please try again.';
+              if (xhr.responseJSON && xhr.responseJSON.error) {
+                errorMessage = xhr.responseJSON.error;
+              }
+              Drupal.Message.add(errorMessage, {type: 'error'});
+            }
+          });
         });
       });
       

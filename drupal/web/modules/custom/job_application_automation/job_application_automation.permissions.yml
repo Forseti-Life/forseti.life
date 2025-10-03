@@ -146,3 +146,41 @@ edit any job application profile:
 manage user profiles:
   title: 'Manage User Profiles'
   description: 'Administrative access to user profile management and completeness tracking.'
+
+# Tailored Resume content type permissions
+create tailored_resume content:
+  title: 'Create Tailored Resume Content'
+  description: 'Create new tailored resume entries.'
+
+edit own tailored_resume content:
+  title: 'Edit Own Tailored Resume Content'
+  description: 'Edit own tailored resume content.'
+
+edit any tailored_resume content:
+  title: 'Edit Any Tailored Resume Content'
+  description: 'Edit any tailored resume content.'
+
+delete own tailored_resume content:
+  title: 'Delete Own Tailored Resume Content'
+  description: 'Delete own tailored resume content.'
+
+delete any tailored_resume content:
+  title: 'Delete Any Tailored Resume Content'
+  description: 'Delete any tailored resume content.'
+
+view tailored_resume content:
+  title: 'View Tailored Resume Content'
+  description: 'View published tailored resume content.'
+
+# Job Discovery and Resume Tailoring permissions
+access job discovery:
+  title: 'Access Job Discovery'
+  description: 'Access the job discovery functionality to search for jobs.'
+
+tailor resume:
+  title: 'Tailor Resume'
+  description: 'Use AI to tailor resume for specific job opportunities.'
+
+access companies overview:
+  title: 'Access Companies Overview'
+  description: 'Access the companies overview page for job discovery.'

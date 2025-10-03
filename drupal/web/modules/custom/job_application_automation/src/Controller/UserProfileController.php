@@ -1013,6 +1013,13 @@ class UserProfileController extends ControllerBase {
       throw new NotFoundHttpException();
     }
 
+    // Load resume from node 10
+    $resume_entity = $this->entityTypeManager->getStorage('node')->load(10);
+    if (!$resume_entity) {
+      $this->messenger()->addError($this->t('Resume not found. Please contact the administrator.'));
+      throw new NotFoundHttpException();
+    }
+
     // Load user's job seeker profile
     $profile_storage = $this->entityTypeManager->getStorage('profile');
     $profiles = $profile_storage->loadByProperties([
@@ -1033,6 +1040,7 @@ class UserProfileController extends ControllerBase {
       '#user' => $user,
       '#profile' => $profile,
       '#job' => $job_entity,
+      '#resume' => $resume_entity,
       '#attached' => [
         'library' => [
           'job_application_automation/tailor_resume',
@@ -1041,6 +1049,233 @@ class UserProfileController extends ControllerBase {
     ];
 
     return $build;
+  }
+
+  /**
+   * AJAX endpoint for AI resume tailoring.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with tailored resume.
+   */
+  public function tailorResumeAjax() {
+    try {
+      $request = \Drupal::request();
+      $job_id = $request->request->get('job_id');
+      $user_id = $request->request->get('user_id');
+      $options = $request->request->get('options', []);
+      
+      // Load job posting
+      $job_entity = $this->entityTypeManager->getStorage('node')->load($job_id);
+      if (!$job_entity || $job_entity->bundle() !== 'job_posting') {
+        return new \Symfony\Component\HttpFoundation\JsonResponse([
+          'error' => 'Invalid job posting',
+        ], 400);
+      }
+
+      // Load resume from node 10
+      $resume_entity = $this->entityTypeManager->getStorage('node')->load(10);
+      if (!$resume_entity) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse([
+          'error' => 'Resume not found',
+        ], 400);
+      }
+
+      // Check environment and generate tailored resume
+      $tailored_resume = $this->generateTailoredResume($resume_entity, $job_entity, $options);
+      
+      // Create Tailored Resume content entity
+      $tailored_resume_node = $this->entityTypeManager->getStorage('node')->create([
+        'type' => 'tailored_resume',
+        'title' => 'Tailored Resume: ' . $job_entity->getTitle(),
+        'body' => [
+          'value' => $tailored_resume,
+          'format' => 'full_html',
+        ],
+        'field_job_posting' => $job_entity->id(),
+        'field_resume' => 10, // Reference to node 10 (Keith Aumiller Base Resume)
+        'uid' => $user_id,
+        'status' => 1,
+      ]);
+      $tailored_resume_node->save();
+      
+      return new \Symfony\Component\HttpFoundation\JsonResponse([
+        'success' => TRUE,
+        'tailored_resume' => $tailored_resume,
+        'job_title' => $job_entity->getTitle(),
+        'tailored_resume_node_id' => $tailored_resume_node->id(),
+      ]);
+
+    } catch (\Exception $e) {
+      \Drupal::logger('job_application_automation')->error('Error tailoring resume: @error', ['@error' => $e->getMessage()]);
+      
+      return new \Symfony\Component\HttpFoundation\JsonResponse([
+        'error' => 'Failed to tailor resume: ' . $e->getMessage(),
+      ], 500);
+    }
+  }
+
+  /**
+   * Generate tailored resume (mock in dev, real AI in prod).
+   */
+  private function generateTailoredResume($resume_entity, $job_entity, $options) {
+    // Check if we're in a development environment
+    $is_dev_environment = $this->isDevelopmentEnvironment();
+    
+    if ($is_dev_environment) {
+      // Return mock response for development
+      return $this->getMockTailoredResume($resume_entity, $job_entity, $options);
+    }
+    else {
+      // Use real AI service in production
+      return $this->getAiTailoredResume($resume_entity, $job_entity, $options);
+    }
+  }
+
+  /**
+   * Check if we're in a development environment.
+   */
+  private function isDevelopmentEnvironment() {
+    // Check if this is our development workspace
+    $workspace_path = '/workspaces/stlouisintegration.com';
+    if (file_exists($workspace_path)) {
+      return TRUE;
+    }
+    
+    // Check environment variables that indicate development
+    $env_indicators = ['CODESPACE_NAME', 'GITPOD_WORKSPACE_ID', 'C9_USER'];
+    foreach ($env_indicators as $indicator) {
+      if (getenv($indicator)) {
+        return TRUE;
+      }
+    }
+    
+    // Check if we're in local development
+    $host = $_SERVER['SERVER_NAME'] ?? 'localhost';
+    if (in_array($host, ['localhost', '127.0.0.1', 'local.dev'])) {
+      return TRUE;
+    }
+    
+    return FALSE;
+  }
+
+  /**
+   * Get mock tailored resume for development.
+   */
+  private function getMockTailoredResume($resume_entity, $job_entity, $options) {
+    $resume_title = $resume_entity->getTitle();
+    $job_title = $job_entity->getTitle();
+    
+    return "<h3>Resume has been tailored for: {$job_title}</h3>
+<p><strong>Development Mode:</strong> This is a mock response. In production, this would be generated by AI.</p>
+<p><strong>Selected Options:</strong> " . implode(', ', array_keys(array_filter($options))) . "</p>
+<div class='mock-tailored-resume'>
+<h4>Keith Aumiller</h4>
+<p><em>Resume tailored for {$job_title} position</em></p>
+<h5>Summary</h5>
+<p>This resume has been specifically tailored to highlight relevant experience and skills for the {$job_title} position based on the selected tailoring options.</p>
+<h5>Key Qualifications</h5>
+<ul>
+<li>Relevant experience highlighted based on job requirements</li>
+<li>Skills emphasized to match position needs</li>
+<li>Achievements reframed for maximum impact</li>
+</ul>
+<p><small>Note: In production, this content would be generated by AI based on the actual resume content and job requirements.</small></p>
+</div>";
+  }
+
+  /**
+   * Get AI-generated tailored resume for production.
+   */
+  private function getAiTailoredResume($resume_entity, $job_entity, $options) {
+    try {
+      // Get AI service
+      $ai_service = \Drupal::service('ai_conversation.api_service');
+      
+      // Create a temporary conversation node for this tailoring request
+      $conversation = $this->entityTypeManager->getStorage('node')->create([
+        'type' => 'ai_conversation',
+        'title' => 'Resume Tailoring: ' . $job_entity->getTitle(),
+        'field_context' => $this->buildResumeTailoringSystemPrompt($resume_entity, $job_entity, $options),
+        'field_ai_model' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+        'uid' => \Drupal::currentUser()->id(),
+      ]);
+      $conversation->save();
+
+      // Build tailoring request message
+      $tailoring_message = $this->buildTailoringMessage($resume_entity, $job_entity, $options);
+      
+      // Get AI response
+      $tailored_resume = $ai_service->sendMessage($conversation, $tailoring_message);
+      
+      // Clean up temporary conversation
+      $conversation->delete();
+      
+      return $tailored_resume;
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('job_application_automation')->error('AI tailoring failed: @error', ['@error' => $e->getMessage()]);
+      return $this->getMockTailoredResume($resume_entity, $job_entity, $options);
+    }
+  }
+
+  /**
+   * Build system prompt for resume tailoring.
+   */
+  private function buildResumeTailoringSystemPrompt($resume_entity, $job_entity, $options) {
+    $prompt = "You are an expert resume tailoring assistant. Your task is to analyze a job posting and tailor an existing resume to better match the position requirements.\n\n";
+    
+    $prompt .= "INSTRUCTIONS:\n";
+    $prompt .= "1. Analyze the job description, requirements, and skills needed\n";
+    $prompt .= "2. Tailor the resume to emphasize relevant experience and skills\n";
+    $prompt .= "3. Maintain all factual information - do not fabricate experience\n";
+    $prompt .= "4. Reorder sections and bullet points to highlight most relevant items first\n";
+    $prompt .= "5. Use keywords from the job posting naturally throughout the resume\n";
+    $prompt .= "6. Format as clean HTML that can be easily converted to PDF\n\n";
+    
+    if (in_array('emphasize-keywords', $options)) {
+      $prompt .= "- EMPHASIZE KEYWORDS: Naturally incorporate job posting keywords\n";
+    }
+    if (in_array('reorder-sections', $options)) {
+      $prompt .= "- REORDER SECTIONS: Prioritize most relevant sections and experiences\n";
+    }
+    if (in_array('highlight-achievements', $options)) {
+      $prompt .= "- HIGHLIGHT ACHIEVEMENTS: Emphasize accomplishments relevant to the role\n";
+    }
+    
+    $prompt .= "\nOutput only the tailored resume in clean HTML format suitable for professional presentation.";
+    
+    return $prompt;
+  }
+
+  /**
+   * Build tailoring message with resume and job details.
+   */
+  private function buildTailoringMessage($resume_entity, $job_entity, $options) {
+    $message = "Please tailor this resume for the following job posting:\n\n";
+    
+    $message .= "=== JOB POSTING ===\n";
+    $message .= "Title: " . $job_entity->getTitle() . "\n\n";
+    
+    if (!$job_entity->get('field_job_description')->isEmpty()) {
+      $message .= "Description:\n" . strip_tags($job_entity->get('field_job_description')->value) . "\n\n";
+    }
+    
+    if (!$job_entity->get('field_requirements')->isEmpty()) {
+      $message .= "Requirements:\n" . strip_tags($job_entity->get('field_requirements')->value) . "\n\n";
+    }
+    
+    if (!$job_entity->get('field_skills_required')->isEmpty()) {
+      $message .= "Skills Required:\n" . strip_tags($job_entity->get('field_skills_required')->value) . "\n\n";
+    }
+    
+    $message .= "=== ORIGINAL RESUME ===\n";
+    if (!$resume_entity->get('body')->isEmpty()) {
+      $message .= strip_tags($resume_entity->get('body')->value) . "\n\n";
+    }
+    
+    $message .= "Please provide the tailored resume optimized for this specific position.";
+    
+    return $message;
   }
 
 }
