@@ -684,16 +684,19 @@ class UserProfileController extends ControllerBase {
       return $this->redirect('job_application_automation.user_job_seeker_view', ['user' => $user->id()]);
     }
 
-    // Extract keywords from profile
-    $keywords = $this->extractKeywordsFromProfile($profile);
+    // Load job opportunities for this specific company
+    $job_opportunities = $this->entityTypeManager->getStorage('node')->loadByProperties([
+      'type' => 'job_posting',
+      'status' => 1, // Published
+      'field_company_ref' => $company_entity->id(),
+    ]);
     
     // Build the render array for the company-specific job discovery page
     $build = [
       '#theme' => 'job_discovery_company_search',
       '#user' => $user,
-      '#profile' => $profile,
       '#company' => $company_entity,
-      '#keywords' => $keywords,
+      '#job_opportunities' => $job_opportunities,
       '#attached' => [
         'library' => [
           'job_application_automation/job_discovery',

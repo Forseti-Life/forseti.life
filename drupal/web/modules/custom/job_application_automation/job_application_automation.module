@@ -75,6 +75,7 @@ function job_application_automation_theme() {
         'profile' => NULL,
         'company' => NULL,
         'keywords' => [],
+        'job_opportunities' => [],
       ],
       'template' => 'job-discovery-company-search',
     ],

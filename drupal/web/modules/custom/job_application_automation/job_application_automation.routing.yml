@@ -96,7 +96,7 @@ job_application_automation.bulk_import_companies:
     _form: '\Drupal\job_application_automation\Form\BulkCompanyImportForm'
     _title: 'Bulk Import Companies'
   requirements:
-    _user: 'user.is_authenticated'
+    _access: 'TRUE'
 
 # Companies Overview
 job_application_automation.companies_overview:

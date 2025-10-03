@@ -5,139 +5,76 @@
  *
  * Available variables:
  * - user: The user entity
- * - profile: The job seeker profile entity
  * - company: The company entity
- * - keywords: Array of keywords extracted from the profile
+ * - job_opportunities: Array of job posting entities
  */
 #}
 
-<div class="job-discovery-start">
+<div class="job-discovery-company">
   <div class="job-discovery-header">
-    <h1>{{ 'AI Job Discovery'|t }}</h1>
-    <p class="discovery-subtitle">{{ 'Discover opportunities that match your profile at %company'|t({'%company': company.title}) }}</p>
+    <h1>{{ 'Job Opportunities at %company'|t({'%company': company.getTitle()}) }}</h1>
+    <a href="{{ path('job_application_automation.start_job_discovery', {'user': user.id()}) }}" class="btn btn-secondary">
+      {{ 'Back to Company Selection'|t }}
+    </a>
   </div>
 
-  <div class="discovery-content">
-    <div class="row">
-      <div class="col-md-8">
-        <div class="discovery-card">
-          <h2>{{ 'Your Profile Keywords'|t }}</h2>
-          <p class="discovery-description">
-            {{ 'Based on your job seeker profile, we\'ll search for opportunities using these keywords:'|t }}
-          </p>
-          
-          {% if keywords %}
-            <div class="keywords-container">
-              {% for keyword in keywords %}
-                <span class="keyword-tag">{{ keyword }}</span>
-              {% endfor %}
-            </div>
-          {% else %}
-            <div class="no-keywords">
-              <p>{{ 'No keywords found in your profile. Please update your job seeker profile with skills, job titles, and career objectives.'|t }}</p>
-              <a href="{{ path('job_application_automation.user_job_seeker_view', {'user': user.id}) }}" class="btn btn-secondary">
-                {{ 'Update Profile'|t }}
-              </a>
-            </div>
-          {% endif %}
-        </div>
-
-        {% if keywords %}
-          <div class="discovery-card discovery-target">
-            <h2>{{ 'Target Company: %company'|t({'%company': company.title}) }}</h2>
-            <div class="company-info">
-              <div class="company-logo">
-                <div class="company-logo-text">{{ company.title }}</div>
-              </div>
-              <div class="company-details">
-                <h3>{{ company.title }}</h3>
-                {% if company.field_description and not company.field_description.isEmpty and company.field_description.0 %}
-                  {% set description = company.field_description.0.value|striptags %}
-                  <p>{{ description|length > 200 ? description|slice(0, 200) ~ '...' : description }}</p>
-                {% else %}
-                  <p>{{ 'Global company with career opportunities across multiple disciplines.'|t }}</p>
+  <div class="job-opportunities">
+    <h2>{{ 'Job Opportunities at %company'|t({'%company': company.getTitle()}) }}</h2>
+    
+    {% if job_opportunities %}
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>{{ 'Job Title'|t }}</th>
+            <th>{{ 'Location'|t }}</th>
+            <th>{{ 'Employment Type'|t }}</th>
+            <th>{{ 'Posted Date'|t }}</th>
+            <th>{{ 'Actions'|t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in job_opportunities %}
+            <tr>
+              <td>
+                <strong>{{ job.getTitle() }}</strong>
+                {% if not job.get('field_job_description').isEmpty %}
+                  <br><small class="text-muted">{{ job.get('field_job_description').value|striptags|slice(0, 100) }}...</small>
                 {% endif %}
-                
-                <div class="company-meta">
-                  {% if company.field_industry and not company.field_industry.isEmpty and company.field_industry.0 %}
-                    <span class="company-tag">
-                      <i class="fas fa-industry"></i> {{ company.field_industry.0.value }}
-                    </span>
-                  {% endif %}
-                  
-                  {% if company.field_size and not company.field_size.isEmpty and company.field_size.0 %}
-                    <span class="company-tag">
-                      <i class="fas fa-users"></i> {{ company.field_size.0.value }}
-                    </span>
-                  {% endif %}
-                  
-                  {% if company.field_website and not company.field_website.isEmpty and company.field_website.0 %}
-                    <a href="{{ company.field_website.0.uri }}" target="_blank" class="company-tag company-link">
-                      <i class="fas fa-external-link-alt"></i> {{ 'Visit Website'|t }}
-                    </a>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-            
-            <div class="discovery-actions">
-              <button id="start-discovery-btn" class="btn btn-primary btn-lg" data-company-id="{{ company.id }}">
-                <i class="fas fa-search"></i> {{ 'Start Discovery'|t }}
-              </button>
-              <a href="{{ path('job_application_automation.start_job_discovery', {'user': user.id}) }}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left"></i> {{ 'Back to Company Selection'|t }}
-              </a>
-            </div>
-          </div>
-        {% endif %}
+              </td>
+              <td>
+                {% if not job.get('field_location').isEmpty %}
+                  {{ job.get('field_location').value }}
+                {% else %}
+                  {{ 'Not specified'|t }}
+                {% endif %}
+              </td>
+              <td>
+                {% if not job.get('field_employment_type').isEmpty %}
+                  {{ job.get('field_employment_type').value }}
+                {% else %}
+                  {{ 'Not specified'|t }}
+                {% endif %}
+              </td>
+              <td>
+                {% if not job.get('field_posting_date').isEmpty %}
+                  {{ job.get('field_posting_date').value|date('M j, Y') }}
+                {% else %}
+                  {{ 'Not specified'|t }}
+                {% endif %}
+              </td>
+              <td>
+                <a href="{{ path('entity.node.canonical', {'node': job.id()}) }}" class="btn btn-sm btn-primary">
+                  {{ 'View Details'|t }}
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="alert alert-info">
+        <p>{{ 'No job opportunities currently available at %company. Check back later for new postings.'|t({'%company': company.getTitle()}) }}</p>
       </div>
-
-      <div class="col-md-4">
-        <div class="discovery-card discovery-info">
-          <h3>{{ 'How It Works'|t }}</h3>
-          <ul class="discovery-steps">
-            <li>
-              <i class="fas fa-robot"></i>
-              <strong>{{ 'AI-Powered Search'|t }}</strong>
-              <p>{{ 'Our system will scrape %company\'s careers page for current openings'|t({'%company': company.title}) }}</p>
-            </li>
-            <li>
-              <i class="fas fa-filter"></i>
-              <strong>{{ 'Smart Matching'|t }}</strong>
-              <p>{{ 'Jobs are filtered and ranked based on your profile keywords'|t }}</p>
-            </li>
-            <li>
-              <i class="fas fa-bookmark"></i>
-              <strong>{{ 'Save & Track'|t }}</strong>
-              <p>{{ 'Save interesting positions to your dashboard for easy tracking'|t }}</p>
-            </li>
-          </ul>
-        </div>
-
-        <div class="discovery-card discovery-tips">
-          <h3>{{ 'Tips for Better Results'|t }}</h3>
-          <ul class="tips-list">
-            <li>{{ 'Keep your profile keywords up to date'|t }}</li>
-            <li>{{ 'Include both technical and soft skills'|t }}</li>
-            <li>{{ 'Add specific job titles you\'re interested in'|t }}</li>
-            <li>{{ 'Review and update your profile regularly'|t }}</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    {# Loading and Results Section #}
-    <div id="discovery-status" class="discovery-status" style="display: none;">
-      <div class="status-content">
-        <i class="fas fa-spinner fa-spin"></i>
-        <span class="status-text">{{ 'Searching for opportunities...'|t }}</span>
-      </div>
-    </div>
-
-    <div id="discovery-results" class="discovery-results">
-      <div id="results-container">
-        {# Results will be populated by JavaScript #}
-      </div>
-    </div>
+    {% endif %}
   </div>
 </div>
