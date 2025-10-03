@@ -53,9 +53,9 @@
                   successMessage += '. <a href="/node/' + response.tailored_resume_node_id + '" target="_blank">View saved tailored resume</a>';
                 }
                 
-                Drupal.Message.add(successMessage, {type: 'status', allowHtml: true});
+                Drupal.messenger().addMessage(successMessage, 'status', true);
               } else {
-                Drupal.Message.add('Error: ' + (response.error || 'Unknown error occurred'), {type: 'error'});
+                Drupal.messenger().addMessage('Error: ' + (response.error || 'Unknown error occurred'), 'error');
               }
               
               button.prop('disabled', false);
@@ -69,7 +69,7 @@
               if (xhr.responseJSON && xhr.responseJSON.error) {
                 errorMessage = xhr.responseJSON.error;
               }
-              Drupal.Message.add(errorMessage, {type: 'error'});
+              Drupal.messenger().addMessage(errorMessage, 'error');
             }
           });
         });
@@ -163,7 +163,7 @@
     window.URL.revokeObjectURL(url);
     
     // Show success message
-    Drupal.Message.add('Resume downloaded successfully!', {type: 'status'});
+    Drupal.messenger().addMessage('Resume downloaded successfully!', 'status');
   }
   
   /**
@@ -199,7 +199,7 @@
     setTimeout(function() {
       button.html(originalText);
       button.prop('disabled', false);
-      Drupal.Message.add('Resume changes saved successfully!', {type: 'status'});
+      Drupal.messenger().addMessage('Resume changes saved successfully!', 'status');
     }, 1500);
   }
 
