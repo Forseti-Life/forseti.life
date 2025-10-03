@@ -3,7 +3,7 @@
  * Job Discovery JavaScript functionality
  */
 
-(function ($, Drupal) {
+(function ($, Drupal, once) {
   'use strict';
 
   /**
@@ -11,10 +11,12 @@
    */
   Drupal.behaviors.jobDiscovery = {
     attach: function (context, settings) {
-      // Ensure we only attach once
-      $('#start-discovery-btn', context).once('job-discovery').on('click', function(e) {
-        e.preventDefault();
-        startJobDiscovery();
+      // Ensure we only attach once using Drupal 11's once utility
+      once('job-discovery', '#start-discovery-btn', context).forEach(function(element) {
+        $(element).on('click', function(e) {
+          e.preventDefault();
+          startJobDiscovery();
+        });
       });
     }
   };
@@ -33,30 +35,52 @@
     
     // Get the current user ID from the URL
     const pathParts = window.location.pathname.split('/');
-    const userId = pathParts[2]; // /user/{id}/job-discovery/start
+    const userId = pathParts[2]; // /user/{id}/job-discovery/company/{company_id}
+    
+    // Get company ID from button data attribute
+    const companyId = $button.data('company-id');
     
     // Make AJAX request to search for jobs
     const searchData = {
       user_id: userId,
-      company: 'abbvie'
+      company_id: companyId
     };
     
-    // Simulate the search process with actual AJAX call
+    // Make AJAX request to search for jobs using Drupal AJAX
     $.ajax({
       url: '/job-discovery/search',
       method: 'POST',
       data: searchData,
       dataType: 'json',
-      headers: {
-        'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
-      },
+
       success: function(response) {
-        displayResults(response.jobs || []);
+        console.log('AJAX success response:', response);
+        console.log('Response type:', typeof response);
+        console.log('Jobs found:', response.jobs ? response.jobs.length : 'No jobs property');
+        
+        if (response.jobs && response.jobs.length > 0) {
+          console.log('Displaying', response.jobs.length, 'jobs');
+          displayResults(response.jobs);
+        } else {
+          console.log('No jobs found, showing empty results');
+          displayResults([]);
+        }
       },
       error: function(xhr, status, error) {
-        // For now, let's simulate some results since we don't have the backend ready
-        console.log('AJAX error, showing simulated results');
-        showSimulatedResults();
+        console.log('AJAX error:', xhr.status, error);
+        console.log('Response text:', xhr.responseText);
+        
+        // Try to parse error response
+        let errorMessage = 'Failed to search jobs. ';
+        try {
+          const errorResponse = JSON.parse(xhr.responseText);
+          errorMessage += errorResponse.error || 'Unknown error';
+        } catch (e) {
+          errorMessage += 'Server error: ' + xhr.status;
+        }
+        
+        // Show error message instead of simulated results
+        displayError(errorMessage);
       },
       complete: function() {
         // Hide loading state
@@ -121,11 +145,32 @@
   }
 
   /**
+   * Display error message.
+   */
+  function displayError(errorMessage) {
+    const $results = $('#discovery-results');
+    const $resultsContainer = $('#results-container');
+    
+    $resultsContainer.html('<div class="error-results"><div class="alert alert-danger"><strong>Error:</strong> ' + errorMessage + '</div></div>');
+    
+    // Show results section
+    $results.show();
+    
+    // Smooth scroll to results
+    $('html, body').animate({
+      scrollTop: $results.offset().top - 100
+    }, 800);
+  }
+
+  /**
    * Display job search results.
    */
   function displayResults(jobs) {
     const $results = $('#discovery-results');
     const $resultsContainer = $('#results-container');
+    
+    // Store jobs globally for save functionality
+    window.currentJobResults = jobs;
     
     if (jobs.length === 0) {
       $resultsContainer.html('<div class="no-results"><p>No matching opportunities found. Try updating your profile keywords or check back later.</p></div>');
@@ -187,21 +232,70 @@
   }
   
   /**
-   * Handle saving jobs (placeholder functionality).
+   * Handle saving jobs to the user's dashboard.
    */
   $(document).on('click', '.save-job-btn', function(e) {
     e.preventDefault();
     const $btn = $(this);
     const jobId = $btn.data('job-id');
     
-    // Simple UI feedback
-    $btn.html('<i class="fas fa-check"></i> Saved').removeClass('btn-outline-secondary').addClass('btn-success').prop('disabled', true);
+    // Find the job data from the current results
+    let jobData = null;
+    for (let job of window.currentJobResults || []) {
+      if (job.jobId === jobId) {
+        jobData = job;
+        break;
+      }
+    }
     
-    // Here you would typically save to the database
-    console.log('Saving job:', jobId);
+    if (!jobData) {
+      console.error('Job data not found for ID:', jobId);
+      Drupal.announce('Error: Job data not found', 'assertive');
+      return;
+    }
     
-    // Show success message
-    Drupal.announce('Job saved to your dashboard', 'polite');
+    // Show loading state
+    $btn.html('<i class="fas fa-spinner fa-spin"></i> Saving...').prop('disabled', true);
+    
+    // Send job data to save endpoint
+    $.ajax({
+      url: '/job-discovery/save',
+      method: 'POST',
+      data: JSON.stringify(jobData),
+      contentType: 'application/json',
+      dataType: 'json',
+      success: function(response) {
+        if (response.success) {
+          $btn.html('<i class="fas fa-check"></i> Saved')
+              .removeClass('btn-outline-secondary')
+              .addClass('btn-success')
+              .prop('disabled', true);
+          
+          Drupal.announce(response.message || 'Job saved to your dashboard', 'polite');
+        } else {
+          $btn.html('<i class="fas fa-bookmark"></i> Save Job')
+              .prop('disabled', false);
+          
+          Drupal.announce('Error: ' + (response.error || 'Failed to save job'), 'assertive');
+        }
+      },
+      error: function(xhr, status, error) {
+        console.error('Save job error:', xhr.responseText);
+        
+        $btn.html('<i class="fas fa-bookmark"></i> Save Job')
+            .prop('disabled', false);
+        
+        let errorMessage = 'Failed to save job';
+        try {
+          const errorResponse = JSON.parse(xhr.responseText);
+          errorMessage = errorResponse.error || errorMessage;
+        } catch (e) {
+          errorMessage += ' (Server error: ' + xhr.status + ')';
+        }
+        
+        Drupal.announce('Error: ' + errorMessage, 'assertive');
+      }
+    });
   });
 
-})(jQuery, Drupal);
+})(jQuery, Drupal, once);

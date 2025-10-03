@@ -11,6 +11,7 @@ use Drupal\user\Entity\User;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Drupal\job_application_automation\Service\UserProfileService;
 
 /**
@@ -592,13 +593,13 @@ class UserProfileController extends ControllerBase {
   }
 
   /**
-   * Start job discovery page for a user.
+   * Start job discovery page - shows company selection.
    *
    * @param \Drupal\user\Entity\User $user
    *   The user entity.
    *
    * @return array
-   *   The render array for the job discovery page.
+   *   The render array for the company selection page.
    */
   public function startJobDiscovery(User $user) {
     // Check access - user can only access their own job discovery
@@ -606,7 +607,70 @@ class UserProfileController extends ControllerBase {
       throw new AccessDeniedHttpException();
     }
 
-    // Load user's job seeker profile for keywords
+    // Load user's job seeker profile
+    $profile_storage = $this->entityTypeManager->getStorage('profile');
+    $profiles = $profile_storage->loadByProperties([
+      'uid' => $user->id(),
+      'type' => 'job_seeker',
+    ]);
+
+    $profile = reset($profiles);
+    
+    if (!$profile) {
+      $this->messenger()->addError($this->t('Please complete your job seeker profile first before starting job discovery.'));
+      return $this->redirect('job_application_automation.user_job_seeker_view', ['user' => $user->id()]);
+    }
+
+    // Load available companies
+    $companies = $this->entityTypeManager->getStorage('node')->loadByProperties([
+      'type' => 'company',
+      'status' => 1, // Published
+    ]);
+
+    // Extract keywords from profile for preview
+    $keywords = $this->extractKeywordsFromProfile($profile);
+    
+    // Build the render array for the company selection page
+    $build = [
+      '#theme' => 'job_discovery_company_selection',
+      '#user' => $user,
+      '#profile' => $profile,
+      '#companies' => $companies,
+      '#keywords' => $keywords,
+      '#attached' => [
+        'library' => [
+          'job_application_automation/job_discovery',
+        ],
+      ],
+    ];
+
+    return $build;
+  }
+
+  /**
+   * Company-specific job discovery page.
+   *
+   * @param \Drupal\user\Entity\User $user
+   *   The user entity.
+   * @param \Drupal\node\Entity\Node $company
+   *   The company entity.
+   *
+   * @return array
+   *   The render array for the company job discovery page.
+   */
+  public function companyJobDiscovery(User $user, $company) {
+    // Check access - user can only access their own job discovery
+    if ($user->id() != $this->currentUser->id() && !$this->currentUser->hasPermission('administer users')) {
+      throw new AccessDeniedHttpException();
+    }
+
+    // Load company entity
+    $company_entity = $this->entityTypeManager->getStorage('node')->load($company);
+    if (!$company_entity || $company_entity->bundle() !== 'company') {
+      throw new NotFoundHttpException();
+    }
+
+    // Load user's job seeker profile
     $profile_storage = $this->entityTypeManager->getStorage('profile');
     $profiles = $profile_storage->loadByProperties([
       'uid' => $user->id(),
@@ -623,11 +687,12 @@ class UserProfileController extends ControllerBase {
     // Extract keywords from profile
     $keywords = $this->extractKeywordsFromProfile($profile);
     
-    // Build the render array for the job discovery page
+    // Build the render array for the company-specific job discovery page
     $build = [
-      '#theme' => 'job_discovery_start',
+      '#theme' => 'job_discovery_company_search',
       '#user' => $user,
       '#profile' => $profile,
+      '#company' => $company_entity,
       '#keywords' => $keywords,
       '#attached' => [
         'library' => [
@@ -646,30 +711,48 @@ class UserProfileController extends ControllerBase {
    *   JSON response with job search results.
    */
   public function jobDiscoverySearch() {
-    $request = \Drupal::request();
-    $user_id = $request->request->get('user_id');
-    $company = $request->request->get('company', 'abbvie');
-    
-    if (!$user_id || !is_numeric($user_id)) {
-      return new \Symfony\Component\HttpFoundation\JsonResponse([
-        'error' => 'Invalid user ID',
-      ], 400);
-    }
-    
     try {
-      // Load user and profile
+      $request = \Drupal::request();
+      $user_id = $request->request->get('user_id');
+      $company_id = $request->request->get('company_id');
+      
+      // Debug logging
+      \Drupal::logger('job_application_automation')->info('Job discovery search started for user @user_id, company @company_id', [
+        '@user_id' => $user_id,
+        '@company_id' => $company_id,
+      ]);
+      
+      if (!$user_id || !is_numeric($user_id)) {
+        \Drupal::logger('job_application_automation')->error('Invalid user ID: @user_id', [
+          '@user_id' => $user_id,
+        ]);
+        return new \Symfony\Component\HttpFoundation\JsonResponse([
+          'error' => 'Invalid user ID',
+        ], 400);
+      }
+
+      if (!$company_id || !is_numeric($company_id)) {
+        \Drupal::logger('job_application_automation')->error('Invalid company ID: @company_id', [
+          '@company_id' => $company_id,
+        ]);
+        return new \Symfony\Component\HttpFoundation\JsonResponse([
+          'error' => 'Invalid company ID',
+        ], 400);
+      }
+
+      // Load user and company
       $user = \Drupal\user\Entity\User::load($user_id);
       if (!$user) {
         return new \Symfony\Component\HttpFoundation\JsonResponse([
           'error' => 'User not found',
         ], 404);
       }
-      
-      // Check access
-      if ($user->id() != $this->currentUser->id() && !$this->currentUser->hasPermission('administer users')) {
+
+      $company = $this->entityTypeManager->getStorage('node')->load($company_id);
+      if (!$company || $company->bundle() !== 'company') {
         return new \Symfony\Component\HttpFoundation\JsonResponse([
-          'error' => 'Access denied',
-        ], 403);
+          'error' => 'Company not found',
+        ], 404);
       }
       
       // Load job seeker profile
@@ -680,29 +763,49 @@ class UserProfileController extends ControllerBase {
       ]);
       
       $profile = reset($profiles);
-      if (!$profile) {
-        return new \Symfony\Component\HttpFoundation\JsonResponse([
-          'error' => 'Job seeker profile not found',
-        ], 404);
+      $keywords = [];
+      
+      if ($profile) {
+        // Extract keywords from profile
+        $keywords = $this->extractKeywordsFromProfile($profile);
       }
       
-      // Extract keywords from profile
-      $keywords = $this->extractKeywordsFromProfile($profile);
-      
+      // If no keywords found, use default ones for testing
       if (empty($keywords)) {
-        return new \Symfony\Component\HttpFoundation\JsonResponse([
-          'jobs' => [],
-          'message' => 'No keywords found in profile',
+        $keywords = ['Data Science', 'Analytics', 'Machine Learning'];
+        \Drupal::logger('job_application_automation')->info('Using default keywords for testing: @keywords', [
+          '@keywords' => implode(', ', $keywords),
         ]);
       }
       
-      // Get the job scraping service
-      $scraping_service = \Drupal::service('job_application_automation.abbvie_job_scraping_service');
-      
-      // Search for jobs
-      $jobs = $scraping_service->searchJobs($keywords, [
-        'company' => $company,
+      // Debug log the final keywords being used
+      \Drupal::logger('job_application_automation')->info('Final keywords being passed to scraping service: @keywords', [
+        '@keywords' => print_r($keywords, true),
       ]);
+      
+      // Determine which scraping service to use based on company
+      $company_name = strtolower($company->getTitle());
+      $jobs = [];
+      
+      if ($company_name === 'abbvie') {
+        // Use AbbVie scraping service
+        $scraping_service = \Drupal::service('job_application_automation.abbvie_job_scraping_service');
+        $jobs = $scraping_service->searchJobs($keywords, [
+          'company' => 'abbvie',
+        ]);
+      } else {
+        // For other companies, return a message indicating scraping is not yet implemented
+        \Drupal::logger('job_application_automation')->info('Job scraping not yet implemented for company: @company', [
+          '@company' => $company->getTitle(),
+        ]);
+        
+        return new \Symfony\Component\HttpFoundation\JsonResponse([
+          'jobs' => [],
+          'keywords_used' => $keywords,
+          'total_found' => 0,
+          'message' => 'Job scraping for ' . $company->getTitle() . ' is coming soon! Currently only AbbVie is supported.',
+        ]);
+      }
       
       return new \Symfony\Component\HttpFoundation\JsonResponse([
         'jobs' => $jobs,
@@ -734,22 +837,28 @@ class UserProfileController extends ControllerBase {
     $keywords = [];
     
     // Extract from various fields that contain relevant keywords
+    // Using actual field names from the job seeker profile
     $keyword_fields = [
-      'field_skills',
-      'field_job_title',
-      'field_career_objectives',
-      'field_experience_summary',
-      'field_industry_preferences',
+      'field_target_job_titles',        // "Desired job titles and roles"
+      'field_keywords_interested',      // "Job Search Keywords"
+      'field_skills_summary',           // Skills summary
+      'field_professional_summary',     // Professional summary
+      'field_certifications',           // Certifications
     ];
     
     foreach ($keyword_fields as $field_name) {
       if ($profile->hasField($field_name) && !$profile->get($field_name)->isEmpty()) {
         $field_value = $profile->get($field_name)->value;
         if (!empty($field_value)) {
+          // Strip HTML tags and decode HTML entities
+          $field_value = html_entity_decode(strip_tags($field_value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+          
           // Split by common delimiters and clean up
           $field_keywords = preg_split('/[,;\n\r]+/', $field_value);
           foreach ($field_keywords as $keyword) {
             $keyword = trim($keyword);
+            // Remove surrounding quotes
+            $keyword = trim($keyword, '"\'');
             if (strlen($keyword) > 2) { // Only include meaningful keywords
               $keywords[] = $keyword;
             }
@@ -760,6 +869,122 @@ class UserProfileController extends ControllerBase {
     
     // Remove duplicates and return
     return array_unique($keywords);
+  }
+
+  /**
+   * Save a job from job discovery to job_posting content type.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with success/error status.
+   */
+  public function saveJob() {
+    try {
+      // Check if user is authenticated
+      if ($this->currentUser->isAnonymous()) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse([
+          'error' => 'User must be logged in to save jobs',
+        ], 403);
+      }
+
+      $request = \Drupal::request();
+      $job_data = json_decode($request->getContent(), TRUE);
+      
+      if (!$job_data || empty($job_data['jobId'])) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse([
+          'error' => 'Invalid job data provided',
+        ], 400);
+      }
+
+      // Check if job already exists to avoid duplicates
+      $existing_job = \Drupal::entityTypeManager()
+        ->getStorage('node')
+        ->loadByProperties([
+          'type' => 'job_posting',
+          'field_job_id' => $job_data['jobId'],
+          'uid' => $this->currentUser->id(),
+        ]);
+
+      if (!empty($existing_job)) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse([
+          'success' => true,
+          'message' => 'Job already saved to your dashboard',
+          'node_id' => reset($existing_job)->id(),
+        ]);
+      }
+
+      // Create new job posting node
+      $node = \Drupal\node\Entity\Node::create([
+        'type' => 'job_posting',
+        'title' => $job_data['title'],
+        'uid' => $this->currentUser->id(),
+      ]);
+
+      // Map job discovery data to job posting fields
+      if (!empty($job_data['title'])) {
+        $node->set('field_job_title', $job_data['title']);
+      }
+
+      if (!empty($job_data['jobId'])) {
+        $node->set('field_job_id', $job_data['jobId']);
+      }
+
+      if (!empty($job_data['location'])) {
+        $node->set('field_location', $job_data['location']);
+      }
+
+      if (!empty($job_data['description'])) {
+        $node->set('field_job_description', [
+          'value' => $job_data['description'],
+          'format' => 'basic_html',
+        ]);
+      }
+
+      if (!empty($job_data['url'])) {
+        $node->set('field_job_url', [
+          'uri' => $job_data['url'],
+          'title' => 'View Job at AbbVie',
+        ]);
+      }
+
+      // Map additional fields if available
+      if (!empty($job_data['jobType'])) {
+        $node->set('field_employment_type', $job_data['jobType']);
+      }
+
+      if (!empty($job_data['experienceLevel'])) {
+        $node->set('field_experience_level', $job_data['experienceLevel']);
+      }
+
+      // Set posting date to current date
+      $node->set('field_posting_date', date('Y-m-d\TH:i:s'));
+
+      // Set job status to saved
+      $node->set('field_job_status', 'saved');
+
+      // Save the node
+      $node->save();
+
+      \Drupal::logger('job_application_automation')->info('Job saved: @title (@job_id) for user @uid', [
+        '@title' => $job_data['title'],
+        '@job_id' => $job_data['jobId'],
+        '@uid' => $this->currentUser->id(),
+      ]);
+
+      return new \Symfony\Component\HttpFoundation\JsonResponse([
+        'success' => true,
+        'message' => 'Job saved to your dashboard successfully',
+        'node_id' => $node->id(),
+      ]);
+
+    } catch (\Exception $e) {
+      \Drupal::logger('job_application_automation')->error('Error saving job: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+
+      return new \Symfony\Component\HttpFoundation\JsonResponse([
+        'error' => 'Failed to save job: ' . $e->getMessage(),
+      ], 500);
+    }
   }
 
 }

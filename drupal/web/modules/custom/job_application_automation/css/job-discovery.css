@@ -107,6 +107,18 @@
   border-radius: 8px;
 }
 
+.company-logo-text {
+  background: linear-gradient(135deg, #0066cc, #004499);
+  color: white;
+  padding: 20px 15px;
+  border-radius: 8px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: center;
+  min-width: 120px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
 .company-details h3 {
   margin-bottom: 0.8rem;
   color: #2c3e50;
@@ -390,5 +402,193 @@
   
   .sidebar-info {
     padding: 1.5rem;
+  }
+}
+
+/* Company Selection Styles */
+.job-discovery-company-selection {
+  padding: 2rem 0;
+  background: #f8f9fa;
+  min-height: 80vh;
+}
+
+.profile-summary .keywords-preview {
+  margin-top: 1.5rem;
+}
+
+.keywords-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.keywords-note {
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-style: italic;
+  margin-bottom: 0;
+}
+
+.no-keywords {
+  text-align: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.companies-section .section-description {
+  margin-bottom: 2rem;
+  color: #6c757d;
+}
+
+.companies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.company-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border: 1px solid #e9ecef;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.company-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+}
+
+.company-header h3 {
+  color: #2c3e50;
+  margin-bottom: 0.8rem;
+  font-size: 1.4rem;
+}
+
+.company-description {
+  color: #6c757d;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.company-actions {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.company-actions .btn {
+  flex: 1;
+  font-size: 0.9rem;
+  padding: 0.6rem 1rem;
+}
+
+.company-discover-btn {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  border: none;
+}
+
+.company-discover-btn:hover {
+  background: linear-gradient(135deg, #2980b9, #2471a3);
+}
+
+.company-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+}
+
+.company-meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.help-section {
+  margin-top: 2rem;
+}
+
+.help-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.help-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.step-number {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.step-content h4 {
+  margin-bottom: 0.5rem;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.step-content p {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+/* Company-specific search page additions */
+.company-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #e9ecef;
+  color: #495057;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+  text-decoration: none;
+}
+
+.company-tag.company-link:hover {
+  background: #3498db;
+  color: white;
+  text-decoration: none;
+}
+
+.company-meta {
+  margin-top: 1rem;
+}
+
+/* Responsive adjustments for company selection */
+@media (max-width: 768px) {
+  .companies-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .help-steps {
+    grid-template-columns: 1fr;
+  }
+  
+  .company-actions {
+    flex-direction: column;
   }
 }

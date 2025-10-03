@@ -42,3 +42,4 @@ job_discovery:
     - core/drupal
     - core/jquery
     - core/drupal.ajax
+    - core/once

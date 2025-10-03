@@ -60,6 +60,24 @@ function job_application_automation_theme() {
       ],
       'template' => 'job-discovery-start',
     ],
+    'job_discovery_company_selection' => [
+      'variables' => [
+        'user' => NULL,
+        'profile' => NULL,
+        'companies' => [],
+        'keywords' => [],
+      ],
+      'template' => 'job-discovery-company-selection',
+    ],
+    'job_discovery_company_search' => [
+      'variables' => [
+        'user' => NULL,
+        'profile' => NULL,
+        'company' => NULL,
+        'keywords' => [],
+      ],
+      'template' => 'job-discovery-company-search',
+    ],
     'node__company' => [
       'template' => 'node--company',
       'base hook' => 'node',

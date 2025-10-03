@@ -192,7 +192,12 @@ class AbbVieJobScrapingService {
       
       // Make URL absolute if it's relative
       if (strpos($url, 'http') !== 0) {
-        $url = self::ABBVIE_CAREERS_BASE_URL . $url;
+        // Check if URL already starts with /en/ to avoid duplication
+        if (strpos($url, '/en/') === 0) {
+          $url = 'https://careers.abbvie.com' . $url;
+        } else {
+          $url = self::ABBVIE_CAREERS_BASE_URL . $url;
+        }
       }
       
       // Extract location

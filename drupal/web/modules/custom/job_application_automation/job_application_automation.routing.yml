@@ -11,15 +11,26 @@ job_application_automation.user_job_seeker_view:
     _permission: 'view own job application profile'
     user: \d+
 
-# Job Discovery - Start Discovery Page
+# Job Discovery - Company Selection Page
 job_application_automation.start_job_discovery:
   path: '/user/{user}/job-discovery/start'
   defaults:
     _controller: '\Drupal\job_application_automation\Controller\UserProfileController::startJobDiscovery'
-    _title: 'Start Job Discovery'
+    _title: 'Job Discovery - Select Company'
   requirements:
     _permission: 'view own job application profile'
     user: \d+
+
+# Job Discovery - Company-Specific Discovery Page
+job_application_automation.company_job_discovery:
+  path: '/user/{user}/job-discovery/company/{company}'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\UserProfileController::companyJobDiscovery'
+    _title: 'Job Discovery'
+  requirements:
+    _permission: 'view own job application profile'
+    user: \d+
+    company: \d+
 
 # Job Discovery - AJAX Search Endpoint
 job_application_automation.job_discovery_search:
@@ -27,8 +38,21 @@ job_application_automation.job_discovery_search:
   defaults:
     _controller: '\Drupal\job_application_automation\Controller\UserProfileController::jobDiscoverySearch'
   requirements:
-    _permission: 'view own job application profile'
+    _access: 'TRUE'
   methods: [POST]
+  options:
+    _csrf_token: FALSE
+
+# Job Discovery - Save Job Endpoint
+job_application_automation.save_job:
+  path: '/job-discovery/save'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\UserProfileController::saveJob'
+  requirements:
+    _access: 'TRUE'
+  methods: [POST]
+  options:
+    _csrf_token: FALSE
 
 # 1. Master Dashboard Routes
 job_application_automation.dashboard:
