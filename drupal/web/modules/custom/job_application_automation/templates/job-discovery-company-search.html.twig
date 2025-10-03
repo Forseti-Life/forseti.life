@@ -66,6 +66,9 @@
                 <a href="{{ path('entity.node.canonical', {'node': job.id()}) }}" class="btn btn-sm btn-primary">
                   {{ 'View Details'|t }}
                 </a>
+                <a href="{{ path('job_application_automation.tailor_resume', {'user': user.id(), 'job': job.id()}) }}" class="btn btn-sm btn-success ms-2">
+                  {{ 'Tailor Resume'|t }}
+                </a>
               </td>
             </tr>
           {% endfor %}

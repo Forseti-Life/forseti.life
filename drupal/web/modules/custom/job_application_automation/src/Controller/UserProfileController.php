@@ -990,4 +990,57 @@ class UserProfileController extends ControllerBase {
     }
   }
 
+  /**
+   * Tailor resume for a specific job opportunity.
+   *
+   * @param \Drupal\user\Entity\User $user
+   *   The user entity.
+   * @param int $job
+   *   The job posting node ID.
+   *
+   * @return array
+   *   The render array for the tailor resume page.
+   */
+  public function tailorResume(User $user, $job) {
+    // Check access - user can only tailor their own resume
+    if ($user->id() != $this->currentUser->id() && !$this->currentUser->hasPermission('administer users')) {
+      throw new AccessDeniedHttpException();
+    }
+
+    // Load job posting entity
+    $job_entity = $this->entityTypeManager->getStorage('node')->load($job);
+    if (!$job_entity || $job_entity->bundle() !== 'job_posting') {
+      throw new NotFoundHttpException();
+    }
+
+    // Load user's job seeker profile
+    $profile_storage = $this->entityTypeManager->getStorage('profile');
+    $profiles = $profile_storage->loadByProperties([
+      'uid' => $user->id(),
+      'type' => 'job_seeker',
+    ]);
+
+    $profile = reset($profiles);
+    
+    if (!$profile) {
+      $this->messenger()->addError($this->t('Please complete your job seeker profile first before tailoring your resume.'));
+      return $this->redirect('job_application_automation.user_job_seeker_view', ['user' => $user->id()]);
+    }
+
+    // Build the render array for the tailor resume page
+    $build = [
+      '#theme' => 'tailor_resume',
+      '#user' => $user,
+      '#profile' => $profile,
+      '#job' => $job_entity,
+      '#attached' => [
+        'library' => [
+          'job_application_automation/tailor_resume',
+        ],
+      ],
+    ];
+
+    return $build;
+  }
+
 }

@@ -188,6 +188,17 @@ job_application_automation.my_profile_edit:
   requirements:
     _permission: 'edit own job application profile'
 
+# Tailor Resume for Specific Job
+job_application_automation.tailor_resume:
+  path: '/user/{user}/tailor-resume/{job}'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\UserProfileController::tailorResume'
+    _title: 'Tailor Resume for Job'
+  requirements:
+    _permission: 'edit own job application profile'
+    user: \d+
+    job: \d+
+
 # 6. Future Routes (Commented Out)
 # job_application_automation.settings:
 #   path: '/admin/config/services/job-application-automation'

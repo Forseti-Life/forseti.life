@@ -43,3 +43,15 @@ job_discovery:
     - core/jquery
     - core/drupal.ajax
     - core/once
+
+tailor_resume:
+  css:
+    theme:
+      css/tailor-resume.css: {}
+  js:
+    js/tailor-resume.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/drupal.ajax
+    - core/once

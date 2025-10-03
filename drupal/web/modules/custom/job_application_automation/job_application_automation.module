@@ -83,6 +83,14 @@ function job_application_automation_theme() {
       'template' => 'node--company',
       'base hook' => 'node',
     ],
+    'tailor_resume' => [
+      'variables' => [
+        'user' => NULL,
+        'profile' => NULL,
+        'job' => NULL,
+      ],
+      'template' => 'tailor-resume',
+    ],
   ];
 }
 
