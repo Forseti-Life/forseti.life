@@ -73,7 +73,7 @@ class JobApplicationController extends ControllerBase {
           '#type' => 'html_tag',
           '#tag' => 'div',
           '#attributes' => ['class' => ['phase-actions']],
-          '#value' => '<a href="#" class="phase-button">📝 Submit Applications</a>
+          '#value' => '<a href="#" class="phase-button">Submit Applications</a>
                        <a href="#" class="phase-button">📄 Customize Resume</a>
                        <a href="#" class="phase-button">📊 Track Status</a>',
         ],
@@ -106,7 +106,7 @@ class JobApplicationController extends ControllerBase {
           '#type' => 'html_tag',
           '#tag' => 'div',
           '#attributes' => ['class' => ['phase-actions']],
-          '#value' => '<a href="#" class="phase-button">📝 Submit Applications</a>
+          '#value' => '<a href="#" class="phase-button">Submit Applications</a>
                        <a href="#" class="phase-button">📄 Customize Resume</a>
                        <a href="#" class="phase-button">📊 Track Status</a>',
         ],
@@ -287,6 +287,7 @@ class JobApplicationController extends ControllerBase {
     
     // Phase 1: Profile Setup
     $user_edit_url = Url::fromRoute('entity.user.edit_form', ['user' => $current_user->id()]);
+    $job_discovery_url = Url::fromRoute('job_application_automation.start_job_discovery', ['user' => $current_user->id()]);
     $build['phase1'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-1']],
@@ -385,7 +386,7 @@ class JobApplicationController extends ControllerBase {
           '#type' => 'html_tag',
           '#tag' => 'div',
           '#attributes' => ['class' => ['phase-actions']],
-          '#value' => '<a href="#" class="phase-button">🔍 Start Discovery</a>
+          '#value' => '<a href="' . $job_discovery_url->toString() . '" class="phase-button">Start Discovery</a>
                        <a href="#" class="phase-button">⚙️ Configure Matching</a>
                        <a href="#" class="phase-button">📋 View Matches</a>',
         ],
@@ -406,7 +407,7 @@ class JobApplicationController extends ControllerBase {
                        <div class="stat-label">Active Applications</div>
                      </div>
                      <div class="phase-actions">
-                       <a href="#" class="phase-button">📝 Submit Applications</a>
+                       <a href="/user/1/job-discovery/start" class="phase-button">Submit Applications</a>
                        <a href="#" class="phase-button">� Customize Resume</a>
                        <a href="#" class="phase-button">📊 Track Status</a>
                      </div>

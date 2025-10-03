@@ -87,3 +87,10 @@ breadcrumb:
   dependencies:
     - core/drupal
     - core/drupal.ajax
+
+user_profile:
+  css:
+    theme:
+      build/css/main.style.css: {}
+  dependencies:
+    - core/drupal

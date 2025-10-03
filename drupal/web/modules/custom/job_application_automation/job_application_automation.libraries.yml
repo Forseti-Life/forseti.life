@@ -31,3 +31,14 @@ company_profile:
       css/company-profile.css: {}
   dependencies:
     - core/drupal
+
+job_discovery:
+  css:
+    theme:
+      css/job-discovery.css: {}
+  js:
+    js/job-discovery.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/drupal.ajax

@@ -875,3 +875,9 @@ $databases['default']['default'] = array (
   'autoload' => 'core/modules/mysql/src/Driver/Database/mysql/',
 );
 $settings['config_sync_directory'] = 'sites/default/files/config_M7t7j7TDrtZ7G8huXKEHkSi6QB2RCtke8C15JZ3OwWPQU-rPQF2RssSmpI3QkKcwpvDrN0Zrbw/sync';
+$settings['container_yamls'][] = DRUPAL_ROOT . '/sites/development.services.yml';
+
+// Disable all caching for development
+$config['system.performance']['cache']['page']['max_age'] = 0;
+$config['system.performance']['css']['preprocess'] = FALSE;
+$config['system.performance']['js']['preprocess'] = FALSE;

@@ -10,6 +10,7 @@ use Drupal\Core\Url;
 use Drupal\user\Entity\User;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Drupal\job_application_automation\Service\UserProfileService;
 
 /**
@@ -140,6 +141,10 @@ class UserProfileController extends ControllerBase {
 
     // Add CSS and JS
     $build['#attached']['library'][] = 'job_application_automation/user_profile';
+
+    // Use custom template for professional styling
+    $build['#theme'] = 'user_profile_dashboard';
+    $build['#user'] = $user_entity;
 
     return $build;
   }
@@ -555,6 +560,206 @@ class UserProfileController extends ControllerBase {
     return $this->redirect('job_application_automation.user_profile_edit', [
       'user' => $this->currentUser->id(),
     ]);
+  }
+
+  /**
+   * Displays the job seeker profile in view mode (not edit mode).
+   *
+   * @param \Drupal\user\Entity\User $user
+   *   The user entity.
+   *
+   * @return array
+   *   The render array for the profile view.
+   */
+  public function viewJobSeekerProfile(User $user) {
+    /** @var \Drupal\profile\ProfileStorageInterface $profile_storage */
+    $profile_storage = $this->entityTypeManager->getStorage('profile');
+    $profile = $profile_storage->loadByUser($user, 'job_seeker');
+
+    if (!$profile) {
+      // If no profile exists, redirect to create one
+      return $this->redirect('profile.user_page.add_form', [
+        'user' => $user->id(),
+        'profile_type' => 'job_seeker',
+      ]);
+    }
+
+    // Build the profile view (not edit form)
+    $view_builder = $this->entityTypeManager->getViewBuilder('profile');
+    $build = $view_builder->view($profile, 'default');
+
+    return $build;
+  }
+
+  /**
+   * Start job discovery page for a user.
+   *
+   * @param \Drupal\user\Entity\User $user
+   *   The user entity.
+   *
+   * @return array
+   *   The render array for the job discovery page.
+   */
+  public function startJobDiscovery(User $user) {
+    // Check access - user can only access their own job discovery
+    if ($user->id() != $this->currentUser->id() && !$this->currentUser->hasPermission('administer users')) {
+      throw new AccessDeniedHttpException();
+    }
+
+    // Load user's job seeker profile for keywords
+    $profile_storage = $this->entityTypeManager->getStorage('profile');
+    $profiles = $profile_storage->loadByProperties([
+      'uid' => $user->id(),
+      'type' => 'job_seeker',
+    ]);
+
+    $profile = reset($profiles);
+    
+    if (!$profile) {
+      $this->messenger()->addError($this->t('Please complete your job seeker profile first before starting job discovery.'));
+      return $this->redirect('job_application_automation.user_job_seeker_view', ['user' => $user->id()]);
+    }
+
+    // Extract keywords from profile
+    $keywords = $this->extractKeywordsFromProfile($profile);
+    
+    // Build the render array for the job discovery page
+    $build = [
+      '#theme' => 'job_discovery_start',
+      '#user' => $user,
+      '#profile' => $profile,
+      '#keywords' => $keywords,
+      '#attached' => [
+        'library' => [
+          'job_application_automation/job_discovery',
+        ],
+      ],
+    ];
+
+    return $build;
+  }
+
+  /**
+   * AJAX endpoint for job discovery search.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with job search results.
+   */
+  public function jobDiscoverySearch() {
+    $request = \Drupal::request();
+    $user_id = $request->request->get('user_id');
+    $company = $request->request->get('company', 'abbvie');
+    
+    if (!$user_id || !is_numeric($user_id)) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse([
+        'error' => 'Invalid user ID',
+      ], 400);
+    }
+    
+    try {
+      // Load user and profile
+      $user = \Drupal\user\Entity\User::load($user_id);
+      if (!$user) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse([
+          'error' => 'User not found',
+        ], 404);
+      }
+      
+      // Check access
+      if ($user->id() != $this->currentUser->id() && !$this->currentUser->hasPermission('administer users')) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse([
+          'error' => 'Access denied',
+        ], 403);
+      }
+      
+      // Load job seeker profile
+      $profile_storage = $this->entityTypeManager->getStorage('profile');
+      $profiles = $profile_storage->loadByProperties([
+        'uid' => $user->id(),
+        'type' => 'job_seeker',
+      ]);
+      
+      $profile = reset($profiles);
+      if (!$profile) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse([
+          'error' => 'Job seeker profile not found',
+        ], 404);
+      }
+      
+      // Extract keywords from profile
+      $keywords = $this->extractKeywordsFromProfile($profile);
+      
+      if (empty($keywords)) {
+        return new \Symfony\Component\HttpFoundation\JsonResponse([
+          'jobs' => [],
+          'message' => 'No keywords found in profile',
+        ]);
+      }
+      
+      // Get the job scraping service
+      $scraping_service = \Drupal::service('job_application_automation.abbvie_job_scraping_service');
+      
+      // Search for jobs
+      $jobs = $scraping_service->searchJobs($keywords, [
+        'company' => $company,
+      ]);
+      
+      return new \Symfony\Component\HttpFoundation\JsonResponse([
+        'jobs' => $jobs,
+        'keywords_used' => $keywords,
+        'total_found' => count($jobs),
+      ]);
+      
+    } catch (\Exception $e) {
+      \Drupal::logger('job_application_automation')->error('Job discovery search error: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      
+      return new \Symfony\Component\HttpFoundation\JsonResponse([
+        'error' => 'Search failed: ' . $e->getMessage(),
+      ], 500);
+    }
+  }
+
+  /**
+   * Extract keywords from job seeker profile.
+   *
+   * @param \Drupal\profile\Entity\Profile $profile
+   *   The job seeker profile.
+   *
+   * @return array
+   *   Array of keywords extracted from profile fields.
+   */
+  private function extractKeywordsFromProfile($profile) {
+    $keywords = [];
+    
+    // Extract from various fields that contain relevant keywords
+    $keyword_fields = [
+      'field_skills',
+      'field_job_title',
+      'field_career_objectives',
+      'field_experience_summary',
+      'field_industry_preferences',
+    ];
+    
+    foreach ($keyword_fields as $field_name) {
+      if ($profile->hasField($field_name) && !$profile->get($field_name)->isEmpty()) {
+        $field_value = $profile->get($field_name)->value;
+        if (!empty($field_value)) {
+          // Split by common delimiters and clean up
+          $field_keywords = preg_split('/[,;\n\r]+/', $field_value);
+          foreach ($field_keywords as $keyword) {
+            $keyword = trim($keyword);
+            if (strlen($keyword) > 2) { // Only include meaningful keywords
+              $keywords[] = $keyword;
+            }
+          }
+        }
+      }
+    }
+    
+    // Remove duplicates and return
+    return array_unique($keywords);
   }
 
 }

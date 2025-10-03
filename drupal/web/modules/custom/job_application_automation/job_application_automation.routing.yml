@@ -1,6 +1,35 @@
 # Job Application Automation Routes
 # Complete routing configuration for job application automation module
 
+# Custom route for displaying job seeker profile in view mode (not edit mode)
+job_application_automation.user_job_seeker_view:
+  path: '/user/{user}/job_seeker/view'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\UserProfileController::viewJobSeekerProfile'
+    _title: 'Job Seeker Profile'
+  requirements:
+    _permission: 'view own job application profile'
+    user: \d+
+
+# Job Discovery - Start Discovery Page
+job_application_automation.start_job_discovery:
+  path: '/user/{user}/job-discovery/start'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\UserProfileController::startJobDiscovery'
+    _title: 'Start Job Discovery'
+  requirements:
+    _permission: 'view own job application profile'
+    user: \d+
+
+# Job Discovery - AJAX Search Endpoint
+job_application_automation.job_discovery_search:
+  path: '/job-discovery/search'
+  defaults:
+    _controller: '\Drupal\job_application_automation\Controller\UserProfileController::jobDiscoverySearch'
+  requirements:
+    _permission: 'view own job application profile'
+  methods: [POST]
+
 # 1. Master Dashboard Routes
 job_application_automation.dashboard:
   path: '/job-dashboard'

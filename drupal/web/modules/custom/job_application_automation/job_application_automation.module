@@ -52,6 +52,14 @@ function job_application_automation_theme() {
       ],
       'template' => 'job-application-form',
     ],
+    'job_discovery_start' => [
+      'variables' => [
+        'user' => NULL,
+        'profile' => NULL,
+        'keywords' => [],
+      ],
+      'template' => 'job-discovery-start',
+    ],
     'node__company' => [
       'template' => 'node--company',
       'base hook' => 'node',
