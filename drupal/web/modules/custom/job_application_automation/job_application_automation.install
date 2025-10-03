@@ -1463,3 +1463,88 @@ function job_application_automation_update_8004() {
     throw $e;
   }
 }
+/**
+ * Update 8006: Add missing body field to tailored_resume content type and configure display.
+ */
+function job_application_automation_update_8006() {
+  $logger = \Drupal::logger('job_application_automation');
+  
+  try {
+    // Create body field for tailored_resume if it doesn't exist
+    $field_config = FieldConfig::loadByName('node', 'tailored_resume', 'body');
+    
+    if (!$field_config) {
+      // First ensure the body field storage exists for node entities (it should by default)
+      $body_storage = FieldStorageConfig::loadByName('node', 'body');
+      if (!$body_storage) {
+        // This shouldn't happen, but create it if missing
+        $body_storage = FieldStorageConfig::create([
+          'field_name' => 'body',
+          'entity_type' => 'node',
+          'type' => 'text_with_summary',
+        ]);
+        $body_storage->save();
+        $logger->info('Created body field storage for node entity.');
+      }
+      
+      // Create the body field instance for tailored_resume
+      $field_config = FieldConfig::create([
+        'field_name' => 'body',
+        'entity_type' => 'node',
+        'bundle' => 'tailored_resume',
+        'label' => 'Body',
+        'description' => 'The tailored resume content',
+        'required' => FALSE,
+      ]);
+      $field_config->save();
+      
+      $logger->info('Created body field for tailored_resume content type.');
+    } else {
+      $logger->info('Body field already exists for tailored_resume content type.');
+    }
+    
+    // Configure the view display to show body field
+    $view_display = EntityViewDisplay::load('node.tailored_resume.default');
+    if ($view_display) {
+      $view_display->setComponent('body', [
+        'type' => 'text_default',
+        'label' => 'above',
+        'weight' => 0,
+        'settings' => [],
+        'third_party_settings' => [],
+      ]);
+      $view_display->save();
+      $logger->info('Configured view display for tailored_resume body field.');
+    }
+    
+    // Configure the form display to show body field
+    $form_display = EntityFormDisplay::load('node.tailored_resume.default');
+    if (!$form_display) {
+      $form_display = EntityFormDisplay::create([
+        'targetEntityType' => 'node',
+        'bundle' => 'tailored_resume',
+        'mode' => 'default',
+        'status' => TRUE,
+      ]);
+    }
+    
+    $form_display->setComponent('body', [
+      'type' => 'text_textarea_with_summary',
+      'weight' => 0,
+      'settings' => [
+        'rows' => 10,
+        'summary_rows' => 3,
+        'placeholder' => 'Enter the tailored resume content...',
+        'show_summary' => FALSE,
+      ],
+    ]);
+    $form_display->save();
+    $logger->info('Configured form display for tailored_resume body field.');
+    
+    return t('Body field has been added to tailored_resume content type and displays configured.');
+    
+  } catch (Exception $e) {
+    $logger->error('Error adding body field to tailored_resume: @error', ['@error' => $e->getMessage()]);
+    throw $e;
+  }
+}
