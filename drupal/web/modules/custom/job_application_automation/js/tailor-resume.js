@@ -7,6 +7,32 @@
   'use strict';
 
   /**
+   * Helper function to add messages.
+   */
+  function addMessage(message, type) {
+    type = type || 'status';
+    var messageClass = 'messages--' + type;
+    var messageHtml = '<div class="messages ' + messageClass + '">' + message + '</div>';
+    
+    // Try to add to messages region first
+    if ($('.region-messages').length) {
+      $('.region-messages').prepend(messageHtml);
+    } else if ($('.messages').length) {
+      // Add after existing messages
+      $('.messages').first().after(messageHtml);
+    } else {
+      // Add to the top of the main content area
+      if ($('main').length) {
+        $('main').prepend(messageHtml);
+      } else if ($('#content').length) {
+        $('#content').prepend(messageHtml);
+      } else {
+        $('body').prepend(messageHtml);
+      }
+    }
+  }
+
+  /**
    * Tailor Resume behavior.
    */
   Drupal.behaviors.tailorResume = {
@@ -53,9 +79,9 @@
                   successMessage += '. <a href="/node/' + response.tailored_resume_node_id + '" target="_blank">View saved tailored resume</a>';
                 }
                 
-                Drupal.messenger().addMessage(successMessage, 'status', true);
+                addMessage(successMessage, 'status');
               } else {
-                Drupal.messenger().addMessage('Error: ' + (response.error || 'Unknown error occurred'), 'error');
+                addMessage('Error: ' + (response.error || 'Unknown error occurred'), 'error');
               }
               
               button.prop('disabled', false);
@@ -69,7 +95,7 @@
               if (xhr.responseJSON && xhr.responseJSON.error) {
                 errorMessage = xhr.responseJSON.error;
               }
-              Drupal.messenger().addMessage(errorMessage, 'error');
+              addMessage(errorMessage, 'error');
             }
           });
         });
@@ -163,7 +189,7 @@
     window.URL.revokeObjectURL(url);
     
     // Show success message
-    Drupal.messenger().addMessage('Resume downloaded successfully!', 'status');
+    addMessage('Resume downloaded successfully!', 'status');
   }
   
   /**
@@ -199,7 +225,8 @@
     setTimeout(function() {
       button.html(originalText);
       button.prop('disabled', false);
-      Drupal.messenger().addMessage('Resume changes saved successfully!', 'status');
+      // Show success message
+      addMessage('Resume changes saved successfully!', 'status');
     }, 1500);
   }
 

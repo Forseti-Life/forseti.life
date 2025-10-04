@@ -1119,6 +1119,7 @@ class UserProfileController extends ControllerBase {
         'message' => 'Tailored resume created successfully!',
         'job_title' => $job_entity->getTitle(),
         'tailored_resume_node_id' => $tailored_resume_node->id(),
+        'tailored_resume' => $tailored_content,
       ]);
 
     } catch (\Exception $e) {
