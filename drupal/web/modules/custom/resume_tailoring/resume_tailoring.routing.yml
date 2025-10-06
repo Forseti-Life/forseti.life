@@ -4,7 +4,8 @@ resume_tailoring.dashboard:
     _controller: '\Drupal\resume_tailoring\Controller\ResumeTailoringController::dashboard'
     _title: 'Resume Tailoring Dashboard'
   requirements:
-    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+    _permission: 'access resume tailoring'
 
 resume_tailoring.admin_dashboard:
   path: '/admin/resume-tailoring'
@@ -12,7 +13,7 @@ resume_tailoring.admin_dashboard:
     _controller: '\Drupal\resume_tailoring\Controller\ResumeTailoringController::dashboard'
     _title: 'Resume Tailoring Administration'
   requirements:
-    _permission: 'administer content'
+    _permission: 'administer resume tailoring'
 
 resume_tailoring.generate:
   path: '/resume-tailoring/generate/{job_posting_id}'
@@ -20,5 +21,14 @@ resume_tailoring.generate:
     _controller: '\Drupal\resume_tailoring\Controller\ResumeTailoringController::generateTailoredResume'
     _title: 'Generate Tailored Resume'
   requirements:
-    _permission: 'create tailored_resume content'
+    _user_is_logged_in: 'TRUE'
+    _permission: 'create tailored resumes'
     job_posting_id: \d+
+
+resume_tailoring.settings:
+  path: '/admin/config/content/resume-tailoring'
+  defaults:
+    _form: '\Drupal\resume_tailoring\Form\SettingsForm'
+    _title: 'Resume Tailoring Settings'
+  requirements:
+    _permission: 'administer resume tailoring'

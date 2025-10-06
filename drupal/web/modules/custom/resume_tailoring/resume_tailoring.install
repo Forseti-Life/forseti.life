@@ -21,6 +21,9 @@ function resume_tailoring_install() {
 
   // Add the tailored resume field to job_posting content type.
   _resume_tailoring_add_field_to_job_posting();
+  
+  // Set up default permissions for authenticated users.
+  _resume_tailoring_setup_permissions();
 }
 
 /**
@@ -311,4 +314,41 @@ function resume_tailoring_update_9001() {
 function resume_tailoring_update_9002() {
   _resume_tailoring_create_tailored_resume_content_type();
   return t('Created tailored_resume content type with all required fields.');
+}
+
+/**
+ * Set up default permissions for resume tailoring.
+ */
+function _resume_tailoring_setup_permissions() {
+  $role_storage = \Drupal::entityTypeManager()->getStorage('user_role');
+  
+  // Grant permissions to authenticated users.
+  $authenticated_role = $role_storage->load('authenticated');
+  if ($authenticated_role) {
+    $authenticated_role->grantPermission('access resume tailoring');
+    $authenticated_role->grantPermission('create tailored resumes');
+    $authenticated_role->grantPermission('view own tailored resumes');
+    $authenticated_role->save();
+    \Drupal::logger('resume_tailoring')->notice('Granted resume tailoring permissions to authenticated users.');
+  }
+  
+  // Grant admin permissions to administrators.
+  $admin_role = $role_storage->load('administrator');
+  if ($admin_role) {
+    $admin_role->grantPermission('access resume tailoring');
+    $admin_role->grantPermission('create tailored resumes');
+    $admin_role->grantPermission('view own tailored resumes');
+    $admin_role->grantPermission('view all tailored resumes');
+    $admin_role->grantPermission('administer resume tailoring');
+    $admin_role->save();
+    \Drupal::logger('resume_tailoring')->notice('Granted all resume tailoring permissions to administrators.');
+  }
+}
+
+/**
+ * Update 9003: Set up resume tailoring security permissions.
+ */
+function resume_tailoring_update_9003() {
+  _resume_tailoring_setup_permissions();
+  return t('Set up resume tailoring security permissions for authenticated users and administrators.');
 }

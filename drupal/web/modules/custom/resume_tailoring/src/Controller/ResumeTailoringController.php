@@ -18,18 +18,9 @@ class ResumeTailoringController extends ControllerBase {
   public function dashboard() {
     $current_user = \Drupal::currentUser();
     
-    // Check if user is authenticated.
-    if (!$current_user->isAuthenticated()) {
-      return [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['resume-tailoring-dashboard']],
-        'login_message' => [
-          '#markup' => '<div class="alert alert-warning"><h3>Authentication Required</h3><p>You must be logged in to use the Resume Tailoring system.</p><p><a href="/user/login" class="btn btn-primary">Log In</a> or <a href="/user/register" class="btn btn-secondary">Create Account</a></p></div>',
-        ],
-        'process_overview' => [
-          '#markup' => $this->getProcessOverview(),
-        ],
-      ];
+    // User is authenticated (enforced by routing), now check permissions
+    if (!$current_user->hasPermission('access resume tailoring')) {
+      throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException('You do not have permission to access resume tailoring.');
     }
 
     $build = [
@@ -482,9 +473,28 @@ class ResumeTailoringController extends ControllerBase {
    * Generate tailored resume page.
    */
   public function generateTailoredResume($job_posting_id) {
+    $current_user = \Drupal::currentUser();
+    
+    // Check permissions
+    if (!$current_user->hasPermission('create tailored resumes')) {
+      throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException('You do not have permission to create tailored resumes.');
+    }
+
+    // Validate job posting exists and user has access to it
+    $job_posting = \Drupal::entityTypeManager()->getStorage('node')->load($job_posting_id);
+    if (!$job_posting || $job_posting->bundle() !== 'job_posting') {
+      throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('Job posting not found.');
+    }
+
+    // Check if user owns this job posting or has admin permissions
+    if ($job_posting->getOwnerId() !== $current_user->id() && 
+        !$current_user->hasPermission('view all tailored resumes')) {
+      throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException('You do not have access to this job posting.');
+    }
+    
     // TODO: Implement tailored resume generation.
     $build = [
-      '#markup' => sprintf('<h1>Generate Tailored Resume</h1><p>Generating tailored resume for job posting %d...</p>', $job_posting_id),
+      '#markup' => sprintf('<h1>Generate Tailored Resume</h1><p>Generating tailored resume for job posting: %s (ID: %d)</p>', $job_posting->getTitle(), $job_posting_id),
     ];
     
     return $build;

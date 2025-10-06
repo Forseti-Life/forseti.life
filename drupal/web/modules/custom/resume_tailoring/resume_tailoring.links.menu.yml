@@ -12,3 +12,11 @@ resume_tailoring.admin_dashboard:
   menu_name: admin
   parent: system.admin_structure
   weight: 50
+
+resume_tailoring.settings:
+  title: 'Resume Tailoring'
+  description: 'Configure Resume Tailoring settings'
+  route_name: resume_tailoring.settings
+  menu_name: admin
+  parent: system.admin_config_content
+  weight: 50
