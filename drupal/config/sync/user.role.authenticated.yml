@@ -6,6 +6,7 @@ dependencies:
     - filter.format.basic_html
     - node.type.ai_conversation
   module:
+    - ai_conversation
     - comment
     - contact
     - file
@@ -32,4 +33,5 @@ permissions:
   - 'post comments'
   - 'search content'
   - 'skip comment approval'
+  - 'use ai conversation'
   - 'use text format basic_html'

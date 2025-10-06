@@ -28,7 +28,7 @@ ai_conversation.claude_demo:
     _controller: '\Drupal\ai_conversation\Controller\ChatController::claudeDemo'
     _title: 'Claude Demo'
   requirements:
-    _permission: 'access content'
+    _permission: 'use ai conversation'
 
 ai_conversation.chat_interface:
   path: '/node/{node}/chat'
@@ -36,7 +36,7 @@ ai_conversation.chat_interface:
     _controller: '\Drupal\ai_conversation\Controller\ChatController::chatInterface'
     _title: 'AI Chat'
   requirements:
-    _permission: 'access content'
+    _permission: 'use ai conversation'
     _entity_access: 'node.view'
     node: \d+
   options:
@@ -49,7 +49,7 @@ ai_conversation.send_message:
   defaults:
     _controller: '\Drupal\ai_conversation\Controller\ChatController::sendMessage'
   requirements:
-    _permission: 'access content'
+    _permission: 'use ai conversation'
     _method: 'POST'
   options:
     _csrf_token: TRUE
@@ -59,7 +59,7 @@ ai_conversation.get_stats:
   defaults:
     _controller: '\Drupal\ai_conversation\Controller\ChatController::getStats'
   requirements:
-    _permission: 'access content'
+    _permission: 'use ai conversation'
     _method: 'GET'
 
 ai_conversation.trigger_summary:
@@ -68,7 +68,7 @@ ai_conversation.trigger_summary:
     _controller: '\Drupal\ai_conversation\Controller\ChatController::triggerSummaryUpdate'
     _title: 'Trigger Summary Update'
   requirements:
-    _permission: 'access content'
+    _permission: 'use ai conversation'
     _entity_access: 'node.view'
     node: \d+
   options:
@@ -82,4 +82,4 @@ ai_conversation.start_chat:
     _controller: '\Drupal\ai_conversation\Controller\ChatController::startChat'
     _title: 'AI Chat'
   requirements:
-    _access: 'TRUE'
+    _permission: 'use ai conversation'
