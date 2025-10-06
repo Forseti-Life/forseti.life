@@ -1,0 +1,6 @@
+ai_conversation.ai_chat:
+  title: 'AI Chat'
+  description: 'Start a new AI conversation'
+  route_name: ai_conversation.start_chat
+  menu_name: main
+  weight: 40

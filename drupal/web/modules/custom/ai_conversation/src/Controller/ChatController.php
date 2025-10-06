@@ -174,6 +174,67 @@ class ChatController extends ControllerBase {
   }
 
   /**
+   * Start AI Chat - handles smart user redirect logic.
+   *
+   * For anonymous users: redirects to registration with destination parameter
+   * For authenticated users: creates new conversation and redirects to chat
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   */
+  public function startChat() {
+    // Check if user is logged in
+    if ($this->currentUser->isAnonymous()) {
+      // Redirect anonymous users to registration with destination
+      $url = \Drupal\Core\Url::fromRoute('user.register', [], [
+        'query' => ['destination' => '/ai-chat']
+      ]);
+      return new \Symfony\Component\HttpFoundation\RedirectResponse($url->toString());
+    }
+
+    try {
+      // Create new AI conversation node for authenticated user
+      $conversation = $this->entityTypeManager->getStorage('node')->create([
+        'type' => 'ai_conversation',
+        'title' => 'AI Chat - ' . date('Y-m-d H:i:s'),
+        'uid' => $this->currentUser->id(),
+        'status' => 1,
+        'field_ai_model' => [
+          'value' => 'anthropic.claude-3-5-sonnet-20240620-v1:0'
+        ],
+        'field_context' => [
+          'value' => 'You are a helpful AI assistant for St. Louis Integration, a technology consulting company. Please provide helpful, professional responses to user questions.',
+          'format' => 'basic_html'
+        ],
+        'field_message_count' => ['value' => 0],
+        'field_total_tokens' => ['value' => 0],
+      ]);
+      
+      $conversation->save();
+
+      // Redirect to the chat interface
+      $chat_url = \Drupal\Core\Url::fromRoute('ai_conversation.chat_interface', [
+        'node' => $conversation->id()
+      ]);
+      
+      $this->messenger()->addStatus($this->t('New AI conversation started successfully!'));
+      
+      return new \Symfony\Component\HttpFoundation\RedirectResponse($chat_url->toString());
+      
+    } catch (\Exception $e) {
+      // Log error and show user-friendly message
+      \Drupal::logger('ai_conversation')->error('Error creating new conversation: @error', [
+        '@error' => $e->getMessage()
+      ]);
+      
+      $this->messenger()->addError($this->t('Unable to start new conversation. Please try again.'));
+      
+      // Fallback to home page
+      $home_url = \Drupal\Core\Url::fromRoute('<front>');
+      return new \Symfony\Component\HttpFoundation\RedirectResponse($home_url->toString());
+    }
+  }
+
+  /**
    * Send message endpoint.
    */
   public function sendMessage(Request $request) {

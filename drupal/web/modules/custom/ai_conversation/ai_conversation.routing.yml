@@ -75,3 +75,11 @@ ai_conversation.trigger_summary:
     parameters:
       node:
         type: entity:node
+
+ai_conversation.start_chat:
+  path: '/ai-chat'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\ChatController::startChat'
+    _title: 'AI Chat'
+  requirements:
+    _access: 'TRUE'
