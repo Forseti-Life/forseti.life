@@ -198,7 +198,7 @@ jobs:
           
           # Enable custom modules
           echo "Enabling custom modules..."
-          MODULES=("pathauto" "professional_website_content" "ai_conversation" "job_application_automation" "resume_tailoring")
+          MODULES=("pathauto" "professional_website_content" "ai_conversation" "job_application_automation")
           
           for MODULE_NAME in "${MODULES[@]}"; do
             if [ -d "$DRUPAL_ROOT/web/modules/custom/$MODULE_NAME" ]; then
