@@ -1,0 +1,9 @@
+langcode: en
+status: true
+dependencies: {  }
+id: job_seeker
+label: 'Job Seeker'
+weight: 0
+registration: false
+multiple: false
+roles: {  }

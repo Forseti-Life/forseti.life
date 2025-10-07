@@ -33,6 +33,10 @@ function job_application_automation_install() {
     _job_application_automation_import_profile_configs();
     $logger->info('Profile configurations imported.');
     
+    // Ensure critical profile fields exist programmatically
+    _job_application_automation_ensure_profile_fields();
+    $logger->info('Profile fields verified and created if needed.');
+    
     // Create content types if they don't exist
     // This checks for existing types and only creates missing ones
     _job_application_automation_create_content_types();
@@ -1546,5 +1550,108 @@ function job_application_automation_update_8006() {
   } catch (Exception $e) {
     $logger->error('Error adding body field to tailored_resume: @error', ['@error' => $e->getMessage()]);
     throw $e;
+  }
+}
+
+/**
+ * Update 8007: Ensure profile fields exist and database tables are created.
+ */
+function job_application_automation_update_8007() {
+  $logger = \Drupal::logger('job_application_automation');
+  
+  try {
+    // Ensure Profile module is enabled
+    $module_handler = \Drupal::service('module_handler');
+    if (!$module_handler->moduleExists('profile')) {
+      \Drupal::service('module_installer')->install(['profile']);
+      $logger->info('Profile module has been enabled.');
+    }
+    
+    // Ensure critical profile fields exist
+    _job_application_automation_ensure_profile_fields();
+    
+    return t('Profile fields have been verified and created. Missing database tables have been created.');
+    
+  } catch (Exception $e) {
+    $logger->error('Error in update 8005: @error', ['@error' => $e->getMessage()]);
+    throw $e;
+  }
+}
+
+/**
+ * Ensures critical profile fields exist programmatically.
+ * This function creates fields if they don't exist, ensuring the database
+ * tables are properly created even if config import fails.
+ */
+function _job_application_automation_ensure_profile_fields() {
+  $logger = \Drupal::logger('job_application_automation');
+  
+  // Ensure job_seeker profile type exists
+  $profile_type = \Drupal::entityTypeManager()->getStorage('profile_type')->load('job_seeker');
+  if (!$profile_type) {
+    $profile_type = \Drupal::entityTypeManager()->getStorage('profile_type')->create([
+      'id' => 'job_seeker',
+      'label' => 'Job Seeker',
+      'weight' => 0,
+      'registration' => FALSE,
+      'multiple' => FALSE,
+    ]);
+    $profile_type->save();
+    $logger->info('Created job_seeker profile type.');
+  }
+  
+  // Define critical profile fields that must exist
+  $profile_fields = [
+    'field_profile_completeness' => [
+      'type' => 'integer',
+      'label' => 'Profile Completeness',
+      'description' => 'Profile completion percentage (0-100)',
+      'settings' => [
+        'min' => 0,
+        'max' => 100,
+        'prefix' => '',
+        'suffix' => '%',
+      ],
+      'default_value' => [['value' => 0]],
+    ],
+  ];
+  
+  foreach ($profile_fields as $field_name => $field_config) {
+    // Check if field storage exists
+    $field_storage = FieldStorageConfig::loadByName('profile', $field_name);
+    if (!$field_storage) {
+      // Create field storage
+      $field_storage = FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'profile',
+        'type' => $field_config['type'],
+        'settings' => $field_config['settings'] ?? [],
+        'cardinality' => 1,
+      ]);
+      $field_storage->save();
+      $logger->info('Created field storage for @field', ['@field' => $field_name]);
+    }
+    
+    // Check if field instance exists
+    $field = FieldConfig::loadByName('profile', 'job_seeker', $field_name);
+    if (!$field) {
+      // Create field instance
+      $field = FieldConfig::create([
+        'field_storage' => $field_storage,
+        'bundle' => 'job_seeker',
+        'label' => $field_config['label'],
+        'description' => $field_config['description'] ?? '',
+        'required' => $field_config['required'] ?? FALSE,
+        'default_value' => $field_config['default_value'] ?? [],
+        'settings' => $field_config['settings'] ?? [],
+      ]);
+      $field->save();
+      $logger->info('Created field instance for @field on job_seeker profile', ['@field' => $field_name]);
+      
+      // Ensure database table is created
+      \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+      \Drupal::entityDefinitionUpdateManager()->applyUpdates();
+      $logger->info('Applied entity updates to create database table for @field', ['@field' => $field_name]);
+    }
   }
 }
