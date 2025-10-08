@@ -3,6 +3,21 @@
 /**
  * @file
  * Install, update and uninstall functions for the Job Application Automation module.
+ * 
+ * DATA PRESERVATION POLICY:
+ * ========================
+ * This module is designed to NEVER delete user content or fields during uninstallation.
+ * All job applications, company data, user profiles, resume files, and custom content
+ * are preserved to prevent accidental data loss.
+ * 
+ * Protected during uninstall:
+ * - Content types: company, job_posting, application, issue, tailored_resume
+ * - User fields: field_resume_file, field_primary_resume_text, field_profile_completeness, etc.
+ * - Profile fields: field_profile_completeness, field_resume_file
+ * - All associated content and data
+ * 
+ * Only module configuration settings are removed during uninstall.
+ * Manual cleanup can be performed via Drupal admin interface if desired.
  */
 
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
@@ -11,6 +26,24 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\NodeType;
 use Drupal\views\Views;
+
+/**
+ * Implements hook_requirements().
+ */
+function job_application_automation_requirements($phase) {
+  $requirements = [];
+  
+  if ($phase === 'uninstall') {
+    $requirements['job_application_automation_data_preservation'] = [
+      'title' => t('Job Application Automation - Data Preservation'),
+      'value' => t('All content and fields will be preserved'),
+      'description' => t('This module is designed to preserve all user data during uninstallation. Content types (company, job_posting, application, issue, tailored_resume), user fields (resume files, profile data), and profile fields will NOT be deleted. This prevents accidental data loss. If you need to remove these items, do so manually after uninstallation via Structure > Content types and Configuration > Account settings.'),
+      'severity' => REQUIREMENT_INFO,
+    ];
+  }
+  
+  return $requirements;
+}
 
 /**
  * Implements hook_install().
@@ -74,14 +107,54 @@ function job_application_automation_uninstall() {
   try {
     $logger->info('Starting Job Application Automation module uninstallation...');
     
-    // Remove custom configuration
+    // Only remove module-specific configuration - NOT content or fields
     \Drupal::configFactory()->getEditable('job_application_automation.settings')->delete();
     
-    // Note: Content types and fields are preserved to avoid data loss
-    // Administrators can manually delete them if desired
+    // CRITICAL: Content types and fields are NEVER deleted during uninstall
+    // This preserves all user data, job applications, companies, and profile information
+    // 
+    // Protected content types:
+    // - company: All employer company data
+    // - job_posting: All discovered job opportunities  
+    // - application: All user job applications and status history
+    // - issue: All support requests and system issues
+    // - tailored_resume: All AI-generated resume content
+    //
+    // Protected user fields:
+    // - field_resume_file: Primary resume uploads
+    // - field_primary_resume_text: Extracted resume text
+    // - field_profile_completeness: User profile completion data
+    // - All other user profile fields (work auth, skills, etc.)
+    //
+    // Protected profile fields (job_seeker profile):
+    // - field_profile_completeness: Profile completion tracking
+    // - field_resume_file: Resume file uploads
+    // - All job seeker profile data
+    //
+    // Manual cleanup (if desired):
+    // To remove content types: Structure > Content types > Delete
+    // To remove fields: Structure > Content types > Manage fields > Delete
+    // To remove user fields: Configuration > Account settings > Manage fields > Delete
     
-    $messenger->addMessage(t('Job Application Automation module has been uninstalled. Content types and fields have been preserved to prevent data loss.'));
-    $logger->info('Job Application Automation module uninstallation completed.');
+    $preserved_items = [
+      'Content Types' => ['company', 'job_posting', 'application', 'issue', 'tailored_resume'],
+      'User Fields' => ['field_resume_file', 'field_primary_resume_text', 'field_profile_completeness', 'field_work_authorization', 'field_professional_summary', 'field_skills_summary', 'field_experience_years'],
+      'Profile Fields' => ['field_profile_completeness', 'field_resume_file'],
+      'Views' => ['Job Applications Dashboard', 'Company Management', 'Job Discovery'],
+      'Configuration' => ['Field displays', 'Form displays', 'Permissions'],
+    ];
+    
+    $message_parts = ['Job Application Automation module has been uninstalled safely.'];
+    $message_parts[] = 'ALL CONTENT AND FIELDS HAVE BEEN PRESERVED to prevent data loss.';
+    
+    foreach ($preserved_items as $category => $items) {
+      $message_parts[] = $category . ': ' . implode(', ', $items);
+    }
+    
+    $message_parts[] = 'To manually remove items: Go to Structure > Content types or Configuration > Account settings.';
+    
+    $messenger->addStatus(implode('<br>', $message_parts));
+    $logger->info('Job Application Automation module uninstallation completed. All content and fields preserved.');
     
   }
   catch (Exception $e) {

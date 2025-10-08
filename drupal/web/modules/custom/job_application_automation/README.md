@@ -6,6 +6,25 @@ A comprehensive AI-powered Drupal module that automates the entire job applicati
 ## ⚠️ CRITICAL: Read Architecture First
 **Before any development work begins, all developers MUST read and understand the complete [ARCHITECTURE.md](ARCHITECTURE.md) document.** This system involves complex AI integration, automated web scraping, credential management, and multi-platform submission automation that requires thorough understanding of the architecture before implementation.
 
+## 🛡️ IMPORTANT: Data Preservation Policy
+
+**This module is designed to NEVER delete user content or fields during uninstallation.**
+
+All job applications, company data, user profiles, resume files, and custom content are preserved to prevent accidental data loss.
+
+### Protected During Uninstall
+- **Content Types**: company, job_posting, application, issue, tailored_resume (and all their content)
+- **User Fields**: field_resume_file, field_primary_resume_text, field_profile_completeness, etc.
+- **Profile Fields**: field_profile_completeness, field_resume_file (job_seeker profile)
+- **Views**: Job Applications Dashboard, Company Management, Job Discovery
+- **All User Data**: Resume uploads, extracted text, profile information, application history
+
+### What Gets Removed
+Only module configuration settings (`job_application_automation.settings`) are removed during uninstall.
+
+### Manual Cleanup (Optional)
+To remove content types/fields after uninstall: Structure > Content types > Delete or Configuration > Account settings > Manage fields > Delete
+
 ## Current Working System **[✅ IMPLEMENTED]**
 
 ### **AI Resume Tailoring Workflow** (Fully Functional):
