@@ -1,0 +1,23 @@
+uuid: 8459623e-3af7-477c-b49e-7e134fcfe1d0
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_keywords_interested
+    - profile.type.job_seeker
+  module:
+    - text
+    - user
+id: profile.job_seeker.field_keywords_interested
+field_name: field_keywords_interested
+entity_type: profile
+bundle: job_seeker
+label: 'Job Keywords of Interest'
+description: 'Keywords and job types you are interested in'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

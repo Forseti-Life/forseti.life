@@ -1,17 +1,16 @@
-uuid: 9c1c8838-2278-4d5c-a499-c5d5b37f9e72
+uuid: 9efcb6af-b6f1-4131-abff-747fd6f27402
 langcode: en
 status: true
 dependencies:
   module:
+    - link
     - profile
-id: profile.field_profile_completeness
-field_name: field_profile_completeness
+id: profile.field_portfolio_url
+field_name: field_portfolio_url
 entity_type: profile
-type: integer
-settings:
-  unsigned: false
-  size: normal
-module: core
+type: link
+settings: {  }
+module: link
 locked: false
 cardinality: 1
 translatable: true

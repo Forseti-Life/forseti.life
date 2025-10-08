@@ -1,0 +1,22 @@
+uuid: 2461de57-35bb-4d37-ad6b-c45476d3f7b1
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_education_level
+    - profile.type.job_seeker
+  module:
+    - options
+    - user
+id: profile.job_seeker.field_education_level
+field_name: field_education_level
+entity_type: profile
+bundle: job_seeker
+label: 'Education Level'
+description: 'Highest level of education completed'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

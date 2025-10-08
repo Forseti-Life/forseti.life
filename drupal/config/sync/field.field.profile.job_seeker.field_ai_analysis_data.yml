@@ -1,0 +1,23 @@
+uuid: e1292ef6-84b5-4678-8b3e-421610942be4
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_ai_analysis_data
+    - profile.type.job_seeker
+  module:
+    - text
+    - user
+id: profile.job_seeker.field_ai_analysis_data
+field_name: field_ai_analysis_data
+entity_type: profile
+bundle: job_seeker
+label: 'AI Analysis Data'
+description: 'JSON storage for AI-analyzed profile data (system use)'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

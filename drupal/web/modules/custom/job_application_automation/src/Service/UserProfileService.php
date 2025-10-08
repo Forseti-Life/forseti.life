@@ -4,6 +4,7 @@ namespace Drupal\job_application_automation\Service;
 
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\user\Entity\User;
+use Drupal\profile\Entity\Profile;
 
 /**
  * Service for user profile validation and completeness calculation.
@@ -43,16 +44,8 @@ class UserProfileService {
    *   Profile completeness percentage (0-100).
    */
   public function calculateProfileCompleteness(User $user) {
-    $completed_weight = 0;
-    $total_weight = array_sum(self::FIELD_WEIGHTS);
-
-    foreach (self::FIELD_WEIGHTS as $field_name => $weight) {
-      if ($this->isFieldCompleted($user, $field_name)) {
-        $completed_weight += $weight;
-      }
-    }
-
-    return (int) round(($completed_weight / $total_weight) * 100);
+    // Use the new profile-based calculation method to align with field entity type migration
+    return $this->calculateProfileCompletenessFromProfile($user);
   }
 
   /**
@@ -104,26 +97,8 @@ class UserProfileService {
    *   Array of missing field recommendations.
    */
   public function getMissingFieldRecommendations(User $user, $limit = 5) {
-    $field_labels = [
-      'field_resume_file' => $this->t('Upload your resume'),
-      'field_work_authorization' => $this->t('Specify work authorization'),
-      'field_professional_summary' => $this->t('Add professional summary'),
-      'field_skills_summary' => $this->t('List your skills'),
-      'field_experience_years' => $this->t('Add years of experience'),
-      'field_education_level' => $this->t('Select education level'),
-      'field_remote_preference' => $this->t('Set remote work preference'),
-      'field_linkedin_url' => $this->t('Add LinkedIn profile'),
-      'field_salary_expectation_min' => $this->t('Set minimum salary expectation'),
-    ];
-
-    $missing = [];
-    foreach ($field_labels as $field_name => $label) {
-      if (!$this->isFieldCompleted($user, $field_name)) {
-        $missing[] = $label;
-      }
-    }
-
-    return array_slice($missing, 0, $limit);
+    // Use the new profile-based method to align with field entity type migration
+    return $this->getMissingFieldRecommendationsFromProfile($user, $limit);
   }
 
   /**
@@ -138,17 +113,8 @@ class UserProfileService {
    *   The calculated completeness percentage.
    */
   public function updateProfileCompleteness(User $user, $save = TRUE) {
-    $completeness = $this->calculateProfileCompleteness($user);
-    
-    if ($user->hasField('field_profile_completeness')) {
-      $user->set('field_profile_completeness', $completeness);
-      
-      if ($save) {
-        $user->save();
-      }
-    }
-
-    return $completeness;
+    // Use the new profile-based method to align with field entity type migration
+    return $this->updateProfileCompletenessFromProfile($user, $save);
   }
 
   /**
@@ -195,17 +161,32 @@ class UserProfileService {
    *   Validation result with status and messages.
    */
   public function validateForJobApplication(User $user) {
-    $completeness = $this->calculateProfileCompleteness($user);
+    // Use profile-based validation to align with field entity type migration
+    return $this->validateForJobApplicationFromProfile($user);
+  }
+
+  /**
+   * Validates user profile for job application using profile entity data.
+   *
+   * @param \Drupal\user\Entity\User $user
+   *   The user entity.
+   *
+   * @return array
+   *   Validation results with ready, errors, warnings, and recommendations.
+   */
+  public function validateForJobApplicationFromProfile(User $user) {
+    $profile = $this->getJobSeekerProfile($user);
+    $completeness = $this->calculateProfileCompletenessFromProfile($user);
     $errors = [];
     $warnings = [];
     $recommendations = [];
 
     // Critical Requirements (Blocking - cannot apply without these)
-    if (!$this->isFieldCompleted($user, 'field_resume_file')) {
+    if (!$profile || !$this->isProfileFieldCompleted($profile, 'field_resume_file')) {
       $errors[] = $this->t('Resume upload is required - employers need to see your qualifications.');
     }
 
-    if (!$this->isFieldCompleted($user, 'field_work_authorization')) {
+    if (!$profile || !$this->isProfileFieldCompleted($profile, 'field_work_authorization')) {
       $errors[] = $this->t('Work authorization status is required - employers must verify eligibility.');
     }
 
@@ -325,6 +306,186 @@ class UserProfileService {
     $stats['validation'] = $validation;
     
     return $stats;
+  }
+
+  /**
+   * Gets or creates a job_seeker profile for a user.
+   *
+   * @param \Drupal\user\Entity\User $user
+   *   The user entity.
+   *
+   * @return \Drupal\profile\Entity\Profile|null
+   *   The job_seeker profile or null if it can't be created.
+   */
+  public function getJobSeekerProfile(User $user) {
+    $profile_storage = \Drupal::entityTypeManager()->getStorage('profile');
+    
+    // Try to load existing profile
+    $profiles = $profile_storage->loadByProperties([
+      'uid' => $user->id(),
+      'type' => 'job_seeker',
+    ]);
+    
+    if (!empty($profiles)) {
+      return reset($profiles);
+    }
+    
+    // Create new profile if none exists
+    try {
+      $profile = $profile_storage->create([
+        'type' => 'job_seeker',
+        'uid' => $user->id(),
+        'status' => 1,
+      ]);
+      $profile->save();
+      
+      return $profile;
+    } catch (\Exception $e) {
+      \Drupal::logger('job_application_automation')->error('Failed to create job_seeker profile for user @uid: @error', [
+        '@uid' => $user->id(),
+        '@error' => $e->getMessage(),
+      ]);
+      return null;
+    }
+  }
+
+  /**
+   * Calculates profile completeness using profile entity fields.
+   *
+   * @param \Drupal\user\Entity\User $user
+   *   The user entity.
+   *
+   * @return int
+   *   Profile completeness percentage (0-100).
+   */
+  public function calculateProfileCompletenessFromProfile(User $user) {
+    $profile = $this->getJobSeekerProfile($user);
+    if (!$profile) {
+      return 0;
+    }
+    
+    $completed_weight = 0;
+    $total_weight = array_sum(self::FIELD_WEIGHTS);
+
+    foreach (self::FIELD_WEIGHTS as $field_name => $weight) {
+      if ($this->isProfileFieldCompleted($profile, $field_name)) {
+        $completed_weight += $weight;
+      }
+    }
+
+    return round(($completed_weight / $total_weight) * 100);
+  }
+
+  /**
+   * Checks if a profile field is completed.
+   *
+   * @param \Drupal\profile\Entity\Profile $profile
+   *   The profile entity.
+   * @param string $field_name
+   *   The field name to check.
+   *
+   * @return bool
+   *   TRUE if the field is completed, FALSE otherwise.
+   */
+  protected function isProfileFieldCompleted(Profile $profile, $field_name) {
+    if (!$profile->hasField($field_name)) {
+      return false;
+    }
+
+    $field_value = $profile->get($field_name);
+    
+    if ($field_value->isEmpty()) {
+      return false;
+    }
+
+    // Special handling for specific field types
+    if ($field_name === 'field_resume_file') {
+      $file_value = $field_value->first();
+      return !empty($file_value) && !empty($file_value->target_id);
+    }
+
+    // For other fields, just check if they have a non-empty value
+    $first_value = $field_value->first();
+    if (!$first_value) {
+      return false;
+    }
+
+    $value = $first_value->value ?? $first_value->target_id ?? null;
+    return !empty($value);
+  }
+
+  /**
+   * Updates profile completeness using profile entity data.
+   *
+   * @param \Drupal\user\Entity\User $user
+   *   The user entity.
+   * @param bool $save
+   *   Whether to save the profile after updating.
+   *
+   * @return int
+   *   The calculated completeness percentage.
+   */
+  public function updateProfileCompletenessFromProfile(User $user, $save = TRUE) {
+    $profile = $this->getJobSeekerProfile($user);
+    if (!$profile) {
+      return 0;
+    }
+    
+    $completeness = $this->calculateProfileCompletenessFromProfile($user);
+    
+    if ($profile->hasField('field_profile_completeness')) {
+      $profile->set('field_profile_completeness', $completeness);
+      
+      // Also update last profile update timestamp
+      if ($profile->hasField('field_last_profile_update')) {
+        $profile->set('field_last_profile_update', \Drupal::time()->getRequestTime());
+      }
+      
+      if ($save) {
+        $profile->save();
+      }
+    }
+
+    return $completeness;
+  }
+
+  /**
+   * Gets missing field recommendations using profile data.
+   *
+   * @param \Drupal\user\Entity\User $user
+   *   The user entity.
+   * @param int $limit
+   *   Maximum number of recommendations to return.
+   *
+   * @return array
+   *   Array of missing field recommendations.
+   */
+  public function getMissingFieldRecommendationsFromProfile(User $user, $limit = 5) {
+    $profile = $this->getJobSeekerProfile($user);
+    if (!$profile) {
+      return [];
+    }
+    
+    $field_labels = [
+      'field_resume_file' => $this->t('Upload your resume'),
+      'field_work_authorization' => $this->t('Specify work authorization'),
+      'field_professional_summary' => $this->t('Add professional summary'),
+      'field_skills_summary' => $this->t('List your skills'),
+      'field_experience_years' => $this->t('Add years of experience'),
+      'field_education_level' => $this->t('Select education level'),
+      'field_remote_preference' => $this->t('Set remote work preference'),
+      'field_linkedin_url' => $this->t('Add LinkedIn profile'),
+      'field_salary_expectation_min' => $this->t('Set minimum salary expectation'),
+    ];
+
+    $missing = [];
+    foreach ($field_labels as $field_name => $label) {
+      if (!$this->isProfileFieldCompleted($profile, $field_name)) {
+        $missing[] = $label;
+      }
+    }
+
+    return array_slice($missing, 0, $limit);
   }
 
 }

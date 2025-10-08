@@ -30,6 +30,44 @@ Following **Drupal 11 administrative patterns**, all content is managed through 
 - **MySQL 8.0+** or **PostgreSQL 13+**
 - **Composer** for dependency management
 
+### Production Server Information
+
+**Current Production Environment:**
+- **Server**: AWS EC2 instance (ip-172-16-4-59)
+- **Operating System**: Ubuntu 24.04.1 LTS (Linux 6.14.0-1013-aws)
+- **Architecture**: x86_64
+- **Web Root**: `/var/www/html/stlouisintegration/`
+- **Drupal Root**: `/var/www/html/stlouisintegration/web/`
+- **Web Server User**: `www-data`
+- **SSH User**: `ubuntu`
+
+**Production Drush Commands:**
+```bash
+# Navigate to Drupal root
+cd /var/www/html/stlouisintegration
+
+# Run database updates (requires www-data user)
+sudo -u www-data ./vendor/bin/drush updatedb -y
+
+# Run entity updates
+sudo -u www-data ./vendor/bin/drush entity:updates -y
+
+# Clear caches
+sudo -u www-data ./vendor/bin/drush cache:rebuild
+
+# Check module status
+sudo -u www-data ./vendor/bin/drush pm:list | grep job_application_automation
+```
+
+**Database Management:**
+```bash
+# Verify table creation
+sudo -u www-data ./vendor/bin/drush sqlq "SHOW TABLES LIKE 'profile__field_profile_completeness';"
+
+# Check entity field storage
+sudo -u www-data ./vendor/bin/drush entity:updates --show
+```
+
 ### Installation Process
 
 #### Method 1: Via Drupal Admin UI

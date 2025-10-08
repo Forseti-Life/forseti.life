@@ -1,0 +1,28 @@
+uuid: 810cf3ee-e22f-4aa2-bd83-3cdbb56bb005
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_resume_file
+    - profile.type.job_seeker
+  module:
+    - file
+    - user
+id: profile.job_seeker.field_resume_file
+field_name: field_resume_file
+entity_type: profile
+bundle: job_seeker
+label: 'Primary Resume'
+description: 'Upload your primary resume file (PDF or Word format)'
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:file'
+  handler_settings: {  }
+  file_directory: 'resumes/[date:custom:Y]-[date:custom:m]'
+  file_extensions: 'pdf doc docx'
+  max_filesize: '2 MB'
+  description_field: false
+field_type: file

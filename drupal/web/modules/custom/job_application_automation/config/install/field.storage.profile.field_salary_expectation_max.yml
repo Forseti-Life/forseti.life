@@ -1,11 +1,11 @@
-uuid: 9c1c8838-2278-4d5c-a499-c5d5b37f9e72
+uuid: cf5fc979-8f1b-4f52-915b-c145cecee3cf
 langcode: en
 status: true
 dependencies:
   module:
     - profile
-id: profile.field_profile_completeness
-field_name: field_profile_completeness
+id: profile.field_salary_expectation_max
+field_name: field_salary_expectation_max
 entity_type: profile
 type: integer
 settings:

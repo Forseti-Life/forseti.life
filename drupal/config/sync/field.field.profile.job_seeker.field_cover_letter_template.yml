@@ -1,0 +1,23 @@
+uuid: 2a381c23-68bf-4202-998b-7c0896721799
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_cover_letter_template
+    - profile.type.job_seeker
+  module:
+    - text
+    - user
+id: profile.job_seeker.field_cover_letter_template
+field_name: field_cover_letter_template
+entity_type: profile
+bundle: job_seeker
+label: 'Cover Letter Template'
+description: 'Default cover letter template for applications'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

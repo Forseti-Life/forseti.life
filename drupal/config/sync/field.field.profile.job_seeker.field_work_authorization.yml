@@ -1,0 +1,22 @@
+uuid: bd852100-4f61-471c-a9fd-5d55726343c8
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_work_authorization
+    - profile.type.job_seeker
+  module:
+    - options
+    - user
+id: profile.job_seeker.field_work_authorization
+field_name: field_work_authorization
+entity_type: profile
+bundle: job_seeker
+label: 'Work Authorization'
+description: 'Legal work authorization status'
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

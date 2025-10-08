@@ -1,17 +1,17 @@
-uuid: 9c1c8838-2278-4d5c-a499-c5d5b37f9e72
+uuid: a213dfa4-3be9-4636-8b45-32dac263478e
 langcode: en
 status: true
 dependencies:
   module:
+    - datetime
     - profile
-id: profile.field_profile_completeness
-field_name: field_profile_completeness
+id: profile.field_last_profile_update
+field_name: field_last_profile_update
 entity_type: profile
-type: integer
+type: datetime
 settings:
-  unsigned: false
-  size: normal
-module: core
+  datetime_type: datetime
+module: datetime
 locked: false
 cardinality: 1
 translatable: true

@@ -1,16 +1,14 @@
-uuid: 9c1c8838-2278-4d5c-a499-c5d5b37f9e72
+uuid: 14e82b20-4b45-4c23-813a-3bf7488a4998
 langcode: en
 status: true
 dependencies:
   module:
     - profile
-id: profile.field_profile_completeness
-field_name: field_profile_completeness
+id: profile.field_relocation_willing
+field_name: field_relocation_willing
 entity_type: profile
-type: integer
-settings:
-  unsigned: false
-  size: normal
+type: boolean
+settings: {  }
 module: core
 locked: false
 cardinality: 1

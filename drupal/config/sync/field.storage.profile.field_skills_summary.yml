@@ -1,17 +1,16 @@
-uuid: 9c1c8838-2278-4d5c-a499-c5d5b37f9e72
+uuid: 0006057a-6e07-4f54-b3f2-9d471e628b92
 langcode: en
 status: true
 dependencies:
   module:
+    - text
     - profile
-id: profile.field_profile_completeness
-field_name: field_profile_completeness
+id: profile.field_skills_summary
+field_name: field_skills_summary
 entity_type: profile
-type: integer
-settings:
-  unsigned: false
-  size: normal
-module: core
+type: text_long
+settings: {  }
+module: text
 locked: false
 cardinality: 1
 translatable: true
