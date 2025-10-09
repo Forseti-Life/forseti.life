@@ -16,10 +16,5 @@ description: 'Total years of professional experience'
 required: false
 translatable: true
 default_value: {  }
-default_value_callback: ''
-settings:
-  min: 0
-  max: 50
-  prefix: ''
-  suffix: ''
+settings: {}
 field_type: integer

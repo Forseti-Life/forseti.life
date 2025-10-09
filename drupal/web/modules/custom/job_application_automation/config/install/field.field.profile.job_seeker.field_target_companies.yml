@@ -17,7 +17,6 @@ description: 'Companies you are interested in working for'
 required: false
 translatable: true
 default_value: {  }
-default_value_callback: ''
 settings:
   handler: 'default:node'
   handler_settings:

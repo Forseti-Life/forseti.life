@@ -16,10 +16,5 @@ description: 'Minimum acceptable salary (annual)'
 required: false
 translatable: true
 default_value: {  }
-default_value_callback: ''
-settings:
-  min: 0
-  max: 999999
-  prefix: ''
-  suffix: ''
+settings: {}
 field_type: integer

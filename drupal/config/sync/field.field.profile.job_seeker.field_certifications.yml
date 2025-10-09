@@ -17,7 +17,6 @@ description: 'Professional certifications and licenses'
 required: false
 translatable: true
 default_value: {  }
-default_value_callback: ''
 settings:
   allowed_formats: {  }
 field_type: text_long

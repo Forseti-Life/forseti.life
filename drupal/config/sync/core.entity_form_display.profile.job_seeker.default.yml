@@ -55,7 +55,9 @@ content:
     weight: 3
     region: content
     settings:
-      placeholder: ''
+      placeholder: 'Enter number of years'
+      prefix: ''
+      suffix: ' years'
     third_party_settings: {  }
   field_education_level:
     type: options_select
@@ -110,6 +112,8 @@ content:
     region: content
     settings:
       placeholder: 'Minimum expected salary'
+      prefix: '$'
+      suffix: ''
     third_party_settings: {  }
   field_salary_expectation_max:
     type: number
@@ -117,6 +121,8 @@ content:
     region: content
     settings:
       placeholder: 'Maximum expected salary'
+      prefix: '$'
+      suffix: ''
     third_party_settings: {  }
   field_linkedin_url:
     type: link_default

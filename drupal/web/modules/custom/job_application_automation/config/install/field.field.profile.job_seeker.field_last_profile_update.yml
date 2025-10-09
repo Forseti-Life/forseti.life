@@ -17,6 +17,5 @@ description: 'Last time profile was updated (system managed)'
 required: false
 translatable: true
 default_value: {  }
-default_value_callback: ''
 settings: {  }
 field_type: datetime

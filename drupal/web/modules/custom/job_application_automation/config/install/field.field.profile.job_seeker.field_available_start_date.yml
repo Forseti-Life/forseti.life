@@ -17,6 +17,5 @@ description: 'Earliest date you can start work'
 required: false
 translatable: true
 default_value: {  }
-default_value_callback: ''
 settings: {  }
 field_type: datetime

@@ -17,6 +17,5 @@ description: 'Highest level of education completed'
 required: false
 translatable: true
 default_value: {  }
-default_value_callback: ''
 settings: {  }
 field_type: list_string

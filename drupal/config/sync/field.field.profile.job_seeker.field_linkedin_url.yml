@@ -17,7 +17,6 @@ description: 'Your LinkedIn profile URL'
 required: false
 translatable: true
 default_value: {  }
-default_value_callback: ''
 settings:
   title: 1
   link_type: 16

@@ -17,7 +17,6 @@ description: 'Keywords and job types you are interested in'
 required: false
 translatable: true
 default_value: {  }
-default_value_callback: ''
 settings:
   allowed_formats: {  }
 field_type: text_long
