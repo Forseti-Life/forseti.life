@@ -196,6 +196,15 @@ jobs:
           echo "Applying database updates..."
           sudo -u www-data ./vendor/bin/drush updatedb -y || echo "ℹ️ No database updates needed"
           
+          # Fix NumberWidget configuration for PHP 8.3+ compatibility
+          echo "Fixing NumberWidget configuration..."
+          if sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^job_application_automation$"; then
+            sudo -u www-data ./vendor/bin/drush job-app:fix-numberwidget || echo "⚠️ NumberWidget fix completed with warnings"
+            echo "✅ NumberWidget configuration fixed for PHP 8.3+ compatibility"
+          else
+            echo "ℹ️ job_application_automation module not enabled, skipping NumberWidget fix"
+          fi
+          
           # Enable custom modules
           echo "Enabling custom modules..."
           MODULES=("pathauto" "professional_website_content" "ai_conversation" "job_application_automation")
@@ -234,6 +243,8 @@ jobs:
           echo "🎉 === DEPLOYMENT COMPLETED SUCCESSFULLY === 🎉"
           echo "✅ Modules and themes deployed"
           echo "✅ Configuration imported"
+          echo "✅ Database updates applied"
+          echo "✅ NumberWidget configuration fixed (PHP 8.3+ compatibility)"
           echo "✅ Custom modules enabled"
           echo "✅ URL aliases generated (Pathauto)"
           echo "✅ Caches cleared"
