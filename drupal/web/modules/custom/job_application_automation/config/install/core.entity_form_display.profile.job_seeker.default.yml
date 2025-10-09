@@ -194,7 +194,10 @@ hidden:
   field_last_profile_update: true
   field_profile_completeness:
     type: number
+    weight: 100
+    region: content
     settings:
       placeholder: ''
       prefix: null
       suffix: null
+    third_party_settings: {  }

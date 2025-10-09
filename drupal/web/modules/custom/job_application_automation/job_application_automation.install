@@ -1975,10 +1975,84 @@ function job_application_automation_update_8008() {
     $logger->warning('Migration errors: @errors', ['@errors' => implode('; ', array_slice($errors, 0, 5))]);
   }
   
-  return t('Successfully migrated user field data to profile fields for @count users.', ['@count' => $migrated_users]);
+    return t('Successfully migrated user field data to profile fields for @count users.', ['@count' => $migrated_users]);
 }
 
 /**
+ * Update 8009: Fix NumberWidget prefix/suffix configuration to resolve PHP 8.3+ warnings.
+ * 
+ * This update ensures all number field widgets have proper prefix and suffix keys
+ * to prevent "Undefined array key" errors in Drupal\Core\Field\Plugin\Field\FieldWidget\NumberWidget.
+ */
+function job_application_automation_update_8009() {
+  $logger = \Drupal::logger('job_application_automation');
+  $logger->info('Starting NumberWidget configuration fix (Update 8009)...');
+  
+  try {
+    // Load the job_seeker profile form display
+    $form_display = \Drupal::entityTypeManager()
+      ->getStorage('entity_form_display')
+      ->load('profile.job_seeker.default');
+    
+    if (!$form_display) {
+      $logger->error('Form display profile.job_seeker.default not found');
+      return t('Error: Form display profile.job_seeker.default not found');
+    }
+    
+    $updated_fields = 0;
+    $number_fields = [
+      'field_experience_years',
+      'field_salary_expectation_min', 
+      'field_salary_expectation_max',
+      'field_profile_completeness'
+    ];
+    
+    foreach ($number_fields as $field_name) {
+      $component = $form_display->getComponent($field_name);
+      
+      if ($component && $component['type'] === 'number') {
+        // Ensure prefix and suffix keys exist
+        if (!isset($component['settings']['prefix'])) {
+          $component['settings']['prefix'] = null;
+        }
+        if (!isset($component['settings']['suffix'])) {
+          $component['settings']['suffix'] = null;
+        }
+        
+        // Set specific values for certain fields
+        if ($field_name === 'field_experience_years') {
+          $component['settings']['suffix'] = ' years';
+        } elseif (in_array($field_name, ['field_salary_expectation_min', 'field_salary_expectation_max'])) {
+          $component['settings']['prefix'] = '$';
+        }
+        
+        $form_display->setComponent($field_name, $component);
+        $updated_fields++;
+        
+        $logger->info('Updated NumberWidget configuration for field: @field', ['@field' => $field_name]);
+      }
+    }
+    
+    if ($updated_fields > 0) {
+      $form_display->save();
+      
+      // Clear relevant caches
+      \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+      \Drupal::cache('render')->deleteAll();
+      
+      $logger->info('NumberWidget configuration update completed. Updated @count fields.', ['@count' => $updated_fields]);
+      
+      return t('Successfully updated NumberWidget configuration for @count fields to prevent PHP 8.3+ warnings.', ['@count' => $updated_fields]);
+    } else {
+      $logger->info('No NumberWidget fields found that needed updating.');
+      return t('No NumberWidget fields required configuration updates.');
+    }
+    
+  } catch (Exception $e) {
+    $logger->error('Error updating NumberWidget configuration: @error', ['@error' => $e->getMessage()]);
+    throw $e;
+  }
+}/**
  * Ensures critical profile fields exist programmatically.
  * This function creates fields if they don't exist, ensuring the database
  * tables are properly created even if config import fails.
