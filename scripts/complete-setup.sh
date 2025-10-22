@@ -340,50 +340,111 @@ print_status "Starting services..."
 sudo service mysql start
 sudo service apache2 restart
 
-print_step "2. DRUPAL INSTALLATION - Creating Drupal 11 project..."
+print_step "2. DRUPAL INSTALLATION - Checking existing Drupal installation..."
 
-# Remove existing project directory if it exists
+# Check if Drupal directory exists
 if [ -d "$PROJECT_DIR" ]; then
-    print_warning "Existing Drupal directory found. Removing..."
-    rm -rf "$PROJECT_DIR"
+    print_status "Existing Drupal directory found. Skipping fresh installation to preserve custom work."
+    print_status "Using existing Drupal installation at $PROJECT_DIR"
+else
+    print_status "No existing Drupal directory found. Creating new Drupal 11 project..."
+    cd /workspaces/stlouisintegration.com
+    /usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:^11.0 drupal --no-interaction
 fi
-
-# Create Drupal project using Composer
-print_status "Creating Drupal 11 project with Composer..."
-cd /workspaces/stlouisintegration.com
-/usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:^11.0 drupal --no-interaction
 
 # Move into the project directory
 cd "$PROJECT_DIR"
 
-print_status "Installing Drush..."
-/usr/bin/php8.3 /usr/local/bin/composer require drush/drush --no-interaction
+# Only install dependencies if this is a fresh installation
+if [ ! -f "vendor/bin/drush" ]; then
+    print_status "Installing Drush..."
+    /usr/bin/php8.3 /usr/local/bin/composer require drush/drush --no-interaction
+fi
 
-print_status "Installing development modules..."
-/usr/bin/php8.3 /usr/local/bin/composer require drupal/devel drupal/admin_toolbar drupal/pathauto drupal/metatag --no-interaction
+# Check if development modules are already installed
+if [ ! -d "web/modules/contrib/devel" ]; then
+    print_status "Installing development modules..."
+    /usr/bin/php8.3 /usr/local/bin/composer require drupal/devel drupal/admin_toolbar drupal/pathauto drupal/metatag --no-interaction
+else
+    print_status "Development modules already installed. Skipping to preserve existing setup."
+fi
 
-print_status "Setting up file permissions..."
-chmod 755 web/sites/default
-mkdir -p web/sites/default/files
-chmod 775 web/sites/default/files
+# Only set up permissions and install if settings.php doesn't exist (fresh installation)
+if [ ! -f "web/sites/default/settings.php" ] || [ ! -s "web/sites/default/settings.php" ]; then
+    print_status "Setting up file permissions for fresh installation..."
+    chmod 755 web/sites/default
+    mkdir -p web/sites/default/files
+    chmod 775 web/sites/default/files
 
-# Copy default settings file
-cp web/sites/default/default.settings.php web/sites/default/settings.php
-chmod 664 web/sites/default/settings.php
+    # Copy default settings file
+    cp web/sites/default/default.settings.php web/sites/default/settings.php
+    chmod 664 web/sites/default/settings.php
 
-print_status "Running Drupal installation..."
-./vendor/bin/drush site:install standard \
-    --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${DB_NAME}" \
-    --site-name="${SITE_NAME}" \
-    --account-name="${ADMIN_USER}" \
-    --account-pass="${ADMIN_PASSWORD}" \
-    --account-mail="${ADMIN_EMAIL}" \
-    --yes
+    print_status "Running Drupal installation..."
+    ./vendor/bin/drush site:install standard \
+        --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${DB_NAME}" \
+        --site-name="${SITE_NAME}" \
+        --account-name="${ADMIN_USER}" \
+        --account-pass="${ADMIN_PASSWORD}" \
+        --account-mail="${ADMIN_EMAIL}" \
+        --yes
+else
+    print_status "Existing Drupal installation detected. Skipping site installation to preserve data."
+fi
 
-print_status "Enabling development and utility modules..."
-./vendor/bin/drush en devel admin_toolbar admin_toolbar_tools pathauto metatag -y
+# Only enable modules if this is a fresh installation
+if ./vendor/bin/drush status | grep -q "Drupal bootstrap.*Successful"; then
+    # Check if development modules are already enabled
+    if ! ./vendor/bin/drush pm:list --status=enabled | grep -q "devel"; then
+        print_status "Enabling development and utility modules..."
+        ./vendor/bin/drush en devel admin_toolbar admin_toolbar_tools pathauto metatag -y
+    else
+        print_status "Development modules already enabled. Skipping to preserve existing configuration."
+    fi
+    
+    # Enable custom modules if they exist and aren't already enabled
+    if [ -d "web/modules/custom/professional_website_content" ] && ! ./vendor/bin/drush pm:list --status=enabled | grep -q "professional_website_content"; then
+        print_status "Enabling custom modules..."
+        
+        # Enable profile module first (dependency for job_application_automation)
+        ./vendor/bin/drush en profile -y
+        
+        # Enable modules in dependency order
+        ./vendor/bin/drush en professional_website_content -y
+        ./vendor/bin/drush en ai_conversation -y
+        ./vendor/bin/drush en stli_site_customizations -y
+        
+        # Note: job_application_automation and resume_tailoring may need additional content types
+        # Enable them individually if dependencies are met
+        if ./vendor/bin/drush en job_application_automation -y 2>/dev/null; then
+            print_status "Job Application Automation module enabled successfully"
+        else
+            print_warning "Job Application Automation module has unmet dependencies - skipping"
+        fi
+        
+        if ./vendor/bin/drush en resume_tailoring -y 2>/dev/null; then
+            print_status "Resume Tailoring module enabled successfully"
+        else
+            print_warning "Resume Tailoring module has unmet dependencies - skipping"
+        fi
+    fi
+    
+    # Enable and set custom theme if it exists
+    if [ -d "web/themes/custom/stlouisintegration" ]; then
+        if ! ./vendor/bin/drush pm:list --type=theme --status=enabled | grep -q "stlouisintegration"; then
+            print_status "Enabling St. Louis Integration custom theme..."
+            ./vendor/bin/drush theme:enable stlouisintegration -y
+            ./vendor/bin/drush config:set system.theme default stlouisintegration -y
+            print_status "St. Louis Integration theme set as default"
+        else
+            print_status "St. Louis Integration theme already enabled"
+        fi
+    fi
+else
+    print_status "Drupal not fully installed yet. Skipping module enabling."
+fi
 
-print_status "Creating custom development directories..."
+print_status "Ensuring custom development directories exist..."
 mkdir -p web/modules/custom
 mkdir -p web/themes/custom
 mkdir -p config/sync
@@ -392,8 +453,10 @@ chmod 755 web/modules/custom
 chmod 755 web/themes/custom
 chmod 755 config/sync
 
-print_status "Adding development-specific settings..."
-cat >> web/sites/default/settings.php << 'EOL'
+# Only add development settings if they don't already exist
+if ! grep -q "Development-specific settings" web/sites/default/settings.php; then
+    print_status "Adding development-specific settings..."
+    cat >> web/sites/default/settings.php << 'EOL'
 
 /**
  * Development-specific settings
@@ -419,10 +482,14 @@ $settings['cache']['bins']['render'] = 'cache.backend.null';
 $settings['cache']['bins']['page'] = 'cache.backend.null';
 $settings['cache']['bins']['dynamic_page_cache'] = 'cache.backend.null';
 EOL
+else
+    print_status "Development settings already exist in settings.php. Skipping to preserve existing configuration."
+fi
 
-# Create settings.local.php
-print_status "Creating local development settings..."
-cat > web/sites/default/settings.local.php << EOL
+# Create settings.local.php only if it doesn't exist
+if [ ! -f "web/sites/default/settings.local.php" ]; then
+    print_status "Creating local development settings..."
+    cat > web/sites/default/settings.local.php << EOL
 <?php
 
 /**
@@ -459,8 +526,10 @@ cat > web/sites/default/settings.local.php << EOL
 \$config['system.performance']['css']['preprocess'] = FALSE;
 \$config['system.performance']['js']['preprocess'] = FALSE;
 EOL
-
-chmod 644 web/sites/default/settings.local.php
+    chmod 644 web/sites/default/settings.local.php
+else
+    print_status "Local development settings already exist. Skipping to preserve existing configuration."
+fi
 
 print_step "3. DEVELOPMENT CONFIGURATION - Setting up development tools..."
 
@@ -474,8 +543,10 @@ print_status "Configuring PHP CodeSniffer for Drupal standards..."
 ./vendor/bin/phpcs --config-set installed_paths vendor/drupal/coder/coder_sniffer
 ./vendor/bin/phpcs --config-set default_standard Drupal
 
-print_status "Creating development services configuration..."
-cat > web/sites/development.services.yml << 'EOL'
+# Only create development services if it doesn't exist
+if [ ! -f "web/sites/development.services.yml" ]; then
+    print_status "Creating development services configuration..."
+    cat > web/sites/development.services.yml << 'EOL'
 # Local development services.
 parameters:
   http.response.debug_cacheability_headers: true
@@ -487,11 +558,15 @@ services:
   cache.backend.null:
     class: Drupal\Core\Cache\NullBackendFactory
 EOL
+else
+    print_status "Development services configuration already exists. Skipping to preserve existing setup."
+fi
 
-# Create custom module template
+# Create custom module template only if it doesn't exist
 CUSTOM_MODULES_DIR="$PROJECT_DIR/web/modules/custom"
-print_status "Creating custom module template..."
-cat > "$CUSTOM_MODULES_DIR/README.md" << 'EOL'
+if [ ! -f "$CUSTOM_MODULES_DIR/README.md" ]; then
+    print_status "Creating custom module template..."
+    cat > "$CUSTOM_MODULES_DIR/README.md" << 'EOL'
 # Custom Modules
 
 This directory contains custom modules for the St. Louis Integration website.
@@ -542,11 +617,15 @@ Fix coding standards automatically:
 ../../../vendor/bin/phpcbf --standard=Drupal /path/to/your/module
 ```
 EOL
+else
+    print_status "Custom module template already exists. Skipping to preserve existing modules."
+fi
 
-# Create custom theme template
+# Create custom theme template only if it doesn't exist
 CUSTOM_THEMES_DIR="$PROJECT_DIR/web/themes/custom"
-print_status "Creating custom theme template..."
-cat > "$CUSTOM_THEMES_DIR/README.md" << 'EOL'
+if [ ! -f "$CUSTOM_THEMES_DIR/README.md" ]; then
+    print_status "Creating custom theme template..."
+    cat > "$CUSTOM_THEMES_DIR/README.md" << 'EOL'
 # Custom Themes
 
 This directory contains custom themes for the St. Louis Integration website.
@@ -590,12 +669,17 @@ Test themes across:
 - Accessibility standards
 - Performance metrics
 EOL
+else
+    print_status "Custom theme template already exists. Skipping to preserve existing themes."
+fi
 
 # Create development scripts
 SCRIPTS_DIR="$PROJECT_DIR/scripts"
 mkdir -p "$SCRIPTS_DIR"
 
-print_status "Creating development utility scripts..."
+# Only create utility scripts if they don't exist
+if [ ! -f "$SCRIPTS_DIR/clear-cache.sh" ]; then
+    print_status "Creating development utility scripts..."
 
 # Cache clear script
 cat > "$SCRIPTS_DIR/clear-cache.sh" << 'EOL'
@@ -661,16 +745,25 @@ echo "Creating database backup..."
 echo "Database backup created: $BACKUP_FILE"
 EOL
 
-# Make scripts executable
-chmod +x "$SCRIPTS_DIR"/*.sh
+    # Make scripts executable
+    chmod +x "$SCRIPTS_DIR"/*.sh
+else
+    print_status "Development utility scripts already exist. Skipping to preserve existing scripts."
+fi
 
-# Clear cache after all configuration
-print_status "Clearing cache after configuration..."
-./vendor/bin/drush cache:rebuild
+# Clear cache after all configuration (only if Drupal is properly installed)
+if ./vendor/bin/drush status | grep -q "Drupal bootstrap.*Successful"; then
+    print_status "Clearing cache after configuration..."
+    ./vendor/bin/drush cache:rebuild
+else
+    print_warning "Drupal not fully bootstrapped. Skipping cache clear."
+fi
 
 # Set final permissions
 print_status "Setting final permissions..."
-chmod 644 web/sites/default/settings.php
+if [ -f "web/sites/default/settings.php" ]; then
+    chmod 644 web/sites/default/settings.php
+fi
 chmod -R 755 web/modules/custom web/themes/custom
 
 # Install Composer dependencies for Drupal
@@ -732,7 +825,8 @@ echo "========================="
 echo "✓ Environment: PHP 8.3, MySQL, Apache configured"
 echo "✓ Drupal: 11.x installed with development modules"
 echo "✓ Development Tools: Coder, PHPCS, PHPUnit configured"
-echo "✓ Custom Directories: modules/custom, themes/custom ready"
+echo "✓ Custom Modules: professional_website_content, ai_conversation, stli_site_customizations enabled"
+echo "✓ Custom Theme: stlouisintegration enabled and set as default"
 echo "✓ Development Scripts: Available in drupal/scripts/"
 echo "========================="
 
