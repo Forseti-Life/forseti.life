@@ -1,0 +1,261 @@
+/**
+ * Cyberpunk Navigation
+ * Futuristic navigation styling
+ */
+
+// Main Navigation
+// -----------------------------------------------------------------------------
+.navbar {
+  background: linear-gradient(180deg, 
+    rgba(26, 26, 26, 0.95) 0%, 
+    rgba(17, 17, 17, 0.9) 100%
+  );
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+  box-shadow: 0 2px 20px rgba(0, 255, 255, 0.2);
+  
+  .navbar-brand {
+    color: $neon-cyan;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px currentColor;
+    
+    &:hover {
+      color: $neon-cyan;
+      animation: cyber-glow 0.5s ease-in-out;
+    }
+  }
+  
+  .navbar-nav {
+    .nav-link {
+      color: rgba(255, 255, 255, 0.8);
+      font-family: $font-family-monospace;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      position: relative;
+      margin: 0 10px;
+      transition: all 0.3s ease;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(90deg, $neon-cyan, $neon-pink);
+        transition: width 0.3s ease;
+      }
+      
+      &:hover {
+        color: $neon-cyan;
+        text-shadow: 0 0 8px currentColor;
+        
+        &::before {
+          width: 100%;
+        }
+      }
+      
+      &.active {
+        color: $neon-cyan;
+        text-shadow: 0 0 10px currentColor;
+        
+        &::before {
+          width: 100%;
+          animation: cyber-pulse 2s ease-in-out infinite;
+        }
+      }
+    }
+  }
+  
+  .navbar-toggler {
+    border: 1px solid $neon-cyan;
+    color: $neon-cyan;
+    
+    &:focus {
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    }
+    
+    .navbar-toggler-icon {
+      background-image: none;
+      position: relative;
+      
+      &::before,
+      &::after,
+      & {
+        content: '';
+        display: block;
+        height: 2px;
+        width: 20px;
+        background: $neon-cyan;
+        margin: 4px 0;
+        transition: all 0.3s ease;
+      }
+    }
+  }
+}
+
+// Breadcrumbs
+// -----------------------------------------------------------------------------
+.breadcrumb {
+  background: rgba(30, 30, 30, 0.3);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 0;
+  padding: 15px 20px;
+  margin-bottom: 30px;
+  
+  .breadcrumb-item {
+    color: rgba(255, 255, 255, 0.7);
+    font-family: $font-family-monospace;
+    font-size: 0.9rem;
+    
+    &::before {
+      content: '>';
+      color: $neon-cyan;
+      margin: 0 8px;
+    }
+    
+    &:first-child::before {
+      content: '';
+      margin: 0;
+    }
+    
+    a {
+      color: $neon-cyan;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        color: $neon-pink;
+        text-shadow: 0 0 5px currentColor;
+      }
+    }
+    
+    &.active {
+      color: $ghost-white;
+    }
+  }
+}
+
+// Menu Items
+// -----------------------------------------------------------------------------
+.menu {
+  .menu-item {
+    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    
+    a {
+      color: rgba(255, 255, 255, 0.8);
+      padding: 12px 20px;
+      display: block;
+      text-decoration: none;
+      font-family: $font-family-monospace;
+      position: relative;
+      transition: all 0.3s ease;
+      
+      &::before {
+        content: '◦';
+        margin-right: 10px;
+        color: $neon-cyan;
+        transition: all 0.3s ease;
+      }
+      
+      &:hover {
+        color: $neon-cyan;
+        background: rgba(0, 255, 255, 0.05);
+        text-shadow: 0 0 8px currentColor;
+        padding-left: 30px;
+        
+        &::before {
+          content: '●';
+          color: $neon-pink;
+          text-shadow: 0 0 5px currentColor;
+        }
+      }
+      
+      &.is-active {
+        color: $neon-cyan;
+        background: rgba(0, 255, 255, 0.1);
+        border-left: 3px solid $neon-cyan;
+        
+        &::before {
+          content: '●';
+          color: $neon-cyan;
+        }
+      }
+    }
+  }
+}
+
+// Pagination
+// -----------------------------------------------------------------------------
+.pagination {
+  .page-item {
+    margin: 0 2px;
+    
+    .page-link {
+      background: rgba(30, 30, 30, 0.8);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+      color: $neon-cyan;
+      font-family: $font-family-monospace;
+      padding: 10px 15px;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        background: rgba(0, 255, 255, 0.1);
+        border-color: $neon-cyan;
+        color: $neon-cyan;
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+      }
+    }
+    
+    &.active .page-link {
+      background: $neon-cyan;
+      border-color: $neon-cyan;
+      color: $cyber-black;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    }
+    
+    &.disabled .page-link {
+      background: rgba(30, 30, 30, 0.4);
+      border-color: rgba(0, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.3);
+    }
+  }
+}
+
+// Tabs
+// -----------------------------------------------------------------------------
+.nav-tabs {
+  border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+  
+  .nav-link {
+    background: rgba(30, 30, 30, 0.5);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-bottom: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-family: $font-family-monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-right: 5px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: rgba(0, 255, 255, 0.1);
+      color: $neon-cyan;
+      border-color: rgba(0, 255, 255, 0.5);
+    }
+    
+    &.active {
+      background: rgba(0, 255, 255, 0.1);
+      border-color: $neon-cyan;
+      color: $neon-cyan;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    }
+  }
+}

@@ -8249,6 +8249,267 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
 
 /***/ }),
 
+/***/ "./src/js/cyberpunk-effects.js":
+/*!*************************************!*\
+  !*** ./src/js/cyberpunk-effects.js ***!
+  \*************************************/
+/***/ (function() {
+
+/**
+ * Cyberpunk Theme JavaScript Enhancements
+ * Interactive effects and animations for the cyberpunk theme
+ */
+
+(function ($, Drupal) {
+  'use strict';
+
+  /**
+   * Initialize cyberpunk effects
+   */
+  Drupal.behaviors.cyberpunkEffects = {
+    attach: function attach(context, settings) {
+      // Add glitch effect to specific elements
+      $('.cyber-title, h1', context).once('glitch-effect').each(function () {
+        var $element = $(this);
+        var text = $element.text();
+        $element.attr('data-text', text);
+
+        // Random glitch effect
+        setInterval(function () {
+          if (Math.random() > 0.95) {
+            $element.addClass('cyber-glitch');
+            setTimeout(function () {
+              $element.removeClass('cyber-glitch');
+            }, 200);
+          }
+        }, 100);
+      });
+
+      // Matrix rain effect
+      if ($('.matrix-bg', context).length) {
+        initMatrixRain(context);
+      }
+
+      // Typing effect for terminal-style text
+      $('.terminal-text', context).once('typing-effect').each(function () {
+        var $element = $(this);
+        var text = $element.text();
+        $element.text('');
+        var i = 0;
+        var typeInterval = setInterval(function () {
+          if (i < text.length) {
+            $element.text($element.text() + text.charAt(i));
+            i++;
+          } else {
+            clearInterval(typeInterval);
+          }
+        }, 50);
+      });
+
+      // Hover effects for cyber panels
+      $('.cyber-panel', context).once('hover-effects').hover(function () {
+        $(this).addClass('cyber-glow');
+      }, function () {
+        $(this).removeClass('cyber-glow');
+      });
+
+      // Scan line animation on scroll
+      initScanLines(context);
+
+      // Cyberpunk button effects
+      $('.btn-cyber', context).once('button-effects').on('click', function (e) {
+        var $button = $(this);
+        var rect = this.getBoundingClientRect();
+        var ripple = $('<span class="ripple"></span>');
+        ripple.css({
+          left: e.clientX - rect.left,
+          top: e.clientY - rect.top
+        });
+        $button.append(ripple);
+        setTimeout(function () {
+          ripple.remove();
+        }, 600);
+      });
+
+      // Form field focus effects
+      $('.form-control', context).once('form-effects').on('focus blur', function (e) {
+        var $field = $(this);
+        var $group = $field.closest('.form-group');
+        if (e.type === 'focus') {
+          $group.addClass('focused');
+        } else {
+          $group.removeClass('focused');
+        }
+      });
+
+      // Navbar scroll effects
+      initNavbarEffects(context);
+    }
+  };
+
+  /**
+   * Initialize matrix rain background effect
+   */
+  function initMatrixRain(context) {
+    var canvas = $('<canvas class="matrix-canvas"></canvas>');
+    $('.matrix-bg', context).append(canvas);
+    var ctx = canvas[0].getContext('2d');
+    var characters = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+    var fontSize = 14;
+    var columns = Math.floor(window.innerWidth / fontSize);
+    var drops = [];
+
+    // Initialize drops
+    for (var i = 0; i < columns; i++) {
+      drops[i] = 1;
+    }
+    canvas[0].width = window.innerWidth;
+    canvas[0].height = window.innerHeight;
+    function draw() {
+      ctx.fillStyle = 'rgba(10, 10, 10, 0.05)';
+      ctx.fillRect(0, 0, canvas[0].width, canvas[0].height);
+      ctx.fillStyle = '#00ff41';
+      ctx.font = fontSize + 'px monospace';
+      for (var _i = 0; _i < drops.length; _i++) {
+        var text = characters.charAt(Math.floor(Math.random() * characters.length));
+        ctx.fillText(text, _i * fontSize, drops[_i] * fontSize);
+        if (drops[_i] * fontSize > canvas[0].height && Math.random() > 0.975) {
+          drops[_i] = 0;
+        }
+        drops[_i]++;
+      }
+    }
+    setInterval(draw, 35);
+  }
+
+  /**
+   * Initialize scan line effects
+   */
+  function initScanLines(context) {
+    $(window).on('scroll', function () {
+      var scrollTop = $(window).scrollTop();
+      var windowHeight = $(window).height();
+      $('.cyber-panel, .card', context).each(function () {
+        var $element = $(this);
+        var elementTop = $element.offset().top;
+        var elementHeight = $element.outerHeight();
+        if (scrollTop + windowHeight > elementTop && scrollTop < elementTop + elementHeight) {
+          if (!$element.hasClass('scan-lines')) {
+            $element.addClass('scan-lines');
+          }
+        }
+      });
+    });
+  }
+
+  /**
+   * Initialize navbar scroll effects
+   */
+  function initNavbarEffects(context) {
+    var lastScrollTop = 0;
+    $(window).on('scroll', function () {
+      var scrollTop = $(window).scrollTop();
+      var $navbar = $('.navbar', context);
+      if (scrollTop > 100) {
+        $navbar.addClass('scrolled');
+      } else {
+        $navbar.removeClass('scrolled');
+      }
+
+      // Hide/show navbar on scroll
+      if (scrollTop > lastScrollTop && scrollTop > 200) {
+        $navbar.addClass('navbar-hidden');
+      } else {
+        $navbar.removeClass('navbar-hidden');
+      }
+      lastScrollTop = scrollTop;
+    });
+  }
+
+  /**
+   * Cyberpunk text reveal animation
+   */
+  Drupal.behaviors.textReveal = {
+    attach: function attach(context, settings) {
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            var $element = $(entry.target);
+            var text = $element.text();
+            var chars = text.split('');
+            $element.empty();
+            chars.forEach(function (_char, index) {
+              var $span = $('<span>').text(_char === ' ' ? "\xA0" : _char);
+              $span.css({
+                opacity: 0,
+                transform: 'translateY(20px)',
+                transition: 'all 0.1s ease',
+                transitionDelay: index * 20 + 'ms'
+              });
+              $element.append($span);
+              setTimeout(function () {
+                $span.css({
+                  opacity: 1,
+                  transform: 'translateY(0)'
+                });
+              }, index * 20);
+            });
+          }
+        });
+      });
+      $('.reveal-text', context).once('text-reveal').each(function () {
+        observer.observe(this);
+      });
+    }
+  };
+
+  /**
+   * Cyberpunk loading states
+   */
+  Drupal.behaviors.cyberpunkLoading = {
+    attach: function attach(context, settings) {
+      // Add loading state to forms on submit
+      $('form', context).once('loading-state').on('submit', function () {
+        var $form = $(this);
+        var $submitButton = $form.find('input[type="submit"], button[type="submit"]');
+        $submitButton.addClass('loading').prop('disabled', true);
+
+        // Add cyber loading text
+        var originalText = $submitButton.val() || $submitButton.text();
+        $submitButton.val('PROCESSING...').text('PROCESSING...');
+
+        // Restore on page reload or form error
+        setTimeout(function () {
+          $submitButton.removeClass('loading').prop('disabled', false);
+          $submitButton.val(originalText).text(originalText);
+        }, 10000);
+      });
+    }
+  };
+
+  /**
+   * Audio feedback (optional - can be disabled)
+   */
+  if (typeof Audio !== 'undefined') {
+    Drupal.behaviors.cyberpunkAudio = {
+      attach: function attach(context, settings) {
+        // Create subtle sound effects (very quiet)
+        var clickSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmccCT2X1+7RfSoFKn/M7+GORA0XZr3n7aMdFAhNnOH1vGwdCmJtk+2hdR8ILImz45xhGwU5jdLwuGkdCjuN1e/DbCUGM3/N7+GAOwtPnuH1vmceCzOJ0u7PeCkGLoXQ8OWjGRk');
+        $('.btn, a, input[type="submit"]', context).once('audio-feedback').on('click', function () {
+          if (clickSound && typeof clickSound.play === 'function') {
+            clickSound.volume = 0.1;
+            clickSound.play()["catch"](function () {
+              // Ignore audio play errors (user hasn't interacted yet)
+            });
+          }
+        });
+      }
+    };
+  }
+})(jQuery, Drupal);
+
+/***/ }),
+
 /***/ "./src/js/main.script.js":
 /*!*******************************!*\
   !*** ./src/js/main.script.js ***!
@@ -8258,7 +8519,12 @@ function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length)
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _bootstrap__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./_bootstrap */ "./src/js/_bootstrap.js");
+/* harmony import */ var _cyberpunk_effects__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./cyberpunk-effects */ "./src/js/cyberpunk-effects.js");
+/* harmony import */ var _cyberpunk_effects__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(_cyberpunk_effects__WEBPACK_IMPORTED_MODULE_1__);
 // * Bootstrap libraries
+
+
+// * Cyberpunk Effects
 
 
 // * Any other global site-wide JavaScript should be placed below.

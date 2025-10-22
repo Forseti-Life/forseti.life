@@ -1,16 +1,99 @@
 /**
- * Variables
- * Variables should follow the $component-state-property-size formula for
- * consistent naming. Examples:
- * $nav-link-disabled-color
- * $modal-content-box-shadow-xs 
- *
- * Customization:
- * To customize Bootstrap variables:
- * Copy the desired variable from node_modules/bootstrap/scss/_variables.scss
- * @see https://github.com/twbs/bootstrap/blob/main/scss/_variables.scss
- * Change the value and remove the !default flag.
- * Examples:
- * $body-bg: #000;
- * $body-color: $gray-100;
+ * Cyberpunk Theme Variables
+ * Futuristic cyberpunk design system for Theory of Conspiracies
  */
+
+// Cyberpunk Color Palette
+// -----------------------------------------------------------------------------
+$cyber-black: #0a0a0a;
+$cyber-dark: #1a1a1a;
+$cyber-darker: #111111;
+$cyber-grid: #1e1e1e;
+
+// Neon Colors
+$neon-cyan: #00ffff;
+$neon-pink: #ff0080;
+$neon-purple: #8a2be2;
+$neon-green: #39ff14;
+$neon-blue: #0066ff;
+$neon-orange: #ff6600;
+
+// Accent Colors
+$electric-blue: #0080ff;
+$matrix-green: #00ff41;
+$warning-red: #ff3333;
+$ghost-white: rgba(255, 255, 255, 0.9);
+$cyber-gray: #333333;
+
+// Bootstrap Overrides - Cyberpunk Theme
+// -----------------------------------------------------------------------------
+$body-bg: $cyber-black;
+$body-color: $ghost-white;
+$text-muted: rgba(255, 255, 255, 0.6);
+
+// Cyberpunk Colors
+$primary: #00ffff; // Cyan
+$secondary: #ff00ff; // Magenta 
+$success: #00ff41; // Neon Green
+$info: #00ffff; // Electric Blue
+$warning: #ffff00; // Electric Yellow
+$danger: #ff0040; // Hot Pink
+$light: #0a0a0a; // Dark Gray
+$dark: #000000; // Pure Black
+
+// Cyberpunk Color Palette
+$neon-cyan: #00ffff;
+$neon-magenta: #ff00ff;
+$neon-green: #00ff41;
+$neon-blue: #0080ff;
+$neon-purple: #8000ff;
+$neon-orange: #ff4000;
+$electric-yellow: #ffff00;
+$hot-pink: #ff0040;
+
+// Background Colors
+$bg-primary: #0a0a0a;
+$bg-secondary: #1a1a1a;
+$bg-tertiary: #2a2a2a;
+$bg-accent: rgba(0, 255, 255, 0.1);
+
+// Text Colors
+$text-primary: #ffffff;
+$text-secondary: #cccccc;
+$text-accent: $neon-cyan;
+$text-glow: $neon-green;
+
+// Component backgrounds
+$navbar-dark-bg: rgba(26, 26, 26, 0.95);
+$card-bg: rgba(30, 30, 30, 0.8);
+$modal-content-bg: $cyber-dark;
+
+// Typography
+$font-family-sans-serif: 'Orbitron', 'Exo 2', 'Rajdhani', system-ui, sans-serif;
+$font-family-monospace: 'Fira Code', 'Source Code Pro', 'Courier New', monospace;
+$headings-font-family: 'Orbitron', sans-serif;
+
+// Borders
+$border-color: rgba(0, 255, 255, 0.3);
+$border-radius: 0.25rem;
+
+// Shadows and Effects
+$box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+$box-shadow-lg: 0 0 40px rgba(0, 255, 255, 0.5);
+$text-shadow: 0 0 10px currentColor;
+
+// Grid and layout
+$grid-gutter-width: 2rem;
+$container-max-widths: (
+  sm: 540px,
+  md: 720px,
+  lg: 960px,
+  xl: 1140px,
+  xxl: 1320px
+);
+
+// Cyberpunk specific variables
+$cyber-glow: 0 0 20px;
+$cyber-pulse: 0 0 30px;
+$cyber-scan-line-height: 2px;
+$cyber-animation-speed: 2.5s;

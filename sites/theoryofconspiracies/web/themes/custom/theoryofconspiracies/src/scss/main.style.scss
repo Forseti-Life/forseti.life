@@ -3,14 +3,21 @@
 @import 'init';
 @import 'bootstrap';
 
-// Include any custom stylesheets here
+// Cyberpunk Base Styles
 // -----------------------------------------------------------------------------
 @import "base/elements";
 @import "base/functions";
 @import "base/helpers";
 @import "base/typography";
 
-// Custom components
+// Cyberpunk Components
+@import "components/cyberpunk-effects";
+@import "components/cyberpunk-typography";
+@import "components/cyberpunk-navigation";
+@import "components/cyberpunk-forms";
+@import "components/cyberpunk-layout";
+
+// Legacy components (keeping for now)
 @import "components/animated-header";
 @import "components/breadcrumb";
 @import "components/footer";
@@ -19,3 +26,79 @@
 
 // Professional website content styles
 @import "professional-content";
+
+// Global Cyberpunk Overrides
+// -----------------------------------------------------------------------------
+body {
+  background: 
+    radial-gradient(ellipse at center, rgba(0, 255, 255, 0.03) 0%, transparent 50%),
+    linear-gradient(180deg, $cyber-black 0%, $cyber-darker 100%);
+  min-height: 100vh;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+      repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 2px,
+        rgba(0, 255, 255, 0.02) 2px,
+        rgba(0, 255, 255, 0.02) 4px
+      );
+    pointer-events: none;
+    z-index: -1;
+  }
+}
+
+// Main content wrapper
+.page-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+// Cyberpunk containers
+.container,
+.container-fluid {
+  position: relative;
+}
+
+// Global glow effects for interactive elements
+button, .btn, a, input:focus, select:focus, textarea:focus {
+  transition: all 0.3s ease;
+}
+
+// Scrollbar styling
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: $cyber-dark;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, $neon-cyan, $neon-pink);
+  border-radius: 6px;
+  
+  &:hover {
+    background: linear-gradient(180deg, $neon-pink, $neon-purple);
+  }
+}
+
+// Selection styling
+::selection {
+  background: rgba(0, 255, 255, 0.3);
+  color: $ghost-white;
+}
+
+::-moz-selection {
+  background: rgba(0, 255, 255, 0.3);
+  color: $ghost-white;
+}

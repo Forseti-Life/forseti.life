@@ -7,6 +7,17 @@ style:
   dependencies:
     - core/drupal
 
+cyberpunk-effects:
+  css:
+    theme:
+      build/css/main.style.css: {}
+  js:
+    src/js/cyberpunk-effects.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/once
+
 professional_breadcrumb:
   css:
     theme:

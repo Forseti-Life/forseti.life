@@ -1,0 +1,424 @@
+/**
+ * Cyberpunk Layout Components
+ * Page structure and layout elements
+ */
+
+// Page Header
+// -----------------------------------------------------------------------------
+.page-header {
+  background: linear-gradient(135deg, 
+    rgba(26, 26, 26, 0.95) 0%, 
+    rgba(17, 17, 17, 0.9) 50%,
+    rgba(26, 26, 26, 0.95) 100%
+  );
+  border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+  padding: 60px 0;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(0,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)" /></svg>') repeat;
+    opacity: 0.3;
+    z-index: 0;
+  }
+  
+  .container {
+    position: relative;
+    z-index: 1;
+  }
+  
+  h1 {
+    margin-bottom: 20px;
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, $neon-cyan, $neon-pink);
+      border-radius: 2px;
+    }
+  }
+  
+  .lead {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.8);
+    max-width: 600px;
+  }
+}
+
+// Main Content Area
+// -----------------------------------------------------------------------------
+.main-content {
+  padding: 60px 0;
+  position: relative;
+  
+  .sidebar {
+    background: rgba(30, 30, 30, 0.6);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 30px;
+    backdrop-filter: blur(10px);
+    
+    h3 {
+      color: $neon-pink;
+      font-size: 1.3rem;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 0, 128, 0.3);
+    }
+    
+    .widget {
+      margin-bottom: 30px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+// Cards and Panels
+// -----------------------------------------------------------------------------
+.card {
+  background: rgba(30, 30, 30, 0.8);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, $neon-cyan, $neon-pink, $neon-purple);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  &:hover {
+    border-color: rgba(0, 255, 255, 0.6);
+    box-shadow: 0 10px 40px rgba(0, 255, 255, 0.2);
+    transform: translateY(-5px);
+    
+    &::before {
+      opacity: 1;
+    }
+  }
+  
+  .card-header {
+    background: rgba(0, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+    padding: 20px;
+    
+    h5 {
+      color: $neon-cyan;
+      margin: 0;
+      font-family: 'Orbitron', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  }
+  
+  .card-body {
+    padding: 25px;
+    color: rgba(255, 255, 255, 0.9);
+  }
+  
+  .card-footer {
+    background: rgba(30, 30, 30, 0.5);
+    border-top: 1px solid rgba(0, 255, 255, 0.2);
+    padding: 15px 25px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+// Footer
+// -----------------------------------------------------------------------------
+.page-footer {
+  background: linear-gradient(180deg, 
+    rgba(17, 17, 17, 0.95) 0%, 
+    rgba(10, 10, 10, 1) 100%
+  );
+  border-top: 2px solid rgba(0, 255, 255, 0.3);
+  padding: 60px 0 30px;
+  margin-top: 80px;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, $neon-cyan, transparent);
+    animation: scan-line 4s linear infinite;
+  }
+  
+  .footer-section {
+    margin-bottom: 40px;
+    
+    h4 {
+      color: $neon-pink;
+      font-size: 1.2rem;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    ul {
+      list-style: none;
+      padding: 0;
+      
+      li {
+        margin-bottom: 10px;
+        
+        a {
+          color: rgba(255, 255, 255, 0.7);
+          text-decoration: none;
+          transition: all 0.3s ease;
+          
+          &::before {
+            content: '▸ ';
+            color: $neon-cyan;
+            margin-right: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
+          
+          &:hover {
+            color: $neon-cyan;
+            padding-left: 15px;
+            
+            &::before {
+              opacity: 1;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  .footer-bottom {
+    border-top: 1px solid rgba(0, 255, 255, 0.2);
+    padding-top: 30px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: $font-family-monospace;
+  }
+}
+
+// Tables
+// -----------------------------------------------------------------------------
+.table {
+  color: rgba(255, 255, 255, 0.9);
+  
+  th {
+    background: rgba(0, 255, 255, 0.1);
+    border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+    color: $neon-cyan;
+    font-family: $font-family-monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+  
+  td {
+    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+    padding: 15px;
+  }
+  
+  tbody tr {
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: rgba(0, 255, 255, 0.05);
+      
+      td {
+        color: $ghost-white;
+      }
+    }
+  }
+}
+
+.table-dark {
+  background: rgba(30, 30, 30, 0.8);
+  
+  th {
+    background: rgba(0, 255, 255, 0.2);
+  }
+}
+
+// Modal Dialogs
+// -----------------------------------------------------------------------------
+.modal {
+  .modal-dialog {
+    .modal-content {
+      background: rgba(26, 26, 26, 0.95);
+      border: 2px solid rgba(0, 255, 255, 0.5);
+      border-radius: 8px;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 20px 60px rgba(0, 255, 255, 0.3);
+      
+      .modal-header {
+        border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+        background: rgba(0, 255, 255, 0.1);
+        
+        .modal-title {
+          color: $neon-cyan;
+          font-family: 'Orbitron', sans-serif;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+        
+        .btn-close {
+          background: none;
+          color: $neon-cyan;
+          opacity: 0.8;
+          
+          &:hover {
+            opacity: 1;
+            color: $neon-pink;
+          }
+        }
+      }
+      
+      .modal-body {
+        color: rgba(255, 255, 255, 0.9);
+        padding: 30px;
+      }
+      
+      .modal-footer {
+        border-top: 1px solid rgba(0, 255, 255, 0.2);
+        background: rgba(30, 30, 30, 0.5);
+      }
+    }
+  }
+}
+
+// Alerts and Messages
+// -----------------------------------------------------------------------------
+.alert {
+  border-radius: 6px;
+  border: 1px solid;
+  font-family: $font-family-monospace;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    border-radius: 6px 0 0 6px;
+  }
+  
+  &.alert-primary {
+    background: rgba(0, 255, 255, 0.1);
+    border-color: rgba(0, 255, 255, 0.3);
+    color: $neon-cyan;
+    
+    &::before {
+      background: $neon-cyan;
+    }
+  }
+  
+  &.alert-success {
+    background: rgba(57, 255, 20, 0.1);
+    border-color: rgba(57, 255, 20, 0.3);
+    color: $neon-green;
+    
+    &::before {
+      background: $neon-green;
+    }
+  }
+  
+  &.alert-warning {
+    background: rgba(255, 102, 0, 0.1);
+    border-color: rgba(255, 102, 0, 0.3);
+    color: $neon-orange;
+    
+    &::before {
+      background: $neon-orange;
+    }
+  }
+  
+  &.alert-danger {
+    background: rgba(255, 51, 51, 0.1);
+    border-color: rgba(255, 51, 51, 0.3);
+    color: $warning-red;
+    
+    &::before {
+      background: $warning-red;
+    }
+  }
+}
+
+// Loading States
+// -----------------------------------------------------------------------------
+.loading {
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 30px;
+    height: 30px;
+    margin: -15px 0 0 -15px;
+    border: 3px solid transparent;
+    border-top: 3px solid $neon-cyan;
+    border-right: 3px solid $neon-pink;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Responsive adjustments
+// -----------------------------------------------------------------------------
+@media (max-width: 768px) {
+  .page-header {
+    padding: 40px 0;
+    
+    h1 {
+      font-size: 2.5rem;
+    }
+  }
+  
+  .main-content {
+    padding: 40px 0;
+  }
+  
+  .card {
+    margin-bottom: 20px;
+  }
+  
+  .page-footer {
+    padding: 40px 0 20px;
+    
+    .footer-section {
+      margin-bottom: 30px;
+    }
+  }
+}

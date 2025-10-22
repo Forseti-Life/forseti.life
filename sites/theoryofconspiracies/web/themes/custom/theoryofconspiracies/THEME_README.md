@@ -1,10 +1,19 @@
-# Theory of Conspiracies Custom Theme
+# Theory of Conspiracies Cyberpunk Theme
 
-This custom Drupal theme is based on the St. Louis Integration theme and uses the Radix base theme with Bootstrap 5.
+This is a futuristic cyberpunk-themed Drupal theme for the Theory of Conspiracies website, featuring neon colors, glitch effects, and high-tech aesthetics.
 
-## Overview
+## 🚀 Cyberpunk Features
 
-The **Theory of Conspiracies** theme is a custom theme designed specifically for the Theory of Conspiracies website. It was created by copying and modifying the St. Louis Integration theme to provide a consistent starting point while allowing for customization specific to this site's content and purpose.
+The **Theory of Conspiracies** theme has been transformed into a full cyberpunk experience with:
+
+- **Neon Color Palette**: Electric cyan, magenta, green, and purple neon colors
+- **Glitch Effects**: Animated text glitching and distortion effects
+- **Matrix Rain**: Subtle background matrix code rain animation
+- **Holographic Elements**: Glowing borders and neon text shadows
+- **Futuristic Typography**: Orbitron and Rajdhani fonts for that sci-fi feel
+- **Interactive Effects**: Neon cursor trails and hover animations
+- **Scanline Overlays**: CRT monitor-style scanlines
+- **Dark Theme**: Deep black backgrounds with neon accents
 
 ## Theme Structure
 
