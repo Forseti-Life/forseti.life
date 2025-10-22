@@ -1,0 +1,62 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a 404 page.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the page element.
+ * - page: The render array for the page.
+ */
+#}
+<div class="page-404">
+  <div class="container">
+    <h1>404</h1>
+    <div class="error-message">Page Not Found</div>
+    <div class="error-description">
+      The page you're looking for doesn't exist or has been moved. 
+      Let's get you back on track with our innovative solutions.
+    </div>
+    
+    <a href="{{ path('<front>') }}" class="btn back-home-btn">
+      Return to Homepage
+    </a>
+    
+    <div class="row content-cards mt-5">
+      <div class="col-lg-4 col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h4>Explore Our Services</h4>
+          </div>
+          <div class="card-body">
+            <p>Discover how our AI and data engineering solutions can transform your business operations.</p>
+            <a href="/services" class="btn btn-outline-primary">View Services</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-lg-4 col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h4>Industry Expertise</h4>
+          </div>
+          <div class="card-body">
+            <p>Learn about our specialized solutions for Financial Services, Healthcare, and Energy sectors.</p>
+            <a href="/industries" class="btn btn-outline-primary">View Industries</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-lg-4 col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h4>Try Our AI Demo</h4>
+          </div>
+          <div class="card-body">
+            <p>Experience our AI conversation technology firsthand with our interactive Claude demo.</p>
+            <a href="/clauddemo" class="btn btn-outline-primary">Try Demo</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

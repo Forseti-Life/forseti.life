@@ -1,0 +1,50 @@
+name: Theory of Conspiracies
+description: "Custom theme for Theory of Conspiracies based on <a href='https://www.drupal.org/project/radix' target='_blank'>Radix 6.x</a> and Bootstrap 5.x"
+screenshot: screenshot.png
+'alt text': 'Theory of Conspiracies theme screenshot'
+core_version_requirement: ^10.3 || ^11
+# version: '1.0'
+engine: twig
+type: theme
+base theme: radix
+starterkit: true
+
+'interface translation project': theoryofconspiracies
+'interface translation server pattern': 'themes/custom/theoryofconspiracies/translations/%language.po'
+
+regions:
+  navbar_branding: Navbar branding
+  navbar_left: Navbar left
+  navbar_right: Navbar right
+  header: Header
+  breadcrumb: Breadcrumb
+  content: Content
+  page_bottom: Page bottom
+  footer: Footer
+
+libraries:
+  - theoryofconspiracies/style
+
+ckeditor5-stylesheets:
+  - build/css/main.style.css
+
+libraries-extend:
+  core/drupal.ajax:
+    - theoryofconspiracies/drupal.ajax
+  core/drupal.checkbox:
+    - theoryofconspiracies/drupal.checkbox
+  # core/drupal.dialog:
+  #   - theoryofconspiracies/drupal.dialog
+  # core/drupal.dialog.ajax:
+  #   - theoryofconspiracies/drupal.dialog.ajax
+  core/drupal.message:
+    - theoryofconspiracies/drupal.message
+  core/drupal.progress:
+    - theoryofconspiracies/drupal.progress
+  clientside_validation_jquery/cv.jquery.validate:
+    - theoryofconspiracies/jquery.validate
+
+# Information added by Drupal.org packaging script on 2025-05-08
+version: '6.0.2'
+project: 'radix'
+datestamp: 1746711574
