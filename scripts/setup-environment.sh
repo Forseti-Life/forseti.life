@@ -61,10 +61,19 @@ else
     sudo apt install -y php8.3 php8.3-cli php8.3-fpm
 fi
 
+# Ensure PHP 8.3 is installed regardless of system PHP version
+print_status "Ensuring PHP 8.3 is properly installed..."
+if ! dpkg -l | grep -q "^ii.*php8.3"; then
+    print_status "Installing PHP 8.3 packages..."
+    sudo apt install -y php8.3 php8.3-cli php8.3-fpm
+fi
+
 # Install required PHP extensions (including DOM for Drupal)
 print_status "Checking PHP extensions..."
 REQUIRED_EXTENSIONS=("gd" "xml" "mbstring" "curl" "zip" "bcmath" "json" "tokenizer" "fileinfo" "intl" "dom")
 MISSING_EXTENSIONS=()
+
+# Note: xml extension provides dom, simplexml, xmlreader, xmlwriter, and xsl modules
 
 # Check standard extensions
 for ext in "${REQUIRED_EXTENSIONS[@]}"; do
@@ -98,6 +107,18 @@ if [ ${#MISSING_EXTENSIONS[@]} -gt 0 ]; then
 else
     print_status "All required PHP extensions are already installed"
 fi
+
+# Ensure critical extensions are installed with correct package names
+print_status "Ensuring critical PHP extensions are properly installed..."
+CRITICAL_EXTENSIONS=("php8.3-xml" "php8.3-mysql")
+for ext_package in "${CRITICAL_EXTENSIONS[@]}"; do
+    if ! dpkg -l | grep -q "^ii.*$ext_package"; then
+        print_status "Installing critical extension: $ext_package"
+        sudo apt install -y "$ext_package"
+    else
+        print_status "Critical extension $ext_package is already installed"
+    fi
+done
 
 # Install Composer
 print_status "Checking Composer installation..."
@@ -134,14 +155,27 @@ else
 fi
 
 # Install Apache PHP module
-print_status "Checking Apache PHP module..."
-if apache2ctl -M 2>/dev/null | grep -q "php"; then
-    print_status "Apache PHP module is already installed"
-else
+print_status "Configuring Apache PHP 8.3 module..."
+
+# First disable any conflicting PHP modules
+for php_ver in 7.4 8.0 8.1 8.2; do
+    if sudo a2query -m php$php_ver 2>/dev/null; then
+        print_status "Disabling PHP $php_ver module..."
+        sudo a2dismod php$php_ver 2>/dev/null || true
+    fi
+done
+
+# Install and enable PHP 8.3 module for Apache
+if ! dpkg -l | grep -q "^ii.*libapache2-mod-php8.3"; then
     print_status "Installing Apache PHP 8.3 module..."
     sudo apt install -y libapache2-mod-php8.3
-    print_status "Apache PHP module installed and enabled"
 fi
+
+# Ensure PHP 8.3 module is enabled
+print_status "Enabling PHP 8.3 module for Apache..."
+sudo a2enmod php8.3
+
+print_status "Apache PHP 8.3 module configured and enabled"
 
 # Install Git
 print_status "Checking Git installation..."
@@ -209,9 +243,32 @@ else
     print_status "All text extraction tools are already installed"
 fi
 
+# Configure PHP 8.3 as default version
+print_status "Configuring PHP 8.3 as default version..."
+if command -v update-alternatives &> /dev/null; then
+    # Set PHP 8.3 as the default PHP version
+    if [ -x "/usr/bin/php8.3" ]; then
+        sudo update-alternatives --set php /usr/bin/php8.3 2>/dev/null || true
+        print_status "PHP 8.3 configured as default CLI version"
+        
+        # Verify the change took effect
+        CURRENT_PHP_VERSION=$(php --version 2>/dev/null | head -n1 | grep -o 'PHP [0-9]\+\.[0-9]\+' | grep -o '[0-9]\+\.[0-9]\+' || echo "unknown")
+        if [[ "$CURRENT_PHP_VERSION" == "8.3" ]]; then
+            print_status "✅ PHP 8.3 is now the default CLI version"
+        else
+            print_warning "⚠️  Default PHP version is still $CURRENT_PHP_VERSION (this may be due to PATH precedence)"
+            print_status "📝 Use /usr/bin/php8.3 explicitly for guaranteed PHP 8.3 usage"
+        fi
+    else
+        print_warning "PHP 8.3 binary not found at /usr/bin/php8.3"
+    fi
+else
+    print_warning "update-alternatives not available - PHP version may need manual configuration"
+fi
+
 # Set up PHP configuration for development
 print_status "Configuring PHP for development..."
-PHP_INI_DIR=$(php --ini | grep "Configuration File" | awk '{print $4}' | xargs dirname)
+PHP_INI_DIR=$(/usr/bin/php8.3 --ini | grep "Configuration File" | awk '{print $4}' | xargs dirname)
 PHP_INI_FILE="$PHP_INI_DIR/php.ini"
 
 if [ -f "$PHP_INI_FILE" ]; then
@@ -229,6 +286,14 @@ fi
 
 # Configure MySQL database for Drupal
 print_status "Configuring MySQL database..."
+
+# Ensure MySQL is running before database operations
+if ! sudo mysql -e "SELECT 1;" &>/dev/null; then
+    print_status "MySQL not running, attempting to start..."
+    sudo service mysql start || print_warning "Failed to start MySQL service"
+    sleep 2
+fi
+
 if sudo mysql -e "SELECT User FROM mysql.user WHERE User='drupal_user' AND Host='127.0.0.1';" 2>/dev/null | grep -q drupal_user; then
     print_status "MySQL drupal_user already exists"
 else
@@ -281,7 +346,8 @@ fi
 print_status "Starting services..."
 if command -v systemctl &> /dev/null && systemctl is-system-running &> /dev/null; then
     sudo systemctl start mysql
-    sudo systemctl start apache2
+    # Restart Apache to ensure PHP 8.3 module is properly loaded
+    sudo systemctl restart apache2
     
     print_status "Enabling services to start on boot..."
     sudo systemctl enable mysql
@@ -289,14 +355,25 @@ if command -v systemctl &> /dev/null && systemctl is-system-running &> /dev/null
 else
     print_status "Using service command (systemd not available)..."
     sudo service mysql start
-    sudo service apache2 start
+    # Restart Apache to ensure PHP 8.3 module is properly loaded
+    sudo service apache2 restart
     print_status "Services started (auto-enable not available in container)"
+fi
+
+# Verify Apache is using PHP 8.3
+print_status "Verifying Apache PHP configuration..."
+if curl -s "http://localhost" | grep -q "Drupal\|PHP" || curl -s -I "http://localhost" | grep -q "HTTP/1.[01] [23][0-9][0-9]"; then
+    print_status "✅ Apache is serving content successfully"
+else
+    print_warning "⚠️  Apache may need additional configuration"
 fi
 
 # Verify installations
 print_status "Verifying installations..."
 echo "========================="
-echo "PHP Version: $(php --version | head -n 1)"
+echo "PHP Version (system): $(php --version | head -n 1)"
+echo "PHP 8.3 Version: $(/usr/bin/php8.3 --version | head -n 1)"
+echo "Apache PHP Module: $(apache2ctl -M 2>/dev/null | grep php || echo 'Not found')"
 echo "Composer Version: $(composer --version)"
 echo "MySQL Version: $(mysql --version)"
 echo "Apache Version: $(apache2 -v | head -n 1)"
@@ -305,15 +382,35 @@ echo "Node.js Version: $(node --version)"
 echo "npm Version: $(npm --version)"
 echo "========================="
 
+# Validate critical PHP extensions
+print_status "Validating PHP 8.3 extensions..."
+REQUIRED_EXTENSIONS=("dom" "mysql" "mysqli" "pdo_mysql" "xml" "gd" "curl" "zip" "intl")
+MISSING_EXTENSIONS=()
+
+for ext in "${REQUIRED_EXTENSIONS[@]}"; do
+    if ! /usr/bin/php8.3 -m | grep -q "^$ext$"; then
+        MISSING_EXTENSIONS+=("$ext")
+    fi
+done
+
+if [ ${#MISSING_EXTENSIONS[@]} -eq 0 ]; then
+    print_status "✅ All required PHP 8.3 extensions are loaded"
+else
+    print_warning "⚠️  Missing PHP 8.3 extensions: ${MISSING_EXTENSIONS[*]}"
+fi
+
+echo "========================="
+
 print_status "Environment setup completed successfully!"
 print_status "Next steps:"
-echo "1. Ensure Composer dependencies are installed: cd drupal && composer install"
-echo "2. Install Drupal: cd drupal && ./vendor/bin/drush.php site:install standard --db-url=mysql://drupal_user:drupal_secure_password@127.0.0.1:3306/stlouisintegration_dev --site-name='St. Louis Integration Dev' --account-name=admin --account-pass=admin -y"
+echo "1. Ensure Composer dependencies are installed: cd drupal && /usr/bin/php8.3 \$(which composer) install"
+echo "2. Install Drupal: cd drupal && /usr/bin/php8.3 ./vendor/bin/drush site:install standard --db-url=mysql://drupal_user:drupal_secure_password@127.0.0.1:3306/stlouisintegration_dev --site-name='St. Louis Integration Dev' --account-name=admin --account-pass=admin -y"
 echo "3. Access site at http://localhost with admin/admin credentials"
 
 print_warning "Remember to:"
+echo "- Use PHP 8.3 explicitly: /usr/bin/php8.3 for all Drupal/Composer commands"
 echo "- Composer dependencies: cd /workspaces/stlouisintegration.com/drupal && /usr/bin/php8.3 \$(which composer) install"
-echo "- Configure PHP default: Add 'export PATH=\"/usr/bin:\$PATH\"' to ~/.bashrc for PHP 8.3"
+echo "- Start services if needed: sudo service mysql start && sudo service apache2 start"
 echo "- Site credentials: Username 'admin' / Password 'admin'"
 
 # Test website availability
