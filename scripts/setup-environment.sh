@@ -245,25 +245,62 @@ fi
 
 # Configure PHP 8.3 as default version
 print_status "Configuring PHP 8.3 as default version..."
-if command -v update-alternatives &> /dev/null; then
-    # Set PHP 8.3 as the default PHP version
-    if [ -x "/usr/bin/php8.3" ]; then
-        sudo update-alternatives --set php /usr/bin/php8.3 2>/dev/null || true
-        print_status "PHP 8.3 configured as default CLI version"
-        
-        # Verify the change took effect
-        CURRENT_PHP_VERSION=$(php --version 2>/dev/null | head -n1 | grep -o 'PHP [0-9]\+\.[0-9]\+' | grep -o '[0-9]\+\.[0-9]\+' || echo "unknown")
-        if [[ "$CURRENT_PHP_VERSION" == "8.3" ]]; then
-            print_status "✅ PHP 8.3 is now the default CLI version"
-        else
-            print_warning "⚠️  Default PHP version is still $CURRENT_PHP_VERSION (this may be due to PATH precedence)"
-            print_status "📝 Use /usr/bin/php8.3 explicitly for guaranteed PHP 8.3 usage"
-        fi
+
+# First, ensure update-alternatives is properly configured
+if command -v update-alternatives &> /dev/null && [ -x "/usr/bin/php8.3" ]; then
+    # Remove any existing alternatives to start fresh
+    sudo update-alternatives --remove-all php 2>/dev/null || true
+    
+    # Install PHP 8.3 as the primary alternative with highest priority
+    sudo update-alternatives --install /usr/bin/php php /usr/bin/php8.3 100
+    
+    # Set PHP 8.3 as the default
+    sudo update-alternatives --set php /usr/bin/php8.3
+    print_status "PHP 8.3 configured as default CLI version via update-alternatives"
+else
+    print_warning "update-alternatives not available or PHP 8.3 not found"
+fi
+
+# Configure PATH and environment for current user
+print_status "Configuring environment for PHP 8.3..."
+
+# Update .bashrc to ensure PHP 8.3 takes precedence
+BASHRC_FILE="$HOME/.bashrc"
+if [ -f "$BASHRC_FILE" ]; then
+    # Remove any existing PHP PATH configurations
+    grep -v "# PHP 8.3 Configuration" "$BASHRC_FILE" > "${BASHRC_FILE}.tmp" || true
+    grep -v "export PATH.*php" "${BASHRC_FILE}.tmp" > "$BASHRC_FILE" || true
+    rm -f "${BASHRC_FILE}.tmp"
+    
+    # Add PHP 8.3 configuration
+    echo "" >> "$BASHRC_FILE"
+    echo "# PHP 8.3 Configuration" >> "$BASHRC_FILE"
+    echo 'export PATH="/usr/bin:$PATH"' >> "$BASHRC_FILE"
+    echo 'alias php="/usr/bin/php8.3"' >> "$BASHRC_FILE"
+    echo 'alias composer="/usr/bin/php8.3 /usr/local/bin/composer"' >> "$BASHRC_FILE"
+    
+    print_status "Updated .bashrc with PHP 8.3 configuration"
+fi
+
+# Apply environment changes to current session
+export PATH="/usr/bin:$PATH"
+alias php="/usr/bin/php8.3"
+alias composer="/usr/bin/php8.3 /usr/local/bin/composer"
+
+# Verify the configuration
+CURRENT_PHP_VERSION=$(/usr/bin/php8.3 --version 2>/dev/null | head -n1 | grep -o 'PHP [0-9]\+\.[0-9]\+' | grep -o '[0-9]\+\.[0-9]\+' || echo "unknown")
+if [[ "$CURRENT_PHP_VERSION" == "8.3" ]]; then
+    print_status "✅ PHP 8.3 is properly configured and accessible"
+    
+    # Test composer with PHP 8.3
+    COMPOSER_PHP_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer --version 2>/dev/null | grep -o 'PHP version [0-9]\+\.[0-9]\+' | grep -o '[0-9]\+\.[0-9]\+' || echo "unknown")
+    if [[ "$COMPOSER_PHP_VERSION" == "8.3" ]]; then
+        print_status "✅ Composer is now using PHP 8.3"
     else
-        print_warning "PHP 8.3 binary not found at /usr/bin/php8.3"
+        print_warning "⚠️  Composer may still be using older PHP version: $COMPOSER_PHP_VERSION"
     fi
 else
-    print_warning "update-alternatives not available - PHP version may need manual configuration"
+    print_warning "⚠️  PHP 8.3 configuration verification failed"
 fi
 
 # Set up PHP configuration for development
@@ -371,10 +408,10 @@ fi
 # Verify installations
 print_status "Verifying installations..."
 echo "========================="
-echo "PHP Version (system): $(php --version | head -n 1)"
+echo "PHP Version (system): $(/usr/bin/php8.3 --version | head -n 1)"
 echo "PHP 8.3 Version: $(/usr/bin/php8.3 --version | head -n 1)"
 echo "Apache PHP Module: $(apache2ctl -M 2>/dev/null | grep php || echo 'Not found')"
-echo "Composer Version: $(composer --version)"
+echo "Composer Version: $(/usr/bin/php8.3 /usr/local/bin/composer --version)"
 echo "MySQL Version: $(mysql --version)"
 echo "Apache Version: $(apache2 -v | head -n 1)"
 echo "Git Version: $(git --version)"
@@ -403,13 +440,15 @@ echo "========================="
 
 print_status "Environment setup completed successfully!"
 print_status "Next steps:"
-echo "1. Ensure Composer dependencies are installed: cd drupal && /usr/bin/php8.3 \$(which composer) install"
-echo "2. Install Drupal: cd drupal && /usr/bin/php8.3 ./vendor/bin/drush site:install standard --db-url=mysql://drupal_user:drupal_secure_password@127.0.0.1:3306/stlouisintegration_dev --site-name='St. Louis Integration Dev' --account-name=admin --account-pass=admin -y"
-echo "3. Access site at http://localhost with admin/admin credentials"
+echo "1. Reload environment: source ~/.bashrc"
+echo "2. Ensure Composer dependencies are installed: cd drupal && composer install"
+echo "3. Install Drupal: cd drupal && ./vendor/bin/drush site:install standard --db-url=mysql://drupal_user:drupal_secure_password@127.0.0.1:3306/stlouisintegration_dev --site-name='St. Louis Integration Dev' --account-name=admin --account-pass=admin -y"
+echo "4. Access site at http://localhost with admin/admin credentials"
 
 print_warning "Remember to:"
-echo "- Use PHP 8.3 explicitly: /usr/bin/php8.3 for all Drupal/Composer commands"
-echo "- Composer dependencies: cd /workspaces/stlouisintegration.com/drupal && /usr/bin/php8.3 \$(which composer) install"
+echo "- Reload environment first: source ~/.bashrc"
+echo "- PHP 8.3 is now default via aliases: php = /usr/bin/php8.3, composer uses PHP 8.3"
+echo "- Composer dependencies: cd /workspaces/stlouisintegration.com/drupal && composer install"
 echo "- Start services if needed: sudo service mysql start && sudo service apache2 start"
 echo "- Site credentials: Username 'admin' / Password 'admin'"
 
