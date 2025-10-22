@@ -61,9 +61,9 @@ else
     sudo apt install -y php8.3 php8.3-cli php8.3-fpm
 fi
 
-# Install required PHP extensions
+# Install required PHP extensions (including DOM for Drupal)
 print_status "Checking PHP extensions..."
-REQUIRED_EXTENSIONS=("gd" "xml" "mbstring" "curl" "zip" "bcmath" "json" "tokenizer" "fileinfo" "intl")
+REQUIRED_EXTENSIONS=("gd" "xml" "mbstring" "curl" "zip" "bcmath" "json" "tokenizer" "fileinfo" "intl" "dom")
 MISSING_EXTENSIONS=()
 
 # Check standard extensions
@@ -131,6 +131,16 @@ else
     sudo apt install -y apache2
     sudo a2enmod rewrite
     sudo systemctl enable apache2
+fi
+
+# Install Apache PHP module
+print_status "Checking Apache PHP module..."
+if apache2ctl -M 2>/dev/null | grep -q "php"; then
+    print_status "Apache PHP module is already installed"
+else
+    print_status "Installing Apache PHP 8.3 module..."
+    sudo apt install -y libapache2-mod-php8.3
+    print_status "Apache PHP module installed and enabled"
 fi
 
 # Install Git
@@ -217,6 +227,56 @@ if [ -f "$PHP_INI_FILE" ]; then
     print_status "PHP configuration updated for Drupal development"
 fi
 
+# Configure MySQL database for Drupal
+print_status "Configuring MySQL database..."
+if sudo mysql -e "SELECT User FROM mysql.user WHERE User='drupal_user' AND Host='127.0.0.1';" 2>/dev/null | grep -q drupal_user; then
+    print_status "MySQL drupal_user already exists"
+else
+    print_status "Creating MySQL database and user for Drupal..."
+    sudo mysql <<EOF
+CREATE DATABASE IF NOT EXISTS stlouisintegration_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'drupal_user'@'127.0.0.1' IDENTIFIED BY 'drupal_secure_password';
+GRANT ALL PRIVILEGES ON stlouisintegration_dev.* TO 'drupal_user'@'127.0.0.1';
+FLUSH PRIVILEGES;
+EOF
+    print_status "MySQL database 'stlouisintegration_dev' and user 'drupal_user' created"
+fi
+
+# Create private files directory for Drupal
+print_status "Creating Drupal private files directory..."
+if [ ! -d "/var/private/stlouisintegration" ]; then
+    sudo mkdir -p /var/private/stlouisintegration
+    sudo chown -R $USER:$USER /var/private/stlouisintegration
+    sudo chmod -R 775 /var/private/stlouisintegration
+    print_status "Private files directory created at /var/private/stlouisintegration"
+else
+    print_status "Private files directory already exists"
+fi
+
+# Configure Apache virtual host for Drupal
+print_status "Configuring Apache virtual host..."
+DRUPAL_ROOT="/workspaces/stlouisintegration.com/drupal/web"
+if [ -d "$DRUPAL_ROOT" ]; then
+    sudo bash -c "cat > /etc/apache2/sites-available/000-default.conf" <<'EOF'
+<VirtualHost *:80>
+        ServerAdmin webmaster@localhost
+        DocumentRoot /workspaces/stlouisintegration.com/drupal/web
+
+        <Directory /workspaces/stlouisintegration.com/drupal/web>
+                Options Indexes FollowSymLinks
+                AllowOverride All
+                Require all granted
+        </Directory>
+
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+EOF
+    print_status "Apache virtual host configured for Drupal"
+else
+    print_warning "Drupal directory not found at $DRUPAL_ROOT - skipping Apache configuration"
+fi
+
 # Start services
 print_status "Starting services..."
 if command -v systemctl &> /dev/null && systemctl is-system-running &> /dev/null; then
@@ -247,14 +307,14 @@ echo "========================="
 
 print_status "Environment setup completed successfully!"
 print_status "Next steps:"
-echo "1. Run './install-drupal.sh' to create the Drupal project"
-echo "2. Configure your database settings"
-echo "3. Run './configure-development.sh' to set up development tools"
+echo "1. Ensure Composer dependencies are installed: cd drupal && composer install"
+echo "2. Install Drupal: cd drupal && ./vendor/bin/drush.php site:install standard --db-url=mysql://drupal_user:drupal_secure_password@127.0.0.1:3306/stlouisintegration_dev --site-name='St. Louis Integration Dev' --account-name=admin --account-pass=admin -y"
+echo "3. Access site at http://localhost with admin/admin credentials"
 
 print_warning "Remember to:"
-echo "- Run 'sudo mysql_secure_installation' to secure MySQL"
-echo "- Configure your database credentials"
-echo "- Set up your development domain in /etc/hosts if needed"
+echo "- Composer dependencies: cd /workspaces/stlouisintegration.com/drupal && /usr/bin/php8.3 \$(which composer) install"
+echo "- Configure PHP default: Add 'export PATH=\"/usr/bin:\$PATH\"' to ~/.bashrc for PHP 8.3"
+echo "- Site credentials: Username 'admin' / Password 'admin'"
 
 # Test website availability
 print_status "Testing website availability..."
