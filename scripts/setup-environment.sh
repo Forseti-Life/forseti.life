@@ -438,17 +438,51 @@ fi
 
 echo "========================="
 
+# Install Composer dependencies for Drupal if composer.json exists
+DRUPAL_ROOT="/workspaces/stlouisintegration.com/drupal"
+if [ -f "$DRUPAL_ROOT/composer.json" ]; then
+    print_status "Installing Drupal Composer dependencies..."
+    cd "$DRUPAL_ROOT"
+    
+    # Check if vendor directory exists and has packages
+    if [ ! -d "vendor" ] || [ -z "$(ls -A vendor 2>/dev/null)" ]; then
+        print_status "Vendor directory is empty or missing, installing dependencies..."
+        /usr/bin/php8.3 /usr/local/bin/composer install --no-dev --optimize-autoloader
+        print_status "✅ Composer dependencies installed successfully"
+    else
+        # Check for specific missing packages that cause common errors
+        if [ ! -d "vendor/mtdowling" ]; then
+            print_warning "Missing critical packages detected, reinstalling dependencies..."
+            /usr/bin/php8.3 /usr/local/bin/composer install --no-dev --optimize-autoloader
+            print_status "✅ Composer dependencies reinstalled successfully"
+        else
+            print_status "✅ Composer dependencies already installed"
+        fi
+    fi
+    
+    # Verify critical packages are installed
+    if [ -d "vendor/mtdowling/jmespath.php" ]; then
+        print_status "✅ Critical packages (jmespath.php) verified"
+    else
+        print_warning "⚠️  Some packages may still be missing"
+    fi
+    
+    # Return to original directory
+    cd - > /dev/null
+else
+    print_warning "⚠️  Drupal composer.json not found at $DRUPAL_ROOT"
+fi
+
 print_status "Environment setup completed successfully!"
 print_status "Next steps:"
 echo "1. Reload environment: source ~/.bashrc"
-echo "2. Ensure Composer dependencies are installed: cd drupal && composer install"
-echo "3. Install Drupal: cd drupal && ./vendor/bin/drush site:install standard --db-url=mysql://drupal_user:drupal_secure_password@127.0.0.1:3306/stlouisintegration_dev --site-name='St. Louis Integration Dev' --account-name=admin --account-pass=admin -y"
-echo "4. Access site at http://localhost with admin/admin credentials"
+echo "2. Install Drupal: cd drupal && ./vendor/bin/drush site:install standard --db-url=mysql://drupal_user:drupal_secure_password@127.0.0.1:3306/stlouisintegration_dev --site-name='St. Louis Integration Dev' --account-name=admin --account-pass=admin -y"
+echo "3. Access site at http://localhost with admin/admin credentials"
 
 print_warning "Remember to:"
 echo "- Reload environment first: source ~/.bashrc"
 echo "- PHP 8.3 is now default via aliases: php = /usr/bin/php8.3, composer uses PHP 8.3"
-echo "- Composer dependencies: cd /workspaces/stlouisintegration.com/drupal && composer install"
+echo "- Composer dependencies: Automatically installed during setup"
 echo "- Start services if needed: sudo service mysql start && sudo service apache2 start"
 echo "- Site credentials: Username 'admin' / Password 'admin'"
 
