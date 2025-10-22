@@ -4,7 +4,24 @@ This directory contains scripts and documentation for setting up the St. Louis I
 
 ## Quick Start
 
-Run the setup scripts in order:
+### One-Command Setup (Recommended)
+
+Run the complete setup script for full environment:
+
+```bash
+./complete-setup.sh
+```
+
+This script combines all setup steps and will:
+1. Install system dependencies (PHP 8.3, MySQL, Apache, etc.)
+2. Create and install Drupal 11 project
+3. Configure development tools and coding standards
+4. Set up custom modules and themes directories
+5. Create development utility scripts
+
+### Manual Step-by-Step Setup
+
+If you prefer to run scripts individually:
 
 1. `./setup-environment.sh` - Install system dependencies
 2. `./install-drupal.sh` - Create and install Drupal 11
@@ -12,6 +29,7 @@ Run the setup scripts in order:
 
 ## Files
 
+- **complete-setup.sh** - **[NEW]** Combined setup script that does everything in one command
 - **setup-environment.sh** - Installs PHP, Composer, MySQL, and other system dependencies
 - **install-drupal.sh** - Creates Drupal 11 project and runs installation
 - **configure-development.sh** - Sets up development tools, custom modules directory, and coding standards

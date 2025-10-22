@@ -69,8 +69,8 @@ print_step "2. Setting up database..."
 # Create database and user
 print_status "Creating database and user..."
 sudo mysql -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-sudo mysql -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'${DB_HOST}' IDENTIFIED BY '${DB_PASSWORD}';"
-sudo mysql -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'${DB_HOST}';"
+sudo mysql -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASSWORD}';"
+sudo mysql -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'127.0.0.1';"
 sudo mysql -e "FLUSH PRIVILEGES;"
 
 print_status "Database '${DB_NAME}' created successfully"
@@ -118,7 +118,7 @@ print_step "6. Installing Drupal..."
 # Install Drupal using Drush
 print_status "Running Drupal installation..."
 ./vendor/bin/drush site:install standard \
-    --db-url="mysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:3306/${DB_NAME}" \
+    --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${DB_NAME}" \
     --site-name="${SITE_NAME}" \
     --account-name="${ADMIN_USER}" \
     --account-pass="${ADMIN_PASSWORD}" \
@@ -189,7 +189,7 @@ cat > web/sites/default/settings.local.php << EOL
   'database' => '${DB_NAME}',
   'username' => '${DB_USER}',
   'password' => '${DB_PASSWORD}',
-  'host' => '${DB_HOST}',
+  'host' => '127.0.0.1',
   'port' => '3306',
   'driver' => 'mysql',
   'prefix' => '',
