@@ -19,6 +19,9 @@ function resume_tailoring_install() {
   // Create the tailored resume content type.
   _resume_tailoring_create_tailored_resume_content_type();
 
+  // Ensure job_posting content type exists before adding field.
+  _resume_tailoring_ensure_job_posting_content_type();
+
   // Add the tailored resume field to job_posting content type.
   _resume_tailoring_add_field_to_job_posting();
   
@@ -251,6 +254,33 @@ function _resume_tailoring_create_resume_content_type() {
 /**
  * Add tailored resume field to job_posting content type.
  */
+/**
+ * Ensure job_posting content type exists.
+ */
+function _resume_tailoring_ensure_job_posting_content_type() {
+  // Check if job_posting content type already exists.
+  $content_type = \Drupal::entityTypeManager()->getStorage('node_type')->load('job_posting');
+  if (!$content_type) {
+    // Create job_posting content type.
+    $job_posting_type = NodeType::create([
+      'type' => 'job_posting',
+      'name' => 'Job Posting',
+      'description' => 'Individual job opportunities for resume tailoring.',
+      'has_title' => TRUE,
+      'title_label' => 'Job Title',
+      'display_submitted' => FALSE,
+      'new_revision' => TRUE,
+      'preview_mode' => DRUPAL_OPTIONAL,
+      'help' => 'Create a job posting to generate tailored resumes.',
+    ]);
+    $job_posting_type->save();
+    
+    \Drupal::logger('resume_tailoring')->notice('Created job_posting content type.');
+  } else {
+    \Drupal::logger('resume_tailoring')->notice('job_posting content type already exists.');
+  }
+}
+
 function _resume_tailoring_add_field_to_job_posting() {
   // Check if field storage already exists.
   $field_storage = FieldStorageConfig::loadByName('node', 'field_tailored_resume');

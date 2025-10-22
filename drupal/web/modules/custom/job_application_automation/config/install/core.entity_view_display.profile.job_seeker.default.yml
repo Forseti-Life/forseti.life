@@ -20,7 +20,6 @@ dependencies:
     - field.field.profile.job_seeker.field_salary_expectation_max
     - field.field.profile.job_seeker.field_salary_expectation_min
     - field.field.profile.job_seeker.field_skills_summary
-    - field.field.profile.job_seeker.field_target_companies
     - field.field.profile.job_seeker.field_target_job_titles
     - field.field.profile.job_seeker.field_work_authorization
     - profile.type.job_seeker
@@ -173,14 +172,6 @@ content:
     settings: { }
     third_party_settings: { }
     weight: 16
-    region: content
-  field_target_companies:
-    type: entity_reference_label
-    label: above
-    settings:
-      link: true
-    third_party_settings: { }
-    weight: 17
     region: content
   field_keywords_interested:
     type: text_default

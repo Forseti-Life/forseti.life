@@ -77,6 +77,9 @@ function job_application_automation_install() {
     // This checks for existing types and only creates missing ones
     _job_application_automation_create_content_types();
     
+    // Create the target companies profile field now that company content type exists
+    _job_application_automation_create_target_companies_field();
+    
     // Create and attach fields to content types
     _job_application_automation_create_content_type_fields();
     
@@ -325,6 +328,102 @@ function _job_application_automation_create_content_types() {
       if ($existing_type->get('description') !== $info['description']) {
         \Drupal::logger('job_application_automation')->notice('Content type @type has different description than expected', ['@type' => $type]);
       }
+    }
+  }
+}
+
+/**
+ * Create the target companies field programmatically.
+ * 
+ * This field is created programmatically instead of via config files
+ * to ensure the company content type exists before the field is created.
+ */
+function _job_application_automation_create_target_companies_field() {
+  $logger = \Drupal::logger('job_application_automation');
+  
+  // Ensure job_seeker profile type exists
+  $profile_type = \Drupal::entityTypeManager()->getStorage('profile_type')->load('job_seeker');
+  if (!$profile_type) {
+    $profile_type = \Drupal::entityTypeManager()->getStorage('profile_type')->create([
+      'id' => 'job_seeker',
+      'label' => 'Job Seeker',
+      'weight' => 0,
+      'registration' => FALSE,
+      'multiple' => FALSE,
+    ]);
+    $profile_type->save();
+    $logger->info('Created job_seeker profile type.');
+  }
+  
+  // Create field storage for target companies field
+  $field_storage = FieldStorageConfig::loadByName('profile', 'field_target_companies');
+  if (!$field_storage) {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => 'field_target_companies',
+      'entity_type' => 'profile',
+      'type' => 'entity_reference',
+      'cardinality' => -1, // Unlimited
+      'settings' => [
+        'target_type' => 'node',
+      ],
+    ]);
+    $field_storage->save();
+    $logger->info('Created field storage for field_target_companies.');
+  }
+  
+  // Create field config on job_seeker profile
+  $field_config = FieldConfig::loadByName('profile', 'job_seeker', 'field_target_companies');
+  if (!$field_config) {
+    $field_config = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => 'job_seeker',
+      'label' => t('Target Companies'),
+      'description' => t('Companies you are interested in working for'),
+      'required' => FALSE,
+      'settings' => [
+        'handler' => 'default:node',
+        'handler_settings' => [
+          'target_bundles' => [
+            'company' => 'company',
+          ],
+        ],
+      ],
+    ]);
+    $field_config->save();
+    $logger->info('Created field_target_companies field on job_seeker profile.');
+    
+    // Configure form display for the field
+    $form_display = EntityFormDisplay::load('profile.job_seeker.default');
+    if ($form_display && !$form_display->getComponent('field_target_companies')) {
+      $form_display->setComponent('field_target_companies', [
+        'type' => 'entity_reference_autocomplete',
+        'weight' => 17,
+        'region' => 'content',
+        'settings' => [
+          'match_operator' => 'CONTAINS',
+          'match_limit' => 10,
+          'size' => 60,
+          'placeholder' => 'Type company names...',
+        ],
+      ]);
+      $form_display->save();
+      $logger->info('Added field_target_companies to form display.');
+    }
+    
+    // Configure view display for the field
+    $view_display = EntityViewDisplay::load('profile.job_seeker.default');
+    if ($view_display && !$view_display->getComponent('field_target_companies')) {
+      $view_display->setComponent('field_target_companies', [
+        'type' => 'entity_reference_label',
+        'label' => 'above',
+        'weight' => 17,
+        'region' => 'content',
+        'settings' => [
+          'link' => TRUE,
+        ],
+      ]);
+      $view_display->save();
+      $logger->info('Added field_target_companies to view display.');
     }
   }
 }
