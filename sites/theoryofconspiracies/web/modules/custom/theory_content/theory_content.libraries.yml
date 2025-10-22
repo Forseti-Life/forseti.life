@@ -1,0 +1,27 @@
+character-display:
+  css:
+    theme:
+      css/character-display.css: {}
+  js:
+    js/character-display.js: {}
+  dependencies:
+    - theoryofconspiracies/cyberpunk-effects
+
+sequence-display:
+  css:
+    theme:
+      css/sequence-display.css: {}
+  js:
+    js/sequence-display.js: {}
+  dependencies:
+    - theoryofconspiracies/cyberpunk-effects
+
+trust-network:
+  css:
+    theme:
+      css/trust-network.css: {}
+  js:
+    js/trust-network.js: {}
+  dependencies:
+    - core/d3
+    - theoryofconspiracies/cyberpunk-effects
