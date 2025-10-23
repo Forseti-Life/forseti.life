@@ -409,6 +409,29 @@ jobs:
             echo "⚠️ Composer install had warnings (continuing)"
           fi
           
+          # Enable theory_content module and import its configuration
+          echo "Enabling theory_content module..."
+          if [ -d "$DRUPAL_ROOT/web/modules/custom/theory_content" ]; then
+            if ! sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^theory_content$"; then
+              sudo -u www-data ./vendor/bin/drush en theory_content -y || echo "⚠️ Failed to enable theory_content"
+              echo "✅ theory_content module enabled"
+              
+              # Import the module's configuration (content types)
+              echo "Importing theory_content configuration..."
+              sudo -u www-data ./vendor/bin/drush config:import --partial --source="$DRUPAL_ROOT/web/modules/custom/theory_content/config/install" -y || echo "⚠️ Config import had warnings"
+              echo "✅ theory_content configuration imported"
+            else
+              echo "✅ theory_content already enabled"
+            fi
+          else
+            echo "⚠️ theory_content module not found in $DRUPAL_ROOT/web/modules/custom/"
+          fi
+          
+          # Set the front page to use the theory_content home route
+          echo "Setting front page to theory_content home..."
+          sudo -u www-data ./vendor/bin/drush config:set system.site page.front /home -y || echo "⚠️ Failed to set front page"
+          echo "✅ Front page set to /home"
+          
           echo "DEBUG: Final verification - checking deployed files..."
           echo "DEBUG: Checking modules directory: $CUSTOM_MODULES_DIR"
           if [ -d "$CUSTOM_MODULES_DIR" ]; then
