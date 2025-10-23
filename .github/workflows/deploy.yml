@@ -372,6 +372,11 @@ jobs:
           sudo -u www-data ./vendor/bin/drush config:set system.site page.front /home -y || echo "⚠️ Failed to set front page"
           echo "✅ Front page set to /home"
           
+          # Clear all caches to ensure new JavaScript is loaded
+          echo "Clearing caches..."
+          sudo -u www-data ./vendor/bin/drush cache:rebuild
+          echo "✅ Caches cleared"
+          
           # Clean up
           rm -rf "$TEMP_DIR"
           
