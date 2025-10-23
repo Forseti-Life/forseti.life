@@ -506,11 +506,13 @@
   // Attach the filter when the behavior runs
   Drupal.behaviors.newsMotivationMetricsChartFilter = {
     attach: function (context) {
-      const selector = context.querySelector('.term-selector');
-      if (selector && !selector.hasAttribute('data-filter-enabled')) {
-        addTermSelectorSearch(selector);
-        selector.setAttribute('data-filter-enabled', 'true');
-      }
+      const $selectors = once('news-motivation-filter', '.term-selector', context);
+      $selectors.forEach(function(selector) {
+        if (!selector.hasAttribute('data-filter-enabled')) {
+          addTermSelectorSearch(selector);
+          selector.setAttribute('data-filter-enabled', 'true');
+        }
+      });
     }
   };
 
