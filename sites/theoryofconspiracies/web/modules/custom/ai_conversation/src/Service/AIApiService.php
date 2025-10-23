@@ -167,18 +167,27 @@ class AIApiService {
       // Check if we need to update the summary before processing.
       $this->checkAndUpdateSummary($conversation);
 
-      // Get AWS configuration from settings, with fallback to environment variables.
+            // Get AWS configuration from settings, with fallback to environment variables.
       $config = $this->configFactory->get('ai_conversation.settings');
       $aws_access_key = $config->get('aws_access_key_id') ?: getenv('AWS_ACCESS_KEY_ID');
       $aws_secret_key = $config->get('aws_secret_access_key') ?: getenv('AWS_SECRET_ACCESS_KEY');
       $aws_region = $config->get('aws_region') ?: getenv('AWS_DEFAULT_REGION') ?: 'us-east-1';
+
+      // Check if we have valid AWS credentials
+      $has_credentials = (!empty($aws_access_key) && !empty($aws_secret_key));
+
+      if (!$has_credentials) {
+        $this->logger->warning('No AWS credentials found. Falling back to development mode.');
+        $mock_response = $this->generateMockResponse($message);
+        return $mock_response['ai_message'];
+      }
 
       // Use the AWS SDK with credentials (either from config or environment).
       $sdk_config = [
         'region' => $aws_region,
         'version' => 'latest',
       ];
-      
+
       // Only set explicit credentials if we have them, otherwise let AWS SDK use default credential chain
       if (!empty($aws_access_key) && !empty($aws_secret_key)) {
         $sdk_config['credentials'] = [
