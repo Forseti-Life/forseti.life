@@ -1,15 +1,15 @@
-(function($, Drupal) {
+(function($, Drupal, once) {
   'use strict';
 
   // Version number for deployment verification
-  const AI_CONVERSATION_VERSION = '1.1.1';
+  const AI_CONVERSATION_VERSION = '1.1.2';
 
   Drupal.behaviors.aiConversationChat = {
     attach: function(context, settings) {
       console.log('🔧 AI Conversation Chat v' + AI_CONVERSATION_VERSION + ' - Behavior attaching');
 
-      // Use Drupal.once to ensure we only attach once per element
-      const $chatContainers = $(Drupal.once('ai-conversation-chat', '.ai-conversation-chat', context));
+      // Use once to ensure we only attach once per element
+      const $chatContainers = $(once('ai-conversation-chat', '.ai-conversation-chat', context));
 
       if ($chatContainers.length === 0) {
         console.warn('❌ No chat containers found to attach to, exiting behavior');
@@ -177,4 +177,4 @@
     }
   };
 
-})(jQuery, Drupal);
+})(jQuery, Drupal, once);
