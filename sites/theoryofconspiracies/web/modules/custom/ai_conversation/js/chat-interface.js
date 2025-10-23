@@ -13,8 +13,8 @@
         return;
       }
 
-      $chatContainers.forEach(function(chatContainer) {
-        const $chatContainer = $(chatContainer);
+      $chatContainers.each(function() {
+        const $chatContainer = $(this);
         console.log('📦 Processing chat container:', $chatContainer);
 
         const chatSettings = settings.aiConversation || {};
