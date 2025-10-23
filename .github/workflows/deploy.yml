@@ -272,7 +272,7 @@ jobs:
           
           echo "=== Deploying Modules and Themes to theoryofconspiracies.com ==="
           
-          DRUPAL_ROOT="/var/www/html/theoryofconspiracies/web"
+          DRUPAL_ROOT="/var/www/html/theoryofconspiracies"
           TEMP_DIR="/tmp/deploy-theoryofconspiracies-$(date +%s)"
           
           # Create temporary directory and download code
