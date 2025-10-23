@@ -9,6 +9,8 @@ on:
       - 'drupal/composer.json'
       - 'drupal/composer.lock'
       - 'config/sync/**'
+      - 'sites/theoryofconspiracies/web/modules/custom/**'
+      - 'sites/theoryofconspiracies/web/themes/custom/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
