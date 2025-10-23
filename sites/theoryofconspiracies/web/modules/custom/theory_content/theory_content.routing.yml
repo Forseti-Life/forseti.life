@@ -1,0 +1,111 @@
+theory_content.home:
+  path: '/home'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\HomeController::home'
+    _title: 'Theory of Conspiracies'
+  requirements:
+    _permission: 'access content'
+
+theory_content.characters:
+  path: '/characters'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\CharacterController::charactersOverview'
+    _title: 'Characters'
+  requirements:
+    _permission: 'access content'
+
+theory_content.character_sal:
+  path: '/characters/sal-mueller'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\CharacterController::salMueller'
+    _title: 'Sal Mueller'
+  requirements:
+    _permission: 'access content'
+
+theory_content.character_tiger:
+  path: '/characters/tiger-mueller'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\CharacterController::tigerMueller'
+    _title: 'Tiger Mueller'
+  requirements:
+    _permission: 'access content'
+
+theory_content.character_estella:
+  path: '/characters/estella-mueller'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\CharacterController::estellaMueller'
+    _title: 'Estella Mueller'
+  requirements:
+    _permission: 'access content'
+
+theory_content.character_gallad:
+  path: '/characters/gallad-mueller'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\CharacterController::galladMueller'
+    _title: 'Gallad Mueller'
+  requirements:
+    _permission: 'access content'
+
+theory_content.character_iris:
+  path: '/characters/iris-vasquez'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\CharacterController::irisVasquez'
+    _title: 'Iris Vasquez'
+  requirements:
+    _permission: 'access content'
+
+theory_content.character_maria:
+  path: '/characters/maria-santos'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\CharacterController::mariaSantos'
+    _title: 'Maria Santos'
+  requirements:
+    _permission: 'access content'
+
+theory_content.character_keith_ai:
+  path: '/characters/keith-ai'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\CharacterController::keithAI'
+    _title: 'Keith AI'
+  requirements:
+    _permission: 'access content'
+
+theory_content.character_david_ai:
+  path: '/characters/david-ai'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\CharacterController::davidAI'
+    _title: 'David AI'
+  requirements:
+    _permission: 'access content'
+
+theory_content.character_mcdrone:
+  path: '/characters/mcdrone'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\CharacterController::mcDrone'
+    _title: 'McDrone'
+  requirements:
+    _permission: 'access content'
+
+theory_content.act_one:
+  path: '/story/act-i'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\StoryController::actOne'
+    _title: 'Act I - Discovery'
+  requirements:
+    _permission: 'access content'
+
+theory_content.act_two:
+  path: '/story/act-ii'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\StoryController::actTwo'
+    _title: 'Act II - Development'
+  requirements:
+    _permission: 'access content'
+
+theory_content.philadelphia_2085:
+  path: '/setting/philadelphia-2085'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\SettingController::philadelphia2085'
+    _title: 'Philadelphia 2085'
+  requirements:
+    _permission: 'access content'

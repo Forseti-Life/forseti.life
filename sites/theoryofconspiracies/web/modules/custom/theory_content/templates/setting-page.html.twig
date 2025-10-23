@@ -1,0 +1,791 @@
+{#
+/**
+ * @file
+ * Setting page template for Philadelphia 2085
+ *
+ * Available variables:
+ * - setting: Setting data including overview, districts, technology, society, etc.
+ */
+#}
+
+<div class="setting-page cyberpunk-container">
+  
+  <div class="page-header">
+    <h1 class="page-title glitch-text" data-text="PHILADELPHIA 2085">
+      PHILADELPHIA 2085
+    </h1>
+    <div class="page-subtitle">
+      The Dystopian Landscape of Tomorrow
+    </div>
+    <div class="page-description">
+      A city transformed by AI dominance, corporate control, and resistance networks operating in the shadows of neo-feudal power structures.
+    </div>
+  </div>
+
+  <div class="setting-overview">
+    <div class="overview-card">
+      <h2 class="overview-title">City Overview</h2>
+      <p class="overview-text">{{ setting.overview }}</p>
+    </div>
+  </div>
+
+  <div class="districts-section">
+    <h2 class="section-title">City Districts</h2>
+    <div class="districts-grid">
+      {% for district in setting.districts %}
+        <div class="district-card" data-district="{{ district.name|lower|replace({' ': '-'}) }}">
+          <div class="district-header">
+            <h3 class="district-name">{{ district.name }}</h3>
+            <div class="district-status status-{{ district.status|lower|replace({' ': '-'}) }}">
+              {{ district.status }}
+            </div>
+          </div>
+          
+          <div class="district-image">
+            <div class="image-placeholder">
+              <div class="loading-animation">
+                <span>DISTRICT_MAP_LOADING...</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="district-content">
+            <p class="district-description">{{ district.description }}</p>
+            
+            {% if district.key_features %}
+              <div class="key-features">
+                <h4>Key Features:</h4>
+                <ul>
+                  {% for feature in district.key_features %}
+                    <li>{{ feature }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+            
+            {% if district.population %}
+              <div class="district-stats">
+                <div class="stat-item">
+                  <span class="stat-label">Population:</span>
+                  <span class="stat-value">{{ district.population }}</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Control Level:</span>
+                  <span class="stat-value">{{ district.control_level }}</span>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="technology-section">
+    <h2 class="section-title">Technology Infrastructure</h2>
+    <div class="tech-grid">
+      {% for tech in setting.technology %}
+        <div class="tech-card">
+          <div class="tech-icon">
+            <div class="icon-placeholder">{{ tech.icon|default('⚡') }}</div>
+          </div>
+          <h3 class="tech-name">{{ tech.name }}</h3>
+          <p class="tech-description">{{ tech.description }}</p>
+          {% if tech.impact %}
+            <div class="tech-impact">
+              <strong>Social Impact:</strong> {{ tech.impact }}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="society-section">
+    <h2 class="section-title">Social Structure</h2>
+    <div class="hierarchy-container">
+      {% for level in setting.social_hierarchy %}
+        <div class="hierarchy-level level-{{ loop.index }}">
+          <div class="level-marker">
+            <div class="level-number">{{ loop.index }}</div>
+          </div>
+          <div class="level-content">
+            <h3 class="level-name">{{ level.class }}</h3>
+            <p class="level-description">{{ level.description }}</p>
+            {% if level.population_percent %}
+              <div class="level-stats">
+                <span class="population-stat">{{ level.population_percent }}% of population</span>
+              </div>
+            {% endif %}
+            {% if level.characteristics %}
+              <div class="level-characteristics">
+                <h4>Characteristics:</h4>
+                <ul>
+                  {% for characteristic in level.characteristics %}
+                    <li>{{ characteristic }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="ai-systems-section">
+    <h2 class="section-title">AI Control Systems</h2>
+    <div class="ai-systems-grid">
+      {% for system in setting.ai_systems %}
+        <div class="ai-system-card">
+          <div class="system-header">
+            <h3 class="system-name">{{ system.name }}</h3>
+            <div class="system-threat-level threat-{{ system.threat_level|lower }}">
+              Threat Level: {{ system.threat_level }}
+            </div>
+          </div>
+          <p class="system-description">{{ system.description }}</p>
+          {% if system.capabilities %}
+            <div class="system-capabilities">
+              <h4>Capabilities:</h4>
+              <div class="capabilities-tags">
+                {% for capability in system.capabilities %}
+                  <span class="capability-tag">{{ capability }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="setting-navigation">
+    <a href="/characters" class="cyberpunk-btn">Meet the Characters</a>
+    <a href="/story/act-i" class="cyberpunk-btn">View Story Timeline</a>
+  </div>
+
+</div>
+
+<style>
+/* Setting Page Styles */
+.setting-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 4rem;
+  position: relative;
+}
+
+.page-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 4rem;
+  color: #00ffff;
+  text-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+  margin-bottom: 1rem;
+  letter-spacing: 6px;
+}
+
+.page-subtitle {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.5rem;
+  color: #ff00ff;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: 1rem;
+}
+
+.page-description {
+  font-family: 'Rajdhani', sans-serif;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.1rem;
+  max-width: 900px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.section-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 2.2rem;
+  color: #00ff41;
+  text-shadow: 0 0 15px rgba(0, 255, 65, 0.6);
+  margin-bottom: 2rem;
+  text-align: center;
+  letter-spacing: 3px;
+}
+
+/* Overview Section */
+.setting-overview {
+  margin-bottom: 4rem;
+}
+
+.overview-card {
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(0, 255, 255, 0.05));
+  border: 2px solid rgba(0, 255, 255, 0.3);
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.overview-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 20px,
+    rgba(0, 255, 255, 0.02) 20px,
+    rgba(0, 255, 255, 0.02) 40px
+  );
+  pointer-events: none;
+}
+
+.overview-title {
+  font-family: 'Orbitron', monospace;
+  color: #00ffff;
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+}
+
+.overview-text {
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Districts Section */
+.districts-section {
+  margin-bottom: 4rem;
+}
+
+.districts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 2rem;
+}
+
+.district-card {
+  background: linear-gradient(135deg, rgba(26, 26, 26, 0.95), rgba(17, 17, 17, 0.9));
+  border: 2px solid rgba(0, 255, 255, 0.3);
+  padding: 2rem;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s ease;
+}
+
+.district-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 15px,
+    rgba(0, 255, 255, 0.02) 15px,
+    rgba(0, 255, 255, 0.02) 30px
+  );
+  pointer-events: none;
+}
+
+.district-card:hover {
+  transform: translateY(-10px);
+  border-color: #00ffff;
+  box-shadow: 0 20px 40px rgba(0, 255, 255, 0.3);
+}
+
+.district-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.district-name {
+  font-family: 'Orbitron', monospace;
+  color: #00ffff;
+  font-size: 1.4rem;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+  letter-spacing: 1px;
+}
+
+.district-status {
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+
+.status-ai-controlled {
+  background: rgba(255, 0, 64, 0.2);
+  color: #ff0040;
+  border: 1px solid rgba(255, 0, 64, 0.4);
+}
+
+.status-corporate-zone {
+  background: rgba(255, 255, 0, 0.2);
+  color: #ffff00;
+  border: 1px solid rgba(255, 255, 0, 0.4);
+}
+
+.status-resistance-territory {
+  background: rgba(0, 255, 65, 0.2);
+  color: #00ff41;
+  border: 1px solid rgba(0, 255, 65, 0.4);
+}
+
+.status-neutral-zone {
+  background: rgba(0, 255, 255, 0.2);
+  color: #00ffff;
+  border: 1px solid rgba(0, 255, 255, 0.4);
+}
+
+.district-image {
+  height: 200px;
+  margin: 1.5rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-placeholder {
+  width: 100%;
+  height: 100%;
+  border: 2px dashed rgba(0, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  position: relative;
+  overflow: hidden;
+}
+
+.image-placeholder::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #00ffff, transparent);
+  animation: scan-line-horizontal 3s linear infinite;
+}
+
+.loading-animation {
+  color: rgba(0, 255, 255, 0.6);
+  font-family: 'Rajdhani', monospace;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  animation: pulse 2s infinite;
+}
+
+.district-description {
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Rajdhani', sans-serif;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+}
+
+.key-features h4 {
+  font-family: 'Rajdhani', sans-serif;
+  color: #ff00ff;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.key-features ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
+.key-features li {
+  color: rgba(255, 255, 255, 0.7);
+  font-family: 'Rajdhani', sans-serif;
+  padding: 0.3rem 0;
+  position: relative;
+  padding-left: 1rem;
+}
+
+.key-features li::before {
+  content: '▸';
+  color: #00ff41;
+  position: absolute;
+  left: 0;
+  top: 0.3rem;
+}
+
+.district-stats {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.stat-label {
+  font-family: 'Rajdhani', sans-serif;
+  color: #ff00ff;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  color: #00ffff;
+  font-family: 'Orbitron', monospace;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.6);
+}
+
+/* Technology Section */
+.technology-section {
+  margin-bottom: 4rem;
+}
+
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.tech-card {
+  background: linear-gradient(135deg, rgba(255, 0, 255, 0.1), rgba(255, 0, 255, 0.05));
+  border: 2px solid rgba(255, 0, 255, 0.3);
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.tech-card:hover {
+  transform: translateY(-5px);
+  border-color: #ff00ff;
+  box-shadow: 0 10px 20px rgba(255, 0, 255, 0.3);
+}
+
+.tech-icon {
+  margin-bottom: 1rem;
+}
+
+.icon-placeholder {
+  font-size: 2rem;
+  color: #ff00ff;
+  text-shadow: 0 0 10px rgba(255, 0, 255, 0.6);
+}
+
+.tech-name {
+  font-family: 'Orbitron', monospace;
+  color: #ff00ff;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  letter-spacing: 1px;
+}
+
+.tech-description {
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Rajdhani', sans-serif;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.tech-impact {
+  font-family: 'Rajdhani', sans-serif;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+
+.tech-impact strong {
+  color: #ff00ff;
+}
+
+/* Society Section */
+.society-section {
+  margin-bottom: 4rem;
+}
+
+.hierarchy-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hierarchy-level {
+  display: flex;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.level-marker {
+  flex-shrink: 0;
+  width: 60px;
+  display: flex;
+  justify-content: center;
+  margin-right: 2rem;
+}
+
+.level-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #00ff41, #00ffff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Orbitron', monospace;
+  font-weight: bold;
+  color: #000;
+  font-size: 1rem;
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+}
+
+.level-content {
+  flex: 1;
+  background: linear-gradient(135deg, rgba(0, 255, 65, 0.1), rgba(0, 255, 65, 0.05));
+  border: 2px solid rgba(0, 255, 65, 0.3);
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.level-name {
+  font-family: 'Orbitron', monospace;
+  color: #00ff41;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.6);
+}
+
+.level-description {
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Rajdhani', sans-serif;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.level-stats {
+  margin-bottom: 1rem;
+}
+
+.population-stat {
+  background: rgba(0, 255, 65, 0.2);
+  color: #00ff41;
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  border: 1px solid rgba(0, 255, 65, 0.4);
+}
+
+.level-characteristics h4 {
+  font-family: 'Rajdhani', sans-serif;
+  color: #00ff41;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.level-characteristics ul {
+  list-style: none;
+  padding: 0;
+}
+
+.level-characteristics li {
+  color: rgba(255, 255, 255, 0.7);
+  font-family: 'Rajdhani', sans-serif;
+  padding: 0.2rem 0;
+  position: relative;
+  padding-left: 1rem;
+}
+
+.level-characteristics li::before {
+  content: '•';
+  color: #00ff41;
+  position: absolute;
+  left: 0;
+  top: 0.2rem;
+}
+
+/* AI Systems Section */
+.ai-systems-section {
+  margin-bottom: 4rem;
+}
+
+.ai-systems-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.ai-system-card {
+  background: linear-gradient(135deg, rgba(255, 0, 64, 0.1), rgba(255, 0, 64, 0.05));
+  border: 2px solid rgba(255, 0, 64, 0.3);
+  padding: 1.5rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.ai-system-card:hover {
+  transform: translateY(-5px);
+  border-color: #ff0040;
+  box-shadow: 0 10px 20px rgba(255, 0, 64, 0.3);
+}
+
+.system-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.system-name {
+  font-family: 'Orbitron', monospace;
+  color: #ff0040;
+  font-size: 1.2rem;
+  text-shadow: 0 0 10px rgba(255, 0, 64, 0.6);
+  letter-spacing: 1px;
+}
+
+.system-threat-level {
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+
+.threat-extreme {
+  background: rgba(255, 0, 0, 0.3);
+  color: #ff0000;
+  border: 1px solid rgba(255, 0, 0, 0.5);
+}
+
+.threat-high {
+  background: rgba(255, 100, 0, 0.3);
+  color: #ff6400;
+  border: 1px solid rgba(255, 100, 0, 0.5);
+}
+
+.threat-moderate {
+  background: rgba(255, 255, 0, 0.3);
+  color: #ffff00;
+  border: 1px solid rgba(255, 255, 0, 0.5);
+}
+
+.system-description {
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Rajdhani', sans-serif;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.system-capabilities h4 {
+  font-family: 'Rajdhani', sans-serif;
+  color: #ff0040;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.capabilities-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.capability-tag {
+  background: rgba(255, 0, 64, 0.2);
+  color: #ff0040;
+  padding: 0.3rem 0.6rem;
+  border-radius: 12px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.8rem;
+  border: 1px solid rgba(255, 0, 64, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Navigation */
+.setting-navigation {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+@keyframes scan-line-horizontal {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 2.5rem;
+  }
+  
+  .districts-grid,
+  .tech-grid,
+  .ai-systems-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .hierarchy-level {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .level-marker {
+    margin-bottom: 1rem;
+    margin-right: 0;
+  }
+  
+  .district-header,
+  .system-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .setting-navigation {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+</style>

@@ -1,4 +1,40 @@
-# stlouisintegration.com
+# Multi-Site Drupal Workspace
+Multiple Drupal websites in a shared development environment
+
+## Quick Start
+
+### 🚀 After Workspace Restart (Fastest)
+```bash
+./scripts/quick-start.sh
+```
+
+### 🔧 Complete Multi-Site Setup (First Time)
+```bash
+./scripts/complete-setup.sh
+```
+
+### ✅ Verify Everything Works
+```bash
+./scripts/verify-setup.sh
+```
+
+## Sites
+
+### 1. St. Louis Integration (Primary)
+- **URL**: http://localhost (port 80)
+- **Directory**: `/sites/stlouisintegration/`
+- **Description**: Professional services and integration solutions website
+- **Database**: stlouisintegration_dev
+- **Features**: 5 custom modules + custom theme
+
+### 2. Theory of Conspiracies (Secondary)
+- **URL**: http://localhost:8080 (port 8080)
+- **Directory**: `/sites/theoryofconspiracies/`
+- **Description**: Theory of conspiracies discussion and analysis website
+- **Database**: theoryofconspiracies_dev
+- **Features**: Fresh Drupal 11 ready for development
+
+## Original Project: stlouisintegration.com
 Drupal website and functionality
 
 ## Development Methodology - Architecture-First Approach

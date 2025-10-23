@@ -41,6 +41,39 @@ function theory_content_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'sequence-timeline',
     ],
+    'character_page' => [
+      'variables' => [
+        'character' => NULL,
+      ],
+      'template' => 'character-page',
+    ],
+    'characters_overview' => [
+      'variables' => [
+        'characters' => [],
+      ],
+      'template' => 'characters-overview',
+    ],
+    'act_overview' => [
+      'variables' => [
+        'act' => NULL,
+      ],
+      'template' => 'act-overview',
+    ],
+    'setting_page' => [
+      'variables' => [
+        'setting' => NULL,
+      ],
+      'template' => 'setting-page',
+    ],
+    'theory_home' => [
+      'variables' => [
+        'movie_data' => NULL,
+        'featured_characters' => NULL,
+        'nav_sections' => NULL,
+        'updates' => NULL,
+      ],
+      'template' => 'theory-home',
+    ],
   ];
 }
 

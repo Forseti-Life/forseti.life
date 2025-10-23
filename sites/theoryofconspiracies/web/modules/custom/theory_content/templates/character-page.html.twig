@@ -1,0 +1,495 @@
+{#
+/**
+ * @file
+ * Individual character page template
+ *
+ * Available variables:
+ * - character: Character data array with all information
+ */
+#}
+
+<div class="character-page cyberpunk-container">
+  
+  {# Character Header #}
+  <div class="character-header">
+    <h1 class="character-name glitch-text" data-text="{{ character.name }}">
+      {{ character.name }}
+    </h1>
+    
+    <div class="character-role">
+      {{ character.role }}
+    </div>
+    
+    <div class="character-type">
+      {{ character.type }}
+    </div>
+  </div>
+
+  {# AI Chat Link for Keith AI Character #}
+  {% if character.name == 'Keith AI' %}
+    <div class="keith-ai-chat-prompt">
+      <div class="ai-chat-container">
+        <div class="chat-prompt-header">
+          <h3>Interact with Keith AI</h3>
+        </div>
+        <div class="chat-prompt-description">
+          <p>Experience a direct conversation with Keith AI consciousness. Ask about the resistance, Philadelphia 2085, or test the AI's strategic capabilities.</p>
+        </div>
+        <div class="chat-prompt-actions">
+          <a href="/ai-chat" class="ai-chat-button cyberpunk-button">
+            <span class="button-text">OPEN AI CHAT TERMINAL</span>
+            <span class="button-status">READY</span>
+          </a>
+        </div>
+        <div class="chat-prompt-footer">
+          <small>Powered by Anthropic Claude 3.5 Sonnet | Enterprise AI Demonstration</small>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  {# Character Image Placeholder #}
+  <div class="character-image-container">
+    <div class="character-image-placeholder">
+      <div class="image-frame">
+        <div class="image-loading">
+          <span class="loading-text">CHARACTER_IMAGE.LOADING...</span>
+          <div class="loading-bar"></div>
+        </div>
+      </div>
+      <div class="image-caption">
+        {{ character.name }} - {{ character.role }}
+      </div>
+    </div>
+  </div>
+
+  {# Character Stats Grid #}
+  <div class="character-stats">
+    <div class="stat-item">
+      <div class="stat-label">Affiliation</div>
+      <div class="stat-value">{{ character.affiliation }}</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Status</div>
+      <div class="stat-value status-{{ character.status|lower }}">{{ character.status }}</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">First Appearance</div>
+      <div class="stat-value">{{ character.first_appearance }}</div>
+    </div>
+    {% if character.character_arc %}
+      <div class="stat-item full-width">
+        <div class="stat-label">Character Arc</div>
+        <div class="stat-value">{{ character.character_arc }}</div>
+      </div>
+    {% endif %}
+  </div>
+
+  {# Character Description #}
+  <div class="character-description">
+    <h3>Character Profile</h3>
+    <div class="description-text typewriter">
+      {{ character.description }}
+    </div>
+  </div>
+
+  {# Personality Traits #}
+  {% if character.personality %}
+    <div class="character-personality">
+      <h3>Personality Traits</h3>
+      <div class="traits-grid">
+        {% for trait in character.personality %}
+          <div class="trait-chip">
+            {{ trait }}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Trust Network #}
+  {% if character.relationships %}
+    <div class="trust-network">
+      <h3>Relationship Network</h3>
+      <div class="relationships-container">
+        {% for relationship in character.relationships %}
+          <div class="relationship-item trust-{{ relationship.trust >= 70 ? 'high' : (relationship.trust >= 40 ? 'medium' : 'low') }}">
+            <div class="relationship-header">
+              <span class="character-name">{{ relationship.character }}</span>
+              <span class="trust-change">{{ relationship.change }}</span>
+            </div>
+            <div class="relationship-status">{{ relationship.status }}</div>
+            <div class="trust-bar-container">
+              <div class="trust-bar" style="width: {{ relationship.trust }}%"></div>
+              <span class="trust-value">{{ relationship.trust }}%</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Key Moments #}
+  {% if character.key_moments %}
+    <div class="character-moments">
+      <h3>Key Story Moments</h3>
+      <div class="moments-timeline">
+        {% for moment in character.key_moments %}
+          <div class="moment-item">
+            <div class="moment-marker"></div>
+            <div class="moment-content">{{ moment }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Character Actions #}
+  <div class="character-actions">
+    <a href="/characters" class="cyberpunk-btn">← All Characters</a>
+    {% if character.name starts with 'SAL' or character.name starts with 'TIGER' %}
+      <a href="/characters/estella-mueller" class="cyberpunk-btn">Family</a>
+    {% endif %}
+    {% if character.name starts with 'KEITH' or character.name starts with 'DAVID' %}
+      <a href="/setting/philadelphia-2085" class="cyberpunk-btn">AI Systems</a>
+    {% endif %}
+    <a href="/story/act-i" class="cyberpunk-btn">Story Timeline</a>
+  </div>
+
+</div>
+
+<style>
+/* Character Page Specific Styles */
+.character-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.character-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  position: relative;
+}
+
+.character-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 3rem;
+  color: #00ffff;
+  text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+  margin-bottom: 1rem;
+  letter-spacing: 4px;
+}
+
+.character-role {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.5rem;
+  color: #ff00ff;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 0.5rem;
+}
+
+.character-type {
+  font-family: 'Rajdhani', sans-serif;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+.character-image-container {
+  display: flex;
+  justify-content: center;
+  margin: 3rem 0;
+}
+
+.character-image-placeholder {
+  position: relative;
+}
+
+.image-frame {
+  width: 300px;
+  height: 400px;
+  border: 2px solid #00ffff;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.image-frame::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(0, 255, 255, 0.1) 10px,
+    rgba(0, 255, 255, 0.1) 20px
+  );
+  animation: scan-lines 2s linear infinite;
+}
+
+.image-loading {
+  text-align: center;
+  color: #00ffff;
+  font-family: 'Rajdhani', monospace;
+}
+
+.loading-text {
+  display: block;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+}
+
+.loading-bar {
+  width: 200px;
+  height: 4px;
+  background: rgba(0, 255, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, #00ffff, transparent);
+  animation: loading-sweep 2s linear infinite;
+}
+
+.image-caption {
+  text-align: center;
+  margin-top: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+}
+
+.character-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin: 3rem 0;
+}
+
+.stat-item {
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  padding: 1.5rem;
+  border-radius: 4px;
+}
+
+.stat-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.stat-label {
+  font-family: 'Orbitron', monospace;
+  color: #00ff41;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.1rem;
+}
+
+.status-active {
+  color: #00ff41;
+}
+
+.status-detained {
+  color: #ff0040;
+}
+
+.character-description,
+.character-personality,
+.trust-network,
+.character-moments {
+  margin: 3rem 0;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 0, 255, 0.3);
+  padding: 2rem;
+  border-radius: 8px;
+}
+
+.character-description h3,
+.character-personality h3,
+.trust-network h3,
+.character-moments h3 {
+  font-family: 'Orbitron', monospace;
+  color: #ff00ff;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-size: 1.5rem;
+}
+
+.traits-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.trait-chip {
+  background: rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(0, 255, 255, 0.5);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  color: #00ffff;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.trait-chip:hover {
+  background: rgba(0, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+}
+
+.relationships-container {
+  display: grid;
+  gap: 1rem;
+}
+
+.relationship-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 4px solid;
+  padding: 1rem;
+  transition: all 0.3s ease;
+}
+
+.relationship-item.trust-high {
+  border-left-color: #00ff41;
+}
+
+.relationship-item.trust-medium {
+  border-left-color: #ffff00;
+}
+
+.relationship-item.trust-low {
+  border-left-color: #ff0040;
+}
+
+.relationship-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.relationship-header .character-name {
+  font-family: 'Rajdhani', sans-serif;
+  color: #00ffff;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.trust-change {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.trust-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.trust-bar {
+  height: 8px;
+  background: currentColor;
+  transition: width 1s ease;
+}
+
+.moments-timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.moments-timeline::before {
+  content: '';
+  position: absolute;
+  left: 0.5rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, #00ffff, #ff00ff);
+}
+
+.moment-item {
+  position: relative;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.moment-marker {
+  width: 12px;
+  height: 12px;
+  background: #00ffff;
+  border-radius: 50%;
+  position: absolute;
+  left: -1.5rem;
+  top: 0.5rem;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+}
+
+.moment-content {
+  color: rgba(255, 255, 255, 0.9);
+  font-family: 'Rajdhani', sans-serif;
+  line-height: 1.6;
+}
+
+.character-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 3rem 0;
+  flex-wrap: wrap;
+}
+
+@keyframes scan-lines {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes loading-sweep {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+@media (max-width: 768px) {
+  .character-name {
+    font-size: 2rem;
+  }
+  
+  .character-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .character-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+</style>

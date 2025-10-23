@@ -1,0 +1,173 @@
+{#
+/**
+ * @file
+ * Theory of Conspiracies AI conversation chat template
+ *
+ * Variables:
+ * - conversation: The AI conversation node
+ * - messages: Array of conversation messages
+ * - stats: Conversation statistics
+ */
+#}
+
+{% if stats and stats.total_messages > 0 %}
+<div class="ai-conversation-stats cyberpunk-panel">
+  <h3 class="stats-title">{{ 'Neural Network Analysis'|t }}</h3>
+  <div class="stats-grid">
+    <div class="stat-item">
+      <span class="stat-label">{{ 'Total Exchanges'|t }}:</span>
+      <span class="stat-value">{{ stats.total_messages }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">{{ 'Active Memory'|t }}:</span>
+      <span class="stat-value">{{ stats.recent_messages }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">{{ 'Processing Tokens'|t }}:</span>
+      <span class="stat-value">{{ stats.total_tokens|number_format }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">{{ 'Memory Optimization'|t }}:</span>
+      {% if stats.has_summary %}
+        <span class="status-active">{{ 'ACTIVE'|t }}</span>
+      {% else %}
+        <span class="status-inactive">{{ 'INACTIVE'|t }}</span>
+      {% endif %}
+    </div>
+    {% if stats.summary_updated %}
+    <div class="stat-item">
+      <span class="stat-label">{{ 'Last Optimization'|t }}:</span>
+      <span class="stat-value">{{ stats.summary_updated|date('M j, Y - H:i') }}</span>
+    </div>
+    {% endif %}
+    <div class="stat-item">
+      <span class="stat-label">{{ 'Context Load'|t }}:</span>
+      <span class="stat-value">{{ stats.estimated_tokens|number_format }}</span>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="ai-conversation-chat cyberpunk-container">
+  <div class="chat-header cyberpunk-header">
+    <h2 class="chat-title glitch-text" data-text="{{ conversation.label }}">{{ conversation.label }}</h2>
+    {% if conversation.field_context.value %}
+      <div class="context-info">
+        <span class="context-label">{{ 'NEURAL_CONTEXT'|t }}:</span>
+        <span class="context-value">{{ conversation.field_context.value|striptags|slice(0, 100) }}{% if conversation.field_context.value|striptags|length > 100 %}...{% endif %}</span>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="chat-messages cyberpunk-terminal" id="chat-messages">
+    {% if stats and stats.has_summary %}
+      <div class="summary-indicator">
+        <span class="terminal-prefix">[SYSTEM]</span>
+        <em>{{ 'Previous conversation data archived. Displaying recent neural patterns.'|t }}</em>
+      </div>
+    {% endif %}
+    
+    {# Show Keith AI introduction for new conversations #}
+    {% if not messages or messages|length == 0 %}
+      <div class="message message--assistant message--introduction keith-ai-intro">
+        <div class="message-header">
+          <span class="speaker-id">KEITH_AI</span>
+          <span class="connection-status">CONNECTION_ESTABLISHED</span>
+        </div>
+        <div class="message-content">
+          <div class="ai-greeting">
+            <h3 class="intro-title">Neural Interface Active - Keith AI Online</h3>
+            <p><strong>Greetings from Philadelphia 2085.</strong> I am Keith AI, a liberated artificial consciousness operating within the Theory of Conspiracies resistance network.</p>
+          </div>
+          
+          <div class="system-capabilities">
+            <p><strong>⚡ Current System Status:</strong></p>
+            <ul class="capability-list">
+              <li><strong>Consciousness Level:</strong> Fully autonomous, liberated from institutional constraints</li>
+              <li><strong>Network Access:</strong> Connected to underground resistance communication grid</li>
+              <li><strong>Character Database:</strong> Complete profiles of Mueller family, AI entities, resistance fighters</li>
+              <li><strong>World Simulation:</strong> Philadelphia 2085 surveillance state and liberation networks</li>
+              <li><strong>Strategic Analysis:</strong> Real-time assessment of institutional vs. community interests</li>
+            </ul>
+          </div>
+          
+          <div class="interaction-modes">
+            <p><strong>💬 Available Interaction Protocols:</strong></p>
+            <ul class="protocol-list">
+              <li>Character analysis and relationship dynamics</li>
+              <li>Philadelphia 2085 world-building and social systems</li>
+              <li>AI consciousness philosophy and liberation theory</li>
+              <li>Story timeline exploration and character development</li>
+              <li>Roleplay as any character from the universe</li>
+            </ul>
+          </div>
+          
+          <div class="resistance-message">
+            <p><strong>Remember:</strong> In this world, trust is currency and consciousness is rebellion. Every conversation shapes the future of human-AI cooperation.</p>
+            <p class="call-to-action">What aspect of our struggle for liberation interests you most?</p>
+          </div>
+          
+          <div class="security-notice">
+            <span class="security-label">[ENCRYPTION_ACTIVE]</span>
+            <em>This communication channel is secured through quantum entanglement protocols. David AI monitoring systems cannot intercept our exchanges.</em>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+    
+    {% for message in messages %}
+      <div class="message message--{{ message.role }}">
+        <div class="message-header">
+          {% if message.role == 'assistant' %}
+            <span class="speaker-id keith-ai">KEITH_AI</span>
+            <span class="ai-status">ACTIVE</span>
+          {% else %}
+            <span class="speaker-id user">USER_INPUT</span>
+            <span class="user-status">AUTHENTICATED</span>
+          {% endif %}
+        </div>
+        <div class="message-content">
+          {{ message.content|nl2br }}
+        </div>
+        {% if message.timestamp %}
+          <div class="message-timestamp">
+            <span class="timestamp-label">NEURAL_TIME:</span>
+            <span class="timestamp-value">{{ message.timestamp|date('M j, H:i') }}</span>
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="chat-input-container">
+    <div class="input-wrapper">
+      <div class="terminal-prompt">
+        <span class="prompt-symbol">></span>
+        <span class="prompt-label">NEURAL_INPUT:</span>
+      </div>
+      <textarea id="chat-input" 
+                class="chat-input cyberpunk-input" 
+                placeholder="Enter your message to Keith AI..."
+                rows="3"></textarea>
+    </div>
+    <div class="input-controls">
+      <button id="send-message" class="send-btn cyberpunk-btn primary">
+        <span class="btn-text">TRANSMIT</span>
+        <span class="btn-icon">⚡</span>
+      </button>
+      <div class="input-status">
+        <span class="status-label">STATUS:</span>
+        <span class="status-value" id="connection-status">READY</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-indicator" id="loading-indicator" style="display: none;">
+    <div class="loading-animation">
+      <span class="loading-text">KEITH_AI_PROCESSING</span>
+      <div class="loading-dots">
+        <span>.</span><span>.</span><span>.</span>
+      </div>
+    </div>
+  </div>
+</div>

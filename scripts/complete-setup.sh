@@ -40,7 +40,7 @@ fi
 
 # Configuration
 PROJECT_NAME="stlouisintegration"
-PROJECT_DIR="/workspaces/stlouisintegration.com/drupal"
+PROJECT_DIR="/workspaces/stlouisintegration.com/sites/stlouisintegration"
 DB_NAME="stlouisintegration_dev"
 DB_USER="drupal_user"
 DB_PASSWORD="drupal_secure_password"
@@ -300,15 +300,17 @@ else
     print_status "Creating MySQL database and user for Drupal..."
     sudo mysql <<EOF
 CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS theoryofconspiracies_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON theoryofconspiracies_dev.* TO '${DB_USER}'@'127.0.0.1';
 FLUSH PRIVILEGES;
 EOF
-    print_status "MySQL database '${DB_NAME}' and user '${DB_USER}' created"
+    print_status "MySQL databases '${DB_NAME}' and 'theoryofconspiracies_dev' and user '${DB_USER}' created"
 fi
 
-# Create private files directory
-print_status "Creating Drupal private files directory..."
+# Create private files directories for both sites
+print_status "Creating Drupal private files directories..."
 if [ ! -d "/var/private/stlouisintegration" ]; then
     sudo mkdir -p /var/private/stlouisintegration
     sudo chown -R $USER:$USER /var/private/stlouisintegration
@@ -316,40 +318,86 @@ if [ ! -d "/var/private/stlouisintegration" ]; then
     print_status "Private files directory created at /var/private/stlouisintegration"
 fi
 
-# Configure Apache virtual host
-print_status "Configuring Apache virtual host..."
-DRUPAL_ROOT="/workspaces/stlouisintegration.com/drupal/web"
+if [ ! -d "/var/private/theoryofconspiracies" ]; then
+    sudo mkdir -p /var/private/theoryofconspiracies
+    sudo chown -R $USER:$USER /var/private/theoryofconspiracies
+    sudo chmod -R 775 /var/private/theoryofconspiracies
+    print_status "Private files directory created at /var/private/theoryofconspiracies"
+fi
+
+# Configure Apache virtual hosts for multi-site setup
+print_status "Configuring Apache virtual hosts for multi-site setup..."
+
+# Configure port 8080 for Apache
+print_status "Configuring Apache to listen on port 8080..."
+if ! grep -q "Listen 8080" /etc/apache2/ports.conf; then
+    sudo bash -c "echo 'Listen 8080' >> /etc/apache2/ports.conf"
+fi
+
+# Configure main site (stlouisintegration) on port 80
 sudo bash -c "cat > /etc/apache2/sites-available/000-default.conf" <<EOF
 <VirtualHost *:80>
         ServerAdmin webmaster@localhost
-        DocumentRoot /workspaces/stlouisintegration.com/drupal/web
+        DocumentRoot /workspaces/stlouisintegration.com/sites/stlouisintegration/web
 
-        <Directory /workspaces/stlouisintegration.com/drupal/web>
+        <Directory /workspaces/stlouisintegration.com/sites/stlouisintegration/web>
                 Options Indexes FollowSymLinks
                 AllowOverride All
                 Require all granted
         </Directory>
 
-        ErrorLog \${APACHE_LOG_DIR}/error.log
-        CustomLog \${APACHE_LOG_DIR}/access.log combined
+        ErrorLog \${APACHE_LOG_DIR}/stlouisintegration_error.log
+        CustomLog \${APACHE_LOG_DIR}/stlouisintegration_access.log combined
 </VirtualHost>
 EOF
+
+# Configure Theory of Conspiracies site on port 8080
+sudo bash -c "cat > /etc/apache2/sites-available/theoryofconspiracies.conf" <<EOF
+<VirtualHost *:8080>
+        ServerAdmin webmaster@localhost
+        DocumentRoot /workspaces/stlouisintegration.com/sites/theoryofconspiracies/web
+
+        <Directory /workspaces/stlouisintegration.com/sites/theoryofconspiracies/web>
+                Options Indexes FollowSymLinks
+                AllowOverride All
+                Require all granted
+        </Directory>
+
+        ErrorLog \${APACHE_LOG_DIR}/theoryofconspiracies_error.log
+        CustomLog \${APACHE_LOG_DIR}/theoryofconspiracies_access.log combined
+</VirtualHost>
+EOF
+
+# Enable the Theory of Conspiracies site
+sudo a2ensite theoryofconspiracies.conf
 
 # Start services
 print_status "Starting services..."
 sudo service mysql start
 sudo service apache2 restart
 
-print_step "2. DRUPAL INSTALLATION - Checking existing Drupal installation..."
+print_step "2. DRUPAL INSTALLATION - Setting up multi-site directory structure..."
 
-# Check if Drupal directory exists
+# Ensure sites directory exists
+print_status "Creating multi-site directory structure..."
+mkdir -p /workspaces/stlouisintegration.com/sites
+
+# Check for legacy drupal directory and migrate if needed
+LEGACY_DIR="/workspaces/stlouisintegration.com/drupal"
+if [ -d "$LEGACY_DIR" ] && [ ! -d "$PROJECT_DIR" ]; then
+    print_status "Migrating legacy Drupal installation to multi-site structure..."
+    mv "$LEGACY_DIR" "$PROJECT_DIR"
+    print_status "Moved legacy installation from /drupal/ to /sites/stlouisintegration/"
+fi
+
+# Check if primary Drupal directory exists
 if [ -d "$PROJECT_DIR" ]; then
     print_status "Existing Drupal directory found. Skipping fresh installation to preserve custom work."
     print_status "Using existing Drupal installation at $PROJECT_DIR"
 else
-    print_status "No existing Drupal directory found. Creating new Drupal 11 project..."
-    cd /workspaces/stlouisintegration.com
-    /usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:^11.0 drupal --no-interaction
+    print_status "No existing primary Drupal directory found. Creating new Drupal 11 project..."
+    cd /workspaces/stlouisintegration.com/sites
+    /usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:^11.0 stlouisintegration --no-interaction
 fi
 
 # Move into the project directory
@@ -414,19 +462,11 @@ if ./vendor/bin/drush status | grep -q "Drupal bootstrap.*Successful"; then
         ./vendor/bin/drush en ai_conversation -y
         ./vendor/bin/drush en stli_site_customizations -y
         
-        # Note: job_application_automation and resume_tailoring may need additional content types
-        # Enable them individually if dependencies are met
-        if ./vendor/bin/drush en job_application_automation -y 2>/dev/null; then
-            print_status "Job Application Automation module enabled successfully"
-        else
-            print_warning "Job Application Automation module has unmet dependencies - skipping"
-        fi
+        # Enable remaining custom modules (now with dependency resolution)
+        ./vendor/bin/drush en job_application_automation -y
+        ./vendor/bin/drush en resume_tailoring -y
         
-        if ./vendor/bin/drush en resume_tailoring -y 2>/dev/null; then
-            print_status "Resume Tailoring module enabled successfully"
-        else
-            print_warning "Resume Tailoring module has unmet dependencies - skipping"
-        fi
+        print_status "All custom modules enabled successfully"
     fi
     
     # Enable and set custom theme if it exists
@@ -530,6 +570,160 @@ EOL
 else
     print_status "Local development settings already exist. Skipping to preserve existing configuration."
 fi
+
+print_step "2.5. THEORY OF CONSPIRACIES SITE SETUP - Setting up second Drupal site..."
+
+# Configuration for Theory of Conspiracies site
+TOC_PROJECT_DIR="/workspaces/stlouisintegration.com/sites/theoryofconspiracies"
+TOC_DB_NAME="theoryofconspiracies_dev"
+TOC_SITE_NAME="Theory of Conspiracies"
+TOC_ADMIN_EMAIL="admin@theoryofconspiracies.com"
+
+# Check if Theory of Conspiracies site exists
+if [ -d "$TOC_PROJECT_DIR" ]; then
+    print_status "Theory of Conspiracies site directory found at $TOC_PROJECT_DIR"
+    cd "$TOC_PROJECT_DIR"
+    
+    # Check if it's properly installed
+    if [ ! -f "web/sites/default/settings.php" ] || [ ! -s "web/sites/default/settings.php" ]; then
+        print_status "Theory of Conspiracies site not installed. Setting up..."
+        
+        # Set up file permissions
+        chmod 755 web/sites/default
+        mkdir -p web/sites/default/files
+        chmod 775 web/sites/default/files
+        
+        # Copy default settings file
+        cp web/sites/default/default.settings.php web/sites/default/settings.php
+        chmod 664 web/sites/default/settings.php
+        
+        # Install Drupal
+        print_status "Installing Theory of Conspiracies Drupal site..."
+        ./vendor/bin/drush site:install standard \
+            --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${TOC_DB_NAME}" \
+            --site-name="${TOC_SITE_NAME}" \
+            --account-name="${ADMIN_USER}" \
+            --account-pass="${ADMIN_PASSWORD}" \
+            --account-mail="${TOC_ADMIN_EMAIL}" \
+            --yes
+        
+        # Enable development modules
+        print_status "Enabling development modules for Theory of Conspiracies..."
+        ./vendor/bin/drush en devel admin_toolbar admin_toolbar_tools pathauto metatag -y
+        
+        # Create development directories
+        mkdir -p web/modules/custom
+        mkdir -p web/themes/custom
+        mkdir -p config/sync
+        chmod 755 web/modules/custom web/themes/custom config/sync
+        
+        # Add development settings
+        cat >> web/sites/default/settings.php << 'EOL'
+
+/**
+ * Development-specific settings
+ */
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+  include $app_root . '/' . $site_path . '/settings.local.php';
+}
+
+$settings['config_sync_directory'] = '../config/sync';
+$config['system.performance']['css']['preprocess'] = FALSE;
+$config['system.performance']['js']['preprocess'] = FALSE;
+$config['system.logging']['error_level'] = 'verbose';
+$settings['cache']['bins']['render'] = 'cache.backend.null';
+$settings['cache']['bins']['page'] = 'cache.backend.null';
+$settings['cache']['bins']['dynamic_page_cache'] = 'cache.backend.null';
+EOL
+
+        # Create settings.local.php
+        cat > web/sites/default/settings.local.php << EOL
+<?php
+\$databases['default']['default'] = [
+  'database' => '${TOC_DB_NAME}',
+  'username' => '${DB_USER}',
+  'password' => '${DB_PASSWORD}',
+  'host' => '127.0.0.1',
+  'port' => '3306',
+  'driver' => 'mysql',
+  'prefix' => '',
+  'collation' => 'utf8mb4_general_ci',
+];
+EOL
+        chmod 644 web/sites/default/settings.local.php
+        
+        print_status "Theory of Conspiracies site installed successfully"
+    else
+        print_status "Theory of Conspiracies site already installed"
+    fi
+else
+    print_status "Theory of Conspiracies site directory not found. Creating new installation..."
+    cd /workspaces/stlouisintegration.com/sites
+    /usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:^11.0 theoryofconspiracies --no-interaction
+    
+    cd theoryofconspiracies
+    /usr/bin/php8.3 /usr/local/bin/composer require drush/drush --no-interaction
+    /usr/bin/php8.3 /usr/local/bin/composer require drupal/devel drupal/admin_toolbar drupal/pathauto drupal/metatag --no-interaction
+    
+    # Continue with installation as above...
+    chmod 755 web/sites/default
+    mkdir -p web/sites/default/files
+    chmod 775 web/sites/default/files
+    cp web/sites/default/default.settings.php web/sites/default/settings.php
+    chmod 664 web/sites/default/settings.php
+    
+    ./vendor/bin/drush site:install standard \
+        --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${TOC_DB_NAME}" \
+        --site-name="${TOC_SITE_NAME}" \
+        --account-name="${ADMIN_USER}" \
+        --account-pass="${ADMIN_PASSWORD}" \
+        --account-mail="${TOC_ADMIN_EMAIL}" \
+        --yes
+    
+    ./vendor/bin/drush en devel admin_toolbar admin_toolbar_tools pathauto metatag -y
+    
+    mkdir -p web/modules/custom web/themes/custom config/sync
+    chmod 755 web/modules/custom web/themes/custom config/sync
+    
+    # Add development settings (same as above)
+    cat >> web/sites/default/settings.php << 'EOL'
+
+/**
+ * Development-specific settings
+ */
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+  include $app_root . '/' . $site_path . '/settings.local.php';
+}
+
+$settings['config_sync_directory'] = '../config/sync';
+$config['system.performance']['css']['preprocess'] = FALSE;
+$config['system.performance']['js']['preprocess'] = FALSE;
+$config['system.logging']['error_level'] = 'verbose';
+$settings['cache']['bins']['render'] = 'cache.backend.null';
+$settings['cache']['bins']['page'] = 'cache.backend.null';
+$settings['cache']['bins']['dynamic_page_cache'] = 'cache.backend.null';
+EOL
+
+    cat > web/sites/default/settings.local.php << EOL
+<?php
+\$databases['default']['default'] = [
+  'database' => '${TOC_DB_NAME}',
+  'username' => '${DB_USER}',
+  'password' => '${DB_PASSWORD}',
+  'host' => '127.0.0.1',
+  'port' => '3306',
+  'driver' => 'mysql',
+  'prefix' => '',
+  'collation' => 'utf8mb4_general_ci',
+];
+EOL
+    chmod 644 web/sites/default/settings.local.php
+    
+    print_status "Theory of Conspiracies site created and installed successfully"
+fi
+
+# Return to main site directory for remaining setup
+cd "$PROJECT_DIR"
 
 print_step "3. DEVELOPMENT CONFIGURATION - Setting up development tools..."
 
@@ -808,12 +1002,18 @@ else
     print_warning "⚠️  Missing PHP 8.3 extensions: ${MISSING_EXTENSIONS[*]}"
 fi
 
-# Test website availability
+# Test website availability for both sites
 print_status "Testing website availability..."
 if curl -s -o /dev/null -w "%{http_code}" "http://localhost" | grep -q "200\|302\|301"; then
-    print_status "✅ Website is accessible at http://localhost"
+    print_status "✅ St. Louis Integration site is accessible at http://localhost"
 else
-    print_warning "⚠️  Website may need additional configuration"
+    print_warning "⚠️  St. Louis Integration site may need additional configuration"
+fi
+
+if curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080" | grep -q "200\|302\|301"; then
+    print_status "✅ Theory of Conspiracies site is accessible at http://localhost:8080"
+else
+    print_warning "⚠️  Theory of Conspiracies site may need additional configuration"
 fi
 
 echo "========================="
@@ -822,36 +1022,57 @@ echo "========================="
 
 echo "Installation Summary:"
 echo "========================="
-echo "✓ Environment: PHP 8.3, MySQL, Apache configured"
-echo "✓ Drupal: 11.x installed with development modules"
+echo "✓ Environment: PHP 8.3, MySQL, Apache configured with multi-site support"
+echo "✓ Multi-Site Setup: Two Drupal 11.x installations configured"
 echo "✓ Development Tools: Coder, PHPCS, PHPUnit configured"
-echo "✓ Custom Modules: professional_website_content, ai_conversation, stli_site_customizations enabled"
-echo "✓ Custom Theme: stlouisintegration enabled and set as default"
-echo "✓ Development Scripts: Available in drupal/scripts/"
+echo "✓ Custom Modules: All 5 custom modules enabled on primary site"
+echo "✓ Custom Theme: stlouisintegration enabled on primary site"
+echo "✓ Apache Virtual Hosts: Port-based routing (80, 8080)"
+echo "✓ Databases: Separate databases for each site"
 echo "========================="
 
-echo "Site Information:"
+echo "Multi-Site Information:"
 echo "========================="
-echo "Site Name: ${SITE_NAME}"
-echo "Site URL: http://localhost"
-echo "Admin Login: http://localhost/user/login"
-echo "Admin User: ${ADMIN_USER}"
-echo "Admin Password: ${ADMIN_PASSWORD}"
-echo "Admin Email: ${ADMIN_EMAIL}"
-echo "Database: ${DB_NAME}"
+echo "PRIMARY SITE - St. Louis Integration:"
+echo "  Site Name: ${SITE_NAME}"
+echo "  Site URL: http://localhost"
+echo "  Admin Login: http://localhost/user/login"
+echo "  Database: ${DB_NAME}"
+echo "  Directory: /workspaces/stlouisintegration.com/sites/stlouisintegration/"
+echo ""
+echo "SECONDARY SITE - Theory of Conspiracies:"
+echo "  Site Name: ${TOC_SITE_NAME}"
+echo "  Site URL: http://localhost:8080"
+echo "  Admin Login: http://localhost:8080/user/login"
+echo "  Database: ${TOC_DB_NAME}"
+echo "  Directory: /workspaces/stlouisintegration.com/sites/theoryofconspiracies/"
+echo ""
+echo "SHARED CREDENTIALS:"
+echo "  Admin User: ${ADMIN_USER}"
+echo "  Admin Password: ${ADMIN_PASSWORD}"
+echo "  DB User: ${DB_USER}"
 echo "========================="
 
 print_status "Available development commands:"
-echo "- Check coding standards: cd drupal && ./scripts/check-standards.sh"
-echo "- Fix coding standards: cd drupal && ./scripts/fix-standards.sh"
-echo "- Clear cache: cd drupal && ./scripts/clear-cache.sh"
-echo "- Backup database: cd drupal && ./scripts/backup-database.sh"
-echo "- Drush commands: cd drupal && ./vendor/bin/drush [command]"
+echo "FOR ST. LOUIS INTEGRATION SITE:"
+echo "- Navigate to site: cd /workspaces/stlouisintegration.com/sites/stlouisintegration"
+echo "- Clear cache: ./vendor/bin/drush cr"
+echo "- Check coding standards: cd /workspaces/stlouisintegration.com/scripts && ./check-standards.sh"
+echo "- Drush commands: ./vendor/bin/drush [command]"
+echo ""
+echo "FOR THEORY OF CONSPIRACIES SITE:"
+echo "- Navigate to site: cd /workspaces/stlouisintegration.com/sites/theoryofconspiracies"
+echo "- Clear cache: ./vendor/bin/drush cr"
+echo "- One-time login: ./vendor/bin/drush uli"
+echo "- Drush commands: ./vendor/bin/drush [command]"
 
 print_warning "Important reminders:"
 echo "- Change admin password after first login for security"
-echo "- Follow Drupal coding standards for all custom development"
-echo "- Use development utility scripts for maintenance tasks"
+echo "- Each site operates independently with its own database"
+echo "- Custom development can proceed separately on each site"
+echo "- Use port-specific URLs: localhost (80) and localhost:8080"
 echo "- Regular database backups during development"
+echo "- See MULTI_SITE_SETUP.md for detailed documentation"
 
-print_status "🚀 Your St. Louis Integration development environment is ready!"
+print_status "🚀 Your multi-site Drupal development environment is ready!"
+print_status "📖 See MULTI_SITE_SETUP.md for comprehensive documentation"

@@ -1,61 +1,193 @@
-# Development Environment Setup Scripts
+# Multi-Site Development Environment Setup Scripts
 
-This directory contains scripts and documentation for setting up the St. Louis Integration website development environment.
+This directory contains scripts and documentation for setting up the multi-site Drupal development environment supporting both St. Louis Integration and Theory of Conspiracies websites.
 
 ## Quick Start
 
-### One-Command Setup (Recommended)
+### 🚀 After Workspace Restart (Fastest)
 
-Run the complete setup script for full environment:
+For existing setups after workspace restart:
+
+```bash
+./quick-start.sh
+```
+
+### 🔧 Complete Multi-Site Setup (First Time)
+
+Run the complete setup script for full multi-site environment:
 
 ```bash
 ./complete-setup.sh
 ```
 
-This script combines all setup steps and will:
+This comprehensive script will:
 1. Install system dependencies (PHP 8.3, MySQL, Apache, etc.)
-2. Create and install Drupal 11 project
-3. Configure development tools and coding standards
-4. Set up custom modules and themes directories
-5. Create development utility scripts
+2. Configure multi-site directory structure (`/sites/stlouisintegration/` and `/sites/theoryofconspiracies/`)
+3. Set up Apache virtual hosts on ports 80 and 8080
+4. Create separate databases for each site
+5. Install both Drupal 11 sites with development modules
+6. Enable custom modules and theme on primary site
+7. Configure development tools and coding standards
 
-### Manual Step-by-Step Setup
+### ✅ Verification
 
-If you prefer to run scripts individually:
+Check that everything is working:
 
-1. `./setup-environment.sh` - Install system dependencies
-2. `./install-drupal.sh` - Create and install Drupal 11
-3. `./configure-development.sh` - Set up development tools and custom modules
+```bash
+./verify-setup.sh
+```
 
-## Files
+## Multi-Site Architecture
 
-- **complete-setup.sh** - **[NEW]** Combined setup script that does everything in one command
-- **setup-environment.sh** - Installs PHP, Composer, MySQL, and other system dependencies
-- **install-drupal.sh** - Creates Drupal 11 project and runs installation
-- **configure-development.sh** - Sets up development tools, custom modules directory, and coding standards
-- **database-setup.sql** - SQL commands for creating the development database
-- **requirements.md** - Detailed system requirements and dependencies
+This workspace supports two independent Drupal websites:
+
+### 🏢 St. Louis Integration (Primary Site)
+- **URL**: http://localhost (port 80)
+- **Directory**: `/workspaces/stlouisintegration.com/sites/stlouisintegration/`
+- **Database**: `stlouisintegration_dev`
+- **Features**: 5 custom modules + custom theme
+- **Status**: Production-ready with all custom components
+
+### 🕳️ Theory of Conspiracies (Secondary Site)
+- **URL**: http://localhost:8080 (port 8080)
+- **Directory**: `/workspaces/stlouisintegration.com/sites/theoryofconspiracies/`
+- **Database**: `theoryofconspiracies_dev`
+- **Features**: Fresh Drupal 11 with development modules
+- **Status**: Ready for custom development
+
+## Available Scripts
+
+### Core Setup Scripts
+- **complete-setup.sh** - 🔧 **Complete multi-site environment setup** (use for first-time setup)
+- **quick-start.sh** - 🚀 **Rapid startup** after workspace restarts (starts services, tests sites)
+- **verify-setup.sh** - ✅ **Comprehensive verification** of entire multi-site setup
+
+### Legacy Scripts (archived/)
+- **setup-environment.sh** - Install system dependencies only
+- **install-drupal.sh** - Single-site Drupal installation
+- **configure-development.sh** - Development tools setup
+- **database-setup.sql** - Manual database commands
+
+### Documentation
+- **requirements.md** - System requirements and dependencies
 - **troubleshooting.md** - Common issues and solutions
 
-## Manual Setup
+## Working with Individual Sites
 
-If you prefer to set up manually, follow the documentation in `requirements.md` for step-by-step instructions.
-
-## Environment Variables
-
-Create a `.env` file in the project root with:
-
+### St. Louis Integration Site
+```bash
+cd /workspaces/stlouisintegration.com/sites/stlouisintegration
+./vendor/bin/drush status
+./vendor/bin/drush cr  # Clear cache
+./vendor/bin/drush uli  # One-time login link
 ```
-DB_NAME=stlouisintegration_dev
-DB_USER=drupal_user
+
+### Theory of Conspiracies Site  
+```bash
+cd /workspaces/stlouisintegration.com/sites/theoryofconspiracies
+./vendor/bin/drush status
+./vendor/bin/drush cr  # Clear cache
+./vendor/bin/drush uli  # One-time login link
+```
+
+## Configuration
+
+### Default Configuration
+The setup scripts use these default values:
+
+**Databases:**
+- `stlouisintegration_dev` - Primary site database
+- `theoryofconspiracies_dev` - Secondary site database
+
+**Database User:**
+- Username: `drupal_user`
+- Password: `drupal_secure_password`
+- Host: `127.0.0.1`
+
+**Admin Accounts (Both Sites):**
+- Username: `admin`
+- Password: `admin_secure_password`
+- Email: `admin@stlouisintegration.com` / `admin@theoryofconspiracies.com`
+
+### Custom Configuration (.env file)
+Create a `.env` file in the project root to override defaults:
+
+```bash
+# Database Configuration
+DB_USER=your_db_user
 DB_PASSWORD=your_secure_password
-DB_HOST=localhost
-DB_PORT=3306
-DRUPAL_ADMIN_USER=admin
-DRUPAL_ADMIN_PASSWORD=your_admin_password
-DRUPAL_ADMIN_EMAIL=admin@stlouisintegration.com
+DB_HOST=127.0.0.1
+
+# Admin Configuration  
+ADMIN_USER=your_admin_user
+ADMIN_PASSWORD=your_admin_password
+
+# Site Configuration
+SITE_NAME="Your Site Name"
+```
+
+## Troubleshooting
+
+### Common Issues After Workspace Restart
+
+**Sites not accessible:**
+```bash
+./quick-start.sh  # Restart services and verify
+```
+
+**Apache configuration errors:**
+```bash
+sudo apache2ctl configtest  # Check configuration
+sudo service apache2 reload  # Reload config
+```
+
+**Database connection issues:**
+```bash
+sudo service mysql start  # Start MySQL
+mysql -u drupal_user -p  # Test connection
+```
+
+**Drush not working:**
+```bash
+cd /path/to/site
+composer install  # Reinstall dependencies
+```
+
+### Getting Help
+
+1. **Run verification**: `./verify-setup.sh` - Comprehensive system check
+2. **Check logs**: Apache logs separated by site in `/var/log/apache2/`
+3. **Review documentation**: See `../MULTI_SITE_SETUP.md` for detailed guidance
+4. **Fresh setup**: Run `./complete-setup.sh` if issues persist
+
+## Development Workflow
+
+### Adding Custom Modules/Themes
+
+**For St. Louis Integration:**
+- Modules: `/sites/stlouisintegration/web/modules/custom/`
+- Themes: `/sites/stlouisintegration/web/themes/custom/`
+
+**For Theory of Conspiracies:**
+- Modules: `/sites/theoryofconspiracies/web/modules/custom/`
+- Themes: `/sites/theoryofconspiracies/web/themes/custom/`
+
+### Database Management
+
+Each site maintains separate databases and can be backed up independently:
+
+```bash
+# Backup primary site
+cd /workspaces/stlouisintegration.com/sites/stlouisintegration
+./vendor/bin/drush sql:dump > backup_$(date +%Y%m%d).sql
+
+# Backup secondary site
+cd /workspaces/stlouisintegration.com/sites/theoryofconspiracies  
+./vendor/bin/drush sql:dump > backup_$(date +%Y%m%d).sql
 ```
 
 ## Production Deployment
 
 The deployment workflow is handled by `.github/workflows/deploy.yml` which automatically deploys to the production server when changes are pushed to the main branch.
+
+**Note:** Each site can be deployed independently to different production environments if needed.

@@ -1,0 +1,473 @@
+{#
+/**
+ * @file
+ * Act I overview page template
+ *
+ * Available variables:
+ * - sequences: Array of Act I sequences
+ * - themes: Array of major themes
+ * - characters: Array of character arcs
+ */
+#}
+
+<div class="act-overview cyberpunk-container">
+  
+  <div class="page-header">
+    <h1 class="page-title glitch-text" data-text="ACT I: AWAKENING">
+      ACT I: AWAKENING
+    </h1>
+    <div class="page-subtitle">
+      Philadelphia 2085 - The Foundation of Revolution
+    </div>
+    <div class="page-description">
+      Eight sequences establish the dystopian landscape, introduce our protagonists, and set the stage for systemic resistance against AI-controlled institutional power.
+    </div>
+  </div>
+
+  <div class="themes-section">
+    <h2 class="section-title">Major Themes</h2>
+    <div class="themes-grid">
+      {% for theme in themes %}
+        <div class="theme-card">
+          <h3 class="theme-title">{{ theme.title }}</h3>
+          <p class="theme-description">{{ theme.description }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="sequences-section">
+    <h2 class="section-title">Sequence Timeline</h2>
+    <div class="timeline-container">
+      {% for sequence in sequences %}
+        <div class="sequence-item" data-sequence="{{ loop.index }}">
+          
+          <div class="sequence-marker">
+            <div class="sequence-number">{{ loop.index }}</div>
+            <div class="sequence-line"></div>
+          </div>
+          
+          <div class="sequence-content">
+            <h3 class="sequence-title">{{ sequence.title }}</h3>
+            <div class="sequence-description">{{ sequence.description }}</div>
+            
+            {% if sequence.key_scenes %}
+              <div class="key-scenes">
+                <h4>Key Scenes:</h4>
+                <ul>
+                  {% for scene in sequence.key_scenes %}
+                    <li>{{ scene }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+            
+            {% if sequence.character_focus %}
+              <div class="character-focus">
+                <h4>Character Focus:</h4>
+                <div class="focus-characters">
+                  {% for character in sequence.character_focus %}
+                    <span class="character-tag">{{ character }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            
+            {% if sequence.themes %}
+              <div class="sequence-themes">
+                <h4>Themes Explored:</h4>
+                <div class="theme-tags">
+                  {% for theme in sequence.themes %}
+                    <span class="theme-tag">{{ theme }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="character-arcs-section">
+    <h2 class="section-title">Character Development Arcs</h2>
+    <div class="arcs-grid">
+      {% for character in characters %}
+        <div class="arc-card">
+          <h3 class="arc-character-name">
+            <a href="/characters/{{ character.slug }}">{{ character.name }}</a>
+          </h3>
+          <div class="arc-development">
+            <div class="arc-stage">
+              <strong>Act I Arc:</strong> {{ character.act_i_arc }}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="act-navigation">
+    <a href="/characters" class="cyberpunk-btn">View Characters</a>
+    <a href="/setting/philadelphia-2085" class="cyberpunk-btn">Explore Setting</a>
+  </div>
+
+</div>
+
+<style>
+/* Act Overview Styles */
+.act-overview {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 4rem;
+  position: relative;
+}
+
+.page-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 3.5rem;
+  color: #00ffff;
+  text-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+  margin-bottom: 1rem;
+  letter-spacing: 4px;
+}
+
+.page-subtitle {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.4rem;
+  color: #ff00ff;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 1rem;
+}
+
+.page-description {
+  font-family: 'Rajdhani', sans-serif;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.1rem;
+  max-width: 900px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.section-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 2rem;
+  color: #00ff41;
+  text-shadow: 0 0 15px rgba(0, 255, 65, 0.6);
+  margin-bottom: 2rem;
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+/* Themes Section */
+.themes-section {
+  margin-bottom: 4rem;
+}
+
+.themes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.theme-card {
+  background: linear-gradient(135deg, rgba(0, 255, 65, 0.1), rgba(0, 255, 65, 0.05));
+  border: 2px solid rgba(0, 255, 65, 0.3);
+  padding: 1.5rem;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 10px,
+    rgba(0, 255, 65, 0.02) 10px,
+    rgba(0, 255, 65, 0.02) 20px
+  );
+  pointer-events: none;
+}
+
+.theme-title {
+  font-family: 'Orbitron', monospace;
+  color: #00ff41;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  letter-spacing: 1px;
+}
+
+.theme-description {
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Rajdhani', sans-serif;
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+/* Sequences Timeline */
+.sequences-section {
+  margin-bottom: 4rem;
+}
+
+.timeline-container {
+  position: relative;
+}
+
+.sequence-item {
+  display: flex;
+  margin-bottom: 3rem;
+  position: relative;
+}
+
+.sequence-marker {
+  flex-shrink: 0;
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 2rem;
+}
+
+.sequence-number {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #00ffff, #ff00ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Orbitron', monospace;
+  font-weight: bold;
+  color: #000;
+  font-size: 1.2rem;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+  position: relative;
+  z-index: 2;
+}
+
+.sequence-line {
+  width: 3px;
+  height: 100px;
+  background: linear-gradient(180deg, #00ffff, rgba(0, 255, 255, 0.3));
+  margin-top: 10px;
+  position: relative;
+}
+
+.sequence-item:last-child .sequence-line {
+  display: none;
+}
+
+.sequence-content {
+  flex: 1;
+  background: linear-gradient(135deg, rgba(26, 26, 26, 0.95), rgba(17, 17, 17, 0.9));
+  border: 2px solid rgba(0, 255, 255, 0.3);
+  padding: 2rem;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sequence-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 15px,
+    rgba(0, 255, 255, 0.02) 15px,
+    rgba(0, 255, 255, 0.02) 30px
+  );
+  pointer-events: none;
+}
+
+.sequence-title {
+  font-family: 'Orbitron', monospace;
+  color: #00ffff;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+  letter-spacing: 1px;
+}
+
+.sequence-description {
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Rajdhani', sans-serif;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+}
+
+.key-scenes h4,
+.character-focus h4,
+.sequence-themes h4 {
+  font-family: 'Rajdhani', sans-serif;
+  color: #ff00ff;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.key-scenes ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
+.key-scenes li {
+  color: rgba(255, 255, 255, 0.7);
+  font-family: 'Rajdhani', sans-serif;
+  padding: 0.3rem 0;
+  position: relative;
+  padding-left: 1rem;
+}
+
+.key-scenes li::before {
+  content: '▸';
+  color: #00ff41;
+  position: absolute;
+  left: 0;
+  top: 0.3rem;
+}
+
+.focus-characters,
+.theme-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.character-tag,
+.theme-tag {
+  background: rgba(255, 0, 255, 0.2);
+  color: #ff00ff;
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  border: 1px solid rgba(255, 0, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.theme-tag {
+  background: rgba(0, 255, 65, 0.2);
+  color: #00ff41;
+  border-color: rgba(0, 255, 65, 0.4);
+}
+
+/* Character Arcs */
+.character-arcs-section {
+  margin-bottom: 4rem;
+}
+
+.arcs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.arc-card {
+  background: linear-gradient(135deg, rgba(255, 0, 255, 0.1), rgba(255, 0, 255, 0.05));
+  border: 2px solid rgba(255, 0, 255, 0.3);
+  padding: 1.5rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.arc-card:hover {
+  transform: translateY(-5px);
+  border-color: #ff00ff;
+  box-shadow: 0 10px 20px rgba(255, 0, 255, 0.3);
+}
+
+.arc-character-name {
+  margin-bottom: 1rem;
+}
+
+.arc-character-name a {
+  font-family: 'Orbitron', monospace;
+  color: #ff00ff;
+  text-decoration: none;
+  font-size: 1.2rem;
+  text-shadow: 0 0 10px rgba(255, 0, 255, 0.6);
+  letter-spacing: 1px;
+}
+
+.arc-character-name a:hover {
+  color: #ffffff;
+  text-shadow: 0 0 15px rgba(255, 0, 255, 0.8);
+}
+
+.arc-development {
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'Rajdhani', sans-serif;
+  line-height: 1.6;
+}
+
+.arc-stage strong {
+  color: #ff00ff;
+}
+
+/* Navigation */
+.act-navigation {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 2.5rem;
+  }
+  
+  .themes-grid,
+  .arcs-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .sequence-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .sequence-marker {
+    flex-direction: row;
+    margin-bottom: 1rem;
+    margin-right: 0;
+    width: auto;
+  }
+  
+  .sequence-line {
+    width: 50px;
+    height: 3px;
+    margin-top: 0;
+    margin-left: 10px;
+  }
+  
+  .act-navigation {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+</style>

@@ -81,7 +81,8 @@ applyTo: '**'
 - **Development**: Ubuntu 24.04.2 LTS (dev containers)
 - **Kernel**: 6.8.0-1031-aws (x86_64 architecture)
 
-## Production Apache Web Server
+## Apache Web Server Configuration
+### Production Server
 - **Version**: Apache 2.4.58
 - **Configuration**: Multi-site virtual hosts
 - **Document Root**: `/var/www/html/stlouisintegration/web`
@@ -92,14 +93,35 @@ applyTo: '**'
   - **stlouisintegration.com Error Log**: `/var/log/apache2/stlouisintegration_error.log`
   - **Configuration**: Custom log format "cloudflare" for both sites
 
-## MySQL Database
+### Development Environment
+- **Version**: Apache 2.4+ 
+- **Configuration**: Port-based multi-site virtual hosts
+- **Multi-Site Support**:
+  - **St. Louis Integration**: http://localhost (port 80) → `/workspaces/stlouisintegration.com/sites/stlouisintegration/web`
+  - **Theory of Conspiracies**: http://localhost:8080 (port 8080) → `/workspaces/stlouisintegration.com/sites/theoryofconspiracies/web`
+- **Development Logging**:
+  - **Primary Site Logs**: `/var/log/apache2/stlouisintegration_error.log`, `/var/log/apache2/stlouisintegration_access.log`
+  - **Secondary Site Logs**: `/var/log/apache2/theoryofconspiracies_error.log`, `/var/log/apache2/theoryofconspiracies_access.log`
+
+## MySQL Database Configuration
+### Production Databases
 - **Version**: MySQL 8.0+
 - **Database Engine**: InnoDB (default)
 - **Character Set**: utf8mb4 (full UTF-8 support)
-- **Multi-site Databases**:
+- **Production Databases**:
   - `stlouisintegration_drupal` (77 tables) - Primary site database
   - `drupal_db` (149 tables) - Secondary site database
 - **Connection**: localhost:3306 with dedicated drupal_user
+
+### Development Databases
+- **Version**: MySQL 8.0+
+- **Database Engine**: InnoDB (default)
+- **Character Set**: utf8mb4 (full UTF-8 support)
+- **Development Databases**:
+  - `stlouisintegration_dev` - St. Louis Integration development database
+  - `theoryofconspiracies_dev` - Theory of Conspiracies development database
+- **Connection**: 127.0.0.1:3306 with shared drupal_user
+- **Credentials**: drupal_user / drupal_secure_password (default development)
 
 ## Production PHP Runtime
 - **Version**: PHP 8.3.6 (CLI and mod_php for Apache)
@@ -185,7 +207,10 @@ Always assume we are troubleshooting on the production server
 all curl testing functions should assume they need to run against the production URL:
 https://stlouisintegration.com
 
-**MULTI-SITE DRUPAL CONFIGURATION**: This is a multi-site Drupal installation with separate Drupal installations. CRITICAL: Use the site-specific Drush installation, NOT the global one:
+**MULTI-SITE DRUPAL CONFIGURATION**: 
+
+### Production Multi-Site Configuration
+This is a multi-site Drupal installation with separate Drupal installations. CRITICAL: Use the site-specific Drush installation, NOT the global one:
 - Correct: `cd /var/www/html/stlouisintegration/web && ../vendor/bin/drush --uri=stlouisintegration.com ws --count=10`
 - Correct: `cd /var/www/html/stlouisintegration/web && ../vendor/bin/drush --uri=stlouisintegration.com user:login admin`
 - Correct: `cd /var/www/html/stlouisintegration/web && ../vendor/bin/drush --uri=stlouisintegration.com cache:rebuild`
@@ -195,6 +220,21 @@ https://stlouisintegration.com
 **PRODUCTION SERVER DATABASE SEPARATION**: Each site has its own database and Drush installation:
 - stlouisintegration.com → `/var/www/html/stlouisintegration/web` → `stlouisintegration_drupal` database
 - thetruthperspective.org → `/var/www/html/drupal` → `drupal_db` database
+
+### Development Multi-Site Configuration
+The development environment uses a different multi-site architecture with separate Drupal installations:
+
+**DEVELOPMENT SITE STRUCTURE**:
+- **St. Louis Integration (Primary)**: `/workspaces/stlouisintegration.com/sites/stlouisintegration/` → `stlouisintegration_dev` database
+- **Theory of Conspiracies (Secondary)**: `/workspaces/stlouisintegration.com/sites/theoryofconspiracies/` → `theoryofconspiracies_dev` database
+
+**DEVELOPMENT DRUSH COMMANDS**: Each site has its own Drush installation:
+- St. Louis Integration: `cd /workspaces/stlouisintegration.com/sites/stlouisintegration && ./vendor/bin/drush status`
+- Theory of Conspiracies: `cd /workspaces/stlouisintegration.com/sites/theoryofconspiracies && ./vendor/bin/drush status`
+
+**DEVELOPMENT URLS**:
+- St. Louis Integration: http://localhost (port 80)
+- Theory of Conspiracies: http://localhost:8080 (port 8080)
 
 **PRODUCTION SERVER LOG LOCATIONS**: Site-specific Apache logging for troubleshooting:
 - **stlouisintegration.com logs**:

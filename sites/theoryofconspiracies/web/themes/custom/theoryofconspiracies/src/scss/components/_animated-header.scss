@@ -9,8 +9,48 @@
 }
 
 .large-header.home-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #000011 0%, #001122 50%, #000033 100%);
   min-height: 80vh;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 255, 255, 0.03) 2px,
+        rgba(0, 255, 255, 0.03) 4px
+      );
+    z-index: 2;
+    pointer-events: none;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 255, 255, 0.02) 2px,
+        rgba(0, 255, 255, 0.02) 4px
+      );
+    z-index: 2;
+    pointer-events: none;
+  }
 }
 
 /* Simplified header for non-front pages */
@@ -23,7 +63,7 @@
   position: absolute;
   margin: 0;
   padding: 0 1rem;
-  color: #f9f1e9;
+  color: #00ffff;
   text-align: center;
   top: 35%;
   left: 50%;
@@ -33,6 +73,15 @@
   letter-spacing: 0.1em;
   z-index: 10;
   line-height: 1.1;
+  font-family: 'Orbitron', monospace;
+  text-shadow: 
+    0 0 10px rgba(0, 255, 255, 0.8),
+    0 0 20px rgba(0, 255, 255, 0.6),
+    0 0 40px rgba(0, 255, 255, 0.4);
+  
+  &.cyberpunk-title {
+    animation: glitch-text 3s infinite;
+  }
 }
 
 /* Simplified title styling for page headers */
@@ -46,8 +95,11 @@
 }
 
 .main-title .highlight {
-  color: #00d4ff;
-  text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+  color: #ff00ff;
+  text-shadow: 
+    0 0 10px rgba(255, 0, 255, 0.8),
+    0 0 20px rgba(255, 0, 255, 0.6),
+    0 0 30px rgba(255, 0, 255, 0.4);
 }
 
 /* Canvas for particle animation */
@@ -66,7 +118,7 @@
   top: 60%;
   left: 50%;
   transform: translate3d(-50%, -50%, 0);
-  color: rgba(249, 241, 233, 0.9);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 1.12em; /* Reduced by 20% from 1.4em */
   text-align: center;
   max-width: 800px;
@@ -76,6 +128,13 @@
   margin-top: 3rem;
   /* Prevent overlap with buttons */
   margin-bottom: 5rem;
+  font-family: 'Rajdhani', sans-serif;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  letter-spacing: 1px;
+  
+  &.cyberpunk-subtitle {
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  }
 }
 
 /* CTA Buttons - only for home page */
@@ -98,6 +157,77 @@
 .hero-cta .btn {
   margin: 0.25rem 0.25rem;
   padding: 0.75rem 1.75rem;
+  
+  &.cyberpunk-btn {
+    background: linear-gradient(45deg, rgba(0, 255, 255, 0.1), rgba(0, 255, 255, 0.2));
+    border: 2px solid #00ffff;
+    color: #00ffff;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+      transition: left 0.5s;
+    }
+    
+    &:hover {
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+      transform: translateY(-2px);
+      
+      &::before {
+        left: 100%;
+      }
+    }
+  }
+  
+  &.cyberpunk-btn-outline {
+    background: transparent;
+    border: 2px solid #ff00ff;
+    color: #ff00ff;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 0, 255, 0.3), transparent);
+      transition: left 0.5s;
+    }
+    
+    &:hover {
+      background: rgba(255, 0, 255, 0.1);
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(255, 0, 255, 0.8);
+      box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
+      transform: translateY(-2px);
+      
+      &::before {
+        left: 100%;
+      }
+    }
+  }
   font-size: 1.05rem;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -466,4 +596,44 @@
   margin-bottom: 1rem;
   padding: 0.5rem 0;
   border-bottom: 1px solid #dee2e6;
+}
+
+/* Cyberpunk Animations */
+@keyframes glitch-text {
+  0% {
+    transform: translate3d(-50%, -50%, 0);
+  }
+  2% {
+    transform: translate3d(-50%, -50%, 0) translate(2px, 0);
+  }
+  4% {
+    transform: translate3d(-50%, -50%, 0) translate(-2px, 0);
+  }
+  6% {
+    transform: translate3d(-50%, -50%, 0) translate(0, 0);
+  }
+  8% {
+    transform: translate3d(-50%, -50%, 0) translate(1px, 0);
+  }
+  10% {
+    transform: translate3d(-50%, -50%, 0);
+  }
+  90% {
+    transform: translate3d(-50%, -50%, 0);
+  }
+  92% {
+    transform: translate3d(-50%, -50%, 0) translate(-1px, 0);
+  }
+  94% {
+    transform: translate3d(-50%, -50%, 0) translate(2px, 0);
+  }
+  96% {
+    transform: translate3d(-50%, -50%, 0) translate(0, 0);
+  }
+  98% {
+    transform: translate3d(-50%, -50%, 0) translate(-2px, 0);
+  }
+  100% {
+    transform: translate3d(-50%, -50%, 0);
+  }
 }
