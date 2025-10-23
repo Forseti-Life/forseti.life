@@ -281,15 +281,15 @@ jobs:
           
           echo "Downloading code from repository..."
           git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
-          git sparse-checkout set drupal/web/modules/custom drupal/web/themes/custom drupal
+          git sparse-checkout set sites/theoryofconspiracies/web/modules/custom sites/theoryofconspiracies/web/themes/custom sites/theoryofconspiracies
           
           # Deploy custom modules
           CUSTOM_MODULES_DIR="$DRUPAL_ROOT/web/modules/custom"
           sudo mkdir -p "$CUSTOM_MODULES_DIR"
           
-          if [ -d "drupal/web/modules/custom" ]; then
+          if [ -d "sites/theoryofconspiracies/web/modules/custom" ]; then
             echo "Deploying custom modules..."
-            for MODULE_DIR in drupal/web/modules/custom/*; do
+            for MODULE_DIR in sites/theoryofconspiracies/web/modules/custom/*; do
               if [ -d "$MODULE_DIR" ]; then
                 MODULE_NAME=$(basename "$MODULE_DIR")
                 echo "Deploying module: $MODULE_NAME"
@@ -307,9 +307,9 @@ jobs:
           CUSTOM_THEMES_DIR="$DRUPAL_ROOT/web/themes/custom"
           sudo mkdir -p "$CUSTOM_THEMES_DIR"
           
-          if [ -d "drupal/web/themes/custom" ]; then
+          if [ -d "sites/theoryofconspiracies/web/themes/custom" ]; then
             echo "Deploying custom themes..."
-            for THEME_DIR in drupal/web/themes/custom/*; do
+            for THEME_DIR in sites/theoryofconspiracies/web/themes/custom/*; do
               if [ -d "$THEME_DIR" ]; then
                 THEME_NAME=$(basename "$THEME_DIR")
                 echo "Deploying theme: $THEME_NAME"
@@ -324,14 +324,14 @@ jobs:
           fi
           
           # Deploy composer files
-          if [ -f "drupal/composer.json" ]; then
-            sudo cp "drupal/composer.json" "$DRUPAL_ROOT/"
+          if [ -f "sites/theoryofconspiracies/composer.json" ]; then
+            sudo cp "sites/theoryofconspiracies/composer.json" "$DRUPAL_ROOT/"
             sudo chown www-data:www-data "$DRUPAL_ROOT/composer.json"
             echo "✅ composer.json deployed"
           fi
           
-          if [ -f "drupal/composer.lock" ]; then
-            sudo cp "drupal/composer.lock" "$DRUPAL_ROOT/"
+          if [ -f "sites/theoryofconspiracies/composer.lock" ]; then
+            sudo cp "sites/theoryofconspiracies/composer.lock" "$DRUPAL_ROOT/"
             sudo chown www-data:www-data "$DRUPAL_ROOT/composer.lock"
             echo "✅ composer.lock deployed"
           fi
