@@ -280,8 +280,7 @@ jobs:
           cd "$TEMP_DIR"
           
           echo "Downloading code from repository..."
-          git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
-          git sparse-checkout set sites/theoryofconspiracies/web/modules/custom sites/theoryofconspiracies/web/themes/custom sites/theoryofconspiracies
+          git clone --depth 1 https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
           
           # Deploy custom modules
           CUSTOM_MODULES_DIR="$DRUPAL_ROOT/web/modules/custom"
