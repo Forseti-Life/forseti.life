@@ -282,62 +282,6 @@ jobs:
           echo "Downloading code from repository..."
           git clone --depth 1 https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
           
-          echo "DEBUG: Current directory: $(pwd)"
-          echo "DEBUG: Repository contents:"
-          ls -la
-          
-          echo "DEBUG: Checking for theoryofconspiracies directories..."
-          if [ -d "sites/theoryofconspiracies" ]; then
-            echo "DEBUG: sites/theoryofconspiracies exists"
-            ls -la sites/theoryofconspiracies/
-          else
-            echo "DEBUG: sites/theoryofconspiracies does NOT exist"
-          fi
-          
-          if [ -d "sites/theoryofconspiracies/web" ]; then
-            echo "DEBUG: sites/theoryofconspiracies/web exists"
-            ls -la sites/theoryofconspiracies/web/
-          else
-            echo "DEBUG: sites/theoryofconspiracies/web does NOT exist"
-          fi
-          
-          if [ -d "sites/theoryofconspiracies/web/modules" ]; then
-            echo "DEBUG: sites/theoryofconspiracies/web/modules exists"
-            ls -la sites/theoryofconspiracies/web/modules/
-          else
-            echo "DEBUG: sites/theoryofconspiracies/web/modules does NOT exist"
-          fi
-          
-          if [ -d "sites/theoryofconspiracies/web/modules/custom" ]; then
-            echo "DEBUG: sites/theoryofconspiracies/web/modules/custom exists"
-            ls -la sites/theoryofconspiracies/web/modules/custom/
-          else
-            echo "DEBUG: sites/theoryofconspiracies/web/modules/custom does NOT exist"
-          fi
-          
-          if [ -d "sites/theoryofconspiracies/web/themes" ]; then
-            echo "DEBUG: sites/theoryofconspiracies/web/themes exists"
-            ls -la sites/theoryofconspiracies/web/themes/
-          else
-            echo "DEBUG: sites/theoryofconspiracies/web/themes does NOT exist"
-          fi
-          
-          if [ -d "sites/theoryofconspiracies/web/themes/custom" ]; then
-            echo "DEBUG: sites/theoryofconspiracies/web/themes/custom exists"
-            ls -la sites/theoryofconspiracies/web/themes/custom/
-          else
-            echo "DEBUG: sites/theoryofconspiracies/web/themes/custom does NOT exist"
-          fi
-          
-          echo "DEBUG: Target DRUPAL_ROOT: $DRUPAL_ROOT"
-          echo "DEBUG: Checking if target directory exists..."
-          if [ -d "$DRUPAL_ROOT" ]; then
-            echo "DEBUG: $DRUPAL_ROOT exists"
-            ls -la "$DRUPAL_ROOT"
-          else
-            echo "DEBUG: $DRUPAL_ROOT does NOT exist"
-          fi
-          
           # Deploy custom modules
           CUSTOM_MODULES_DIR="$DRUPAL_ROOT/web/modules/custom"
           echo "DEBUG: CUSTOM_MODULES_DIR: $CUSTOM_MODULES_DIR"
@@ -348,9 +292,7 @@ jobs:
             for MODULE_DIR in sites/theoryofconspiracies/web/modules/custom/*; do
               if [ -d "$MODULE_DIR" ]; then
                 MODULE_NAME=$(basename "$MODULE_DIR")
-                echo "DEBUG: Processing module directory: $MODULE_DIR"
-                echo "DEBUG: Module name: $MODULE_NAME"
-                echo "DEBUG: Target: $CUSTOM_MODULES_DIR/$MODULE_NAME"
+                echo "Deploying module: $MODULE_NAME"
                 sudo rm -rf "$CUSTOM_MODULES_DIR/$MODULE_NAME"
                 sudo cp -r "$MODULE_DIR" "$CUSTOM_MODULES_DIR/"
                 sudo chown -R www-data:www-data "$CUSTOM_MODULES_DIR/$MODULE_NAME"
@@ -373,9 +315,7 @@ jobs:
             for THEME_DIR in sites/theoryofconspiracies/web/themes/custom/*; do
               if [ -d "$THEME_DIR" ]; then
                 THEME_NAME=$(basename "$THEME_DIR")
-                echo "DEBUG: Processing theme directory: $THEME_DIR"
-                echo "DEBUG: Theme name: $THEME_NAME"
-                echo "DEBUG: Target: $CUSTOM_THEMES_DIR/$THEME_NAME"
+                echo "Deploying theme: $THEME_NAME"
                 sudo rm -rf "$CUSTOM_THEMES_DIR/$THEME_NAME"
                 sudo cp -r "$THEME_DIR" "$CUSTOM_THEMES_DIR/"
                 sudo chown -R www-data:www-data "$CUSTOM_THEMES_DIR/$THEME_NAME"
@@ -431,21 +371,6 @@ jobs:
           echo "Setting front page to theory_content home..."
           sudo -u www-data ./vendor/bin/drush config:set system.site page.front /home -y || echo "⚠️ Failed to set front page"
           echo "✅ Front page set to /home"
-          
-          echo "DEBUG: Final verification - checking deployed files..."
-          echo "DEBUG: Checking modules directory: $CUSTOM_MODULES_DIR"
-          if [ -d "$CUSTOM_MODULES_DIR" ]; then
-            ls -la "$CUSTOM_MODULES_DIR"
-          else
-            echo "DEBUG: Modules directory does not exist: $CUSTOM_MODULES_DIR"
-          fi
-          
-          echo "DEBUG: Checking themes directory: $CUSTOM_THEMES_DIR"
-          if [ -d "$CUSTOM_THEMES_DIR" ]; then
-            ls -la "$CUSTOM_THEMES_DIR"
-          else
-            echo "DEBUG: Themes directory does not exist: $CUSTOM_THEMES_DIR"
-          fi
           
           # Clean up
           rm -rf "$TEMP_DIR"
