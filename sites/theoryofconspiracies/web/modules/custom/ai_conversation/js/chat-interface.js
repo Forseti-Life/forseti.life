@@ -1,4 +1,4 @@
-(function($, Drupal) {
+(function($, Drupal, once) {
   'use strict';
 
   Drupal.behaviors.aiConversationChat = {
@@ -7,16 +7,20 @@
       console.log('📍 Context:', context);
       console.log('📍 Settings:', settings);
       
-      const $chatContainer = $('.ai-conversation-chat', context);
-      console.log('📦 Chat container found:', $chatContainer.length > 0);
+      // Use once to ensure we only attach once per element
+      const $chatContainers = once('ai-conversation-chat', '.ai-conversation-chat', context);
       
-      if ($chatContainer.length === 0) {
-        console.warn('❌ No chat container found, exiting behavior');
+      if ($chatContainers.length === 0) {
+        console.warn('❌ No chat containers found to attach to, exiting behavior');
         return;
       }
 
-      const chatSettings = settings.aiConversation || {};
-      console.log('⚙️ AI Conversation settings loaded:', chatSettings);
+      $chatContainers.forEach(function(chatContainer) {
+        const $chatContainer = $(chatContainer);
+        console.log('📦 Processing chat container:', $chatContainer);
+        
+        const chatSettings = settings.aiConversation || {};
+        console.log('⚙️ AI Conversation settings loaded:', chatSettings);
       
       // Log all the required elements
       const $messageInput = $('#message-input', $chatContainer);
@@ -472,7 +476,8 @@
       );
       $('.chat-controls').append($helpText);
     }
-  };
+  });
+};
 
   /**
    * Injects a search filter above the term selector and filters options in real time.
