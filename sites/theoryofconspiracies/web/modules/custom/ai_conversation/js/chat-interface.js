@@ -2,7 +2,7 @@
   'use strict';
 
   // Version number for deployment verification
-  const AI_CONVERSATION_VERSION = '1.1.0';
+  const AI_CONVERSATION_VERSION = '1.1.1';
 
   Drupal.behaviors.aiConversationChat = {
     attach: function(context, settings) {
