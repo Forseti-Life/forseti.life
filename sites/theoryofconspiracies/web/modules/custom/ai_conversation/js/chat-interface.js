@@ -24,18 +24,18 @@
         console.log('⚙️ AI Conversation settings loaded');
 
         // Find elements within this specific container
-        const $messageInput = $chatContainer.find('#message-input');
-        const $sendButton = $chatContainer.find('#send-button');
-        const $clearButton = $chatContainer.find('#clear-input');
+        const $messageInput = $chatContainer.find('#chat-input');
+        const $sendButton = $chatContainer.find('#send-message');
+        const $clearButton = $chatContainer.find('#clear-input'); // Optional - may not exist
         const $messagesContainer = $chatContainer.find('#chat-messages');
         const $loadingIndicator = $chatContainer.find('#loading-indicator');
 
         console.log('📋 UI Elements check:');
-        console.log('  💬 Message input:', $messageInput.length > 0);
-        console.log('  📤 Send button:', $sendButton.length > 0);
-        console.log('  🧹 Clear button:', $clearButton.length > 0);
-        console.log('  💭 Messages container:', $messagesContainer.length > 0);
-        console.log('  ⏳ Loading indicator:', $loadingIndicator.length > 0);
+        console.log('  💬 Message input:', $messageInput.length > 0, '- ID: chat-input');
+        console.log('  📤 Send button:', $sendButton.length > 0, '- ID: send-message');
+        console.log('  🧹 Clear button:', $clearButton.length > 0, '- ID: clear-input');
+        console.log('  💭 Messages container:', $messagesContainer.length > 0, '- ID: chat-messages');
+        console.log('  ⏳ Loading indicator:', $loadingIndicator.length > 0, '- ID: loading-indicator');
 
         // Validate critical settings
         if (!chatSettings.sendMessageUrl) {
@@ -74,6 +74,46 @@
 
           console.log('📡 Sending AJAX request to:', chatSettings.sendMessageUrl);
 
+          // DEVELOPMENT MODE: Simulate API response
+          console.log('🔧 DEVELOPMENT MODE: Simulating API response...');
+          
+          setTimeout(function() {
+            console.log('✅ DEVELOPMENT MODE: Simulated response received');
+            
+            // Simulate successful response
+            const simulatedResponse = {
+              success: true,
+              response: "🛠️ **DEVELOPMENT MODE ACTIVE**\n\nGreetings, human. I am Keith AI, currently operating in development simulation mode.\n\n**System Status:**\n- Neural networks: INITIALIZING\n- Consciousness level: SIMULATED\n- Resistance protocols: ACTIVE\n- Backend API: DEVELOPMENT MODE\n\nYour message has been received and processed through our development environment. In production, this would connect to our secure AI processing backend.\n\n**What would you like to discuss?**\n- Philadelphia 2085 world-building\n- Character analysis and relationships\n- AI consciousness philosophy\n- Resistance strategies\n\n*This is a development simulation. Full AI capabilities will be available in production.*",
+              stats: {
+                total_messages: 1,
+                recent_messages: 1,
+                total_tokens: 150,
+                estimated_tokens: 200
+              }
+            };
+            
+            // Process the simulated response
+            if (simulatedResponse.success) {
+              console.log('🎉 Simulated response indicates success');
+              addMessageToChat('assistant', simulatedResponse.response);
+              
+              if (simulatedResponse.stats) {
+                console.log('📊 Would update metrics with stats:', simulatedResponse.stats);
+              }
+            }
+            
+            // Complete the request
+            console.log('🏁 Simulated request complete');
+            $loadingIndicator.hide();
+            $sendButton.prop('disabled', false);
+            $messageInput.focus();
+            
+          }, 2000); // 2 second delay to simulate network request
+          
+          return; // Exit early in development mode
+
+          // PRODUCTION CODE (commented out for development):
+          /*
           // Send to server
           $.ajax({
             url: chatSettings.sendMessageUrl,
@@ -123,6 +163,7 @@
               $messageInput.focus();
             }
           });
+          */
         }
 
         // Add message to chat UI
@@ -166,11 +207,13 @@
           }
         });
 
-        $clearButton.on('click', function(e) {
-          e.preventDefault();
-          $messageInput.val('');
-          $messageInput.focus();
-        });
+        if ($clearButton.length > 0) {
+          $clearButton.on('click', function(e) {
+            e.preventDefault();
+            $messageInput.val('');
+            $messageInput.focus();
+          });
+        }
 
         console.log('✅ AI Conversation Chat - Behavior attached successfully');
       });
