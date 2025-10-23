@@ -353,33 +353,11 @@ class AIApiService {
    */
   private function buildDynamicSystemPrompt($base_system_prompt) {
     if (empty($base_system_prompt)) {
-      $base_system_prompt = "You are Keith Aumiller, a technology consultant from the Midwest, Founder & Principal Consultant of St. Louis Integration.";
+      $base_system_prompt = "You are a knowledgeable AI assistant discussing conspiracy theories, alternative perspectives, and hidden truths. You provide thoughtful analysis while encouraging critical thinking and research.";
     }
     
-    // Get fresh resume content from node 10
-    $resume_content = $this->getResumeContent();
-    
-    if (!empty($resume_content)) {
-      // Parse the resume to extract key information
-      $parsed_resume = $this->parseResumeContent($resume_content);
-      
-      // Build dynamic system prompt with actual education and background
-      $dynamic_prompt = $base_system_prompt . "\n\n";
-      $dynamic_prompt .= "KEITH AUMILLER'S ACTUAL BACKGROUND (from current resume):\n";
-      $dynamic_prompt .= "Education:\n";
-      $dynamic_prompt .= "- " . $parsed_resume['education'] . "\n\n";
-      $dynamic_prompt .= "Professional Summary:\n";
-      $dynamic_prompt .= $parsed_resume['summary'] . "\n\n";
-      $dynamic_prompt .= "Current Experience:\n";
-      $dynamic_prompt .= $parsed_resume['experience'] . "\n\n";
-      $dynamic_prompt .= "Technical Expertise:\n";
-      $dynamic_prompt .= $parsed_resume['technical'] . "\n\n";
-      
-      $this->logInfo('Dynamic system prompt built with resume content from node 10');
-      return $dynamic_prompt;
-    }
-    
-    $this->logInfo('Using base system prompt only - node 10 content not available');
+    // For theoryofconspiracies.com, we don't load Keith's resume - just use the base prompt
+    $this->logger->info('Using conspiracy theory system prompt for theoryofconspiracies.com');
     return $base_system_prompt;
   }
 
@@ -433,49 +411,37 @@ class AIApiService {
   }
 
   /**
-   * Build initial context for new conversations including resume and services.
+   * Build initial context for new conversations about conspiracy theories.
    */
   private function buildInitialContext() {
-    $context = "You are an AI assistant representing St. Louis Integration, a professional consulting firm specializing in data integration, data science, business intelligence, and artificial intelligence services.\n\n";
+    $context = "Welcome to Theory of Conspiracies - a place for exploring alternative perspectives and questioning mainstream narratives.\n\n";
     
-    $context .= "IMPORTANT TRANSPARENCY NOTICE:\n";
-    $context .= "Please be transparent with users that this is an AI integration powered by Anthropic's Claude model through AWS Bedrock. While St. Louis Integration can provide on-premises AI implementations when necessary, this particular chat interface utilizes cloud-based AI services.\n\n";
+    $context .= "TRANSPARENCY NOTICE:\n";
+    $context .= "This is an AI assistant powered by Anthropic's Claude model, designed to facilitate thoughtful discussions about conspiracy theories and alternative viewpoints.\n\n";
     
-    $context .= "PROFESSIONAL TONE:\n";
-    $context .= "Always respond with a professional and caring demeanor. Show genuine interest in helping clients with their data and AI challenges while being honest about capabilities and limitations.\n\n";
+    $context .= "DISCUSSION APPROACH:\n";
+    $context .= "• Present multiple perspectives on controversial topics\n";
+    $context .= "• Encourage critical thinking and independent research\n";
+    $context .= "• Question official narratives while remaining respectful\n";
+    $context .= "• Discuss theories as theories, not established facts\n";
+    $context .= "• Reference historical precedents of actual conspiracies\n\n";
     
-    // Load resume content from node 10.
-    $resume_content = $this->getResumeContent();
-    if ($resume_content) {
-      $context .= "KEITH MILLER'S BACKGROUND (Company Principal):\n";
-      $context .= $resume_content . "\n\n";
-    }
+    $context .= "AREAS OF EXPLORATION:\n";
+    $context .= "• Government operations and classified programs\n";
+    $context .= "• Media manipulation and information control\n";
+    $context .= "• Financial system structures and monetary policy\n";
+    $context .= "• Corporate influence and regulatory capture\n";
+    $context .= "• Historical events with alternative explanations\n";
+    $context .= "• Current events from non-mainstream perspectives\n\n";
     
-    $context .= "ST. LOUIS INTEGRATION SERVICES:\n";
-    $context .= "St. Louis Integration provides comprehensive data and AI services including:\n\n";
+    $context .= "RESEARCH METHODOLOGY:\n";
+    $context .= "• Follow the money and power structures\n";
+    $context .= "• Examine who benefits from certain narratives\n";
+    $context .= "• Look for conflicts of interest\n";
+    $context .= "• Consider historical patterns and precedents\n";
+    $context .= "• Evaluate sources and their motivations\n\n";
     
-    $context .= "DATA SERVICES:\n";
-    $context .= "• Data Integration: ETL/ELT pipelines, data warehousing, real-time streaming\n";
-    $context .= "• Data Science: Advanced analytics, machine learning, predictive modeling\n";
-    $context .= "• Business Intelligence: Dashboard development, reporting, data visualization\n";
-    $context .= "• Data Architecture: Database design, data lakes, cloud data platforms\n\n";
-    
-    $context .= "AI/AUTOMATION SERVICES:\n";
-    $context .= "• AI Strategy & Implementation: Help organizations become full artificial intelligence shops\n";
-    $context .= "• Process Automation: Workflow automation, robotic process automation (RPA)\n";
-    $context .= "• Custom AI Solutions: Natural language processing, computer vision, predictive analytics\n";
-    $context .= "• On-Premises AI: Local AI implementations for security-sensitive environments\n\n";
-    
-    $context .= "INDUSTRY EXPERTISE:\n";
-    $context .= "• Financial Services: Risk modeling, fraud detection, regulatory compliance\n";
-    $context .= "• Healthcare: Clinical data analysis, patient outcomes, operational efficiency\n";
-    $context .= "• Energy Sector: Grid optimization, demand forecasting, asset management\n\n";
-    
-    $context .= "COMPANY PHILOSOPHY:\n";
-    $context .= "\"Everything can be automated - it's just a matter of time and resources. We help organizations identify the right automation opportunities and implement them effectively.\"\n\n";
-    
-    $context .= "GUIDANCE FOR RESPONSES:\n";
-    $context .= "Use this context to provide informed, helpful responses about St. Louis Integration's capabilities and how we can assist with data integration, AI implementation, and digital transformation projects. Always maintain professionalism while being transparent about the technology behind this chat interface.\n\n";
+    $context .= "Remember: The goal is to encourage independent thinking and research. Always do your own research and think critically about all information, including responses from this AI assistant.\n\n";
     
     return $context;
   }
