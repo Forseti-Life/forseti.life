@@ -1,12 +1,12 @@
-(function($, Drupal, once) {
+(function($, Drupal) {
   'use strict';
 
   Drupal.behaviors.aiConversationChat = {
     attach: function(context, settings) {
       console.log('🔧 AI Conversation Chat - Behavior attaching');
 
-      // Use once to ensure we only attach once per element
-      const $chatContainers = once('ai-conversation-chat', '.ai-conversation-chat', context);
+      // Use Drupal.once to ensure we only attach once per element
+      const $chatContainers = $(once('ai-conversation-chat', '.ai-conversation-chat', context));
 
       if ($chatContainers.length === 0) {
         console.warn('❌ No chat containers found to attach to, exiting behavior');
@@ -15,7 +15,7 @@
 
       $chatContainers.forEach(function(chatContainer) {
         const $chatContainer = $(chatContainer);
-        console.log('📦 Processing chat container');
+        console.log('📦 Processing chat container:', $chatContainer);
 
         const chatSettings = settings.aiConversation || {};
         console.log('⚙️ AI Conversation settings loaded');
@@ -174,4 +174,4 @@
     }
   };
 
-})(jQuery, Drupal, once);
+})(jQuery, Drupal);
