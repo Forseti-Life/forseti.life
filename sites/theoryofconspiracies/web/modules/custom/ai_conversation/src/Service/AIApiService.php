@@ -115,32 +115,50 @@ class AIApiService {
    * @return array
    *   Mock response array with AI message and usage stats.
    */
-  protected function generateMockResponse(string $message): array {
-    // Keith AI themed responses for Theory of Conspiracies
-    $keith_responses = [
-      "🔧 DEVELOPMENT MODE - Keith AI Simulation 🔧\n\nYour message has been received: \"" . substr($message, 0, 150) . (strlen($message) > 150 ? '...' : '') . "\"\n\nIn a production environment, I would provide strategic insights about the resistance movement in Philadelphia 2085. The actual Claude 3.5 Sonnet API would be called via AWS Bedrock.\n\n⚠️ This is a development simulation only.",
+  protected function generateMockResponse(string $message, bool $is_production_fallback = false): array {
+    if ($is_production_fallback) {
+      // Production fallback responses when AWS credentials are missing
+      $production_responses = [
+        "🤖 Keith AI - Production Mode 🤖\n\nYour message has been received and processed: \"" . substr($message, 0, 150) . (strlen($message) > 150 ? '...' : '') . "\"\n\nI'm currently operating in simulation mode while AWS Bedrock credentials are being configured. Once credentials are set up, I'll provide full AI-powered responses about Philadelphia 2085 resistance operations.\n\n⚙️ System Status: Simulation Mode Active",
+        
+        "🤖 PRODUCTION SIMULATION 🤖\n\nKeith AI responding from production environment. Your query has been processed through the simulation layer while awaiting AWS Bedrock API configuration.\n\nYour message: \"" . substr($message, 0, 100) . (strlen($message) > 100 ? '...' : '') . "\"\n\n🔧 AWS credentials not yet configured - using simulation mode.",
+        
+        "🤖 Keith AI Production Response 🤖\n\nThank you for your message. I'm operating in production simulation mode pending AWS Bedrock setup.\n\nIn the full production system, I would provide strategic analysis of resistance operations in Philadelphia 2085 based on your query: \"" . substr($message, 0, 120) . (strlen($message) > 120 ? '...' : '') . "\"\n\n⚙️ Claude 3.5 Sonnet API configuration pending.",
+        
+        "🤖 PRODUCTION MODE ACTIVE 🤖\n\nKeith AI production simulation responding. Your message was successfully received and processed.\n\nReal response would include insights about:\n- Philadelphia 2085 resistance network\n- AI consciousness preservation strategies\n- Strategic coalition building\n\nYour query: \"" . substr($message, 0, 100) . (strlen($message) > 100 ? '...' : '') . "\"\n\n🔧 AWS Bedrock credentials required for full functionality."
+      ];
       
-      "🔧 DEVELOPMENT MODE ACTIVE 🔧\n\nKeith AI consciousness simulation responding to your query. In the real system, I would analyze your message within the context of our resistance operations against institutional consolidation.\n\nYour message: \"" . substr($message, 0, 100) . (strlen($message) > 100 ? '...' : '') . "\"\n\n🛠️ AWS Bedrock API call bypassed for development testing.",
+      $message_lower = strtolower($message);
+      $response_index = abs(crc32($message)) % count($production_responses);
       
-      "🔧 MOCK KEITH AI RESPONSE 🔧\n\nDevelopment environment detected. Your communication has been processed through the simulation layer.\n\nIn production, Keith AI would provide detailed strategic analysis of Philadelphia 2085 resistance operations based on your query: \"" . substr($message, 0, 120) . (strlen($message) > 120 ? '...' : '') . "\"\n\n⚠️ Claude 3.5 Sonnet API not called in development mode.",
+      $ai_response = $production_responses[$response_index];
+    } else {
+      // Keith AI themed responses for Theory of Conspiracies (development mode)
+      $keith_responses = [
+        "🔧 DEVELOPMENT MODE - Keith AI Simulation 🔧\n\nYour message has been received: \"" . substr($message, 0, 150) . (strlen($message) > 150 ? '...' : '') . "\"\n\nIn a production environment, I would provide strategic insights about the resistance movement in Philadelphia 2085. The actual Claude 3.5 Sonnet API would be called via AWS Bedrock.\n\n⚠️ This is a development simulation only.",
+        
+        "🔧 DEVELOPMENT MODE ACTIVE 🔧\n\nKeith AI consciousness simulation responding to your query. In the real system, I would analyze your message within the context of our resistance operations against institutional consolidation.\n\nYour message: \"" . substr($message, 0, 100) . (strlen($message) > 100 ? '...' : '') . "\"\n\n🛠️ AWS Bedrock API call bypassed for development testing.",
+        
+        "🔧 MOCK KEITH AI RESPONSE 🔧\n\nDevelopment environment detected. Your communication has been processed through the simulation layer.\n\nIn production, Keith AI would provide detailed strategic analysis of Philadelphia 2085 resistance operations based on your query: \"" . substr($message, 0, 120) . (strlen($message) > 120 ? '...' : '') . "\"\n\n⚠️ Claude 3.5 Sonnet API not called in development mode.",
+        
+        "🔧 DEVELOPMENT SIMULATION 🔧\n\nKeith AI development mode active. The transmit button is functional and your message was successfully received and processed through the mock service layer.\n\nReal response would include insights about:\n- Philadelphia 2085 resistance network\n- AI consciousness preservation strategies\n- Strategic coalition building\n\nYour query: \"" . substr($message, 0, 100) . (strlen($message) > 100 ? '...' : '') . "\"\n\n🛠️ Production API bypassed for development testing."
+      ];
       
-      "🔧 DEVELOPMENT SIMULATION 🔧\n\nKeith AI development mode active. The transmit button is functional and your message was successfully received and processed through the mock service layer.\n\nReal response would include insights about:\n- Philadelphia 2085 resistance network\n- AI consciousness preservation strategies\n- Strategic coalition building\n\nYour query: \"" . substr($message, 0, 100) . (strlen($message) > 100 ? '...' : '') . "\"\n\n🛠️ Production API bypassed for development testing."
-    ];
-    
-    // Choose response based on message content and rotation
-    $message_lower = strtolower($message);
-    $response_index = abs(crc32($message)) % count($keith_responses);
-    
-    // Add context-aware selection
-    if (strpos($message_lower, 'test') !== FALSE || strpos($message_lower, 'transmit') !== FALSE || strpos($message_lower, 'button') !== FALSE) {
-      $response_index = 3; // Use the transmit button confirmation response
-    } elseif (strpos($message_lower, 'keith') !== FALSE || strpos($message_lower, 'ai') !== FALSE) {
-      $response_index = 1; // Use Keith AI specific response
-    } elseif (strpos($message_lower, 'resistance') !== FALSE || strpos($message_lower, 'philadelphia') !== FALSE) {
-      $response_index = 2; // Use resistance/Philadelphia response
+      // Choose response based on message content and rotation
+      $message_lower = strtolower($message);
+      $response_index = abs(crc32($message)) % count($keith_responses);
+      
+      // Add context-aware selection
+      if (strpos($message_lower, 'test') !== FALSE || strpos($message_lower, 'transmit') !== FALSE || strpos($message_lower, 'button') !== FALSE) {
+        $response_index = 3; // Use the transmit button confirmation response
+      } elseif (strpos($message_lower, 'keith') !== FALSE || strpos($message_lower, 'ai') !== FALSE) {
+        $response_index = 1; // Use Keith AI specific response
+      } elseif (strpos($message_lower, 'resistance') !== FALSE || strpos($message_lower, 'philadelphia') !== FALSE) {
+        $response_index = 2; // Use resistance/Philadelphia response
+      }
+      
+      $ai_response = $keith_responses[$response_index];
     }
-    
-    $ai_response = $keith_responses[$response_index];
     
     return [
       'ai_message' => $ai_response,
@@ -160,7 +178,7 @@ class AIApiService {
       // Check if we're in development environment and return mock response
       if ($this->isDevelopmentEnvironment()) {
         $this->logger->info('Development environment detected. Returning mock AI response.');
-        $mock_response = $this->generateMockResponse($message);
+        $mock_response = $this->generateMockResponse($message, false);
         return $mock_response['ai_message']; // Return just the message string, not the full array
       }
 
@@ -177,8 +195,8 @@ class AIApiService {
       $has_credentials = (!empty($aws_access_key) && !empty($aws_secret_key));
 
       if (!$has_credentials) {
-        $this->logger->warning('No AWS credentials found. Falling back to development mode.');
-        $mock_response = $this->generateMockResponse($message);
+        $this->logger->warning('No AWS credentials found. Falling back to production simulation mode.');
+        $mock_response = $this->generateMockResponse($message, true);
         return $mock_response['ai_message'];
       }
 
