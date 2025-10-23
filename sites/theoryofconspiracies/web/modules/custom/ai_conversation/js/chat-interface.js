@@ -9,7 +9,7 @@
       console.log('🔧 AI Conversation Chat v' + AI_CONVERSATION_VERSION + ' - Behavior attaching');
 
       // Use Drupal.once to ensure we only attach once per element
-      const $chatContainers = $(once('ai-conversation-chat', '.ai-conversation-chat', context));
+      const $chatContainers = $(Drupal.once('ai-conversation-chat', '.ai-conversation-chat', context));
 
       if ($chatContainers.length === 0) {
         console.warn('❌ No chat containers found to attach to, exiting behavior');
