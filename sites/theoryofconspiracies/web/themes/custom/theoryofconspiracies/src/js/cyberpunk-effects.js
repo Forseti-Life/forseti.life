@@ -13,7 +13,7 @@
     attach: function (context, settings) {
       
       // Add glitch effect to specific elements
-      $('.cyber-title, h1', context).once('glitch-effect').each(function() {
+      $(once('glitch-effect', '.cyber-title, h1', context)).each(function() {
         const $element = $(this);
         const text = $element.text();
         $element.attr('data-text', text);
@@ -35,7 +35,7 @@
       }
 
       // Typing effect for terminal-style text
-      $('.terminal-text', context).once('typing-effect').each(function() {
+      $(once('typing-effect', '.terminal-text', context)).each(function() {
         const $element = $(this);
         const text = $element.text();
         $element.text('');
@@ -52,7 +52,7 @@
       });
 
       // Hover effects for cyber panels
-      $('.cyber-panel', context).once('hover-effects').hover(
+      $(once('hover-effects', '.cyber-panel', context)).hover(
         function() {
           $(this).addClass('cyber-glow');
         },
@@ -65,7 +65,7 @@
       initScanLines(context);
 
       // Cyberpunk button effects
-      $('.btn-cyber', context).once('button-effects').on('click', function(e) {
+      $(once('button-effects', '.btn-cyber', context)).on('click', function(e) {
         const $button = $(this);
         const rect = this.getBoundingClientRect();
         const ripple = $('<span class="ripple"></span>');
@@ -83,7 +83,7 @@
       });
 
       // Form field focus effects
-      $('.form-control', context).once('form-effects').on('focus blur', function(e) {
+      $(once('form-effects', '.form-control', context)).on('focus blur', function(e) {
         const $field = $(this);
         const $group = $field.closest('.form-group');
         
@@ -225,7 +225,7 @@
         });
       });
       
-      $('.reveal-text', context).once('text-reveal').each(function() {
+      $(once('text-reveal', '.reveal-text', context)).each(function() {
         observer.observe(this);
       });
     }
@@ -237,7 +237,7 @@
   Drupal.behaviors.cyberpunkLoading = {
     attach: function (context, settings) {
       // Add loading state to forms on submit
-      $('form', context).once('loading-state').on('submit', function() {
+      $(once('loading-state', 'form', context)).on('submit', function() {
         const $form = $(this);
         const $submitButton = $form.find('input[type="submit"], button[type="submit"]');
         
@@ -265,7 +265,7 @@
         // Create subtle sound effects (very quiet)
         const clickSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmccCT2X1+7RfSoFKn/M7+GORA0XZr3n7aMdFAhNnOH1vGwdCmJtk+2hdR8ILImz45xhGwU5jdLwuGkdCjuN1e/DbCUGM3/N7+GAOwtPnuH1vmceCzOJ0u7PeCkGLoXQ8OWjGRk');
         
-        $('.btn, a, input[type="submit"]', context).once('audio-feedback').on('click', function() {
+        $(once('audio-feedback', '.btn, a, input[type="submit"]', context)).on('click', function() {
           if (clickSound && typeof clickSound.play === 'function') {
             clickSound.volume = 0.1;
             clickSound.play().catch(function() {

@@ -11,7 +11,7 @@
    */
   Drupal.behaviors.keithAiChatPrompt = {
     attach: function (context, settings) {
-      $('.keith-ai-chat-prompt .ai-chat-button', context).once('keith-ai-chat-enhanced').each(function() {
+      $(once('keith-ai-chat-enhanced', '.keith-ai-chat-prompt .ai-chat-button', context)).each(function() {
         const $button = $(this);
         const $container = $button.closest('.ai-chat-container');
         
