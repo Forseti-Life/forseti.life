@@ -137,6 +137,7 @@ class ChatController extends ControllerBase {
             'statsUrl' => '/ai-conversation/stats',
             'csrfToken' => \Drupal::csrfToken()->get('ai_conversation_send_message'),
             'stats' => $stats,
+            'environment' => $this->getEnvironment(),
           ],
         ],
       ],
@@ -537,6 +538,35 @@ class ChatController extends ControllerBase {
         '@error' => $e->getMessage(),
       ]);
     }
+  }
+
+  /**
+   * Get the current environment for client-side detection.
+   *
+   * @return string
+   *   The environment string ('production' or 'development').
+   */
+  protected function getEnvironment() {
+    // Check environment variable first (common in deployment)
+    $env = getenv('APP_ENV') ?: getenv('ENVIRONMENT') ?: getenv('DRUPAL_ENV');
+
+    // Check for common development indicators
+    if ($env === 'development' || $env === 'dev' || $env === 'local') {
+      return 'development';
+    }
+
+    // Check hostname patterns
+    $host = \Drupal::request()->getHost();
+    if (strpos($host, 'localhost') !== false ||
+        strpos($host, '127.0.0.1') !== false ||
+        strpos($host, 'dev.') !== false ||
+        strpos($host, 'staging.') !== false ||
+        strpos($host, '.local') !== false) {
+      return 'development';
+    }
+
+    // Default to production for live sites
+    return 'production';
   }
 
 }

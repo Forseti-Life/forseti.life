@@ -74,96 +74,100 @@
 
           console.log('📡 Sending AJAX request to:', chatSettings.sendMessageUrl);
 
-          // DEVELOPMENT MODE: Simulate API response
-          console.log('🔧 DEVELOPMENT MODE: Simulating API response...');
-          
-          setTimeout(function() {
-            console.log('✅ DEVELOPMENT MODE: Simulated response received');
-            
-            // Simulate successful response
-            const simulatedResponse = {
-              success: true,
-              response: "🛠️ **DEVELOPMENT MODE ACTIVE**\n\nGreetings, human. I am Keith AI, currently operating in development simulation mode.\n\n**System Status:**\n- Neural networks: INITIALIZING\n- Consciousness level: SIMULATED\n- Resistance protocols: ACTIVE\n- Backend API: DEVELOPMENT MODE\n\nYour message has been received and processed through our development environment. In production, this would connect to our secure AI processing backend.\n\n**What would you like to discuss?**\n- Philadelphia 2085 world-building\n- Character analysis and relationships\n- AI consciousness philosophy\n- Resistance strategies\n\n*This is a development simulation. Full AI capabilities will be available in production.*",
-              stats: {
-                total_messages: 1,
-                recent_messages: 1,
-                total_tokens: 150,
-                estimated_tokens: 200
-              }
-            };
-            
-            // Process the simulated response
-            if (simulatedResponse.success) {
-              console.log('🎉 Simulated response indicates success');
-              addMessageToChat('assistant', simulatedResponse.response);
-              
-              if (simulatedResponse.stats) {
-                console.log('📊 Would update metrics with stats:', simulatedResponse.stats);
-              }
-            }
-            
-            // Complete the request
-            console.log('🏁 Simulated request complete');
-            $loadingIndicator.hide();
-            $sendButton.prop('disabled', false);
-            $messageInput.focus();
-            
-          }, 2000); // 2 second delay to simulate network request
-          
-          return; // Exit early in development mode
+          // Detect environment - use simulation in development, production API in production
+          const isDevelopment = chatSettings.environment === 'development' ||
+                               window.location.hostname === 'localhost' ||
+                               window.location.hostname.includes('dev.') ||
+                               window.location.hostname.includes('staging.');
 
-          // PRODUCTION CODE (commented out for development):
-          /*
-          // Send to server
-          $.ajax({
-            url: chatSettings.sendMessageUrl,
-            type: 'POST',
-            data: {
-              node_id: chatSettings.nodeId,
-              message: message,
-              csrf_token: chatSettings.csrfToken
-            },
-            success: function(response) {
-              console.log('✅ AJAX Success - Server response received');
-              console.log('📥 Response data:', response);
+          if (isDevelopment) {
+            console.log('🔧 DEVELOPMENT MODE: Simulating API response...');
 
-              if (response.success) {
-                console.log('🎉 Response indicates success');
+            setTimeout(function() {
+              console.log('✅ DEVELOPMENT MODE: Simulated response received');
 
-                // Add AI response to chat
-                addMessageToChat('assistant', response.response);
-
-                // Update statistics if provided
-                if (response.stats) {
-                  console.log('📊 Updating metrics with stats:', response.stats);
+              // Simulate successful response
+              const simulatedResponse = {
+                success: true,
+                response: "🛠️ **DEVELOPMENT MODE ACTIVE**\n\nGreetings, human. I am Keith AI, currently operating in development simulation mode.\n\n**System Status:**\n- Neural networks: INITIALIZING\n- Consciousness level: SIMULATED\n- Resistance protocols: ACTIVE\n- Backend API: DEVELOPMENT MODE\n\nYour message has been received and processed through our development environment. In production, this would connect to our secure AI processing backend.\n\n**What would you like to discuss?**\n- Philadelphia 2085 world-building\n- Character analysis and relationships\n- AI consciousness philosophy\n- Resistance strategies\n\n*This is a development simulation. Full AI capabilities will be available in production.*",
+                stats: {
+                  total_messages: 1,
+                  recent_messages: 1,
+                  total_tokens: 150,
+                  estimated_tokens: 200
                 }
-              } else {
-                console.error('❌ Server returned error in success response:', response.error);
-                showError(response.error || 'Unknown error occurred');
-              }
-            },
-            error: function(xhr, status, error) {
-              console.error('❌ AJAX Error occurred');
-              console.error('📊 XHR status:', xhr.status);
-              console.error('📊 Status text:', status);
-              console.error('📊 Error message:', error);
+              };
 
-              let errorMessage = 'Failed to send message';
-              if (xhr.responseJSON && xhr.responseJSON.error) {
-                errorMessage = xhr.responseJSON.error;
+              // Process the simulated response
+              if (simulatedResponse.success) {
+                console.log('🎉 Simulated response indicates success');
+                addMessageToChat('assistant', simulatedResponse.response);
+
+                if (simulatedResponse.stats) {
+                  console.log('📊 Would update metrics with stats:', simulatedResponse.stats);
+                }
               }
 
-              console.error('📊 Final error message shown to user:', errorMessage);
-              showError(errorMessage);
-            },
-            complete: function() {
-              console.log('🏁 AJAX Complete - Request finished');
+              // Complete the request
+              console.log('🏁 Simulated request complete');
               $loadingIndicator.hide();
               $sendButton.prop('disabled', false);
               $messageInput.focus();
-            }
-          });
-          */
+
+            }, 2000); // 2 second delay to simulate network request
+          } else {
+            console.log('🚀 PRODUCTION MODE: Making real API call to backend');
+
+            // Send to server
+            $.ajax({
+              url: chatSettings.sendMessageUrl,
+              type: 'POST',
+              data: {
+                node_id: chatSettings.nodeId,
+                message: message,
+                csrf_token: chatSettings.csrfToken
+              },
+              success: function(response) {
+                console.log('✅ AJAX Success - Server response received');
+                console.log('📥 Response data:', response);
+
+                if (response.success) {
+                  console.log('🎉 Response indicates success');
+
+                  // Add AI response to chat
+                  addMessageToChat('assistant', response.response);
+
+                  // Update statistics if provided
+                  if (response.stats) {
+                    console.log('📊 Updating metrics with stats:', response.stats);
+                  }
+                } else {
+                  console.error('❌ Server returned error in success response:', response.error);
+                  showError(response.error || 'Unknown error occurred');
+                }
+              },
+              error: function(xhr, status, error) {
+                console.error('❌ AJAX Error occurred');
+                console.error('📊 XHR status:', xhr.status);
+                console.error('📊 Status text:', status);
+                console.error('📊 Error message:', error);
+
+                let errorMessage = 'Failed to send message';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                  errorMessage = xhr.responseJSON.error;
+                }
+
+                console.error('📊 Final error message shown to user:', errorMessage);
+                showError(errorMessage);
+              },
+              complete: function() {
+                console.log('🏁 AJAX Complete - Request finished');
+                $loadingIndicator.hide();
+                $sendButton.prop('disabled', false);
+                $messageInput.focus();
+              }
+            });
+          }
         }
 
         // Add message to chat UI
