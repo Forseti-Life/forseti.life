@@ -191,31 +191,22 @@ class AIApiService {
       $aws_secret_key = $config->get('aws_secret_access_key') ?: getenv('AWS_SECRET_ACCESS_KEY');
       $aws_region = $config->get('aws_region') ?: getenv('AWS_DEFAULT_REGION') ?: 'us-east-1';
 
-      // Check if we have valid AWS credentials
-      $has_credentials = (!empty($aws_access_key) && !empty($aws_secret_key));
-
-      if (!$has_credentials) {
-        $this->logger->warning('No AWS credentials found. Falling back to production simulation mode.');
-        $mock_response = $this->generateMockResponse($message, true);
-        return $mock_response['ai_message'];
-      }
-
       // Use the AWS SDK with credentials (either from config or environment).
       $sdk_config = [
         'region' => $aws_region,
         'version' => 'latest',
       ];
-
+      
       // Only set explicit credentials if we have them, otherwise let AWS SDK use default credential chain
       if (!empty($aws_access_key) && !empty($aws_secret_key)) {
         $sdk_config['credentials'] = [
           'key' => $aws_access_key,
           'secret' => $aws_secret_key,
         ];
-        $this->logInfo('Using AWS credentials from configuration');
+        $this->logger->info('Using AWS credentials from configuration');
       } else {
         // Let AWS SDK use its default credential chain (env vars, IAM roles, etc.)
-        $this->logInfo('Using AWS SDK default credential chain (environment variables, IAM roles, etc.)');
+        $this->logger->info('Using AWS SDK default credential chain (environment variables, IAM roles, etc.)');
       }
 
       $sdk = new \Aws\Sdk($sdk_config);
