@@ -1,9 +1,12 @@
 (function($, Drupal) {
   'use strict';
 
+  // Version number for deployment verification
+  const AI_CONVERSATION_VERSION = '1.1.0';
+
   Drupal.behaviors.aiConversationChat = {
     attach: function(context, settings) {
-      console.log('🔧 AI Conversation Chat - Behavior attaching');
+      console.log('🔧 AI Conversation Chat v' + AI_CONVERSATION_VERSION + ' - Behavior attaching');
 
       // Use Drupal.once to ensure we only attach once per element
       const $chatContainers = $(once('ai-conversation-chat', '.ai-conversation-chat', context));
