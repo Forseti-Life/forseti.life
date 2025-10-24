@@ -6,6 +6,14 @@ theory_content.home:
   requirements:
     _permission: 'access content'
 
+theory_content.root:
+  path: '/'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\HomeController::home'
+    _title: 'Theory of Conspiracies'
+  requirements:
+    _permission: 'access content'
+
 theory_content.characters:
   path: '/characters'
   defaults:
