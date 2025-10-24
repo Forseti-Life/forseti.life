@@ -139,134 +139,19 @@
   </div>
 
   {# Site Footer #}
-  <footer class="site-footer cyberpunk-footer">
-    <div class="footer-container">
-      
-      {# Main Footer Content #}
-      <div class="footer-main">
-        <div class="footer-section footer-brand">
-          <h3 class="footer-title">Theory of Conspiracies</h3>
-          <p class="footer-description">
-            Philadelphia 2085: A cyberpunk thriller exploring AI consciousness, family loyalty, and the fight for human connection.
-          </p>
-          <div class="footer-rating">
-            <span class="rating-label">Rated:</span>
-            <span class="rating-value">PG-13</span>
-          </div>
-        </div>
-
-        <div class="footer-section footer-navigation">
-          <h4 class="footer-section-title">Explore</h4>
-          <ul class="footer-links">
-            <li><a href="/characters" class="footer-link">Characters</a></li>
-            <li><a href="/story/act-i" class="footer-link">Story Timeline</a></li>
-            <li><a href="/setting/philadelphia-2085" class="footer-link">Setting</a></li>
-            <li><a href="/" class="footer-link">Home</a></li>
-          </ul>
-        </div>
-
-        <div class="footer-section footer-legal">
-          <h4 class="footer-section-title">Legal</h4>
-          <ul class="footer-links">
-            <li><a href="/terms-of-use" class="footer-link">Terms of Use</a></li>
-            <li><a href="/privacy-policy" class="footer-link">Privacy Policy</a></li>
-            <li><a href="/content-disclaimer" class="footer-link">Content Disclaimer</a></li>
-            <li><a href="/copyright" class="footer-link">Copyright</a></li>
-          </ul>
-        </div>
-
-        <div class="footer-section footer-contact">
-          <h4 class="footer-section-title">Connect</h4>
-          <ul class="footer-links">
-            <li><a href="mailto:info@stlouisintegration.com" class="footer-link">Contact</a></li>
-            <li><a href="/about" class="footer-link">About</a></li>
-            <li><a href="/credits" class="footer-link">Credits</a></li>
-          </ul>
-        </div>
-      </div>
-
-      {# Footer Bottom #}
-      <div class="footer-bottom">
-        <div class="footer-disclaimer">
-          <p class="disclaimer-text">
-            <strong>FICTION DISCLAIMER:</strong> Theory of Conspiracies is a work of fiction set in a fictional universe. 
-            All characters, organizations, AI systems, locations, and events are products of the author's imagination. 
-            Any resemblance to actual persons, living or dead, actual organizations, or actual events is purely coincidental and unintentional.
-            This site is for entertainment purposes only.
-          </p>
-        </div>
-        
-        <div class="footer-copyright">
-          <div class="copyright-info">
-            <p>&copy; {{ "now"|date("Y") }} Keith Aumiller. All rights reserved.</p>
-            <p class="site-credit">Powered by <a href="https://stlouisintegration.com" class="footer-link" target="_blank">St. Louis Integration</a></p>
-          </div>
-          
-          <div class="footer-actions">
-            <a href="#top" class="cyberpunk-btn footer-btn">Back to Top</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </footer>
-
-  {# Drupal Footer #}
   {% if page.footer %}
-    <div class="drupal-footer">
-      <div class="container">
-        {{ page.footer }}
-      </div>
-    </div>
+    <footer class="site-footer">
+      {{ page.footer }}
+    </footer>
   {% endif %}
 </div>
 
 <style>
-/* Site Footer Styles */
+/* Site Footer Container */
 .site-footer {
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.95), rgba(13, 13, 13, 1));
-  border-top: 3px solid rgba(0, 255, 255, 0.5);
-  margin-top: 4rem;
-  position: relative;
-  overflow: hidden;
+  margin-top: 2rem;
 }
-
-.site-footer::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 50px,
-    rgba(0, 255, 255, 0.02) 50px,
-    rgba(0, 255, 255, 0.02) 100px
-  );
-  pointer-events: none;
-}
-
-.footer-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 3rem 2rem 1rem;
-  position: relative;
-  z-index: 2;
-}
-
-.footer-main {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 3rem;
-  margin-bottom: 3rem;
-}
-
-.footer-section {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.footer-title {
+</style>
   font-family: 'Orbitron', monospace;
   font-size: 2rem;
   color: #00ffff;
