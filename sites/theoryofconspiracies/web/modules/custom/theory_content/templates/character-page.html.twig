@@ -123,16 +123,14 @@
     </div>
   {% endif %}
 
-  {# Character Actions #}
-  <div class="character-actions">
-    <a href="/characters" class="cyberpunk-btn">← All Characters</a>
+  {# Character Navigation #}
+  <div class="character-navigation">
+    <a href="/characters" class="cyberpunk-btn">View Characters</a>
+    <a href="/story/act-i" class="cyberpunk-btn">View Story Timeline</a>
+    <a href="/setting/philadelphia-2085" class="cyberpunk-btn">Explore Setting</a>
     {% if character.name starts with 'SAL' or character.name starts with 'TIGER' %}
-      <a href="/characters/estella-mueller" class="cyberpunk-btn">Family</a>
+      <a href="/characters/estella-mueller" class="cyberpunk-btn">Family Members</a>
     {% endif %}
-    {% if character.name starts with 'KEITH' or character.name starts with 'DAVID' %}
-      <a href="/setting/philadelphia-2085" class="cyberpunk-btn">AI Systems</a>
-    {% endif %}
-    <a href="/story/act-i" class="cyberpunk-btn">Story Timeline</a>
   </div>
 
 </div>
@@ -439,12 +437,64 @@
   line-height: 1.6;
 }
 
-.character-actions {
+.character-navigation {
+  text-align: center;
+  margin: 4rem 0;
   display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin: 3rem 0;
   flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.cyberpunk-btn {
+  background: linear-gradient(45deg, #000000, #1a1a1a);
+  border: 3px solid #00ffff;
+  color: #00ffff;
+  padding: 1.5rem 3rem;
+  text-decoration: none;
+  font-family: 'Orbitron', monospace;
+  font-weight: bold;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transition: all 0.4s ease;
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  min-width: 200px;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.cyberpunk-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.4), transparent);
+  transition: left 0.5s;
+  z-index: 1;
+}
+
+.cyberpunk-btn:hover {
+  color: #ffffff;
+  background: linear-gradient(45deg, #003333, #006666);
+  border-color: #ffffff;
+  text-shadow: 0 0 15px rgba(255, 255, 255, 1);
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.6), inset 0 0 20px rgba(0, 255, 255, 0.1);
+  transform: translateY(-3px);
+}
+
+.cyberpunk-btn:hover::before {
+  left: 100%;
+}
+
+.cyberpunk-btn:active {
+  transform: translateY(0);
 }
 
 @keyframes scan-lines {
@@ -466,9 +516,15 @@
     grid-template-columns: 1fr;
   }
   
-  .character-actions {
+  .character-navigation {
     flex-direction: column;
-    align-items: center;
+    gap: 1.5rem;
+  }
+  
+  .cyberpunk-btn {
+    padding: 1.2rem 2rem;
+    font-size: 1rem;
+    min-width: 180px;
   }
 }
 </style>

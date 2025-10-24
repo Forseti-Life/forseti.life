@@ -20,7 +20,7 @@ class HomeController extends ControllerBase {
       'tagline' => 'In a world controlled by AI, resistance begins with a single choice.',
       'year' => '2025',
       'genre' => 'Cyberpunk Thriller',
-      'rating' => 'R',
+      'rating' => 'PG-13',
       'runtime' => '127 minutes',
       'director' => 'Unknown',
       'writer' => 'Keith Aumiller',
@@ -91,7 +91,7 @@ class HomeController extends ControllerBase {
       ],
       [
         'title' => 'Philadelphia 2085',
-        'description' => 'Discover the dystopian world and its power structures',
+        'description' => 'Discover the futuristic world and its power structures',
         'path' => '/setting/philadelphia-2085',
         'icon' => '🏙️'
       ]

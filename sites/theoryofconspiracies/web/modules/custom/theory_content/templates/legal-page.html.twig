@@ -1,0 +1,319 @@
+{#
+/**
+ * @file
+ * Legal page template for Terms, Privacy, Copyright, etc.
+ *
+ * Available variables:
+ * - page_type: The type of legal page (terms-of-use, privacy-policy, etc.)
+ * - title: Page title
+ * - content: Page content with intro and sections
+ */
+#}
+
+<div class="legal-page cyberpunk-container">
+  
+  <div class="page-header">
+    <h1 class="page-title glitch-text" data-text="{{ title }}">
+      {{ title }}
+    </h1>
+    <div class="page-type">
+      Legal Information
+    </div>
+  </div>
+
+  <article class="legal-content">
+    
+    {% if content.intro %}
+      <div class="legal-intro">
+        <p class="intro-text">{{ content.intro }}</p>
+      </div>
+    {% endif %}
+
+    <div class="legal-sections">
+      {% for section in content.sections %}
+        <section class="legal-section">
+          <h2 class="section-title">{{ section.title }}</h2>
+          <div class="section-content">
+            <p>{{ section.content }}</p>
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+
+    <div class="legal-footer">
+      <div class="last-updated">
+        <p><strong>Last Updated:</strong> {{ "now"|date("F j, Y") }}</p>
+      </div>
+      
+      <div class="contact-info">
+        <p>
+          <strong>Questions?</strong> 
+          Contact us at <a href="mailto:info@stlouisintegration.com" class="contact-link">info@stlouisintegration.com</a>
+        </p>
+      </div>
+    </div>
+
+  </article>
+
+  <div class="legal-navigation">
+    <a href="/characters" class="cyberpunk-btn">View Characters</a>
+    <a href="/story/act-i" class="cyberpunk-btn">View Story Timeline</a>
+    <a href="/setting/philadelphia-2085" class="cyberpunk-btn">Explore Setting</a>
+    <a href="/" class="cyberpunk-btn">Return Home</a>
+  </div>
+
+</div>
+
+<style>
+/* Legal Page Styles */
+.legal-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  position: relative;
+}
+
+.page-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 3rem;
+  color: #00ffff;
+  text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+  margin-bottom: 1rem;
+  letter-spacing: 3px;
+}
+
+.page-type {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.2rem;
+  color: #ff00ff;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(255, 0, 255, 0.6);
+}
+
+.legal-content {
+  background: linear-gradient(135deg, rgba(26, 26, 26, 0.95), rgba(17, 17, 17, 0.9));
+  border: 2px solid rgba(0, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 3rem;
+  margin-bottom: 3rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.legal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 30px,
+    rgba(0, 255, 255, 0.02) 30px,
+    rgba(0, 255, 255, 0.02) 60px
+  );
+  pointer-events: none;
+}
+
+.legal-intro {
+  position: relative;
+  z-index: 2;
+  margin-bottom: 3rem;
+  padding: 2rem;
+  background: rgba(0, 255, 255, 0.1);
+  border-left: 4px solid #00ffff;
+  border-radius: 4px;
+}
+
+.intro-text {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.3rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-weight: 500;
+}
+
+.legal-sections {
+  position: relative;
+  z-index: 2;
+}
+
+.legal-section {
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.legal-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.5rem;
+  color: #ff00ff;
+  text-shadow: 0 0 10px rgba(255, 0, 255, 0.6);
+  margin-bottom: 1rem;
+  letter-spacing: 1px;
+}
+
+.section-content {
+  font-family: 'Rajdhani', sans-serif;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.section-content p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.legal-footer {
+  position: relative;
+  z-index: 2;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid rgba(0, 255, 255, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.last-updated p,
+.contact-info p {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.contact-link {
+  color: #00ffff;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.contact-link:hover {
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
+}
+
+/* Navigation */
+.legal-navigation {
+  text-align: center;
+  margin: 4rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.cyberpunk-btn {
+  background: linear-gradient(45deg, #000000, #1a1a1a);
+  border: 3px solid #00ffff;
+  color: #00ffff;
+  padding: 1.5rem 3rem;
+  text-decoration: none;
+  font-family: 'Orbitron', monospace;
+  font-weight: bold;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transition: all 0.4s ease;
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  min-width: 200px;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+.cyberpunk-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.4), transparent);
+  transition: left 0.5s;
+  z-index: 1;
+}
+
+.cyberpunk-btn:hover {
+  color: #ffffff;
+  background: linear-gradient(45deg, #003333, #006666);
+  border-color: #ffffff;
+  text-shadow: 0 0 15px rgba(255, 255, 255, 1);
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.6), inset 0 0 20px rgba(0, 255, 255, 0.1);
+  transform: translateY(-3px);
+}
+
+.cyberpunk-btn:hover::before {
+  left: 100%;
+}
+
+.cyberpunk-btn:active {
+  transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .legal-page {
+    padding: 1rem;
+  }
+  
+  .page-title {
+    font-size: 2rem;
+  }
+  
+  .legal-content {
+    padding: 2rem;
+  }
+  
+  .legal-footer {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .legal-navigation {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .cyberpunk-btn {
+    padding: 1.2rem 2rem;
+    font-size: 1rem;
+    min-width: 180px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 1.5rem;
+    letter-spacing: 1px;
+  }
+  
+  .section-title {
+    font-size: 1.2rem;
+  }
+  
+  .legal-content {
+    padding: 1.5rem;
+  }
+}
+</style>

@@ -45,7 +45,7 @@
 
 {{ attach_library('theoryofconspiracies/cyberpunk-effects') }}
 
-<div class="page-wrapper cyberpunk-container">
+<div class="page-wrapper cyberpunk-container" id="top">
   {# Cyberpunk Header Section #}
   <div id="large-header" class="large-header cyberpunk-header page-header">
     <canvas id="demo-canvas"></canvas>
@@ -138,12 +138,346 @@
     </div>
   </div>
 
-  {# Footer #}
+  {# Site Footer #}
+  <footer class="site-footer cyberpunk-footer">
+    <div class="footer-container">
+      
+      {# Main Footer Content #}
+      <div class="footer-main">
+        <div class="footer-section footer-brand">
+          <h3 class="footer-title">Theory of Conspiracies</h3>
+          <p class="footer-description">
+            Philadelphia 2085: A cyberpunk thriller exploring AI consciousness, family loyalty, and the fight for human connection.
+          </p>
+          <div class="footer-rating">
+            <span class="rating-label">Rated:</span>
+            <span class="rating-value">PG-13</span>
+          </div>
+        </div>
+
+        <div class="footer-section footer-navigation">
+          <h4 class="footer-section-title">Explore</h4>
+          <ul class="footer-links">
+            <li><a href="/characters" class="footer-link">Characters</a></li>
+            <li><a href="/story/act-i" class="footer-link">Story Timeline</a></li>
+            <li><a href="/setting/philadelphia-2085" class="footer-link">Setting</a></li>
+            <li><a href="/" class="footer-link">Home</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-section footer-legal">
+          <h4 class="footer-section-title">Legal</h4>
+          <ul class="footer-links">
+            <li><a href="/terms-of-use" class="footer-link">Terms of Use</a></li>
+            <li><a href="/privacy-policy" class="footer-link">Privacy Policy</a></li>
+            <li><a href="/content-disclaimer" class="footer-link">Content Disclaimer</a></li>
+            <li><a href="/copyright" class="footer-link">Copyright</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-section footer-contact">
+          <h4 class="footer-section-title">Connect</h4>
+          <ul class="footer-links">
+            <li><a href="mailto:info@stlouisintegration.com" class="footer-link">Contact</a></li>
+            <li><a href="/about" class="footer-link">About</a></li>
+            <li><a href="/credits" class="footer-link">Credits</a></li>
+          </ul>
+        </div>
+      </div>
+
+      {# Footer Bottom #}
+      <div class="footer-bottom">
+        <div class="footer-disclaimer">
+          <p class="disclaimer-text">
+            <strong>FICTION DISCLAIMER:</strong> Theory of Conspiracies is a work of fiction set in a fictional universe. 
+            All characters, organizations, AI systems, locations, and events are products of the author's imagination. 
+            Any resemblance to actual persons, living or dead, actual organizations, or actual events is purely coincidental and unintentional.
+            This site is for entertainment purposes only.
+          </p>
+        </div>
+        
+        <div class="footer-copyright">
+          <div class="copyright-info">
+            <p>&copy; {{ "now"|date("Y") }} Keith Aumiller. All rights reserved.</p>
+            <p class="site-credit">Powered by <a href="https://stlouisintegration.com" class="footer-link" target="_blank">St. Louis Integration</a></p>
+          </div>
+          
+          <div class="footer-actions">
+            <a href="#top" class="cyberpunk-btn footer-btn">Back to Top</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  {# Drupal Footer #}
   {% if page.footer %}
-    <footer class="footer" role="contentinfo">
+    <div class="drupal-footer">
       <div class="container">
         {{ page.footer }}
       </div>
-    </footer>
+    </div>
   {% endif %}
 </div>
+
+<style>
+/* Site Footer Styles */
+.site-footer {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.95), rgba(13, 13, 13, 1));
+  border-top: 3px solid rgba(0, 255, 255, 0.5);
+  margin-top: 4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.site-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 50px,
+    rgba(0, 255, 255, 0.02) 50px,
+    rgba(0, 255, 255, 0.02) 100px
+  );
+  pointer-events: none;
+}
+
+.footer-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 3rem 2rem 1rem;
+  position: relative;
+  z-index: 2;
+}
+
+.footer-main {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 3rem;
+  margin-bottom: 3rem;
+}
+
+.footer-section {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.footer-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 2rem;
+  color: #00ffff;
+  text-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
+  margin-bottom: 1rem;
+  letter-spacing: 2px;
+}
+
+.footer-section-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.2rem;
+  color: #ff00ff;
+  text-shadow: 0 0 10px rgba(255, 0, 255, 0.6);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.footer-description {
+  font-family: 'Rajdhani', sans-serif;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.footer-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: bold;
+}
+
+.rating-label {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.rating-value {
+  color: #00ff41;
+  font-size: 1.1rem;
+  text-shadow: 0 0 8px rgba(0, 255, 65, 0.6);
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  margin-bottom: 0.5rem;
+}
+
+.footer-link {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  font-family: 'Rajdhani', sans-serif;
+  transition: all 0.3s ease;
+  display: inline-block;
+  padding: 0.2rem 0;
+}
+
+.footer-link:hover {
+  color: #00ffff;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.8);
+  transform: translateX(5px);
+}
+
+.footer-bottom {
+  border-top: 2px solid rgba(0, 255, 255, 0.3);
+  padding-top: 2rem;
+}
+
+.footer-disclaimer {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 0, 0, 0.1);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  border-radius: 8px;
+}
+
+.disclaimer-text {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+.disclaimer-text strong {
+  color: #ff0040;
+  text-shadow: 0 0 5px rgba(255, 0, 64, 0.6);
+}
+
+.footer-copyright {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.copyright-info p {
+  margin: 0;
+  font-family: 'Rajdhani', sans-serif;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.site-credit {
+  margin-top: 0.5rem !important;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.footer-btn {
+  background: linear-gradient(45deg, #000000, #1a1a1a);
+  border: 2px solid #00ffff;
+  color: #00ffff;
+  padding: 0.8rem 1.5rem;
+  text-decoration: none;
+  font-family: 'Orbitron', monospace;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.4s ease;
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+}
+
+.footer-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+  z-index: 1;
+}
+
+.footer-btn:hover {
+  color: #ffffff;
+  background: linear-gradient(45deg, #003333, #006666);
+  border-color: #ffffff;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 1);
+  box-shadow: 0 0 25px rgba(0, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.footer-btn:hover::before {
+  left: 100%;
+}
+
+.drupal-footer {
+  background: rgba(0, 0, 0, 0.8);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .footer-main {
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+  
+  .footer-brand {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer-main {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .footer-copyright {
+    flex-direction: column;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  
+  .footer-container {
+    padding: 2rem 1rem 1rem;
+  }
+  
+  .footer-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-actions {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .footer-btn {
+    flex: 1;
+    text-align: center;
+  }
+}
+</style>

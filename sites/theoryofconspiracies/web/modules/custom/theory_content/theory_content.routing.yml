@@ -277,3 +277,52 @@ theory_content.philadelphia_2085:
     _title: 'Philadelphia 2085'
   requirements:
     _permission: 'access content'
+
+# Legal Pages
+theory_content.terms_of_use:
+  path: '/terms-of-use'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\LegalController::termsOfUse'
+    _title: 'Terms of Use'
+  requirements:
+    _permission: 'access content'
+
+theory_content.privacy_policy:
+  path: '/privacy-policy'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\LegalController::privacyPolicy'
+    _title: 'Privacy Policy'
+  requirements:
+    _permission: 'access content'
+
+theory_content.content_disclaimer:
+  path: '/content-disclaimer'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\LegalController::contentDisclaimer'
+    _title: 'Content Disclaimer'
+  requirements:
+    _permission: 'access content'
+
+theory_content.copyright:
+  path: '/copyright'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\LegalController::copyright'
+    _title: 'Copyright Information'
+  requirements:
+    _permission: 'access content'
+
+theory_content.about:
+  path: '/about'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\LegalController::about'
+    _title: 'About Theory of Conspiracies'
+  requirements:
+    _permission: 'access content'
+
+theory_content.credits:
+  path: '/credits'
+  defaults:
+    _controller: '\Drupal\theory_content\Controller\LegalController::credits'
+    _title: 'Credits'
+  requirements:
+    _permission: 'access content'

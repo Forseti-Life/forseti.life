@@ -80,6 +80,14 @@ function theory_content_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'theory-home',
     ],
+    'legal_page' => [
+      'variables' => [
+        'page_type' => NULL,
+        'title' => NULL,
+        'content' => NULL,
+      ],
+      'template' => 'legal-page',
+    ],
   ];
 }
 

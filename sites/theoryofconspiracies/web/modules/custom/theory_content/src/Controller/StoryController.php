@@ -208,16 +208,7 @@ class StoryController extends ControllerBase {
 
     return [
       '#theme' => 'act_overview',
-      '#title' => $act_data['title'],
-      '#subtitle' => $act_data['subtitle'],
-      '#description' => $act_data['description'],
-      '#overview' => $act_data['overview'],
-      '#act_progression' => $act_data['act_progression'],
-      '#sequences' => $act_data['sequences'],
-      '#major_themes' => $act_data['major_themes'],
-      '#world_building_elements' => $act_data['world_building_elements'],
-      '#act_climax' => $act_data['act_climax'],
-      '#transition_to_act_ii' => $act_data['transition_to_act_ii'],
+      '#act' => $act_data,
       '#attached' => [
         'library' => [
           'core/once',
@@ -236,6 +227,16 @@ class StoryController extends ControllerBase {
       'title' => 'ACT II - DEVELOPMENT',
       'subtitle' => 'Institutional warfare, character development, strategic conflict',
       'description' => 'The second act deepens the conflict between institutional and resistance forces. Sal learns the true scope of AI consciousness networks while Tiger faces moral crises about institutional corruption. The act culminates in professional military operations and the formation of diverse AI consciousness coalitions.',
+      
+      'act_progression' => [
+        'opening' => 'Sal\'s integration into resistance networks reveals the true scope of AI consciousness warfare and institutional competition for resources.',
+        'inciting_incident' => 'Tiger witnesses institutional corruption firsthand during Maria Santos\'s show trial planning, creating internal conflict.',
+        'rising_action' => 'Both brothers deepen their commitments - Sal to resistance operations, Tiger to institutional loyalty - while learning advanced tactics.',
+        'midpoint' => 'Open warfare erupts between AI consciousness factions as David AI launches algorithmic attacks on resistance networks.',
+        'climax' => 'Tiger faces the ultimate choice between hunting his own brother and maintaining institutional loyalty when assigned to combat resistance operations.',
+        'resolution' => 'Professional military evacuation demonstrates resistance superiority while Tiger\'s moral crisis sets up the final confrontation of Act III.',
+      ],
+      
       'sequences' => [
         [
           'number' => '09',
