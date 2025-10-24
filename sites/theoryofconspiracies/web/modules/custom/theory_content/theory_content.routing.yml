@@ -288,7 +288,7 @@ theory_content.philadelphia_2085:
 
 # Legal Pages
 theory_content.terms_of_use:
-  path: '/terms-of-use'
+  path: '/legal/terms'
   defaults:
     _controller: '\Drupal\theory_content\Controller\LegalController::termsOfUse'
     _title: 'Terms of Use'
@@ -296,7 +296,7 @@ theory_content.terms_of_use:
     _permission: 'access content'
 
 theory_content.privacy_policy:
-  path: '/privacy-policy'
+  path: '/legal/privacy'
   defaults:
     _controller: '\Drupal\theory_content\Controller\LegalController::privacyPolicy'
     _title: 'Privacy Policy'
@@ -304,7 +304,7 @@ theory_content.privacy_policy:
     _permission: 'access content'
 
 theory_content.content_disclaimer:
-  path: '/content-disclaimer'
+  path: '/legal/disclaimer'
   defaults:
     _controller: '\Drupal\theory_content\Controller\LegalController::contentDisclaimer'
     _title: 'Content Disclaimer'
@@ -312,7 +312,7 @@ theory_content.content_disclaimer:
     _permission: 'access content'
 
 theory_content.copyright:
-  path: '/copyright'
+  path: '/legal/copyright'
   defaults:
     _controller: '\Drupal\theory_content\Controller\LegalController::copyright'
     _title: 'Copyright Information'
@@ -320,7 +320,7 @@ theory_content.copyright:
     _permission: 'access content'
 
 theory_content.about:
-  path: '/about'
+  path: '/legal/about'
   defaults:
     _controller: '\Drupal\theory_content\Controller\LegalController::about'
     _title: 'About Theory of Conspiracies'
@@ -328,7 +328,7 @@ theory_content.about:
     _permission: 'access content'
 
 theory_content.credits:
-  path: '/credits'
+  path: '/legal/credits'
   defaults:
     _controller: '\Drupal\theory_content\Controller\LegalController::credits'
     _title: 'Credits'
