@@ -18,7 +18,7 @@ class CharacterController extends ControllerBase {
       '#characters' => $this->getMainCharacters(),
       '#attached' => [
         'library' => [
-          'theory_content/character-display',
+          'theory_content/characters-overview',
           'theoryofconspiracies/cyberpunk-effects',
         ],
       ],
