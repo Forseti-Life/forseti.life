@@ -227,7 +227,7 @@ class SettingController extends ControllerBase {
       '#setting' => $setting_data,
       '#attached' => [
         'library' => [
-          'theory_content/character-display',
+          'theory_content/setting-page',
           'theoryofconspiracies/cyberpunk-effects',
         ],
       ],

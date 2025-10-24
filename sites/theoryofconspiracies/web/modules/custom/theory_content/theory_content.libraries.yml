@@ -25,3 +25,10 @@ trust-network:
   dependencies:
     - core/d3
     - theoryofconspiracies/cyberpunk-effects
+
+setting-page:
+  css:
+    theme:
+      css/setting-page.css: {}
+  dependencies:
+    - theoryofconspiracies/cyberpunk-effects

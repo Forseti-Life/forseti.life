@@ -65,6 +65,12 @@ function theory_content_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'setting-page',
     ],
+    'sequence_page' => [
+      'variables' => [
+        'sequence' => NULL,
+      ],
+      'template' => 'sequence_page',
+    ],
     'theory_home' => [
       'variables' => [
         'movie_data' => NULL,
