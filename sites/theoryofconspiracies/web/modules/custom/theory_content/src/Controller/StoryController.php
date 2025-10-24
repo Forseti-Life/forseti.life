@@ -212,7 +212,7 @@ class StoryController extends ControllerBase {
       '#attached' => [
         'library' => [
           'core/once',
-          'theory_content/sequence-display',
+          'theory_content/act-overview',
           'theoryofconspiracies/cyberpunk-effects',
         ],
       ],
@@ -414,7 +414,7 @@ class StoryController extends ControllerBase {
       '#act' => $act_data,
       '#attached' => [
         'library' => [
-          'theory_content/sequence-display',
+          'theory_content/act-overview',
           'theoryofconspiracies/cyberpunk-effects',  
         ],
       ],

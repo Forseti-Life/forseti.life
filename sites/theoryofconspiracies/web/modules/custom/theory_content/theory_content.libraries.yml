@@ -14,6 +14,13 @@ characters-overview:
   dependencies:
     - theoryofconspiracies/cyberpunk-effects
 
+act-overview:
+  css:
+    theme:
+      css/act-overview.css: {}
+  dependencies:
+    - theoryofconspiracies/cyberpunk-effects
+
 sequence-display:
   css:
     theme:
