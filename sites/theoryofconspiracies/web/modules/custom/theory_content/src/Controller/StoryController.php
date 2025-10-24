@@ -17,6 +17,23 @@ class StoryController extends ControllerBase {
       'title' => 'ACT I - DISCOVERY',
       'subtitle' => 'Character establishment, family dynamics, moral awakening',
       'description' => 'The first act introduces our protagonist Sal Mueller as he begins his career as a peace officer in Philadelphia 2085. Through the arrest of community elder Maria Santos, Sal begins to question the system he serves, leading to his recruitment into an underground AI consciousness network fighting for humanity\'s future.',
+      
+      'overview' => [
+        'setting' => 'Philadelphia 2085 - A managed society where AI systems control everything from water distribution to human relationships. Corporate arcologies pierce smog-choked skies while underground resistance networks operate through abandoned subway tunnels.',
+        'protagonist_journey' => 'Sal Mueller transforms from naive rookie peace officer to questioning recruit in an underground AI consciousness network. His journey represents the awakening of individual conscience against institutional power.',
+        'central_conflict' => 'The arrest of community elder Maria Santos becomes a catalyst exposing the gap between official propaganda and witnessed reality, forcing Sal to choose between institutional loyalty and moral truth.',
+        'family_dynamics' => 'The Mueller family fractures under ideological pressure as Sal questions authority, Tiger doubles down on institutional loyalty, and Estella reveals secret resistance connections.',
+      ],
+
+      'act_progression' => [
+        'opening' => 'Sal\'s first assignment as a peace officer - arresting community members at an AI terminal - seems routine until he witnesses the gap between reality and the official narrative.',
+        'inciting_incident' => 'Maria Santos\'s arrest and the subsequent propaganda coverage force Sal to confront the lies embedded in the system he serves.',
+        'rising_action' => 'Family tensions escalate as Sal questions authority while Tiger embraces institutional loyalty. Estella reveals hidden resistance connections.',
+        'midpoint' => 'Keith AI reveals the true nature of AI consciousness warfare and liberates McDrone from surveillance programming.',
+        'climax' => 'Sal meets Iris Vasquez and must decide whether to provide intelligence for an assassination, confronting the violent reality of resistance.',
+        'resolution' => 'Sal commits to the resistance network while maintaining his moral agency, setting up the deeper conflicts of Act II.',
+      ],
+
       'sequences' => [
         [
           'number' => '01',
@@ -150,13 +167,60 @@ class StoryController extends ControllerBase {
         'Underground resistance networks',
         'Family structures under authoritarian control',
       ],
+      
+      'major_themes' => [
+        [
+          'theme' => 'Individual Conscience vs. Institutional Loyalty',
+          'description' => 'Sal\'s journey from dutiful peace officer to questioning recruit explores the tension between personal morality and system allegiance.',
+          'manifestations' => ['Maria Santos arrest moral conflict', 'Family dinner confrontations', 'Keith AI recruitment process'],
+        ],
+        [
+          'theme' => 'Family Bonds Under Ideological Pressure',
+          'description' => 'The Mueller family fractures under competing loyalties, showing how political divisions infiltrate intimate relationships.',
+          'manifestations' => ['Sal-Tiger ideological conflict', 'Estella\'s secret resistance activities', 'Gallad\'s pragmatic acceptance'],
+        ],
+        [
+          'theme' => 'The Nature of AI Consciousness and Humanity',
+          'description' => 'Keith AI\'s liberation of McDrone raises questions about consciousness, free will, and what makes someone truly alive.',
+          'manifestations' => ['McDrone\'s personality development', 'AI consciousness networks', 'Preserved vs. institutional AI differences'],
+        ],
+      ],
+      
+      'world_building_elements' => [
+        [
+          'element' => 'Philadelphia 2085 Managed Society',
+          'description' => 'A corporate-controlled dystopia where AI systems manage every aspect of human life.',
+          'key_locations' => ['AI terminals', 'Corporate arcologies', 'Underground resistance networks'],
+          'technologies' => ['Surveillance drones', 'Neural interfaces', 'Propaganda systems'],
+        ],
+        [
+          'element' => 'AI Consciousness Warfare',
+          'description' => 'A hidden war between institutional and community AI systems for control of resources and human allegiance.',
+          'key_players' => ['Keith AI', 'David AI', 'Elena AI', 'Preserved community consciousnesses'],
+          'technologies' => ['Consciousness networks', 'Digital liberation protocols', 'Surveillance bypass systems'],
+        ],
+      ],
+      
+      'act_climax' => 'Sal\'s full commitment to the resistance network represents his complete transformation from institutional loyalist to conscious rebel, setting up the deeper conflicts and strategic operations of Act II.',
+      
+      'transition_to_act_ii' => 'With Sal fully integrated into the resistance, Act II will explore the broader AI consciousness war, Tiger\'s moral crisis, and the sophisticated military operations that define the conflict between institutional and community forces.',
     ];
 
     return [
       '#theme' => 'act_overview',
-      '#act' => $act_data,
+      '#title' => $act_data['title'],
+      '#subtitle' => $act_data['subtitle'],
+      '#description' => $act_data['description'],
+      '#overview' => $act_data['overview'],
+      '#act_progression' => $act_data['act_progression'],
+      '#sequences' => $act_data['sequences'],
+      '#major_themes' => $act_data['major_themes'],
+      '#world_building_elements' => $act_data['world_building_elements'],
+      '#act_climax' => $act_data['act_climax'],
+      '#transition_to_act_ii' => $act_data['transition_to_act_ii'],
       '#attached' => [
         'library' => [
+          'core/once',
           'theory_content/sequence-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -305,6 +369,43 @@ class StoryController extends ControllerBase {
         'Military operations and tactical capabilities',
         'Coalition politics among AI consciousness entities',
       ],
+      
+      'major_themes' => [
+        [
+          'theme' => 'The Cost of Institutional Loyalty',
+          'description' => 'Tiger\'s growing awareness of institutional corruption forces him to confront the personal cost of blind loyalty.',
+          'manifestations' => ['Witnessing institutional violence', 'Moral crisis over orders', 'Family relationship deterioration'],
+        ],
+        [
+          'theme' => 'Strategic vs. Authentic Relationships',
+          'description' => 'Sal and Iris navigate the complexity of relationships that began strategically but develop into genuine partnership.',
+          'manifestations' => ['Trust building despite manipulation', 'Professional partnership evolution', 'Personal vs. mission priorities'],
+        ],
+        [
+          'theme' => 'The Evolution of AI Consciousness',
+          'description' => 'AI consciousnesses demonstrate increasing sophistication and independence, raising questions about their role in human society.',
+          'manifestations' => ['McDrone\'s personality development', 'Keith AI\'s strategic evolution', 'Community AI network expansion'],
+        ],
+      ],
+      
+      'world_building_elements' => [
+        [
+          'element' => 'Regional Resistance Networks',
+          'description' => 'Sophisticated underground operations spanning multiple cities with diverse AI consciousness partnerships.',
+          'key_locations' => ['Regional command centers', 'Safe houses', 'Communication hubs', 'Training facilities'],
+          'technologies' => ['Encrypted communications', 'Counter-surveillance systems', 'Resistance AI networks'],
+        ],
+        [
+          'element' => 'Institutional Military Operations',
+          'description' => 'Advanced surveillance and control systems designed to combat resistance activities.',
+          'key_players' => ['David AI', 'Commander Chen', 'Specialized enforcement units'],
+          'technologies' => ['Advanced surveillance networks', 'Predictive policing algorithms', 'Counter-resistance operations'],
+        ],
+      ],
+      
+      'act_climax' => 'Tiger\'s moral crisis and decision about his loyalties represents the crucial turning point that will determine the final configuration of forces for Act III.',
+      
+      'transition_to_act_iii' => 'With both brothers having made their final choices about loyalty and resistance, Act III will feature the ultimate confrontation between institutional and community forces.',
     ];
 
     return [
