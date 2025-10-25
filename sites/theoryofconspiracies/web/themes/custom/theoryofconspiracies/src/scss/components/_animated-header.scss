@@ -298,10 +298,10 @@
 /* Responsive adjustments */
 @media only screen and (max-width: 768px) {
   .main-title {
-    font-size: 2.8em;
+    font-size: 2.5em;
     padding: 0 1rem;
-    top: 15%; /* Moved higher to create maximum space */
-    line-height: 1.0; /* Tighter line height to reduce vertical space */
+    top: 12%; /* Higher to create more space */
+    line-height: 0.9; /* Very tight line height */
   }
   
   .main-title--simple {
@@ -310,40 +310,43 @@
   }
   
   .movie-details {
-    font-size: 0.85em;
-    top: 30%;
+    font-size: 0.8em;
+    top: 25%; /* More space from title */
     padding: 0 1.5rem;
-    margin: 0.5rem 0;
+    margin: 0;
     max-width: 90%;
     
     &.cyberpunk-details {
       .detail-separator {
-        margin: 0 0.5rem; /* Reduced spacing on mobile */
+        margin: 0 0.3rem; /* Tighter spacing on mobile */
+      }
+      
+      .detail-item {
+        font-size: 0.9em; /* Slightly smaller text */
       }
     }
   }
   
   .main-subtitle {
-    font-size: 0.8em; /* Reduced by 20% from 1.0em */
+    font-size: 0.75em; /* Smaller text */
     padding: 0 1.5rem;
-    top: 40%; /* Positioned after movie details */
-    margin-top: 0.5rem;
-    margin-bottom: 1rem; 
-    line-height: 1.3; /* Tighter line height */
-    max-width: 90%; /* Constrain width for better layout */
+    top: 38%; /* More space from movie details */
+    margin: 0;
+    line-height: 1.2; /* Tighter line height */
+    max-width: 85%; /* More constrained width */
   }
   
   .hero-cta {
-    top: 55%; /* Adjusted to accommodate movie details */
-    margin-top: 0.5rem;
+    top: 58%; /* Much lower to prevent overlap */
+    margin: 0;
     width: 95%;
     left: 50%;
     transform: translate(-50%, -50%);
     /* Stack buttons vertically for better spacing control */
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
-    max-width: 300px;
+    gap: 0.3rem;
+    max-width: 280px;
     padding: 0 1rem;
   }
   
@@ -370,37 +373,54 @@
 
 @media only screen and (max-width: 480px) {
   .main-title {
-    font-size: 2.0em;
-    top: 12%; /* Higher positioning to maximize space */
-    line-height: 0.95; /* Very tight line height */
+    font-size: 1.8em;
+    top: 8%; /* Even higher for small screens */
+    line-height: 0.85; /* Very tight line height */
     padding: 0 1rem;
   }
   
   .main-title--simple {
-    font-size: 1.8em; /* Smaller for page headers */
+    font-size: 1.6em; /* Smaller for page headers */
     top: 50%;
   }
   
+  .movie-details {
+    font-size: 0.7em;
+    top: 20%; /* Positioned between title and subtitle */
+    padding: 0 1rem;
+    margin: 0;
+    max-width: 95%;
+    
+    &.cyberpunk-details {
+      .detail-separator {
+        margin: 0 0.2rem; /* Very tight spacing */
+      }
+      
+      .detail-item {
+        font-size: 0.85em;
+      }
+    }
+  }
+  
   .main-subtitle {
-    font-size: 0.68em; /* Reduced by 20% from 0.85em */
-    top: 30%; /* Higher positioning to prevent overlap */
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-    line-height: 1.25;
-    padding: 0 1.5rem;
-    max-width: 85%; /* More constrained width */
+    font-size: 0.65em; /* Smaller text for small screens */
+    top: 32%; /* More space from movie details */
+    margin: 0;
+    line-height: 1.15;
+    padding: 0 1rem;
+    max-width: 95%; /* More constrained width */
   }
   
   .hero-cta {
-    top: 55%; /* Significantly higher to prevent any overlap */
-    margin-top: 0.5rem;
+    top: 50%; /* Lower to prevent overlap */
+    margin: 0;
     width: 100%;
     padding: 0 1rem;
     /* Vertical stack for maximum control */
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
-    max-width: 280px;
+    gap: 0.25rem;
+    max-width: 260px;
   }
   
   .hero-cta .btn {
@@ -685,5 +705,43 @@
   }
   100% {
     transform: translate3d(-50%, -50%, 0);
+  }
+}
+
+/* Landscape mobile devices */
+@media only screen and (max-height: 500px) and (orientation: landscape) {
+  .main-title {
+    font-size: 1.6em;
+    top: 5%;
+    line-height: 0.8;
+  }
+  
+  .movie-details {
+    font-size: 0.65em;
+    top: 25%;
+    
+    &.cyberpunk-details {
+      .detail-separator {
+        margin: 0 0.2rem;
+      }
+    }
+  }
+  
+  .main-subtitle {
+    font-size: 0.6em;
+    top: 40%;
+    line-height: 1.1;
+    max-width: 80%;
+  }
+  
+  .hero-cta {
+    top: 65%;
+    gap: 0.2rem;
+    max-width: 240px;
+  }
+  
+  .hero-cta .btn {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.7rem;
   }
 }
