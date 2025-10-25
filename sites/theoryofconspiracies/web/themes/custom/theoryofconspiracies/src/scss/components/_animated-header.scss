@@ -373,9 +373,9 @@
 
 @media only screen and (max-width: 480px) {
   .main-title {
-    font-size: 1.8em;
-    top: 8%; /* Even higher for small screens */
-    line-height: 0.85; /* Very tight line height */
+    font-size: 1.6em;
+    top: 5%; /* Much higher for small screens */
+    line-height: 0.8; /* Very tight line height */
     padding: 0 1rem;
   }
   
@@ -385,42 +385,42 @@
   }
   
   .movie-details {
-    font-size: 0.7em;
-    top: 20%; /* Positioned between title and subtitle */
+    font-size: 0.65em;
+    top: 18%; /* Closer to title with more space below */
     padding: 0 1rem;
     margin: 0;
     max-width: 95%;
     
     &.cyberpunk-details {
       .detail-separator {
-        margin: 0 0.2rem; /* Very tight spacing */
+        margin: 0 0.15rem; /* Very tight spacing */
       }
       
       .detail-item {
-        font-size: 0.85em;
+        font-size: 0.9em;
       }
     }
   }
   
   .main-subtitle {
-    font-size: 0.65em; /* Smaller text for small screens */
-    top: 32%; /* More space from movie details */
+    font-size: 0.6em; /* Smaller text for small screens */
+    top: 35%; /* Much more space from movie details */
     margin: 0;
-    line-height: 1.15;
+    line-height: 1.1;
     padding: 0 1rem;
     max-width: 95%; /* More constrained width */
   }
   
   .hero-cta {
-    top: 50%; /* Lower to prevent overlap */
+    top: 55%; /* Much lower to prevent overlap */
     margin: 0;
     width: 100%;
     padding: 0 1rem;
     /* Vertical stack for maximum control */
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    max-width: 260px;
+    gap: 0.2rem;
+    max-width: 250px;
   }
   
   .hero-cta .btn {
@@ -705,6 +705,48 @@
   }
   100% {
     transform: translate3d(-50%, -50%, 0);
+  }
+}
+
+/* Very small portrait devices */
+@media only screen and (max-width: 390px) and (orientation: portrait) {
+  .main-title {
+    font-size: 1.4em;
+    top: 3%;
+    line-height: 0.75;
+  }
+  
+  .movie-details {
+    font-size: 0.6em;
+    top: 15%;
+    
+    &.cyberpunk-details {
+      .detail-separator {
+        margin: 0 0.1rem;
+      }
+      
+      .detail-item {
+        font-size: 0.95em;
+      }
+    }
+  }
+  
+  .main-subtitle {
+    font-size: 0.55em;
+    top: 28%;
+    line-height: 1.05;
+    max-width: 90%;
+  }
+  
+  .hero-cta {
+    top: 50%;
+    gap: 0.15rem;
+    max-width: 230px;
+  }
+  
+  .hero-cta .btn {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.65rem;
   }
 }
 
