@@ -115,7 +115,7 @@
 /* Subtitle styling - only for home page */
 .main-subtitle {
   position: absolute;
-  top: 60%;
+  top: 65%;
   left: 50%;
   transform: translate3d(-50%, -50%, 0);
   color: rgba(255, 255, 255, 0.9);
@@ -137,10 +137,46 @@
   }
 }
 
+/* Movie Details - only for home page */
+.movie-details {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate3d(-50%, -50%, 0);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.1em;
+  text-align: center;
+  z-index: 10;
+  padding: 0 1rem;
+  margin: 1rem 0;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 500;
+  letter-spacing: 1px;
+  
+  &.cyberpunk-details {
+    color: rgba(0, 255, 255, 0.9);
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+    
+    .detail-item {
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+    
+    .detail-separator {
+      color: #ff00ff;
+      margin: 0 1rem;
+      font-weight: bold;
+      text-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
+    }
+  }
+}
+
 /* CTA Buttons - only for home page */
 .hero-cta {
   position: absolute;
-  top: 85%; /* Moved down to prevent overlap */
+  top: 78%; /* Adjusted to accommodate movie details */
   left: 50%;
   transform: translate3d(-50%, -50%, 0);
   z-index: 10;
@@ -273,10 +309,24 @@
     top: 50%; /* Keep centered for page headers */
   }
   
+  .movie-details {
+    font-size: 0.85em;
+    top: 30%;
+    padding: 0 1.5rem;
+    margin: 0.5rem 0;
+    max-width: 90%;
+    
+    &.cyberpunk-details {
+      .detail-separator {
+        margin: 0 0.5rem; /* Reduced spacing on mobile */
+      }
+    }
+  }
+  
   .main-subtitle {
     font-size: 0.8em; /* Reduced by 20% from 1.0em */
     padding: 0 1.5rem;
-    top: 35%; /* Moved higher to prevent overlap */
+    top: 40%; /* Positioned after movie details */
     margin-top: 0.5rem;
     margin-bottom: 1rem; 
     line-height: 1.3; /* Tighter line height */
@@ -284,7 +334,7 @@
   }
   
   .hero-cta {
-    top: 60%; /* Moved significantly higher to prevent overlap */
+    top: 55%; /* Adjusted to accommodate movie details */
     margin-top: 0.5rem;
     width: 95%;
     left: 50%;
