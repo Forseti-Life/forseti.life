@@ -1,0 +1,7 @@
+name: Am I Safe
+type: module  
+description: Dashboard module for safety monitoring in Philadelphia 2085
+core_version_requirement: ^9 || ^10 || ^11
+package: Theory of Conspiracies
+dependencies:
+  - drupal:system

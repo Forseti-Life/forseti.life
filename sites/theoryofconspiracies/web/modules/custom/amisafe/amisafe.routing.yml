@@ -1,0 +1,7 @@
+amisafe.dashboard:
+  path: '/amisafe'
+  defaults:
+    _controller: '\Drupal\amisafe\Controller\AmISafeController::dashboard'
+    _title: 'Am I Safe?'
+  requirements:
+    _permission: 'access content'

@@ -1,0 +1,6 @@
+dashboard-styling:
+  css:
+    theme:
+      css/dashboard.css: {}
+  dependencies:
+    - core/drupal
