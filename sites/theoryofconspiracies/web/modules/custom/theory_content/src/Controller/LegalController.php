@@ -142,6 +142,11 @@ class LegalController extends ControllerBase {
           ]
         ]
       ],
+      '#attached' => [
+        'library' => [
+          'theory_content/site',
+        ],
+      ],
       '#cache' => [
         'max-age' => 3600,
       ],
@@ -233,6 +238,11 @@ class LegalController extends ControllerBase {
           ]
         ]
       ],
+      '#attached' => [
+        'library' => [
+          'theory_content/site',
+        ],
+      ],
       '#cache' => [
         'max-age' => 3600,
       ],
@@ -279,6 +289,11 @@ class LegalController extends ControllerBase {
             'content' => 'For questions, feedback, or collaboration inquiries, please contact info@stlouisintegration.com.'
           ]
         ]
+      ],
+      '#attached' => [
+        'library' => [
+          'theory_content/site',
+        ],
       ],
       '#cache' => [
         'max-age' => 3600,
