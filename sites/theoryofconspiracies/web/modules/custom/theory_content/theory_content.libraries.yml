@@ -1,3 +1,12 @@
+site:
+  css:
+    theme:
+      css/site.css: {}
+  dependencies:
+    - core/drupal
+    - core/once
+  version: "1.0.0"
+
 character-display:
   css:
     theme:
@@ -5,6 +14,7 @@ character-display:
   js:
     js/character-display.js: {}
   dependencies:
+    - theory_content/site
     - theoryofconspiracies/cyberpunk-effects
 
 characters-overview:
@@ -12,6 +22,7 @@ characters-overview:
     theme:
       css/characters-overview.css: {}
   dependencies:
+    - theory_content/site
     - theoryofconspiracies/cyberpunk-effects
 
 act-overview:
@@ -19,6 +30,7 @@ act-overview:
     theme:
       css/act-overview.css: {}
   dependencies:
+    - theory_content/site
     - theoryofconspiracies/cyberpunk-effects
 
 sequence-display:
@@ -28,6 +40,7 @@ sequence-display:
   js:
     js/sequence-display.js: {}
   dependencies:
+    - theory_content/site
     - theoryofconspiracies/cyberpunk-effects
 
 trust-network:

@@ -122,6 +122,11 @@ class HomeController extends ControllerBase {
       '#featured_characters' => $featured_characters,
       '#nav_sections' => $nav_sections,
       '#updates' => $updates,
+      '#attached' => [
+        'library' => [
+          'theory_content/site',
+        ],
+      ],
       '#cache' => [
         'max-age' => 3600, // Cache for 1 hour
       ],

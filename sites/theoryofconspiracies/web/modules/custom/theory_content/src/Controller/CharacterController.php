@@ -18,6 +18,7 @@ class CharacterController extends ControllerBase {
       '#characters' => $this->getMainCharacters(),
       '#attached' => [
         'library' => [
+          'theory_content/site',
           'theory_content/characters-overview',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -76,6 +77,8 @@ class CharacterController extends ControllerBase {
       '#character' => $character_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
+          'theory_content/site',
           'theory_content/character-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -127,11 +130,15 @@ class CharacterController extends ControllerBase {
         'Professional influence within peace officer hierarchy',
       ],
       'background' => 'Career peace officer who advanced through institutional ranks during AI integration period. Represents professional middle class maintaining system loyalty while family members develop resistance sympathies, creating personal and professional conflicts.',
-    ];    return [
+    ];
+
+    return [
       '#theme' => 'character_page',
       '#character' => $character_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
+          'theory_content/site',
           'theory_content/character-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -178,6 +185,7 @@ class CharacterController extends ControllerBase {
       '#character' => $character_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
           'theory_content/character-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -222,6 +230,7 @@ class CharacterController extends ControllerBase {
       '#character' => $character_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
           'theory_content/character-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -281,6 +290,7 @@ class CharacterController extends ControllerBase {
       '#character' => $character_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
           'theory_content/character-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -326,6 +336,7 @@ class CharacterController extends ControllerBase {
       '#character' => $character_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
           'theory_content/character-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -384,6 +395,7 @@ class CharacterController extends ControllerBase {
       '#character' => $character_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
           'theory_content/character-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -443,6 +455,7 @@ class CharacterController extends ControllerBase {
       '#character' => $character_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
           'theory_content/character-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -503,6 +516,7 @@ class CharacterController extends ControllerBase {
       '#character' => $character_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
           'theory_content/character-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -664,6 +678,7 @@ class CharacterController extends ControllerBase {
       '#character' => $character_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
           'theory_content/character-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -720,6 +735,7 @@ class CharacterController extends ControllerBase {
       '#character' => $character_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
           'theory_content/character-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -784,6 +800,7 @@ class CharacterController extends ControllerBase {
       '#character' => $character_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
           'theory_content/character-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -848,6 +865,7 @@ class CharacterController extends ControllerBase {
       '#character' => $character_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
           'theory_content/character-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
@@ -912,6 +930,7 @@ class CharacterController extends ControllerBase {
       '#character' => $character_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
           'theory_content/character-display',
           'theoryofconspiracies/cyberpunk-effects',
         ],
