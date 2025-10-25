@@ -46,6 +46,11 @@ class LegalController extends ControllerBase {
           ]
         ]
       ],
+      '#attached' => [
+        'library' => [
+          'theory_content/site',
+        ],
+      ],
       '#cache' => [
         'max-age' => 3600,
       ],
@@ -88,6 +93,11 @@ class LegalController extends ControllerBase {
             'content' => 'If you have questions about this Privacy Policy, please contact us at info@stlouisintegration.com.'
           ]
         ]
+      ],
+      '#attached' => [
+        'library' => [
+          'theory_content/site',
+        ],
       ],
       '#cache' => [
         'max-age' => 3600,
@@ -174,6 +184,11 @@ class LegalController extends ControllerBase {
             'content' => 'We respect intellectual property rights. If you believe your copyrighted work has been used inappropriately, please contact us at info@stlouisintegration.com.'
           ]
         ]
+      ],
+      '#attached' => [
+        'library' => [
+          'theory_content/site',
+        ],
       ],
       '#cache' => [
         'max-age' => 3600,

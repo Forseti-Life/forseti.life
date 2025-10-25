@@ -1,0 +1,10 @@
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(17, 17, 17, 0.9));
+  background: repeating-linear-gradient(
+  margin: 0 auto;
+  padding: 3rem 2rem;
+  font-family: 'Orbitron', monospace;
+  color: #00ffff;
+  font-family: 'Rajdhani', sans-serif;
+  color: rgba(255, 255, 255, 0.7);
+  background: linear-gradient(135deg, #ff00ff, #ff0080);
+  color: white;

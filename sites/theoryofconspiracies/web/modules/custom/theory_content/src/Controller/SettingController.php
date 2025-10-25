@@ -62,6 +62,7 @@ class SettingController extends ControllerBase {
       '#setting' => $setting_data,
       '#attached' => [
         'library' => [
+          'theory_content/site',
           'theory_content/setting-page',
         ],
       ],
