@@ -35,7 +35,6 @@ class SettingController extends ControllerBase {
           'population' => 89000,
           'control_level' => 67,
           'key_features' => [
-            'Biodyne Pharmaceutical Complexes',
             'Automated Manufacturing Hives',
             'Corporate Security Checkpoints',
             'Underground Resistance Hideouts',
