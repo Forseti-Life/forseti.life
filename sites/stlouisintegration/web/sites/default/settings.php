@@ -881,3 +881,27 @@ $settings['config_sync_directory'] = 'sites/default/files/config_M7t7j7TDrtZ7G8h
 $config['system.performance']['cache']['page']['max_age'] = 0;
 $config['system.performance']['css']['preprocess'] = FALSE;
 $config['system.performance']['js']['preprocess'] = FALSE;
+
+/**
+ * Development-specific settings
+ */
+
+// Enable local development settings
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+  include $app_root . '/' . $site_path . '/settings.local.php';
+}
+
+// Configuration sync directory
+$settings['config_sync_directory'] = '../config/sync';
+
+// Disable CSS and JS aggregation for development
+$config['system.performance']['css']['preprocess'] = FALSE;
+$config['system.performance']['js']['preprocess'] = FALSE;
+
+// Enable verbose error reporting
+$config['system.logging']['error_level'] = 'verbose';
+
+// Disable caching for development
+$settings['cache']['bins']['render'] = 'cache.backend.null';
+$settings['cache']['bins']['page'] = 'cache.backend.null';
+$settings['cache']['bins']['dynamic_page_cache'] = 'cache.backend.null';

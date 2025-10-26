@@ -122,22 +122,42 @@
 
   </div>
 
-  {# Emergency Footer #}
-  <div class="dashboard-footer">
-    <div class="emergency-notice">
-      <strong>EMERGENCY PROTOCOL:</strong> If threat level reaches CRITICAL, immediately seek nearest safe zone or activate emergency mesh beacon.
+  {# Emergency Alert Section #}
+  <div class="emergency-alert-section">
+    <div class="alert alert-danger cyberpunk-alert">
+      <h4 class="alert-heading">
+        <span class="neon-pulse">⚠️</span> EMERGENCY PROTOCOL
+      </h4>
+      <p class="mb-3">
+        <strong>If threat level reaches CRITICAL:</strong> Immediately seek nearest safe zone or activate emergency mesh beacon.
+      </p>
+      <div class="emergency-code">
+        <strong>Emergency Beacon Code:</strong> <code>AMISAFE-2085-{{ "now"|date("His") }}</code>
+      </div>
+      <div class="emergency-contact mt-3">
+        <strong>Emergency Contact:</strong> <span class="text-cyan">MESH-7749-ALPHA</span>
+      </div>
     </div>
-    <div class="footer-emergency-code">
-      Emergency Beacon Code: AMISAFE-2085-{{ "now"|date("His") }}
-    </div>
-    <div class="footer-links">
-      <a href="/setting/philadelphia-2085">City Map</a>
-      <a href="/characters">Resistance Contacts</a>
-      <a href="/story/act-i">Survival Guide</a>
-    </div>
-    <div class="footer-details">
-      <div class="footer-contact">Emergency Contact: MESH-7749-ALPHA</div>
-      <div class="footer-timestamp">System Active | Philadelphia 2085</div>
+  </div>
+
+  {# Dashboard Navigation Links #}
+  <div class="dashboard-nav-section">
+    <div class="row text-center">
+      <div class="col-md-4 mb-3">
+        <a href="/setting/philadelphia-2085" class="btn cyberpunk-btn d-block">
+          <span class="btn-icon">🗺️</span> City Map
+        </a>
+      </div>
+      <div class="col-md-4 mb-3">
+        <a href="/characters" class="btn cyberpunk-btn d-block">
+          <span class="btn-icon">👥</span> Resistance Contacts
+        </a>
+      </div>
+      <div class="col-md-4 mb-3">
+        <a href="/story/act-i" class="btn cyberpunk-btn d-block">
+          <span class="btn-icon">📖</span> Survival Guide
+        </a>
+      </div>
     </div>
   </div>
 
