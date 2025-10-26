@@ -93,7 +93,7 @@ class H3DataProcessor:
         for _, row in df.iterrows():
             try:
                 lat, lng = float(row[lat_col]), float(row[lng_col])
-                h3_index = h3.latlng_to_cell(lat, lng, resolution)
+                Anyh3_index = h3.latlng_to_cell(lat, lng, resolution)
                 
                 record = {
                     'lat': lat,
