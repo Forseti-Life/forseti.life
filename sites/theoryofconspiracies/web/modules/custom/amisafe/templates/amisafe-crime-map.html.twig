@@ -1,0 +1,182 @@
+{#
+/**
+ * @file
+ * AmISafe Crime Map template.
+ *
+ * Available variables:
+ * - map_config: Configuration for the map
+ * - crime_types: Available crime types for filtering
+ * - districts: Police districts
+ * - date_range: Available date range
+ */
+#}
+
+<div class="amisafe-crime-map-page">
+  <div class="page-header cyberpunk-header">
+    <h1 class="page-title terminal-text">
+      <span class="glitch-text">PHILADELPHIA CRIME MAP - 2085</span>
+    </h1>
+    <div class="subtitle terminal-text">
+      Real-time crime monitoring and spatial analysis
+    </div>
+  </div>
+
+  <div class="crime-map-layout">
+    <div class="control-panel-container">
+      <div class="control-panel">
+        <h3 class="panel-title">SECTOR FILTERS</h3>
+        
+        <!-- Date Range Filter -->
+        <div class="filter-section">
+          <label class="filter-label">TIME RANGE</label>
+          <input type="text" id="date-range-picker" class="cyber-input" />
+        </div>
+        
+        <!-- Crime Type Filter -->
+        <div class="filter-section">
+          <label class="filter-label">THREAT TYPES</label>
+          <div id="crime-type-filters" class="filter-checkboxes">
+            <!-- Dynamically populated from API -->
+          </div>
+        </div>
+        
+        <!-- District Filter -->
+        <div class="filter-section">
+          <label class="filter-label">DISTRICTS</label>
+          <select id="district-selector" class="cyber-select">
+            <option value="">ALL DISTRICTS</option>
+            <!-- Dynamically populated from API -->
+          </select>
+        </div>
+        
+        <!-- Hour Range Filter -->
+        <div class="filter-section">
+          <label class="filter-label">TIME OF DAY</label>
+          <div class="range-slider-container">
+            <input type="range" id="hour-range-start" class="cyber-range" min="0" max="23" value="0">
+            <input type="range" id="hour-range-end" class="cyber-range" min="0" max="23" value="23">
+            <div class="range-display">
+              <span id="hour-display">00:00 - 23:59</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="filter-actions">
+          <button id="apply-filters" class="cyber-button primary">APPLY FILTERS</button>
+          <button id="clear-filters" class="cyber-button secondary">CLEAR ALL</button>
+        </div>
+        
+        <!-- District Filter -->
+        <div class="filter-section">
+          <label class="filter-label">DISTRICTS</label>
+          <select id="district-filter" class="cyber-select" multiple>
+            {% for district in districts %}
+              <option value="{{ district }}">DISTRICT {{ district }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <!-- Time of Day Filter -->
+        <div class="filter-section">
+          <label class="filter-label">TIME OF DAY</label>
+          <div id="time-slider"></div>
+          <div id="time-display" class="time-display">00:00 - 23:59</div>
+        </div>
+        
+        <!-- View Options -->
+        <div class="filter-section">
+          <label class="filter-label">DISPLAY MODE</label>
+          <div class="view-options">
+            <button id="hexagon-view" class="cyber-button active">HEXAGON</button>
+            <button id="heatmap-view" class="cyber-button">HEATMAP</button>
+            <button id="points-view" class="cyber-button">POINTS</button>
+          </div>
+        </div>
+        
+        <!-- Stats Summary -->
+        <div class="stats-summary">
+          <h4 class="stats-title">SECTOR STATUS</h4>
+          <div id="current-stats" class="current-stats">
+            <div class="stat-item">
+              <span class="stat-label">TOTAL INCIDENTS:</span>
+              <span id="total-incidents" class="stat-value neon-green">--</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">THREAT LEVEL:</span>
+              <span id="threat-level" class="stat-value neon-orange">CALCULATING</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">ACTIVE SECTORS:</span>
+              <span id="active-sectors" class="stat-value neon-blue">--</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="map-container">
+      <div id="crime-map-container" class="crime-map-container">
+        <div id="loading-overlay" class="loading-overlay">
+          <div class="loading-indicator">
+            <div class="terminal-text">INITIALIZING NEURAL MAP</div>
+            <div class="loading-dots">LOADING</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Map Controls -->
+      <div class="map-controls">
+        <button id="fullscreen-btn" class="control-btn" title="Fullscreen">
+          <i class="fas fa-expand"></i>
+        </button>
+        <button id="reset-view-btn" class="control-btn" title="Reset View">
+          <i class="fas fa-home"></i>
+        </button>
+        <button id="screenshot-btn" class="control-btn" title="Screenshot">
+          <i class="fas fa-camera"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Expandable Analytics Dashboard -->
+  <div class="analytics-section">
+    <button id="toggle-analytics" class="section-toggle cyber-button">
+      <span class="toggle-text">SHOW ANALYTICS</span>
+      <i class="fas fa-chevron-down toggle-icon"></i>
+    </button>
+    
+    <div id="analytics-dashboard" class="analytics-dashboard collapsed">
+      <div class="analytics-grid">
+        <div class="chart-container">
+          <h4 class="chart-title">TEMPORAL ANALYSIS</h4>
+          <canvas id="crime-trend-chart"></canvas>
+        </div>
+        
+        <div class="chart-container">
+          <h4 class="chart-title">PATTERN MATRIX</h4>
+          <div id="time-pattern-heatmap"></div>
+        </div>
+        
+        <div class="chart-container">
+          <h4 class="chart-title">DISTRICT RANKINGS</h4>
+          <div id="district-rankings-table"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Incident Details Modal -->
+<div id="incident-modal" class="modal cyberpunk-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 class="modal-title terminal-text">INCIDENT ANALYSIS</h3>
+      <button class="modal-close cyber-button">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="incident-details"></div>
+    </div>
+  </div>
+</div>

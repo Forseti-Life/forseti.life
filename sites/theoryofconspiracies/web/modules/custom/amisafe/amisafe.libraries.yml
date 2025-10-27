@@ -4,3 +4,34 @@ dashboard-styling:
       css/dashboard.css: {}
   dependencies:
     - core/drupal
+
+# Core crime map library
+crime-map:
+  version: 1.x
+  css:
+    theme:
+      css/crime-map.css: {}
+      css/h3-hexagons.css: {}
+      css/cyberpunk-theme.css: {}
+  js:
+    js/crime-map.js: {}
+    js/h3-renderer.js: {}
+    js/leaflet-integration.js: {}
+    js/api-client.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/drupalSettings
+    - amisafe/external-libraries
+
+# External libraries
+external-libraries:
+  version: 1.x
+  css:
+    theme:
+      https://unpkg.com/leaflet@1.9.4/dist/leaflet.css: { type: external }
+  js:
+    https://unpkg.com/leaflet@1.9.4/dist/leaflet.js: { type: external }
+    https://unpkg.com/h3-js@4.1.0/dist/h3-js.umd.js: { type: external }
+    https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js: { type: external }
+    https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js: { type: external }

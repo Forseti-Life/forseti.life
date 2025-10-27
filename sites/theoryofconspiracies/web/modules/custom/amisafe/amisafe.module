@@ -28,5 +28,14 @@ function amisafe_theme() {
       ],
       'template' => 'amisafe-dashboard',
     ],
+    'amisafe_crime_map' => [
+      'variables' => [
+        'map_config' => NULL,
+        'crime_types' => [],
+        'districts' => [],
+        'date_range' => NULL,
+      ],
+      'template' => 'amisafe-crime-map',
+    ],
   ];
 }
