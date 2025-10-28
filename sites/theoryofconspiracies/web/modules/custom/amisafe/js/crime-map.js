@@ -579,8 +579,10 @@
       var resolution = this.getOptimalResolution(zoom);
       
       // CRITICAL DEBUGGING: Track resolution requests
+      console.log('🚀 LOADING HEXAGON DATA CALLED!');
       console.log('🎯 RESOLUTION DEBUG: Zoom=' + zoom + ' → H3=' + resolution + ' (~' + this.getResolutionDescription(resolution) + ')');
       console.log('📍 API Request URL: ' + this.settings.apiEndpoints.aggregated + '?resolution=' + resolution);
+      console.log('📍 Map bounds for API call:', bounds.toString());
       
       // Build API request parameters
       var params = {
@@ -1329,10 +1331,7 @@
       var zoom = this.map.getZoom();
       var resolution = this.getOptimalResolution(zoom);
       
-      // Only log when we cross into higher resolutions (less noise)
-      if (resolution >= 12) {
-        console.log('🎯 HIGH-RES ZOOM: ' + zoom + ' → H3=' + resolution + ' (' + this.getResolutionDescription(resolution) + ')');
-      }
+      console.log('🔄 ZOOM EVENT FIRED: ' + zoom + ' → H3=' + resolution + ' (' + this.getResolutionDescription(resolution) + ')');
       
       // Refresh hexagons with new resolution (no loading overlay to avoid interference)
       this.loadHexagonData(); // Direct call without loading overlay
