@@ -15,9 +15,6 @@ crime-map:
       css/cyberpunk-theme.css: {}
   js:
     js/crime-map.js: {}
-    js/h3-renderer.js: {}
-    js/leaflet-integration.js: {}
-    js/api-client.js: {}
   dependencies:
     - core/drupal
     - core/jquery

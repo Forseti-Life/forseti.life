@@ -70,6 +70,25 @@ amisafe.api.date_range:
     _permission: 'access content'
     _method: 'GET|POST'
 
+amisafe.api.hexagon_details:
+  path: '/api/amisafe/hexagon/{h3_index}'
+  defaults:
+    _controller: '\Drupal\amisafe\Controller\ApiController::hexagonDetails'
+    _format: 'json'
+  requirements:
+    _permission: 'access content'
+    _method: 'GET|POST'
+
+# Debug route for API testing
+amisafe.api.debug:
+  path: '/api/amisafe/debug'
+  defaults:
+    _controller: '\Drupal\amisafe\Controller\ApiController::debugTest'
+    _format: 'json'
+  requirements:
+    _permission: 'access content'
+    _method: 'GET'
+
 # Test route for debugging
 amisafe.test:
   path: '/amisafe/test'

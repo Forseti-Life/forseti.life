@@ -18,9 +18,12 @@
         return;
       }
 
-      $('#crime-map-container', context).once('amisafe-map').each(function () {
-        var crimeMap = new AmISafeCrimeMap(this, settings.amisafe);
-        crimeMap.initialize();
+      $(context).find('#crime-map-container').addBack('#crime-map-container').each(function () {
+        if (!this.hasAttribute('data-amisafe-initialized')) {
+          this.setAttribute('data-amisafe-initialized', 'true');
+          var crimeMap = new AmISafeCrimeMap(this, settings.amisafe);
+          crimeMap.initialize();
+        }
       });
     }
   };
@@ -161,110 +164,83 @@
     loadFilterOptions: function () {
       var self = this;
       
-      // Load crime types with fallback
+      // Load crime types for multi-select dropdown
       $.get('/api/amisafe/crime-types')
         .done(function (response) {
-          self.populateCrimeTypeFilters(response.crime_types);
+          self.populateCrimeTypeSelector(response.crime_types);
         })
         .fail(function (xhr) {
           console.error('Failed to load crime types:', xhr.responseText);
           // Use fallback crime types
-          self.populateCrimeTypeFilters({
+          self.populateCrimeTypeSelector({
             '100': 'Murder',
             '200': 'Rape', 
-            '300': 'Robbery',
-            '400': 'Aggravated Assault',
-            '500': 'Burglary',
+            '300': 'Robbery - Total',
+            '400': 'Aggravated Assault - Total',
+            '500': 'Burglary - Total',
             '600': 'Theft from Vehicle',
             '700': 'All Other Larceny',
             '800': 'Vandalism',
+            '900': 'Fraud',
+            '1000': 'Embezzlement',
             '1100': 'Narcotic Drug Law Violations',
+            '1200': 'Weapons Violations',
+            '1300': 'Prostitution',
             '1400': 'Other Assaults',
+            '1500': 'Arson',
+            '1600': 'Stolen Property',
+            '1700': 'DUI',
+            '1800': 'Liquor Laws',
+            '2000': 'Public Drunkenness',
+            '2100': 'Disorderly Conduct',
             '2600': 'Theft from Person'
           });
         });
 
-      // Load districts with fallback
+      // Load districts for multi-select dropdown
       $.get('/api/amisafe/districts')
         .done(function (response) {
-          self.populateDistrictFilter(response.districts);
+          self.populateDistrictSelector(response.districts);
         })
         .fail(function (xhr) {
           console.error('Failed to load districts:', xhr.responseText);
           // Use fallback districts
-          self.populateDistrictFilter(['1', '2', '3', '5', '6', '7', '8', '9', '12', '14', '15', '16', '17', '18', '19', '22', '24', '25', '26']);
-        });
-
-      // Setup date range with fallback
-      $.get('/api/amisafe/date-range')
-        .done(function (response) {
-          self.setupDateRangePicker(response.date_range);
-        })
-        .fail(function (xhr) {
-          console.error('Failed to load date range:', xhr.responseText);
-          // Use fallback date range
-          self.setupDateRangePicker({
-            min: '2025-01-01 00:00:00',
-            max: '2025-12-31 23:59:59'
-          });
+          self.populateDistrictSelector(['01', '02', '03', '05', '07', '08', '09', '12', '14', '15', '16', '17']);
         });
     },
 
     /**
-     * Populate crime type checkboxes
+     * Populate crime type multi-select dropdown
      */
-    populateCrimeTypeFilters: function (crimeTypes) {
-      var container = $('#crime-type-filters');
-      container.empty();
+    populateCrimeTypeSelector: function (crimeTypes) {
+      var select = $('#crime-type-selector');
+      select.empty();
       
-      var crimeTypeColors = {
-        '100': '#ff0066', '200': '#ff3366', '300': '#ff6600', '400': '#ff9900',
-        '500': '#ffcc00', '600': '#ccff00', '700': '#66ff00', '800': '#00ff66',
-        '900': '#00ffcc', '1000': '#00ccff', '1100': '#0066ff', '1200': '#3300ff',
-        '1300': '#6600ff', '1400': '#9900ff', '1500': '#cc00ff', '1600': '#ff00cc',
-        '1700': '#ff0099', '1800': '#ff6699', '2000': '#ff9999', '2100': '#ffcccc',
-        '2600': '#ff3333'
-      };
-
+      // Add all crime types as options, selected by default
       for (var code in crimeTypes) {
-        var color = crimeTypeColors[code] || '#00ffff';
-        var html = '<div class="crime-type-option">' +
-          '<input type="checkbox" id="crime-' + code + '" value="' + code + '" checked>' +
-          '<label for="crime-' + code + '" class="cyber-label">' +
-          '<span class="crime-indicator" style="background-color: ' + color + '; width: 12px; height: 12px; display: inline-block; margin-right: 8px; border-radius: 2px;"></span>' +
-          crimeTypes[code] +
-          '</label>' +
-          '</div>';
-        container.append(html);
+        var option = $('<option></option>')
+          .val(code)
+          .text('[' + code + '] ' + crimeTypes[code])
+          .prop('selected', true);
+        select.append(option);
       }
     },
 
     /**
-     * Populate district selector
+     * Populate district multi-select dropdown
      */
-    populateDistrictFilter: function (districts) {
+    populateDistrictSelector: function (districts) {
       var select = $('#district-selector');
-      select.find('option:not(:first)').remove(); // Keep "ALL DISTRICTS" option
+      select.empty();
       
+      // Add all districts as options, selected by default
       districts.forEach(function (district) {
-        select.append('<option value="' + district + '">DISTRICT ' + district + '</option>');
+        var option = $('<option></option>')
+          .val(district)
+          .text('DISTRICT ' + district)
+          .prop('selected', true);
+        select.append(option);
       });
-    },
-
-    /**
-     * Setup date range picker (using simple date inputs)
-     */
-    setupDateRangePicker: function (dateRange) {
-      var container = $('.filter-section').has('#date-range-picker');
-      container.find('#date-range-picker').remove();
-      
-      var html = '<div class="date-range-inputs">' +
-        '<input type="date" id="start-date" class="cyber-input" value="' + dateRange.min.split(' ')[0] + '" min="' + dateRange.min.split(' ')[0] + '" max="' + dateRange.max.split(' ')[0] + '">' +
-        '<span class="date-separator">TO</span>' +
-        '<input type="date" id="end-date" class="cyber-input" value="' + dateRange.max.split(' ')[0] + '" min="' + dateRange.min.split(' ')[0] + '" max="' + dateRange.max.split(' ')[0] + '">' +
-        '</div>';
-      
-      container.append(html);
     },
 
     /**
@@ -273,25 +249,24 @@
     setupFilterEventHandlers: function () {
       var self = this;
 
-      // Crime type checkboxes
-      $(document).on('change', '#crime-type-filters input[type="checkbox"]', function () {
+      // Multi-select change handlers
+      $(document).on('change', '#crime-type-selector, #district-selector, #severity-selector, #time-period-selector', function () {
         self.scheduleFilterUpdate();
       });
 
-      // District selector
-      $(document).on('change', '#district-selector', function () {
+      // Date selector change handlers
+      $(document).on('change', '#start-month, #end-month', function () {
         self.scheduleFilterUpdate();
       });
 
-      // Date inputs
-      $(document).on('change', '#start-date, #end-date', function () {
-        self.scheduleFilterUpdate();
-      });
-
-      // Hour range sliders
-      $(document).on('input', '#hour-range-start, #hour-range-end', function () {
-        self.updateHourDisplay();
-        self.scheduleFilterUpdate();
+      // Preset buttons
+      $(document).on('click', '.preset-btn', function () {
+        var preset = $(this).data('preset');
+        self.applyPreset(preset);
+        
+        // Toggle active state
+        $('.preset-btn').removeClass('active');
+        $(this).addClass('active');
       });
 
       // Filter action buttons
@@ -302,6 +277,52 @@
       $(document).on('click', '#clear-filters', function () {
         self.clearAllFilters();
       });
+    },
+
+    /**
+     * Apply preset filter configurations
+     */
+    applyPreset: function (preset) {
+      var self = this;
+      
+      // Clear current selections first
+      $('#crime-type-selector option').prop('selected', false);
+      $('#severity-selector option').prop('selected', false);
+      $('#time-period-selector option').prop('selected', true);
+      
+      switch (preset) {
+        case 'violent':
+          // Select violent crime types
+          $('#crime-type-selector option[value="100"], #crime-type-selector option[value="200"], #crime-type-selector option[value="300"], #crime-type-selector option[value="400"], #crime-type-selector option[value="1500"]').prop('selected', true);
+          $('#severity-selector option[value="3"], #severity-selector option[value="4"], #severity-selector option[value="5"]').prop('selected', true);
+          break;
+          
+        case 'property':
+          // Select property crime types
+          $('#crime-type-selector option[value="500"], #crime-type-selector option[value="600"], #crime-type-selector option[value="700"], #crime-type-selector option[value="800"], #crime-type-selector option[value="1600"]').prop('selected', true);
+          $('#severity-selector option[value="1"], #severity-selector option[value="2"], #severity-selector option[value="3"]').prop('selected', true);
+          break;
+          
+        case 'recent':
+          // Select all types but limit to recent months
+          $('#crime-type-selector option').prop('selected', true);
+          $('#severity-selector option').prop('selected', true);
+          // Set date to last 3 months
+          var currentMonth = new Date().getMonth() + 1;
+          var startMonth = Math.max(1, currentMonth - 2);
+          $('#start-month').val(startMonth.toString().padStart(2, '0'));
+          $('#end-month').val(currentMonth.toString().padStart(2, '0'));
+          break;
+          
+        case 'high-severity':
+          // Select all types but only high severity
+          $('#crime-type-selector option').prop('selected', true);
+          $('#severity-selector option[value="4"], #severity-selector option[value="5"]').prop('selected', true);
+          break;
+      }
+      
+      // Apply the preset filters immediately
+      this.scheduleFilterUpdate();
     },
 
     /**
@@ -346,75 +367,72 @@
     },
 
     /**
-     * Get current filter values
+     * Get current filter values from selectors
      */
     getCurrentFilters: function () {
       var filters = {};
       
-      // Crime types
-      var selectedCrimeTypes = [];
-      $('#crime-type-filters input[type="checkbox"]:checked').each(function () {
-        selectedCrimeTypes.push($(this).val());
-      });
-      if (selectedCrimeTypes.length > 0) {
+      // Crime types from multi-select
+      var selectedCrimeTypes = $('#crime-type-selector').val();
+      if (selectedCrimeTypes && selectedCrimeTypes.length > 0) {
         filters.crime_types = selectedCrimeTypes;
       }
       
-      // District
-      var district = $('#district-selector').val();
-      if (district) {
-        filters.district = district;
+      // Districts from multi-select
+      var selectedDistricts = $('#district-selector').val();
+      if (selectedDistricts && selectedDistricts.length > 0) {
+        filters.districts = selectedDistricts;
       }
       
-      // Date range
-      var startDate = $('#start-date').val();
-      var endDate = $('#end-date').val();
-      if (startDate) {
-        filters.start_date = startDate;
-      }
-      if (endDate) {
-        filters.end_date = endDate;
+      // Severity levels from multi-select
+      var selectedSeverities = $('#severity-selector').val();
+      if (selectedSeverities && selectedSeverities.length > 0) {
+        filters.severities = selectedSeverities;
       }
       
-      // Hour range
-      var hourStart = $('#hour-range-start').val();
-      var hourEnd = $('#hour-range-end').val();
-      if (hourStart !== undefined && hourStart !== '0') {
-        filters.hour_start = hourStart;
+      // Date range from month selectors
+      var startMonth = $('#start-month').val();
+      var endMonth = $('#end-month').val();
+      if (startMonth && endMonth) {
+        filters.start_date = '2025-' + startMonth + '-01';
+        // Get last day of end month
+        var lastDay = new Date(2025, parseInt(endMonth), 0).getDate();
+        filters.end_date = '2025-' + endMonth + '-' + lastDay;
       }
-      if (hourEnd !== undefined && hourEnd !== '23') {
-        filters.hour_end = hourEnd;
+      
+      // Time periods from multi-select
+      var selectedTimePeriods = $('#time-period-selector').val();
+      if (selectedTimePeriods && selectedTimePeriods.length > 0) {
+        filters.time_periods = selectedTimePeriods;
       }
       
       return filters;
     },
 
     /**
-     * Clear all filters
+     * Clear all filters to default state
      */
     clearAllFilters: function () {
-      // Uncheck all crime type checkboxes
-      $('#crime-type-filters input[type="checkbox"]').prop('checked', true);
+      // Select all crime types
+      $('#crime-type-selector option').prop('selected', true);
       
-      // Reset district selector
-      $('#district-selector').val('');
+      // Select all districts
+      $('#district-selector option').prop('selected', true);
       
-      // Reset date inputs to full range
-      var startDate = $('#start-date');
-      var endDate = $('#end-date');
-      if (startDate.length) {
-        startDate.val(startDate.attr('min'));
-      }
-      if (endDate.length) {
-        endDate.val(endDate.attr('max'));
-      }
+      // Select all severity levels
+      $('#severity-selector option').prop('selected', true);
       
-      // Reset hour sliders
-      $('#hour-range-start').val(0);
-      $('#hour-range-end').val(23);
-      this.updateHourDisplay();
+      // Reset date range to full year
+      $('#start-month').val('01');
+      $('#end-month').val('12');
       
-      // Apply filters (which will be empty, showing all data)
+      // Select all time periods
+      $('#time-period-selector option').prop('selected', true);
+      
+      // Clear preset button states
+      $('.preset-btn').removeClass('active');
+      
+      // Apply filters (which will show all data)
       this.applyFilters();
     },
 
@@ -446,18 +464,35 @@
       
       // Add filters if provided
       if (filters) {
+        // Crime types
         if (filters.crime_types && filters.crime_types.length > 0) {
           params.crime_types = filters.crime_types.join(',');
         }
-        if (filters.district) {
-          params.districts = filters.district;
+        
+        // Districts (updated for new multi-select format)
+        if (filters.districts && filters.districts.length > 0) {
+          params.districts = filters.districts.join(',');
         }
+        
+        // Severity levels (new selector-based)
+        if (filters.severities && filters.severities.length > 0) {
+          params.severities = filters.severities.join(',');
+        }
+        
+        // Date range
         if (filters.start_date) {
           params.start_date = filters.start_date;
         }
         if (filters.end_date) {
           params.end_date = filters.end_date;
         }
+        
+        // Time periods (new selector-based)
+        if (filters.time_periods && filters.time_periods.length > 0) {
+          params.time_periods = filters.time_periods.join(',');
+        }
+        
+        // Legacy filters (backwards compatibility)
         if (filters.hour_start) {
           params.hour_start = filters.hour_start;
         }
@@ -654,7 +689,7 @@
             <div class="stat-line">THREAT LEVEL: <span class="threat-${threatLevel.toLowerCase()}">${threatLevel}</span></div>
             <div class="stat-line">SEVERITY: <span class="neon-orange">${hexagon.severity_avg}/5</span></div>
           </div>
-          <button class="cyber-button" onclick="AmISafeMap.showFullDetails('${hexagon.h3_index}')">
+          <button class="cyber-button" onclick="AmISafeCrimeMap.showFullDetails('${hexagon.h3_index}')">
             &gt; ANALYZE SECTOR_
           </button>
         </div>
@@ -664,6 +699,202 @@
         .setLatLng(latlng)
         .setContent(popupContent)
         .openOn(this.map);
+    },
+
+    /**
+     * Show full detailed analysis for a hexagon
+     */
+    showFullDetails: function (h3Index) {
+      var self = this;
+      
+      // Show loading modal
+      this.showDetailModal('LOADING SECTOR ANALYSIS...', '<div class="loading-spinner">█ ACCESSING DATABASE_</div>');
+      
+      // Get current filters to apply to detailed data
+      var filters = this.getCurrentFilters();
+      
+      // Fetch detailed hexagon data
+      $.ajax({
+        url: '/api/amisafe/hexagon/' + h3Index,
+        type: 'POST',
+        data: JSON.stringify(filters),
+        contentType: 'application/json',
+        dataType: 'json'
+      })
+      .done(function (response) {
+        self.displayDetailedAnalysis(response);
+      })
+      .fail(function (xhr, status, error) {
+        console.error('Failed to fetch hexagon details:', error);
+        self.showDetailModal('ERROR', '<div class="error-text">FAILED TO ACCESS DATABASE<br>CONNECTION SEVERED</div>');
+      });
+    },
+
+    /**
+     * Display detailed analysis modal
+     */
+    displayDetailedAnalysis: function (data) {
+      var hexagonData = data.hexagon_data;
+      var threatAnalysis = data.threat_analysis;
+      var recommendations = data.recommendations;
+      var h3Index = data.h3_index;
+      
+      // Build crime breakdown
+      var crimeBreakdown = '';
+      if (hexagonData.crime_breakdown && hexagonData.crime_breakdown.length > 0) {
+        crimeBreakdown = '<div class="crime-breakdown"><h4 class="terminal-text">CRIME ANALYSIS</h4>';
+        hexagonData.crime_breakdown.slice(0, 5).forEach(function (crime) {
+          crimeBreakdown += `
+            <div class="crime-item">
+              <span class="crime-type">${crime.description}</span>
+              <span class="crime-count neon-green">${crime.count} (${crime.percentage}%)</span>
+            </div>
+          `;
+        });
+        crimeBreakdown += '</div>';
+      }
+      
+      // Build time distribution
+      var timeAnalysis = '';
+      if (hexagonData.hourly_distribution) {
+        var highActivity = this.getHighActivityPeriods(hexagonData.hourly_distribution);
+        timeAnalysis = `
+          <div class="time-analysis">
+            <h4 class="terminal-text">TEMPORAL PATTERNS</h4>
+            <div class="activity-periods">${highActivity}</div>
+          </div>
+        `;
+      }
+      
+      // Build recommendations
+      var recList = '';
+      if (recommendations && recommendations.length > 0) {
+        recList = '<div class="recommendations"><h4 class="terminal-text">SECURITY PROTOCOLS</h4>';
+        recommendations.forEach(function (rec) {
+          recList += `<div class="rec-item">&gt; ${rec}</div>`;
+        });
+        recList += '</div>';
+      }
+      
+      // Build recent incidents
+      var recentIncidents = '';
+      if (hexagonData.recent_incidents && hexagonData.recent_incidents.length > 0) {
+        recentIncidents = '<div class="recent-incidents"><h4 class="terminal-text">RECENT ACTIVITY</h4>';
+        hexagonData.recent_incidents.slice(0, 3).forEach(function (incident) {
+          recentIncidents += `
+            <div class="incident-item">
+              <span class="incident-date">${incident.incident_date}</span>
+              <span class="incident-type">${incident.ucr_description}</span>
+            </div>
+          `;
+        });
+        recentIncidents += '</div>';
+      }
+      
+      var threatColor = this.getThreatColor(threatAnalysis.level);
+      
+      var content = `
+        <div class="detailed-analysis">
+          <h2 class="terminal-text">SECTOR ${h3Index.substring(0, 8).toUpperCase()} - FULL ANALYSIS</h2>
+          
+          <div class="threat-header">
+            <div class="threat-badge threat-${threatAnalysis.level.toLowerCase()}" style="color: ${threatColor}">
+              █ THREAT LEVEL: ${threatAnalysis.level}
+            </div>
+            <div class="confidence">CONFIDENCE: ${data.meta.confidence}</div>
+          </div>
+          
+          <div class="analysis-grid">
+            <div class="stats-panel">
+              <h4 class="terminal-text">SECTOR STATISTICS</h4>
+              <div class="stat-line">TOTAL INCIDENTS: <span class="neon-green">${hexagonData.total_incidents}</span></div>
+              <div class="stat-line">SEVERITY AVERAGE: <span class="neon-orange">${hexagonData.severity_avg}/5</span></div>
+              <div class="stat-line">LAST INCIDENT: <span class="neon-blue">${hexagonData.last_incident}</span></div>
+              <div class="stat-line">DISTRICTS: <span class="neon-purple">${hexagonData.districts.join(', ')}</span></div>
+            </div>
+            
+            ${crimeBreakdown}
+            ${timeAnalysis}
+            ${recentIncidents}
+            ${recList}
+          </div>
+          
+          <div class="risk-factors">
+            <h4 class="terminal-text">RISK ASSESSMENT</h4>
+            ${threatAnalysis.risk_factors.map(factor => `<div class="risk-item">⚠ ${factor}</div>`).join('')}
+          </div>
+        </div>
+      `;
+      
+      this.showDetailModal('SECTOR ANALYSIS COMPLETE', content);
+    },
+
+    /**
+     * Get high activity time periods
+     */
+    getHighActivityPeriods: function (hourlyDist) {
+      var periods = [];
+      var maxActivity = Math.max.apply(Math, Object.values(hourlyDist));
+      
+      for (var hour in hourlyDist) {
+        if (hourlyDist[hour] >= maxActivity * 0.7) {
+          var timeStr = (hour < 10 ? '0' + hour : hour) + ':00';
+          periods.push(`${timeStr} (${hourlyDist[hour]} incidents)`);
+        }
+      }
+      
+      return periods.join('<br>') || 'NO CLEAR PATTERN DETECTED';
+    },
+
+    /**
+     * Get threat level color
+     */
+    getThreatColor: function (level) {
+      var colors = {
+        'CRITICAL': '#ff0066',
+        'HIGH': '#ff3300',
+        'MODERATE': '#ffaa00',
+        'LOW': '#00ff66',
+        'MINIMAL': '#0099ff'
+      };
+      return colors[level] || '#888888';
+    },
+
+    /**
+     * Show detail modal
+     */
+    showDetailModal: function (title, content) {
+      // Remove existing modal
+      $('.crime-detail-modal').remove();
+      
+      var modal = $(`
+        <div class="crime-detail-modal">
+          <div class="modal-overlay"></div>
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 class="terminal-text">${title}</h3>
+              <button class="close-btn" onclick="AmISafeCrimeMap.closeDetailModal()">[X]</button>
+            </div>
+            <div class="modal-body">
+              ${content}
+            </div>
+          </div>
+        </div>
+      `);
+      
+      $('body').append(modal);
+      
+      // Close on overlay click
+      modal.find('.modal-overlay').on('click', function () {
+        AmISafeCrimeMap.closeDetailModal();
+      });
+    },
+
+    /**
+     * Close detail modal
+     */
+    closeDetailModal: function () {
+      $('.crime-detail-modal').remove();
     },
 
     /**

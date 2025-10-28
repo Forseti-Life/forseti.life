@@ -26,62 +26,105 @@
       <div class="control-panel">
         <h3 class="panel-title">SECTOR FILTERS</h3>
         
-        <!-- Date Range Filter -->
+        <!-- Crime Type Multi-Select Filter -->
         <div class="filter-section">
-          <label class="filter-label">TIME RANGE</label>
-          <input type="text" id="date-range-picker" class="cyber-input" />
-        </div>
-        
-        <!-- Crime Type Filter -->
-        <div class="filter-section">
-          <label class="filter-label">THREAT TYPES</label>
-          <div id="crime-type-filters" class="filter-checkboxes">
-            <!-- Dynamically populated from API -->
-          </div>
-        </div>
-        
-        <!-- District Filter -->
-        <div class="filter-section">
-          <label class="filter-label">DISTRICTS</label>
-          <select id="district-selector" class="cyber-select">
-            <option value="">ALL DISTRICTS</option>
+          <label class="filter-label">THREAT CATEGORIES</label>
+          <select id="crime-type-selector" class="cyber-select-multi" multiple>
             <!-- Dynamically populated from API -->
           </select>
+          <div class="filter-helper">Hold Ctrl/Cmd to select multiple</div>
         </div>
         
-        <!-- Hour Range Filter -->
+        <!-- District Multi-Select Filter -->
         <div class="filter-section">
-          <label class="filter-label">TIME OF DAY</label>
-          <div class="range-slider-container">
-            <input type="range" id="hour-range-start" class="cyber-range" min="0" max="23" value="0">
-            <input type="range" id="hour-range-end" class="cyber-range" min="0" max="23" value="23">
-            <div class="range-display">
-              <span id="hour-display">00:00 - 23:59</span>
+          <label class="filter-label">DISTRICTS</label>
+          <select id="district-selector" class="cyber-select-multi" multiple>
+            <!-- Dynamically populated from API -->
+          </select>
+          <div class="filter-helper">Hold Ctrl/Cmd to select multiple</div>
+        </div>
+        
+        <!-- Severity Level Filter -->
+        <div class="filter-section">
+          <label class="filter-label">THREAT SEVERITY</label>
+          <select id="severity-selector" class="cyber-select-multi" multiple>
+            <option value="1" selected>LEVEL 1 - LOW</option>
+            <option value="2" selected>LEVEL 2 - MODERATE</option>
+            <option value="3" selected>LEVEL 3 - HIGH</option>
+            <option value="4" selected>LEVEL 4 - CRITICAL</option>
+            <option value="5" selected>LEVEL 5 - EXTREME</option>
+          </select>
+          <div class="filter-helper">Select threat levels to display</div>
+        </div>
+        
+        <!-- Date Range Selectors -->
+        <div class="filter-section">
+          <label class="filter-label">TIME PERIOD</label>
+          <div class="date-selector-grid">
+            <div class="date-selector-group">
+              <label class="sub-label">FROM MONTH</label>
+              <select id="start-month" class="cyber-select">
+                <option value="01">JANUARY</option>
+                <option value="02">FEBRUARY</option>
+                <option value="03">MARCH</option>
+                <option value="04">APRIL</option>
+                <option value="05">MAY</option>
+                <option value="06">JUNE</option>
+                <option value="07">JULY</option>
+                <option value="08">AUGUST</option>
+                <option value="09">SEPTEMBER</option>
+                <option value="10">OCTOBER</option>
+                <option value="11">NOVEMBER</option>
+                <option value="12">DECEMBER</option>
+              </select>
+            </div>
+            <div class="date-selector-group">
+              <label class="sub-label">TO MONTH</label>
+              <select id="end-month" class="cyber-select">
+                <option value="01">JANUARY</option>
+                <option value="02">FEBRUARY</option>
+                <option value="03">MARCH</option>
+                <option value="04">APRIL</option>
+                <option value="05">MAY</option>
+                <option value="06">JUNE</option>
+                <option value="07">JULY</option>
+                <option value="08">AUGUST</option>
+                <option value="09">SEPTEMBER</option>
+                <option value="10">OCTOBER</option>
+                <option value="11">NOVEMBER</option>
+                <option value="12" selected>DECEMBER</option>
+              </select>
             </div>
           </div>
-        </div>
-        
-        <!-- Action Buttons -->
-        <div class="filter-actions">
-          <button id="apply-filters" class="cyber-button primary">APPLY FILTERS</button>
-          <button id="clear-filters" class="cyber-button secondary">CLEAR ALL</button>
-        </div>
-        
-        <!-- District Filter -->
-        <div class="filter-section">
-          <label class="filter-label">DISTRICTS</label>
-          <select id="district-filter" class="cyber-select" multiple>
-            {% for district in districts %}
-              <option value="{{ district }}">DISTRICT {{ district }}</option>
-            {% endfor %}
-          </select>
         </div>
         
         <!-- Time of Day Filter -->
         <div class="filter-section">
           <label class="filter-label">TIME OF DAY</label>
-          <div id="time-slider"></div>
-          <div id="time-display" class="time-display">00:00 - 23:59</div>
+          <select id="time-period-selector" class="cyber-select-multi" multiple>
+            <option value="early-morning" selected>EARLY MORNING (00:00-05:59)</option>
+            <option value="morning" selected>MORNING (06:00-11:59)</option>
+            <option value="afternoon" selected>AFTERNOON (12:00-17:59)</option>
+            <option value="evening" selected>EVENING (18:00-23:59)</option>
+          </select>
+          <div class="filter-helper">Select time periods to include</div>
+        </div>
+        
+        <!-- Quick Filter Presets -->
+        <div class="filter-section">
+          <label class="filter-label">QUICK PRESETS</label>
+          <div class="preset-buttons">
+            <button id="preset-violent" class="cyber-button preset-btn" data-preset="violent">VIOLENT CRIMES</button>
+            <button id="preset-property" class="cyber-button preset-btn" data-preset="property">PROPERTY CRIMES</button>
+            <button id="preset-recent" class="cyber-button preset-btn" data-preset="recent">RECENT (30 DAYS)</button>
+            <button id="preset-high-severity" class="cyber-button preset-btn" data-preset="high-severity">HIGH SEVERITY</button>
+          </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="filter-actions">
+          <button id="apply-filters" class="cyber-button primary">SCAN SECTORS</button>
+          <button id="clear-filters" class="cyber-button secondary">RESET ALL</button>
         </div>
         
         <!-- View Options -->

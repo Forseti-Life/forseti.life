@@ -187,6 +187,11 @@ class H3AggregatorService {
     $all_types = ['100', '200', '300', '400', '500', '600'];
     $selected_count = rand(1, 3);
     
+    // Ensure we have an array and valid count
+    if (!is_array($all_types) || $selected_count < 1) {
+      return ['600']; // Fallback to a single crime type
+    }
+    
     // Shuffle and take the first n elements
     shuffle($all_types);
     return array_slice($all_types, 0, $selected_count);

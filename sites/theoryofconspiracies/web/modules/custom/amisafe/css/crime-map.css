@@ -715,3 +715,445 @@
     flex-direction: column;
   }
 }
+
+/* Crime Detail Modal Styles */
+.crime-detail-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  font-family: var(--terminal-font);
+}
+
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+}
+
+.modal-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+  border: 2px solid var(--neon-blue);
+  border-radius: 8px;
+  box-shadow: 0 0 30px var(--neon-blue);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: modal-appear 0.3s ease-out;
+}
+
+@keyframes modal-appear {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.modal-header {
+  padding: 20px;
+  border-bottom: 1px solid var(--neon-blue);
+  background: rgba(0, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: var(--neon-blue);
+  text-shadow: 0 0 10px var(--neon-blue);
+}
+
+.close-btn {
+  background: none;
+  border: 1px solid var(--neon-red);
+  color: var(--neon-red);
+  padding: 5px 10px;
+  cursor: pointer;
+  font-family: var(--terminal-font);
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: var(--neon-red);
+  color: black;
+  box-shadow: 0 0 10px var(--neon-red);
+}
+
+.modal-body {
+  padding: 20px;
+  max-height: calc(90vh - 100px);
+  overflow-y: auto;
+  color: var(--neon-green);
+}
+
+/* Detailed Analysis Styles */
+.detailed-analysis {
+  min-width: 600px;
+}
+
+.threat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+}
+
+.threat-badge {
+  font-weight: bold;
+  font-size: 1.2em;
+  text-shadow: 0 0 10px currentColor;
+  animation: pulse-glow 2s infinite alternate;
+}
+
+.threat-critical { color: #ff0066; }
+.threat-high { color: #ff3300; }
+.threat-moderate { color: #ffaa00; }
+.threat-low { color: #00ff66; }
+.threat-minimal { color: #0099ff; }
+
+.confidence {
+  color: var(--neon-blue);
+  font-size: 0.9em;
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.stats-panel,
+.crime-breakdown,
+.time-analysis,
+.recent-incidents {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 15px;
+  border: 1px solid var(--neon-blue);
+  border-radius: 5px;
+}
+
+.stats-panel h4,
+.crime-breakdown h4,
+.time-analysis h4,
+.recent-incidents h4 {
+  margin: 0 0 10px 0;
+  color: var(--neon-blue);
+  text-shadow: 0 0 5px var(--neon-blue);
+}
+
+.stat-line {
+  margin: 8px 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.crime-item,
+.incident-item {
+  margin: 8px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px;
+  background: rgba(0, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.crime-type,
+.incident-type {
+  font-size: 0.9em;
+  color: var(--neon-green);
+}
+
+.crime-count,
+.incident-date {
+  font-weight: bold;
+  color: var(--neon-orange);
+}
+
+.activity-periods {
+  font-size: 0.9em;
+  line-height: 1.4;
+  color: var(--neon-yellow);
+}
+
+.recommendations {
+  grid-column: 1 / -1;
+  background: rgba(255, 136, 0, 0.1);
+  border-color: var(--neon-orange);
+}
+
+.rec-item {
+  margin: 8px 0;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-left: 3px solid var(--neon-orange);
+  color: var(--neon-orange);
+  font-size: 0.9em;
+}
+
+.risk-factors {
+  background: rgba(255, 0, 0, 0.1);
+  padding: 15px;
+  border: 1px solid var(--neon-red);
+  border-radius: 5px;
+}
+
+.risk-factors h4 {
+  margin: 0 0 10px 0;
+  color: var(--neon-red);
+  text-shadow: 0 0 5px var(--neon-red);
+}
+
+.risk-item {
+  margin: 8px 0;
+  color: var(--neon-red);
+  font-size: 0.9em;
+}
+
+.loading-spinner {
+  text-align: center;
+  font-size: 1.5em;
+  color: var(--neon-blue);
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0.3; }
+}
+
+.error-text {
+  text-align: center;
+  color: var(--neon-red);
+  font-size: 1.2em;
+  line-height: 1.5;
+}
+
+/* New Selector-Based Filter Styles */
+
+/* Multi-select dropdowns */
+.cyber-select-multi {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--neon-green);
+  color: var(--neon-green);
+  font-family: var(--terminal-font);
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  min-height: 80px;
+  resize: vertical;
+}
+
+.cyber-select-multi:focus {
+  outline: none;
+  border-color: var(--neon-blue);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.cyber-select-multi option {
+  background: var(--dark-bg);
+  color: var(--neon-green);
+  padding: 5px;
+  font-family: var(--terminal-font);
+  border: none;
+}
+
+.cyber-select-multi option:selected {
+  background: var(--neon-blue);
+  color: var(--dark-bg);
+}
+
+.cyber-select-multi option:hover {
+  background: rgba(0, 255, 255, 0.2);
+}
+
+/* Filter helper text */
+.filter-helper {
+  font-size: 0.7rem;
+  color: var(--neon-orange);
+  opacity: 0.7;
+  margin-top: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Date selector grid */
+.date-selector-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.date-selector-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.sub-label {
+  font-size: 0.7rem;
+  color: var(--neon-yellow);
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  letter-spacing: 1px;
+}
+
+/* Preset buttons */
+.preset-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.preset-btn {
+  font-size: 0.7rem !important;
+  padding: 6px 8px !important;
+  border-color: var(--neon-orange) !important;
+  color: var(--neon-orange) !important;
+  transition: all 0.3s ease;
+}
+
+.preset-btn:hover {
+  border-color: var(--neon-yellow) !important;
+  color: var(--neon-yellow) !important;
+  box-shadow: 0 0 15px var(--neon-yellow) !important;
+  background: rgba(255, 255, 0, 0.1) !important;
+}
+
+.preset-btn.active {
+  background: rgba(255, 136, 0, 0.2) !important;
+  border-color: var(--neon-orange) !important;
+  color: #fff !important;
+  box-shadow: 0 0 20px var(--neon-orange) !important;
+}
+
+/* Enhanced filter actions */
+.filter-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--neon-blue);
+}
+
+.cyber-button.primary {
+  background: rgba(0, 255, 0, 0.1);
+  border-color: var(--neon-green);
+  color: var(--neon-green);
+  flex: 2;
+  font-weight: bold;
+}
+
+.cyber-button.primary:hover {
+  background: rgba(0, 255, 0, 0.2);
+  box-shadow: 0 0 25px var(--neon-green);
+}
+
+.cyber-button.secondary {
+  background: rgba(255, 0, 0, 0.1);
+  border-color: var(--neon-red);
+  color: var(--neon-red);
+  flex: 1;
+}
+
+.cyber-button.secondary:hover {
+  background: rgba(255, 0, 0, 0.2);
+  box-shadow: 0 0 25px var(--neon-red);
+}
+
+/* Improved scrollbars for multi-selects */
+.cyber-select-multi::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cyber-select-multi::-webkit-scrollbar-track {
+  background: var(--dark-bg);
+  border: 1px solid var(--neon-blue);
+}
+
+.cyber-select-multi::-webkit-scrollbar-thumb {
+  background: var(--neon-blue);
+  border-radius: 4px;
+}
+
+.cyber-select-multi::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-green);
+}
+
+/* Filter section enhancements */
+.filter-section {
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  padding: 15px;
+  margin-bottom: 20px;
+  background: rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.filter-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+  animation: pulse-border 3s infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Mobile responsiveness for modal */
+@media (max-width: 768px) {
+  .modal-content {
+    max-width: 95vw;
+    max-height: 95vh;
+  }
+  
+  .detailed-analysis {
+    min-width: auto;
+  }
+  
+  .analysis-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .threat-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .date-selector-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .preset-buttons {
+    grid-template-columns: 1fr;
+  }
+  
+  .filter-actions {
+    flex-direction: column;
+  }
+}

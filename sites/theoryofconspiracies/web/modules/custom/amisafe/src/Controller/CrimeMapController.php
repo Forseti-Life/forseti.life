@@ -49,32 +49,14 @@ class CrimeMapController extends ControllerBase {
    * Displays the interactive crime map.
    */
   public function map(Request $request) {
-    // Get initial configuration
-    $config = $this->config('amisafe.settings');
-    $default_zoom = $config->get('map.default_zoom') ?: 11;
-    $default_center = $config->get('map.default_center') ?: [39.9526, -75.1652];
+    // Use default configuration (avoid config dependency for now)
+    $default_zoom = 11;
+    $default_center = [39.9526, -75.1652];
 
-    // Try to get data from services, but provide fallbacks if services fail
-    try {
-      $crime_types = $this->crimeDataService->getCrimeTypes();
-    } catch (\Exception $e) {
-      \Drupal::logger('amisafe')->warning('Failed to load crime types: @message', ['@message' => $e->getMessage()]);
-      $crime_types = $this->getDefaultCrimeTypes();
-    }
-
-    try {
-      $districts = $this->crimeDataService->getDistricts();
-    } catch (\Exception $e) {
-      \Drupal::logger('amisafe')->warning('Failed to load districts: @message', ['@message' => $e->getMessage()]);
-      $districts = $this->getDefaultDistricts();
-    }
-
-    try {
-      $date_range = $this->crimeDataService->getDateRange();
-    } catch (\Exception $e) {
-      \Drupal::logger('amisafe')->warning('Failed to load date range: @message', ['@message' => $e->getMessage()]);
-      $date_range = $this->getDefaultDateRange();
-    }
+    // Use default data to avoid service errors for now
+    $crime_types = $this->getDefaultCrimeTypes();
+    $districts = $this->getDefaultDistricts();
+    $date_range = $this->getDefaultDateRange();
 
     $build = [
       '#theme' => 'amisafe_crime_map',

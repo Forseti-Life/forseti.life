@@ -858,4 +858,18 @@ $databases['default']['default'] = array (
   'namespace' => 'Drupal\\mysql\\Driver\\Database\\mysql',
   'autoload' => 'core/modules/mysql/src/Driver/Database/mysql/',
 );
+
+// AmISafe crime data database connection
+$databases['amisafe']['default'] = array (
+  'database' => 'amisafe',
+  'username' => 'h3_user',
+  'password' => 'secure_h3_password',
+  'prefix' => '',
+  'host' => '127.0.0.1',
+  'port' => 3306,
+  'isolation_level' => 'READ COMMITTED',
+  'driver' => 'mysql',
+  'namespace' => 'Drupal\\mysql\\Driver\\Database\\mysql',
+  'autoload' => 'core/modules/mysql/src/Driver/Database/mysql/',
+);
 $settings['config_sync_directory'] = 'sites/default/files/config_zEg5xL8ebPPw_v7BA5SgfS74rzLmgaciHLjvyNg_uhupPwVEEaXaa4OAY8A74ck5JpisfVUbVQ/sync';
