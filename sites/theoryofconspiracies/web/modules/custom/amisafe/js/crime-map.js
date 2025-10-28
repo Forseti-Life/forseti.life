@@ -720,6 +720,15 @@
     renderHexagons: function (hexagons) {
       this.hexagonLayer.clearLayers();
       
+      console.log('Rendering', hexagons.length, 'hexagons');
+      console.log('H3 library available:', !!window.h3);
+      if (window.h3) {
+        console.log('H3 functions available:', {
+          cellToBoundary: !!h3.cellToBoundary,
+          h3ToGeoBoundary: !!h3.h3ToGeoBoundary
+        });
+      }
+      
       var self = this;
       
       hexagons.forEach(function (hexagon) {
@@ -728,9 +737,19 @@
         var h3Index = hexagon.h3_index;
         
         if (h3Index && window.h3) {
-          // Create actual H3 hexagon using h3-js library
+          // Create actual H3 hexagon using h3-js library v4+ API
           try {
-            var boundary = h3.h3ToGeoBoundary(h3Index, true);
+            // Check which H3 API version is available
+            var boundary;
+            if (h3.cellToBoundary) {
+              // H3-js v4+ API
+              boundary = h3.cellToBoundary(h3Index, true);
+            } else if (h3.h3ToGeoBoundary) {
+              // H3-js v3 API
+              boundary = h3.h3ToGeoBoundary(h3Index, true);
+            } else {
+              throw new Error('No compatible H3 boundary function found');
+            }
             
             var hexagonPolygon = L.polygon(boundary, {
               fillColor: color,
