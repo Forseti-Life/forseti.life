@@ -723,118 +723,12 @@
     },
 
     /**
-     * Generate all hexagons in viewport for a given resolution
-     */
-    generateAllHexagonsInViewport: function(resolution) {
-      if (!window.h3) {
-        console.error('H3 library not available');
-        return [];
-      }
-
-      var bounds = this.map.getBounds();
-      var allHexagons = [];
-      
-      console.log('🔷 Generating ALL hexagons at resolution', resolution, 'for viewport');
-      
-      // Get H3 hexagons that cover the current viewport
-      try {
-        // Create a polygon for the viewport bounds
-        var viewportPolygon = [
-          [bounds.getNorth(), bounds.getWest()], // NW
-          [bounds.getNorth(), bounds.getEast()], // NE  
-          [bounds.getSouth(), bounds.getEast()], // SE
-          [bounds.getSouth(), bounds.getWest()]  // SW
-        ];
-        
-        // Get all H3 indexes that intersect with the viewport
-        var h3Indexes;
-        try {
-          // Try H3 v4+ API first
-          if (h3.polygonToCells) {
-            h3Indexes = h3.polygonToCells(viewportPolygon, resolution, true);
-          } else if (h3.polyfill) {
-            // Fallback to older API
-            h3Indexes = h3.polyfill(viewportPolygon, resolution, true);
-          } else {
-            throw new Error('No compatible H3 polyfill function available');
-          }
-        } catch (error) {
-          console.error('H3 polyfill error:', error);
-          h3Indexes = [];
-        }
-        console.log('🔷 Found', h3Indexes.length, 'H3 indexes in viewport at resolution', resolution);
-        
-        // Convert each H3 index to hexagon data
-        h3Indexes.forEach(function(h3Index) {
-          try {
-            var center;
-            if (h3.cellToLatLng) {
-              center = h3.cellToLatLng(h3Index);
-            } else if (h3.h3ToGeo) {
-              center = h3.h3ToGeo(h3Index);
-            } else {
-              throw new Error('No compatible H3 center function available');
-            }
-            
-            allHexagons.push({
-              h3_index: h3Index,
-              lat: center.lat || center[0] || center.latitude,  // Handle different H3 versions
-              lng: center.lng || center[1] || center.longitude,
-              crime_count: 0,  // Default to 0, will be overridden by real data
-              severity_avg: 0,
-              is_empty: true
-            });
-          } catch (error) {
-            console.warn('Failed to get center for H3 index', h3Index, ':', error);
-          }
-        });
-        
-      } catch (error) {
-        console.error('Error generating viewport hexagons:', error);
-        return [];
-      }
-      
-      return allHexagons;
-    },
-
-    /**
-     * Merge real crime data with empty hexagons
-     */
-    mergeHexagonData: function(emptyHexagons, crimeHexagons) {
-      var mergedData = {};
-      
-      // Start with all empty hexagons
-      emptyHexagons.forEach(function(hex) {
-        mergedData[hex.h3_index] = hex;
-      });
-      
-      // Overlay crime data
-      crimeHexagons.forEach(function(hex) {
-        if (mergedData[hex.h3_index]) {
-          mergedData[hex.h3_index].crime_count = hex.crime_count || hex.total_incidents || 0;
-          mergedData[hex.h3_index].severity_avg = hex.severity_avg || 0;
-          mergedData[hex.h3_index].is_empty = false;
-        }
-      });
-      
-      return Object.values(mergedData);
-    },
-
-    /**
      * Render hexagons on the map
      */
     renderHexagons: function (hexagons) {
       this.hexagonLayer.clearLayers();
       
-      // Generate ALL hexagons for current viewport and resolution
-      var currentZoom = this.map.getZoom();
-      var resolution = this.getOptimalResolution(currentZoom);
-      
-      console.log('🔷 SHOWING ALL HEXAGONS: Generating complete grid at resolution', resolution);
-      var allHexagons = this.generateAllHexagonsInViewport(resolution);
-      var mergedHexagons = this.mergeHexagonData(allHexagons, hexagons);
-      
-      console.log('Rendering', mergedHexagons.length, 'hexagons (', hexagons.length, 'with data +', (mergedHexagons.length - hexagons.length), 'empty)');
+      console.log('Rendering', hexagons.length, 'hexagons');
       console.log('H3 library available:', !!window.h3);
       
       // Add visible debugging panel
@@ -883,7 +777,7 @@
       var successCount = 0;
       var errorCount = 0;
       
-      mergedHexagons.forEach(function (hexagon, index) {
+      hexagons.forEach(function (hexagon, index) {
         processedCount++;
         var crimeCount = hexagon.crime_count || hexagon.total_incidents || 0;
         var color = self.getHexagonColor(crimeCount);
@@ -968,12 +862,12 @@
             console.log('     Lat ok?', (boundary[0]?.[0] >= 39.8 && boundary[0]?.[0] <= 40.2));
             console.log('     Lng ok?', (boundary[0]?.[1] >= -75.5 && boundary[0]?.[1] <= -74.9));
             
-            // Get dynamic styling based on hexagon data
-            var style = self.getHexagonStyle(hexagon);
-            
             var hexagonPolygon = L.polygon(boundary, {
-              ...style,
-              className: hexagon.is_empty ? 'h3-hexagon empty' : 'h3-hexagon filled',
+              fillColor: color,
+              fillOpacity: 0.7,
+              color: '#00ffff',
+              weight: 1,
+              className: 'h3-hexagon',
               h3Index: h3Index,
               crimeCount: crimeCount
             });
@@ -1104,35 +998,6 @@
       if (crimeCount <= 30) return '#ffff00';
       if (crimeCount <= 50) return '#ff8800';
       return '#ff0000';
-    },
-
-    /**
-     * Get hexagon style options based on crime count and empty status
-     */
-    getHexagonStyle: function (hexagon) {
-      var crimeCount = hexagon.crime_count || hexagon.total_incidents || 0;
-      var isEmpty = hexagon.is_empty || crimeCount === 0;
-      
-      if (isEmpty) {
-        // Empty hexagons: outline only in dim cyan
-        return {
-          color: '#00ffff',      // Cyan outline
-          weight: 1,             // Thin outline
-          opacity: 0.3,          // Dim visibility
-          fillColor: 'transparent',
-          fillOpacity: 0
-        };
-      } else {
-        // Hexagons with data: full styling
-        var color = this.getHexagonColor(crimeCount);
-        return {
-          color: '#00ffff',
-          weight: 2,
-          opacity: 0.8,
-          fillColor: color,
-          fillOpacity: 0.6
-        };
-      }
     },
 
     /**

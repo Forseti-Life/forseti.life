@@ -7,7 +7,7 @@ dashboard-styling:
 
 # Core crime map library
 crime-map:
-  version: 2.x
+  version: 4.x  # Cache bust for complete H3 grid system
   css:
     theme:
       css/crime-map.css: {}
@@ -23,7 +23,7 @@ crime-map:
 
 # External libraries
 external-libraries:
-  version: 3.0  # Enhanced for 1-meter precision capability
+  version: 4.0  # Cache bust for complete H3 grid system
   css:
     theme:
       https://unpkg.com/leaflet@1.9.4/dist/leaflet.css: { type: external }
