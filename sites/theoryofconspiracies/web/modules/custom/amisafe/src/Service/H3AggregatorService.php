@@ -58,33 +58,44 @@ class H3AggregatorService {
   }
 
   /**
-   * Get real aggregated data from database.
+   * Get pre-computed aggregated data from H3 aggregation table.
    */
   private function getRealAggregatedData($filters = [], $resolution = 9, $bounds = null) {
     try {
       // Get database connection (use default Drupal database)
       $database = \Drupal\Core\Database\Database::getConnection();
       
-      // Build query for incidents
-      $query = $database->select('raw_incidents', 'ri')
-        ->fields('ri', ['h3_index', 'ucr_general', 'lat', 'lng', 'dispatch_date_time'])
-        ->condition('h3_index', '', '!=')  // Only include records with H3 index
-        ->condition('lat', 0, '!=')        // Valid coordinates
-        ->condition('lng', 0, '!=');
+      // Query pre-computed H3 aggregation data
+      $query = $database->select('amisafe_h3_aggregated', 'h3')
+        ->fields('h3', [
+          'h3_index', 
+          'center_lat', 
+          'center_lng', 
+          'boundary_json',
+          'crime_count',
+          'crime_types_json',
+          'is_empty'
+        ])
+        ->condition('h3_resolution', $resolution);
       
-      // Apply filters
-      $this->applyFilters($query, $filters);
-      
-      // Apply bounds if provided
+      // Apply geographic bounds if provided
       if ($bounds && isset($bounds['north'], $bounds['south'], $bounds['east'], $bounds['west'])) {
-        $query->condition('lat', $bounds['south'], '>=');
-        $query->condition('lat', $bounds['north'], '<=');
-        $query->condition('lng', $bounds['west'], '>=');
-        $query->condition('lng', $bounds['east'], '<=');
+        $query->condition('center_lat', $bounds['south'], '>=');
+        $query->condition('center_lat', $bounds['north'], '<=');
+        $query->condition('center_lng', $bounds['west'], '>=');
+        $query->condition('center_lng', $bounds['east'], '<=');
       }
       
-      // Limit to avoid performance issues
-      $query->range(0, 10000);
+      // For high resolutions, limit results to avoid overwhelming the client
+      if ($resolution >= 12) {
+        // For extreme detail levels, prioritize hexagons with data
+        $query->orderBy('is_empty', 'ASC');  // Show data hexagons first
+        $query->orderBy('crime_count', 'DESC'); // Then by crime count
+        $query->range(0, 5000); // Limit for performance
+      } else {
+        // For lower resolutions, show all hexagons
+        $query->range(0, 10000);
+      }
       
       $results = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
       
@@ -92,43 +103,33 @@ class H3AggregatorService {
         return [];
       }
       
-      // Group by H3 index and aggregate
+      // Convert pre-computed data to expected format
       $hexagon_data = [];
-      foreach ($results as $incident) {
-        $h3_index = $incident['h3_index'];
+      foreach ($results as $hexagon) {
+        $h3_index = $hexagon['h3_index'];
+        $boundary = json_decode($hexagon['boundary_json'], true);
+        $crime_types = json_decode($hexagon['crime_types_json'], true) ?: [];
         
-        if (!isset($hexagon_data[$h3_index])) {
-          $hexagon_data[$h3_index] = [
-            'h3_index' => $h3_index,
-            'lat' => floatval($incident['lat']),
-            'lng' => floatval($incident['lng']),
-            'crime_count' => 0,
-            'total_incidents' => 0,
-            'crime_types' => [],
-            'last_incident' => null,
-            'resolution' => $resolution,
-          ];
+        // Build hexagon data structure
+        $hexagon_item = [
+          'h3_index' => $h3_index,
+          'lat' => floatval($hexagon['center_lat']),
+          'lng' => floatval($hexagon['center_lng']),
+          'crime_count' => intval($hexagon['crime_count']),
+          'total_incidents' => intval($hexagon['crime_count']),
+          'crime_types' => array_keys($crime_types),
+          'crime_type_counts' => $crime_types,
+          'boundary' => $boundary,
+          'is_empty' => (bool)$hexagon['is_empty'],
+          'resolution' => $resolution,
+          'severity_avg' => $this->calculateSeverity(array_keys($crime_types)),
+          'last_incident' => date('Y-m-d H:i:s') // Mock timestamp for now
+        ];
+        
+        // Apply client-side filters if needed
+        if ($this->passesFilters($hexagon_item, $filters)) {
+          $hexagon_data[$h3_index] = $hexagon_item;
         }
-        
-        $hexagon_data[$h3_index]['crime_count']++;
-        $hexagon_data[$h3_index]['total_incidents']++;
-        
-        // Track crime types
-        $crime_type = $incident['ucr_general'];
-        if ($crime_type && !in_array($crime_type, $hexagon_data[$h3_index]['crime_types'])) {
-          $hexagon_data[$h3_index]['crime_types'][] = $crime_type;
-        }
-        
-        // Track most recent incident
-        if (!$hexagon_data[$h3_index]['last_incident'] || 
-            $incident['dispatch_date_time'] > $hexagon_data[$h3_index]['last_incident']) {
-          $hexagon_data[$h3_index]['last_incident'] = $incident['dispatch_date_time'];
-        }
-      }
-      
-      // Add severity calculations
-      foreach ($hexagon_data as &$hexagon) {
-        $hexagon['severity_avg'] = $this->calculateSeverity($hexagon['crime_types']);
       }
       
       return array_values($hexagon_data);
@@ -227,7 +228,7 @@ class H3AggregatorService {
   }
 
   /**
-   * Apply filters to a database query.
+   * Apply filters to a database query (legacy method - kept for compatibility).
    */
   private function applyFilters($query, $filters) {
     if (!empty($filters['start_date'])) {
@@ -250,6 +251,40 @@ class H3AggregatorService {
       $query->condition('hour', $filters['hour_start'], '>=');
       $query->condition('hour', $filters['hour_end'], '<=');
     }
+  }
+
+  /**
+   * Check if a pre-computed hexagon passes the client filters.
+   */
+  private function passesFilters($hexagon, $filters) {
+    // If no filters, all hexagons pass
+    if (empty($filters)) {
+      return true;
+    }
+    
+    // Filter by crime types
+    if (!empty($filters['crime_types'])) {
+      $requested_types = is_array($filters['crime_types']) ? $filters['crime_types'] : explode(',', $filters['crime_types']);
+      $hexagon_types = $hexagon['crime_types'];
+      
+      // Check if hexagon has any of the requested crime types
+      $has_matching_type = false;
+      foreach ($requested_types as $requested_type) {
+        if (in_array(trim($requested_type), $hexagon_types)) {
+          $has_matching_type = true;
+          break;
+        }
+      }
+      
+      if (!$has_matching_type && !$hexagon['is_empty']) {
+        return false; // Skip hexagons without matching crime types (but include empty ones for grid completeness)
+      }
+    }
+    
+    // For now, we'll keep date/time filtering simple since pre-computed data aggregates over time
+    // Future enhancement: Add time-based filtering by storing temporal data in aggregation
+    
+    return true;
   }
 
   /**
