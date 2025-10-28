@@ -62,8 +62,8 @@ class H3AggregatorService {
    */
   private function getRealAggregatedData($filters = [], $resolution = 9, $bounds = null) {
     try {
-      // Get database connection
-      $database = \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
+      // Get database connection (use default Drupal database)
+      $database = \Drupal\Core\Database\Database::getConnection();
       
       // Build query for incidents
       $query = $database->select('raw_incidents', 'ri')
