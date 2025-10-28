@@ -166,7 +166,7 @@
     initializeFilters: function () {
       var self = this;
 
-      console.log('Initializing filters...');
+      // Initialize filters quietly
       
       // Ensure filter selectors exist before loading options
       var retryCount = 0;
@@ -176,10 +176,7 @@
         var crimeTypeSelector = $('#crime-type-selector');
         var districtSelector = $('#district-selector');
         
-        console.log('Checking for selectors... Crime type:', crimeTypeSelector.length, ', District:', districtSelector.length);
-        
         if (crimeTypeSelector.length > 0 && districtSelector.length > 0) {
-          console.log('Selectors found, loading filter options...');
           
           // Load with immediate fallback to ensure options are populated
           self.loadFilterOptions();
@@ -243,11 +240,9 @@
       // Load crime types for multi-select dropdown
       $.get('/api/amisafe/crime-types')
         .done(function (response) {
-          console.log('Crime types API response:', response);
           if (response && response.crime_types) {
             self.populateCrimeTypeSelector(response.crime_types);
           } else {
-            console.warn('Invalid crime types response format');
             self.populateCrimeTypeSelector({
               '100': 'Murder',
               '200': 'Rape', 
@@ -317,9 +312,7 @@
      * Populate crime type multi-select dropdown
      */
     populateCrimeTypeSelector: function (crimeTypes) {
-      console.log('Populating crime type selector with:', crimeTypes);
       var select = $('#crime-type-selector');
-      console.log('Crime type selector found:', select.length);
       
       if (select.length === 0) {
         console.error('Crime type selector not found!');
@@ -337,7 +330,7 @@
         select.append(option);
       }
       
-      console.log('Added', Object.keys(crimeTypes).length, 'crime type options to selector');
+      // Crime types loaded
       
       // Trigger change event to update any dependent UI elements
       select.trigger('change');
@@ -347,9 +340,7 @@
      * Populate district multi-select dropdown
      */
     populateDistrictSelector: function (districts) {
-      console.log('Populating district selector with:', districts);
       var select = $('#district-selector');
-      console.log('District selector found:', select.length);
       
       if (select.length === 0) {
         console.error('District selector not found!');
@@ -367,7 +358,7 @@
         select.append(option);
       });
       
-      console.log('Added', districts.length, 'district options to selector');
+      // Districts loaded
       
       // Trigger change event to update any dependent UI elements
       select.trigger('change');
@@ -584,7 +575,11 @@
       
       // Get current map bounds and zoom level
       var bounds = this.map.getBounds();
-      var resolution = this.getOptimalResolution(this.map.getZoom());
+      var zoom = this.map.getZoom();
+      var resolution = this.getOptimalResolution(zoom);
+      
+      // CRITICAL DEBUGGING: Track resolution requests
+      console.log('🎯 RESOLUTION DEBUG: Zoom=' + zoom + ' → H3=' + resolution + ' (~' + this.getResolutionDescription(resolution) + ')');
       
       // Build API request parameters
       var params = {
@@ -639,7 +634,11 @@
         dataType: 'json',
         timeout: 10000,
         success: function (response) {
-          console.log('API Response:', response);
+          // Log critical resolution info
+          if (response.meta && response.meta.resolution >= 12) {
+            console.log('🔥 HIGH-RES API RESPONSE: H3=' + response.meta.resolution + ' returned ' + (response.hexagons ? response.hexagons.length : 0) + ' hexagons');
+          }
+          
           if (response.hexagons && Array.isArray(response.hexagons)) {
             self.renderHexagons(response.hexagons);
             
@@ -1324,14 +1323,14 @@
      */
     onMapZoom: function () {
       var zoom = this.map.getZoom();
-      console.log('🔍 Map zoom changed to:', zoom);
-      
-      // Adjust hexagon resolution based on zoom level
       var resolution = this.getOptimalResolution(zoom);
-      console.log('📊 Optimal H3 resolution:', resolution);
+      
+      // Only log when we cross into higher resolutions (less noise)
+      if (resolution >= 12) {
+        console.log('🎯 HIGH-RES ZOOM: ' + zoom + ' → H3=' + resolution + ' (' + this.getResolutionDescription(resolution) + ')');
+      }
       
       // Refresh hexagons with new resolution (no loading overlay to avoid interference)
-      console.log('🔄 Refreshing hexagons for new zoom level...');
       this.loadHexagonData(); // Direct call without loading overlay
     },
 
@@ -1375,6 +1374,25 @@
       if (zoomLevel <= 19) return 13;  // ~3.4 m - Rooms/parking spaces
       if (zoomLevel <= 20) return 14;  // ~1.3 m - NEAR 1-METER DETAIL! 🎯
       return 15;  // ~0.5 m - SUB-METER PRECISION! ⚡
+    },
+
+    /**
+     * Get human-readable description of H3 resolution
+     */
+    getResolutionDescription: function (resolution) {
+      var descriptions = {
+        6: '3.1km neighborhoods',
+        7: '1.2km large blocks', 
+        8: '460m city blocks',
+        9: '174m street level',
+        10: '65m building groups',
+        11: '25m individual buildings',
+        12: '9m building parts',
+        13: '3.4m rooms/parking',
+        14: '1.3m METER-DETAIL!',
+        15: '0.5m SUB-METER!'
+      };
+      return descriptions[resolution] || 'unknown';
     },
 
     /**
