@@ -105,7 +105,7 @@
       var darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '',
         subdomains: 'abcd',
-        maxZoom: 19,
+        maxZoom: 20,  // Support extreme zoom for 1-meter detail
         className: 'dark-tiles'
       });
 

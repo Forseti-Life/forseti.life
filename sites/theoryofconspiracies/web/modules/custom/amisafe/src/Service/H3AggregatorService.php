@@ -199,12 +199,22 @@ class H3AggregatorService {
 
   /**
    * Get optimal H3 resolution based on zoom level.
+   * ENHANCED: Now supports 1-meter precision mapping!
+   * H3 Resolution System: 0 (continental) → 15 (sub-meter)
+   * Maximum Detail: 0.5 meters at zoom level 20+
    */
   public function getOptimalResolution($zoom_level) {
-    if ($zoom_level <= 10) return 7;      // District level
-    if ($zoom_level <= 12) return 8;      // Neighborhood level  
-    if ($zoom_level <= 14) return 9;      // Block group level
-    return 10;                            // Block level
+    // Enhanced resolution mapping for extreme detail capability
+    if ($zoom_level <= 8)  return 6;   // ~3.1 km - Neighborhoods  
+    if ($zoom_level <= 10) return 7;   // ~1.2 km - Large blocks
+    if ($zoom_level <= 12) return 8;   // ~460 m - City blocks
+    if ($zoom_level <= 14) return 9;   // ~174 m - Street level
+    if ($zoom_level <= 16) return 10;  // ~65 m - Building groups
+    if ($zoom_level <= 17) return 11;  // ~25 m - Individual buildings
+    if ($zoom_level <= 18) return 12;  // ~9 m - Building parts
+    if ($zoom_level <= 19) return 13;  // ~3.4 m - Rooms/parking spaces
+    if ($zoom_level <= 20) return 14;  // ~1.3 m - NEAR 1-METER DETAIL! 🎯
+    return 15;  // ~0.5 m - SUB-METER PRECISION! ⚡
   }
 
   /**
