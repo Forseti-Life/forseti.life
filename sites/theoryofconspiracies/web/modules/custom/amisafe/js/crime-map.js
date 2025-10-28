@@ -73,6 +73,9 @@
         
         console.log('AmISafe Crime Map initialized successfully');
         this.hideLoading();
+        
+        // Expose instance for debug buttons
+        window.amisafeCrimeMap = this;
       } catch (error) {
         console.error('Error initializing crime map:', error);
         this.showError('INITIALIZATION FAILED: ' + error.message);
@@ -92,8 +95,8 @@
       this.map = L.map(this.container, {
         center: mapConfig.center,
         zoom: mapConfig.zoom,
-        minZoom: 9,
-        maxZoom: 16,
+        minZoom: 8,
+        maxZoom: 20,  // Enable extreme zoom for 1-meter detail
         zoomControl: true,
         attributionControl: false
       });
@@ -722,34 +725,137 @@
       
       console.log('Rendering', hexagons.length, 'hexagons');
       console.log('H3 library available:', !!window.h3);
+      
+      // Add visible debugging panel
+      this.showDebugPanel(window.h3);
+      
       if (window.h3) {
-        console.log('H3 functions available:', {
-          cellToBoundary: !!h3.cellToBoundary,
-          h3ToGeoBoundary: !!h3.h3ToGeoBoundary
+        console.log('H3 object keys (first 20):', Object.keys(h3).slice(0, 20));
+        console.log('H3 function availability check:');
+        const funcNames = ['cellToBoundary', 'h3ToGeoBoundary', 'cellToVertex', 'cellToVertexes', 'h3ToGeo', 'latLngToCell', 'cellToLatLng'];
+        funcNames.forEach(name => {
+          console.log(`  ${name}:`, typeof h3[name], h3[name] ? '✅' : '❌');
         });
+        
+        // Quick coordinate format test
+        console.log('🧪 COORDINATE FORMAT TEST:');
+        console.log('Testing H3 with known Philadelphia location...');
+        try {
+          // Center of Philadelphia
+          var testLat = 39.9526;
+          var testLng = -75.1652;
+          console.log('Input coordinates:', testLat, testLng);
+          
+          // Get H3 index for this location
+          var testCell = h3.latLngToCell(testLat, testLng, 9);
+          console.log('Generated H3 index:', testCell);
+          
+          // Get boundary
+          var testBoundary = h3.cellToBoundary(testCell, true);
+          console.log('H3 boundary result:', testBoundary);
+          console.log('First coordinate in boundary:', testBoundary[0]);
+          console.log('Coordinate format check:');
+          console.log('  Is [lat, lng]?', testBoundary[0][0] > 35 && testBoundary[0][0] < 45);
+          console.log('  Is [lng, lat]?', testBoundary[0][0] < -70 && testBoundary[0][0] > -80);
+        } catch (e) {
+          console.error('Coordinate test failed:', e);
+        }
+        
+        // Confirmed: H3 v4+ returns coordinates in [lng, lat] format
+        // Our renderHexagons function now automatically converts to [lat, lng] for Leaflet
+        console.log('✅ H3 coordinate format: [lng, lat] → [lat, lng] conversion enabled');
       }
       
       var self = this;
       
-      hexagons.forEach(function (hexagon) {
+      var processedCount = 0;
+      var successCount = 0;
+      var errorCount = 0;
+      
+      hexagons.forEach(function (hexagon, index) {
+        processedCount++;
         var crimeCount = hexagon.crime_count || hexagon.total_incidents || 0;
         var color = self.getHexagonColor(crimeCount);
         var h3Index = hexagon.h3_index;
         
+        console.log(`🔵 Processing hexagon ${index + 1}/${hexagons.length}:`, {
+          h3Index: h3Index,
+          crimeCount: crimeCount,
+          color: color,
+          hasH3: !!window.h3
+        });
+        
         if (h3Index && window.h3) {
           // Create actual H3 hexagon using h3-js library v4+ API
           try {
-            // Check which H3 API version is available
+            // Check which H3 API version is available and use appropriate function
             var boundary;
-            if (h3.cellToBoundary) {
-              // H3-js v4+ API
-              boundary = h3.cellToBoundary(h3Index, true);
-            } else if (h3.h3ToGeoBoundary) {
-              // H3-js v3 API
-              boundary = h3.h3ToGeoBoundary(h3Index, true);
-            } else {
-              throw new Error('No compatible H3 boundary function found');
+            
+            // Enhanced H3 API detection and boundary calculation
+            var boundary = null;
+            
+            // Test all possible boundary function names
+            const boundaryFunctions = [
+              { name: 'cellToBoundary', version: 'v4+', params: [h3Index, true] },
+              { name: 'h3ToGeoBoundary', version: 'v3', params: [h3Index, true] },
+              { name: 'cellToVertexes', version: 'v4 alt', params: [h3Index] }
+            ];
+            
+            for (let funcInfo of boundaryFunctions) {
+              if (typeof h3[funcInfo.name] === 'function') {
+                try {
+                  console.log(`🔄 Attempting ${funcInfo.name} (${funcInfo.version}) with params:`, funcInfo.params);
+                  boundary = h3[funcInfo.name].apply(h3, funcInfo.params);
+                  console.log('✅ Success! H3 boundary result:', boundary);
+            console.log('   Boundary type:', typeof boundary, 'Array:', Array.isArray(boundary), 'Length:', boundary?.length);
+            
+            // H3 v4+ returns coordinates in [lng, lat] format, but Leaflet expects [lat, lng]
+            // Convert from H3's [lng, lat] to Leaflet's [lat, lng] format
+            var leafletBoundary = boundary.map(function(coord) {
+              return [coord[1], coord[0]]; // Swap from [lng, lat] to [lat, lng]
+            });
+            
+            console.log('   Original H3 format [lng, lat]:', boundary[0]);
+            console.log('   Converted to Leaflet [lat, lng]:', leafletBoundary[0]);
+            console.log('   ✅ Coordinate conversion complete');
+            
+            // Update boundary to use the converted coordinates
+            boundary = leafletBoundary;
+                  break;
+                } catch (error) {
+                  console.error(`Failed with ${funcInfo.name}:`, error.message);
+                  continue;
+                }
+              } else {
+                console.log(`${funcInfo.name} not available`);
+              }
             }
+            
+            if (!boundary) {
+              // Last resort: print all available functions and bail
+              console.error('🚨 No H3 boundary function worked!');
+              console.error('Available H3 methods:', Object.keys(h3).filter(k => typeof h3[k] === 'function'));
+              throw new Error('Unable to get hexagon boundary from H3 library');
+            }
+            
+            // Check if we need to convert coordinate format
+            if (boundary && boundary.length > 0 && boundary[0].length === 2) {
+              var firstCoord = boundary[0];
+              // If first value looks like longitude (< -70), swap to [lat, lng]
+              if (firstCoord[0] < -70 && firstCoord[0] > -80 && firstCoord[1] > 35 && firstCoord[1] < 45) {
+                console.log('🔄 Converting coordinates from [lng, lat] to [lat, lng]');
+                boundary = boundary.map(coord => [coord[1], coord[0]]);
+                console.log('   Converted first coordinate:', boundary[0]);
+              }
+            }
+            
+            console.log('🔷 Creating Leaflet polygon with corrected boundary:', boundary);
+            console.log('   Boundary sample coords [lat, lng]:', boundary.slice(0, 2));
+            console.log('   Philadelphia bounds check (after coordinate swap):');
+            console.log('     First coord lat:', boundary[0]?.[0], 'lng:', boundary[0]?.[1]);
+            console.log('     Is in Philly area? Lat 39.8-40.2, Lng -75.5 to -74.9');
+            console.log('     Lat ok?', (boundary[0]?.[0] >= 39.8 && boundary[0]?.[0] <= 40.2));
+            console.log('     Lng ok?', (boundary[0]?.[1] >= -75.5 && boundary[0]?.[1] <= -74.9));
             
             var hexagonPolygon = L.polygon(boundary, {
               fillColor: color,
@@ -760,6 +866,14 @@
               h3Index: h3Index,
               crimeCount: crimeCount
             });
+            console.log('🔷 Leaflet polygon created successfully');
+            
+            var bounds = hexagonPolygon.getBounds();
+            console.log('   Polygon bounds:', bounds);
+            console.log('   Bounds center:', bounds.getCenter());
+            console.log('   Map center:', self.map.getCenter());
+            console.log('   Map zoom:', self.map.getZoom());
+            console.log('   Map bounds:', self.map.getBounds());
 
             hexagonPolygon.on('click', function (e) {
               self.showHexagonPopup(hexagon, e.latlng);
@@ -780,8 +894,11 @@
             });
 
             hexagonPolygon.addTo(self.hexagonLayer);
+            successCount++;
+            console.log(`✅ Successfully added hexagon ${index + 1} to layer. Layer now has ${self.hexagonLayer.getLayers().length} features`);
           } catch (error) {
-            console.warn('Error creating H3 hexagon for', h3Index, ':', error);
+            errorCount++;
+            console.warn('❌ Error creating H3 hexagon for', h3Index, ':', error);
             // Fallback to circle
             self.createFallbackCircle(hexagon, color);
           }
@@ -792,7 +909,42 @@
         }
       });
       
-      console.log('Rendered', hexagons.length, 'hexagons on map');
+      // Check if hexagons are within current map bounds
+      var mapBounds = this.map.getBounds();
+      var visibleCount = 0;
+      var totalBounds = null;
+      
+      this.hexagonLayer.eachLayer(function(layer) {
+        var hexBounds = layer.getBounds();
+        if (mapBounds.overlaps(hexBounds)) {
+          visibleCount++;
+        }
+        
+        // Calculate total bounds of all hexagons
+        if (!totalBounds) {
+          totalBounds = hexBounds;
+        } else {
+          totalBounds.extend(hexBounds);
+        }
+      });
+      
+      console.log(`📊 HEXAGON RENDERING SUMMARY:
+        - Processed: ${processedCount}/${hexagons.length} hexagons
+        - Successful: ${successCount} hexagons
+        - Errors: ${errorCount} hexagons
+        - Layer count: ${this.hexagonLayer.getLayers().length} features
+        - Map has layer: ${this.map.hasLayer(this.hexagonLayer) ? '✅' : '❌'}
+        - Visible in viewport: ${visibleCount}/${successCount} hexagons
+        - Map center: ${this.map.getCenter()}
+        - Map bounds: ${mapBounds}
+        - Hexagon bounds: ${totalBounds}
+      `);
+      
+      // If no hexagons are visible, suggest viewing the hexagon area
+      if (successCount > 0 && visibleCount === 0 && totalBounds) {
+        console.log('⚠️  No hexagons visible in current view. Hexagons exist at:', totalBounds.getCenter());
+        console.log('💡 Try panning to the hexagon area or use map.fitBounds() to view them');
+      }
     },
 
     /**
@@ -1172,34 +1324,57 @@
      */
     onMapZoom: function () {
       var zoom = this.map.getZoom();
-      console.log('Map zoom changed to:', zoom);
+      console.log('🔍 Map zoom changed to:', zoom);
       
       // Adjust hexagon resolution based on zoom level
       var resolution = this.getOptimalResolution(zoom);
-      console.log('Optimal H3 resolution:', resolution);
+      console.log('📊 Optimal H3 resolution:', resolution);
+      
+      // Refresh hexagons with new resolution (no loading overlay to avoid interference)
+      console.log('🔄 Refreshing hexagons for new zoom level...');
+      this.loadHexagonData(); // Direct call without loading overlay
     },
 
     /**
      * Handle map move events
      */
     onMapMove: function () {
-      // Reload data for new viewport (throttled)
-      clearTimeout(this.moveTimeout);
-      this.moveTimeout = setTimeout(() => {
-        console.log('Map moved, reloading data...');
-        this.showLoading('SCANNING NEW SECTORS...');
-        this.loadHexagonData();
-      }, 500);
+      // DISABLED: Auto-reload on map move was causing scanning refresh problems
+      // Only refresh manually or on significant zoom changes
+      console.log('📍 Map moved (auto-refresh disabled to prevent scanning interference)');
+      
+      // Optional: Only refresh if moved very far from last data fetch point
+      // clearTimeout(this.moveTimeout);
+      // this.moveTimeout = setTimeout(() => {
+      //   var currentCenter = this.map.getCenter();
+      //   var lastCenter = this.lastDataCenter;
+      //   if (!lastCenter || currentCenter.distanceTo(lastCenter) > 5000) { // 5km threshold
+      //     console.log('Map moved significantly, reloading data...');
+      //     this.showLoading('SCANNING NEW SECTORS...');
+      //     this.lastDataCenter = currentCenter;
+      //     this.loadHexagonData();
+      //   }
+      // }, 1000);
     },
 
     /**
      * Get optimal H3 resolution based on zoom level
+     * ENHANCED: Now supports 1-meter precision mapping!
+     * H3 Resolution System: 0 (continental) → 15 (sub-meter)
+     * Maximum Detail: 0.5 meters at zoom level 20+
      */
     getOptimalResolution: function (zoomLevel) {
-      if (zoomLevel <= 10) return 7;
-      if (zoomLevel <= 12) return 8;
-      if (zoomLevel <= 14) return 9;
-      return 10;
+      // Enhanced resolution mapping for extreme detail capability
+      if (zoomLevel <= 8)  return 6;   // ~3.1 km - Neighborhoods  
+      if (zoomLevel <= 10) return 7;   // ~1.2 km - Large blocks
+      if (zoomLevel <= 12) return 8;   // ~460 m - City blocks
+      if (zoomLevel <= 14) return 9;   // ~174 m - Street level
+      if (zoomLevel <= 16) return 10;  // ~65 m - Building groups
+      if (zoomLevel <= 17) return 11;  // ~25 m - Individual buildings
+      if (zoomLevel <= 18) return 12;  // ~9 m - Building parts
+      if (zoomLevel <= 19) return 13;  // ~3.4 m - Rooms/parking spaces
+      if (zoomLevel <= 20) return 14;  // ~1.3 m - NEAR 1-METER DETAIL! 🎯
+      return 15;  // ~0.5 m - SUB-METER PRECISION! ⚡
     },
 
     /**
@@ -1212,6 +1387,86 @@
       
       // Add terminal typing effect
       this.typeText($('#threat-level'), threatLevel);
+    },
+
+    /**
+     * Show debug panel with H3 library status
+     */
+    showDebugPanel: function(h3obj) {
+      var debugDiv = document.getElementById('h3-debug-panel') || document.createElement('div');
+      debugDiv.id = 'h3-debug-panel';
+      debugDiv.style.cssText = 'position:fixed;top:10px;right:10px;background:rgba(0,0,0,0.9);color:#00ff00;padding:15px;font-family:monospace;font-size:11px;z-index:9999;max-width:350px;border:1px solid #00ffff;';
+      
+      var status = '🔍 H3 LIBRARY DEBUG<br>';
+      status += 'Available: ' + (!!h3obj ? '✅ YES' : '❌ NO') + '<br>';
+      
+      if (h3obj) {
+        status += '<br>🔧 FUNCTIONS:<br>';
+        var funcs = ['cellToBoundary', 'h3ToGeoBoundary', 'cellToVertex', 'cellToVertexes'];
+        funcs.forEach(function(name) {
+          var available = typeof h3obj[name] === 'function';
+          status += name + ': ' + (available ? '✅' : '❌') + '<br>';
+        });
+        
+        status += '<br>📦 TOTAL METHODS: ' + Object.keys(h3obj).filter(k => typeof h3obj[k] === 'function').length + '<br>';
+        
+        // Test a sample function call
+        try {
+          if (h3obj.cellToBoundary) {
+            var testResult = h3obj.cellToBoundary('892a1340003ffff', true);
+            status += '<br>✅ TEST CALL SUCCESS<br>';
+            status += 'Result type: ' + typeof testResult + '<br>';
+          }
+        } catch (e) {
+          status += '<br>❌ TEST CALL FAILED<br>';
+          status += 'Error: ' + e.message + '<br>';
+        }
+      }
+      
+      // Add debug buttons
+      status += '<br><button onclick="window.amisafeCrimeMap.centerOnHexagons()" style="background:#00ffff;color:#000;border:none;padding:5px;margin:2px;cursor:pointer;font-size:10px;">📍 CENTER ON HEXAGONS</button>';
+      status += '<button onclick="window.amisafeCrimeMap.refreshHexagons()" style="background:#ffff00;color:#000;border:none;padding:5px;margin:2px;cursor:pointer;font-size:10px;">🔄 REFRESH DATA</button>';
+      status += '<br><button onclick="window.amisafeCrimeMap.toggleLoadingOverlays()" style="background:#ff00ff;color:#000;border:none;padding:5px;margin:2px;cursor:pointer;font-size:10px;">⚡ DISABLE LOADING OVERLAYS</button>';
+      
+      debugDiv.innerHTML = status;
+      
+      if (!document.getElementById('h3-debug-panel')) {
+        document.body.appendChild(debugDiv);
+      }
+    },
+
+    /**
+     * Center map on hexagons (debug helper)
+     */
+    centerOnHexagons: function() {
+      if (this.hexagonLayer.getLayers().length === 0) {
+        console.log('❌ No hexagons to center on');
+        return;
+      }
+      
+      var group = new L.featureGroup(this.hexagonLayer.getLayers());
+      var bounds = group.getBounds();
+      console.log('📍 Centering map on hexagon bounds:', bounds);
+      this.map.fitBounds(bounds, { padding: [20, 20] });
+    },
+
+    /**
+     * Refresh hexagon data (debug helper)
+     */
+    refreshHexagons: function() {
+      console.log('🔄 Manually refreshing hexagon data...');
+      this.applyFilters();
+    },
+
+    /**
+     * Toggle loading overlays on/off (debug helper)
+     */
+    toggleLoadingOverlays: function() {
+      this.disableLoadingOverlays = !this.disableLoadingOverlays;
+      console.log('⚡ Loading overlays', this.disableLoadingOverlays ? 'DISABLED' : 'ENABLED');
+      if (this.disableLoadingOverlays) {
+        this.hideLoading();
+      }
     },
 
     /**
@@ -1234,9 +1489,22 @@
      * Show loading overlay
      */
     showLoading: function (message) {
+      // Skip loading overlay if disabled for debugging
+      if (this.disableLoadingOverlays) {
+        console.log('⚡ Loading overlay skipped:', message);
+        return;
+      }
+      
       if (this.loadingOverlay) {
         this.loadingOverlay.querySelector('.terminal-text').textContent = message || 'LOADING...';
         this.loadingOverlay.style.display = 'flex';
+        
+        // Auto-hide loading after 1.5 seconds to prevent interference with hexagons
+        var self = this;
+        clearTimeout(this.loadingTimeout);
+        this.loadingTimeout = setTimeout(function() {
+          self.hideLoading();
+        }, 1500);
       }
     },
 
@@ -1246,6 +1514,7 @@
     hideLoading: function () {
       if (this.loadingOverlay) {
         this.loadingOverlay.style.display = 'none';
+        clearTimeout(this.loadingTimeout);
       }
     },
 

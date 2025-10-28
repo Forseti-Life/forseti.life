@@ -7,7 +7,7 @@ dashboard-styling:
 
 # Core crime map library
 crime-map:
-  version: 1.x
+  version: 2.x
   css:
     theme:
       css/crime-map.css: {}
@@ -23,12 +23,12 @@ crime-map:
 
 # External libraries
 external-libraries:
-  version: 1.x
+  version: 3.0  # Enhanced for 1-meter precision capability
   css:
     theme:
       https://unpkg.com/leaflet@1.9.4/dist/leaflet.css: { type: external }
   js:
     https://unpkg.com/leaflet@1.9.4/dist/leaflet.js: { type: external }
-    https://unpkg.com/h3-js@4.1.0/dist/h3-js.umd.js: { type: external }
+    https://cdn.jsdelivr.net/npm/h3-js@4.1.0/dist/h3-js.umd.js: { type: external }
     https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js: { type: external }
     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js: { type: external }
