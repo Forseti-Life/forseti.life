@@ -151,11 +151,32 @@
     initializeFilters: function () {
       var self = this;
 
-      // Load filter options from API
-      this.loadFilterOptions();
+      console.log('Initializing filters...');
       
-      // Set up event handlers
-      this.setupFilterEventHandlers();
+      // Ensure filter selectors exist before loading options
+      var retryCount = 0;
+      var maxRetries = 10;
+      
+      function waitForSelectors() {
+        var crimeTypeSelector = $('#crime-type-selector');
+        var districtSelector = $('#district-selector');
+        
+        console.log('Checking for selectors... Crime type:', crimeTypeSelector.length, ', District:', districtSelector.length);
+        
+        if (crimeTypeSelector.length > 0 && districtSelector.length > 0) {
+          console.log('Selectors found, loading filter options...');
+          self.loadFilterOptions();
+          self.setupFilterEventHandlers();
+        } else if (retryCount < maxRetries) {
+          retryCount++;
+          console.log('Selectors not found, retry', retryCount, 'of', maxRetries);
+          setTimeout(waitForSelectors, 200);
+        } else {
+          console.error('Filter selectors not found after', maxRetries, 'retries');
+        }
+      }
+      
+      waitForSelectors();
     },
 
     /**
@@ -164,10 +185,40 @@
     loadFilterOptions: function () {
       var self = this;
       
+      console.log('Loading filter options...');
+      
       // Load crime types for multi-select dropdown
       $.get('/api/amisafe/crime-types')
         .done(function (response) {
-          self.populateCrimeTypeSelector(response.crime_types);
+          console.log('Crime types API response:', response);
+          if (response && response.crime_types) {
+            self.populateCrimeTypeSelector(response.crime_types);
+          } else {
+            console.warn('Invalid crime types response format');
+            self.populateCrimeTypeSelector({
+              '100': 'Murder',
+              '200': 'Rape', 
+              '300': 'Robbery - Total',
+              '400': 'Aggravated Assault - Total',
+              '500': 'Burglary - Total',
+              '600': 'Theft from Vehicle',
+              '700': 'All Other Larceny',
+              '800': 'Vandalism',
+              '900': 'Fraud',
+              '1000': 'Embezzlement',
+              '1100': 'Narcotic Drug Law Violations',
+              '1200': 'Weapons Violations',
+              '1300': 'Prostitution',
+              '1400': 'Other Assaults',
+              '1500': 'Arson',
+              '1600': 'Stolen Property',
+              '1700': 'DUI',
+              '1800': 'Liquor Laws',
+              '2000': 'Public Drunkenness',
+              '2100': 'Disorderly Conduct',
+              '2600': 'Theft from Person'
+            });
+          }
         })
         .fail(function (xhr) {
           console.error('Failed to load crime types:', xhr.responseText);
@@ -213,7 +264,15 @@
      * Populate crime type multi-select dropdown
      */
     populateCrimeTypeSelector: function (crimeTypes) {
+      console.log('Populating crime type selector with:', crimeTypes);
       var select = $('#crime-type-selector');
+      console.log('Crime type selector found:', select.length);
+      
+      if (select.length === 0) {
+        console.error('Crime type selector not found!');
+        return;
+      }
+      
       select.empty();
       
       // Add all crime types as options, selected by default
@@ -224,13 +283,26 @@
           .prop('selected', true);
         select.append(option);
       }
+      
+      console.log('Added', Object.keys(crimeTypes).length, 'crime type options to selector');
+      
+      // Trigger change event to update any dependent UI elements
+      select.trigger('change');
     },
 
     /**
      * Populate district multi-select dropdown
      */
     populateDistrictSelector: function (districts) {
+      console.log('Populating district selector with:', districts);
       var select = $('#district-selector');
+      console.log('District selector found:', select.length);
+      
+      if (select.length === 0) {
+        console.error('District selector not found!');
+        return;
+      }
+      
       select.empty();
       
       // Add all districts as options, selected by default
@@ -241,6 +313,11 @@
           .prop('selected', true);
         select.append(option);
       });
+      
+      console.log('Added', districts.length, 'district options to selector');
+      
+      // Trigger change event to update any dependent UI elements
+      select.trigger('change');
     },
 
     /**
@@ -512,10 +589,22 @@
           console.log('API Response:', response);
           if (response.hexagons && Array.isArray(response.hexagons)) {
             self.renderHexagons(response.hexagons);
+            
+            // Calculate real statistics from hexagon data
+            var totalIncidents = 0;
+            var activeSectors = 0;
+            response.hexagons.forEach(function(hexagon) {
+              var incidents = hexagon.crime_count || hexagon.total_incidents || 0;
+              totalIncidents += incidents;
+              if (incidents > 0) {
+                activeSectors++;
+              }
+            });
+            
             self.updateStats(
-              response.meta.count || response.hexagons.length,
+              totalIncidents,
               self.calculateOverallThreatLevel(response.hexagons),
-              response.hexagons.length
+              activeSectors
             );
           } else {
             console.warn('Invalid API response format');
@@ -910,25 +999,38 @@
      * Calculate overall threat level from hexagon data
      */
     calculateOverallThreatLevel: function (hexagons) {
-      if (!hexagons || hexagons.length === 0) return 'LOW';
+      if (!hexagons || hexagons.length === 0) return 'MINIMAL';
       
       var totalCrimes = 0;
       var highThreatSectors = 0;
+      var criticalSectors = 0;
+      var severityScores = [];
       
       hexagons.forEach(function (hexagon) {
         var crimeCount = hexagon.crime_count || hexagon.total_incidents || 0;
+        var avgSeverity = hexagon.severity_avg || 2;
+        
         totalCrimes += crimeCount;
-        if (crimeCount > 20) {
+        severityScores.push(avgSeverity);
+        
+        if (crimeCount > 30) {
+          criticalSectors++;
+        } else if (crimeCount > 15) {
           highThreatSectors++;
         }
       });
       
       var avgCrimesPerSector = totalCrimes / hexagons.length;
+      var avgSeverity = severityScores.reduce((a, b) => a + b, 0) / severityScores.length;
+      var criticalRatio = criticalSectors / hexagons.length;
       var highThreatRatio = highThreatSectors / hexagons.length;
       
-      if (avgCrimesPerSector > 15 || highThreatRatio > 0.3) return 'HIGH';
-      if (avgCrimesPerSector > 8 || highThreatRatio > 0.1) return 'MEDIUM';
-      return 'LOW';
+      // Calculate threat level based on multiple factors
+      if (avgCrimesPerSector > 25 || criticalRatio > 0.2 || avgSeverity > 4) return 'CRITICAL';
+      if (avgCrimesPerSector > 15 || highThreatRatio > 0.3 || avgSeverity > 3) return 'HIGH';
+      if (avgCrimesPerSector > 8 || highThreatRatio > 0.1 || avgSeverity > 2.5) return 'MODERATE';
+      if (avgCrimesPerSector > 3 || totalCrimes > 0) return 'LOW';
+      return 'MINIMAL';
     },
 
     /**
