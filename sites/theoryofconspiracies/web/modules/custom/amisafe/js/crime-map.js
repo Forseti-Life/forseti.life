@@ -580,6 +580,7 @@
       
       // CRITICAL DEBUGGING: Track resolution requests
       console.log('🎯 RESOLUTION DEBUG: Zoom=' + zoom + ' → H3=' + resolution + ' (~' + this.getResolutionDescription(resolution) + ')');
+      console.log('📍 API Request URL: ' + this.settings.apiEndpoints.aggregated + '?resolution=' + resolution);
       
       // Build API request parameters
       var params = {
@@ -634,9 +635,12 @@
         dataType: 'json',
         timeout: 10000,
         success: function (response) {
-          // Log critical resolution info
+          // Log ALL resolution info to diagnose the issue
+          console.log('🔥 API RESPONSE: H3=' + (response.meta ? response.meta.resolution : 'unknown') + ' returned ' + (response.hexagons ? response.hexagons.length : 0) + ' hexagons');
+          
+          // Extra debugging for high-res responses
           if (response.meta && response.meta.resolution >= 12) {
-            console.log('🔥 HIGH-RES API RESPONSE: H3=' + response.meta.resolution + ' returned ' + (response.hexagons ? response.hexagons.length : 0) + ' hexagons');
+            console.log('⚡ EXTREME DETAIL CONFIRMED: Resolution ' + response.meta.resolution + ' with ' + response.hexagons.length + ' high-precision hexagons');
           }
           
           if (response.hexagons && Array.isArray(response.hexagons)) {
@@ -1364,16 +1368,24 @@
      */
     getOptimalResolution: function (zoomLevel) {
       // Enhanced resolution mapping for extreme detail capability
-      if (zoomLevel <= 8)  return 6;   // ~3.1 km - Neighborhoods  
-      if (zoomLevel <= 10) return 7;   // ~1.2 km - Large blocks
-      if (zoomLevel <= 12) return 8;   // ~460 m - City blocks
-      if (zoomLevel <= 14) return 9;   // ~174 m - Street level
-      if (zoomLevel <= 16) return 10;  // ~65 m - Building groups
-      if (zoomLevel <= 17) return 11;  // ~25 m - Individual buildings
-      if (zoomLevel <= 18) return 12;  // ~9 m - Building parts
-      if (zoomLevel <= 19) return 13;  // ~3.4 m - Rooms/parking spaces
-      if (zoomLevel <= 20) return 14;  // ~1.3 m - NEAR 1-METER DETAIL! 🎯
-      return 15;  // ~0.5 m - SUB-METER PRECISION! ⚡
+      var resolution;
+      if (zoomLevel <= 8)  resolution = 6;   // ~3.1 km - Neighborhoods  
+      else if (zoomLevel <= 10) resolution = 7;   // ~1.2 km - Large blocks
+      else if (zoomLevel <= 12) resolution = 8;   // ~460 m - City blocks
+      else if (zoomLevel <= 14) resolution = 9;   // ~174 m - Street level
+      else if (zoomLevel <= 16) resolution = 10;  // ~65 m - Building groups
+      else if (zoomLevel <= 17) resolution = 11;  // ~25 m - Individual buildings
+      else if (zoomLevel <= 18) resolution = 12;  // ~9 m - Building parts
+      else if (zoomLevel <= 19) resolution = 13;  // ~3.4 m - Rooms/parking spaces
+      else if (zoomLevel <= 20) resolution = 14;  // ~1.3 m - NEAR 1-METER DETAIL! 🎯
+      else resolution = 15;  // ~0.5 m - SUB-METER PRECISION! ⚡
+      
+      // Debug resolution calculation
+      if (zoomLevel >= 18) {
+        console.log('⚡ EXTREME RESOLUTION: Zoom ' + zoomLevel + ' → H3 ' + resolution + ' (' + this.getResolutionDescription(resolution) + ')');
+      }
+      
+      return resolution;
     },
 
     /**
