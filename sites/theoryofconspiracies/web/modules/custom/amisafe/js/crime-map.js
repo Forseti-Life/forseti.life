@@ -13,16 +13,22 @@
    */
   Drupal.behaviors.amisafeCrimeMap = {
     attach: function (context, settings) {
+      console.log('AmISafe behavior attached, context:', context, 'settings:', settings);
+      
       if (!settings.amisafe) {
         console.warn('AmISafe settings not found');
         return;
       }
 
       $(context).find('#crime-map-container').addBack('#crime-map-container').each(function () {
+        console.log('Found crime map container:', this);
         if (!this.hasAttribute('data-amisafe-initialized')) {
+          console.log('Initializing AmISafe Crime Map...');
           this.setAttribute('data-amisafe-initialized', 'true');
           var crimeMap = new AmISafeCrimeMap(this, settings.amisafe);
           crimeMap.initialize();
+        } else {
+          console.log('AmISafe already initialized for this container');
         }
       });
     }
@@ -56,7 +62,13 @@
       try {
         this.initializeMap();
         this.initializeControls();
-        this.initializeFilters();
+        
+        // Use a slight delay to ensure DOM is fully ready for filter initialization
+        var self = this;
+        setTimeout(function() {
+          self.initializeFilters();
+        }, 100);
+        
         this.loadInitialData();
         
         console.log('AmISafe Crime Map initialized successfully');
@@ -165,7 +177,45 @@
         
         if (crimeTypeSelector.length > 0 && districtSelector.length > 0) {
           console.log('Selectors found, loading filter options...');
+          
+          // Load with immediate fallback to ensure options are populated
           self.loadFilterOptions();
+          
+          // Also populate with fallback data immediately to ensure something shows
+          setTimeout(function() {
+            if (crimeTypeSelector.find('option').length === 0) {
+              console.log('No options found in crime type selector, using fallback...');
+              self.populateCrimeTypeSelector({
+                '100': 'Murder',
+                '200': 'Rape',
+                '300': 'Robbery - Total',
+                '400': 'Aggravated Assault - Total',
+                '500': 'Burglary - Total',
+                '600': 'Theft from Vehicle',
+                '700': 'All Other Larceny',
+                '800': 'Vandalism',
+                '900': 'Fraud',
+                '1000': 'Embezzlement',
+                '1100': 'Narcotic Drug Law Violations',
+                '1200': 'Weapons Violations',
+                '1300': 'Prostitution',
+                '1400': 'Other Assaults',
+                '1500': 'Arson',
+                '1600': 'Stolen Property',
+                '1700': 'DUI',
+                '1800': 'Liquor Laws',
+                '2000': 'Public Drunkenness',
+                '2100': 'Disorderly Conduct',
+                '2600': 'Theft from Person'
+              });
+            }
+            
+            if (districtSelector.find('option').length === 0) {
+              console.log('No options found in district selector, using fallback...');
+              self.populateDistrictSelector(['01', '02', '03', '05', '07', '08', '09', '12', '14', '15', '16', '17']);
+            }
+          }, 2000);
+          
           self.setupFilterEventHandlers();
         } else if (retryCount < maxRetries) {
           retryCount++;
