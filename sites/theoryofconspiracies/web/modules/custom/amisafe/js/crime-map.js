@@ -13,7 +13,7 @@
    */
   Drupal.behaviors.amisafeCrimeMap = {
     attach: function (context, settings) {
-      console.log('AmISafe behavior attached, context:', context, 'settings:', settings);
+      // Debug: AmISafe behavior attached
       
       if (!settings.amisafe) {
         console.warn('AmISafe settings not found');
@@ -21,14 +21,14 @@
       }
 
       $(context).find('#crime-map-container').addBack('#crime-map-container').each(function () {
-        console.log('Found crime map container:', this);
+        // Found crime map container
         if (!this.hasAttribute('data-amisafe-initialized')) {
-          console.log('Initializing AmISafe Crime Map...');
+          // Initializing AmISafe Crime Map
           this.setAttribute('data-amisafe-initialized', 'true');
           var crimeMap = new AmISafeCrimeMap(this, settings.amisafe);
           crimeMap.initialize();
         } else {
-          console.log('AmISafe already initialized for this container');
+          // AmISafe already initialized for this container
         }
       });
     }
@@ -55,7 +55,20 @@
      * Initialize the crime map
      */
     initialize: function () {
-      console.log('Initializing AmISafe Crime Map...');
+      // Initialize debug mode (default off to reduce console spam)
+      this.debugMode = false;
+      
+      if (this.debugMode) console.log('Initializing AmISafe Crime Map...');
+      
+      // Initialize performance optimization variables
+      this.dataCache = new Map(); // Cache for hexagon data by resolution + filters
+      this.currentRequest = null; // Track current AJAX request for cancellation
+      this.lastLoadedResolution = null; // Track current resolution to avoid reloads
+      this.loadTimeout = null; // Debounce timer for zoom events
+      this.filterTimeout = null; // Debounce timer for filter changes
+      this.lastBounds = null; // Track map bounds to avoid unnecessary reloads
+      this.lastFilters = null; // Track filters to avoid unnecessary reloads
+      this.debugMode = false; // Control verbose logging
       
       this.showLoading('INITIALIZING NEURAL MAP...');
       
@@ -71,7 +84,7 @@
         
         this.loadInitialData();
         
-        console.log('AmISafe Crime Map initialized successfully');
+        if (this.debugMode) console.log('AmISafe Crime Map initialized successfully');
         this.hideLoading();
         
         // Expose instance for debug buttons
@@ -235,7 +248,7 @@
     loadFilterOptions: function () {
       var self = this;
       
-      console.log('Loading filter options...');
+      if (this.debugMode) console.log('Loading filter options...');
       
       // Load crime types for multi-select dropdown
       $.get('/api/amisafe/crime-types')
@@ -481,7 +494,7 @@
       this.showLoading('APPLYING FILTERS...');
       
       var filters = this.getCurrentFilters();
-      console.log('Applying filters:', filters);
+      if (this.debugMode) console.log('Applying filters:', filters);
       
       // Reload hexagon data with filters
       this.loadHexagonData(filters);
@@ -568,7 +581,7 @@
     },
 
     /**
-     * Load hexagon data from API
+     * Load hexagon data from API with caching and request optimization
      */
     loadHexagonData: function (filters) {
       var self = this;
@@ -578,11 +591,59 @@
       var zoom = this.map.getZoom();
       var resolution = this.getOptimalResolution(zoom);
       
-      // CRITICAL DEBUGGING: Track resolution requests
-      console.log('🚀 LOADING HEXAGON DATA CALLED!');
-      console.log('🎯 RESOLUTION DEBUG: Zoom=' + zoom + ' → H3=' + resolution + ' (~' + this.getResolutionDescription(resolution) + ')');
-      console.log('📍 API Request URL: ' + this.settings.apiEndpoints.aggregated + '?resolution=' + resolution);
-      console.log('📍 Map bounds for API call:', bounds.toString());
+      // Check if we need to reload data
+      var filtersChanged = JSON.stringify(filters) !== JSON.stringify(this.lastFilters);
+      var resolutionChanged = resolution !== this.lastLoadedResolution;
+      var boundsChanged = !this.lastBounds || !bounds.equals(this.lastBounds);
+      
+      // Create cache key
+      var cacheKey = resolution + '_' + JSON.stringify(filters || {});
+      
+      // PERFORMANCE CHECK: Use cached data if available
+      if (this.dataCache.has(cacheKey)) {
+        if (this.debugMode) console.log('⚡ PERFORMANCE: Using cached data, skipping API call');
+        var cachedEntry = this.dataCache.get(cacheKey);
+        var cachedResponse = cachedEntry.data || cachedEntry; // Handle both old and new format
+        if (cachedResponse.hexagons && Array.isArray(cachedResponse.hexagons)) {
+          this.renderHexagons(cachedResponse.hexagons);
+          
+          // Calculate stats for cached data
+          var totalIncidents = 0;
+          var activeSectors = 0;
+          cachedResponse.hexagons.forEach(function(hexagon) {
+            if (hexagon.incident_count > 0) {
+              totalIncidents += hexagon.incident_count;
+              activeSectors++;
+            }
+          });
+          
+          this.updateStats(
+            totalIncidents,
+            this.calculateOverallThreatLevel(cachedResponse.hexagons),
+            activeSectors
+          );
+        }
+        return;
+      }
+      
+      // PERFORMANCE CHECK: Skip reload if nothing significant changed
+      if (!filtersChanged && !resolutionChanged && !boundsChanged) {
+        if (this.debugMode) console.log('⚡ PERFORMANCE: No changes detected, skipping reload');
+        return;
+      }
+      
+      // Cancel any pending request
+      if (this.currentRequest && this.currentRequest.readyState !== 4) {
+        if (this.debugMode) console.log('🚫 Cancelling previous request');
+        this.currentRequest.abort();
+      }
+      
+      if (this.debugMode) {
+        console.log('🎯 LOADING: Zoom=' + zoom + ' → H3=' + resolution + ' (' + this.getResolutionDescription(resolution) + ')');
+        if (filtersChanged) console.log('🔧 Filters changed');
+        if (resolutionChanged) console.log('🔍 Resolution changed: ' + this.lastLoadedResolution + ' → ' + resolution);
+      }
+      if (boundsChanged) console.log('�️ Bounds changed');
       
       // Build API request parameters
       var params = {
@@ -629,19 +690,31 @@
         }
       }
       
-      // Make API request
-      $.ajax({
+      // Make API request and store reference for cancellation
+      this.currentRequest = $.ajax({
         url: this.settings.apiEndpoints.aggregated,
         method: 'GET',
         data: params,
         dataType: 'json',
         timeout: 10000,
         success: function (response) {
-          // Log ALL resolution info to diagnose the issue
-          console.log('🔥 API RESPONSE: H3=' + (response.meta ? response.meta.resolution : 'unknown') + ' returned ' + (response.hexagons ? response.hexagons.length : 0) + ' hexagons');
+          // Cache the response for future use
+          self.dataCache.set(cacheKey, {
+            data: response,
+            timestamp: Date.now()
+          });
+          self.lastLoadedResolution = resolution;
+          self.lastBounds = bounds;
+          self.lastFilters = filters;
+          
+          // Clean old cache entries if cache gets too large
+          self.cleanupCache();
+          
+          if (self.debugMode) console.log('🔥 API RESPONSE: H3=' + (response.meta ? response.meta.resolution : 'unknown') + ' returned ' + (response.hexagons ? response.hexagons.length : 0) + ' hexagons');
+          if (self.debugMode) console.log('💾 Cached response with key:', cacheKey, '(Cache size:', self.dataCache.size + ')');
           
           // Extra debugging for high-res responses
-          if (response.meta && response.meta.resolution >= 12) {
+          if (self.debugMode && response.meta && response.meta.resolution >= 12) {
             console.log('⚡ EXTREME DETAIL CONFIRMED: Resolution ' + response.meta.resolution + ' with ' + response.hexagons.length + ' high-precision hexagons');
           }
           
@@ -665,7 +738,7 @@
               activeSectors
             );
           } else {
-            console.warn('Invalid API response format');
+            if (self.debugMode) console.warn('Invalid API response format');
             self.loadSampleData(); // Fallback to sample data
           }
           self.hideLoading();
@@ -1298,53 +1371,80 @@
     },
 
     /**
-     * Update filters and reload data
+     * Update filters and reload data with debouncing
      */
     updateFilters: function () {
-      console.log('Updating filters...');
+      var self = this;
+      if (this.debugMode) console.log('🔧 FILTER UPDATE: Started');
       
-      // Collect filter values
-      var crimeTypes = [];
-      $('.filter-checkboxes input[type="checkbox"]:checked').each(function () {
-        crimeTypes.push($(this).val());
-      });
-      
-      var districts = $('#district-filter').val() || [];
-      
-      // Get date range if available
-      var dateRange = $('#date-range-picker').val();
-      var startDate = null, endDate = null;
-      if (dateRange && dateRange.includes(' to ')) {
-        var dates = dateRange.split(' to ');
-        startDate = dates[0].trim();
-        endDate = dates[1].trim();
+      // Clear existing filter timeout
+      if (this.filterTimeout) {
+        clearTimeout(this.filterTimeout);
       }
       
-      this.currentFilters = {
-        crime_types: crimeTypes,
-        districts: districts,
-        start_date: startDate,
-        end_date: endDate
-      };
-      
-      console.log('Applied filters:', this.currentFilters);
-      
-      // Reload data with new filters
-      this.showLoading('APPLYING FILTERS...');
-      this.loadHexagonData();
+      // Debounce filter updates to avoid excessive API calls
+      this.filterTimeout = setTimeout(function() {
+        // Collect filter values
+        var crimeTypes = [];
+        $('.filter-checkboxes input[type="checkbox"]:checked').each(function () {
+          crimeTypes.push($(this).val());
+        });
+        
+        var districts = $('#district-filter').val() || [];
+        
+        // Get date range if available
+        var dateRange = $('#date-range-picker').val();
+        var startDate = null, endDate = null;
+        if (dateRange && dateRange.includes(' to ')) {
+          var dates = dateRange.split(' to ');
+          startDate = dates[0].trim();
+          endDate = dates[1].trim();
+        }
+        
+        var newFilters = {
+          crime_types: crimeTypes,
+          districts: districts,
+          start_date: startDate,
+          end_date: endDate
+        };
+        
+        // Check if filters actually changed
+        if (JSON.stringify(self.lastFilters) === JSON.stringify(newFilters)) {
+          if (self.debugMode) console.log('🔧 FILTER SKIP: No changes detected');
+          return;
+        }
+        
+        self.currentFilters = newFilters;
+        self.lastFilters = JSON.parse(JSON.stringify(newFilters)); // Deep copy
+        
+        if (self.debugMode) console.log('🔧 FILTER APPLIED:', self.currentFilters);
+        
+        // Reload data with new filters
+        self.showLoading('APPLYING FILTERS...');
+        self.loadHexagonData();
+      }, 250);
     },
 
     /**
-     * Handle map zoom events
+     * Handle map zoom events with debouncing
      */
     onMapZoom: function () {
+      var self = this;
       var zoom = this.map.getZoom();
       var resolution = this.getOptimalResolution(zoom);
       
-      console.log('🔄 ZOOM EVENT FIRED: ' + zoom + ' → H3=' + resolution + ' (' + this.getResolutionDescription(resolution) + ')');
+      // Clear existing timeout
+      if (this.loadTimeout) {
+        clearTimeout(this.loadTimeout);
+      }
       
-      // Refresh hexagons with new resolution (no loading overlay to avoid interference)
-      this.loadHexagonData(); // Direct call without loading overlay
+      if (this.debugMode) console.log('🔄 ZOOM EVENT: ' + zoom + ' → H3=' + resolution + ' (debounced)');
+      
+      // Debounce the data loading to avoid excessive API calls
+      this.loadTimeout = setTimeout(function() {
+        if (self.debugMode) console.log('⚡ ZOOM DEBOUNCE: Loading data after 300ms delay');
+        self.loadHexagonData(); // Debounced call
+      }, 300);
     },
 
     /**
@@ -1420,12 +1520,19 @@
      * Update statistics panel
      */
     updateStats: function (totalIncidents, threatLevel, activeSectors) {
+      // Provide defaults for undefined parameters
+      totalIncidents = totalIncidents || 0;
+      threatLevel = threatLevel || 'UNKNOWN';
+      activeSectors = activeSectors || 0;
+      
       $('#total-incidents').text(totalIncidents.toLocaleString());
       $('#threat-level').text(threatLevel);
       $('#active-sectors').text(activeSectors);
       
-      // Add terminal typing effect
-      this.typeText($('#threat-level'), threatLevel);
+      // Add terminal typing effect only if threatLevel is valid
+      if (typeof threatLevel === 'string' && threatLevel.length > 0) {
+        this.typeText($('#threat-level'), threatLevel);
+      }
     },
 
     /**
@@ -1512,6 +1619,11 @@
      * Terminal typing effect
      */
     typeText: function (element, text) {
+      if (!text || typeof text !== 'string') {
+        console.warn('typeText: Invalid text parameter:', text);
+        return;
+      }
+      
       element.empty();
       var i = 0;
       var timer = setInterval(function () {
@@ -1600,6 +1712,58 @@
     },
 
     /**
+     * Enable or disable debug logging
+     */
+    setDebugMode: function (enabled) {
+      this.debugMode = !!enabled;
+      console.log('AmISafe Debug Mode:', this.debugMode ? 'ENABLED' : 'DISABLED');
+    },
+
+    /**
+     * Clean up old cache entries to prevent memory bloat
+     */
+    cleanupCache: function () {
+      var maxCacheSize = 20; // Keep last 20 responses
+      var maxCacheAge = 5 * 60 * 1000; // 5 minutes
+      var now = Date.now();
+      
+      if (this.dataCache.size > maxCacheSize) {
+        if (this.debugMode) console.log('🧹 CACHE CLEANUP: Size limit exceeded (' + this.dataCache.size + '>' + maxCacheSize + ')');
+        
+        // Convert to array and sort by timestamp
+        var entries = Array.from(this.dataCache.entries());
+        entries.sort(function(a, b) {
+          var aTime = a[1].timestamp || 0;
+          var bTime = b[1].timestamp || 0;
+          return bTime - aTime; // Newest first
+        });
+        
+        // Clear cache and keep only the newest entries
+        this.dataCache.clear();
+        for (var i = 0; i < Math.min(maxCacheSize, entries.length); i++) {
+          this.dataCache.set(entries[i][0], entries[i][1]);
+        }
+        
+        if (this.debugMode) console.log('🧹 CACHE CLEANED: Kept ' + this.dataCache.size + ' newest entries');
+      }
+      
+      // Also remove entries older than maxCacheAge
+      var keysToDelete = [];
+      this.dataCache.forEach(function(value, key) {
+        if (value.timestamp && (now - value.timestamp) > maxCacheAge) {
+          keysToDelete.push(key);
+        }
+      });
+      
+      if (keysToDelete.length > 0) {
+        keysToDelete.forEach(function(key) {
+          this.dataCache.delete(key);
+        }, this);
+        if (this.debugMode) console.log('🧹 CACHE CLEANUP: Removed ' + keysToDelete.length + ' expired entries');
+      }
+    },
+
+    /**
      * Reset map view to default
      */
     resetView: function () {
@@ -1616,11 +1780,21 @@
     }
   };
 
-  // Global reference for popup callbacks
+  // Global reference for popup callbacks and debug control
   window.AmISafeMap = {
     showFullDetails: function (h3Index) {
       console.log('Show full details for:', h3Index);
       // Implementation for detailed analysis modal
+    },
+    enableDebug: function() {
+      if (window.AmISafeCrimeMap && window.AmISafeCrimeMap.crimeMap) {
+        window.AmISafeCrimeMap.crimeMap.setDebugMode(true);
+      }
+    },
+    disableDebug: function() {
+      if (window.AmISafeCrimeMap && window.AmISafeCrimeMap.crimeMap) {
+        window.AmISafeCrimeMap.crimeMap.setDebugMode(false);
+      }
     }
   };
 
