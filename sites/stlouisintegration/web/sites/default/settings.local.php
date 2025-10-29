@@ -5,16 +5,9 @@
  * Local development override configuration feature.
  */
 
-// Disable all caching.
-$settings['cache']['bins']['render'] = 'cache.backend.null';
-$settings['cache']['bins']['page'] = 'cache.backend.null';
-$settings['cache']['bins']['dynamic_page_cache'] = 'cache.backend.null';
-$settings['cache']['bins']['discovery'] = 'cache.backend.null';
-$settings['cache']['bins']['config'] = 'cache.backend.null';
-$settings['cache']['bins']['data'] = 'cache.backend.null';
-$settings['cache']['bins']['default'] = 'cache.backend.null';
-$settings['cache']['bins']['bootstrap'] = 'cache.backend.null';
-$settings['cache']['bins']['container'] = 'cache.backend.null';
+// Disable caching by setting cache lifetimes to 0
+$config['system.performance']['cache']['page']['max_age'] = 0;
+$settings['cache_ttl_4xx'] = 0;
 
 // Disable CSS and JS aggregation.
 $config['system.performance']['css']['preprocess'] = FALSE;
@@ -34,17 +27,17 @@ $settings['rebuild_access'] = TRUE;
 // Skip file system permissions hardening.
 $settings['skip_permissions_hardening'] = TRUE;
 
-// Disable entity/field caching
-$settings['cache']['bins']['entity'] = 'cache.backend.null';
-$settings['cache']['bins']['menu'] = 'cache.backend.null';
-$settings['cache']['bins']['toolbar'] = 'cache.backend.null';
+// Disable entity/field caching (use memory backend for development)
+$settings['cache']['bins']['entity'] = 'cache.backend.memory';
+$settings['cache']['bins']['menu'] = 'cache.backend.memory';
+$settings['cache']['bins']['toolbar'] = 'cache.backend.memory';
 
 // Disable Views caching
 $config['views.settings']['ui']['always_live_preview'] = TRUE;
 $config['views.settings']['ui']['exposed_filter_any_label'] = 'new_any';
 
-// Disable migration caching
-$settings['cache']['bins']['migrate'] = 'cache.backend.null';
+// Disable migration caching (use memory backend for development)
+$settings['cache']['bins']['migrate'] = 'cache.backend.memory';
 
 // Additional development settings
 $settings['hash_salt'] = 'development-hash-salt-not-for-production';

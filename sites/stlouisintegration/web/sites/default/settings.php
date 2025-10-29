@@ -901,7 +901,5 @@ $config['system.performance']['js']['preprocess'] = FALSE;
 // Enable verbose error reporting
 $config['system.logging']['error_level'] = 'verbose';
 
-// Disable caching for development
-$settings['cache']['bins']['render'] = 'cache.backend.null';
-$settings['cache']['bins']['page'] = 'cache.backend.null';
-$settings['cache']['bins']['dynamic_page_cache'] = 'cache.backend.null';
+// Disable page caching for development  
+$config['system.performance']['cache']['page']['max_age'] = 0;
