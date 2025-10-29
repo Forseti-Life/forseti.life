@@ -6,6 +6,10 @@
 
 set -e  # Exit on any error
 
+# CRITICAL: Set PHP 8.3 PATH priority FIRST, before any other operations
+# This ensures that PHP 8.3 takes precedence over Codespace's default PHP
+export PATH="/usr/bin:/usr/sbin:$PATH"
+
 echo "=== St. Louis Integration - Complete Development Environment Setup ==="
 
 # Colors for output
@@ -39,7 +43,16 @@ if [[ $EUID -eq 0 ]]; then
 fi
 
 # Ensure we prioritize system PHP 8.3 over codespace PHP throughout script execution
-export PATH="/usr/bin:$PATH"
+# This is a redundant safety check since we set it at the top
+export PATH="/usr/bin:/usr/sbin:$PATH"
+
+# Verify PHP version immediately after PATH setup
+print_status "Verifying PHP path priority: $(which php)"
+if which php | grep -q "/usr/bin/php"; then
+    print_status "✅ System PHP is properly prioritized"
+else
+    print_warning "⚠️  PHP path may need adjustment"
+fi
 
 # Configuration
 PROJECT_NAME="stlouisintegration"
@@ -148,10 +161,14 @@ if command -v composer &> /dev/null; then
     print_status "Composer is already installed: $(composer --version)"
 else
     print_status "Installing Composer..."
-    curl -sS https://getcomposer.org/installer | php
+    curl -sS https://getcomposer.org/installer | /usr/bin/php8.3
     sudo mv composer.phar /usr/local/bin/composer
     sudo chmod +x /usr/local/bin/composer
 fi
+
+# Verify Composer works with PHP 8.3
+print_status "Verifying Composer with PHP 8.3..."
+/usr/bin/php8.3 /usr/local/bin/composer --version || print_error "Composer PHP 8.3 verification failed"
 
 # Install MySQL/MariaDB
 print_status "Checking MySQL/MariaDB installation..."
@@ -197,33 +214,52 @@ sudo a2enmod php8.3
 print_status "Configuring PHP 8.3 as default system PHP..."
 sudo update-alternatives --install /usr/bin/php php /usr/bin/php8.3 83 || true
 
-# Update PATH to prioritize system PHP over codespace PHP
+# Update PATH to prioritize system PHP over codespace PHP (redundant check)
 print_status "Updating PATH to prioritize system PHP 8.3..."
-export PATH="/usr/bin:$PATH"
+export PATH="/usr/bin:/usr/sbin:$PATH"
 
 # Make PATH change permanent for the current session and future sessions
-if ! grep -q 'export PATH="/usr/bin:$PATH"' ~/.bashrc; then
-    echo 'export PATH="/usr/bin:$PATH"  # Prioritize system PHP 8.3' >> ~/.bashrc
+if ! grep -q 'export PATH="/usr/bin:/usr/sbin:\$PATH"' ~/.bashrc; then
+    echo 'export PATH="/usr/bin:/usr/sbin:$PATH"  # Prioritize system PHP 8.3' >> ~/.bashrc
     print_status "Added PATH configuration to ~/.bashrc"
 fi
 
 # Also add to global environment for all users
-if ! grep -q 'export PATH="/usr/bin:$PATH"' /etc/environment; then
-    sudo sh -c 'echo "export PATH=\"/usr/bin:\$PATH\"  # Prioritize system PHP 8.3" >> /etc/environment'
+PROFILE_PATH_LINE='PATH="/usr/bin:/usr/sbin:$PATH"'
+if ! grep -q "/usr/bin.*\$PATH" /etc/environment; then
+    echo "$PROFILE_PATH_LINE" | sudo tee -a /etc/environment > /dev/null
     print_status "Added PATH configuration to /etc/environment"
+fi
+
+# Create a permanent shell function for PHP 8.3 Composer
+if ! grep -q "composer8.3" ~/.bashrc; then
+    echo 'alias composer8.3="/usr/bin/php8.3 /usr/local/bin/composer"' >> ~/.bashrc
+    print_status "Added PHP 8.3 Composer alias"
 fi
 
 # Reload Apache to use PHP 8.3
 print_status "Reloading Apache to use PHP 8.3..."
 sudo service apache2 reload || true
 
-# Verify PHP version is correct
-PHP_VERSION_CHECK=$(php --version | head -n1)
-print_status "Current PHP version: $PHP_VERSION_CHECK"
-if echo "$PHP_VERSION_CHECK" | grep -q "PHP 8\.3"; then
+# Verify PHP version is correct (force system PHP)
+PHP_VERSION_CHECK=$(/usr/bin/php8.3 --version | head -n1)
+SYSTEM_PHP_VERSION=$(php --version | head -n1)
+print_status "System PHP 8.3 version: $PHP_VERSION_CHECK"
+print_status "Current default PHP version: $SYSTEM_PHP_VERSION"
+
+# Force update alternatives to ensure PHP 8.3 is default
+sudo update-alternatives --install /usr/bin/php php /usr/bin/php8.3 100
+sudo update-alternatives --set php /usr/bin/php8.3
+
+# Verify after update-alternatives
+UPDATED_PHP_VERSION=$(php --version | head -n1)
+print_status "Updated default PHP version: $UPDATED_PHP_VERSION"
+
+if echo "$UPDATED_PHP_VERSION" | grep -q "PHP 8\.3"; then
     print_status "✅ PHP 8.3 is correctly configured as default"
 else
-    print_warning "⚠️  PHP version may not be correctly configured"
+    print_warning "⚠️  PHP version configuration needs manual intervention"
+    print_warning "Current: $(which php) -> $(readlink -f $(which php))"
 fi
 
 # Install Git
@@ -296,29 +332,56 @@ if command -v update-alternatives &> /dev/null && [ -x "/usr/bin/php8.3" ]; then
     print_status "PHP 8.3 configured as default CLI version via update-alternatives"
 fi
 
-# Configure environment
+# Configure environment for PHP 8.3 (comprehensive)
 print_status "Configuring environment for PHP 8.3..."
 BASHRC_FILE="$HOME/.bashrc"
 if [ -f "$BASHRC_FILE" ]; then
-    # Remove existing PHP configurations
-    grep -v "# PHP 8.3 Configuration" "$BASHRC_FILE" > "${BASHRC_FILE}.tmp" || true
-    grep -v "export PATH.*php" "${BASHRC_FILE}.tmp" > "$BASHRC_FILE" || true
-    rm -f "${BASHRC_FILE}.tmp"
+    # Remove existing conflicting PHP configurations
+    grep -v "# PHP.*Configuration" "$BASHRC_FILE" > "${BASHRC_FILE}.tmp" || cp "$BASHRC_FILE" "${BASHRC_FILE}.tmp"
+    grep -v "export PATH.*php" "${BASHRC_FILE}.tmp" > "${BASHRC_FILE}.new" || cp "${BASHRC_FILE}.tmp" "${BASHRC_FILE}.new"
+    grep -v "alias php=" "${BASHRC_FILE}.new" > "${BASHRC_FILE}.clean" || cp "${BASHRC_FILE}.new" "${BASHRC_FILE}.clean"
+    mv "${BASHRC_FILE}.clean" "$BASHRC_FILE"
+    rm -f "${BASHRC_FILE}.tmp" "${BASHRC_FILE}.new" 2>/dev/null || true
     
-    # Add PHP 8.3 configuration
+    # Add comprehensive PHP 8.3 configuration
     echo "" >> "$BASHRC_FILE"
-    echo "# PHP 8.3 Configuration" >> "$BASHRC_FILE"
-    echo 'export PATH="/usr/bin:$PATH"' >> "$BASHRC_FILE"
+    echo "# PHP 8.3 Configuration - Auto-generated by complete-setup.sh" >> "$BASHRC_FILE"
+    echo 'export PATH="/usr/bin:/usr/sbin:$PATH"' >> "$BASHRC_FILE"
     echo 'alias php="/usr/bin/php8.3"' >> "$BASHRC_FILE"
     echo 'alias composer="/usr/bin/php8.3 /usr/local/bin/composer"' >> "$BASHRC_FILE"
+    echo 'alias drush="/usr/bin/php8.3 ./vendor/bin/drush"' >> "$BASHRC_FILE"
     
-    print_status "Updated .bashrc with PHP 8.3 configuration"
+    print_status "Updated .bashrc with comprehensive PHP 8.3 configuration"
 fi
 
-# Apply environment changes to current session
-export PATH="/usr/bin:$PATH"
-alias php="/usr/bin/php8.3"
-alias composer="/usr/bin/php8.3 /usr/local/bin/composer"
+# Apply environment changes to current session (force override)
+export PATH="/usr/bin:/usr/sbin:$PATH"
+# Create functions instead of aliases for script use
+php() { /usr/bin/php8.3 "$@"; }
+composer() { /usr/bin/php8.3 /usr/local/bin/composer "$@"; }
+export -f php composer
+
+# CRITICAL VERIFICATION: Ensure PHP 8.3 is working
+print_status "=== PHP 8.3 VERIFICATION ==="
+print_status "which php: $(which php)"
+print_status "/usr/bin/php8.3 version: $(/usr/bin/php8.3 --version | head -n1)"
+print_status "php (function) version: $(php --version | head -n1)"
+print_status "composer (function) version: $(composer --version | head -n1)"
+
+# Verify MySQL extension is loaded in PHP 8.3
+if /usr/bin/php8.3 -m | grep -q mysqli; then
+    print_status "✅ PHP 8.3 MySQL extension loaded"
+else
+    print_error "❌ PHP 8.3 MySQL extension not found"
+fi
+
+# Test composer with PHP 8.3
+if /usr/bin/php8.3 /usr/local/bin/composer about >/dev/null 2>&1; then
+    print_status "✅ Composer working with PHP 8.3"
+else
+    print_error "❌ Composer not working with PHP 8.3"
+fi
+print_status "=== END PHP 8.3 VERIFICATION ==="
 
 # Configure MySQL database
 print_status "Configuring MySQL database..."
@@ -645,6 +708,13 @@ TOC_ADMIN_EMAIL="admin@theoryofconspiracies.com"
 if [ -d "$TOC_PROJECT_DIR" ]; then
     print_status "Theory of Conspiracies site directory found at $TOC_PROJECT_DIR"
     cd "$TOC_PROJECT_DIR"
+    
+    # CRITICAL FIX: Repair corrupted Composer autoloader if needed
+    if [ -d "vendor" ] && [ ! -f "vendor/autoload.php" ]; then
+        print_status "Repairing Theory of Conspiracies Composer dependencies..."
+        rm -rf vendor/
+        /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
+    fi
     
     # Check if it's properly installed
     if [ ! -f "web/sites/default/settings.php" ] || [ ! -s "web/sites/default/settings.php" ]; then
