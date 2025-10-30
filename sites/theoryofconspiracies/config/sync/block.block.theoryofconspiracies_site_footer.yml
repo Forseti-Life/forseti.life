@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - theory_content
+  theme:
+    - theoryofconspiracies
+id: theoryofconspiracies_site_footer
+theme: theoryofconspiracies
+region: footer
+weight: -10
+provider: null
+plugin: "site_footer_block"
+settings:
+  id: "site_footer_block"
+  label: "Site Footer"
+  label_display: "0"
+  provider: theory_content
+visibility: {}

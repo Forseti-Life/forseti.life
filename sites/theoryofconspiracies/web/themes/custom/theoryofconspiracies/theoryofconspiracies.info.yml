@@ -24,6 +24,8 @@ regions:
 
 libraries:
   - theoryofconspiracies/style
+  - theoryofconspiracies/cyberpunk-effects
+  - theoryofconspiracies/animated-header
 
 ckeditor5-stylesheets:
   - build/css/main.style.css
