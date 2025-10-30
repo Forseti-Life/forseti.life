@@ -42,6 +42,24 @@ if [[ $EUID -eq 0 ]]; then
    exit 1
 fi
 
+# Function to ensure file permissions for Drupal settings files
+fix_drupal_permissions() {
+    local site_dir="$1"
+    print_status "Fixing permissions for $site_dir..."
+    if [ -f "$site_dir/web/sites/default/settings.php" ]; then
+        sudo chmod 664 "$site_dir/web/sites/default/settings.php" 2>/dev/null || chmod 664 "$site_dir/web/sites/default/settings.php" 2>/dev/null || true
+    fi
+    if [ -f "$site_dir/web/sites/default/settings.local.php" ]; then
+        sudo chmod 664 "$site_dir/web/sites/default/settings.local.php" 2>/dev/null || chmod 664 "$site_dir/web/sites/default/settings.local.php" 2>/dev/null || true
+    fi
+    if [ -d "$site_dir/web/sites/default" ]; then
+        sudo chmod 755 "$site_dir/web/sites/default" 2>/dev/null || chmod 755 "$site_dir/web/sites/default" 2>/dev/null || true
+    fi
+    if [ -d "$site_dir/web/sites/default/files" ]; then
+        sudo chmod 775 "$site_dir/web/sites/default/files" 2>/dev/null || chmod 775 "$site_dir/web/sites/default/files" 2>/dev/null || true
+    fi
+}
+
 # Ensure we prioritize system PHP 8.3 over codespace PHP throughout script execution
 # This is a redundant safety check since we set it at the top
 export PATH="/usr/bin:/usr/sbin:$PATH"
@@ -214,22 +232,36 @@ sudo a2enmod php8.3
 print_status "Configuring PHP 8.3 as default system PHP..."
 sudo update-alternatives --install /usr/bin/php php /usr/bin/php8.3 83 || true
 
-# Update PATH to prioritize system PHP over codespace PHP (redundant check)
+# Update PATH to prioritize system PHP over codespace PHP (critical for Codespaces)
 print_status "Updating PATH to prioritize system PHP 8.3..."
-export PATH="/usr/bin:/usr/sbin:$PATH"
+export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"
 
-# Make PATH change permanent for the current session and future sessions
-if ! grep -q 'export PATH="/usr/bin:/usr/sbin:\$PATH"' ~/.bashrc; then
-    echo 'export PATH="/usr/bin:/usr/sbin:$PATH"  # Prioritize system PHP 8.3' >> ~/.bashrc
+# Make PATH change permanent for Codespaces environment
+# Create a custom profile script that loads before Codespace defaults
+sudo bash -c 'cat > /etc/profile.d/99-php83-priority.sh << "EOF"
+#!/bin/bash
+# Ensure PHP 8.3 takes priority over Codespace PHP
+export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"
+EOF'
+sudo chmod +x /etc/profile.d/99-php83-priority.sh
+print_status "Created system-wide PHP 8.3 priority profile script"
+
+# Also update .bashrc for interactive sessions
+if ! grep -q 'export PATH="/usr/bin:/usr/sbin' ~/.bashrc; then
+    echo '' >> ~/.bashrc
+    echo '# PHP 8.3 Priority - Must be at the end to override Codespace defaults' >> ~/.bashrc
+    echo 'export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"  # Prioritize system PHP 8.3' >> ~/.bashrc
     print_status "Added PATH configuration to ~/.bashrc"
 fi
 
-# Also add to global environment for all users
-PROFILE_PATH_LINE='PATH="/usr/bin:/usr/sbin:$PATH"'
-if ! grep -q "/usr/bin.*\$PATH" /etc/environment; then
-    echo "$PROFILE_PATH_LINE" | sudo tee -a /etc/environment > /dev/null
-    print_status "Added PATH configuration to /etc/environment"
-fi
+# Create a wrapper script to ensure PHP 8.3 is used
+sudo bash -c 'cat > /usr/local/bin/php83-wrapper << "EOF"
+#!/bin/bash
+# Force PHP 8.3 usage regardless of PATH
+exec /usr/bin/php8.3 "$@"
+EOF'
+sudo chmod +x /usr/local/bin/php83-wrapper
+print_status "Created PHP 8.3 wrapper script"
 
 # Create a permanent shell function for PHP 8.3 Composer
 if ! grep -q "composer8.3" ~/.bashrc; then
@@ -354,12 +386,14 @@ if [ -f "$BASHRC_FILE" ]; then
     print_status "Updated .bashrc with comprehensive PHP 8.3 configuration"
 fi
 
-# Apply environment changes to current session (force override)
-export PATH="/usr/bin:/usr/sbin:$PATH"
-# Create functions instead of aliases for script use
+# Apply environment changes to current session (force override for Codespaces)
+export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"
+# Create functions instead of aliases for script use (ensures PHP 8.3 regardless of PATH)
 php() { /usr/bin/php8.3 "$@"; }
 composer() { /usr/bin/php8.3 /usr/local/bin/composer "$@"; }
-export -f php composer
+drush() { /usr/bin/php8.3 "$PWD/vendor/bin/drush" "$@"; }
+export -f php composer drush
+print_status "Created shell functions to force PHP 8.3 usage"
 
 # CRITICAL VERIFICATION: Ensure PHP 8.3 is working
 print_status "=== PHP 8.3 VERIFICATION ==="
@@ -702,12 +736,13 @@ chmod 755 web/modules/custom
 chmod 755 web/themes/custom
 chmod 755 config/sync
 
-# Only add development settings if they don't already exist
-if ! grep -q "Development-specific settings" web/sites/default/settings.php; then
-    print_status "Adding development-specific settings..."
-    cat >> web/sites/default/settings.php << 'EOL'
+    # Fix permissions before modifying settings
+    fix_drupal_permissions "$PROJECT_DIR"
 
-/**
+    # Only add development settings if they don't already exist
+    if ! grep -q "Development-specific settings" web/sites/default/settings.php; then
+        print_status "Adding development-specific settings..."
+        cat >> web/sites/default/settings.php << 'EOL'/**
  * Development-specific settings
  */
 
@@ -849,6 +884,9 @@ if [ -d "$TOC_PROJECT_DIR" ]; then
         mkdir -p config/sync
         chmod 755 web/modules/custom web/themes/custom config/sync
         
+        # Fix permissions before modifying settings
+        fix_drupal_permissions "$TOC_PROJECT_DIR"
+
         # Add development settings
         cat >> web/sites/default/settings.php << 'EOL'
 
