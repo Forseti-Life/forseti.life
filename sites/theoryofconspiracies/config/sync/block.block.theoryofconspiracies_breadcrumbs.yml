@@ -1,0 +1,22 @@
+uuid: e727eac8-f0f5-445f-9a4e-f1752ea238af
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - theoryofconspiracies
+_core:
+  default_config_hash: VhBzWb7lMRtIOg9G7VSw_0uopi-7zXeHq4vXqqV1HFE
+id: theoryofconspiracies_breadcrumbs
+theme: theoryofconspiracies
+region: breadcrumb
+weight: 0
+provider: null
+plugin: system_breadcrumb_block
+settings:
+  id: system_breadcrumb_block
+  label: Breadcrumbs
+  label_display: '0'
+  provider: system
+visibility: {  }

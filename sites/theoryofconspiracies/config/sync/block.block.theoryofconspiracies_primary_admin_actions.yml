@@ -1,0 +1,20 @@
+uuid: a4615266-1c0d-4c2f-8f79-82b3e217a3a3
+langcode: en
+status: true
+dependencies:
+  theme:
+    - theoryofconspiracies
+_core:
+  default_config_hash: Q9_2whdOj1YIomfvsIfopROW4FT_X5pY0DjdOiOaQ5U
+id: theoryofconspiracies_primary_admin_actions
+theme: theoryofconspiracies
+region: navbar_branding
+weight: -5
+provider: null
+plugin: local_actions_block
+settings:
+  id: local_actions_block
+  label: 'Primary admin actions'
+  label_display: '0'
+  provider: core
+visibility: {  }

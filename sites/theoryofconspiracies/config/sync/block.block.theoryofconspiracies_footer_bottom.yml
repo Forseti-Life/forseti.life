@@ -1,3 +1,4 @@
+uuid: bbcf61da-4c19-4b67-9a21-119b9e754eea
 langcode: en
 status: true
 dependencies:
@@ -10,10 +11,10 @@ theme: theoryofconspiracies
 region: page_bottom
 weight: -5
 provider: null
-plugin: "footer_bottom_block"
+plugin: footer_bottom_block
 settings:
-  id: "footer_bottom_block"
-  label: "Footer Bottom"
-  label_display: "0"
+  id: footer_bottom_block
+  label: 'Footer Bottom'
+  label_display: '0'
   provider: theory_content
-visibility: {}
+visibility: {  }

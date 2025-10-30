@@ -1,0 +1,19 @@
+uuid: 025ca678-4234-46e7-865d-fef368b223ab
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - text
+id: node.field_conversation_summary
+field_name: field_conversation_summary
+entity_type: node
+type: text_long
+settings: {  }
+module: text
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

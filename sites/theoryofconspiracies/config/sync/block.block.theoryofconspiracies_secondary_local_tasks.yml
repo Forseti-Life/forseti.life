@@ -1,0 +1,22 @@
+uuid: ba55757c-e539-4e3a-b136-ba518c3e0f19
+langcode: en
+status: true
+dependencies:
+  theme:
+    - theoryofconspiracies
+_core:
+  default_config_hash: ydSxdq7R66I8UMC460rOzlfzvlUL4VRbdwc6z9DWaUI
+id: theoryofconspiracies_secondary_local_tasks
+theme: theoryofconspiracies
+region: navbar_branding
+weight: -2
+provider: null
+plugin: local_tasks_block
+settings:
+  id: local_tasks_block
+  label: 'Secondary tabs'
+  label_display: '0'
+  provider: core
+  primary: false
+  secondary: true
+visibility: {  }

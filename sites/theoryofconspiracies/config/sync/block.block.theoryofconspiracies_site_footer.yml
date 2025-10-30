@@ -1,3 +1,4 @@
+uuid: 2f40b1e3-13ae-447b-a794-2adaf927db18
 langcode: en
 status: true
 dependencies:
@@ -10,10 +11,10 @@ theme: theoryofconspiracies
 region: footer
 weight: -10
 provider: null
-plugin: "site_footer_block"
+plugin: site_footer_block
 settings:
-  id: "site_footer_block"
-  label: "Site Footer"
-  label_display: "0"
+  id: site_footer_block
+  label: 'Site Footer'
+  label_display: '0'
   provider: theory_content
-visibility: {}
+visibility: {  }

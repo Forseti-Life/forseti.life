@@ -1,0 +1,19 @@
+uuid: 47b7f7fc-a7a3-42c6-b7ed-a93759658024
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - text
+id: node.field_messages
+field_name: field_messages
+entity_type: node
+type: text_long
+settings: {  }
+module: text
+locked: false
+cardinality: -1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

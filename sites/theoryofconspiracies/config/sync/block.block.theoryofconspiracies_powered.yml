@@ -1,0 +1,22 @@
+uuid: a2b5a7e9-dbc9-4b8f-9ff1-f826d65407c4
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - theoryofconspiracies
+_core:
+  default_config_hash: eYL19CLDyinGTWYQfBD1DswWzglEotE_kHnHx3AxTXM
+id: theoryofconspiracies_powered
+theme: theoryofconspiracies
+region: navbar_branding
+weight: 0
+provider: null
+plugin: system_powered_by_block
+settings:
+  id: system_powered_by_block
+  label: 'Powered by Drupal'
+  label_display: '0'
+  provider: system
+visibility: {  }
