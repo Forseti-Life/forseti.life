@@ -1,0 +1,311 @@
+// Character Pages and General Text Contrast Styles
+// =============================================================================
+
+// Global text contrast fixes
+.cyberpunk-container,
+.theory-home,
+.character-page,
+.setting-page,
+.story-page {
+  
+  // Base text colors - ensure high contrast
+  color: #e0e0e0;
+  
+  // General text elements
+  p, div, span, li {
+    color: #e0e0e0 !important;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  }
+  
+  // Headings with better contrast
+  h1, h2, h3, h4, h5, h6 {
+    color: #ffffff !important;
+    text-shadow: 0 0 4px rgba(0, 255, 255, 0.3);
+  }
+  
+  // Links with cyberpunk styling
+  a {
+    color: #00ffff !important;
+    text-shadow: 0 0 2px rgba(0, 255, 255, 0.5);
+    
+    &:hover {
+      color: #ffffff !important;
+      text-shadow: 0 0 6px rgba(0, 255, 255, 0.8);
+    }
+  }
+}
+
+// Character page specific styles
+.character-page {
+  
+  // Character stats and information
+  .stat-item {
+    background: rgba(0, 20, 20, 0.9) !important;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    
+    .stat-label {
+      color: #00ffff !important;
+      font-weight: 700;
+      text-shadow: 0 0 4px rgba(0, 255, 255, 0.4);
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+    
+    .stat-value {
+      color: #e0e0e0 !important;
+      text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+      line-height: 1.6;
+      font-weight: 400;
+    }
+  }
+  
+  // Character details
+  .character-details {
+    background: rgba(10, 10, 30, 0.9) !important;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    padding: 1.5rem;
+    border-radius: 8px;
+    
+    .detail-title {
+      color: #ffffff !important;
+      text-shadow: 0 0 6px rgba(0, 255, 255, 0.4);
+      margin-bottom: 1rem;
+    }
+    
+    .detail-content {
+      color: #d0d0d0 !important;
+      text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+      line-height: 1.7;
+    }
+  }
+  
+  // Character cards and previews
+  .character-card,
+  .character-preview {
+    background: rgba(20, 0, 20, 0.9) !important;
+    border: 1px solid rgba(255, 0, 255, 0.2);
+    
+    .character-name {
+      color: #ff00ff !important;
+      text-shadow: 0 0 6px rgba(255, 0, 255, 0.4);
+    }
+    
+    .character-role {
+      color: #ffff00 !important;
+      text-shadow: 0 0 4px rgba(255, 255, 0, 0.3);
+    }
+    
+    .character-description {
+      color: #e0e0e0 !important;
+      text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+    }
+  }
+  
+  // Trust relationships
+  .trust-relationships {
+    .trust-item {
+      background: rgba(0, 30, 0, 0.9) !important;
+      border-left: 4px solid #00ff00;
+      
+      .trust-character {
+        color: #00ff00 !important;
+        text-shadow: 0 0 4px rgba(0, 255, 0, 0.4);
+      }
+      
+      .trust-level {
+        color: #ffffff !important;
+        font-weight: 700;
+      }
+      
+      .trust-description {
+        color: #d0d0d0 !important;
+        text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+      }
+    }
+  }
+  
+  // Character timeline
+  .character-timeline {
+    .timeline-item {
+      background: rgba(30, 15, 0, 0.9) !important;
+      border-left: 4px solid #ff8800;
+      
+      .timeline-title {
+        color: #ff8800 !important;
+        text-shadow: 0 0 4px rgba(255, 136, 0, 0.4);
+      }
+      
+      .timeline-description {
+        color: #e0e0e0 !important;
+        text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+      }
+    }
+  }
+}
+
+// Story page styles
+.story-page {
+  
+  .sequence-item {
+    background: rgba(20, 0, 0, 0.9) !important;
+    border: 1px solid rgba(255, 69, 0, 0.3);
+    
+    .sequence-title {
+      color: #ff4500 !important;
+      text-shadow: 0 0 6px rgba(255, 69, 0, 0.4);
+    }
+    
+    .sequence-description {
+      color: #e0e0e0 !important;
+      text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+    }
+  }
+}
+
+// Home page specific
+.theory-home {
+  
+  .synopsis-text {
+    color: #e0e0e0 !important;
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+    font-size: 1.1rem;
+    line-height: 1.7;
+  }
+  
+  .crew-name {
+    color: #00ffff !important;
+    text-shadow: 0 0 4px rgba(0, 255, 255, 0.4);
+    font-weight: 600;
+  }
+  
+  .crew-role {
+    color: #ffffff !important;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.3);
+  }
+  
+  .hero-tagline {
+    color: #ffffff !important;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+  }
+  
+  .movie-info .info-item {
+    color: #d0d0d0 !important;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  }
+}
+
+// Navigation and menu items
+.navbar,
+.nav {
+  a {
+    color: #00ffff !important;
+    text-shadow: 0 0 2px rgba(0, 255, 255, 0.5);
+    
+    &:hover,
+    &:focus,
+    &.active {
+      color: #ffffff !important;
+      text-shadow: 0 0 6px rgba(0, 255, 255, 0.8);
+    }
+  }
+}
+
+// Buttons with better contrast
+.cyberpunk-btn,
+.btn {
+  color: #ffffff !important;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(0, 255, 255, 0.5);
+  
+  &:hover {
+    color: #000000 !important;
+    background: rgba(0, 255, 255, 0.9) !important;
+    text-shadow: none;
+  }
+  
+  &.primary {
+    background: rgba(0, 255, 255, 0.2) !important;
+    border-color: #00ffff;
+  }
+  
+  &.secondary {
+    background: rgba(255, 0, 255, 0.2) !important;
+    border-color: #ff00ff;
+    color: #ff00ff !important;
+    
+    &:hover {
+      color: #000000 !important;
+      background: rgba(255, 0, 255, 0.9) !important;
+    }
+  }
+}
+
+// Tables and data displays
+table {
+  background: rgba(0, 0, 0, 0.7) !important;
+  
+  th {
+    color: #00ffff !important;
+    text-shadow: 0 0 4px rgba(0, 255, 255, 0.4);
+    background: rgba(0, 255, 255, 0.1) !important;
+  }
+  
+  td {
+    color: #e0e0e0 !important;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+    border-color: rgba(0, 255, 255, 0.2) !important;
+  }
+}
+
+// Form elements
+input,
+textarea,
+select {
+  background: rgba(0, 0, 0, 0.8) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(0, 255, 255, 0.3) !important;
+  
+  &:focus {
+    border-color: #00ffff !important;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.3) !important;
+  }
+  
+  &::placeholder {
+    color: #888888 !important;
+  }
+}
+
+// Labels
+label {
+  color: #ffffff !important;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+// Generic content containers
+.content-container,
+.main-content,
+.page-content {
+  .content-text,
+  .description,
+  .summary {
+    color: #e0e0e0 !important;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+    line-height: 1.6;
+  }
+}
+
+// Ensure all text elements have minimum contrast
+* {
+  &:not(a):not(h1):not(h2):not(h3):not(h4):not(h5):not(h6) {
+    color: #e0e0e0;
+  }
+}
+
+// Override any remaining white text issues
+.white-text-fix {
+  color: #e0e0e0 !important;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.8) !important;
+}

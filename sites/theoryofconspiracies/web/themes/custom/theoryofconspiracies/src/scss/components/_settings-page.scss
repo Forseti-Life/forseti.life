@@ -1,0 +1,185 @@
+// Settings Page Styles with Enhanced Contrast
+// =============================================================================
+
+.setting-page {
+  .overview-text,
+  .district-description,
+  .tech-description,
+  .level-description,
+  .system-description {
+    color: #e0e0e0; // Much brighter text
+    text-shadow: 0 0 4px rgba(0, 255, 255, 0.3);
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  // Section titles with high contrast
+  .section-title {
+    color: #00ffff;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+    padding-bottom: 0.5rem;
+  }
+
+  // District cards with better contrast
+  .district-card {
+    background: rgba(0, 20, 20, 0.9);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    
+    .district-name {
+      color: #ffffff;
+      text-shadow: 0 0 6px rgba(0, 255, 255, 0.4);
+    }
+    
+    .district-description {
+      color: #d0d0d0;
+    }
+    
+    .key-features li {
+      color: #c0c0c0;
+      &::before {
+        content: "▶ ";
+        color: #00ffff;
+      }
+    }
+  }
+
+  // Technology cards with enhanced visibility
+  .tech-card {
+    background: rgba(10, 0, 30, 0.9);
+    border: 1px solid rgba(255, 0, 255, 0.2);
+    
+    .tech-name {
+      color: #ff00ff;
+      text-shadow: 0 0 6px rgba(255, 0, 255, 0.4);
+    }
+    
+    .tech-description {
+      color: #e0e0e0;
+    }
+    
+    .tech-impact {
+      color: #ffff00;
+      font-weight: 500;
+    }
+  }
+
+  // Social hierarchy with clear distinctions
+  .hierarchy-level {
+    background: rgba(20, 0, 0, 0.9);
+    border-left: 4px solid #ff4444;
+    
+    .level-name {
+      color: #ff6666;
+      text-shadow: 0 0 6px rgba(255, 68, 68, 0.4);
+    }
+    
+    .level-description {
+      color: #e0e0e0;
+    }
+    
+    .level-characteristics li {
+      color: #d0d0d0;
+      &::before {
+        content: "● ";
+        color: #ff4444;
+      }
+    }
+  }
+
+  // AI systems with threat-level colors
+  .ai-system-card {
+    background: rgba(40, 0, 0, 0.9);
+    border: 1px solid rgba(255, 69, 0, 0.3);
+    
+    .system-name {
+      color: #ff4500;
+      text-shadow: 0 0 6px rgba(255, 69, 0, 0.4);
+    }
+    
+    .system-description {
+      color: #e0e0e0;
+    }
+    
+    .system-threat-level {
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      
+      &.threat-extreme {
+        background: rgba(255, 0, 0, 0.3);
+        color: #ff0000;
+        border: 1px solid #ff0000;
+      }
+      
+      &.threat-high {
+        background: rgba(255, 69, 0, 0.3);
+        color: #ff4500;
+        border: 1px solid #ff4500;
+      }
+      
+      &.threat-medium {
+        background: rgba(255, 255, 0, 0.3);
+        color: #ffff00;
+        border: 1px solid #ffff00;
+      }
+    }
+  }
+
+  // Page header with strong contrast
+  .page-title {
+    color: #ffffff;
+    text-shadow: 
+      0 0 10px rgba(0, 255, 255, 0.8),
+      0 0 20px rgba(0, 255, 255, 0.4);
+    font-size: 3rem;
+    font-weight: 900;
+  }
+
+  .page-subtitle {
+    color: #00ffff;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+
+  .page-description {
+    color: #e0e0e0;
+    text-shadow: 0 0 4px rgba(0, 255, 255, 0.2);
+    font-size: 1rem;
+    line-height: 1.6;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  // Stats with high visibility
+  .stat-value {
+    color: #00ffff;
+    font-weight: 700;
+  }
+  
+  .stat-label {
+    color: #b0b0b0;
+  }
+
+  // List items with better bullets
+  ul li {
+    color: #d0d0d0;
+    margin-bottom: 0.5rem;
+  }
+
+  // Stronger borders and separators
+  .overview-card,
+  .district-card,
+  .tech-card,
+  .hierarchy-level,
+  .ai-system-card {
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+}

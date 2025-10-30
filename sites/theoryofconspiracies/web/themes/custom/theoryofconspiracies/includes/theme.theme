@@ -1,0 +1,34 @@
+<?php
+
+/**
+ * @file
+ * Custom theme hooks.
+ */
+
+/**
+ * Implements hook_preprocess_html().
+ */
+function theoryofconspiracies_preprocess_html(&$variables) {
+  // Add cyberpunk theme classes
+  $variables['attributes']['class'][] = 'cyberpunk-theme';
+  $variables['attributes']['class'][] = 'neon-enhanced';
+  
+  // Add matrix background on specific pages
+  if (\Drupal::routeMatch()->getRouteName() == 'system.403' || 
+      \Drupal::routeMatch()->getRouteName() == 'system.404') {
+    $variables['attributes']['class'][] = 'matrix-bg';
+  }
+}
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function theoryofconspiracies_preprocess_page(&$variables) {
+  // Add cyberpunk container class
+  $variables['attributes']['class'][] = 'cyberpunk-page';
+  
+  // Add glitch effect to page title
+  if (isset($variables['page']['content']['theoryofconspiracies_page_title'])) {
+    $variables['page']['content']['theoryofconspiracies_page_title']['#attributes']['class'][] = 'glitch-text';
+  }
+}

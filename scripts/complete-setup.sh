@@ -604,13 +604,28 @@ fi
 if [ "$DRUPAL_NEEDS_INSTALL" = true ]; then
     print_status "Setting up file permissions and installing Drupal..."
     chmod 755 web/sites/default
+    
+    # Create files directory with proper permissions
+    print_status "Creating and configuring files directory..."
     mkdir -p web/sites/default/files
     chmod -R 775 web/sites/default/files
+    
     # Create PHP storage directory for compiled classes
     mkdir -p web/sites/default/files/php
     chmod 775 web/sites/default/files/php
-    # Set proper ownership for Apache
-    sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
+    
+    # Set proper ownership for Apache (try multiple approaches)
+    if sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null; then
+        print_status "Successfully set www-data ownership"
+    elif chown -R $(whoami):$(whoami) web/sites/default/files 2>/dev/null; then
+        print_status "Set current user ownership as fallback"
+    else
+        print_warning "Could not change ownership, but will continue with current permissions"
+    fi
+    
+    # Ensure files directory is writable
+    chmod -R g+w web/sites/default/files
+    chmod -R o+w web/sites/default/files
 
     # Copy default settings file if it doesn't exist
     if [ ! -f "web/sites/default/settings.php" ]; then

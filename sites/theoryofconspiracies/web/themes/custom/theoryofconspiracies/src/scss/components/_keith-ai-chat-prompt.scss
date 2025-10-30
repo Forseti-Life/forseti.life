@@ -1,0 +1,302 @@
+// Keith AI Chat Prompt Styling
+// ==============================
+
+.keith-ai-chat-prompt {
+  margin: 2rem 0 3rem 0;
+  padding: 0;
+  animation: promptSlideIn 0.8s ease;
+}
+
+.ai-chat-container {
+  background: linear-gradient(135deg, 
+    rgba(0, 255, 255, 0.05) 0%, 
+    rgba(0, 255, 255, 0.02) 50%, 
+    rgba(255, 0, 255, 0.02) 100%);
+  border: 2px solid rgba(0, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(5px);
+  box-shadow: 
+    0 0 20px rgba(0, 255, 255, 0.2),
+    inset 0 0 20px rgba(0, 255, 255, 0.05);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(0, 255, 255, 0.8), 
+      transparent);
+    animation: scanLine 3s infinite;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle, 
+      rgba(0, 255, 255, 0.1) 0%, 
+      transparent 70%);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+}
+
+.chat-prompt-header {
+  margin-bottom: 1.5rem;
+  text-align: center;
+  
+  h3 {
+    margin: 0;
+    color: #00ffff;
+    font-family: 'Orbitron', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-shadow: 
+      0 0 10px rgba(0, 255, 255, 0.8),
+      0 0 20px rgba(0, 255, 255, 0.4);
+    letter-spacing: 1px;
+  }
+}
+
+.chat-prompt-description {
+  margin-bottom: 2rem;
+  
+  p {
+    color: #000000;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 0;
+    text-shadow: none;
+  }
+}
+
+.chat-prompt-actions {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.ai-chat-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, 
+    rgba(0, 255, 255, 0.2) 0%, 
+    rgba(0, 200, 200, 0.3) 50%, 
+    rgba(0, 150, 255, 0.2) 100%);
+  border: 2px solid rgba(0, 255, 255, 0.5);
+  border-radius: 8px;
+  color: #ffffff;
+  text-decoration: none;
+  font-family: 'Orbitron', monospace;
+  font-weight: 600;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 4px 15px rgba(0, 255, 255, 0.2),
+    inset 0 0 20px rgba(0, 255, 255, 0.1);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+      transparent, 
+      rgba(255, 255, 255, 0.2), 
+      transparent);
+    transition: left 0.5s ease;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba(0, 255, 255, 0.8);
+    box-shadow: 
+      0 6px 25px rgba(0, 255, 255, 0.4),
+      inset 0 0 30px rgba(0, 255, 255, 0.2);
+    color: #ffffff;
+    text-decoration: none;
+    
+    &::before {
+      left: 100%;
+    }
+    
+    .button-status {
+      color: #00ff00;
+      text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+    }
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.button-text {
+  flex: 1;
+  text-align: center;
+}
+
+.button-status {
+  font-size: 0.9rem;
+  color: rgba(0, 255, 255, 0.8);
+  transition: all 0.3s ease;
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+}
+
+.chat-prompt-footer {
+  text-align: center;
+  
+  small {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+    font-family: 'Orbitron', monospace;
+    letter-spacing: 0.5px;
+  }
+}
+
+// Animations
+@keyframes promptSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scanLine {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .keith-ai-chat-prompt {
+    margin: 1.5rem 0 2rem 0;
+  }
+  
+  .ai-chat-container {
+    padding: 1.5rem;
+  }
+  
+  .chat-prompt-header {
+    h3 {
+      font-size: 1.3rem;
+    }
+  }
+  
+  .ai-chat-button {
+    padding: 1rem;
+    
+    .button-text {
+      font-size: 1rem;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .ai-chat-container {
+    padding: 1rem;
+  }
+  
+  .chat-prompt-description p {
+    font-size: 1rem;
+  }
+  
+  .ai-chat-button {
+    font-size: 0.95rem;
+    padding: 0.875rem;
+  }
+}
+
+// Special hover effects for cyberpunk theme
+.character-page .keith-ai-chat-prompt {
+  .ai-chat-container:hover {
+    border-color: rgba(0, 255, 255, 0.6);
+    box-shadow: 
+      0 0 30px rgba(0, 255, 255, 0.3),
+      inset 0 0 30px rgba(0, 255, 255, 0.1);
+  }
+}
+
+// JavaScript-enhanced effects
+.ai-chat-container.glitch-effect {
+  animation: containerGlitch 0.2s;
+}
+
+.ai-chat-button.activating {
+  animation: buttonActivating 0.5s;
+}
+
+.ai-chat-button.connected {
+  border-color: rgba(0, 255, 0, 0.8);
+  box-shadow: 
+    0 4px 15px rgba(0, 255, 0, 0.3),
+    inset 0 0 20px rgba(0, 255, 0, 0.1);
+    
+  .button-status {
+    color: #00ff00;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+  }
+}
+
+.chat-prompt-description p.typing-active {
+  border-right: 2px solid rgba(0, 255, 255, 0.8);
+  animation: cursor-blink 1s infinite;
+}
+
+@keyframes containerGlitch {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-2px); filter: hue-rotate(90deg); }
+  40% { transform: translateX(2px); filter: hue-rotate(180deg); }
+  60% { transform: translateX(-1px); filter: hue-rotate(270deg); }
+  80% { transform: translateX(1px); filter: hue-rotate(360deg); }
+}
+
+@keyframes buttonActivating {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); filter: brightness(1.2); }
+  100% { transform: scale(1); }
+}
+
+@keyframes cursor-blink {
+  0%, 50% { border-right-color: rgba(0, 255, 255, 0.8); }
+  51%, 100% { border-right-color: transparent; }
+}

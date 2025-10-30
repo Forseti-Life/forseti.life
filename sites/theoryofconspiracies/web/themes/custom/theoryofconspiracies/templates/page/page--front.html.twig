@@ -1,0 +1,86 @@
+{#
+/**
+ * @file
+ * Theme override to display the front page with animated header.
+ */
+#}
+
+{{ attach_library('theoryofconspiracies/animated-header') }}
+
+<div class="page-wrapper">
+  {# Animated Header Section #}
+  <div id="large-header" class="large-header home-header">
+    <canvas id="demo-canvas"></canvas>
+    <h1 class="main-title cyberpunk-title">
+      <span class="highlight">Theory of</span> <span class="thin">Conspiracies</span>
+    </h1>
+    <div class="movie-details cyberpunk-details">
+      <span class="detail-item">Cyberpunk Thriller</span>
+      <span class="detail-separator">•</span>
+      <span class="detail-item">PG-13</span>
+      <span class="detail-separator">•</span>
+      <span class="detail-item">127 minutes</span>
+    </div>
+    <p class="main-subtitle cyberpunk-subtitle">
+      Philadelphia 2085: In a world controlled by AI, resistance begins with a single choice. Experience the story of family, power, and the fight for human connection.
+    </p>
+    <div class="hero-cta cyberpunk-cta">
+      <a href="/setting/philadelphia-2085" class="btn btn-primary cyberpunk-btn">Explore Philadelphia 2085</a>
+      <a href="/characters" class="btn btn-outline-light cyberpunk-btn-outline">Meet the Characters</a>
+      <a href="/story/act-i" class="btn btn-primary cyberpunk-btn">Begin Act I</a>
+    </div>
+  </div>
+
+  {# Navigation and Header #}
+  {% if page.navbar_branding or page.navbar_left or page.navbar_right %}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container">
+        {% if page.navbar_branding %}
+          {{ page.navbar_branding }}
+        {% endif %}
+        
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="navbarNav">
+          {% if page.navbar_left %}
+            {{ page.navbar_left }}
+          {% endif %}
+          
+          {% if page.navbar_right %}
+            <div class="ms-auto">
+              {{ page.navbar_right }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </nav>
+  {% endif %}
+
+  {# Main Content #}
+  <main class="main-content">
+    {% if page.header %}
+      <div class="header-region">
+        <div class="container">
+          {{ page.header }}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="container">
+      <div class="row">
+        <div class="col">
+          {% if page.content %}
+            {{ page.content }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </main>
+
+  {# Footer #}
+  {% if page.footer %}
+    {{ page.footer }}
+  {% endif %}
+</div>

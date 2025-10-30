@@ -1,0 +1,672 @@
+// AI Conversation Chat Styles - Theory of Conspiracies Theme
+// =============================================================================
+
+.ai-conversation-chat {
+  background: rgba(0, 0, 0, 0.9);
+  border: 2px solid rgba(0, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 0;
+  font-family: 'Rajdhani', sans-serif;
+  color: #e0e0e0;
+  max-width: 1200px;
+  margin: 2rem auto;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+
+  // Chat header
+  .chat-header {
+    background: rgba(0, 20, 20, 0.9);
+    border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+    padding: 1.5rem;
+    
+    .chat-title {
+      color: #00ffff;
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 0 0 1rem 0;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    }
+    
+    .context-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      
+      .context-label {
+        color: #ffff00;
+        font-weight: 600;
+        text-shadow: 0 0 4px rgba(255, 255, 0, 0.4);
+      }
+      
+      .context-value {
+        color: #d0d0d0;
+        font-weight: 400;
+      }
+    }
+  }
+
+  // Chat messages container
+  .chat-messages {
+    height: 500px;
+    overflow-y: auto;
+    padding: 1rem;
+    background: 
+      linear-gradient(45deg, transparent 49%, rgba(0, 255, 255, 0.03) 50%, transparent 51%),
+      linear-gradient(-45deg, transparent 49%, rgba(0, 255, 255, 0.03) 50%, transparent 51%);
+    background-size: 20px 20px;
+
+    // Custom scrollbar
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba(0, 255, 255, 0.5);
+      border-radius: 4px;
+      
+      &:hover {
+        background: rgba(0, 255, 255, 0.7);
+      }
+    }
+
+    // Summary indicator
+    .summary-indicator {
+      background: rgba(255, 255, 0, 0.1);
+      border: 1px solid rgba(255, 255, 0, 0.3);
+      border-radius: 4px;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      
+      .terminal-prefix {
+        color: #ffff00;
+        font-weight: 700;
+        margin-right: 0.5rem;
+      }
+      
+      em {
+        color: #d0d0d0;
+        font-style: italic;
+      }
+    }
+  }
+
+  // Individual message styling
+  .message {
+    margin-bottom: 1.5rem;
+    border-radius: 8px;
+    overflow: hidden;
+    
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      
+      .speaker-id {
+        &.keith-ai {
+          color: #00ffff;
+          text-shadow: 0 0 4px rgba(0, 255, 255, 0.4);
+        }
+        
+        &.user {
+          color: #ff00ff;
+          text-shadow: 0 0 4px rgba(255, 0, 255, 0.4);
+        }
+      }
+      
+      .ai-status,
+      .user-status {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 3px;
+        
+        &.ai-status {
+          background: rgba(0, 255, 255, 0.2);
+          color: #00ffff;
+          border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+      }
+      
+      .connection-status,
+      .user-status {
+        background: rgba(255, 0, 255, 0.2);
+        color: #ff00ff;
+        border: 1px solid rgba(255, 0, 255, 0.3);
+        font-size: 0.75rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 3px;
+      }
+    }
+    
+    .message-content {
+      padding: 1rem;
+      line-height: 1.6;
+      color: #e0e0e0;
+    }
+    
+    .message-timestamp {
+      padding: 0.5rem 1rem;
+      font-size: 0.8rem;
+      background: rgba(0, 0, 0, 0.3);
+      
+      .timestamp-label {
+        color: #888;
+        margin-right: 0.5rem;
+      }
+      
+      .timestamp-value {
+        color: #ccc;
+      }
+    }
+
+    // Assistant (Keith AI) messages
+    &.message--assistant {
+      background: rgba(0, 30, 30, 0.7);
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      border-left: 4px solid #00ffff;
+      
+      .message-header {
+        background: rgba(0, 255, 255, 0.1);
+      }
+    }
+
+    // User messages
+    &.message--user {
+      background: rgba(30, 0, 30, 0.7);
+      border: 1px solid rgba(255, 0, 255, 0.2);
+      border-left: 4px solid #ff00ff;
+      
+      .message-header {
+        background: rgba(255, 0, 255, 0.1);
+      }
+    }
+
+    // Introduction message special styling
+    &.message--introduction {
+      background: rgba(0, 40, 40, 0.9);
+      border: 2px solid rgba(0, 255, 255, 0.4);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+      
+      .intro-title {
+        color: #00ffff;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+      }
+      
+      .system-capabilities,
+      .interaction-modes {
+        margin: 1.5rem 0;
+        
+        p strong {
+          color: #ffff00;
+          text-shadow: 0 0 4px rgba(255, 255, 0, 0.4);
+        }
+        
+        ul {
+          margin: 0.5rem 0 0 1rem;
+          
+          li {
+            margin-bottom: 0.5rem;
+            color: #d0d0d0;
+            
+            strong {
+              color: #00ffff;
+            }
+          }
+        }
+      }
+      
+      .resistance-message {
+        background: rgba(255, 69, 0, 0.1);
+        border: 1px solid rgba(255, 69, 0, 0.3);
+        border-radius: 4px;
+        padding: 1rem;
+        margin: 1.5rem 0;
+        
+        .call-to-action {
+          color: #ff8800;
+          font-weight: 600;
+          text-shadow: 0 0 4px rgba(255, 136, 0, 0.4);
+        }
+      }
+      
+      .security-notice {
+        background: rgba(0, 100, 0, 0.1);
+        border: 1px solid rgba(0, 255, 0, 0.3);
+        border-radius: 4px;
+        padding: 0.75rem;
+        margin-top: 1.5rem;
+        
+        .security-label {
+          color: #00ff00;
+          font-weight: 700;
+          margin-right: 0.5rem;
+        }
+        
+        em {
+          color: #c0c0c0;
+          font-size: 0.9rem;
+        }
+      }
+    }
+  }
+
+  // Chat input container
+  .chat-input-container {
+    border-top: 2px solid rgba(0, 255, 255, 0.3);
+    background: rgba(0, 15, 15, 0.9);
+    padding: 1rem;
+    
+    .input-wrapper {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      
+      .terminal-prompt {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding-top: 0.75rem;
+        
+        .prompt-symbol {
+          color: #00ffff;
+          font-size: 1.2rem;
+          font-weight: 700;
+        }
+        
+        .prompt-label {
+          color: #ffff00;
+          font-weight: 600;
+          font-size: 0.9rem;
+        }
+      }
+      
+      .chat-input {
+        flex: 1;
+        background: rgba(0, 0, 0, 0.8);
+        border: 2px solid rgba(0, 255, 255, 0.3);
+        border-radius: 4px;
+        padding: 0.75rem;
+        color: #ffffff;
+        font-family: 'Rajdhani', monospace;
+        font-size: 1rem;
+        resize: vertical;
+        min-height: 60px;
+        
+        &:focus {
+          outline: none;
+          border-color: #00ffff;
+          box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+        
+        &::placeholder {
+          color: #888;
+          font-style: italic;
+        }
+      }
+    }
+    
+    .input-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      
+      .send-btn {
+        background: rgba(0, 255, 255, 0.2);
+        border: 2px solid #00ffff;
+        color: #00ffff;
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        
+        &:hover {
+          background: rgba(0, 255, 255, 0.3);
+          box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+          transform: translateY(-1px);
+        }
+        
+        &:active {
+          transform: translateY(0);
+        }
+        
+        &:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          
+          &:hover {
+            transform: none;
+            box-shadow: none;
+          }
+        }
+        
+        .btn-icon {
+          font-size: 1.1rem;
+        }
+      }
+      
+      .input-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        
+        .status-label {
+          color: #888;
+          font-size: 0.85rem;
+        }
+        
+        .status-value {
+          color: #00ff00;
+          font-weight: 600;
+          text-shadow: 0 0 4px rgba(0, 255, 0, 0.4);
+          
+          &.processing {
+            color: #ffff00;
+            text-shadow: 0 0 4px rgba(255, 255, 0, 0.4);
+          }
+          
+          &.error {
+            color: #ff0000;
+            text-shadow: 0 0 4px rgba(255, 0, 0, 0.4);
+          }
+        }
+      }
+    }
+  }
+
+  // Loading indicator
+  .loading-indicator {
+    text-align: center;
+    padding: 1rem;
+    background: rgba(0, 30, 30, 0.7);
+    border-top: 1px solid rgba(0, 255, 255, 0.3);
+    
+    .loading-animation {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      
+      .loading-text {
+        color: #00ffff;
+        font-weight: 600;
+        text-shadow: 0 0 4px rgba(0, 255, 255, 0.4);
+      }
+      
+      .loading-dots {
+        display: flex;
+        gap: 0.2rem;
+        
+        span {
+          color: #00ffff;
+          animation: loadingPulse 1.5s infinite;
+          
+          &:nth-child(2) {
+            animation-delay: 0.2s;
+          }
+          
+          &:nth-child(3) {
+            animation-delay: 0.4s;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Statistics panel
+.ai-conversation-stats {
+  background: rgba(0, 0, 0, 0.9);
+  border: 2px solid rgba(255, 255, 0, 0.3);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  
+  .stats-title {
+    color: #ffff00;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 8px rgba(255, 255, 0, 0.5);
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    
+    .stat-item {
+      background: rgba(255, 255, 0, 0.1);
+      border: 1px solid rgba(255, 255, 0, 0.2);
+      border-radius: 4px;
+      padding: 1rem;
+      
+      .stat-label {
+        color: #ffff00;
+        font-weight: 600;
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+      
+      .stat-value {
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 1.1rem;
+      }
+      
+      .status-active {
+        color: #00ff00;
+        font-weight: 700;
+        text-shadow: 0 0 4px rgba(0, 255, 0, 0.4);
+      }
+      
+      .status-inactive {
+        color: #ff6600;
+        font-weight: 700;
+        text-shadow: 0 0 4px rgba(255, 102, 0, 0.4);
+      }
+    }
+  }
+}
+
+// Loading animation keyframes
+@keyframes loadingPulse {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .ai-conversation-chat {
+    margin: 1rem;
+    
+    .chat-messages {
+      height: 400px;
+    }
+    
+    .input-wrapper {
+      flex-direction: column;
+      gap: 0.5rem;
+      
+      .terminal-prompt {
+        padding-top: 0;
+      }
+    }
+    
+    .input-controls {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: stretch;
+      
+      .send-btn {
+        justify-content: center;
+      }
+    }
+  }
+  
+  .ai-conversation-stats {
+    margin: 1rem;
+    
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// Security Breach Styles
+// =============================================================================
+
+.ai-conversation-chat.security-breach-mode {
+  border-color: rgba(255, 0, 0, 0.8);
+  box-shadow: 
+    0 0 30px rgba(255, 0, 0, 0.4),
+    inset 0 0 20px rgba(255, 0, 0, 0.1);
+  animation: securityBreachPulse 2s infinite;
+  
+  .chat-header {
+    background: rgba(40, 0, 0, 0.9);
+    border-bottom-color: rgba(255, 0, 0, 0.5);
+    
+    .chat-title {
+      color: #ff0000;
+      text-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+    }
+  }
+  
+  .chat-messages {
+    background: rgba(20, 0, 0, 0.3);
+  }
+  
+  .chat-input-container {
+    background: rgba(40, 0, 0, 0.5);
+    border-top-color: rgba(255, 0, 0, 0.5);
+    
+    textarea {
+      background: rgba(60, 0, 0, 0.3);
+      border-color: rgba(255, 0, 0, 0.3);
+      color: #ff8888;
+      
+      &::placeholder {
+        color: rgba(255, 136, 136, 0.6);
+      }
+    }
+    
+    button {
+      background: rgba(100, 0, 0, 0.5);
+      border-color: rgba(255, 0, 0, 0.5);
+      color: #ff8888;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.message--security-breach {
+  background: linear-gradient(135deg, 
+    rgba(255, 0, 0, 0.2) 0%, 
+    rgba(255, 50, 0, 0.15) 50%, 
+    rgba(255, 0, 0, 0.1) 100%);
+  border: 2px solid rgba(255, 0, 0, 0.5);
+  border-radius: 8px;
+  margin: 1rem;
+  padding: 1.5rem;
+  animation: breachMessageGlow 3s infinite;
+  
+  .message-content {
+    color: #ffffff;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    text-align: center;
+    text-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+    
+    strong {
+      font-size: 1.3rem;
+      display: block;
+      margin-bottom: 1rem;
+      text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+    }
+  }
+}
+
+.security-breach-actions {
+  text-align: center;
+  padding: 2rem;
+  background: rgba(20, 0, 0, 0.3);
+  border-top: 1px solid rgba(255, 0, 0, 0.3);
+  
+  .security-restart-btn {
+    background: linear-gradient(135deg, 
+      rgba(255, 165, 0, 0.8) 0%, 
+      rgba(255, 140, 0, 0.9) 100%);
+    border: 2px solid rgba(255, 165, 0, 0.6);
+    color: #000000;
+    font-weight: 700;
+    font-family: 'Orbitron', monospace;
+    padding: 1rem 2rem;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 165, 0, 0.3);
+    
+    &:hover {
+      background: linear-gradient(135deg, 
+        rgba(255, 185, 0, 0.9) 0%, 
+        rgba(255, 160, 0, 1) 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 165, 0, 0.4);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+// Security Breach Animations
+@keyframes securityBreachPulse {
+  0%, 100% {
+    border-color: rgba(255, 0, 0, 0.5);
+    box-shadow: 
+      0 0 20px rgba(255, 0, 0, 0.3),
+      inset 0 0 10px rgba(255, 0, 0, 0.1);
+  }
+  50% {
+    border-color: rgba(255, 0, 0, 0.8);
+    box-shadow: 
+      0 0 40px rgba(255, 0, 0, 0.5),
+      inset 0 0 20px rgba(255, 0, 0, 0.2);
+  }
+}
+
+@keyframes breachMessageGlow {
+  0%, 100% {
+    border-color: rgba(255, 0, 0, 0.5);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+  }
+  50% {
+    border-color: rgba(255, 0, 0, 0.8);
+    box-shadow: 0 0 25px rgba(255, 0, 0, 0.5);
+  }
+}
