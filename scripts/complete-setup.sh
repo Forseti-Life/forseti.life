@@ -742,7 +742,8 @@ chmod 755 config/sync
     # Only add development settings if they don't already exist
     if ! grep -q "Development-specific settings" web/sites/default/settings.php; then
         print_status "Adding development-specific settings..."
-        cat >> web/sites/default/settings.php << 'EOL'/**
+        cat >> web/sites/default/settings.php << 'EOL'
+/**
  * Development-specific settings
  */
 

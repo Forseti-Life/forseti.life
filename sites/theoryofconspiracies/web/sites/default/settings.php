@@ -286,7 +286,7 @@ $databases = [];
  *   $settings['hash_salt'] = file_get_contents('/home/example/salt.txt');
  * @endcode
  */
-$settings['hash_salt'] = 'ZRJIKwsuCPbxBJG9HQyi2roBh-yTnRm3ume1pxZvRyBegxtUBHFnnNlQMQJkxjXJy7MAd0BANg';
+$settings['hash_salt'] = 'k8G7NrrjAX0n7tfc5kqsEa8MO1y9MuDB5X2X4Ph6goImYNiRIQYhFGkJ3dhywCPEALqs7u3-PQ';
 
 /**
  * Deployment identifier.
@@ -872,3 +872,15 @@ $settings['config_sync_directory'] = '../config/sync';
 $config['system.performance']['css']['preprocess'] = FALSE;
 $config['system.performance']['js']['preprocess'] = FALSE;
 $config['system.logging']['error_level'] = 'verbose';
+$databases['default']['default'] = array (
+  'database' => 'theoryofconspiracies_dev',
+  'username' => 'drupal_user',
+  'password' => 'drupal_secure_password',
+  'prefix' => '',
+  'host' => '127.0.0.1',
+  'port' => 3306,
+  'isolation_level' => 'READ COMMITTED',
+  'driver' => 'mysql',
+  'namespace' => 'Drupal\\mysql\\Driver\\Database\\mysql',
+  'autoload' => 'core/modules/mysql/src/Driver/Database/mysql/',
+);

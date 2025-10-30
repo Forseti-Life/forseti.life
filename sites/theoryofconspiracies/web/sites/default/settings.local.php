@@ -9,3 +9,6 @@ $databases['default']['default'] = [
   'prefix' => '',
   'collation' => 'utf8mb4_general_ci',
 ];
+
+// Disable page caching for development
+$config['system.performance']['cache']['page']['max_age'] = 0;
