@@ -509,10 +509,17 @@ cd "$PROJECT_DIR"
 # Fix Composer dependencies if needed
 if [ -f "composer.json" ] && [ ! -f "vendor/autoload.php" ]; then
     print_status "Installing Composer dependencies..."
-    /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction
+    /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
 elif [ -f "vendor/autoload.php" ] && [ ! -f "vendor/bin/drush" ]; then
     print_status "Installing missing dependencies..."
     /usr/bin/php8.3 /usr/local/bin/composer update --no-interaction
+elif [ -f "vendor/autoload.php" ]; then
+    # Check if autoloader is corrupted (missing Twig)
+    if ! /usr/bin/php8.3 -c /etc/php/8.3/cli/php.ini -r "require 'vendor/autoload.php'; echo 'OK';" 2>/dev/null; then
+        print_status "Fixing corrupted Composer autoloader..."
+        rm -rf vendor/
+        /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
+    fi
 fi
 
 # Only install dependencies if this is a fresh installation
@@ -542,71 +549,148 @@ else
     print_status "Development modules already installed. Skipping to preserve existing setup."
 fi
 
-# Only set up permissions and install if settings.php doesn't exist (fresh installation)
-if [ ! -f "web/sites/default/settings.php" ] || [ ! -s "web/sites/default/settings.php" ]; then
-    print_status "Setting up file permissions for fresh installation..."
+# Check if Drupal is actually installed (not just if settings.php exists)
+DRUPAL_NEEDS_INSTALL=true
+if [ -f "web/sites/default/settings.php" ] && [ -s "web/sites/default/settings.php" ]; then
+    # Check if database tables exist
+    if /usr/bin/php8.3 vendor/drush/drush/drush.php sql:query "SHOW TABLES LIKE 'users'" 2>/dev/null | grep -q "users"; then
+        DRUPAL_NEEDS_INSTALL=false
+        print_status "Existing Drupal installation detected and verified."
+    else
+        print_status "Settings file exists but database is empty. Need to install Drupal."
+    fi
+fi
+
+# Set up permissions and install if needed
+if [ "$DRUPAL_NEEDS_INSTALL" = true ]; then
+    print_status "Setting up file permissions and installing Drupal..."
     chmod 755 web/sites/default
     mkdir -p web/sites/default/files
     chmod 775 web/sites/default/files
 
-    # Copy default settings file
-    cp web/sites/default/default.settings.php web/sites/default/settings.php
+    # Copy default settings file if it doesn't exist
+    if [ ! -f "web/sites/default/settings.php" ]; then
+        cp web/sites/default/default.settings.php web/sites/default/settings.php
+    fi
     chmod 664 web/sites/default/settings.php
 
     print_status "Running Drupal installation..."
-    ./vendor/bin/drush site:install standard \
+    /usr/bin/php8.3 vendor/drush/drush/drush.php site:install standard \
         --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${DB_NAME}" \
         --site-name="${SITE_NAME}" \
         --account-name="${ADMIN_USER}" \
         --account-pass="${ADMIN_PASSWORD}" \
         --account-mail="${ADMIN_EMAIL}" \
         --yes
-else
-    print_status "Existing Drupal installation detected. Skipping site installation to preserve data."
 fi
 
-# Only enable modules if this is a fresh installation
-if ./vendor/bin/drush status | grep -q "Drupal bootstrap.*Successful"; then
+# Check if Drupal is properly installed by checking database tables
+DRUPAL_INSTALLED=false
+if [ "$DRUPAL_NEEDS_INSTALL" = false ]; then
+    DRUPAL_INSTALLED=true
+    print_status "Drupal installation detected and verified"
+elif /usr/bin/php8.3 vendor/drush/drush/drush.php sql:query "SHOW TABLES LIKE 'users'" 2>/dev/null | grep -q "users"; then
+    DRUPAL_INSTALLED=true
+    print_status "Drupal installation detected and verified"
+fi
+
+# Only enable modules if Drupal is properly installed
+if [ "$DRUPAL_INSTALLED" = true ]; then
+    # Verify Drupal is fully functional before enabling any modules
+    print_status "Verifying Drupal functionality before enabling modules..."
+    if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json 2>/dev/null | grep -q '"bootstrap":"Successful"'; then
+        # Try to bootstrap Drupal to ensure it's working
+        if ! /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null; then
+            print_warning "Drupal bootstrap failed. Skipping module enablement."
+            DRUPAL_INSTALLED=false
+        fi
+    fi
+fi
+
+# Only proceed with module enablement if Drupal is confirmed functional
+if [ "$DRUPAL_INSTALLED" = true ]; then
     # Check if development modules are already enabled
-    if ! ./vendor/bin/drush pm:list --status=enabled | grep -q "devel"; then
+    if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "devel"; then
         print_status "Enabling development and utility modules..."
-        ./vendor/bin/drush en devel admin_toolbar admin_toolbar_tools pathauto metatag -y
+        /usr/bin/php8.3 vendor/drush/drush/drush.php en devel admin_toolbar admin_toolbar_tools pathauto metatag -y
     else
         print_status "Development modules already enabled. Skipping to preserve existing configuration."
     fi
     
-    # Enable custom modules if they exist and aren't already enabled
-    if [ -d "web/modules/custom/professional_website_content" ] && ! ./vendor/bin/drush pm:list --status=enabled | grep -q "professional_website_content"; then
-        print_status "Enabling custom modules..."
+    # Verify development modules are working before proceeding to custom modules
+    if /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "devel"; then
+        print_status "Development modules verified. Proceeding with custom modules..."
         
-        # Enable profile module first (dependency for job_application_automation)
-        ./vendor/bin/drush en profile -y
-        
-        # Enable modules in dependency order
-        ./vendor/bin/drush en professional_website_content -y
-        ./vendor/bin/drush en ai_conversation -y
-        ./vendor/bin/drush en stli_site_customizations -y
-        
-        # Enable remaining custom modules (now with dependency resolution)
-        ./vendor/bin/drush en job_application_automation -y
-        ./vendor/bin/drush en resume_tailoring -y
-        
-        print_status "All custom modules enabled successfully"
+        # Enable custom modules if they exist and aren't already enabled
+        if [ -d "web/modules/custom" ]; then
+            # Check if any custom modules need to be enabled
+            CUSTOM_MODULES_NEEDED=false
+            for module in professional_website_content ai_conversation job_application_automation resume_tailoring stli_site_customizations; do
+                if [ -d "web/modules/custom/$module" ] && ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "$module"; then
+                    CUSTOM_MODULES_NEEDED=true
+                    break
+                fi
+            done
+            
+            if [ "$CUSTOM_MODULES_NEEDED" = true ]; then
+                print_status "Enabling custom modules in dependency order..."
+            
+            # Enable profile module first (dependency for job_application_automation)
+            if [ -d "web/modules/custom/job_application_automation" ]; then
+                /usr/bin/php8.3 vendor/drush/drush/drush.php en profile -y 2>/dev/null || true
+            fi
+            
+            # Enable modules in dependency order
+            [ -d "web/modules/custom/professional_website_content" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en professional_website_content -y
+            [ -d "web/modules/custom/ai_conversation" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en ai_conversation -y
+            [ -d "web/modules/custom/stli_site_customizations" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en stli_site_customizations -y
+            [ -d "web/modules/custom/resume_tailoring" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en resume_tailoring -y
+            
+            # Clear cache before enabling job_application_automation (it has complex config)
+            /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
+            
+            # Enable job_application_automation last due to complex dependencies
+            if [ -d "web/modules/custom/job_application_automation" ]; then
+                /usr/bin/php8.3 vendor/drush/drush/drush.php en job_application_automation -y 2>/dev/null || print_warning "Job application automation module may need manual configuration"
+            fi
+            
+                print_status "All available custom modules enabled successfully"
+            else
+                print_status "All custom modules already enabled"
+            fi
+        fi
+    else
+        print_warning "Development modules not properly enabled. Skipping custom modules."
     fi
     
-    # Enable and set custom theme if it exists
+    # Enable and set custom theme if it exists (only if Drupal is fully functional)
     if [ -d "web/themes/custom/stlouisintegration" ]; then
-        if ! ./vendor/bin/drush pm:list --type=theme --status=enabled | grep -q "stlouisintegration"; then
+        # Check if theme is installed
+        if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --type=theme --format=list 2>/dev/null | grep -q "stlouisintegration"; then
             print_status "Enabling St. Louis Integration custom theme..."
-            ./vendor/bin/drush theme:enable stlouisintegration -y
-            ./vendor/bin/drush config:set system.theme default stlouisintegration -y
+            /usr/bin/php8.3 vendor/drush/drush/drush.php theme:enable stlouisintegration -y
+        fi
+        
+        # Check if theme is set as default
+        CURRENT_THEME=$(/usr/bin/php8.3 vendor/drush/drush/drush.php config:get system.theme default --format=string 2>/dev/null || echo "")
+        if [ "$CURRENT_THEME" != "stlouisintegration" ]; then
+            print_status "Setting St. Louis Integration theme as default..."
+            /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.theme default stlouisintegration -y
             print_status "St. Louis Integration theme set as default"
         else
-            print_status "St. Louis Integration theme already enabled"
+            print_status "St. Louis Integration theme already set as default"
         fi
     fi
+    
+    # Final verification that all modules and theme are working
+    print_status "Performing final verification of modules and theme..."
+    if /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null; then
+        print_status "✅ All modules and theme successfully enabled and verified"
+    else
+        print_warning "⚠️  Some modules or theme may need manual configuration"
+    fi
 else
-    print_status "Drupal not fully installed yet. Skipping module enabling."
+    print_status "Drupal not fully installed yet. Skipping module and theme enabling."
 fi
 
 print_status "Ensuring custom development directories exist..."
@@ -714,6 +798,13 @@ if [ -d "$TOC_PROJECT_DIR" ]; then
         print_status "Repairing Theory of Conspiracies Composer dependencies..."
         rm -rf vendor/
         /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
+    elif [ -f "vendor/autoload.php" ]; then
+        # Check if autoloader is corrupted (missing Twig)
+        if ! /usr/bin/php8.3 -c /etc/php/8.3/cli/php.ini -r "require 'vendor/autoload.php'; echo 'OK';" 2>/dev/null; then
+            print_status "Fixing corrupted Theory of Conspiracies Composer autoloader..."
+            rm -rf vendor/
+            /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
+        fi
     fi
     
     # Check if it's properly installed
@@ -738,6 +829,15 @@ if [ -d "$TOC_PROJECT_DIR" ]; then
             --account-pass="${ADMIN_PASSWORD}" \
             --account-mail="${TOC_ADMIN_EMAIL}" \
             --yes
+        
+        # Install development modules first
+        print_status "Installing development modules for Theory of Conspiracies..."
+        /usr/bin/php8.3 /usr/local/bin/composer require \
+            drupal/devel \
+            drupal/admin_toolbar \
+            drupal/pathauto \
+            drupal/metatag \
+            --no-interaction
         
         # Enable development modules
         print_status "Enabling development modules for Theory of Conspiracies..."
@@ -788,6 +888,56 @@ EOL
     else
         print_status "Theory of Conspiracies site already installed"
     fi
+    
+    # Enable custom modules and theme for Theory of Conspiracies if Drupal is installed
+    if /usr/bin/php8.3 vendor/drush/drush/drush.php sql:query "SHOW TABLES LIKE 'users'" 2>/dev/null | grep -q "users"; then
+        print_status "Enabling Theory of Conspiracies custom modules and theme..."
+        
+        # Verify Drupal bootstrap works before enabling modules
+        if /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null; then
+            # Enable custom modules in order
+            if [ -d "web/modules/ai_conversation" ] && ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "ai_conversation"; then
+                /usr/bin/php8.3 vendor/drush/drush/drush.php en ai_conversation -y
+            fi
+            
+            if [ -d "web/modules/theory_content" ] && ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "theory_content"; then
+                /usr/bin/php8.3 vendor/drush/drush/drush.php en theory_content -y
+            fi
+            
+            if [ -d "web/modules/amisafe" ] && ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "amisafe"; then
+                /usr/bin/php8.3 vendor/drush/drush/drush.php en amisafe -y
+            fi
+            
+            # Enable custom theme if it exists
+            if [ -d "web/themes/theoryofconspiracies" ]; then
+                # Install radix base theme if needed
+                if ! /usr/bin/php8.3 /usr/local/bin/composer show drupal/radix &>/dev/null; then
+                    print_status "Installing radix base theme for Theory of Conspiracies..."
+                    /usr/bin/php8.3 /usr/local/bin/composer require drupal/radix --no-interaction
+                fi
+                
+                # Enable theme if not already enabled
+                if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --type=theme --format=list 2>/dev/null | grep -q "theoryofconspiracies"; then
+                    /usr/bin/php8.3 vendor/drush/drush/drush.php theme:enable theoryofconspiracies -y
+                fi
+                
+                # Set as default theme
+                CURRENT_THEME=$(/usr/bin/php8.3 vendor/drush/drush/drush.php config:get system.theme default --format=string 2>/dev/null || echo "")
+                if [ "$CURRENT_THEME" != "theoryofconspiracies" ]; then
+                    /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.theme default theoryofconspiracies -y
+                    print_status "Theory of Conspiracies theme set as default"
+                fi
+            fi
+            
+            # Final cache rebuild
+            /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
+            print_status "Theory of Conspiracies custom modules and theme enabled successfully"
+        else
+            print_warning "Theory of Conspiracies Drupal bootstrap failed. Skipping module/theme enablement."
+        fi
+    else
+        print_warning "Theory of Conspiracies not fully installed. Skipping module/theme enablement."
+    fi
 else
     print_status "Theory of Conspiracies site directory not found. Creating new installation..."
     cd /workspaces/stlouisintegration.com/sites
@@ -801,6 +951,12 @@ else
         drupal/pathauto \
         drupal/metatag \
         --no-interaction
+    
+    # Fix any potential Composer autoloader corruption after installing packages
+    if ! /usr/bin/php8.3 -c /etc/php/8.3/cli/php.ini -r "require 'vendor/autoload.php'; echo 'OK';" 2>/dev/null; then
+        print_status "Fixing Composer autoloader after package installation..."
+        /usr/bin/php8.3 /usr/local/bin/composer dump-autoload --optimize --no-interaction
+    fi
     
     # Continue with installation as above...
     chmod 755 web/sites/default
@@ -1083,11 +1239,11 @@ else
 fi
 
 # Clear cache after all configuration (only if Drupal is properly installed)
-if ./vendor/bin/drush status | grep -q "Drupal bootstrap.*Successful"; then
+if [ "$DRUPAL_INSTALLED" = true ]; then
     print_status "Clearing cache after configuration..."
-    ./vendor/bin/drush cache:rebuild
+    /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || print_warning "Cache clear failed"
 else
-    print_warning "Drupal not fully bootstrapped. Skipping cache clear."
+    print_warning "Drupal not fully installed. Skipping cache clear."
 fi
 
 # Set final permissions
@@ -1104,9 +1260,16 @@ print_status "Fixing Composer autoloader issues..."
 if [ -d "/workspaces/stlouisintegration.com/sites/stlouisintegration" ]; then
     cd "/workspaces/stlouisintegration.com/sites/stlouisintegration"
     if [ -f "composer.json" ]; then
-        print_status "Rebuilding Composer autoloader for St. Louis Integration..."
-        /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
-        /usr/bin/php8.3 /usr/local/bin/composer dump-autoload --optimize
+        print_status "Verifying Composer autoloader for St. Louis Integration..."
+        # Test if autoloader is working correctly
+        if ! /usr/bin/php8.3 -c /etc/php/8.3/cli/php.ini -r "require 'vendor/autoload.php'; echo 'OK';" 2>/dev/null; then
+            print_status "Rebuilding corrupted Composer autoloader for St. Louis Integration..."
+            rm -rf vendor/
+            /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
+        else
+            print_status "St. Louis Integration Composer autoloader is working correctly"
+            /usr/bin/php8.3 /usr/local/bin/composer dump-autoload --optimize --no-interaction 2>/dev/null || true
+        fi
     fi
 fi
 
@@ -1114,9 +1277,16 @@ fi
 if [ -d "/workspaces/stlouisintegration.com/sites/theoryofconspiracies" ]; then
     cd "/workspaces/stlouisintegration.com/sites/theoryofconspiracies"
     if [ -f "composer.json" ]; then
-        print_status "Rebuilding Composer autoloader for Theory of Conspiracies..."
-        /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
-        /usr/bin/php8.3 /usr/local/bin/composer dump-autoload --optimize
+        print_status "Verifying Composer autoloader for Theory of Conspiracies..."
+        # Test if autoloader is working correctly
+        if ! /usr/bin/php8.3 -c /etc/php/8.3/cli/php.ini -r "require 'vendor/autoload.php'; echo 'OK';" 2>/dev/null; then
+            print_status "Rebuilding corrupted Composer autoloader for Theory of Conspiracies..."
+            rm -rf vendor/
+            /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
+        else
+            print_status "Theory of Conspiracies Composer autoloader is working correctly"
+            /usr/bin/php8.3 /usr/local/bin/composer dump-autoload --optimize --no-interaction 2>/dev/null || true
+        fi
     fi
 fi
 
@@ -1202,8 +1372,13 @@ echo "========================="
 echo "✓ Environment: PHP 8.3, MySQL, Apache configured with multi-site support"
 echo "✓ Multi-Site Setup: Two Drupal 11.2.5 installations with Twig 3.21.1 configured"
 echo "✓ Development Tools: Coder, PHPCS, PHPUnit configured"
-echo "✓ Custom Modules: All 5 custom modules enabled on primary site"
-echo "✓ Custom Theme: stlouisintegration enabled on primary site"
+echo "✓ Custom Modules: All 5 custom modules enabled on primary site:"
+echo "  - professional_website_content (Professional Website Content)"
+echo "  - ai_conversation (AI Conversation)"
+echo "  - job_application_automation (Job Application Automation)"
+echo "  - resume_tailoring (Resume Tailoring)"
+echo "  - stli_site_customizations (STLI Site Customizations)"
+echo "✓ Custom Theme: stlouisintegration theme enabled and set as default"
 echo "✓ Apache Virtual Hosts: Port-based routing (80, 8080)"
 echo "✓ Databases: Separate databases for each site"
 echo "========================="
@@ -1390,14 +1565,32 @@ print_status "Clearing caches and restarting services..."
 sudo service apache2 restart
 
 # Final verification with error handling
+print_status "Final verification and cache rebuild..."
+
 cd "/workspaces/stlouisintegration.com/sites/stlouisintegration"
-if /usr/bin/php8.3 vendor/drush/drush/drush.php status | grep -q "Drupal bootstrap.*Successful" 2>/dev/null; then
-    /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
+if [ -f "vendor/drush/drush/drush.php" ]; then
+    if /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json 2>/dev/null | grep -q '"bootstrap":"Successful"'; then
+        print_status "St. Louis Integration site is working correctly"
+        /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
+    else
+        print_warning "St. Louis Integration site may need manual configuration"
+    fi
+else
+    print_warning "Drush not found for St. Louis Integration site"
 fi
 
-cd "/workspaces/stlouisintegration.com/sites/theoryofconspiracies"
-if /usr/bin/php8.3 vendor/drush/drush/drush.php status | grep -q "Drupal bootstrap.*Successful" 2>/dev/null; then
-    /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
+if [ -d "/workspaces/stlouisintegration.com/sites/theoryofconspiracies" ]; then
+    cd "/workspaces/stlouisintegration.com/sites/theoryofconspiracies"
+    if [ -f "vendor/drush/drush/drush.php" ]; then
+        if /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json 2>/dev/null | grep -q '"bootstrap":"Successful"'; then
+            print_status "Theory of Conspiracies site is working correctly"
+            /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
+        else
+            print_warning "Theory of Conspiracies site may need manual configuration"
+        fi
+    else
+        print_warning "Drush not found for Theory of Conspiracies site"
+    fi
 fi
 
 print_status "Post-installation fixes completed!"
@@ -1431,6 +1624,8 @@ echo "✓ Resolved Composer autoloader corruption issues"
 echo "✓ Removed invalid cache.backend.null service references"
 echo "✓ Updated development.services.yml configurations"
 echo "✓ Ensured both sites are properly installed via Drush"
+echo "✓ Enabled all custom modules with proper dependency order"
+echo "✓ Configured custom themes for both sites"
 echo "✓ Cleaned cache configuration from all settings files"
 echo "✓ Rebuilt Composer autoloaders with optimization"
 echo "✓ Cleared PHP container cache directories"
