@@ -56,7 +56,12 @@ fix_drupal_permissions() {
         sudo chmod 755 "$site_dir/web/sites/default" 2>/dev/null || chmod 755 "$site_dir/web/sites/default" 2>/dev/null || true
     fi
     if [ -d "$site_dir/web/sites/default/files" ]; then
-        sudo chmod 775 "$site_dir/web/sites/default/files" 2>/dev/null || chmod 775 "$site_dir/web/sites/default/files" 2>/dev/null || true
+        sudo chmod -R 775 "$site_dir/web/sites/default/files" 2>/dev/null || chmod -R 775 "$site_dir/web/sites/default/files" 2>/dev/null || true
+        # Create PHP storage directory for compiled classes
+        mkdir -p "$site_dir/web/sites/default/files/php" 2>/dev/null || true
+        sudo chmod 775 "$site_dir/web/sites/default/files/php" 2>/dev/null || chmod 775 "$site_dir/web/sites/default/files/php" 2>/dev/null || true
+        # Set proper ownership for Apache (www-data) to write to files directory
+        sudo chown -R www-data:www-data "$site_dir/web/sites/default/files" 2>/dev/null || true
     fi
 }
 
@@ -600,7 +605,12 @@ if [ "$DRUPAL_NEEDS_INSTALL" = true ]; then
     print_status "Setting up file permissions and installing Drupal..."
     chmod 755 web/sites/default
     mkdir -p web/sites/default/files
-    chmod 775 web/sites/default/files
+    chmod -R 775 web/sites/default/files
+    # Create PHP storage directory for compiled classes
+    mkdir -p web/sites/default/files/php
+    chmod 775 web/sites/default/files/php
+    # Set proper ownership for Apache
+    sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
 
     # Copy default settings file if it doesn't exist
     if [ ! -f "web/sites/default/settings.php" ]; then
@@ -850,7 +860,12 @@ if [ -d "$TOC_PROJECT_DIR" ]; then
         # Set up file permissions
         chmod 755 web/sites/default
         mkdir -p web/sites/default/files
-        chmod 775 web/sites/default/files
+        chmod -R 775 web/sites/default/files
+        # Create PHP storage directory for compiled classes
+        mkdir -p web/sites/default/files/php
+        chmod 775 web/sites/default/files/php
+        # Set proper ownership for Apache
+        sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
         
         # Copy default settings file
         cp web/sites/default/default.settings.php web/sites/default/settings.php
@@ -1000,7 +1015,12 @@ else
     # Continue with installation as above...
     chmod 755 web/sites/default
     mkdir -p web/sites/default/files
-    chmod 775 web/sites/default/files
+    chmod -R 775 web/sites/default/files
+    # Create PHP storage directory for compiled classes
+    mkdir -p web/sites/default/files/php
+    chmod 775 web/sites/default/files/php
+    # Set proper ownership for Apache
+    sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
     cp web/sites/default/default.settings.php web/sites/default/settings.php
     chmod 664 web/sites/default/settings.php
     
@@ -1534,7 +1554,12 @@ if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json | grep -q
     # Ensure proper file permissions
     chmod 755 web/sites/default 2>/dev/null || true
     mkdir -p web/sites/default/files 2>/dev/null || true
-    chmod 775 web/sites/default/files 2>/dev/null || true
+    chmod -R 775 web/sites/default/files 2>/dev/null || true
+    # Create PHP storage directory for compiled classes
+    mkdir -p web/sites/default/files/php 2>/dev/null || true
+    chmod 775 web/sites/default/files/php 2>/dev/null || true
+    # Set proper ownership for Apache
+    sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
     
     # Check if we need to install
     if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status | grep -q "Drupal bootstrap.*Successful" 2>/dev/null; then
@@ -1560,7 +1585,12 @@ if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json | grep -q
     # Ensure proper file permissions
     chmod 755 web/sites/default 2>/dev/null || true
     mkdir -p web/sites/default/files 2>/dev/null || true
-    chmod 775 web/sites/default/files 2>/dev/null || true
+    chmod -R 775 web/sites/default/files 2>/dev/null || true
+    # Create PHP storage directory for compiled classes
+    mkdir -p web/sites/default/files/php 2>/dev/null || true
+    chmod 775 web/sites/default/files/php 2>/dev/null || true
+    # Set proper ownership for Apache
+    sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
     
     # Check if we need to install
     if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status | grep -q "Drupal bootstrap.*Successful" 2>/dev/null; then
