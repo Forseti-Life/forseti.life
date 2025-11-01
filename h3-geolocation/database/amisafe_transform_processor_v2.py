@@ -286,7 +286,14 @@ class AmISafeTransformProcessor:
     
     def add_h3_indexes(self, row: pd.Series) -> Dict[str, str]:
         """Add H3 spatial indexes for multiple resolutions."""
-        h3_indexes = {}
+        # Initialize all H3 fields to None to ensure consistent dictionary keys
+        h3_indexes = {
+            'h3_res_6': None,
+            'h3_res_7': None,
+            'h3_res_8': None,
+            'h3_res_9': None,
+            'h3_res_10': None
+        }
         
         try:
             lat, lng = float(row['lat']), float(row['lng'])
@@ -298,6 +305,7 @@ class AmISafeTransformProcessor:
                 
         except Exception as e:
             self.logger.warning(f"Failed to generate H3 indexes: {e}")
+            # H3 fields remain None, which will be tracked in exclusions
             
         return h3_indexes
     
