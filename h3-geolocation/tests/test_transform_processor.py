@@ -206,7 +206,7 @@ class TestAmISafeTransformProcessor:
         batch_id = 'test_batch_003'
         clean_record = self.processor.prepare_clean_record(test_row, batch_id)
         
-        # Expected fields from SQL INSERT statement (lines 386-401)
+        # Expected fields from SQL INSERT statement
         expected_fields = [
             'raw_incident_ids', 'processing_batch_id', 'incident_id', 'cartodb_id', 'objectid', 'dc_key',
             'dc_dist', 'psa', 'location_block', 'lat', 'lng', 'coordinate_quality',

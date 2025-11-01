@@ -16,7 +16,7 @@ Error inserting clean records: Not all parameters were used in the SQL statement
 ### Root Cause
 The `add_h3_indexes()` function in `amisafe_transform_processor_v2.py` was returning an empty dictionary `{}` when an exception occurred during H3 index generation. This caused a mismatch between:
 
-1. **SQL INSERT statement** (lines 386-401): Expected 31 parameters including all 5 H3 resolution fields
+1. **SQL INSERT statement**: Expected 31 parameters including all 5 H3 resolution fields
 2. **Record dictionary**: Only contained 26 fields when H3 indexing failed (missing h3_res_6 through h3_res_10)
 
 ### Affected Code Path
@@ -111,12 +111,12 @@ Standalone test (`/tmp/test_h3_fix.py`) confirmed:
 The `amisafe_clean_incidents` table schema already supports NULL values for H3 fields:
 
 ```sql
--- H3 spatial indexing (lines 139-144)
-h3_res_6 VARCHAR(16),      -- Nullable
-h3_res_7 VARCHAR(16),      -- Nullable
-h3_res_8 VARCHAR(16),      -- Nullable
-h3_res_9 VARCHAR(16),      -- Nullable
-h3_res_10 VARCHAR(16),     -- Nullable
+-- H3 spatial indexing fields (all nullable)
+h3_res_6 VARCHAR(16),
+h3_res_7 VARCHAR(16),
+h3_res_8 VARCHAR(16),
+h3_res_9 VARCHAR(16),
+h3_res_10 VARCHAR(16),
 ```
 
 No schema changes were required.
