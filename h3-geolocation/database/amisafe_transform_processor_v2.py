@@ -284,7 +284,7 @@ class AmISafeTransformProcessor:
         
         return max(0.0, score)
     
-    def add_h3_indexes(self, row: pd.Series) -> Dict[str, str]:
+    def add_h3_indexes(self, row: pd.Series) -> Dict[str, Optional[str]]:
         """Add H3 spatial indexes for multiple resolutions."""
         # Initialize all H3 fields to None to ensure consistent dictionary keys
         h3_indexes = {

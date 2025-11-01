@@ -21,7 +21,7 @@ The `add_h3_indexes()` function in `amisafe_transform_processor_v2.py` was retur
 
 ### Affected Code Path
 ```python
-# Original problematic code (lines 287-302)
+# Original problematic code
 def add_h3_indexes(self, row: pd.Series) -> Dict[str, str]:
     h3_indexes = {}  # Empty dict initialization
     try:
@@ -48,8 +48,8 @@ The function would return an empty dictionary in these cases:
 Modified `add_h3_indexes()` to initialize all 5 H3 resolution fields to `None` before attempting H3 index generation:
 
 ```python
-# Fixed code (lines 287-310)
-def add_h3_indexes(self, row: pd.Series) -> Dict[str, str]:
+# Fixed code with correct type annotation
+def add_h3_indexes(self, row: pd.Series) -> Dict[str, Optional[str]]:
     # Initialize all H3 fields to None to ensure consistent dictionary keys
     h3_indexes = {
         'h3_res_6': None,
@@ -148,7 +148,7 @@ The existing `calculate_data_quality_score()` function can be enhanced to factor
 ## Related Components
 
 ### Files Modified
-1. `h3-geolocation/database/amisafe_transform_processor_v2.py` (lines 287-310)
+1. `h3-geolocation/database/amisafe_transform_processor_v2.py` - Fixed `add_h3_indexes()` method and type annotation
 
 ### Files Added
 1. `h3-geolocation/tests/test_transform_processor.py` - Comprehensive test suite
