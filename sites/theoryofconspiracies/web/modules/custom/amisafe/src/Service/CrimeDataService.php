@@ -57,8 +57,9 @@ class CrimeDataService {
     }
 
     try {
-      $database = \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
-      $query = $database->select('raw_incidents', 'ri')
+      // Use default Drupal database with amisafe prefixed tables
+      $database = \Drupal\Core\Database\Database::getConnection();
+      $query = $database->select('amisafe_raw_incidents', 'ri')
         ->fields('ri')
         ->range($page * $limit, $limit)
         ->orderBy('dispatch_date_time', 'DESC');
@@ -93,8 +94,10 @@ class CrimeDataService {
     }
 
     try {
-      $database = \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
-      $query = $database->select('raw_incidents', 'ri')
+      // Use default Drupal database with amisafe prefixed tables
+      $database = \Drupal\Core\Database\Database::getConnection();
+      
+      $query = $database->select('amisafe_raw_incidents', 'ri')
         ->addExpression('COUNT(*)', 'count');
 
       $this->applyFilters($query, $filters);

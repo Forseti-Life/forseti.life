@@ -70,6 +70,15 @@ amisafe.api.date_range:
     _permission: 'access content'
     _method: 'GET|POST'
 
+amisafe.api.citywide_stats:
+  path: '/api/amisafe/citywide-stats'
+  defaults:
+    _controller: '\Drupal\amisafe\Controller\ApiController::citywideStats'
+    _format: 'json'
+  requirements:
+    _permission: 'access content'
+    _method: 'GET'
+
 amisafe.api.hexagon_details:
   path: '/api/amisafe/hexagon/{h3_index}'
   defaults:

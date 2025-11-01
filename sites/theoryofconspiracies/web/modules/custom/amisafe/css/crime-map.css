@@ -301,6 +301,147 @@
 .neon-blue { color: var(--neon-blue); }
 .neon-orange { color: var(--neon-orange); }
 .neon-red { color: var(--neon-red); }
+.neon-cyan { color: #00ffff; }
+.neon-purple { color: #ff00ff; }
+.neon-yellow { color: var(--neon-yellow); }
+
+/* Citywide Statistics Panel */
+.citywide-stats {
+  margin-bottom: 15px;
+  padding: 10px;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: rgba(0, 20, 40, 0.6);
+  border-radius: 3px;
+}
+
+.citywide-overview {
+  font-size: 0.75rem;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.stat-item-small {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  padding: 0 5px;
+}
+
+.stat-label-small {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.65rem;
+  margin-bottom: 2px;
+}
+
+.stat-item-small .stat-value {
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-shadow: 0 0 3px currentColor;
+}
+
+/* High Alert Animation for Critical Stats */
+.high-alert {
+  animation: critical-pulse 1.5s infinite;
+  color: var(--neon-red) !important;
+}
+
+@keyframes critical-pulse {
+  0%, 100% { 
+    text-shadow: 0 0 5px var(--neon-red); 
+    opacity: 1; 
+  }
+  50% { 
+    text-shadow: 0 0 15px var(--neon-red), 0 0 25px var(--neon-red); 
+    opacity: 0.8; 
+  }
+}
+
+/* H3 Debug Section */
+.debug-section {
+  margin-top: 10px;
+  border-top: 1px solid rgba(0, 255, 255, 0.3);
+  padding-top: 10px;
+}
+
+.debug-status {
+  background: rgba(0, 20, 40, 0.4);
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  padding: 8px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-family: var(--terminal-font);
+}
+
+.debug-info {
+  margin-bottom: 8px;
+}
+
+.debug-line {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 3px;
+  padding: 2px 0;
+}
+
+.debug-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.7rem;
+}
+
+.debug-value {
+  color: var(--neon-green);
+  font-weight: bold;
+  font-size: 0.7rem;
+}
+
+.debug-functions {
+  margin: 5px 0;
+  padding-left: 10px;
+}
+
+.debug-function-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2px;
+  font-size: 0.65rem;
+}
+
+.debug-function-name {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.debug-function-status {
+  color: var(--neon-green);
+}
+
+.debug-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.debug-btn {
+  padding: 4px 6px !important;
+  font-size: 0.65rem !important;
+  min-height: auto !important;
+  background: rgba(0, 255, 255, 0.1) !important;
+  border: 1px solid rgba(0, 255, 255, 0.4) !important;
+  color: var(--neon-cyan) !important;
+}
+
+.debug-btn:hover {
+  background: rgba(0, 255, 255, 0.2) !important;
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.4) !important;
+}
+
+.debug-value.error {
+  color: var(--neon-red) !important;
+}
 
 /* Map container */
 .map-container {

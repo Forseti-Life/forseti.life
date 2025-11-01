@@ -513,3 +513,9 @@ This comprehensive implementation demonstrates successful multi-site Drupal deve
 - Ensure mobile responsiveness for business websites
 - Implement proper security and access controls
 - Focus on professional business presentation
+
+
+
+Always read the readme.md file in a directory before modifying a file or creating a file or directory in a directory.
+
+After updating or creating a file or directory in a directory, update the readme.md file for that directory. 

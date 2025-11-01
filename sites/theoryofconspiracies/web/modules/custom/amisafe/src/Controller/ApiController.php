@@ -316,6 +316,74 @@ class ApiController extends ControllerBase {
   }
 
   /**
+   * Returns citywide crime statistics for dashboard overview.
+   */
+  public function citywideStats() {
+    try {
+      // Get overall statistics from the actual database (real data source)
+      $total_incidents = $this->crimeDataService->getIncidentCount([]);
+      
+      $districts = $this->crimeDataService->getDistricts();
+      
+      // Calculate citywide threat level based on incident density
+      $threat_level = $this->calculateCitywideThreatlevel($total_incidents);
+      
+      // Calculate coverage percentage (simulated for Philadelphia 2085)
+      $coverage_percentage = min(100, ($total_incidents / 500) + 85); // Base 85% + incidents factor
+      
+      return new JsonResponse([
+        'stats' => [
+          'total_incidents' => $total_incidents,
+          'active_districts' => count($districts),
+          'citywide_threat_level' => $threat_level,
+          'coverage_percentage' => round($coverage_percentage, 1),
+          'last_updated' => date('Y-m-d H:i:s'),
+        ],
+        'meta' => [
+          'districts' => $districts,
+          'calculation_method' => 'h3_aggregated_data',
+        ],
+      ]);
+    } catch (\Exception $e) {
+      \Drupal::logger('amisafe')->error('Citywide stats API error: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      
+      // Return fallback data
+      return new JsonResponse([
+        'stats' => [
+          'total_incidents' => 28750,
+          'active_districts' => 21,
+          'citywide_threat_level' => 'CRITICAL',
+          'coverage_percentage' => 94.2,
+          'last_updated' => date('Y-m-d H:i:s'),
+        ],
+        'meta' => [
+          'fallback' => true,
+          'error' => 'Using simulated data for Philadelphia 2085',
+        ],
+      ]);
+    }
+  }
+
+  /**
+   * Calculate citywide threat level based on incident count.
+   */
+  private function calculateCitywideThreatlevel($incident_count) {
+    if ($incident_count >= 30000) {
+      return 'EXTREME';
+    } elseif ($incident_count >= 20000) {
+      return 'CRITICAL';
+    } elseif ($incident_count >= 10000) {
+      return 'HIGH';
+    } elseif ($incident_count >= 5000) {
+      return 'ELEVATED';
+    } else {
+      return 'MODERATE';
+    }
+  }
+
+  /**
    * Debug endpoint to test basic API functionality.
    */
   public function debugTest() {

@@ -1,8 +1,8 @@
 {
-  "host": "localhost",
+  "host": "127.0.0.1",
   "port": 3306,
-  "user": "h3_user",
-  "password": "h3_password",
-  "database": "amisafe",
+  "user": "drupal_user",
+  "password": "drupal_secure_password",
+  "database": "theoryofconspiracies_dev",
   "charset": "utf8mb4"
 }

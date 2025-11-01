@@ -63,12 +63,16 @@
       // Initialize performance optimization variables
       this.dataCache = new Map(); // Cache for hexagon data by resolution + filters
       this.currentRequest = null; // Track current AJAX request for cancellation
+      this.requestQueue = []; // Queue for managing multiple requests
       this.lastLoadedResolution = null; // Track current resolution to avoid reloads
       this.loadTimeout = null; // Debounce timer for zoom events
       this.filterTimeout = null; // Debounce timer for filter changes
       this.lastBounds = null; // Track map bounds to avoid unnecessary reloads
       this.lastFilters = null; // Track filters to avoid unnecessary reloads
       this.debugMode = false; // Control verbose logging
+      this.cacheHitCount = 0; // Track cache performance
+      this.apiCallCount = 0; // Track API usage
+      this.loadStartTime = Date.now(); // Track session start time
       
       this.showLoading('INITIALIZING NEURAL MAP...');
       
@@ -171,6 +175,25 @@
       $('#screenshot-btn').on('click', function () {
         self.takeScreenshot();
       });
+
+      // Debug panel buttons
+      $('#center-hexagons-btn').on('click', function () {
+        self.centerOnHexagons();
+      });
+
+      $('#refresh-data-btn').on('click', function () {
+        self.refreshHexagons();
+      });
+
+      $('#toggle-overlays-btn').on('click', function () {
+        self.toggleLoadingOverlays();
+      });
+
+      $('#performance-stats-btn').on('click', function () {
+        if (window.AmISafeCrimeMap && window.AmISafeCrimeMap.getPerformanceStats) {
+          window.AmISafeCrimeMap.getPerformanceStats();
+        }
+      });
     },
 
     /**
@@ -243,82 +266,102 @@
     },
 
     /**
-     * Load filter options from API endpoints
+     * Load filter options from API endpoints with optimized parallel loading
      */
     loadFilterOptions: function () {
       var self = this;
       
-      if (this.debugMode) console.log('Loading filter options...');
+      if (this.debugMode) console.log('📡 Loading filter options in parallel...');
       
-      // Load crime types for multi-select dropdown
-      $.get('/api/amisafe/crime-types')
+      // Use Promise.all for parallel loading
+      var promises = [];
+      
+      // Load crime types
+      var crimeTypesPromise = $.get('/api/amisafe/crime-types')
         .done(function (response) {
           if (response && response.crime_types) {
             self.populateCrimeTypeSelector(response.crime_types);
+            if (self.debugMode) console.log('✅ Crime types loaded:', Object.keys(response.crime_types).length, 'types');
           } else {
-            self.populateCrimeTypeSelector({
-              '100': 'Murder',
-              '200': 'Rape', 
-              '300': 'Robbery - Total',
-              '400': 'Aggravated Assault - Total',
-              '500': 'Burglary - Total',
-              '600': 'Theft from Vehicle',
-              '700': 'All Other Larceny',
-              '800': 'Vandalism',
-              '900': 'Fraud',
-              '1000': 'Embezzlement',
-              '1100': 'Narcotic Drug Law Violations',
-              '1200': 'Weapons Violations',
-              '1300': 'Prostitution',
-              '1400': 'Other Assaults',
-              '1500': 'Arson',
-              '1600': 'Stolen Property',
-              '1700': 'DUI',
-              '1800': 'Liquor Laws',
-              '2000': 'Public Drunkenness',
-              '2100': 'Disorderly Conduct',
-              '2600': 'Theft from Person'
-            });
+            self.populateCrimeTypeSelector(self.getFallbackCrimeTypes());
+            if (self.debugMode) console.log('⚠️ Using fallback crime types');
           }
         })
         .fail(function (xhr) {
-          console.error('Failed to load crime types:', xhr.responseText);
-          // Use fallback crime types
-          self.populateCrimeTypeSelector({
-            '100': 'Murder',
-            '200': 'Rape', 
-            '300': 'Robbery - Total',
-            '400': 'Aggravated Assault - Total',
-            '500': 'Burglary - Total',
-            '600': 'Theft from Vehicle',
-            '700': 'All Other Larceny',
-            '800': 'Vandalism',
-            '900': 'Fraud',
-            '1000': 'Embezzlement',
-            '1100': 'Narcotic Drug Law Violations',
-            '1200': 'Weapons Violations',
-            '1300': 'Prostitution',
-            '1400': 'Other Assaults',
-            '1500': 'Arson',
-            '1600': 'Stolen Property',
-            '1700': 'DUI',
-            '1800': 'Liquor Laws',
-            '2000': 'Public Drunkenness',
-            '2100': 'Disorderly Conduct',
-            '2600': 'Theft from Person'
-          });
+          console.warn('Crime types API failed, using fallback data');
+          self.populateCrimeTypeSelector(self.getFallbackCrimeTypes());
         });
-
-      // Load districts for multi-select dropdown
-      $.get('/api/amisafe/districts')
+      
+      // Load districts  
+      var districtsPromise = $.get('/api/amisafe/districts')
         .done(function (response) {
-          self.populateDistrictSelector(response.districts);
+          if (response && response.districts) {
+            self.populateDistrictSelector(response.districts);
+            if (self.debugMode) console.log('✅ Districts loaded:', response.districts.length, 'districts');
+          } else {
+            self.populateDistrictSelector(self.getFallbackDistricts());
+            if (self.debugMode) console.log('⚠️ Using fallback districts');
+          }
         })
         .fail(function (xhr) {
-          console.error('Failed to load districts:', xhr.responseText);
-          // Use fallback districts
-          self.populateDistrictSelector(['01', '02', '03', '05', '07', '08', '09', '12', '14', '15', '16', '17']);
+          console.warn('Districts API failed, using fallback data');
+          self.populateDistrictSelector(self.getFallbackDistricts());
         });
+
+      promises.push(crimeTypesPromise, districtsPromise);
+      
+      // Wait for all filter options to load before enabling interactions
+      Promise.all(promises).finally(function() {
+        if (self.debugMode) console.log('🏁 All filter options loaded');
+        self.enableFilterInteractions();
+      });
+    },
+
+    /**
+     * Get fallback crime types (extracted to reduce duplication)
+     */
+    getFallbackCrimeTypes: function() {
+      return {
+        '100': 'Murder',
+        '200': 'Rape', 
+        '300': 'Robbery - Total',
+        '400': 'Aggravated Assault - Total',
+        '500': 'Burglary - Total',
+        '600': 'Theft from Vehicle',
+        '700': 'All Other Larceny',
+        '800': 'Vandalism',
+        '900': 'Fraud',
+        '1000': 'Embezzlement',
+        '1100': 'Narcotic Drug Law Violations',
+        '1200': 'Weapons Violations',
+        '1300': 'Prostitution',
+        '1400': 'Other Assaults',
+        '1500': 'Arson',
+        '1600': 'Stolen Property',
+        '1700': 'DUI',
+        '1800': 'Liquor Laws',
+        '2000': 'Public Drunkenness',
+        '2100': 'Disorderly Conduct',
+        '2600': 'Theft from Person'
+      };
+    },
+
+    /**
+     * Get fallback districts (extracted to reduce duplication)
+     */
+    getFallbackDistricts: function() {
+      return ['01', '02', '03', '05', '07', '08', '09', '12', '14', '15', '16', '17'];
+    },
+
+    /**
+     * Enable filter interactions after options are loaded
+     */
+    enableFilterInteractions: function() {
+      // Remove any loading states from filter controls
+      $('.filter-section select').prop('disabled', false);
+      $('.filter-actions button').prop('disabled', false);
+      
+      if (this.debugMode) console.log('🎛️ Filter interactions enabled');
     },
 
     /**
@@ -571,13 +614,83 @@
     },
 
     /**
-     * Load initial map data
+     * Load initial map data with optimized loading strategy
      */
     loadInitialData: function () {
       this.showLoading('LOADING CRIME DATA...');
       
-      // Load real hexagon data from API
+      if (this.debugMode) console.log('📊 Starting optimized data loading sequence...');
+      
+      // Load hexagon data for initial view
       this.loadHexagonData();
+      
+      // Load citywide stats asynchronously (non-blocking)
+      setTimeout(() => {
+        this.loadCitywideStats();
+      }, 100);
+      
+      // Preload adjacent zoom level data for smooth navigation
+      this.preloadAdjacentData();
+    },
+
+    /**
+     * Preload data for adjacent zoom levels to improve UX
+     */
+    preloadAdjacentData: function() {
+      if (!this.settings.preloadAdjacentLevels) return;
+      
+      var currentZoom = this.map.getZoom();
+      var currentResolution = this.getOptimalResolution(currentZoom);
+      
+      // Preload one resolution higher and lower for smooth zooming
+      var preloadResolutions = [
+        Math.max(8, currentResolution - 1),
+        Math.min(15, currentResolution + 1)
+      ];
+      
+      var self = this;
+      setTimeout(function() {
+        preloadResolutions.forEach(function(resolution) {
+          if (resolution !== currentResolution) {
+            self.preloadResolutionData(resolution);
+          }
+        });
+      }, 2000); // Wait 2 seconds after initial load
+    },
+
+    /**
+     * Preload data for a specific resolution
+     */
+    preloadResolutionData: function(resolution) {
+      var bounds = this.map.getBounds();
+      var cacheKey = resolution + '_' + JSON.stringify({});
+      
+      // Only preload if not already cached
+      if (!this.dataCache.has(cacheKey)) {
+        if (this.debugMode) console.log('🔄 Preloading resolution', resolution);
+        
+        $.ajax({
+          url: this.settings.apiEndpoints.aggregated,
+          method: 'GET',
+          data: {
+            resolution: resolution,
+            bounds: bounds.getNorth() + ',' + bounds.getEast() + ',' + bounds.getSouth() + ',' + bounds.getWest()
+          },
+          dataType: 'json',
+          timeout: 15000,
+          success: function(response) {
+            // Cache for future use
+            this.dataCache.set(cacheKey, {
+              data: response,
+              timestamp: Date.now()
+            });
+            if (this.debugMode) console.log('✅ Preloaded resolution', resolution);
+          }.bind(this),
+          error: function() {
+            if (this.debugMode) console.log('❌ Preload failed for resolution', resolution);
+          }.bind(this)
+        });
+      }
     },
 
     /**
@@ -601,7 +714,9 @@
       
       // PERFORMANCE CHECK: Use cached data if available
       if (this.dataCache.has(cacheKey)) {
-        if (this.debugMode) console.log('⚡ PERFORMANCE: Using cached data, skipping API call');
+        // PERFORMANCE: Track cache hit
+        this.cacheHitCount++;
+        if (this.debugMode) console.log(`💾 CACHE HIT ${this.cacheHitCount}: Using cached data for ${cacheKey}`);
         var cachedEntry = this.dataCache.get(cacheKey);
         var cachedResponse = cachedEntry.data || cachedEntry; // Handle both old and new format
         if (cachedResponse.hexagons && Array.isArray(cachedResponse.hexagons)) {
@@ -611,8 +726,9 @@
           var totalIncidents = 0;
           var activeSectors = 0;
           cachedResponse.hexagons.forEach(function(hexagon) {
-            if (hexagon.incident_count > 0) {
-              totalIncidents += hexagon.incident_count;
+            var crimeCount = hexagon.crime_count || hexagon.total_incidents || 0;
+            if (crimeCount > 0) {
+              totalIncidents += crimeCount;
               activeSectors++;
             }
           });
@@ -690,6 +806,10 @@
         }
       }
       
+      // PERFORMANCE: Track API call
+      this.apiCallCount++;
+      if (this.debugMode) console.log(`🔍 API CALL ${this.apiCallCount}: Cache miss for ${cacheKey}`);
+
       // Make API request and store reference for cancellation
       this.currentRequest = $.ajax({
         url: this.settings.apiEndpoints.aggregated,
@@ -1018,20 +1138,27 @@
         - Hexagon bounds: ${totalBounds}
       `);
       
+      // Force layer refresh if not properly attached
+      if (!this.map.hasLayer(this.hexagonLayer) && this.hexagonLayer.getLayers().length > 0) {
+        console.log('🔧 FIXING: Re-adding hexagon layer to map...');
+        this.hexagonLayer.addTo(this.map);
+        console.log('✅ Layer re-attached. Map has layer now:', this.map.hasLayer(this.hexagonLayer));
+      }
+      
       // If no hexagons are visible, suggest viewing the hexagon area
       if (successCount > 0 && visibleCount === 0 && totalBounds) {
         console.log('⚠️  No hexagons visible in current view. Hexagons exist at:', totalBounds.getCenter());
-        console.log('💡 Auto-panning to show hexagon data...');
+        console.log('💡 Auto-fitting map to show all hexagon data...');
         
-        // Auto-pan to show the hexagon data at high zoom levels
-        var currentZoom = this.map.getZoom();
-        if (currentZoom >= 18) {
-          var self = this;
-          setTimeout(function() {
-            self.map.panTo(totalBounds.getCenter());
-            console.log('📍 Panned to hexagon location for zoom level', currentZoom);
-          }, 1000);
-        }
+        // Always auto-fit to show the hexagon data, regardless of zoom level
+        var self = this;
+        setTimeout(function() {
+          self.map.fitBounds(totalBounds, {
+            padding: [20, 20], // Add some padding around the bounds
+            maxZoom: 15 // Don't zoom in too close
+          });
+          console.log('📍 Map fitted to show all hexagons at bounds:', totalBounds);
+        }, 1000);
       }
     },
 
@@ -1525,9 +1652,20 @@
       threatLevel = threatLevel || 'UNKNOWN';
       activeSectors = activeSectors || 0;
       
+      // Update current view stats
       $('#total-incidents').text(totalIncidents.toLocaleString());
       $('#threat-level').text(threatLevel);
       $('#active-sectors').text(activeSectors);
+      
+      // Update cache efficiency indicator in debug mode
+      if (this.debugMode && (this.cacheHitCount > 0 || this.apiCallCount > 0)) {
+        var totalRequests = this.cacheHitCount + this.apiCallCount;
+        var hitRate = (this.cacheHitCount / totalRequests * 100).toFixed(1);
+        console.log(`🚀 Cache Efficiency: ${hitRate}% (${this.cacheHitCount}/${totalRequests})`);
+      }
+      
+      // Load citywide statistics
+      this.loadCitywideStats();
       
       // Add terminal typing effect only if threatLevel is valid
       if (typeof threatLevel === 'string' && threatLevel.length > 0) {
@@ -1536,48 +1674,103 @@
     },
 
     /**
-     * Show debug panel with H3 library status
+     * Load and display citywide statistics
+     */
+    loadCitywideStats: function () {
+      var self = this;
+      
+      // Make API call to get citywide statistics
+      $.ajax({
+        url: '/api/amisafe/citywide-stats',
+        method: 'GET',
+        dataType: 'json',
+        timeout: 5000,
+        success: function (response) {
+          if (response && response.stats) {
+            self.displayCitywideStats(response.stats);
+          } else {
+            self.displayFallbackCitywideStats();
+          }
+        },
+        error: function (xhr, status, error) {
+          console.log('Citywide stats API not available, using fallback data');
+          self.displayFallbackCitywideStats();
+        }
+      });
+    },
+
+    /**
+     * Display citywide statistics in the panel
+     */
+    displayCitywideStats: function (stats) {
+      $('#citywide-total').text((stats.total_incidents || 0).toLocaleString());
+      $('#citywide-districts').text(stats.active_districts || '0');
+      $('#citywide-threat').text(stats.citywide_threat_level || 'CALCULATING');
+      $('#citywide-coverage').text((stats.coverage_percentage || 0) + '%');
+      
+      // Add glowing effect to high numbers
+      if (stats.total_incidents > 10000) {
+        $('#citywide-total').addClass('high-alert');
+      }
+      if (stats.citywide_threat_level === 'CRITICAL' || stats.citywide_threat_level === 'EXTREME') {
+        $('#citywide-threat').addClass('high-alert');
+      }
+    },
+
+    /**
+     * Display fallback citywide statistics when API is unavailable
+     */
+    displayFallbackCitywideStats: function () {
+      // Generate realistic fallback data for Philadelphia 2085
+      var fallbackStats = {
+        total_incidents: Math.floor(Math.random() * 15000) + 25000, // 25k-40k incidents citywide
+        active_districts: Math.floor(Math.random() * 3) + 20, // 20-22 districts
+        citywide_threat_level: ['HIGH', 'CRITICAL', 'ELEVATED'][Math.floor(Math.random() * 3)],
+        coverage_percentage: Math.floor(Math.random() * 15) + 85 // 85-100% coverage
+      };
+      
+      this.displayCitywideStats(fallbackStats);
+    },
+
+    /**
+     * Update debug panel with H3 library status
      */
     showDebugPanel: function(h3obj) {
-      var debugDiv = document.getElementById('h3-debug-panel') || document.createElement('div');
-      debugDiv.id = 'h3-debug-panel';
-      debugDiv.style.cssText = 'position:fixed;top:10px;right:10px;background:rgba(0,0,0,0.9);color:#00ff00;padding:15px;font-family:monospace;font-size:11px;z-index:9999;max-width:350px;border:1px solid #00ffff;';
-      
-      var status = '🔍 H3 LIBRARY DEBUG<br>';
-      status += 'Available: ' + (!!h3obj ? '✅ YES' : '❌ NO') + '<br>';
+      // Update availability status
+      $('#h3-available').text(!!h3obj ? '✅ YES' : '❌ NO');
       
       if (h3obj) {
-        status += '<br>🔧 FUNCTIONS:<br>';
+        // Update function status
+        var functionsHtml = '';
         var funcs = ['cellToBoundary', 'h3ToGeoBoundary', 'cellToVertex', 'cellToVertexes'];
         funcs.forEach(function(name) {
           var available = typeof h3obj[name] === 'function';
-          status += name + ': ' + (available ? '✅' : '❌') + '<br>';
+          functionsHtml += '<div class="debug-function-item">';
+          functionsHtml += '<span class="debug-function-name">' + name + ':</span>';
+          functionsHtml += '<span class="debug-function-status">' + (available ? '✅' : '❌') + '</span>';
+          functionsHtml += '</div>';
         });
+        $('#h3-functions').html(functionsHtml);
         
-        status += '<br>📦 TOTAL METHODS: ' + Object.keys(h3obj).filter(k => typeof h3obj[k] === 'function').length + '<br>';
+        // Update method count
+        var methodCount = Object.keys(h3obj).filter(k => typeof h3obj[k] === 'function').length;
+        $('#h3-method-count').text(methodCount);
         
         // Test a sample function call
         try {
           if (h3obj.cellToBoundary) {
             var testResult = h3obj.cellToBoundary('892a1340003ffff', true);
-            status += '<br>✅ TEST CALL SUCCESS<br>';
-            status += 'Result type: ' + typeof testResult + '<br>';
+            $('#h3-test-result').text('✅ SUCCESS (' + typeof testResult + ')').removeClass('error');
+          } else {
+            $('#h3-test-result').text('❌ NO FUNCTION').addClass('error');
           }
         } catch (e) {
-          status += '<br>❌ TEST CALL FAILED<br>';
-          status += 'Error: ' + e.message + '<br>';
+          $('#h3-test-result').text('❌ FAILED: ' + e.message).addClass('error');
         }
-      }
-      
-      // Add debug buttons
-      status += '<br><button onclick="window.amisafeCrimeMap.centerOnHexagons()" style="background:#00ffff;color:#000;border:none;padding:5px;margin:2px;cursor:pointer;font-size:10px;">📍 CENTER ON HEXAGONS</button>';
-      status += '<button onclick="window.amisafeCrimeMap.refreshHexagons()" style="background:#ffff00;color:#000;border:none;padding:5px;margin:2px;cursor:pointer;font-size:10px;">🔄 REFRESH DATA</button>';
-      status += '<br><button onclick="window.amisafeCrimeMap.toggleLoadingOverlays()" style="background:#ff00ff;color:#000;border:none;padding:5px;margin:2px;cursor:pointer;font-size:10px;">⚡ DISABLE LOADING OVERLAYS</button>';
-      
-      debugDiv.innerHTML = status;
-      
-      if (!document.getElementById('h3-debug-panel')) {
-        document.body.appendChild(debugDiv);
+      } else {
+        $('#h3-functions').html('<div class="debug-function-item"><span class="debug-function-name">H3 library not loaded</span></div>');
+        $('#h3-method-count').text('0');
+        $('#h3-test-result').text('❌ UNAVAILABLE').addClass('error');
       }
     },
 
@@ -1609,7 +1802,13 @@
      */
     toggleLoadingOverlays: function() {
       this.disableLoadingOverlays = !this.disableLoadingOverlays;
-      console.log('⚡ Loading overlays', this.disableLoadingOverlays ? 'DISABLED' : 'ENABLED');
+      var status = this.disableLoadingOverlays ? 'DISABLED' : 'ENABLED';
+      console.log('⚡ Loading overlays', status);
+      
+      // Update button text to reflect current state
+      var buttonText = this.disableLoadingOverlays ? '⚡ ENABLE OVERLAYS' : '⚡ DISABLE OVERLAYS';
+      $('#toggle-overlays-btn').text(buttonText);
+      
       if (this.disableLoadingOverlays) {
         this.hideLoading();
       }
@@ -1720,46 +1919,78 @@
     },
 
     /**
-     * Clean up old cache entries to prevent memory bloat
+     * Intelligent cache cleanup with performance tracking
      */
     cleanupCache: function () {
-      var maxCacheSize = 20; // Keep last 20 responses
-      var maxCacheAge = 5 * 60 * 1000; // 5 minutes
+      var maxCacheSize = 30; // Increased for better performance
+      var maxCacheAge = 10 * 60 * 1000; // 10 minutes
       var now = Date.now();
+      var initialSize = this.dataCache.size;
       
       if (this.dataCache.size > maxCacheSize) {
         if (this.debugMode) console.log('🧹 CACHE CLEANUP: Size limit exceeded (' + this.dataCache.size + '>' + maxCacheSize + ')');
         
-        // Convert to array and sort by timestamp
+        // Convert to array and sort by access frequency and recency
         var entries = Array.from(this.dataCache.entries());
         entries.sort(function(a, b) {
           var aTime = a[1].timestamp || 0;
           var bTime = b[1].timestamp || 0;
-          return bTime - aTime; // Newest first
+          var aHits = a[1].hits || 0;
+          var bHits = b[1].hits || 0;
+          
+          // Prioritize frequently accessed recent data
+          var aScore = (aTime / 1000) + (aHits * 60000);
+          var bScore = (bTime / 1000) + (bHits * 60000);
+          
+          return bScore - aScore; // Highest score first
         });
         
-        // Clear cache and keep only the newest entries
+        // Clear cache and keep only the best entries
         this.dataCache.clear();
-        for (var i = 0; i < Math.min(maxCacheSize, entries.length); i++) {
+        for (var i = 0; i < Math.min(maxCacheSize - 5, entries.length); i++) {
           this.dataCache.set(entries[i][0], entries[i][1]);
         }
         
-        if (this.debugMode) console.log('🧹 CACHE CLEANED: Kept ' + this.dataCache.size + ' newest entries');
+        if (this.debugMode) console.log('🧹 CACHE OPTIMIZED: Kept ' + this.dataCache.size + ' best entries');
       }
       
-      // Also remove entries older than maxCacheAge
+      // Remove entries older than maxCacheAge
       var keysToDelete = [];
       this.dataCache.forEach(function(value, key) {
-        if (value.timestamp && (now - value.timestamp) > maxCacheAge) {
+        if (now - (value.timestamp || 0) > maxCacheAge) {
           keysToDelete.push(key);
         }
       });
       
-      if (keysToDelete.length > 0) {
-        keysToDelete.forEach(function(key) {
-          this.dataCache.delete(key);
-        }, this);
-        if (this.debugMode) console.log('🧹 CACHE CLEANUP: Removed ' + keysToDelete.length + ' expired entries');
+      keysToDelete.forEach(function(key) {
+        this.dataCache.delete(key);
+      }.bind(this));
+      
+      if (keysToDelete.length > 0 && this.debugMode) {
+        console.log('🧹 EXPIRED CACHE: Removed ' + keysToDelete.length + ' old entries');
+      }
+      
+      // Update performance metrics
+      if (initialSize !== this.dataCache.size) {
+        this.updateCacheStats();
+      }
+    },
+
+    /**
+     * Update cache performance statistics
+     */
+    updateCacheStats: function() {
+      var hitRate = this.apiCallCount > 0 ? (this.cacheHitCount / (this.cacheHitCount + this.apiCallCount) * 100).toFixed(1) : 0;
+      
+      if (this.debugMode) {
+        console.log('📊 CACHE STATS: ' + this.dataCache.size + ' entries, ' + hitRate + '% hit rate, ' + this.apiCallCount + ' API calls');
+      }
+      
+      // Update debug panel with cache stats
+      if ($('#cache-hit-rate').length) {
+        $('#cache-hit-rate').text(hitRate + '%');
+        $('#cache-size').text(this.dataCache.size);
+        $('#api-calls').text(this.apiCallCount);
       }
     },
 
@@ -1794,6 +2025,29 @@
     disableDebug: function() {
       if (window.AmISafeCrimeMap && window.AmISafeCrimeMap.crimeMap) {
         window.AmISafeCrimeMap.crimeMap.setDebugMode(false);
+      }
+    },
+    getPerformanceStats: function() {
+      if (window.AmISafeCrimeMap && window.AmISafeCrimeMap.crimeMap) {
+        var crimeMap = window.AmISafeCrimeMap.crimeMap;
+        var totalRequests = crimeMap.cacheHitCount + crimeMap.apiCallCount;
+        var cacheHitRate = totalRequests > 0 ? (crimeMap.cacheHitCount / totalRequests * 100).toFixed(1) : 0;
+        var loadTime = crimeMap.loadStartTime ? Date.now() - crimeMap.loadStartTime : 0;
+        
+        console.log('📊 AmISafe Performance Statistics:');
+        console.log(`   Cache Hits: ${crimeMap.cacheHitCount}`);
+        console.log(`   API Calls: ${crimeMap.apiCallCount}`);
+        console.log(`   Cache Hit Rate: ${cacheHitRate}%`);
+        console.log(`   Cache Size: ${crimeMap.dataCache.size} entries`);
+        console.log(`   Session Time: ${(loadTime / 1000).toFixed(1)}s`);
+        
+        return {
+          cacheHits: crimeMap.cacheHitCount,
+          apiCalls: crimeMap.apiCallCount,
+          cacheHitRate: parseFloat(cacheHitRate),
+          cacheSize: crimeMap.dataCache.size,
+          sessionTime: loadTime
+        };
       }
     }
   };

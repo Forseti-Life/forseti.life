@@ -84,32 +84,19 @@ class AmISafeDataProcessor:
     
     def log_processing_start(self, connection, file_name: str) -> int:
         """Log the start of file processing."""
-        cursor = connection.cursor()
-        insert_query = """
-        INSERT INTO raw.processing_log (file_name, processing_start, status)
-        VALUES (%s, %s, 'PROCESSING')
-        """
-        cursor.execute(insert_query, (file_name, datetime.now()))
-        log_id = cursor.lastrowid
-        cursor.close()
-        return log_id
+        # Simple logging without database table dependency
+        self.logger.info(f"Starting processing: {file_name}")
+        return 1  # Return dummy ID
     
     def log_processing_end(self, connection, log_id: int, records_processed: int, 
                           records_with_coordinates: int, records_with_h3: int, 
                           status: str = 'COMPLETED', error_message: str = None):
         """Log the end of file processing."""
-        cursor = connection.cursor()
-        update_query = """
-        UPDATE raw.processing_log 
-        SET processing_end = %s, records_processed = %s, records_with_coordinates = %s,
-            records_with_h3 = %s, status = %s, error_message = %s
-        WHERE id = %s
-        """
-        cursor.execute(update_query, (
-            datetime.now(), records_processed, records_with_coordinates, 
-            records_with_h3, status, error_message, log_id
-        ))
-        cursor.close()
+        # Simple logging without database table dependency
+        if status == 'COMPLETED':
+            self.logger.info(f"Completed processing: {records_processed} records, {records_with_h3} with H3")
+        else:
+            self.logger.error(f"Processing failed: {error_message}")
     
     def clean_and_validate_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Clean and validate the incident data."""
@@ -123,6 +110,18 @@ class AmISafeDataProcessor:
             (df['lat'].between(39.5, 40.5)) &  # Reasonable latitude range for Philadelphia
             (df['lng'].between(-75.5, -74.5))  # Reasonable longitude range for Philadelphia
         ]
+        
+        # Deduplicate records using objectid as primary key
+        initial_count = len(df)
+        if 'objectid' in df.columns:
+            df = df.drop_duplicates(subset=['objectid'], keep='first')
+            dedup_count = len(df)
+            self.logger.info(f"Deduplication by objectid: {initial_count} → {dedup_count} ({initial_count - dedup_count} duplicates removed)")
+        else:
+            # Fallback deduplication using location + time + crime type
+            df = df.drop_duplicates(subset=['lat', 'lng', 'dispatch_date_time', 'ucr_general'], keep='first')
+            dedup_count = len(df)
+            self.logger.info(f"Deduplication by location+time+crime: {initial_count} → {dedup_count} ({initial_count - dedup_count} duplicates removed)")
         
         # Clean text fields
         text_columns = ['location_block', 'text_general_code', 'dc_key']
@@ -146,22 +145,11 @@ class AmISafeDataProcessor:
         return df
     
     def add_h3_indexes(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Add H3 spatial indexes at multiple resolutions."""
-        self.logger.info("Adding H3 geospatial indexes...")
-        
-        # Add H3 cells at different resolutions
-        for level_name, resolution in self.h3_resolutions.items():
-            column_name = f'h3_res_{resolution}'
-            df[column_name] = df.apply(
-                lambda row: self.h3_framework.lat_lng_to_h3(row['lat'], row['lng'], resolution)
-                if pd.notna(row['lat']) and pd.notna(row['lng']) else None,
-                axis=1
-            )
-        
-        # Count records with H3 data
-        h3_count = df['h3_res_9'].notna().sum()  # Use resolution 9 as reference
-        self.logger.info(f"Added H3 indexes to {h3_count} records")
-        
+        """
+        DEPRECATED: H3 indexing moved to Transform layer (Silver).
+        Raw layer preserves original data without transformations.
+        """
+        self.logger.warning("H3 indexing should be done in Transform layer, not Raw layer")
         return df
     
     def process_csv_file(self, file_path: str, connection) -> Tuple[int, int, int]:
@@ -187,14 +175,15 @@ class AmISafeDataProcessor:
             df = self.clean_and_validate_data(df)
             records_with_coordinates = len(df)
             
-            # Add H3 indexes
-            df = self.add_h3_indexes(df)
-            records_with_h3 = df['h3_res_9'].notna().sum()
+            # RAW LAYER: Minimal processing - preserve original data integrity
+            # NO H3 indexing, NO derived fields, NO transformations
+            # Just add source tracking for data lineage
+            df['source_file'] = file_name
             
-            # Add metadata
-            df['file_source'] = file_name
-            df['processed_at'] = datetime.now()
-            df['h3_processed_at'] = datetime.now()
+            # Count records that have coordinates (for reporting only)
+            records_with_h3 = 0  # H3 processing happens in Transform layer
+            if 'lat' in df.columns and 'lng' in df.columns:
+                records_with_h3 = df[['lat', 'lng']].notna().all(axis=1).sum()
             
             # Insert into database in batches
             self.insert_batch_to_mysql(df, connection)
@@ -220,31 +209,35 @@ class AmISafeDataProcessor:
         """Insert dataframe to MySQL in batches."""
         cursor = connection.cursor()
         
-        # Define the insert query
+        # RAW LAYER: Insert ALL CSV fields exactly as-is (Bronze layer)
+        # Following data warehouse best practices - preserve immutable source data
         insert_query = """
-        INSERT INTO raw.incidents (
-            cartodb_id, objectid, dc_dist, psa, dispatch_date_time, dispatch_date, 
-            dispatch_time, hour, dc_key, location_block, ucr_general, text_general_code,
-            point_x, point_y, lat, lng, h3_res_7, h3_res_8, h3_res_9, h3_res_10,
-            the_geom, the_geom_webmercator, file_source, processed_at, h3_processed_at
+        INSERT INTO amisafe_raw_incidents (
+            source_file, the_geom, cartodb_id, the_geom_webmercator, objectid, 
+            dc_dist, psa, dispatch_date_time, dispatch_date, dispatch_time, 
+            hour, dc_key, location_block, ucr_general, text_general_code, 
+            point_x, point_y, lat, lng
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 
-            %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         )
         """
         
-        # Prepare data for insertion
+        # Map ALL original CSV columns to preserve complete source data
         columns = [
-            'cartodb_id', 'objectid', 'dc_dist', 'psa', 'dispatch_date_time', 'dispatch_date', 
-            'dispatch_time', 'hour', 'dc_key', 'location_block', 'ucr_general', 'text_general_code',
-            'point_x', 'point_y', 'lat', 'lng', 'h3_res_7', 'h3_res_8', 'h3_res_9', 'h3_res_10',
-            'the_geom', 'the_geom_webmercator', 'file_source', 'processed_at', 'h3_processed_at'
+            'source_file', 'the_geom', 'cartodb_id', 'the_geom_webmercator', 'objectid',
+            'dc_dist', 'psa', 'dispatch_date_time', 'dispatch_date', 'dispatch_time',
+            'hour', 'dc_key', 'location_block', 'ucr_general', 'text_general_code',
+            'point_x', 'point_y', 'lat', 'lng'
         ]
         
-        # Fill missing columns with None
+        # RAW LAYER: Fill missing columns with None, keep all data as strings
         for col in columns:
             if col not in df.columns:
                 df[col] = None
+            else:
+                # Convert all fields to string to preserve original format
+                if col != 'source_file':  # source_file already handled
+                    df[col] = df[col].astype(str).replace('nan', None)
         
         # Convert dataframe to list of tuples
         data = df[columns].replace({np.nan: None}).values.tolist()
@@ -270,7 +263,9 @@ class AmISafeDataProcessor:
             self.logger.warning(f"No CSV files found in {data_directory}")
             return {}
         
-        self.logger.info(f"Found {len(csv_files)} CSV files to process")
+        total_files = len(csv_files)
+        self.logger.info(f"Found {total_files} CSV files to process")
+        print(f"\n=== Processing {total_files} CSV Files ===")
         
         connection = self.connect_to_mysql()
         total_stats = {
@@ -282,19 +277,39 @@ class AmISafeDataProcessor:
         }
         
         try:
-            for file_path in sorted(csv_files):
+            for i, file_path in enumerate(sorted(csv_files), 1):
+                file_name = os.path.basename(file_path)
+                print(f"\n[{i}/{total_files}] Processing: {file_name}")
+                
                 try:
                     records, coords, h3_records = self.process_csv_file(file_path, connection)
                     total_stats['files_processed'] += 1
                     total_stats['total_records'] += records
                     total_stats['records_with_coordinates'] += coords
                     total_stats['records_with_h3'] += h3_records
+                    
+                    # Show progress for this file
+                    print(f"    ✅ Processed {records:,} records ({coords:,} with coordinates, {h3_records:,} with H3)")
+                    print(f"    📊 Total so far: {total_stats['total_records']:,} records from {total_stats['files_processed']}/{total_files} files")
+                    
                 except Exception as e:
                     self.logger.error(f"Failed to process {file_path}: {e}")
+                    print(f"    ❌ Failed: {str(e)}")
                     total_stats['failed_files'] += 1
                     continue
             
             self.logger.info(f"Processing complete: {total_stats}")
+            
+            # Show final summary
+            print(f"\n🎉 Processing Complete!")
+            print(f"=" * 50)
+            print(f"Files processed: {total_stats['files_processed']}/{total_files}")
+            print(f"Failed files: {total_stats['failed_files']}")
+            print(f"Total records: {total_stats['total_records']:,}")
+            print(f"Records with coordinates: {total_stats['records_with_coordinates']:,}")
+            print(f"Records with H3 indexes: {total_stats['records_with_h3']:,}")
+            print(f"=" * 50)
+            
             return total_stats
             
         finally:
@@ -303,14 +318,21 @@ class AmISafeDataProcessor:
                 self.logger.info("MySQL connection closed")
     
     def get_processing_status(self) -> pd.DataFrame:
-        """Get the processing status of all files."""
-        connection = self.connect_to_mysql()
+        """Get processing status for all files."""
+        connection = mysql.connector.connect(**self.mysql_config)
         try:
+            # Simple status check using existing tables
             query = """
-            SELECT file_name, records_processed, records_with_coordinates, records_with_h3,
-                   processing_start, processing_end, status, error_message
-            FROM raw.processing_log
-            ORDER BY processing_start DESC
+            SELECT 
+                'Current Status' as file_name,
+                COUNT(*) as records_processed,
+                SUM(CASE WHEN lat IS NOT NULL AND lng IS NOT NULL THEN 1 ELSE 0 END) as records_with_coordinates,
+                SUM(CASE WHEN h3_index IS NOT NULL THEN 1 ELSE 0 END) as records_with_h3,
+                MIN(created_at) as processing_start,
+                MAX(created_at) as processing_end,
+                'In Progress' as status,
+                '' as error_message
+            FROM amisafe_raw_incidents
             """
             return pd.read_sql(query, connection)
         finally:

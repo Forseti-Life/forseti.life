@@ -136,17 +136,75 @@
             <button id="points-view" class="cyber-button">POINTS</button>
           </div>
         </div>
+
+        <!-- H3 Debug Panel -->
+        <div class="filter-section debug-section">
+          <label class="filter-label">H3 LIBRARY DEBUG</label>
+          <div id="h3-debug-status" class="debug-status">
+            <div class="debug-info">
+              <div class="debug-line">
+                <span class="debug-label">Available:</span>
+                <span id="h3-available" class="debug-value">--</span>
+              </div>
+              <div class="debug-functions" id="h3-functions">
+                <!-- Populated by JavaScript -->
+              </div>
+              <div class="debug-line">
+                <span class="debug-label">Total Methods:</span>
+                <span id="h3-method-count" class="debug-value">--</span>
+              </div>
+              <div class="debug-line">
+                <span class="debug-label">Test Call:</span>
+                <span id="h3-test-result" class="debug-value">--</span>
+              </div>
+            </div>
+            <div class="debug-actions">
+              <button id="center-hexagons-btn" class="cyber-button debug-btn">📍 CENTER ON HEXAGONS</button>
+              <button id="refresh-data-btn" class="cyber-button debug-btn">🔄 REFRESH DATA</button>
+              <button id="toggle-overlays-btn" class="cyber-button debug-btn">⚡ TOGGLE OVERLAYS</button>
+              <button id="performance-stats-btn" class="cyber-button debug-btn">📊 PERFORMANCE STATS</button>
+            </div>
+          </div>
+        </div>
         
         <!-- Stats Summary -->
         <div class="stats-summary">
-          <h4 class="stats-title">SECTOR STATUS</h4>
+          <!-- Citywide Overview -->
+          <div class="citywide-stats">
+            <h4 class="stats-title">PHILADELPHIA 2085 - CITYWIDE STATUS</h4>
+            <div id="citywide-overview" class="citywide-overview">
+              <div class="stat-row">
+                <div class="stat-item-small">
+                  <span class="stat-label-small">TOTAL CITYWIDE:</span>
+                  <span id="citywide-total" class="stat-value neon-cyan">--</span>
+                </div>
+                <div class="stat-item-small">
+                  <span class="stat-label-small">ALL DISTRICTS:</span>
+                  <span id="citywide-districts" class="stat-value neon-purple">--</span>
+                </div>
+              </div>
+              <div class="stat-row">
+                <div class="stat-item-small">
+                  <span class="stat-label-small">CITYWIDE THREAT:</span>
+                  <span id="citywide-threat" class="stat-value neon-red">--</span>
+                </div>
+                <div class="stat-item-small">
+                  <span class="stat-label-small">COVERAGE:</span>
+                  <span id="citywide-coverage" class="stat-value neon-yellow">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Current View Status -->
+          <h4 class="stats-title">CURRENT VIEW STATUS</h4>
           <div id="current-stats" class="current-stats">
             <div class="stat-item">
-              <span class="stat-label">TOTAL INCIDENTS:</span>
+              <span class="stat-label">VISIBLE INCIDENTS:</span>
               <span id="total-incidents" class="stat-value neon-green">--</span>
             </div>
             <div class="stat-item">
-              <span class="stat-label">THREAT LEVEL:</span>
+              <span class="stat-label">VIEW THREAT LEVEL:</span>
               <span id="threat-level" class="stat-value neon-orange">CALCULATING</span>
             </div>
             <div class="stat-item">

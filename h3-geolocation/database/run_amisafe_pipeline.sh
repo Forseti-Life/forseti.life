@@ -1,8 +1,8 @@
 #!/bin/bash
-"""
-AmISafe Data Pipeline
-Master script to process incident data with H3 geospatial indexing
-"""
+#
+# AmISafe Data Pipeline
+# Master script to process incident data with H3 geospatial indexing
+#
 
 set -e  # Exit on any error
 
@@ -60,7 +60,8 @@ check_mysql() {
         sudo service mysql start
     fi
     
-    if mysql -e "SELECT 1" >/dev/null 2>&1; then
+    # Use credentials from config file
+    if mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password -e "SELECT 1" >/dev/null 2>&1; then
         success "MySQL is running and accessible"
     else
         error "Cannot connect to MySQL"
@@ -71,12 +72,17 @@ check_mysql() {
 # Setup database
 setup_database() {
     log "Setting up AmISafe database..."
-    if mysql -e "USE amisafe" >/dev/null 2>&1; then
-        warning "Database amisafe already exists"
+    if mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password -e "USE theoryofconspiracies_dev" >/dev/null 2>&1; then
+        success "Database theoryofconspiracies_dev is accessible"
+        # Check if tables exist
+        if mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password theoryofconspiracies_dev -e "SHOW TABLES LIKE 'amisafe_%'" | grep -q amisafe; then
+            success "AmISafe tables already exist"
+        else
+            warning "AmISafe tables not found - they should be created by Drupal module"
+        fi
     else
-        log "Creating database and tables..."
-        mysql < "$SCRIPT_DIR/setup_amisafe_database.sql"
-        success "Database setup completed"
+        error "Cannot access database theoryofconspiracies_dev"
+        exit 1
     fi
 }
 
@@ -105,8 +111,12 @@ process_data() {
     cd "$SCRIPT_DIR"
     source "$H3_ENV_DIR/bin/activate"
     
-    # Run the data processor
-    python amisafe_processor.py --data-dir "$DATA_DIR"
+    # Run the data processor with correct database credentials
+    python amisafe_processor.py --data-dir "$DATA_DIR" \
+        --mysql-host "127.0.0.1" \
+        --mysql-user "drupal_user" \
+        --mysql-password "drupal_secure_password" \
+        --mysql-database "theoryofconspiracies_dev"
     
     if [ $? -eq 0 ]; then
         success "Data processing completed successfully"
@@ -123,8 +133,13 @@ create_aggregations() {
     cd "$SCRIPT_DIR"
     source "$H3_ENV_DIR/bin/activate"
     
-    # Run the aggregator
-    python amisafe_aggregator.py --resolution 9 --days-lookback 30
+    # Run the aggregator with correct database credentials
+    python amisafe_aggregator.py \
+        --mysql-host "127.0.0.1" \
+        --mysql-user "drupal_user" \
+        --mysql-password "drupal_secure_password" \
+        --mysql-database "theoryofconspiracies_dev" \
+        --resolution 9 --days-lookback 30
     
     if [ $? -eq 0 ]; then
         success "Data aggregation completed successfully"
@@ -141,7 +156,11 @@ show_status() {
     cd "$SCRIPT_DIR"
     source "$H3_ENV_DIR/bin/activate"
     
-    python amisafe_processor.py --status
+    python amisafe_processor.py --status \
+        --mysql-host "127.0.0.1" \
+        --mysql-user "drupal_user" \
+        --mysql-password "drupal_secure_password" \
+        --mysql-database "theoryofconspiracies_dev"
 }
 
 # Show database statistics
@@ -150,22 +169,25 @@ show_stats() {
     echo "==================="
     
     echo "Raw incidents table:"
-    mysql -e "SELECT COUNT(*) as 'Total Records', 
-                     COUNT(CASE WHEN h3_res_9 IS NOT NULL THEN 1 END) as 'With H3 Data',
-                     MIN(dispatch_date) as 'Earliest Date',
-                     MAX(dispatch_date) as 'Latest Date'
-              FROM amisafe.raw.incidents;" 2>/dev/null || true
+    mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password theoryofconspiracies_dev -e "SELECT COUNT(*) as 'Total Records', 
+                     COUNT(CASE WHEN h3_index IS NOT NULL THEN 1 END) as 'With H3 Data',
+                     MIN(dispatch_date_time) as 'Earliest Date',
+                     MAX(dispatch_date_time) as 'Latest Date'
+              FROM amisafe_raw_incidents;" 2>/dev/null || true
     
-    echo -e "\nTransformed aggregations:"
-    mysql -e "SELECT h3_resolution, COUNT(*) as 'Records' 
-              FROM amisafe.transformed.incidents_aggregated 
-              GROUP BY h3_resolution;" 2>/dev/null || true
+    echo -e "\nH3 Aggregations:"
+    mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password theoryofconspiracies_dev -e "SELECT h3_resolution, COUNT(*) as 'Hexagon Count', SUM(crime_count) as 'Total Crimes'
+              FROM amisafe_h3_aggregated 
+              GROUP BY h3_resolution 
+              ORDER BY h3_resolution;" 2>/dev/null || true
     
-    echo -e "\nSafety metrics:"
-    mysql -e "SELECT risk_level, COUNT(*) as 'H3 Cells' 
-              FROM amisafe.final.safety_metrics 
-              GROUP BY risk_level 
-              ORDER BY FIELD(risk_level, 'LOW', 'MODERATE', 'HIGH', 'VERY_HIGH');" 2>/dev/null || true
+    echo -e "\nDistrict Coverage:"
+    mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password theoryofconspiracies_dev -e "SELECT dc_dist, COUNT(*) as 'Incident Count' 
+              FROM amisafe_raw_incidents 
+              WHERE dc_dist IS NOT NULL
+              GROUP BY dc_dist 
+              ORDER BY COUNT(*) DESC 
+              LIMIT 10;" 2>/dev/null || true
 }
 
 # Main function
