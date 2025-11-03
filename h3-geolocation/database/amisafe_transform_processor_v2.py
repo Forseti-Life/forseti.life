@@ -78,7 +78,9 @@ class AmISafeTransformProcessor:
         
         # Philadelphia data validation rules
         self.valid_districts = [str(i) for i in range(1, 36)]  # Districts 1-35
-        self.valid_ucr_codes = ['100', '200', '300', '400', '500', '600', '700', '800', '900']
+        # Updated UCR codes based on actual data (including 1100, 1200, etc.)
+        self.valid_ucr_codes = ['100', '200', '300', '400', '500', '600', '700', '800', '900', 
+                               '1100', '1200', '1300', '1400', '1500', '1600', '1700', '1800', '1900']
         
         # Philadelphia coordinate bounds
         self.philly_bounds = {
@@ -214,7 +216,14 @@ class AmISafeTransformProcessor:
             return False, 'missing_datetime'
         
         try:
-            datetime.strptime(str(row['dispatch_date_time']), '%Y-%m-%d %H:%M:%S')
+            # Handle multiple datetime formats including timezone
+            datetime_str = str(row['dispatch_date_time'])
+            # Try with timezone first
+            try:
+                datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S+00:00')
+            except ValueError:
+                # Try without timezone
+                datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
         except (ValueError, TypeError):
             return False, 'invalid_datetime'
         
@@ -312,8 +321,14 @@ class AmISafeTransformProcessor:
     def prepare_clean_record(self, row: pd.Series, batch_id: str) -> Dict:
         """Prepare a cleaned record for insertion."""
         try:
-            # Parse datetime
-            incident_dt = datetime.strptime(str(row['dispatch_date_time']), '%Y-%m-%d %H:%M:%S')
+            # Parse datetime - handle timezone format
+            datetime_str = str(row['dispatch_date_time'])
+            try:
+                # Try with timezone first
+                incident_dt = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S+00:00')
+            except ValueError:
+                # Try without timezone
+                incident_dt = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
             
             # Generate H3 indexes
             h3_indexes = self.add_h3_indexes(row)
