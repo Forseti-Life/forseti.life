@@ -1,6 +1,6 @@
 # Multi-Site Development Environment Setup Scripts
 
-This directory contains scripts and documentation for setting up the multi-site Drupal development environment supporting both St. Louis Integration and Theory of Conspiracies websites.
+This directory contains scripts and documentation for setting up the multi-site Drupal development environment supporting both St. Louis Integration and Theory of Conspiracies websites, including the **Resolution 13 Ultra-Precision H3 Geolocation Pipeline**.
 
 ## Quick Start
 

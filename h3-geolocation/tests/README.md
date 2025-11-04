@@ -1,6 +1,6 @@
 # H3 Geolocation Framework Testing Suite
 
-This directory contains tests for the H3 geolocation framework to ensure reliability and correctness of core components.
+This directory contains tests for the **Resolution 13 Ultra-Precision H3 geolocation framework** to ensure reliability and correctness of all components across 8 resolution levels.
 
 ## Current Test Structure
 

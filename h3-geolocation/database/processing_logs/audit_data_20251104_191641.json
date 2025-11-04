@@ -1,0 +1,23 @@
+{
+  "report_timestamp": "2025-11-04T19:16:41.091713",
+  "processing_summary": {
+    "total_raw_records": 3406192,
+    "successfully_transformed": 3406175,
+    "excluded_records": 17,
+    "processing_batches": 137,
+    "batch_failures": 0
+  },
+  "exclusion_breakdown": {
+    "missing_coordinates": 0,
+    "invalid_coordinates": 17,
+    "missing_datetime": 0,
+    "invalid_datetime": 0,
+    "duplicate_full_record": 0,
+    "data_quality_too_low": 0,
+    "h3_indexing_failed": 0
+  },
+  "processing_rates": {
+    "success_rate": 99.9995009089329,
+    "exclusion_rate": 0.0004990910670919314
+  }
+}

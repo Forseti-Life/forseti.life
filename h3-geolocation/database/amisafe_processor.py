@@ -28,10 +28,10 @@ class AmISafeDataProcessor:
     """
     
     def __init__(self, 
-                 mysql_host: str = 'localhost',
-                 mysql_user: str = 'root',
-                 mysql_password: str = '',
-                 mysql_database: str = 'amisafe'):
+                 mysql_host: str = '127.0.0.1',
+                 mysql_user: str = 'drupal_user',
+                 mysql_password: str = 'drupal_secure_password',
+                 mysql_database: str = 'theoryofconspiracies_dev'):
         """
         Initialize the data processor.
         
@@ -345,10 +345,10 @@ def main():
     parser.add_argument('--data-dir', 
                        default='/workspaces/stlouisintegration.com/h3-geolocation/data/raw',
                        help='Directory containing CSV files to process')
-    parser.add_argument('--mysql-host', default='localhost', help='MySQL host')
-    parser.add_argument('--mysql-user', default='root', help='MySQL user')
-    parser.add_argument('--mysql-password', default='', help='MySQL password')
-    parser.add_argument('--mysql-database', default='amisafe', help='MySQL database')
+    parser.add_argument('--mysql-host', default='127.0.0.1', help='MySQL host')
+    parser.add_argument('--mysql-user', default='drupal_user', help='MySQL user')
+    parser.add_argument('--mysql-password', default='drupal_secure_password', help='MySQL password')
+    parser.add_argument('--mysql-database', default='theoryofconspiracies_dev', help='MySQL database')
     parser.add_argument('--status', action='store_true', help='Show processing status')
     
     args = parser.parse_args()

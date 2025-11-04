@@ -48,12 +48,23 @@ class AmISafeTransformProcessor:
         # Initialize H3 framework
         self.h3_framework = H3GeolocationFramework()
         
-        # Setup logging
+        # Setup logging with subdirectory
+        self.logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'processing_logs')
+        os.makedirs(self.logs_dir, exist_ok=True)
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        log_filename = os.path.join(self.logs_dir, f'transform_processing_{timestamp}.log')
+        
         logging.basicConfig(
             level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler(log_filename),
+                logging.StreamHandler()  # Also log to console
+            ]
         )
         self.logger = logging.getLogger(__name__)
+        self.log_filename = log_filename
         
         # Exclusion tracking
         self.exclusion_stats = {
@@ -64,11 +75,7 @@ class AmISafeTransformProcessor:
                 'invalid_coordinates': 0,
                 'missing_datetime': 0,
                 'invalid_datetime': 0,
-                'missing_crime_type': 0,
-                'invalid_district': 0,
-                'duplicate_cartodb_id': 0,
-                'duplicate_objectid': 0,
-                'duplicate_composite': 0,
+                'duplicate_full_record': 0,
                 'data_quality_too_low': 0,
                 'h3_indexing_failed': 0
             },
@@ -77,7 +84,7 @@ class AmISafeTransformProcessor:
         }
         
         # Philadelphia data validation rules
-        self.valid_districts = [str(i) for i in range(1, 36)]  # Districts 1-35
+        self.valid_districts = [str(i) for i in range(1, 36)] + ['99']  # Districts 1-35 + default '99'
         # Updated UCR codes based on actual data (including 1100, 1200, etc.)
         self.valid_ucr_codes = ['100', '200', '300', '400', '500', '600', '700', '800', '900', 
                                '1100', '1200', '1300', '1400', '1500', '1600', '1700', '1800', '1900']
@@ -87,6 +94,23 @@ class AmISafeTransformProcessor:
             'lat_min': 39.867, 'lat_max': 40.138,
             'lng_min': -75.280, 'lng_max': -74.955
         }
+    
+    def log_to_file(self, message: str):
+        """Log message to processing log file with timestamp."""
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        log_message = f"[{timestamp}] {message}\n"
+        
+        # Write to current log file
+        if hasattr(self, 'log_filename') and self.log_filename:
+            try:
+                with open(self.log_filename, 'a', encoding='utf-8') as log_file:
+                    log_file.write(log_message)
+                    log_file.flush()
+            except Exception as e:
+                self.logger.error(f"Failed to write to log file: {e}")
+        
+        # Also log to console
+        self.logger.info(f"FILE_LOG: {message}")
     
     def connect_to_mysql(self) -> mysql.connector.MySQLConnection:
         """Create MySQL connection."""
@@ -138,12 +162,22 @@ class AmISafeTransformProcessor:
             crime_description VARCHAR(255),
             severity_level TINYINT DEFAULT 3,
             
-            -- H3 spatial indexing
+            -- H3 spatial indexing (resolutions 1-15)
+            h3_res_1 VARCHAR(16),
+            h3_res_2 VARCHAR(16),
+            h3_res_3 VARCHAR(16),
+            h3_res_4 VARCHAR(16),
+            h3_res_5 VARCHAR(16),
             h3_res_6 VARCHAR(16),
             h3_res_7 VARCHAR(16),
             h3_res_8 VARCHAR(16),
             h3_res_9 VARCHAR(16),
             h3_res_10 VARCHAR(16),
+            h3_res_11 VARCHAR(16),
+            h3_res_12 VARCHAR(16),
+            h3_res_13 VARCHAR(16),
+            h3_res_14 VARCHAR(16),
+            h3_res_15 VARCHAR(16),
             
             -- Quality and governance
             data_quality_score DECIMAL(3,2),
@@ -156,6 +190,7 @@ class AmISafeTransformProcessor:
             INDEX idx_location (lat, lng),
             INDEX idx_h3_res8 (h3_res_8),
             INDEX idx_h3_res9 (h3_res_9),
+            INDEX idx_h3_res10 (h3_res_10),
             INDEX idx_datetime (incident_datetime),
             INDEX idx_district (dc_dist),
             INDEX idx_crime_type (ucr_general),
@@ -227,40 +262,24 @@ class AmISafeTransformProcessor:
         except (ValueError, TypeError):
             return False, 'invalid_datetime'
         
-        # Check crime type
-        if pd.isna(row.get('ucr_general')) or str(row['ucr_general']).strip() == '':
-            return False, 'missing_crime_type'
-        
-        # Check district
-        if pd.isna(row.get('dc_dist')) or str(row['dc_dist']) not in self.valid_districts:
-            return False, 'invalid_district'
+        # Note: Removed missing_crime_type and invalid_district exclusions
+        # These will be handled with defaults in prepare_clean_record()
         
         return True, 'valid'
     
     def detect_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Detect and mark duplicates in the dataframe."""
+        """Detect and mark full duplicate records (every field must match)."""
         duplicates_found = 0
         
-        # Check for cartodb_id duplicates
-        cartodb_dupes = df.duplicated(subset=['cartodb_id'], keep='first')
-        duplicates_found += cartodb_dupes.sum()
-        df.loc[cartodb_dupes, 'exclusion_reason'] = 'duplicate_cartodb_id'
+        # Get all relevant columns for comparison (exclude id and exclusion_reason)
+        comparison_columns = [col for col in df.columns if col not in ['id', 'exclusion_reason']]
         
-        # Check for objectid duplicates (excluding already marked duplicates)
-        remaining_df = df[~cartodb_dupes]
-        objectid_dupes = remaining_df.duplicated(subset=['objectid'], keep='first')
-        df.loc[remaining_df[objectid_dupes].index, 'exclusion_reason'] = 'duplicate_objectid'
-        duplicates_found += objectid_dupes.sum()
+        # Check for complete duplicates - every field must match to be considered duplicate
+        full_duplicates = df.duplicated(subset=comparison_columns, keep='first')
+        duplicates_found += full_duplicates.sum()
+        df.loc[full_duplicates, 'exclusion_reason'] = 'duplicate_full_record'
         
-        # Check for composite duplicates (lat/lng + datetime + crime_type)
-        remaining_df = df[(~cartodb_dupes) & (~df.index.isin(remaining_df[objectid_dupes].index))]
-        composite_dupes = remaining_df.duplicated(
-            subset=['lat', 'lng', 'dispatch_date_time', 'ucr_general'], keep='first'
-        )
-        df.loc[remaining_df[composite_dupes].index, 'exclusion_reason'] = 'duplicate_composite'
-        duplicates_found += composite_dupes.sum()
-        
-        self.logger.info(f"Identified {duplicates_found} duplicate records")
+        self.logger.info(f"Identified {duplicates_found} complete duplicate records")
         return df
     
     def calculate_data_quality_score(self, row: pd.Series) -> float:
@@ -294,27 +313,23 @@ class AmISafeTransformProcessor:
         return max(0.0, score)
     
     def add_h3_indexes(self, row: pd.Series) -> Dict[str, Optional[str]]:
-        """Add H3 spatial indexes for multiple resolutions."""
+        """Add H3 spatial indexes for resolutions 1-15."""
         # Initialize all H3 fields to None to ensure consistent dictionary keys
-        h3_indexes = {
-            'h3_res_6': None,
-            'h3_res_7': None,
-            'h3_res_8': None,
-            'h3_res_9': None,
-            'h3_res_10': None
-        }
+        h3_indexes = {}
+        for res in range(1, 16):
+            h3_indexes[f'h3_res_{res}'] = None
         
         try:
             lat, lng = float(row['lat']), float(row['lng'])
             
-            # Generate H3 indexes for resolutions 6-10
-            for res in range(6, 11):
+            # Generate H3 indexes for resolutions 1-15
+            for res in range(1, 16):
                 h3_index = h3.latlng_to_cell(lat, lng, res)
                 h3_indexes[f'h3_res_{res}'] = h3_index
                 
         except Exception as e:
             self.logger.warning(f"Failed to generate H3 indexes: {e}")
-            # H3 fields remain None, which will be tracked in exclusions
+            # H3 fields remain None - record will still be processed
             
         return h3_indexes
     
@@ -339,6 +354,12 @@ class AmISafeTransformProcessor:
             # Create incident ID
             incident_id = f"{row['cartodb_id']}_{row['objectid']}" if pd.notna(row['cartodb_id']) and pd.notna(row['objectid']) else str(uuid.uuid4())
             
+            # Handle missing crime type with default
+            ucr_code = str(row['ucr_general']) if pd.notna(row['ucr_general']) and str(row['ucr_general']).strip() != '' else '900'  # Default to 'unknown'
+            
+            # Handle missing/invalid district with default
+            district = str(row['dc_dist']) if pd.notna(row['dc_dist']) and str(row['dc_dist']) in self.valid_districts else '99'  # Default district
+            
             clean_record = {
                 'raw_incident_ids': json.dumps([int(row['id'])]),
                 'processing_batch_id': batch_id,
@@ -346,7 +367,7 @@ class AmISafeTransformProcessor:
                 'cartodb_id': int(row['cartodb_id']) if pd.notna(row['cartodb_id']) else None,
                 'objectid': int(row['objectid']) if pd.notna(row['objectid']) else None,
                 'dc_key': str(row['dc_key']) if pd.notna(row['dc_key']) else None,
-                'dc_dist': str(row['dc_dist']),
+                'dc_dist': district,
                 'psa': str(row['psa']) if pd.notna(row['psa']) else None,
                 'location_block': str(row['location_block']) if pd.notna(row['location_block']) else None,
                 'lat': float(row['lat']),
@@ -358,10 +379,10 @@ class AmISafeTransformProcessor:
                 'incident_month': incident_dt.month,
                 'incident_year': incident_dt.year,
                 'day_of_week': incident_dt.weekday() + 1,  # 1=Monday
-                'ucr_general': str(row['ucr_general']),
-                'crime_category': self.get_crime_category(str(row['ucr_general'])),
+                'ucr_general': ucr_code,
+                'crime_category': self.get_crime_category(ucr_code),
                 'crime_description': str(row['text_general_code']) if pd.notna(row['text_general_code']) else None,
-                'severity_level': self.get_severity_level(str(row['ucr_general'])),
+                'severity_level': self.get_severity_level(ucr_code),
                 'data_quality_score': quality_score,
                 'duplicate_group_id': None,
                 'is_duplicate': False,
@@ -382,9 +403,9 @@ class AmISafeTransformProcessor:
         category_map = {
             '100': 'Violent Crime', '200': 'Violent Crime', '300': 'Violent Crime',
             '400': 'Property Crime', '500': 'Property Crime', '600': 'Property Crime',
-            '700': 'Quality of Life', '800': 'Quality of Life', '900': 'Other'
+            '700': 'Quality of Life', '800': 'Quality of Life', '900': 'Unknown'
         }
-        return category_map.get(ucr_code[:1] + '00', 'Other')
+        return category_map.get(ucr_code[:1] + '00', 'Unknown')
     
     def get_severity_level(self, ucr_code: str) -> int:
         """Map UCR code to severity level (1-5)."""
@@ -397,9 +418,9 @@ class AmISafeTransformProcessor:
             '600': 1,  # Fraud - lowest severity
             '700': 1,  # Quality of life - lowest severity
             '800': 1,  # Other - lowest severity
-            '900': 3   # Unknown - medium severity
+            '900': 1   # Unknown - least severe (default)
         }
-        return severity_map.get(ucr_code[:1] + '00', 3)
+        return severity_map.get(ucr_code[:1] + '00', 1)
     
     def insert_clean_records(self, connection, clean_records: List[Dict], batch_id: str):
         """Insert clean records into amisafe_clean_incidents table."""
@@ -412,14 +433,16 @@ class AmISafeTransformProcessor:
             dc_dist, psa, location_block, lat, lng, coordinate_quality,
             incident_datetime, incident_date, incident_hour, incident_month, incident_year, day_of_week,
             ucr_general, crime_category, crime_description, severity_level,
-            h3_res_6, h3_res_7, h3_res_8, h3_res_9, h3_res_10,
+            h3_res_1, h3_res_2, h3_res_3, h3_res_4, h3_res_5, h3_res_6, h3_res_7, h3_res_8, h3_res_9, h3_res_10,
+            h3_res_11, h3_res_12, h3_res_13, h3_res_14, h3_res_15,
             data_quality_score, duplicate_group_id, is_duplicate, is_valid
         ) VALUES (
             %(raw_incident_ids)s, %(processing_batch_id)s, %(incident_id)s, %(cartodb_id)s, %(objectid)s, %(dc_key)s,
             %(dc_dist)s, %(psa)s, %(location_block)s, %(lat)s, %(lng)s, %(coordinate_quality)s,
             %(incident_datetime)s, %(incident_date)s, %(incident_hour)s, %(incident_month)s, %(incident_year)s, %(day_of_week)s,
             %(ucr_general)s, %(crime_category)s, %(crime_description)s, %(severity_level)s,
-            %(h3_res_6)s, %(h3_res_7)s, %(h3_res_8)s, %(h3_res_9)s, %(h3_res_10)s,
+            %(h3_res_1)s, %(h3_res_2)s, %(h3_res_3)s, %(h3_res_4)s, %(h3_res_5)s, %(h3_res_6)s, %(h3_res_7)s, %(h3_res_8)s, %(h3_res_9)s, %(h3_res_10)s,
+            %(h3_res_11)s, %(h3_res_12)s, %(h3_res_13)s, %(h3_res_14)s, %(h3_res_15)s,
             %(data_quality_score)s, %(duplicate_group_id)s, %(is_duplicate)s, %(is_valid)s
         )
         """
@@ -431,9 +454,27 @@ class AmISafeTransformProcessor:
             self.exclusion_stats['successful_inserts'] += len(clean_records)
             self.logger.info(f"✅ Inserted {len(clean_records)} clean incidents")
         except Error as e:
-            self.logger.error(f"Error inserting clean records: {e}")
+            # Log error but continue processing instead of raising
+            error_msg = f"Error inserting clean records: {e}"
+            self.logger.error(error_msg)
+            self.log_to_file(f"BATCH_INSERT_ERROR: {error_msg}")
             self.exclusion_stats['batch_failures'] += 1
-            raise
+            
+            # Try INSERT IGNORE approach for duplicate handling
+            try:
+                self.logger.info("Attempting INSERT IGNORE for duplicate handling...")
+                insert_ignore_sql = insert_sql.replace("INSERT INTO", "INSERT IGNORE INTO")
+                cursor.executemany(insert_ignore_sql, clean_records)
+                connection.commit()
+                inserted_count = cursor.rowcount
+                self.exclusion_stats['successful_inserts'] += inserted_count
+                self.logger.info(f"✅ Inserted {inserted_count} clean incidents using INSERT IGNORE")
+                self.log_to_file(f"RECOVERY_SUCCESS: Inserted {inserted_count} records using INSERT IGNORE")
+            except Error as recovery_error:
+                recovery_error_msg = f"Recovery insertion also failed: {recovery_error}"
+                self.logger.error(recovery_error_msg)
+                self.log_to_file(f"RECOVERY_FAILURE: {recovery_error_msg}")
+                # Continue processing even if this batch fails completely
         finally:
             cursor.close()
     
@@ -530,13 +571,13 @@ EXCLUSION REASONS EXPLAINED:
 • Invalid Coordinates:     Coordinates outside Philadelphia bounds
 • Missing Datetime:        Records without dispatch_date_time
 • Invalid Datetime:        Unparseable or invalid date/time formats
-• Missing Crime Type:      Records without UCR general code
-• Invalid District:        District not in valid range (1-35)
-• Duplicate Cartodb ID:    Records with duplicate CartoDB identifiers
-• Duplicate Objectid:      Records with duplicate incident IDs
-• Duplicate Composite:     Records with same location + time + crime type
-• Data Quality Too Low:    Records failing quality score threshold
-• H3 Indexing Failed:      Records that couldn't be spatially indexed
+• Duplicate Full Record:   Records that are complete duplicates (all fields match)
+• Data Quality Too Low:    Records failing quality score threshold (calculated but not used for exclusion)
+• H3 Indexing Failed:      Records that couldn't be spatially indexed (processed with NULL H3 values)
+
+NOTE: Missing crime types and invalid districts are now handled with defaults:
+• Missing UCR codes default to '900' (Unknown, least severe)
+• Invalid districts default to '99' (Unknown district)
 
 DATA QUALITY ASSESSMENT:
 -----------------------
@@ -547,6 +588,61 @@ Primary exclusion reason: {sorted_exclusions[0][0].replace('_', ' ').title() if 
 {'='*80}
 """
         return report
+
+    def generate_and_save_audit_report(self) -> Dict:
+        """Generate comprehensive audit report and save to files."""
+        # Generate the report text
+        report_text = self.generate_exclusion_report()
+        
+        # Create audit data structure
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        audit_data = {
+            'report_timestamp': datetime.now().isoformat(),
+            'processing_summary': {
+                'total_raw_records': self.exclusion_stats['total_raw_records'],
+                'successfully_transformed': self.exclusion_stats['successful_inserts'], 
+                'excluded_records': sum(self.exclusion_stats['exclusions'].values()),
+                'processing_batches': self.exclusion_stats['processed_batches'],
+                'batch_failures': self.exclusion_stats['batch_failures']
+            },
+            'exclusion_breakdown': dict(self.exclusion_stats['exclusions']),
+            'processing_rates': {
+                'success_rate': (self.exclusion_stats['successful_inserts'] / self.exclusion_stats['total_raw_records'] * 100) if self.exclusion_stats['total_raw_records'] > 0 else 0,
+                'exclusion_rate': (sum(self.exclusion_stats['exclusions'].values()) / self.exclusion_stats['total_raw_records'] * 100) if self.exclusion_stats['total_raw_records'] > 0 else 0
+            }
+        }
+        
+        # Save text report
+        text_report_filename = os.path.join(self.logs_dir, f'audit_report_{timestamp}.txt')
+        with open(text_report_filename, 'w') as f:
+            f.write(report_text)
+        
+        # Save JSON audit data
+        json_report_filename = os.path.join(self.logs_dir, f'audit_data_{timestamp}.json')
+        with open(json_report_filename, 'w') as f:
+            json.dump(audit_data, f, indent=2)
+        
+        self.logger.info(f"📄 Audit reports saved:")
+        self.logger.info(f"   Text Report: {text_report_filename}")
+        self.logger.info(f"   JSON Data: {json_report_filename}")
+        self.logger.info(f"   Processing Log: {self.log_filename}")
+        
+        return {
+            'report_text': report_text,
+            'audit_data': audit_data,
+            'files_created': {
+                'text_report': text_report_filename,
+                'json_data': json_report_filename,
+                'processing_log': self.log_filename
+            },
+            'total_raw': self.exclusion_stats['total_raw_records'],
+            'total_processed': self.exclusion_stats['total_raw_records'],
+            'total_clean': self.exclusion_stats['successful_inserts'],
+            'total_excluded': sum(self.exclusion_stats['exclusions'].values()),
+            'exclusion_breakdown': dict(self.exclusion_stats['exclusions']),
+            'batches_processed': self.exclusion_stats['processed_batches'],
+            'batch_failures': self.exclusion_stats['batch_failures']
+        }
     
     def process_raw_to_clean(self, batch_size: int = 10000) -> Dict:
         """Main processing function - Raw to Transform layer."""
@@ -582,36 +678,44 @@ Primary exclusion reason: {sorted_exclusions[0][0].replace('_', ' ').title() if 
                 
                 self.logger.info(f"Processing batch {batch_num} ({len(batch_df)} records)...")
                 
-                # Process batch
-                batch_stats = self.process_batch(connection, batch_df, batch_id)
-                self.exclusion_stats['processed_batches'] += 1
-                
-                self.logger.info(
-                    f"Batch {batch_num}: {batch_stats['valid_records']} valid, "
-                    f"{batch_stats['excluded_records']} excluded, "
-                    f"{batch_stats['clean_records_created']} inserted"
-                )
+                # Process batch with error handling
+                try:
+                    batch_stats = self.process_batch(connection, batch_df, batch_id)
+                    self.exclusion_stats['processed_batches'] += 1
+                    
+                    self.logger.info(
+                        f"Batch {batch_num}: {batch_stats['valid_records']} valid, "
+                        f"{batch_stats['excluded_records']} excluded, "
+                        f"{batch_stats['clean_records_created']} inserted"
+                    )
+                except Exception as batch_error:
+                    error_msg = f"Batch {batch_num} processing failed: {batch_error}"
+                    self.logger.error(error_msg)
+                    self.log_to_file(f"BATCH_PROCESSING_ERROR: {error_msg}")
+                    self.exclusion_stats['batch_failures'] += 1
+                    # Continue to next batch instead of stopping
                 
                 offset += batch_size
             
-            # Generate and log exclusion report
-            report = self.generate_exclusion_report()
-            self.logger.info("Transform processing complete!")
-            print(report)
+            # Generate and save audit report
+            self.logger.info("Transform processing complete! Generating audit report...")
+            results = self.generate_and_save_audit_report()
+            print(results['report_text'])
             
-            return {
-                'total_raw': self.exclusion_stats['total_raw_records'],
-                'total_processed': self.exclusion_stats['total_raw_records'],
-                'total_clean': self.exclusion_stats['successful_inserts'],
-                'total_excluded': sum(self.exclusion_stats['exclusions'].values()),
-                'exclusion_breakdown': dict(self.exclusion_stats['exclusions']),
-                'batches_processed': self.exclusion_stats['processed_batches'],
-                'batch_failures': self.exclusion_stats['batch_failures']
-            }
+            return results
             
         except Exception as e:
-            self.logger.error(f"Transform processing failed: {e}")
-            raise
+            error_msg = f"Transform processing failed: {e}"
+            self.logger.error(error_msg)
+            self.log_to_file(f"CRITICAL_ERROR: {error_msg}")
+            # Generate partial audit report even on failure
+            try:
+                results = self.generate_audit_report()
+                self.logger.info("Generated partial audit report despite processing failure")
+                return results
+            except Exception as audit_error:
+                self.logger.error(f"Failed to generate audit report: {audit_error}")
+                return {'error': str(e), 'audit_generation_failed': str(audit_error)}
         finally:
             if connection and connection.is_connected():
                 connection.close()

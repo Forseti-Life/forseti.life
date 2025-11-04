@@ -121,96 +121,18 @@ class AmISafeFinalProcessor:
             self.logger.error(f"Error connecting to MySQL: {e}")
             raise
     
-    def create_final_layer_table(self, connection):
-        """Create the Final layer aggregation table."""
-        create_table_sql = """
-        CREATE TABLE IF NOT EXISTS amisafe_h3_aggregated (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            
-            -- H3 Identification
-            h3_index VARCHAR(20) NOT NULL,
-            h3_resolution TINYINT NOT NULL,
-            center_lat DECIMAL(10, 8) NOT NULL,
-            center_lng DECIMAL(11, 8) NOT NULL,
-            
-            -- Temporal Aggregation Period
-            aggregation_period ENUM('hour', 'day', 'week', 'month', 'quarter', 'year', 'all_time') NOT NULL,
-            period_start DATETIME,
-            period_end DATETIME,
-            
-            -- Incident Counts
-            total_incidents INT DEFAULT 0,
-            incident_density DECIMAL(10, 4) DEFAULT 0.00,
-            
-            -- Crime Type Analysis
-            violent_crime_count INT DEFAULT 0,
-            property_crime_count INT DEFAULT 0,
-            drug_crime_count INT DEFAULT 0,
-            public_order_count INT DEFAULT 0,
-            traffic_crime_count INT DEFAULT 0,
-            other_crime_count INT DEFAULT 0,
-            
-            -- Crime Type Percentages
-            violent_crime_pct DECIMAL(5, 2) DEFAULT 0.00,
-            property_crime_pct DECIMAL(5, 2) DEFAULT 0.00,
-            drug_crime_pct DECIMAL(5, 2) DEFAULT 0.00,
-            public_order_pct DECIMAL(5, 2) DEFAULT 0.00,
-            traffic_crime_pct DECIMAL(5, 2) DEFAULT 0.00,
-            other_crime_pct DECIMAL(5, 2) DEFAULT 0.00,
-            
-            -- Top Crime Types (JSON)
-            top_crime_types JSON,
-            
-            -- Temporal Patterns
-            peak_hour TINYINT,
-            peak_day_of_week TINYINT,
-            weekend_incident_pct DECIMAL(5, 2) DEFAULT 0.00,
-            night_incident_pct DECIMAL(5, 2) DEFAULT 0.00,
-            
-            -- Spatial Analytics
-            hotspot_rank INT,
-            risk_score DECIMAL(5, 2) DEFAULT 0.00,
-            spatial_cluster_id VARCHAR(50),
-            neighbor_h3_indexes JSON,
-            
-            -- Data Quality Metrics
-            data_quality_score DECIMAL(5, 2) DEFAULT 0.00,
-            coordinate_precision ENUM('HIGH', 'MEDIUM', 'LOW') DEFAULT 'HIGH',
-            temporal_completeness DECIMAL(5, 2) DEFAULT 0.00,
-            
-            -- Trend Analysis
-            incident_trend ENUM('INCREASING', 'DECREASING', 'STABLE', 'VOLATILE') DEFAULT 'STABLE',
-            trend_percentage DECIMAL(5, 2) DEFAULT 0.00,
-            seasonal_pattern JSON,
-            
-            -- Processing Metadata
-            processing_batch_id VARCHAR(50),
-            source_transform_records JSON,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            
-            -- Indexes for Performance
-            UNIQUE KEY unique_h3_period (h3_index, aggregation_period, period_start),
-            INDEX idx_h3_resolution (h3_resolution),
-            INDEX idx_location (center_lat, center_lng),
-            INDEX idx_period (aggregation_period, period_start),
-            INDEX idx_incident_count (total_incidents),
-            INDEX idx_risk_score (risk_score),
-            INDEX idx_hotspot_rank (hotspot_rank),
-            INDEX idx_created (created_at)
-        );
-        """
-        
+    def ensure_final_layer_table(self, connection):
+        """Ensure the Final layer aggregation table exists with correct schema."""
+        # The table already exists with the correct schema from setup scripts
+        # Just verify it exists
         try:
             cursor = connection.cursor()
-            cursor.execute(create_table_sql)
-            connection.commit()
-            self.logger.info("✅ amisafe_h3_aggregated table ready")
-        except Error as e:
-            self.logger.error(f"Error creating final layer table: {e}")
-            raise
-        finally:
+            cursor.execute("SELECT COUNT(*) FROM amisafe_h3_aggregated LIMIT 1")
             cursor.close()
+            self.logger.info("✅ amisafe_h3_aggregated table verified")
+        except Error as e:
+            self.logger.error(f"Error accessing amisafe_h3_aggregated table: {e}")
+            raise
     
     def check_transform_layer_status(self, connection) -> Dict:
         """Check the status of the Transform layer."""
