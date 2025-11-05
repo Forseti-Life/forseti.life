@@ -434,6 +434,99 @@
   }
 }
 
+/* Minimal mode - FORCE DISABLE ALL ANIMATIONS */
+.minimal-mode *,
+.minimal-mode *::before,
+.minimal-mode *::after {
+  animation: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 0 !important;
+  transition: none !important;
+  transition-duration: 0s !important;
+}
+
+/* Exception: preserve leaflet map tiles positioning */
+.minimal-mode .leaflet-tile,
+.minimal-mode .leaflet-tile-container,
+.minimal-mode .leaflet-zoom-anim {
+  animation: initial !important;
+  transition: initial !important;
+}
+
+/* Force disable specific problematic elements */
+.minimal-mode .glitch-text::before,
+.minimal-mode .glitch-text::after {
+  display: none !important;
+}
+
+.minimal-mode .glitch-text::before,
+.minimal-mode .glitch-text::after {
+  display: none !important;
+}
+
+.minimal-mode .scanning-overlay,
+.minimal-mode .loading-overlay {
+  display: none !important;
+}
+
+/* Minimal mode - disable ONLY cyberpunk animations, leave Leaflet alone */
+.minimal-mode .noise,
+.minimal-mode .noise::before,
+.minimal-mode .glitch-text::before,
+.minimal-mode .glitch-text::after,
+.minimal-mode .terminal-cursor,
+.minimal-mode .matrix-rain,
+.minimal-mode .neon-glow {
+  animation: none !important;
+  animation-name: none !important;
+  animation-duration: 0s !important;
+  animation-iteration-count: 0 !important;
+  animation-play-state: paused !important;
+  transition: none !important;
+  transition-duration: 0s !important;
+  transform: none !important;
+  display: none !important;
+}
+
+/* Specific animation overrides for minimal mode */
+.minimal-mode .noise::before {
+  animation: none !important;
+}
+
+.minimal-mode .glitch-text::before,
+.minimal-mode .glitch-text::after {
+  animation: none !important;
+  display: none !important;
+}
+
+.minimal-mode .terminal-cursor {
+  animation: none !important;
+}
+
+.minimal-mode .matrix-rain {
+  animation: none !important;
+  display: none !important;
+}
+
+.minimal-mode .neon-glow {
+  animation: none !important;
+}
+
+.minimal-mode .hex-glow,
+.minimal-mode .hex-pulse,
+.minimal-mode .hex-scan {
+  animation: none !important;
+  opacity: 1 !important;
+}
+
+/* Stop all keyframe animations specifically */
+.minimal-mode * {
+  animation-name: none !important;
+}
+
+/* Don't interfere with map layout at all - let Leaflet handle it naturally */
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   * {

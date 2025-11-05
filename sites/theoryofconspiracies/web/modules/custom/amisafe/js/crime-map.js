@@ -58,7 +58,22 @@
       // Initialize debug mode (default off to reduce console spam)
       this.debugMode = false;
       
-      Drupal.AmISafeLogger.info('Initializing AmISafe Crime Map...');
+      // MINIMAL MODE: Disable all visual effects for data review
+      this.minimalMode = true; // Set to false to re-enable effects
+      
+      // Add minimal-mode class to disable CSS animations - but do this AFTER map initialization
+      var self = this;
+      if (this.minimalMode) {
+        // Wait for full initialization before applying minimal mode
+        setTimeout(function() {
+          document.body.classList.add('minimal-mode');
+          console.log('🔇 Minimal mode activated - CSS animations disabled');
+        }, 1000);
+      } else {
+        document.body.classList.remove('minimal-mode');
+      }
+      
+      Drupal.AmISafeLogger.info('Initializing AmISafe Crime Map (Minimal Mode: ' + this.minimalMode + ')...');
       
       // Initialize performance optimization variables
       this.dataCache = new Map(); // Cache for hexagon data by resolution + filters
@@ -139,6 +154,13 @@
       // Add map event listeners
       this.map.on('zoomend', this.onMapZoom.bind(this));
       this.map.on('moveend', this.onMapMove.bind(this));
+      
+      // Force map to resize properly
+      var self = this;
+      setTimeout(function() {
+        self.map.invalidateSize();
+        console.log('📍 Map size invalidated');
+      }, 500);
     },
 
     /**
@@ -1012,12 +1034,14 @@
         var color = self.getHexagonColor(incidentCount);
         var h3Index = hexagon.h3_index;
         
-        console.log(`🔵 Processing hexagon ${index + 1}/${hexagons.length}:`, {
-          h3Index: h3Index,
-          incidentCount: incidentCount,
-          color: color,
-          hasH3: !!window.h3
-        });
+        if (!self.minimalMode) {
+          console.log(`🔵 Processing hexagon ${index + 1}/${hexagons.length}:`, {
+            h3Index: h3Index,
+            incidentCount: incidentCount,
+            color: color,
+            hasH3: !!window.h3
+          });
+        }
         
         if (h3Index && window.h3) {
           // Create actual H3 hexagon using h3-js library v4+ API
@@ -1109,27 +1133,32 @@
             console.log('   Map zoom:', self.map.getZoom());
             console.log('   Map bounds:', self.map.getBounds());
 
-            hexagonPolygon.on('click', function (e) {
-              self.showHexagonPopup(hexagon, e.latlng);
-            });
-
-            hexagonPolygon.on('mouseover', function (e) {
-              e.target.setStyle({
-                weight: 2,
-                fillOpacity: 0.9
+            // Only add interactive handlers if not in minimal mode
+            if (!self.minimalMode) {
+              hexagonPolygon.on('click', function (e) {
+                self.showHexagonPopup(hexagon, e.latlng);
               });
-            });
 
-            hexagonPolygon.on('mouseout', function (e) {
-              e.target.setStyle({
-                weight: 1,
-                fillOpacity: 0.7
+              hexagonPolygon.on('mouseover', function (e) {
+                e.target.setStyle({
+                  weight: 2,
+                  fillOpacity: 0.9
+                });
               });
-            });
+
+              hexagonPolygon.on('mouseout', function (e) {
+                e.target.setStyle({
+                  weight: 1,
+                  fillOpacity: 0.7
+                });
+              });
+            }
 
             hexagonPolygon.addTo(self.hexagonLayer);
             successCount++;
-            console.log(`✅ Successfully added hexagon ${index + 1} to layer. Layer now has ${self.hexagonLayer.getLayers().length} features`);
+            if (!self.minimalMode) {
+              console.log(`✅ Successfully added hexagon ${index + 1} to layer. Layer now has ${self.hexagonLayer.getLayers().length} features`);
+            }
           } catch (error) {
             errorCount++;
             console.warn('❌ Error creating H3 hexagon for', h3Index, ':', error);
@@ -1229,11 +1258,13 @@
             className: 'h3-hexagon-citywide'
           });
           
-          // Add click handler for citywide stats
+          // Add click handler for citywide stats (only if not in minimal mode)
           var self = this;
-          polygon.on('click', function (e) {
-            self.showCitywidePopup(hexagon, e.latlng);
-          });
+          if (!self.minimalMode) {
+            polygon.on('click', function (e) {
+              self.showCitywidePopup(hexagon, e.latlng);
+            });
+          }
           
           polygon.addTo(this.hexagonLayer);
           
@@ -1275,9 +1306,11 @@
       });
 
       var self = this;
-      circle.on('click', function (e) {
-        self.showCitywidePopup(hexagon, e.latlng);
-      });
+      if (!self.minimalMode) {
+        circle.on('click', function (e) {
+          self.showCitywidePopup(hexagon, e.latlng);
+        });
+      }
 
       circle.addTo(this.hexagonLayer);
       
@@ -1333,9 +1366,11 @@
       });
 
       var self = this;
-      circle.on('click', function (e) {
-        self.showHexagonPopup(hexagon, e.latlng);
-      });
+      if (!self.minimalMode) {
+        circle.on('click', function (e) {
+          self.showHexagonPopup(hexagon, e.latlng);
+        });
+      }
 
       circle.addTo(this.hexagonLayer);
     },
@@ -1975,6 +2010,12 @@
         return;
       }
       
+      // In minimal mode, just set text immediately without typing effect
+      if (this.minimalMode) {
+        element.text(text);
+        return;
+      }
+      
       element.empty();
       var i = 0;
       var timer = setInterval(function () {
@@ -1991,9 +2032,9 @@
      * Show loading overlay
      */
     showLoading: function (message) {
-      // Skip loading overlay if disabled for debugging
-      if (this.disableLoadingOverlays) {
-        console.log('⚡ Loading overlay skipped:', message);
+      // Skip loading overlay in minimal mode or if disabled for debugging
+      if (this.minimalMode || this.disableLoadingOverlays) {
+        console.log('⚡ Loading overlay skipped (minimal mode):', message);
         return;
       }
       
@@ -2052,6 +2093,74 @@
           $(this).remove();
         });
       }, 3000);
+    },
+
+    /**
+     * Fix map layout and stop animations for minimal mode
+     */
+    fixMapLayout: function() {
+      console.log('Fixing map layout and stopping animations...');
+      
+      // First, ensure the map container has proper dimensions
+      var mapContainer = $('#crime-map');
+      mapContainer.css({
+        'width': '100%',
+        'height': '600px',
+        'position': 'relative',
+        'display': 'block'
+      });
+      
+      // Force Leaflet container sizing
+      $('.leaflet-container').css({
+        'width': '100%',
+        'height': '600px',
+        'position': 'relative'
+      });
+      
+      // Fix map pane positioning
+      $('.leaflet-map-pane').css({
+        'position': 'absolute',
+        'left': '0px',
+        'top': '0px',
+        'transform': 'translate3d(0px, 0px, 0px)'
+      });
+      
+      // Force map recalculation
+      if (this.map) {
+        this.map.invalidateSize(true);
+        
+        // Get current view and reset it
+        var center = this.map.getCenter();
+        var zoom = this.map.getZoom();
+        
+        // Small delay then reset view
+        var self = this;
+        setTimeout(function() {
+          self.map.setView(center, zoom, {animate: false});
+          
+          // Now stop animations
+          if (self.minimalMode) {
+            self.stopAllAnimations();
+          }
+        }, 100);
+      }
+      
+      console.log('Map layout fixed');
+    },
+
+    /**
+     * Stop cyberpunk animations for minimal mode (simplified approach)
+     */
+    stopAllAnimations: function() {
+      console.log('Stopping cyberpunk animations for minimal mode');
+      
+      // Remove specific animated overlays and effects
+      $('.terminal-overlay, .glitch-overlay, .scan-line, .scanning-overlay, .loading-overlay, .matrix-rain, .noise').remove();
+      
+      // Hide cyberpunk animation elements
+      $('.glitch-text, .terminal-cursor, .neon-glow').css('display', 'none');
+      
+      console.log('Cyberpunk animations stopped');
     },
 
     /**
