@@ -1677,8 +1677,7 @@ if [ -d "/workspaces/stlouisintegration.com/sites/theoryofconspiracies" ]; then
     fi
 fi
 
-print_status "Post-installation fixes completed!"
-
+print_status "Post-installation fixes co
 echo ""
 echo "========================="
 print_step "5. H3 GEOLOCATION DATABASE SETUP - Initializing data pipeline..."
