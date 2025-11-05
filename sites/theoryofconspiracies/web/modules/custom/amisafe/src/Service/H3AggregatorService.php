@@ -132,7 +132,7 @@ class H3AggregatorService {
           'h3_index' => $h3_index,
           'lat' => floatval($hexagon['center_latitude']),
           'lng' => floatval($hexagon['center_longitude']),
-          'crime_count' => intval($hexagon['incident_count']),
+          'incident_count' => intval($hexagon['incident_count']),
           'total_incidents' => intval($hexagon['incident_count']),
           'unique_types' => intval($hexagon['unique_incident_types']),
           'crime_types' => array_keys($incident_types),
@@ -192,12 +192,12 @@ class H3AggregatorService {
     ];
     
     foreach ($sample_h3_indices as $h3_index) {
-      // Generate sample crime counts (would come from database)
-      $crime_count = rand(1, 50);
+      // Generate sample incident counts (would come from database)
+      $incident_count = rand(1, 50);
       
       $sample_hexagons[] = [
         'h3_index' => $h3_index,
-        'crime_count' => $crime_count,
+        'incident_count' => $incident_count,
         'severity_avg' => rand(1, 5),
         'resolution' => $resolution,
         'last_incident' => date('Y-m-d H:i:s', strtotime('-' . rand(1, 720) . ' hours')),

@@ -1,14 +1,16 @@
 <?php
-$databases['default']['default'] = [
-  'database' => 'theoryofconspiracies_dev',
-  'username' => 'drupal_user',
-  'password' => 'drupal_secure_password',
-  'host' => '127.0.0.1',
-  'port' => '3306',
-  'driver' => 'mysql',
-  'prefix' => '',
-  'collation' => 'utf8mb4_general_ci',
-];
 
-// Disable page caching for development
+/**
+ * @file
+ * Local development override configuration - DISABLE AGGREGATION
+ */
+
+// Disable CSS and JS aggregation
+$config['system.performance']['css']['preprocess'] = FALSE;
+$config['system.performance']['js']['preprocess'] = FALSE;
 $config['system.performance']['cache']['page']['max_age'] = 0;
+
+// Twig debugging and cache disabling
+$settings['twig_debug'] = TRUE;
+$settings['twig_auto_reload'] = TRUE;
+$settings['twig_cache'] = FALSE;

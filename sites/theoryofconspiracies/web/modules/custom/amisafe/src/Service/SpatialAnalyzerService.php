@@ -72,7 +72,7 @@ class SpatialAnalyzerService {
           'lng' => $area['lng'],
           'intensity' => $area['intensity'],
           'name' => $area['name'],
-          'crime_count' => rand($threshold, 100),
+          'incident_count' => rand($threshold, 100),
           'severity_avg' => round($area['intensity'] / 20, 1),
           'resolution' => $resolution,
           'radius' => $this->calculateHotspotRadius($area['intensity']),

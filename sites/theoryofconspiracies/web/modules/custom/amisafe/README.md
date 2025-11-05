@@ -10,12 +10,14 @@ The AmISafe module is a comprehensive cyberpunk-themed crime monitoring and spat
 
 ## 🚀 Module Integration Status - COMPLETE
 
-✅ **CrimeDataService**: Updated to use Silver layer (amisafe_clean_incidents)  
+✅ **CrimeDataService**: Optimized with Resolution 5 citywide hexagon for efficient statistics  
 ✅ **H3AggregatorService**: Complete Gold layer integration (amisafe_h3_aggregated)  
 ✅ **AmISafeController**: Resolution 13 dashboard with ultra-precision stats  
-✅ **ApiController**: Full Resolution 6-13 validation and metadata  
+✅ **ApiController**: Full Resolution 5-13 with single-hexagon citywide optimization  
 ✅ **AmISafeConfigForm**: Complete admin configuration for all resolutions  
-✅ **Routing**: Admin configuration routes and API endpoints ready
+✅ **Routing**: Admin configuration routes and API endpoints ready  
+✅ **API Bug Fixed**: Incident counting now uses single Resolution 5 hexagon (1.48M incidents)  
+✅ **Testing Framework**: Comprehensive validation and reference documentation in `/testing/apitesting/`
 
 ## Features
 
@@ -83,19 +85,20 @@ Enhancements: Data quality scoring, coordinate validation, H3 index assignment
 #### **Layer 3: Gold (Analytics Ready)**
 ```sql
 Table: amisafe_h3_aggregated
-Records: 413,172 hexagon aggregations 
+Records: 413,173 hexagon aggregations (including Resolution 5 citywide)
 Purpose: Multi-resolution spatial analytics optimized for dashboard queries
-Resolution Range: 6-13 (36.1 km² down to 44 m² ultra-precision)
+Resolution Range: 5-13 (251 km² citywide down to 44 m² ultra-precision)
 ```
 
 ### **H3 Resolution Capabilities**
 ```
-Resolution │ Hexagon Area │ Count   │ Precision Level    │ Use Case
------------|--------------|---------|-------------------|------------------
-6          │ 36.1 km²     │    22   │ City-wide         │ District overview
-7          │ 5.2 km²      │    93   │ District          │ Neighborhood analysis
-8          │ 0.7 km²      │   545   │ Neighborhood      │ Large block analysis
-9          │ 0.1 km²      │ 3,150   │ Block Group       │ Street-level detail
+Resolution │ Hexagon Area │ Count     │ Precision Level    │ Use Case
+-----------|--------------|-----------|-------------------|------------------
+5          │ 251.1 km²    │     1     │ Philadelphia Metro│ Citywide statistics
+6          │ 36.1 km²     │    22     │ City districts    │ District overview
+7          │ 5.2 km²      │    93     │ District          │ Neighborhood analysis
+8          │ 0.7 km²      │   545     │ Neighborhood      │ Large block analysis
+9          │ 0.1 km²      │ 3,150     │ Block Group       │ Street-level detail
 10         │ 15,047 m²    │16,739   │ Block             │ Building groups
 11         │ 2,150 m²     │69,513   │ Building          │ Individual structures
 12         │ 307 m²       │145,982  │ Room-level        │ Building sections
@@ -237,6 +240,46 @@ amisafe/
 - **H3 Debug Panel**: Real-time H3 library status and function availability
 - **Console Logging**: Comprehensive logging with debug mode toggle
 - **API Test Endpoints**: `/api/amisafe/debug-test` for troubleshooting
+
+## 🧪 Testing & Validation Framework
+
+### Testing Documentation Location
+All API testing, validation scripts, and reference data are maintained in:
+```
+/testing/apitesting/
+├── database_statistics_reference.md    # Complete Silver/Gold layer statistics
+├── api_validation_results.md          # API endpoint testing results  
+├── api_bug_fixed_report.md            # Resolution 5 bug fix documentation
+├── bug_verification_script.sh         # Automated bug verification
+└── generate_resolution_5_citywide.py  # Resolution 5 hexagon generator
+```
+
+### Key Validation Queries
+```sql
+-- Verify Silver layer total
+SELECT COUNT(*) FROM amisafe_clean_incidents;
+-- Result: 3,406,175 incidents
+
+-- Verify Resolution 5 citywide hexagon
+SELECT incident_count FROM amisafe_h3_aggregated WHERE h3_resolution = 5;  
+-- Result: 1,488,452 incidents (Philadelphia metro core)
+
+-- Verify Gold layer resolution breakdown
+SELECT h3_resolution, COUNT(*) as hexagon_count, SUM(incident_count) as total_incidents
+FROM amisafe_h3_aggregated GROUP BY h3_resolution ORDER BY h3_resolution;
+```
+
+### API Testing Commands
+```bash
+# Test citywide statistics (should return 1,488,452)
+curl -s "http://localhost:8080/api/amisafe/citywide-stats" | jq .stats.total_incidents
+
+# Test system statistics
+curl -s "http://localhost:8080/api/amisafe/system-stats" | jq .data_statistics.total_crime_incidents
+
+# Test Resolution 13 ultra-precision
+curl -s "http://localhost:8080/api/amisafe/aggregated?resolution=13&limit=5" | jq .
+```
 
 ## Cyberpunk 2085 Theme
 

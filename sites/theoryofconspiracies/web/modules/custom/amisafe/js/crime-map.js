@@ -647,7 +647,7 @@
       
       // Preload one resolution higher and lower for smooth zooming
       var preloadResolutions = [
-        Math.max(6, currentResolution - 1),
+        Math.max(5, currentResolution - 1),  // Include Resolution 5 citywide
         Math.min(13, currentResolution + 1)
       ];
       
@@ -729,9 +729,9 @@
           var totalIncidents = 0;
           var activeSectors = 0;
           cachedResponse.hexagons.forEach(function(hexagon) {
-            var crimeCount = hexagon.crime_count || hexagon.total_incidents || 0;
-            if (crimeCount > 0) {
-              totalIncidents += crimeCount;
+            var incidentCount = hexagon.incident_count || hexagon.total_incidents || 0;
+            if (incidentCount > 0) {
+              totalIncidents += incidentCount;
               activeSectors++;
             }
           });
@@ -813,12 +813,21 @@
       this.apiCallCount++;
       Drupal.AmISafeLogger.debug(`🔍 API CALL ${this.apiCallCount}: Cache miss for ${cacheKey}`);
 
-      // Choose API endpoint based on resolution level
+      // Choose API endpoint and parameters based on resolution level
       var apiUrl = this.settings.apiEndpoints.aggregated;
       var timeout = 10000;
       
+      // Special handling for Resolution 5 (single citywide hexagon)
+      if (resolution === 5) {
+        // For citywide view, get the specific Resolution 5 hexagon
+        params.h3_index = '852a134bfffffff'; // Philadelphia citywide hexagon
+        params.limit = 1; // Only need the single citywide hexagon
+        timeout = 5000; // Fast timeout for single hexagon lookup
+        
+        Drupal.AmISafeLogger.debug('🏙️ CITYWIDE MODE: Requesting single Resolution 5 hexagon');
+      }
       // Use ultra-precision endpoint for Resolution 12-13
-      if (resolution >= 12) {
+      else if (resolution >= 12) {
         apiUrl = this.settings.apiEndpoints.ultraPrecision || '/api/amisafe/ultra-precision';
         timeout = 20000; // Longer timeout for ultra-precision queries
         params.limit = 5000; // Higher limit for ultra-precision
@@ -855,24 +864,35 @@
           }
           
           if (response.hexagons && Array.isArray(response.hexagons)) {
-            self.renderHexagons(response.hexagons);
-            
-            // Calculate real statistics from hexagon data
-            var totalIncidents = 0;
-            var activeSectors = 0;
-            response.hexagons.forEach(function(hexagon) {
-              var incidents = hexagon.crime_count || hexagon.total_incidents || 0;
-              totalIncidents += incidents;
-              if (incidents > 0) {
-                activeSectors++;
-              }
-            });
-            
-            self.updateStats(
-              totalIncidents,
-              self.calculateOverallThreatLevel(response.hexagons),
-              activeSectors
-            );
+            // Special handling for Resolution 5 citywide hexagon
+            if (resolution === 5 && response.hexagons.length > 0) {
+              self.renderCitywideHexagon(response.hexagons[0]);
+              // For citywide view, display the total incident count from the single hexagon
+              var citywideIncidents = response.hexagons[0].incident_count || 0;
+              self.updateStats(citywideIncidents, 'EXTREME', 1);
+              
+              Drupal.AmISafeLogger.info('🏙️ CITYWIDE HEXAGON: ' + citywideIncidents.toLocaleString() + ' total incidents in Philadelphia metro area');
+            } else {
+              // Normal multi-hexagon rendering for Resolution 6-13
+              self.renderHexagons(response.hexagons);
+              
+              // Calculate statistics from multiple hexagons
+              var totalIncidents = 0;
+              var activeSectors = 0;
+              response.hexagons.forEach(function(hexagon) {
+                var incidents = hexagon.incident_count || hexagon.total_incidents || 0;
+                totalIncidents += incidents;
+                if (incidents > 0) {
+                  activeSectors++;
+                }
+              });
+              
+              self.updateStats(
+                totalIncidents,
+                self.calculateOverallThreatLevel(response.hexagons),
+                activeSectors
+              );
+            }
           } else {
             Drupal.AmISafeLogger.warn('Invalid API response format');
             self.loadSampleData(); // Fallback to sample data
@@ -923,7 +943,7 @@
           h3_index: 'sample_' + i,
           lat: lat,
           lng: lng,
-          crime_count: crimeCount,
+          incident_count: crimeCount,
           severity_avg: Math.floor(Math.random() * 5) + 1
         });
       }
@@ -988,13 +1008,13 @@
       
       hexagons.forEach(function (hexagon, index) {
         processedCount++;
-        var crimeCount = hexagon.crime_count || hexagon.total_incidents || 0;
-        var color = self.getHexagonColor(crimeCount);
+        var incidentCount = hexagon.incident_count || hexagon.total_incidents || 0;
+        var color = self.getHexagonColor(incidentCount);
         var h3Index = hexagon.h3_index;
         
         console.log(`🔵 Processing hexagon ${index + 1}/${hexagons.length}:`, {
           h3Index: h3Index,
-          crimeCount: crimeCount,
+          incidentCount: incidentCount,
           color: color,
           hasH3: !!window.h3
         });
@@ -1078,7 +1098,7 @@
               weight: 1,
               className: 'h3-hexagon',
               h3Index: h3Index,
-              crimeCount: crimeCount
+              incidentCount: incidentCount
             });
             console.log('🔷 Leaflet polygon created successfully');
             
@@ -1179,13 +1199,129 @@
     },
 
     /**
+     * Render single citywide hexagon for Resolution 5
+     * Special handling for the Philadelphia metro-wide hexagon (251 km²)
+     */
+    renderCitywideHexagon: function (hexagon) {
+      this.hexagonLayer.clearLayers();
+      
+      var incidentCount = hexagon.incident_count || 0;
+      var h3Index = hexagon.h3_index || '852a134bfffffff';
+      
+      Drupal.AmISafeLogger.info('🏙️ Rendering citywide hexagon:', h3Index, 'with', incidentCount.toLocaleString(), 'incidents');
+      
+      if (window.h3 && h3.cellToBoundary) {
+        try {
+          // Get the actual H3 hexagon boundary
+          var boundary = h3.cellToBoundary(h3Index, true);
+          
+          // Convert H3 coordinates [lng, lat] to Leaflet format [lat, lng]
+          var leafletCoords = boundary.map(function(coord) {
+            return [coord[1], coord[0]]; // Swap from [lng, lat] to [lat, lng]
+          });
+          
+          // Create the citywide hexagon polygon
+          var polygon = L.polygon(leafletCoords, {
+            fillColor: '#ff8800', // Orange for high citywide activity
+            fillOpacity: 0.3,     // More transparent for large area
+            color: '#00ffff',     // Cyan border
+            weight: 3,
+            className: 'h3-hexagon-citywide'
+          });
+          
+          // Add click handler for citywide stats
+          var self = this;
+          polygon.on('click', function (e) {
+            self.showCitywidePopup(hexagon, e.latlng);
+          });
+          
+          polygon.addTo(this.hexagonLayer);
+          
+          // Fit map to show the entire citywide hexagon
+          this.map.fitBounds(polygon.getBounds(), {
+            padding: [50, 50],
+            maxZoom: 10 // Don't zoom too close for citywide view
+          });
+          
+          Drupal.AmISafeLogger.debug('✅ Citywide hexagon rendered successfully');
+        } catch (error) {
+          Drupal.AmISafeLogger.error('Failed to render citywide hexagon:', error);
+          this.createCitywideCircle(hexagon);
+        }
+      } else {
+        // Fallback to circle if H3 library not available
+        Drupal.AmISafeLogger.warn('H3 library not available, using citywide circle fallback');
+        this.createCitywideCircle(hexagon);
+      }
+    },
+
+    /**
+     * Create fallback circle for citywide view when H3 is not available
+     */
+    createCitywideCircle: function (hexagon) {
+      var incidentCount = hexagon.incident_count || 0;
+      // Center on Philadelphia
+      var lat = 40.038890;
+      var lng = -75.200686;
+      var radius = 15000; // 15km radius for citywide view
+      
+      var circle = L.circle([lat, lng], {
+        radius: radius,
+        fillColor: '#ff8800',
+        fillOpacity: 0.3,
+        color: '#00ffff',
+        weight: 3,
+        className: 'h3-citywide-fallback'
+      });
+
+      var self = this;
+      circle.on('click', function (e) {
+        self.showCitywidePopup(hexagon, e.latlng);
+      });
+
+      circle.addTo(this.hexagonLayer);
+      
+      // Fit map to show the citywide circle
+      this.map.fitBounds(circle.getBounds(), {
+        padding: [50, 50]
+      });
+    },
+
+    /**
+     * Show citywide popup with Philadelphia metro statistics
+     */
+    showCitywidePopup: function (hexagon, latlng) {
+      var incidentCount = hexagon.incident_count || 0;
+      var popupContent = `
+        <div class="crime-popup citywide-popup">
+          <h3 class="terminal-text">PHILADELPHIA METROPOLITAN AREA</h3>
+          <div class="crime-stats">
+            <div class="stat-line">TOTAL INCIDENTS: <span class="neon-green">${incidentCount.toLocaleString()}</span></div>
+            <div class="stat-line">COVERAGE AREA: <span class="neon-cyan">251.10 km²</span></div>
+            <div class="stat-line">HEXAGON ID: <span class="neon-yellow">${hexagon.h3_index}</span></div>
+            <div class="stat-line">THREAT LEVEL: <span class="threat-extreme">EXTREME</span></div>
+            <div class="stat-line">RESOLUTION: <span class="neon-cyan">H3 Level 5</span></div>
+          </div>
+          <div class="popup-footer">
+            <small>📍 CITYWIDE SURVEILLANCE ACTIVE</small>
+          </div>
+        </div>
+      `;
+      
+      L.popup()
+        .setLatLng(latlng)
+        .setContent(popupContent)
+        .openOn(this.map);
+    },
+
+    /**
      * Create fallback circle when H3 hexagon creation fails
      */
     createFallbackCircle: function (hexagon, color) {
-      var crimeCount = hexagon.crime_count || hexagon.total_incidents || 0;
+      var incidentCount = hexagon.incident_count || hexagon.total_incidents || 0;
       var lat = hexagon.lat || 39.9526;
       var lng = hexagon.lng || -75.1652;
-      var radius = Math.max(50, crimeCount * 2);
+      var radius = Math.max(50, incidentCount * 2);
       
       var circle = L.circle([lat, lng], {
         radius: radius,
@@ -1207,12 +1343,12 @@
     /**
      * Get hexagon color based on crime count
      */
-    getHexagonColor: function (crimeCount) {
-      if (crimeCount === 0) return '#0a0a0a';
-      if (crimeCount <= 5) return '#1a4d4d';
-      if (crimeCount <= 15) return '#00ff00';
-      if (crimeCount <= 30) return '#ffff00';
-      if (crimeCount <= 50) return '#ff8800';
+    getHexagonColor: function (incidentCount) {
+      if (incidentCount === 0) return '#0a0a0a';
+      if (incidentCount <= 5) return '#1a4d4d';
+      if (incidentCount <= 15) return '#00ff00';
+      if (incidentCount <= 30) return '#ffff00';
+      if (incidentCount <= 50) return '#ff8800';
       return '#ff0000';
     },
 
@@ -1220,13 +1356,13 @@
      * Show hexagon popup with crime details
      */
     showHexagonPopup: function (hexagon, latlng) {
-      var threatLevel = this.getThreatLevel(hexagon.crime_count);
+      var threatLevel = this.getThreatLevel(hexagon.incident_count);
       
       var popupContent = `
         <div class="crime-popup">
           <h3 class="terminal-text">SECTOR ${hexagon.h3_index.substring(0, 8).toUpperCase()}</h3>
           <div class="crime-stats">
-            <div class="stat-line">INCIDENTS: <span class="neon-green">${hexagon.crime_count}</span></div>
+            <div class="stat-line">INCIDENTS: <span class="neon-green">${hexagon.incident_count}</span></div>
             <div class="stat-line">THREAT LEVEL: <span class="threat-${threatLevel.toLowerCase()}">${threatLevel}</span></div>
             <div class="stat-line">SEVERITY: <span class="neon-orange">${hexagon.severity_avg}/5</span></div>
           </div>
@@ -1441,9 +1577,9 @@
     /**
      * Get threat level based on crime count
      */
-    getThreatLevel: function (crimeCount) {
-      if (crimeCount <= 5) return 'LOW';
-      if (crimeCount <= 20) return 'MEDIUM';
+    getThreatLevel: function (incidentCount) {
+      if (incidentCount <= 5) return 'LOW';
+      if (incidentCount <= 20) return 'MEDIUM';
       return 'HIGH';
     },
 
@@ -1459,15 +1595,15 @@
       var severityScores = [];
       
       hexagons.forEach(function (hexagon) {
-        var crimeCount = hexagon.crime_count || hexagon.total_incidents || 0;
+        var incidentCount = hexagon.incident_count || hexagon.total_incidents || 0;
         var avgSeverity = hexagon.severity_avg || 2;
         
-        totalCrimes += crimeCount;
+        totalCrimes += incidentCount;
         severityScores.push(avgSeverity);
         
-        if (crimeCount > 30) {
+        if (incidentCount > 30) {
           criticalSectors++;
-        } else if (crimeCount > 15) {
+        } else if (incidentCount > 15) {
           highThreatSectors++;
         }
       });
@@ -1614,14 +1750,16 @@
 
     /**
      * Get optimal H3 resolution based on zoom level
-     * GOLD LAYER: Supports Resolution 6-13 ultra-precision mapping!
+     * GOLD LAYER: Supports Resolution 5-13 ultra-precision mapping!
+     * Resolution 5: Single citywide hexagon (251 km²) for efficient overview
      * Maximum Detail: Resolution 13 = 44m² (7m×7m) hexagons
      */
     getOptimalResolution: function (zoomLevel) {
-      // Gold layer resolution mapping (6-13 available)
+      // Gold layer resolution mapping (5-13 available)
       var resolution;
-      if (zoomLevel <= 8)  resolution = 6;   // 36.1 km² - City-wide  
-      else if (zoomLevel <= 10) resolution = 7;   // 5.2 km² - District
+      if (zoomLevel <= 6)       resolution = 5;   // 251 km² - Philadelphia citywide (single hex)
+      else if (zoomLevel <= 8)  resolution = 6;   // 36.1 km² - City districts  
+      else if (zoomLevel <= 10) resolution = 7;   // 5.2 km² - District detail
       else if (zoomLevel <= 12) resolution = 8;   // 0.7 km² - Neighborhood
       else if (zoomLevel <= 14) resolution = 9;   // 0.1 km² - Block Group
       else if (zoomLevel <= 16) resolution = 10;  // 15,047 m² - Block
@@ -1629,8 +1767,10 @@
       else if (zoomLevel <= 18) resolution = 12;  // 307 m² - Room-level
       else resolution = 13;  // 44 m² - ULTRA-PRECISION! ⚡
       
-      // Debug ultra-precision activation
-      if (resolution >= 12) {
+      // Debug resolution selection
+      if (resolution === 5) {
+        console.log('🏙️ CITYWIDE MODE: Zoom ' + zoomLevel + ' → H3 Resolution 5 (single citywide hexagon)');
+      } else if (resolution >= 12) {
         console.log('🎯 ULTRA-PRECISION ACTIVATED: Zoom ' + zoomLevel + ' → H3 ' + resolution + ' (' + this.getResolutionDescription(resolution) + ')');
       }
       
@@ -1642,18 +1782,15 @@
      */
     getResolutionDescription: function (resolution) {
       var descriptions = {
-        6: '36.1km² city-wide',
-        7: '5.2km² district', 
+        5: '251km² Philadelphia metro (single citywide hex)',
+        6: '36.1km² city districts',
+        7: '5.2km² district detail', 
         8: '0.7km² neighborhood',
         9: '0.1km² block group',
         10: '15,047m² block',
         11: '2,150m² building',
         12: '307m² room-level',
-        13: '44m² ULTRA-PRECISION',
-        12: '9m building parts',
-        13: '3.4m rooms/parking',
-        14: '1.3m METER-DETAIL!',
-        15: '0.5m SUB-METER!'
+        13: '44m² ULTRA-PRECISION'
       };
       return descriptions[resolution] || 'unknown';
     },

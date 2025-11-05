@@ -51,8 +51,8 @@ class CrimeDataService {
    * Resolution 13 Ultra-Precision: Access to 413,172 hexagon analytics.
    */
   public function getH3Aggregations($resolution = 9, $filters = [], $page = 0, $limit = 1000) {
-    // Validate resolution parameter
-    if (empty($resolution) || !is_numeric($resolution) || $resolution < 6 || $resolution > 13) {
+    // Validate resolution parameter (now supports Resolution 5-13)
+    if (empty($resolution) || !is_numeric($resolution) || $resolution < 5 || $resolution > 13) {
       $resolution = 9; // Default fallback
     }
     
@@ -71,12 +71,18 @@ class CrimeDataService {
           'earliest_incident', 'latest_incident', 'incidents_last_30_days', 'incidents_last_year',
           'center_latitude', 'center_longitude', 'coverage_area_km2', 'incident_type_counts',
           'district_counts', 'avg_data_quality_score', 'total_valid_records', 'last_aggregation'
-        ])
-        ->condition('h3_resolution', $resolution)
-        ->range($page * $limit, $limit)
-        ->orderBy('incident_count', 'DESC');
+        ]);
 
+      // Apply H3 filters first
       $this->applyH3Filters($query, $filters);
+      
+      // Only apply resolution filter if no specific h3_index is requested
+      if (empty($filters['h3_index'])) {
+        $query->condition('h3_resolution', $resolution);
+      }
+      
+      $query->range($page * $limit, $limit)
+        ->orderBy('incident_count', 'DESC');
 
       $results = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
       
@@ -140,8 +146,9 @@ class CrimeDataService {
   }
 
   /**
-   * Get count of incidents matching filters from Silver layer.
-   * Ultra-precision access to 3.4M+ processed records.
+   * Get count of incidents matching filters.
+   * For citywide stats, uses Resolution 5 single hexagon (1.48M incidents, 251 km²).
+   * For filtered queries, uses Silver layer for precision.
    */
   public function getIncidentCount($filters = []) {
     $cache_key = 'amisafe:incident_count:' . md5(serialize($filters));
@@ -151,13 +158,40 @@ class CrimeDataService {
     }
 
     try {
-      // Use Silver layer (amisafe_clean_incidents) for accurate counts
       $database = \Drupal\Core\Database\Database::getConnection();
       
-      $query = $database->select('amisafe_clean_incidents', 'ci')
-        ->addExpression('COUNT(*)', 'count');
-
-      $this->applyFilters($query, $filters);
+      // If no filters, use Resolution 5 citywide hexagon (most efficient)
+      if (empty($filters)) {
+        $query = $database->select('amisafe_h3_aggregated', 'h3a');
+        $query->addField('h3a', 'incident_count');
+        $query->condition('h3_resolution', 5);
+        $query->condition('h3_index', '852a134bfffffff'); // Philadelphia citywide hexagon
+        
+        $result = $query->execute()->fetchField();
+        
+        if ($result) {
+          $this->cache->set($cache_key, $result, time() + 3600); // Cache for 1 hour
+          return $result;
+        }
+      }
+      
+      // For filtered queries, use Silver layer for accuracy
+      $query = $database->select('amisafe_clean_incidents', 'ci');
+      $query->addExpression('COUNT(*)', 'total_incidents');
+      
+      // Apply filters if provided
+      if (!empty($filters['district'])) {
+        $query->condition('dc_dist', $filters['district']);
+      }
+      if (!empty($filters['date_from'])) {
+        $query->condition('incident_date', $filters['date_from'], '>=');
+      }
+      if (!empty($filters['date_to'])) {
+        $query->condition('incident_date', $filters['date_to'], '<=');
+      }
+      if (!empty($filters['crime_type'])) {
+        $query->condition('ucr_general', $filters['crime_type']);
+      }
 
       $result = $query->execute()->fetchField();
       
@@ -300,11 +334,11 @@ class CrimeDataService {
   private function applyFilters($query, $filters) {
     // Date range filters
     if (!empty($filters['start_date'])) {
-      $query->condition('dispatch_date', $filters['start_date'], '>=');
+      $query->condition('incident_date', $filters['start_date'], '>=');
     }
     
     if (!empty($filters['end_date'])) {
-      $query->condition('dispatch_date', $filters['end_date'], '<=');
+      $query->condition('incident_date', $filters['end_date'], '<=');
     }
     
     // Crime type filters
@@ -338,20 +372,28 @@ class CrimeDataService {
       foreach ($filters['time_periods'] as $time_period) {
         switch ($time_period) {
           case 'early-morning':
-            $time_conditions->condition('dispatch_time', '00:00:00', '>=');
-            $time_conditions->condition('dispatch_time', '05:59:59', '<=');
+            $period_condition = $query->andConditionGroup();
+            $period_condition->condition('incident_hour', 0, '>=');
+            $period_condition->condition('incident_hour', 5, '<=');
+            $time_conditions->condition($period_condition);
             break;
           case 'morning':
-            $time_conditions->condition('dispatch_time', '06:00:00', '>=');
-            $time_conditions->condition('dispatch_time', '11:59:59', '<=');
+            $period_condition = $query->andConditionGroup();
+            $period_condition->condition('incident_hour', 6, '>=');
+            $period_condition->condition('incident_hour', 11, '<=');
+            $time_conditions->condition($period_condition);
             break;
           case 'afternoon':
-            $time_conditions->condition('dispatch_time', '12:00:00', '>=');
-            $time_conditions->condition('dispatch_time', '17:59:59', '<=');
+            $period_condition = $query->andConditionGroup();
+            $period_condition->condition('incident_hour', 12, '>=');
+            $period_condition->condition('incident_hour', 17, '<=');
+            $time_conditions->condition($period_condition);
             break;
           case 'evening':
-            $time_conditions->condition('dispatch_time', '18:00:00', '>=');
-            $time_conditions->condition('dispatch_time', '23:59:59', '<=');
+            $period_condition = $query->andConditionGroup();
+            $period_condition->condition('incident_hour', 18, '>=');
+            $period_condition->condition('incident_hour', 23, '<=');
+            $time_conditions->condition($period_condition);
             break;
         }
       }
@@ -362,8 +404,8 @@ class CrimeDataService {
     
     // Legacy time filters (backwards compatibility)
     if (isset($filters['hour_start']) && isset($filters['hour_end'])) {
-      $query->condition('dispatch_time', sprintf('%02d:00:00', $filters['hour_start']), '>=');
-      $query->condition('dispatch_time', sprintf('%02d:59:59', $filters['hour_end']), '<=');
+      $query->condition('incident_hour', $filters['hour_start'], '>=');
+      $query->condition('incident_hour', $filters['hour_end'], '<=');
     }
     
     // Legacy severity filters (backwards compatibility)
@@ -724,8 +766,14 @@ class CrimeDataService {
 
   /**
    * Apply filters to H3 aggregation queries.
+   * Now supports h3_index filtering for Resolution 5 citywide hexagon lookup.
    */
   private function applyH3Filters($query, $filters) {
+    // Filter by specific H3 index (for Resolution 5 citywide hexagon)
+    if (!empty($filters['h3_index'])) {
+      $query->condition('h3_index', $filters['h3_index']);
+    }
+
     if (!empty($filters['district'])) {
       // Filter by district presence in district_counts JSON
       $query->where("JSON_SEARCH(district_counts, 'one', :district) IS NOT NULL", [

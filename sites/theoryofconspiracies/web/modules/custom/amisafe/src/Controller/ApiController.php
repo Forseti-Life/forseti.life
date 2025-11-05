@@ -79,8 +79,8 @@ class ApiController extends ControllerBase {
     $limit = min($request->query->get('limit', 1000), 10000); // Higher limit for aggregated data
 
     try {
-      // Use the new gold layer H3 aggregations method
-      $aggregated_data = $this->crimeDataService->getH3Aggregations($filters, $resolution, $bounds, $limit);
+      // Use the new gold layer H3 aggregations method (parameters: resolution, filters, page, limit)
+      $aggregated_data = $this->crimeDataService->getH3Aggregations($resolution, $filters, 0, $limit);
 
       $precision_meta = $this->getPrecisionMetadata($resolution);
       
@@ -252,14 +252,16 @@ class ApiController extends ControllerBase {
       $count_query->addExpression('COUNT(*)', 'total_count');
       $total_hexagons = $count_query->execute()->fetchField();
       
-      // Test the SUM query that was failing
-      $sum_query = $database->select('amisafe_h3_aggregated', 'h');
-      $sum_query->addExpression('SUM(incident_count)', 'total_crimes');
-      $total_crimes = $sum_query->execute()->fetchField();
+      // Get citywide incidents from Resolution 5 hexagon (single source of truth)
+      $citywide_query = $database->select('amisafe_h3_aggregated', 'h');
+      $citywide_query->addField('h', 'incident_count');
+      $citywide_query->condition('h3_resolution', 5);
+      $citywide_query->condition('h3_index', '852a134bfffffff'); // Philadelphia citywide
+      $total_crimes = $citywide_query->execute()->fetchField() ?: 0;
       
-      // Build resolution breakdown with precision metadata
+      // Build resolution breakdown with precision metadata (including resolution 5)
       $resolution_stats = [];
-      for ($res = 6; $res <= 13; $res++) {
+      for ($res = 5; $res <= 13; $res++) {
         $res_query = $database->select('amisafe_h3_aggregated', 'h');
         $res_query->condition('h3_resolution', $res);
         $res_query->addExpression('COUNT(*)', 'hexagon_count');
@@ -430,6 +432,11 @@ class ApiController extends ControllerBase {
     }
     if ($request->query->has('severity_max')) {
       $filters['severity_max'] = $request->query->get('severity_max');
+    }
+
+    // H3 index filter (for Resolution 5 citywide hexagon lookup)
+    if ($request->query->has('h3_index')) {
+      $filters['h3_index'] = $request->query->get('h3_index');
     }
 
     return $filters;
@@ -659,17 +666,17 @@ class ApiController extends ControllerBase {
    * Calculate threat level based on hexagon data.
    */
   private function calculateThreatLevel($hexagon_data) {
-    $crime_count = $hexagon_data['crime_count'] ?? 0;
+    $incident_count = $hexagon_data['incident_count'] ?? 0;
     $severity_avg = $hexagon_data['severity_avg'] ?? 0;
     
     // Cyberpunk-style threat calculation
-    if ($crime_count >= 50 && $severity_avg >= 4) {
+    if ($incident_count >= 50 && $severity_avg >= 4) {
       return 'CRITICAL';
-    } elseif ($crime_count >= 25 && $severity_avg >= 3) {
+    } elseif ($incident_count >= 25 && $severity_avg >= 3) {
       return 'HIGH';
-    } elseif ($crime_count >= 10 && $severity_avg >= 2) {
+    } elseif ($incident_count >= 10 && $severity_avg >= 2) {
       return 'MODERATE';
-    } elseif ($crime_count >= 1) {
+    } elseif ($incident_count >= 1) {
       return 'LOW';
     } else {
       return 'MINIMAL';
@@ -731,9 +738,9 @@ class ApiController extends ControllerBase {
   private function identifyRiskFactors($hexagon_data) {
     $risk_factors = [];
     $crime_types = $hexagon_data['crime_types'] ?? [];
-    $crime_count = $hexagon_data['crime_count'] ?? 0;
+    $incident_count = $hexagon_data['incident_count'] ?? 0;
     
-    if ($crime_count > 50) {
+    if ($incident_count > 50) {
       $risk_factors[] = 'High incident density';
     }
     
@@ -765,11 +772,11 @@ class ApiController extends ControllerBase {
    * Calculate confidence score.
    */
   private function calculateConfidence($hexagon_data) {
-    $crime_count = $hexagon_data['crime_count'] ?? 0;
+    $incident_count = $hexagon_data['incident_count'] ?? 0;
     
-    if ($crime_count >= 20) {
+    if ($incident_count >= 20) {
       return 'HIGH';
-    } elseif ($crime_count >= 5) {
+    } elseif ($incident_count >= 5) {
       return 'MEDIUM';
     } else {
       return 'LOW';
@@ -777,14 +784,14 @@ class ApiController extends ControllerBase {
   }
 
   /**
-   * Validate and constrain H3 resolution within supported range (6-13).
+   * Validate and constrain H3 resolution within supported range (5-13).
    */
   private function validateResolution($resolution) {
     $config = $this->config('amisafe.settings');
     $max_resolution = $config->get('max_resolution') ?? 13;
-    $min_resolution = $config->get('min_resolution') ?? 6;
+    $min_resolution = $config->get('min_resolution') ?? 5; // Now supports Resolution 5
     
-    // Ensure resolution is within our gold layer supported range (6-13)
+    // Ensure resolution is within our gold layer supported range (5-13)
     $resolution = max($min_resolution, min($max_resolution, intval($resolution)));
     
     // Log ultra-precision requests for monitoring
