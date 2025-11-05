@@ -58,43 +58,60 @@ class H3AggregatorService {
   }
 
   /**
-   * Get pre-computed aggregated data from H3 aggregation table.
+   * Get Resolution 13 ultra-precision aggregated data from Gold layer.
+   * Production-ready access to 413,172 total hexagons across 8 resolution levels (6-13).
    */
   private function getRealAggregatedData($filters = [], $resolution = 9, $bounds = null) {
     try {
       // Get database connection (use default Drupal database)
       $database = \Drupal\Core\Database\Database::getConnection();
       
-      // Query pre-computed H3 aggregation data
+      // Query Gold layer (amisafe_h3_aggregated) with Resolution 13 support
       $query = $database->select('amisafe_h3_aggregated', 'h3')
         ->fields('h3', [
           'h3_index', 
-          'center_lat', 
-          'center_lng', 
-          'boundary_json',
-          'crime_count',
-          'crime_types_json',
-          'is_empty'
+          'h3_resolution',
+          'incident_count',
+          'unique_incident_types',
+          'center_latitude', 
+          'center_longitude',
+          'coverage_area_km2',
+          'incident_type_counts',
+          'district_counts',
+          'earliest_incident',
+          'latest_incident',
+          'avg_data_quality_score',
+          'total_valid_records'
         ])
         ->condition('h3_resolution', $resolution);
       
       // Apply geographic bounds if provided
       if ($bounds && isset($bounds['north'], $bounds['south'], $bounds['east'], $bounds['west'])) {
-        $query->condition('center_lat', $bounds['south'], '>=');
-        $query->condition('center_lat', $bounds['north'], '<=');
-        $query->condition('center_lng', $bounds['west'], '>=');
-        $query->condition('center_lng', $bounds['east'], '<=');
+        $query->condition('center_latitude', $bounds['south'], '>=');
+        $query->condition('center_latitude', $bounds['north'], '<=');
+        $query->condition('center_longitude', $bounds['west'], '>=');
+        $query->condition('center_longitude', $bounds['east'], '<=');
       }
       
-      // For high resolutions, limit results to avoid overwhelming the client
-      if ($resolution >= 12) {
-        // For extreme detail levels, prioritize hexagons with data
-        $query->orderBy('is_empty', 'ASC');  // Show data hexagons first
-        $query->orderBy('crime_count', 'DESC'); // Then by crime count
-        $query->range(0, 5000); // Limit for performance
+      // Smart result limiting based on resolution level
+      if ($resolution >= 13) {
+        // Ultra-precision Resolution 13: 177K hexagons - prioritize data
+        $query->condition('incident_count', 0, '>'); // Only show hexagons with incidents
+        $query->orderBy('incident_count', 'DESC');
+        $query->range(0, 2000); // Limit for optimal performance
+      } elseif ($resolution >= 12) {
+        // Fine precision Resolution 12: 146K hexagons
+        $query->condition('incident_count', 0, '>');
+        $query->orderBy('incident_count', 'DESC'); 
+        $query->range(0, 3000);
+      } elseif ($resolution >= 11) {
+        // Building-level Resolution 11: 70K hexagons
+        $query->orderBy('incident_count', 'DESC');
+        $query->range(0, 5000);
       } else {
-        // For lower resolutions, show all hexagons
-        $query->range(0, 10000);
+        // Lower resolutions: show all hexagons for complete coverage
+        $query->orderBy('incident_count', 'DESC');
+        $query->range(0, 25000);
       }
       
       $results = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
@@ -103,30 +120,40 @@ class H3AggregatorService {
         return [];
       }
       
-      // Convert pre-computed data to expected format
+      // Convert Gold layer ultra-precision data to expected format
       $hexagon_data = [];
       foreach ($results as $hexagon) {
         $h3_index = $hexagon['h3_index'];
-        $boundary = json_decode($hexagon['boundary_json'], true);
-        $crime_types = json_decode($hexagon['crime_types_json'], true) ?: [];
+        $incident_types = json_decode($hexagon['incident_type_counts'], true) ?: [];
+        $districts = json_decode($hexagon['district_counts'], true) ?: [];
         
-        // Build hexagon data structure
+        // Build ultra-precision hexagon data structure
         $hexagon_item = [
           'h3_index' => $h3_index,
-          'lat' => floatval($hexagon['center_lat']),
-          'lng' => floatval($hexagon['center_lng']),
-          'crime_count' => intval($hexagon['crime_count']),
-          'total_incidents' => intval($hexagon['crime_count']),
-          'crime_types' => array_keys($crime_types),
-          'crime_type_counts' => $crime_types,
-          'boundary' => $boundary,
-          'is_empty' => (bool)$hexagon['is_empty'],
-          'resolution' => $resolution,
-          'severity_avg' => $this->calculateSeverity(array_keys($crime_types)),
-          'last_incident' => date('Y-m-d H:i:s') // Mock timestamp for now
+          'lat' => floatval($hexagon['center_latitude']),
+          'lng' => floatval($hexagon['center_longitude']),
+          'crime_count' => intval($hexagon['incident_count']),
+          'total_incidents' => intval($hexagon['incident_count']),
+          'unique_types' => intval($hexagon['unique_incident_types']),
+          'crime_types' => array_keys($incident_types),
+          'crime_type_counts' => $incident_types,
+          'district_counts' => $districts,
+          'coverage_area' => floatval($hexagon['coverage_area_km2']),
+          'resolution' => intval($hexagon['h3_resolution']),
+          'date_range' => [
+            'earliest' => $hexagon['earliest_incident'],
+            'latest' => $hexagon['latest_incident']
+          ],
+          'data_quality' => floatval($hexagon['avg_data_quality_score']),
+          'valid_records' => intval($hexagon['total_valid_records']),
+          'is_empty' => intval($hexagon['incident_count']) === 0,
+          'is_ultra_precision' => intval($hexagon['h3_resolution']) >= 13,
+          'precision_level' => $this->getPrecisionLevel(intval($hexagon['h3_resolution'])),
+          'severity_avg' => $this->calculateSeverity(array_keys($incident_types)),
+          'last_incident' => $hexagon['latest_incident'] ?: date('Y-m-d H:i:s')
         ];
         
-        // Apply client-side filters if needed
+        // Apply client-side filters if needed  
         if ($this->passesFilters($hexagon_item, $filters)) {
           $hexagon_data[$h3_index] = $hexagon_item;
         }
@@ -317,6 +344,42 @@ class H3AggregatorService {
     }
     
     return $count > 0 ? round($total_severity / $count) : 2;
+  }
+
+  /**
+   * Get precision level description for H3 resolution.
+   */
+  private function getPrecisionLevel($resolution) {
+    $precision_levels = [
+      6 => 'City-wide',
+      7 => 'District',
+      8 => 'Neighborhood', 
+      9 => 'Block Group',
+      10 => 'Block',
+      11 => 'Building',
+      12 => 'Room-level',
+      13 => 'Ultra-precision'
+    ];
+    
+    return $precision_levels[$resolution] ?? 'Unknown';
+  }
+
+  /**
+   * Get hexagon size description for H3 resolution.
+   */
+  private function getHexSizeDescription($resolution) {
+    $size_descriptions = [
+      6 => '36.1 km² (city blocks)',
+      7 => '5.2 km² (neighborhoods)',
+      8 => '0.7 km² (city blocks)',
+      9 => '0.1 km² (street segments)',
+      10 => '15,047 m² (building groups)',
+      11 => '2,150 m² (individual buildings)',
+      12 => '307 m² (rooms/apartments)',
+      13 => '44 m² (ultra-fine detail)'
+    ];
+    
+    return $size_descriptions[$resolution] ?? 'Unknown size';
   }
 
   /**

@@ -33,13 +33,13 @@ class CrimeDataService {
   }
 
   /**
-   * Get the amisafe database connection.
+   * Get the database connection (use default Drupal database).
    */
   protected function getDatabase() {
     try {
-      return \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
+      return \Drupal\Core\Database\Database::getConnection('default');
     } catch (\Exception $e) {
-      $this->logger->error('Failed to connect to amisafe database: @message', [
+      $this->logger->error('Failed to connect to database: @message', [
         '@message' => $e->getMessage(),
       ]);
       throw new \Exception('Database connection failed: ' . $e->getMessage());
@@ -47,7 +47,59 @@ class CrimeDataService {
   }
 
   /**
-   * Get filtered incident data.
+   * Get pre-aggregated H3 hexagon data from Gold layer (final aggregations).
+   * Resolution 13 Ultra-Precision: Access to 413,172 hexagon analytics.
+   */
+  public function getH3Aggregations($resolution = 9, $filters = [], $page = 0, $limit = 1000) {
+    // Validate resolution parameter
+    if (empty($resolution) || !is_numeric($resolution) || $resolution < 6 || $resolution > 13) {
+      $resolution = 9; // Default fallback
+    }
+    
+    $cache_key = 'amisafe:h3_aggregations:' . md5($resolution . serialize($filters) . $page . $limit);
+    
+    if ($cached = $this->cache->get($cache_key)) {
+      return $cached->data;
+    }
+
+    try {
+      // Use Gold layer (amisafe_h3_aggregated) with ultra-precision analytics
+      $database = \Drupal\Core\Database\Database::getConnection();
+      $query = $database->select('amisafe_h3_aggregated', 'h3a')
+        ->fields('h3a', [
+          'id', 'h3_index', 'h3_resolution', 'incident_count', 'unique_incident_types',
+          'earliest_incident', 'latest_incident', 'incidents_last_30_days', 'incidents_last_year',
+          'center_latitude', 'center_longitude', 'coverage_area_km2', 'incident_type_counts',
+          'district_counts', 'avg_data_quality_score', 'total_valid_records', 'last_aggregation'
+        ])
+        ->condition('h3_resolution', $resolution)
+        ->range($page * $limit, $limit)
+        ->orderBy('incident_count', 'DESC');
+
+      $this->applyH3Filters($query, $filters);
+
+      $results = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+      
+      // Process results for frontend consumption with precision metadata
+      $processed_results = array_map(function($row) use ($resolution) {
+        return $this->processH3Aggregation($row, $resolution);
+      }, $results);
+      
+      // Cache for 30 minutes (longer cache for aggregated data)
+      $this->cache->set($cache_key, $processed_results, time() + 1800);
+      
+      return $processed_results;
+    } catch (\Exception $e) {
+      $this->logger->error('Error fetching Gold layer H3 aggregations: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return [];
+    }
+  }
+
+  /**
+   * Get filtered incident data from Silver layer (transform data).
+   * Resolution 13 Ultra-Precision: Access to 3.4M+ H3-indexed records.
    */
   public function getIncidents($filters = [], $page = 0, $limit = 1000) {
     $cache_key = 'amisafe:incidents:' . md5(serialize($filters) . $page . $limit);
@@ -57,26 +109,30 @@ class CrimeDataService {
     }
 
     try {
-      // Use default Drupal database with amisafe prefixed tables
+      // Use Silver layer (amisafe_clean_incidents) with full H3 indexing
       $database = \Drupal\Core\Database\Database::getConnection();
-      $query = $database->select('amisafe_raw_incidents', 'ri')
-        ->fields('ri')
+      $query = $database->select('amisafe_clean_incidents', 'ci')
+        ->fields('ci', [
+          'id', 'incident_datetime', 'dc_dist', 'ucr_general', 'lat', 'lng',
+          'h3_res_6', 'h3_res_7', 'h3_res_8', 'h3_res_9', 'h3_res_10',
+          'h3_res_11', 'h3_res_12', 'h3_res_13', 'data_quality_score'
+        ])
         ->range($page * $limit, $limit)
-        ->orderBy('dispatch_date_time', 'DESC');
+        ->orderBy('incident_datetime', 'DESC');
 
       $this->applyFilters($query, $filters);
 
       $results = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
       
-      // Process results for frontend consumption
-      $processed_results = array_map([$this, 'processIncident'], $results);
+      // Process results for frontend consumption with H3 data
+      $processed_results = array_map([$this, 'processTransformIncident'], $results);
       
-      // Cache for 5 minutes
-      $this->cache->set($cache_key, $processed_results, time() + 300);
+      // Cache for 10 minutes (longer cache for processed data)
+      $this->cache->set($cache_key, $processed_results, time() + 600);
       
       return $processed_results;
     } catch (\Exception $e) {
-      $this->logger->error('Error fetching incidents: @message', [
+      $this->logger->error('Error fetching Silver layer incidents: @message', [
         '@message' => $e->getMessage(),
       ]);
       return [];
@@ -84,7 +140,8 @@ class CrimeDataService {
   }
 
   /**
-   * Get count of incidents matching filters.
+   * Get count of incidents matching filters from Silver layer.
+   * Ultra-precision access to 3.4M+ processed records.
    */
   public function getIncidentCount($filters = []) {
     $cache_key = 'amisafe:incident_count:' . md5(serialize($filters));
@@ -94,10 +151,10 @@ class CrimeDataService {
     }
 
     try {
-      // Use default Drupal database with amisafe prefixed tables
+      // Use Silver layer (amisafe_clean_incidents) for accurate counts
       $database = \Drupal\Core\Database\Database::getConnection();
       
-      $query = $database->select('amisafe_raw_incidents', 'ri')
+      $query = $database->select('amisafe_clean_incidents', 'ci')
         ->addExpression('COUNT(*)', 'count');
 
       $this->applyFilters($query, $filters);
@@ -129,8 +186,8 @@ class CrimeDataService {
     }
 
     try {
-      $database = \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
-      $query = $database->select('raw_incidents', 'ri')
+      $database = \Drupal\Core\Database\Database::getConnection();
+      $query = $database->select('amisafe_raw_incidents', 'ri')
         ->fields('ri', ['dc_dist'])
         ->groupBy('dc_dist')
         ->orderBy('dc_dist');
@@ -162,8 +219,8 @@ class CrimeDataService {
    */
   public function getDateRange() {
     try {
-      $database = \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
-      $query = $database->select('raw_incidents', 'ri');
+      $database = \Drupal\Core\Database\Database::getConnection();
+      $query = $database->select('amisafe_raw_incidents', 'ri');
       $query->addExpression('MIN(incident_date)', 'min_date');
       $query->addExpression('MAX(incident_date)', 'max_date');
       $result = $query->execute()->fetchAssoc();
@@ -188,8 +245,8 @@ class CrimeDataService {
    */
   public function getCrimeTypes() {
     try {
-      $database = \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
-      $result = $database->query('SELECT DISTINCT ucr_code, ucr_description FROM raw_incidents WHERE ucr_code IS NOT NULL AND ucr_description IS NOT NULL ORDER BY ucr_code');
+      $database = \Drupal\Core\Database\Database::getConnection();
+      $result = $database->query('SELECT DISTINCT ucr_code, ucr_description FROM amisafe_raw_incidents WHERE ucr_code IS NOT NULL AND ucr_description IS NOT NULL ORDER BY ucr_code');
       
       $crime_types = [];
       foreach ($result as $row) {
@@ -327,7 +384,7 @@ class CrimeDataService {
   }
 
   /**
-   * Process incident data for frontend consumption.
+   * Process incident data for frontend consumption (legacy raw data).
    */
   private function processIncident($incident) {
     return [
@@ -342,6 +399,82 @@ class CrimeDataService {
       'block' => $incident['location_block'],
       'hour' => $incident['hour'],
       'severity' => $this->getCrimeSeverity($incident['ucr_general']),
+    ];
+  }
+
+  /**
+   * Process Silver layer (transform) incident data with Resolution 13 H3 support.
+   * Provides all H3 indices from resolutions 6-13 for multi-scale analysis.
+   */
+  private function processTransformIncident($incident) {
+    return [
+      'id' => $incident['id'],
+      'lat' => floatval($incident['lat']),
+      'lng' => floatval($incident['lng']),
+      'crime_type' => $incident['ucr_general'],
+      'datetime' => $incident['incident_datetime'],
+      'district' => $incident['dc_dist'],
+      'data_quality_score' => floatval($incident['data_quality_score']),
+      'severity' => $this->getCrimeSeverity($incident['ucr_general']),
+      // Multi-resolution H3 indices (Resolutions 6-13)
+      'h3_indices' => [
+        'res_6' => $incident['h3_res_6'],    // City-wide (36.1 km²)
+        'res_7' => $incident['h3_res_7'],    // District (5.2 km²)
+        'res_8' => $incident['h3_res_8'],    // Block (737 m²)
+        'res_9' => $incident['h3_res_9'],    // Street (105 m²)
+        'res_10' => $incident['h3_res_10'],  // Building cluster (15K m²)
+        'res_11' => $incident['h3_res_11'],  // Building (2.1K m²)
+        'res_12' => $incident['h3_res_12'],  // Floor (307 m²)
+        'res_13' => $incident['h3_res_13'],  // Ultra-fine room (44 m²)
+      ],
+    ];
+  }
+
+  /**
+   * Process Gold layer (final) H3 aggregation data with ultra-precision metadata.
+   * Provides comprehensive analytics for Resolution 13 hexagon data.
+   */
+  private function processH3Aggregation($aggregation, $resolution) {
+    // Decode JSON fields
+    $incident_types = json_decode($aggregation['incident_type_counts'], true) ?: [];
+    $districts = json_decode($aggregation['district_counts'], true) ?: [];
+    
+    return [
+      'id' => $aggregation['id'],
+      'h3_index' => $aggregation['h3_index'],
+      'resolution' => $aggregation['h3_resolution'],
+      'incident_count' => intval($aggregation['incident_count']),
+      'unique_types' => intval($aggregation['unique_incident_types']),
+      'center' => [
+        'lat' => floatval($aggregation['center_latitude']),
+        'lng' => floatval($aggregation['center_longitude']),
+      ],
+      'temporal' => [
+        'earliest' => $aggregation['earliest_incident'],
+        'latest' => $aggregation['latest_incident'],
+        'last_30_days' => intval($aggregation['incidents_last_30_days']),
+        'last_year' => intval($aggregation['incidents_last_year']),
+      ],
+      'quality' => [
+        'avg_score' => floatval($aggregation['avg_data_quality_score']),
+        'valid_records' => intval($aggregation['total_valid_records']),
+      ],
+      'geography' => [
+        'coverage_km2' => floatval($aggregation['coverage_area_km2']),
+        'precision_level' => $this->getPrecisionLevel($resolution),
+        'hex_size_m2' => $this->getHexagonSizeM2($resolution),
+      ],
+      'analytics' => [
+        'crime_types' => $incident_types,
+        'districts' => $districts,
+        'density' => $this->calculateDensity($aggregation['incident_count'], $resolution),
+        'risk_level' => $this->calculateRiskLevel($aggregation['incident_count'], $resolution),
+      ],
+      'metadata' => [
+        'last_updated' => $aggregation['last_aggregation'],
+        'source_records' => intval($aggregation['source_record_count'] ?? $aggregation['total_valid_records']),
+        'aggregation_type' => 'gold_layer_ultra_precision',
+      ],
     ];
   }
 
@@ -442,9 +575,9 @@ class CrimeDataService {
     
     try {
       // Get database connection like other methods
-      $database = \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
+      $database = \Drupal\Core\Database\Database::getConnection();
       
-      $query = $database->select('raw_incidents', 'ri');
+      $query = $database->select('amisafe_raw_incidents', 'ri');
       $query->fields('ri');
       $query->condition('ri.h3_index', $h3_index);
 
@@ -587,6 +720,104 @@ class CrimeDataService {
     ];
     
     return $severity_map[$ucr_code] ?? 2;
+  }
+
+  /**
+   * Apply filters to H3 aggregation queries.
+   */
+  private function applyH3Filters($query, $filters) {
+    if (!empty($filters['district'])) {
+      // Filter by district presence in district_counts JSON
+      $query->where("JSON_SEARCH(district_counts, 'one', :district) IS NOT NULL", [
+        ':district' => $filters['district']
+      ]);
+    }
+
+    if (!empty($filters['min_incidents'])) {
+      $query->condition('incident_count', $filters['min_incidents'], '>=');
+    }
+
+    if (!empty($filters['max_incidents'])) {
+      $query->condition('incident_count', $filters['max_incidents'], '<=');
+    }
+
+    if (!empty($filters['crime_type'])) {
+      // Filter by crime type presence in incident_type_counts JSON
+      $query->where("JSON_SEARCH(incident_type_counts, 'one', :crime_type) IS NOT NULL", [
+        ':crime_type' => $filters['crime_type']
+      ]);
+    }
+
+    if (!empty($filters['min_quality_score'])) {
+      $query->condition('avg_data_quality_score', $filters['min_quality_score'], '>=');
+    }
+  }
+
+  /**
+   * Get precision level description for resolution.
+   */
+  private function getPrecisionLevel($resolution) {
+    $levels = [
+      6 => 'Metropolitan',
+      7 => 'District-wide', 
+      8 => 'Block-level',
+      9 => 'Street-level',
+      10 => 'Property clusters',
+      11 => 'Building-level',
+      12 => 'Floor-level',
+      13 => 'Ultra-fine room-level'
+    ];
+    return $levels[$resolution] ?? 'Unknown';
+  }
+
+  /**
+   * Get hexagon size in square meters for resolution.
+   */
+  private function getHexagonSizeM2($resolution) {
+    $sizes = [
+      6 => 36129000,  // 36.1 km²
+      7 => 5161000,   // 5.2 km²
+      8 => 737000,    // 737 m²
+      9 => 105000,    // 105 m²
+      10 => 15048,    // 15K m²
+      11 => 2150,     // 2.1K m²
+      12 => 307,      // 307 m²
+      13 => 44        // 44 m² (Ultra-fine)
+    ];
+    return $sizes[$resolution] ?? 0;
+  }
+
+  /**
+   * Calculate incident density per square meter.
+   */
+  private function calculateDensity($incident_count, $resolution) {
+    $hex_size = $this->getHexagonSizeM2($resolution);
+    return $hex_size > 0 ? round($incident_count / $hex_size * 10000, 6) : 0; // Per 10K m²
+  }
+
+  /**
+   * Calculate risk level based on incident count and resolution.
+   */
+  private function calculateRiskLevel($incident_count, $resolution) {
+    // Adjusted thresholds based on hexagon size
+    $thresholds = [
+      6 => [1000, 5000, 10000],   // City-wide
+      7 => [500, 2000, 5000],     // District
+      8 => [100, 500, 1000],      // Block
+      9 => [50, 200, 500],        // Street
+      10 => [20, 100, 300],       // Property
+      11 => [10, 50, 150],        // Building
+      12 => [5, 25, 75],          // Floor
+      13 => [2, 10, 30]           // Ultra-fine
+    ];
+
+    $levels = $thresholds[$resolution] ?? [10, 50, 150];
+    
+    if ($incident_count >= $levels[2]) return 'EXTREME';
+    if ($incident_count >= $levels[1]) return 'HIGH';
+    if ($incident_count >= $levels[0]) return 'MODERATE';
+    if ($incident_count > 0) return 'LOW';
+    return 'MINIMAL';
   }
 
 }

@@ -16,7 +16,7 @@
       // Debug: AmISafe behavior attached
       
       if (!settings.amisafe) {
-        console.warn('AmISafe settings not found');
+        Drupal.AmISafeLogger.error('AmISafe settings not found in drupalSettings');
         return;
       }
 
@@ -58,7 +58,7 @@
       // Initialize debug mode (default off to reduce console spam)
       this.debugMode = false;
       
-      if (this.debugMode) console.log('Initializing AmISafe Crime Map...');
+      Drupal.AmISafeLogger.info('Initializing AmISafe Crime Map...');
       
       // Initialize performance optimization variables
       this.dataCache = new Map(); // Cache for hexagon data by resolution + filters
@@ -88,13 +88,16 @@
         
         this.loadInitialData();
         
-        if (this.debugMode) console.log('AmISafe Crime Map initialized successfully');
+        // Check system capabilities
+        this.checkSystemCapabilities();
+        
+        Drupal.AmISafeLogger.info('AmISafe Crime Map initialized successfully');
         this.hideLoading();
         
         // Expose instance for debug buttons
         window.amisafeCrimeMap = this;
       } catch (error) {
-        console.error('Error initializing crime map:', error);
+        Drupal.AmISafeLogger.error('Error initializing crime map:', error);
         this.showError('INITIALIZATION FAILED: ' + error.message);
       }
     },
@@ -220,7 +223,7 @@
           // Also populate with fallback data immediately to ensure something shows
           setTimeout(function() {
             if (crimeTypeSelector.find('option').length === 0) {
-              console.log('No options found in crime type selector, using fallback...');
+              Drupal.AmISafeLogger.debug('No options found in crime type selector, using fallback...');
               self.populateCrimeTypeSelector({
                 '100': 'Murder',
                 '200': 'Rape',
@@ -247,7 +250,7 @@
             }
             
             if (districtSelector.find('option').length === 0) {
-              console.log('No options found in district selector, using fallback...');
+              Drupal.AmISafeLogger.debug('No options found in district selector, using fallback...');
               self.populateDistrictSelector(['01', '02', '03', '05', '07', '08', '09', '12', '14', '15', '16', '17']);
             }
           }, 2000);
@@ -255,10 +258,10 @@
           self.setupFilterEventHandlers();
         } else if (retryCount < maxRetries) {
           retryCount++;
-          console.log('Selectors not found, retry', retryCount, 'of', maxRetries);
+          Drupal.AmISafeLogger.debug('Selectors not found, retry', retryCount, 'of', maxRetries);
           setTimeout(waitForSelectors, 200);
         } else {
-          console.error('Filter selectors not found after', maxRetries, 'retries');
+          Drupal.AmISafeLogger.error('Filter selectors not found after', maxRetries, 'retries');
         }
       }
       
@@ -271,7 +274,7 @@
     loadFilterOptions: function () {
       var self = this;
       
-      if (this.debugMode) console.log('📡 Loading filter options in parallel...');
+      Drupal.AmISafeLogger.debug('📡 Loading filter options in parallel...');
       
       // Use Promise.all for parallel loading
       var promises = [];
@@ -281,14 +284,14 @@
         .done(function (response) {
           if (response && response.crime_types) {
             self.populateCrimeTypeSelector(response.crime_types);
-            if (self.debugMode) console.log('✅ Crime types loaded:', Object.keys(response.crime_types).length, 'types');
+            Drupal.AmISafeLogger.debug('✅ Crime types loaded:', Object.keys(response.crime_types).length, 'types');
           } else {
             self.populateCrimeTypeSelector(self.getFallbackCrimeTypes());
-            if (self.debugMode) console.log('⚠️ Using fallback crime types');
+            Drupal.AmISafeLogger.debug('⚠️ Using fallback crime types');
           }
         })
         .fail(function (xhr) {
-          console.warn('Crime types API failed, using fallback data');
+          Drupal.AmISafeLogger.warn('Crime types API failed, using fallback data');
           self.populateCrimeTypeSelector(self.getFallbackCrimeTypes());
         });
       
@@ -297,14 +300,14 @@
         .done(function (response) {
           if (response && response.districts) {
             self.populateDistrictSelector(response.districts);
-            if (self.debugMode) console.log('✅ Districts loaded:', response.districts.length, 'districts');
+            Drupal.AmISafeLogger.debug('✅ Districts loaded:', response.districts.length, 'districts');
           } else {
             self.populateDistrictSelector(self.getFallbackDistricts());
-            if (self.debugMode) console.log('⚠️ Using fallback districts');
+            Drupal.AmISafeLogger.debug('⚠️ Using fallback districts');
           }
         })
         .fail(function (xhr) {
-          console.warn('Districts API failed, using fallback data');
+          Drupal.AmISafeLogger.warn('Districts API failed, using fallback data');
           self.populateDistrictSelector(self.getFallbackDistricts());
         });
 
@@ -312,7 +315,7 @@
       
       // Wait for all filter options to load before enabling interactions
       Promise.all(promises).finally(function() {
-        if (self.debugMode) console.log('🏁 All filter options loaded');
+        Drupal.AmISafeLogger.debug('🏁 All filter options loaded');
         self.enableFilterInteractions();
       });
     },
@@ -361,7 +364,7 @@
       $('.filter-section select').prop('disabled', false);
       $('.filter-actions button').prop('disabled', false);
       
-      if (this.debugMode) console.log('🎛️ Filter interactions enabled');
+      Drupal.AmISafeLogger.debug('🎛️ Filter interactions enabled');
     },
 
     /**
@@ -371,7 +374,7 @@
       var select = $('#crime-type-selector');
       
       if (select.length === 0) {
-        console.error('Crime type selector not found!');
+        Drupal.AmISafeLogger.error('Crime type selector not found!');
         return;
       }
       
@@ -399,7 +402,7 @@
       var select = $('#district-selector');
       
       if (select.length === 0) {
-        console.error('District selector not found!');
+        Drupal.AmISafeLogger.error('District selector not found!');
         return;
       }
       
@@ -537,7 +540,7 @@
       this.showLoading('APPLYING FILTERS...');
       
       var filters = this.getCurrentFilters();
-      if (this.debugMode) console.log('Applying filters:', filters);
+      Drupal.AmISafeLogger.debug('Applying filters:', filters);
       
       // Reload hexagon data with filters
       this.loadHexagonData(filters);
@@ -619,7 +622,7 @@
     loadInitialData: function () {
       this.showLoading('LOADING CRIME DATA...');
       
-      if (this.debugMode) console.log('📊 Starting optimized data loading sequence...');
+      Drupal.AmISafeLogger.debug('📊 Starting optimized data loading sequence...');
       
       // Load hexagon data for initial view
       this.loadHexagonData();
@@ -644,8 +647,8 @@
       
       // Preload one resolution higher and lower for smooth zooming
       var preloadResolutions = [
-        Math.max(8, currentResolution - 1),
-        Math.min(15, currentResolution + 1)
+        Math.max(6, currentResolution - 1),
+        Math.min(13, currentResolution + 1)
       ];
       
       var self = this;
@@ -667,7 +670,7 @@
       
       // Only preload if not already cached
       if (!this.dataCache.has(cacheKey)) {
-        if (this.debugMode) console.log('🔄 Preloading resolution', resolution);
+        Drupal.AmISafeLogger.debug('🔄 Preloading resolution', resolution);
         
         $.ajax({
           url: this.settings.apiEndpoints.aggregated,
@@ -684,10 +687,10 @@
               data: response,
               timestamp: Date.now()
             });
-            if (this.debugMode) console.log('✅ Preloaded resolution', resolution);
+            Drupal.AmISafeLogger.debug('✅ Preloaded resolution', resolution);
           }.bind(this),
           error: function() {
-            if (this.debugMode) console.log('❌ Preload failed for resolution', resolution);
+            Drupal.AmISafeLogger.debug('❌ Preload failed for resolution', resolution);
           }.bind(this)
         });
       }
@@ -716,7 +719,7 @@
       if (this.dataCache.has(cacheKey)) {
         // PERFORMANCE: Track cache hit
         this.cacheHitCount++;
-        if (this.debugMode) console.log(`💾 CACHE HIT ${this.cacheHitCount}: Using cached data for ${cacheKey}`);
+        Drupal.AmISafeLogger.debug(`💾 CACHE HIT ${this.cacheHitCount}: Using cached data for ${cacheKey}`);
         var cachedEntry = this.dataCache.get(cacheKey);
         var cachedResponse = cachedEntry.data || cachedEntry; // Handle both old and new format
         if (cachedResponse.hexagons && Array.isArray(cachedResponse.hexagons)) {
@@ -744,22 +747,22 @@
       
       // PERFORMANCE CHECK: Skip reload if nothing significant changed
       if (!filtersChanged && !resolutionChanged && !boundsChanged) {
-        if (this.debugMode) console.log('⚡ PERFORMANCE: No changes detected, skipping reload');
+        Drupal.AmISafeLogger.debug('⚡ PERFORMANCE: No changes detected, skipping reload');
         return;
       }
       
       // Cancel any pending request
       if (this.currentRequest && this.currentRequest.readyState !== 4) {
-        if (this.debugMode) console.log('🚫 Cancelling previous request');
+        Drupal.AmISafeLogger.debug('🚫 Cancelling previous request');
         this.currentRequest.abort();
       }
       
       if (this.debugMode) {
-        console.log('🎯 LOADING: Zoom=' + zoom + ' → H3=' + resolution + ' (' + this.getResolutionDescription(resolution) + ')');
-        if (filtersChanged) console.log('🔧 Filters changed');
-        if (resolutionChanged) console.log('🔍 Resolution changed: ' + this.lastLoadedResolution + ' → ' + resolution);
+        Drupal.AmISafeLogger.info('🎯 LOADING: Zoom=' + zoom + ' → H3=' + resolution + ' (' + this.getResolutionDescription(resolution) + ')');
+        if (filtersChanged) Drupal.AmISafeLogger.info('🔧 Filters changed');
+        if (resolutionChanged) Drupal.AmISafeLogger.info('🔍 Resolution changed: ' + this.lastLoadedResolution + ' → ' + resolution);
       }
-      if (boundsChanged) console.log('�️ Bounds changed');
+      if (boundsChanged) Drupal.AmISafeLogger.info('🗺️ Bounds changed');
       
       // Build API request parameters
       var params = {
@@ -808,15 +811,28 @@
       
       // PERFORMANCE: Track API call
       this.apiCallCount++;
-      if (this.debugMode) console.log(`🔍 API CALL ${this.apiCallCount}: Cache miss for ${cacheKey}`);
+      Drupal.AmISafeLogger.debug(`🔍 API CALL ${this.apiCallCount}: Cache miss for ${cacheKey}`);
+
+      // Choose API endpoint based on resolution level
+      var apiUrl = this.settings.apiEndpoints.aggregated;
+      var timeout = 10000;
+      
+      // Use ultra-precision endpoint for Resolution 12-13
+      if (resolution >= 12) {
+        apiUrl = this.settings.apiEndpoints.ultraPrecision || '/api/amisafe/ultra-precision';
+        timeout = 20000; // Longer timeout for ultra-precision queries
+        params.limit = 5000; // Higher limit for ultra-precision
+        
+        Drupal.AmISafeLogger.debug('🎯 ULTRA-PRECISION MODE: Resolution ' + resolution + ' with extended timeout');
+      }
 
       // Make API request and store reference for cancellation
       this.currentRequest = $.ajax({
-        url: this.settings.apiEndpoints.aggregated,
+        url: apiUrl,
         method: 'GET',
         data: params,
         dataType: 'json',
-        timeout: 10000,
+        timeout: timeout,
         success: function (response) {
           // Cache the response for future use
           self.dataCache.set(cacheKey, {
@@ -830,12 +846,12 @@
           // Clean old cache entries if cache gets too large
           self.cleanupCache();
           
-          if (self.debugMode) console.log('🔥 API RESPONSE: H3=' + (response.meta ? response.meta.resolution : 'unknown') + ' returned ' + (response.hexagons ? response.hexagons.length : 0) + ' hexagons');
-          if (self.debugMode) console.log('💾 Cached response with key:', cacheKey, '(Cache size:', self.dataCache.size + ')');
+          Drupal.AmISafeLogger.debug('🔥 API RESPONSE: H3=' + (response.meta ? response.meta.resolution : 'unknown') + ' returned ' + (response.hexagons ? response.hexagons.length : 0) + ' hexagons');
+          Drupal.AmISafeLogger.debug('💾 Cached response with key:', cacheKey, '(Cache size:', self.dataCache.size + ')');
           
           // Extra debugging for high-res responses
           if (self.debugMode && response.meta && response.meta.resolution >= 12) {
-            console.log('⚡ EXTREME DETAIL CONFIRMED: Resolution ' + response.meta.resolution + ' with ' + response.hexagons.length + ' high-precision hexagons');
+            Drupal.AmISafeLogger.info('⚡ EXTREME DETAIL CONFIRMED: Resolution ' + response.meta.resolution + ' with ' + response.hexagons.length + ' high-precision hexagons');
           }
           
           if (response.hexagons && Array.isArray(response.hexagons)) {
@@ -858,14 +874,14 @@
               activeSectors
             );
           } else {
-            if (self.debugMode) console.warn('Invalid API response format');
+            Drupal.AmISafeLogger.warn('Invalid API response format');
             self.loadSampleData(); // Fallback to sample data
           }
           self.hideLoading();
         },
         error: function (xhr, status, error) {
-          console.error('API Error:', status, error);
-          console.log('XHR Response:', xhr.responseText);
+          Drupal.AmISafeLogger.error('API Error:', status, error);
+          Drupal.AmISafeLogger.debug('XHR Response:', xhr.responseText);
           
           // Show error message but fallback to sample data for development
           self.showMessage('API Error: Using sample data for development');
@@ -921,42 +937,42 @@
     renderHexagons: function (hexagons) {
       this.hexagonLayer.clearLayers();
       
-      console.log('Rendering', hexagons.length, 'hexagons');
-      console.log('H3 library available:', !!window.h3);
+      Drupal.AmISafeLogger.info('Rendering', hexagons.length, 'hexagons');
+      Drupal.AmISafeLogger.debug('H3 library available:', !!window.h3);
       
       // Add visible debugging panel
       this.showDebugPanel(window.h3);
       
       if (window.h3) {
-        console.log('H3 object keys (first 20):', Object.keys(h3).slice(0, 20));
-        console.log('H3 function availability check:');
+        Drupal.AmISafeLogger.debug('H3 object keys (first 20):', Object.keys(h3).slice(0, 20));
+        Drupal.AmISafeLogger.debug('H3 function availability check:');
         const funcNames = ['cellToBoundary', 'h3ToGeoBoundary', 'cellToVertex', 'cellToVertexes', 'h3ToGeo', 'latLngToCell', 'cellToLatLng'];
         funcNames.forEach(name => {
-          console.log(`  ${name}:`, typeof h3[name], h3[name] ? '✅' : '❌');
+          Drupal.AmISafeLogger.debug(`  ${name}:`, typeof h3[name], h3[name] ? '✅' : '❌');
         });
         
         // Quick coordinate format test
-        console.log('🧪 COORDINATE FORMAT TEST:');
-        console.log('Testing H3 with known Philadelphia location...');
+        Drupal.AmISafeLogger.debug('🧪 COORDINATE FORMAT TEST:');
+        Drupal.AmISafeLogger.debug('Testing H3 with known Philadelphia location...');
         try {
           // Center of Philadelphia
           var testLat = 39.9526;
           var testLng = -75.1652;
-          console.log('Input coordinates:', testLat, testLng);
+          Drupal.AmISafeLogger.debug('Input coordinates:', testLat, testLng);
           
           // Get H3 index for this location
           var testCell = h3.latLngToCell(testLat, testLng, 9);
-          console.log('Generated H3 index:', testCell);
+          Drupal.AmISafeLogger.debug('Generated H3 index:', testCell);
           
           // Get boundary
           var testBoundary = h3.cellToBoundary(testCell, true);
-          console.log('H3 boundary result:', testBoundary);
-          console.log('First coordinate in boundary:', testBoundary[0]);
-          console.log('Coordinate format check:');
-          console.log('  Is [lat, lng]?', testBoundary[0][0] > 35 && testBoundary[0][0] < 45);
-          console.log('  Is [lng, lat]?', testBoundary[0][0] < -70 && testBoundary[0][0] > -80);
+          Drupal.AmISafeLogger.debug('H3 boundary result:', testBoundary);
+          Drupal.AmISafeLogger.debug('First coordinate in boundary:', testBoundary[0]);
+          Drupal.AmISafeLogger.debug('Coordinate format check:');
+          Drupal.AmISafeLogger.debug('  Is [lat, lng]?', testBoundary[0][0] > 35 && testBoundary[0][0] < 45);
+          Drupal.AmISafeLogger.debug('  Is [lng, lat]?', testBoundary[0][0] < -70 && testBoundary[0][0] > -80);
         } catch (e) {
-          console.error('Coordinate test failed:', e);
+          Drupal.AmISafeLogger.error('Coordinate test failed:', e);
         }
         
         // Confirmed: H3 v4+ returns coordinates in [lng, lat] format
@@ -1598,27 +1614,24 @@
 
     /**
      * Get optimal H3 resolution based on zoom level
-     * ENHANCED: Now supports 1-meter precision mapping!
-     * H3 Resolution System: 0 (continental) → 15 (sub-meter)
-     * Maximum Detail: 0.5 meters at zoom level 20+
+     * GOLD LAYER: Supports Resolution 6-13 ultra-precision mapping!
+     * Maximum Detail: Resolution 13 = 44m² (7m×7m) hexagons
      */
     getOptimalResolution: function (zoomLevel) {
-      // Enhanced resolution mapping for extreme detail capability
+      // Gold layer resolution mapping (6-13 available)
       var resolution;
-      if (zoomLevel <= 8)  resolution = 6;   // ~3.1 km - Neighborhoods  
-      else if (zoomLevel <= 10) resolution = 7;   // ~1.2 km - Large blocks
-      else if (zoomLevel <= 12) resolution = 8;   // ~460 m - City blocks
-      else if (zoomLevel <= 14) resolution = 9;   // ~174 m - Street level
-      else if (zoomLevel <= 16) resolution = 10;  // ~65 m - Building groups
-      else if (zoomLevel <= 17) resolution = 11;  // ~25 m - Individual buildings
-      else if (zoomLevel <= 18) resolution = 12;  // ~9 m - Building parts
-      else if (zoomLevel <= 19) resolution = 13;  // ~3.4 m - Rooms/parking spaces
-      else if (zoomLevel <= 20) resolution = 14;  // ~1.3 m - NEAR 1-METER DETAIL! 🎯
-      else resolution = 15;  // ~0.5 m - SUB-METER PRECISION! ⚡
+      if (zoomLevel <= 8)  resolution = 6;   // 36.1 km² - City-wide  
+      else if (zoomLevel <= 10) resolution = 7;   // 5.2 km² - District
+      else if (zoomLevel <= 12) resolution = 8;   // 0.7 km² - Neighborhood
+      else if (zoomLevel <= 14) resolution = 9;   // 0.1 km² - Block Group
+      else if (zoomLevel <= 16) resolution = 10;  // 15,047 m² - Block
+      else if (zoomLevel <= 17) resolution = 11;  // 2,150 m² - Building
+      else if (zoomLevel <= 18) resolution = 12;  // 307 m² - Room-level
+      else resolution = 13;  // 44 m² - ULTRA-PRECISION! ⚡
       
-      // Debug resolution calculation
-      if (zoomLevel >= 18) {
-        console.log('⚡ EXTREME RESOLUTION: Zoom ' + zoomLevel + ' → H3 ' + resolution + ' (' + this.getResolutionDescription(resolution) + ')');
+      // Debug ultra-precision activation
+      if (resolution >= 12) {
+        console.log('🎯 ULTRA-PRECISION ACTIVATED: Zoom ' + zoomLevel + ' → H3 ' + resolution + ' (' + this.getResolutionDescription(resolution) + ')');
       }
       
       return resolution;
@@ -1629,12 +1642,14 @@
      */
     getResolutionDescription: function (resolution) {
       var descriptions = {
-        6: '3.1km neighborhoods',
-        7: '1.2km large blocks', 
-        8: '460m city blocks',
-        9: '174m street level',
-        10: '65m building groups',
-        11: '25m individual buildings',
+        6: '36.1km² city-wide',
+        7: '5.2km² district', 
+        8: '0.7km² neighborhood',
+        9: '0.1km² block group',
+        10: '15,047m² block',
+        11: '2,150m² building',
+        12: '307m² room-level',
+        13: '44m² ULTRA-PRECISION',
         12: '9m building parts',
         13: '3.4m rooms/parking',
         14: '1.3m METER-DETAIL!',
@@ -2008,6 +2023,47 @@
     takeScreenshot: function () {
       console.log('Take screenshot');
       this.showMessage('Screenshot saved to neural storage');
+    },
+
+    /**
+     * Check system capabilities and ultra-precision availability
+     */
+    checkSystemCapabilities: function () {
+      var self = this;
+      
+      // Make request to system stats endpoint
+      $.ajax({
+        url: '/api/amisafe/system-stats',
+        method: 'GET',
+        dataType: 'json',
+        timeout: 5000,
+        success: function (response) {
+          self.systemCapabilities = response;
+          
+          if (response.system_capabilities && response.system_capabilities.ultra_precision_available) {
+            console.log('🎯 ULTRA-PRECISION SYSTEM ACTIVE');
+            console.log('   Resolution Range: ' + response.system_capabilities.resolution_range.min + '-' + response.system_capabilities.resolution_range.max);
+            console.log('   Total Hexagons: ' + (response.data_statistics.total_hexagons || 'Unknown'));
+            console.log('   Ultra-precision (R13): ' + (response.ultra_precision_stats.resolution_13_hexagons || 'Unknown'));
+            console.log('   Data Layer: ' + response.system_capabilities.current_layer);
+            
+            // Update UI elements if available
+            if ($('#system-capabilities').length) {
+              $('#system-capabilities').html(
+                '<div class="capability-item">✅ Ultra-precision Available</div>' +
+                '<div class="capability-item">🎯 Resolution 13: ' + (response.ultra_precision_stats.resolution_13_hexagons || 0) + ' hexagons</div>' +
+                '<div class="capability-item">⚡ Gold Layer Analytics Active</div>'
+              );
+            }
+          } else {
+            console.warn('❌ Ultra-precision not available');
+          }
+        },
+        error: function (xhr, status, error) {
+          console.warn('System capabilities check failed:', error);
+          // Continue without capabilities info
+        }
+      });
     }
   };
 

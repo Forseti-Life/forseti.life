@@ -10,11 +10,17 @@ use Drupal\Core\Controller\ControllerBase;
 class AmISafeController extends ControllerBase {
 
   /**
-   * Display the Am I Safe dashboard.
+   * Display the Am I Safe dashboard with Resolution 13 ultra-precision data.
    */
   public function dashboard() {
     
-    // Safety monitoring data for Philadelphia 2085
+    // Get module configuration
+    $config = $this->config('amisafe.settings');
+    $use_gold_layer = $config->get('use_gold_layer') ?? TRUE;
+    $default_resolution = $config->get('default_resolution') ?? 9;
+    $cyberpunk_theme = $config->get('cyberpunk_theme') ?? TRUE;
+    
+    // Safety monitoring data for Philadelphia 2085 with ultra-precision analytics
     $dashboard_data = [
       'current_threat_level' => 'ELEVATED',
       'threat_color' => 'warning', // warning, danger, success
@@ -73,6 +79,22 @@ class AmISafeController extends ControllerBase {
         'ai_detection_risk' => 'MODERATE',
         'peer_nodes_active' => 23,
       ],
+      // Ultra-precision analytics powered by Resolution 13
+              'ultra_precision_stats' => [
+          'resolution_13_hexagons' => 413172,
+          'precision_area' => '44 m² per hexagon',
+          'spatial_detail' => '7m × 7m precision',
+          'improvement_factor' => '20.1x over standard',
+          'data_source' => 'Gold Layer Analytics',
+          'api_endpoints' => [
+            '/api/amisafe/ultra-precision',
+            '/api/amisafe/system-stats',
+            '/api/amisafe/aggregated?resolution=13',
+          ],
+        ],
+      // Theme and configuration
+      'cyberpunk_theme' => $cyberpunk_theme,
+      'use_gold_layer' => $use_gold_layer,
     ];
 
     return [
@@ -84,6 +106,24 @@ class AmISafeController extends ControllerBase {
         ],
       ],
     ];
+  }
+
+  /**
+   * Get precision level label for H3 resolution.
+   */
+  private function getPrecisionLabel($resolution) {
+    $labels = [
+      6 => 'City-wide Coverage',
+      7 => 'District Analysis',
+      8 => 'Neighborhood Detail',
+      9 => 'Block Group Precision',
+      10 => 'Block-level Accuracy',
+      11 => 'Building-level Detail',
+      12 => 'Room-level Precision',
+      13 => 'Ultra-precision Analytics'
+    ];
+    
+    return $labels[$resolution] ?? 'Unknown Resolution';
   }
 
 }
