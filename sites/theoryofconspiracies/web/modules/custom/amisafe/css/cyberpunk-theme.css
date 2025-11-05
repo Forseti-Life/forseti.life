@@ -527,6 +527,69 @@
 
 /* Don't interfere with map layout at all - let Leaflet handle it naturally */
 
+/* Zoom Level Indicator */
+.zoom-indicator {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 20, 40, 0.9);
+  border: 1px solid var(--neon-blue);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--neon-blue);
+  box-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
+  z-index: 1000;
+  min-width: 200px;
+}
+
+.zoom-indicator .zoom-label,
+.zoom-indicator .resolution-label {
+  color: var(--terminal-green);
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+.zoom-indicator #zoom-level,
+.zoom-indicator #h3-resolution {
+  color: var(--neon-blue);
+  font-weight: bold;
+  margin-right: 8px;
+}
+
+.zoom-indicator .scale-label {
+  color: var(--cyber-yellow);
+  font-style: italic;
+  margin-left: 4px;
+}
+
+/* Ensure zoom indicator works in minimal mode */
+.minimal-mode .zoom-indicator {
+  background: rgba(20, 20, 20, 0.95);
+  border-color: #00ff41;
+  color: #00ff41;
+}
+
+.minimal-mode .zoom-indicator .zoom-label,
+.minimal-mode .zoom-indicator .resolution-label {
+  color: #00ff41;
+}
+
+.minimal-mode .zoom-indicator #zoom-level,
+.minimal-mode .zoom-indicator #h3-resolution {
+  color: #00bfff;
+}
+
+.minimal-mode .zoom-indicator .scale-label {
+  color: #ffff00;
+}
+
+.minimal-mode .scanning-overlay,
+.minimal-mode .loading-overlay {
+  display: none !important;
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   * {
