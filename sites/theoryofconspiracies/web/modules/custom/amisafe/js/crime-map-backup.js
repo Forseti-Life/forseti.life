@@ -197,18 +197,7 @@
         $(this).addClass('active');
       });
 
-      // Map control buttons
-      $('#fullscreen-btn').on('click', function () {
-        self.toggleFullscreen();
-      });
-
-      $('#reset-view-btn').on('click', function () {
-        self.resetView();
-      });
-
-      $('#screenshot-btn').on('click', function () {
-        self.takeScreenshot();
-      });
+      // Map control buttons removed (fullscreen, reset-view, screenshot)
       
       // Manual zoom refresh button for debugging
       $('#refresh-zoom').on('click', function () {
