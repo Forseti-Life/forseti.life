@@ -24,6 +24,7 @@
         "drupal/devel": "^5.4",
         "drupal/metatag": "^2.2",
         "drupal/pathauto": "^1.14",
+        "drupal/radix": "^6.0",
         "drush/drush": "^13.6"
     },
     "conflict": {

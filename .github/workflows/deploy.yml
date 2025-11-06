@@ -341,8 +341,15 @@ jobs:
             echo "✅ composer.lock deployed"
           fi
           
-          # Install/update composer dependencies
+          # Ensure Radix theme is present before composer install
           cd "$DRUPAL_ROOT"
+          echo "Checking for Radix theme dependency..."
+          if ! grep -q "drupal/radix" composer.json; then
+            echo "⚠️ Adding missing Radix theme dependency..."
+            sudo -u www-data composer require drupal/radix:^6.0 --no-update
+          fi
+          
+          # Install/update composer dependencies
           if sudo -u www-data composer install --no-dev --optimize-autoloader; then
             echo "✅ Composer dependencies updated"
           else
@@ -365,6 +372,15 @@ jobs:
             fi
           else
             echo "⚠️ theory_content module not found in $DRUPAL_ROOT/web/modules/custom/"
+          fi
+          
+          # Ensure Radix theme is enabled
+          echo "Ensuring Radix theme is enabled..."
+          if ! sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^radix$"; then
+            sudo -u www-data ./vendor/bin/drush theme:enable radix -y || echo "⚠️ Failed to enable Radix theme"
+            echo "✅ Radix theme enabled"
+          else
+            echo "✅ Radix theme already enabled"
           fi
           
           # Set the front page to use the theory_content home route
