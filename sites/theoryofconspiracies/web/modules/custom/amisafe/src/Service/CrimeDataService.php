@@ -48,11 +48,11 @@ class CrimeDataService {
 
   /**
    * Get pre-aggregated H3 hexagon data from Gold layer (final aggregations).
-   * Resolution 13 Ultra-Precision: Access to 413,172 hexagon analytics.
+   * Resolution 4-13: From metro-wide coverage to ultra-precision analytics.
    */
   public function getH3Aggregations($resolution = 9, $filters = [], $page = 0, $limit = 1000) {
-    // Validate resolution parameter (now supports Resolution 5-13)
-    if (empty($resolution) || !is_numeric($resolution) || $resolution < 5 || $resolution > 13) {
+    // Validate resolution parameter (now supports Resolution 4-13)
+    if (empty($resolution) || !is_numeric($resolution) || $resolution < 4 || $resolution > 13) {
       $resolution = 9; // Default fallback
     }
     
@@ -774,13 +774,10 @@ class CrimeDataService {
       $query->condition('h3_index', $filters['h3_index']);
     }
 
-    if (!empty($filters['district'])) {
-      // Filter by district presence in district_counts JSON
-      $query->where("JSON_SEARCH(district_counts, 'one', :district) IS NOT NULL", [
-        ':district' => $filters['district']
-      ]);
-    }
+    // Log filters for debugging
+    \Drupal::logger('amisafe')->info('H3 Filters received: @filters', ['@filters' => print_r($filters, TRUE)]);
 
+    // Apply incident count filters
     if (!empty($filters['min_incidents'])) {
       $query->condition('incident_count', $filters['min_incidents'], '>=');
     }
@@ -789,16 +786,31 @@ class CrimeDataService {
       $query->condition('incident_count', $filters['max_incidents'], '<=');
     }
 
-    if (!empty($filters['crime_type'])) {
-      // Filter by crime type presence in incident_type_counts JSON
-      $query->where("JSON_SEARCH(incident_type_counts, 'one', :crime_type) IS NOT NULL", [
-        ':crime_type' => $filters['crime_type']
-      ]);
+    // Handle districts filter - using simple LIKE approach for JSON fields
+    if (!empty($filters['districts'])) {
+      $districts = is_array($filters['districts']) ? $filters['districts'] : [$filters['districts']];
+      $district_conditions = $query->orConditionGroup();
+      foreach ($districts as $district) {
+        // Use LIKE to search for district in JSON - simpler than JSON_SEARCH
+        $district_conditions->condition('district_counts', '%"' . $district . '"%', 'LIKE');
+      }
+      $query->condition($district_conditions);
+      \Drupal::logger('amisafe')->info('Applied districts filter: @districts', ['@districts' => implode(',', $districts)]);
     }
 
-    if (!empty($filters['min_quality_score'])) {
-      $query->condition('avg_data_quality_score', $filters['min_quality_score'], '>=');
+    // Handle crime_types filter - using simple LIKE approach for JSON fields
+    if (!empty($filters['crime_types'])) {
+      $crime_types = is_array($filters['crime_types']) ? $filters['crime_types'] : [$filters['crime_types']];
+      $crime_conditions = $query->orConditionGroup();
+      foreach ($crime_types as $crime_type) {
+        // Use LIKE to search for crime type in JSON - simpler than JSON_SEARCH
+        $crime_conditions->condition('incident_type_counts', '%"' . $crime_type . '"%', 'LIKE');
+      }
+      $query->condition($crime_conditions);
+      \Drupal::logger('amisafe')->info('Applied crime_types filter: @types', ['@types' => implode(',', $crime_types)]);
     }
+
+
   }
 
   /**

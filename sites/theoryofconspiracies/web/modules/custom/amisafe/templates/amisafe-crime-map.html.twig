@@ -44,19 +44,6 @@
           <div class="filter-helper">Hold Ctrl/Cmd to select multiple</div>
         </div>
         
-        <!-- Severity Level Filter -->
-        <div class="filter-section">
-          <label class="filter-label">THREAT SEVERITY</label>
-          <select id="severity-selector" class="cyber-select-multi" multiple>
-            <option value="1" selected>LEVEL 1 - LOW</option>
-            <option value="2" selected>LEVEL 2 - MODERATE</option>
-            <option value="3" selected>LEVEL 3 - HIGH</option>
-            <option value="4" selected>LEVEL 4 - CRITICAL</option>
-            <option value="5" selected>LEVEL 5 - EXTREME</option>
-          </select>
-          <div class="filter-helper">Select threat levels to display</div>
-        </div>
-        
         <!-- Date Range Selectors -->
         <div class="filter-section">
           <label class="filter-label">TIME PERIOD</label>
@@ -117,7 +104,6 @@
             <button id="preset-violent" class="cyber-button preset-btn" data-preset="violent">VIOLENT CRIMES</button>
             <button id="preset-property" class="cyber-button preset-btn" data-preset="property">PROPERTY CRIMES</button>
             <button id="preset-recent" class="cyber-button preset-btn" data-preset="recent">RECENT (30 DAYS)</button>
-            <button id="preset-high-severity" class="cyber-button preset-btn" data-preset="high-severity">HIGH SEVERITY</button>
           </div>
         </div>
         
@@ -137,33 +123,11 @@
           </div>
         </div>
 
-        <!-- H3 Debug Panel -->
-        <div class="filter-section debug-section">
-          <label class="filter-label">H3 LIBRARY DEBUG</label>
-          <div id="h3-debug-status" class="debug-status">
-            <div class="debug-info">
-              <div class="debug-line">
-                <span class="debug-label">Available:</span>
-                <span id="h3-available" class="debug-value">--</span>
-              </div>
-              <div class="debug-functions" id="h3-functions">
-                <!-- Populated by JavaScript -->
-              </div>
-              <div class="debug-line">
-                <span class="debug-label">Total Methods:</span>
-                <span id="h3-method-count" class="debug-value">--</span>
-              </div>
-              <div class="debug-line">
-                <span class="debug-label">Test Call:</span>
-                <span id="h3-test-result" class="debug-value">--</span>
-              </div>
-            </div>
-            <div class="debug-actions">
-              <button id="center-hexagons-btn" class="cyber-button debug-btn">📍 CENTER ON HEXAGONS</button>
-              <button id="refresh-data-btn" class="cyber-button debug-btn">🔄 REFRESH DATA</button>
-              <button id="toggle-overlays-btn" class="cyber-button debug-btn">⚡ TOGGLE OVERLAYS</button>
-              <button id="performance-stats-btn" class="cyber-button debug-btn">📊 PERFORMANCE STATS</button>
-            </div>
+        <!-- Map Controls -->
+        <div class="filter-section">
+          <label class="filter-label">MAP CONTROLS</label>
+          <div class="preset-buttons">
+            <button id="fit-hexagons-btn" class="cyber-button">📍 CENTER ON DATA</button>
           </div>
         </div>
         

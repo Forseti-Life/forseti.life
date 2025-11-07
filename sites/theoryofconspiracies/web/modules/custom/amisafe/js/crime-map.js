@@ -184,7 +184,6 @@
       this.currentFilters = {
         crimeTypes: [],
         districts: [],
-        severity: [1, 2, 3, 4, 5],
         startMonth: '01',
         endMonth: '12',
         timePeriods: ['early-morning', 'morning', 'afternoon', 'evening'],
@@ -201,6 +200,18 @@
       
       $('#clear-filters').on('click', function() {
         self.clearAllFilters();
+      });
+
+      // Manual filtering only - no auto-apply to prevent data loss
+      $('#crime-type-selector, #district-selector, #time-period-selector').on('change', function() {
+        console.log('🔄 Filter dropdown changed - use Apply Filters button to apply');
+        // No auto-apply - user must click Apply Filters button
+      });
+
+      // Manual filtering only - no auto-apply to prevent data loss  
+      $('#start-month, #end-month').on('change', function() {
+        console.log('🔄 Date range changed - use Apply Filters button to apply');
+        // No auto-apply - user must click Apply Filters button
       });
       
       // View mode buttons
@@ -230,22 +241,7 @@
         $(this).addClass('active');
       });
       
-      // Debug panel buttons
-      $('#center-hexagons-btn').on('click', function() {
-        self.fitMapToHexagons();
-      });
-      
-      $('#refresh-data-btn').on('click', function() {
-        self.loadHexagonData();
-      });
-      
-      $('#toggle-overlays-btn').on('click', function() {
-        self.toggleDebugOverlays();
-      });
-      
-      $('#performance-stats-btn').on('click', function() {
-        self.showPerformanceStats();
-      });
+      // Map control buttons - fit-hexagons-btn is already handled in initializeControls()
       
       console.log('🔧 Filters initialized with full functionality');
     },
@@ -396,15 +392,16 @@
      * Get optimal H3 resolution based on zoom level
      */
     getOptimalResolution: function(zoomLevel) {
-      if (zoomLevel <= 6) return 5;        // 251 km² - Philadelphia citywide
-      else if (zoomLevel <= 8) return 6;   // 36.1 km² - City districts  
-      else if (zoomLevel <= 10) return 7;  // 5.2 km² - District detail
-      else if (zoomLevel <= 12) return 8;  // 0.7 km² - Neighborhood
-      else if (zoomLevel <= 14) return 9;  // 0.1 km² - Block Group
-      else if (zoomLevel <= 16) return 10; // 15,047 m² - Block
-      else if (zoomLevel <= 17) return 11; // 2,150 m² - Building
-      else if (zoomLevel <= 18) return 12; // 307 m² - Room-level
-      else return 13;                      // 44 m² - Ultra-precision
+      if (zoomLevel <= 9) return 4;        // ~1,770 km² - Complete metro area coverage
+      else if (zoomLevel <= 10) return 5;  // ~251 km² - Metro districts
+      else if (zoomLevel <= 11) return 6;  // ~36 km² - City areas
+      else if (zoomLevel <= 12) return 7;  // ~5.2 km² - Neighborhoods
+      else if (zoomLevel <= 13) return 8;  // ~0.7 km² - Block groups  
+      else if (zoomLevel <= 14) return 9;  // ~0.1 km² - Street blocks
+      else if (zoomLevel <= 15) return 10; // ~15,047 m² - Building groups
+      else if (zoomLevel <= 16) return 11; // ~2,150 m² - Individual buildings
+      else if (zoomLevel <= 17) return 12; // ~307 m² - Room-level precision
+      else return 13;                      // ~44 m² - Ultra-precision
     },
 
     /**
@@ -412,15 +409,16 @@
      */
     getResolutionDescription: function(resolution) {
       const descriptions = {
-        5: '~251km² citywide',
-        6: '~36km² districts',
-        7: '~5.2km² areas', 
-        8: '~0.7km² neighborhoods',
-        9: '~0.1km² blocks',
-        10: '~15,047m² blocks',
+        4: '~1,770km² metro-wide',
+        5: '~251km² districts',
+        6: '~36km² city areas',
+        7: '~5.2km² neighborhoods',
+        8: '~0.7km² block groups', 
+        9: '~0.1km² street blocks',
+        10: '~15,047m² building groups',
         11: '~2,150m² buildings',
         12: '~307m² rooms',
-        13: '~44m² precision'
+        13: '~44m² ultra-precision'
       };
       return descriptions[resolution] || 'unknown';
     },
@@ -431,6 +429,7 @@
     loadInitialData: function() {
       this.showLoading('LOADING CRIME DATA...');
       this.shouldAutoFit = true; // Allow auto-fit for initial load
+      this.isInitialLoad = true; // Flag to skip filters on initial load
       this.loadHexagonData();
       
       // Load citywide stats
@@ -445,10 +444,37 @@
     loadHexagonData: function() {
       const zoom = this.map.getZoom();
       const resolution = this.getOptimalResolution(zoom);
-      const bounds = this.map.getBounds();
-      const filters = this.getCurrentFilters();
+      let bounds = this.map.getBounds();
+      // Only apply filters when explicitly requested (not on initial load or zoom changes)
+      let filters = {}; // Default to no filters to show all data
       
       console.log(`📊 Loading H3 Resolution ${resolution} data...`);
+      
+      // DEBUG: For H3:5, try a much broader bounds to see if data exists
+      if (resolution === 5) {
+        console.log('🔍 H3:5 requested - using broader bounds for metro area coverage');
+        // Expand bounds significantly for H3:5 since these are large hexagons (~251km² each)
+        // Need to cover multiple H3:5 hexagons to encompass entire Philadelphia metro area
+        const center = bounds.getCenter();
+        const expandedBounds = L.latLngBounds(
+          [center.lat - 2, center.lng - 2],  // Much larger area for multiple H3:5 hexagons
+          [center.lat + 2, center.lng + 2]
+        );
+        console.log('🔍 Original bounds:', bounds.toString());
+        console.log('🔍 Expanded bounds for H3:5 (metro area):', expandedBounds.toString());
+        bounds = expandedBounds;
+        
+        // TEMPORARILY: Clear filters for H3:5 to test if filters are blocking the hexagon
+        console.log('🧪 Temporarily clearing filters for H3:5 debugging...');
+        filters = {
+          crimeTypes: [],
+          districts: [],
+          startMonth: '01',
+          endMonth: '12',
+          timePeriods: [],
+          viewMode: 'hexagon'
+        };
+      }
       
       // Cancel previous request
       if (this.currentRequest) {
@@ -465,8 +491,52 @@
         timeout: 30000
       })
       .done((data) => {
+        console.log('📊 Received filtered data:', {
+          hexagons: data.hexagons ? data.hexagons.length : 0,
+          resolution: data.meta ? data.meta.resolution : 'unknown',
+          filters: data.meta ? data.meta.filters : 'none'
+        });
+        
+        // Debug: Check for H3:5 hexagons in received data
+        if (data.hexagons && data.hexagons.length > 0) {
+          const h3_5_hexagons = data.hexagons.filter(hex => {
+            if (window.h3 && hex.h3_index) {
+              return h3.getResolution(hex.h3_index) === 5;
+            }
+            return false;
+          });
+          if (h3_5_hexagons.length > 0) {
+            console.log('🔍 Found H3:5 hexagons in API data:', h3_5_hexagons.length);
+          } else if (resolution === 5) {
+            console.warn('⚠️ Expected H3:5 hexagons but none found in API response');
+          }
+        } else if (resolution === 5) {
+          // Test if H3:5 data exists at all with minimal filters
+          console.log('🧪 Testing if H3:5 data exists anywhere...');
+          const testUrl = '/api/amisafe/aggregated?resolution=5&limit=10';
+          fetch(testUrl)
+            .then(response => response.json())
+            .then(testData => {
+              if (testData.hexagons && testData.hexagons.length > 0) {
+                console.log('✅ H3:5 data EXISTS in database:', testData.hexagons.length, 'hexagons');
+                console.log('🔍 Sample H3:5 hexagon:', testData.hexagons[0]);
+              } else {
+                console.error('❌ NO H3:5 data found in database - backend aggregation issue');
+              }
+            })
+            .catch(error => {
+              console.error('❌ Error testing H3:5 data:', error);
+            });
+        }
+        
         this.renderHexagons(data);
         this.hideLoading();
+        
+        // Reset initial load flag after first successful data load
+        if (this.isInitialLoad) {
+          this.isInitialLoad = false;
+          console.log('🔄 Initial load complete, filters now active');
+        }
       })
       .fail((xhr, status, error) => {
         if (status !== 'abort') {
@@ -477,18 +547,77 @@
     },
 
     /**
+     * Load hexagon data WITH filters applied (only called from applyFilters)
+     */
+    loadHexagonDataWithFilters: function() {
+      const zoom = this.map.getZoom();
+      const resolution = this.getOptimalResolution(zoom);
+      let bounds = this.map.getBounds();
+      let filters = this.getCurrentFilters(); // Apply current filters
+      
+      console.log(`📊 Loading H3 Resolution ${resolution} data WITH FILTERS...`);
+      
+      // Cancel any ongoing request
+      if (this.currentRequest) {
+        this.currentRequest.abort();
+      }
+      
+      const apiUrl = this.buildApiUrl(resolution, bounds, filters);
+      
+      this.currentRequest = $.get(apiUrl)
+      .done((data) => {
+        console.log('📊 Received filtered data:', data);
+        
+        if (!data || !data.hexagons) {
+          console.warn('⚠️ No hexagon data in API response');
+          this.hideLoading();
+          return;
+        }
+        
+        if (data.hexagons.length === 0) {
+          console.log('📊 No hexagons match current filters');
+        }
+        
+        this.renderHexagons(data);
+        this.hideLoading();
+      })
+      .fail((xhr, status, error) => {
+        if (status !== 'abort') {
+          console.error('Filtered API request failed:', error);
+          this.hideLoading();
+        }
+      });
+    },
+
+    /**
      * Build API URL for hexagon data
      */
     buildApiUrl: function(resolution, bounds, filters) {
       const baseUrl = '/api/amisafe/aggregated';
-      const params = new URLSearchParams({
-        resolution: resolution,
-        bounds: bounds.getNorth() + ',' + bounds.getEast() + ',' + bounds.getSouth() + ',' + bounds.getWest(),
-        limit: 1000,
-        ...filters
-      });
+      const params = new URLSearchParams();
       
-      return `${baseUrl}?${params.toString()}`;
+      // Add basic parameters
+      params.append('resolution', resolution);
+      params.append('bounds', bounds.getNorth() + ',' + bounds.getEast() + ',' + bounds.getSouth() + ',' + bounds.getWest());
+      params.append('limit', 1000);
+      
+      // Add filter parameters if they exist
+      if (filters.crimeTypes && filters.crimeTypes.length > 0) {
+        params.append('crime_types', filters.crimeTypes.join(','));
+      }
+      if (filters.districts && filters.districts.length > 0) {
+        params.append('districts', filters.districts.join(','));
+      }
+      if (filters.startMonth) {
+        params.append('start_month', filters.startMonth);
+      }
+      if (filters.endMonth) {
+        params.append('end_month', filters.endMonth);
+      }
+      
+      const finalUrl = `${baseUrl}?${params.toString()}`;
+      console.log('🔗 API URL:', finalUrl);
+      return finalUrl;
     },
 
     /**
@@ -670,6 +799,16 @@
         return;
       }
       
+      // Debug logging for H3:5 hexagons
+      const h3Resolution = window.h3 ? h3.getResolution(h3Index) : 'unknown';
+      if (h3Resolution === 5) {
+        console.log('🔍 Rendering H3:5 hexagon:', {
+          h3Index: h3Index,
+          incidentCount: incidentCount,
+          resolution: h3Resolution
+        });
+      }
+      
       // Use H3 library to get boundary if available
       if (window.h3 && h3.cellToBoundary) {
         try {
@@ -678,6 +817,11 @@
           
           // Convert from H3 [lng, lat] to Leaflet [lat, lng] format
           const leafletCoords = boundary.map(coord => [coord[1], coord[0]]);
+          
+          // Debug logging for large hexagons
+          if (h3Resolution === 5) {
+            console.log('🔍 H3:5 boundary coordinates:', leafletCoords);
+          }
           
           // Calculate styling based on incident count
           const style = this.calculateHexagonStyle(incidentCount);
@@ -697,14 +841,24 @@
           }
           
           polygon.addTo(this.hexagonLayer);
+          
+          // Success logging for H3:5
+          if (h3Resolution === 5) {
+            console.log('✅ H3:5 hexagon successfully rendered');
+          }
+          
           return polygon; // Return polygon for bounds tracking
           
         } catch (error) {
           console.warn('Failed to render hexagon', h3Index, ':', error);
+          if (h3Resolution === 5) {
+            console.error('❌ H3:5 hexagon rendering failed:', error);
+          }
           return this.createFallbackCircle(hexagon);
         }
       } else {
         // Fallback to circle if H3 library not available
+        console.warn('H3 library not available, using fallback circle for:', h3Index);
         return this.createFallbackCircle(hexagon);
       }
     },
@@ -781,7 +935,7 @@
       console.log('📈 Loading citywide statistics...');
       
       $.ajax({
-        url: '/api/amisafe/system-stats',
+        url: '/api/amisafe/citywide-stats',
         method: 'GET',
         dataType: 'json',
         timeout: 5000,
@@ -869,7 +1023,10 @@
         url: '/api/amisafe/crime-types',
         method: 'GET',
         success: function(data) {
-          self.populateCrimeTypes(data);
+          // Handle API response format - extract crime_types array from response
+          const crimeTypes = data.crime_types || data || [];
+          console.log('📊 Crime types data received:', crimeTypes);
+          self.populateCrimeTypes(crimeTypes);
         },
         error: function() {
           console.warn('Failed to load crime types, using defaults');
@@ -882,16 +1039,16 @@
         url: '/api/amisafe/districts',
         method: 'GET',
         success: function(data) {
-          self.populateDistricts(data);
+          // Handle API response format - extract districts array from response
+          const districts = data.districts || data || [];
+          console.log('🏘️ Districts data received:', districts);
+          self.populateDistricts(districts);
         },
         error: function() {
           console.warn('Failed to load districts, using defaults');
           self.populateDistricts(self.getDefaultDistricts());
         }
       });
-      
-      // Initialize H3 debug info
-      this.initializeH3Debug();
     },
 
     /**
@@ -933,12 +1090,30 @@
       const selector = $('#crime-type-selector');
       selector.empty();
       
-      crimeTypes.forEach(type => {
+      let processedTypes = [];
+      
+      // Handle different data formats
+      if (Array.isArray(crimeTypes)) {
+        // Already an array of objects with value/label
+        processedTypes = crimeTypes;
+      } else if (typeof crimeTypes === 'object' && crimeTypes !== null) {
+        // Object format: {100: 'Murder', 200: 'Rape', ...}
+        processedTypes = Object.entries(crimeTypes).map(([key, value]) => ({
+          value: key,
+          label: value
+        }));
+      } else {
+        console.warn('Crime types data format not recognized:', crimeTypes);
+        processedTypes = this.getDefaultCrimeTypes();
+      }
+      
+      processedTypes.forEach(type => {
         selector.append(`<option value="${type.value}" selected>${type.label}</option>`);
       });
       
       // Update current filters
-      this.currentFilters.crimeTypes = crimeTypes.map(t => t.value);
+      this.currentFilters.crimeTypes = processedTypes.map(t => t.value);
+      console.log('✅ Crime types populated:', processedTypes.length, 'types');
     },
 
     /**
@@ -948,12 +1123,33 @@
       const selector = $('#district-selector');
       selector.empty();
       
-      districts.forEach(district => {
+      let processedDistricts = [];
+      
+      // Handle different data formats
+      if (Array.isArray(districts)) {
+        // Check if first element has value/label structure
+        if (districts.length > 0 && typeof districts[0] === 'object' && districts[0].value) {
+          // Already an array of objects with value/label
+          processedDistricts = districts;
+        } else {
+          // Simple array of strings/numbers: ['1', '2', '3', ...]
+          processedDistricts = districts.map(district => ({
+            value: district,
+            label: `DISTRICT ${district}`
+          }));
+        }
+      } else {
+        console.warn('Districts data format not recognized:', districts);
+        processedDistricts = this.getDefaultDistricts();
+      }
+      
+      processedDistricts.forEach(district => {
         selector.append(`<option value="${district.value}" selected>${district.label}</option>`);
       });
       
       // Update current filters
-      this.currentFilters.districts = districts.map(d => d.value);
+      this.currentFilters.districts = processedDistricts.map(d => d.value);
+      console.log('✅ Districts populated:', processedDistricts.length, 'districts');
     },
 
     /**
@@ -963,20 +1159,30 @@
       // Collect filter values
       this.currentFilters.crimeTypes = $('#crime-type-selector').val() || [];
       this.currentFilters.districts = $('#district-selector').val() || [];
-      this.currentFilters.severity = $('#severity-selector').val() || [];
       this.currentFilters.startMonth = $('#start-month').val();
       this.currentFilters.endMonth = $('#end-month').val();
       this.currentFilters.timePeriods = $('#time-period-selector').val() || [];
       
       console.log('🔍 Applying filters:', this.currentFilters);
+      console.log('🎯 Filter summary:', {
+        crimeTypes: this.currentFilters.crimeTypes.length,
+        districts: this.currentFilters.districts.length,
+        dateRange: `${this.currentFilters.startMonth}-${this.currentFilters.endMonth}`,
+        timePeriods: this.currentFilters.timePeriods.length
+      });
+      
+      // Clear existing data to show filter changes
+      if (this.hexagonLayer) {
+        this.hexagonLayer.clearLayers();
+      }
       
       // Show loading
-      this.showLoading('SCANNING SECTORS...');
+      this.showLoading('APPLYING FILTERS...');
       
-      // Reload data with filters
-      this.loadHexagonData();
+      // Reload data with filters - force fresh load
+      this.loadHexagonDataWithFilters();
       
-      // Update stats
+      // Update stats with filtered data
       this.updateStats();
     },
 
@@ -987,7 +1193,6 @@
       // Reset all selectors to default (all selected)
       $('#crime-type-selector option').prop('selected', true);
       $('#district-selector option').prop('selected', true);
-      $('#severity-selector option').prop('selected', true);
       $('#start-month').val('01');
       $('#end-month').val('12');
       $('#time-period-selector option').prop('selected', true);
@@ -1009,35 +1214,25 @@
       
       // Clear current selections first
       $('#crime-type-selector option').prop('selected', false);
-      $('#severity-selector option').prop('selected', false);
       
       switch (preset) {
         case 'violent':
           // Select violent crime types
           $('#crime-type-selector option[value="100"], #crime-type-selector option[value="200"], #crime-type-selector option[value="300"], #crime-type-selector option[value="900"]').prop('selected', true);
-          $('#severity-selector option[value="3"], #severity-selector option[value="4"], #severity-selector option[value="5"]').prop('selected', true);
           break;
           
         case 'property':
           // Select property crime types
           $('#crime-type-selector option[value="400"], #crime-type-selector option[value="500"], #crime-type-selector option[value="600"], #crime-type-selector option[value="700"]').prop('selected', true);
-          $('#severity-selector option').prop('selected', true);
           break;
           
         case 'recent':
           // Select all crime types but limit to recent months
           $('#crime-type-selector option').prop('selected', true);
-          $('#severity-selector option').prop('selected', true);
           const currentMonth = new Date().getMonth() + 1;
           const recentMonth = currentMonth > 3 ? (currentMonth - 3).toString().padStart(2, '0') : '01';
           $('#start-month').val(recentMonth);
           $('#end-month').val(currentMonth.toString().padStart(2, '0'));
-          break;
-          
-        case 'high-severity':
-          // Select all crime types but only high severity
-          $('#crime-type-selector option').prop('selected', true);
-          $('#severity-selector option[value="4"], #severity-selector option[value="5"]').prop('selected', true);
           break;
       }
       
@@ -1076,13 +1271,49 @@
      */
     loadHeatmapData: function() {
       console.log('🔥 Loading heatmap data...');
-      // Implementation for heatmap visualization
       this.showLoading('GENERATING HEATMAP...');
       
-      setTimeout(() => {
-        this.hideLoading();
-        console.log('🔥 Heatmap data loaded');
-      }, 1000);
+      const self = this;
+      const bounds = this.map.getBounds();
+      
+      // Prepare API parameters
+      const apiData = {
+        bounds: `${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()},${bounds.getWest()}`,
+        limit: 2000,
+        page: 0
+      };
+
+      // Add filters if they exist
+      if (this.currentFilters.crimeTypes && this.currentFilters.crimeTypes.length > 0) {
+        apiData.crime_types = this.currentFilters.crimeTypes.join(',');
+      }
+      if (this.currentFilters.districts && this.currentFilters.districts.length > 0) {
+        apiData.districts = this.currentFilters.districts.join(',');
+      }
+      if (this.currentFilters.startMonth) {
+        apiData.start_month = this.currentFilters.startMonth;
+      }
+      if (this.currentFilters.endMonth) {
+        apiData.end_month = this.currentFilters.endMonth;
+      }
+      
+      $.ajax({
+        url: '/api/amisafe/incidents',
+        method: 'GET',
+        data: apiData,
+        success: function(data) {
+          const incidents = data.incidents || data || [];
+          self.createHeatmapLayer(incidents);
+          self.hideLoading();
+          console.log('🔥 Heatmap data loaded:', incidents.length, 'points');
+        },
+        error: function(xhr, status, error) {
+          self.hideLoading();
+          console.warn('Failed to load heatmap data:', status, error);
+          console.log('🔥 Using mock heatmap data instead');
+          self.createMockHeatmap();
+        }
+      });
     },
 
     /**
@@ -1090,89 +1321,63 @@
      */
     loadPointsData: function() {
       console.log('📍 Loading individual incident points...');
-      // Implementation for individual points
       this.showLoading('LOADING INCIDENT POINTS...');
       
-      setTimeout(() => {
-        this.hideLoading();
-        console.log('📍 Points data loaded');
-      }, 1000);
-    },
-
-    /**
-     * Initialize H3 debug information
-     */
-    initializeH3Debug: function() {
       const self = this;
+      const bounds = this.map.getBounds();
+      const zoom = this.map.getZoom();
       
-      // Check if H3 is available
-      if (typeof h3 !== 'undefined') {
-        $('#h3-available').text('✅ LOADED').addClass('neon-green');
-        
-        // Test basic H3 functionality
-        try {
-          const testH3 = h3.latLngToCell(39.9526, -75.1652, 8);
-          $('#h3-test-result').text('✅ WORKING').addClass('neon-green');
-          
-          // Count available methods
-          const methodCount = Object.keys(h3).length;
-          $('#h3-method-count').text(methodCount);
-          
-          // Show some key functions
-          const keyFunctions = ['latLngToCell', 'cellToLatLng', 'cellToBoundary', 'gridDistance', 'areNeighbors'];
-          const functionsHtml = keyFunctions.map(func => 
-            `<div class="debug-function-line">
-              <span class="debug-function-name">${func}:</span>
-              <span class="debug-function-status">${typeof h3[func] === 'function' ? '✅' : '❌'}</span>
-            </div>`
-          ).join('');
-          $('#h3-functions').html(functionsHtml);
-          
-        } catch (error) {
-          $('#h3-test-result').text('❌ ERROR').addClass('neon-red');
-          console.error('H3 test failed:', error);
-        }
-      } else {
-        $('#h3-available').text('❌ MISSING').addClass('neon-red');
-        $('#h3-test-result').text('❌ NOT LOADED').addClass('neon-red');
+      // Only load individual points at high zoom levels
+      if (zoom < 12) {
+        this.hideLoading();
+        console.log('📍 Zoom too low for individual points, showing aggregated data instead');
+        this.switchViewMode('hexagon');
+        return;
       }
-    },
-
-    /**
-     * Toggle debug overlays
-     */
-    toggleDebugOverlays: function() {
-      console.log('⚡ Toggling debug overlays');
-      // Implementation for debug overlay toggle
-    },
-
-    /**
-     * Show performance statistics
-     */
-    showPerformanceStats: function() {
-      console.log('📊 Showing performance statistics');
       
-      const stats = {
-        hexagonsLoaded: this.hexagonLayer ? this.hexagonLayer.getLayers().length : 0,
-        apiCalls: this.apiCallCount || 0,
-        cacheSize: this.dataCache ? this.dataCache.size : 0,
-        currentZoom: this.map.getZoom(),
-        currentResolution: this.getOptimalResolution(this.map.getZoom())
+      // Prepare API parameters
+      const apiData = {
+        bounds: `${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()},${bounds.getWest()}`,
+        limit: 500,
+        page: 0
       };
-      
-      const statsHtml = `
-        <div class="performance-stats">
-          <h4>PERFORMANCE METRICS</h4>
-          <div>Hexagons Loaded: ${stats.hexagonsLoaded}</div>
-          <div>API Calls: ${stats.apiCalls}</div>
-          <div>Cache Size: ${stats.cacheSize}</div>
-          <div>Current Zoom: ${stats.currentZoom}</div>
-          <div>H3 Resolution: ${stats.currentResolution}</div>
-        </div>
-      `;
-      
-      alert(statsHtml.replace(/<[^>]*>/g, '\n').replace(/\n+/g, '\n'));
+
+      // Add filters if they exist
+      if (this.currentFilters.crimeTypes && this.currentFilters.crimeTypes.length > 0) {
+        apiData.crime_types = this.currentFilters.crimeTypes.join(',');
+      }
+      if (this.currentFilters.districts && this.currentFilters.districts.length > 0) {
+        apiData.districts = this.currentFilters.districts.join(',');
+      }
+      if (this.currentFilters.startMonth) {
+        apiData.start_month = this.currentFilters.startMonth;
+      }
+      if (this.currentFilters.endMonth) {
+        apiData.end_month = this.currentFilters.endMonth;
+      }
+
+      $.ajax({
+        url: '/api/amisafe/incidents',
+        method: 'GET',
+        data: apiData,
+        success: function(data) {
+          const incidents = data.incidents || data || [];
+          self.createPointsLayer(incidents);
+          self.hideLoading();
+          console.log('📍 Points data loaded:', incidents.length, 'incidents');
+        },
+        error: function(xhr, status, error) {
+          self.hideLoading();
+          console.warn('Failed to load points data:', status, error);
+          console.log('📍 Using mock points data instead');
+          self.createMockPoints();
+        }
+      });
     },
+
+
+
+
 
     /**
      * Update statistics display
@@ -1230,6 +1435,279 @@
      */
     getActiveSectorCount: function() {
       return this.hexagonLayer ? this.hexagonLayer.getLayers().length : 0;
+    },
+
+    /**
+     * Create heatmap layer from incident data
+     */
+    createHeatmapLayer: function(incidents) {
+      // Remove existing heatmap layer
+      if (this.heatmapLayer) {
+        this.map.removeLayer(this.heatmapLayer);
+      }
+      
+      // Check if Leaflet heatmap plugin is available
+      if (typeof L.heatLayer === 'undefined') {
+        console.warn('Leaflet heatmap plugin not available, using fallback visualization');
+        this.createHeatmapFallback(incidents);
+        return;
+      }
+      
+      // Convert incidents to heatmap points
+      const heatPoints = incidents.map(incident => [
+        parseFloat(incident.latitude),
+        parseFloat(incident.longitude),
+        parseFloat(incident.severity || 1)
+      ]);
+      
+      // Create heatmap layer
+      this.heatmapLayer = L.heatLayer(heatPoints, {
+        radius: 25,
+        blur: 15,
+        maxZoom: 17,
+        gradient: {
+          0.0: '#0099ff',
+          0.3: '#00ff66', 
+          0.5: '#ffaa00',
+          0.7: '#ff6600',
+          1.0: '#ff0000'
+        }
+      });
+      
+      this.map.addLayer(this.heatmapLayer);
+    },
+
+    /**
+     * Fallback heatmap using circle markers
+     */
+    createHeatmapFallback: function(incidents) {
+      this.heatmapLayer = L.layerGroup();
+      
+      incidents.forEach(incident => {
+        const severity = parseInt(incident.severity || 1);
+        const color = this.getSeverityColor(severity);
+        
+        const circle = L.circle([incident.latitude, incident.longitude], {
+          radius: 50 + (severity * 20),
+          fillColor: color,
+          color: color,
+          weight: 1,
+          opacity: 0.3,
+          fillOpacity: 0.2
+        });
+        
+        this.heatmapLayer.addLayer(circle);
+      });
+      
+      this.map.addLayer(this.heatmapLayer);
+    },
+
+    /**
+     * Create mock heatmap for testing
+     */
+    createMockHeatmap: function() {
+      // Check if Leaflet heatmap plugin is available
+      if (typeof L.heatLayer === 'undefined') {
+        console.warn('Leaflet heatmap plugin not available, using mock fallback');
+        this.createMockHeatmapFallback();
+        return;
+      }
+      
+      const mockPoints = [];
+      const center = this.map.getCenter();
+      
+      // Generate random points around the center
+      for (let i = 0; i < 100; i++) {
+        mockPoints.push([
+          center.lat + (Math.random() - 0.5) * 0.02,
+          center.lng + (Math.random() - 0.5) * 0.02,
+          Math.random() * 5
+        ]);
+      }
+      
+      this.heatmapLayer = L.heatLayer(mockPoints, {
+        radius: 25,
+        blur: 15,
+        maxZoom: 17
+      });
+      
+      this.map.addLayer(this.heatmapLayer);
+    },
+
+    /**
+     * Mock heatmap fallback using circles
+     */
+    createMockHeatmapFallback: function() {
+      this.heatmapLayer = L.layerGroup();
+      const center = this.map.getCenter();
+      
+      for (let i = 0; i < 50; i++) {
+        const severity = Math.floor(Math.random() * 5) + 1;
+        
+        const circle = L.circle([
+          center.lat + (Math.random() - 0.5) * 0.02,
+          center.lng + (Math.random() - 0.5) * 0.02
+        ], {
+          radius: 50 + (severity * 20),
+          fillColor: this.getSeverityColor(severity),
+          color: this.getSeverityColor(severity),
+          weight: 1,
+          opacity: 0.3,
+          fillOpacity: 0.2
+        });
+        
+        this.heatmapLayer.addLayer(circle);
+      }
+      
+      this.map.addLayer(this.heatmapLayer);
+    },
+
+    /**
+     * Create points layer from incident data
+     */
+    createPointsLayer: function(incidents) {
+      // Remove existing points layer
+      if (this.incidentLayer) {
+        this.map.removeLayer(this.incidentLayer);
+      }
+      
+      this.incidentLayer = L.layerGroup();
+      
+      incidents.forEach(incident => {
+        const severity = parseInt(incident.severity || 1);
+        const color = this.getSeverityColor(severity);
+        
+        const marker = L.circleMarker([incident.latitude, incident.longitude], {
+          radius: 4 + severity,
+          fillColor: color,
+          color: '#fff',
+          weight: 1,
+          opacity: 0.8,
+          fillOpacity: 0.7
+        });
+        
+        // Add popup with incident details
+        marker.bindPopup(`
+          <div class="incident-popup">
+            <h4>${incident.crime_type || 'Unknown Crime'}</h4>
+            <p><strong>Date:</strong> ${incident.incident_date || 'Unknown'}</p>
+            <p><strong>District:</strong> ${incident.district || 'Unknown'}</p>
+            <p><strong>Severity:</strong> Level ${severity}</p>
+          </div>
+        `);
+        
+        this.incidentLayer.addLayer(marker);
+      });
+      
+      this.map.addLayer(this.incidentLayer);
+    },
+
+    /**
+     * Create mock points for testing
+     */
+    createMockPoints: function() {
+      this.incidentLayer = L.layerGroup();
+      const center = this.map.getCenter();
+      
+      const crimeTypes = ['THEFT', 'ASSAULT', 'BURGLARY', 'VANDALISM', 'ROBBERY'];
+      
+      for (let i = 0; i < 50; i++) {
+        const severity = Math.floor(Math.random() * 5) + 1;
+        const crimeType = crimeTypes[Math.floor(Math.random() * crimeTypes.length)];
+        
+        const marker = L.circleMarker([
+          center.lat + (Math.random() - 0.5) * 0.01,
+          center.lng + (Math.random() - 0.5) * 0.01
+        ], {
+          radius: 4 + severity,
+          fillColor: this.getSeverityColor(severity),
+          color: '#fff',
+          weight: 1,
+          opacity: 0.8,
+          fillOpacity: 0.7
+        });
+        
+        marker.bindPopup(`
+          <div class="incident-popup">
+            <h4>${crimeType}</h4>
+            <p><strong>Severity:</strong> Level ${severity}</p>
+            <p><strong>Status:</strong> Mock Data</p>
+          </div>
+        `);
+        
+        this.incidentLayer.addLayer(marker);
+      }
+      
+      this.map.addLayer(this.incidentLayer);
+    },
+
+    /**
+     * Get severity color mapping
+     */
+    getSeverityColor: function(severity) {
+      const colors = {
+        1: '#0099ff', // Low - Blue
+        2: '#00ff66', // Moderate - Green  
+        3: '#ffaa00', // Medium - Orange
+        4: '#ff6600', // High - Red-Orange
+        5: '#ff0000'  // Critical - Red
+      };
+      return colors[severity] || '#888888';
+    },
+
+    /**
+     * Clear all visualization layers
+     */
+    clearVisualizationLayers: function() {
+      // Clear hexagon layer
+      if (this.hexagonLayer) {
+        this.map.removeLayer(this.hexagonLayer);
+        this.hexagonLayer = null;
+      }
+      
+      // Clear heatmap layer
+      if (this.heatmapLayer) {
+        this.map.removeLayer(this.heatmapLayer);
+        this.heatmapLayer = null;
+      }
+      
+      // Clear incident layer
+      if (this.incidentLayer) {
+        this.map.removeLayer(this.incidentLayer);
+        this.incidentLayer = null;
+      }
+    },
+
+    /**
+     * Update layer visibility based on current mode
+     */
+    updateLayerVisibility: function() {
+      const mode = this.currentViewMode;
+      
+      // Show/hide layers based on current mode
+      if (this.hexagonLayer) {
+        if (mode === 'hexagon') {
+          this.map.addLayer(this.hexagonLayer);
+        } else {
+          this.map.removeLayer(this.hexagonLayer);
+        }
+      }
+      
+      if (this.heatmapLayer) {
+        if (mode === 'heatmap') {
+          this.map.addLayer(this.heatmapLayer);
+        } else {
+          this.map.removeLayer(this.heatmapLayer);
+        }
+      }
+      
+      if (this.incidentLayer) {
+        if (mode === 'points') {
+          this.map.addLayer(this.incidentLayer);
+        } else {
+          this.map.removeLayer(this.incidentLayer);
+        }
+      }
     }
 
   };

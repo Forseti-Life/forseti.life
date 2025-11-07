@@ -282,13 +282,14 @@ class ApiController extends ControllerBase {
       return new JsonResponse([
         'system_capabilities' => [
           'resolution_range' => [
-            'min' => $config->get('min_resolution') ?? 6,
+            'min' => $config->get('min_resolution') ?? 4,
             'max' => $config->get('max_resolution') ?? 13,
           ],
           'ultra_precision_available' => true,
+          'metro_wide_available' => true,
           'data_warehouse_layers' => ['Bronze', 'Silver', 'Gold'],
           'current_layer' => 'Gold (H3 Aggregated)',
-          'api_version' => '2.0-ultra-precision',
+          'api_version' => '2.1-metro-wide-precision',
         ],
         'data_statistics' => [
           'resolution_breakdown' => $resolution_stats,
@@ -784,19 +785,26 @@ class ApiController extends ControllerBase {
   }
 
   /**
-   * Validate and constrain H3 resolution within supported range (5-13).
+   * Validate and constrain H3 resolution within supported range (4-13).
    */
   private function validateResolution($resolution) {
     $config = $this->config('amisafe.settings');
     $max_resolution = $config->get('max_resolution') ?? 13;
-    $min_resolution = $config->get('min_resolution') ?? 5; // Now supports Resolution 5
+    $min_resolution = $config->get('min_resolution') ?? 4; // Now supports Resolution 4 for metro-wide coverage
     
-    // Ensure resolution is within our gold layer supported range (5-13)
+    // Ensure resolution is within our gold layer supported range (4-13)
     $resolution = max($min_resolution, min($max_resolution, intval($resolution)));
     
     // Log ultra-precision requests for monitoring
     if ($resolution >= 13) {
       \Drupal::logger('amisafe')->info('Ultra-precision request: Resolution @resolution', [
+        '@resolution' => $resolution,
+      ]);
+    }
+    
+    // Log metro-wide requests for monitoring
+    if ($resolution <= 5) {
+      \Drupal::logger('amisafe')->info('Metro-wide request: Resolution @resolution', [
         '@resolution' => $resolution,
       ]);
     }
@@ -809,6 +817,8 @@ class ApiController extends ControllerBase {
    */
   private function getPrecisionMetadata($resolution) {
     $precision_data = [
+      4 => ['level' => 'Metro-wide', 'area' => '1,770 km²', 'description' => 'Complete metropolitan area coverage'],
+      5 => ['level' => 'Metro districts', 'area' => '251 km²', 'description' => 'Large district-level analysis'],
       6 => ['level' => 'City-wide', 'area' => '36.1 km²', 'description' => 'District-level analysis'],
       7 => ['level' => 'District', 'area' => '5.2 km²', 'description' => 'Neighborhood aggregation'], 
       8 => ['level' => 'Neighborhood', 'area' => '0.7 km²', 'description' => 'Block group detail'],
