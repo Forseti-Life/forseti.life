@@ -875,19 +875,7 @@ $databases['default']['default'] = array (
   'autoload' => 'core/modules/mysql/src/Driver/Database/mysql/',
 );
 
-// AmISafe crime data database connection
-$databases['amisafe']['default'] = array (
-  'database' => 'theoryofconspiracies_dev',
-  'username' => 'drupal_user',
-  'password' => 'drupal_secure_password',
-  'prefix' => '',
-  'host' => '127.0.0.1',
-  'port' => 3306,
-  'isolation_level' => 'READ COMMITTED',
-  'driver' => 'mysql',
-  'namespace' => 'Drupal\\mysql\\Driver\\Database\\mysql',
-  'autoload' => 'core/modules/mysql/src/Driver/Database/mysql/',
-);
+
 $settings['config_sync_directory'] = 'sites/default/files/config_M7t7j7TDrtZ7G8huXKEHkSi6QB2RCtke8C15JZ3OwWPQU-rPQF2RssSmpI3QkKcwpvDrN0Zrbw/sync';
 // $settings['container_yamls'][] = DRUPAL_ROOT . '/sites/development.services.yml';
 

@@ -1,0 +1,14 @@
+AmISafe Database Import to St. Louis Integration (Pure SQL)
+===========================================================
+Import Date: Fri Nov  7 15:10:58 UTC 2025
+Source Database: theoryofconspiracies_dev
+Target Database: stlouisintegration_dev
+MySQL User: drupal_user
+Import Location: /workspaces/stlouisintegration.com/scripts/database/DB Backup
+Import Method: mysql
+
+Tables Imported:
+================
+amisafe_raw_incidents: 3406192 records
+amisafe_clean_incidents: 3406175 records
+amisafe_h3_aggregated: 413179 records

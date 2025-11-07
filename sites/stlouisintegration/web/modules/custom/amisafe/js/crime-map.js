@@ -184,8 +184,8 @@
       this.currentFilters = {
         crimeTypes: [],
         districts: [],
-        startMonth: '01',
-        endMonth: '12',
+        startDate: '2006-01-01',
+        endDate: '2025-12-31',
         timePeriods: ['early-morning', 'morning', 'afternoon', 'evening'],
         viewMode: 'hexagon'
       };
@@ -209,9 +209,22 @@
       });
 
       // Manual filtering only - no auto-apply to prevent data loss  
-      $('#start-month, #end-month').on('change', function() {
+      $('#start-date, #end-date').on('change', function() {
         console.log('🔄 Date range changed - use Apply Filters button to apply');
         // No auto-apply - user must click Apply Filters button
+      });
+      
+      // Date preset buttons
+      $('#preset-last-month').on('click', function() {
+        self.setDatePreset('lastMonth');
+      });
+      
+      $('#preset-last-year').on('click', function() {
+        self.setDatePreset('lastYear');
+      });
+      
+      $('#preset-all-time').on('click', function() {
+        self.setDatePreset('allTime');
       });
       
       // View mode buttons
@@ -469,8 +482,8 @@
         filters = {
           crimeTypes: [],
           districts: [],
-          startMonth: '01',
-          endMonth: '12',
+          startDate: '2006-01-01',
+          endDate: '2025-12-31',
           timePeriods: [],
           viewMode: 'hexagon'
         };
@@ -608,11 +621,11 @@
       if (filters.districts && filters.districts.length > 0) {
         params.append('districts', filters.districts.join(','));
       }
-      if (filters.startMonth) {
-        params.append('start_month', filters.startMonth);
+      if (filters.startDate) {
+        params.append('start_date', filters.startDate);
       }
-      if (filters.endMonth) {
-        params.append('end_month', filters.endMonth);
+      if (filters.endDate) {
+        params.append('end_date', filters.endDate);
       }
       
       const finalUrl = `${baseUrl}?${params.toString()}`;
@@ -829,16 +842,31 @@
           // Create and add polygon to map
           const polygon = L.polygon(leafletCoords, style);
           
-          // Add popup and event handlers if not in minimal mode
-          if (!this.minimalMode) {
-            polygon.bindPopup(this.createHexagonPopup(hexagon));
-            polygon.on('mouseover', function(e) {
-              e.target.setStyle({ weight: 2, fillOpacity: 0.9 });
+          // Always add comprehensive popup and hover tooltip
+          polygon.bindPopup(this.createHexagonPopup(hexagon));
+          polygon.bindTooltip(this.createHoverTooltip(hexagon), {
+            permanent: false,
+            direction: 'top',
+            offset: [0, -10],
+            className: 'hexagon-tooltip'
+          });
+          
+          // Enhanced hover effects with visual feedback
+          polygon.on('mouseover', function(e) {
+            e.target.setStyle({ 
+              weight: 3, 
+              fillOpacity: 0.9,
+              color: '#00ffff'
             });
-            polygon.on('mouseout', function(e) {
-              e.target.setStyle({ weight: 1, fillOpacity: style.fillOpacity });
+          });
+          
+          polygon.on('mouseout', function(e) {
+            e.target.setStyle({ 
+              weight: 1, 
+              fillOpacity: style.fillOpacity,
+              color: style.color
             });
-          }
+          });
           
           polygon.addTo(this.hexagonLayer);
           
@@ -878,9 +906,14 @@
         ...style
       });
       
-      if (!this.minimalMode) {
-        circle.bindPopup(this.createHexagonPopup(hexagon));
-      }
+      // Always add popup and hover tooltip for circles too
+      circle.bindPopup(this.createHexagonPopup(hexagon));
+      circle.bindTooltip(this.createHoverTooltip(hexagon), {
+        permanent: false,
+        direction: 'top',
+        offset: [0, -10],
+        className: 'hexagon-tooltip'
+      });
       
       circle.addTo(this.hexagonLayer);
       return circle; // Return circle for bounds tracking
@@ -904,17 +937,142 @@
     },
 
     /**
-     * Create popup content for hexagon
+     * Create hover tooltip content for hexagon (compact format)
+     */
+    createHoverTooltip: function(hexagon) {
+      const incidentCount = hexagon.incident_count || hexagon.incidentCount || 0;
+      const h3Resolution = hexagon.resolution || hexagon.h3_resolution || 'Unknown';
+      const uniqueTypes = hexagon.unique_incident_types || hexagon.unique_types || 0;
+      const riskLevel = this.calculateRiskLevel(incidentCount);
+      
+      return `
+        <div class="hexagon-tooltip-content">
+          <div class="tooltip-header">H3:${h3Resolution} Sector</div>
+          <div class="tooltip-stats">
+            <span class="stat-item"><strong>${incidentCount.toLocaleString()}</strong> incidents</span>
+            <span class="stat-item"><strong>${uniqueTypes}</strong> crime types</span>
+            <span class="stat-item risk-${riskLevel.toLowerCase()}"><strong>${riskLevel}</strong> risk</span>
+          </div>
+        </div>
+      `;
+    },
+
+    /**
+     * Create comprehensive popup content for hexagon (detailed format)
      */
     createHexagonPopup: function(hexagon) {
       const incidentCount = hexagon.incident_count || hexagon.incidentCount || 0;
       const h3Index = hexagon.h3_index || hexagon.h3Index || 'Unknown';
+      const h3Resolution = hexagon.resolution || hexagon.h3_resolution || 'Unknown';
+      const uniqueTypes = hexagon.unique_incident_types || hexagon.unique_types || 0;
+      const centerLat = hexagon.center_latitude || hexagon.center?.lat || hexagon.lat || 0;
+      const centerLng = hexagon.center_longitude || hexagon.center?.lng || hexagon.lng || 0;
+      const coverageArea = hexagon.coverage_area_km2 || hexagon.geography?.coverage_km2 || 0;
+      const precisionLevel = hexagon.precision_level || hexagon.geography?.precision_level || 'Unknown';
+      const riskLevel = this.calculateRiskLevel(incidentCount);
+      
+      // Temporal data
+      const earliestIncident = hexagon.earliest_incident || hexagon.temporal?.earliest || 'Unknown';
+      const latestIncident = hexagon.latest_incident || hexagon.temporal?.latest || 'Unknown';
+      const last30Days = hexagon.incidents_last_30_days || hexagon.temporal?.last_30_days || 0;
+      const lastYear = hexagon.incidents_last_year || hexagon.temporal?.last_year || 0;
+      
+      // Crime type breakdown
+      const crimeTypes = hexagon.incident_type_counts || hexagon.analytics?.crime_types || {};
+      const districts = hexagon.district_counts || hexagon.analytics?.districts || {};
+      
+      // Quality metrics
+      const avgScore = hexagon.avg_data_quality_score || hexagon.quality?.avg_score || 0;
+      const validRecords = hexagon.total_valid_records || hexagon.quality?.valid_records || 0;
+      
+      // Format dates
+      const formatDate = (dateStr) => {
+        if (!dateStr || dateStr === 'Unknown') return 'Unknown';
+        try {
+          return new Date(dateStr).toLocaleDateString();
+        } catch {
+          return dateStr;
+        }
+      };
+      
+      // Top crime types
+      const topCrimeTypes = Object.entries(crimeTypes)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 3)
+        .map(([code, count]) => `${this.getCrimeTypeName(code)}: ${count}`)
+        .join('<br>');
+      
+      // Top districts
+      const topDistricts = Object.entries(districts)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 3)
+        .map(([dist, count]) => `District ${dist}: ${count}`)
+        .join('<br>');
       
       return `
-        <div class="hexagon-popup terminal-text">
-          <h4>SECTOR ${h3Index.substring(0, 8).toUpperCase()}</h4>
-          <div class="stat-line">INCIDENTS: <span class="neon-green">${incidentCount}</span></div>
-          <div class="stat-line">H3 ID: <span class="neon-yellow">${h3Index}</span></div>
+        <div class="hexagon-popup-content">
+          <div class="popup-header">
+            <h4>H3:${h3Resolution} Sector Analysis</h4>
+            <div class="h3-index">${h3Index}</div>
+          </div>
+          
+          <div class="popup-section">
+            <h5>📊 Crime Statistics</h5>
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-label">Total Incidents:</span>
+                <span class="stat-value ${riskLevel.toLowerCase()}">${incidentCount.toLocaleString()}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Crime Types:</span>
+                <span class="stat-value">${uniqueTypes}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Risk Level:</span>
+                <span class="stat-value risk-${riskLevel.toLowerCase()}">${riskLevel}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Last 30 Days:</span>
+                <span class="stat-value">${last30Days.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="popup-section">
+            <h5>🌍 Geographic Details</h5>
+            <div class="geo-info">
+              <div><strong>Precision:</strong> ${precisionLevel}</div>
+              <div><strong>Coverage Area:</strong> ${coverageArea.toFixed(3)} km²</div>
+              <div><strong>Center:</strong> ${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}</div>
+            </div>
+          </div>
+          
+          <div class="popup-section">
+            <h5>⏰ Temporal Analysis</h5>
+            <div class="temporal-info">
+              <div><strong>Date Range:</strong> ${formatDate(earliestIncident)} - ${formatDate(latestIncident)}</div>
+              <div><strong>Recent Activity:</strong> ${last30Days} incidents (30 days)</div>
+              <div><strong>Annual Total:</strong> ${lastYear.toLocaleString()} incidents</div>
+            </div>
+          </div>
+          
+          ${topCrimeTypes ? `
+          <div class="popup-section">
+            <h5>🔍 Top Crime Types</h5>
+            <div class="crime-breakdown">${topCrimeTypes}</div>
+          </div>
+          ` : ''}
+          
+          ${topDistricts ? `
+          <div class="popup-section">
+            <h5>🏛️ Police Districts</h5>
+            <div class="district-breakdown">${topDistricts}</div>
+          </div>
+          ` : ''}
+          
+          <div class="popup-footer">
+            <div class="data-quality">Data Quality: ${(avgScore * 100).toFixed(1)}% (${validRecords.toLocaleString()} valid records)</div>
+          </div>
         </div>
       `;
     },
@@ -1159,15 +1317,15 @@
       // Collect filter values
       this.currentFilters.crimeTypes = $('#crime-type-selector').val() || [];
       this.currentFilters.districts = $('#district-selector').val() || [];
-      this.currentFilters.startMonth = $('#start-month').val();
-      this.currentFilters.endMonth = $('#end-month').val();
+      this.currentFilters.startDate = $('#start-date').val();
+      this.currentFilters.endDate = $('#end-date').val();
       this.currentFilters.timePeriods = $('#time-period-selector').val() || [];
       
       console.log('🔍 Applying filters:', this.currentFilters);
       console.log('🎯 Filter summary:', {
         crimeTypes: this.currentFilters.crimeTypes.length,
         districts: this.currentFilters.districts.length,
-        dateRange: `${this.currentFilters.startMonth}-${this.currentFilters.endMonth}`,
+        dateRange: `${this.currentFilters.startDate} to ${this.currentFilters.endDate}`,
         timePeriods: this.currentFilters.timePeriods.length
       });
       
@@ -1193,8 +1351,8 @@
       // Reset all selectors to default (all selected)
       $('#crime-type-selector option').prop('selected', true);
       $('#district-selector option').prop('selected', true);
-      $('#start-month').val('01');
-      $('#end-month').val('12');
+      $('#start-date').val('2006-01-01');
+      $('#end-date').val('2025-12-31');
       $('#time-period-selector option').prop('selected', true);
       
       // Clear preset button states
@@ -1204,6 +1362,55 @@
       this.applyFilters();
       
       console.log('🔄 All filters cleared to default state');
+    },
+
+    /**
+     * Set date range presets
+     */
+    setDatePreset: function(preset) {
+      const today = new Date();
+      let startDate, endDate;
+      
+      switch (preset) {
+        case 'lastMonth':
+          // Last 30 days
+          startDate = new Date(today);
+          startDate.setDate(today.getDate() - 30);
+          endDate = today;
+          break;
+          
+        case 'lastYear':
+          // Last 365 days
+          startDate = new Date(today);
+          startDate.setDate(today.getDate() - 365);
+          endDate = today;
+          break;
+          
+        case 'allTime':
+          // Full data range
+          startDate = new Date('2006-01-01');
+          endDate = new Date('2025-12-31');
+          break;
+          
+        default:
+          return;
+      }
+      
+      // Format dates for input fields (YYYY-MM-DD)
+      const formatDate = (date) => {
+        return date.getFullYear() + '-' + 
+               String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+               String(date.getDate()).padStart(2, '0');
+      };
+      
+      $('#start-date').val(formatDate(startDate));
+      $('#end-date').val(formatDate(endDate));
+      
+      // Update button states
+      $('.date-presets .btn').removeClass('active');
+      $(`#preset-${preset.toLowerCase().replace(/([A-Z])/g, '-$1')}`).addClass('active');
+      
+      console.log(`📅 Date preset applied: ${preset} (${formatDate(startDate)} to ${formatDate(endDate)})`);
     },
 
     /**
@@ -1227,12 +1434,9 @@
           break;
           
         case 'recent':
-          // Select all crime types but limit to recent months
+          // Select all crime types but limit to recent 30 days
           $('#crime-type-selector option').prop('selected', true);
-          const currentMonth = new Date().getMonth() + 1;
-          const recentMonth = currentMonth > 3 ? (currentMonth - 3).toString().padStart(2, '0') : '01';
-          $('#start-month').val(recentMonth);
-          $('#end-month').val(currentMonth.toString().padStart(2, '0'));
+          this.setDatePreset('lastMonth');
           break;
       }
       
@@ -1290,11 +1494,11 @@
       if (this.currentFilters.districts && this.currentFilters.districts.length > 0) {
         apiData.districts = this.currentFilters.districts.join(',');
       }
-      if (this.currentFilters.startMonth) {
-        apiData.start_month = this.currentFilters.startMonth;
+      if (this.currentFilters.startDate) {
+        apiData.start_date = this.currentFilters.startDate;
       }
-      if (this.currentFilters.endMonth) {
-        apiData.end_month = this.currentFilters.endMonth;
+      if (this.currentFilters.endDate) {
+        apiData.end_date = this.currentFilters.endDate;
       }
       
       $.ajax({
@@ -1349,11 +1553,11 @@
       if (this.currentFilters.districts && this.currentFilters.districts.length > 0) {
         apiData.districts = this.currentFilters.districts.join(',');
       }
-      if (this.currentFilters.startMonth) {
-        apiData.start_month = this.currentFilters.startMonth;
+      if (this.currentFilters.startDate) {
+        apiData.start_date = this.currentFilters.startDate;
       }
-      if (this.currentFilters.endMonth) {
-        apiData.end_month = this.currentFilters.endMonth;
+      if (this.currentFilters.endDate) {
+        apiData.end_date = this.currentFilters.endDate;
       }
 
       $.ajax({
@@ -1708,6 +1912,42 @@
           this.map.removeLayer(this.incidentLayer);
         }
       }
+    },
+
+    /**
+     * Calculate risk level based on incident count
+     */
+    calculateRiskLevel: function(incidentCount) {
+      if (incidentCount >= 1000) return 'CRITICAL';
+      if (incidentCount >= 500) return 'HIGH';
+      if (incidentCount >= 100) return 'MEDIUM';
+      if (incidentCount >= 10) return 'LOW';
+      return 'MINIMAL';
+    },
+
+    /**
+     * Get human-readable crime type name from code
+     */
+    getCrimeTypeName: function(code) {
+      const crimeTypeMap = {
+        'BURG': 'Burglary',
+        'THEF': 'Theft',
+        'ROBB': 'Robbery',
+        'VIOL': 'Violence',
+        'DRUG': 'Drug Offense',
+        'VAND': 'Vandalism',
+        'ASSA': 'Assault',
+        'WEAP': 'Weapons',
+        'FRAU': 'Fraud',
+        'MISC': 'Other',
+        'AUTO': 'Auto Theft',
+        'PROS': 'Prostitution',
+        'GAMB': 'Gambling',
+        'LIQR': 'Liquor Law',
+        'DISR': 'Disorderly Conduct',
+        'TRAF': 'Traffic'
+      };
+      return crimeTypeMap[code] || code || 'Unknown';
     }
 
   };

@@ -241,7 +241,7 @@ class ApiController extends ControllerBase {
       $config = $this->config('amisafe.settings');
       
       // Test database connection
-      $database = Database::getConnection('default', 'amisafe');
+      $database = Database::getConnection();
       $database_type = get_class($database);
       
       // Test a simple query

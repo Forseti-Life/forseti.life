@@ -16,12 +16,10 @@ logger:
 
 # Core crime map library
 crime-map:
-  version: 4.x  # Cache bust for complete H3 grid system
+  version: 5.0  # Professional theme update for St. Louis Integration
   css:
     theme:
-      css/crime-map.css: {}
-      css/h3-hexagons.css: {}
-      css/cyberpunk-theme.css: {}
+      css/professional-theme.css: {}
   js:
     js/crime-map.js: {}
   dependencies:

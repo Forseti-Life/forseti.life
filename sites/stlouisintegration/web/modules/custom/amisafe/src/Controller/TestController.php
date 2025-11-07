@@ -16,7 +16,7 @@ class TestController extends ControllerBase {
    */
   public function test() {
     try {
-      $database = \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
+      $database = \Drupal\Core\Database\Database::getConnection();
       
       // Test simple query
       $count = $database->query('SELECT COUNT(*) FROM raw_incidents')->fetchField();
