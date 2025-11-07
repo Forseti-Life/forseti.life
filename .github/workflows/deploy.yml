@@ -71,14 +71,30 @@ jobs:
           
           echo "Downloading code from repository..."
           git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
-          git sparse-checkout set drupal/web/modules/custom drupal/web/themes/custom drupal
+          git sparse-checkout set sites/stlouisintegration drupal/web/modules/custom drupal/web/themes/custom drupal
           
-          # Deploy custom modules
+          # Deploy custom modules from stlouisintegration site
           CUSTOM_MODULES_DIR="$DRUPAL_ROOT/web/modules/custom"
           sudo mkdir -p "$CUSTOM_MODULES_DIR"
           
-          if [ -d "drupal/web/modules/custom" ]; then
-            echo "Deploying custom modules..."
+          # First try stlouisintegration site structure
+          if [ -d "sites/stlouisintegration/web/modules/custom" ]; then
+            echo "Deploying custom modules from stlouisintegration site..."
+            for MODULE_DIR in sites/stlouisintegration/web/modules/custom/*; do
+              if [ -d "$MODULE_DIR" ]; then
+                MODULE_NAME=$(basename "$MODULE_DIR")
+                echo "Deploying module: $MODULE_NAME"
+                sudo rm -rf "$CUSTOM_MODULES_DIR/$MODULE_NAME"
+                sudo cp -r "$MODULE_DIR" "$CUSTOM_MODULES_DIR/"
+                sudo chown -R www-data:www-data "$CUSTOM_MODULES_DIR/$MODULE_NAME"
+                sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type f -exec chmod 644 {} \;
+                sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type d -exec chmod 755 {} \;
+                echo "✅ $MODULE_NAME deployed"
+              fi
+            done
+          # Fallback to old drupal structure  
+          elif [ -d "drupal/web/modules/custom" ]; then
+            echo "Deploying custom modules from drupal structure..."
             for MODULE_DIR in drupal/web/modules/custom/*; do
               if [ -d "$MODULE_DIR" ]; then
                 MODULE_NAME=$(basename "$MODULE_DIR")
@@ -91,14 +107,32 @@ jobs:
                 echo "✅ $MODULE_NAME deployed"
               fi
             done
+          else
+            echo "⚠️ No custom modules directory found"
           fi
           
-          # Deploy custom themes
+          # Deploy custom themes from stlouisintegration site
           CUSTOM_THEMES_DIR="$DRUPAL_ROOT/web/themes/custom"
           sudo mkdir -p "$CUSTOM_THEMES_DIR"
           
-          if [ -d "drupal/web/themes/custom" ]; then
-            echo "Deploying custom themes..."
+          # First try stlouisintegration site structure
+          if [ -d "sites/stlouisintegration/web/themes/custom" ]; then
+            echo "Deploying custom themes from stlouisintegration site..."
+            for THEME_DIR in sites/stlouisintegration/web/themes/custom/*; do
+              if [ -d "$THEME_DIR" ]; then
+                THEME_NAME=$(basename "$THEME_DIR")
+                echo "Deploying theme: $THEME_NAME"
+                sudo rm -rf "$CUSTOM_THEMES_DIR/$THEME_NAME"
+                sudo cp -r "$THEME_DIR" "$CUSTOM_THEMES_DIR/"
+                sudo chown -R www-data:www-data "$CUSTOM_THEMES_DIR/$THEME_NAME"
+                sudo find "$CUSTOM_THEMES_DIR/$THEME_NAME" -type f -exec chmod 644 {} \;
+                sudo find "$CUSTOM_THEMES_DIR/$THEME_NAME" -type d -exec chmod 755 {} \;
+                echo "✅ $THEME_NAME deployed"
+              fi
+            done
+          # Fallback to old drupal structure
+          elif [ -d "drupal/web/themes/custom" ]; then
+            echo "Deploying custom themes from drupal structure..."
             for THEME_DIR in drupal/web/themes/custom/*; do
               if [ -d "$THEME_DIR" ]; then
                 THEME_NAME=$(basename "$THEME_DIR")
@@ -111,19 +145,29 @@ jobs:
                 echo "✅ $THEME_NAME deployed"
               fi
             done
+          else
+            echo "⚠️ No custom themes directory found"
           fi
           
-          # Deploy composer files
-          if [ -f "drupal/composer.json" ]; then
+          # Deploy composer files from stlouisintegration site
+          if [ -f "sites/stlouisintegration/composer.json" ]; then
+            sudo cp "sites/stlouisintegration/composer.json" "$DRUPAL_ROOT/"
+            sudo chown www-data:www-data "$DRUPAL_ROOT/composer.json"
+            echo "✅ composer.json deployed from stlouisintegration"
+          elif [ -f "drupal/composer.json" ]; then
             sudo cp "drupal/composer.json" "$DRUPAL_ROOT/"
             sudo chown www-data:www-data "$DRUPAL_ROOT/composer.json"
-            echo "✅ composer.json deployed"
+            echo "✅ composer.json deployed from drupal"
           fi
           
-          if [ -f "drupal/composer.lock" ]; then
+          if [ -f "sites/stlouisintegration/composer.lock" ]; then
+            sudo cp "sites/stlouisintegration/composer.lock" "$DRUPAL_ROOT/"
+            sudo chown www-data:www-data "$DRUPAL_ROOT/composer.lock"
+            echo "✅ composer.lock deployed from stlouisintegration"
+          elif [ -f "drupal/composer.lock" ]; then
             sudo cp "drupal/composer.lock" "$DRUPAL_ROOT/"
             sudo chown www-data:www-data "$DRUPAL_ROOT/composer.lock"
-            echo "✅ composer.lock deployed"
+            echo "✅ composer.lock deployed from drupal"
           fi
           
           # Install/update composer dependencies
@@ -234,8 +278,14 @@ jobs:
             echo "⚠️ Pathauto not enabled, skipping URL alias generation"
           fi
           
-          # Clear all caches
-          echo "Clearing caches..."
+          # Clear all caches thoroughly
+          echo "Clearing all caches..."
+          sudo -u www-data ./vendor/bin/drush cache:rebuild
+          
+          # Clear CSS/JS aggregation files 
+          echo "Clearing CSS/JS aggregation..."
+          sudo rm -rf "$DRUPAL_ROOT/web/sites/default/files/css"
+          sudo rm -rf "$DRUPAL_ROOT/web/sites/default/files/js"
           sudo -u www-data ./vendor/bin/drush cache:rebuild
           
           # Set proper file permissions
@@ -243,18 +293,28 @@ jobs:
           sudo find "$DRUPAL_ROOT/web/sites/default/files" -type f -exec chmod 664 {} \; 2>/dev/null || true
           sudo find "$DRUPAL_ROOT/web/sites/default/files" -type d -exec chmod 775 {} \; 2>/dev/null || true
           
+          # Restart Apache to clear any server-side caches
+          echo "Restarting Apache to clear server-side caches..."
+          sudo systemctl restart apache2 || sudo service apache2 restart
+          echo "✅ Apache restarted"
+          
           echo ""
           echo "🎉 === DEPLOYMENT COMPLETED SUCCESSFULLY === 🎉"
-          echo "✅ Modules and themes deployed"
+          echo "✅ Modules and themes deployed from stlouisintegration site"
           echo "✅ Configuration imported"
           echo "✅ Database updates applied"
           echo "✅ NumberWidget configuration fixed (PHP 8.3+ compatibility)"
           echo "✅ Custom modules enabled"
           echo "✅ URL aliases generated (Pathauto)"
-          echo "✅ Caches cleared"
+          echo "✅ CSS/JS aggregation cleared and rebuilt"
+          echo "✅ All caches cleared"
+          echo "✅ Apache restarted"
           echo "✅ File permissions set"
           echo ""
           echo "Deployment completed at: $(date)"
+          echo ""
+          echo "🔧 Theme changes should now be visible!"
+          echo "💡 If still not visible, try hard refresh (Ctrl+F5) or clear browser cache"
 
   deploy-theoryofconspiracies:
     runs-on: ubuntu-latest
