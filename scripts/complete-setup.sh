@@ -1692,7 +1692,7 @@ if [ -f "$DATABASE_SETUP_SCRIPT" ]; then
     if bash "$DATABASE_SETUP_SCRIPT"; then
         print_status "✅ H3 database setup completed successfully"
     else
-        print_warning "⚠️  H3 database setup encountered issues (continuing...)"
+        print_warning "⚠️  H3 database setup encountered issues - continuing..."
     fi
 else
     print_warning "⚠️  Database setup script not found at: $DATABASE_SETUP_SCRIPT"
@@ -1711,13 +1711,13 @@ SITE1_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost" 2>/dev/
 SITE2_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080" 2>/dev/null || echo "000")
 
 if [[ "$SITE1_STATUS" =~ ^(200|302|301)$ ]]; then
-    print_status "✅ St. Louis Integration site is working (HTTP $SITE1_STATUS)"
+    print_status "✅ St. Louis Integration site is working - HTTP $SITE1_STATUS"
 else
     print_warning "⚠️  St. Louis Integration site returned HTTP $SITE1_STATUS"
 fi
 
 if [[ "$SITE2_STATUS" =~ ^(200|302|301)$ ]]; then
-    print_status "✅ Theory of Conspiracies site is working (HTTP $SITE2_STATUS)"
+    print_status "✅ Theory of Conspiracies site is working - HTTP $SITE2_STATUS"
 else
     print_warning "⚠️  Theory of Conspiracies site returned HTTP $SITE2_STATUS"
 fi
@@ -1725,7 +1725,7 @@ fi
 echo ""
 print_status "TROUBLESHOOTING FIXES APPLIED:"
 echo "================================"
-echo "✓ Fixed PHP extension detection (consistent php8.3 usage)"
+echo "✓ Fixed PHP extension detection - consistent php8.3 usage"
 echo "✓ Resolved Composer autoloader corruption issues"  
 echo "✓ Removed invalid cache.backend.null service references"
 echo "✓ Updated development.services.yml configurations"

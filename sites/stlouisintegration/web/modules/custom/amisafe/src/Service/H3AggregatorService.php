@@ -64,7 +64,7 @@ class H3AggregatorService {
   private function getRealAggregatedData($filters = [], $resolution = 9, $bounds = null) {
     try {
       // Get database connection (use default Drupal database)
-      $database = \Drupal\Core\Database\Database::getConnection();
+      $database = \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
       
       // Query Gold layer (amisafe_h3_aggregated) with Resolution 13 support
       $query = $database->select('amisafe_h3_aggregated', 'h3')

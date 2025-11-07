@@ -100,7 +100,7 @@ class H3PrecomputationCommands extends DrushCommands {
    *   Show current H3 pre-computation status
    */
   public function showStatus() {
-    $database = \Drupal\Core\Database\Database::getConnection();
+    $database = \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
     
     $this->output()->writeln('📊 H3 Pre-computation Status:');
     $this->output()->writeln('');
