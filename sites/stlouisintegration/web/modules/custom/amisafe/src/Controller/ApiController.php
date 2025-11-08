@@ -601,6 +601,179 @@ class ApiController extends ControllerBase {
   }
 
   /**
+   * Returns individual incident details for a specific H3:13 hexagon.
+   * Enables granular filtering at the incident level for ultra-precision analysis.
+   */
+  public function hexagonIncidents(Request $request, $h3_index) {
+    try {
+      // Parse filters from request
+      $filters = $this->parseFilters($request);
+      
+      // Get incident IDs from the H3 aggregated table
+      $database = Database::getConnection();
+      
+      // First, get the hexagon with incident IDs (H3:13 only)
+      $hexagon_query = $database->select('amisafe_h3_aggregated', 'h3')
+        ->fields('h3', ['h3_index', 'h3_resolution', 'incident_count', 'incident_ids'])
+        ->condition('h3_index', $h3_index)
+        ->condition('h3_resolution', 13);
+      
+      $hexagon_data = $hexagon_query->execute()->fetchAssoc();
+      
+      if (!$hexagon_data || empty($hexagon_data['incident_ids'])) {
+        return new JsonResponse([
+          'error' => 'Hexagon not found or no incident details available',
+          'message' => 'Incident-level data is only available for H3:13 hexagons',
+          'h3_index' => $h3_index,
+          'incidents' => [],
+          'meta' => ['count' => 0, 'filtered_count' => 0],
+        ], 404);
+      }
+      
+      // Parse incident IDs
+      $incident_ids = json_decode($hexagon_data['incident_ids'], true);
+      if (empty($incident_ids)) {
+        return new JsonResponse([
+          'error' => 'No incidents found in hexagon',
+          'h3_index' => $h3_index,
+          'incidents' => [],
+          'meta' => ['count' => 0, 'filtered_count' => 0],
+        ]);
+      }
+      
+      // Query for incident details with filtering
+      $incidents_query = $database->select('amisafe_clean_incidents', 'i')
+        ->fields('i', [
+          'incident_id', 'ucr_general', 'incident_datetime', 
+          'dc_dist', 'lat', 'lng', 'incident_month', 'incident_hour',
+          'crime_description', 'incident_year'
+        ])
+        ->condition('incident_id', $incident_ids, 'IN');
+      
+      // Apply granular filters at incident level
+      if (!empty($filters['crime_types'])) {
+        $incidents_query->condition('ucr_general', $filters['crime_types'], 'IN');
+      }
+      
+      if (!empty($filters['districts'])) {
+        $incidents_query->condition('dc_dist', $filters['districts'], 'IN');
+      }
+      
+      if (!empty($filters['start_date'])) {
+        $incidents_query->condition('incident_datetime', $filters['start_date'], '>=');
+      }
+      
+      if (!empty($filters['end_date'])) {
+        $incidents_query->condition('incident_datetime', $filters['end_date'], '<=');
+      }
+      
+      // Apply time period filters
+      if (!empty($filters['time_periods'])) {
+        $hour_conditions = [];
+        foreach ($filters['time_periods'] as $period) {
+          switch ($period) {
+            case 'morning':
+              $hour_conditions[] = ['field' => 'incident_hour', 'op' => 'BETWEEN', 'value' => [6, 11]];
+              break;
+            case 'afternoon':
+              $hour_conditions[] = ['field' => 'incident_hour', 'op' => 'BETWEEN', 'value' => [12, 17]];
+              break;
+            case 'evening':
+              $hour_conditions[] = ['field' => 'incident_hour', 'op' => 'BETWEEN', 'value' => [18, 23]];
+              break;
+            case 'night':
+              $hour_conditions[] = ['field' => 'incident_hour', 'op' => 'BETWEEN', 'value' => [0, 5]];
+              break;
+          }
+        }
+        
+        if (!empty($hour_conditions)) {
+          $or_group = $incidents_query->orConditionGroup();
+          foreach ($hour_conditions as $condition) {
+            $or_group->condition($condition['field'], $condition['value'], $condition['op']);
+          }
+          $incidents_query->condition($or_group);
+        }
+      }
+      
+      $incidents_query->orderBy('incident_datetime', 'DESC');
+      $incidents_query->range(0, 500); // Limit to 500 incidents for performance
+      
+      $incidents = $incidents_query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+      
+      // Convert to structured format
+      $formatted_incidents = [];
+      foreach ($incidents as $incident) {
+        $formatted_incidents[] = [
+          'incident_id' => $incident['incident_id'],
+          'crime_type' => $incident['ucr_general'],
+          'description' => $incident['crime_description'],
+          'datetime' => $incident['incident_datetime'],
+          'district' => $incident['dc_dist'],
+          'coordinates' => [
+            'lat' => floatval($incident['lat']),
+            'lng' => floatval($incident['lng'])
+          ],
+          'temporal_data' => [
+            'year' => intval($incident['incident_year']),
+            'month' => intval($incident['incident_month']),
+            'hour' => intval($incident['incident_hour']),
+            'time_period' => $this->getTimePeriod(intval($incident['incident_hour']))
+          ]
+        ];
+      }
+      
+      return new JsonResponse([
+        'h3_index' => $h3_index,
+        'incidents' => $formatted_incidents,
+        'hexagon_summary' => [
+          'total_incidents_in_hex' => intval($hexagon_data['incident_count']),
+          'incidents_matching_filter' => count($formatted_incidents),
+          'filter_efficiency' => count($incident_ids) > 0 ? 
+            round((count($formatted_incidents) / count($incident_ids)) * 100, 1) : 0
+        ],
+        'filters_applied' => $filters,
+        'meta' => [
+          'count' => count($formatted_incidents),
+          'total_available' => count($incident_ids),
+          'resolution' => 13,
+          'granular_filtering' => true,
+          'precision_level' => '7m × 7m hexagon',
+          'timestamp' => date('c')
+        ]
+      ]);
+      
+    } catch (\Exception $e) {
+      \Drupal::logger('amisafe')->error('API hexagon incidents error: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      
+      return new JsonResponse([
+        'error' => 'Failed to fetch hexagon incidents',
+        'message' => $e->getMessage(),
+        'h3_index' => $h3_index,
+        'incidents' => [],
+        'meta' => ['count' => 0],
+      ], 500);
+    }
+  }
+
+  /**
+   * Get time period for an hour.
+   */
+  private function getTimePeriod($hour) {
+    if ($hour >= 6 && $hour <= 11) {
+      return 'morning';
+    } elseif ($hour >= 12 && $hour <= 17) {
+      return 'afternoon';
+    } elseif ($hour >= 18 && $hour <= 23) {
+      return 'evening';
+    } else {
+      return 'night';
+    }
+  }
+
+  /**
    * Get detailed information for a specific hexagon.
    */
   public function hexagonDetails(Request $request, $h3_index) {

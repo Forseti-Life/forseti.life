@@ -12,7 +12,7 @@
     "build:android": "cd android && ./gradlew assembleRelease",
     "build:ios": "react-native run-ios --configuration Release",
     "clean": "react-native clean-project-auto",
-    "postinstall": "npx react-native-fix-deps && cd ios && pod install --repo-update && cd .."
+    "web": "expo start --web"
   },
   "dependencies": {
     "react": "18.2.0",

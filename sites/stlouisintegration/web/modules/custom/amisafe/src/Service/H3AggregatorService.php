@@ -67,22 +67,30 @@ class H3AggregatorService {
       $database = \Drupal\Core\Database\Database::getConnection();
       
       // Query Gold layer (amisafe_h3_aggregated) with Resolution 13 support
+      // Select base fields plus incident_ids for H3:13 level
+      $fields = [
+        'h3_index', 
+        'h3_resolution',
+        'incident_count',
+        'unique_incident_types',
+        'center_latitude', 
+        'center_longitude',
+        'coverage_area_km2',
+        'incident_type_counts',
+        'district_counts',
+        'earliest_incident',
+        'latest_incident',
+        'avg_data_quality_score',
+        'total_valid_records'
+      ];
+      
+      // Add incident_ids field for H3:13 granular access
+      if ($resolution >= 13) {
+        $fields[] = 'incident_ids';
+      }
+      
       $query = $database->select('amisafe_h3_aggregated', 'h3')
-        ->fields('h3', [
-          'h3_index', 
-          'h3_resolution',
-          'incident_count',
-          'unique_incident_types',
-          'center_latitude', 
-          'center_longitude',
-          'coverage_area_km2',
-          'incident_type_counts',
-          'district_counts',
-          'earliest_incident',
-          'latest_incident',
-          'avg_data_quality_score',
-          'total_valid_records'
-        ])
+        ->fields('h3', $fields)
         ->condition('h3_resolution', $resolution);
       
       // Apply geographic bounds if provided
@@ -127,6 +135,12 @@ class H3AggregatorService {
         $incident_types = json_decode($hexagon['incident_type_counts'], true) ?: [];
         $districts = json_decode($hexagon['district_counts'], true) ?: [];
         
+        // Parse incident IDs for H3:13 granular access
+        $incident_ids = [];
+        if ($resolution >= 13 && isset($hexagon['incident_ids']) && !empty($hexagon['incident_ids'])) {
+          $incident_ids = json_decode($hexagon['incident_ids'], true) ?: [];
+        }
+        
         // Build ultra-precision hexagon data structure
         $hexagon_item = [
           'h3_index' => $h3_index,
@@ -152,6 +166,16 @@ class H3AggregatorService {
           'severity_avg' => $this->calculateSeverity(array_keys($incident_types)),
           'last_incident' => $hexagon['latest_incident'] ?: date('Y-m-d H:i:s')
         ];
+        
+        // Add incident IDs for H3:13 granular filtering support
+        if ($resolution >= 13 && !empty($incident_ids)) {
+          $hexagon_item['incident_ids'] = $incident_ids;
+          $hexagon_item['has_incident_details'] = true;
+          $hexagon_item['granular_filtering_available'] = true;
+        } else {
+          $hexagon_item['has_incident_details'] = false;
+          $hexagon_item['granular_filtering_available'] = false;
+        }
         
         // Apply client-side filters if needed  
         if ($this->passesFilters($hexagon_item, $filters)) {

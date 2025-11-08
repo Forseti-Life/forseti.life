@@ -32,6 +32,13 @@ tests/
 - **Philadelphia Test Data**: Valid coordinates for crime data processing tests
 - **Standardized Data**: Consistent test data across all test modules
 
+### 🆕 Granular Filtering Tests (Production Ready)
+- **Hexagon Incidents API**: Tests for `/api/amisafe/hexagon/{h3_index}/incidents` endpoint
+- **Filter Validation**: Crime type, district, and time period filtering verification
+- **High-Density Testing**: Performance validation with 8,000+ incident hexagons
+- **Database Integration**: incident_ids JSON column population and retrieval testing
+- **Enhanced Filter Script**: `interactive_filter_test.sh` for comprehensive API validation
+
 ## Running Tests
 
 ### Prerequisites

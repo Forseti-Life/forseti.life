@@ -129,35 +129,68 @@ class AmISafeFinalLayerAggregator:
             # For higher resolutions, aggregate directly from Transform layer data
             h3_column = f"h3_res_{resolution}"
             
-            aggregation_query = f"""
-            INSERT INTO amisafe_h3_aggregated (
-                h3_index, h3_resolution, incident_count, unique_incident_types,
-                earliest_incident, latest_incident, incidents_last_30_days, incidents_last_year,
-                center_latitude, center_longitude, incident_type_counts, district_counts,
-                total_valid_records, last_aggregation
-            )
-            SELECT 
-                {h3_column} as h3_index,
-                %s as h3_resolution,
-                COUNT(*) as incident_count,
-                COUNT(DISTINCT ucr_general) as unique_incident_types,
-                MIN(incident_datetime) as earliest_incident,
-                MAX(incident_datetime) as latest_incident,
-                COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as incidents_last_30_days,
-                COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 1 YEAR) THEN 1 END) as incidents_last_year,
-                AVG(lat) as center_latitude,
-                AVG(lng) as center_longitude,
-                JSON_OBJECT() as incident_type_counts,
-                JSON_OBJECT() as district_counts,
-                COUNT(*) as total_valid_records,
-                NOW() as last_aggregation
-            FROM amisafe_clean_incidents 
-            WHERE {h3_column} IS NOT NULL 
-                AND is_valid = TRUE
-                AND is_duplicate = FALSE
-            GROUP BY {h3_column}
-            HAVING COUNT(*) > 0
-            """
+            # Include incident_ids for H3:13 granular filtering
+            if resolution >= 13:
+                aggregation_query = f"""
+                INSERT INTO amisafe_h3_aggregated (
+                    h3_index, h3_resolution, incident_count, unique_incident_types,
+                    earliest_incident, latest_incident, incidents_last_30_days, incidents_last_year,
+                    center_latitude, center_longitude, incident_type_counts, district_counts,
+                    total_valid_records, last_aggregation, incident_ids
+                )
+                SELECT 
+                    {h3_column} as h3_index,
+                    %s as h3_resolution,
+                    COUNT(*) as incident_count,
+                    COUNT(DISTINCT ucr_general) as unique_incident_types,
+                    MIN(incident_datetime) as earliest_incident,
+                    MAX(incident_datetime) as latest_incident,
+                    COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as incidents_last_30_days,
+                    COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 1 YEAR) THEN 1 END) as incidents_last_year,
+                    AVG(lat) as center_latitude,
+                    AVG(lng) as center_longitude,
+                    JSON_OBJECT() as incident_type_counts,
+                    JSON_OBJECT() as district_counts,
+                    COUNT(*) as total_valid_records,
+                    NOW() as last_aggregation,
+                    JSON_ARRAYAGG(incident_id) as incident_ids
+                FROM amisafe_clean_incidents 
+                WHERE {h3_column} IS NOT NULL 
+                    AND is_valid = TRUE
+                    AND is_duplicate = FALSE
+                GROUP BY {h3_column}
+                HAVING COUNT(*) > 0
+                """
+            else:
+                aggregation_query = f"""
+                INSERT INTO amisafe_h3_aggregated (
+                    h3_index, h3_resolution, incident_count, unique_incident_types,
+                    earliest_incident, latest_incident, incidents_last_30_days, incidents_last_year,
+                    center_latitude, center_longitude, incident_type_counts, district_counts,
+                    total_valid_records, last_aggregation
+                )
+                SELECT 
+                    {h3_column} as h3_index,
+                    %s as h3_resolution,
+                    COUNT(*) as incident_count,
+                    COUNT(DISTINCT ucr_general) as unique_incident_types,
+                    MIN(incident_datetime) as earliest_incident,
+                    MAX(incident_datetime) as latest_incident,
+                    COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as incidents_last_30_days,
+                    COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 1 YEAR) THEN 1 END) as incidents_last_year,
+                    AVG(lat) as center_latitude,
+                    AVG(lng) as center_longitude,
+                    JSON_OBJECT() as incident_type_counts,
+                    JSON_OBJECT() as district_counts,
+                    COUNT(*) as total_valid_records,
+                    NOW() as last_aggregation
+                FROM amisafe_clean_incidents 
+                WHERE {h3_column} IS NOT NULL 
+                    AND is_valid = TRUE
+                    AND is_duplicate = FALSE
+                GROUP BY {h3_column}
+                HAVING COUNT(*) > 0
+                """
             
             cursor.execute(aggregation_query, (resolution,))
             rows_affected = cursor.rowcount

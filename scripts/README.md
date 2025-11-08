@@ -1,6 +1,6 @@
 # Multi-Site Development Environment Setup Scripts
 
-This directory contains scripts and documentation for setting up the multi-site Drupal development environment supporting both St. Louis Integration and Theory of Conspiracies websites, including the **Resolution 13 Ultra-Precision H3 Geolocation Pipeline**.
+This directory contains scripts and documentation for setting up the multi-site Drupal development environment supporting both St. Louis Integration and Theory of Conspiracies websites, including the **Resolution 13 Ultra-Precision H3 Geolocation Pipeline** with **granular incident-level filtering capabilities**.
 
 ## Quick Start
 
@@ -52,8 +52,8 @@ This workspace supports two independent Drupal websites:
 - **URL**: http://localhost:8080 (port 8080)
 - **Directory**: `/workspaces/stlouisintegration.com/sites/theoryofconspiracies/`
 - **Database**: `theoryofconspiracies_dev`
-- **Features**: Fresh Drupal 11 with development modules
-- **Status**: Ready for custom development
+- **Features**: Fresh Drupal 11 with development modules + **H3:13 Granular Crime Analytics**
+- **Status**: Production-ready with ultra-precision geospatial capabilities
 
 ## Available Scripts
 

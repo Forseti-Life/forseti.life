@@ -29,6 +29,7 @@ const ENDPOINTS = {
   RISK_LEVEL: `${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/risk-level`,
   AGGREGATED: `${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/aggregated`,
   INCIDENTS: `${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/incidents`,
+  HEXAGON_INCIDENTS: (h3Index: string) => `${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/hexagon/${h3Index}/incidents`, // 🆕 H3:13 granular access
   HOTSPOTS: `${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/hotspots`,
   
   // System Information
@@ -379,6 +380,94 @@ async function getIncidents(params: IncidentsRequest): Promise<IncidentsResponse
   }
   
   return response.json();
+}
+```
+
+### **🆕 Hexagon Incident Details (H3:13 Granular Access)**
+```typescript
+interface HexagonIncidentsRequest {
+  h3_index: string;       // H3:13 hexagon identifier
+  crime_types?: string[]; // Filter by crime types (e.g., ['600', '700'])
+  districts?: string[];   // Filter by police districts
+  time_periods?: string[]; // Filter by time periods ('morning', 'evening', etc.)
+  limit?: number;         // Limit results for performance (default: 500)
+}
+
+interface HexagonIncidentsResponse {
+  hexagon_summary: {
+    h3_index: string;
+    h3_resolution: number;
+    total_incidents: number;
+    returned_incidents: number;
+    filters_applied: Record<string, any>;
+  };
+  incidents: Array<{
+    incident_id: string;
+    ucr_general: string;
+    crime_description: string;
+    incident_datetime: string;
+    dc_dist: string;
+    lat: number;
+    lng: number;
+    incident_month: number;
+    incident_hour: number;
+  }>;
+}
+
+// API Call
+async function getHexagonIncidents(params: HexagonIncidentsRequest): Promise<HexagonIncidentsResponse> {
+  const token = await authService.getValidToken();
+  const queryParams = new URLSearchParams();
+  
+  // Add filters as query parameters
+  if (params.crime_types?.length) {
+    queryParams.append('crime_types', params.crime_types.join(','));
+  }
+  if (params.districts?.length) {
+    queryParams.append('districts', params.districts.join(','));
+  }
+  if (params.time_periods?.length) {
+    queryParams.append('time_periods', params.time_periods.join(','));
+  }
+  if (params.limit) {
+    queryParams.append('limit', params.limit.toString());
+  }
+  
+  const endpoint = `${API_CONFIG.BASE_URL}${API_CONFIG.API_PREFIX}/hexagon/${params.h3_index}/incidents`;
+  const url = queryParams.toString() ? `${endpoint}?${queryParams}` : endpoint;
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Hexagon incidents request failed: ${response.statusText}`);
+  }
+  
+  return response.json();
+}
+
+// Usage Example
+async function analyzeRoomLevelCrime(h3Index: string) {
+  try {
+    const hexagonData = await getHexagonIncidents({
+      h3_index: h3Index,
+      crime_types: ['600', '700'], // Theft and robbery
+      limit: 100
+    });
+    
+    console.log(`Found ${hexagonData.hexagon_summary.total_incidents} incidents in hexagon`);
+    console.log(`Returned ${hexagonData.incidents.length} filtered incidents`);
+    
+    return hexagonData.incidents;
+  } catch (error) {
+    console.error('Failed to get hexagon incidents:', error);
+    throw error;
+  }
 }
 ```
 

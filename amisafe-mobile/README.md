@@ -1,6 +1,105 @@
 # AmISafe Mobile Application
 
-A cross-platform mobile application for crime safety awareness, built with React Native for both iOS and Android platforms.
+A cross-platform mobile application for crime safety awareness, built with React Native for both iOS and Android platforms. Integrates with the Drupal-based AmISafe API for real-time crime data and user management.
+
+## 🏗️ **Backend Dependencies**
+
+### **Required Drupal Modules (Server-Side)**
+The AmISafe mobile app requires the following Drupal modules on the stlouisintegration.com server:
+
+#### **Core API Modules (Pre-installed)**
+- ✅ **JSON:API** - Automatic REST endpoints for user management
+- ✅ **REST** - RESTful web services foundation
+- ✅ **Serialization** - JSON/XML data serialization
+- ✅ **Basic Auth** - HTTP basic authentication
+
+#### **Authentication Modules (Installed)**
+- ✅ **Simple OAuth** (v6.0.9) - OAuth 2.0 authentication with JWT tokens
+- ✅ **Consumers** (v1.21.0) - OAuth client management
+- ✅ **OpenAPI** (v2.3.0) - API documentation generation
+- ✅ **REST UI** (v1.22.0) - User interface for REST configuration
+
+#### **Module Installation Commands**
+```bash
+# Navigate to Drupal site
+cd /workspaces/stlouisintegration.com/sites/stlouisintegration
+
+# Install contributed modules
+composer require drupal/simple_oauth drupal/openapi drupal/restui
+
+# Enable all required modules
+vendor/bin/drush en jsonapi rest serialization basic_auth simple_oauth consumers openapi restui -y
+
+# Generate OAuth keys
+mkdir -p keys
+cd keys
+openssl genrsa -out private.key 2048
+openssl rsa -in private.key -outform PEM -pubout -out public.key
+
+# Configure OAuth settings
+vendor/bin/drush config:set simple_oauth.settings public_key '../keys/public.key'
+vendor/bin/drush config:set simple_oauth.settings private_key '../keys/private.key'
+vendor/bin/drush config:set simple_oauth.settings access_token_expiration 3600
+vendor/bin/drush config:set simple_oauth.settings refresh_token_expiration 2419200
+
+# Enable user registration
+vendor/bin/drush config:set user.settings register 'visitors'
+vendor/bin/drush config:set user.settings verify_mail 1
+
+# Clear cache
+vendor/bin/drush cr
+```
+
+### **OAuth Consumer Setup (Required)**
+After installing modules, create an OAuth consumer via Drupal admin interface:
+
+1. **Access Admin**: Go to `https://stlouisintegration.com/user/login`
+2. **Navigate**: Configuration → Web Services → Consumers (`/admin/config/services/consumer`)
+3. **Add Consumer**: Click "Add Consumer" button
+4. **Configure**:
+   ```
+   Label: AmISafe Mobile App
+   Description: OAuth consumer for AmISafe mobile application
+   Client ID: amisafe_mobile
+   Grant Types: ☑️ Password Grant ☑️ Refresh Token  
+   Scopes: basic_auth
+   Confidential: ☐ NO (unchecked - mobile apps are public clients)
+   ```
+5. **Save**: Click "Save" to complete setup
+
+### **Available API Endpoints**
+Once configured, the following endpoints are available for the mobile app:
+
+```typescript
+// User Registration
+POST https://stlouisintegration.com/user/register
+{
+  "name": "user@example.com",
+  "mail": "user@example.com",
+  "pass": "SecurePassword123!",
+  "field_first_name": "John",
+  "field_last_name": "Doe"
+}
+
+// OAuth Authentication
+POST https://stlouisintegration.com/oauth/token
+{
+  "grant_type": "password",
+  "client_id": "amisafe_mobile",
+  "username": "user@example.com",
+  "password": "SecurePassword123!"
+}
+
+// User Profile Management
+GET https://stlouisintegration.com/jsonapi/user/user/{uuid}
+PATCH https://stlouisintegration.com/jsonapi/user/user/{uuid}
+Authorization: Bearer {access_token}
+
+// AmISafe Crime Data (Custom API)
+GET https://stlouisintegration.com/api/amisafe/risk-level?h3={index}
+GET https://stlouisintegration.com/api/amisafe/aggregated?resolution=13
+Authorization: Bearer {access_token}
+```
 
 ## 🚀 **Features**
 

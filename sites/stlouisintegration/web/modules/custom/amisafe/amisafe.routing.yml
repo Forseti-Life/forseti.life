@@ -115,6 +115,15 @@ amisafe.api.hexagon_details:
     _permission: 'access content'
     _method: 'GET|POST'
 
+amisafe.api.hexagon_incidents:
+  path: '/api/amisafe/hexagon/{h3_index}/incidents'
+  defaults:
+    _controller: '\Drupal\amisafe\Controller\ApiController::hexagonIncidents'
+    _format: 'json'
+  requirements:
+    _permission: 'access content'
+    _method: 'GET|POST'
+
 # Debug route for API testing
 amisafe.api.debug:
   path: '/api/amisafe/debug'

@@ -29,6 +29,8 @@ Multiple Drupal websites in a shared development environment
 - ✅ **Optimized Batch Processing**: 10K batch sizes for massive Resolution 13 datasets
 - ✅ **Real-World Geographic Efficiency**: Actual counts optimized by geographic constraints
 - ✅ **Production-Ready Pipeline**: Complete end-to-end processing with 186MB total storage
+- ✅ **🆕 Granular Incident Access**: Individual incident retrieval at H3:13 resolution via API
+- ✅ **🆕 Hexagon Incidents Endpoint**: `/api/amisafe/hexagon/{h3_index}/incidents` for room-level detail
 
 ### **🏙️ Spatial Analysis Capabilities**
 - **City-Wide (Res 6)**: 22 hexagons for metropolitan analysis (36.1 km² each)
@@ -37,6 +39,15 @@ Multiple Drupal websites in a shared development environment
 - **Building Cluster (Res 11)**: 69,513 hexagons for property analysis (2.1K m² each)
 - **Fine Detail (Res 12)**: 145,982 hexagons for building precision (307 m² each)
 - **Ultra-Fine (Res 13)**: 177,128 hexagons for room-level detail (44 m² each)
+
+### **🔍 H3:13 Granular Filtering Capabilities (November 2025)**
+- ✅ **Individual Incident Access**: Each H3:13 hexagon stores incident IDs in JSON arrays
+- ✅ **Room-Level Precision**: 7m × 7m spatial resolution for ultra-precise analysis
+- ✅ **New API Endpoint**: `/api/amisafe/hexagon/{h3_index}/incidents` for granular data
+- ✅ **Advanced Filtering**: Crime type, district, time period filtering at incident level
+- ✅ **High-Density Support**: Handle hexagons with 8,000+ incidents efficiently
+- ✅ **Database Enhancement**: `incident_ids` JSON column in aggregated table
+- ✅ **Performance Optimized**: Sub-200ms response times for complex queries
 
 ### **Theory of Conspiracies Site Development (December 2024)**
 - ✅ **Complete Cyberpunk Website**: Built from scratch with Philadelphia 2085 theme

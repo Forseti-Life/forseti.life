@@ -1,0 +1,12 @@
+name: Consumers Test
+type: module
+description: 'Test module for consumers automated testing purposes.'
+package: Testing
+dependencies:
+  - consumers:consumers
+  - jsonapi:jsonapi
+
+# Information added by Drupal.org packaging script on 2025-09-28
+version: '8.x-1.21'
+project: 'consumers'
+datestamp: 1759031306
