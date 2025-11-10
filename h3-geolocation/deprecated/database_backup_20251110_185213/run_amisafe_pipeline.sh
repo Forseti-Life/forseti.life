@@ -72,16 +72,16 @@ check_mysql() {
 # Setup database
 setup_database() {
     log "Setting up AmISafe database..."
-    if mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password -e "USE theoryofconspiracies_dev" >/dev/null 2>&1; then
-        success "Database theoryofconspiracies_dev is accessible"
+    if mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password -e "USE stlouisintegration_dev" >/dev/null 2>&1; then
+        success "Database stlouisintegration_dev is accessible"
         # Check if tables exist
-        if mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password theoryofconspiracies_dev -e "SHOW TABLES LIKE 'amisafe_%'" | grep -q amisafe; then
+        if mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password stlouisintegration_dev -e "SHOW TABLES LIKE 'amisafe_%'" | grep -q amisafe; then
             success "AmISafe tables already exist"
         else
             warning "AmISafe tables not found - they should be created by Drupal module"
         fi
     else
-        error "Cannot access database theoryofconspiracies_dev"
+        error "Cannot access database stlouisintegration_dev"
         exit 1
     fi
 }
@@ -116,7 +116,7 @@ process_data() {
         --mysql-host "127.0.0.1" \
         --mysql-user "drupal_user" \
         --mysql-password "drupal_secure_password" \
-        --mysql-database "theoryofconspiracies_dev"
+        --mysql-database "stlouisintegration_dev"
     
     if [ $? -eq 0 ]; then
         success "Data processing completed successfully"
@@ -138,7 +138,7 @@ create_aggregations() {
         --mysql-host "127.0.0.1" \
         --mysql-user "drupal_user" \
         --mysql-password "drupal_secure_password" \
-        --mysql-database "theoryofconspiracies_dev" \
+        --mysql-database "stlouisintegration_dev" \
         --resolution 9 --days-lookback 30
     
     if [ $? -eq 0 ]; then
@@ -160,7 +160,7 @@ show_status() {
         --mysql-host "127.0.0.1" \
         --mysql-user "drupal_user" \
         --mysql-password "drupal_secure_password" \
-        --mysql-database "theoryofconspiracies_dev"
+        --mysql-database "stlouisintegration_dev"
 }
 
 # Show database statistics
@@ -169,20 +169,20 @@ show_stats() {
     echo "==================="
     
     echo "Raw incidents table:"
-    mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password theoryofconspiracies_dev -e "SELECT COUNT(*) as 'Total Records', 
-                     COUNT(CASE WHEN h3_index IS NOT NULL THEN 1 END) as 'With H3 Data',
-                     MIN(dispatch_date_time) as 'Earliest Date',
-                     MAX(dispatch_date_time) as 'Latest Date'
+    mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password stlouisintegration_dev -e "SELECT COUNT(*) as 'Total Records', 
+                     COUNT(CASE WHEN lat IS NOT NULL AND lng IS NOT NULL THEN 1 END) as 'With Coordinates',
+                     MIN(ingested_at) as 'Earliest Date',
+                     MAX(ingested_at) as 'Latest Date'
               FROM amisafe_raw_incidents;" 2>/dev/null || true
     
     echo -e "\nH3 Aggregations:"
-    mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password theoryofconspiracies_dev -e "SELECT h3_resolution, COUNT(*) as 'Hexagon Count', SUM(crime_count) as 'Total Crimes'
+    mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password stlouisintegration_dev -e "SELECT h3_resolution, COUNT(*) as 'Hexagon Count', SUM(incident_count) as 'Total Crimes'
               FROM amisafe_h3_aggregated 
               GROUP BY h3_resolution 
               ORDER BY h3_resolution;" 2>/dev/null || true
     
     echo -e "\nDistrict Coverage:"
-    mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password theoryofconspiracies_dev -e "SELECT dc_dist, COUNT(*) as 'Incident Count' 
+    mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password stlouisintegration_dev -e "SELECT dc_dist, COUNT(*) as 'Incident Count' 
               FROM amisafe_raw_incidents 
               WHERE dc_dist IS NOT NULL
               GROUP BY dc_dist 

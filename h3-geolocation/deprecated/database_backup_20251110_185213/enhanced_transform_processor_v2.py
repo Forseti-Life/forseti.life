@@ -28,17 +28,13 @@ import json
 import uuid
 import h3
 import logging
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from typing import Dict, List, Tuple, Optional
 from collections import defaultdict
 import argparse
 import sys
 import os
 import time
-import warnings
-
-# Suppress pandas SQLAlchemy warning for mysql.connector usage
-warnings.filterwarnings('ignore', message='pandas only supports SQLAlchemy connectable.*', category=UserWarning)
 
 # Add parent directories to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -58,7 +54,7 @@ class EnhancedTransformProcessor:
                  mysql_host: str = '127.0.0.1',
                  mysql_user: str = 'drupal_user',
                  mysql_password: str = 'drupal_secure_password',
-                 mysql_database: str = 'stlouisintegration_dev',
+                 mysql_database: str = 'theoryofconspiracies_dev',
                  reports_dir: str = None):
         """Initialize the enhanced transform processor."""
         
@@ -237,7 +233,7 @@ class EnhancedTransformProcessor:
         
         return True, 'valid'
     
-    def fetch_raw_incidents(self, connection, batch_size: int = 50000, start_id: int = 1) -> pd.DataFrame:
+    def fetch_raw_incidents(self, connection, batch_size: int = 10000, start_id: int = 1) -> pd.DataFrame:
         """Fetch raw incidents starting from a specific ID."""
         query = """
         SELECT id, cartodb_id, objectid, dc_key, dc_dist, psa, 
@@ -258,33 +254,29 @@ class EnhancedTransformProcessor:
             return pd.DataFrame()
     
     def detect_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Detect and mark duplicates in the dataframe - OPTIMIZED VERSION."""
+        """Detect and mark duplicates in the dataframe."""
         df = df.copy()
+        duplicates_found = 0
         
-        # Initialize exclusion_reason if not exists
-        if 'exclusion_reason' not in df.columns:
-            df['exclusion_reason'] = 'valid'
-        
-        # OPTIMIZED: Use vectorized operations for duplicate detection
         # Check for cartodb_id duplicates
         cartodb_dupes = df.duplicated(subset=['cartodb_id'], keep='first')
+        duplicates_found += cartodb_dupes.sum()
         df.loc[cartodb_dupes, 'exclusion_reason'] = 'duplicate_cartodb_id'
         
-        # Check for objectid duplicates (only on non-cartodb duplicates)
-        non_cartodb_mask = ~cartodb_dupes
-        objectid_dupes = df[non_cartodb_mask].duplicated(subset=['objectid'], keep='first')
-        df.loc[df[non_cartodb_mask][objectid_dupes].index, 'exclusion_reason'] = 'duplicate_objectid'
+        # Check for objectid duplicates (excluding already marked duplicates)
+        remaining_df = df[~cartodb_dupes]
+        objectid_dupes = remaining_df.duplicated(subset=['objectid'], keep='first')
+        df.loc[remaining_df[objectid_dupes].index, 'exclusion_reason'] = 'duplicate_objectid'
+        duplicates_found += objectid_dupes.sum()
         
-        # Check for composite duplicates (only on remaining records)
-        remaining_mask = non_cartodb_mask & ~objectid_dupes
-        if remaining_mask.any():
-            composite_dupes = df[remaining_mask].duplicated(
-                subset=['lat', 'lng', 'dispatch_date_time', 'ucr_general'], keep='first'
-            )
-            df.loc[df[remaining_mask][composite_dupes].index, 'exclusion_reason'] = 'duplicate_composite'
+        # Check for composite duplicates (lat/lng + datetime + crime_type)
+        remaining_df = df[(~cartodb_dupes) & (~df.index.isin(remaining_df[objectid_dupes].index))]
+        composite_dupes = remaining_df.duplicated(
+            subset=['lat', 'lng', 'dispatch_date_time', 'ucr_general'], keep='first'
+        )
+        df.loc[remaining_df[composite_dupes].index, 'exclusion_reason'] = 'duplicate_composite'
+        duplicates_found += composite_dupes.sum()
         
-        # Count total duplicates found
-        duplicates_found = (df['exclusion_reason'] != 'valid').sum()
         self.logger.info(f"Identified {duplicates_found} duplicate records")
         return df
     
@@ -386,105 +378,6 @@ class EnhancedTransformProcessor:
         
         return max(0.0, score)
     
-    def prepare_clean_records_vectorized(self, valid_records: pd.DataFrame, batch_id: str) -> List[Dict]:
-        """Vectorized preparation of clean records - MUCH FASTER than row-by-row."""
-        clean_records = []
-        
-        try:
-            # Vectorized datetime parsing
-            datetime_series = valid_records['dispatch_date_time'].astype(str)
-            
-            # Vectorized coordinate extraction
-            lat_series = pd.to_numeric(valid_records['lat'], errors='coerce')
-            lng_series = pd.to_numeric(valid_records['lng'], errors='coerce')
-            
-            # Filter out invalid coordinates
-            valid_coords_mask = (lat_series.notna()) & (lng_series.notna()) & \
-                              (lat_series >= -90) & (lat_series <= 90) & \
-                              (lng_series >= -180) & (lng_series <= 180)
-            
-            # Process only records with valid coordinates
-            valid_coord_records = valid_records[valid_coords_mask]
-            valid_lats = lat_series[valid_coords_mask]
-            valid_lngs = lng_series[valid_coords_mask]
-            
-            for idx, (_, row) in enumerate(valid_coord_records.iterrows()):
-                try:
-                    # Parse datetime
-                    datetime_str = str(row['dispatch_date_time'])
-                    try:
-                        incident_dt = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S+00:00')
-                    except ValueError:
-                        incident_dt = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
-                    
-                    # Get coordinates
-                    lat, lng = valid_lats.iloc[idx], valid_lngs.iloc[idx]
-                    
-                    # Generate H3 indexes
-                    h3_indexes = {}
-                    for resolution in range(6, 11):
-                        try:
-                            h3_index = h3.latlng_to_cell(lat, lng, resolution)
-                            h3_indexes[f'h3_res_{resolution}'] = h3_index
-                        except:
-                            h3_indexes[f'h3_res_{resolution}'] = None
-                    
-                    # Calculate quality score
-                    quality_score = self.calculate_data_quality_score(row)
-                    
-                    # Create incident ID
-                    incident_id = f"{row['cartodb_id']}_{row['objectid']}" if pd.notna(row['cartodb_id']) and pd.notna(row['objectid']) else str(uuid.uuid4())
-                    
-                    # Create clean record
-                    clean_record = {
-                        'raw_incident_ids': json.dumps([int(row['id'])]),
-                        'incident_id': incident_id,
-                        'cartodb_id': int(row['cartodb_id']) if pd.notna(row['cartodb_id']) else None,
-                        'objectid': int(row['objectid']) if pd.notna(row['objectid']) else None,
-                        'incident_datetime': incident_dt.strftime('%Y-%m-%d %H:%M:%S'),
-                        'incident_date': incident_dt.strftime('%Y-%m-%d'),
-                        'incident_year': incident_dt.year,
-                        'incident_month': incident_dt.month,
-                        'incident_hour': incident_dt.hour,
-                        'day_of_week': incident_dt.weekday() + 1,
-                        'lat': lat,
-                        'lng': lng,
-                        'coordinate_quality': 'HIGH',  # Default quality for valid coordinates
-                        'location_block': str(row.get('location_block', '')),
-                        'dc_key': str(row['dc_key']) if pd.notna(row['dc_key']) else None,
-                        'dc_dist': str(row.get('dc_dist', '')),
-                        'psa': str(row.get('psa', '')) if pd.notna(row.get('psa')) else None,
-                        'ucr_general': str(row.get('ucr_general', '')),
-                        'crime_description': str(row.get('text_general_code', '')),
-                        'crime_category': self.get_crime_category(str(row.get('ucr_general', ''))),
-                        'severity_level': self.get_severity_level(str(row.get('ucr_general', ''))),
-                        'data_quality_score': quality_score,
-                        'processing_batch_id': batch_id,
-                        'duplicate_group_id': None,
-                        'is_duplicate': row.get('exclusion_reason', '').startswith('duplicate'),
-                        'is_valid': True
-                    }
-                    
-                    # Add H3 indexes
-                    clean_record.update(h3_indexes)
-                    clean_records.append(clean_record)
-                    
-                except Exception as e:
-                    self.logger.warning(f"Failed to prepare clean record: {e}")
-                    continue
-                    
-            self.logger.info(f"✅ Vectorized processing: {len(clean_records)} clean records prepared from {len(valid_records)} valid records")
-            return clean_records
-            
-        except Exception as e:
-            self.logger.error(f"Vectorized processing failed, falling back to individual processing: {e}")
-            # Fallback to individual processing if vectorized fails
-            for _, row in valid_records.iterrows():
-                clean_record = self.prepare_clean_record(row, batch_id)
-                if clean_record:
-                    clean_records.append(clean_record)
-            return clean_records
-    
     def get_crime_category(self, ucr_code: str) -> str:
         """Map UCR code to crime category."""
         category_map = {
@@ -533,27 +426,27 @@ class EnhancedTransformProcessor:
         if valid_mask.sum() > 0:
             batch_df = self.detect_duplicates(batch_df)
             
-            # Update exclusion stats for duplicates found - VECTORIZED VERSION
-            excluded_records = batch_df[batch_df['exclusion_reason'] != 'valid']
-            if len(excluded_records) > 0:
-                exclusion_counts = excluded_records['exclusion_reason'].value_counts()
-                for reason, count in exclusion_counts.items():
-                    batch_stats['exclusion_reasons'][reason] += count
-                    self.processing_stats['exclusions'][reason] += count
+            # Update exclusion stats for duplicates found
+            for idx, row in batch_df.iterrows():
+                if row['exclusion_reason'] != 'valid' and idx in batch_df[valid_mask].index:
+                    batch_stats['exclusion_reasons'][row['exclusion_reason']] += 1
+                    self.processing_stats['exclusions'][row['exclusion_reason']] += 1
         
         # Count final exclusions
         excluded_mask = batch_df['exclusion_reason'] != 'valid'
         batch_stats['excluded_records'] = excluded_mask.sum()
         batch_stats['valid_records'] = len(batch_df) - batch_stats['excluded_records']
         
-        # Prepare clean records from valid data - VECTORIZED VERSION
+        # Prepare clean records from valid data
         valid_records = batch_df[~excluded_mask]
         clean_records = []
         
-        if len(valid_records) > 0:
-            # Vectorized clean record preparation
-            clean_records = self.prepare_clean_records_vectorized(valid_records, batch_id)
-            batch_stats['insertion_failures'] = len(valid_records) - len(clean_records)
+        for _, row in valid_records.iterrows():
+            clean_record = self.prepare_clean_record(row, batch_id)
+            if clean_record:
+                clean_records.append(clean_record)
+            else:
+                batch_stats['insertion_failures'] += 1
         
         # Insert clean records
         if clean_records:
@@ -599,14 +492,10 @@ class EnhancedTransformProcessor:
             self.processing_stats['processing_errors'].append(f"insert_clean_records: {str(e)}")
             return 0
     
-    def continue_processing(self, batch_size: int = 50000) -> Dict:
+    def continue_processing(self, batch_size: int = 10000) -> Dict:
         """Continue processing from where it left off."""
         self.logger.info("🔄 Starting enhanced transform processing (continue mode)...")
         self.processing_stats['start_time'] = datetime.now()
-        
-        # Initialize timing variables for ETA calculation
-        batch_start_time = datetime.now()
-        processing_start_time = datetime.now()
         
         connection = None
         try:
@@ -615,7 +504,6 @@ class EnhancedTransformProcessor:
             # Get current processing status
             status = self.get_processing_status()
             self.processing_stats['total_raw_records'] = status['total_raw_records']
-            initial_processed = status['total_transform_records']
             
             start_id = status['processing_range']['max_id'] + 1 if status['processing_range']['max_id'] > 0 else 1
             
@@ -625,7 +513,6 @@ class EnhancedTransformProcessor:
             self.logger.info(f"   Remaining: {status['records_remaining']:,}")
             self.logger.info(f"   Completion: {status['completion_percentage']:.1f}%")
             self.logger.info(f"   Continuing from ID: {start_id:,}")
-            self.logger.info(f"   Batch Size: {batch_size:,}")
             
             if status['records_remaining'] == 0:
                 self.logger.info("✅ All records already processed!")
@@ -660,29 +547,12 @@ class EnhancedTransformProcessor:
                     f"{batch_stats['insertion_failures']} failed preparations"
                 )
                 
-                # Enhanced progress tracking with timing
+                # Progress update
                 current_total = status['total_transform_records'] + self.processing_stats['records_inserted']
                 current_progress = (current_total / status['total_raw_records'] * 100) if status['total_raw_records'] > 0 else 0
-                remaining_records = status['total_raw_records'] - current_total
                 
-                # Calculate ETA after every batch
-                current_time = datetime.now()
-                elapsed_time = (current_time - processing_start_time).total_seconds()
-                records_processed_this_session = self.processing_stats['records_inserted']
-                
-                if records_processed_this_session > 0 and elapsed_time > 0:
-                    records_per_second = records_processed_this_session / elapsed_time
-                    eta_seconds = remaining_records / records_per_second if records_per_second > 0 else 0
-                    eta_time = current_time + timedelta(seconds=eta_seconds)
-                    eta_formatted = eta_time.strftime('%Y-%m-%d %H:%M:%S')
-                else:
-                    eta_formatted = "Calculating..."
-                
-                # Show progress update every batch (more frequent updates)
-                self.logger.info(
-                    f"📈 Batch {batch_num} Complete: {current_total:,}/{status['total_raw_records']:,} "
-                    f"({current_progress:.2f}%) | Remaining: {remaining_records:,} | ETA: {eta_formatted}"
-                )
+                if batch_num % 10 == 0:  # Progress update every 10 batches
+                    self.logger.info(f"📈 Progress Update: {current_total:,}/{status['total_raw_records']:,} ({current_progress:.1f}%)")
             
         except Exception as e:
             self.logger.error(f"Transform processing failed: {e}")
@@ -844,11 +714,11 @@ def main():
     parser.add_argument('--full-reprocess', action='store_true', help='Reprocess all records (clears transform layer)')
     parser.add_argument('--validation-only', action='store_true', help='Run validation analysis only')
     parser.add_argument('--status-check', action='store_true', help='Check current processing status')
-    parser.add_argument('--batch-size', type=int, default=50000, help='Batch size for processing')
+    parser.add_argument('--batch-size', type=int, default=10000, help='Batch size for processing')
     parser.add_argument('--mysql-host', default='127.0.0.1', help='MySQL host')
     parser.add_argument('--mysql-user', default='drupal_user', help='MySQL user')
     parser.add_argument('--mysql-password', default='drupal_secure_password', help='MySQL password')
-    parser.add_argument('--mysql-database', default='stlouisintegration_dev', help='MySQL database')
+    parser.add_argument('--mysql-database', default='theoryofconspiracies_dev', help='MySQL database')
     
     args = parser.parse_args()
     

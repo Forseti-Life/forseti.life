@@ -3,6 +3,6 @@
   "port": 3306,
   "user": "drupal_user",
   "password": "drupal_secure_password",
-  "database": "theoryofconspiracies_dev",
+  "database": "stlouisintegration_dev",
   "charset": "utf8mb4"
 }

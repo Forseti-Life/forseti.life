@@ -4,11 +4,6 @@ AmISafe Final Layer (Gold) Aggregator
 Creates H3 aggregated analytics from the Transform layer data
 Part of the 3-layer data warehouse architecture:
 - Raw Layer (Bronze) -> Transform Layer (Silver) -> Final Layer (Gold) <- THIS SCRIPT
-
-Integrated Functionality:
-- Metro Area H3 Generation: generate_metro_area_h3_cells() for complete Philadelphia metro coverage
-- H3 Incident ID Collection: JSON_ARRAYAGG(incident_id) for granular incident tracking
-- Multi-resolution H3 Aggregation: Supports resolutions 5-13 for all scales
 """
 
 import os
