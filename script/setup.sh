@@ -355,6 +355,52 @@ if [ ${#MISSING_TEXT_TOOLS[@]} -gt 0 ]; then
     print_status "Resume text extraction dependencies installed successfully"
 fi
 
+# Install H3 Geolocation Framework dependencies
+print_status "Setting up H3 Geolocation Framework for AmISafe crime mapping..."
+H3_SYSTEM_PACKAGES=("python3-dev" "python3-pip" "python3-venv" "python3-full" "build-essential" "libgeos-dev" "libproj-dev" "libgdal-dev")
+MISSING_H3_PACKAGES=()
+
+for package in "${H3_SYSTEM_PACKAGES[@]}"; do
+    if ! dpkg -l | grep -q "^ii  $package "; then
+        MISSING_H3_PACKAGES+=("$package")
+    fi
+done
+
+if [ ${#MISSING_H3_PACKAGES[@]} -gt 0 ]; then
+    print_status "Installing H3 geospatial system packages: ${MISSING_H3_PACKAGES[*]}"
+    sudo apt install -y "${MISSING_H3_PACKAGES[@]}"
+    print_status "H3 geospatial system dependencies installed successfully"
+fi
+
+# Setup H3 Python virtual environment
+H3_ENV_DIR="/workspaces/stlouisintegration.com/h3-geolocation/h3-env"
+if [ ! -d "$H3_ENV_DIR" ]; then
+    print_status "Creating H3 Python virtual environment..."
+    cd /workspaces/stlouisintegration.com/h3-geolocation
+    python3 -m venv h3-env
+    
+    print_status "Installing H3 Python packages..."
+    ./h3-env/bin/pip install --upgrade pip
+    ./h3-env/bin/pip install h3==4.3.1 pandas>=2.0.0 numpy>=1.24.0 mysql-connector-python>=8.0.0
+    ./h3-env/bin/pip install matplotlib>=3.7.0 folium>=0.18.0 geopy>=2.4.0 plotly>=5.17.0
+    ./h3-env/bin/pip install seaborn>=0.13.0 tqdm>=4.65.0
+    
+    print_status "✅ H3 geolocation environment created successfully"
+    cd - > /dev/null
+else
+    print_status "✅ H3 geolocation environment already exists"
+fi
+
+# Verify H3 installation
+if [ -f "$H3_ENV_DIR/bin/python" ]; then
+    H3_TEST_RESULT=$($H3_ENV_DIR/bin/python -c "import h3; import pandas; import mysql.connector; print('H3 packages verified')" 2>/dev/null || echo "FAILED")
+    if [ "$H3_TEST_RESULT" = "H3 packages verified" ]; then
+        print_status "✅ H3 geolocation framework verified and ready"
+    else
+        print_warning "⚠️  H3 framework verification failed - may need manual setup"
+    fi
+fi
+
 # Configure PHP 8.3 as default version
 print_status "Configuring PHP 8.3 as default version..."
 
@@ -1455,6 +1501,11 @@ echo "  - stli_site_customizations (STLI Site Customizations)"
 echo "✓ Custom Theme: stlouisintegration theme enabled and set as default"
 echo "✓ Apache Virtual Hosts: Port-based routing (80, 8080)"
 echo "✓ Databases: Separate databases for each site"
+echo "✓ H3 Geolocation Framework: Version 4.3.1 with AmISafe crime mapping pipeline"
+echo "  - H3 Python environment: /workspaces/stlouisintegration.com/h3-geolocation/h3-env/"
+echo "  - AmISafe database tables: amisafe_raw_incidents, amisafe_clean_incidents, amisafe_h3_aggregated"
+echo "  - Crime data pipeline: 20 CSV files ready for processing (673MB+)"
+echo "  - Pipeline scripts: run_amisafe_pipeline_stlouisintegration.sh for full data processing"
 echo "========================="
 
 echo "Multi-Site Information:"
@@ -1491,6 +1542,15 @@ echo "- Navigate to site: cd /workspaces/stlouisintegration.com/sites/theoryofco
 echo "- Clear cache: ./vendor/bin/drush cr"
 echo "- One-time login: ./vendor/bin/drush uli"
 echo "- Drush commands: ./vendor/bin/drush [command]"
+echo ""
+echo "FOR H3 GEOLOCATION & AMISAFE CRIME MAPPING:"
+echo "- Navigate to H3: cd /workspaces/stlouisintegration.com/h3-geolocation"
+echo "- Activate environment: source h3-env/bin/activate"
+echo "- Run sample pipeline: cd database && bash run_amisafe_pipeline_stlouisintegration.sh sample"
+echo "- Run full pipeline: cd database && bash run_amisafe_pipeline_stlouisintegration.sh full"
+echo "- Quick H3 examples: python quick_start.py"
+echo "- Data visualization: python visualizer.py"
+echo "- AmISafe dashboard: http://localhost/amisafe (after enabling AmISafe module)"
 
 print_warning "Important reminders:"
 echo "- Change admin password after first login for security"
@@ -1680,25 +1740,92 @@ fi
 print_status "Post-installation fixes co
 echo ""
 echo "========================="
-print_step "5. H3 GEOLOCATION DATABASE SETUP - Initializing data pipeline..."
+print_step "5. H3 GEOLOCATION DATABASE SETUP - Initializing AmISafe crime mapping pipeline..."
 echo "========================="
 
-# Setup H3 Geolocation Data Pipeline Database
-print_status "Setting up H3 geolocation data pipeline database..."
-DATABASE_SETUP_SCRIPT="$SCRIPT_DIR/database/setup_database.sh"
+# Setup AmISafe Data Pipeline Database Tables
+print_status "Setting up AmISafe H3 geolocation data pipeline database..."
+AMISAFE_SETUP_SCRIPT="/workspaces/stlouisintegration.com/h3-geolocation/database/setup_amisafe_stlouisintegration.sh"
 
-if [ -f "$DATABASE_SETUP_SCRIPT" ]; then
-    print_status "Running database setup script..."
-    if bash "$DATABASE_SETUP_SCRIPT"; then
-        print_status "✅ H3 database setup completed successfully"
+if [ -f "$AMISAFE_SETUP_SCRIPT" ]; then
+    print_status "Running AmISafe database setup script..."
+    if bash "$AMISAFE_SETUP_SCRIPT"; then
+        print_status "✅ AmISafe database setup completed successfully"
+        
+        # Run sample data pipeline to verify functionality
+        print_status "Running AmISafe sample data pipeline..."
+        PIPELINE_SCRIPT="/workspaces/stlouisintegration.com/h3-geolocation/database/run_amisafe_pipeline_stlouisintegration.sh"
+        if [ -f "$PIPELINE_SCRIPT" ]; then
+            cd /workspaces/stlouisintegration.com/h3-geolocation/database
+            if bash "$PIPELINE_SCRIPT" sample; then
+                print_status "✅ AmISafe sample data pipeline completed successfully"
+            else
+                print_warning "⚠️  AmISafe pipeline had issues - continuing..."
+            fi
+            cd - > /dev/null
+        fi
     else
-        print_warning "⚠️  H3 database setup encountered issues - continuing..."
+        print_warning "⚠️  AmISafe database setup encountered issues - continuing..."
     fi
 else
-    print_warning "⚠️  Database setup script not found at: $DATABASE_SETUP_SCRIPT"
-    print_status "Creating placeholder database setup..."
-    # Ensure MySQL is running for other operations
-    sudo systemctl start mysql 2>/dev/null || true
+    print_warning "⚠️  AmISafe database setup script not found - setting up basic tables..."
+    
+    # Ensure MySQL is running
+    sudo service mysql start 2>/dev/null || true
+    
+    # Create basic AmISafe tables directly
+    print_status "Creating basic AmISafe database tables..."
+    mysql -h127.0.0.1 -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" << 'EOF' || print_warning "AmISafe table creation failed"
+CREATE TABLE IF NOT EXISTS amisafe_raw_incidents (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    source_file VARCHAR(255) NOT NULL DEFAULT 'sample_data',
+    cartodb_id INT,
+    objectid BIGINT,
+    dc_dist VARCHAR(10),
+    dispatch_date_time DATETIME,
+    lat DECIMAL(10,7),
+    lng DECIMAL(11,7),
+    location_block TEXT,
+    ucr_general VARCHAR(10),
+    text_general_code VARCHAR(255),
+    ingested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_coordinates (lat, lng),
+    INDEX idx_district (dc_dist),
+    INDEX idx_crime_type (ucr_general)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS amisafe_clean_incidents (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    incident_id VARCHAR(50) UNIQUE,
+    lat DECIMAL(10,7) NOT NULL,
+    lng DECIMAL(11,7) NOT NULL,
+    incident_datetime DATETIME NOT NULL,
+    ucr_general VARCHAR(10) NOT NULL,
+    dc_dist VARCHAR(10),
+    severity_level TINYINT DEFAULT 3,
+    processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_location (lat, lng),
+    INDEX idx_datetime (incident_datetime),
+    INDEX idx_crime_type (ucr_general)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS amisafe_h3_aggregated (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    h3_index VARCHAR(16) NOT NULL,
+    h3_resolution TINYINT NOT NULL,
+    incident_count INT DEFAULT 0,
+    center_lat DECIMAL(10,7),
+    center_lng DECIMAL(11,7),
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_h3_resolution (h3_index, h3_resolution),
+    INDEX idx_resolution (h3_resolution),
+    INDEX idx_incident_count (incident_count)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+EOF
+    
+    if [ $? -eq 0 ]; then
+        print_status "✅ Basic AmISafe database tables created successfully"
+    fi
 fi
 
 echo ""
