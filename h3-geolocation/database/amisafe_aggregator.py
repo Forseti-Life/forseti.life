@@ -161,7 +161,6 @@ class AmISafeFinalLayerAggregator:
                     JSON_ARRAYAGG(incident_id) as incident_ids
                 FROM amisafe_clean_incidents 
                 WHERE {h3_column} IS NOT NULL 
-                    AND is_valid = TRUE
                     AND is_duplicate = FALSE
                 GROUP BY {h3_column}
                 HAVING COUNT(*) > 0
@@ -191,7 +190,6 @@ class AmISafeFinalLayerAggregator:
                     NOW() as last_aggregation
                 FROM amisafe_clean_incidents 
                 WHERE {h3_column} IS NOT NULL 
-                    AND is_valid = TRUE
                     AND is_duplicate = FALSE
                 GROUP BY {h3_column}
                 HAVING COUNT(*) > 0
@@ -234,8 +232,7 @@ class AmISafeFinalLayerAggregator:
             AVG(lng) as center_longitude,
             COUNT(*) as total_valid_records
         FROM amisafe_clean_incidents
-        WHERE is_valid = TRUE 
-          AND is_duplicate = FALSE
+        WHERE is_duplicate = FALSE
           AND lat IS NOT NULL 
           AND lng IS NOT NULL
           AND (

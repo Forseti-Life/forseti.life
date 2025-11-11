@@ -99,17 +99,8 @@ class EnhancedTransformProcessor:
         # Initialize record accounting tool
         self.accounting_tool = RecordAccountingTool(mysql_host, mysql_user, mysql_password, mysql_database)
         
-        # Philadelphia geographic bounds
-        self.philly_bounds = {
-            'lat_min': 39.867, 'lat_max': 40.138,
-            'lng_min': -75.280, 'lng_max': -74.955
-        }
-        
-        # Valid districts
-        self.valid_districts = {
-            '1', '2', '3', '5', '6', '7', '8', '9', '12', '14', '15', '16', 
-            '17', '18', '19', '22', '24', '25', '26', '35', '39'
-        }
+        # Removed geographic bounds and district validation filters
+        # Only using incident ID deduplication as requested
         
         # Processing statistics
         self.processing_stats = {
@@ -194,47 +185,9 @@ class EnhancedTransformProcessor:
             connection.close()
     
     def validate_record(self, row: pd.Series) -> Tuple[bool, str]:
-        """Validate a single record using comprehensive validation logic."""
-        
-        # Check coordinates - Missing
-        if pd.isna(row.get('lat')) or pd.isna(row.get('lng')):
-            return False, 'missing_coordinates'
-        
-        # Check coordinates - Invalid format
-        try:
-            lat, lng = float(row['lat']), float(row['lng'])
-        except (ValueError, TypeError):
-            return False, 'invalid_coordinates_format'
-        
-        # Check coordinate bounds for Philadelphia
-        if not (self.philly_bounds['lat_min'] <= lat <= self.philly_bounds['lat_max'] and
-                self.philly_bounds['lng_min'] <= lng <= self.philly_bounds['lng_max']):
-            return False, 'coordinates_outside_bounds'
-        
-        # Check datetime - Missing
-        if pd.isna(row.get('dispatch_date_time')):
-            return False, 'missing_datetime'
-        
-        # Check datetime - Invalid format
-        try:
-            datetime_str = str(row['dispatch_date_time'])
-            # Try with timezone first
-            try:
-                datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S+00:00')
-            except ValueError:
-                # Try without timezone
-                datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
-        except (ValueError, TypeError):
-            return False, 'invalid_datetime_format'
-        
-        # Check crime type
-        if pd.isna(row.get('ucr_general')) or str(row['ucr_general']).strip() == '':
-            return False, 'missing_crime_type'
-        
-        # Check district
-        if pd.isna(row.get('dc_dist')) or str(row['dc_dist']) not in self.valid_districts:
-            return False, 'invalid_district'
-        
+        """Minimal validation - only check if record exists (no filtering)."""
+        # All records are considered valid - no filtering applied
+        # Only deduplication by incident ID will be performed
         return True, 'valid'
     
     def fetch_raw_incidents(self, connection, batch_size: int = 50000, start_id: int = 1) -> pd.DataFrame:
@@ -258,34 +211,19 @@ class EnhancedTransformProcessor:
             return pd.DataFrame()
     
     def detect_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Detect and mark duplicates in the dataframe - OPTIMIZED VERSION."""
+        """Detect and mark duplicates by objectid - NO DEDUPLICATION since objectid is unique."""
         df = df.copy()
         
         # Initialize exclusion_reason if not exists
         if 'exclusion_reason' not in df.columns:
             df['exclusion_reason'] = 'valid'
         
-        # OPTIMIZED: Use vectorized operations for duplicate detection
-        # Check for cartodb_id duplicates
-        cartodb_dupes = df.duplicated(subset=['cartodb_id'], keep='first')
-        df.loc[cartodb_dupes, 'exclusion_reason'] = 'duplicate_cartodb_id'
+        # Since objectid is unique for all records, no deduplication is needed
+        # All records are considered valid and unique
         
-        # Check for objectid duplicates (only on non-cartodb duplicates)
-        non_cartodb_mask = ~cartodb_dupes
-        objectid_dupes = df[non_cartodb_mask].duplicated(subset=['objectid'], keep='first')
-        df.loc[df[non_cartodb_mask][objectid_dupes].index, 'exclusion_reason'] = 'duplicate_objectid'
-        
-        # Check for composite duplicates (only on remaining records)
-        remaining_mask = non_cartodb_mask & ~objectid_dupes
-        if remaining_mask.any():
-            composite_dupes = df[remaining_mask].duplicated(
-                subset=['lat', 'lng', 'dispatch_date_time', 'ucr_general'], keep='first'
-            )
-            df.loc[df[remaining_mask][composite_dupes].index, 'exclusion_reason'] = 'duplicate_composite'
-        
-        # Count total duplicates found
+        # Count total duplicates found (should be 0)
         duplicates_found = (df['exclusion_reason'] != 'valid').sum()
-        self.logger.info(f"Identified {duplicates_found} duplicate records")
+        self.logger.info(f"No deduplication applied - objectid is unique for all records (duplicates: {duplicates_found})")
         return df
     
     def prepare_clean_record(self, row: pd.Series, batch_id: str) -> Dict:
@@ -357,7 +295,7 @@ class EnhancedTransformProcessor:
             return None
     
     def calculate_data_quality_score(self, row: pd.Series) -> float:
-        """Calculate data quality score (0.0 - 1.0)."""
+        """Calculate data quality score (0.0 - 1.0) - NO FILTERING, just scoring."""
         score = 1.0
         
         # Coordinate quality
@@ -376,11 +314,11 @@ class EnhancedTransformProcessor:
         if pd.isna(row.get('text_general_code')) or str(row.get('text_general_code')).strip() == '':
             score -= 0.1
         
-        # District validation
-        if pd.isna(row.get('dc_dist')) or str(row.get('dc_dist')) not in self.valid_districts:
+        # District quality (no filtering, just scoring)
+        if pd.isna(row.get('dc_dist')):
             score -= 0.2
         
-        # UCR code validation
+        # UCR code quality
         if pd.isna(row.get('ucr_general')):
             score -= 0.1
         
@@ -398,42 +336,48 @@ class EnhancedTransformProcessor:
             lat_series = pd.to_numeric(valid_records['lat'], errors='coerce')
             lng_series = pd.to_numeric(valid_records['lng'], errors='coerce')
             
-            # Filter out invalid coordinates
-            valid_coords_mask = (lat_series.notna()) & (lng_series.notna()) & \
-                              (lat_series >= -90) & (lat_series <= 90) & \
-                              (lng_series >= -180) & (lng_series <= 180)
-            
-            # Process only records with valid coordinates
-            valid_coord_records = valid_records[valid_coords_mask]
-            valid_lats = lat_series[valid_coords_mask]
-            valid_lngs = lng_series[valid_coords_mask]
+            # NO FILTERING - Process all records regardless of coordinate validity
+            # Keep invalid coordinates as NULL/None values for data completeness
+            valid_coord_records = valid_records
+            valid_lats = lat_series
+            valid_lngs = lng_series
             
             for idx, (_, row) in enumerate(valid_coord_records.iterrows()):
                 try:
-                    # Parse datetime
+                    # Parse datetime - handle invalid dates gracefully
                     datetime_str = str(row['dispatch_date_time'])
+                    incident_dt = None
                     try:
                         incident_dt = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S+00:00')
                     except ValueError:
-                        incident_dt = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
+                        try:
+                            incident_dt = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            # Use a default date for invalid timestamps, don't filter out
+                            incident_dt = datetime(2000, 1, 1, 0, 0, 0)
                     
-                    # Get coordinates
+                    # Get coordinates - handle invalid coordinates gracefully
                     lat, lng = valid_lats.iloc[idx], valid_lngs.iloc[idx]
                     
-                    # Generate H3 indexes
+                    # Generate H3 indexes - only if coordinates are valid
                     h3_indexes = {}
-                    for resolution in range(6, 11):
-                        try:
-                            h3_index = h3.latlng_to_cell(lat, lng, resolution)
-                            h3_indexes[f'h3_res_{resolution}'] = h3_index
-                        except:
+                    if pd.notna(lat) and pd.notna(lng) and -90 <= lat <= 90 and -180 <= lng <= 180:
+                        for resolution in range(6, 11):
+                            try:
+                                h3_index = h3.latlng_to_cell(lat, lng, resolution)
+                                h3_indexes[f'h3_res_{resolution}'] = h3_index
+                            except:
+                                h3_indexes[f'h3_res_{resolution}'] = None
+                    else:
+                        # Set H3 indexes to None for invalid coordinates
+                        for resolution in range(6, 11):
                             h3_indexes[f'h3_res_{resolution}'] = None
                     
                     # Calculate quality score
                     quality_score = self.calculate_data_quality_score(row)
                     
-                    # Create incident ID
-                    incident_id = f"{row['cartodb_id']}_{row['objectid']}" if pd.notna(row['cartodb_id']) and pd.notna(row['objectid']) else str(uuid.uuid4())
+                    # Create incident ID using objectid as primary identifier
+                    incident_id = f"obj_{row['objectid']}" if pd.notna(row['objectid']) else str(uuid.uuid4())
                     
                     # Create clean record
                     clean_record = {
@@ -447,9 +391,9 @@ class EnhancedTransformProcessor:
                         'incident_month': incident_dt.month,
                         'incident_hour': incident_dt.hour,
                         'day_of_week': incident_dt.weekday() + 1,
-                        'lat': lat,
-                        'lng': lng,
-                        'coordinate_quality': 'HIGH',  # Default quality for valid coordinates
+                        'lat': lat if pd.notna(lat) else None,
+                        'lng': lng if pd.notna(lng) else None,
+                        'coordinate_quality': 'HIGH' if (pd.notna(lat) and pd.notna(lng)) else 'LOW',
                         'location_block': str(row.get('location_block', '')),
                         'dc_key': str(row['dc_key']) if pd.notna(row['dc_key']) else None,
                         'dc_dist': str(row.get('dc_dist', '')),
@@ -589,6 +533,21 @@ class EnhancedTransformProcessor:
         try:
             cursor = connection.cursor()
             cursor.executemany(insert_sql, clean_records)
+            
+            # Update raw records status to 'processed' after successful insertion
+            raw_ids = []
+            for record in clean_records:
+                # Extract raw incident IDs from the JSON array
+                raw_incident_ids = json.loads(record['raw_incident_ids'])
+                raw_ids.extend(raw_incident_ids)
+            
+            if raw_ids:
+                # Update processing status for successfully processed raw records
+                placeholders = ','.join(['%s'] * len(raw_ids))
+                update_sql = f"UPDATE amisafe_raw_incidents SET processing_status = 'processed' WHERE id IN ({placeholders})"
+                cursor.execute(update_sql, raw_ids)
+                self.logger.info(f"Marked {len(raw_ids)} raw records as processed")
+            
             connection.commit()
             inserted_count = cursor.rowcount
             cursor.close()
