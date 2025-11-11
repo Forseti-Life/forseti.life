@@ -68,6 +68,11 @@ This workspace supports two independent Drupal websites:
 - **configure-development.sh** - Development tools setup
 - **database-setup.sql** - Manual database commands
 
+### Database Scripts
+- **database/setup_consolidated.sh** - 🗄️ **Unified database setup** (ObjectID-based processing)
+- **database/DATABASE_CONSOLIDATION.md** - Database consolidation documentation
+- **database/legacy/** - Archived legacy setup scripts
+
 ### Documentation
 - **requirements.md** - System requirements and dependencies
 - **troubleshooting.md** - Common issues and solutions
