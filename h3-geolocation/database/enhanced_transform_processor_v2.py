@@ -238,10 +238,10 @@ class EnhancedTransformProcessor:
                 # Try without timezone
                 incident_dt = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M:%S')
             
-            # Generate H3 indexes
+            # Generate H3 indexes (5-13 for complete coverage)
             lat, lng = float(row['lat']), float(row['lng'])
             h3_indexes = {}
-            for resolution in range(6, 11):
+            for resolution in range(5, 14):  # H3:5 to H3:13
                 try:
                     h3_index = h3.latlng_to_cell(lat, lng, resolution)
                     h3_indexes[f'h3_res_{resolution}'] = h3_index
@@ -359,10 +359,10 @@ class EnhancedTransformProcessor:
                     # Get coordinates - handle invalid coordinates gracefully
                     lat, lng = valid_lats.iloc[idx], valid_lngs.iloc[idx]
                     
-                    # Generate H3 indexes - only if coordinates are valid
+                    # Generate H3 indexes (5-13) - only if coordinates are valid
                     h3_indexes = {}
                     if pd.notna(lat) and pd.notna(lng) and -90 <= lat <= 90 and -180 <= lng <= 180:
-                        for resolution in range(6, 11):
+                        for resolution in range(5, 14):  # H3:5 to H3:13
                             try:
                                 h3_index = h3.latlng_to_cell(lat, lng, resolution)
                                 h3_indexes[f'h3_res_{resolution}'] = h3_index
@@ -370,7 +370,7 @@ class EnhancedTransformProcessor:
                                 h3_indexes[f'h3_res_{resolution}'] = None
                     else:
                         # Set H3 indexes to None for invalid coordinates
-                        for resolution in range(6, 11):
+                        for resolution in range(5, 14):  # H3:5 to H3:13
                             h3_indexes[f'h3_res_{resolution}'] = None
                     
                     # Calculate quality score
@@ -518,14 +518,14 @@ class EnhancedTransformProcessor:
             dc_dist, psa, location_block, lat, lng, coordinate_quality,
             incident_datetime, incident_date, incident_hour, incident_month, incident_year, day_of_week,
             ucr_general, crime_category, crime_description, severity_level,
-            h3_res_6, h3_res_7, h3_res_8, h3_res_9, h3_res_10,
+            h3_res_5, h3_res_6, h3_res_7, h3_res_8, h3_res_9, h3_res_10, h3_res_11, h3_res_12, h3_res_13,
             data_quality_score, duplicate_group_id, is_duplicate, is_valid
         ) VALUES (
             %(raw_incident_ids)s, %(processing_batch_id)s, %(incident_id)s, %(cartodb_id)s, %(objectid)s, %(dc_key)s,
             %(dc_dist)s, %(psa)s, %(location_block)s, %(lat)s, %(lng)s, %(coordinate_quality)s,
             %(incident_datetime)s, %(incident_date)s, %(incident_hour)s, %(incident_month)s, %(incident_year)s, %(day_of_week)s,
             %(ucr_general)s, %(crime_category)s, %(crime_description)s, %(severity_level)s,
-            %(h3_res_6)s, %(h3_res_7)s, %(h3_res_8)s, %(h3_res_9)s, %(h3_res_10)s,
+            %(h3_res_5)s, %(h3_res_6)s, %(h3_res_7)s, %(h3_res_8)s, %(h3_res_9)s, %(h3_res_10)s, %(h3_res_11)s, %(h3_res_12)s, %(h3_res_13)s,
             %(data_quality_score)s, %(duplicate_group_id)s, %(is_duplicate)s, %(is_valid)s
         )
         """
@@ -654,6 +654,169 @@ class EnhancedTransformProcessor:
         self.processing_stats['end_time'] = datetime.now()
         return self.generate_final_report()
     
+    def populate_h3_columns(self, target_columns: List[str] = None, batch_size: int = 1000) -> Dict:
+        """Populate specific H3 columns for existing records."""
+        self.logger.info("🔄 Starting H3 column population...")
+        self.processing_stats['start_time'] = datetime.now()
+        
+        # Default to all H3 columns if none specified
+        if target_columns is None:
+            target_columns = [f'h3_res_{res}' for res in range(5, 14)]
+        
+        # Validate column names
+        valid_columns = [f'h3_res_{res}' for res in range(5, 14)]
+        target_columns = [col for col in target_columns if col in valid_columns]
+        
+        if not target_columns:
+            self.logger.error("No valid H3 columns specified")
+            return {'error': 'No valid H3 columns specified'}
+        
+        self.logger.info(f"Target H3 columns: {target_columns}")
+        
+        connection = None
+        total_updated = 0
+        
+        try:
+            connection = self.connect_to_mysql()
+            cursor = connection.cursor()
+            
+            # Get total records that need H3 population
+            where_conditions = []
+            for col in target_columns:
+                where_conditions.append(f"{col} IS NULL")
+            
+            count_query = f"""
+                SELECT COUNT(*) FROM amisafe_clean_incidents 
+                WHERE lat IS NOT NULL AND lng IS NOT NULL 
+                AND ({' OR '.join(where_conditions)})
+            """
+            cursor.execute(count_query)
+            total_records = cursor.fetchone()[0]
+            
+            self.logger.info(f"Found {total_records:,} records needing H3 population")
+            
+            if total_records == 0:
+                self.logger.info("✅ All specified H3 columns are already populated")
+                return {'total_updated': 0, 'message': 'All columns already populated'}
+            
+            # Process in batches
+            offset = 0
+            batch_num = 0
+            
+            while offset < total_records:
+                batch_num += 1
+                
+                # Fetch batch of records needing H3 values
+                fetch_query = f"""
+                    SELECT id, lat, lng FROM amisafe_clean_incidents 
+                    WHERE lat IS NOT NULL AND lng IS NOT NULL 
+                    AND ({' OR '.join(where_conditions)})
+                    LIMIT {batch_size} OFFSET {offset}
+                """
+                
+                cursor.execute(fetch_query)
+                batch_records = cursor.fetchall()
+                
+                if not batch_records:
+                    break
+                
+                self.logger.info(f"🔄 Processing batch {batch_num}: {len(batch_records)} records")
+                
+                # Calculate H3 values for each record in batch
+                updates = []
+                for record_id, lat, lng in batch_records:
+                    if lat is not None and lng is not None:
+                        h3_values = {}
+                        for column in target_columns:
+                            resolution = int(column.split('_')[-1])
+                            try:
+                                h3_cell = h3.latlng_to_cell(lat, lng, resolution)
+                                h3_values[column] = h3_cell
+                            except Exception as e:
+                                self.logger.warning(f"Failed to calculate H3 for resolution {resolution} at ({lat}, {lng}): {e}")
+                                h3_values[column] = None
+                        
+                        updates.append((h3_values, record_id))
+                
+                # Execute batch updates
+                batch_updated = 0
+                for h3_values, record_id in updates:
+                    if h3_values:
+                        # Build update query for non-null columns only
+                        update_fields = []
+                        update_params = []
+                        for col, val in h3_values.items():
+                            if val is not None:
+                                # Check if column is actually null before updating
+                                check_query = f"SELECT {col} FROM amisafe_clean_incidents WHERE id = %s"
+                                cursor.execute(check_query, (record_id,))
+                                current_value = cursor.fetchone()[0]
+                                
+                                if current_value is None:
+                                    update_fields.append(f"{col} = %s")
+                                    update_params.append(val)
+                        
+                        if update_fields:
+                            update_query = f"""
+                                UPDATE amisafe_clean_incidents 
+                                SET {', '.join(update_fields)} 
+                                WHERE id = %s
+                            """
+                            update_params.append(record_id)
+                            cursor.execute(update_query, update_params)
+                            if cursor.rowcount > 0:
+                                batch_updated += 1
+                
+                connection.commit()
+                total_updated += batch_updated
+                
+                self.logger.info(f"✅ Batch {batch_num}: Updated {batch_updated} records (Total: {total_updated:,}/{total_records:,})")
+                
+                offset += batch_size
+                
+                # Progress update
+                progress = (total_updated / total_records * 100) if total_records > 0 else 0
+                self.logger.info(f"📈 Progress: {progress:.1f}% complete")
+            
+            cursor.close()
+            
+            # Final validation
+            self.logger.info("🔍 Validating H3 column population...")
+            cursor = connection.cursor()
+            for column in target_columns:
+                cursor.execute(f"SELECT COUNT(*) FROM amisafe_clean_incidents WHERE {column} IS NOT NULL")
+                populated_count = cursor.fetchone()[0]
+                cursor.execute("SELECT COUNT(*) FROM amisafe_clean_incidents WHERE lat IS NOT NULL AND lng IS NOT NULL")
+                total_with_coords = cursor.fetchone()[0]
+                
+                population_rate = (populated_count / total_with_coords * 100) if total_with_coords > 0 else 0
+                status = "✅" if population_rate > 95 else "⚠️" if population_rate > 0 else "❌"
+                self.logger.info(f"{status} {column}: {populated_count:,}/{total_with_coords:,} ({population_rate:.1f}%)")
+            
+            cursor.close()
+            
+        except Exception as e:
+            self.logger.error(f"H3 column population failed: {e}")
+            self.processing_stats['processing_errors'].append(f"populate_h3_columns: {str(e)}")
+            raise
+        finally:
+            if connection and connection.is_connected():
+                connection.close()
+        
+        self.processing_stats['end_time'] = datetime.now()
+        duration = self.processing_stats['end_time'] - self.processing_stats['start_time']
+        
+        self.logger.info(f"🎉 H3 Column Population Complete!")
+        self.logger.info(f"   Total Updated: {total_updated:,}")
+        self.logger.info(f"   Duration: {duration.total_seconds():.1f} seconds")
+        
+        return {
+            'total_updated': total_updated,
+            'target_columns': target_columns,
+            'duration_seconds': duration.total_seconds(),
+            'success': True
+        }
+
     def generate_final_report(self) -> Dict:
         """Generate comprehensive final processing report."""
         self.logger.info("📊 Generating comprehensive processing report...")
@@ -803,6 +966,9 @@ def main():
     parser.add_argument('--full-reprocess', action='store_true', help='Reprocess all records (clears transform layer)')
     parser.add_argument('--validation-only', action='store_true', help='Run validation analysis only')
     parser.add_argument('--status-check', action='store_true', help='Check current processing status')
+    parser.add_argument('--populate-h3-columns', action='store_true', help='Populate missing H3 columns for existing records')
+    parser.add_argument('--h3-columns', nargs='+', help='Specific H3 columns to populate (e.g., h3_res_5 h3_res_11)', 
+                        choices=['h3_res_5', 'h3_res_6', 'h3_res_7', 'h3_res_8', 'h3_res_9', 'h3_res_10', 'h3_res_11', 'h3_res_12', 'h3_res_13'])
     parser.add_argument('--batch-size', type=int, default=50000, help='Batch size for processing')
     parser.add_argument('--mysql-host', default='127.0.0.1', help='MySQL host')
     parser.add_argument('--mysql-user', default='drupal_user', help='MySQL user')
@@ -846,7 +1012,27 @@ def main():
                 json.dump(validation_report, f, indent=2, default=str)
             print(f"✅ Validation report saved: {validation_filename}")
             
-        elif args.continue_processing or not any([args.full_reprocess, args.validation_only, args.status_check]):
+        elif args.populate_h3_columns:
+            # Populate H3 columns for existing records
+            print(f"\n🔄 POPULATING H3 COLUMNS")
+            target_columns = args.h3_columns if args.h3_columns else None
+            if target_columns:
+                print(f"Target columns: {', '.join(target_columns)}")
+            else:
+                print("Target columns: All H3 columns (h3_res_5 through h3_res_13)")
+            
+            results = processor.populate_h3_columns(target_columns=target_columns, batch_size=args.batch_size)
+            
+            if results.get('success'):
+                print(f"\n✅ H3 POPULATION COMPLETE")
+                print(f"Records Updated: {results['total_updated']:,}")
+                print(f"Duration: {results['duration_seconds']:.1f} seconds")
+                print(f"Columns Updated: {', '.join(results['target_columns'])}")
+            else:
+                print(f"\n❌ H3 POPULATION FAILED")
+                print(f"Error: {results.get('error', 'Unknown error')}")
+            
+        elif args.continue_processing or not any([args.full_reprocess, args.validation_only, args.status_check, args.populate_h3_columns]):
             # Continue processing (default)
             print(f"\n🔄 CONTINUING TRANSFORM PROCESSING")
             results = processor.continue_processing(batch_size=args.batch_size)

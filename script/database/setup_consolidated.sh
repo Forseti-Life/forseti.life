@@ -219,12 +219,16 @@ create_transform_layer_table() {
         crime_description VARCHAR(255),        -- Cleaned description
         severity_level TINYINT DEFAULT 3,      -- Calculated severity (1-5)
         
-        -- H3 spatial indexing (multiple resolutions)
-        h3_res_6 VARCHAR(16),                  -- District level (~3.2km)
-        h3_res_7 VARCHAR(16),                  -- Neighborhood level (~1.2km)
-        h3_res_8 VARCHAR(16),                  -- Block level (~460m)
-        h3_res_9 VARCHAR(16),                  -- Street level (~174m)
-        h3_res_10 VARCHAR(16),                 -- Building level (~65m)
+        -- H3 spatial indexing (multiple resolutions 5-13)
+        h3_res_5 VARCHAR(16),                  -- Metro regions (~251km²)
+        h3_res_6 VARCHAR(16),                  -- Districts (~36km²)
+        h3_res_7 VARCHAR(16),                  -- Neighborhoods (~5.2km²)
+        h3_res_8 VARCHAR(16),                  -- Areas (~0.7km²)
+        h3_res_9 VARCHAR(16),                  -- Blocks (~0.1km²)
+        h3_res_10 VARCHAR(16),                 -- Sub-blocks (~15,047m²)
+        h3_res_11 VARCHAR(16),                 -- Building groups (~2,150m²)
+        h3_res_12 VARCHAR(16),                 -- Buildings (~307m²)
+        h3_res_13 VARCHAR(16),                 -- Precise locations (~44m²)
         
         -- Quality and governance (simplified for objectid processing)
         data_quality_score DECIMAL(3,2) DEFAULT 0.85,
@@ -236,8 +240,15 @@ create_transform_layer_table() {
         UNIQUE KEY unique_incident (incident_id),
         UNIQUE KEY unique_objectid (objectid),  -- Primary business key constraint
         INDEX idx_location (lat, lng),
+        INDEX idx_h3_res5 (h3_res_5),
+        INDEX idx_h3_res6 (h3_res_6),
+        INDEX idx_h3_res7 (h3_res_7),
         INDEX idx_h3_res8 (h3_res_8),
         INDEX idx_h3_res9 (h3_res_9),
+        INDEX idx_h3_res10 (h3_res_10),
+        INDEX idx_h3_res11 (h3_res_11),
+        INDEX idx_h3_res12 (h3_res_12),
+        INDEX idx_h3_res13 (h3_res_13),
         INDEX idx_datetime (incident_datetime),
         INDEX idx_district (dc_dist),
         INDEX idx_crime_type (ucr_general),
@@ -258,64 +269,74 @@ create_final_layer_table() {
     CREATE TABLE IF NOT EXISTS amisafe_h3_aggregated (
         id BIGINT AUTO_INCREMENT PRIMARY KEY,
         
-        -- H3 spatial identifier
+        -- H3 spatial identifier (AGGREGATOR REQUIRED FIELDS)
         h3_index VARCHAR(16) NOT NULL,         -- H3 hexagon identifier
-        h3_resolution TINYINT NOT NULL,        -- Resolution level (6-15)
-        h3_parent VARCHAR(16),                 -- Parent hexagon (for hierarchical queries)
+        h3_resolution TINYINT NOT NULL,        -- Resolution level (5-13)
         
-        -- Geospatial data
-        center_lat DECIMAL(10, 7) NOT NULL,    -- Hexagon center latitude
-        center_lng DECIMAL(11, 7) NOT NULL,    -- Hexagon center longitude
-        boundary_json JSON,                    -- Hexagon boundary coordinates
-        
-        -- Aggregated metrics
+        -- Core aggregated metrics (AGGREGATOR REQUIRED FIELDS)
         incident_count INT DEFAULT 0,          -- Total incidents in hexagon
-        unique_incidents INT DEFAULT 0,        -- Deduplicated count (same as incident_count for objectid)
+        unique_incident_types INT DEFAULT 0,   -- Count of distinct UCR codes (was unique_incidents)
+        
+        -- Temporal data (AGGREGATOR REQUIRED FIELDS)
+        earliest_incident DATETIME,            -- Earliest incident timestamp
+        latest_incident DATETIME,              -- Latest incident timestamp  
+        incidents_last_30_days INT DEFAULT 0,  -- Recent activity count
+        incidents_last_year INT DEFAULT 0,     -- Annual activity count
+        
+        -- Geospatial data (AGGREGATOR REQUIRED FIELDS)
+        center_latitude DECIMAL(10, 7),        -- Hexagon center latitude (was center_lat)
+        center_longitude DECIMAL(11, 7),       -- Hexagon center longitude (was center_lng)
+        
+        -- JSON analytics (AGGREGATOR REQUIRED FIELDS)
+        incident_type_counts JSON,             -- UCR code distribution (was crime_types)
+        district_counts JSON,                  -- Police district distribution (was district_list)
+        
+        -- Processing metadata (AGGREGATOR REQUIRED FIELDS)
+        total_valid_records INT DEFAULT 0,     -- Total processed records
+        last_aggregation TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- (was last_updated)
+        
+        -- Enhanced analytics (OPTIONAL FIELDS for richer reporting)
+        incident_ids JSON,                     -- Array of incident IDs (for H3:13 granular queries)
         severity_avg DECIMAL(4,2),             -- Average severity (1.00-5.00)
         severity_max TINYINT,                  -- Maximum severity in hex
         data_quality_avg DECIMAL(3,2),         -- Average data quality
-        
-        -- Crime analysis
-        crime_types JSON,                      -- Array of UCR codes with counts
-        crime_categories JSON,                 -- Category distribution
         top_crime_type VARCHAR(10),            -- Most frequent UCR code
         crime_diversity_index DECIMAL(3,2),    -- Simpson's diversity index
         
-        -- Temporal patterns
+        -- Temporal patterns (ENHANCED ANALYTICS)
         incidents_by_hour JSON,                -- Hourly distribution [24 values]
         incidents_by_dow JSON,                 -- Day of week [7 values]
         incidents_by_month JSON,               -- Monthly distribution [12 values]
         peak_hour TINYINT,                     -- Hour with most incidents
         peak_dow TINYINT,                      -- Day with most incidents
         
-        -- Geographic context
-        district_list JSON,                    -- Police districts in hexagon
+        -- Extended geospatial (ENHANCED ANALYTICS)
+        h3_parent VARCHAR(16),                 -- Parent hexagon (for hierarchical queries)
+        boundary_geojson JSON,                 -- Hexagon boundary coordinates
         
-        -- Date range coverage
+        -- Date range coverage (ENHANCED ANALYTICS)
         date_range_start DATE,                 -- Earliest incident date
         date_range_end DATE,                   -- Latest incident date
         data_freshness_days INT,               -- Days since last incident
-        last_incident DATETIME,                -- Most recent incident
-        first_incident DATETIME,               -- Earliest incident
         
-        -- Cache control and metadata
+        -- Cache control and metadata (ENHANCED ANALYTICS)
         is_empty BOOLEAN DEFAULT FALSE,        -- True if no incidents
-        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         aggregation_batch_id VARCHAR(50),      -- Processing batch reference
         
-        -- Performance indexes optimized for hierarchical H3 queries
+        -- Performance indexes optimized for aggregator queries and H3 hierarchical access
         UNIQUE KEY unique_h3_resolution (h3_index, h3_resolution),
         INDEX idx_resolution (h3_resolution),
-        INDEX idx_parent_child (h3_parent, h3_index),
         INDEX idx_incident_count (incident_count),
+        INDEX idx_center (center_latitude, center_longitude),
+        INDEX idx_temporal (earliest_incident, latest_incident),
+        INDEX idx_recent_activity (incidents_last_30_days, incidents_last_year),
+        INDEX idx_aggregation_time (last_aggregation),
+        INDEX idx_parent_child (h3_parent, h3_index),
         INDEX idx_severity (severity_avg),
-        INDEX idx_center (center_lat, center_lng),
-        INDEX idx_freshness (data_freshness_days),
-        INDEX idx_updated (last_updated),
         INDEX idx_empty_filter (is_empty, incident_count),
         INDEX idx_resolution_count (h3_resolution, incident_count)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    COMMENT='Final Layer (Gold): Pre-computed H3 hexagon analytics optimized for dashboard queries';
+    COMMENT='Final Layer (Gold): H3 aggregated analytics with full aggregator compatibility and enhanced reporting';
     "
     
     execute_sql "$sql" "H3 aggregated analytics table creation"
@@ -406,15 +427,15 @@ insert_sample_data() {
     print_info "Inserting sample clean incidents..."
     local clean_sql="
     INSERT IGNORE INTO amisafe_clean_incidents 
-    (incident_id, objectid, cartodb_id, dc_key, dc_dist, location_block, lat, lng, incident_datetime, incident_date, incident_hour, incident_month, incident_year, ucr_general, crime_category, severity_level, h3_res_8, h3_res_9, processing_batch_id)
+    (incident_id, objectid, cartodb_id, dc_key, dc_dist, location_block, lat, lng, incident_datetime, incident_date, incident_hour, incident_month, incident_year, ucr_general, crime_category, severity_level, h3_res_5, h3_res_6, h3_res_7, h3_res_8, h3_res_9, h3_res_10, h3_res_11, h3_res_12, h3_res_13, processing_batch_id)
     VALUES
-    ('obj_1000001', 1000001, 500001, 'PHL_CC_001', '6', '1500 BLOCK MARKET ST', 39.9526, -75.1652, '2025-10-30 14:30:00', '2025-10-30', 14, 10, 2025, '400', 'Violent Crime', 3, '882aacb2e57ffff', '892aacb2e57ffff', 'batch_001'),
-    ('obj_1000002', 1000002, 500002, 'PHL_CC_002', '6', '1600 BLOCK WALNUT ST', 39.9500, -75.1667, '2025-10-30 16:45:00', '2025-10-30', 16, 10, 2025, '200', 'Violent Crime', 4, '882aacb2e57ffff', '892aacb2e5fffff', 'batch_001'),
-    ('obj_1000003', 1000003, NULL, 'PHL_CC_003', '6', '1700 BLOCK CHESTNUT ST', 39.9480, -75.1635, '2025-10-30 09:15:00', '2025-10-30', 9, 10, 2025, '100', 'Violent Crime', 5, '882aacb2e57ffff', '892aacb2e57ffff', 'batch_001'),
-    ('obj_2000001', 2000001, 500003, 'PHL_NP_001', '22', '2800 BLOCK N BROAD ST', 39.9950, -75.1450, '2025-10-30 22:30:00', '2025-10-30', 22, 10, 2025, '300', 'Violent Crime', 4, '882aacb2e4fffff', '892aacb2e4fffff', 'batch_001'),
-    ('obj_2000002', 2000002, NULL, 'PHL_NP_002', '22', '3200 BLOCK N 5TH ST', 40.0100, -75.1300, '2025-10-30 01:45:00', '2025-10-30', 1, 10, 2025, '400', 'Violent Crime', 3, '882aacb2e4fffff', '892aacb2e47ffff', 'batch_001'),
-    ('obj_3000001', 3000001, 500005, 'PHL_SP_001', '1', '1900 BLOCK S BROAD ST', 39.9200, -75.1580, '2025-10-30 12:00:00', '2025-10-30', 12, 10, 2025, '600', 'Property Crime', 2, '882aacb2e47ffff', '892aacb2e47ffff', 'batch_001'),
-    ('obj_4000001', 4000001, 500006, 'PHL_WP_001', '18', '4800 BLOCK BALTIMORE AVE', 39.9600, -75.2000, '2025-10-30 20:15:00', '2025-10-30', 20, 10, 2025, '300', 'Violent Crime', 4, '882aacb2e5fffff', '892aacb2e5fffff', 'batch_001');
+    ('obj_1000001', 1000001, 500001, 'PHL_CC_001', '6', '1500 BLOCK MARKET ST', 39.9526, -75.1652, '2025-10-30 14:30:00', '2025-10-30', 14, 10, 2025, '400', 'Violent Crime', 3, '85283473fffffff', '862834707ffffff', '872834700ffffff', '882834700ffffff', '892834700ffffff', '8a2834700ffffff', '8b2834700ffffff', '8c2834700ffffff', '8d2834700ffffff', 'batch_001'),
+    ('obj_1000002', 1000002, 500002, 'PHL_CC_002', '6', '1600 BLOCK WALNUT ST', 39.9500, -75.1667, '2025-10-30 16:45:00', '2025-10-30', 16, 10, 2025, '200', 'Violent Crime', 4, '85283473fffffff', '862834707ffffff', '872834700ffffff', '882834700ffffff', '892834701ffffff', '8a2834701ffffff', '8b2834701ffffff', '8c2834701ffffff', '8d2834701ffffff', 'batch_001'),
+    ('obj_1000003', 1000003, NULL, 'PHL_CC_003', '6', '1700 BLOCK CHESTNUT ST', 39.9480, -75.1635, '2025-10-30 09:15:00', '2025-10-30', 9, 10, 2025, '100', 'Violent Crime', 5, '85283473fffffff', '862834707ffffff', '872834700ffffff', '882834700ffffff', '892834700ffffff', '8a2834700ffffff', '8b2834700ffffff', '8c2834700ffffff', '8d2834700ffffff', 'batch_001'),
+    ('obj_2000001', 2000001, 500003, 'PHL_NP_001', '22', '2800 BLOCK N BROAD ST', 39.9950, -75.1450, '2025-10-30 22:30:00', '2025-10-30', 22, 10, 2025, '300', 'Violent Crime', 4, '85283463fffffff', '862834637ffffff', '872834630ffffff', '882834630ffffff', '892834630ffffff', '8a2834630ffffff', '8b2834630ffffff', '8c2834630ffffff', '8d2834630ffffff', 'batch_001'),
+    ('obj_2000002', 2000002, NULL, 'PHL_NP_002', '22', '3200 BLOCK N 5TH ST', 40.0100, -75.1300, '2025-10-30 01:45:00', '2025-10-30', 1, 10, 2025, '400', 'Violent Crime', 3, '85283463fffffff', '862834637ffffff', '872834631ffffff', '882834631ffffff', '892834631ffffff', '8a2834631ffffff', '8b2834631ffffff', '8c2834631ffffff', '8d2834631ffffff', 'batch_001'),
+    ('obj_3000001', 3000001, 500005, 'PHL_SP_001', '1', '1900 BLOCK S BROAD ST', 39.9200, -75.1580, '2025-10-30 12:00:00', '2025-10-30', 12, 10, 2025, '600', 'Property Crime', 2, '85283447fffffff', '862834467ffffff', '872834460ffffff', '882834460ffffff', '892834460ffffff', '8a2834460ffffff', '8b2834460ffffff', '8c2834460ffffff', '8d2834460ffffff', 'batch_001'),
+    ('obj_4000001', 4000001, 500006, 'PHL_WP_001', '18', '4800 BLOCK BALTIMORE AVE', 39.9600, -75.2000, '2025-10-30 20:15:00', '2025-10-30', 20, 10, 2025, '300', 'Violent Crime', 4, '85283443fffffff', '862834437ffffff', '872834430ffffff', '882834430ffffff', '892834430ffffff', '8a2834430ffffff', '8b2834430ffffff', '8c2834430ffffff', '8d2834430ffffff', 'batch_001');
     "
     
     execute_sql "$clean_sql" "Sample clean incidents insertion"
@@ -423,20 +444,37 @@ insert_sample_data() {
     print_info "Inserting sample H3 aggregated data..."
     local h3_sql="
     INSERT IGNORE INTO amisafe_h3_aggregated 
-    (h3_index, h3_resolution, h3_parent, center_lat, center_lng, incident_count, severity_avg, crime_types, top_crime_type, peak_hour, district_list, last_incident, is_empty, aggregation_batch_id)
+    (h3_index, h3_resolution, incident_count, unique_incident_types, earliest_incident, latest_incident, 
+     incidents_last_30_days, incidents_last_year, center_latitude, center_longitude, 
+     incident_type_counts, district_counts, total_valid_records, 
+     h3_parent, severity_avg, top_crime_type, peak_hour, is_empty, aggregation_batch_id)
     VALUES
     -- Resolution 8 hexagons (large area coverage)
-    ('882aacb2e57ffff', 8, NULL, 39.9526, -75.1652, 47, 3.2, '{\"100\":2, \"200\":8, \"300\":12, \"400\":15, \"500\":6, \"600\":4}', '400', 16, '[\"6\"]', '2025-10-30 16:45:00', FALSE, 'batch_h3_001'),
-    ('882aacb2e4fffff', 8, NULL, 39.9950, -75.1450, 38, 3.8, '{\"200\":5, \"300\":14, \"400\":10, \"500\":9}', '300', 22, '[\"22\"]', '2025-10-30 22:30:00', FALSE, 'batch_h3_001'),
-    ('882aacb2e47ffff', 8, NULL, 39.9200, -75.1580, 29, 3.1, '{\"200\":7, \"300\":6, \"400\":11, \"600\":5}', '400', 15, '[\"1\"]', '2025-10-30 15:30:00', FALSE, 'batch_h3_001'),
-    ('882aacb2e5fffff', 8, NULL, 39.9600, -75.2000, 35, 3.4, '{\"100\":1, \"300\":13, \"400\":12, \"500\":6, \"600\":3}', '300', 20, '[\"18\"]', '2025-10-30 20:15:00', FALSE, 'batch_h3_001'),
+    ('882aacb2e57ffff', 8, 47, 6, '2025-10-20 08:30:00', '2025-10-30 16:45:00', 12, 47, 39.9526, -75.1652, 
+     '{\"100\":2, \"200\":8, \"300\":12, \"400\":15, \"500\":6, \"600\":4}', '{\"6\":47}', 47,
+     NULL, 3.2, '400', 16, FALSE, 'batch_h3_001'),
+    ('882aacb2e4fffff', 8, 38, 4, '2025-10-15 14:20:00', '2025-10-30 22:30:00', 8, 38, 39.9950, -75.1450, 
+     '{\"200\":5, \"300\":14, \"400\":10, \"500\":9}', '{\"22\":38}', 38,
+     NULL, 3.8, '300', 22, FALSE, 'batch_h3_001'),
+    ('882aacb2e47ffff', 8, 29, 4, '2025-10-18 10:15:00', '2025-10-30 15:30:00', 7, 29, 39.9200, -75.1580, 
+     '{\"200\":7, \"300\":6, \"400\":11, \"600\":5}', '{\"1\":29}', 29,
+     NULL, 3.1, '400', 15, FALSE, 'batch_h3_001'),
+    ('882aacb2e5fffff', 8, 35, 5, '2025-10-12 09:45:00', '2025-10-30 20:15:00', 9, 35, 39.9600, -75.2000, 
+     '{\"100\":1, \"300\":13, \"400\":12, \"500\":6, \"600\":3}', '{\"18\":35}', 35,
+     NULL, 3.4, '300', 20, FALSE, 'batch_h3_001'),
     
     -- Resolution 9 hexagons (subdivisions)
-    ('892aacb2e57ffff', 9, '882aacb2e57ffff', 39.9540, -75.1640, 23, 3.1, '{\"200\":4, \"300\":6, \"400\":8, \"500\":3, \"600\":2}', '400', 16, '[\"6\"]', '2025-10-30 16:45:00', FALSE, 'batch_h3_001'),
-    ('892aacb2e5fffff', 9, '882aacb2e57ffff', 39.9510, -75.1665, 24, 3.3, '{\"100\":2, \"200\":4, \"300\":6, \"400\":7, \"500\":3, \"600\":2}', '400', 14, '[\"6\"]', '2025-10-30 14:30:00', FALSE, 'batch_h3_001'),
+    ('892aacb2e57ffff', 9, 23, 5, '2025-10-22 11:30:00', '2025-10-30 16:45:00', 6, 23, 39.9540, -75.1640, 
+     '{\"200\":4, \"300\":6, \"400\":8, \"500\":3, \"600\":2}', '{\"6\":23}', 23,
+     '882aacb2e57ffff', 3.1, '400', 16, FALSE, 'batch_h3_001'),
+    ('892aacb2e5fffff', 9, 24, 5, '2025-10-25 08:20:00', '2025-10-30 14:30:00', 6, 24, 39.9510, -75.1665, 
+     '{\"100\":2, \"200\":4, \"300\":6, \"400\":7, \"500\":3, \"600\":2}', '{\"6\":24}', 24,
+     '882aacb2e57ffff', 3.3, '400', 14, FALSE, 'batch_h3_001'),
     
     -- Empty hexagon for testing
-    ('882aacb2e6affff', 8, NULL, 40.1000, -75.0500, 0, 0.0, '{}', NULL, NULL, '[]', NULL, TRUE, 'batch_h3_001');
+    ('882aacb2e6affff', 8, 0, 0, NULL, NULL, 0, 0, 40.1000, -75.0500, 
+     '{}', '{}', 0,
+     NULL, 0.0, NULL, NULL, TRUE, 'batch_h3_001');
     "
     
     execute_sql "$h3_sql" "Sample H3 aggregated data insertion"
