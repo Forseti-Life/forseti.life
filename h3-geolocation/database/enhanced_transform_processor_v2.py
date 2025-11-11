@@ -133,33 +133,114 @@ class EnhancedTransformProcessor:
         try:
             cursor = connection.cursor(dictionary=True)
             
-            # Get raw layer count
-            cursor.execute("SELECT COUNT(*) as total FROM amisafe_raw_incidents")
-            total_raw = cursor.fetchone()['total']
-            
-            # Get transform layer count
-            cursor.execute("SELECT COUNT(*) as total FROM amisafe_clean_incidents")
-            total_transform = cursor.fetchone()['total']
-            
-            # Get processing range
+            # OPTIMIZED: Single query with minimal expensive operations
             cursor.execute("""
                 SELECT 
-                    MIN(CAST(JSON_UNQUOTE(JSON_EXTRACT(raw_incident_ids, '$[0]')) AS UNSIGNED)) as min_processed_id,
-                    MAX(CAST(JSON_UNQUOTE(JSON_EXTRACT(raw_incident_ids, '$[0]')) AS UNSIGNED)) as max_processed_id
-                FROM amisafe_clean_incidents
-                WHERE raw_incident_ids IS NOT NULL
+                    (SELECT COUNT(*) FROM amisafe_raw_incidents) as total_raw,
+                    (SELECT COUNT(*) FROM amisafe_clean_incidents) as total_transform,
+                    (SELECT MIN(id) FROM amisafe_clean_incidents) as min_processed_id,
+                    (SELECT MAX(id) FROM amisafe_clean_incidents) as max_processed_id,
+                    (SELECT COUNT(DISTINCT processing_batch_id) FROM amisafe_clean_incidents WHERE processing_batch_id IS NOT NULL) as total_batches,
+                    (SELECT MIN(processed_at) FROM amisafe_clean_incidents WHERE processed_at IS NOT NULL) as first_batch_time,
+                    (SELECT MAX(processed_at) FROM amisafe_clean_incidents WHERE processed_at IS NOT NULL) as last_batch_time
             """)
-            processing_range = cursor.fetchone()
             
-            # Get batch information
-            cursor.execute("""
-                SELECT 
-                    COUNT(DISTINCT processing_batch_id) as total_batches,
-                    MIN(processed_at) as first_batch_time,
-                    MAX(processed_at) as last_batch_time
-                FROM amisafe_clean_incidents
-            """)
-            batch_info = cursor.fetchone()
+            result = cursor.fetchone()
+            
+            if not result:
+                # Fallback to individual queries if combined query fails
+                cursor.execute("SELECT COUNT(*) as total FROM amisafe_raw_incidents")
+                raw_result = cursor.fetchone()
+                total_raw = raw_result['total'] if raw_result else 0
+                
+                cursor.execute("SELECT COUNT(*) as total FROM amisafe_clean_incidents")
+                transform_result = cursor.fetchone()
+                total_transform = transform_result['total'] if transform_result else 0
+                
+                processing_range = {'min_processed_id': 0, 'max_processed_id': 0}
+                batch_info = {'total_batches': 0, 'first_batch_time': None, 'last_batch_time': None}
+            else:
+                total_raw = result['total_raw'] or 0
+                total_transform = result['total_transform'] or 0
+                processing_range = {
+                    'min_processed_id': result['min_processed_id'] or 0,
+                    'max_processed_id': result['max_processed_id'] or 0
+                }
+                batch_info = {
+                    'total_batches': result['total_batches'] or 0,
+                    'first_batch_time': result['first_batch_time'],
+                    'last_batch_time': result['last_batch_time']
+                }
+            
+            # ENHANCED: Get column fill rates for data quality assessment
+            column_fill_rates = {}
+            incomplete_columns = {}
+            
+            if total_transform > 0:
+                # Define columns to check with their expected data types
+                columns_to_check = {
+                    # Core data columns
+                    'incident_id': 'string',
+                    'lat': 'coordinate',
+                    'lng': 'coordinate', 
+                    'incident_datetime': 'datetime',
+                    'incident_date': 'date',
+                    'ucr_general': 'string',
+                    'crime_category': 'string',
+                    'dc_dist': 'string',
+                    # H3 geospatial columns
+                    'h3_res_5': 'h3_index',
+                    'h3_res_6': 'h3_index',
+                    'h3_res_7': 'h3_index',
+                    'h3_res_8': 'h3_index',
+                    'h3_res_9': 'h3_index',
+                    'h3_res_10': 'h3_index',
+                    'h3_res_11': 'h3_index',
+                    'h3_res_12': 'h3_index',
+                    'h3_res_13': 'h3_index',
+                    # Quality and processing columns
+                    'data_quality_score': 'float',
+                    'coordinate_quality': 'string',
+                    'is_valid': 'boolean'
+                }
+                
+                # Build efficient single query to check all column fill rates
+                fill_rate_selects = []
+                for column in columns_to_check.keys():
+                    fill_rate_selects.append(f"SUM(CASE WHEN {column} IS NOT NULL THEN 1 ELSE 0 END) as {column}_filled")
+                
+                fill_query = f"""
+                    SELECT 
+                        COUNT(*) as total_records,
+                        {', '.join(fill_rate_selects)}
+                    FROM amisafe_clean_incidents
+                """
+                
+                cursor = connection.cursor(dictionary=True)
+                cursor.execute(fill_query)
+                fill_results = cursor.fetchone()
+                cursor.close()
+                
+                total_records = fill_results['total_records']
+                
+                # Calculate fill rates and identify incomplete columns
+                for column, data_type in columns_to_check.items():
+                    filled_count = fill_results[f'{column}_filled']
+                    fill_rate = (filled_count / total_records * 100) if total_records > 0 else 0
+                    column_fill_rates[column] = {
+                        'filled_count': filled_count,
+                        'total_count': total_records,
+                        'fill_rate': round(fill_rate, 2),
+                        'data_type': data_type
+                    }
+                    
+                    # Track columns that aren't 100% filled
+                    if fill_rate < 100.0:
+                        incomplete_columns[column] = {
+                            'fill_rate': round(fill_rate, 2),
+                            'missing_count': total_records - filled_count,
+                            'data_type': data_type
+                        }
             
             cursor.close()
             
@@ -168,14 +249,19 @@ class EnhancedTransformProcessor:
                 'total_transform_records': total_transform,
                 'records_remaining': total_raw - total_transform,
                 'completion_percentage': round((total_transform / total_raw * 100), 2) if total_raw > 0 else 0,
-                'processing_range': {
-                    'min_id': processing_range['min_processed_id'] if processing_range['min_processed_id'] else 0,
-                    'max_id': processing_range['max_processed_id'] if processing_range['max_processed_id'] else 0
-                },
+                'processing_range': processing_range,
                 'batch_summary': {
-                    'total_batches': batch_info['total_batches'] if batch_info['total_batches'] else 0,
+                    'total_batches': batch_info['total_batches'],
                     'first_processed': batch_info['first_batch_time'].isoformat() if batch_info['first_batch_time'] else None,
                     'last_processed': batch_info['last_batch_time'].isoformat() if batch_info['last_batch_time'] else None
+                },
+                'column_fill_rates': column_fill_rates,
+                'incomplete_columns': incomplete_columns,
+                'data_quality_summary': {
+                    'total_columns_checked': len(column_fill_rates),
+                    'fully_populated_columns': len(column_fill_rates) - len(incomplete_columns),
+                    'incomplete_columns_count': len(incomplete_columns),
+                    'overall_data_completeness': round((len(column_fill_rates) - len(incomplete_columns)) / len(column_fill_rates) * 100, 1) if column_fill_rates else 0
                 }
             }
             
@@ -576,7 +662,13 @@ class EnhancedTransformProcessor:
             self.processing_stats['total_raw_records'] = status['total_raw_records']
             initial_processed = status['total_transform_records']
             
-            start_id = status['processing_range']['max_id'] + 1 if status['processing_range']['max_id'] > 0 else 1
+            # Find the highest raw incident ID that has been processed
+            # This is more reliable than using clean incidents table IDs
+            cursor = connection.cursor()
+            cursor.execute("SELECT MAX(id) FROM amisafe_raw_incidents WHERE processing_status = 'processed'")
+            max_processed_raw_id = cursor.fetchone()[0] or 0
+            cursor.close()
+            start_id = max_processed_raw_id + 1
             
             self.logger.info(f"📊 Processing Status:")
             self.logger.info(f"   Total Raw Records: {status['total_raw_records']:,}")
@@ -1000,6 +1092,50 @@ def main():
             print(f"Transform Records: {status['total_transform_records']:,}")
             print(f"Completion: {status['completion_percentage']:.1f}%")
             print(f"Records Remaining: {status['records_remaining']:,}")
+            
+            # Enhanced: Display column fill rates and data quality
+            if 'data_quality_summary' in status:
+                quality = status['data_quality_summary']
+                print(f"\n📋 DATA QUALITY SUMMARY")
+                print(f"Overall Data Completeness: {quality['overall_data_completeness']}%")
+                print(f"Fully Populated Columns: {quality['fully_populated_columns']}/{quality['total_columns_checked']}")
+                
+                # Show incomplete columns if any exist
+                if status['incomplete_columns']:
+                    print(f"\n⚠️  INCOMPLETE COLUMNS ({len(status['incomplete_columns'])} found):")
+                    
+                    # Group by data type for better organization
+                    h3_columns = {}
+                    core_columns = {}
+                    other_columns = {}
+                    
+                    for col, info in status['incomplete_columns'].items():
+                        if info['data_type'] == 'h3_index':
+                            h3_columns[col] = info
+                        elif info['data_type'] in ['coordinate', 'datetime', 'string']:
+                            core_columns[col] = info
+                        else:
+                            other_columns[col] = info
+                    
+                    # Display H3 columns first (most important for our use case)
+                    if h3_columns:
+                        print(f"  🗺️  H3 Geospatial Columns:")
+                        for col, info in sorted(h3_columns.items()):
+                            print(f"    {col}: {info['fill_rate']:.1f}% ({info['missing_count']:,} missing)")
+                    
+                    # Display core data columns
+                    if core_columns:
+                        print(f"  📊 Core Data Columns:")
+                        for col, info in sorted(core_columns.items()):
+                            print(f"    {col}: {info['fill_rate']:.1f}% ({info['missing_count']:,} missing)")
+                    
+                    # Display other columns
+                    if other_columns:
+                        print(f"  🔧 Other Columns:")
+                        for col, info in sorted(other_columns.items()):
+                            print(f"    {col}: {info['fill_rate']:.1f}% ({info['missing_count']:,} missing)")
+                else:
+                    print(f"\n✅ ALL COLUMNS 100% POPULATED - Excellent data quality!")
             
         elif args.validation_only:
             # Validation analysis only
