@@ -127,22 +127,18 @@ class EnhancedTransformProcessor:
             raise
     
     def get_processing_status(self) -> Dict:
-        """Get current processing status and statistics."""
+        """Get current processing status and statistics - OPTIMIZED for speed."""
         connection = self.connect_to_mysql()
         
         try:
             cursor = connection.cursor(dictionary=True)
             
-            # OPTIMIZED: Single query with minimal expensive operations
+            # FAST: Basic counts only - no expensive operations
             cursor.execute("""
                 SELECT 
                     (SELECT COUNT(*) FROM amisafe_raw_incidents) as total_raw,
                     (SELECT COUNT(*) FROM amisafe_clean_incidents) as total_transform,
-                    (SELECT MIN(id) FROM amisafe_clean_incidents) as min_processed_id,
-                    (SELECT MAX(id) FROM amisafe_clean_incidents) as max_processed_id,
-                    (SELECT COUNT(DISTINCT processing_batch_id) FROM amisafe_clean_incidents WHERE processing_batch_id IS NOT NULL) as total_batches,
-                    (SELECT MIN(processed_at) FROM amisafe_clean_incidents WHERE processed_at IS NOT NULL) as first_batch_time,
-                    (SELECT MAX(processed_at) FROM amisafe_clean_incidents WHERE processed_at IS NOT NULL) as last_batch_time
+                    (SELECT COUNT(*) FROM amisafe_raw_incidents WHERE processing_status = 'raw') as raw_status_remaining
             """)
             
             result = cursor.fetchone()
@@ -157,90 +153,85 @@ class EnhancedTransformProcessor:
                 transform_result = cursor.fetchone()
                 total_transform = transform_result['total'] if transform_result else 0
                 
+                cursor.execute("SELECT COUNT(*) FROM amisafe_raw_incidents WHERE processing_status = 'raw'")
+                raw_status_result = cursor.fetchone()
+                raw_status_remaining = raw_status_result[0] if raw_status_result else 0
+                
                 processing_range = {'min_processed_id': 0, 'max_processed_id': 0}
                 batch_info = {'total_batches': 0, 'first_batch_time': None, 'last_batch_time': None}
             else:
                 total_raw = result['total_raw'] or 0
                 total_transform = result['total_transform'] or 0
-                processing_range = {
-                    'min_processed_id': result['min_processed_id'] or 0,
-                    'max_processed_id': result['max_processed_id'] or 0
-                }
-                batch_info = {
-                    'total_batches': result['total_batches'] or 0,
-                    'first_batch_time': result['first_batch_time'],
-                    'last_batch_time': result['last_batch_time']
-                }
+                raw_status_remaining = result['raw_status_remaining'] or 0
+                processing_range = {'min_processed_id': 0, 'max_processed_id': 0}
+                batch_info = {'total_batches': 0, 'first_batch_time': None, 'last_batch_time': None}
             
-            # ENHANCED: Get column fill rates for data quality assessment
+            # SKIP EXPENSIVE OPERATIONS: Only do basic column sampling for large tables
             column_fill_rates = {}
             incomplete_columns = {}
             
-            if total_transform > 0:
-                # Define columns to check with their expected data types
-                columns_to_check = {
-                    # Core data columns
+            if total_transform > 0 and total_transform < 1000000:  # Only for smaller datasets
+                # Sample-based column fill rate analysis for performance
+                sample_size = min(10000, total_transform)  # Sample at most 10k records
+                
+                # Core columns only - skip detailed H3 analysis for speed
+                core_columns = {
                     'incident_id': 'string',
                     'lat': 'coordinate',
                     'lng': 'coordinate', 
-                    'incident_datetime': 'datetime',
-                    'incident_date': 'date',
-                    'ucr_general': 'string',
-                    'crime_category': 'string',
-                    'dc_dist': 'string',
-                    # H3 geospatial columns
                     'h3_res_5': 'h3_index',
-                    'h3_res_6': 'h3_index',
-                    'h3_res_7': 'h3_index',
-                    'h3_res_8': 'h3_index',
-                    'h3_res_9': 'h3_index',
-                    'h3_res_10': 'h3_index',
                     'h3_res_11': 'h3_index',
                     'h3_res_12': 'h3_index',
-                    'h3_res_13': 'h3_index',
-                    # Quality and processing columns
-                    'data_quality_score': 'float',
-                    'coordinate_quality': 'string',
-                    'is_valid': 'boolean'
+                    'h3_res_13': 'h3_index'
                 }
                 
-                # Build efficient single query to check all column fill rates
+                # FAST: Sample-based fill rate check
                 fill_rate_selects = []
-                for column in columns_to_check.keys():
+                for column in core_columns.keys():
                     fill_rate_selects.append(f"SUM(CASE WHEN {column} IS NOT NULL THEN 1 ELSE 0 END) as {column}_filled")
                 
                 fill_query = f"""
                     SELECT 
                         COUNT(*) as total_records,
                         {', '.join(fill_rate_selects)}
-                    FROM amisafe_clean_incidents
+                    FROM (
+                        SELECT {', '.join(core_columns.keys())}
+                        FROM amisafe_clean_incidents 
+                        ORDER BY RAND() 
+                        LIMIT {sample_size}
+                    ) sample
                 """
                 
-                cursor = connection.cursor(dictionary=True)
-                cursor.execute(fill_query)
-                fill_results = cursor.fetchone()
-                cursor.close()
-                
-                total_records = fill_results['total_records']
-                
-                # Calculate fill rates and identify incomplete columns
-                for column, data_type in columns_to_check.items():
-                    filled_count = fill_results[f'{column}_filled']
-                    fill_rate = (filled_count / total_records * 100) if total_records > 0 else 0
-                    column_fill_rates[column] = {
-                        'filled_count': filled_count,
-                        'total_count': total_records,
-                        'fill_rate': round(fill_rate, 2),
-                        'data_type': data_type
-                    }
+                try:
+                    cursor.execute(fill_query)
+                    fill_results = cursor.fetchone()
                     
-                    # Track columns that aren't 100% filled
-                    if fill_rate < 100.0:
-                        incomplete_columns[column] = {
-                            'fill_rate': round(fill_rate, 2),
-                            'missing_count': total_records - filled_count,
-                            'data_type': data_type
-                        }
+                    if fill_results:
+                        sample_total = fill_results['total_records']
+                        
+                        # Calculate fill rates from sample
+                        for column, data_type in core_columns.items():
+                            filled_count = fill_results[f'{column}_filled']
+                            fill_rate = (filled_count / sample_total * 100) if sample_total > 0 else 0
+                            column_fill_rates[column] = {
+                                'filled_count': filled_count,
+                                'total_count': sample_total,
+                                'fill_rate': round(fill_rate, 2),
+                                'data_type': data_type,
+                                'is_sample': True
+                            }
+                            
+                            # Track columns that aren't well filled
+                            if fill_rate < 95.0:
+                                incomplete_columns[column] = {
+                                    'fill_rate': round(fill_rate, 2),
+                                    'missing_count': sample_total - filled_count,
+                                    'data_type': data_type,
+                                    'is_sample': True
+                                }
+                except Exception as e:
+                    self.logger.warning(f"Column analysis sampling failed: {e}")
+                    # Continue without column analysis
             
             cursor.close()
             
@@ -248,6 +239,7 @@ class EnhancedTransformProcessor:
                 'total_raw_records': total_raw,
                 'total_transform_records': total_transform,
                 'records_remaining': total_raw - total_transform,
+                'raw_status_remaining': raw_status_remaining,  # More accurate remaining count
                 'completion_percentage': round((total_transform / total_raw * 100), 2) if total_raw > 0 else 0,
                 'processing_range': processing_range,
                 'batch_summary': {
@@ -261,7 +253,8 @@ class EnhancedTransformProcessor:
                     'total_columns_checked': len(column_fill_rates),
                     'fully_populated_columns': len(column_fill_rates) - len(incomplete_columns),
                     'incomplete_columns_count': len(incomplete_columns),
-                    'overall_data_completeness': round((len(column_fill_rates) - len(incomplete_columns)) / len(column_fill_rates) * 100, 1) if column_fill_rates else 0
+                    'overall_data_completeness': round((len(column_fill_rates) - len(incomplete_columns)) / len(column_fill_rates) * 100, 1) if column_fill_rates else 0,
+                    'analysis_method': 'sample' if any(col.get('is_sample', False) for col in column_fill_rates.values()) else 'full'
                 }
             }
             
@@ -662,23 +655,25 @@ class EnhancedTransformProcessor:
             self.processing_stats['total_raw_records'] = status['total_raw_records']
             initial_processed = status['total_transform_records']
             
-            # Find the highest raw incident ID that has been processed
-            # This is more reliable than using clean incidents table IDs
+            # Check actual unprocessed records by status (more accurate than table counts)
             cursor = connection.cursor()
-            cursor.execute("SELECT MAX(id) FROM amisafe_raw_incidents WHERE processing_status = 'processed'")
-            max_processed_raw_id = cursor.fetchone()[0] or 0
+            cursor.execute("SELECT COUNT(*) FROM amisafe_raw_incidents WHERE processing_status = 'raw'")
+            actual_remaining = cursor.fetchone()[0]
+            
+            # Find the lowest unprocessed ID to start from
+            cursor.execute("SELECT MIN(id) FROM amisafe_raw_incidents WHERE processing_status = 'raw'")
+            start_id = cursor.fetchone()[0] or 1
             cursor.close()
-            start_id = max_processed_raw_id + 1
             
             self.logger.info(f"📊 Processing Status:")
             self.logger.info(f"   Total Raw Records: {status['total_raw_records']:,}")
             self.logger.info(f"   Already Processed: {status['total_transform_records']:,}")
-            self.logger.info(f"   Remaining: {status['records_remaining']:,}")
-            self.logger.info(f"   Completion: {status['completion_percentage']:.1f}%")
-            self.logger.info(f"   Continuing from ID: {start_id:,}")
+            self.logger.info(f"   Status-Based Remaining: {actual_remaining:,}")
+            self.logger.info(f"   Count-Based Remaining: {status['records_remaining']:,}")
+            self.logger.info(f"   Starting from ID: {start_id:,}")
             self.logger.info(f"   Batch Size: {batch_size:,}")
             
-            if status['records_remaining'] == 0:
+            if actual_remaining == 0:
                 self.logger.info("✅ All records already processed!")
                 return self.generate_final_report()
             
@@ -712,9 +707,9 @@ class EnhancedTransformProcessor:
                 )
                 
                 # Enhanced progress tracking with timing
-                current_total = status['total_transform_records'] + self.processing_stats['records_inserted']
-                current_progress = (current_total / status['total_raw_records'] * 100) if status['total_raw_records'] > 0 else 0
-                remaining_records = status['total_raw_records'] - current_total
+                processed_this_session = self.processing_stats['records_inserted']
+                remaining_records = actual_remaining - processed_this_session
+                current_progress = (processed_this_session / actual_remaining * 100) if actual_remaining > 0 else 0
                 
                 # Calculate ETA after every batch
                 current_time = datetime.now()
@@ -731,7 +726,7 @@ class EnhancedTransformProcessor:
                 
                 # Show progress update every batch (more frequent updates)
                 self.logger.info(
-                    f"📈 Batch {batch_num} Complete: {current_total:,}/{status['total_raw_records']:,} "
+                    f"📈 Batch {batch_num} Complete: {processed_this_session:,}/{actual_remaining:,} "
                     f"({current_progress:.2f}%) | Remaining: {remaining_records:,} | ETA: {eta_formatted}"
                 )
             
