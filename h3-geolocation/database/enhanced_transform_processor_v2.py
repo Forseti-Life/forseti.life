@@ -767,38 +767,42 @@ class EnhancedTransformProcessor:
             connection = self.connect_to_mysql()
             cursor = connection.cursor()
             
-            # Get total records that need H3 population
+            # OPTIMIZED: Build precise filter to get only records that actually need H3 population for target columns
             where_conditions = []
             for col in target_columns:
                 where_conditions.append(f"{col} IS NULL")
             
+            # Get exact count of records needing updates for the specified columns
             count_query = f"""
-                SELECT COUNT(*) FROM amisafe_clean_incidents 
+                SELECT COUNT(DISTINCT id) FROM amisafe_clean_incidents 
                 WHERE lat IS NOT NULL AND lng IS NOT NULL 
                 AND ({' OR '.join(where_conditions)})
             """
             cursor.execute(count_query)
             total_records = cursor.fetchone()[0]
             
-            self.logger.info(f"Found {total_records:,} records needing H3 population")
+            self.logger.info(f"Found {total_records:,} records needing H3 population for columns: {', '.join(target_columns)}")
             
             if total_records == 0:
                 self.logger.info("✅ All specified H3 columns are already populated")
                 return {'total_updated': 0, 'message': 'All columns already populated'}
             
-            # Process in batches
-            offset = 0
+            # OPTIMIZED: Process in efficient batches using LIMIT with ORDER BY for consistency
             batch_num = 0
+            last_processed_id = 0
             
-            while offset < total_records:
+            while True:
                 batch_num += 1
                 
-                # Fetch batch of records needing H3 values
+                # OPTIMIZED: Use ID-based pagination instead of OFFSET (much faster for large datasets)
                 fetch_query = f"""
-                    SELECT id, lat, lng FROM amisafe_clean_incidents 
+                    SELECT id, lat, lng, {', '.join(target_columns)} 
+                    FROM amisafe_clean_incidents 
                     WHERE lat IS NOT NULL AND lng IS NOT NULL 
+                    AND id > {last_processed_id}
                     AND ({' OR '.join(where_conditions)})
-                    LIMIT {batch_size} OFFSET {offset}
+                    ORDER BY id
+                    LIMIT {batch_size}
                 """
                 
                 cursor.execute(fetch_query)
@@ -807,63 +811,83 @@ class EnhancedTransformProcessor:
                 if not batch_records:
                     break
                 
-                self.logger.info(f"🔄 Processing batch {batch_num}: {len(batch_records)} records")
+                self.logger.info(f"🔄 Processing batch {batch_num}: {len(batch_records)} records (ID range: {batch_records[0][0]}-{batch_records[-1][0]})")
                 
-                # Calculate H3 values for each record in batch
-                updates = []
-                for record_id, lat, lng in batch_records:
-                    if lat is not None and lng is not None:
-                        h3_values = {}
-                        for column in target_columns:
+                # OPTIMIZED: Prepare batch update data efficiently
+                batch_updates = []
+                records_needing_update = 0
+                
+                for record in batch_records:
+                    record_id, lat, lng = record[0], record[1], record[2]
+                    current_h3_values = record[3:]  # Current H3 values for target columns
+                    
+                    # Only calculate H3 for columns that are actually NULL
+                    h3_updates = {}
+                    needs_update = False
+                    
+                    for i, column in enumerate(target_columns):
+                        if current_h3_values[i] is None:  # Only process NULL columns
                             resolution = int(column.split('_')[-1])
                             try:
                                 h3_cell = h3.latlng_to_cell(lat, lng, resolution)
-                                h3_values[column] = h3_cell
+                                h3_updates[column] = h3_cell
+                                needs_update = True
                             except Exception as e:
                                 self.logger.warning(f"Failed to calculate H3 for resolution {resolution} at ({lat}, {lng}): {e}")
-                                h3_values[column] = None
-                        
-                        updates.append((h3_values, record_id))
+                                h3_updates[column] = None
+                    
+                    if needs_update:
+                        batch_updates.append((record_id, h3_updates))
+                        records_needing_update += 1
+                    
+                    last_processed_id = record_id
                 
-                # Execute batch updates
+                # OPTIMIZED: Execute efficient batch updates
                 batch_updated = 0
-                for h3_values, record_id in updates:
-                    if h3_values:
-                        # Build update query for non-null columns only
-                        update_fields = []
-                        update_params = []
-                        for col, val in h3_values.items():
-                            if val is not None:
-                                # Check if column is actually null before updating
-                                check_query = f"SELECT {col} FROM amisafe_clean_incidents WHERE id = %s"
-                                cursor.execute(check_query, (record_id,))
-                                current_value = cursor.fetchone()[0]
-                                
-                                if current_value is None:
+                if batch_updates:
+                    # Group updates by columns being updated for more efficient queries
+                    for record_id, h3_updates in batch_updates:
+                        if h3_updates:
+                            # Build efficient update query for non-null H3 values only
+                            update_fields = []
+                            update_params = []
+                            
+                            for col, val in h3_updates.items():
+                                if val is not None:
                                     update_fields.append(f"{col} = %s")
                                     update_params.append(val)
-                        
-                        if update_fields:
-                            update_query = f"""
-                                UPDATE amisafe_clean_incidents 
-                                SET {', '.join(update_fields)} 
-                                WHERE id = %s
-                            """
-                            update_params.append(record_id)
-                            cursor.execute(update_query, update_params)
-                            if cursor.rowcount > 0:
-                                batch_updated += 1
+                            
+                            if update_fields:
+                                update_query = f"""
+                                    UPDATE amisafe_clean_incidents 
+                                    SET {', '.join(update_fields)} 
+                                    WHERE id = %s
+                                """
+                                update_params.append(record_id)
+                                cursor.execute(update_query, update_params)
+                                if cursor.rowcount > 0:
+                                    batch_updated += 1
                 
                 connection.commit()
                 total_updated += batch_updated
                 
-                self.logger.info(f"✅ Batch {batch_num}: Updated {batch_updated} records (Total: {total_updated:,}/{total_records:,})")
+                self.logger.info(f"✅ Batch {batch_num}: Updated {batch_updated}/{records_needing_update} records (Total: {total_updated:,}/{total_records:,})")
                 
-                offset += batch_size
-                
-                # Progress update
+                # Enhanced progress tracking with ETA
                 progress = (total_updated / total_records * 100) if total_records > 0 else 0
-                self.logger.info(f"📈 Progress: {progress:.1f}% complete")
+                remaining = total_records - total_updated
+                
+                # Simple ETA based on current rate
+                if batch_num > 1 and batch_updated > 0:
+                    elapsed = (datetime.now() - self.processing_stats['start_time']).total_seconds()
+                    rate = total_updated / elapsed if elapsed > 0 else 0
+                    eta_seconds = remaining / rate if rate > 0 else 0
+                    eta_time = datetime.now() + timedelta(seconds=eta_seconds)
+                    eta_str = eta_time.strftime('%H:%M:%S')
+                else:
+                    eta_str = "Calculating..."
+                
+                self.logger.info(f"📈 Progress: {progress:.1f}% | Remaining: {remaining:,} | ETA: {eta_str}")
             
             cursor.close()
             
@@ -990,6 +1014,232 @@ class EnhancedTransformProcessor:
         self.logger.info(f"   Markdown Report: {markdown_filename}")
         self.logger.info(f"   Validation Report: {validation_filename}")
     
+    def run_data_quality_checks(self) -> Dict:
+        """Run comprehensive data quality checks on the clean incidents table."""
+        self.logger.info("🔍 Running comprehensive data quality checks...")
+        
+        connection = self.connect_to_mysql()
+        quality_report = {}
+        
+        try:
+            cursor = connection.cursor(dictionary=True)
+            
+            # 1. Coordinate Quality Analysis
+            self.logger.info("Analyzing coordinate quality...")
+            coord_quality_query = """
+                SELECT 
+                    'NULL lat' as issue_type,
+                    COUNT(*) as record_count,
+                    ROUND((COUNT(*) / (SELECT COUNT(*) FROM amisafe_clean_incidents) * 100), 2) as percentage
+                FROM amisafe_clean_incidents 
+                WHERE lat IS NULL
+
+                UNION ALL
+
+                SELECT 
+                    'NULL lng' as issue_type,
+                    COUNT(*) as record_count,
+                    ROUND((COUNT(*) / (SELECT COUNT(*) FROM amisafe_clean_incidents) * 100), 2) as percentage
+                FROM amisafe_clean_incidents 
+                WHERE lng IS NULL
+
+                UNION ALL
+
+                SELECT 
+                    'Invalid lat range' as issue_type,
+                    COUNT(*) as record_count,
+                    ROUND((COUNT(*) / (SELECT COUNT(*) FROM amisafe_clean_incidents) * 100), 2) as percentage
+                FROM amisafe_clean_incidents 
+                WHERE lat < -90 OR lat > 90
+
+                UNION ALL
+
+                SELECT 
+                    'Invalid lng range' as issue_type,
+                    COUNT(*) as record_count,
+                    ROUND((COUNT(*) / (SELECT COUNT(*) FROM amisafe_clean_incidents) * 100), 2) as percentage
+                FROM amisafe_clean_incidents 
+                WHERE lng < -180 OR lng > 180
+
+                UNION ALL
+
+                SELECT 
+                    'Zero coordinates' as issue_type,
+                    COUNT(*) as record_count,
+                    ROUND((COUNT(*) / (SELECT COUNT(*) FROM amisafe_clean_incidents) * 100), 2) as percentage
+                FROM amisafe_clean_incidents 
+                WHERE lat = 0 AND lng = 0
+
+                UNION ALL
+
+                SELECT 
+                    'Valid coordinates' as issue_type,
+                    COUNT(*) as record_count,
+                    ROUND((COUNT(*) / (SELECT COUNT(*) FROM amisafe_clean_incidents) * 100), 2) as percentage
+                FROM amisafe_clean_incidents 
+                WHERE lat IS NOT NULL 
+                  AND lng IS NOT NULL 
+                  AND lat BETWEEN -90 AND 90 
+                  AND lng BETWEEN -180 AND 180 
+                  AND NOT (lat = 0 AND lng = 0)
+            """
+            
+            cursor.execute(coord_quality_query)
+            coordinate_quality = cursor.fetchall()
+            quality_report['coordinate_quality'] = coordinate_quality
+            
+            # 2. H3 Population Analysis
+            self.logger.info("Analyzing H3 column population...")
+            h3_analysis = {}
+            h3_columns = ['h3_res_5', 'h3_res_6', 'h3_res_7', 'h3_res_8', 'h3_res_9', 
+                         'h3_res_10', 'h3_res_11', 'h3_res_12', 'h3_res_13']
+            
+            # Get total records with valid coordinates
+            cursor.execute("""
+                SELECT COUNT(*) as total_valid_coords
+                FROM amisafe_clean_incidents 
+                WHERE lat IS NOT NULL AND lng IS NOT NULL 
+                AND lat BETWEEN -90 AND 90 AND lng BETWEEN -180 AND 180
+            """)
+            total_valid_coords = cursor.fetchone()['total_valid_coords']
+            
+            for h3_col in h3_columns:
+                cursor.execute(f"""
+                    SELECT 
+                        COUNT(*) as populated_count,
+                        ROUND((COUNT(*) / %s * 100), 2) as fill_rate
+                    FROM amisafe_clean_incidents 
+                    WHERE {h3_col} IS NOT NULL
+                """, (total_valid_coords,))
+                
+                result = cursor.fetchone()
+                h3_analysis[h3_col] = {
+                    'populated_count': result['populated_count'],
+                    'missing_count': total_valid_coords - result['populated_count'],
+                    'fill_rate': result['fill_rate'],
+                    'total_valid_coords': total_valid_coords
+                }
+            
+            quality_report['h3_population'] = h3_analysis
+            
+            # 3. Sample Missing H3 Records
+            self.logger.info("Sampling records missing H3 indexes...")
+            sample_query = """
+                SELECT 
+                    id, incident_id, lat, lng,
+                    CASE 
+                        WHEN lat IS NULL THEN 'NULL_LAT'
+                        WHEN lng IS NULL THEN 'NULL_LNG' 
+                        WHEN lat < -90 OR lat > 90 THEN 'INVALID_LAT'
+                        WHEN lng < -180 OR lng > 180 THEN 'INVALID_LNG'
+                        WHEN lat = 0 AND lng = 0 THEN 'ZERO_COORDINATES'
+                        ELSE 'VALID'
+                    END as coordinate_status,
+                    h3_res_5, h3_res_11, h3_res_12, h3_res_13,
+                    dc_dist, location_block
+                FROM amisafe_clean_incidents 
+                WHERE h3_res_5 IS NULL OR h3_res_11 IS NULL OR h3_res_12 IS NULL OR h3_res_13 IS NULL
+                ORDER BY id
+                LIMIT 20
+            """
+            
+            cursor.execute(sample_query)
+            missing_h3_samples = cursor.fetchall()
+            quality_report['missing_h3_samples'] = missing_h3_samples
+            
+            # 4. Overall Data Quality Summary
+            cursor.execute("SELECT COUNT(*) as total_records FROM amisafe_clean_incidents")
+            total_records = cursor.fetchone()['total_records']
+            
+            # Calculate overall quality metrics
+            valid_coords = next((item['record_count'] for item in coordinate_quality if item['issue_type'] == 'Valid coordinates'), 0)
+            coord_quality_rate = (valid_coords / total_records * 100) if total_records > 0 else 0
+            
+            # Calculate average H3 fill rate - convert to float to avoid decimal/float mixing
+            avg_h3_fill_rate = sum(float(col['fill_rate']) for col in h3_analysis.values()) / len(h3_analysis)
+            
+            quality_report['summary'] = {
+                'total_records': int(total_records),
+                'coordinate_quality_rate': round(float(coord_quality_rate), 2),
+                'average_h3_fill_rate': round(float(avg_h3_fill_rate), 2),
+                'records_needing_h3_population': int(total_valid_coords) - min(int(col['populated_count']) for col in h3_analysis.values()),
+                'data_quality_grade': self.calculate_data_quality_grade(float(coord_quality_rate), float(avg_h3_fill_rate))
+            }
+            
+            cursor.close()
+            
+        except Exception as e:
+            self.logger.error(f"Data quality check failed: {e}")
+            quality_report['error'] = str(e)
+        finally:
+            if connection and connection.is_connected():
+                connection.close()
+        
+        return quality_report
+    
+    def calculate_data_quality_grade(self, coord_rate: float, h3_rate: float) -> str:
+        """Calculate an overall data quality grade."""
+        overall_score = (coord_rate + h3_rate) / 2
+        
+        if overall_score >= 95:
+            return "A+ (Excellent)"
+        elif overall_score >= 90:
+            return "A (Very Good)"
+        elif overall_score >= 80:
+            return "B (Good)"
+        elif overall_score >= 70:
+            return "C (Fair)"
+        elif overall_score >= 60:
+            return "D (Poor)"
+        else:
+            return "F (Critical Issues)"
+    
+    def print_data_quality_report(self, quality_report: Dict):
+        """Print a formatted data quality report."""
+        if 'error' in quality_report:
+            self.logger.error(f"Data quality check failed: {quality_report['error']}")
+            return
+        
+        print("\n" + "="*80)
+        print("📊 COMPREHENSIVE DATA QUALITY REPORT")
+        print("="*80)
+        
+        # Summary
+        summary = quality_report['summary']
+        print(f"\n🎯 OVERALL SUMMARY:")
+        print(f"   Total Records: {summary['total_records']:,}")
+        print(f"   Coordinate Quality: {summary['coordinate_quality_rate']}%")
+        print(f"   Average H3 Fill Rate: {summary['average_h3_fill_rate']}%")
+        print(f"   Data Quality Grade: {summary['data_quality_grade']}")
+        print(f"   Records Needing H3: {summary['records_needing_h3_population']:,}")
+        
+        # Coordinate Quality Details
+        print(f"\n🌍 COORDINATE QUALITY BREAKDOWN:")
+        for item in quality_report['coordinate_quality']:
+            status = "✅" if item['issue_type'] == 'Valid coordinates' else "⚠️" if item['record_count'] == 0 else "❌"
+            print(f"   {status} {item['issue_type']}: {item['record_count']:,} ({item['percentage']}%)")
+        
+        # H3 Population Details
+        print(f"\n🗺️  H3 GEOSPATIAL INDEX POPULATION:")
+        h3_pop = quality_report['h3_population']
+        for col, data in h3_pop.items():
+            status = "✅" if data['fill_rate'] >= 95 else "⚠️" if data['fill_rate'] >= 50 else "❌"
+            print(f"   {status} {col}: {data['populated_count']:,}/{data['total_valid_coords']:,} ({data['fill_rate']}%) - Missing: {data['missing_count']:,}")
+        
+        # Sample of problematic records
+        if quality_report['missing_h3_samples']:
+            print(f"\n🔍 SAMPLE RECORDS MISSING H3 INDEXES (showing 10 of {len(quality_report['missing_h3_samples'])}):")
+            samples = quality_report['missing_h3_samples'][:10]
+            print(f"{'ID':<10} {'Coord Status':<15} {'Lat':<12} {'Lng':<12} {'H3_5':<8} {'H3_11':<8} {'Location':<25}")
+            print("-" * 90)
+            for sample in samples:
+                h3_5_status = "✓" if sample['h3_res_5'] else "✗"
+                h3_11_status = "✓" if sample['h3_res_11'] else "✗"
+                location = (sample['location_block'] or '')[:24]
+                print(f"{sample['id']:<10} {sample['coordinate_status']:<15} {sample['lat']:<12.6f} {sample['lng']:<12.6f} {h3_5_status:<8} {h3_11_status:<8} {location:<25}")
+        
+        print("\n" + "="*80)
+
     def generate_markdown_report(self, report: Dict) -> str:
         """Generate human-readable markdown report."""
         status = report['final_status']
@@ -1056,6 +1306,7 @@ def main():
     parser.add_argument('--populate-h3-columns', action='store_true', help='Populate missing H3 columns for existing records')
     parser.add_argument('--h3-columns', nargs='+', help='Specific H3 columns to populate (e.g., h3_res_5 h3_res_11)', 
                         choices=['h3_res_5', 'h3_res_6', 'h3_res_7', 'h3_res_8', 'h3_res_9', 'h3_res_10', 'h3_res_11', 'h3_res_12', 'h3_res_13'])
+    parser.add_argument('--data-quality-check', action='store_true', help='Run comprehensive data quality analysis')
     parser.add_argument('--batch-size', type=int, default=50000, help='Batch size for processing')
     parser.add_argument('--mysql-host', default='127.0.0.1', help='MySQL host')
     parser.add_argument('--mysql-user', default='drupal_user', help='MySQL user')
@@ -1143,6 +1394,19 @@ def main():
                 json.dump(validation_report, f, indent=2, default=str)
             print(f"✅ Validation report saved: {validation_filename}")
             
+        elif args.data_quality_check:
+            # Run comprehensive data quality analysis
+            print(f"\n🔍 RUNNING COMPREHENSIVE DATA QUALITY ANALYSIS")
+            quality_report = processor.run_data_quality_checks()
+            processor.print_data_quality_report(quality_report)
+            
+            # Save quality report
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            quality_filename = os.path.join(processor.validation_reports_dir, f'data_quality_report_{timestamp}.json')
+            with open(quality_filename, 'w') as f:
+                json.dump(quality_report, f, indent=2, default=str)
+            print(f"\n📄 Quality report saved: {quality_filename}")
+            
         elif args.populate_h3_columns:
             # Populate H3 columns for existing records
             print(f"\n🔄 POPULATING H3 COLUMNS")
@@ -1163,7 +1427,7 @@ def main():
                 print(f"\n❌ H3 POPULATION FAILED")
                 print(f"Error: {results.get('error', 'Unknown error')}")
             
-        elif args.continue_processing or not any([args.full_reprocess, args.validation_only, args.status_check, args.populate_h3_columns]):
+        elif args.continue_processing or not any([args.full_reprocess, args.validation_only, args.status_check, args.populate_h3_columns, args.data_quality_check]):
             # Continue processing (default)
             print(f"\n🔄 CONTINUING TRANSFORM PROCESSING")
             results = processor.continue_processing(batch_size=args.batch_size)
