@@ -1,0 +1,49 @@
+AmISafe Database Export - Thu Nov 13 12:55:40 UTC 2025
+================================
+
+This export contains the complete AmISafe crime mapping database with 100% H3 geospatial coverage.
+
+Tables Exported:
+================
+1. amisafe_raw_incidents (Bronze Layer)
+   - Original crime incident data from Philadelphia Police
+   - Records: 3,406,194
+   - Size: ~1.3GB uncompressed
+
+2. amisafe_clean_incidents (Silver Layer) 
+   - Processed crime data with complete H3 geospatial indexing
+   - H3 resolutions: 5-13 (100% coverage)
+   - Enhanced with temporal, spatial, and categorical analysis fields
+   - Records: 3,406,194
+   - Size: ~4.3GB uncompressed
+
+3. amisafe_h3_aggregated (Gold Layer)
+   - Spatial aggregations for crime hotspot analysis
+   - H3 hexagon-based crime density calculations
+   - Records: Variable (depends on aggregation level)
+
+4. amisafe_ucr_codes (Reference Data)
+   - UCR crime code mappings and classifications
+   - Records: 15
+
+File Structure:
+==============
+- *_structure_*.sql: Table schema definitions
+- *_data_*.sql.gz: Compressed table data
+
+Restoration Instructions:
+========================
+1. Create target database
+2. Import structure files first
+3. Decompress and import data files
+4. Verify record counts match original
+
+Technical Specifications:
+========================
+- Database: MySQL 8.0.43
+- Encoding: UTF-8
+- H3 Library Version: 4.3.1
+- Processing Date: Thu Nov 13 12:55:40 UTC 2025
+- Data Quality: A+ (100% coordinate validation, 100% H3 coverage)
+
+Contact: Keith Miller (keithaumiller@gmail.com)
