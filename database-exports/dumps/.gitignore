@@ -1,0 +1,5 @@
+
+# Database Export Files
+database-exports/dumps/
+*.sql
+*.sql.gz

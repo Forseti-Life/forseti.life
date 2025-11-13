@@ -7,8 +7,11 @@ echo "=== AmISafe Database Export Utility ==="
 echo "Export started: $(date)"
 
 # Set export directory
-EXPORT_DIR="/workspaces/stlouisintegration.com/database-exports"
+EXPORT_DIR="/workspaces/stlouisintegration.com/database-exports/dumps"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+# Ensure dumps directory exists
+mkdir -p "$EXPORT_DIR"
 
 # Database connection parameters
 DB_USER="drupal_user"
@@ -18,6 +21,9 @@ DB_NAME="stlouisintegration_dev"
 
 echo "📁 Export directory: $EXPORT_DIR"
 echo "⏰ Timestamp: $TIMESTAMP"
+
+# Change to export directory
+cd "$EXPORT_DIR" || exit 1
 
 # Function to export table structure and data
 export_table() {
