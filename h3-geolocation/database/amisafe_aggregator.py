@@ -278,7 +278,7 @@ class AmISafeFinalLayerAggregator:
     
 
     
-    def run_full_aggregation(self, resolutions: List[int] = [5, 6, 7, 8, 9, 10]) -> Dict:
+    def run_full_aggregation(self, resolutions: List[int] = [5, 6, 7, 8, 9, 10, 11, 12, 13]) -> Dict:
         """Run the complete Final Layer (Gold) aggregation pipeline."""
         self.logger.info(f"Starting Final Layer aggregation for H3 resolutions: {resolutions}")
         
@@ -400,8 +400,8 @@ def main():
     parser.add_argument('--mysql-user', default='drupal_user', help='MySQL user')
     parser.add_argument('--mysql-password', default='drupal_secure_password', help='MySQL password')
     parser.add_argument('--mysql-database', default='stlouisintegration_dev', help='MySQL database')
-    parser.add_argument('--resolutions', nargs='+', type=int, default=[5, 6, 7, 8, 9, 10], 
-                        help='H3 resolutions to process (default: 5 6 7 8 9 10)')
+    parser.add_argument('--resolutions', nargs='+', type=int, default=[5, 6, 7, 8, 9, 10, 11, 12, 13], 
+                        help='H3 resolutions to process (default: 5 6 7 8 9 10 11 12 13)')
     
     args = parser.parse_args()
     
