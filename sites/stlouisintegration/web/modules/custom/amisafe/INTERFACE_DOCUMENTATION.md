@@ -1,17 +1,17 @@
 # AmISafe Interface Documentation
-## Philadelphia Crime Map 2085 - Complete Feature Guide
+## Crime Monitoring & Analytics - Complete Feature Guide
 
-### 🏙️ **Overview**
-The AmISafe module provides a comprehensive cyberpunk-themed crime monitoring and spatial analysis interface for Philadelphia 2085. This document details every button, control, and feature available in the system.
+### 🏦️ **Overview**
+The AmISafe module provides a comprehensive crime monitoring and spatial analysis interface. This document details every button, control, and feature available in the system.
 
 ---
 
 ## 🎯 **Main Interface Components**
 
 ### **📍 Page Header**
-- **Title**: "PHILADELPHIA CRIME MAP - 2085" with glitch text effect
+- **Title**: "CRIME MONITORING DASHBOARD" with professional styling
 - **Subtitle**: "Real-time crime monitoring and spatial analysis"
-- **Visual Effects**: Cyberpunk styling with neon colors and terminal font
+- **Visual Effects**: Clean, professional interface with accessible colors
 
 ---
 
@@ -28,7 +28,7 @@ The AmISafe module provides a comprehensive cyberpunk-themed crime monitoring an
   - Hold Ctrl/Cmd to select multiple types
   - Updates map data when changed (with 500ms debounce)
 - **Expected Options**: Murder, Rape, Robbery, Assault, Burglary, Theft, Vandalism, Fraud, etc.
-- **Visual**: Cyberpunk multi-select with neon borders
+- **Visual**: Professional multi-select with clear borders
 
 #### **2. DISTRICTS (Police District Filter)**
 - **Element**: Multi-select dropdown

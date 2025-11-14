@@ -1,44 +1,45 @@
-/* Am I Safe Dashboard Styling */
+/* AmISafe Dashboard - Professional Styling */
 .amisafe-dashboard {
-  background: linear-gradient(135deg, #000011 0%, #001122 50%, #000033 100%);
+  background: #ffffff;
   min-height: 100vh;
-  padding: 2rem;
-  color: #ffffff;
-  font-family: 'Rajdhani', sans-serif;
+  padding: 2rem 1rem;
+  color: #333333;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 /* Header Section */
 .dashboard-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  padding: 2rem;
+  margin: -2rem -1rem 2rem -1rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  border-radius: 0 0 10px 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid rgba(0, 255, 255, 0.3);
 }
 
 .dashboard-title {
-  font-family: 'Orbitron', monospace;
-  font-size: 3rem;
-  color: #00ffff;
-  text-shadow: 
-    0 0 10px rgba(0, 255, 255, 0.8),
-    0 0 20px rgba(0, 255, 255, 0.6);
+  font-size: 2.5rem;
+  font-weight: 600;
   margin: 0;
+  color: white;
 }
 
 .last-updated {
   text-align: right;
   font-size: 0.9rem;
+  opacity: 0.9;
 }
 
 .update-label {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .update-time {
-  color: #00ffff;
-  font-weight: bold;
+  color: white;
+  font-weight: 500;
   margin-left: 0.5rem;
 }
 
@@ -48,22 +49,27 @@
 }
 
 .threat-level-card {
-  background: linear-gradient(135deg, rgba(255, 0, 0, 0.1), rgba(255, 0, 0, 0.05));
-  border: 2px solid #ff0000;
+  background: white;
+  border: 2px solid #dc3545;
   border-radius: 10px;
   padding: 1.5rem;
   position: relative;
-  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
 .threat-level-card.warning {
-  background: linear-gradient(135deg, rgba(255, 165, 0, 0.1), rgba(255, 165, 0, 0.05));
-  border-color: #ffa500;
+  border-color: #ffc107;
+  background: #fff8e1;
 }
 
 .threat-level-card.success {
-  background: linear-gradient(135deg, rgba(0, 255, 0, 0.1), rgba(0, 255, 0, 0.05));
-  border-color: #00ff00;
+  border-color: #28a745;
+  background: #f0fff4;
+}
+
+.threat-level-card.danger {
+  border-color: #dc3545;
+  background: #fff5f5;
 }
 
 .threat-level-header {
@@ -74,14 +80,15 @@
 }
 
 .threat-level-header h2 {
-  color: #ffffff;
+  color: #333333;
   margin: 0;
   font-size: 1.5rem;
+  font-weight: 600;
 }
 
 .location-info {
-  color: #00ffff;
-  font-weight: bold;
+  color: #007bff;
+  font-weight: 500;
 }
 
 .threat-level-indicator {
@@ -94,36 +101,37 @@
 .threat-level-text {
   font-size: 2.5rem;
   font-weight: bold;
-  color: #ff0000;
-  text-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+  color: #dc3545;
 }
 
 .threat-level-card.warning .threat-level-text {
-  color: #ffa500;
-  text-shadow: 0 0 15px rgba(255, 165, 0, 0.8);
+  color: #ffc107;
 }
 
 .threat-level-card.success .threat-level-text {
-  color: #00ff00;
-  text-shadow: 0 0 15px rgba(0, 255, 0, 0.8);
+  color: #28a745;
+}
+
+.threat-level-card.danger .threat-level-text {
+  color: #dc3545;
 }
 
 .threat-pulse {
   position: absolute;
   right: 2rem;
-  width: 20px;
-  height: 20px;
-  background: #ff0000;
+  width: 16px;
+  height: 16px;
+  background: #dc3545;
   border-radius: 50%;
   animation: pulse 2s infinite;
 }
 
 .threat-level-card.warning .threat-pulse {
-  background: #ffa500;
+  background: #ffc107;
 }
 
 .threat-level-card.success .threat-pulse {
-  background: #00ff00;
+  background: #28a745;
 }
 
 @keyframes pulse {
@@ -142,11 +150,12 @@
 
 /* Dashboard Panels */
 .dashboard-panel {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(17, 17, 17, 0.6));
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: white;
+  border: 1px solid #e0e0e0;
   border-radius: 10px;
   padding: 1.5rem;
   position: relative;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
 .dashboard-panel::before {
@@ -155,17 +164,18 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, #00ffff, #ff00ff);
+  height: 3px;
+  background: linear-gradient(90deg, #007bff, #0056b3);
+  border-radius: 10px 10px 0 0;
 }
 
 .panel-title {
   display: flex;
   align-items: center;
-  color: #00ffff;
+  color: #333333;
   font-size: 1.3rem;
+  font-weight: 600;
   margin: 0 0 1rem 0;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
 }
 
 .panel-icon {
@@ -181,18 +191,21 @@
 }
 
 .threat-item {
-  background: rgba(0, 0, 0, 0.3);
-  border-left: 4px solid #ff0000;
+  background: #f8f9fa;
+  border-left: 4px solid #dc3545;
   padding: 1rem;
   border-radius: 5px;
+  border: 1px solid #e0e0e0;
 }
 
 .threat-item.severity-medium {
-  border-left-color: #ffa500;
+  border-left-color: #ffc107;
+  background: #fff8e1;
 }
 
 .threat-item.severity-low {
-  border-left-color: #ffff00;
+  border-left-color: #28a745;
+  background: #f0fff4;
 }
 
 .threat-header {
@@ -203,36 +216,37 @@
 }
 
 .threat-type {
-  font-weight: bold;
-  color: #ffffff;
+  font-weight: 600;
+  color: #333333;
 }
 
 .threat-severity {
-  background: #ff0000;
-  color: #ffffff;
+  background: #dc3545;
+  color: white;
   padding: 0.2rem 0.5rem;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 0.8rem;
-  font-weight: bold;
+  font-weight: 500;
 }
 
 .threat-item.severity-medium .threat-severity {
-  background: #ffa500;
+  background: #ffc107;
+  color: #333;
 }
 
 .threat-item.severity-low .threat-severity {
-  background: #ffff00;
-  color: #000000;
+  background: #28a745;
+  color: white;
 }
 
 .threat-description {
-  color: rgba(255, 255, 255, 0.9);
+  color: #666666;
   margin-bottom: 0.5rem;
   line-height: 1.4;
 }
 
 .threat-time {
-  color: #00ffff;
+  color: #007bff;
   font-size: 0.9rem;
   font-style: italic;
 }
@@ -251,14 +265,15 @@
 }
 
 .stat-label {
-  color: rgba(255, 255, 255, 0.9);
+  color: #333333;
   flex: 1;
+  font-weight: 500;
 }
 
 .stat-bar {
   flex: 2;
   height: 10px;
-  background: rgba(0, 0, 0, 0.5);
+  background: #e0e0e0;
   border-radius: 5px;
   margin: 0 1rem;
   overflow: hidden;
@@ -266,14 +281,14 @@
 
 .stat-fill {
   height: 100%;
-  background: linear-gradient(90deg, #00ffff, #ff00ff);
+  background: linear-gradient(90deg, #007bff, #0056b3);
   border-radius: 5px;
   transition: width 0.3s ease;
 }
 
 .stat-value {
-  color: #00ffff;
-  font-weight: bold;
+  color: #007bff;
+  font-weight: 600;
   min-width: 60px;
   text-align: right;
 }
@@ -286,17 +301,18 @@
 }
 
 .recommendation-item {
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
   margin-bottom: 0.5rem;
   padding: 0.8rem;
   border-radius: 5px;
   position: relative;
+  color: #333333;
 }
 
 .recommendation-item::before {
   content: '→';
-  color: #00ffff;
+  color: #007bff;
   font-weight: bold;
   margin-right: 0.5rem;
 }
@@ -309,8 +325,8 @@
 }
 
 .safezone-item {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(0, 255, 0, 0.3);
+  background: #f0fff4;
+  border: 1px solid #c8e6c9;
   padding: 1rem;
   border-radius: 5px;
 }
@@ -323,12 +339,12 @@
 }
 
 .zone-name {
-  font-weight: bold;
-  color: #ffffff;
+  font-weight: 600;
+  color: #333333;
 }
 
 .zone-distance {
-  color: #00ffff;
+  color: #007bff;
   font-size: 0.9rem;
 }
 
@@ -339,34 +355,34 @@
 
 .zone-capacity, .zone-security {
   padding: 0.2rem 0.5rem;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 0.8rem;
-  font-weight: bold;
+  font-weight: 500;
 }
 
 .capacity-available {
-  background: #00ff00;
-  color: #000000;
+  background: #28a745;
+  color: white;
 }
 
 .capacity-limited {
-  background: #ffa500;
-  color: #ffffff;
+  background: #ffc107;
+  color: #333;
 }
 
 .security-high {
-  background: #00ff00;
-  color: #000000;
+  background: #28a745;
+  color: white;
 }
 
 .security-medium {
-  background: #ffa500;
-  color: #ffffff;
+  background: #ffc107;
+  color: #333;
 }
 
 .security-low {
-  background: #ff0000;
-  color: #ffffff;
+  background: #dc3545;
+  color: white;
 }
 
 /* Emergency Alert Section */
@@ -374,22 +390,23 @@
   margin-top: 2rem;
 }
 
-.cyberpunk-alert {
-  background: linear-gradient(135deg, rgba(255, 0, 0, 0.15), rgba(255, 0, 0, 0.08));
-  border: 2px solid #ff0000;
+.amisafe-alert {
+  background: #fff5f5;
+  border: 2px solid #dc3545;
   border-radius: 10px;
   position: relative;
   overflow: hidden;
+  color: #333333;
 }
 
-.cyberpunk-alert::before {
+.amisafe-alert::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 3px;
-  background: linear-gradient(90deg, #ff0000, #ff00ff, #00ffff);
+  background: linear-gradient(90deg, #dc3545, #c82333);
   animation: scan 3s linear infinite;
 }
 
@@ -398,9 +415,9 @@
   100% { transform: translateX(100%); }
 }
 
-.cyberpunk-alert .alert-heading {
-  color: #ff0000;
-  text-shadow: 0 0 15px rgba(255, 0, 0, 0.8);
+.amisafe-alert .alert-heading {
+  color: #dc3545;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -410,29 +427,31 @@
 }
 
 .emergency-code code {
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: #e3f2fd;
+  border: 1px solid #bbdefb;
   padding: 0.3rem 0.5rem;
-  border-radius: 3px;
-  color: #00ffff;
-  font-family: 'Orbitron', monospace;
+  border-radius: 4px;
+  color: #007bff;
+  font-family: 'Monaco', 'Consolas', monospace;
   letter-spacing: 1px;
 }
 
 .emergency-contact .text-cyan {
-  color: #00ffff !important;
-  font-weight: bold;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+  color: #007bff !important;
+  font-weight: 600;
 }
 
 /* Dashboard Navigation Section */
 .dashboard-nav-section {
   margin-top: 2rem;
   padding-top: 2rem;
-  border-top: 2px solid rgba(0, 255, 255, 0.3);
+  border-top: 2px solid #e0e0e0;
 }
 
-.dashboard-nav-section .cyberpunk-btn {
+.dashboard-nav-section .amisafe-btn {
+  background: #007bff;
+  border: 1px solid #0056b3;
+  color: white;
   padding: 1rem;
   font-size: 1rem;
   min-height: 60px;
@@ -440,6 +459,17 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.dashboard-nav-section .amisafe-btn:hover {
+  background: #0056b3;
+  color: white;
+  text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(0,123,255,0.3);
 }
 
 .btn-icon {

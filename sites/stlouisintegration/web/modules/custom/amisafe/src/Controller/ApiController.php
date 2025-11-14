@@ -843,7 +843,7 @@ class ApiController extends ControllerBase {
     $incident_count = $hexagon_data['incident_count'] ?? 0;
     $severity_avg = $hexagon_data['severity_avg'] ?? 0;
     
-    // Cyberpunk-style threat calculation
+    // Advanced threat level calculation
     if ($incident_count >= 50 && $severity_avg >= 4) {
       return 'CRITICAL';
     } elseif ($incident_count >= 25 && $severity_avg >= 3) {

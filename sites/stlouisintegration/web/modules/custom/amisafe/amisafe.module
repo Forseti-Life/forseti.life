@@ -13,7 +13,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
 function amisafe_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.amisafe':
-      return '<p>' . t('Am I Safe? dashboard provides real-time safety monitoring for Philadelphia 2085.') . '</p>';
+      return '<p>' . t('Am I Safe? dashboard provides real-time safety monitoring and crime analytics.') . '</p>';
   }
 }
 

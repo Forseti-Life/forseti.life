@@ -116,12 +116,7 @@ class AmISafeConfigForm extends ConfigFormBase {
       '#default_value' => $config->get('show_empty_hexagons') ?? FALSE,
     ];
 
-    $form['display']['cyberpunk_theme'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Enable Cyberpunk Theme'),
-      '#description' => $this->t('Use cyberpunk-themed styling for the Philadelphia 2085 AmISafe dashboard.'),
-      '#default_value' => $config->get('cyberpunk_theme') ?? TRUE,
-    ];
+
 
     $form['analytics'] = [
       '#type' => 'fieldset',
@@ -184,7 +179,6 @@ class AmISafeConfigForm extends ConfigFormBase {
       ->set('ultra_precision_limit', $form_state->getValue('ultra_precision_limit'))
       ->set('fine_precision_limit', $form_state->getValue('fine_precision_limit'))
       ->set('show_empty_hexagons', $form_state->getValue('show_empty_hexagons'))
-      ->set('cyberpunk_theme', $form_state->getValue('cyberpunk_theme'))
       ->set('enable_ultra_precision_logging', $form_state->getValue('enable_ultra_precision_logging'))
       ->set('cache_ttl', $form_state->getValue('cache_ttl'))
       ->save();

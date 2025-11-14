@@ -18,66 +18,65 @@ class AmISafeController extends ControllerBase {
     $config = $this->config('amisafe.settings');
     $use_gold_layer = $config->get('use_gold_layer') ?? TRUE;
     $default_resolution = $config->get('default_resolution') ?? 9;
-    $cyberpunk_theme = $config->get('cyberpunk_theme') ?? TRUE;
     
-    // Safety monitoring data for Philadelphia 2085 with ultra-precision analytics
+    // Crime analytics dashboard data with ultra-precision monitoring
     $dashboard_data = [
-      'current_threat_level' => 'ELEVATED',
+      'current_threat_level' => 'MODERATE',
       'threat_color' => 'warning', // warning, danger, success
       'last_updated' => date('Y-m-d H:i:s'),
-      'location_status' => 'Northern Liberties Industrial Maze',
+      'location_status' => 'City-Wide Crime Analytics',
       'active_threats' => [
         [
-          'type' => 'Corporate Surveillance Drones',
+          'type' => 'Burglary Trend Alert',
           'severity' => 'HIGH',
-          'description' => 'Increased drone activity detected in your sector. Avoid main thoroughfares.',
-          'time_detected' => '14 minutes ago',
+          'description' => 'Increased burglary activity detected in residential areas. Property crime up 15% this week.',
+          'time_detected' => '2 hours ago',
         ],
         [
-          'type' => 'Automated Security Checkpoints',
+          'type' => 'Vehicle Theft Hotspot',
           'severity' => 'MEDIUM',
-          'description' => 'Enhanced biometric scanning active. Identity verification required.',
-          'time_detected' => '1 hour ago',
+          'description' => 'Auto theft incidents concentrated in downtown parking areas. Enhanced monitoring active.',
+          'time_detected' => '4 hours ago',
         ],
         [
-          'type' => 'Network Intrusion Attempts',
+          'type' => 'Vandalism Pattern',
           'severity' => 'LOW',
-          'description' => 'Minor AI probing detected on local mesh networks.',
-          'time_detected' => '3 hours ago',
+          'description' => 'Minor vandalism reports showing geographic clustering in commercial district.',
+          'time_detected' => '6 hours ago',
         ],
       ],
       'safety_recommendations' => [
-        'Use underground passages when possible',
-        'Disable non-essential biometric devices',
-        'Travel in groups of 2-3 maximum',
-        'Avoid pattern recognition by varying routes',
-        'Keep emergency contact codes active',
+        'Avoid leaving valuables visible in vehicles',
+        'Use well-lit parking areas and walkways',
+        'Stay aware of surroundings in high-activity areas',
+        'Report suspicious activity to local authorities',
+        'Consider varying daily routines and routes',
       ],
       'safe_zones' => [
         [
-          'name' => 'Underground Resistance Hideout Alpha',
+          'name' => 'Police Station - Central District',
           'distance' => '0.8 km',
           'capacity' => 'Available',
           'security_rating' => 'HIGH',
         ],
         [
-          'name' => 'Black Market Med Clinic',
+          'name' => 'Community Safety Center',
           'distance' => '1.2 km', 
-          'capacity' => 'Limited',
-          'security_rating' => 'MEDIUM',
+          'capacity' => 'Available',
+          'security_rating' => 'HIGH',
         ],
         [
-          'name' => 'Abandoned Subway Junction',
-          'distance' => '2.1 km',
+          'name' => 'Hospital - Emergency Services',
+          'distance' => '1.8 km',
           'capacity' => 'Available',
-          'security_rating' => 'LOW',
+          'security_rating' => 'MEDIUM',
         ],
       ],
       'network_status' => [
-        'mesh_connectivity' => 78,
-        'encryption_level' => 'MAXIMUM',
-        'ai_detection_risk' => 'MODERATE',
-        'peer_nodes_active' => 23,
+        'system_connectivity' => 95,
+        'data_accuracy' => 'HIGH',
+        'analysis_coverage' => 'COMPREHENSIVE',
+        'active_sensors' => 847,
       ],
       // Ultra-precision analytics powered by Resolution 13
               'ultra_precision_stats' => [
@@ -92,8 +91,7 @@ class AmISafeController extends ControllerBase {
             '/api/amisafe/aggregated?resolution=13',
           ],
         ],
-      // Theme and configuration
-      'cyberpunk_theme' => $cyberpunk_theme,
+      // Configuration
       'use_gold_layer' => $use_gold_layer,
     ];
 

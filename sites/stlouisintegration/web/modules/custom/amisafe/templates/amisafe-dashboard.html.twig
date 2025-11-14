@@ -8,11 +8,11 @@
  */
 #}
 
-<div class="amisafe-dashboard cyberpunk-container">
+<div class="amisafe-dashboard amisafe-container">
   
   {# Header Section #}
   <div class="dashboard-header">
-    <h1 class="dashboard-title cyberpunk-title">Am I Safe?</h1>
+    <h1 class="dashboard-title amisafe-title">Am I Safe?</h1>
     <div class="last-updated">
       <span class="update-label">Last Updated:</span>
       <span class="update-time">{{ dashboard_data.last_updated }}</span>
@@ -21,7 +21,7 @@
 
   {# Threat Level Status #}
   <div class="threat-status-section">
-    <div class="threat-level-card {{ dashboard_data.threat_color }}">
+    <div class="threat-level-card {{ dashboard_data.threat_color }}"
       <div class="threat-level-header">
         <h2>Current Threat Level</h2>
         <div class="location-info">{{ dashboard_data.location_status }}</div>
@@ -59,28 +59,28 @@
     {# Network Status Panel #}
     <div class="dashboard-panel network-panel">
       <h3 class="panel-title">
-        <span class="panel-icon">🌐</span>
-        Network Status
+        <span class="panel-icon">📊</span>
+        System Status
       </h3>
       <div class="network-stats">
         <div class="stat-item">
-          <span class="stat-label">Mesh Connectivity</span>
+          <span class="stat-label">System Connectivity</span>
           <div class="stat-bar">
-            <div class="stat-fill" style="width: {{ dashboard_data.network_status.mesh_connectivity }}%"></div>
+            <div class="stat-fill" style="width: {{ dashboard_data.network_status.system_connectivity }}%"></div>
           </div>
-          <span class="stat-value">{{ dashboard_data.network_status.mesh_connectivity }}%</span>
+          <span class="stat-value">{{ dashboard_data.network_status.system_connectivity }}%</span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">Encryption Level</span>
-          <span class="stat-value">{{ dashboard_data.network_status.encryption_level }}</span>
+          <span class="stat-label">Data Accuracy</span>
+          <span class="stat-value">{{ dashboard_data.network_status.data_accuracy }}</span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">AI Detection Risk</span>
-          <span class="stat-value">{{ dashboard_data.network_status.ai_detection_risk }}</span>
+          <span class="stat-label">Analysis Coverage</span>
+          <span class="stat-value">{{ dashboard_data.network_status.analysis_coverage }}</span>
         </div>
         <div class="stat-item">
-          <span class="stat-label">Active Peer Nodes</span>
-          <span class="stat-value">{{ dashboard_data.network_status.peer_nodes_active }}</span>
+          <span class="stat-label">Active Sensors</span>
+          <span class="stat-value">{{ dashboard_data.network_status.active_sensors }}</span>
         </div>
       </div>
     </div>
@@ -101,8 +101,8 @@
     {# Safe Zones Panel #}
     <div class="dashboard-panel safezones-panel">
       <h3 class="panel-title">
-        <span class="panel-icon">📍</span>
-        Nearby Safe Zones
+        <span class="panel-icon">🏢</span>
+        Community Resources
       </h3>
       <div class="safezones-list">
         {% for zone in dashboard_data.safe_zones %}
@@ -124,18 +124,18 @@
 
   {# Emergency Alert Section #}
   <div class="emergency-alert-section">
-    <div class="alert alert-danger cyberpunk-alert">
+    <div class="alert alert-danger amisafe-alert">
       <h4 class="alert-heading">
-        <span class="neon-pulse">⚠️</span> EMERGENCY PROTOCOL
+        <span class="neon-pulse">⚠️</span> EMERGENCY INFORMATION
       </h4>
       <p class="mb-3">
-        <strong>If threat level reaches CRITICAL:</strong> Immediately seek nearest safe zone or activate emergency mesh beacon.
+        <strong>If you witness criminal activity:</strong> Contact local authorities immediately and report to the nearest community resource center.
       </p>
       <div class="emergency-code">
-        <strong>Emergency Beacon Code:</strong> <code>AMISAFE-2085-{{ "now"|date("His") }}</code>
+        <strong>Emergency Reference:</strong> <code>AMISAFE-{{ "now"|date("Ymd-His") }}</code>
       </div>
       <div class="emergency-contact mt-3">
-        <strong>Emergency Contact:</strong> <span class="text-cyan">MESH-7749-ALPHA</span>
+        <strong>Emergency Contact:</strong> <span class="text-cyan">911 / Local Police</span>
       </div>
     </div>
   </div>
@@ -144,18 +144,18 @@
   <div class="dashboard-nav-section">
     <div class="row text-center">
       <div class="col-md-4 mb-3">
-        <a href="/amisafe/crime-map" class="btn cyberpunk-btn d-block">
+        <a href="/amisafe/crime-map" class="btn amisafe-btn d-block">
           <span class="btn-icon">🗺️</span> Crime Map
         </a>
       </div>
       <div class="col-md-4 mb-3">
-        <a href="/characters" class="btn cyberpunk-btn d-block">
-          <span class="btn-icon">👥</span> Resistance Contacts
+        <a href="/admin/config/services/amisafe" class="btn amisafe-btn d-block">
+          <span class="btn-icon">⚙️</span> Configuration
         </a>
       </div>
       <div class="col-md-4 mb-3">
-        <a href="/story/act-i" class="btn cyberpunk-btn d-block">
-          <span class="btn-icon">📖</span> Survival Guide
+        <a href="/help/amisafe" class="btn amisafe-btn d-block">
+          <span class="btn-icon">📖</span> Help Documentation
         </a>
       </div>
     </div>

@@ -187,7 +187,7 @@ CSV Files → Raw Processing → H3 Indexing → Database Storage → Aggregatio
 ├── js/
 │   └── crime-map.js              # Frontend JavaScript (2000+ lines)
 ├── css/
-│   └── amisafe.css               # Cyberpunk styling
+│   └── amisafe.css               # Professional styling
 └── data/                         # Crime incident CSV files (20 files)
 ```
 

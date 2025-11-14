@@ -9,6 +9,9 @@
  * Implements hook_install().
  */
 function professional_website_content_install() {
+  // Create the welcome home page first
+  $home_nid = _professional_website_content_create_home_page();
+
   // Create the resume data node (node/10 equivalent)
   $resume_data = _professional_website_content_get_resume_data();
   $resume_node = \Drupal::entityTypeManager()
@@ -24,6 +27,9 @@ function professional_website_content_install() {
       'uid' => 1,
     ]);
   $resume_node->save();
+
+  // Create About Us page
+  _professional_website_content_create_about_page();
 
   // Create Services page
   _professional_website_content_create_services_page();
@@ -58,7 +64,82 @@ function professional_website_content_install() {
   // Place the professional navigation block
   _professional_website_content_place_navigation_block();
 
+  // Set the home page as the front page
+  if ($home_nid) {
+    \Drupal::configFactory()->getEditable('system.site')
+      ->set('page.front', '/node/' . $home_nid)
+      ->save();
+    \Drupal::messenger()->addStatus(t('Set Welcome to St. Louis Integration as the front page.'));
+  }
+
   \Drupal::messenger()->addStatus(t('Professional website content has been created successfully.'));
+}
+
+/**
+ * Create the Welcome to St. Louis Integration home page.
+ */
+function _professional_website_content_create_home_page() {
+  $home_content = '
+<div class="hero-section text-center py-5 mb-5">
+    <div class="container">
+        <h1 class="display-4 mb-4">
+            Transform Your Business with AI &amp; Automation
+        </h1>
+        <p class="lead mb-4">
+            St. Louis Integration provides cutting-edge technology solutions to help businesses automate processes, integrate AI capabilities, and achieve digital transformation.
+        </p>
+    </div>
+</div>
+<div class="container">
+    <div class="row mb-5">
+        <div class="col-md-4 text-center mb-4">
+            <div class="feature-box p-4">
+                <h3>
+                    AI Integration
+                </h3>
+                <p>
+                    Leverage artificial intelligence to automate tasks, improve decision-making, and enhance customer experiences.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="feature-box p-4">
+                <h3>
+                    System Integration
+                </h3>
+                <p>
+                    Connect disparate systems and streamline your business processes for maximum efficiency.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="feature-box p-4">
+                <h3>
+                    Digital Transformation
+                </h3>
+                <p>
+                    Modernize your business with comprehensive digital transformation strategies and implementation.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>';
+
+  $home_node = \Drupal::entityTypeManager()
+    ->getStorage('node')
+    ->create([
+      'type' => 'page',
+      'title' => 'Welcome to St. Louis Integration',
+      'body' => [
+        'value' => $home_content,
+        'format' => 'full_html',
+      ],
+      'status' => 1,
+      'uid' => 1,
+    ]);
+  $home_node->save();
+  
+  return $home_node->id();
 }
 
 /**
@@ -236,53 +317,87 @@ function _professional_website_content_get_resume_data() {
 
 /**
  * Create the About Us page with leadership profile.
- * DISABLED - About Us page removed from navigation
  */
-/*
 function _professional_website_content_create_about_page() {
   $about_content = '
 <div class="about-us-section">
-  <div class="row">
-    <div class="col-lg-8">
-      <h2>About St. Louis Integration</h2>
-      <p class="lead">St. Louis Integration is a premier technology consulting firm specializing in AI-powered solutions, enterprise automation, and digital transformation across Financial Services, Healthcare, and Energy sectors.</p>
-      
-      <p>Founded on the principle that technology should drive measurable business outcomes, we partner with Fortune 500 companies to implement cutting-edge solutions that deliver operational efficiency improvements of 30%+ and cost savings exceeding $50 million.</p>
-      
-      <h3>Our Expertise</h3>
-      <div class="expertise-grid">
-        <div class="expertise-item">
-          <h4>Financial Services</h4>
-          <p>Advanced algorithmic trading platforms, fraud detection systems, risk management solutions, and regulatory compliance automation.</p>
+    <div class="row">
+        <div class="col-lg-8">
+            <h2>
+                About St. Louis Integration
+            </h2>
+            <p class="lead">
+                St. Louis Integration is a premier technology consulting firm specializing in AI-powered solutions, enterprise automation, and digital transformation across Financial Services, Healthcare, and Energy sectors.
+            </p>
+            <p>
+                Founded on the principle that technology should drive measurable business outcomes, we partner with Fortune 500 companies to implement cutting-edge solutions that deliver operational efficiency improvements of 30%+ and cost savings exceeding $50 million.
+            </p>
+            <h3>
+                Our Expertise
+            </h3>
+            <div class="expertise-grid">
+                <div class="expertise-item">
+                    <h4>
+                        Financial Services
+                    </h4>
+                    <p>
+                        Advanced algorithmic trading platforms, fraud detection systems, risk management solutions, and regulatory compliance automation.
+                    </p>
+                </div>
+                <div class="expertise-item">
+                    <h4>
+                        Healthcare Technology
+                    </h4>
+                    <p>
+                        Clinical trial management systems, patient data analytics, regulatory compliance platforms supporting 700+ active studies.
+                    </p>
+                </div>
+                <div class="expertise-item">
+                    <h4>
+                        Energy &amp; Utilities
+                    </h4>
+                    <p>
+                        Smart grid implementations, renewable energy integration, predictive maintenance, and supply chain optimization.
+                    </p>
+                </div>
+            </div>
         </div>
-        <div class="expertise-item">
-          <h4>Healthcare Technology</h4>
-          <p>Clinical trial management systems, patient data analytics, regulatory compliance platforms supporting 700+ active studies.</p>
+        <div class="col-lg-4">
+            <div class="leadership-profile">
+                <h3>
+                    Leadership
+                </h3>
+                <div class="leader-card">
+                    <h4>
+                        Keith Aumiller
+                    </h4>
+                    <p class="title">
+                        Founder &amp; Principal Consultant
+                    </p>
+                    <ul>
+                        <li>
+                            MBA Washington University in St. Louis
+                        </li>
+                        <li>
+                            BS Psychology Truman State University
+                        </li>
+                        <li>
+                            20+ years enterprise consulting experience
+                        </li>
+                        <li>
+                            AWS Solutions Architect
+                        </li>
+                        <li>
+                            Google Cloud ML Engineer
+                        </li>
+                        <li>
+                            US Government Security Trust Clearance
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
-        <div class="expertise-item">
-          <h4>Energy & Utilities</h4>
-          <p>Smart grid implementations, renewable energy integration, predictive maintenance, and supply chain optimization.</p>
-        </div>
-      </div>
     </div>
-    <div class="col-lg-4">
-      <div class="leadership-profile">
-        <h3>Leadership</h3>
-        <div class="leader-card">
-          <h4>Keith A. Miller</h4>
-          <p class="title">Founder & Principal Consultant</p>
-          <ul>
-            <li>MS Computer Science - Washington University</li>
-            <li>BS Electrical Engineering - University of Missouri</li>
-            <li>15+ years enterprise consulting experience</li>
-            <li>AWS Certified Solutions Architect</li>
-            <li>Google Cloud ML Engineer</li>
-            <li>US Government Security Clearance</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>';
 
   $about_node = \Drupal::entityTypeManager()
@@ -299,7 +414,6 @@ function _professional_website_content_create_about_page() {
     ]);
   $about_node->save();
 }
-*/
 
 /**
  * Create the Services page with industry solutions.
@@ -1506,6 +1620,7 @@ function _professional_website_content_create_url_aliases() {
     ->accessCheck(TRUE);
   
   $titles_to_aliases = [
+    'About Us' => '/about',
     'Case Studies' => '/case-studies', 
     'Leadership' => '/leadership',
     'Contact' => '/contact',
