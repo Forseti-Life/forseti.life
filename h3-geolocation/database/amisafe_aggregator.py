@@ -275,149 +275,62 @@ class AmISafeFinalLayerAggregator:
         # TODO: Implement data quality calculation logic
         return 0.0
     
-    def get_top_crime_type(self, connection, h3_index: str, resolution: int) -> str:
-        """Get the most frequent crime type in hexagon.
-        
-        TODO: Implement logic to:
-        - Query Silver layer for incidents in hexagon
-        - Count occurrences by ucr_general
-        - Return most frequent crime type
-        - Handle ties with secondary criteria
+    def fetch_hex_incidents(self, connection, h3_index: str, resolution: int) -> List[Dict]:
+        """Fetch all incident data for a hexagon in one query.
         
         Returns:
-            str: UCR code of most frequent crime type
+            List[Dict]: All incident records for this hexagon
         """
-        # TODO: Implement top crime type identification
-        return None
+        cursor = connection.cursor(dictionary=True)
+        h3_column = f"h3_res_{resolution}"
+        
+        try:
+            # Single query to get ALL data needed for analytics
+            query = f"""
+            SELECT 
+                incident_id,
+                ucr_general,
+                incident_datetime,
+                lat,
+                lng,
+                HOUR(incident_datetime) as hour_of_day,
+                WEEKDAY(incident_datetime) as day_of_week,
+                MONTH(incident_datetime) as month_num,
+                DATE(incident_datetime) as incident_date
+            FROM amisafe_clean_incidents 
+            WHERE {h3_column} = %s 
+                AND is_duplicate = FALSE
+                AND incident_datetime IS NOT NULL
+            """
+            
+            cursor.execute(query, (h3_index,))
+            incidents = cursor.fetchall()
+            
+            return incidents
+            
+        except Exception as e:
+            self.logger.error(f"Error fetching incidents for {h3_index}: {e}")
+            return []
+        finally:
+            cursor.close()
     
-    def calculate_crime_diversity_index(self, connection, h3_index: str, resolution: int) -> float:
-        """Calculate Shannon diversity index for crime types in hexagon.
+    def calculate_analytics_from_incidents(self, incidents: List[Dict], h3_index: str, resolution: int) -> Dict:
+        """Calculate all analytics from in-memory incident data.
         
-        TODO: Implement Shannon diversity calculation:
-        - H = -Σ(pi * ln(pi)) where pi = proportion of crime type i
-        - Higher values indicate more diverse crime patterns
-        - Useful for identifying specialized vs general crime areas
-        
-        Returns:
-            float: Shannon diversity index (0.0-N)
-        """
-        # TODO: Implement Shannon diversity calculation
-        return 0.0
-    
-    def calculate_temporal_patterns(self, connection, h3_index: str, resolution: int) -> Dict:
-        """Calculate temporal incident patterns for hexagon.
-        
-        TODO: Implement temporal analysis:
-        - incidents_by_hour: Array of counts for hours 0-23
-        - incidents_by_dow: Array of counts for days 0-6 (Monday=0)
-        - incidents_by_month: Array of counts for months 1-12
-        - peak_hour: Hour with maximum incidents
-        - peak_dow: Day of week with maximum incidents
-        
-        Returns:
-            Dict: {
-                'by_hour': List[int],
-                'by_dow': List[int], 
-                'by_month': List[int],
-                'peak_hour': int,
-                'peak_dow': int
-            }
-        """
-        # TODO: Implement temporal pattern analysis
-        return {
-            'by_hour': [0] * 24,
-            'by_dow': [0] * 7,
-            'by_month': [0] * 12,
-            'peak_hour': None,
-            'peak_dow': None
-        }
-    
-    def get_h3_parent(self, h3_index: str, resolution: int) -> str:
-        """Get parent H3 index at resolution-1 for hierarchical navigation.
-        
-        TODO: Implement H3 hierarchy navigation:
-        - Use h3.cell_to_parent() to get parent at resolution-1
-        - Handle edge case for resolution 0 (return None)
-        - Enable drill-up functionality in AmISafe Crime Map
-        
-        Returns:
-            str: Parent H3 index or None if resolution=0
-        """
-        # TODO: Implement H3 parent calculation
-        if resolution <= 0:
-            return None
-        # return h3.cell_to_parent(h3_index, resolution - 1)
-        return None
-    
-    def generate_boundary_geojson(self, h3_index: str) -> Dict:
-        """Generate GeoJSON boundary for H3 hexagon.
-        
-        TODO: Implement H3 boundary generation:
-        - Use h3.cell_to_boundary() to get hexagon vertices
-        - Convert to GeoJSON Polygon format
-        - Include properties for styling (resolution, incident_count)
-        - Enable map visualization with exact hexagon boundaries
-        
-        Returns:
-            Dict: GeoJSON Polygon feature
-        """
-        # TODO: Implement H3 boundary GeoJSON generation
-        return None
-    
-    def calculate_date_range_and_freshness(self, connection, h3_index: str, resolution: int) -> Tuple[str, str, int]:
-        """Calculate date coverage and data freshness for hexagon.
-        
-        TODO: Implement date range analysis:
-        - date_range_start: DATE(MIN(incident_datetime))
-        - date_range_end: DATE(MAX(incident_datetime))
-        - data_freshness_days: DATEDIFF(NOW(), MAX(incident_datetime))
-        - Enable temporal data quality assessment
-        
-        Returns:
-            Tuple[str, str, int]: (start_date, end_date, freshness_days)
-        """
-        # TODO: Implement date range and freshness calculation
-        return (None, None, None)
-    
-    def generate_batch_id(self) -> str:
-        """Generate unique batch ID for aggregation tracking.
-        
-        TODO: Implement batch tracking:
-        - Generate UUID or timestamp-based batch ID
-        - Enable aggregation run tracking and debugging
-        - Support incremental processing identification
-        
-        Returns:
-            str: Unique batch identifier
-        """
-        # TODO: Implement batch ID generation
-        return None
-    
-    def populate_advanced_analytics(self, connection, h3_index: str, resolution: int) -> Dict:
-        """Populate all advanced analytical columns for a hexagon.
-        
-        This function orchestrates all the analytical calculations and
-        returns a dictionary with values for unpopulated columns.
-        
-        TODO: Implement complete analytical pipeline:
-        - Call all individual calculation functions
-        - Handle errors gracefully with fallback values
-        - Log calculation performance and issues
-        - Return structured data for database insertion
-        
+        Args:
+            incidents: List of incident dictionaries from Silver layer
+            h3_index: H3 hexagon identifier
+            resolution: H3 resolution level
+            
         Returns:
             Dict: All calculated analytical values
         """
-        # TODO: Implement complete analytical pipeline
         analytics = {
-            'severity_avg': None,
-            'severity_max': None,
-            'data_quality_avg': None,
             'top_crime_type': None,
-            'crime_diversity_index': None,
-            'incidents_by_hour': None,
-            'incidents_by_dow': None,
-            'incidents_by_month': None,
+            'crime_diversity_index': 0.0,
+            'incidents_by_hour': [0] * 24,
+            'incidents_by_dow': [0] * 7,
+            'incidents_by_month': [0] * 12,
             'peak_hour': None,
             'peak_dow': None,
             'h3_parent': None,
@@ -428,7 +341,269 @@ class AmISafeFinalLayerAggregator:
             'aggregation_batch_id': None
         }
         
+        if not incidents:
+            return analytics
+            
+        # Count crime types for top crime and diversity
+        crime_counts = {}
+        dates = []
+        
+        for incident in incidents:
+            # Crime type counting
+            crime_type = incident.get('ucr_general')
+            if crime_type:
+                crime_counts[crime_type] = crime_counts.get(crime_type, 0) + 1
+            
+            # Temporal patterns
+            hour = incident.get('hour_of_day')
+            if hour is not None and 0 <= hour <= 23:
+                analytics['incidents_by_hour'][hour] += 1
+                
+            dow = incident.get('day_of_week')
+            if dow is not None and 0 <= dow <= 6:
+                analytics['incidents_by_dow'][dow] += 1
+                
+            month = incident.get('month_num')
+            if month is not None and 1 <= month <= 12:
+                analytics['incidents_by_month'][month - 1] += 1  # 0-indexed
+                
+            # Date tracking
+            if incident.get('incident_date'):
+                dates.append(incident['incident_date'])
+        
+        # Calculate top crime type
+        if crime_counts:
+            analytics['top_crime_type'] = max(crime_counts.keys(), key=crime_counts.get)
+            
+            # Calculate Shannon diversity index
+            if len(crime_counts) > 1:
+                total_crimes = sum(crime_counts.values())
+                shannon_index = 0.0
+                
+                for count in crime_counts.values():
+                    if count > 0:
+                        proportion = count / total_crimes
+                        shannon_index -= proportion * np.log(proportion)
+                
+                analytics['crime_diversity_index'] = round(shannon_index, 3)
+        
+        # Find peak hour and day of week
+        if any(analytics['incidents_by_hour']):
+            analytics['peak_hour'] = analytics['incidents_by_hour'].index(max(analytics['incidents_by_hour']))
+            
+        if any(analytics['incidents_by_dow']):
+            analytics['peak_dow'] = analytics['incidents_by_dow'].index(max(analytics['incidents_by_dow']))
+        
+        # Calculate H3 parent
+        analytics['h3_parent'] = self.get_h3_parent(h3_index, resolution)
+        
+        # Generate boundary GeoJSON
+        boundary = self.generate_boundary_geojson(h3_index)
+        analytics['boundary_geojson'] = json.dumps(boundary) if boundary else None
+        
+        # Calculate date range and freshness
+        if dates:
+            analytics['date_range_start'] = min(dates).strftime('%Y-%m-%d')
+            analytics['date_range_end'] = max(dates).strftime('%Y-%m-%d')
+            
+            from datetime import datetime
+            freshness = (datetime.now().date() - max(dates)).days
+            analytics['data_freshness_days'] = freshness
+        
+        # Generate batch ID (same for all records in this run)
+        if not hasattr(self, '_current_batch_id'):
+            self._current_batch_id = self.generate_batch_id()
+        analytics['aggregation_batch_id'] = self._current_batch_id
+        
         return analytics
+    
+    # Removed calculate_temporal_patterns() - now calculated in-memory from fetched data
+    
+    def get_h3_parent(self, h3_index: str, resolution: int) -> str:
+        """Get parent H3 index at resolution-1 for hierarchical navigation.
+        
+        Returns:
+            str: Parent H3 index or None if resolution=0
+        """
+        try:
+            if resolution <= 0:
+                return None
+                
+            # Get parent H3 cell at resolution-1
+            parent_resolution = resolution - 1
+            parent_index = h3.cell_to_parent(h3_index, parent_resolution)
+            
+            return parent_index
+            
+        except Exception as e:
+            self.logger.error(f"Error getting H3 parent for {h3_index} at resolution {resolution}: {e}")
+            return None
+    
+    def generate_boundary_geojson(self, h3_index: str) -> Dict:
+        """Generate GeoJSON boundary for H3 hexagon.
+        
+        Returns:
+            Dict: GeoJSON Polygon feature
+        """
+        try:
+            # Get hexagon boundary vertices
+            boundary = h3.cell_to_boundary(h3_index)
+            
+            # Convert to GeoJSON coordinates format [lng, lat]
+            coordinates = []
+            for lat, lng in boundary:
+                coordinates.append([lng, lat])
+            
+            # Close the polygon by adding first point at the end
+            if coordinates:
+                coordinates.append(coordinates[0])
+            
+            # Create GeoJSON Polygon
+            geojson = {
+                "type": "Feature",
+                "properties": {
+                    "h3_index": h3_index,
+                    "resolution": h3.get_resolution(h3_index)
+                },
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [coordinates]
+                }
+            }
+            
+            return geojson
+            
+        except Exception as e:
+            self.logger.error(f"Error generating boundary GeoJSON for {h3_index}: {e}")
+            return None
+    
+    # Removed calculate_date_range_and_freshness() - now calculated in-memory from fetched data
+    
+    def generate_batch_id(self) -> str:
+        """Generate unique batch ID for aggregation tracking.
+        
+        Returns:
+            str: Unique batch identifier
+        """
+        import uuid
+        from datetime import datetime
+        
+        # Generate timestamp-based batch ID with UUID suffix for uniqueness
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        uuid_suffix = str(uuid.uuid4())[:8]
+        
+        return f"AGG_{timestamp}_{uuid_suffix}"
+    
+    def populate_advanced_analytics(self, connection, h3_index: str, resolution: int) -> Dict:
+        """Populate all advanced analytical columns for a hexagon.
+        
+        Uses single query approach: fetch all incident data once, calculate in memory.
+        
+        Returns:
+            Dict: All calculated analytical values
+        """
+        try:
+            # Single query to fetch all incident data for this hexagon
+            incidents = self.fetch_hex_incidents(connection, h3_index, resolution)
+            
+            # Calculate all analytics from in-memory data
+            analytics = self.calculate_analytics_from_incidents(incidents, h3_index, resolution)
+            
+            # Convert arrays to JSON strings for database storage
+            analytics['incidents_by_hour'] = json.dumps(analytics['incidents_by_hour'])
+            analytics['incidents_by_dow'] = json.dumps(analytics['incidents_by_dow'])
+            analytics['incidents_by_month'] = json.dumps(analytics['incidents_by_month'])
+            
+            # TODO: Implement remaining functions
+            analytics['severity_avg'] = None
+            analytics['severity_max'] = None
+            analytics['data_quality_avg'] = None
+            
+            return analytics
+            
+        except Exception as e:
+            self.logger.error(f"Error in populate_advanced_analytics for {h3_index}: {e}")
+            return {
+                'severity_avg': None,
+                'severity_max': None,
+                'data_quality_avg': None,
+                'top_crime_type': None,
+                'crime_diversity_index': None,
+                'incidents_by_hour': None,
+                'incidents_by_dow': None,
+                'incidents_by_month': None,
+                'peak_hour': None,
+                'peak_dow': None,
+                'h3_parent': None,
+                'boundary_geojson': None,
+                'date_range_start': None,
+                'date_range_end': None,
+                'data_freshness_days': None,
+                'aggregation_batch_id': None
+            }
+    
+    def update_advanced_analytics(self, connection, resolution: int):
+        """Update existing aggregation records with advanced analytics."""
+        self.logger.info(f"Updating advanced analytics for resolution {resolution}")
+        
+        cursor = connection.cursor()
+        
+        try:
+            # Get all H3 indices for this resolution
+            cursor.execute("""
+            SELECT h3_index FROM amisafe_h3_aggregated 
+            WHERE h3_resolution = %s
+            """, (resolution,))
+            
+            h3_indices = [row[0] for row in cursor.fetchall()]
+            
+            for h3_index in h3_indices:
+                # Calculate advanced analytics
+                analytics = self.populate_advanced_analytics(connection, h3_index, resolution)
+                
+                # Update the record with analytics
+                update_query = """
+                UPDATE amisafe_h3_aggregated SET
+                    top_crime_type = %s,
+                    crime_diversity_index = %s,
+                    incidents_by_hour = %s,
+                    incidents_by_dow = %s,
+                    incidents_by_month = %s,
+                    peak_hour = %s,
+                    peak_dow = %s,
+                    h3_parent = %s,
+                    boundary_geojson = %s,
+                    date_range_start = %s,
+                    date_range_end = %s,
+                    data_freshness_days = %s,
+                    aggregation_batch_id = %s
+                WHERE h3_index = %s AND h3_resolution = %s
+                """
+                
+                cursor.execute(update_query, (
+                    analytics['top_crime_type'],
+                    analytics['crime_diversity_index'],
+                    analytics['incidents_by_hour'],
+                    analytics['incidents_by_dow'],
+                    analytics['incidents_by_month'],
+                    analytics['peak_hour'],
+                    analytics['peak_dow'],
+                    analytics['h3_parent'],
+                    analytics['boundary_geojson'],
+                    analytics['date_range_start'],
+                    analytics['date_range_end'],
+                    analytics['data_freshness_days'],
+                    analytics['aggregation_batch_id'],
+                    h3_index,
+                    resolution
+                ))
+            
+            self.logger.info(f"Updated {len(h3_indices)} records with advanced analytics for resolution {resolution}")
+            
+        except Exception as e:
+            self.logger.error(f"Error updating advanced analytics for resolution {resolution}: {e}")
+        finally:
+            cursor.close()
 
     def run_full_aggregation(self, resolutions: List[int] = [5, 6, 7, 8, 9, 10, 11, 12, 13]) -> Dict:
         """Run the complete Final Layer (Gold) aggregation pipeline."""
@@ -554,6 +729,10 @@ def main():
     parser.add_argument('--mysql-database', default='stlouisintegration_dev', help='MySQL database')
     parser.add_argument('--resolutions', nargs='+', type=int, default=[5, 6, 7, 8, 9, 10, 11, 12, 13], 
                         help='H3 resolutions to process (default: 5 6 7 8 9 10 11 12 13)')
+    parser.add_argument('--analytics', action='store_true', 
+                        help='Run advanced analytics (temporal patterns, crime diversity, etc.)')
+    parser.add_argument('--analytics-only', action='store_true',
+                        help='Only run advanced analytics on existing aggregations (skip basic aggregation)')
     
     args = parser.parse_args()
     
@@ -566,11 +745,51 @@ def main():
     )
     
     try:
-        # Run Final Layer aggregation
-        print(f"🚀 Starting Final Layer (Gold) aggregation for H3 resolutions: {args.resolutions}")
-        results = aggregator.run_full_aggregation(args.resolutions)
+        if args.analytics_only:
+            # Run only advanced analytics on existing data
+            print(f"🔬 Running advanced analytics for H3 resolutions: {args.resolutions}")
+            connection = aggregator.connect_to_mysql()
+            results = {}
+            
+            try:
+                for resolution in args.resolutions:
+                    print(f"📊 Processing advanced analytics for H3 Resolution {resolution}...")
+                    aggregator.update_advanced_analytics(connection, resolution)
+                    
+                    # Verify the analytics
+                    verification = aggregator.verify_aggregation(connection, resolution)
+                    results[resolution] = verification
+                
+                # Generate summary
+                results['summary'] = aggregator.generate_final_summary(connection)
+                
+            finally:
+                if connection.is_connected():
+                    connection.close()
+        else:
+            # Run Final Layer aggregation
+            print(f"🚀 Starting Final Layer (Gold) aggregation for H3 resolutions: {args.resolutions}")
+            results = aggregator.run_full_aggregation(args.resolutions)
+            
+            # Run advanced analytics if requested
+            if args.analytics:
+                print(f"\n🔬 Adding advanced analytics...")
+                connection = aggregator.connect_to_mysql()
+                
+                try:
+                    for resolution in args.resolutions:
+                        print(f"📊 Processing advanced analytics for H3 Resolution {resolution}...")
+                        aggregator.update_advanced_analytics(connection, resolution)
+                finally:
+                    if connection.is_connected():
+                        connection.close()
         
-        print(f"\n🎯 SUCCESS: Final Layer aggregation completed!")
+        if args.analytics_only:
+            print(f"\n🎯 SUCCESS: Advanced analytics completed!")
+        elif args.analytics:
+            print(f"\n🎯 SUCCESS: Final Layer aggregation with advanced analytics completed!")
+        else:
+            print(f"\n🎯 SUCCESS: Final Layer aggregation completed!")
         print("=" * 70)
         
         total_hexagons = 0
