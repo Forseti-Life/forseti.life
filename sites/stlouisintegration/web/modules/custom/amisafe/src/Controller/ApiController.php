@@ -241,7 +241,7 @@ class ApiController extends ControllerBase {
       $config = $this->config('amisafe.settings');
       
       // Test database connection
-      $database = Database::getConnection();
+      $database = Database::getConnection('default', 'amisafe');
       $database_type = get_class($database);
       
       // Test a simple query
@@ -610,7 +610,7 @@ class ApiController extends ControllerBase {
       $filters = $this->parseFilters($request);
       
       // Get incident IDs from the H3 aggregated table
-      $database = Database::getConnection();
+      $database = Database::getConnection('default', 'amisafe');
       
       // First, get the hexagon with incident IDs (H3:13 only)
       $hexagon_query = $database->select('amisafe_h3_aggregated', 'h3')

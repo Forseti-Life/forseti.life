@@ -33,11 +33,11 @@ class CrimeDataService {
   }
 
   /**
-   * Get the database connection (use AmISafe crime data database).
+   * Get the database connection (use AmISafe dedicated database).
    */
   protected function getDatabase() {
     try {
-      return \Drupal\Core\Database\Database::getConnection();
+      return \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
     } catch (\Exception $e) {
       $this->logger->error('Failed to connect to AmISafe database: @message', [
         '@message' => $e->getMessage(),
@@ -64,7 +64,7 @@ class CrimeDataService {
 
     try {
       // Use Gold layer (amisafe_h3_aggregated) with ultra-precision analytics
-      $database = \Drupal\Core\Database\Database::getConnection();
+      $database = $this->getDatabase();
       $query = $database->select('amisafe_h3_aggregated', 'h3a')
         ->fields('h3a', [
           'id', 'h3_index', 'h3_resolution', 'incident_count', 'unique_incident_types',
@@ -116,7 +116,7 @@ class CrimeDataService {
 
     try {
       // Use Silver layer (amisafe_clean_incidents) with full H3 indexing
-      $database = \Drupal\Core\Database\Database::getConnection();
+      $database = $this->getDatabase();
       $query = $database->select('amisafe_clean_incidents', 'ci')
         ->fields('ci', [
           'id', 'incident_datetime', 'dc_dist', 'ucr_general', 'lat', 'lng',
@@ -158,7 +158,7 @@ class CrimeDataService {
     }
 
     try {
-      $database = \Drupal\Core\Database\Database::getConnection();
+      $database = $this->getDatabase();
       
       // If no filters, use Resolution 5 citywide hexagon (most efficient)
       if (empty($filters)) {
@@ -220,7 +220,7 @@ class CrimeDataService {
     }
 
     try {
-      $database = \Drupal\Core\Database\Database::getConnection();
+      $database = $this->getDatabase();
       $query = $database->select('amisafe_raw_incidents', 'ri')
         ->fields('ri', ['dc_dist'])
         ->groupBy('dc_dist')
@@ -253,7 +253,7 @@ class CrimeDataService {
    */
   public function getDateRange() {
     try {
-      $database = \Drupal\Core\Database\Database::getConnection();
+      $database = $this->getDatabase();
       $query = $database->select('amisafe_raw_incidents', 'ri');
       $query->addExpression('MIN(incident_date)', 'min_date');
       $query->addExpression('MAX(incident_date)', 'max_date');
@@ -279,7 +279,7 @@ class CrimeDataService {
    */
   public function getCrimeTypes() {
     try {
-      $database = \Drupal\Core\Database\Database::getConnection();
+      $database = $this->getDatabase();
       $result = $database->query('SELECT DISTINCT ucr_code, ucr_description FROM amisafe_raw_incidents WHERE ucr_code IS NOT NULL AND ucr_description IS NOT NULL ORDER BY ucr_code');
       
       $crime_types = [];
@@ -617,7 +617,7 @@ class CrimeDataService {
     
     try {
       // Get database connection like other methods
-      $database = \Drupal\Core\Database\Database::getConnection();
+      $database = $this->getDatabase();
       
       $query = $database->select('amisafe_raw_incidents', 'ri');
       $query->fields('ri');

@@ -100,18 +100,18 @@ class H3PrecomputationCommands extends DrushCommands {
    *   Show current H3 pre-computation status
    */
   public function showStatus() {
-    $database = \Drupal\Core\Database\Database::getConnection();
+    $database = \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
     
     $this->output()->writeln('📊 H3 Pre-computation Status:');
     $this->output()->writeln('');
     
     // Show incident counts
-    $incident_count = $database->select('raw_incidents', 'ri')
+    $incident_count = $database->select('amisafe_raw_incidents', 'ri')
       ->countQuery()
       ->execute()
       ->fetchField();
     
-    $incidents_with_h3 = $database->select('raw_incidents', 'ri')
+    $incidents_with_h3 = $database->select('amisafe_raw_incidents', 'ri')
       ->condition('h3_index', '', '!=')
       ->countQuery()
       ->execute()

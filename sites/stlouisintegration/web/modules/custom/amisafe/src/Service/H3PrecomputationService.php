@@ -41,7 +41,7 @@ class H3PrecomputationService {
    * Constructor.
    */
   public function __construct(LoggerChannelFactoryInterface $logger_factory) {
-    $this->database = Database::getConnection();
+    $this->database = Database::getConnection('default', 'amisafe');
     $this->loggerFactory = $logger_factory;
   }
 
