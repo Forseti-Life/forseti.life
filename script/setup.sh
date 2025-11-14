@@ -508,10 +508,9 @@ print_status "Configuring MySQL database..."
 # Ensure MySQL is running
 ensure_mysql_running
 if sudo mysql -e "SELECT 1;" &>/dev/null; then
-        print_status "✅ MySQL is now running"
-    else
-        print_error "❌ Failed to start MySQL - continuing with limited functionality"
-    fi
+    print_status "✅ MySQL is now running"
+else
+    print_error "❌ Failed to start MySQL - continuing with limited functionality"
 fi
 
 if sudo mysql -e "SELECT User FROM mysql.user WHERE User='drupal_user' AND Host='127.0.0.1';" 2>/dev/null | grep -q drupal_user; then

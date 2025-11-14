@@ -66,6 +66,52 @@ class AmISafeFinalLayerAggregator:
             format='%(asctime)s - %(levelname)s - %(message)s'
         )
         self.logger = logging.getLogger(__name__)
+        
+    # ========================================================================
+    # GOLD LAYER COLUMN POPULATION INVENTORY
+    # ========================================================================
+    """
+    COLUMN POPULATION STATUS:
+    
+    ✅ FULLY POPULATED COLUMNS (100% fill rate):
+    - id: Auto-increment primary key (MySQL auto-generated)
+    - h3_index: H3 hexagon identifier (from Silver layer h3_res_{resolution} columns)
+    - h3_resolution: H3 resolution level 5-13 (aggregation parameter)
+    - incident_count: COUNT(*) from Silver layer grouped by H3 index
+    - unique_incident_types: COUNT(DISTINCT ucr_general) from Silver layer
+    - earliest_incident: MIN(incident_datetime) from Silver layer
+    - latest_incident: MAX(incident_datetime) from Silver layer 
+    - incidents_last_30_days: COUNT with DATE_SUB filter for 30 days
+    - incidents_last_year: COUNT with DATE_SUB filter for 1 year
+    - center_latitude: AVG(lat) from Silver layer incidents in hexagon
+    - center_longitude: AVG(lng) from Silver layer incidents in hexagon
+    - incident_type_counts: JSON_OBJECT() placeholder (empty JSON)
+    - district_counts: JSON_OBJECT() placeholder (empty JSON) 
+    - total_valid_records: COUNT(*) duplicate of incident_count
+    - last_aggregation: NOW() timestamp of aggregation processing
+    - is_empty: MySQL default 0 (all current hexagons have incidents)
+    
+    🔄 PARTIALLY POPULATED COLUMNS:
+    - incident_ids: JSON_ARRAYAGG(incident_id) only for H3:13 (41.2% fill rate)
+    
+    ❌ UNPOPULATED COLUMNS (0% fill rate - need functions):
+    - severity_avg: Average crime severity score per hexagon
+    - severity_max: Maximum severity in hexagon 
+    - data_quality_avg: Data quality metrics per hexagon
+    - top_crime_type: Most frequent crime type in hexagon
+    - crime_diversity_index: Shannon diversity of crime types
+    - incidents_by_hour: JSON array of hourly incident counts [0-23]
+    - incidents_by_dow: JSON array of day-of-week counts [0-6] 
+    - incidents_by_month: JSON array of monthly counts [1-12]
+    - peak_hour: Hour with most incidents (0-23)
+    - peak_dow: Day of week with most incidents (0-6)
+    - h3_parent: Parent H3 index at resolution-1 
+    - boundary_geojson: H3 hexagon boundary as GeoJSON
+    - date_range_start: First incident date in hexagon
+    - date_range_end: Last incident date in hexagon 
+    - data_freshness_days: Days since last incident
+    - aggregation_batch_id: Processing batch tracking identifier
+    """
     
     def connect_to_mysql(self) -> mysql.connector.MySQLConnection:
         """Create MySQL connection."""
@@ -195,10 +241,195 @@ class AmISafeFinalLayerAggregator:
         
         cursor.close()
         
-    # Removed process_single_h3_cell() - now using Silver layer H3 indices directly
+    # ========================================================================
+    # EMPTY FUNCTIONS FOR UNPOPULATED COLUMNS - TODO: IMPLEMENT
+    # ========================================================================
     
+    def calculate_severity_metrics(self, connection, h3_index: str, resolution: int) -> Tuple[float, int]:
+        """Calculate average and maximum severity for incidents in hexagon.
+        
+        TODO: Implement severity scoring based on:
+        - UCR crime type severity weights
+        - Incident outcome severity (arrests, injuries, property damage)
+        - Time-of-day risk factors
+        - Location risk factors
+        
+        Returns:
+            Tuple[float, int]: (severity_avg, severity_max)
+        """
+        # TODO: Implement severity calculation logic
+        return (0.0, 0)
+    
+    def calculate_data_quality_avg(self, connection, h3_index: str, resolution: int) -> float:
+        """Calculate average data quality score for incidents in hexagon.
+        
+        TODO: Implement data quality scoring based on:
+        - Completeness of required fields
+        - Accuracy of geocoding
+        - Consistency of crime type classification  
+        - Timeliness of incident reporting
+        
+        Returns:
+            float: Average data quality score (0.0-1.0)
+        """
+        # TODO: Implement data quality calculation logic
+        return 0.0
+    
+    def get_top_crime_type(self, connection, h3_index: str, resolution: int) -> str:
+        """Get the most frequent crime type in hexagon.
+        
+        TODO: Implement logic to:
+        - Query Silver layer for incidents in hexagon
+        - Count occurrences by ucr_general
+        - Return most frequent crime type
+        - Handle ties with secondary criteria
+        
+        Returns:
+            str: UCR code of most frequent crime type
+        """
+        # TODO: Implement top crime type identification
+        return None
+    
+    def calculate_crime_diversity_index(self, connection, h3_index: str, resolution: int) -> float:
+        """Calculate Shannon diversity index for crime types in hexagon.
+        
+        TODO: Implement Shannon diversity calculation:
+        - H = -Σ(pi * ln(pi)) where pi = proportion of crime type i
+        - Higher values indicate more diverse crime patterns
+        - Useful for identifying specialized vs general crime areas
+        
+        Returns:
+            float: Shannon diversity index (0.0-N)
+        """
+        # TODO: Implement Shannon diversity calculation
+        return 0.0
+    
+    def calculate_temporal_patterns(self, connection, h3_index: str, resolution: int) -> Dict:
+        """Calculate temporal incident patterns for hexagon.
+        
+        TODO: Implement temporal analysis:
+        - incidents_by_hour: Array of counts for hours 0-23
+        - incidents_by_dow: Array of counts for days 0-6 (Monday=0)
+        - incidents_by_month: Array of counts for months 1-12
+        - peak_hour: Hour with maximum incidents
+        - peak_dow: Day of week with maximum incidents
+        
+        Returns:
+            Dict: {
+                'by_hour': List[int],
+                'by_dow': List[int], 
+                'by_month': List[int],
+                'peak_hour': int,
+                'peak_dow': int
+            }
+        """
+        # TODO: Implement temporal pattern analysis
+        return {
+            'by_hour': [0] * 24,
+            'by_dow': [0] * 7,
+            'by_month': [0] * 12,
+            'peak_hour': None,
+            'peak_dow': None
+        }
+    
+    def get_h3_parent(self, h3_index: str, resolution: int) -> str:
+        """Get parent H3 index at resolution-1 for hierarchical navigation.
+        
+        TODO: Implement H3 hierarchy navigation:
+        - Use h3.cell_to_parent() to get parent at resolution-1
+        - Handle edge case for resolution 0 (return None)
+        - Enable drill-up functionality in AmISafe Crime Map
+        
+        Returns:
+            str: Parent H3 index or None if resolution=0
+        """
+        # TODO: Implement H3 parent calculation
+        if resolution <= 0:
+            return None
+        # return h3.cell_to_parent(h3_index, resolution - 1)
+        return None
+    
+    def generate_boundary_geojson(self, h3_index: str) -> Dict:
+        """Generate GeoJSON boundary for H3 hexagon.
+        
+        TODO: Implement H3 boundary generation:
+        - Use h3.cell_to_boundary() to get hexagon vertices
+        - Convert to GeoJSON Polygon format
+        - Include properties for styling (resolution, incident_count)
+        - Enable map visualization with exact hexagon boundaries
+        
+        Returns:
+            Dict: GeoJSON Polygon feature
+        """
+        # TODO: Implement H3 boundary GeoJSON generation
+        return None
+    
+    def calculate_date_range_and_freshness(self, connection, h3_index: str, resolution: int) -> Tuple[str, str, int]:
+        """Calculate date coverage and data freshness for hexagon.
+        
+        TODO: Implement date range analysis:
+        - date_range_start: DATE(MIN(incident_datetime))
+        - date_range_end: DATE(MAX(incident_datetime))
+        - data_freshness_days: DATEDIFF(NOW(), MAX(incident_datetime))
+        - Enable temporal data quality assessment
+        
+        Returns:
+            Tuple[str, str, int]: (start_date, end_date, freshness_days)
+        """
+        # TODO: Implement date range and freshness calculation
+        return (None, None, None)
+    
+    def generate_batch_id(self) -> str:
+        """Generate unique batch ID for aggregation tracking.
+        
+        TODO: Implement batch tracking:
+        - Generate UUID or timestamp-based batch ID
+        - Enable aggregation run tracking and debugging
+        - Support incremental processing identification
+        
+        Returns:
+            str: Unique batch identifier
+        """
+        # TODO: Implement batch ID generation
+        return None
+    
+    def populate_advanced_analytics(self, connection, h3_index: str, resolution: int) -> Dict:
+        """Populate all advanced analytical columns for a hexagon.
+        
+        This function orchestrates all the analytical calculations and
+        returns a dictionary with values for unpopulated columns.
+        
+        TODO: Implement complete analytical pipeline:
+        - Call all individual calculation functions
+        - Handle errors gracefully with fallback values
+        - Log calculation performance and issues
+        - Return structured data for database insertion
+        
+        Returns:
+            Dict: All calculated analytical values
+        """
+        # TODO: Implement complete analytical pipeline
+        analytics = {
+            'severity_avg': None,
+            'severity_max': None,
+            'data_quality_avg': None,
+            'top_crime_type': None,
+            'crime_diversity_index': None,
+            'incidents_by_hour': None,
+            'incidents_by_dow': None,
+            'incidents_by_month': None,
+            'peak_hour': None,
+            'peak_dow': None,
+            'h3_parent': None,
+            'boundary_geojson': None,
+            'date_range_start': None,
+            'date_range_end': None,
+            'data_freshness_days': None,
+            'aggregation_batch_id': None
+        }
+        
+        return analytics
 
-    
     def run_full_aggregation(self, resolutions: List[int] = [5, 6, 7, 8, 9, 10, 11, 12, 13]) -> Dict:
         """Run the complete Final Layer (Gold) aggregation pipeline."""
         self.logger.info(f"Starting Final Layer aggregation for H3 resolutions: {resolutions}")
