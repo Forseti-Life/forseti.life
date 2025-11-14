@@ -557,7 +557,9 @@ class AmISafeFinalLayerAggregator:
             
             h3_indices = [row[0] for row in cursor.fetchall()]
             
-            for h3_index in h3_indices:
+            for i, h3_index in enumerate(h3_indices, 1):
+                self.logger.info(f"Processing hex {i}/{len(h3_indices)}: {h3_index}")
+                
                 # Calculate advanced analytics
                 analytics = self.populate_advanced_analytics(connection, h3_index, resolution)
                 
