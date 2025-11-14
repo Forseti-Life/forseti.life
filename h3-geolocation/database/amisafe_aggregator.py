@@ -77,36 +77,7 @@ class AmISafeFinalLayerAggregator:
             self.logger.error(f"Error connecting to MySQL: {e}")
             raise
     
-    def generate_metro_area_h3_cells(self, resolution: int) -> List[str]:
-        """Generate all H3 cells at given resolution that cover the Philadelphia metro area."""
-        hexagons = set()
-        
-        # Adjust sampling density based on resolution
-        # Higher resolution = smaller hexagons = need more sample points
-        if resolution == 5:
-            lat_step = 0.2  # Coarse sampling for large hexagons (~251km²)
-            lng_step = 0.2
-        elif resolution == 6:
-            lat_step = 0.1  # Medium sampling for medium hexagons (~36km²)
-            lng_step = 0.1
-        elif resolution == 7:
-            lat_step = 0.05  # Fine sampling for smaller hexagons (~5.2km²)
-            lng_step = 0.05
-        else:
-            lat_step = 0.1  # Default for higher resolutions
-            lng_step = 0.1
-        
-        current_lat = self.philly_metro_bounds['south']
-        while current_lat <= self.philly_metro_bounds['north']:
-            current_lng = self.philly_metro_bounds['west']
-            while current_lng <= self.philly_metro_bounds['east']:
-                h3_cell = h3.latlng_to_cell(current_lat, current_lng, resolution)
-                hexagons.add(h3_cell)
-                current_lng += lng_step
-            current_lat += lat_step
-        
-        self.logger.info(f"Generated {len(hexagons)} H3:{resolution} cells for metro area coverage")
-        return list(hexagons)
+    # Removed generate_metro_area_h3_cells() - now using Silver layer H3 indices for all resolutions
 
     def is_resolution_complete(self, connection, resolution: int) -> bool:
         """Check if a resolution is already complete by comparing expected vs actual hex count."""
@@ -119,38 +90,25 @@ class AmISafeFinalLayerAggregator:
         """, (resolution,))
         current_count = cursor.fetchone()[0]
         
-        # For metro-wide resolutions (5-7), check against expected metro area coverage
-        if resolution <= 7:
-            expected_metro_cells = self.generate_metro_area_h3_cells(resolution)
-            expected_count = len(expected_metro_cells)
+        # For ALL resolutions, check against Silver layer H3 indices
+        h3_column = f"h3_res_{resolution}"
+        cursor.execute(f"""
+        SELECT COUNT(DISTINCT {h3_column}) 
+        FROM amisafe_clean_incidents 
+        WHERE {h3_column} IS NOT NULL AND is_duplicate = FALSE
+        """, ())
+        expected_count = cursor.fetchone()[0]
+        
+        if expected_count > 0:
             self.logger.info(f"📊 Resolution {resolution}: {current_count}/{expected_count} hexagons exist")
-            
-            # Consider complete if we have at least 90% of expected cells (allows for minor variations)
-            completion_threshold = int(expected_count * 0.9)
+            # Consider complete if we have at least 95% of expected cells
+            completion_threshold = int(expected_count * 0.95)
+            cursor.close()
             return current_count >= completion_threshold
         else:
-            # For higher resolutions (8+), check if we have any reasonable number of aggregations
-            # Get the number of distinct H3 cells at this resolution from Silver layer
-            h3_column = f"h3_res_{resolution}"
-            cursor.execute(f"""
-            SELECT COUNT(DISTINCT {h3_column}) 
-            FROM amisafe_clean_incidents 
-            WHERE {h3_column} IS NOT NULL AND is_duplicate = FALSE
-            """, ())
-            expected_count = cursor.fetchone()[0]
-            
-            if expected_count > 0:
-                self.logger.info(f"📊 Resolution {resolution}: {current_count}/{expected_count} hexagons exist")
-                # Consider complete if we have at least 95% of expected cells
-                completion_threshold = int(expected_count * 0.95)
-                return current_count >= completion_threshold
-            else:
-                self.logger.info(f"📊 Resolution {resolution}: No source data available")
-                cursor.close()
-                return True  # No data to process, consider complete
-        
-        cursor.close()
-        return False
+            self.logger.info(f"📊 Resolution {resolution}: No source data available")
+            cursor.close()
+            return True  # No data to process, consider complete
 
     def create_h3_aggregations(self, connection, resolution: int):
         """Create H3 aggregations at specified resolution from Transform layer data."""
@@ -166,164 +124,78 @@ class AmISafeFinalLayerAggregator:
         # Clear existing aggregations for this resolution
         cursor.execute("DELETE FROM amisafe_h3_aggregated WHERE h3_resolution = %s", (resolution,))
         
-        # For metro-wide resolutions (5-7), generate all cells covering the area
-        # For local resolutions (8-10), aggregate only cells with data
-        if resolution <= 7:
-            metro_cells = self.generate_metro_area_h3_cells(resolution)
-            self.logger.info(f"Processing {len(metro_cells)} metro area H3:{resolution} cells")
-            
-            # Process each metro cell
-            for h3_cell in metro_cells:
-                try:
-                    self.process_single_h3_cell(connection, h3_cell, resolution)
-                except Exception as e:
-                    self.logger.error(f"Error processing H3:{resolution} cell {h3_cell}: {e}")
-                    continue
+        # Use pre-calculated H3 indices from Silver layer for ALL resolutions
+        # This eliminates the over-counting problem from spatial radius queries
+        h3_column = f"h3_res_{resolution}"
+        
+        # Include incident_ids for H3:13 granular filtering
+        if resolution >= 13:
+            aggregation_query = f"""
+            INSERT INTO amisafe_h3_aggregated (
+                h3_index, h3_resolution, incident_count, unique_incident_types,
+                earliest_incident, latest_incident, incidents_last_30_days, incidents_last_year,
+                center_latitude, center_longitude, incident_type_counts, district_counts,
+                total_valid_records, last_aggregation, incident_ids
+            )
+            SELECT 
+                {h3_column} as h3_index,
+                %s as h3_resolution,
+                COUNT(*) as incident_count,
+                COUNT(DISTINCT ucr_general) as unique_incident_types,
+                MIN(incident_datetime) as earliest_incident,
+                MAX(incident_datetime) as latest_incident,
+                COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as incidents_last_30_days,
+                COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 1 YEAR) THEN 1 END) as incidents_last_year,
+                AVG(lat) as center_latitude,
+                AVG(lng) as center_longitude,
+                JSON_OBJECT() as incident_type_counts,
+                JSON_OBJECT() as district_counts,
+                COUNT(*) as total_valid_records,
+                NOW() as last_aggregation,
+                JSON_ARRAYAGG(incident_id) as incident_ids
+            FROM amisafe_clean_incidents 
+            WHERE {h3_column} IS NOT NULL 
+                AND is_duplicate = FALSE
+            GROUP BY {h3_column}
+            HAVING COUNT(*) > 0
+            """
         else:
-            # For higher resolutions, aggregate directly from Transform layer data
-            h3_column = f"h3_res_{resolution}"
-            
-            # Include incident_ids for H3:13 granular filtering
-            if resolution >= 13:
-                aggregation_query = f"""
-                INSERT INTO amisafe_h3_aggregated (
-                    h3_index, h3_resolution, incident_count, unique_incident_types,
-                    earliest_incident, latest_incident, incidents_last_30_days, incidents_last_year,
-                    center_latitude, center_longitude, incident_type_counts, district_counts,
-                    total_valid_records, last_aggregation, incident_ids
-                )
-                SELECT 
-                    {h3_column} as h3_index,
-                    %s as h3_resolution,
-                    COUNT(*) as incident_count,
-                    COUNT(DISTINCT ucr_general) as unique_incident_types,
-                    MIN(incident_datetime) as earliest_incident,
-                    MAX(incident_datetime) as latest_incident,
-                    COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as incidents_last_30_days,
-                    COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 1 YEAR) THEN 1 END) as incidents_last_year,
-                    AVG(lat) as center_latitude,
-                    AVG(lng) as center_longitude,
-                    JSON_OBJECT() as incident_type_counts,
-                    JSON_OBJECT() as district_counts,
-                    COUNT(*) as total_valid_records,
-                    NOW() as last_aggregation,
-                    JSON_ARRAYAGG(incident_id) as incident_ids
-                FROM amisafe_clean_incidents 
-                WHERE {h3_column} IS NOT NULL 
-                    AND is_duplicate = FALSE
-                GROUP BY {h3_column}
-                HAVING COUNT(*) > 0
-                """
-            else:
-                aggregation_query = f"""
-                INSERT INTO amisafe_h3_aggregated (
-                    h3_index, h3_resolution, incident_count, unique_incident_types,
-                    earliest_incident, latest_incident, incidents_last_30_days, incidents_last_year,
-                    center_latitude, center_longitude, incident_type_counts, district_counts,
-                    total_valid_records, last_aggregation
-                )
-                SELECT 
-                    {h3_column} as h3_index,
-                    %s as h3_resolution,
-                    COUNT(*) as incident_count,
-                    COUNT(DISTINCT ucr_general) as unique_incident_types,
-                    MIN(incident_datetime) as earliest_incident,
-                    MAX(incident_datetime) as latest_incident,
-                    COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as incidents_last_30_days,
-                    COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 1 YEAR) THEN 1 END) as incidents_last_year,
-                    AVG(lat) as center_latitude,
-                    AVG(lng) as center_longitude,
-                    JSON_OBJECT() as incident_type_counts,
-                    JSON_OBJECT() as district_counts,
-                    COUNT(*) as total_valid_records,
-                    NOW() as last_aggregation
-                FROM amisafe_clean_incidents 
-                WHERE {h3_column} IS NOT NULL 
-                    AND is_duplicate = FALSE
-                GROUP BY {h3_column}
-                HAVING COUNT(*) > 0
-                """
-            
-            cursor.execute(aggregation_query, (resolution,))
-            rows_affected = cursor.rowcount
-            self.logger.info(f"Created {rows_affected} H3:{resolution} aggregation records")
-        
-        cursor.close()
-        
-    def process_single_h3_cell(self, connection, h3_cell: str, resolution: int):
-        """Process a single H3 cell for metro-wide coverage (resolutions 5-7)."""
-        cursor = connection.cursor()
-        
-        # Get incidents within this H3 cell
-        # Use spatial proximity since we need to cover metro area beyond existing data
-        center = h3.cell_to_latlng(h3_cell)
-        
-        # Determine search radius based on resolution
-        if resolution == 5:
-            radius_km = 14    # ~251km² hexagons
-        elif resolution == 6:
-            radius_km = 5.5   # ~36km² hexagons  
-        elif resolution == 7:
-            radius_km = 2.0   # ~5.2km² hexagons
-        else:
-            radius_km = 1.0   # Default
-        
-        # Query incidents within the hexagon using spatial proximity
-        spatial_query = """
-        SELECT 
-            COUNT(*) as incident_count,
-            COUNT(DISTINCT ucr_general) as unique_incident_types,
-            MIN(incident_datetime) as earliest_incident,
-            MAX(incident_datetime) as latest_incident,
-            COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as incidents_last_30_days,
-            COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 1 YEAR) THEN 1 END) as incidents_last_year,
-            AVG(lat) as center_latitude,
-            AVG(lng) as center_longitude,
-            COUNT(*) as total_valid_records
-        FROM amisafe_clean_incidents
-        WHERE is_duplicate = FALSE
-          AND lat IS NOT NULL 
-          AND lng IS NOT NULL
-          AND (
-            (6371 * acos(
-                cos(radians(%s)) * cos(radians(lat)) *
-                cos(radians(lng) - radians(%s)) +
-                sin(radians(%s)) * sin(radians(lat))
-            )) <= %s
-          )
-        """
-        
-        cursor.execute(spatial_query, (center[0], center[1], center[0], radius_km))
-        result = cursor.fetchone()
-        
-        if result and result[0] > 0:  # Has incidents
-            # Insert the aggregated data
-            insert_query = """
+            aggregation_query = f"""
             INSERT INTO amisafe_h3_aggregated (
                 h3_index, h3_resolution, incident_count, unique_incident_types,
                 earliest_incident, latest_incident, incidents_last_30_days, incidents_last_year,
                 center_latitude, center_longitude, incident_type_counts, district_counts,
                 total_valid_records, last_aggregation
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            )
+            SELECT 
+                {h3_column} as h3_index,
+                %s as h3_resolution,
+                COUNT(*) as incident_count,
+                COUNT(DISTINCT ucr_general) as unique_incident_types,
+                MIN(incident_datetime) as earliest_incident,
+                MAX(incident_datetime) as latest_incident,
+                COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as incidents_last_30_days,
+                COUNT(CASE WHEN incident_datetime >= DATE_SUB(NOW(), INTERVAL 1 YEAR) THEN 1 END) as incidents_last_year,
+                AVG(lat) as center_latitude,
+                AVG(lng) as center_longitude,
+                JSON_OBJECT() as incident_type_counts,
+                JSON_OBJECT() as district_counts,
+                COUNT(*) as total_valid_records,
+                NOW() as last_aggregation
+            FROM amisafe_clean_incidents 
+            WHERE {h3_column} IS NOT NULL 
+                AND is_duplicate = FALSE
+            GROUP BY {h3_column}
+            HAVING COUNT(*) > 0
             """
-            
-            cursor.execute(insert_query, (
-                h3_cell,              # h3_index
-                resolution,           # h3_resolution
-                result[0],            # incident_count
-                result[1],            # unique_incident_types
-                result[2],            # earliest_incident
-                result[3],            # latest_incident  
-                result[4],            # incidents_last_30_days
-                result[5],            # incidents_last_year
-                center[0],            # center_latitude (use H3 center)
-                center[1],            # center_longitude (use H3 center)
-                json.dumps({}),       # incident_type_counts (placeholder)
-                json.dumps({}),       # district_counts (placeholder)
-                result[8]             # total_valid_records
-            ))
+        
+        cursor.execute(aggregation_query, (resolution,))
+        rows_affected = cursor.rowcount
+        self.logger.info(f"Created {rows_affected} H3:{resolution} aggregation records")
         
         cursor.close()
+        
+    # Removed process_single_h3_cell() - now using Silver layer H3 indices directly
     
 
     
