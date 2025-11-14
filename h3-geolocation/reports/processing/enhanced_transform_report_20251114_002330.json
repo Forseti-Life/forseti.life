@@ -1,0 +1,96 @@
+{
+  "report_timestamp": "2025-11-14T00:23:30.159746",
+  "processing_session": {
+    "start_time": "2025-11-14T00:02:02.650988",
+    "end_time": "2025-11-14T00:13:31.951143",
+    "duration_seconds": 689.300155,
+    "records_processed_this_session": 456194,
+    "records_inserted_this_session": 456194,
+    "batches_processed_this_session": 10,
+    "batch_failures": 0,
+    "processing_errors": []
+  },
+  "final_status": {
+    "total_raw_records": 3406194,
+    "total_transform_records": 3406194,
+    "records_remaining": 0,
+    "raw_status_remaining": 0,
+    "completion_percentage": 100.0,
+    "processing_range": {
+      "min_processed_id": 0,
+      "max_processed_id": 0
+    },
+    "batch_summary": {
+      "total_batches": 0,
+      "first_processed": null,
+      "last_processed": null
+    },
+    "column_fill_rates": {},
+    "incomplete_columns": {},
+    "data_quality_summary": {
+      "total_columns_checked": 0,
+      "fully_populated_columns": 0,
+      "incomplete_columns_count": 0,
+      "overall_data_completeness": 0,
+      "analysis_method": "full"
+    }
+  },
+  "validation_analysis": {
+    "accounting_timestamp": "2025-11-14T00:23:30.158451",
+    "baseline_counts": {
+      "raw_total": 3406194,
+      "transform_total": 3406194,
+      "excluded_total": 0
+    },
+    "detailed_exclusion_analysis": {
+      "total_records_analyzed": 3406194,
+      "exclusion_breakdown": {
+        "invalid_coordinates": {
+          "count": 17,
+          "percentage": 0.0,
+          "description": "Invalid coordinates (non-numeric or outside Philadelphia bounds)"
+        },
+        "invalid_district": {
+          "count": 60733,
+          "percentage": 1.783,
+          "description": "Missing or invalid dc_dist (not in valid districts)"
+        },
+        "duplicate_cartodb_id": {
+          "count": 2492470,
+          "percentage": 73.175,
+          "description": "Duplicate cartodb_id"
+        },
+        "duplicate_composite": {
+          "count": 8462,
+          "percentage": 0.248,
+          "description": "Duplicate composite (lat/lng/datetime/crime_type)"
+        },
+        "valid": {
+          "count": 844512,
+          "percentage": 24.793,
+          "description": "Valid records"
+        }
+      },
+      "exclusion_summary": {
+        "total_valid_records": 844512,
+        "total_excluded_records": 2561682,
+        "validation_success_rate_pct": 24.79,
+        "exclusion_rate_pct": 75.21
+      }
+    },
+    "record_reconciliation": {
+      "expected_total": 3406194,
+      "calculated_total": 3406194,
+      "difference": 0,
+      "reconciles_perfectly": true,
+      "transform_layer_matches": false
+    },
+    "recovery_opportunities": [
+      "Review 2,500,932 duplicates (73.4%) for potential legitimate records",
+      "Validate 60,733 records (1.8%) with district mapping issues"
+    ]
+  },
+  "recommendations": [
+    "Processing completed successfully with no issues identified"
+  ]
+}

@@ -100,6 +100,36 @@ if [ -f "$ENV_FILE" ]; then
     source "$ENV_FILE"
 fi
 
+# Function to ensure MySQL is running
+ensure_mysql_running() {
+    if sudo mysql -e "SELECT 1;" &>/dev/null; then
+        return 0  # MySQL is already running
+    fi
+    
+    print_status "MySQL not running, attempting to start..."
+    
+    # Try service command first (works in containers)
+    if sudo service mysql start 2>/dev/null; then
+        sleep 2
+        if sudo mysql -e "SELECT 1;" &>/dev/null; then
+            print_status "✅ MySQL started successfully via service command"
+            return 0
+        fi
+    fi
+    
+    # Try systemctl as fallback
+    if sudo systemctl start mysql 2>/dev/null; then
+        sleep 2
+        if sudo mysql -e "SELECT 1;" &>/dev/null; then
+            print_status "✅ MySQL started successfully via systemctl"
+            return 0
+        fi
+    fi
+    
+    print_error "❌ Failed to start MySQL"
+    return 1
+}
+
 print_step "1. ENVIRONMENT SETUP - Installing system dependencies..."
 
 print_status "Updating package lists..."
@@ -476,10 +506,12 @@ print_status "=== END PHP 8.3 VERIFICATION ==="
 print_status "Configuring MySQL database..."
 
 # Ensure MySQL is running
-if ! sudo mysql -e "SELECT 1;" &>/dev/null; then
-    print_status "MySQL not running, attempting to start..."
-    sudo service mysql start || print_warning "Failed to start MySQL service"
-    sleep 2
+ensure_mysql_running
+if sudo mysql -e "SELECT 1;" &>/dev/null; then
+        print_status "✅ MySQL is now running"
+    else
+        print_error "❌ Failed to start MySQL - continuing with limited functionality"
+    fi
 fi
 
 if sudo mysql -e "SELECT User FROM mysql.user WHERE User='drupal_user' AND Host='127.0.0.1';" 2>/dev/null | grep -q drupal_user; then
@@ -561,7 +593,7 @@ sudo a2ensite theoryofconspiracies.conf
 
 # Start services
 print_status "Starting services..."
-sudo service mysql start
+ensure_mysql_running
 sudo service apache2 restart
 
 print_step "2. DRUPAL INSTALLATION - Setting up multi-site directory structure..."
@@ -1792,7 +1824,7 @@ else
     print_warning "⚠️  AmISafe database setup script not found - setting up basic tables..."
     
     # Ensure MySQL is running
-    sudo service mysql start 2>/dev/null || true
+    ensure_mysql_running
     
     # Create basic AmISafe tables directly
     print_status "Creating basic AmISafe database tables..."

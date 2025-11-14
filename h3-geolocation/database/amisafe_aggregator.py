@@ -108,11 +108,60 @@ class AmISafeFinalLayerAggregator:
         self.logger.info(f"Generated {len(hexagons)} H3:{resolution} cells for metro area coverage")
         return list(hexagons)
 
+    def is_resolution_complete(self, connection, resolution: int) -> bool:
+        """Check if a resolution is already complete by comparing expected vs actual hex count."""
+        cursor = connection.cursor()
+        
+        # Get current count of hexagons for this resolution
+        cursor.execute("""
+        SELECT COUNT(*) FROM amisafe_h3_aggregated 
+        WHERE h3_resolution = %s
+        """, (resolution,))
+        current_count = cursor.fetchone()[0]
+        
+        # For metro-wide resolutions (5-7), check against expected metro area coverage
+        if resolution <= 7:
+            expected_metro_cells = self.generate_metro_area_h3_cells(resolution)
+            expected_count = len(expected_metro_cells)
+            self.logger.info(f"📊 Resolution {resolution}: {current_count}/{expected_count} hexagons exist")
+            
+            # Consider complete if we have at least 90% of expected cells (allows for minor variations)
+            completion_threshold = int(expected_count * 0.9)
+            return current_count >= completion_threshold
+        else:
+            # For higher resolutions (8+), check if we have any reasonable number of aggregations
+            # Get the number of distinct H3 cells at this resolution from Silver layer
+            h3_column = f"h3_res_{resolution}"
+            cursor.execute(f"""
+            SELECT COUNT(DISTINCT {h3_column}) 
+            FROM amisafe_clean_incidents 
+            WHERE {h3_column} IS NOT NULL AND is_duplicate = FALSE
+            """, ())
+            expected_count = cursor.fetchone()[0]
+            
+            if expected_count > 0:
+                self.logger.info(f"📊 Resolution {resolution}: {current_count}/{expected_count} hexagons exist")
+                # Consider complete if we have at least 95% of expected cells
+                completion_threshold = int(expected_count * 0.95)
+                return current_count >= completion_threshold
+            else:
+                self.logger.info(f"📊 Resolution {resolution}: No source data available")
+                cursor.close()
+                return True  # No data to process, consider complete
+        
+        cursor.close()
+        return False
+
     def create_h3_aggregations(self, connection, resolution: int):
         """Create H3 aggregations at specified resolution from Transform layer data."""
         self.logger.info(f"Creating H3 aggregations for resolution {resolution}")
         
         cursor = connection.cursor()
+        
+        # Check if this resolution is already complete
+        if self.is_resolution_complete(connection, resolution):
+            self.logger.info(f"✅ Resolution {resolution} is already complete, skipping...")
+            return
         
         # Clear existing aggregations for this resolution
         cursor.execute("DELETE FROM amisafe_h3_aggregated WHERE h3_resolution = %s", (resolution,))

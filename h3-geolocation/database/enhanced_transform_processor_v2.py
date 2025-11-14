@@ -655,10 +655,31 @@ class EnhancedTransformProcessor:
             self.processing_stats['total_raw_records'] = status['total_raw_records']
             initial_processed = status['total_transform_records']
             
-            # Check actual unprocessed records by status (more accurate than table counts)
+            # Enhanced processing status logic
             cursor = connection.cursor()
+            
+            # Check for unprocessed records by status
             cursor.execute("SELECT COUNT(*) FROM amisafe_raw_incidents WHERE processing_status = 'raw'")
-            actual_remaining = cursor.fetchone()[0]
+            status_based_remaining = cursor.fetchone()[0]
+            
+            # Check for record mismatch (Bronze marked processed but Silver empty)
+            bronze_processed_count = status['total_raw_records'] - status_based_remaining
+            silver_count = status['total_transform_records']
+            
+            # Detect mismatch situation
+            if bronze_processed_count > 0 and silver_count == 0:
+                self.logger.warning(f"🚨 MISMATCH DETECTED: {bronze_processed_count:,} Bronze records marked as processed but Silver table is empty!")
+                self.logger.info("🔄 Resetting Bronze processing status to allow reprocessing...")
+                
+                # Reset all Bronze records to 'raw' status
+                cursor.execute("UPDATE amisafe_raw_incidents SET processing_status = 'raw'")
+                connection.commit()
+                
+                # Recalculate remaining records
+                cursor.execute("SELECT COUNT(*) FROM amisafe_raw_incidents WHERE processing_status = 'raw'")
+                status_based_remaining = cursor.fetchone()[0]
+                
+                self.logger.info(f"✅ Reset complete: {status_based_remaining:,} records ready for processing")
             
             # Find the lowest unprocessed ID to start from
             cursor.execute("SELECT MIN(id) FROM amisafe_raw_incidents WHERE processing_status = 'raw'")
@@ -667,15 +688,18 @@ class EnhancedTransformProcessor:
             
             self.logger.info(f"📊 Processing Status:")
             self.logger.info(f"   Total Raw Records: {status['total_raw_records']:,}")
-            self.logger.info(f"   Already Processed: {status['total_transform_records']:,}")
-            self.logger.info(f"   Status-Based Remaining: {actual_remaining:,}")
-            self.logger.info(f"   Count-Based Remaining: {status['records_remaining']:,}")
+            self.logger.info(f"   Silver Records: {status['total_transform_records']:,}")
+            self.logger.info(f"   Unprocessed Records: {status_based_remaining:,}")
             self.logger.info(f"   Starting from ID: {start_id:,}")
             self.logger.info(f"   Batch Size: {batch_size:,}")
             
-            if actual_remaining == 0:
+            # Check if processing is needed
+            if status_based_remaining == 0:
                 self.logger.info("✅ All records already processed!")
                 return self.generate_final_report()
+            else:
+                self.logger.info(f"🔄 Found {status_based_remaining:,} unprocessed records, starting transformation...")
+                actual_remaining = status_based_remaining
             
             batch_num = status['batch_summary']['total_batches']
             
@@ -1438,7 +1462,38 @@ def main():
             print(f"Reports saved to: {processor.processing_reports_dir}")
         
         elif args.full_reprocess:
-            print("⚠️  Full reprocessing not implemented yet - use continue-processing mode")
+            # Full reprocess: clear Silver layer and reset Bronze status
+            print("🔄 FULL REPROCESS MODE")
+            print("This will:")
+            print("  1. Truncate the Silver layer (amisafe_clean_incidents)")
+            print("  2. Reset all Bronze records to 'raw' status")
+            print("  3. Start fresh processing")
+            
+            confirm = input("\nContinue with full reprocess? (yes/no): ")
+            if confirm.lower() not in ['yes', 'y']:
+                print("Full reprocess cancelled.")
+                return
+            
+            # Truncate Silver and reset Bronze status
+            processor = EnhancedTransformProcessor()
+            connection = processor.connect_to_mysql()
+            cursor = connection.cursor()
+            
+            print("🗑️  Truncating Silver layer...")
+            cursor.execute("TRUNCATE TABLE amisafe_clean_incidents")
+            
+            print("🔄 Resetting Bronze processing status...")
+            cursor.execute("UPDATE amisafe_raw_incidents SET processing_status = 'raw'")
+            
+            connection.commit()
+            cursor.close()
+            connection.close()
+            
+            print("✅ Reset complete! Starting fresh processing...")
+            
+            # Start processing
+            processor = EnhancedTransformProcessor()
+            processor.continue_processing()
             
     except Exception as e:
         print(f"\n❌ ERROR: {e}")
