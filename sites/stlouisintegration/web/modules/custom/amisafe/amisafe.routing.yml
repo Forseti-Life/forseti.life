@@ -1,12 +1,21 @@
 amisafe.dashboard:
   path: '/amisafe'
   defaults:
-    _controller: '\Drupal\amisafe\Controller\AmISafeController::dashboard'
-    _title: 'Am I Safe?'
+    _controller: '\Drupal\amisafe\Controller\CrimeMapController::map'
+    _title: 'Crime Map Dashboard'
   requirements:
     _permission: 'access content'
 
-# New crime map route
+# Original dashboard route (moved to /amisafe/dashboard)
+amisafe.original_dashboard:
+  path: '/amisafe/dashboard'
+  defaults:
+    _controller: '\Drupal\amisafe\Controller\AmISafeController::dashboard'
+    _title: 'AmISafe Dashboard'
+  requirements:
+    _permission: 'access content'
+
+# Crime map route (now also accessible at /amisafe/crime-map)
 amisafe.crime_map:
   path: '/amisafe/crime-map'
   defaults:

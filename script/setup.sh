@@ -684,35 +684,34 @@ fi
 # Set up permissions and install if needed
 if [ "$DRUPAL_NEEDS_INSTALL" = true ]; then
     print_status "Setting up file permissions and installing Drupal..."
-    chmod 755 web/sites/default
+    sudo chmod 755 web/sites/default 2>/dev/null || chmod 755 web/sites/default
     
-    # Create files directory with proper permissions
+    # Create files directory with proper permissions (dev container needs 777)
     print_status "Creating and configuring files directory..."
     mkdir -p web/sites/default/files
-    chmod -R 775 web/sites/default/files
+    sudo chmod -R 777 web/sites/default/files 2>/dev/null || chmod -R 777 web/sites/default/files
     
     # Create PHP storage directory for compiled classes
     mkdir -p web/sites/default/files/php
-    chmod 775 web/sites/default/files/php
+    sudo chmod 777 web/sites/default/files/php 2>/dev/null || chmod 777 web/sites/default/files/php
     
     # Set proper ownership for Apache (try multiple approaches)
     if sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null; then
         print_status "Successfully set www-data ownership"
-    elif chown -R $(whoami):$(whoami) web/sites/default/files 2>/dev/null; then
+    elif sudo chown -R $(whoami):$(whoami) web/sites/default/files 2>/dev/null; then
         print_status "Set current user ownership as fallback"
     else
         print_warning "Could not change ownership, but will continue with current permissions"
     fi
     
-    # Ensure files directory is writable
-    chmod -R g+w web/sites/default/files
-    chmod -R o+w web/sites/default/files
+    # Ensure files directory is writable (use sudo for dev container)
+    sudo chmod -R 777 web/sites/default/files 2>/dev/null || chmod -R 777 web/sites/default/files
 
     # Copy default settings file if it doesn't exist
     if [ ! -f "web/sites/default/settings.php" ]; then
         cp web/sites/default/default.settings.php web/sites/default/settings.php
     fi
-    chmod 664 web/sites/default/settings.php
+    sudo chmod 664 web/sites/default/settings.php 2>/dev/null || chmod 664 web/sites/default/settings.php
 
     # Check if Drupal is already installed to avoid data loss
     print_status "Checking existing Drupal installation..."
@@ -828,6 +827,22 @@ if [ "$DRUPAL_INSTALLED" = true ]; then
         fi
     fi
     
+    # Configure St. Louis Integration home page
+    print_status "Configuring St. Louis Integration home page..."
+    if /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "professional_website_content"; then
+        # Find the "Welcome to St. Louis Integration" node created by the module
+        HOME_NODE_ID=$(/usr/bin/php8.3 vendor/drush/drush/drush.php sql:query "SELECT nid FROM node_field_data WHERE title = 'Welcome to St. Louis Integration' AND status = 1 ORDER BY nid DESC LIMIT 1;" 2>/dev/null | tail -n1 | tr -d '\r\n')
+        if [ -n "$HOME_NODE_ID" ] && [ "$HOME_NODE_ID" != "nid" ]; then
+            # Set the home page to the Welcome node
+            /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.site page.front "/node/$HOME_NODE_ID" -y 2>/dev/null
+            print_status "✅ St. Louis Integration home page set to 'Welcome to St. Louis Integration' (node/$HOME_NODE_ID)"
+        else
+            print_warning "⚠️  Could not find 'Welcome to St. Louis Integration' node - using default home page"
+        fi
+    else
+        print_warning "⚠️  Professional website content module not enabled - using default home page"
+    fi
+
     # Final verification that all modules and theme are working
     print_status "Performing final verification of modules and theme..."
     if /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null; then
@@ -959,19 +974,19 @@ if [ -d "$TOC_PROJECT_DIR" ]; then
     if [ ! -f "web/sites/default/settings.php" ] || [ ! -s "web/sites/default/settings.php" ]; then
         print_status "Theory of Conspiracies site not installed. Setting up..."
         
-        # Set up file permissions
-        chmod 755 web/sites/default
+        # Set up file permissions (dev container needs sudo and 777)
+        sudo chmod 755 web/sites/default 2>/dev/null || chmod 755 web/sites/default
         mkdir -p web/sites/default/files
-        chmod -R 775 web/sites/default/files
+        sudo chmod -R 777 web/sites/default/files 2>/dev/null || chmod -R 777 web/sites/default/files
         # Create PHP storage directory for compiled classes
         mkdir -p web/sites/default/files/php
-        chmod 775 web/sites/default/files/php
+        sudo chmod 777 web/sites/default/files/php 2>/dev/null || chmod 777 web/sites/default/files/php
         # Set proper ownership for Apache
         sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
         
         # Copy default settings file
         cp web/sites/default/default.settings.php web/sites/default/settings.php
-        chmod 664 web/sites/default/settings.php
+        sudo chmod 664 web/sites/default/settings.php 2>/dev/null || chmod 664 web/sites/default/settings.php
         
         # Check if Drupal is already installed to avoid data loss
         print_status "Checking existing Theory of Conspiracies installation..."
@@ -1088,6 +1103,16 @@ EOL
                     /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.theme default theoryofconspiracies -y
                     print_status "Theory of Conspiracies theme set as default"
                 fi
+            fi
+            
+            # Configure Theory of Conspiracies home page
+            print_status "Configuring Theory of Conspiracies home page..."
+            if /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "theory_content"; then
+                # Set home page to use the custom theory_content controller route
+                /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.site page.front "/home" -y 2>/dev/null
+                print_status "✅ Theory of Conspiracies home page set to custom controller route (/home)"
+            else
+                print_warning "⚠️  Theory content module not enabled - using default home page"
             fi
             
             # Final cache rebuild
@@ -1551,6 +1576,9 @@ echo "  - job_application_automation (Job Application Automation)"
 echo "  - resume_tailoring (Resume Tailoring)"
 echo "  - stli_site_customizations (STLI Site Customizations)"
 echo "✓ Custom Theme: stlouisintegration theme enabled and set as default"
+echo "✓ Home Pages: Properly configured for both sites"
+echo "  - St. Louis Integration: 'Welcome to St. Louis Integration' page"
+echo "  - Theory of Conspiracies: Custom controller route (/home)"
 echo "✓ Apache Virtual Hosts: Port-based routing (80, 8080)"
 echo "✓ Databases: Separate databases for each site"
 echo "✓ H3 Geolocation Framework: Version 4.3.1 with AmISafe crime mapping pipeline"
