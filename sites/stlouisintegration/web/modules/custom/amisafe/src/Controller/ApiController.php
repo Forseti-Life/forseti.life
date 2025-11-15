@@ -78,6 +78,11 @@ class ApiController extends ControllerBase {
     $bounds = $this->parseBounds($request);
     $limit = min($request->query->get('limit', 1000), 10000); // Higher limit for aggregated data
 
+    // Add bounds to filters if provided
+    if ($bounds) {
+      $filters['bounds'] = $bounds;
+    }
+
     try {
       // Use the new gold layer H3 aggregations method (parameters: resolution, filters, page, limit)
       $aggregated_data = $this->crimeDataService->getH3Aggregations($resolution, $filters, 0, $limit);

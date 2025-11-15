@@ -58,9 +58,10 @@ class CrimeDataService {
     
     $cache_key = 'amisafe:h3_aggregations:' . md5($resolution . serialize($filters) . $page . $limit);
     
-    if ($cached = $this->cache->get($cache_key)) {
-      return $cached->data;
-    }
+    // Temporarily bypass cache for debugging
+    // if ($cached = $this->cache->get($cache_key)) {
+    //   return $cached->data;
+    // }
 
     try {
       // Use Gold layer (amisafe_h3_aggregated) with ultra-precision analytics
@@ -69,8 +70,8 @@ class CrimeDataService {
         ->fields('h3a', [
           'id', 'h3_index', 'h3_resolution', 'incident_count', 'unique_incident_types',
           'earliest_incident', 'latest_incident', 'incidents_last_30_days', 'incidents_last_year',
-          'center_latitude', 'center_longitude', 'coverage_area_km2', 'incident_type_counts',
-          'district_counts', 'avg_data_quality_score', 'total_valid_records', 'last_aggregation'
+          'center_latitude', 'center_longitude', 'incident_type_counts',
+          'district_counts', 'data_quality_avg', 'total_valid_records', 'last_aggregation'
         ]);
 
       // Apply H3 filters first
@@ -84,7 +85,13 @@ class CrimeDataService {
       $query->range($page * $limit, $limit)
         ->orderBy('incident_count', 'DESC');
 
+      // Debug: Log the actual SQL query being executed
+      $this->logger->info('H3 Query SQL: @sql', ['@sql' => (string) $query]);
+      
       $results = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+      
+      // Debug: Log query results
+      $this->logger->info('H3 Query Results: @count rows returned', ['@count' => count($results)]);
       
       // Process results for frontend consumption with precision metadata
       $processed_results = array_map(function($row) use ($resolution) {
@@ -810,7 +817,24 @@ class CrimeDataService {
       \Drupal::logger('amisafe')->info('Applied crime_types filter: @types', ['@types' => implode(',', $crime_types)]);
     }
 
-
+    // Handle bounds filter - filter hexagons by geographic bounds
+    if (!empty($filters['bounds'])) {
+      $bounds = $filters['bounds'];
+      // Latitude: south <= center_latitude <= north
+      $query->condition('center_latitude', $bounds['south'], '>=');
+      $query->condition('center_latitude', $bounds['north'], '<=');
+      // Longitude: west <= center_longitude <= east
+      $query->condition('center_longitude', $bounds['west'], '>=');
+      $query->condition('center_longitude', $bounds['east'], '<=');
+      \Drupal::logger('amisafe')->info('Applied bounds filter: N:@north E:@east S:@south W:@west', [
+        '@north' => $bounds['north'],
+        '@east' => $bounds['east'], 
+        '@south' => $bounds['south'],
+        '@west' => $bounds['west']
+      ]);
+    } else {
+      \Drupal::logger('amisafe')->info('NO bounds filter provided - returning all hexagons for resolution');
+    }
   }
 
   /**
