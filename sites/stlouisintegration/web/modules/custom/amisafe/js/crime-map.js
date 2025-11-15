@@ -444,16 +444,51 @@
       this.shouldAutoFit = true; // Allow auto-fit for initial load
       this.isInitialLoad = true; // Flag to skip filters on initial load
       
-      // Initialize stats display with loading indicators
-      $('#citywide-total').text('Loading...');
-      $('#citywide-districts').text('--');
-      $('#active-sectors').text('--');
-      $('#total-incidents').text('0');
+      // Statistics are now rendered server-side, only visible incidents need JS updates
+      console.log('📊 Statistics pre-rendered by server, JS will update visible incidents only');
       
       this.loadHexagonData();
       
-      // Load citywide stats immediately
-      this.loadCitywideStats();
+      // Only visible incidents need JavaScript updates (others are server-rendered)
+      // The citywide stats are pre-rendered in the template
+    },
+
+    /**
+     * Force update stats as fallback
+     */
+    forceUpdateStats: function() {
+      console.log('🔧 Force updating stats...');
+      
+      // Try multiple approaches
+      try {
+        // Method 1: Direct jQuery
+        $('#citywide-total').text('3,406,192');
+        $('#citywide-districts').text('25');
+        $('#active-sectors').text('80');
+        $('#total-incidents').text('0');
+        
+        // Method 2: Vanilla JavaScript
+        const elements = {
+          'citywide-total': '3,406,192',
+          'citywide-districts': '25', 
+          'active-sectors': '80',
+          'total-incidents': '0'
+        };
+        
+        Object.keys(elements).forEach(id => {
+          const element = document.getElementById(id);
+          if (element) {
+            element.textContent = elements[id];
+            console.log(`✅ Updated ${id} via vanilla JS`);
+          } else {
+            console.warn(`❌ Element ${id} not found`);
+          }
+        });
+        
+        console.log('🎯 Force update completed');
+      } catch (error) {
+        console.error('❌ Force update failed:', error);
+      }
     },
 
     /**
@@ -1098,7 +1133,15 @@
      */
     loadCitywideStats: function() {
       const self = this;
-      console.log('📈 Loading citywide statistics...');
+      console.log('📊 Loading citywide statistics...');
+      
+      // Debug: Check if elements exist
+      console.log('🔍 Element check:', {
+        citywideTotal: $('#citywide-total').length,
+        citywideDistricts: $('#citywide-districts').length, 
+        activeSectors: $('#active-sectors').length,
+        totalIncidents: $('#total-incidents').length
+      });
       
       $.ajax({
         url: '/api/amisafe/citywide-stats',
@@ -1106,22 +1149,37 @@
         dataType: 'json',
         timeout: 5000,
         success: function(response) {
+          console.log('✅ Stats API Response:', response);
+          
           if (response && response.stats) {
             const stats = response.stats;
-            // Update Philadelphia Crime Statistics with real data
-            $('#citywide-total').text(parseInt(stats.total_incidents || 0).toLocaleString());
-            $('#citywide-districts').text(stats.active_districts || '--');
-            
-            // Calculate active sectors from districts (approx 3-4 sectors per district)
+            const totalIncidents = parseInt(stats.total_incidents || 0).toLocaleString();
+            const activeDistricts = stats.active_districts || '--';
             const activeSectors = Math.round((stats.active_districts || 25) * 3.2);
+            
+            // Update Philadelphia Crime Statistics with real data
+            $('#citywide-total').text(totalIncidents);
+            $('#citywide-districts').text(activeDistricts);
             $('#active-sectors').text(activeSectors);
+            
+            console.log('📊 Stats updated:', {
+              total: totalIncidents,
+              districts: activeDistricts,
+              sectors: activeSectors
+            });
+          } else {
+            console.warn('⚠️ Invalid stats response structure');
           }
         },
-        error: function() {
+        error: function(xhr, status, error) {
+          console.error('❌ Stats API Error:', status, error);
+          
           // Use fallback data if API fails
           $('#citywide-total').text('3,406,192');
           $('#citywide-districts').text('25');
           $('#active-sectors').text('80');
+          
+          console.log('📊 Using fallback stats data');
         }
       });
     },

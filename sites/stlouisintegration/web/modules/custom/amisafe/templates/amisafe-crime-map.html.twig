@@ -132,19 +132,19 @@
         <!-- Citywide Overview -->
         <div class="stats-grid">
           <div class="stat-item">
-            <span id="citywide-total" class="stat-value">--</span>
+            <span id="citywide-total" class="stat-value">{{ citywide_stats.total_citywide|default('--') }}</span>
             <span class="stat-label">Total Citywide</span>
           </div>
           <div class="stat-item">
-            <span id="citywide-districts" class="stat-value">--</span>
+            <span id="citywide-districts" class="stat-value">{{ citywide_stats.active_districts|default('--') }}</span>
             <span class="stat-label">Districts</span>
           </div>
           <div class="stat-item">
-            <span id="active-sectors" class="stat-value">--</span>
+            <span id="active-sectors" class="stat-value">{{ citywide_stats.active_sectors|default('--') }}</span>
             <span class="stat-label">Active Sectors</span>
           </div>
           <div class="stat-item">
-            <span id="total-incidents" class="stat-value">--</span>
+            <span id="total-incidents" class="stat-value">{{ citywide_stats.visible_incidents|default('0') }}</span>
             <span class="stat-label">Visible Incidents</span>
           </div>
         </div>
