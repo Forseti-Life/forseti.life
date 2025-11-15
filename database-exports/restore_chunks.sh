@@ -13,7 +13,7 @@ CHUNKS_DIR="$SCRIPT_DIR/chunks"
 DB_USER="drupal_user"
 DB_PASS="drupal_secure_password"
 DB_HOST="127.0.0.1"
-DB_NAME="stlouisintegration_dev"
+DB_NAME="amisafe_database"
 
 # Color codes for output
 RED='\033[0;31m'

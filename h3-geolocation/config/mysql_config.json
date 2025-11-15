@@ -3,6 +3,6 @@
   "port": 3306,
   "user": "drupal_user",
   "password": "drupal_secure_password",
-  "database": "stlouisintegration_dev",
+  "database": "amisafe_database",
   "charset": "utf8mb4"
 }

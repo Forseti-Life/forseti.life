@@ -19,7 +19,7 @@ TEMP_DIR="$SCRIPT_DIR/.temp_restore"
 DB_USER="drupal_user"
 DB_PASS="drupal_secure_password"
 DB_HOST="127.0.0.1"
-DB_NAME="stlouisintegration_dev"
+DB_NAME="amisafe_database"
 
 # Available tables for restoration
 declare -A AVAILABLE_TABLES=(

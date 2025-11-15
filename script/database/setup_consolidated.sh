@@ -15,7 +15,7 @@ FEATURES:
 USAGE:
     ./setup_consolidated.sh [database_name]
     
-If no database name is provided, uses: stlouisintegration_dev
+If no database name is provided, uses: amisafe_database
 """
 
 set -e  # Exit on any error
@@ -37,7 +37,7 @@ NC='\033[0m' # No Color
 DB_HOST="${DB_HOST:-127.0.0.1}"
 DB_USER="${DB_USER:-drupal_user}"
 DB_PASSWORD="${DB_PASSWORD:-drupal_secure_password}"
-DB_NAME="${1:-stlouisintegration_dev}"  # Accept database name as parameter
+DB_NAME="${1:-amisafe_database}"  # Dedicated AmISafe database
 
 # Logging functions
 print_header() {
@@ -392,93 +392,7 @@ insert_ucr_reference_data() {
     execute_sql "$sql" "UCR reference data insertion"
 }
 
-# Insert comprehensive sample data for testing
-insert_sample_data() {
-    print_section "Inserting Sample Data for Testing"
-    
-    # Sample raw incidents data (objectid-based)
-    print_info "Inserting sample raw incidents..."
-    local raw_sql="
-    INSERT IGNORE INTO amisafe_raw_incidents 
-    (objectid, cartodb_id, dc_dist, dispatch_date_time, dispatch_date, hour, dc_key, location_block, ucr_general, text_general_code, lat, lng, source_file)
-    VALUES
-    -- Center City incidents (objectid: 1000000+)
-    (1000001, 500001, '6', '2025-10-30 14:30:00', '2025-10-30', '14', 'PHL_CC_001', '1500 BLOCK MARKET ST', '400', 'THEFT', '39.9526', '-75.1652', 'sample_consolidated'),
-    (1000002, 500002, '6', '2025-10-30 16:45:00', '2025-10-30', '16', 'PHL_CC_002', '1600 BLOCK WALNUT ST', '200', 'BURGLARY', '39.9500', '-75.1667', 'sample_consolidated'),
-    (1000003, NULL, '6', '2025-10-30 09:15:00', '2025-10-30', '9', 'PHL_CC_003', '1700 BLOCK CHESTNUT ST', '100', 'HOMICIDE', '39.9480', '-75.1635', 'sample_consolidated'),
-    
-    -- North Philadelphia incidents (objectid: 2000000+)
-    (2000001, 500003, '22', '2025-10-30 22:30:00', '2025-10-30', '22', 'PHL_NP_001', '2800 BLOCK N BROAD ST', '300', 'ASSAULT', '39.9950', '-75.1450', 'sample_consolidated'),
-    (2000002, NULL, '22', '2025-10-30 01:45:00', '2025-10-30', '1', 'PHL_NP_002', '3200 BLOCK N 5TH ST', '400', 'THEFT', '40.0100', '-75.1300', 'sample_consolidated'),
-    (2000003, 500004, '22', '2025-10-30 18:20:00', '2025-10-30', '18', 'PHL_NP_003', '2600 BLOCK N BROAD ST', '1400', 'DRUG OFFENSE', '39.9850', '-75.1500', 'sample_consolidated'),
-    
-    -- South Philadelphia incidents (objectid: 3000000+)
-    (3000001, 500005, '1', '2025-10-30 12:00:00', '2025-10-30', '12', 'PHL_SP_001', '1900 BLOCK S BROAD ST', '600', 'THEFT', '39.9200', '-75.1580', 'sample_consolidated'),
-    (3000002, NULL, '1', '2025-10-30 15:30:00', '2025-10-30', '15', 'PHL_SP_002', '2000 BLOCK S 15TH ST', '1300', 'VANDALISM', '39.9150', '-75.1620', 'sample_consolidated'),
-    
-    -- West Philadelphia incidents (objectid: 4000000+)
-    (4000001, 500006, '18', '2025-10-30 20:15:00', '2025-10-30', '20', 'PHL_WP_001', '4800 BLOCK BALTIMORE AVE', '300', 'ASSAULT', '39.9600', '-75.2000', 'sample_consolidated'),
-    (4000002, NULL, '18', '2025-10-30 11:45:00', '2025-10-30', '11', 'PHL_WP_002', '4600 BLOCK CHESTNUT ST', '400', 'THEFT', '39.9550', '-75.1950', 'sample_consolidated');
-    "
-    
-    execute_sql "$raw_sql" "Sample raw incidents insertion"
-    
-    # Sample clean incidents (after processing)
-    print_info "Inserting sample clean incidents..."
-    local clean_sql="
-    INSERT IGNORE INTO amisafe_clean_incidents 
-    (incident_id, objectid, cartodb_id, dc_key, dc_dist, location_block, lat, lng, incident_datetime, incident_date, incident_hour, incident_month, incident_year, ucr_general, crime_category, severity_level, h3_res_5, h3_res_6, h3_res_7, h3_res_8, h3_res_9, h3_res_10, h3_res_11, h3_res_12, h3_res_13, processing_batch_id)
-    VALUES
-    ('obj_1000001', 1000001, 500001, 'PHL_CC_001', '6', '1500 BLOCK MARKET ST', 39.9526, -75.1652, '2025-10-30 14:30:00', '2025-10-30', 14, 10, 2025, '400', 'Violent Crime', 3, '85283473fffffff', '862834707ffffff', '872834700ffffff', '882834700ffffff', '892834700ffffff', '8a2834700ffffff', '8b2834700ffffff', '8c2834700ffffff', '8d2834700ffffff', 'batch_001'),
-    ('obj_1000002', 1000002, 500002, 'PHL_CC_002', '6', '1600 BLOCK WALNUT ST', 39.9500, -75.1667, '2025-10-30 16:45:00', '2025-10-30', 16, 10, 2025, '200', 'Violent Crime', 4, '85283473fffffff', '862834707ffffff', '872834700ffffff', '882834700ffffff', '892834701ffffff', '8a2834701ffffff', '8b2834701ffffff', '8c2834701ffffff', '8d2834701ffffff', 'batch_001'),
-    ('obj_1000003', 1000003, NULL, 'PHL_CC_003', '6', '1700 BLOCK CHESTNUT ST', 39.9480, -75.1635, '2025-10-30 09:15:00', '2025-10-30', 9, 10, 2025, '100', 'Violent Crime', 5, '85283473fffffff', '862834707ffffff', '872834700ffffff', '882834700ffffff', '892834700ffffff', '8a2834700ffffff', '8b2834700ffffff', '8c2834700ffffff', '8d2834700ffffff', 'batch_001'),
-    ('obj_2000001', 2000001, 500003, 'PHL_NP_001', '22', '2800 BLOCK N BROAD ST', 39.9950, -75.1450, '2025-10-30 22:30:00', '2025-10-30', 22, 10, 2025, '300', 'Violent Crime', 4, '85283463fffffff', '862834637ffffff', '872834630ffffff', '882834630ffffff', '892834630ffffff', '8a2834630ffffff', '8b2834630ffffff', '8c2834630ffffff', '8d2834630ffffff', 'batch_001'),
-    ('obj_2000002', 2000002, NULL, 'PHL_NP_002', '22', '3200 BLOCK N 5TH ST', 40.0100, -75.1300, '2025-10-30 01:45:00', '2025-10-30', 1, 10, 2025, '400', 'Violent Crime', 3, '85283463fffffff', '862834637ffffff', '872834631ffffff', '882834631ffffff', '892834631ffffff', '8a2834631ffffff', '8b2834631ffffff', '8c2834631ffffff', '8d2834631ffffff', 'batch_001'),
-    ('obj_3000001', 3000001, 500005, 'PHL_SP_001', '1', '1900 BLOCK S BROAD ST', 39.9200, -75.1580, '2025-10-30 12:00:00', '2025-10-30', 12, 10, 2025, '600', 'Property Crime', 2, '85283447fffffff', '862834467ffffff', '872834460ffffff', '882834460ffffff', '892834460ffffff', '8a2834460ffffff', '8b2834460ffffff', '8c2834460ffffff', '8d2834460ffffff', 'batch_001'),
-    ('obj_4000001', 4000001, 500006, 'PHL_WP_001', '18', '4800 BLOCK BALTIMORE AVE', 39.9600, -75.2000, '2025-10-30 20:15:00', '2025-10-30', 20, 10, 2025, '300', 'Violent Crime', 4, '85283443fffffff', '862834437ffffff', '872834430ffffff', '882834430ffffff', '892834430ffffff', '8a2834430ffffff', '8b2834430ffffff', '8c2834430ffffff', '8d2834430ffffff', 'batch_001');
-    "
-    
-    execute_sql "$clean_sql" "Sample clean incidents insertion"
-    
-    # Sample H3 aggregated data
-    print_info "Inserting sample H3 aggregated data..."
-    local h3_sql="
-    INSERT IGNORE INTO amisafe_h3_aggregated 
-    (h3_index, h3_resolution, incident_count, unique_incident_types, earliest_incident, latest_incident, 
-     incidents_last_30_days, incidents_last_year, center_latitude, center_longitude, 
-     incident_type_counts, district_counts, total_valid_records, 
-     h3_parent, severity_avg, top_crime_type, peak_hour, is_empty, aggregation_batch_id)
-    VALUES
-    -- Resolution 8 hexagons (large area coverage)
-    ('882aacb2e57ffff', 8, 47, 6, '2025-10-20 08:30:00', '2025-10-30 16:45:00', 12, 47, 39.9526, -75.1652, 
-     '{\"100\":2, \"200\":8, \"300\":12, \"400\":15, \"500\":6, \"600\":4}', '{\"6\":47}', 47,
-     NULL, 3.2, '400', 16, FALSE, 'batch_h3_001'),
-    ('882aacb2e4fffff', 8, 38, 4, '2025-10-15 14:20:00', '2025-10-30 22:30:00', 8, 38, 39.9950, -75.1450, 
-     '{\"200\":5, \"300\":14, \"400\":10, \"500\":9}', '{\"22\":38}', 38,
-     NULL, 3.8, '300', 22, FALSE, 'batch_h3_001'),
-    ('882aacb2e47ffff', 8, 29, 4, '2025-10-18 10:15:00', '2025-10-30 15:30:00', 7, 29, 39.9200, -75.1580, 
-     '{\"200\":7, \"300\":6, \"400\":11, \"600\":5}', '{\"1\":29}', 29,
-     NULL, 3.1, '400', 15, FALSE, 'batch_h3_001'),
-    ('882aacb2e5fffff', 8, 35, 5, '2025-10-12 09:45:00', '2025-10-30 20:15:00', 9, 35, 39.9600, -75.2000, 
-     '{\"100\":1, \"300\":13, \"400\":12, \"500\":6, \"600\":3}', '{\"18\":35}', 35,
-     NULL, 3.4, '300', 20, FALSE, 'batch_h3_001'),
-    
-    -- Resolution 9 hexagons (subdivisions)
-    ('892aacb2e57ffff', 9, 23, 5, '2025-10-22 11:30:00', '2025-10-30 16:45:00', 6, 23, 39.9540, -75.1640, 
-     '{\"200\":4, \"300\":6, \"400\":8, \"500\":3, \"600\":2}', '{\"6\":23}', 23,
-     '882aacb2e57ffff', 3.1, '400', 16, FALSE, 'batch_h3_001'),
-    ('892aacb2e5fffff', 9, 24, 5, '2025-10-25 08:20:00', '2025-10-30 14:30:00', 6, 24, 39.9510, -75.1665, 
-     '{\"100\":2, \"200\":4, \"300\":6, \"400\":7, \"500\":3, \"600\":2}', '{\"6\":24}', 24,
-     '882aacb2e57ffff', 3.3, '400', 14, FALSE, 'batch_h3_001'),
-    
-    -- Empty hexagon for testing
-    ('882aacb2e6affff', 8, 0, 0, NULL, NULL, 0, 0, 40.1000, -75.0500, 
-     '{}', '{}', 0,
-     NULL, 0.0, NULL, NULL, TRUE, 'batch_h3_001');
-    "
-    
-    execute_sql "$h3_sql" "Sample H3 aggregated data insertion"
-}
+
 
 # Verify database setup and show statistics
 verify_database_setup() {
@@ -546,15 +460,15 @@ show_database_summary() {
     local ucr_count=$(mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -se "SELECT COUNT(*) FROM amisafe_ucr_codes;" 2>/dev/null)
     print_info "UCR crime codes loaded: $ucr_count"
     
-    # Sample data verification
+    # Data structure verification
     local raw_count=$(mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -se "SELECT COUNT(*) FROM amisafe_raw_incidents;" 2>/dev/null)
     local clean_count=$(mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -se "SELECT COUNT(*) FROM amisafe_clean_incidents;" 2>/dev/null)
     local h3_count=$(mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -se "SELECT COUNT(*) FROM amisafe_h3_aggregated;" 2>/dev/null)
     
-    print_info "Sample data loaded:"
-    print_info "  Raw incidents: $raw_count"
-    print_info "  Clean incidents: $clean_count"
-    print_info "  H3 aggregations: $h3_count"
+    print_info "Database ready for data:"
+    print_info "  Raw incidents table: $raw_count records"
+    print_info "  Clean incidents table: $clean_count records"
+    print_info "  H3 aggregations table: $h3_count records"
 }
 
 # Main execution flow
@@ -574,7 +488,6 @@ main() {
     create_ucr_reference_table
     
     insert_ucr_reference_data
-    insert_sample_data
     
     # Verify and summarize
     if verify_database_setup; then
@@ -583,7 +496,7 @@ main() {
         print_header "Setup Complete!"
         print_success "Database: $DB_NAME"
         print_success "Features: ObjectID-based processing with complete ETL pipeline"
-        print_success "Sample data: Ready for testing"
+        print_success "Database structure: Ready for data processing"
         print_success "Processing: 3.4M record capability (vs 856K with CartoDB ID)"
         
         echo ""

@@ -17,7 +17,7 @@ mkdir -p "$EXPORT_DIR"
 DB_USER="drupal_user"
 DB_PASS="drupal_secure_password"
 DB_HOST="127.0.0.1"
-DB_NAME="stlouisintegration_dev"
+DB_NAME="amisafe_database"
 
 echo "📁 Export directory: $EXPORT_DIR"
 echo "⏰ Timestamp: $TIMESTAMP"

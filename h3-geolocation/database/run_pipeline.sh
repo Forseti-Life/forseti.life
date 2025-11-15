@@ -13,11 +13,11 @@ H3_ENV_DIR="$SCRIPT_DIR/../h3-env"
 DATA_DIR="$SCRIPT_DIR/../data/raw"
 LOG_FILE="$SCRIPT_DIR/amisafe_pipeline_stlouisintegration.log"
 
-# Database configuration - MODIFIED FOR STLOUISINTEGRATION
+# Database configuration - USING DEDICATED AMISAFE DATABASE
 DB_HOST="127.0.0.1"
 DB_USER="drupal_user"
 DB_PASSWORD="drupal_secure_password"
-DB_NAME="stlouisintegration_dev"  # <-- CHANGED FROM theoryofconspiracies_dev
+DB_NAME="amisafe_database"  # Dedicated AmISafe database
 
 # Colors for output
 RED='\033[0;31m'
@@ -88,7 +88,7 @@ check_mysql() {
 
 # Setup database
 setup_database() {
-    log "Setting up AmISafe database in $DB_NAME..."
+    log "Setting up AmISafe database in $DB_NAME (dedicated database)..."
     if mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" -e "USE $DB_NAME" >/dev/null 2>&1; then
         success "Database $DB_NAME is accessible"
         # Check if tables exist
@@ -217,7 +217,7 @@ show_stats() {
 main() {
     log "Starting AmISafe Data Pipeline for St. Louis Integration"
     log "======================================================="
-    log "Target Database: $DB_NAME"
+    log "Target Database: $DB_NAME (dedicated AmISafe database)"
     
     case "${1:-sample}" in
         "setup")

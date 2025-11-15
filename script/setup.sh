@@ -109,21 +109,35 @@ ensure_mysql_running() {
     print_status "MySQL not running, attempting to start..."
     
     # Try service command first (works in containers)
-    if sudo service mysql start 2>/dev/null; then
-        sleep 2
+    sudo service mysql start 2>&1
+    sleep 5
+    
+    # Wait up to 30 seconds for MySQL to become available
+    local count=0
+    while [ $count -lt 30 ]; do
         if sudo mysql -e "SELECT 1;" &>/dev/null; then
             print_status "✅ MySQL started successfully via service command"
             return 0
         fi
-    fi
+        sleep 1
+        count=$((count + 1))
+    done
     
     # Try systemctl as fallback
-    if sudo systemctl start mysql 2>/dev/null; then
-        sleep 2
-        if sudo mysql -e "SELECT 1;" &>/dev/null; then
-            print_status "✅ MySQL started successfully via systemctl"
-            return 0
-        fi
+    if command -v systemctl >/dev/null 2>&1; then
+        sudo systemctl start mysql 2>&1
+        sleep 10
+        
+        # Wait up to 30 seconds for MySQL to become available
+        local count=0
+        while [ $count -lt 30 ]; do
+            if sudo mysql -e "SELECT 1;" &>/dev/null; then
+                print_status "✅ MySQL started successfully via systemctl"
+                return 0
+            fi
+            sleep 1
+            count=$((count + 1))
+        done
     fi
     
     print_error "❌ Failed to start MySQL"
@@ -1829,7 +1843,7 @@ AMISAFE_SETUP_SCRIPT="/workspaces/stlouisintegration.com/h3-geolocation/database
 
 if [ -f "$AMISAFE_SETUP_SCRIPT" ]; then
     print_status "Running AmISafe database setup script..."
-    if bash "$AMISAFE_SETUP_SCRIPT"; then
+    if bash "$AMISAFE_SETUP_SCRIPT" "amisafe_database"; then
         print_status "✅ AmISafe database setup completed successfully"
         
         # Run sample data pipeline to verify functionality

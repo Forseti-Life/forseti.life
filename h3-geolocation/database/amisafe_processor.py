@@ -31,7 +31,7 @@ class AmISafeDataProcessor:
                  mysql_host: str = '127.0.0.1',
                  mysql_user: str = 'drupal_user',
                  mysql_password: str = 'drupal_secure_password',
-                 mysql_database: str = 'stlouisintegration_dev'):
+                 mysql_database: str = 'amisafe_database'):
         """
         Initialize the data processor.
         

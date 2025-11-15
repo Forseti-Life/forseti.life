@@ -16,7 +16,7 @@ class FastH3Aggregator:
                  mysql_host: str = '127.0.0.1',
                  mysql_user: str = 'drupal_user',
                  mysql_password: str = 'drupal_secure_password',
-                 mysql_database: str = 'stlouisintegration_dev'):
+                 mysql_database: str = 'amisafe_database'):
         """Initialize the fast aggregator."""
         self.mysql_config = {
             'host': mysql_host,
@@ -176,7 +176,7 @@ def main():
     parser.add_argument('--mysql-host', default='127.0.0.1', help='MySQL host')
     parser.add_argument('--mysql-user', default='drupal_user', help='MySQL user')
     parser.add_argument('--mysql-password', default='drupal_secure_password', help='MySQL password')
-    parser.add_argument('--mysql-database', default='stlouisintegration_dev', help='MySQL database')
+    parser.add_argument('--mysql-database', default='amisafe_database', help='MySQL database')
     parser.add_argument('--resolutions', nargs='+', type=int, required=True, 
                         help='H3 resolutions to process (e.g., --resolutions 5 6 7)')
     
