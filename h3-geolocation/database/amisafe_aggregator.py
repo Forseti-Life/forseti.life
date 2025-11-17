@@ -28,6 +28,10 @@ import argparse
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from h3_framework import H3GeolocationFramework
 
+# Add current directory to path for statistical calculator
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from statistical_calculator import StatisticalCalculator
+
 class AmISafeFinalLayerAggregator:
     """
     Final Layer (Gold) processor for the AmISafe 3-layer data warehouse.
@@ -51,6 +55,9 @@ class AmISafeFinalLayerAggregator:
         
         # Initialize H3 framework
         self.h3_framework = H3GeolocationFramework()
+        
+        # Initialize statistical calculator
+        self.stats_calculator = StatisticalCalculator()
         
         # Philadelphia metropolitan area bounds for metro-wide H3:5-7 coverage
         self.philly_metro_bounds = {
@@ -507,10 +514,16 @@ class AmISafeFinalLayerAggregator:
         
         return f"AGG_{timestamp}_{uuid_suffix}"
     
-    def populate_advanced_analytics(self, connection, h3_index: str, resolution: int) -> Dict:
+    def populate_advanced_analytics(self, connection, h3_index: str, resolution: int, all_hex_stats: List[Dict] = None) -> Dict:
         """Populate all advanced analytical columns for a hexagon.
         
         Uses single query approach: fetch all incident data once, calculate in memory.
+        
+        Args:
+            connection: MySQL connection
+            h3_index: H3 hexagon identifier
+            resolution: H3 resolution level
+            all_hex_stats: Statistics for all hexagons (for z-scores/percentiles)
         
         Returns:
             Dict: All calculated analytical values
@@ -522,12 +535,29 @@ class AmISafeFinalLayerAggregator:
             # Calculate all analytics from in-memory data
             analytics = self.calculate_analytics_from_incidents(incidents, h3_index, resolution)
             
+            # Calculate statistical metrics if we have population data
+            if all_hex_stats:
+                statistical_metrics = self.stats_calculator.calculate_complete_statistics(
+                    incidents, all_hex_stats)
+                analytics.update(statistical_metrics)
+            
             # Convert arrays and dicts to JSON strings for database storage
             analytics['incident_type_counts'] = json.dumps(analytics['incident_type_counts'])
             analytics['district_counts'] = json.dumps(analytics['district_counts'])
             analytics['incidents_by_hour'] = json.dumps(analytics['incidents_by_hour'])
             analytics['incidents_by_dow'] = json.dumps(analytics['incidents_by_dow'])
             analytics['incidents_by_month'] = json.dumps(analytics['incidents_by_month'])
+            
+            # Convert temporal JSON arrays for windowed stats
+            if 'incidents_by_hour_12mo' in analytics:
+                analytics['incidents_by_hour_12mo'] = json.dumps(analytics['incidents_by_hour_12mo'])
+                analytics['incidents_by_dow_12mo'] = json.dumps(analytics['incidents_by_dow_12mo'])
+                analytics['incidents_by_month_12mo'] = json.dumps(analytics['incidents_by_month_12mo'])
+            
+            if 'incidents_by_hour_6mo' in analytics:
+                analytics['incidents_by_hour_6mo'] = json.dumps(analytics['incidents_by_hour_6mo'])
+                analytics['incidents_by_dow_6mo'] = json.dumps(analytics['incidents_by_dow_6mo'])
+                analytics['incidents_by_month_6mo'] = json.dumps(analytics['incidents_by_month_6mo'])
             
             # TODO: Implement remaining functions
             analytics['severity_avg'] = None
@@ -558,7 +588,11 @@ class AmISafeFinalLayerAggregator:
             }
     
     def update_advanced_analytics(self, connection, resolution: int):
-        """Update existing aggregation records with advanced analytics."""
+        """Update existing aggregation records with advanced analytics using two-pass approach.
+        
+        Pass 1: Collect basic statistics for all hexagons (needed for mean/std_dev calculations)
+        Pass 2: Calculate z-scores, percentiles, and risk scores using population statistics
+        """
         self.logger.info(f"Updating advanced analytics for resolution {resolution}")
         
         cursor = connection.cursor()
@@ -571,14 +605,55 @@ class AmISafeFinalLayerAggregator:
             """, (resolution,))
             
             h3_indices = [row[0] for row in cursor.fetchall()]
+            total_hexes = len(h3_indices)
             
+            self.logger.info(f"Pass 1/2: Collecting basic statistics for {total_hexes} hexagons...")
+            
+            # PASS 1: Collect basic statistics for all hexagons
+            all_hex_stats = []
             for i, h3_index in enumerate(h3_indices, 1):
-                self.logger.info(f"Processing hex {i}/{len(h3_indices)}: {h3_index}")
+                if i % 100 == 0 or i == 1:
+                    self.logger.info(f"  Collecting stats {i}/{total_hexes}: {h3_index}")
                 
-                # Calculate advanced analytics
-                analytics = self.populate_advanced_analytics(connection, h3_index, resolution)
+                incidents = self.fetch_hex_incidents(connection, h3_index, resolution)
                 
-                # Update the record with analytics
+                # Calculate basic stats (counts only, no z-scores yet)
+                basic_stats = {
+                    'h3_index': h3_index
+                }
+                
+                # All-time stats
+                all_time_basic = self.stats_calculator.calculate_basic_stats(incidents)
+                basic_stats.update(all_time_basic)
+                basic_stats['incident_count'] = len(incidents)
+                
+                # 12-month window stats
+                incidents_12mo = self.stats_calculator.filter_incidents_by_window(incidents, 12)
+                mo12_basic = self.stats_calculator.calculate_basic_stats(incidents_12mo)
+                basic_stats['violent_crime_count_12mo'] = mo12_basic['violent_count']
+                basic_stats['nonviolent_crime_count_12mo'] = mo12_basic['nonviolent_count']
+                basic_stats['incident_count_12mo'] = len(incidents_12mo)
+                
+                # 6-month window stats
+                incidents_6mo = self.stats_calculator.filter_incidents_by_window(incidents, 6)
+                mo6_basic = self.stats_calculator.calculate_basic_stats(incidents_6mo)
+                basic_stats['violent_crime_count_6mo'] = mo6_basic['violent_count']
+                basic_stats['nonviolent_crime_count_6mo'] = mo6_basic['nonviolent_count']
+                basic_stats['incident_count_6mo'] = len(incidents_6mo)
+                
+                all_hex_stats.append(basic_stats)
+            
+            self.logger.info(f"Pass 2/2: Calculating statistical analytics for {total_hexes} hexagons...")
+            
+            # PASS 2: Calculate full analytics including z-scores and percentiles
+            for i, h3_index in enumerate(h3_indices, 1):
+                if i % 100 == 0 or i == 1:
+                    self.logger.info(f"  Processing hex {i}/{total_hexes}: {h3_index}")
+                
+                # Calculate complete advanced analytics with population statistics
+                analytics = self.populate_advanced_analytics(connection, h3_index, resolution, all_hex_stats)
+                
+                # Update the record with all analytics
                 update_query = """
                 UPDATE amisafe_h3_aggregated SET
                     incident_type_counts = %s,
@@ -595,11 +670,93 @@ class AmISafeFinalLayerAggregator:
                     date_range_start = %s,
                     date_range_end = %s,
                     data_freshness_days = %s,
-                    aggregation_batch_id = %s
+                    aggregation_batch_id = %s,
+                    
+                    -- All-time statistical fields
+                    violent_crime_count = %s,
+                    violent_crime_percentage = %s,
+                    violent_crime_mean = %s,
+                    violent_crime_std_dev = %s,
+                    violent_crime_z_score = %s,
+                    violent_crime_percentile = %s,
+                    nonviolent_crime_count = %s,
+                    nonviolent_crime_percentage = %s,
+                    nonviolent_crime_mean = %s,
+                    nonviolent_crime_std_dev = %s,
+                    nonviolent_crime_z_score = %s,
+                    nonviolent_crime_percentile = %s,
+                    incident_mean = %s,
+                    incident_std_dev = %s,
+                    incident_z_score = %s,
+                    incident_percentile = %s,
+                    risk_score = %s,
+                    risk_category = %s,
+                    hotspot_status = %s,
+                    
+                    -- 12-month window fields
+                    incident_count_12mo = %s,
+                    unique_incident_types_12mo = %s,
+                    incidents_by_hour_12mo = %s,
+                    incidents_by_dow_12mo = %s,
+                    incidents_by_month_12mo = %s,
+                    peak_hour_12mo = %s,
+                    peak_dow_12mo = %s,
+                    top_crime_type_12mo = %s,
+                    crime_diversity_index_12mo = %s,
+                    violent_crime_count_12mo = %s,
+                    violent_crime_percentage_12mo = %s,
+                    violent_crime_mean_12mo = %s,
+                    violent_crime_std_dev_12mo = %s,
+                    violent_crime_z_score_12mo = %s,
+                    violent_crime_percentile_12mo = %s,
+                    nonviolent_crime_count_12mo = %s,
+                    nonviolent_crime_percentage_12mo = %s,
+                    nonviolent_crime_mean_12mo = %s,
+                    nonviolent_crime_std_dev_12mo = %s,
+                    nonviolent_crime_z_score_12mo = %s,
+                    nonviolent_crime_percentile_12mo = %s,
+                    incident_mean_12mo = %s,
+                    incident_std_dev_12mo = %s,
+                    incident_z_score_12mo = %s,
+                    incident_percentile_12mo = %s,
+                    risk_score_12mo = %s,
+                    risk_category_12mo = %s,
+                    hotspot_status_12mo = %s,
+                    
+                    -- 6-month window fields
+                    incident_count_6mo = %s,
+                    unique_incident_types_6mo = %s,
+                    incidents_by_hour_6mo = %s,
+                    incidents_by_dow_6mo = %s,
+                    incidents_by_month_6mo = %s,
+                    peak_hour_6mo = %s,
+                    peak_dow_6mo = %s,
+                    top_crime_type_6mo = %s,
+                    crime_diversity_index_6mo = %s,
+                    violent_crime_count_6mo = %s,
+                    violent_crime_percentage_6mo = %s,
+                    violent_crime_mean_6mo = %s,
+                    violent_crime_std_dev_6mo = %s,
+                    violent_crime_z_score_6mo = %s,
+                    violent_crime_percentile_6mo = %s,
+                    nonviolent_crime_count_6mo = %s,
+                    nonviolent_crime_percentage_6mo = %s,
+                    nonviolent_crime_mean_6mo = %s,
+                    nonviolent_crime_std_dev_6mo = %s,
+                    nonviolent_crime_z_score_6mo = %s,
+                    nonviolent_crime_percentile_6mo = %s,
+                    incident_mean_6mo = %s,
+                    incident_std_dev_6mo = %s,
+                    incident_z_score_6mo = %s,
+                    incident_percentile_6mo = %s,
+                    risk_score_6mo = %s,
+                    risk_category_6mo = %s,
+                    hotspot_status_6mo = %s
                 WHERE h3_index = %s AND h3_resolution = %s
                 """
                 
                 cursor.execute(update_query, (
+                    # Original fields
                     analytics['incident_type_counts'],
                     analytics['district_counts'],
                     analytics['top_crime_type'],
@@ -615,14 +772,99 @@ class AmISafeFinalLayerAggregator:
                     analytics['date_range_end'],
                     analytics['data_freshness_days'],
                     analytics['aggregation_batch_id'],
+                    
+                    # All-time statistical fields
+                    analytics.get('violent_crime_count', 0),
+                    analytics.get('violent_crime_percentage', 0.0),
+                    analytics.get('violent_crime_mean', 0.0),
+                    analytics.get('violent_crime_std_dev', 0.0),
+                    analytics.get('violent_crime_z_score', 0.0),
+                    analytics.get('violent_crime_percentile', 50),
+                    analytics.get('nonviolent_crime_count', 0),
+                    analytics.get('nonviolent_crime_percentage', 0.0),
+                    analytics.get('nonviolent_crime_mean', 0.0),
+                    analytics.get('nonviolent_crime_std_dev', 0.0),
+                    analytics.get('nonviolent_crime_z_score', 0.0),
+                    analytics.get('nonviolent_crime_percentile', 50),
+                    analytics.get('incident_mean', 0.0),
+                    analytics.get('incident_std_dev', 0.0),
+                    analytics.get('incident_z_score', 0.0),
+                    analytics.get('incident_percentile', 50),
+                    analytics.get('risk_score', 0.0),
+                    analytics.get('risk_category', 'MODERATE'),
+                    analytics.get('hotspot_status', 'WARM'),
+                    
+                    # 12-month window fields
+                    analytics.get('incident_count_12mo', 0),
+                    analytics.get('unique_incident_types_12mo', 0),
+                    analytics.get('incidents_by_hour_12mo'),
+                    analytics.get('incidents_by_dow_12mo'),
+                    analytics.get('incidents_by_month_12mo'),
+                    analytics.get('peak_hour_12mo'),
+                    analytics.get('peak_dow_12mo'),
+                    analytics.get('top_crime_type_12mo'),
+                    analytics.get('crime_diversity_index_12mo', 0.0),
+                    analytics.get('violent_crime_count_12mo', 0),
+                    analytics.get('violent_crime_percentage_12mo', 0.0),
+                    analytics.get('violent_crime_mean_12mo', 0.0),
+                    analytics.get('violent_crime_std_dev_12mo', 0.0),
+                    analytics.get('violent_crime_z_score_12mo', 0.0),
+                    analytics.get('violent_crime_percentile_12mo', 50),
+                    analytics.get('nonviolent_crime_count_12mo', 0),
+                    analytics.get('nonviolent_crime_percentage_12mo', 0.0),
+                    analytics.get('nonviolent_crime_mean_12mo', 0.0),
+                    analytics.get('nonviolent_crime_std_dev_12mo', 0.0),
+                    analytics.get('nonviolent_crime_z_score_12mo', 0.0),
+                    analytics.get('nonviolent_crime_percentile_12mo', 50),
+                    analytics.get('incident_mean_12mo', 0.0),
+                    analytics.get('incident_std_dev_12mo', 0.0),
+                    analytics.get('incident_z_score_12mo', 0.0),
+                    analytics.get('incident_percentile_12mo', 50),
+                    analytics.get('risk_score_12mo', 0.0),
+                    analytics.get('risk_category_12mo', 'MODERATE'),
+                    analytics.get('hotspot_status_12mo', 'WARM'),
+                    
+                    # 6-month window fields
+                    analytics.get('incident_count_6mo', 0),
+                    analytics.get('unique_incident_types_6mo', 0),
+                    analytics.get('incidents_by_hour_6mo'),
+                    analytics.get('incidents_by_dow_6mo'),
+                    analytics.get('incidents_by_month_6mo'),
+                    analytics.get('peak_hour_6mo'),
+                    analytics.get('peak_dow_6mo'),
+                    analytics.get('top_crime_type_6mo'),
+                    analytics.get('crime_diversity_index_6mo', 0.0),
+                    analytics.get('violent_crime_count_6mo', 0),
+                    analytics.get('violent_crime_percentage_6mo', 0.0),
+                    analytics.get('violent_crime_mean_6mo', 0.0),
+                    analytics.get('violent_crime_std_dev_6mo', 0.0),
+                    analytics.get('violent_crime_z_score_6mo', 0.0),
+                    analytics.get('violent_crime_percentile_6mo', 50),
+                    analytics.get('nonviolent_crime_count_6mo', 0),
+                    analytics.get('nonviolent_crime_percentage_6mo', 0.0),
+                    analytics.get('nonviolent_crime_mean_6mo', 0.0),
+                    analytics.get('nonviolent_crime_std_dev_6mo', 0.0),
+                    analytics.get('nonviolent_crime_z_score_6mo', 0.0),
+                    analytics.get('nonviolent_crime_percentile_6mo', 50),
+                    analytics.get('incident_mean_6mo', 0.0),
+                    analytics.get('incident_std_dev_6mo', 0.0),
+                    analytics.get('incident_z_score_6mo', 0.0),
+                    analytics.get('incident_percentile_6mo', 50),
+                    analytics.get('risk_score_6mo', 0.0),
+                    analytics.get('risk_category_6mo', 'MODERATE'),
+                    analytics.get('hotspot_status_6mo', 'WARM'),
+                    
+                    # WHERE clause
                     h3_index,
                     resolution
                 ))
             
-            self.logger.info(f"Updated {len(h3_indices)} records with advanced analytics for resolution {resolution}")
+            self.logger.info(f"✅ Updated {total_hexes} records with complete analytics for resolution {resolution}")
             
         except Exception as e:
             self.logger.error(f"Error updating advanced analytics for resolution {resolution}: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
         finally:
             cursor.close()
 
