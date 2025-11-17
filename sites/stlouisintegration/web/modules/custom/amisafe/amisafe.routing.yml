@@ -6,14 +6,7 @@ amisafe.dashboard:
   requirements:
     _permission: 'access content'
 
-# Original dashboard route (moved to /amisafe/dashboard)
-amisafe.original_dashboard:
-  path: '/amisafe/dashboard'
-  defaults:
-    _controller: '\Drupal\amisafe\Controller\AmISafeController::dashboard'
-    _title: 'AmISafe Dashboard'
-  requirements:
-    _permission: 'access content'
+# Dashboard route removed - /amisafe now directly shows crime map
 
 # Crime map route (now also accessible at /amisafe/crime-map)
 amisafe.crime_map:

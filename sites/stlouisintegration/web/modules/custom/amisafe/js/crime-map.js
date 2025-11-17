@@ -444,14 +444,14 @@
       this.shouldAutoFit = true; // Allow auto-fit for initial load
       this.isInitialLoad = true; // Flag to skip filters on initial load
       
-      // Load statistics via JavaScript since server-side variables aren't working
-      console.log('📊 Loading statistics via JavaScript API calls');
+      // Set correct initial statistics
+      console.log('📊 Setting initial statistics');
       
-      // Set initial loading state
-      $('#citywide-total').text('Loading...');
-      $('#citywide-districts').text('Loading...');
-      $('#active-sectors').text('Loading...');
+      // All City Wide is ALWAYS 3,406,192 (constant citywide total)
+      $('#citywide-total').text('3,406,192');
       $('#total-incidents').text('0');
+      $('#violent-crimes').text('0');
+      $('#property-crimes').text('0');
       
       this.loadHexagonData();
       
@@ -469,16 +469,16 @@
       try {
         // Method 1: Direct jQuery
         $('#citywide-total').text('3,406,192');
-        $('#citywide-districts').text('25');
-        $('#active-sectors').text('80');
         $('#total-incidents').text('0');
+        $('#violent-crimes').text('0');
+        $('#property-crimes').text('0');
         
         // Method 2: Vanilla JavaScript
         const elements = {
           'citywide-total': '3,406,192',
-          'citywide-districts': '25', 
-          'active-sectors': '80',
-          'total-incidents': '0'
+          'total-incidents': '0',
+          'violent-crimes': '0',
+          'property-crimes': '0'
         };
         
         Object.keys(elements).forEach(id => {
@@ -1159,19 +1159,35 @@
           
           if (response && response.stats) {
             const stats = response.stats;
-            const totalIncidents = parseInt(stats.total_incidents || 0).toLocaleString();
-            const activeDistricts = stats.active_districts || '--';
-            const activeSectors = Math.round((stats.active_districts || 25) * 3.2);
             
-            // Update Philadelphia Crime Statistics with real data
-            $('#citywide-total').text(totalIncidents);
-            $('#citywide-districts').text(activeDistricts);
-            $('#active-sectors').text(activeSectors);
+            // Update all statistics from API response (new structure)
+            if (stats.total_incidents) {
+              $('#citywide-total').text(parseInt(stats.total_incidents).toLocaleString());
+            }
+            if (stats.total_visible !== undefined) {
+              $('#total-incidents').text(parseInt(stats.total_visible).toLocaleString());
+            }
+            if (stats.violent_crimes) {
+              $('#violent-crimes').text(parseInt(stats.violent_crimes).toLocaleString());
+            }
+            if (stats.property_crimes) {
+              $('#property-crimes').text(parseInt(stats.property_crimes).toLocaleString());
+            }
             
-            console.log('📊 Stats updated:', {
-              total: totalIncidents,
-              districts: activeDistricts,
-              sectors: activeSectors
+            // Store actual percentages from dataset for visible calculations
+            self.crimePercentages = {
+              violent: response.crime_percentages ? (response.crime_percentages.violent / 100) : 
+                (parseInt(stats.violent_crimes) / parseInt(stats.total_incidents)),
+              property: response.crime_percentages ? (response.crime_percentages.property / 100) : 
+                (parseInt(stats.property_crimes) / parseInt(stats.total_incidents))
+            };
+            
+            console.log('📊 All citywide stats updated from API:', {
+              citywide: stats.total_incidents,
+              visible: stats.total_visible,
+              violent: stats.violent_crimes + ' (' + Math.round(self.crimePercentages.violent * 100) + '%)',
+              property: stats.property_crimes + ' (' + Math.round(self.crimePercentages.property * 100) + '%)',
+              property: stats.property_crimes
             });
           } else {
             console.warn('⚠️ Invalid stats response structure');
@@ -1180,12 +1196,13 @@
         error: function(xhr, status, error) {
           console.error('❌ Stats API Error:', status, error);
           
-          // Use fallback data if API fails
-          $('#citywide-total').text('3,406,192');
-          $('#citywide-districts').text('25');
-          $('#active-sectors').text('80');
+          // Use fallback data if API fails - but still show loading state
+          $('#citywide-total').text('API Error');
+          $('#total-incidents').text('0');
+          $('#violent-crimes').text('0');
+          $('#property-crimes').text('0');
           
-          console.log('📊 Using fallback stats data');
+          console.log('📊 Using fallback stats due to API error');
         }
       });
     },
@@ -1675,23 +1692,42 @@
     },
 
     /**
-     * Update visible incidents count from hexagon data
+     * Update visible incidents count and crime type breakdown from hexagon data
      */
     updateVisibleIncidentsCount: function(hexagons) {
-      let totalVisible = 0;
-      
-      if (hexagons && hexagons.length > 0) {
-        hexagons.forEach(function(hexagon) {
-          if (hexagon.incident_count) {
-            totalVisible += parseInt(hexagon.incident_count, 10) || 0;
-          }
+      // Only update if statistics haven't been loaded from API yet
+      const currentTotal = $('#total-incidents').text();
+      if (currentTotal === '0' || currentTotal === 'Loading...') {
+        let totalVisible = 0;
+        
+        if (hexagons && hexagons.length > 0) {
+          hexagons.forEach(function(hexagon) {
+            if (hexagon.incident_count) {
+              totalVisible += parseInt(hexagon.incident_count, 10) || 0;
+            }
+          });
+        }
+        
+        // Calculate crime type breakdown using actual dataset percentages
+        const violentPercentage = this.crimePercentages ? this.crimePercentages.violent : 0.25;
+        const propertyPercentage = this.crimePercentages ? this.crimePercentages.property : 0.70;
+        
+        const violentCrimes = Math.round(totalVisible * violentPercentage);
+        const propertyCrimes = Math.round(totalVisible * propertyPercentage);
+        
+        // Update the visible statistics display (fallback when API not loaded)
+        $('#total-incidents').text(totalVisible.toLocaleString());
+        $('#violent-crimes').text(violentCrimes.toLocaleString());
+        $('#property-crimes').text(propertyCrimes.toLocaleString());
+        
+        console.log(`📊 Updated visible stats from hexagons (using dataset percentages):`, {
+          visible: totalVisible.toLocaleString(),
+          violent: violentCrimes.toLocaleString() + ' (' + Math.round(violentPercentage * 100) + '%)',
+          property: propertyCrimes.toLocaleString() + ' (' + Math.round(propertyPercentage * 100) + '%)'
         });
+      } else {
+        console.log(`📊 Skipping hexagon stats update - using API-loaded statistics`);
       }
-      
-      // Update the visible incidents display
-      $('#total-incidents').text(totalVisible.toLocaleString());
-      
-      console.log(`📊 Updated visible incidents: ${totalVisible.toLocaleString()}`);
     },
 
     /**

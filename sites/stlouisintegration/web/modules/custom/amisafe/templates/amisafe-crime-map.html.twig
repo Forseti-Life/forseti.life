@@ -21,6 +21,13 @@
 
   <div class="crime-map-layout">
     <div class="crime-map-controls">
+      <!-- Map Controls -->
+      <div class="control-section">
+        <div class="form-group">
+          <button id="fit-hexagons-btn" class="btn btn-outline-secondary w-100">📍 Center on Data</button>
+        </div>
+      </div>
+      
       <div class="control-section">
         <h3>Map Filters</h3>
         
@@ -33,14 +40,7 @@
           <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
         </div>
         
-        <!-- District Multi-Select Filter -->
-        <div class="form-group">
-          <label class="form-label" for="district-selector">Police Districts</label>
-          <select id="district-selector" class="form-control form-select" multiple>
-            <!-- Dynamically populated from API -->
-          </select>
-          <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
-        </div>
+
         
         <!-- Date Range Selector -->
         <div class="form-group">
@@ -69,32 +69,6 @@
           </div>
         </div>
         
-      </div>
-      
-      <div class="control-section">
-        <h3>Time Filters</h3>
-        
-        <!-- Time of Day Filter -->
-        <div class="form-group">
-          <label class="form-label" for="time-period-selector">Time of Day</label>
-          <select id="time-period-selector" class="form-control form-select" multiple>
-            <option value="early-morning" selected>Early Morning (00:00-05:59)</option>
-            <option value="morning" selected>Morning (06:00-11:59)</option>
-            <option value="afternoon" selected>Afternoon (12:00-17:59)</option>
-            <option value="evening" selected>Evening (18:00-23:59)</option>
-          </select>
-          <small class="text-muted">Select time periods to include</small>
-        </div>
-        
-        <!-- Quick Filter Presets -->
-        <div class="form-group">
-          <label class="form-label">Quick Presets</label>
-          <div class="d-grid gap-2">
-            <button id="preset-violent" class="btn btn-outline-primary btn-sm" data-preset="violent">Violent Crimes</button>
-            <button id="preset-property" class="btn btn-outline-primary btn-sm" data-preset="property">Property Crimes</button>
-            <button id="preset-recent" class="btn btn-outline-primary btn-sm" data-preset="recent">Recent (30 Days)</button>
-          </div>
-        </div>
         
         <!-- Action Buttons -->
         <div class="d-grid gap-2">
@@ -102,25 +76,6 @@
           <button id="clear-filters" class="btn btn-secondary">Clear All</button>
         </div>
         
-      </div>
-      
-      <div class="control-section">
-        <h3>Display Options</h3>
-        
-        <!-- View Options -->
-        <div class="form-group">
-          <label class="form-label">Display Mode</label>
-          <div class="btn-group w-100" role="group">
-            <button id="hexagon-view" class="btn btn-outline-primary active">Hexagon</button>
-            <button id="heatmap-view" class="btn btn-outline-primary">Heatmap</button>
-            <button id="points-view" class="btn btn-outline-primary">Points</button>
-          </div>
-        </div>
-
-        <!-- Map Controls -->
-        <div class="form-group">
-          <button id="fit-hexagons-btn" class="btn btn-outline-secondary w-100">📍 Center on Data</button>
-        </div>
       </div>
       
       <!-- Statistics Panel -->
@@ -133,19 +88,19 @@
         <div class="stats-grid">
           <div class="stat-item">
             <span id="citywide-total" class="stat-value">Loading...</span>
-            <span class="stat-label">Total Citywide</span>
-          </div>
-          <div class="stat-item">
-            <span id="citywide-districts" class="stat-value">Loading...</span>
-            <span class="stat-label">Districts</span>
-          </div>
-          <div class="stat-item">
-            <span id="active-sectors" class="stat-value">Loading...</span>
-            <span class="stat-label">Active Sectors</span>
+            <span class="stat-label">All City Wide</span>
           </div>
           <div class="stat-item">
             <span id="total-incidents" class="stat-value">0</span>
-            <span class="stat-label">Visible Incidents</span>
+            <span class="stat-label">Total Visible</span>
+          </div>
+          <div class="stat-item">
+            <span id="violent-crimes" class="stat-value">0</span>
+            <span class="stat-label">Violent Crimes</span>
+          </div>
+          <div class="stat-item">
+            <span id="property-crimes" class="stat-value">0</span>
+            <span class="stat-label">Property Crimes</span>
           </div>
         </div>
       </div>
@@ -170,33 +125,6 @@
           <span class="resolution-value" id="h3-resolution">6</span>
           <span class="scale-label">~36km² city areas</span>
           <button id="refresh-zoom" class="btn btn-sm btn-outline-secondary">REFRESH</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Expandable Analytics Dashboard -->
-  <div class="analytics-section">
-    <button id="toggle-analytics" class="btn btn-outline-primary section-toggle">
-      <span class="toggle-text">Show Analytics</span>
-      <i class="fas fa-chevron-down toggle-icon"></i>
-    </button>
-    
-    <div id="analytics-dashboard" class="analytics-dashboard collapsed">
-      <div class="analytics-grid">
-        <div class="chart-container">
-          <h4 class="chart-title">Temporal Analysis</h4>
-          <canvas id="crime-trend-chart"></canvas>
-        </div>
-        
-        <div class="chart-container">
-          <h4 class="chart-title">Pattern Matrix</h4>
-          <div id="time-pattern-heatmap"></div>
-        </div>
-        
-        <div class="chart-container">
-          <h4 class="chart-title">District Rankings</h4>
-          <div id="district-rankings-table"></div>
         </div>
       </div>
     </div>

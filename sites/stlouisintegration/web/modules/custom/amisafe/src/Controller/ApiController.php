@@ -531,28 +531,41 @@ class ApiController extends ControllerBase {
    */
   public function citywideStats() {
     try {
-      // Get overall statistics from the actual database (real data source)
-      $total_incidents = $this->crimeDataService->getIncidentCount([]);
+      // Get citywide statistics from H3:5 aggregated data (correct total)
+      $database = \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
+      
+      // Get total incidents from ALL H3:5 hexagons (complete citywide coverage)
+      $total_query = $database->select('amisafe_h3_aggregated', 'h');
+      $total_query->addExpression('SUM(incident_count)', 'total_incidents');
+      $total_query->condition('h3_resolution', 5);
+      $total_incidents = $total_query->execute()->fetchField() ?: 0;
+      
+      // Get crime type breakdown from H3:7 aggregated data (better granularity)
+      $crime_breakdown = $this->getCrimeTypeBreakdown($database);
       
       $districts = $this->crimeDataService->getDistricts();
       
       // Calculate citywide threat level based on incident density
       $threat_level = $this->calculateCitywideThreatlevel($total_incidents);
       
-      // Calculate coverage percentage (simulated for Philadelphia 2085)
-      $coverage_percentage = min(100, ($total_incidents / 500) + 85); // Base 85% + incidents factor
-      
       return new JsonResponse([
         'stats' => [
-          'total_incidents' => $total_incidents,
+          'total_incidents' => (string)$total_incidents,
+          'total_visible' => 0, // Will be updated by JavaScript based on current map view
+          'violent_crimes' => (string)$crime_breakdown['violent'],
+          'property_crimes' => (string)$crime_breakdown['property'],
+          'other_crimes' => (string)$crime_breakdown['other'],
           'active_districts' => count($districts),
           'citywide_threat_level' => $threat_level,
-          'coverage_percentage' => round($coverage_percentage, 1),
           'last_updated' => date('Y-m-d H:i:s'),
         ],
+        'crime_percentages' => $crime_breakdown['percentages'],
         'meta' => [
           'districts' => $districts,
-          'calculation_method' => 'h3_aggregated_data',
+          'calculation_method' => 'h3_aggregated_sum_all_hexagons',
+          'crime_breakdown_method' => 'calculated_from_dataset',
+          'violent_crime_types' => ['100', '200', '300', '400', '1400'],
+          'property_crime_types' => ['500', '600', '700', '800', '900', '1000', '1200', '1300', '1500', '2600'],
         ],
       ]);
     } catch (\Exception $e) {
@@ -592,6 +605,56 @@ class ApiController extends ControllerBase {
     } else {
       return 'MODERATE';
     }
+  }
+
+  /**
+   * Get crime type breakdown for citywide statistics
+   */
+  private function getCrimeTypeBreakdown($database) {
+    // Get actual crime type counts from the raw incidents data
+    $violent_query = $database->select('amisafe_clean_incidents', 'i');
+    $violent_query->addExpression('COUNT(*)', 'violent_count');
+    $violent_query->condition('ucr_general', [
+      '100', // Homicide
+      '200', // Sexual Assault  
+      '300', // Robbery
+      '400', // Assault
+      '1400' // Other Assault
+    ], 'IN');
+    $violent_count = $violent_query->execute()->fetchField() ?: 0;
+    
+    $property_query = $database->select('amisafe_clean_incidents', 'i');
+    $property_query->addExpression('COUNT(*)', 'property_count');
+    $property_query->condition('ucr_general', [
+      '500',  // Burglary
+      '600',  // Theft
+      '700',  // Motor Vehicle Theft
+      '800',  // Arson
+      '900',  // Forgery
+      '1000', // Fraud
+      '1200', // Embezzlement
+      '1300', // Stolen Property
+      '1500', // Vandalism
+      '2600'  // All Other Larceny
+    ], 'IN');
+    $property_count = $property_query->execute()->fetchField() ?: 0;
+    
+    // Get total count from H3:5 for consistency with citywide display
+    $total_query = $database->select('amisafe_h3_aggregated', 'h');
+    $total_query->addExpression('SUM(incident_count)', 'total');
+    $total_query->condition('h3_resolution', 5);
+    $total_count = $total_query->execute()->fetchField() ?: 0;
+    
+    return [
+      'violent' => (int)$violent_count,
+      'property' => (int)$property_count,
+      'total' => $total_count,
+      'other' => max(0, $total_count - $violent_count - $property_count),
+      'percentages' => [
+        'violent' => $total_count > 0 ? round(($violent_count / $total_count) * 100, 1) : 0,
+        'property' => $total_count > 0 ? round(($property_count / $total_count) * 100, 1) : 0,
+      ]
+    ];
   }
 
   /**
