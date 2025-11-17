@@ -444,13 +444,19 @@
       this.shouldAutoFit = true; // Allow auto-fit for initial load
       this.isInitialLoad = true; // Flag to skip filters on initial load
       
-      // Statistics are now rendered server-side, only visible incidents need JS updates
-      console.log('📊 Statistics pre-rendered by server, JS will update visible incidents only');
+      // Load statistics via JavaScript since server-side variables aren't working
+      console.log('📊 Loading statistics via JavaScript API calls');
+      
+      // Set initial loading state
+      $('#citywide-total').text('Loading...');
+      $('#citywide-districts').text('Loading...');
+      $('#active-sectors').text('Loading...');
+      $('#total-incidents').text('0');
       
       this.loadHexagonData();
       
-      // Only visible incidents need JavaScript updates (others are server-rendered)
-      // The citywide stats are pre-rendered in the template
+      // Load citywide stats via JavaScript 
+      this.loadCitywideStats();
     },
 
     /**

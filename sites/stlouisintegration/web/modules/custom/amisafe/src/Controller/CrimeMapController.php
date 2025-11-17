@@ -60,6 +60,15 @@ class CrimeMapController extends ControllerBase {
     
     // Fetch real citywide statistics
     $citywide_stats = $this->getCitywideStatistics();
+    \Drupal::logger('amisafe')->info('Controller passing stats to template: @stats', ['@stats' => print_r($citywide_stats, TRUE)]);
+    
+    // TEST: Force hardcoded values to debug template variable passing
+    $citywide_stats = [
+      'total_citywide' => 'FORCED-3,406,192',
+      'active_districts' => 'FORCED-25',
+      'active_sectors' => 'FORCED-80',
+      'visible_incidents' => 'FORCED-0',
+    ];
 
     $build = [
       '#theme' => 'amisafe_crime_map',
@@ -142,9 +151,12 @@ class CrimeMapController extends ControllerBase {
    * Get real citywide statistics for template.
    */
   private function getCitywideStatistics() {
+    \Drupal::logger('amisafe')->info('Getting citywide statistics...');
+    
     try {
       // Get the same data that the API provides
       $database = \Drupal\Core\Database\Database::getConnection('default', 'amisafe');
+      \Drupal::logger('amisafe')->info('Database connection successful');
       
       // Get total incidents across ALL hexagons (use H3:5 for citywide coverage)
       $total_query = $database->select('amisafe_h3_aggregated', 'h');
@@ -165,21 +177,31 @@ class CrimeMapController extends ControllerBase {
       // Calculate active sectors (districts * 3.2)
       $active_sectors = round($active_districts * 3.2);
       
-      return [
+      $stats = [
         'total_citywide' => number_format($total_incidents),
         'active_districts' => $active_districts,
         'active_sectors' => $active_sectors,
         'visible_incidents' => 0, // Will be updated by JavaScript
       ];
       
+      \Drupal::logger('amisafe')->info('Statistics calculated: @stats', ['@stats' => print_r($stats, TRUE)]);
+      
+      return $stats;
+      
     } catch (\Exception $e) {
       // Fallback if database query fails
-      return [
+      \Drupal::logger('amisafe')->error('Statistics query failed: @error', ['@error' => $e->getMessage()]);
+      
+      $fallback = [
         'total_citywide' => '3,406,192',
         'active_districts' => 25,
         'active_sectors' => 80,
         'visible_incidents' => 0,
       ];
+      
+      \Drupal::logger('amisafe')->info('Using fallback statistics: @stats', ['@stats' => print_r($fallback, TRUE)]);
+      
+      return $fallback;
     }
   }
 

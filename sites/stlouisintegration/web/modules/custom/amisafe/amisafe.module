@@ -34,6 +34,7 @@ function amisafe_theme() {
         'crime_types' => [],
         'districts' => [],
         'date_range' => NULL,
+        'citywide_stats' => [],
       ],
       'template' => 'amisafe-crime-map',
     ],
