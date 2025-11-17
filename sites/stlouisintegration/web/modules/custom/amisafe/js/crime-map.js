@@ -1152,30 +1152,11 @@
      */
     createHexagonTooltip: function(hexagon) {
       const incidentCount = hexagon.incident_count || hexagon.incidentCount || 0;
-      const crimeTypes = hexagon.incident_type_counts || hexagon.analytics?.crime_types || {};
-      
-      // Calculate violent vs nonviolent breakdown
-      const violentCodes = ['100', '200', '300', '400', '1400', '1500']; // Homicide, Rape, Robbery, Assault, Other Assault, Arson
-      let violentCount = 0;
-      let nonviolentCount = 0;
-      
-      Object.keys(crimeTypes).forEach(code => {
-        const count = crimeTypes[code] || 0;
-        if (violentCodes.includes(code)) {
-          violentCount += count;
-        } else {
-          nonviolentCount += count;
-        }
-      });
-      
-      const violentPercent = incidentCount > 0 ? ((violentCount / incidentCount) * 100).toFixed(1) : 0;
-      const nonviolentPercent = incidentCount > 0 ? ((nonviolentCount / incidentCount) * 100).toFixed(1) : 0;
       
       return `
         <div style="padding: 5px; min-width: 150px;">
           <strong style="color: #00ff41;">${incidentCount.toLocaleString()} Incidents</strong><br>
-          <span style="color: #ff4444;">⚠️ Violent: ${violentPercent}%</span><br>
-          <span style="color: #00bfff;">📋 Nonviolent: ${nonviolentPercent}%</span>
+          <span style="color: #888;">Crime breakdown unavailable</span>
         </div>
       `;
     },

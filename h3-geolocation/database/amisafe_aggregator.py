@@ -290,6 +290,7 @@ class AmISafeFinalLayerAggregator:
             SELECT 
                 incident_id,
                 ucr_general,
+                dc_dist,
                 incident_datetime,
                 lat,
                 lng,
@@ -338,7 +339,9 @@ class AmISafeFinalLayerAggregator:
             'date_range_start': None,
             'date_range_end': None,
             'data_freshness_days': None,
-            'aggregation_batch_id': None
+            'aggregation_batch_id': None,
+            'incident_type_counts': {},
+            'district_counts': {}
         }
         
         if not incidents:
@@ -346,6 +349,7 @@ class AmISafeFinalLayerAggregator:
             
         # Count crime types for top crime and diversity
         crime_counts = {}
+        district_counts = {}
         dates = []
         
         for incident in incidents:
@@ -353,6 +357,11 @@ class AmISafeFinalLayerAggregator:
             crime_type = incident.get('ucr_general')
             if crime_type:
                 crime_counts[crime_type] = crime_counts.get(crime_type, 0) + 1
+            
+            # District counting
+            district = incident.get('dc_dist')
+            if district:
+                district_counts[str(district)] = district_counts.get(str(district), 0) + 1
             
             # Temporal patterns
             hour = incident.get('hour_of_day')
@@ -370,6 +379,10 @@ class AmISafeFinalLayerAggregator:
             # Date tracking
             if incident.get('incident_date'):
                 dates.append(incident['incident_date'])
+        
+        # Store crime type and district counts
+        analytics['incident_type_counts'] = crime_counts
+        analytics['district_counts'] = district_counts
         
         # Calculate top crime type
         if crime_counts:
@@ -509,7 +522,9 @@ class AmISafeFinalLayerAggregator:
             # Calculate all analytics from in-memory data
             analytics = self.calculate_analytics_from_incidents(incidents, h3_index, resolution)
             
-            # Convert arrays to JSON strings for database storage
+            # Convert arrays and dicts to JSON strings for database storage
+            analytics['incident_type_counts'] = json.dumps(analytics['incident_type_counts'])
+            analytics['district_counts'] = json.dumps(analytics['district_counts'])
             analytics['incidents_by_hour'] = json.dumps(analytics['incidents_by_hour'])
             analytics['incidents_by_dow'] = json.dumps(analytics['incidents_by_dow'])
             analytics['incidents_by_month'] = json.dumps(analytics['incidents_by_month'])
@@ -566,6 +581,8 @@ class AmISafeFinalLayerAggregator:
                 # Update the record with analytics
                 update_query = """
                 UPDATE amisafe_h3_aggregated SET
+                    incident_type_counts = %s,
+                    district_counts = %s,
                     top_crime_type = %s,
                     crime_diversity_index = %s,
                     incidents_by_hour = %s,
@@ -583,6 +600,8 @@ class AmISafeFinalLayerAggregator:
                 """
                 
                 cursor.execute(update_query, (
+                    analytics['incident_type_counts'],
+                    analytics['district_counts'],
                     analytics['top_crime_type'],
                     analytics['crime_diversity_index'],
                     analytics['incidents_by_hour'],

@@ -323,6 +323,121 @@ create_final_layer_table() {
         is_empty BOOLEAN DEFAULT FALSE,        -- True if no incidents
         aggregation_batch_id VARCHAR(50),      -- Processing batch reference
         
+        -- ========================================
+        -- STATISTICAL ANALYTICS (FULL DATASET)
+        -- ========================================
+        
+        -- Violent Crime Statistics (All Time)
+        violent_crime_count INT DEFAULT 0,
+        violent_crime_percentage DECIMAL(5,2),
+        violent_crime_mean DECIMAL(10,2),           -- Mean across all hexes at this resolution
+        violent_crime_std_dev DECIMAL(10,2),        -- Standard deviation
+        violent_crime_z_score DECIMAL(6,3),         -- Z-score for this hex
+        violent_crime_percentile TINYINT,           -- Percentile rank (0-100)
+        
+        -- Non-Violent Crime Statistics (All Time)
+        nonviolent_crime_count INT DEFAULT 0,
+        nonviolent_crime_percentage DECIMAL(5,2),
+        nonviolent_crime_mean DECIMAL(10,2),
+        nonviolent_crime_std_dev DECIMAL(10,2),
+        nonviolent_crime_z_score DECIMAL(6,3),
+        nonviolent_crime_percentile TINYINT,
+        
+        -- Overall Incident Statistics (All Time)
+        incident_mean DECIMAL(10,2),                -- Mean for this resolution
+        incident_std_dev DECIMAL(10,2),             -- Std dev for this resolution
+        incident_z_score DECIMAL(6,3),              -- This hex vs all hexes
+        incident_percentile TINYINT,                -- 0-100 ranking
+        
+        -- Enhanced Risk Scoring (All Time)
+        risk_score DECIMAL(6,3),                    -- Composite risk based on z-scores
+        risk_category ENUM('LOW', 'MODERATE', 'HIGH', 'CRITICAL'),
+        hotspot_status ENUM('COLD', 'WARM', 'HOT', 'EXTREME'),
+        
+        -- ========================================
+        -- 12-MONTH ROLLING WINDOW STATISTICS
+        -- ========================================
+        
+        -- Core Metrics (Last 12 Months)
+        incident_count_12mo INT DEFAULT 0,
+        unique_incident_types_12mo INT DEFAULT 0,
+        incidents_by_hour_12mo JSON,                -- Hourly distribution [24 values]
+        incidents_by_dow_12mo JSON,                 -- Day of week [7 values]
+        incidents_by_month_12mo JSON,               -- Monthly distribution [12 values]
+        peak_hour_12mo TINYINT,
+        peak_dow_12mo TINYINT,
+        top_crime_type_12mo VARCHAR(10),
+        crime_diversity_index_12mo DECIMAL(3,2),
+        
+        -- Violent Crime Statistics (Last 12 Months)
+        violent_crime_count_12mo INT DEFAULT 0,
+        violent_crime_percentage_12mo DECIMAL(5,2),
+        violent_crime_mean_12mo DECIMAL(10,2),
+        violent_crime_std_dev_12mo DECIMAL(10,2),
+        violent_crime_z_score_12mo DECIMAL(6,3),
+        violent_crime_percentile_12mo TINYINT,
+        
+        -- Non-Violent Crime Statistics (Last 12 Months)
+        nonviolent_crime_count_12mo INT DEFAULT 0,
+        nonviolent_crime_percentage_12mo DECIMAL(5,2),
+        nonviolent_crime_mean_12mo DECIMAL(10,2),
+        nonviolent_crime_std_dev_12mo DECIMAL(10,2),
+        nonviolent_crime_z_score_12mo DECIMAL(6,3),
+        nonviolent_crime_percentile_12mo TINYINT,
+        
+        -- Overall Statistics (Last 12 Months)
+        incident_mean_12mo DECIMAL(10,2),
+        incident_std_dev_12mo DECIMAL(10,2),
+        incident_z_score_12mo DECIMAL(6,3),
+        incident_percentile_12mo TINYINT,
+        
+        -- Risk Scoring (Last 12 Months)
+        risk_score_12mo DECIMAL(6,3),
+        risk_category_12mo ENUM('LOW', 'MODERATE', 'HIGH', 'CRITICAL'),
+        hotspot_status_12mo ENUM('COLD', 'WARM', 'HOT', 'EXTREME'),
+        
+        -- ========================================
+        -- 6-MONTH ROLLING WINDOW STATISTICS
+        -- ========================================
+        
+        -- Core Metrics (Last 6 Months)
+        incident_count_6mo INT DEFAULT 0,
+        unique_incident_types_6mo INT DEFAULT 0,
+        incidents_by_hour_6mo JSON,                 -- Hourly distribution [24 values]
+        incidents_by_dow_6mo JSON,                  -- Day of week [7 values]
+        incidents_by_month_6mo JSON,                -- Monthly distribution [6 values]
+        peak_hour_6mo TINYINT,
+        peak_dow_6mo TINYINT,
+        top_crime_type_6mo VARCHAR(10),
+        crime_diversity_index_6mo DECIMAL(3,2),
+        
+        -- Violent Crime Statistics (Last 6 Months)
+        violent_crime_count_6mo INT DEFAULT 0,
+        violent_crime_percentage_6mo DECIMAL(5,2),
+        violent_crime_mean_6mo DECIMAL(10,2),
+        violent_crime_std_dev_6mo DECIMAL(10,2),
+        violent_crime_z_score_6mo DECIMAL(6,3),
+        violent_crime_percentile_6mo TINYINT,
+        
+        -- Non-Violent Crime Statistics (Last 6 Months)
+        nonviolent_crime_count_6mo INT DEFAULT 0,
+        nonviolent_crime_percentage_6mo DECIMAL(5,2),
+        nonviolent_crime_mean_6mo DECIMAL(10,2),
+        nonviolent_crime_std_dev_6mo DECIMAL(10,2),
+        nonviolent_crime_z_score_6mo DECIMAL(6,3),
+        nonviolent_crime_percentile_6mo TINYINT,
+        
+        -- Overall Statistics (Last 6 Months)
+        incident_mean_6mo DECIMAL(10,2),
+        incident_std_dev_6mo DECIMAL(10,2),
+        incident_z_score_6mo DECIMAL(6,3),
+        incident_percentile_6mo TINYINT,
+        
+        -- Risk Scoring (Last 6 Months)
+        risk_score_6mo DECIMAL(6,3),
+        risk_category_6mo ENUM('LOW', 'MODERATE', 'HIGH', 'CRITICAL'),
+        hotspot_status_6mo ENUM('COLD', 'WARM', 'HOT', 'EXTREME'),
+        
         -- Performance indexes optimized for aggregator queries and H3 hierarchical access
         UNIQUE KEY unique_h3_resolution (h3_index, h3_resolution),
         INDEX idx_resolution (h3_resolution),
@@ -334,9 +449,30 @@ create_final_layer_table() {
         INDEX idx_parent_child (h3_parent, h3_index),
         INDEX idx_severity (severity_avg),
         INDEX idx_empty_filter (is_empty, incident_count),
-        INDEX idx_resolution_count (h3_resolution, incident_count)
+        INDEX idx_resolution_count (h3_resolution, incident_count),
+        
+        -- Statistical analytics indexes for fast filtering
+        INDEX idx_violent_z_score (violent_crime_z_score),
+        INDEX idx_nonviolent_z_score (nonviolent_crime_z_score),
+        INDEX idx_incident_z_score (incident_z_score),
+        INDEX idx_risk_category (risk_category),
+        INDEX idx_hotspot_status (hotspot_status),
+        INDEX idx_violent_percentile (violent_crime_percentile),
+        INDEX idx_incident_percentile (incident_percentile),
+        
+        -- 12-month window indexes
+        INDEX idx_risk_category_12mo (risk_category_12mo),
+        INDEX idx_hotspot_status_12mo (hotspot_status_12mo),
+        INDEX idx_violent_z_score_12mo (violent_crime_z_score_12mo),
+        INDEX idx_incident_count_12mo (incident_count_12mo),
+        
+        -- 6-month window indexes
+        INDEX idx_risk_category_6mo (risk_category_6mo),
+        INDEX idx_hotspot_status_6mo (hotspot_status_6mo),
+        INDEX idx_violent_z_score_6mo (violent_crime_z_score_6mo),
+        INDEX idx_incident_count_6mo (incident_count_6mo)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    COMMENT='Final Layer (Gold): H3 aggregated analytics with full aggregator compatibility and enhanced reporting';
+    COMMENT='Final Layer (Gold): H3 aggregated analytics with statistical analysis (z-scores, percentiles, risk scoring) for full dataset, 12-month, and 6-month windows';
     "
     
     execute_sql "$sql" "H3 aggregated analytics table creation"
