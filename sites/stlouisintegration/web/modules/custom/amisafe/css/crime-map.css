@@ -1298,3 +1298,27 @@
     flex-direction: column;
   }
 }
+
+/* Leaflet Tooltip Styling for Hexagons and Incidents */
+.leaflet-tooltip.hexagon-tooltip,
+.leaflet-tooltip.incident-tooltip {
+  background: rgba(0, 0, 0, 0.95) !important;
+  border: 2px solid var(--neon-blue) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5) !important;
+  color: var(--neon-green) !important;
+  font-family: var(--terminal-font) !important;
+  font-size: 12px !important;
+  padding: 8px 12px !important;
+  white-space: nowrap !important;
+}
+
+.leaflet-tooltip.hexagon-tooltip::before,
+.leaflet-tooltip.incident-tooltip::before {
+  border-top-color: var(--neon-blue) !important;
+}
+
+.leaflet-tooltip.incident-tooltip {
+  border-color: var(--neon-orange) !important;
+  box-shadow: 0 0 15px rgba(255, 136, 0, 0.5) !important;
+}

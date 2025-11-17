@@ -923,7 +923,14 @@
             fillOpacity: 0.9
           });
           
-          // Add popup with incident details
+          // Add hover tooltip with brief incident details
+          marker.bindTooltip(this.createIncidentTooltip(incident), {
+            permanent: false,
+            direction: 'top',
+            className: 'incident-tooltip'
+          });
+          
+          // Add detailed popup on click
           if (!this.minimalMode) {
             marker.bindPopup(this.createIncidentPopup(incident));
           }
@@ -1031,7 +1038,15 @@
           // Create and add polygon to map
           const polygon = L.polygon(leafletCoords, style);
           
-          // Add popup only (no hover tooltip)
+          // Add hover tooltip with incident statistics
+          polygon.bindTooltip(this.createHexagonTooltip(hexagon), {
+            permanent: false,
+            sticky: true,
+            direction: 'top',
+            className: 'hexagon-tooltip'
+          });
+          
+          // Add detailed popup on click
           polygon.bindPopup(this.createHexagonPopup(hexagon));
           
           // Enhanced hover effects with visual feedback
@@ -1089,7 +1104,15 @@
         ...style
       });
       
-      // Add popup only for circles (no hover tooltip)
+      // Add hover tooltip
+      circle.bindTooltip(this.createHexagonTooltip(hexagon), {
+        permanent: false,
+        sticky: true,
+        direction: 'top',
+        className: 'hexagon-tooltip'
+      });
+      
+      // Add detailed popup on click
       circle.bindPopup(this.createHexagonPopup(hexagon));
       
       circle.addTo(this.hexagonLayer);
@@ -1114,7 +1137,68 @@
     },
 
     /**
-     * Create hover tooltip content for hexagon (compact format)
+     * Create hover tooltip for hexagon with incident statistics
+     */
+    createHexagonTooltip: function(hexagon) {
+      const incidentCount = hexagon.incident_count || hexagon.incidentCount || 0;
+      const crimeTypes = hexagon.incident_type_counts || hexagon.analytics?.crime_types || {};
+      
+      // Calculate violent vs nonviolent breakdown
+      const violentCodes = ['100', '200', '300', '400', '1400', '1500']; // Homicide, Rape, Robbery, Assault, Other Assault, Arson
+      let violentCount = 0;
+      let nonviolentCount = 0;
+      
+      Object.keys(crimeTypes).forEach(code => {
+        const count = crimeTypes[code] || 0;
+        if (violentCodes.includes(code)) {
+          violentCount += count;
+        } else {
+          nonviolentCount += count;
+        }
+      });
+      
+      const violentPercent = incidentCount > 0 ? ((violentCount / incidentCount) * 100).toFixed(1) : 0;
+      const nonviolentPercent = incidentCount > 0 ? ((nonviolentCount / incidentCount) * 100).toFixed(1) : 0;
+      
+      return `
+        <div style="padding: 5px; min-width: 150px;">
+          <strong style="color: #00ff41;">${incidentCount.toLocaleString()} Incidents</strong><br>
+          <span style="color: #ff4444;">⚠️ Violent: ${violentPercent}%</span><br>
+          <span style="color: #00bfff;">📋 Nonviolent: ${nonviolentPercent}%</span>
+        </div>
+      `;
+    },
+
+    /**
+     * Create hover tooltip for individual incident
+     */
+    createIncidentTooltip: function(incident) {
+      const type = incident.crime_type || incident.ucr_general || 'Unknown';
+      const datetime = incident.datetime || incident.incident_datetime || 'Unknown';
+      const district = incident.district || incident.dc_dist || 'Unknown';
+      
+      // Format datetime
+      let formattedDate = datetime;
+      if (datetime !== 'Unknown') {
+        try {
+          const date = new Date(datetime);
+          formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        } catch (e) {
+          // Use raw datetime if parsing fails
+        }
+      }
+      
+      return `
+        <div style="padding: 5px; min-width: 180px;">
+          <strong style="color: #00ff41;">Crime: ${this.getCrimeTypeName(type)}</strong><br>
+          <span>📅 ${formattedDate}</span><br>
+          <span>🏛️ District ${district}</span>
+        </div>
+      `;
+    },
+
+    /**
+     * Create hover tooltip content for hexagon (compact format) - DEPRECATED
      */
     createHoverTooltip: function(hexagon) {
       const incidentCount = hexagon.incident_count || hexagon.incidentCount || 0;
