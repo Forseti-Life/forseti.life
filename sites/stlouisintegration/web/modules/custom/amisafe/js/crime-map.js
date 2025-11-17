@@ -907,14 +907,25 @@
         this.incidentLayer.clearLayers();
       }
       
-      incidents.forEach((incident, index) => {
+      // Sort incidents by date (newest first) so recent incidents render on top
+      const sortedIncidents = [...incidents].sort((a, b) => {
+        const dateA = new Date(a.datetime || a.incident_datetime || 0);
+        const dateB = new Date(b.datetime || b.incident_datetime || 0);
+        return dateB - dateA; // Descending order (newest first)
+      });
+      
+      sortedIncidents.forEach((incident, index) => {
         // Try multiple coordinate field names
         const lat = incident.latitude || incident.lat || incident.point_y;
         const lng = incident.longitude || incident.lng || incident.point_x;
         
         if (lat && lng) {
+          // Add small random jitter to prevent exact overlapping (±0.00002 degrees ≈ ±2 meters)
+          const jitterLat = parseFloat(lat) + (Math.random() - 0.5) * 0.00004;
+          const jitterLng = parseFloat(lng) + (Math.random() - 0.5) * 0.00004;
+          
           // Create incident marker with larger, more visible styling
-          const marker = L.circleMarker([parseFloat(lat), parseFloat(lng)], {
+          const marker = L.circleMarker([jitterLat, jitterLng], {
             radius: 8, // Even larger for better visibility
             fillColor: this.getIncidentColor(incident.incident_type || incident.ucr_general),
             color: '#000000', // Black border for better contrast
