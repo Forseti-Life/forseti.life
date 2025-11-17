@@ -42,6 +42,12 @@ class ApiController extends ControllerBase {
     $page = $request->query->get('page', 0);
     $limit = min($request->query->get('limit', 1000), 5000); // Max 5000 records
 
+    // Add bounds to filters if provided
+    $bounds = $this->parseBounds($request);
+    if ($bounds) {
+      $filters['bounds'] = $bounds;
+    }
+
     try {
       $incidents = $this->crimeDataService->getIncidents($filters, $page, $limit);
       $total = $this->crimeDataService->getIncidentCount($filters);

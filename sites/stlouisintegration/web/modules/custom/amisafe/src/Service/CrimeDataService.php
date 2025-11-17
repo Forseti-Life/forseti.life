@@ -186,19 +186,8 @@ class CrimeDataService {
       $query = $database->select('amisafe_clean_incidents', 'ci');
       $query->addExpression('COUNT(*)', 'total_incidents');
       
-      // Apply filters if provided
-      if (!empty($filters['district'])) {
-        $query->condition('dc_dist', $filters['district']);
-      }
-      if (!empty($filters['date_from'])) {
-        $query->condition('incident_date', $filters['date_from'], '>=');
-      }
-      if (!empty($filters['date_to'])) {
-        $query->condition('incident_date', $filters['date_to'], '<=');
-      }
-      if (!empty($filters['crime_type'])) {
-        $query->condition('ucr_general', $filters['crime_type']);
-      }
+      // Apply all filters using the same method as getIncidents()
+      $this->applyFilters($query, $filters);
 
       $result = $query->execute()->fetchField();
       
@@ -429,6 +418,24 @@ class CrimeDataService {
           $query->condition('ucr_general', $max_ucr_codes, 'IN');
         }
       }
+    }
+    
+    // Geographic bounds filter for incident queries
+    if (!empty($filters['bounds'])) {
+      $bounds = $filters['bounds'];
+      // Latitude: south <= lat <= north
+      $query->condition('lat', $bounds['south'], '>=');
+      $query->condition('lat', $bounds['north'], '<=');
+      // Longitude: west <= lng <= east
+      $query->condition('lng', $bounds['west'], '>=');
+      $query->condition('lng', $bounds['east'], '<=');
+      
+      $this->logger->info('Applied bounds filter to incidents: N:@north E:@east S:@south W:@west', [
+        '@north' => $bounds['north'],
+        '@east' => $bounds['east'], 
+        '@south' => $bounds['south'],
+        '@west' => $bounds['west']
+      ]);
     }
   }
 

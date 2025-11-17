@@ -129,7 +129,7 @@
         className: 'dark-tiles'
       }).addTo(this.map);
 
-      // Initialize layers
+      // Initialize layers (incident layer on top)
       this.hexagonLayer = L.layerGroup().addTo(this.map);
       this.incidentLayer = L.layerGroup().addTo(this.map); // For individual incident points
       
@@ -692,9 +692,9 @@
         return;
       }
       
-      // Check if we should render individual incidents (Resolution 10+)
+      // Check if we should render individual incidents (Resolution 13+ only - ultra-precision zoom)
       const currentResolution = this.getOptimalResolution(this.map.getZoom());
-      const shouldShowIncidents = currentResolution >= 10;
+      const shouldShowIncidents = currentResolution >= 13;
       
       // Track hexagon bounds to fit map view
       const allBounds = L.latLngBounds();
@@ -714,10 +714,10 @@
       // Update visible incidents count based on rendered hexagons
       this.updateVisibleIncidentsCount(data.hexagons);
       
-      // Load individual incidents for high-resolution views
+      // Load individual incidents for ultra-precision views (Resolution 13+ only)
       if (shouldShowIncidents && successfulHexagons > 0) {
-        console.log(`🔍 Loading individual incidents for Resolution ${currentResolution}`);
-        this.loadIncidentPoints(data.hexagons);
+        console.log(`🔍 Loading individual incidents for Resolution ${currentResolution} (ultra-precision)`);
+        this.loadIncidentPointsForVisibleHexagons(data.hexagons);
       }
       
       // Fit map to show all hexagons only when appropriate (not during user panning)
@@ -741,7 +741,121 @@
     },
 
     /**
-     * Load and render individual incident points for high-resolution views
+     * Load and render individual incident points using bounds approach (Resolution 13+ ultra-precision)
+     */
+    loadIncidentPointsForVisibleHexagons: function(hexagons) {
+      console.log(`🔍 Loading incidents using bounds approach at Resolution 13+`);
+      
+      // Use current map bounds for incident loading
+      const bounds = this.map.getBounds();
+      
+      // Build API request with current map bounds - use only bounds parameter
+      const params = new URLSearchParams({
+        limit: 1000, // Limit for ultra-precision views
+        format: 'json'
+      });
+      
+      console.log('🔍 Fetching incidents for bounds:', {
+        south: bounds.getSouth(),
+        north: bounds.getNorth(), 
+        west: bounds.getWest(),
+        east: bounds.getEast()
+      });
+      
+      // Calculate actual area being queried
+      const latDiff = bounds.getNorth() - bounds.getSouth();
+      const lngDiff = bounds.getEast() - bounds.getWest();
+      console.log('📐 Bounds dimensions:', {
+        latDiff: latDiff,
+        lngDiff: lngDiff,
+        areaKm2: (latDiff * 111) * (lngDiff * 111 * Math.cos(bounds.getCenter().lat * Math.PI / 180))
+      });
+      
+      // Add current filters
+      if (this.currentFilters.crimeTypes && this.currentFilters.crimeTypes.length > 0) {
+        params.append('crime_types', this.currentFilters.crimeTypes.join(','));
+      }
+      if (this.currentFilters.districts && this.currentFilters.districts.length > 0) {
+        params.append('districts', this.currentFilters.districts.join(','));
+      }
+      if (this.currentFilters.startDate) {
+        params.append('start_date', this.currentFilters.startDate);
+      }
+      if (this.currentFilters.endDate) {
+        params.append('end_date', this.currentFilters.endDate);
+      }
+      
+      // Remove individual coordinate parameters and only use bounds string
+      params.delete('minLat');
+      params.delete('maxLat');
+      params.delete('minLng');
+      params.delete('maxLng');
+      
+      // Add bounds parameter in the format expected by the API
+      const boundsStr = `${bounds.getNorth()},${bounds.getEast()},${bounds.getSouth()},${bounds.getWest()}`;
+      params.set('bounds', boundsStr);
+      
+      const apiUrl = `/api/amisafe/incidents?${params.toString()}`;
+      console.log('🔗 Incidents API URL:', apiUrl);
+      console.log('📍 Bounds string:', boundsStr);
+      console.log('🔍 API should filter to bounds:', {
+        north: bounds.getNorth(),
+        east: bounds.getEast(), 
+        south: bounds.getSouth(),
+        west: bounds.getWest()
+      });
+      
+      fetch(apiUrl)
+        .then(response => {
+          console.log('📡 Incident API response status:', response.status);
+          return response.json();
+        })
+        .then(data => {
+          console.log('📊 Full incident API response:', data);
+          console.log('🔢 Incident count from API:', data.incidents ? data.incidents.length : 0);
+          
+          if (data.incidents && data.incidents.length > 0) {
+            console.log('🔍 Sample incident data:', data.incidents.slice(0, 3));
+            
+            // Check if incidents are actually within our tight bounds
+            const withinBounds = data.incidents.filter(incident => {
+              const lat = parseFloat(incident.latitude || incident.lat || incident.point_y);
+              const lng = parseFloat(incident.longitude || incident.lng || incident.point_x);
+              return lat >= bounds.getSouth() && lat <= bounds.getNorth() && 
+                     lng >= bounds.getWest() && lng <= bounds.getEast();
+            });
+            
+            console.log('🎯 Incidents actually within tight bounds:', withinBounds.length);
+            console.log('⚠️ Incidents outside bounds:', data.incidents.length - withinBounds.length);
+            
+            if (withinBounds.length !== data.incidents.length) {
+              console.log('🔍 Sample out-of-bounds incident:', 
+                data.incidents.find(incident => {
+                  const lat = parseFloat(incident.latitude || incident.lat || incident.point_y);
+                  const lng = parseFloat(incident.longitude || incident.lng || incident.point_x);
+                  return !(lat >= bounds.getSouth() && lat <= bounds.getNorth() && 
+                          lng >= bounds.getWest() && lng <= bounds.getEast());
+                })
+              );
+            }
+            
+            // Only render incidents that are actually within bounds
+            this.renderIncidentPoints(withinBounds);
+            console.log(`📍 Rendered ${withinBounds.length}/${data.incidents.length} incidents (filtered to bounds)`);
+          } else {
+            console.log('📍 No incidents found for current map bounds');
+            console.log('🔍 API response structure:', Object.keys(data));
+          }
+        })
+        .catch(error => {
+          console.error('Error loading incidents:', error);
+        });
+    },
+
+
+
+    /**
+     * Load and render individual incident points for high-resolution views (DEPRECATED - use loadIncidentPointsForVisibleHexagons)
      */
     loadIncidentPoints: function(hexagons) {
       // Get the current map bounds to limit incident queries
@@ -783,16 +897,30 @@
      * Render individual incident points on the map
      */
     renderIncidentPoints: function(incidents) {
-      incidents.forEach(incident => {
-        if (incident.lat && incident.lng) {
-          // Create incident marker
-          const marker = L.circleMarker([incident.lat, incident.lng], {
-            radius: 3,
-            fillColor: this.getIncidentColor(incident.incident_type),
-            color: '#ffffff',
-            weight: 1,
-            opacity: 0.8,
-            fillOpacity: 0.6
+      let renderedCount = 0;
+      let skippedCount = 0;
+      
+      console.log('🎯 Starting to render incidents:', incidents.length);
+      
+      // Clear existing incident markers
+      if (this.incidentLayer) {
+        this.incidentLayer.clearLayers();
+      }
+      
+      incidents.forEach((incident, index) => {
+        // Try multiple coordinate field names
+        const lat = incident.latitude || incident.lat || incident.point_y;
+        const lng = incident.longitude || incident.lng || incident.point_x;
+        
+        if (lat && lng) {
+          // Create incident marker with larger, more visible styling
+          const marker = L.circleMarker([parseFloat(lat), parseFloat(lng)], {
+            radius: 8, // Even larger for better visibility
+            fillColor: this.getIncidentColor(incident.incident_type || incident.ucr_general),
+            color: '#000000', // Black border for better contrast
+            weight: 2,
+            opacity: 1.0,
+            fillOpacity: 0.9
           });
           
           // Add popup with incident details
@@ -801,8 +929,19 @@
           }
           
           marker.addTo(this.incidentLayer);
+          renderedCount++;
+        } else {
+          skippedCount++;
+          if (index < 5) { // Log first few problematic incidents
+            console.log('❌ Skipped incident (no coordinates):', incident);
+          }
         }
       });
+      
+      console.log(`✅ Incident rendering complete: ${renderedCount} rendered, ${skippedCount} skipped`);
+      
+      // LayerGroups don't have bringToFront() - layer order is determined by add order
+      console.log('📍 Incident markers added to incident layer');
     },
 
     /**
@@ -833,10 +972,11 @@
      * Create popup content for individual incidents
      */
     createIncidentPopup: function(incident) {
-      const date = incident.incident_date ? new Date(incident.incident_date).toLocaleDateString() : 'Unknown';
-      const time = incident.incident_time || 'Unknown';
-      const type = incident.incident_type || 'Unknown';
-      const location = incident.location_block || 'Unknown location';
+      const date = incident.incident_date || incident.dispatch_date ? 
+        new Date(incident.incident_date || incident.dispatch_date).toLocaleDateString() : 'Unknown';
+      const time = incident.incident_time || incident.dispatch_time || 'Unknown';
+      const type = incident.incident_type || incident.ucr_general || incident.text_general_code || 'Unknown';
+      const location = incident.location_block || incident.block_number || incident.location || 'Unknown location';
       
       return `
         <div class="incident-popup">
@@ -891,14 +1031,8 @@
           // Create and add polygon to map
           const polygon = L.polygon(leafletCoords, style);
           
-          // Always add comprehensive popup and hover tooltip
+          // Add popup only (no hover tooltip)
           polygon.bindPopup(this.createHexagonPopup(hexagon));
-          polygon.bindTooltip(this.createHoverTooltip(hexagon), {
-            permanent: false,
-            direction: 'top',
-            offset: [0, -10],
-            className: 'hexagon-tooltip'
-          });
           
           // Enhanced hover effects with visual feedback
           polygon.on('mouseover', function(e) {
@@ -955,14 +1089,8 @@
         ...style
       });
       
-      // Always add popup and hover tooltip for circles too
+      // Add popup only for circles (no hover tooltip)
       circle.bindPopup(this.createHexagonPopup(hexagon));
-      circle.bindTooltip(this.createHoverTooltip(hexagon), {
-        permanent: false,
-        direction: 'top',
-        offset: [0, -10],
-        className: 'hexagon-tooltip'
-      });
       
       circle.addTo(this.hexagonLayer);
       return circle; // Return circle for bounds tracking
@@ -1622,10 +1750,10 @@
       const bounds = this.map.getBounds();
       const zoom = this.map.getZoom();
       
-      // Only load individual points at high zoom levels
-      if (zoom < 12) {
+      // Only load individual points at ultra-precision zoom levels (19+)
+      if (zoom < 19) {
         this.hideLoading();
-        console.log('📍 Zoom too low for individual points, showing aggregated data instead');
+        console.log('📍 Zoom too low for individual points (requires zoom 19+), showing aggregated data instead');
         this.switchViewMode('hexagon');
         return;
       }
