@@ -348,7 +348,7 @@ def main():
     parser.add_argument('--mysql-host', default='127.0.0.1', help='MySQL host')
     parser.add_argument('--mysql-user', default='drupal_user', help='MySQL user')
     parser.add_argument('--mysql-password', default='drupal_secure_password', help='MySQL password')
-    parser.add_argument('--mysql-database', default='theoryofconspiracies_dev', help='MySQL database')
+    parser.add_argument('--mysql-database', default='amisafe_database', help='MySQL database')
     parser.add_argument('--status', action='store_true', help='Show processing status')
     
     args = parser.parse_args()

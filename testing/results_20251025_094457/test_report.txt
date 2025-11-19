@@ -1,5 +1,0 @@
-=== THEORY OF CONSPIRACIES SITE TEST REPORT ===
-Generated: Sat Oct 25 09:44:57 UTC 2025
-Base URL: http://localhost:8080
-
-FAILED TO LOAD: Home Page (/)

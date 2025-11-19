@@ -156,30 +156,30 @@ if command -v php &> /dev/null; then
     print_status "PHP $PHP_VERSION is installed"
     
     # Check if PHP version is 8.1 or higher
-    if php -r "exit(version_compare(PHP_VERSION, '8.3.0', '>=') ? 0 : 1);"; then
-        print_status "PHP $PHP_VERSION meets Drupal 11.2.5 requirements (8.3+)"
+    if php -r "exit(version_compare(PHP_VERSION, '8.1.0', '>=') ? 0 : 1);"; then
+        print_status "PHP $PHP_VERSION meets Drupal 11 requirements (8.1+)"
     else
-        print_error "PHP 8.3 or higher is required for Drupal 11.2.5. Current version: $PHP_VERSION"
-        print_status "Installing PHP 8.3..."
-        sudo apt install -y software-properties-common
-        sudo add-apt-repository ppa:ondrej/php -y
-        sudo apt update
-        sudo apt install -y php8.3 php8.3-cli php8.3-fpm
+        print_error "PHP 8.1 or higher is required for Drupal 11. Current version: $PHP_VERSION"
+        print_status "Installing PHP from Debian repos..."
+        # PPA method commented out - using native Debian packages
+        # sudo apt install -y software-properties-common
+        # sudo add-apt-repository ppa:ondrej/php -y
+        # sudo apt update
+        sudo apt install -y php php-cli php-fpm
     fi
 else
-    print_status "Installing PHP 8.3..."
-    sudo apt install -y software-properties-common
-    sudo add-apt-repository ppa:ondrej/php -y
-    sudo apt update
-    sudo apt install -y php8.3 php8.3-cli php8.3-fpm
+    print_status "Installing PHP from Debian repos..."
+    # PPA method commented out - using native Debian packages
+    # sudo apt install -y software-properties-common
+    # sudo add-apt-repository ppa:ondrej/php -y
+    # sudo apt update
+    sudo apt install -y php php-cli php-fpm
 fi
 
-# Ensure PHP 8.3 is installed regardless of system PHP version
-print_status "Ensuring PHP 8.3 is properly installed..."
-if ! dpkg -l | grep -q "^ii.*php8.3"; then
-    print_status "Installing PHP 8.3 packages..."
-    sudo apt install -y php8.3 php8.3-cli php8.3-fpm
-fi
+# Ensure latest PHP version is available (using Debian repos)
+print_status "Ensuring PHP is properly installed..."
+PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;")
+PHP_PACKAGE_PREFIX="php${PHP_VERSION}"
 
 # Install required PHP extensions
 print_status "Checking PHP extensions..."
@@ -187,8 +187,8 @@ REQUIRED_EXTENSIONS=("gd" "xml" "mbstring" "curl" "zip" "bcmath" "json" "tokeniz
 MISSING_EXTENSIONS=()
 
 for ext in "${REQUIRED_EXTENSIONS[@]}"; do
-    if ! /usr/bin/php8.3 -m | grep -q "^$ext$"; then
-        MISSING_EXTENSIONS+=("php8.3-$ext")
+    if ! php -m | grep -q "^$ext$"; then
+        MISSING_EXTENSIONS+=("${PHP_PACKAGE_PREFIX}-$ext")
         print_warning "PHP extension '$ext' is missing"
     else
         print_status "PHP extension '$ext' is already installed"
@@ -196,16 +196,16 @@ for ext in "${REQUIRED_EXTENSIONS[@]}"; do
 done
 
 # Check MySQL extensions
-if ! /usr/bin/php8.3 -m | grep -qE "^(mysqli|pdo_mysql|mysqlnd)$"; then
-    MISSING_EXTENSIONS+=("php8.3-mysql")
+if ! php -m | grep -qE "^(mysqli|pdo_mysql|mysqlnd)$"; then
+    MISSING_EXTENSIONS+=("${PHP_PACKAGE_PREFIX}-mysql")
     print_warning "PHP MySQL extension is missing"
 else
     print_status "PHP MySQL extension is already installed"
 fi
 
 # Check OPcache
-if ! /usr/bin/php8.3 -m | grep -qi "opcache"; then
-    MISSING_EXTENSIONS+=("php8.3-opcache")
+if ! php -m | grep -qi "opcache"; then
+    MISSING_EXTENSIONS+=("${PHP_PACKAGE_PREFIX}-opcache")
     print_warning "PHP OPcache extension is missing"
 else
     print_status "PHP OPcache extension is already installed"
@@ -218,7 +218,7 @@ fi
 
 # Ensure critical extensions are installed
 print_status "Ensuring critical PHP extensions are properly installed..."
-CRITICAL_EXTENSIONS=("php8.3-xml" "php8.3-mysql")
+CRITICAL_EXTENSIONS=("${PHP_PACKAGE_PREFIX}-xml" "${PHP_PACKAGE_PREFIX}-mysql")
 for ext_package in "${CRITICAL_EXTENSIONS[@]}"; do
     if ! dpkg -l | grep -q "^ii.*$ext_package"; then
         print_status "Installing critical extension: $ext_package"
@@ -232,14 +232,14 @@ if command -v composer &> /dev/null; then
     print_status "Composer is already installed: $(composer --version)"
 else
     print_status "Installing Composer..."
-    curl -sS https://getcomposer.org/installer | /usr/bin/php8.3
+    curl -sS https://getcomposer.org/installer | php
     sudo mv composer.phar /usr/local/bin/composer
     sudo chmod +x /usr/local/bin/composer
 fi
 
-# Verify Composer works with PHP 8.3
-print_status "Verifying Composer with PHP 8.3..."
-/usr/bin/php8.3 /usr/local/bin/composer --version || print_error "Composer PHP 8.3 verification failed"
+# Verify Composer works with installed PHP
+print_status "Verifying Composer..."
+php /usr/local/bin/composer --version || print_error "Composer verification failed"
 
 # Install MySQL/MariaDB
 print_status "Checking MySQL/MariaDB installation..."
@@ -261,91 +261,45 @@ else
     sudo a2enmod rewrite
 fi
 
-# Configure Apache PHP 8.3 module
-print_status "Configuring Apache PHP 8.3 module..."
+# Configure Apache PHP module
+PHP_VERSION=$(php -r "echo PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;")
+print_status "Configuring Apache PHP ${PHP_VERSION} module..."
 
-# Disable conflicting PHP modules
-for php_ver in 7.4 8.0 8.1 8.2; do
-    if sudo a2query -m php$php_ver 2>/dev/null; then
-        print_status "Disabling PHP $php_ver module..."
-        sudo a2dismod php$php_ver 2>/dev/null || true
-    fi
-done
-
-# Install and enable PHP 8.3 module for Apache
-if ! dpkg -l | grep -q "^ii.*libapache2-mod-php8.3"; then
-    print_status "Installing Apache PHP 8.3 module..."
-    sudo apt install -y libapache2-mod-php8.3
+# Ensure Apache PHP module is enabled
+if ! sudo a2query -m php${PHP_VERSION} 2>/dev/null; then
+    print_status "Enabling PHP ${PHP_VERSION} module for Apache..."
+    sudo a2enmod php${PHP_VERSION} 2>/dev/null || true
 fi
 
-print_status "Enabling PHP 8.3 module for Apache..."
-sudo a2enmod php8.3
-
-# Configure PHP 8.3 as default system PHP
-print_status "Configuring PHP 8.3 as default system PHP..."
-sudo update-alternatives --install /usr/bin/php php /usr/bin/php8.3 83 || true
-
 # Update PATH to prioritize system PHP over codespace PHP (critical for Codespaces)
-print_status "Updating PATH to prioritize system PHP 8.3..."
+print_status "Updating PATH to prioritize system PHP ${PHP_VERSION}..."
 export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"
 
 # Make PATH change permanent for Codespaces environment
 # Create a custom profile script that loads before Codespace defaults
-sudo bash -c 'cat > /etc/profile.d/99-php83-priority.sh << "EOF"
+sudo bash -c 'cat > /etc/profile.d/99-php-priority.sh << "EOF"
 #!/bin/bash
-# Ensure PHP 8.3 takes priority over Codespace PHP
+# Ensure system PHP takes priority over Codespace PHP
 export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"
 EOF'
-sudo chmod +x /etc/profile.d/99-php83-priority.sh
-print_status "Created system-wide PHP 8.3 priority profile script"
+sudo chmod +x /etc/profile.d/99-php-priority.sh
+print_status "Created system-wide PHP priority profile script"
 
 # Also update .bashrc for interactive sessions
 if ! grep -q 'export PATH="/usr/bin:/usr/sbin' ~/.bashrc; then
     echo '' >> ~/.bashrc
-    echo '# PHP 8.3 Priority - Must be at the end to override Codespace defaults' >> ~/.bashrc
-    echo 'export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"  # Prioritize system PHP 8.3' >> ~/.bashrc
+    echo '# System PHP Priority - Must be at the end to override Codespace defaults' >> ~/.bashrc
+    echo 'export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"  # Prioritize system PHP' >> ~/.bashrc
     print_status "Added PATH configuration to ~/.bashrc"
 fi
 
-# Create a wrapper script to ensure PHP 8.3 is used
-sudo bash -c 'cat > /usr/local/bin/php83-wrapper << "EOF"
-#!/bin/bash
-# Force PHP 8.3 usage regardless of PATH
-exec /usr/bin/php8.3 "$@"
-EOF'
-sudo chmod +x /usr/local/bin/php83-wrapper
-print_status "Created PHP 8.3 wrapper script"
-
-# Create a permanent shell function for PHP 8.3 Composer
-if ! grep -q "composer8.3" ~/.bashrc; then
-    echo 'alias composer8.3="/usr/bin/php8.3 /usr/local/bin/composer"' >> ~/.bashrc
-    print_status "Added PHP 8.3 Composer alias"
-fi
-
-# Reload Apache to use PHP 8.3
-print_status "Reloading Apache to use PHP 8.3..."
+# Reload Apache to use current PHP version
+print_status "Reloading Apache to use PHP ${PHP_VERSION}..."
 sudo service apache2 reload || true
 
-# Verify PHP version is correct (force system PHP)
-PHP_VERSION_CHECK=$(/usr/bin/php8.3 --version | head -n1)
+# Verify PHP version
 SYSTEM_PHP_VERSION=$(php --version | head -n1)
-print_status "System PHP 8.3 version: $PHP_VERSION_CHECK"
 print_status "Current default PHP version: $SYSTEM_PHP_VERSION"
-
-# Force update alternatives to ensure PHP 8.3 is default
-sudo update-alternatives --install /usr/bin/php php /usr/bin/php8.3 100
-sudo update-alternatives --set php /usr/bin/php8.3
-
-# Verify after update-alternatives
-UPDATED_PHP_VERSION=$(php --version | head -n1)
-print_status "Updated default PHP version: $UPDATED_PHP_VERSION"
-
-if echo "$UPDATED_PHP_VERSION" | grep -q "PHP 8\.3"; then
-    print_status "✅ PHP 8.3 is correctly configured as default"
-else
-    print_warning "⚠️  PHP version configuration needs manual intervention"
-    print_warning "Current: $(which php) -> $(readlink -f $(which php))"
-fi
 
 # Install Git
 print_status "Checking Git installation..."

@@ -1,0 +1,31 @@
+Collecting h3==4.3.1
+  Downloading h3-4.3.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (18 kB)
+Collecting pandas
+  Downloading pandas-2.3.3-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (91 kB)
+Collecting numpy
+  Downloading numpy-2.3.5-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (62 kB)
+Collecting mysql-connector-python
+  Downloading mysql_connector_python-9.5.0-cp311-cp311-manylinux_2_28_x86_64.whl.metadata (7.3 kB)
+Collecting python-dateutil>=2.8.2 (from pandas)
+  Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Collecting pytz>=2020.1 (from pandas)
+  Downloading pytz-2025.2-py2.py3-none-any.whl.metadata (22 kB)
+Collecting tzdata>=2022.7 (from pandas)
+  Downloading tzdata-2025.2-py2.py3-none-any.whl.metadata (1.4 kB)
+Collecting six>=1.5 (from python-dateutil>=2.8.2->pandas)
+  Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Downloading h3-4.3.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━ 1.0/1.0 MB 4.3 MB/s  0:00:00
+Downloading pandas-2.3.3-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (12.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━ 12.8/12.8 MB 5.9 MB/s  0:00:02
+Downloading numpy-2.3.5-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━ 16.9/16.9 MB 4.7 MB/s  0:00:03
+Downloading mysql_connector_python-9.5.0-cp311-cp311-manylinux_2_28_x86_64.whl (34.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━ 34.1/34.1 MB 4.9 MB/s  0:00:06
+Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Downloading pytz-2025.2-py2.py3-none-any.whl (509 kB)
+Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+Downloading tzdata-2025.2-py2.py3-none-any.whl (347 kB)
+Installing collected packages: pytz, tzdata, six, numpy, mysql-connector-python, h3, python-dateutil, pandas
+
+Successfully installed h3-4.3.1 mysql-connector-python-9.5.0 numpy-2.3.5 pandas-2.3.3 python-dateutil-2.9.0.post0 pytz-2025.2 six-1.17.0 tzdata-2025.2

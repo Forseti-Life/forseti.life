@@ -95,13 +95,13 @@ execute_sql() {
 check_prerequisites() {
     print_section "Checking Prerequisites"
     
-    # Check if MySQL is running
-    if ! pgrep -x mysqld > /dev/null; then
-        print_error "MySQL is not running. Please start MySQL first."
+    # Check if MySQL/MariaDB is running
+    if ! pgrep -x mysqld > /dev/null && ! pgrep -x mariadbd > /dev/null; then
+        print_error "MySQL/MariaDB is not running. Please start MySQL first."
         print_info "Run: sudo service mysql start"
         exit 1
     fi
-    print_success "MySQL service is running"
+    print_success "MySQL/MariaDB service is running"
     
     # Test database connection
     if ! mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASSWORD" -e "SELECT 1;" >/dev/null 2>&1; then

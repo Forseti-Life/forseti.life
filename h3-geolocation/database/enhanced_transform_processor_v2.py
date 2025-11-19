@@ -637,6 +637,96 @@ class EnhancedTransformProcessor:
             self.processing_stats['processing_errors'].append(f"insert_clean_records: {str(e)}")
             return 0
     
+    def drop_indexes_for_bulk_load(self, connection) -> List[str]:
+        """Drop non-unique indexes to speed up bulk loading. Returns list of dropped indexes."""
+        self.logger.info("🔧 Dropping indexes for faster bulk loading...")
+        dropped_indexes = []
+        
+        try:
+            cursor = connection.cursor()
+            
+            # Get all indexes except PRIMARY and unique constraints
+            cursor.execute("""
+                SELECT DISTINCT INDEX_NAME 
+                FROM INFORMATION_SCHEMA.STATISTICS 
+                WHERE TABLE_SCHEMA = %s 
+                AND TABLE_NAME = 'amisafe_clean_incidents'
+                AND NON_UNIQUE = 1
+                AND INDEX_NAME NOT IN ('PRIMARY')
+            """, (self.mysql_config['database'],))
+            
+            indexes = [row[0] for row in cursor.fetchall()]
+            
+            if indexes:
+                # Drop all non-unique indexes
+                for index_name in indexes:
+                    try:
+                        cursor.execute(f"ALTER TABLE amisafe_clean_incidents DROP INDEX {index_name}")
+                        dropped_indexes.append(index_name)
+                        self.logger.info(f"   ✓ Dropped index: {index_name}")
+                    except Error as e:
+                        self.logger.warning(f"   ⚠ Could not drop index {index_name}: {e}")
+                
+                connection.commit()
+                self.logger.info(f"✅ Dropped {len(dropped_indexes)} indexes for bulk loading")
+            else:
+                self.logger.info("✅ No indexes to drop (may already be dropped)")
+            
+            cursor.close()
+        except Error as e:
+            self.logger.error(f"Error dropping indexes: {e}")
+        
+        return dropped_indexes
+    
+    def rebuild_indexes(self, connection) -> bool:
+        """Rebuild all indexes after bulk loading completes."""
+        self.logger.info("🔧 Rebuilding indexes after bulk load...")
+        
+        try:
+            cursor = connection.cursor()
+            
+            # Define indexes to rebuild
+            indexes = [
+                "CREATE INDEX idx_batch ON amisafe_clean_incidents(processing_batch_id)",
+                "CREATE INDEX idx_crime_type ON amisafe_clean_incidents(ucr_general, crime_category)",
+                "CREATE INDEX idx_datetime ON amisafe_clean_incidents(incident_datetime)",
+                "CREATE INDEX idx_district ON amisafe_clean_incidents(dc_dist, psa)",
+                "CREATE INDEX idx_h3_res5 ON amisafe_clean_incidents(h3_res_5)",
+                "CREATE INDEX idx_h3_res6 ON amisafe_clean_incidents(h3_res_6)",
+                "CREATE INDEX idx_h3_res7 ON amisafe_clean_incidents(h3_res_7)",
+                "CREATE INDEX idx_h3_res8 ON amisafe_clean_incidents(h3_res_8)",
+                "CREATE INDEX idx_h3_res9 ON amisafe_clean_incidents(h3_res_9)",
+                "CREATE INDEX idx_h3_res10 ON amisafe_clean_incidents(h3_res_10)",
+                "CREATE INDEX idx_h3_res11 ON amisafe_clean_incidents(h3_res_11)",
+                "CREATE INDEX idx_h3_res12 ON amisafe_clean_incidents(h3_res_12)",
+                "CREATE INDEX idx_h3_res13 ON amisafe_clean_incidents(h3_res_13)",
+                "CREATE INDEX idx_location ON amisafe_clean_incidents(lat, lng)",
+                "CREATE INDEX idx_quality ON amisafe_clean_incidents(data_quality_score, coordinate_quality)"
+            ]
+            
+            rebuild_start = datetime.now()
+            for i, index_sql in enumerate(indexes, 1):
+                index_name = index_sql.split()[2]  # Extract index name
+                try:
+                    self.logger.info(f"   Creating index {i}/{len(indexes)}: {index_name}...")
+                    cursor.execute(index_sql)
+                    self.logger.info(f"   ✓ Created index: {index_name}")
+                except Error as e:
+                    if "Duplicate key name" in str(e):
+                        self.logger.info(f"   ⚠ Index {index_name} already exists")
+                    else:
+                        self.logger.warning(f"   ⚠ Could not create index {index_name}: {e}")
+            
+            connection.commit()
+            rebuild_duration = (datetime.now() - rebuild_start).total_seconds()
+            self.logger.info(f"✅ Rebuilt {len(indexes)} indexes in {rebuild_duration:.1f} seconds")
+            cursor.close()
+            return True
+            
+        except Error as e:
+            self.logger.error(f"Error rebuilding indexes: {e}")
+            return False
+    
     def continue_processing(self, batch_size: int = 50000) -> Dict:
         """Continue processing from where it left off."""
         self.logger.info("🔄 Starting enhanced transform processing (continue mode)...")
@@ -649,6 +739,9 @@ class EnhancedTransformProcessor:
         connection = None
         try:
             connection = self.connect_to_mysql()
+            
+            # Drop indexes for faster bulk loading
+            self.drop_indexes_for_bulk_load(connection)
             
             # Get current processing status
             status = self.get_processing_status()
@@ -759,7 +852,10 @@ class EnhancedTransformProcessor:
             self.processing_stats['processing_errors'].append(f"main_processing: {str(e)}")
             raise
         finally:
+            # Rebuild indexes before closing connection
             if connection and connection.is_connected():
+                self.logger.info("🏁 Processing complete, rebuilding indexes...")
+                self.rebuild_indexes(connection)
                 connection.close()
         
         self.processing_stats['end_time'] = datetime.now()
