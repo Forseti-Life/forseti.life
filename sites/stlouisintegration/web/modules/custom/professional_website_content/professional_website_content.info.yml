@@ -12,3 +12,7 @@ dependencies:
   - drupal:image
   - drupal:link
   - drupal:menu_ui
+  - drupal:rest
+  - drupal:serialization
+  - drupal:basic_auth
+  - drupal:jsonapi

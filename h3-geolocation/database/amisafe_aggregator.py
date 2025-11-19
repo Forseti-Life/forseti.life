@@ -598,14 +598,37 @@ class AmISafeFinalLayerAggregator:
         cursor = connection.cursor()
         
         try:
-            # Get all H3 indices for this resolution
+            # First check if this resolution is already complete
             cursor.execute("""
-            SELECT h3_index FROM amisafe_h3_aggregated 
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN crime_diversity_index IS NOT NULL THEN 1 ELSE 0 END) as completed
+            FROM amisafe_h3_aggregated 
             WHERE h3_resolution = %s
             """, (resolution,))
             
+            stats = cursor.fetchone()
+            total_hexes = stats[0]
+            completed_hexes = stats[1]
+            
+            if completed_hexes == total_hexes and total_hexes > 0:
+                self.logger.info(f"✅ Resolution {resolution} already has complete analytics ({completed_hexes}/{total_hexes}), skipping...")
+                return
+            
+            self.logger.info(f"📊 Resolution {resolution}: {completed_hexes}/{total_hexes} already complete, processing remaining {total_hexes - completed_hexes}...")
+            
+            # Get only H3 indices that need analytics (where crime_diversity_index is NULL)
+            cursor.execute("""
+            SELECT h3_index FROM amisafe_h3_aggregated 
+            WHERE h3_resolution = %s AND crime_diversity_index IS NULL
+            """, (resolution,))
+            
             h3_indices = [row[0] for row in cursor.fetchall()]
-            total_hexes = len(h3_indices)
+            remaining_hexes = len(h3_indices)
+            
+            if remaining_hexes == 0:
+                self.logger.info(f"✅ No remaining hexagons to process for resolution {resolution}")
+                return
             
             self.logger.info(f"Pass 1/2: Collecting basic statistics for {total_hexes} hexagons...")
             

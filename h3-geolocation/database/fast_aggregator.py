@@ -92,7 +92,7 @@ class FastH3Aggregator:
             NOW() as last_aggregation
         FROM amisafe_clean_incidents 
         WHERE {h3_column} IS NOT NULL 
-            AND is_valid = 8
+            AND is_valid = 1
         GROUP BY {h3_column}
         HAVING COUNT(*) > 0
         """
