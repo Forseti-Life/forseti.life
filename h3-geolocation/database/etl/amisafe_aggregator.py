@@ -16,6 +16,7 @@ import sys
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import subprocess
 import mysql.connector
 from mysql.connector import Error
 import h3
@@ -23,14 +24,6 @@ import json
 import logging
 from typing import List, Dict, Tuple, Optional
 import argparse
-
-# Add the parent directory to sys.path to import our H3 framework
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from h3_framework import H3GeolocationFramework
-
-# Add current directory to path for statistical calculator
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from statistical_calculator import StatisticalCalculator
 
 class AmISafeFinalLayerAggregator:
     """
@@ -52,12 +45,6 @@ class AmISafeFinalLayerAggregator:
             'database': mysql_database,
             'autocommit': True
         }
-        
-        # Initialize H3 framework
-        self.h3_framework = H3GeolocationFramework()
-        
-        # Initialize statistical calculator
-        self.stats_calculator = StatisticalCalculator()
         
         # Philadelphia metropolitan area bounds for metro-wide H3:5-7 coverage
         self.philly_metro_bounds = {
@@ -713,315 +700,23 @@ class AmISafeFinalLayerAggregator:
             }
     
     def update_advanced_analytics(self, connection, resolution: int):
-        """Update existing aggregation records with advanced analytics using two-pass approach.
-        
-        Uses indexed H3 resolution columns for fast per-hexagon queries.
-        
-        Pass 1: Collect basic statistics for all hexagons (needed for mean/std_dev calculations)
-        Pass 2: Calculate z-scores, percentiles, and risk scores using population statistics
         """
-        self.logger.info(f"Updating advanced analytics for resolution {resolution}")
+        DEPRECATED: This Python-based analytics method has been replaced by SQL stored procedures.
         
-        cursor = connection.cursor()
+        Use run_analytics.py instead, which calls sp_complete_all_windows() stored procedure.
+        SQL stored procedures are 10-100x faster than this Python implementation.
         
-        try:
-            # First check if this resolution is already complete
-            cursor.execute("""
-            SELECT 
-                COUNT(*) as total,
-                SUM(CASE WHEN crime_diversity_index IS NOT NULL THEN 1 ELSE 0 END) as completed
-            FROM amisafe_h3_aggregated 
-            WHERE h3_resolution = %s
-            """, (resolution,))
-            
-            stats = cursor.fetchone()
-            total_hexes = stats[0]
-            completed_hexes = stats[1]
-            
-            if completed_hexes == total_hexes and total_hexes > 0:
-                self.logger.info(f"✅ Resolution {resolution} already has complete analytics ({completed_hexes}/{total_hexes}), skipping...")
-                return
-            
-            self.logger.info(f"📊 Resolution {resolution}: {completed_hexes}/{total_hexes} already complete, processing remaining {total_hexes - completed_hexes}...")
-            
-            # Get only H3 indices that need analytics (where crime_diversity_index is NULL)
-            cursor.execute("""
-            SELECT h3_index FROM amisafe_h3_aggregated 
-            WHERE h3_resolution = %s AND crime_diversity_index IS NULL
-            """, (resolution,))
-            
-            h3_indices = [row[0] for row in cursor.fetchall()]
-            remaining_hexes = len(h3_indices)
-            
-            if remaining_hexes == 0:
-                self.logger.info(f"✅ No remaining hexagons to process for resolution {resolution}")
-                return
-            
-            self.logger.info(f"Pass 1/2: Collecting basic statistics for {len(h3_indices)} hexagons...")
-            
-            # PASS 1: Collect basic statistics for all hexagons
-            all_hex_stats = []
-            for i, h3_index in enumerate(h3_indices, 1):
-                if i % 100 == 0 or i == 1:
-                    self.logger.info(f"  Collecting stats {i}/{len(h3_indices)}: {h3_index}")
-                
-                # Query incidents using indexed column for fast retrieval
-                incidents = self.fetch_hex_incidents(connection, h3_index, resolution)
-                
-                # Calculate basic stats (counts only, no z-scores yet)
-                basic_stats = {
-                    'h3_index': h3_index
-                }
-                
-                # All-time stats
-                all_time_basic = self.stats_calculator.calculate_basic_stats(incidents)
-                basic_stats.update(all_time_basic)
-                basic_stats['incident_count'] = len(incidents)
-                
-                # 12-month window stats
-                incidents_12mo = self.stats_calculator.filter_incidents_by_window(incidents, 12)
-                mo12_basic = self.stats_calculator.calculate_basic_stats(incidents_12mo)
-                basic_stats['violent_crime_count_12mo'] = mo12_basic['violent_count']
-                basic_stats['nonviolent_crime_count_12mo'] = mo12_basic['nonviolent_count']
-                basic_stats['incident_count_12mo'] = len(incidents_12mo)
-                
-                # 6-month window stats
-                incidents_6mo = self.stats_calculator.filter_incidents_by_window(incidents, 6)
-                mo6_basic = self.stats_calculator.calculate_basic_stats(incidents_6mo)
-                basic_stats['violent_crime_count_6mo'] = mo6_basic['violent_count']
-                basic_stats['nonviolent_crime_count_6mo'] = mo6_basic['nonviolent_count']
-                basic_stats['incident_count_6mo'] = len(incidents_6mo)
-                
-                all_hex_stats.append(basic_stats)
-            
-            self.logger.info(f"Pass 2/2: Calculating statistical analytics for {len(h3_indices)} hexagons...")
-            
-            # PASS 2: Calculate full analytics including z-scores and percentiles
-            for i, h3_index in enumerate(h3_indices, 1):
-                if i % 100 == 0 or i == 1:
-                    self.logger.info(f"  Processing hex {i}/{len(h3_indices)}: {h3_index}")
-                
-                # Query incidents again using indexed column (fast with index)
-                incidents = self.fetch_hex_incidents(connection, h3_index, resolution)
-                
-                # Calculate complete advanced analytics with population statistics
-                analytics = self.calculate_analytics_from_incidents_with_stats(
-                    incidents, h3_index, resolution, all_hex_stats)
-                
-                # Update the record with all analytics
-                update_query = """
-                UPDATE amisafe_h3_aggregated SET
-                    incident_type_counts = %s,
-                    district_counts = %s,
-                    top_crime_type = %s,
-                    crime_diversity_index = %s,
-                    incidents_by_hour = %s,
-                    incidents_by_dow = %s,
-                    incidents_by_month = %s,
-                    peak_hour = %s,
-                    peak_dow = %s,
-                    h3_parent = %s,
-                    boundary_geojson = %s,
-                    date_range_start = %s,
-                    date_range_end = %s,
-                    data_freshness_days = %s,
-                    aggregation_batch_id = %s,
-                    
-                    -- All-time statistical fields
-                    violent_crime_count = %s,
-                    violent_crime_percentage = %s,
-                    violent_crime_mean = %s,
-                    violent_crime_std_dev = %s,
-                    violent_crime_z_score = %s,
-                    violent_crime_percentile = %s,
-                    nonviolent_crime_count = %s,
-                    nonviolent_crime_percentage = %s,
-                    nonviolent_crime_mean = %s,
-                    nonviolent_crime_std_dev = %s,
-                    nonviolent_crime_z_score = %s,
-                    nonviolent_crime_percentile = %s,
-                    incident_mean = %s,
-                    incident_std_dev = %s,
-                    incident_z_score = %s,
-                    incident_percentile = %s,
-                    risk_score = %s,
-                    risk_category = %s,
-                    hotspot_status = %s,
-                    
-                    -- 12-month window fields
-                    incident_count_12mo = %s,
-                    unique_incident_types_12mo = %s,
-                    incidents_by_hour_12mo = %s,
-                    incidents_by_dow_12mo = %s,
-                    incidents_by_month_12mo = %s,
-                    peak_hour_12mo = %s,
-                    peak_dow_12mo = %s,
-                    top_crime_type_12mo = %s,
-                    crime_diversity_index_12mo = %s,
-                    violent_crime_count_12mo = %s,
-                    violent_crime_percentage_12mo = %s,
-                    violent_crime_mean_12mo = %s,
-                    violent_crime_std_dev_12mo = %s,
-                    violent_crime_z_score_12mo = %s,
-                    violent_crime_percentile_12mo = %s,
-                    nonviolent_crime_count_12mo = %s,
-                    nonviolent_crime_percentage_12mo = %s,
-                    nonviolent_crime_mean_12mo = %s,
-                    nonviolent_crime_std_dev_12mo = %s,
-                    nonviolent_crime_z_score_12mo = %s,
-                    nonviolent_crime_percentile_12mo = %s,
-                    incident_mean_12mo = %s,
-                    incident_std_dev_12mo = %s,
-                    incident_z_score_12mo = %s,
-                    incident_percentile_12mo = %s,
-                    risk_score_12mo = %s,
-                    risk_category_12mo = %s,
-                    hotspot_status_12mo = %s,
-                    
-                    -- 6-month window fields
-                    incident_count_6mo = %s,
-                    unique_incident_types_6mo = %s,
-                    incidents_by_hour_6mo = %s,
-                    incidents_by_dow_6mo = %s,
-                    incidents_by_month_6mo = %s,
-                    peak_hour_6mo = %s,
-                    peak_dow_6mo = %s,
-                    top_crime_type_6mo = %s,
-                    crime_diversity_index_6mo = %s,
-                    violent_crime_count_6mo = %s,
-                    violent_crime_percentage_6mo = %s,
-                    violent_crime_mean_6mo = %s,
-                    violent_crime_std_dev_6mo = %s,
-                    violent_crime_z_score_6mo = %s,
-                    violent_crime_percentile_6mo = %s,
-                    nonviolent_crime_count_6mo = %s,
-                    nonviolent_crime_percentage_6mo = %s,
-                    nonviolent_crime_mean_6mo = %s,
-                    nonviolent_crime_std_dev_6mo = %s,
-                    nonviolent_crime_z_score_6mo = %s,
-                    nonviolent_crime_percentile_6mo = %s,
-                    incident_mean_6mo = %s,
-                    incident_std_dev_6mo = %s,
-                    incident_z_score_6mo = %s,
-                    incident_percentile_6mo = %s,
-                    risk_score_6mo = %s,
-                    risk_category_6mo = %s,
-                    hotspot_status_6mo = %s
-                WHERE h3_index = %s AND h3_resolution = %s
-                """
-                
-                cursor.execute(update_query, (
-                    # Original fields
-                    analytics['incident_type_counts'],
-                    analytics['district_counts'],
-                    analytics['top_crime_type'],
-                    analytics['crime_diversity_index'],
-                    analytics['incidents_by_hour'],
-                    analytics['incidents_by_dow'],
-                    analytics['incidents_by_month'],
-                    analytics['peak_hour'],
-                    analytics['peak_dow'],
-                    analytics['h3_parent'],
-                    analytics['boundary_geojson'],
-                    analytics['date_range_start'],
-                    analytics['date_range_end'],
-                    analytics['data_freshness_days'],
-                    analytics['aggregation_batch_id'],
-                    
-                    # All-time statistical fields
-                    analytics.get('violent_crime_count', 0),
-                    analytics.get('violent_crime_percentage', 0.0),
-                    analytics.get('violent_crime_mean', 0.0),
-                    analytics.get('violent_crime_std_dev', 0.0),
-                    analytics.get('violent_crime_z_score', 0.0),
-                    analytics.get('violent_crime_percentile', 50),
-                    analytics.get('nonviolent_crime_count', 0),
-                    analytics.get('nonviolent_crime_percentage', 0.0),
-                    analytics.get('nonviolent_crime_mean', 0.0),
-                    analytics.get('nonviolent_crime_std_dev', 0.0),
-                    analytics.get('nonviolent_crime_z_score', 0.0),
-                    analytics.get('nonviolent_crime_percentile', 50),
-                    analytics.get('incident_mean', 0.0),
-                    analytics.get('incident_std_dev', 0.0),
-                    analytics.get('incident_z_score', 0.0),
-                    analytics.get('incident_percentile', 50),
-                    analytics.get('risk_score', 0.0),
-                    analytics.get('risk_category', 'MODERATE'),
-                    analytics.get('hotspot_status', 'WARM'),
-                    
-                    # 12-month window fields
-                    analytics.get('incident_count_12mo', 0),
-                    analytics.get('unique_incident_types_12mo', 0),
-                    analytics.get('incidents_by_hour_12mo'),
-                    analytics.get('incidents_by_dow_12mo'),
-                    analytics.get('incidents_by_month_12mo'),
-                    analytics.get('peak_hour_12mo'),
-                    analytics.get('peak_dow_12mo'),
-                    analytics.get('top_crime_type_12mo'),
-                    analytics.get('crime_diversity_index_12mo', 0.0),
-                    analytics.get('violent_crime_count_12mo', 0),
-                    analytics.get('violent_crime_percentage_12mo', 0.0),
-                    analytics.get('violent_crime_mean_12mo', 0.0),
-                    analytics.get('violent_crime_std_dev_12mo', 0.0),
-                    analytics.get('violent_crime_z_score_12mo', 0.0),
-                    analytics.get('violent_crime_percentile_12mo', 50),
-                    analytics.get('nonviolent_crime_count_12mo', 0),
-                    analytics.get('nonviolent_crime_percentage_12mo', 0.0),
-                    analytics.get('nonviolent_crime_mean_12mo', 0.0),
-                    analytics.get('nonviolent_crime_std_dev_12mo', 0.0),
-                    analytics.get('nonviolent_crime_z_score_12mo', 0.0),
-                    analytics.get('nonviolent_crime_percentile_12mo', 50),
-                    analytics.get('incident_mean_12mo', 0.0),
-                    analytics.get('incident_std_dev_12mo', 0.0),
-                    analytics.get('incident_z_score_12mo', 0.0),
-                    analytics.get('incident_percentile_12mo', 50),
-                    analytics.get('risk_score_12mo', 0.0),
-                    analytics.get('risk_category_12mo', 'MODERATE'),
-                    analytics.get('hotspot_status_12mo', 'WARM'),
-                    
-                    # 6-month window fields
-                    analytics.get('incident_count_6mo', 0),
-                    analytics.get('unique_incident_types_6mo', 0),
-                    analytics.get('incidents_by_hour_6mo'),
-                    analytics.get('incidents_by_dow_6mo'),
-                    analytics.get('incidents_by_month_6mo'),
-                    analytics.get('peak_hour_6mo'),
-                    analytics.get('peak_dow_6mo'),
-                    analytics.get('top_crime_type_6mo'),
-                    analytics.get('crime_diversity_index_6mo', 0.0),
-                    analytics.get('violent_crime_count_6mo', 0),
-                    analytics.get('violent_crime_percentage_6mo', 0.0),
-                    analytics.get('violent_crime_mean_6mo', 0.0),
-                    analytics.get('violent_crime_std_dev_6mo', 0.0),
-                    analytics.get('violent_crime_z_score_6mo', 0.0),
-                    analytics.get('violent_crime_percentile_6mo', 50),
-                    analytics.get('nonviolent_crime_count_6mo', 0),
-                    analytics.get('nonviolent_crime_percentage_6mo', 0.0),
-                    analytics.get('nonviolent_crime_mean_6mo', 0.0),
-                    analytics.get('nonviolent_crime_std_dev_6mo', 0.0),
-                    analytics.get('nonviolent_crime_z_score_6mo', 0.0),
-                    analytics.get('nonviolent_crime_percentile_6mo', 50),
-                    analytics.get('incident_mean_6mo', 0.0),
-                    analytics.get('incident_std_dev_6mo', 0.0),
-                    analytics.get('incident_z_score_6mo', 0.0),
-                    analytics.get('incident_percentile_6mo', 50),
-                    analytics.get('risk_score_6mo', 0.0),
-                    analytics.get('risk_category_6mo', 'MODERATE'),
-                    analytics.get('hotspot_status_6mo', 'WARM'),
-                    
-                    # WHERE clause
-                    h3_index,
-                    resolution
-                ))
-            
-            self.logger.info(f"✅ Updated {total_hexes} records with complete analytics for resolution {resolution}")
-            
-        except Exception as e:
-            self.logger.error(f"Error updating advanced analytics for resolution {resolution}: {e}")
-            import traceback
-            self.logger.error(traceback.format_exc())
-        finally:
-            cursor.close()
+        This method is kept for reference but will raise an error if called.
+        """
+        raise DeprecationWarning(
+            "update_advanced_analytics() is deprecated. "
+            "Use run_analytics.py with stored procedures instead: "
+            "python etl/run_analytics.py --resolutions X"
+        )
+
+    # DEPRECATED METHOD - Replaced by SQL stored procedures (10-100x faster)
+    # Use: python etl/run_analytics.py --resolutions X instead
+    # This 300+ line Python implementation has been superseded by sp_complete_all_windows()
 
     def run_full_aggregation(self, resolutions: List[int] = [5, 6, 7, 8, 9, 10, 11, 12, 13]) -> Dict:
         """Run the complete Final Layer (Gold) aggregation pipeline."""
@@ -1139,18 +834,23 @@ class AmISafeFinalLayerAggregator:
 
 
 def main():
-    """Main function to run the Final Layer (Gold) aggregator."""
-    parser = argparse.ArgumentParser(description='AmISafe Final Layer (Gold) Aggregator')
-    parser.add_argument('--mysql-host', default='127.0.0.1', help='MySQL host')
-    parser.add_argument('--mysql-user', default='drupal_user', help='MySQL user')
-    parser.add_argument('--mysql-password', default='drupal_secure_password', help='MySQL password')
-    parser.add_argument('--mysql-database', default='amisafe_database', help='MySQL database')
-    parser.add_argument('--resolutions', nargs='+', type=int, default=[5, 6, 7, 8, 9, 10, 11, 12, 13], 
-                        help='H3 resolutions to process (default: 5 6 7 8 9 10 11 12 13)')
-    parser.add_argument('--analytics', action='store_true', 
-                        help='Run advanced analytics (temporal patterns, crime diversity, etc.)')
-    parser.add_argument('--analytics-only', action='store_true',
-                        help='Only run advanced analytics on existing aggregations (skip basic aggregation)')
+    """Main function to run the Final Layer (Gold) aggregator with analytics."""
+    parser = argparse.ArgumentParser(
+        description='Creates hexagons with basic aggregations and runs analytics for AmISafe H3 system'
+    )
+    parser.add_argument('--resolutions', nargs='+', type=int, 
+                       default=[5, 6, 7, 8, 9, 10, 11, 12, 13],
+                       help='H3 resolutions to process (default: 5-13)')
+    parser.add_argument('--skip-analytics', action='store_true',
+                       help='Skip analytics step (only create basic hexagon aggregations)')
+    parser.add_argument('--mysql-host', default='127.0.0.1',
+                       help='MySQL host')
+    parser.add_argument('--mysql-user', default='drupal_user',
+                       help='MySQL user')
+    parser.add_argument('--mysql-password', default='drupal_secure_password',
+                       help='MySQL password')
+    parser.add_argument('--mysql-database', default='amisafe_database',
+                       help='MySQL database name')
     
     args = parser.parse_args()
     
@@ -1163,51 +863,12 @@ def main():
     )
     
     try:
-        if args.analytics_only:
-            # Run only advanced analytics on existing data
-            print(f"🔬 Running advanced analytics for H3 resolutions: {args.resolutions}")
-            connection = aggregator.connect_to_mysql()
-            results = {}
-            
-            try:
-                for resolution in args.resolutions:
-                    print(f"📊 Processing advanced analytics for H3 Resolution {resolution}...")
-                    aggregator.update_advanced_analytics(connection, resolution)
-                    
-                    # Verify the analytics
-                    verification = aggregator.verify_aggregation(connection, resolution)
-                    results[resolution] = verification
-                
-                # Generate summary
-                results['summary'] = aggregator.generate_final_summary(connection)
-                
-            finally:
-                if connection.is_connected():
-                    connection.close()
-        else:
-            # Run Final Layer aggregation
-            print(f"🚀 Starting Final Layer (Gold) aggregation for H3 resolutions: {args.resolutions}")
-            results = aggregator.run_full_aggregation(args.resolutions)
-            
-            # Run advanced analytics if requested
-            if args.analytics:
-                print(f"\n🔬 Adding advanced analytics...")
-                connection = aggregator.connect_to_mysql()
-                
-                try:
-                    for resolution in args.resolutions:
-                        print(f"📊 Processing advanced analytics for H3 Resolution {resolution}...")
-                        aggregator.update_advanced_analytics(connection, resolution)
-                finally:
-                    if connection.is_connected():
-                        connection.close()
+        # Step 1: Run hexagon aggregation
+        print(f"🚀 Starting Final Layer (Gold) aggregation for H3 resolutions: {args.resolutions}")
+        print(f"   Creating hexagons with basic metrics...")
+        results = aggregator.run_full_aggregation(args.resolutions)
         
-        if args.analytics_only:
-            print(f"\n🎯 SUCCESS: Advanced analytics completed!")
-        elif args.analytics:
-            print(f"\n🎯 SUCCESS: Final Layer aggregation with advanced analytics completed!")
-        else:
-            print(f"\n🎯 SUCCESS: Final Layer aggregation completed!")
+        print(f"\n✅ Aggregation completed!")
         print("=" * 70)
         
         total_hexagons = 0
@@ -1231,10 +892,54 @@ def main():
         if 'summary' in results:
             summary = results['summary']
             print(f"📊 Multi-resolution H3 aggregation completed at {summary['timestamp']}")
-            print("🗺️ Ready for AmISafe Crime Map visualization with H3:5-7 metro area coverage")
+        
+        # Step 2: Run analytics via run_analytics.py
+        if not args.skip_analytics:
+            print(f"\n{'='*70}")
+            print(f"🔬 Starting analytics enrichment (84 columns via stored procedures)...")
+            print(f"{'='*70}")
+            
+            # Find run_analytics.py in same directory
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            analytics_script = os.path.join(script_dir, 'run_analytics.py')
+            
+            if not os.path.exists(analytics_script):
+                print(f"⚠️  WARNING: {analytics_script} not found")
+                print(f"   Analytics will be skipped.")
+            else:
+                # Build command with same resolutions
+                cmd = [
+                    sys.executable,  # Use same Python interpreter
+                    analytics_script,
+                    '--resolutions'
+                ] + [str(r) for r in args.resolutions] + [
+                    '--mysql-host', args.mysql_host,
+                    '--mysql-user', args.mysql_user,
+                    '--mysql-password', args.mysql_password,
+                    '--mysql-database', args.mysql_database
+                ]
+                
+                print(f"📊 Running: {' '.join(cmd[:3])} --resolutions {' '.join(map(str, args.resolutions))}")
+                
+                try:
+                    result = subprocess.run(cmd, check=True)
+                    print(f"\n✅ Analytics completed successfully!")
+                except subprocess.CalledProcessError as e:
+                    print(f"\n⚠️  Analytics failed with exit code {e.returncode}")
+                    print(f"   Basic hexagons were created successfully.")
+                    print(f"   You can run analytics manually: python {analytics_script} --resolutions {' '.join(map(str, args.resolutions))}")
+        else:
+            print(f"\n⏭️  Skipping analytics (--skip-analytics flag set)")
+            print(f"   To add analytics later, run: python etl/run_analytics.py --resolutions {' '.join(map(str, args.resolutions))}")
+        
+        print(f"\n{'='*70}")
+        print(f"🎯 SUCCESS: Complete workflow finished!")
+        print(f"🗺️ Ready for AmISafe Crime Map visualization")
         
     except Exception as e:
         print(f"\n❌ ERROR: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 

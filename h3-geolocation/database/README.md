@@ -17,23 +17,34 @@ This creates:
 - 21 stored procedures for analytics
 - UCR crime code reference data
 
-### 2. Run Analytics
+### 2. Run Full Pipeline (Aggregation + Analytics)
 
-Process one resolution (all 84 analytical columns):
+Process all resolutions (creates hexagons + populates 84 analytical columns):
 ```bash
-mysql -h 127.0.0.1 -u drupal_user -p'drupal_secure_password' amisafe_database \
-  -e "CALL sp_complete_all_windows(13);"
+cd database
+source ../h3-env/bin/activate
+python etl/amisafe_aggregator.py --resolutions 13 12 11 10 9 8 7 6 5
 ```
 
-Process all resolutions:
+Or for just one resolution:
 ```bash
-for res in 13 12 11 10 9 8 7 6 5; do
-  mysql -h 127.0.0.1 -u drupal_user -p'drupal_secure_password' amisafe_database \
-    -e "CALL sp_complete_all_windows($res);"
-done
+python etl/amisafe_aggregator.py --resolutions 13
 ```
+
+Check status:
+```bash
+python etl/run_analytics.py --status --resolutions 13
+```
+
+**What it does:**
+1. Creates H3 hexagons with basic metrics (Silver → Gold)
+2. Automatically calls `run_analytics.py` to populate all 84 analytical columns
 
 **Estimated Time**: 10-15 hours for all 413,182 hexagons across 9 resolutions
+
+**Options:**
+- `--skip-analytics` - Only create basic hexagons (skip analytics step)
+- Run analytics separately: `python etl/run_analytics.py --resolutions 13`
 
 ---
 
@@ -323,22 +334,49 @@ This ensures the database and analytics system are set up as part of the complet
    - Key: objectid
 
 2. Bronze → Silver Layer (Transform)
-   - Script: etl/enhanced_transform_processor_v2.py
+   - Script: etl/amisafe_processor.py or etl/enhanced_transform_processor_v2.py
    - Process: Clean, validate, H3 index
    - Table: amisafe_clean_incidents
    - Output: 3.4M validated records with H3 indexes
 
-3. Silver → Gold Layer (Aggregate)
-   - Script: etl/amisafe_aggregator.py
-   - Process: Group by H3 hex, calculate counts
+3. Silver → Gold Layer (Complete Pipeline)
+   - Script: etl/amisafe_aggregator.py (orchestrates 3a + 3b)
    - Table: amisafe_h3_aggregated
-   - Output: 413K hexagons with basic metrics
-
-4. Gold → Analytics (Enrich)
-   - Procedures: sp_complete_all_windows()
-   - Process: Calculate 84 analytical columns
-   - Output: Complete analytics for all windows
+   - Output: 413K hexagons with all 84 analytical columns
+   
+   Step 3a: Basic Aggregation
+   - Process: Group by H3 hex, calculate basic counts
+   - Output: ~20 basic metric columns
+   
+   Step 3b: Analytics Enrichment (via run_analytics.py)
+   - Procedures: sp_complete_all_windows(resolution)
+   - Process: Calculate 84 analytical columns via SQL
+   - Output: Complete analytics for all windows (all-time, 12mo, 6mo)
 ```
+
+---
+
+## Script Responsibilities
+
+### ETL Pipeline Scripts
+
+**run_pipeline.sh**
+- Master orchestrator for steps 1-3
+- Runs: processor → aggregator
+- Creates: Basic hexagons with counts, dates, coordinates
+- Does NOT: Run advanced analytics
+
+**amisafe_aggregator.py**
+- Creates H3 hexagons from clean incidents
+- Populates: incident_count, earliest/latest dates, center lat/lng, district_counts
+- Does NOT: Calculate z-scores, risk scores, or windowed analytics
+
+**run_analytics.py** ⭐ NEW
+- Enriches existing hexagons with all 84 analytical columns
+- Calls: sp_complete_all_windows() stored procedure
+- Populates: top_crime_type, crime_diversity, z-scores, percentiles, risk_category, hotspot_status, temporal patterns
+- Handles: All-time + 12-month + 6-month windows
+- Features: Checkpoint/restart, progress tracking, status checking
 
 ---
 
@@ -396,9 +434,11 @@ database/
 - `setup/setup_amisafe_complete.sh` - **Primary setup script** (tables + stored procedures)
 
 **ETL Pipeline (run regularly):**
-- `etl/amisafe_processor.py` - Bronze → Silver transformation
-- `etl/amisafe_aggregator.py` - Silver → Gold aggregation
-- `etl/run_pipeline.sh` - Complete ETL orchestration
+- `etl/amisafe_aggregator.py` - **Primary workflow**: Silver → Gold aggregation + analytics (calls run_analytics.py)
+- `etl/run_analytics.py` - Analytics enrichment: Populate 84 columns via stored procedures (called by aggregator)
+- `etl/amisafe_processor.py` - Bronze → Silver: Clean, validate, H3 index
+- `etl/enhanced_transform_processor_v2.py` - Alternative Bronze → Silver transformer
+- `etl/run_pipeline.sh` - Legacy orchestrator (Bronze → Silver → Gold basic only)
 
 ---
 
