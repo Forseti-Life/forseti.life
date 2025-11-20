@@ -25,6 +25,14 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import argparse
 import time
+from decimal import Decimal
+
+class DecimalEncoder(json.JSONEncoder):
+    """JSON encoder that converts Decimal to float."""
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 class AnalyticsRunner:
     """
@@ -99,7 +107,7 @@ class AnalyticsRunner:
         self.state['last_updated'] = datetime.now().isoformat()
         try:
             with open(self.state_file, 'w') as f:
-                json.dump(self.state, f, indent=2)
+                json.dump(self.state, f, indent=2, cls=DecimalEncoder)
             self.logger.debug(f"State saved to {self.state_file}")
         except Exception as e:
             self.logger.error(f"Could not save state: {e}")
