@@ -243,7 +243,7 @@ class AnalyticsRunner:
             self.state['resolutions'][res_key] = {}
         
         self.state['resolutions'][res_key]['status'] = 'processing'
-        self.state['resolutions'][res_key']['start_time'] = datetime.now().isoformat()
+        self.state['resolutions'][res_key]['start_time'] = datetime.now().isoformat()
         self.state['resolutions'][res_key]['total_hexes'] = status['total_hexes']
         self.save_state()
         
