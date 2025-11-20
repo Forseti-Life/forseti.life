@@ -282,8 +282,18 @@ class AmISafeFinalLayerAggregator:
         # TODO: Implement data quality calculation logic
         return 0.0
     
-    def fetch_hex_incidents(self, connection, h3_index: str, resolution: int) -> List[Dict]:
-        """Fetch all incident data for a hexagon in one query.
+    def fetch_hex_incidents(self, connection, h3_index: str, resolution: int, 
+                            chunk_size: int = 100000) -> List[Dict]:
+        """Fetch all incident data for a hexagon, using chunked queries for large datasets.
+        
+        For lower resolutions (5-9) that may contain millions of incidents per hex,
+        fetches data in chunks to avoid memory issues.
+        
+        Args:
+            connection: MySQL connection
+            h3_index: H3 hexagon identifier
+            resolution: H3 resolution level
+            chunk_size: Number of records to fetch per chunk (default 100k)
         
         Returns:
             List[Dict]: All incident records for this hexagon
@@ -292,29 +302,74 @@ class AmISafeFinalLayerAggregator:
         h3_column = f"h3_res_{resolution}"
         
         try:
-            # Single query to get ALL data needed for analytics
-            query = f"""
-            SELECT 
-                incident_id,
-                ucr_general,
-                dc_dist,
-                incident_datetime,
-                lat,
-                lng,
-                HOUR(incident_datetime) as hour_of_day,
-                WEEKDAY(incident_datetime) as day_of_week,
-                MONTH(incident_datetime) as month_num,
-                DATE(incident_datetime) as incident_date
-            FROM amisafe_clean_incidents 
-            WHERE {h3_column} = %s 
-                AND is_duplicate = FALSE
-                AND incident_datetime IS NOT NULL
-            """
+            # For lower resolutions (5-9), use chunked fetching
+            if resolution <= 9:
+                self.logger.info(f"📦 Chunked fetch for {h3_index} at resolution {resolution}")
+                
+                all_incidents = []
+                offset = 0
+                
+                while True:
+                    query = f"""
+                    SELECT 
+                        incident_id,
+                        ucr_general,
+                        dc_dist,
+                        incident_datetime,
+                        lat,
+                        lng,
+                        HOUR(incident_datetime) as hour_of_day,
+                        WEEKDAY(incident_datetime) as day_of_week,
+                        MONTH(incident_datetime) as month_num,
+                        DATE(incident_datetime) as incident_date
+                    FROM amisafe_clean_incidents 
+                    WHERE {h3_column} = %s 
+                        AND is_duplicate = FALSE
+                        AND incident_datetime IS NOT NULL
+                    LIMIT %s OFFSET %s
+                    """
+                    
+                    cursor.execute(query, (h3_index, chunk_size, offset))
+                    chunk = cursor.fetchall()
+                    
+                    if not chunk:
+                        break
+                    
+                    all_incidents.extend(chunk)
+                    offset += chunk_size
+                    
+                    if len(chunk) < chunk_size:
+                        break
+                    
+                    self.logger.info(f"    Fetched {len(all_incidents):,} incidents so far...")
+                
+                self.logger.info(f"  ✅ Total: {len(all_incidents):,} incidents for {h3_index}")
+                return all_incidents
             
-            cursor.execute(query, (h3_index,))
-            incidents = cursor.fetchall()
-            
-            return incidents
+            else:
+                # For higher resolutions (10-13), single query is fine
+                query = f"""
+                SELECT 
+                    incident_id,
+                    ucr_general,
+                    dc_dist,
+                    incident_datetime,
+                    lat,
+                    lng,
+                    HOUR(incident_datetime) as hour_of_day,
+                    WEEKDAY(incident_datetime) as day_of_week,
+                    MONTH(incident_datetime) as month_num,
+                    DATE(incident_datetime) as incident_date
+                FROM amisafe_clean_incidents 
+                WHERE {h3_column} = %s 
+                    AND is_duplicate = FALSE
+                    AND incident_datetime IS NOT NULL
+                """
+                
+                cursor.execute(query, (h3_index,))
+                incidents = cursor.fetchall()
+                
+                return incidents
             
         except Exception as e:
             self.logger.error(f"Error fetching incidents for {h3_index}: {e}")
@@ -499,6 +554,76 @@ class AmISafeFinalLayerAggregator:
     
     # Removed calculate_date_range_and_freshness() - now calculated in-memory from fetched data
     
+    def calculate_analytics_from_incidents_with_stats(self, incidents: List[Dict], 
+                                                       h3_index: str, resolution: int,
+                                                       all_hex_stats: List[Dict] = None) -> Dict:
+        """Calculate all analytics from in-memory incident data including statistical metrics.
+        
+        Args:
+            incidents: List of incident dictionaries from Silver layer (already in memory)
+            h3_index: H3 hexagon identifier
+            resolution: H3 resolution level
+            all_hex_stats: Statistics for all hexagons (for z-scores/percentiles)
+            
+        Returns:
+            Dict: All calculated analytical values ready for database update
+        """
+        try:
+            # Calculate all basic analytics from in-memory data
+            analytics = self.calculate_analytics_from_incidents(incidents, h3_index, resolution)
+            
+            # Calculate statistical metrics if we have population data
+            if all_hex_stats:
+                statistical_metrics = self.stats_calculator.calculate_complete_statistics(
+                    incidents, all_hex_stats)
+                analytics.update(statistical_metrics)
+            
+            # Convert arrays and dicts to JSON strings for database storage
+            analytics['incident_type_counts'] = json.dumps(analytics['incident_type_counts'])
+            analytics['district_counts'] = json.dumps(analytics['district_counts'])
+            analytics['incidents_by_hour'] = json.dumps(analytics['incidents_by_hour'])
+            analytics['incidents_by_dow'] = json.dumps(analytics['incidents_by_dow'])
+            analytics['incidents_by_month'] = json.dumps(analytics['incidents_by_month'])
+            
+            # Convert temporal JSON arrays for windowed stats
+            if 'incidents_by_hour_12mo' in analytics:
+                analytics['incidents_by_hour_12mo'] = json.dumps(analytics['incidents_by_hour_12mo'])
+                analytics['incidents_by_dow_12mo'] = json.dumps(analytics['incidents_by_dow_12mo'])
+                analytics['incidents_by_month_12mo'] = json.dumps(analytics['incidents_by_month_12mo'])
+            
+            if 'incidents_by_hour_6mo' in analytics:
+                analytics['incidents_by_hour_6mo'] = json.dumps(analytics['incidents_by_hour_6mo'])
+                analytics['incidents_by_dow_6mo'] = json.dumps(analytics['incidents_by_dow_6mo'])
+                analytics['incidents_by_month_6mo'] = json.dumps(analytics['incidents_by_month_6mo'])
+            
+            # TODO: Implement remaining functions
+            analytics['severity_avg'] = None
+            analytics['severity_max'] = None
+            analytics['data_quality_avg'] = None
+            
+            return analytics
+            
+        except Exception as e:
+            self.logger.error(f"Error in calculate_analytics_from_incidents_with_stats for {h3_index}: {e}")
+            return {
+                'severity_avg': None,
+                'severity_max': None,
+                'data_quality_avg': None,
+                'top_crime_type': None,
+                'crime_diversity_index': None,
+                'incidents_by_hour': None,
+                'incidents_by_dow': None,
+                'incidents_by_month': None,
+                'peak_hour': None,
+                'peak_dow': None,
+                'h3_parent': None,
+                'boundary_geojson': None,
+                'date_range_start': None,
+                'date_range_end': None,
+                'data_freshness_days': None,
+                'aggregation_batch_id': None
+            }
+    
     def generate_batch_id(self) -> str:
         """Generate unique batch ID for aggregation tracking.
         
@@ -590,6 +715,8 @@ class AmISafeFinalLayerAggregator:
     def update_advanced_analytics(self, connection, resolution: int):
         """Update existing aggregation records with advanced analytics using two-pass approach.
         
+        Uses indexed H3 resolution columns for fast per-hexagon queries.
+        
         Pass 1: Collect basic statistics for all hexagons (needed for mean/std_dev calculations)
         Pass 2: Calculate z-scores, percentiles, and risk scores using population statistics
         """
@@ -630,14 +757,15 @@ class AmISafeFinalLayerAggregator:
                 self.logger.info(f"✅ No remaining hexagons to process for resolution {resolution}")
                 return
             
-            self.logger.info(f"Pass 1/2: Collecting basic statistics for {total_hexes} hexagons...")
+            self.logger.info(f"Pass 1/2: Collecting basic statistics for {len(h3_indices)} hexagons...")
             
             # PASS 1: Collect basic statistics for all hexagons
             all_hex_stats = []
             for i, h3_index in enumerate(h3_indices, 1):
                 if i % 100 == 0 or i == 1:
-                    self.logger.info(f"  Collecting stats {i}/{total_hexes}: {h3_index}")
+                    self.logger.info(f"  Collecting stats {i}/{len(h3_indices)}: {h3_index}")
                 
+                # Query incidents using indexed column for fast retrieval
                 incidents = self.fetch_hex_incidents(connection, h3_index, resolution)
                 
                 # Calculate basic stats (counts only, no z-scores yet)
@@ -666,15 +794,19 @@ class AmISafeFinalLayerAggregator:
                 
                 all_hex_stats.append(basic_stats)
             
-            self.logger.info(f"Pass 2/2: Calculating statistical analytics for {total_hexes} hexagons...")
+            self.logger.info(f"Pass 2/2: Calculating statistical analytics for {len(h3_indices)} hexagons...")
             
             # PASS 2: Calculate full analytics including z-scores and percentiles
             for i, h3_index in enumerate(h3_indices, 1):
                 if i % 100 == 0 or i == 1:
-                    self.logger.info(f"  Processing hex {i}/{total_hexes}: {h3_index}")
+                    self.logger.info(f"  Processing hex {i}/{len(h3_indices)}: {h3_index}")
+                
+                # Query incidents again using indexed column (fast with index)
+                incidents = self.fetch_hex_incidents(connection, h3_index, resolution)
                 
                 # Calculate complete advanced analytics with population statistics
-                analytics = self.populate_advanced_analytics(connection, h3_index, resolution, all_hex_stats)
+                analytics = self.calculate_analytics_from_incidents_with_stats(
+                    incidents, h3_index, resolution, all_hex_stats)
                 
                 # Update the record with all analytics
                 update_query = """

@@ -1828,14 +1828,14 @@ echo "========================="
 print_step "5. H3 GEOLOCATION DATABASE SETUP - Initializing AmISafe crime mapping pipeline..."
 echo "========================="
 
-# Setup AmISafe Data Pipeline Database Tables
-print_status "Setting up AmISafe H3 geolocation data pipeline database..."
-AMISAFE_SETUP_SCRIPT="/home/keithaumiller/stlouisintegration.com/h3-geolocation/database/setup_amisafe_stlouisintegration.sh"
+# Setup AmISafe Data Pipeline Database Tables (includes stored procedures)
+print_status "Setting up AmISafe H3 geolocation data pipeline database with analytics..."
+AMISAFE_SETUP_SCRIPT="/home/keithaumiller/stlouisintegration.com/h3-geolocation/database/setup/setup_amisafe_complete.sh"
 
 if [ -f "$AMISAFE_SETUP_SCRIPT" ]; then
-    print_status "Running AmISafe database setup script..."
+    print_status "Running AmISafe complete database setup (tables + stored procedures)..."
     if bash "$AMISAFE_SETUP_SCRIPT" "amisafe_database"; then
-        print_status "✅ AmISafe database setup completed successfully"
+        print_status "✅ AmISafe database setup completed successfully (ETL + Analytics)"
         
         # Run sample data pipeline to verify functionality
         print_status "Running AmISafe sample data pipeline..."
