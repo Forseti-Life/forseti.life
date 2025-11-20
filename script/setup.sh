@@ -240,6 +240,26 @@ else
     print_warning "Please run 'sudo mysql_secure_installation' after this script completes"
 fi
 
+# Configure MariaDB for AmISafe data processing
+print_status "Configuring MariaDB performance settings..."
+MARIADB_CONF="/etc/mysql/mariadb.conf.d/50-server.cnf"
+if ! grep -q "AmISafe Data Processing Optimizations" "$MARIADB_CONF" 2>/dev/null; then
+    print_status "Adding AmISafe optimizations to MariaDB config..."
+    sudo bash -c "cat >> $MARIADB_CONF << 'EOF'
+
+# AmISafe Data Processing Optimizations
+[mysqld]
+max_allowed_packet = 1073741824  # 1GB for large batch inserts
+innodb_buffer_pool_size = 2G     # Increase for better performance
+innodb_log_file_size = 512M      # Larger logs for bulk operations
+EOF"
+    print_status "Restarting MariaDB to apply new settings..."
+    sudo systemctl restart mariadb
+    print_status "✅ MariaDB optimized for large data processing"
+else
+    print_status "MariaDB optimizations already configured"
+fi
+
 # Install Apache
 print_status "Checking Apache installation..."
 if command -v apache2 &> /dev/null; then

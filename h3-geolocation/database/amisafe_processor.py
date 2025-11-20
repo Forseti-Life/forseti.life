@@ -70,6 +70,16 @@ class AmISafeDataProcessor:
             'block': 9,          # ~300m hexagons
             'building': 10       # ~100m hexagons
         }
+        
+        # Tracking metrics for data quality
+        self.exclusion_metrics = {
+            'total_csv_records': 0,
+            'missing_coordinates': 0,
+            'invalid_coordinates': 0,
+            'duplicate_objectids': 0,
+            'database_duplicates': 0,
+            'successful_inserts': 0
+        }
     
     def connect_to_mysql(self) -> mysql.connector.MySQLConnection:
         """Create MySQL connection."""
@@ -99,24 +109,41 @@ class AmISafeDataProcessor:
             self.logger.error(f"Processing failed: {error_message}")
     
     def clean_and_validate_data(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Clean and validate the incident data."""
-        self.logger.info(f"Cleaning data: {len(df)} records")
+        """Clean and validate the incident data with detailed metrics tracking."""
+        initial_count = len(df)
+        self.exclusion_metrics['total_csv_records'] += initial_count
+        self.logger.info(f"Cleaning data: {initial_count} records")
+        
+        # Track missing coordinates
+        if 'lat' in df.columns and 'lng' in df.columns:
+            missing_coords = df[['lat', 'lng']].isna().any(axis=1).sum()
+            if missing_coords > 0:
+                self.exclusion_metrics['missing_coordinates'] += missing_coords
+                self.logger.info(f"Records with missing coordinates: {missing_coords}")
         
         # Remove rows without coordinates
         df = df.dropna(subset=['lat', 'lng'])
         
-        # Validate coordinate ranges (Philadelphia area)
+        # Track invalid coordinates
+        before_validation = len(df)
         df = df[
             (df['lat'].between(39.5, 40.5)) &  # Reasonable latitude range for Philadelphia
             (df['lng'].between(-75.5, -74.5))  # Reasonable longitude range for Philadelphia
         ]
+        invalid_coords = before_validation - len(df)
+        if invalid_coords > 0:
+            self.exclusion_metrics['invalid_coordinates'] += invalid_coords
+            self.logger.info(f"Records with invalid coordinates: {invalid_coords}")
         
         # Deduplicate records using objectid as primary key
         initial_count = len(df)
         if 'objectid' in df.columns:
             df = df.drop_duplicates(subset=['objectid'], keep='first')
             dedup_count = len(df)
-            self.logger.info(f"Deduplication by objectid: {initial_count} → {dedup_count} ({initial_count - dedup_count} duplicates removed)")
+            duplicates_removed = initial_count - dedup_count
+            if duplicates_removed > 0:
+                self.exclusion_metrics['duplicate_objectids'] += duplicates_removed
+            self.logger.info(f"Deduplication by objectid: {initial_count} → {dedup_count} ({duplicates_removed} duplicates removed)")
         else:
             # Fallback deduplication using location + time + crime type
             df = df.drop_duplicates(subset=['lat', 'lng', 'dispatch_date_time', 'ucr_general'], keep='first')
@@ -206,13 +233,13 @@ class AmISafeDataProcessor:
             raise
     
     def insert_batch_to_mysql(self, df: pd.DataFrame, connection, batch_size: int = 1000):
-        """Insert dataframe to MySQL in batches."""
+        """Insert dataframe to MySQL in batches with duplicate handling."""
         cursor = connection.cursor()
         
         # RAW LAYER: Insert ALL CSV fields exactly as-is (Bronze layer)
         # Following data warehouse best practices - preserve immutable source data
         insert_query = """
-        INSERT INTO amisafe_raw_incidents (
+        INSERT IGNORE INTO amisafe_raw_incidents (
             source_file, the_geom, cartodb_id, the_geom_webmercator, objectid, 
             dc_dist, psa, dispatch_date_time, dispatch_date, dispatch_time, 
             hour, dc_key, location_block, ucr_general, text_general_code, 
@@ -244,16 +271,27 @@ class AmISafeDataProcessor:
         
         # Insert in batches
         total_inserted = 0
+        total_skipped = 0
         for i in range(0, len(data), batch_size):
             batch = data[i:i + batch_size]
             cursor.executemany(insert_query, batch)
-            total_inserted += len(batch)
+            rows_affected = cursor.rowcount
+            total_inserted += rows_affected
+            skipped = len(batch) - rows_affected
+            total_skipped += skipped
             
             if i % (batch_size * 10) == 0:  # Log every 10 batches
-                self.logger.info(f"Inserted {total_inserted}/{len(data)} records")
+                self.logger.info(f"Inserted {total_inserted}/{len(data)} records ({total_skipped} duplicates skipped)")
+        
+        # Track database duplicates
+        self.exclusion_metrics['database_duplicates'] += total_skipped
+        self.exclusion_metrics['successful_inserts'] += total_inserted
         
         cursor.close()
-        self.logger.info(f"Successfully inserted {total_inserted} records")
+        if total_skipped > 0:
+            self.logger.info(f"Successfully inserted {total_inserted} records ({total_skipped} duplicates skipped)")
+        else:
+            self.logger.info(f"Successfully inserted {total_inserted} records")
     
     def process_all_files(self, data_directory: str) -> Dict[str, int]:
         """Process all CSV files in the data directory."""
@@ -309,6 +347,21 @@ class AmISafeDataProcessor:
             print(f"Records with coordinates: {total_stats['records_with_coordinates']:,}")
             print(f"Records with H3 indexes: {total_stats['records_with_h3']:,}")
             print(f"=" * 50)
+            print(f"\n📊 Data Quality Metrics:")
+            print(f"Total CSV records read: {self.exclusion_metrics['total_csv_records']:,}")
+            print(f"Successful inserts: {self.exclusion_metrics['successful_inserts']:,}")
+            print(f"\nExclusions:")
+            print(f"  - Duplicate ObjectIDs (in CSV): {self.exclusion_metrics['duplicate_objectids']:,}")
+            print(f"  - Database duplicates (skipped): {self.exclusion_metrics['database_duplicates']:,}")
+            print(f"  - Missing coordinates: {self.exclusion_metrics['missing_coordinates']:,}")
+            print(f"  - Invalid coordinates: {self.exclusion_metrics['invalid_coordinates']:,}")
+            total_excluded = (self.exclusion_metrics['duplicate_objectids'] + 
+                            self.exclusion_metrics['database_duplicates'] + 
+                            self.exclusion_metrics['missing_coordinates'] + 
+                            self.exclusion_metrics['invalid_coordinates'])
+            print(f"\nTotal excluded: {total_excluded:,}")
+            print(f"Exclusion rate: {(total_excluded / self.exclusion_metrics['total_csv_records'] * 100):.2f}%")
+            print(f"=" * 50)
             
             return total_stats
             
@@ -324,13 +377,13 @@ class AmISafeDataProcessor:
             # Simple status check using existing tables
             query = """
             SELECT 
-                'Current Status' as file_name,
+                'Raw Layer Status' as file_name,
                 COUNT(*) as records_processed,
                 SUM(CASE WHEN lat IS NOT NULL AND lng IS NOT NULL THEN 1 ELSE 0 END) as records_with_coordinates,
-                SUM(CASE WHEN h3_index IS NOT NULL THEN 1 ELSE 0 END) as records_with_h3,
+                SUM(CASE WHEN lat IS NOT NULL AND lng IS NOT NULL THEN 1 ELSE 0 END) as records_with_h3,
                 MIN(created_at) as processing_start,
                 MAX(created_at) as processing_end,
-                'In Progress' as status,
+                'Completed' as status,
                 '' as error_message
             FROM amisafe_raw_incidents
             """
@@ -343,7 +396,7 @@ def main():
     """Main function to run the data processor."""
     parser = argparse.ArgumentParser(description='AmISafe Data Processor')
     parser.add_argument('--data-dir', 
-                       default='/workspaces/stlouisintegration.com/h3-geolocation/data/raw',
+                       default='/home/keithaumiller/stlouisintegration.com/h3-geolocation/data/raw',
                        help='Directory containing CSV files to process')
     parser.add_argument('--mysql-host', default='127.0.0.1', help='MySQL host')
     parser.add_argument('--mysql-user', default='drupal_user', help='MySQL user')

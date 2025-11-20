@@ -1427,7 +1427,7 @@ def main():
     parser.add_argument('--h3-columns', nargs='+', help='Specific H3 columns to populate (e.g., h3_res_5 h3_res_11)', 
                         choices=['h3_res_5', 'h3_res_6', 'h3_res_7', 'h3_res_8', 'h3_res_9', 'h3_res_10', 'h3_res_11', 'h3_res_12', 'h3_res_13'])
     parser.add_argument('--data-quality-check', action='store_true', help='Run comprehensive data quality analysis')
-    parser.add_argument('--batch-size', type=int, default=50000, help='Batch size for processing')
+    parser.add_argument('--batch-size', type=int, default=25000, help='Batch size for processing')
     parser.add_argument('--mysql-host', default='127.0.0.1', help='MySQL host')
     parser.add_argument('--mysql-user', default='drupal_user', help='MySQL user')
     parser.add_argument('--mysql-password', default='drupal_secure_password', help='MySQL password')
