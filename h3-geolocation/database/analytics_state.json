@@ -1,0 +1,16 @@
+{
+  "resolutions": {
+    "13": {
+      "status": "error",
+      "start_time": "2025-11-20T16:47:53.902772",
+      "total_hexes": 177129,
+      "error": "Failed calling stored routine; Lost connection to MySQL server during query"
+    },
+    "5": {
+      "status": "complete",
+      "start_time": "2025-11-20T16:51:41.891087",
+      "total_hexes": 5,
+      "end_time": "2025-11-20T16:55:16.614641",
+      "elapsed_seconds": 214.72,
+      "completion": {
+        "alltime_basic": 
