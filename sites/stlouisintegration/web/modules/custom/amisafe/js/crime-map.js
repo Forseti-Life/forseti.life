@@ -1043,8 +1043,8 @@
             console.log('🔍 H3:5 boundary coordinates:', leafletCoords);
           }
           
-          // Calculate styling based on incident count
-          const style = this.calculateHexagonStyle(incidentCount);
+          // Calculate styling based on z-score from analytics
+          const style = this.calculateHexagonStyle(hexagon);
           
           // Create and add polygon to map
           const polygon = L.polygon(leafletCoords, style);
@@ -1131,32 +1131,115 @@
     },
 
     /**
-     * Calculate hexagon styling based on incident count
+     * Calculate hexagon styling based on z-score (statistical significance)
+     * Uses incident_z_score for normalized heat map coloring across resolutions
      */
-    calculateHexagonStyle: function(incidentCount) {
-      // Color intensity based on incident count
-      const maxIntensity = 100; // Adjust based on your data
-      const intensity = Math.min(incidentCount / maxIntensity, 1);
+    calculateHexagonStyle: function(hexagonData) {
+      // Extract z-score from analytics if available, otherwise use incident count
+      let zScore = 0;
+      let incidentCount = 0;
+      
+      if (typeof hexagonData === 'object') {
+        // Get z-score from analytics (prioritize this for accurate coloring)
+        if (hexagonData.analytics && hexagonData.analytics.z_scores) {
+          zScore = hexagonData.analytics.z_scores.incident || 0;
+        }
+        incidentCount = hexagonData.incident_count || hexagonData.incidentCount || 0;
+      } else {
+        // Legacy: hexagonData is just an incident count number
+        incidentCount = hexagonData;
+        // Fallback: estimate z-score from count (not accurate but better than nothing)
+        zScore = Math.log10(Math.max(1, incidentCount));
+      }
+      
+      // Color based on z-score (standard deviations from mean)
+      // Z-score typically ranges from -3 to +3
+      // Positive values = above average (hotter), negative = below average (cooler)
+      let fillColor, borderColor;
+      let fillOpacity = 0.6;
+      
+      if (zScore >= 3.0) {
+        // EXTREME hotspot (3+ standard deviations above mean)
+        fillColor = '#8B0000';  // Dark red
+        borderColor = '#FF0000'; // Red
+        fillOpacity = 0.8;
+      } else if (zScore >= 2.0) {
+        // HIGH activity (2-3 std dev above mean)
+        fillColor = '#FF0000';  // Red
+        borderColor = '#FF4500'; // Orange-red
+        fillOpacity = 0.7;
+      } else if (zScore >= 1.0) {
+        // ELEVATED (1-2 std dev above mean)
+        fillColor = '#FF6600';  // Orange
+        borderColor = '#FFA500'; // Orange
+        fillOpacity = 0.6;
+      } else if (zScore >= 0.5) {
+        // ABOVE AVERAGE (0.5-1 std dev)
+        fillColor = '#FFB000';  // Yellow-orange
+        borderColor = '#FFC800'; // Gold
+        fillOpacity = 0.5;
+      } else if (zScore >= 0) {
+        // AVERAGE (0-0.5 std dev)
+        fillColor = '#FFFF00';  // Yellow
+        borderColor = '#FFFF66'; // Light yellow
+        fillOpacity = 0.4;
+      } else if (zScore >= -1.0) {
+        // BELOW AVERAGE (-1 to 0 std dev)
+        fillColor = '#90EE90';  // Light green
+        borderColor = '#00FF00'; // Green
+        fillOpacity = 0.3;
+      } else {
+        // LOW activity (< -1 std dev - very safe)
+        fillColor = '#00CED1';  // Cyan
+        borderColor = '#00BFFF'; // Blue
+        fillOpacity = 0.2;
+      }
+      
+      // Minimal mode override (green/cyan theme)
+      if (this.minimalMode) {
+        if (zScore >= 2.0) {
+          fillColor = '#00ff41';  // Bright green for hotspots
+          fillOpacity = 0.7;
+        } else if (zScore >= 1.0) {
+          fillColor = '#00dd33';
+          fillOpacity = 0.5;
+        } else {
+          fillColor = '#00bb22';
+          fillOpacity = 0.3;
+        }
+        borderColor = '#00ff41';
+      }
       
       return {
-        fillColor: this.minimalMode ? '#00ff41' : '#ff0040',
-        weight: 1,
+        fillColor: fillColor,
+        weight: zScore >= 2.0 ? 2 : 1,  // Thicker borders for hotspots
         opacity: 0.8,
-        color: this.minimalMode ? '#00ff41' : '#00bfff',
-        fillOpacity: 0.3 + (intensity * 0.4)
+        color: borderColor,
+        fillOpacity: fillOpacity
       };
     },
 
     /**
-     * Create hover tooltip for hexagon with incident statistics
+     * Create hover tooltip for hexagon with incident statistics and z-score
      */
     createHexagonTooltip: function(hexagon) {
       const incidentCount = hexagon.incident_count || hexagon.incidentCount || 0;
+      const zScore = hexagon.analytics && hexagon.analytics.z_scores ? 
+                     hexagon.analytics.z_scores.incident : null;
+      const riskLevel = hexagon.analytics && hexagon.analytics.risk_level ? 
+                        hexagon.analytics.risk_level : 'UNKNOWN';
+      
+      let zScoreText = '';
+      if (zScore !== null) {
+        const zScoreFormatted = zScore.toFixed(2);
+        const zScoreLabel = zScore >= 2 ? 'HOTSPOT' : zScore >= 1 ? 'ELEVATED' : zScore >= 0 ? 'AVERAGE' : 'BELOW AVG';
+        zScoreText = `<br><span style="color: #FFD700;">Z-Score: ${zScoreFormatted} (${zScoreLabel})</span>`;
+      }
       
       return `
         <div style="padding: 5px; min-width: 150px;">
-          <strong style="color: #00ff41;">${incidentCount.toLocaleString()} Incidents</strong><br>
-          <span style="color: #888;">Crime breakdown unavailable</span>
+          <strong style="color: #00ff41;">${incidentCount.toLocaleString()} Incidents</strong>${zScoreText}<br>
+          <span style="color: #FFA500;">Risk: ${riskLevel}</span>
         </div>
       `;
     },
