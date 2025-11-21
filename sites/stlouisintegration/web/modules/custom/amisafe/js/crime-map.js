@@ -1170,7 +1170,18 @@
       const centerLng = hexagon.center_longitude || hexagon.center?.lng || hexagon.lng || 0;
       const coverageArea = hexagon.coverage_area_km2 || hexagon.geography?.coverage_km2 || 0;
       const precisionLevel = hexagon.precision_level || hexagon.geography?.precision_level || 'Unknown';
-      const riskLevel = this.calculateRiskLevel(incidentCount);
+      
+      // Use database-calculated risk category (based on z-scores)
+      const riskLevel = hexagon.analytics?.risk_level || 'UNKNOWN';
+      const riskScore = hexagon.analytics?.risk_score || 0;
+      
+      // Extract z-scores for display
+      const zScore = hexagon.analytics?.z_scores?.incident || 0;
+      const violentZScore = hexagon.analytics?.z_scores?.violent || 0;
+      const nonviolentZScore = hexagon.analytics?.z_scores?.nonviolent || 0;
+      
+      // Hotspot status
+      const hotspotStatus = hexagon.analytics?.hotspot_status || 'UNKNOWN';
       
       // Temporal data
       const earliestIncident = hexagon.earliest_incident || hexagon.temporal?.earliest || 'Unknown';
@@ -1233,9 +1244,38 @@
                 <span class="stat-value risk-${riskLevel.toLowerCase()}">${riskLevel}</span>
               </div>
               <div class="stat-item">
+                <span class="stat-label">Risk Score:</span>
+                <span class="stat-value">${riskScore.toFixed(2)}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Z-Score:</span>
+                <span class="stat-value" style="color: ${this.getZScoreColor(zScore)};">${zScore.toFixed(2)}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Hotspot Status:</span>
+                <span class="stat-value hotspot-${hotspotStatus.toLowerCase()}">${hotspotStatus}</span>
+              </div>
+              <div class="stat-item">
                 <span class="stat-label">Last 30 Days:</span>
                 <span class="stat-value">${last30Days.toLocaleString()}</span>
               </div>
+            </div>
+          </div>
+          
+          <div class="popup-section">
+            <h5>📈 Statistical Breakdown</h5>
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-label">Violent Z-Score:</span>
+                <span class="stat-value" style="color: ${this.getZScoreColor(violentZScore)};">${violentZScore.toFixed(2)}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Nonviolent Z-Score:</span>
+                <span class="stat-value" style="color: ${this.getZScoreColor(nonviolentZScore)};">${nonviolentZScore.toFixed(2)}</span>
+              </div>
+            </div>
+            <div class="z-score-explanation" style="font-size: 0.75rem; color: #666; margin-top: 0.5rem;">
+              <em>Z-Score Scale: -2 (much safer than average) to 11+ (extreme danger)</em>
             </div>
           </div>
           
@@ -2197,14 +2237,16 @@
     },
 
     /**
-     * Calculate risk level based on incident count
+     * Get color for z-score display (matches gradient scale)
      */
-    calculateRiskLevel: function(incidentCount) {
-      if (incidentCount >= 1000) return 'CRITICAL';
-      if (incidentCount >= 500) return 'HIGH';
-      if (incidentCount >= 100) return 'MEDIUM';
-      if (incidentCount >= 10) return 'LOW';
-      return 'MINIMAL';
+    getZScoreColor: function(zScore) {
+      if (zScore >= 11) return '#8B0000'; // Dark red - EXTREME
+      if (zScore >= 8) return '#DC143C';  // Crimson - HIGH
+      if (zScore >= 5) return '#FF4500';  // Orange-red - ELEVATED
+      if (zScore >= 2) return '#FFA500';  // Orange - MODERATE
+      if (zScore >= 0) return '#FFFF00';  // Yellow - AVERAGE
+      if (zScore >= -1) return '#99FF00'; // Light lime - BELOW AVERAGE
+      return '#32CD32';                    // Green - SAFE
     },
 
     /**

@@ -16,7 +16,7 @@ logger:
 
 # Core crime map library
 crime-map:
-  version: 7.3  # Fixed bottom panel for hexagon details, no popup refocus
+  version: 7.4  # Fixed risk level to use DB z-score calculation, aligned with gradient
   css:
     theme:
       css/professional-theme.css: {}

@@ -927,3 +927,53 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     grid-template-columns: 1fr;
   }
 }
+
+/* Hotspot status colors */
+#hexagon-detail-content .stat-value.hotspot-extreme {
+  color: var(--danger-red);
+  font-weight: 700;
+}
+
+#hexagon-detail-content .stat-value.hotspot-hot {
+  color: #FF6B00;
+  font-weight: 600;
+}
+
+#hexagon-detail-content .stat-value.hotspot-warm {
+  color: var(--warning-yellow);
+}
+
+#hexagon-detail-content .stat-value.hotspot-cold {
+  color: var(--success-green);
+}
+
+/* Risk level colors (database-calculated) */
+#hexagon-detail-content .stat-value.risk-critical,
+#hexagon-detail-content .stat-value.critical {
+  color: var(--danger-red);
+  font-weight: 700;
+}
+
+#hexagon-detail-content .stat-value.risk-high,
+#hexagon-detail-content .stat-value.high {
+  color: #FF6B00;
+  font-weight: 600;
+}
+
+#hexagon-detail-content .stat-value.risk-moderate,
+#hexagon-detail-content .stat-value.moderate {
+  color: var(--warning-yellow);
+}
+
+#hexagon-detail-content .stat-value.risk-low,
+#hexagon-detail-content .stat-value.low {
+  color: var(--success-green);
+}
+
+/* Z-score explanation text */
+.z-score-explanation {
+  background: var(--light-gray);
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
