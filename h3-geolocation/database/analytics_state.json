@@ -1,16 +1,25 @@
 {
   "resolutions": {
-    "13": {
-      "status": "error",
-      "start_time": "2025-11-20T16:47:53.902772",
-      "total_hexes": 177129,
-      "error": "Failed calling stored routine; Lost connection to MySQL server during query"
-    },
-    "5": {
+    "9": {
       "status": "complete",
-      "start_time": "2025-11-20T16:51:41.891087",
-      "total_hexes": 5,
-      "end_time": "2025-11-20T16:55:16.614641",
-      "elapsed_seconds": 214.72,
+      "start_time": "2025-11-20T17:23:26.949755",
+      "total_hexes": 3150,
+      "end_time": "2025-11-20T17:32:48.630958",
+      "elapsed_seconds": 561.66,
       "completion": {
-        "alltime_basic": 
+        "alltime_basic": 100.0,
+        "alltime_risk": 100.0,
+        "windowed_12mo": 100.0,
+        "windowed_6mo": 100.0,
+        "overall": 100.0
+      }
+    },
+    "10": {
+      "status": "processing",
+      "start_time": "2025-11-20T17:32:48.708755",
+      "total_hexes": 16740
+    }
+  },
+  "last_updated": "2025-11-20T17:32:48.708767",
+  "total_hexagons_processed": 3150.0
+}
