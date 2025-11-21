@@ -928,18 +928,15 @@ class CrimeDataService {
     // Date range preset filtering - uses pre-calculated database columns
     // Note: The columns are used to filter which hexagons to show based on their activity
     // The actual data selection happens in processH3Aggregation based on date_range
-    // TEMPORARY: incident_count_12mo and _6mo are not yet populated, so use all-time data
     if (!empty($filters['date_range'])) {
       switch ($filters['date_range']) {
         case '12months':
-          // TODO: Once windowed analytics are run, use: $query->condition('incident_count_12mo', 0, '>');
-          // For now, show all hexagons with any activity
-          $query->condition('incident_count', 0, '>');
+          // Show hexagons with activity in last 12 months
+          $query->condition('incident_count_12mo', 0, '>');
           break;
         case '6months':
-          // TODO: Once windowed analytics are run, use: $query->condition('incident_count_6mo', 0, '>');
-          // For now, show all hexagons with any activity
-          $query->condition('incident_count', 0, '>');
+          // Show hexagons with activity in last 6 months
+          $query->condition('incident_count_6mo', 0, '>');
           break;
         case 'alltime':
           // Show all hexagons (no additional filter needed)
