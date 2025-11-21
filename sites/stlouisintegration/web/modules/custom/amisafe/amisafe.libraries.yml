@@ -16,7 +16,7 @@ logger:
 
 # Core crime map library
 crime-map:
-  version: 7.9  # Floating controls - removed sidebar, added map overlays
+  version: 8.0  # FIX: Apply dateRange filter to all data loads, not just manual filtering
   css:
     theme:
       css/professional-theme.css: {}

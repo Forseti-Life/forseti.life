@@ -599,10 +599,11 @@
         : this.getOptimalResolution(zoom);
       
       let bounds = this.map.getBounds();
-      // Only apply filters when explicitly requested (not on initial load or zoom changes)
-      let filters = {}; // Default to no filters to show all data
       
-      console.log(`📊 Loading H3 Resolution ${resolution} data${this.manualH3Resolution !== null ? ' (manual override)' : ' (zoom-based)'}...`);
+      // IMPORTANT: Apply current filters (especially dateRange) to all data loads
+      let filters = this.getCurrentFilters();
+      
+      console.log(`📊 Loading H3 Resolution ${resolution} data${this.manualH3Resolution !== null ? ' (manual override)' : ' (zoom-based)'} with filters:`, filters);
       
       // DEBUG: For H3:5, try a much broader bounds to see if data exists
       if (resolution === 5) {
@@ -617,17 +618,6 @@
         console.log('🔍 Original bounds:', bounds.toString());
         console.log('🔍 Expanded bounds for H3:5 (metro area):', expandedBounds.toString());
         bounds = expandedBounds;
-        
-        // TEMPORARILY: Clear filters for H3:5 to test if filters are blocking the hexagon
-        console.log('🧪 Temporarily clearing filters for H3:5 debugging...');
-        filters = {
-          crimeTypes: [],
-          districts: [],
-          startDate: '2006-01-01',
-          endDate: '2025-12-31',
-          timePeriods: [],
-          viewMode: 'hexagon'
-        };
       }
       
       // Cancel previous request
