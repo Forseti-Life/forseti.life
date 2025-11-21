@@ -769,13 +769,9 @@
       }
       params.append('limit', limit);
       
-      // Add filter parameters if they exist
-      if (filters.crimeTypes && filters.crimeTypes.length > 0) {
-        params.append('crime_types', filters.crimeTypes.join(','));
-      }
-      if (filters.districts && filters.districts.length > 0) {
-        params.append('districts', filters.districts.join(','));
-      }
+      // IMPORTANT: Only send filters if they're actually filtering (not "all selected")
+      // When crime types/districts arrays are empty OR contain all possible values,
+      // don't send them - let the backend return all data
       
       // Add date range preset (uses pre-calculated DB values)
       if (filters.dateRange) {
@@ -1591,11 +1587,11 @@
       }
       
       processedTypes.forEach(type => {
-        selector.append(`<option value="${type.value}" selected>${type.label}</option>`);
+        // Don't auto-select all - let user choose what to filter
+        selector.append(`<option value="${type.value}">${type.label}</option>`);
       });
       
-      // Update current filters
-      this.currentFilters.crimeTypes = processedTypes.map(t => t.value);
+      // DON'T update currentFilters here - let it stay empty (meaning "show all")
       console.log('✅ Crime types populated:', processedTypes.length, 'types');
     },
 
@@ -1627,11 +1623,11 @@
       }
       
       processedDistricts.forEach(district => {
-        selector.append(`<option value="${district.value}" selected>${district.label}</option>`);
+        // Don't auto-select all - let user choose what to filter
+        selector.append(`<option value="${district.value}">${district.label}</option>`);
       });
       
-      // Update current filters
-      this.currentFilters.districts = processedDistricts.map(d => d.value);
+      // DON'T update currentFilters here - let it stay empty (meaning "show all")
       console.log('✅ Districts populated:', processedDistricts.length, 'districts');
     },
 
@@ -1669,12 +1665,12 @@
     },
 
     /**
-     * Clear all filters to default state (12 months)
+     * Clear all filters to default state (12 months, no filters)
      */
     clearAllFilters: function() {
-      // Reset all selectors to default (all selected)
-      $('#crime-type-selector option').prop('selected', true);
-      $('#district-selector option').prop('selected', true);
+      // Clear all selectors (deselect all options = show all data)
+      $('#crime-type-selector option').prop('selected', false);
+      $('#district-selector option').prop('selected', false);
       $('#date-range-filter').val('12months');
       $('#time-period-selector option').prop('selected', true);
       
@@ -1685,7 +1681,7 @@
       // Apply cleared filters
       this.applyFilters();
       
-      console.log('🔄 All filters cleared to default state (last 12 months)');
+      console.log('🔄 All filters cleared - showing all data (last 12 months)');
     },
 
     /**

@@ -16,7 +16,7 @@ logger:
 
 # Core crime map library
 crime-map:
-  version: 8.1  # Integrate zoom controls into H3 bar, disable default Leaflet zoom
+  version: 8.2  # FIX: Don't pass crime_types/districts when showing all data
   css:
     theme:
       css/professional-theme.css: {}
