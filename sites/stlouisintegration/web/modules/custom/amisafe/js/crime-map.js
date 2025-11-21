@@ -157,6 +157,9 @@
       $('#h3-decrease').on('click', () => this.decreaseH3Resolution());
       $('#h3-increase').on('click', () => this.increaseH3Resolution());
       
+      // Hexagon detail panel close button
+      $('#close-detail-panel').on('click', () => this.closeHexagonDetailPanel());
+      
       // Force map resize after initialization
       setTimeout(() => {
         this.map.invalidateSize();
@@ -847,8 +850,8 @@
             className: 'hexagon-tooltip'
           });
           
-          // Add detailed popup on click
-          polygon.bindPopup(this.createHexagonPopup(hexagon));
+          // Add click handler to show detail panel
+          polygon.on('click', () => this.showHexagonDetailPanel(hexagon));
           
           // Enhanced hover effects with visual feedback
           polygon.on('mouseover', function(e) {
@@ -913,8 +916,8 @@
         className: 'hexagon-tooltip'
       });
       
-      // Add detailed popup on click
-      circle.bindPopup(this.createHexagonPopup(hexagon));
+      // Add click handler to show detail panel
+      circle.on('click', () => this.showHexagonDetailPanel(hexagon));
       
       circle.addTo(this.hexagonLayer);
       return circle; // Return circle for bounds tracking
@@ -1140,9 +1143,25 @@
     },
 
     /**
-     * Create comprehensive popup content for hexagon (detailed format)
+     * Show hexagon details in fixed bottom panel
      */
-    createHexagonPopup: function(hexagon) {
+    showHexagonDetailPanel: function(hexagon) {
+      const content = this.createHexagonDetailContent(hexagon);
+      $('#hexagon-detail-content').html(content);
+      $('#hexagon-detail-panel').fadeIn(300);
+    },
+
+    /**
+     * Close hexagon detail panel
+     */
+    closeHexagonDetailPanel: function() {
+      $('#hexagon-detail-panel').fadeOut(300);
+    },
+
+    /**
+     * Create comprehensive detail content for hexagon
+     */
+    createHexagonDetailContent: function(hexagon) {
       const incidentCount = hexagon.incident_count || hexagon.incidentCount || 0;
       const h3Index = hexagon.h3_index || hexagon.h3Index || 'Unknown';
       const h3Resolution = hexagon.resolution || hexagon.h3_resolution || 'Unknown';
