@@ -117,8 +117,8 @@ class CrimeDataService {
       $this->logger->info('H3 Query Results: @count rows returned', ['@count' => count($results)]);
       
       // Process results for frontend consumption with precision metadata
-      $processed_results = array_map(function($row) use ($resolution) {
-        return $this->processH3Aggregation($row, $resolution);
+      $processed_results = array_map(function($row) use ($resolution, $filters) {
+        return $this->processH3Aggregation($row, $resolution, $filters);
       }, $results);
       
       // Cache for 30 minutes (longer cache for aggregated data)
@@ -512,17 +512,70 @@ class CrimeDataService {
   /**
    * Process Gold layer (final) H3 aggregation data with ultra-precision metadata.
    * Provides comprehensive analytics for Resolution 13 hexagon data.
+   * Adapts data based on date_range filter (12months, 6months, alltime).
    */
-  private function processH3Aggregation($aggregation, $resolution) {
+  private function processH3Aggregation($aggregation, $resolution, $filters = []) {
     // Lazy-load JSON fields only if needed (optimize performance)
     $incident_types = isset($aggregation['incident_type_counts']) ? json_decode($aggregation['incident_type_counts'], true) : [];
     $districts = isset($aggregation['district_counts']) ? json_decode($aggregation['district_counts'], true) : [];
+    
+    // Determine which data columns to use based on date_range filter
+    $date_range = $filters['date_range'] ?? 'alltime';
+    
+    // Select appropriate columns based on date range
+    switch ($date_range) {
+      case '12months':
+        $incident_count = intval($aggregation['incident_count_12mo'] ?? $aggregation['incident_count']);
+        $violent_count = intval($aggregation['violent_crime_count_12mo'] ?? $aggregation['violent_crime_count']);
+        $nonviolent_count = intval($aggregation['nonviolent_crime_count_12mo'] ?? $aggregation['nonviolent_crime_count']);
+        $risk_level = $aggregation['risk_category_12mo'] ?? $aggregation['risk_category'] ?? 'UNKNOWN';
+        $risk_score = floatval($aggregation['risk_score_12mo'] ?? $aggregation['risk_score'] ?? 0);
+        $hotspot = $aggregation['hotspot_status_12mo'] ?? $aggregation['hotspot_status'];
+        $z_incident = floatval($aggregation['incident_z_score_12mo'] ?? $aggregation['incident_z_score'] ?? 0);
+        $z_violent = floatval($aggregation['violent_crime_z_score_12mo'] ?? $aggregation['violent_crime_z_score'] ?? 0);
+        $z_nonviolent = floatval($aggregation['nonviolent_crime_z_score_12mo'] ?? $aggregation['nonviolent_crime_z_score'] ?? 0);
+        $top_crime = $aggregation['top_crime_type_12mo'] ?? $aggregation['top_crime_type'];
+        $diversity = floatval($aggregation['crime_diversity_index_12mo'] ?? $aggregation['crime_diversity_index'] ?? 0);
+        $violent_percentile = intval($aggregation['violent_crime_percentile_12mo'] ?? $aggregation['violent_crime_percentile'] ?? 0);
+        break;
+        
+      case '6months':
+        $incident_count = intval($aggregation['incident_count_6mo'] ?? $aggregation['incident_count']);
+        $violent_count = intval($aggregation['violent_crime_count_6mo'] ?? $aggregation['violent_crime_count']);
+        $nonviolent_count = intval($aggregation['nonviolent_crime_count_6mo'] ?? $aggregation['nonviolent_crime_count']);
+        $risk_level = $aggregation['risk_category_6mo'] ?? $aggregation['risk_category'] ?? 'UNKNOWN';
+        $risk_score = floatval($aggregation['risk_score_6mo'] ?? $aggregation['risk_score'] ?? 0);
+        $hotspot = $aggregation['hotspot_status_6mo'] ?? $aggregation['hotspot_status'];
+        $z_incident = floatval($aggregation['incident_z_score_6mo'] ?? $aggregation['incident_z_score'] ?? 0);
+        $z_violent = floatval($aggregation['violent_crime_z_score_6mo'] ?? $aggregation['violent_crime_z_score'] ?? 0);
+        $z_nonviolent = floatval($aggregation['nonviolent_crime_z_score_6mo'] ?? $aggregation['nonviolent_crime_z_score'] ?? 0);
+        $top_crime = $aggregation['top_crime_type_6mo'] ?? $aggregation['top_crime_type'];
+        $diversity = floatval($aggregation['crime_diversity_index_6mo'] ?? $aggregation['crime_diversity_index'] ?? 0);
+        $violent_percentile = intval($aggregation['violent_crime_percentile_6mo'] ?? $aggregation['violent_crime_percentile'] ?? 0);
+        break;
+        
+      case 'alltime':
+      default:
+        $incident_count = intval($aggregation['incident_count']);
+        $violent_count = intval($aggregation['violent_crime_count'] ?? 0);
+        $nonviolent_count = intval($aggregation['nonviolent_crime_count'] ?? 0);
+        $risk_level = $aggregation['risk_category'] ?? 'UNKNOWN';
+        $risk_score = floatval($aggregation['risk_score'] ?? 0);
+        $hotspot = $aggregation['hotspot_status'];
+        $z_incident = floatval($aggregation['incident_z_score'] ?? 0);
+        $z_violent = floatval($aggregation['violent_crime_z_score'] ?? 0);
+        $z_nonviolent = floatval($aggregation['nonviolent_crime_z_score'] ?? 0);
+        $top_crime = $aggregation['top_crime_type'];
+        $diversity = floatval($aggregation['crime_diversity_index'] ?? 0);
+        $violent_percentile = intval($aggregation['violent_crime_percentile'] ?? 0);
+        break;
+    }
     
     return [
       'id' => $aggregation['id'],
       'h3_index' => $aggregation['h3_index'],
       'resolution' => $aggregation['h3_resolution'],
-      'incident_count' => intval($aggregation['incident_count']),
+      'incident_count' => $incident_count,
       'unique_types' => intval($aggregation['unique_incident_types']),
       'center' => [
         'lat' => floatval($aggregation['center_latitude']),
@@ -546,24 +599,24 @@ class CrimeDataService {
       'analytics' => [
         'crime_types' => $incident_types ?: [],
         'districts' => $districts ?: [],
-        'density' => $this->calculateDensity($aggregation['incident_count'], $resolution),
-        // Risk categories and scores
-        'risk_level' => $aggregation['risk_category'] ?? 'UNKNOWN',
+        'density' => $this->calculateDensity($incident_count, $resolution),
+        // Risk categories and scores (date-range specific)
+        'risk_level' => $risk_level,
+        'risk_score' => $risk_score,
+        'hotspot_status' => $hotspot,
+        // Z-scores (CRITICAL for heat map coloring - date-range specific)
+        'z_scores' => [
+          'incident' => $z_incident,
+          'violent' => $z_violent,
+          'nonviolent' => $z_nonviolent,
+        ],
+        // All time window data still available for comparison
         'risk_level_12mo' => $aggregation['risk_category_12mo'] ?? null,
         'risk_level_6mo' => $aggregation['risk_category_6mo'] ?? null,
-        'risk_score' => floatval($aggregation['risk_score'] ?? 0),
         'risk_score_12mo' => floatval($aggregation['risk_score_12mo'] ?? 0),
         'risk_score_6mo' => floatval($aggregation['risk_score_6mo'] ?? 0),
-        // Hotspot classification
-        'hotspot_status' => $aggregation['hotspot_status'] ?? null,
         'hotspot_status_12mo' => $aggregation['hotspot_status_12mo'] ?? null,
         'hotspot_status_6mo' => $aggregation['hotspot_status_6mo'] ?? null,
-        // Z-scores (CRITICAL for heat map coloring)
-        'z_scores' => [
-          'incident' => floatval($aggregation['incident_z_score'] ?? 0),
-          'violent' => floatval($aggregation['violent_crime_z_score'] ?? 0),
-          'nonviolent' => floatval($aggregation['nonviolent_crime_z_score'] ?? 0),
-        ],
         'z_scores_12mo' => [
           'incident' => floatval($aggregation['incident_z_score_12mo'] ?? 0),
           'violent' => floatval($aggregation['violent_crime_z_score_12mo'] ?? 0),
@@ -582,26 +635,26 @@ class CrimeDataService {
           'violent_mean' => floatval($aggregation['violent_crime_mean'] ?? 0),
           'violent_std_dev' => floatval($aggregation['violent_crime_std_dev'] ?? 0),
         ],
-        // Crime type breakdown
-        'top_crime_type' => $aggregation['top_crime_type'] ?? null,
+        // Crime type breakdown (date-range specific)
+        'top_crime_type' => $top_crime,
         'top_crime_type_12mo' => $aggregation['top_crime_type_12mo'] ?? null,
         'top_crime_type_6mo' => $aggregation['top_crime_type_6mo'] ?? null,
-        // Counts by category
-        'violent_count' => intval($aggregation['violent_crime_count'] ?? 0),
+        // Counts by category (date-range specific)
+        'violent_count' => $violent_count,
         'violent_count_12mo' => intval($aggregation['violent_crime_count_12mo'] ?? 0),
         'violent_count_6mo' => intval($aggregation['violent_crime_count_6mo'] ?? 0),
-        'nonviolent_count' => intval($aggregation['nonviolent_crime_count'] ?? 0),
+        'nonviolent_count' => $nonviolent_count,
         'nonviolent_count_12mo' => intval($aggregation['nonviolent_crime_count_12mo'] ?? 0),
         'nonviolent_count_6mo' => intval($aggregation['nonviolent_crime_count_6mo'] ?? 0),
         // Windowed incident counts
         'incident_count_12mo' => intval($aggregation['incident_count_12mo'] ?? 0),
         'incident_count_6mo' => intval($aggregation['incident_count_6mo'] ?? 0),
-        // Crime diversity
-        'crime_diversity' => floatval($aggregation['crime_diversity_index'] ?? 0),
+        // Crime diversity (date-range specific)
+        'crime_diversity' => $diversity,
         'crime_diversity_12mo' => floatval($aggregation['crime_diversity_index_12mo'] ?? 0),
         'crime_diversity_6mo' => floatval($aggregation['crime_diversity_index_6mo'] ?? 0),
-        // Percentile rankings
-        'violent_percentile' => intval($aggregation['violent_crime_percentile'] ?? 0),
+        // Percentile rankings (date-range specific)
+        'violent_percentile' => $violent_percentile,
         'violent_percentile_12mo' => intval($aggregation['violent_crime_percentile_12mo'] ?? 0),
         'violent_percentile_6mo' => intval($aggregation['violent_crime_percentile_6mo'] ?? 0),
       ],
@@ -609,6 +662,7 @@ class CrimeDataService {
         'last_updated' => $aggregation['last_aggregation'],
         'source_records' => intval($aggregation['total_valid_records']),
         'aggregation_type' => 'gold_layer_ultra_precision',
+        'date_range' => $date_range, // Include filter info in response
       ],
     ];
   }
@@ -860,6 +914,7 @@ class CrimeDataService {
   /**
    * Apply filters to H3 aggregation queries.
    * Now supports h3_index filtering for Resolution 5 citywide hexagon lookup.
+   * Supports date_range presets (12months, 6months, alltime) using pre-calculated columns.
    */
   private function applyH3Filters($query, $filters) {
     // Filter by specific H3 index (for Resolution 5 citywide hexagon)
@@ -869,6 +924,26 @@ class CrimeDataService {
 
     // Log filters for debugging
     \Drupal::logger('amisafe')->info('H3 Filters received: @filters', ['@filters' => print_r($filters, TRUE)]);
+
+    // Date range preset filtering - uses pre-calculated database columns
+    // Note: The columns are used to filter which hexagons to show based on their activity
+    // The actual data selection happens in processH3Aggregation based on date_range
+    if (!empty($filters['date_range'])) {
+      switch ($filters['date_range']) {
+        case '12months':
+          // Show hexagons with activity in last 12 months
+          $query->condition('incident_count_12mo', 0, '>');
+          break;
+        case '6months':
+          // Show hexagons with activity in last 6 months
+          $query->condition('incident_count_6mo', 0, '>');
+          break;
+        case 'alltime':
+          // Show all hexagons (no additional filter needed)
+          break;
+      }
+      \Drupal::logger('amisafe')->info('Applied date_range filter: @range', ['@range' => $filters['date_range']]);
+    }
 
     // Apply incident count filters
     if (!empty($filters['min_incidents'])) {

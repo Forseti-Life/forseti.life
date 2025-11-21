@@ -46,26 +46,13 @@
         <div class="form-group">
           <label class="form-label">Date Range</label>
           <div class="date-range-container">
-            <div class="row">
-              <div class="col-6">
-                <label class="form-label small" for="start-date">From Date</label>
-                <input type="date" id="start-date" class="form-control" 
-                       min="2006-01-01" max="2025-12-31" value="2006-01-01">
-              </div>
-              <div class="col-6">
-                <label class="form-label small" for="end-date">To Date</label>
-                <input type="date" id="end-date" class="form-control" 
-                       min="2006-01-01" max="2025-12-31" value="2025-12-31">
-              </div>
+            <div class="btn-group btn-group-sm w-100" role="group">
+              <button type="button" class="btn btn-outline-primary preset-btn active" id="preset-12-months" data-preset="12months">Last 12 Months</button>
+              <button type="button" class="btn btn-outline-primary preset-btn" id="preset-6-months" data-preset="6months">Last 6 Months</button>
+              <button type="button" class="btn btn-outline-primary preset-btn" id="preset-all-time" data-preset="alltime">All Time</button>
             </div>
-            <div class="date-presets mt-2">
-              <small class="text-muted d-block mb-1">Quick Presets:</small>
-              <div class="btn-group btn-group-sm w-100" role="group">
-                <button type="button" class="btn btn-outline-secondary" id="preset-last-month">Last Month</button>
-                <button type="button" class="btn btn-outline-secondary" id="preset-last-year">Last Year</button>
-                <button type="button" class="btn btn-outline-secondary" id="preset-all-time">All Time</button>
-              </div>
-            </div>
+            <input type="hidden" id="date-range-filter" value="12months">
+            <small class="text-muted d-block mt-1">Leveraging pre-calculated database statistics</small>
           </div>
         </div>
         

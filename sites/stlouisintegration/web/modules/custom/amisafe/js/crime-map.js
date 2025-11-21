@@ -192,12 +192,11 @@
     initializeFilters: function() {
       const self = this;
       
-      // Initialize default filter state
+      // Initialize default filter state with 12-month preset
       this.currentFilters = {
         crimeTypes: [],
         districts: [],
-        startDate: '2006-01-01',
-        endDate: '2025-12-31',
+        dateRange: '12months', // Use preset instead of specific dates
         timePeriods: ['early-morning', 'morning', 'afternoon', 'evening'],
         viewMode: 'hexagon'
       };
@@ -219,24 +218,11 @@
         console.log('🔄 Filter dropdown changed - use Apply Filters button to apply');
         // No auto-apply - user must click Apply Filters button
       });
-
-      // Manual filtering only - no auto-apply to prevent data loss  
-      $('#start-date, #end-date').on('change', function() {
-        console.log('🔄 Date range changed - use Apply Filters button to apply');
-        // No auto-apply - user must click Apply Filters button
-      });
       
-      // Date preset buttons
-      $('#preset-last-month').on('click', function() {
-        self.setDatePreset('lastMonth');
-      });
-      
-      $('#preset-last-year').on('click', function() {
-        self.setDatePreset('lastYear');
-      });
-      
-      $('#preset-all-time').on('click', function() {
-        self.setDatePreset('allTime');
+      // Date range preset buttons
+      $('.preset-btn').on('click', function() {
+        const preset = $(this).data('preset');
+        self.setDatePreset(preset);
       });
       
       // View mode buttons
@@ -780,11 +766,10 @@
       if (filters.districts && filters.districts.length > 0) {
         params.append('districts', filters.districts.join(','));
       }
-      if (filters.startDate) {
-        params.append('start_date', filters.startDate);
-      }
-      if (filters.endDate) {
-        params.append('end_date', filters.endDate);
+      
+      // Add date range preset (uses pre-calculated DB values)
+      if (filters.dateRange) {
+        params.append('date_range', filters.dateRange);
       }
       
       const finalUrl = `${baseUrl}?${params.toString()}`;
@@ -1647,15 +1632,14 @@
       // Collect filter values
       this.currentFilters.crimeTypes = $('#crime-type-selector').val() || [];
       this.currentFilters.districts = $('#district-selector').val() || [];
-      this.currentFilters.startDate = $('#start-date').val();
-      this.currentFilters.endDate = $('#end-date').val();
+      this.currentFilters.dateRange = $('#date-range-filter').val() || '12months';
       this.currentFilters.timePeriods = $('#time-period-selector').val() || [];
       
       console.log('🔍 Applying filters:', this.currentFilters);
       console.log('🎯 Filter summary:', {
         crimeTypes: this.currentFilters.crimeTypes.length,
         districts: this.currentFilters.districts.length,
-        dateRange: `${this.currentFilters.startDate} to ${this.currentFilters.endDate}`,
+        dateRange: this.currentFilters.dateRange,
         timePeriods: this.currentFilters.timePeriods.length
       });
       
@@ -1675,72 +1659,46 @@
     },
 
     /**
-     * Clear all filters to default state
+     * Clear all filters to default state (12 months)
      */
     clearAllFilters: function() {
       // Reset all selectors to default (all selected)
       $('#crime-type-selector option').prop('selected', true);
       $('#district-selector option').prop('selected', true);
-      $('#start-date').val('2006-01-01');
-      $('#end-date').val('2025-12-31');
+      $('#date-range-filter').val('12months');
       $('#time-period-selector option').prop('selected', true);
       
-      // Clear preset button states
+      // Reset preset button states to 12 months
       $('.preset-btn').removeClass('active');
+      $('#preset-12-months').addClass('active');
       
       // Apply cleared filters
       this.applyFilters();
       
-      console.log('🔄 All filters cleared to default state');
+      console.log('🔄 All filters cleared to default state (last 12 months)');
     },
 
     /**
      * Set date range presets
      */
     setDatePreset: function(preset) {
-      const today = new Date();
-      let startDate, endDate;
-      
-      switch (preset) {
-        case 'lastMonth':
-          // Last 30 days
-          startDate = new Date(today);
-          startDate.setDate(today.getDate() - 30);
-          endDate = today;
-          break;
-          
-        case 'lastYear':
-          // Last 365 days
-          startDate = new Date(today);
-          startDate.setDate(today.getDate() - 365);
-          endDate = today;
-          break;
-          
-        case 'allTime':
-          // Full data range
-          startDate = new Date('2006-01-01');
-          endDate = new Date('2025-12-31');
-          break;
-          
-        default:
-          return;
-      }
-      
-      // Format dates for input fields (YYYY-MM-DD)
-      const formatDate = (date) => {
-        return date.getFullYear() + '-' + 
-               String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-               String(date.getDate()).padStart(2, '0');
-      };
-      
-      $('#start-date').val(formatDate(startDate));
-      $('#end-date').val(formatDate(endDate));
+      // Update hidden input value
+      $('#date-range-filter').val(preset);
       
       // Update button states
-      $('.date-presets .btn').removeClass('active');
-      $(`#preset-${preset.toLowerCase().replace(/([A-Z])/g, '-$1')}`).addClass('active');
+      $('.preset-btn').removeClass('active');
+      $(`.preset-btn[data-preset="${preset}"]`).addClass('active');
       
-      console.log(`📅 Date preset applied: ${preset} (${formatDate(startDate)} to ${formatDate(endDate)})`);
+      // Update current filters
+      this.currentFilters.dateRange = preset;
+      
+      const presetLabels = {
+        '12months': 'Last 12 Months',
+        '6months': 'Last 6 Months',
+        'alltime': 'All Time'
+      };
+      
+      console.log(`📅 Date preset applied: ${presetLabels[preset]} (using pre-calculated DB values)`);
     },
 
     /**
@@ -1824,11 +1782,8 @@
       if (this.currentFilters.districts && this.currentFilters.districts.length > 0) {
         apiData.districts = this.currentFilters.districts.join(',');
       }
-      if (this.currentFilters.startDate) {
-        apiData.start_date = this.currentFilters.startDate;
-      }
-      if (this.currentFilters.endDate) {
-        apiData.end_date = this.currentFilters.endDate;
+      if (this.currentFilters.dateRange) {
+        apiData.date_range = this.currentFilters.dateRange;
       }
       
       $.ajax({
@@ -1883,11 +1838,8 @@
       if (this.currentFilters.districts && this.currentFilters.districts.length > 0) {
         apiData.districts = this.currentFilters.districts.join(',');
       }
-      if (this.currentFilters.startDate) {
-        apiData.start_date = this.currentFilters.startDate;
-      }
-      if (this.currentFilters.endDate) {
-        apiData.end_date = this.currentFilters.endDate;
+      if (this.currentFilters.dateRange) {
+        apiData.date_range = this.currentFilters.dateRange;
       }
 
       $.ajax({
@@ -2297,10 +2249,46 @@
     },
 
     /**
-     * Get human-readable crime type name from code
+     * Get human-readable crime type name from UCR code
      */
     getCrimeTypeName: function(code) {
+      // Convert to string and handle different formats
+      code = String(code).trim();
+      
+      // Philadelphia PD UCR General Codes
       const crimeTypeMap = {
+        // Part I Crimes - Serious Offenses
+        '100': 'Murder',
+        '200': 'Rape',
+        '300': 'Robbery',
+        '400': 'Aggravated Assault',
+        '500': 'Burglary',
+        '600': 'Larceny/Theft',
+        '700': 'Auto Theft',
+        '800': 'Simple Assault',
+        '900': 'Arson',
+        
+        // Part II Crimes
+        '1000': 'Forgery',
+        '1100': 'Fraud',
+        '1200': 'Embezzlement',
+        '1300': 'Stolen Property',
+        '1400': 'Vandalism',
+        '1500': 'Weapons Violation',
+        '1600': 'Prostitution',
+        '1700': 'Sex Offense',
+        '1800': 'Drug Violation',
+        '1900': 'Gambling',
+        '2000': 'Offense Against Family',
+        '2100': 'DUI',
+        '2200': 'Liquor Law Violation',
+        '2300': 'Drunkenness',
+        '2400': 'Disorderly Conduct',
+        '2500': 'Vagrancy',
+        '2600': 'Other Offense',
+        '2700': 'Suspicious Activity',
+        
+        // Legacy short codes
         'BURG': 'Burglary',
         'THEF': 'Theft',
         'ROBB': 'Robbery',
@@ -2318,7 +2306,8 @@
         'DISR': 'Disorderly Conduct',
         'TRAF': 'Traffic'
       };
-      return crimeTypeMap[code] || code || 'Unknown';
+      
+      return crimeTypeMap[code] || `Code ${code}`;
     }
 
   };

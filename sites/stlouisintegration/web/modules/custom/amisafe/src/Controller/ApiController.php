@@ -382,7 +382,12 @@ class ApiController extends ControllerBase {
   private function parseFilters(Request $request) {
     $filters = [];
 
-    // Date range
+    // Date range preset (12months, 6months, alltime) - uses pre-calculated DB columns
+    if ($request->query->has('date_range')) {
+      $filters['date_range'] = $request->query->get('date_range');
+    }
+
+    // Legacy date range support (fallback to specific dates if needed)
     if ($request->query->has('start_date')) {
       $filters['start_date'] = $request->query->get('start_date');
     }

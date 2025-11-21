@@ -16,7 +16,7 @@ logger:
 
 # Core crime map library
 crime-map:
-  version: 7.6  # Enhanced close button, Escape key support
+  version: 7.8  # Date range presets using pre-calculated DB values
   css:
     theme:
       css/professional-theme.css: {}
