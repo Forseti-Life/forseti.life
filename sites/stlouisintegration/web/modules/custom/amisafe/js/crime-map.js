@@ -712,7 +712,18 @@
       // Add basic parameters
       params.append('resolution', resolution);
       params.append('bounds', bounds.getNorth() + ',' + bounds.getEast() + ',' + bounds.getSouth() + ',' + bounds.getWest());
-      params.append('limit', 1000);
+      
+      // Set limit based on resolution - higher resolution needs more hexagons
+      // Resolution 5-7: Large hexagons, few needed (1000)
+      // Resolution 8-10: Medium hexagons (5000)
+      // Resolution 11-13: Small hexagons, many needed (20000)
+      let limit = 1000;
+      if (resolution >= 11) {
+        limit = 20000; // Ultra-precision needs many hexagons
+      } else if (resolution >= 8) {
+        limit = 5000; // Medium precision
+      }
+      params.append('limit', limit);
       
       // Add filter parameters if they exist
       if (filters.crimeTypes && filters.crimeTypes.length > 0) {
