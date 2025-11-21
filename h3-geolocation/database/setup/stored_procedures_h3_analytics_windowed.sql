@@ -733,45 +733,6 @@ BEGIN
     SELECT CONCAT('Risk scores calculated for resolution ', p_resolution, ' (', p_months, '-month window)') AS result;
 END$$
 
--- ==============================================================================
--- COMPLETE WINDOWED ANALYTICS: All Three Windows (all-time, 12mo, 6mo)
--- ==============================================================================
-DROP PROCEDURE IF EXISTS sp_complete_all_windows$$
-CREATE PROCEDURE sp_complete_all_windows(
-    IN p_resolution INT
-)
-BEGIN
-    SELECT CONCAT('=== Complete Analytics for Resolution ', p_resolution, ' (All Time Windows) ===') AS status;
-    
-    -- All-time analytics
-    SELECT '📊 Pass 1/5: All-time basic analytics...' AS status;
-    CALL sp_update_resolution_analytics(p_resolution);
-    
-    SELECT '📈 Pass 2/5: All-time statistical metrics...' AS status;
-    CALL sp_calculate_statistical_metrics(p_resolution);
-    
-    SELECT '🎯 Pass 3/5: All-time risk scores...' AS status;
-    CALL sp_calculate_risk_scores(p_resolution);
-    
-    -- Windowed analytics
-    SELECT '🕐 Pass 4/5: 12-month and 6-month windowed analytics...' AS status;
-    CALL sp_update_resolution_analytics_windowed(p_resolution);
-    
-    SELECT '📊 Pass 4a/5: 12-month statistical metrics...' AS status;
-    CALL sp_calculate_statistical_metrics_windowed(p_resolution, 12);
-    
-    SELECT '🎯 Pass 4b/5: 12-month risk scores...' AS status;
-    CALL sp_calculate_risk_scores_windowed(p_resolution, 12);
-    
-    SELECT '📊 Pass 5a/5: 6-month statistical metrics...' AS status;
-    CALL sp_calculate_statistical_metrics_windowed(p_resolution, 6);
-    
-    SELECT '🎯 Pass 5b/5: 6-month risk scores...' AS status;
-    CALL sp_calculate_risk_scores_windowed(p_resolution, 6);
-    
-    SELECT CONCAT('✅ ALL analytics complete for resolution ', p_resolution, ' (all-time + 12mo + 6mo)') AS result;
-END$$
-
 DELIMITER ;
 
 -- ==============================================================================
@@ -789,16 +750,6 @@ DELIMITER ;
 -- Calculate 6-month risk scores:
 --   CALL sp_calculate_risk_scores_windowed(13, 6);
 --
--- RECOMMENDED: Complete pipeline for ALL windows (all-time + 12mo + 6mo):
---   CALL sp_complete_all_windows(13);
---
--- Process all resolutions (highest to lowest for speed):
---   CALL sp_complete_all_windows(13);  -- ~177K hexagons, all windows
---   CALL sp_complete_all_windows(12);  -- ~146K hexagons, all windows
---   CALL sp_complete_all_windows(11);  -- ~70K hexagons, all windows
---   CALL sp_complete_all_windows(10);  -- ~17K hexagons, all windows
---   CALL sp_complete_all_windows(9);   -- ~3K hexagons, all windows
---   CALL sp_complete_all_windows(8);   -- ~545 hexagons, all windows
---   CALL sp_complete_all_windows(7);   -- ~93 hexagons, all windows
---   CALL sp_complete_all_windows(6);   -- ~23 hexagons, all windows
---   CALL sp_complete_all_windows(5);   -- ~5 hexagons, all windows
+-- RECOMMENDED: For complete pipeline with all time windows, use sp_complete_all_windows()
+--              which is defined in stored_procedures_h3_analytics.sql and orchestrates
+--              both all-time and windowed analytics together.
