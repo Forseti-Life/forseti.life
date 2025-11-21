@@ -16,7 +16,7 @@ logger:
 
 # Core crime map library
 crime-map:
-  version: 8.0  # FIX: Apply dateRange filter to all data loads, not just manual filtering
+  version: 8.1  # Integrate zoom controls into H3 bar, disable default Leaflet zoom
   css:
     theme:
       css/professional-theme.css: {}

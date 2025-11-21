@@ -1151,3 +1151,29 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     max-width: 320px;
   }
 }
+
+/* Zoom and H3 Controls Integration */
+.resolution-indicator .separator {
+  margin: 0 8px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 300;
+}
+
+.resolution-indicator #zoom-in,
+.resolution-indicator #zoom-out {
+  min-width: 24px;
+  height: 24px;
+  padding: 2px 6px;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.resolution-indicator #zoom-out {
+  margin-right: 6px;
+}
+
+.resolution-indicator #zoom-in {
+  margin-left: 6px;
+  margin-right: 8px;
+}

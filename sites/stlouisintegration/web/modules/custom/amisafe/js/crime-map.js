@@ -120,7 +120,7 @@
         zoom: mapConfig.zoom,
         minZoom: 5,  // Allow zoom out to Resolution 5 (Philadelphia metro area)
         maxZoom: 20,
-        zoomControl: true,
+        zoomControl: false,  // Disable default zoom control - we'll use custom controls
         attributionControl: false
       });
 
@@ -156,6 +156,14 @@
       // H3 resolution manual controls
       $('#h3-decrease').on('click', () => this.decreaseH3Resolution());
       $('#h3-increase').on('click', () => this.increaseH3Resolution());
+      
+      // Manual zoom controls
+      $('#zoom-in').on('click', () => {
+        this.map.zoomIn();
+      });
+      $('#zoom-out').on('click', () => {
+        this.map.zoomOut();
+      });
       
       // Hexagon detail panel close button
       $('#close-detail-panel').on('click', () => this.closeHexagonDetailPanel());

@@ -68,11 +68,14 @@
         </div>
       </div>
       
-      <!-- Resolution Indicator -->
+      <!-- Resolution and Zoom Indicator -->
       <div class="map-controls">
         <div class="resolution-indicator">
+          <button id="zoom-out" class="btn btn-xs btn-outline-secondary" title="Zoom Out">−</button>
           <span class="zoom-label">ZOOM:</span>
           <span id="zoom-level">12</span>
+          <button id="zoom-in" class="btn btn-xs btn-outline-secondary" title="Zoom In">+</button>
+          <span class="separator">|</span>
           <span class="resolution-label">H3:</span>
           <button id="h3-decrease" class="btn btn-xs btn-outline-secondary" title="Decrease H3 Resolution (Larger Hexagons)">−</button>
           <span class="resolution-value" id="h3-resolution">6</span>
