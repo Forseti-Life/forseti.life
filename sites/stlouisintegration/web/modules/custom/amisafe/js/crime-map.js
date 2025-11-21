@@ -204,26 +204,38 @@
       // Load filter options from API
       this.loadFilterOptions();
       
-      // Filter action buttons
-      $('#apply-filters').on('click', function() {
-        self.applyFilters();
-      });
-      
-      $('#clear-filters').on('click', function() {
-        self.clearAllFilters();
-      });
-
-      // Manual filtering only - no auto-apply to prevent data loss
-      $('#crime-type-selector, #district-selector, #time-period-selector').on('change', function() {
-        console.log('🔄 Filter dropdown changed - use Apply Filters button to apply');
-        // No auto-apply - user must click Apply Filters button
-      });
-      
       // Date range preset buttons
       $('.preset-btn').on('click', function() {
         const preset = $(this).data('preset');
         self.setDatePreset(preset);
+        // Auto-apply on preset change
+        setTimeout(() => self.applyFilters(), 100);
       });
+      
+      // Toggle crime filter dropdown
+      $('#toggle-crime-filter').on('click', function() {
+        $('#crime-type-dropdown').toggle();
+      });
+      
+      // Close crime filter dropdown
+      $('#close-crime-filter').on('click', function() {
+        $('#crime-type-dropdown').hide();
+      });
+      
+      // Apply crime type filter
+      $('#apply-crime-filter').on('click', function() {
+        self.applyFilters();
+        $('#crime-type-dropdown').hide();
+      });
+      
+      // Clear crime type filter
+      $('#clear-crime-filter').on('click', function() {
+        $('#crime-type-selector option').prop('selected', true);
+        self.applyFilters();
+        $('#crime-type-dropdown').hide();
+      });
+      
+      console.log('✅ Filters initialized with date range: 12months');
       
       // View mode buttons
       $('#hexagon-view').on('click', function() {

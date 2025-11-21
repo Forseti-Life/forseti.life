@@ -16,7 +16,7 @@ logger:
 
 # Core crime map library
 crime-map:
-  version: 7.8  # Date range presets using pre-calculated DB values
+  version: 7.9  # Floating controls - removed sidebar, added map overlays
   css:
     theme:
       css/professional-theme.css: {}

@@ -20,79 +20,6 @@
   </div>
 
   <div class="crime-map-layout">
-    <div class="crime-map-controls">
-      <!-- Map Controls -->
-      <div class="control-section">
-        <div class="form-group">
-          <button id="fit-hexagons-btn" class="btn btn-outline-secondary w-100">📍 Center on Data</button>
-        </div>
-      </div>
-      
-      <div class="control-section">
-        <h3>Map Filters</h3>
-        
-        <!-- Crime Type Multi-Select Filter -->
-        <div class="form-group">
-          <label class="form-label" for="crime-type-selector">Crime Types</label>
-          <select id="crime-type-selector" class="form-control form-select" multiple>
-            <!-- Dynamically populated from API -->
-          </select>
-          <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
-        </div>
-        
-
-        
-        <!-- Date Range Selector -->
-        <div class="form-group">
-          <label class="form-label">Date Range</label>
-          <div class="date-range-container">
-            <div class="btn-group btn-group-sm w-100" role="group">
-              <button type="button" class="btn btn-outline-primary preset-btn active" id="preset-12-months" data-preset="12months">Last 12 Months</button>
-              <button type="button" class="btn btn-outline-primary preset-btn" id="preset-6-months" data-preset="6months">Last 6 Months</button>
-              <button type="button" class="btn btn-outline-primary preset-btn" id="preset-all-time" data-preset="alltime">All Time</button>
-            </div>
-            <input type="hidden" id="date-range-filter" value="12months">
-            <small class="text-muted d-block mt-1">Leveraging pre-calculated database statistics</small>
-          </div>
-        </div>
-        
-        
-        <!-- Action Buttons -->
-        <div class="d-grid gap-2">
-          <button id="apply-filters" class="btn btn-primary">Apply Filters</button>
-          <button id="clear-filters" class="btn btn-secondary">Clear All</button>
-        </div>
-        
-      </div>
-      
-      <!-- Statistics Panel -->
-      <div class="stats-panel">
-        
-        <!-- Stats Summary -->
-        <h4>Philadelphia Crime Statistics</h4>
-        
-        <!-- Citywide Overview -->
-        <div class="stats-grid">
-          <div class="stat-item">
-            <span id="citywide-total" class="stat-value">Loading...</span>
-            <span class="stat-label">All City Wide</span>
-          </div>
-          <div class="stat-item">
-            <span id="total-incidents" class="stat-value">0</span>
-            <span class="stat-label">Total Visible</span>
-          </div>
-          <div class="stat-item">
-            <span id="violent-crimes" class="stat-value">0</span>
-            <span class="stat-label">Violent Crimes</span>
-          </div>
-          <div class="stat-item">
-            <span id="property-crimes" class="stat-value">0</span>
-            <span class="stat-label">Property Crimes</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    
     <div class="crime-map-container">
       <!-- Loading Overlay -->
       <div id="loading-overlay" class="loading-overlay" style="display: none;">
@@ -103,7 +30,45 @@
       <!-- This is the main container the JavaScript expects -->
       <div id="crime-map-container"></div>
       
-      <!-- Map Controls -->
+      <!-- Floating Map Controls (will be created by JavaScript) -->
+      <div id="map-filter-controls" class="floating-controls top-left">
+        <!-- Date Range Presets -->
+        <div class="control-group">
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-light preset-btn active" id="preset-12-months" data-preset="12months" title="Last 12 Months">12M</button>
+            <button type="button" class="btn btn-light preset-btn" id="preset-6-months" data-preset="6months" title="Last 6 Months">6M</button>
+            <button type="button" class="btn btn-light preset-btn" id="preset-all-time" data-preset="alltime" title="All Time Data">ALL</button>
+          </div>
+          <input type="hidden" id="date-range-filter" value="12months">
+        </div>
+        
+        <!-- Crime Type Filter Toggle -->
+        <div class="control-group">
+          <button id="toggle-crime-filter" class="btn btn-light btn-sm" title="Filter Crime Types">
+            <span class="filter-icon">🔍</span> Filters
+          </button>
+        </div>
+        
+        <!-- Crime Type Dropdown (hidden by default) -->
+        <div id="crime-type-dropdown" class="filter-dropdown" style="display: none;">
+          <div class="dropdown-header">
+            <strong>Crime Types</strong>
+            <button id="close-crime-filter" class="btn-close-filter">&times;</button>
+          </div>
+          <div class="dropdown-body">
+            <select id="crime-type-selector" class="form-control form-select" multiple size="10">
+              <!-- Dynamically populated from API -->
+            </select>
+            <small class="text-muted">Hold Ctrl/Cmd for multiple</small>
+          </div>
+          <div class="dropdown-footer">
+            <button id="apply-crime-filter" class="btn btn-primary btn-sm">Apply</button>
+            <button id="clear-crime-filter" class="btn btn-secondary btn-sm">Clear</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Resolution Indicator -->
       <div class="map-controls">
         <div class="resolution-indicator">
           <span class="zoom-label">ZOOM:</span>
