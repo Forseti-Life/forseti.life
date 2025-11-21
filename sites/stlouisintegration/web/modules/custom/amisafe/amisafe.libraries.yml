@@ -16,7 +16,7 @@ logger:
 
 # Core crime map library
 crime-map:
-  version: 5.0  # Professional theme update for St. Louis Integration
+  version: 7.0  # Independent H3 resolution controls, 18-grade z-score heat map
   css:
     theme:
       css/professional-theme.css: {}

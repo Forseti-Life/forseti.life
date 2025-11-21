@@ -43,7 +43,7 @@
     this.debugMode = false;
     
     // Minimal mode configuration
-    this.minimalMode = true; // Clean data visualization
+    this.minimalMode = false; // Disabled: Use full z-score color gradient (green to red)
     
     // Performance optimization
     this.dataCache = new Map();
@@ -58,6 +58,9 @@
     // Auto-fit control - prevent constant re-centering
     this.shouldAutoFit = true; // Only auto-fit on initial load and zoom changes
     this.isInitialLoad = true; // Track if this is the first data load
+    
+    // Independent H3 resolution control (user-controlled, decoupled from zoom)
+    this.manualH3Resolution = null; // null = auto (zoom-based), 5-13 = manual
   }
 
   /**
@@ -150,6 +153,10 @@
       this.map.on('zoomend', () => this.handleZoomChange());
       this.map.on('moveend', () => this.handleMapMove());
       
+      // H3 resolution manual controls
+      $('#h3-decrease').on('click', () => this.decreaseH3Resolution());
+      $('#h3-increase').on('click', () => this.increaseH3Resolution());
+      
       // Force map resize after initialization
       setTimeout(() => {
         this.map.invalidateSize();
@@ -162,11 +169,6 @@
      */
     initializeControls: function() {
       const self = this;
-      
-      // Manual zoom refresh for debugging
-      $('#refresh-zoom').on('click', function() {
-        self.updateZoomIndicator();
-      });
       
       // Re-center map to fit hexagons
       $('#fit-hexagons-btn').on('click', function() {
@@ -303,12 +305,18 @@
     updateZoomIndicator: function(zoom, resolution) {
       // Get current values if not provided
       if (zoom === undefined) zoom = this.map.getZoom();
-      if (resolution === undefined) resolution = this.getOptimalResolution(zoom);
+      
+      // Use manual H3 resolution if set, otherwise calculate from zoom
+      if (resolution === undefined) {
+        resolution = this.manualH3Resolution !== null 
+          ? this.manualH3Resolution 
+          : this.getOptimalResolution(zoom);
+      }
       
       const scaleDescription = this.getResolutionDescription(resolution);
       const roundedZoom = Math.round(zoom * 10) / 10;
       
-      console.log(`📊 Updating zoom indicator: zoom=${roundedZoom}, resolution=${resolution}`);
+      console.log(`📊 Updating zoom indicator: zoom=${roundedZoom}, resolution=${resolution}${this.manualH3Resolution !== null ? ' (manual)' : ' (auto)'}`);
       
       // Use robust element waiting with multiple attempts
       this.waitForZoomElements(roundedZoom, resolution, scaleDescription, 0);
@@ -437,6 +445,42 @@
     },
 
     /**
+     * Decrease H3 resolution (larger hexagons)
+     */
+    decreaseH3Resolution: function() {
+      const currentResolution = this.manualH3Resolution !== null 
+        ? this.manualH3Resolution 
+        : this.getOptimalResolution(this.map.getZoom());
+      
+      if (currentResolution > 5) {
+        this.manualH3Resolution = currentResolution - 1;
+        console.log(`📐 Manual H3 resolution decreased to ${this.manualH3Resolution}`);
+        this.updateZoomIndicator();
+        this.loadHexagonData();
+      } else {
+        console.log('⚠️ Cannot decrease resolution below 5');
+      }
+    },
+
+    /**
+     * Increase H3 resolution (smaller hexagons)
+     */
+    increaseH3Resolution: function() {
+      const currentResolution = this.manualH3Resolution !== null 
+        ? this.manualH3Resolution 
+        : this.getOptimalResolution(this.map.getZoom());
+      
+      if (currentResolution < 13) {
+        this.manualH3Resolution = currentResolution + 1;
+        console.log(`📐 Manual H3 resolution increased to ${this.manualH3Resolution}`);
+        this.updateZoomIndicator();
+        this.loadHexagonData();
+      } else {
+        console.log('⚠️ Cannot increase resolution above 13');
+      }
+    },
+
+    /**
      * Load initial crime data
      */
     loadInitialData: function() {
@@ -502,12 +546,17 @@
      */
     loadHexagonData: function() {
       const zoom = this.map.getZoom();
-      const resolution = this.getOptimalResolution(zoom);
+      
+      // Use manual H3 resolution if set, otherwise calculate from zoom
+      const resolution = this.manualH3Resolution !== null 
+        ? this.manualH3Resolution 
+        : this.getOptimalResolution(zoom);
+      
       let bounds = this.map.getBounds();
       // Only apply filters when explicitly requested (not on initial load or zoom changes)
       let filters = {}; // Default to no filters to show all data
       
-      console.log(`📊 Loading H3 Resolution ${resolution} data...`);
+      console.log(`📊 Loading H3 Resolution ${resolution} data${this.manualH3Resolution !== null ? ' (manual override)' : ' (zoom-based)'}...`);
       
       // DEBUG: For H3:5, try a much broader bounds to see if data exists
       if (resolution === 5) {
@@ -610,11 +659,16 @@
      */
     loadHexagonDataWithFilters: function() {
       const zoom = this.map.getZoom();
-      const resolution = this.getOptimalResolution(zoom);
+      
+      // Use manual H3 resolution if set, otherwise calculate from zoom
+      const resolution = this.manualH3Resolution !== null 
+        ? this.manualH3Resolution 
+        : this.getOptimalResolution(zoom);
+      
       let bounds = this.map.getBounds();
       let filters = this.getCurrentFilters(); // Apply current filters
       
-      console.log(`📊 Loading H3 Resolution ${resolution} data WITH FILTERS...`);
+      console.log(`📊 Loading H3 Resolution ${resolution} data WITH FILTERS${this.manualH3Resolution !== null ? ' (manual override)' : ' (zoom-based)'}...`);
       
       // Cancel any ongoing request
       if (this.currentRequest) {
@@ -693,7 +747,9 @@
       }
       
       // Check if we should render individual incidents (Resolution 13+ only - ultra-precision zoom)
-      const currentResolution = this.getOptimalResolution(this.map.getZoom());
+      const currentResolution = this.manualH3Resolution !== null 
+        ? this.manualH3Resolution 
+        : this.getOptimalResolution(this.map.getZoom());
       const shouldShowIncidents = currentResolution >= 13;
       
       // Track hexagon bounds to fit map view
@@ -1133,6 +1189,7 @@
     /**
      * Calculate hexagon styling based on z-score (statistical significance)
      * Uses incident_z_score for normalized heat map coloring across resolutions
+     * Scale: -1 (green/safe) to 11+ (red/extreme danger)
      */
     calculateHexagonStyle: function(hexagonData) {
       // Extract z-score from analytics if available, otherwise use incident count
@@ -1152,59 +1209,116 @@
         zScore = Math.log10(Math.max(1, incidentCount));
       }
       
-      // Color based on z-score (standard deviations from mean)
-      // Z-score typically ranges from -3 to +3
-      // Positive values = above average (hotter), negative = below average (cooler)
+      // Color gradient based on z-score from -1 (green) to 11+ (red)
+      // 18-grade gradient for fine-grained visualization
       let fillColor, borderColor;
       let fillOpacity = 0.6;
       
-      if (zScore >= 3.0) {
-        // EXTREME hotspot (3+ standard deviations above mean)
+      if (zScore >= 11.0) {
+        // Z ≥ 11: EXTREME DANGER - Darkest Red
         fillColor = '#8B0000';  // Dark red
-        borderColor = '#FF0000'; // Red
-        fillOpacity = 0.8;
-      } else if (zScore >= 2.0) {
-        // HIGH activity (2-3 std dev above mean)
+        borderColor = '#FF0000';
+        fillOpacity = 0.95;
+      } else if (zScore >= 10.0) {
+        // Z 10-11: EXTREME HIGH - Very Dark Red
+        fillColor = '#A50000';  // Very dark red
+        borderColor = '#FF0000';
+        fillOpacity = 0.92;
+      } else if (zScore >= 9.0) {
+        // Z 9-10: CRITICAL - Crimson
+        fillColor = '#DC143C';  // Crimson
+        borderColor = '#FF1493';
+        fillOpacity = 0.88;
+      } else if (zScore >= 8.0) {
+        // Z 8-9: VERY HIGH - Bright Crimson
+        fillColor = '#E8253C';  // Bright crimson
+        borderColor = '#FF4444';
+        fillOpacity = 0.85;
+      } else if (zScore >= 7.0) {
+        // Z 7-8: HIGH - Bright Red
         fillColor = '#FF0000';  // Red
-        borderColor = '#FF4500'; // Orange-red
-        fillOpacity = 0.7;
+        borderColor = '#FF4500';
+        fillOpacity = 0.82;
+      } else if (zScore >= 6.0) {
+        // Z 6-7: HIGH ELEVATED - Red-Orange
+        fillColor = '#FF2400';  // Scarlet
+        borderColor = '#FF5500';
+        fillOpacity = 0.78;
+      } else if (zScore >= 5.0) {
+        // Z 5-6: ELEVATED HIGH - Orange-Red
+        fillColor = '#FF4500';  // Orange-red
+        borderColor = '#FF6347';
+        fillOpacity = 0.75;
+      } else if (zScore >= 4.0) {
+        // Z 4-5: ELEVATED - Red-Orange
+        fillColor = '#FF6600';  // Red-orange
+        borderColor = '#FF7700';
+        fillOpacity = 0.72;
+      } else if (zScore >= 3.0) {
+        // Z 3-4: MODERATE-HIGH - Dark Orange
+        fillColor = '#FF8C00';  // Dark orange
+        borderColor = '#FFA500';
+        fillOpacity = 0.68;
+      } else if (zScore >= 2.0) {
+        // Z 2-3: MODERATE - Orange
+        fillColor = '#FFA500';  // Orange
+        borderColor = '#FFB833';
+        fillOpacity = 0.65;
       } else if (zScore >= 1.0) {
-        // ELEVATED (1-2 std dev above mean)
-        fillColor = '#FF6600';  // Orange
-        borderColor = '#FFA500'; // Orange
-        fillOpacity = 0.6;
-      } else if (zScore >= 0.5) {
-        // ABOVE AVERAGE (0.5-1 std dev)
+        // Z 1-2: MODERATE LOW - Yellow-Orange
         fillColor = '#FFB000';  // Yellow-orange
-        borderColor = '#FFC800'; // Gold
-        fillOpacity = 0.5;
+        borderColor = '#FFC800';
+        fillOpacity = 0.62;
+      } else if (zScore >= 0.5) {
+        // Z 0.5-1: SLIGHTLY ELEVATED - Light Orange
+        fillColor = '#FFC800';  // Gold
+        borderColor = '#FFD700';
+        fillOpacity = 0.58;
       } else if (zScore >= 0) {
-        // AVERAGE (0-0.5 std dev)
+        // Z 0-0.5: SLIGHTLY ABOVE AVERAGE - Yellow
         fillColor = '#FFFF00';  // Yellow
-        borderColor = '#FFFF66'; // Light yellow
-        fillOpacity = 0.4;
+        borderColor = '#FFFF66';
+        fillOpacity = 0.55;
+      } else if (zScore >= -0.5) {
+        // Z -0.5 to 0: NEAR AVERAGE - Yellow-Green
+        fillColor = '#CCFF00';  // Yellow-green
+        borderColor = '#DDFF44';
+        fillOpacity = 0.52;
       } else if (zScore >= -1.0) {
-        // BELOW AVERAGE (-1 to 0 std dev)
-        fillColor = '#90EE90';  // Light green
-        borderColor = '#00FF00'; // Green
-        fillOpacity = 0.3;
+        // Z -1 to -0.5: BELOW AVERAGE - Light Green
+        fillColor = '#99FF00';  // Light lime
+        borderColor = '#AAFF33';
+        fillOpacity = 0.48;
+      } else if (zScore >= -1.5) {
+        // Z -1.5 to -1: LOW - Lime Green
+        fillColor = '#66FF00';  // Lime green
+        borderColor = '#77FF22';
+        fillOpacity = 0.45;
+      } else if (zScore >= -2.0) {
+        // Z -2 to -1.5: VERY LOW - Green
+        fillColor = '#32CD32';  // Lime green
+        borderColor = '#44DD44';
+        fillOpacity = 0.42;
       } else {
-        // LOW activity (< -1 std dev - very safe)
-        fillColor = '#00CED1';  // Cyan
-        borderColor = '#00BFFF'; // Blue
-        fillOpacity = 0.2;
+        // Z < -2: EXTREMELY LOW - Pure Green (safest)
+        fillColor = '#00FF00';  // Pure green
+        borderColor = '#32CD32';
+        fillOpacity = 0.40;
       }
       
       // Minimal mode override (green/cyan theme)
       if (this.minimalMode) {
-        if (zScore >= 2.0) {
-          fillColor = '#00ff41';  // Bright green for hotspots
-          fillOpacity = 0.7;
-        } else if (zScore >= 1.0) {
+        if (zScore >= 7.0) {
+          fillColor = '#00ff41';  // Bright green for extreme hotspots
+          fillOpacity = 0.9;
+        } else if (zScore >= 3.0) {
           fillColor = '#00dd33';
+          fillOpacity = 0.7;
+        } else if (zScore >= 0) {
+          fillColor = '#00bb22';
           fillOpacity = 0.5;
         } else {
-          fillColor = '#00bb22';
+          fillColor = '#008800';
           fillOpacity = 0.3;
         }
         borderColor = '#00ff41';
@@ -1212,11 +1326,35 @@
       
       return {
         fillColor: fillColor,
-        weight: zScore >= 2.0 ? 2 : 1,  // Thicker borders for hotspots
+        weight: zScore >= 5.0 ? 2 : 1,  // Thicker borders for high crime areas
         opacity: 0.8,
         color: borderColor,
         fillOpacity: fillOpacity
       };
+    },
+    
+    /**
+     * Interpolate between two hex colors
+     */
+    interpolateColor: function(color1, color2, ratio) {
+      const hex = (color) => {
+        const c = color.substring(1);
+        return parseInt(c, 16);
+      };
+      
+      const r1 = (hex(color1) >> 16) & 0xff;
+      const g1 = (hex(color1) >> 8) & 0xff;
+      const b1 = hex(color1) & 0xff;
+      
+      const r2 = (hex(color2) >> 16) & 0xff;
+      const g2 = (hex(color2) >> 8) & 0xff;
+      const b2 = hex(color2) & 0xff;
+      
+      const r = Math.round(r1 + (r2 - r1) * ratio);
+      const g = Math.round(g1 + (g2 - g1) * ratio);
+      const b = Math.round(b1 + (b2 - b1) * ratio);
+      
+      return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
     },
 
     /**
