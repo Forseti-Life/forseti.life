@@ -160,6 +160,13 @@
       // Hexagon detail panel close button
       $('#close-detail-panel').on('click', () => this.closeHexagonDetailPanel());
       
+      // Close panel with Escape key
+      $(document).on('keydown', (e) => {
+        if (e.key === 'Escape' && $('#hexagon-detail-panel').is(':visible')) {
+          this.closeHexagonDetailPanel();
+        }
+      });
+      
       // Force map resize after initialization
       setTimeout(() => {
         this.map.invalidateSize();

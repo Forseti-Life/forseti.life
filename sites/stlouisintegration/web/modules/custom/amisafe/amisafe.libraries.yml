@@ -16,7 +16,7 @@ logger:
 
 # Core crime map library
 crime-map:
-  version: 7.5  # Calculate precision and coverage from H3 resolution
+  version: 7.6  # Enhanced close button, Escape key support
   css:
     theme:
       css/professional-theme.css: {}
