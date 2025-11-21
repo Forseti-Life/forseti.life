@@ -277,7 +277,7 @@ class AnalyticsRunner:
             self.state['resolutions'][res_key]['end_time'] = datetime.now().isoformat()
             self.state['resolutions'][res_key]['elapsed_seconds'] = round(elapsed, 2)
             self.state['resolutions'][res_key]['completion'] = final_status['completion']
-            self.state['total_hexagons_processed'] += status['has_incidents']
+            self.state['total_hexagons_processed'] += int(status['has_incidents'])
             self.save_state()
             
             self.logger.info(f"✅ Resolution {resolution} completed in {elapsed:.1f}s")
