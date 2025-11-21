@@ -58,10 +58,10 @@ class CrimeDataService {
     
     $cache_key = 'amisafe:h3_aggregations:' . md5($resolution . serialize($filters) . $page . $limit);
     
-    // Temporarily bypass cache for debugging
-    // if ($cached = $this->cache->get($cache_key)) {
-    //   return $cached->data;
-    // }
+    // Check cache first for performance
+    if ($cached = $this->cache->get($cache_key)) {
+      return $cached->data;
+    }
 
     try {
       // Use Gold layer (amisafe_h3_aggregated) with ultra-precision analytics
@@ -70,8 +70,15 @@ class CrimeDataService {
         ->fields('h3a', [
           'id', 'h3_index', 'h3_resolution', 'incident_count', 'unique_incident_types',
           'earliest_incident', 'latest_incident', 'incidents_last_30_days', 'incidents_last_year',
-          'center_latitude', 'center_longitude', 'incident_type_counts',
-          'district_counts', 'data_quality_avg', 'total_valid_records', 'last_aggregation'
+          'center_latitude', 'center_longitude',
+          // Optimized: Use analytics columns instead of JSON decoding
+          'top_crime_type', 'top_crime_type_12mo', 'top_crime_type_6mo',
+          'violent_crime_count', 'nonviolent_crime_count',
+          'risk_category', 'risk_category_12mo', 'risk_category_6mo',
+          'crime_diversity_index', 'violent_crime_percentile',
+          // Keep JSON for detailed breakdowns (only when needed)
+          'incident_type_counts', 'district_counts',
+          'data_quality_avg', 'total_valid_records', 'last_aggregation'
         ]);
 
       // Apply H3 filters first
@@ -491,9 +498,9 @@ class CrimeDataService {
    * Provides comprehensive analytics for Resolution 13 hexagon data.
    */
   private function processH3Aggregation($aggregation, $resolution) {
-    // Decode JSON fields
-    $incident_types = json_decode($aggregation['incident_type_counts'], true) ?: [];
-    $districts = json_decode($aggregation['district_counts'], true) ?: [];
+    // Lazy-load JSON fields only if needed (optimize performance)
+    $incident_types = isset($aggregation['incident_type_counts']) ? json_decode($aggregation['incident_type_counts'], true) : [];
+    $districts = isset($aggregation['district_counts']) ? json_decode($aggregation['district_counts'], true) : [];
     
     return [
       'id' => $aggregation['id'],
@@ -512,23 +519,33 @@ class CrimeDataService {
         'last_year' => intval($aggregation['incidents_last_year']),
       ],
       'quality' => [
-        'avg_score' => floatval($aggregation['avg_data_quality_score']),
+        'avg_score' => floatval($aggregation['data_quality_avg']),
         'valid_records' => intval($aggregation['total_valid_records']),
       ],
       'geography' => [
-        'coverage_km2' => floatval($aggregation['coverage_area_km2']),
+        'coverage_km2' => 0,
         'precision_level' => $this->getPrecisionLevel($resolution),
         'hex_size_m2' => $this->getHexagonSizeM2($resolution),
       ],
       'analytics' => [
-        'crime_types' => $incident_types,
-        'districts' => $districts,
+        'crime_types' => $incident_types ?: [],
+        'districts' => $districts ?: [],
         'density' => $this->calculateDensity($aggregation['incident_count'], $resolution),
-        'risk_level' => $this->calculateRiskLevel($aggregation['incident_count'], $resolution),
+        // Use pre-calculated analytics columns (MAJOR PERFORMANCE BOOST)
+        'risk_level' => $aggregation['risk_category'] ?? 'UNKNOWN',
+        'risk_level_12mo' => $aggregation['risk_category_12mo'] ?? null,
+        'risk_level_6mo' => $aggregation['risk_category_6mo'] ?? null,
+        'top_crime_type' => $aggregation['top_crime_type'] ?? null,
+        'top_crime_type_12mo' => $aggregation['top_crime_type_12mo'] ?? null,
+        'top_crime_type_6mo' => $aggregation['top_crime_type_6mo'] ?? null,
+        'violent_count' => intval($aggregation['violent_crime_count'] ?? 0),
+        'nonviolent_count' => intval($aggregation['nonviolent_crime_count'] ?? 0),
+        'crime_diversity' => floatval($aggregation['crime_diversity_index'] ?? 0),
+        'violent_percentile' => floatval($aggregation['violent_crime_percentile'] ?? 0),
       ],
       'metadata' => [
         'last_updated' => $aggregation['last_aggregation'],
-        'source_records' => intval($aggregation['source_record_count'] ?? $aggregation['total_valid_records']),
+        'source_records' => intval($aggregation['total_valid_records']),
         'aggregation_type' => 'gold_layer_ultra_precision',
       ],
     ];
