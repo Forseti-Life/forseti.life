@@ -16,7 +16,7 @@ logger:
 
 # Core crime map library
 crime-map:
-  version: 7.4  # Fixed risk level to use DB z-score calculation, aligned with gradient
+  version: 7.5  # Calculate precision and coverage from H3 resolution
   css:
     theme:
       css/professional-theme.css: {}

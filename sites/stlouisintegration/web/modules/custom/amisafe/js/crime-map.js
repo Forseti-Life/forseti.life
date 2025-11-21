@@ -448,6 +448,44 @@
     },
 
     /**
+     * Get precision level name for resolution
+     */
+    getPrecisionLevel: function(resolution) {
+      const levels = {
+        4: 'Metro-wide',
+        5: 'Multi-district',
+        6: 'Metropolitan',
+        7: 'District-wide',
+        8: 'Block-level',
+        9: 'Street-level',
+        10: 'Property clusters',
+        11: 'Building-level',
+        12: 'Floor-level',
+        13: 'Ultra-fine room-level'
+      };
+      return levels[resolution] || 'Unknown';
+    },
+
+    /**
+     * Get hexagon coverage area in km² for resolution
+     */
+    getHexagonCoverageKm2: function(resolution) {
+      const sizes = {
+        4: 1770.3,    // ~1,770 km²
+        5: 252.9,     // ~251 km²
+        6: 36.13,     // ~36 km²
+        7: 5.16,      // ~5.2 km²
+        8: 0.737,     // ~737,000 m² = 0.737 km²
+        9: 0.105,     // ~105,000 m² = 0.105 km²
+        10: 0.015,    // ~15,048 m² = 0.015 km²
+        11: 0.00215,  // ~2,150 m² = 0.00215 km²
+        12: 0.000307, // ~307 m² = 0.000307 km²
+        13: 0.000044  // ~44 m² = 0.000044 km²
+      };
+      return sizes[resolution] || 0;
+    },
+
+    /**
      * Decrease H3 resolution (larger hexagons)
      */
     decreaseH3Resolution: function() {
@@ -1168,8 +1206,10 @@
       const uniqueTypes = hexagon.unique_incident_types || hexagon.unique_types || 0;
       const centerLat = hexagon.center_latitude || hexagon.center?.lat || hexagon.lat || 0;
       const centerLng = hexagon.center_longitude || hexagon.center?.lng || hexagon.lng || 0;
-      const coverageArea = hexagon.coverage_area_km2 || hexagon.geography?.coverage_km2 || 0;
-      const precisionLevel = hexagon.precision_level || hexagon.geography?.precision_level || 'Unknown';
+      
+      // Calculate precision and coverage from resolution (always accurate)
+      const coverageArea = this.getHexagonCoverageKm2(h3Resolution);
+      const precisionLevel = this.getPrecisionLevel(h3Resolution);
       
       // Use database-calculated risk category (based on z-scores)
       const riskLevel = hexagon.analytics?.risk_level || 'UNKNOWN';
@@ -1283,7 +1323,7 @@
             <h5>🌍 Geographic Details</h5>
             <div class="geo-info">
               <div><strong>Precision:</strong> ${precisionLevel}</div>
-              <div><strong>Coverage Area:</strong> ${coverageArea.toFixed(3)} km²</div>
+              <div><strong>Coverage Area:</strong> ${coverageArea >= 1 ? coverageArea.toFixed(2) + ' km²' : (coverageArea * 1000000).toFixed(0) + ' m²'}</div>
               <div><strong>Center:</strong> ${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}</div>
             </div>
           </div>
