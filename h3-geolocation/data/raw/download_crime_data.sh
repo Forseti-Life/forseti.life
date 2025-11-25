@@ -26,14 +26,11 @@ download_year() {
     echo ""
     echo ">>> Downloading ${year} crime data..."
     
-    # SQL query with lat/lng extraction
-    local query="SELECT * , ST_Y(the_geom) AS lat, ST_X(the_geom) AS lng FROM incidents_part1_part2 WHERE dispatch_date_time >= '${year}-01-01' AND dispatch_date_time < '${next_year}-01-01'"
-    
-    # URL encode the query
-    local encoded_query=$(echo "$query" | sed 's/ /%20/g' | sed 's/,/%2C/g' | sed "s/'/%27/g" | sed 's/(/%28/g' | sed 's/)/%29/g' | sed 's/>/%3E/g' | sed 's/</%3C/g')
+    # Build the URL with proper encoding
+    local url="${BASE_URL}?filename=incidents_part1_part2&format=csv&q=SELECT%20*%20,%20ST_Y(the_geom)%20AS%20lat,%20ST_X(the_geom)%20AS%20lng%20FROM%20incidents_part1_part2%20WHERE%20dispatch_date_time%20%3E=%20%27${year}-01-01%27%20AND%20dispatch_date_time%20%3C%20%27${next_year}-01-01%27"
     
     # Download with wget
-    wget -O "$filename" "${BASE_URL}?filename=incidents_part1_part2&format=csv&q=${encoded_query}"
+    wget -O "$filename" "$url"
     
     # Verify download
     if [[ -f "$filename" ]]; then
