@@ -2,6 +2,13 @@
 
 All notable changes of the PHPUnit 12.4 release series are documented in this file using the [Keep a CHANGELOG](https://keepachangelog.com/) principles.
 
+## [12.4.4] - 2025-11-21
+
+### Fixed
+
+* [#6408](https://github.com/sebastianbergmann/phpunit/issues/6408): Exception in a data provider method leads to internal PHPUnit error
+* [#6410](https://github.com/sebastianbergmann/phpunit/issues/6410): Test runner's shutdown handler is called in system-under-test's child process
+
 ## [12.4.3] - 2025-11-13
 
 ### Fixed
@@ -38,6 +45,7 @@ All notable changes of the PHPUnit 12.4 release series are documented in this fi
 * [#6284](https://github.com/sebastianbergmann/phpunit/issues/6284): `#[RunClassInSeparateProcess]` attribute
 * [#6355](https://github.com/sebastianbergmann/phpunit/issues/6355): Support for version constraint string argument without explicit version comparison operator
 
+[12.4.4]: https://github.com/sebastianbergmann/phpunit/compare/12.4.3...12.4.4
 [12.4.3]: https://github.com/sebastianbergmann/phpunit/compare/12.4.2...12.4.3
 [12.4.2]: https://github.com/sebastianbergmann/phpunit/compare/12.4.1...12.4.2
 [12.4.1]: https://github.com/sebastianbergmann/phpunit/compare/12.4.0...12.4.1

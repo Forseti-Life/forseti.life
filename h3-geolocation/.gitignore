@@ -41,3 +41,25 @@ PIPFILE.lock
 # OS
 .DS_Store
 Thumbs.db
+
+# Large data files (should be in database, not in repo)
+data/raw/*.csv
+data/processed/*.csv
+*.csv
+
+# Database backups (too large for git)
+database/archive/
+deprecated/database_backup_*/
+
+# Deprecated/old code
+deprecated/
+
+# Reports (generated files)
+reports/processing/*.json
+reports/validation/*.txt
+
+# Package version files (seem to be accidental)
+=*.0
+
+# Analytics state (generated at runtime)
+database/analytics_state.json

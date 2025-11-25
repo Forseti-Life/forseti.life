@@ -13,6 +13,9 @@ on:
       - 'sites/stlouisintegration/web/themes/custom/**'
       - 'sites/theoryofconspiracies/web/modules/custom/**'
       - 'sites/theoryofconspiracies/web/themes/custom/**'
+      - 'script/database/**'
+      - 'h3-geolocation/**'
+      - 'database-exports/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -181,6 +184,107 @@ jobs:
           # Clean up
           rm -rf "$TEMP_DIR"
 
+    - name: Deploy database and H3 scripts
+      uses: appleboy/ssh-action@v0.1.5
+      env:
+        HUBGIT_PAT: ${{ secrets.HUBGIT_PAT }}
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        envs: HUBGIT_PAT
+        script: |
+          set -e
+          
+          echo "=== Deploying Database and H3 Geolocation Scripts ==="
+          
+          DRUPAL_ROOT="/var/www/html/stlouisintegration"
+          SCRIPTS_DIR="$DRUPAL_ROOT/scripts"
+          TEMP_DIR="/tmp/scripts-deploy-$(date +%s)"
+          
+          # Create temporary directory and download scripts
+          mkdir -p "$TEMP_DIR"
+          cd "$TEMP_DIR"
+          
+          echo "Downloading scripts from repository..."
+          git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
+          git sparse-checkout set script/database h3-geolocation database-exports
+          
+          # Deploy database scripts
+          if [ -d "script/database" ]; then
+            echo "Deploying database scripts..."
+            sudo mkdir -p "$SCRIPTS_DIR/database"
+            sudo cp -r script/database/* "$SCRIPTS_DIR/database/"
+            sudo chown -R www-data:www-data "$SCRIPTS_DIR/database"
+            sudo find "$SCRIPTS_DIR/database" -type f -name "*.sh" -exec chmod 755 {} \;
+            sudo find "$SCRIPTS_DIR/database" -type f -name "*.md" -exec chmod 644 {} \;
+            echo "✅ Database scripts deployed"
+          else
+            echo "⚠️ No database scripts found"
+          fi
+          
+          # Deploy H3 geolocation framework (if needed for AmISafe)
+          if [ -d "h3-geolocation" ]; then
+            echo "Deploying H3 geolocation framework..."
+            H3_DIR="$DRUPAL_ROOT/h3-geolocation"
+            sudo mkdir -p "$H3_DIR"
+            
+            # Copy only essential files/directories (exclude large data, venv, deprecated)
+            cd h3-geolocation
+            
+            # Copy Python scripts and core files
+            sudo cp -r *.py "$H3_DIR/" 2>/dev/null || true
+            sudo cp -r *.sh "$H3_DIR/" 2>/dev/null || true
+            sudo cp -r *.md "$H3_DIR/" 2>/dev/null || true
+            sudo cp -r *.json "$H3_DIR/" 2>/dev/null || true
+            
+            # Copy essential directories only
+            [ -d "config" ] && sudo cp -r config "$H3_DIR/"
+            [ -d "database/etl" ] && sudo mkdir -p "$H3_DIR/database" && sudo cp -r database/etl "$H3_DIR/database/"
+            [ -d "database/setup" ] && sudo mkdir -p "$H3_DIR/database" && sudo cp -r database/setup "$H3_DIR/database/"
+            [ -d "scripts" ] && sudo cp -r scripts "$H3_DIR/"
+            [ -d "tests" ] && sudo cp -r tests "$H3_DIR/"
+            
+            # Copy README files from archive/documentation for reference
+            if [ -d "archive/documentation" ]; then
+              sudo mkdir -p "$H3_DIR/documentation"
+              sudo cp archive/documentation/*.md "$H3_DIR/documentation/" 2>/dev/null || true
+            fi
+            
+            cd ..
+            
+            # Set permissions
+            sudo chown -R www-data:www-data "$H3_DIR"
+            sudo find "$H3_DIR" -type f -name "*.py" -exec chmod 755 {} \;
+            sudo find "$H3_DIR" -type f -name "*.sh" -exec chmod 755 {} \;
+            sudo find "$H3_DIR" -type f -name "*.md" -exec chmod 644 {} \;
+            
+            echo "✅ H3 geolocation framework deployed (essential files only)"
+            echo "ℹ️ Excluded: h3-env/ (recreate on server), data/raw/ (use database), deprecated/"
+          else
+            echo "⚠️ No H3 geolocation framework found"
+          fi
+          
+          # Create database-exports directory structure (for backups)
+          if [ -d "database-exports" ]; then
+            echo "Setting up database-exports directory..."
+            sudo mkdir -p "$DRUPAL_ROOT/database-exports/dumps"
+            if [ -f "database-exports/README.md" ]; then
+              sudo cp database-exports/README.md "$DRUPAL_ROOT/database-exports/"
+            fi
+            sudo chown -R www-data:www-data "$DRUPAL_ROOT/database-exports"
+            echo "✅ Database-exports directory configured"
+          fi
+          
+          # Clean up
+          rm -rf "$TEMP_DIR"
+          
+          echo ""
+          echo "✅ Database and H3 scripts deployed successfully"
+          echo "ℹ️ Scripts location: $SCRIPTS_DIR/database/"
+          echo "ℹ️ H3 framework location: $H3_DIR/"
+          echo "ℹ️ Backup destination: $DRUPAL_ROOT/database-exports/dumps/"
+
     - name: Deploy configuration
       uses: appleboy/ssh-action@v0.1.5
       env:
@@ -244,8 +348,8 @@ jobs:
           echo "Applying database updates..."
           sudo -u www-data ./vendor/bin/drush updatedb -y || echo "ℹ️ No database updates needed"
           
-          # Fix NumberWidget configuration for PHP 8.3+ compatibility
-          echo "Fixing NumberWidget configuration..."
+          # Fix NumberWidget configuration for PHP 8.3+ compatibility (only if module is already enabled)
+          echo "Checking for NumberWidget configuration fix..."
           if sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^job_application_automation$"; then
             sudo -u www-data ./vendor/bin/drush job-app:fix-numberwidget || echo "⚠️ NumberWidget fix completed with warnings"
             echo "✅ NumberWidget configuration fixed for PHP 8.3+ compatibility"
@@ -253,20 +357,11 @@ jobs:
             echo "ℹ️ job_application_automation module not enabled, skipping NumberWidget fix"
           fi
           
-          # Enable custom modules
-          echo "Enabling custom modules..."
-          MODULES=("pathauto" "professional_website_content" "ai_conversation" "job_application_automation")
-          
-          for MODULE_NAME in "${MODULES[@]}"; do
-            if [ -d "$DRUPAL_ROOT/web/modules/custom/$MODULE_NAME" ]; then
-              if ! sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^$MODULE_NAME$"; then
-                sudo -u www-data ./vendor/bin/drush en "$MODULE_NAME" -y || echo "⚠️ Failed to enable $MODULE_NAME"
-                echo "✅ $MODULE_NAME enabled"
-              else
-                echo "✅ $MODULE_NAME already enabled"
-              fi
-            fi
-          done
+          # Note: Modules are NOT automatically enabled during deployment
+          # Enable modules manually using: drush pm:enable <module_name>
+          echo "ℹ️ Custom modules deployed but NOT automatically enabled"
+          echo "ℹ️ Available modules: professional_website_content, ai_conversation, job_application_automation, resume_tailoring, amisafe"
+          echo "ℹ️ To enable: drush pm:enable <module_name>"
           
           # Generate URL aliases with Pathauto
           echo "Generating clean URL aliases..."
@@ -301,15 +396,25 @@ jobs:
           echo ""
           echo "🎉 === DEPLOYMENT COMPLETED SUCCESSFULLY === 🎉"
           echo "✅ Modules and themes deployed from stlouisintegration site"
+          echo "✅ Database and H3 geolocation scripts deployed"
           echo "✅ Configuration imported"
           echo "✅ Database updates applied"
-          echo "✅ NumberWidget configuration fixed (PHP 8.3+ compatibility)"
-          echo "✅ Custom modules enabled"
-          echo "✅ URL aliases generated (Pathauto)"
+          echo "✅ NumberWidget configuration checked (PHP 8.3+ compatibility)"
+          echo "ℹ️ Modules NOT automatically enabled (enable manually via Drush)"
           echo "✅ CSS/JS aggregation cleared and rebuilt"
           echo "✅ All caches cleared"
           echo "✅ Apache restarted"
           echo "✅ File permissions set"
+          echo ""
+          echo "Available custom modules (not auto-enabled):"
+          echo "  - professional_website_content"
+          echo "  - ai_conversation"
+          echo "  - job_application_automation"
+          echo "  - resume_tailoring"
+          echo "  - amisafe (requires database setup)"
+          echo ""
+          echo "Database scripts location: /var/www/html/stlouisintegration/scripts/database/"
+          echo "H3 framework location: /var/www/html/stlouisintegration/h3-geolocation/"
           echo ""
           echo "Deployment completed at: $(date)"
           echo ""
