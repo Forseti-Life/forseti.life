@@ -45,15 +45,21 @@ class AnalyticsRunner:
                  mysql_user: str = 'drupal_user',
                  mysql_password: str = 'drupal_secure_password',
                  mysql_database: str = 'amisafe_database',
+                 mysql_socket: str = None,
                  state_file: str = 'analytics_state.json'):
         """Initialize the analytics runner."""
         self.mysql_config = {
-            'host': mysql_host,
             'user': mysql_user,
             'password': mysql_password,
             'database': mysql_database,
             'autocommit': True
         }
+        
+        # Use socket if provided, otherwise use host
+        if mysql_socket:
+            self.mysql_config['unix_socket'] = mysql_socket
+        else:
+            self.mysql_config['host'] = mysql_host
         
         self.state_file = state_file
         self.state = self.load_state()
@@ -422,6 +428,8 @@ def main():
                         help='State file for checkpoints (default: analytics_state.json)')
     parser.add_argument('--status', action='store_true',
                         help='Show current status and exit')
+    parser.add_argument('--mysql-socket', default=None,
+                        help='MySQL unix socket path (e.g., /var/run/mysqld/mysqld.sock)')
     
     args = parser.parse_args()
     
@@ -431,6 +439,7 @@ def main():
         mysql_user=args.mysql_user,
         mysql_password=args.mysql_password,
         mysql_database=args.mysql_database,
+        mysql_socket=args.mysql_socket,
         state_file=args.state_file
     )
     

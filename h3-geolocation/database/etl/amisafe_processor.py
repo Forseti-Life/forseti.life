@@ -31,7 +31,8 @@ class AmISafeDataProcessor:
                  mysql_host: str = '127.0.0.1',
                  mysql_user: str = 'drupal_user',
                  mysql_password: str = 'drupal_secure_password',
-                 mysql_database: str = 'amisafe_database'):
+                 mysql_database: str = 'amisafe_database',
+                 mysql_socket: str = None):
         """
         Initialize the data processor.
         
@@ -40,14 +41,20 @@ class AmISafeDataProcessor:
             mysql_user: MySQL username
             mysql_password: MySQL password
             mysql_database: MySQL database name
+            mysql_socket: MySQL unix socket path (optional, for socket connections)
         """
         self.mysql_config = {
-            'host': mysql_host,
             'user': mysql_user,
             'password': mysql_password,
             'database': mysql_database,
             'autocommit': True
         }
+        
+        # Use socket if provided, otherwise use host
+        if mysql_socket:
+            self.mysql_config['unix_socket'] = mysql_socket
+        else:
+            self.mysql_config['host'] = mysql_host
         
         # Initialize H3 framework
         self.h3_framework = H3GeolocationFramework()
@@ -402,6 +409,7 @@ def main():
     parser.add_argument('--mysql-user', default='drupal_user', help='MySQL user')
     parser.add_argument('--mysql-password', default='drupal_secure_password', help='MySQL password')
     parser.add_argument('--mysql-database', default='amisafe_database', help='MySQL database')
+    parser.add_argument('--mysql-socket', default=None, help='MySQL unix socket path (e.g., /var/run/mysqld/mysqld.sock)')
     parser.add_argument('--status', action='store_true', help='Show processing status')
     
     args = parser.parse_args()
@@ -411,6 +419,8 @@ def main():
         mysql_host=args.mysql_host,
         mysql_user=args.mysql_user,
         mysql_password=args.mysql_password,
+        mysql_database=args.mysql_database,
+        mysql_socket=args.mysql_socket
         mysql_database=args.mysql_database
     )
     

@@ -59,16 +59,22 @@ class EnhancedTransformProcessor:
                  mysql_user: str = 'drupal_user',
                  mysql_password: str = 'drupal_secure_password',
                  mysql_database: str = 'amisafe_database',
+                 mysql_socket: str = None,
                  reports_dir: str = None):
         """Initialize the enhanced transform processor."""
         
         self.mysql_config = {
-            'host': mysql_host,
             'user': mysql_user,
             'password': mysql_password,
             'database': mysql_database,
             'autocommit': True
         }
+        
+        # Use socket if provided, otherwise use host
+        if mysql_socket:
+            self.mysql_config['unix_socket'] = mysql_socket
+        else:
+            self.mysql_config['host'] = mysql_host
         
         # Reports directory
         if reports_dir is None:
@@ -1432,6 +1438,7 @@ def main():
     parser.add_argument('--mysql-user', default='drupal_user', help='MySQL user')
     parser.add_argument('--mysql-password', default='drupal_secure_password', help='MySQL password')
     parser.add_argument('--mysql-database', default='amisafe_database', help='MySQL database')
+    parser.add_argument('--mysql-socket', default=None, help='MySQL unix socket path (e.g., /var/run/mysqld/mysqld.sock)')
     
     args = parser.parse_args()
     
@@ -1440,7 +1447,8 @@ def main():
         mysql_host=args.mysql_host,
         mysql_user=args.mysql_user,
         mysql_password=args.mysql_password,
-        mysql_database=args.mysql_database
+        mysql_database=args.mysql_database,
+        mysql_socket=args.mysql_socket
     )
     
     print("="*100)
