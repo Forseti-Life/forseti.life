@@ -44,9 +44,7 @@ warnings.filterwarnings('ignore', message='pandas only supports SQLAlchemy conne
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from h3_framework import H3GeolocationFramework
 
-# Add validation tools path
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tests', 'data_validation'))
-from record_accounting_tool import RecordAccountingTool
+# Removed record_accounting_tool dependency - not needed for core ETL
 
 class EnhancedTransformProcessor:
     """
@@ -102,8 +100,7 @@ class EnhancedTransformProcessor:
         # Initialize H3 framework
         self.h3_framework = H3GeolocationFramework()
         
-        # Initialize record accounting tool
-        self.accounting_tool = RecordAccountingTool(mysql_host, mysql_user, mysql_password, mysql_database)
+        # Record accounting removed - not needed for core ETL
         
         # Removed geographic bounds and district validation filters
         # Only using incident ID deduplication as requested

@@ -98,12 +98,12 @@ get_record_count() {
     local mysql_cmd=""
     
     if [ -n "${DB_SOCKET}" ]; then
-        mysql_cmd="mysql -u${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME} -sN"
+        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME} -sN"
     else
-        mysql_cmd="mysql -u${DB_USER} -p'${DB_PASSWORD}' -h${DB_HOST} ${DB_NAME} -sN"
+        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -h ${DB_HOST} ${DB_NAME} -sN"
     fi
     
-    echo "SELECT COUNT(*) FROM ${table};" | ${mysql_cmd}
+    echo "SELECT COUNT(*) FROM ${table};" | ${mysql_cmd} 2>/dev/null || echo "0"
 }
 
 run_bronze() {
@@ -223,9 +223,9 @@ run_analytics_basic() {
     
     local mysql_cmd=""
     if [ -n "${DB_SOCKET}" ]; then
-        mysql_cmd="mysql -u${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME}"
+        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME} 2>/dev/null"
     else
-        mysql_cmd="mysql -u${DB_USER} -p'${DB_PASSWORD}' -h${DB_HOST} ${DB_NAME}"
+        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -h ${DB_HOST} ${DB_NAME} 2>/dev/null"
     fi
     
     # Run all-time analytics for each resolution
@@ -260,9 +260,9 @@ run_analytics_full() {
     
     local mysql_cmd=""
     if [ -n "${DB_SOCKET}" ]; then
-        mysql_cmd="mysql -u${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME}"
+        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME} 2>/dev/null"
     else
-        mysql_cmd="mysql -u${DB_USER} -p'${DB_PASSWORD}' -h${DB_HOST} ${DB_NAME}"
+        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -h ${DB_HOST} ${DB_NAME} 2>/dev/null"
     fi
     
     # Run complete analytics (all-time + windowed) for each resolution
@@ -296,9 +296,9 @@ show_summary() {
     
     local mysql_cmd=""
     if [ -n "${DB_SOCKET}" ]; then
-        mysql_cmd="mysql -u${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME} -t"
+        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME} -t 2>/dev/null"
     else
-        mysql_cmd="mysql -u${DB_USER} -p'${DB_PASSWORD}' -h${DB_HOST} ${DB_NAME} -t"
+        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -h ${DB_HOST} ${DB_NAME} -t 2>/dev/null"
     fi
     
     log_step "Database: ${DB_NAME}"
