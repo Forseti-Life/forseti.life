@@ -421,7 +421,6 @@ def main():
         mysql_password=args.mysql_password,
         mysql_database=args.mysql_database,
         mysql_socket=args.mysql_socket
-        mysql_database=args.mysql_database
     )
     
     if args.status:
