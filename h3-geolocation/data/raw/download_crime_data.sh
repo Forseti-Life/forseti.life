@@ -14,7 +14,7 @@ BASE_URL="https://phl.carto.com/api/v2/sql"
 echo "Working directory: $SCRIPT_DIR"
 
 echo "================================================================"
-echo "Downloading Philadelphia Crime Incidents (2006-2024)"
+echo "Downloading Philadelphia Crime Incidents (2006-2025)"
 echo "================================================================"
 
 # Function to download data for a specific year
@@ -42,8 +42,8 @@ download_year() {
     fi
 }
 
-# Download data for each year from 2006 to 2024
-for year in {2006..2024}; do
+# Download data for each year from 2006 to 2025
+for year in {2006..2025}; do
     download_year $year
     sleep 2  # Be nice to the API
 done
