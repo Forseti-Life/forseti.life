@@ -907,6 +907,11 @@ if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
   include $app_root . '/' . $site_path . '/settings.local.php';
 }
 
+// AmISafe database connection
+if (file_exists($app_root . '/' . $site_path . '/settings.amisafe.php')) {
+  include $app_root . '/' . $site_path . '/settings.amisafe.php';
+}
+
 // Configuration sync directory
 $settings['config_sync_directory'] = '../config/sync';
 
