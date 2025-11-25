@@ -245,6 +245,13 @@ jobs:
             [ -d "scripts" ] && sudo cp -r scripts "$H3_DIR/"
             [ -d "tests" ] && sudo cp -r tests "$H3_DIR/"
             
+            # Copy data directory structure with scripts (but not CSV files)
+            if [ -d "data" ]; then
+              sudo mkdir -p "$H3_DIR/data/raw"
+              [ -f "data/README.md" ] && sudo cp data/README.md "$H3_DIR/data/"
+              [ -f "data/raw/download_crime_data.sh" ] && sudo cp data/raw/download_crime_data.sh "$H3_DIR/data/raw/" && sudo chmod 755 "$H3_DIR/data/raw/download_crime_data.sh"
+            fi
+            
             # Copy README files from archive/documentation for reference
             if [ -d "archive/documentation" ]; then
               sudo mkdir -p "$H3_DIR/documentation"
