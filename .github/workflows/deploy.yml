@@ -215,7 +215,7 @@ jobs:
             echo "Deploying database scripts..."
             sudo mkdir -p "$SCRIPTS_DIR/database"
             sudo cp -r script/database/* "$SCRIPTS_DIR/database/"
-            sudo chown -R www-data:www-data "$SCRIPTS_DIR/database"
+            sudo chown -R www-data:www-data "$SCRIPTS_DIR"
             sudo find "$SCRIPTS_DIR/database" -type f -name "*.sh" -exec chmod 755 {} \;
             sudo find "$SCRIPTS_DIR/database" -type f -name "*.md" -exec chmod 644 {} \;
             echo "✅ Database scripts deployed"
@@ -316,7 +316,7 @@ jobs:
             # Deploy configuration files
             sudo mkdir -p "$CONFIG_DIR"
             sudo rsync -av --delete config/sync/ "$CONFIG_DIR/"
-            sudo chown -R www-data:www-data "$CONFIG_DIR"
+            sudo chown -R www-data:www-data "$DRUPAL_ROOT/config"
             sudo find "$CONFIG_DIR" -type f -exec chmod 644 {} \;
             
             echo "✅ Configuration deployed"
