@@ -14,10 +14,11 @@ DATA_DIR="$SCRIPT_DIR/../data/raw"
 LOG_FILE="$SCRIPT_DIR/amisafe_pipeline_stlouisintegration.log"
 
 # Database configuration - USING DEDICATED AMISAFE DATABASE
-DB_HOST="127.0.0.1"
-DB_USER="drupal_user"
-DB_PASSWORD="drupal_secure_password"
-DB_NAME="amisafe_database"  # Dedicated AmISafe database
+# Use environment variables if set, otherwise use defaults
+DB_HOST="${DB_HOST:-127.0.0.1}"
+DB_USER="${DB_USER:-drupal_user}"
+DB_PASSWORD="${DB_PASSWORD:-drupal_secure_password}"
+DB_NAME="${DB_NAME:-amisafe_database}"  # Dedicated AmISafe database
 
 # Colors for output
 RED='\033[0;31m'
