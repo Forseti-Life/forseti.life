@@ -11,8 +11,9 @@ on:
       - 'config/sync/**'
       - 'sites/stlouisintegration/web/modules/custom/**'
       - 'sites/stlouisintegration/web/themes/custom/**'
-      - 'sites/theoryofconspiracies/web/modules/custom/**'
-      - 'sites/theoryofconspiracies/web/themes/custom/**'
+      # Temporarily disabled while working on AmISafe
+      # - 'sites/theoryofconspiracies/web/modules/custom/**'
+      # - 'sites/theoryofconspiracies/web/themes/custom/**'
       - 'script/database/**'
       - 'h3-geolocation/**'
       - 'database-exports/**'
