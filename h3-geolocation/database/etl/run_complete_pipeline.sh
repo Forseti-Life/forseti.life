@@ -36,9 +36,19 @@ set -e  # Exit on any error
 DB_USER="${DB_USER:-stlouis_user}"
 DB_PASSWORD="${DB_PASSWORD:-StLouis2024!Secure#DB}"
 DB_HOST="${DB_HOST:-127.0.0.1}"
-DB_SOCKET="${DB_SOCKET:-}"
 DB_NAME="${DB_NAME:-amisafe_database}"
 H3_RESOLUTIONS="${H3_RESOLUTIONS:-13 12 11 10 9 8 7 6 5}"
+
+# Auto-detect MySQL socket if skip-grant-tables is enabled
+if [ -z "${DB_SOCKET}" ]; then
+    if echo "SELECT 1;" | mysql ${DB_NAME} -sN 2>/dev/null | grep -q "1"; then
+        # Skip-grant-tables mode detected, find the socket
+        DB_SOCKET=$(mysql -e "SHOW VARIABLES LIKE 'socket';" -sN 2>/dev/null | awk '{print $2}')
+        if [ -z "${DB_SOCKET}" ]; then
+            DB_SOCKET="/var/run/mysqld/mysqld.sock"  # Default fallback
+        fi
+    fi
+fi
 
 # Base directory for the H3 project
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
