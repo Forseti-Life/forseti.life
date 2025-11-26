@@ -599,13 +599,13 @@ BEGIN
     
     PREPARE stmt FROM @update_zscores;
     EXECUTE stmt USING 
-        v_violent_stddev, v_violent_mean, v_violent_stddev,
-        v_nonviolent_stddev, v_nonviolent_mean, v_nonviolent_stddev,
-        v_incident_stddev, v_incident_mean, v_incident_stddev,
-        v_violent_mean, v_violent_stddev,
-        v_nonviolent_mean, v_nonviolent_stddev,
-        v_incident_mean, v_incident_stddev,
-        p_resolution;
+        v_violent_stddev, v_violent_mean, v_violent_stddev,        -- For violent z-score calculation
+        v_nonviolent_stddev, v_nonviolent_mean, v_nonviolent_stddev, -- For nonviolent z-score calculation
+        v_incident_stddev, v_incident_mean, v_incident_stddev,     -- For incident z-score calculation
+        v_violent_mean, v_violent_stddev,                          -- For violent mean/stddev storage
+        v_nonviolent_mean, v_nonviolent_stddev,                    -- For nonviolent mean/stddev storage
+        v_incident_mean, v_incident_stddev,                        -- For incident mean/stddev storage
+        p_resolution;                                              -- For WHERE clause
     DEALLOCATE PREPARE stmt;
     
     -- Step 2: Calculate percentiles using temp tables with ranking
