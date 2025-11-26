@@ -7,6 +7,7 @@ Processes incident CSV files and loads them into MySQL with H3 geospatial indexi
 import os
 import sys
 import glob
+import json
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
@@ -32,7 +33,8 @@ class AmISafeDataProcessor:
                  mysql_user: str = 'drupal_user',
                  mysql_password: str = 'drupal_secure_password',
                  mysql_database: str = 'amisafe_database',
-                 mysql_socket: str = None):
+                 mysql_socket: str = None,
+                 state_file: str = None):
         """
         Initialize the data processor.
         
@@ -42,6 +44,7 @@ class AmISafeDataProcessor:
             mysql_password: MySQL password
             mysql_database: MySQL database name
             mysql_socket: MySQL unix socket path (optional, for socket connections)
+            state_file: Path to file tracking processed files (default: database/bronze_state.json)
         """
         self.mysql_config = {
             'user': mysql_user,
@@ -58,6 +61,13 @@ class AmISafeDataProcessor:
         
         # Initialize H3 framework
         self.h3_framework = H3GeolocationFramework()
+        
+        # State file for tracking processed files
+        if state_file is None:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            state_file = os.path.join(base_dir, 'database', 'bronze_state.json')
+        self.state_file = state_file
+        self.processed_files = self._load_state()
         
         # Setup logging
         logging.basicConfig(
@@ -87,6 +97,41 @@ class AmISafeDataProcessor:
             'database_duplicates': 0,
             'successful_inserts': 0
         }
+    
+    def _load_state(self) -> Dict[str, Dict]:
+        """Load processed files state from JSON file."""
+        if os.path.exists(self.state_file):
+            try:
+                with open(self.state_file, 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                self.logger.warning(f"Failed to load state file: {e}")
+                return {}
+        return {}
+    
+    def _save_state(self):
+        """Save processed files state to JSON file."""
+        try:
+            os.makedirs(os.path.dirname(self.state_file), exist_ok=True)
+            with open(self.state_file, 'w') as f:
+                json.dump(self.processed_files, f, indent=2)
+        except Exception as e:
+            self.logger.error(f"Failed to save state file: {e}")
+    
+    def _mark_file_processed(self, file_path: str, record_count: int):
+        """Mark a file as successfully processed."""
+        file_name = os.path.basename(file_path)
+        self.processed_files[file_name] = {
+            'processed_at': datetime.now().isoformat(),
+            'record_count': record_count,
+            'file_path': file_path
+        }
+        self._save_state()
+    
+    def _is_file_processed(self, file_path: str) -> bool:
+        """Check if a file has already been processed."""
+        file_name = os.path.basename(file_path)
+        return file_name in self.processed_files
     
     def connect_to_mysql(self) -> mysql.connector.MySQLConnection:
         """Create MySQL connection."""
@@ -309,8 +354,29 @@ class AmISafeDataProcessor:
             return {}
         
         total_files = len(csv_files)
-        self.logger.info(f"Found {total_files} CSV files to process")
-        print(f"\n=== Processing {total_files} CSV Files ===")
+        
+        # Filter out already processed files
+        unprocessed_files = [f for f in csv_files if not self._is_file_processed(f)]
+        processed_count = total_files - len(unprocessed_files)
+        
+        if processed_count > 0:
+            self.logger.info(f"Found {total_files} CSV files ({processed_count} already processed, {len(unprocessed_files)} to process)")
+            print(f"\n=== Processing {len(unprocessed_files)} of {total_files} CSV Files ===")
+            print(f"    (Skipping {processed_count} already processed files)")
+        else:
+            self.logger.info(f"Found {total_files} CSV files to process")
+            print(f"\n=== Processing {total_files} CSV Files ===")
+        
+        if not unprocessed_files:
+            print("\n✅ All files already processed!")
+            return {
+                'files_processed': 0,
+                'total_records': 0,
+                'records_with_coordinates': 0,
+                'records_with_h3': 0,
+                'failed_files': 0,
+                'skipped_files': processed_count
+            }
         
         connection = self.connect_to_mysql()
         total_stats = {
@@ -318,16 +384,21 @@ class AmISafeDataProcessor:
             'total_records': 0,
             'records_with_coordinates': 0,
             'records_with_h3': 0,
-            'failed_files': 0
+            'failed_files': 0,
+            'skipped_files': processed_count
         }
         
         try:
-            for i, file_path in enumerate(sorted(csv_files), 1):
+            for i, file_path in enumerate(sorted(unprocessed_files), 1):
                 file_name = os.path.basename(file_path)
-                print(f"\n[{i}/{total_files}] Processing: {file_name}")
+                print(f"\n[{i}/{len(unprocessed_files)}] Processing: {file_name}")
                 
                 try:
                     records, coords, h3_records = self.process_csv_file(file_path, connection)
+                    
+                    # Mark file as processed only after successful completion
+                    self._mark_file_processed(file_path, records)
+                    
                     total_stats['files_processed'] += 1
                     total_stats['total_records'] += records
                     total_stats['records_with_coordinates'] += coords
@@ -335,7 +406,7 @@ class AmISafeDataProcessor:
                     
                     # Show progress for this file
                     print(f"    ✅ Processed {records:,} records ({coords:,} with coordinates, {h3_records:,} with H3)")
-                    print(f"    📊 Total so far: {total_stats['total_records']:,} records from {total_stats['files_processed']}/{total_files} files")
+                    print(f"    📊 Total so far: {total_stats['total_records']:,} records from {total_stats['files_processed']}/{len(unprocessed_files)} files")
                     
                 except Exception as e:
                     self.logger.error(f"Failed to process {file_path}: {e}")
@@ -348,7 +419,8 @@ class AmISafeDataProcessor:
             # Show final summary
             print(f"\n🎉 Processing Complete!")
             print(f"=" * 50)
-            print(f"Files processed: {total_stats['files_processed']}/{total_files}")
+            print(f"Files processed: {total_stats['files_processed']}/{len(unprocessed_files)}")
+            print(f"Files skipped (already processed): {total_stats['skipped_files']}")
             print(f"Failed files: {total_stats['failed_files']}")
             print(f"Total records: {total_stats['total_records']:,}")
             print(f"Records with coordinates: {total_stats['records_with_coordinates']:,}")
@@ -410,9 +482,25 @@ def main():
     parser.add_argument('--mysql-password', default='drupal_secure_password', help='MySQL password')
     parser.add_argument('--mysql-database', default='amisafe_database', help='MySQL database')
     parser.add_argument('--mysql-socket', default=None, help='MySQL unix socket path (e.g., /var/run/mysqld/mysqld.sock)')
+    parser.add_argument('--state-file', default=None, help='Path to state file for tracking processed files')
+    parser.add_argument('--reset-state', action='store_true', help='Reset state file (reprocess all files)')
     parser.add_argument('--status', action='store_true', help='Show processing status')
     
     args = parser.parse_args()
+    
+    # Reset state if requested
+    if args.reset_state:
+        state_file = args.state_file
+        if state_file is None:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            state_file = os.path.join(base_dir, 'database', 'bronze_state.json')
+        
+        if os.path.exists(state_file):
+            os.remove(state_file)
+            print(f"✅ Reset state file: {state_file}")
+        else:
+            print(f"ℹ️  No state file found at: {state_file}")
+        return
     
     # Initialize processor
     processor = AmISafeDataProcessor(
@@ -420,7 +508,8 @@ def main():
         mysql_user=args.mysql_user,
         mysql_password=args.mysql_password,
         mysql_database=args.mysql_database,
-        mysql_socket=args.mysql_socket
+        mysql_socket=args.mysql_socket,
+        state_file=args.state_file
     )
     
     if args.status:

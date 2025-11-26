@@ -441,16 +441,14 @@ BEGIN
     DECLARE hex_cursor CURSOR FOR 
         SELECT h3_index 
         FROM amisafe_h3_aggregated 
-        WHERE h3_resolution = p_resolution
-            AND (top_crime_type IS NULL OR crime_diversity_index IS NULL);
+        WHERE h3_resolution = p_resolution;
     
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
     
     -- Get total count
     SELECT COUNT(*) INTO v_total
     FROM amisafe_h3_aggregated 
-    WHERE h3_resolution = p_resolution
-        AND (top_crime_type IS NULL OR crime_diversity_index IS NULL);
+    WHERE h3_resolution = p_resolution;
     
     SELECT CONCAT('Starting analytics for resolution ', p_resolution, ': ', v_total, ' hexagons') AS status;
     
