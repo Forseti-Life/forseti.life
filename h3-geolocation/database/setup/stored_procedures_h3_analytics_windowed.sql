@@ -1,6 +1,8 @@
 -- ==============================================================================
 -- AmISafe H3 Analytics Stored Procedures - WINDOWED VERSIONS
+-- Version: 2.0.0 (2025-11-26)
 -- Calculates 12-month and 6-month windowed analytics
+-- Fixed: SQL syntax error with PREPARE/EXECUTE and INTO clause
 -- ==============================================================================
 
 DELIMITER $$
