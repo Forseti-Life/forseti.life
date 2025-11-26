@@ -575,120 +575,149 @@ BEGIN
     END IF;
     
     -- Step 1: Update z-scores and stats (fast)
-    SET @update_zscores = CONCAT('
+    IF p_months = 12 THEN
         UPDATE amisafe_h3_aggregated
         SET 
-            violent_crime_z_score', v_suffix, ' = CASE 
-                WHEN ? > 0 THEN (violent_crime_count', v_suffix, ' - ?) / ?
+            violent_crime_z_score_12mo = CASE 
+                WHEN v_violent_stddev > 0 THEN (violent_crime_count_12mo - v_violent_mean) / v_violent_stddev
                 ELSE 0 
             END,
-            nonviolent_crime_z_score', v_suffix, ' = CASE 
-                WHEN ? > 0 THEN (nonviolent_crime_count', v_suffix, ' - ?) / ?
+            nonviolent_crime_z_score_12mo = CASE 
+                WHEN v_nonviolent_stddev > 0 THEN (nonviolent_crime_count_12mo - v_nonviolent_mean) / v_nonviolent_stddev
                 ELSE 0 
             END,
-            incident_z_score', v_suffix, ' = CASE 
-                WHEN ? > 0 THEN (incident_count', v_suffix, ' - ?) / ?
+            incident_z_score_12mo = CASE 
+                WHEN v_incident_stddev > 0 THEN (incident_count_12mo - v_incident_mean) / v_incident_stddev
                 ELSE 0 
             END,
-            violent_crime_mean', v_suffix, ' = ?,
-            violent_crime_std_dev', v_suffix, ' = ?,
-            nonviolent_crime_mean', v_suffix, ' = ?,
-            nonviolent_crime_std_dev', v_suffix, ' = ?,
-            incident_mean', v_suffix, ' = ?,
-            incident_std_dev', v_suffix, ' = ?
-        WHERE h3_resolution = ?
-    ');
-    
-    PREPARE stmt FROM @update_zscores;
-    EXECUTE stmt USING 
-        v_violent_stddev, v_violent_mean, v_violent_stddev,        -- For violent z-score calculation
-        v_nonviolent_stddev, v_nonviolent_mean, v_nonviolent_stddev, -- For nonviolent z-score calculation
-        v_incident_stddev, v_incident_mean, v_incident_stddev,     -- For incident z-score calculation
-        v_violent_mean, v_violent_stddev,                          -- For violent mean/stddev storage
-        v_nonviolent_mean, v_nonviolent_stddev,                    -- For nonviolent mean/stddev storage
-        v_incident_mean, v_incident_stddev,                        -- For incident mean/stddev storage
-        p_resolution;                                              -- For WHERE clause
-    DEALLOCATE PREPARE stmt;
+            violent_crime_mean_12mo = v_violent_mean,
+            violent_crime_std_dev_12mo = v_violent_stddev,
+            nonviolent_crime_mean_12mo = v_nonviolent_mean,
+            nonviolent_crime_std_dev_12mo = v_nonviolent_stddev,
+            incident_mean_12mo = v_incident_mean,
+            incident_std_dev_12mo = v_incident_stddev
+        WHERE h3_resolution = p_resolution;
+    ELSE
+        UPDATE amisafe_h3_aggregated
+        SET 
+            violent_crime_z_score_6mo = CASE 
+                WHEN v_violent_stddev > 0 THEN (violent_crime_count_6mo - v_violent_mean) / v_violent_stddev
+                ELSE 0 
+            END,
+            nonviolent_crime_z_score_6mo = CASE 
+                WHEN v_nonviolent_stddev > 0 THEN (nonviolent_crime_count_6mo - v_nonviolent_mean) / v_nonviolent_stddev
+                ELSE 0 
+            END,
+            incident_z_score_6mo = CASE 
+                WHEN v_incident_stddev > 0 THEN (incident_count_6mo - v_incident_mean) / v_incident_stddev
+                ELSE 0 
+            END,
+            violent_crime_mean_6mo = v_violent_mean,
+            violent_crime_std_dev_6mo = v_violent_stddev,
+            nonviolent_crime_mean_6mo = v_nonviolent_mean,
+            nonviolent_crime_std_dev_6mo = v_nonviolent_stddev,
+            incident_mean_6mo = v_incident_mean,
+            incident_std_dev_6mo = v_incident_stddev
+        WHERE h3_resolution = p_resolution;
+    END IF;
     
     -- Step 2: Calculate percentiles using temp tables with ranking
     -- Violent crime percentiles
     DROP TEMPORARY TABLE IF EXISTS tmp_violent_ranks_windowed;
-    SET @create_violent = CONCAT('
+    
+    IF p_months = 12 THEN
         CREATE TEMPORARY TABLE tmp_violent_ranks_windowed AS
         SELECT 
             h3_index,
-            ROUND((@row_num := @row_num + 1) * 100.0 / ', v_total_count, ', 0) as percentile
+            ROUND((@row_num := @row_num + 1) * 100.0 / v_total_count, 0) as percentile
         FROM amisafe_h3_aggregated, (SELECT @row_num := 0) r
-        WHERE h3_resolution = ', p_resolution, '
-        ORDER BY violent_crime_count', v_suffix, ' ASC, h3_index ASC
-    ');
-    PREPARE stmt FROM @create_violent;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-    
-    SET @update_violent = CONCAT('
+        WHERE h3_resolution = p_resolution
+        ORDER BY violent_crime_count_12mo ASC, h3_index ASC;
+        
         UPDATE amisafe_h3_aggregated a
         INNER JOIN tmp_violent_ranks_windowed t ON a.h3_index = t.h3_index
-        SET a.violent_crime_percentile', v_suffix, ' = t.percentile
-        WHERE a.h3_resolution = ', p_resolution
-    );
-    PREPARE stmt FROM @update_violent;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+        SET a.violent_crime_percentile_12mo = t.percentile
+        WHERE a.h3_resolution = p_resolution;
+    ELSE
+        CREATE TEMPORARY TABLE tmp_violent_ranks_windowed AS
+        SELECT 
+            h3_index,
+            ROUND((@row_num := @row_num + 1) * 100.0 / v_total_count, 0) as percentile
+        FROM amisafe_h3_aggregated, (SELECT @row_num := 0) r
+        WHERE h3_resolution = p_resolution
+        ORDER BY violent_crime_count_6mo ASC, h3_index ASC;
+        
+        UPDATE amisafe_h3_aggregated a
+        INNER JOIN tmp_violent_ranks_windowed t ON a.h3_index = t.h3_index
+        SET a.violent_crime_percentile_6mo = t.percentile
+        WHERE a.h3_resolution = p_resolution;
+    END IF;
     
     DROP TEMPORARY TABLE tmp_violent_ranks_windowed;
     
     -- Nonviolent crime percentiles
     DROP TEMPORARY TABLE IF EXISTS tmp_nonviolent_ranks_windowed;
-    SET @create_nonviolent = CONCAT('
+    
+    IF p_months = 12 THEN
         CREATE TEMPORARY TABLE tmp_nonviolent_ranks_windowed AS
         SELECT 
             h3_index,
-            ROUND((@row_num := @row_num + 1) * 100.0 / ', v_total_count, ', 0) as percentile
+            ROUND((@row_num := @row_num + 1) * 100.0 / v_total_count, 0) as percentile
         FROM amisafe_h3_aggregated, (SELECT @row_num := 0) r
-        WHERE h3_resolution = ', p_resolution, '
-        ORDER BY nonviolent_crime_count', v_suffix, ' ASC, h3_index ASC
-    ');
-    PREPARE stmt FROM @create_nonviolent;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-    
-    SET @update_nonviolent = CONCAT('
+        WHERE h3_resolution = p_resolution
+        ORDER BY nonviolent_crime_count_12mo ASC, h3_index ASC;
+        
         UPDATE amisafe_h3_aggregated a
         INNER JOIN tmp_nonviolent_ranks_windowed t ON a.h3_index = t.h3_index
-        SET a.nonviolent_crime_percentile', v_suffix, ' = t.percentile
-        WHERE a.h3_resolution = ', p_resolution
-    );
-    PREPARE stmt FROM @update_nonviolent;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+        SET a.nonviolent_crime_percentile_12mo = t.percentile
+        WHERE a.h3_resolution = p_resolution;
+    ELSE
+        CREATE TEMPORARY TABLE tmp_nonviolent_ranks_windowed AS
+        SELECT 
+            h3_index,
+            ROUND((@row_num := @row_num + 1) * 100.0 / v_total_count, 0) as percentile
+        FROM amisafe_h3_aggregated, (SELECT @row_num := 0) r
+        WHERE h3_resolution = p_resolution
+        ORDER BY nonviolent_crime_count_6mo ASC, h3_index ASC;
+        
+        UPDATE amisafe_h3_aggregated a
+        INNER JOIN tmp_nonviolent_ranks_windowed t ON a.h3_index = t.h3_index
+        SET a.nonviolent_crime_percentile_6mo = t.percentile
+        WHERE a.h3_resolution = p_resolution;
+    END IF;
     
     DROP TEMPORARY TABLE tmp_nonviolent_ranks_windowed;
     
     -- Incident percentiles
     DROP TEMPORARY TABLE IF EXISTS tmp_incident_ranks_windowed;
-    SET @create_incident = CONCAT('
+    
+    IF p_months = 12 THEN
         CREATE TEMPORARY TABLE tmp_incident_ranks_windowed AS
         SELECT 
             h3_index,
-            ROUND((@row_num := @row_num + 1) * 100.0 / ', v_total_count, ', 0) as percentile
+            ROUND((@row_num := @row_num + 1) * 100.0 / v_total_count, 0) as percentile
         FROM amisafe_h3_aggregated, (SELECT @row_num := 0) r
-        WHERE h3_resolution = ', p_resolution, '
-        ORDER BY incident_count', v_suffix, ' ASC, h3_index ASC
-    ');
-    PREPARE stmt FROM @create_incident;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
-    
-    SET @update_incident = CONCAT('
+        WHERE h3_resolution = p_resolution
+        ORDER BY incident_count_12mo ASC, h3_index ASC;
+        
         UPDATE amisafe_h3_aggregated a
         INNER JOIN tmp_incident_ranks_windowed t ON a.h3_index = t.h3_index
-        SET a.incident_percentile', v_suffix, ' = t.percentile
-        WHERE a.h3_resolution = ', p_resolution
-    );
-    PREPARE stmt FROM @update_incident;
-    EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;
+        SET a.incident_percentile_12mo = t.percentile
+        WHERE a.h3_resolution = p_resolution;
+    ELSE
+        CREATE TEMPORARY TABLE tmp_incident_ranks_windowed AS
+        SELECT 
+            h3_index,
+            ROUND((@row_num := @row_num + 1) * 100.0 / v_total_count, 0) as percentile
+        FROM amisafe_h3_aggregated, (SELECT @row_num := 0) r
+        WHERE h3_resolution = p_resolution
+        ORDER BY incident_count_6mo ASC, h3_index ASC;
+        
+        UPDATE amisafe_h3_aggregated a
+        INNER JOIN tmp_incident_ranks_windowed t ON a.h3_index = t.h3_index
+        SET a.incident_percentile_6mo = t.percentile
+        WHERE a.h3_resolution = p_resolution;
+    END IF;
     
     DROP TEMPORARY TABLE tmp_incident_ranks_windowed;
     
