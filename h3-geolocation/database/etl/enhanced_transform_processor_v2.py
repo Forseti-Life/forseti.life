@@ -595,7 +595,7 @@ class EnhancedTransformProcessor:
             return 0
         
         insert_sql = """
-        INSERT INTO amisafe_clean_incidents (
+        INSERT IGNORE INTO amisafe_clean_incidents (
             raw_incident_ids, processing_batch_id, incident_id, cartodb_id, objectid, dc_key,
             dc_dist, psa, location_block, lat, lng, coordinate_quality,
             incident_datetime, incident_date, incident_hour, incident_month, incident_year, day_of_week,
