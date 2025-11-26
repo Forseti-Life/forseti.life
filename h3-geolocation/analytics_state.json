@@ -1,0 +1,25 @@
+{
+  "resolutions": {
+    "13": {
+      "status": "complete",
+      "start_time": "2025-11-25T14:58:42.427200",
+      "total_hexes": 88825,
+      "end_time": "2025-11-26T08:42:14.009840",
+      "elapsed_seconds": 63811.38,
+      "completion": {
+        "alltime_basic": 100.0,
+        "alltime_risk": 100.0,
+        "windowed_12mo": 100.0,
+        "windowed_6mo": 100.0,
+        "overall": 100.0
+      }
+    },
+    "12": {
+      "status": "processing",
+      "start_time": "2025-11-26T08:42:14.209566",
+      "total_hexes": 80476
+    }
+  },
+  "last_updated": "2025-11-26T08:42:14.209577",
+  "total_hexagons_processed": 88825
+}

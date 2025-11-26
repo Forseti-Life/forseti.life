@@ -97,7 +97,10 @@ get_record_count() {
     local table="$1"
     local mysql_cmd=""
     
-    if [ -n "${DB_SOCKET}" ]; then
+    # Try connection without auth first (for --skip-grant-tables mode)
+    if echo "SELECT 1;" | mysql ${DB_NAME} -sN 2>/dev/null | grep -q "1"; then
+        mysql_cmd="mysql ${DB_NAME} -sN"
+    elif [ -n "${DB_SOCKET}" ]; then
         mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME} -sN"
     else
         mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -h ${DB_HOST} ${DB_NAME} -sN"
@@ -222,10 +225,14 @@ run_analytics_basic() {
     log_step "Resolutions to process: ${H3_RESOLUTIONS}"
     
     local mysql_cmd=""
-    if [ -n "${DB_SOCKET}" ]; then
-        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME} 2>/dev/null"
+    # Try connection without auth first (for --skip-grant-tables mode)
+    if echo "SELECT 1;" | mysql ${DB_NAME} -sN 2>/dev/null | grep -q "1"; then
+        mysql_cmd="mysql ${DB_NAME}"
+        log_step "Using direct socket connection (no auth required)"
+    elif [ -n "${DB_SOCKET}" ]; then
+        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME}"
     else
-        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -h ${DB_HOST} ${DB_NAME} 2>/dev/null"
+        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -h ${DB_HOST} ${DB_NAME}"
     fi
     
     # Run all-time analytics for each resolution
@@ -259,10 +266,14 @@ run_analytics_full() {
     log_step "Resolutions to process: ${H3_RESOLUTIONS}"
     
     local mysql_cmd=""
-    if [ -n "${DB_SOCKET}" ]; then
-        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME} 2>/dev/null"
+    # Try connection without auth first (for --skip-grant-tables mode)
+    if echo "SELECT 1;" | mysql ${DB_NAME} -sN 2>/dev/null | grep -q "1"; then
+        mysql_cmd="mysql ${DB_NAME}"
+        log_step "Using direct socket connection (no auth required)"
+    elif [ -n "${DB_SOCKET}" ]; then
+        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME}"
     else
-        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -h ${DB_HOST} ${DB_NAME} 2>/dev/null"
+        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -h ${DB_HOST} ${DB_NAME}"
     fi
     
     # Run complete analytics (all-time + windowed) for each resolution
@@ -295,10 +306,13 @@ show_summary() {
     log_info "PIPELINE SUMMARY"
     
     local mysql_cmd=""
-    if [ -n "${DB_SOCKET}" ]; then
-        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME} -t 2>/dev/null"
+    # Try connection without auth first (for --skip-grant-tables mode)
+    if echo "SELECT 1;" | mysql ${DB_NAME} -sN 2>/dev/null | grep -q "1"; then
+        mysql_cmd="mysql ${DB_NAME} -t"
+    elif [ -n "${DB_SOCKET}" ]; then
+        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -S ${DB_SOCKET} ${DB_NAME} -t"
     else
-        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -h ${DB_HOST} ${DB_NAME} -t 2>/dev/null"
+        mysql_cmd="mysql -u ${DB_USER} -p'${DB_PASSWORD}' -h ${DB_HOST} ${DB_NAME} -t"
     fi
     
     log_step "Database: ${DB_NAME}"
