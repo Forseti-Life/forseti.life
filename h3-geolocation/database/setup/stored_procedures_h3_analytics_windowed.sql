@@ -483,15 +483,13 @@ BEGIN
     DECLARE hex_cursor CURSOR FOR 
         SELECT h3_index 
         FROM amisafe_h3_aggregated 
-        WHERE h3_resolution = p_resolution
-            AND (incident_count_12mo IS NULL OR incident_count_6mo IS NULL);
+        WHERE h3_resolution = p_resolution;
     
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
     
     SELECT COUNT(*) INTO v_total
     FROM amisafe_h3_aggregated 
-    WHERE h3_resolution = p_resolution
-        AND (incident_count_12mo IS NULL OR incident_count_6mo IS NULL);
+    WHERE h3_resolution = p_resolution;
     
     SELECT CONCAT('Starting windowed analytics for resolution ', p_resolution, ': ', v_total, ' hexagons') AS status;
     
