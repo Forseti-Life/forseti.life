@@ -733,41 +733,61 @@ CREATE PROCEDURE sp_calculate_risk_scores_windowed(
     IN p_months INT  -- 12 or 6
 )
 BEGIN
-    DECLARE v_suffix VARCHAR(10);
-    SET v_suffix = CONCAT('_', p_months, 'mo');
-    
-    SET @risk_query = CONCAT('
+    IF p_months = 12 THEN
         UPDATE amisafe_h3_aggregated
         SET 
-            risk_score', v_suffix, ' = GREATEST(0, 
-                (IFNULL(violent_crime_z_score', v_suffix, ', 0) * 2.0) + 
-                (IFNULL(nonviolent_crime_z_score', v_suffix, ', 0) * 1.0) + 
-                (IFNULL(incident_z_score', v_suffix, ', 0) * 0.5)
+            risk_score_12mo = GREATEST(0, 
+                (IFNULL(violent_crime_z_score_12mo, 0) * 2.0) + 
+                (IFNULL(nonviolent_crime_z_score_12mo, 0) * 1.0) + 
+                (IFNULL(incident_z_score_12mo, 0) * 0.5)
             ),
-            risk_category', v_suffix, ' = CASE
-                WHEN ((IFNULL(violent_crime_z_score', v_suffix, ', 0) * 2.0) + 
-                      (IFNULL(nonviolent_crime_z_score', v_suffix, ', 0) * 1.0) + 
-                      (IFNULL(incident_z_score', v_suffix, ', 0) * 0.5)) >= 3.0 THEN ''CRITICAL''
-                WHEN ((IFNULL(violent_crime_z_score', v_suffix, ', 0) * 2.0) + 
-                      (IFNULL(nonviolent_crime_z_score', v_suffix, ', 0) * 1.0) + 
-                      (IFNULL(incident_z_score', v_suffix, ', 0) * 0.5)) >= 1.5 THEN ''HIGH''
-                WHEN ((IFNULL(violent_crime_z_score', v_suffix, ', 0) * 2.0) + 
-                      (IFNULL(nonviolent_crime_z_score', v_suffix, ', 0) * 1.0) + 
-                      (IFNULL(incident_z_score', v_suffix, ', 0) * 0.5)) >= 0.5 THEN ''MODERATE''
-                ELSE ''LOW''
+            risk_category_12mo = CASE
+                WHEN ((IFNULL(violent_crime_z_score_12mo, 0) * 2.0) + 
+                      (IFNULL(nonviolent_crime_z_score_12mo, 0) * 1.0) + 
+                      (IFNULL(incident_z_score_12mo, 0) * 0.5)) >= 3.0 THEN 'CRITICAL'
+                WHEN ((IFNULL(violent_crime_z_score_12mo, 0) * 2.0) + 
+                      (IFNULL(nonviolent_crime_z_score_12mo, 0) * 1.0) + 
+                      (IFNULL(incident_z_score_12mo, 0) * 0.5)) >= 1.5 THEN 'HIGH'
+                WHEN ((IFNULL(violent_crime_z_score_12mo, 0) * 2.0) + 
+                      (IFNULL(nonviolent_crime_z_score_12mo, 0) * 1.0) + 
+                      (IFNULL(incident_z_score_12mo, 0) * 0.5)) >= 0.5 THEN 'MODERATE'
+                ELSE 'LOW'
             END,
-            hotspot_status', v_suffix, ' = CASE
-                WHEN incident_percentile', v_suffix, ' >= 95 THEN ''EXTREME''
-                WHEN incident_percentile', v_suffix, ' >= 85 THEN ''HOT''
-                WHEN incident_percentile', v_suffix, ' >= 60 THEN ''WARM''
-                ELSE ''COLD''
+            hotspot_status_12mo = CASE
+                WHEN incident_percentile_12mo >= 95 THEN 'EXTREME'
+                WHEN incident_percentile_12mo >= 85 THEN 'HOT'
+                WHEN incident_percentile_12mo >= 60 THEN 'WARM'
+                ELSE 'COLD'
             END
-        WHERE h3_resolution = ?
-    ');
-    
-    PREPARE stmt FROM @risk_query;
-    EXECUTE stmt USING p_resolution;
-    DEALLOCATE PREPARE stmt;
+        WHERE h3_resolution = p_resolution;
+    ELSE
+        UPDATE amisafe_h3_aggregated
+        SET 
+            risk_score_6mo = GREATEST(0, 
+                (IFNULL(violent_crime_z_score_6mo, 0) * 2.0) + 
+                (IFNULL(nonviolent_crime_z_score_6mo, 0) * 1.0) + 
+                (IFNULL(incident_z_score_6mo, 0) * 0.5)
+            ),
+            risk_category_6mo = CASE
+                WHEN ((IFNULL(violent_crime_z_score_6mo, 0) * 2.0) + 
+                      (IFNULL(nonviolent_crime_z_score_6mo, 0) * 1.0) + 
+                      (IFNULL(incident_z_score_6mo, 0) * 0.5)) >= 3.0 THEN 'CRITICAL'
+                WHEN ((IFNULL(violent_crime_z_score_6mo, 0) * 2.0) + 
+                      (IFNULL(nonviolent_crime_z_score_6mo, 0) * 1.0) + 
+                      (IFNULL(incident_z_score_6mo, 0) * 0.5)) >= 1.5 THEN 'HIGH'
+                WHEN ((IFNULL(violent_crime_z_score_6mo, 0) * 2.0) + 
+                      (IFNULL(nonviolent_crime_z_score_6mo, 0) * 1.0) + 
+                      (IFNULL(incident_z_score_6mo, 0) * 0.5)) >= 0.5 THEN 'MODERATE'
+                ELSE 'LOW'
+            END,
+            hotspot_status_6mo = CASE
+                WHEN incident_percentile_6mo >= 95 THEN 'EXTREME'
+                WHEN incident_percentile_6mo >= 85 THEN 'HOT'
+                WHEN incident_percentile_6mo >= 60 THEN 'WARM'
+                ELSE 'COLD'
+            END
+        WHERE h3_resolution = p_resolution;
+    END IF;
     
     SELECT CONCAT('Risk scores calculated for resolution ', p_resolution, ' (', p_months, '-month window)') AS result;
 END$$
