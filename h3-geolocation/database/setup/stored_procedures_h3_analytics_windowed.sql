@@ -538,31 +538,39 @@ BEGIN
     SET v_suffix = CONCAT('_', p_months, 'mo');
     
     -- Get population statistics from windowed counts
-    SET @stats_query = CONCAT('
+    IF p_months = 12 THEN
         SELECT 
-            AVG(violent_crime_count', v_suffix, '),
-            STDDEV(violent_crime_count', v_suffix, '),
-            AVG(nonviolent_crime_count', v_suffix, '),
-            STDDEV(nonviolent_crime_count', v_suffix, '),
-            AVG(incident_count', v_suffix, '),
-            STDDEV(incident_count', v_suffix, '),
+            AVG(violent_crime_count_12mo),
+            STDDEV(violent_crime_count_12mo),
+            AVG(nonviolent_crime_count_12mo),
+            STDDEV(nonviolent_crime_count_12mo),
+            AVG(incident_count_12mo),
+            STDDEV(incident_count_12mo),
             COUNT(*)
-        INTO @v_mean, @v_std, @nv_mean, @nv_std, @i_mean, @i_std, @total
+        INTO 
+            v_violent_mean, v_violent_stddev,
+            v_nonviolent_mean, v_nonviolent_stddev,
+            v_incident_mean, v_incident_stddev,
+            v_total_count
         FROM amisafe_h3_aggregated
-        WHERE h3_resolution = ?
-    ');
-    
-    PREPARE stmt FROM @stats_query;
-    EXECUTE stmt USING p_resolution;
-    DEALLOCATE PREPARE stmt;
-    
-    SET v_violent_mean = @v_mean;
-    SET v_violent_stddev = @v_std;
-    SET v_nonviolent_mean = @nv_mean;
-    SET v_nonviolent_stddev = @nv_std;
-    SET v_incident_mean = @i_mean;
-    SET v_incident_stddev = @i_std;
-    SET v_total_count = @total;
+        WHERE h3_resolution = p_resolution;
+    ELSE
+        SELECT 
+            AVG(violent_crime_count_6mo),
+            STDDEV(violent_crime_count_6mo),
+            AVG(nonviolent_crime_count_6mo),
+            STDDEV(nonviolent_crime_count_6mo),
+            AVG(incident_count_6mo),
+            STDDEV(incident_count_6mo),
+            COUNT(*)
+        INTO 
+            v_violent_mean, v_violent_stddev,
+            v_nonviolent_mean, v_nonviolent_stddev,
+            v_incident_mean, v_incident_stddev,
+            v_total_count
+        FROM amisafe_h3_aggregated
+        WHERE h3_resolution = p_resolution;
+    END IF;
     
     -- Step 1: Update z-scores and stats (fast)
     SET @update_zscores = CONCAT('
