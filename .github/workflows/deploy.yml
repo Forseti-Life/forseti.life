@@ -17,6 +17,7 @@ on:
       - 'script/database/**'
       - 'h3-geolocation/**'
       - 'database-exports/**'
+      - 'testing/amisafe/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -209,7 +210,7 @@ jobs:
           
           echo "Downloading scripts from repository..."
           git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
-          git sparse-checkout set script/database h3-geolocation database-exports
+          git sparse-checkout set script/database h3-geolocation database-exports testing/amisafe
           
           # Deploy database scripts
           if [ -d "script/database" ]; then
@@ -245,6 +246,15 @@ jobs:
             [ -d "database/setup" ] && sudo mkdir -p "$H3_DIR/database" && sudo cp -r database/setup "$H3_DIR/database/"
             [ -d "scripts" ] && sudo cp -r scripts "$H3_DIR/"
             [ -d "tests" ] && sudo cp -r tests "$H3_DIR/"
+            
+            # Copy testing directory for validation scripts
+            if [ -d "../testing/amisafe" ]; then
+              sudo mkdir -p "$H3_DIR/testing/amisafe"
+              sudo cp ../testing/amisafe/*.sh "$H3_DIR/testing/amisafe/" 2>/dev/null || true
+              sudo cp ../testing/amisafe/*.md "$H3_DIR/testing/amisafe/" 2>/dev/null || true
+              sudo find "$H3_DIR/testing/amisafe" -type f -name "*.sh" -exec chmod 755 {} \;
+              echo "✅ Testing scripts deployed"
+            fi
             
             # Copy data directory structure with scripts (but not CSV files)
             if [ -d "data" ]; then

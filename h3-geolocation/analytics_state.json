@@ -15,11 +15,118 @@
       }
     },
     "12": {
-      "status": "processing",
+      "status": "complete",
       "start_time": "2025-11-26T08:42:14.209566",
-      "total_hexes": 80476
+      "total_hexes": 80476,
+      "end_time": "2025-11-26T09:48:32.407551",
+      "elapsed_seconds": 3978.03,
+      "completion": {
+        "alltime_basic": 100.0,
+        "alltime_risk": 100.0,
+        "windowed_12mo": 100.0,
+        "windowed_6mo": 100.0,
+        "overall": 100.0
+      }
+    },
+    "11": {
+      "status": "complete",
+      "start_time": "2025-11-26T09:48:32.658016",
+      "total_hexes": 52062,
+      "end_time": "2025-11-26T10:13:37.623619",
+      "elapsed_seconds": 1504.73,
+      "completion": {
+        "alltime_basic": 100.0,
+        "alltime_risk": 100.0,
+        "windowed_12mo": 100.0,
+        "windowed_6mo": 100.0,
+        "overall": 100.0
+      }
+    },
+    "10": {
+      "status": "complete",
+      "start_time": "2025-11-26T10:13:37.653791",
+      "total_hexes": 15488,
+      "end_time": "2025-11-26T10:21:52.887344",
+      "elapsed_seconds": 495.17,
+      "completion": {
+        "alltime_basic": 100.0,
+        "alltime_risk": 100.0,
+        "windowed_12mo": 100.0,
+        "windowed_6mo": 100.0,
+        "overall": 100.0
+      }
+    },
+    "9": {
+      "status": "complete",
+      "start_time": "2025-11-26T10:21:52.897078",
+      "total_hexes": 3050,
+      "end_time": "2025-11-26T10:24:30.559227",
+      "elapsed_seconds": 157.65,
+      "completion": {
+        "alltime_basic": 100.0,
+        "alltime_risk": 100.0,
+        "windowed_12mo": 100.0,
+        "windowed_6mo": 100.0,
+        "overall": 100.0
+      }
+    },
+    "8": {
+      "status": "complete",
+      "start_time": "2025-11-26T10:24:30.601439",
+      "total_hexes": 537,
+      "end_time": "2025-11-26T10:26:03.147976",
+      "elapsed_seconds": 92.54,
+      "completion": {
+        "alltime_basic": 100.0,
+        "alltime_risk": 100.0,
+        "windowed_12mo": 100.0,
+        "windowed_6mo": 100.0,
+        "overall": 100.0
+      }
+    },
+    "7": {
+      "status": "complete",
+      "start_time": "2025-11-26T10:26:03.152538",
+      "total_hexes": 92,
+      "end_time": "2025-11-26T10:27:14.291668",
+      "elapsed_seconds": 71.14,
+      "completion": {
+        "alltime_basic": 100.0,
+        "alltime_risk": 100.0,
+        "windowed_12mo": 100.0,
+        "windowed_6mo": 100.0,
+        "overall": 100.0
+      }
+    },
+    "6": {
+      "status": "complete",
+      "start_time": "2025-11-26T10:27:14.294111",
+      "total_hexes": 22,
+      "end_time": "2025-11-26T10:28:36.582629",
+      "elapsed_seconds": 82.29,
+      "completion": {
+        "alltime_basic": 100.0,
+        "alltime_risk": 100.0,
+        "windowed_12mo": 100.0,
+        "windowed_6mo": 100.0,
+        "overall": 100.0
+      }
+    },
+    "5": {
+      "status": "complete",
+      "start_time": "2025-11-26T10:28:36.585195",
+      "total_hexes": 5,
+      "end_time": "2025-11-26T10:29:38.302858",
+      "elapsed_seconds": 61.72,
+      "completion": {
+        "alltime_basic": 100.0,
+        "alltime_risk": 100.0,
+        "windowed_12mo": 100.0,
+        "windowed_6mo": 100.0,
+        "overall": 100.0
+      }
     }
   },
-  "last_updated": "2025-11-26T08:42:14.209577",
-  "total_hexagons_processed": 88825
+  "last_updated": "2025-11-26T10:29:38.302881",
+  "total_hexagons_processed": 240557
 }
