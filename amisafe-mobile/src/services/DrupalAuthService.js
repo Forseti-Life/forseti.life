@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 class DrupalAuthService {
   constructor() {
-    this.baseUrl = 'http://127.0.0.1:8082'; // Drupal backend URL (St. Louis Integration site)
+    this.baseUrl = 'https://stlouisintegration.com'; // Drupal backend URL (St. Louis Integration site)
     this.currentUser = null;
     this.sessionToken = null;
     this.csrfToken = null;

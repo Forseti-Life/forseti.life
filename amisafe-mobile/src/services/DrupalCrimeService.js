@@ -9,7 +9,7 @@ import drupalAuthService from './DrupalAuthService';
 
 class DrupalCrimeService {
   constructor() {
-    this.baseUrl = 'http://127.0.0.1:8082';
+    this.baseUrl = 'https://stlouisintegration.com';
     this.apiEndpoints = {
       riskLevel: '/api/amisafe/risk-level',
       aggregated: '/api/amisafe/aggregated',
