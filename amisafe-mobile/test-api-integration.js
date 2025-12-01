@@ -9,7 +9,7 @@ const axios = require('axios');
 const testApiIntegration = async () => {
   console.log('🧪 Testing Real API Integration...');
   
-  const baseUrl = 'http://127.0.0.1:8082'; // St. Louis Integration site with AmISafe module
+  const baseUrl = 'http://127.0.0.1'; // St. Louis Integration site with AmISafe module (port 80)
   
   // Test 1: Check if Drupal server is running
   try {

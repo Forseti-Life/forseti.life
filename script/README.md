@@ -78,6 +78,7 @@ This workspace supports two independent Drupal websites:
 - **complete-setup.sh** - 🔧 **Complete multi-site environment setup** (use for first-time setup)
 - **quick-start.sh** - 🚀 **Rapid startup** after workspace restarts (starts services, tests sites)
 - **verify-setup.sh** - ✅ **Comprehensive verification** of entire multi-site setup
+- **setup-mobile.sh** - 📱 **Mobile app environment setup** (React Native, dependencies, testing)
 
 ### Legacy Scripts (archived/)
 - **setup-environment.sh** - Install system dependencies only
@@ -111,6 +112,36 @@ cd /workspaces/stlouisintegration.com/sites/theoryofconspiracies
 ./vendor/bin/drush cr  # Clear cache
 ./vendor/bin/drush uli  # One-time login link
 ```
+
+### AmISafe Mobile Application
+
+**Setup and Testing:**
+```bash
+# Complete mobile environment setup
+./setup-mobile.sh
+
+# After setup, test the application
+cd /workspaces/stlouisintegration.com/amisafe-mobile
+
+# Test H3 geospatial functions
+node test-h3.js
+
+# Test authentication
+npm test
+
+# Open web previews
+# - web-test.html: Interactive authentication testing
+# - crime-map-demo.html: Crime map visualization
+# - demo-preview.html: Feature preview
+```
+
+**Current Status:**
+- ✅ React Native 0.72.6 with TypeScript support
+- ✅ 651 packages installed (H3-js, Axios, Geolocation, Maps)
+- ✅ Web-based testing environment ready
+- ⚠️ Native platforms (android/ios) not initialized yet
+- ✅ H3 geospatial integration working (43m² precision)
+- ✅ API integration configured for stlouisintegration.com
 
 ## Configuration
 
