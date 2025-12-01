@@ -2,141 +2,147 @@
 
 A cross-platform mobile application for crime safety awareness, built with React Native for both iOS and Android platforms. Integrates with the Drupal-based AmISafe API for real-time crime data and user management.
 
-## 🚦 **Current Implementation Status**
+## 🚦 Current Implementation Status
 
-### **✅ Fully Implemented**
-- **Authentication System**: Basic Drupal authentication with session management
+### ✅ Fully Implemented
+- **Authentication System**: Basic Drupal session-based authentication with CSRF token management
+- **Background Location Monitoring**: GPS tracking with H3 index calculation and z-score risk assessment
 - **Navigation Structure**: 5-screen bottom tab navigation (Home, Map, Safety, Statistics, Profile)
-- **Location Services**: GPS tracking with H3 geospatial conversion
+- **Location Services**: GPS tracking with H3 geospatial conversion (Resolution 11-13)
 - **API Integration**: DrupalCrimeService configured for all AmISafe endpoints
 - **Storage Layer**: AsyncStorage for persistent user sessions and preferences
 - **Permissions**: Location and notification permission handling (iOS/Android)
+- **Settings Management**: User-configurable monitoring settings and thresholds
 
-### **🔄 Partially Implemented (Using Mock Data)**
+### 🔄 Partially Implemented (Using Mock Data)
 - **Home Dashboard**: Safety scores and quick stats display (mock data)
 - **Crime Map**: Map framework exists, needs H3 hexagon overlay integration
 - **Safety Screen**: Risk assessment UI present, needs real-time data connection
 - **Statistics Screen**: Analytics framework, needs data visualization
 - **Notifications**: Service framework exists, not actively pushing alerts
 
-### **❌ Not Yet Implemented**
-- Background location monitoring (framework exists but not active)
-- Real-time safety alerts and push notifications
+### ❌ Not Yet Implemented
+- Native Android/iOS directories (requires `npx react-native init`)
+- Real-time safety alerts and push notifications (requires `react-native-push-notification`)
 - H3 hexagon crime visualization on maps
 - Offline data caching
 - Community reporting features
 - Safe route planning
 - Personal safety analytics dashboard
 
-## 🏗️ **Backend Dependencies**
+## 🛡️ Authentication System
 
-### **Required Drupal Modules (Server-Side)**
-The AmISafe mobile app requires the following Drupal modules on the stlouisintegration.com server:
+### Basic Drupal Integration
+The app uses **session-based authentication** with standard Drupal user management (no OAuth complexity):
 
-#### **Core API Modules (Pre-installed)**
-- ✅ **JSON:API** - Automatic REST endpoints for user management
-- ✅ **REST** - RESTful web services foundation
-- ✅ **Serialization** - JSON/XML data serialization
-- ✅ **Basic Auth** - HTTP basic authentication
+```javascript
+// Simple login method
+const result = await drupalAuthService.login(username, password);
 
-#### **Authentication Modules (Installed)**
-- ✅ **Simple OAuth** (v6.0.9) - OAuth 2.0 authentication with JWT tokens
-- ✅ **Consumers** (v1.21.0) - OAuth client management
-- ✅ **OpenAPI** (v2.3.0) - API documentation generation
-- ✅ **REST UI** (v1.22.0) - User interface for REST configuration
+// User registration
+const regResult = await drupalAuthService.register({
+  username: 'newuser',
+  email: 'user@example.com', 
+  password: 'securepass'
+});
 
-#### **Module Installation Commands**
+// Authentication state
+const isLoggedIn = drupalAuthService.isAuthenticated();
+const currentUser = drupalAuthService.getCurrentUser();
+```
+
+**Key Features:**
+- **CSRF Token Management**: Proper security token handling for API requests
+- **Demo Mode Fallback**: Development-friendly authentication for testing
+- **Persistent Sessions**: User login state preserved across app restarts
+- **Session Storage**: Persistent authentication across app sessions
+
+**Authentication Flow:**
+1. CSRF Token retrieved from `/session/token`
+2. Session Login via form-based authentication with Drupal
+3. Session Storage for persistence
+4. API Access with authenticated requests to AmISafe endpoints
+5. Demo Fallback for development mode testing
+
+## 📍 Background Location Monitoring
+
+### Core Services
+
+**BackgroundLocationService.ts**
+- GPS tracking via react-native-geolocation-service
+- H3 index calculation at resolution 11 (~700m hexagons)
+- Z-score checking via AmISafe API
+- Notification triggering when z-score >= 2.0
+- Location history tracking (last 100 locations)
+- State persistence via AsyncStorage
+- Auto-restore on app restart
+
+**useBackgroundMonitoring.ts** (React Hook)
+- Permission management (foreground + background location)
+- Start/stop monitoring controls
+- State management
+- Auto-restore monitoring on app launch
+
+**SettingsScreen.tsx**
+- Enable/disable monitoring toggle
+- Z-score threshold selector (1.0 - 3.0)
+- Notification cooldown selector (1-30 minutes)
+- Location history viewer
+- Clear history function
+
+### Required Next Steps
+
+**1. Install Missing Packages**
 ```bash
-# Navigate to Drupal site
-cd /workspaces/stlouisintegration.com/sites/stlouisintegration
+cd /home/keithaumiller/stlouisintegration.com/amisafe-mobile
 
-# Install contributed modules
-composer require drupal/simple_oauth drupal/openapi drupal/restui
+# Install push notification library
+npm install react-native-push-notification
 
-# Enable all required modules
-vendor/bin/drush en jsonapi rest serialization basic_auth simple_oauth consumers openapi restui -y
+# iOS only
+npm install @react-native-community/push-notification-ios
 
-# Generate OAuth keys
-mkdir -p keys
-cd keys
-openssl genrsa -out private.key 2048
-openssl rsa -in private.key -outform PEM -pubout -out public.key
-
-# Configure OAuth settings
-vendor/bin/drush config:set simple_oauth.settings public_key '../keys/public.key'
-vendor/bin/drush config:set simple_oauth.settings private_key '../keys/private.key'
-vendor/bin/drush config:set simple_oauth.settings access_token_expiration 3600
-vendor/bin/drush config:set simple_oauth.settings refresh_token_expiration 2419200
-
-# Enable user registration
-vendor/bin/drush config:set user.settings register 'visitors'
-vendor/bin/drush config:set user.settings verify_mail 1
-
-# Clear cache
-vendor/bin/drush cr
+# Link native dependencies
+npx pod-install ios  # iOS
 ```
 
-### **OAuth Consumer Setup (Required)**
-After installing modules, create an OAuth consumer via Drupal admin interface:
+**2. Initialize Native Directories**
 
-1. **Access Admin**: Go to `https://stlouisintegration.com/user/login`
-2. **Navigate**: Configuration → Web Services → Consumers (`/admin/config/services/consumer`)
-3. **Add Consumer**: Click "Add Consumer" button
-4. **Configure**:
-   ```
-   Label: AmISafe Mobile App
-   Description: OAuth consumer for AmISafe mobile application
-   Client ID: amisafe_mobile
-   Grant Types: ☑️ Password Grant ☑️ Refresh Token  
-   Scopes: basic_auth
-   Confidential: ☐ NO (unchecked - mobile apps are public clients)
-   ```
-5. **Save**: Click "Save" to complete setup
+The app requires Android and iOS native folders:
+```bash
+# Option 1: Create new React Native app structure
+npx react-native init amisafe-mobile
 
-### **Available API Endpoints**
-Once configured, the following endpoints are available for the mobile app:
-
-```typescript
-// User Registration
-POST https://stlouisintegration.com/user/register
-{
-  "name": "user@example.com",
-  "mail": "user@example.com",
-  "pass": "SecurePassword123!",
-  "field_first_name": "John",
-  "field_last_name": "Doe"
-}
-
-// OAuth Authentication
-POST https://stlouisintegration.com/oauth/token
-{
-  "grant_type": "password",
-  "client_id": "amisafe_mobile",
-  "username": "user@example.com",
-  "password": "SecurePassword123!"
-}
-
-// User Profile Management
-GET https://stlouisintegration.com/jsonapi/user/user/{uuid}
-PATCH https://stlouisintegration.com/jsonapi/user/user/{uuid}
-Authorization: Bearer {access_token}
-
-// AmISafe Crime Data (Custom API)
-GET https://stlouisintegration.com/api/amisafe/risk-level?h3={index}
-GET https://stlouisintegration.com/api/amisafe/aggregated?resolution=13
-Authorization: Bearer {access_token}
+# Option 2: Add to existing setup
+npx @react-native-community/cli init --skip-install
 ```
 
-## 🚀 **Features**
+**3. Android Native Configuration**
 
-### **Implemented Core Features**
+See `docs/ARCHITECTURE.md` for complete Android setup including:
+- BootReceiver.java (auto-start on device boot)
+- LocationMonitoringService.java (foreground service)
+- AndroidManifest.xml permissions and service registration
+
+**4. iOS Configuration**
+
+See `docs/ARCHITECTURE.md` for complete iOS setup including:
+- Info.plist location permission descriptions
+- Background modes configuration
+- AppDelegate.m modifications
+
+## 🚀 Features
+
+### Implemented Core Features
 - 📍 **Location Tracking**: GPS-based location services with H3 hexagon conversion
 - 🗺️ **Interactive Crime Map**: React Native Maps with crime data overlay framework
-- 🔐 **User Authentication**: Session-based Drupal authentication (no OAuth complexity)
+- 🔐 **User Authentication**: Session-based Drupal authentication
 - 💾 **Local Storage**: Persistent user sessions and app preferences
 - 📱 **Cross-Platform**: iOS and Android support via React Native 0.72.6
+- 🎯 **Risk Assessment**: Z-score based crime risk evaluation
+- 🔔 **Alert Framework**: Notification service ready for push alerts
 
-### **Planned Advanced Features**
+### Planned Advanced Features
 - 🎯 **Predictive Safety Scoring**: AI-powered risk assessment (API ready, UI integration pending)
 - 🔔 **Real-time Alerts**: Push notifications for high-crime areas (framework exists)
 - 🔄 **Offline Capability**: Cached data for areas without internet (not implemented)
@@ -144,23 +150,23 @@ Authorization: Bearer {access_token}
 - 📈 **Personal Dashboard**: Customized insights and recommendations (partially implemented)
 - 🌙 **Night Mode**: Optimized interface for low-light conditions (not implemented)
 
-## 📱 **Platform Support**
+## 📱 Platform Support
 
-### **iOS Requirements**
+### iOS Requirements
 - iOS 12.0 or later
 - iPhone 6s or newer
 - Location services enabled
 - Push notification permissions
 
-### **Android Requirements**
+### Android Requirements
 - Android 7.0 (API level 24) or later
 - GPS and network location enabled
 - Storage permissions for offline maps
 - Notification permissions
 
-## 🏗️ **Architecture**
+## 🏗️ Architecture
 
-### **Technology Stack**
+### Technology Stack
 - **Framework**: React Native 0.72.6 ✅
 - **Language**: TypeScript (screens) + JavaScript (services) ✅
 - **Navigation**: React Navigation 6 with bottom tabs ✅
@@ -169,41 +175,52 @@ Authorization: Bearer {access_token}
 - **HTTP Client**: Axios v1.6.0 with CSRF token handling ✅
 - **Storage**: @react-native-async-storage/async-storage v1.19.5 ✅
 - **State Management**: React Context + Hooks ✅
-- **Charts**: Not yet implemented (placeholder in Statistics screen)
 
-### **Project Structure**
+### Project Structure
 ```
 amisafe-mobile/
 ├── src/
 │   ├── components/          # Reusable UI components
-│   │   ├── Map/            # Crime map components
-│   │   ├── Safety/         # Safety-related components
-│   │   ├── UI/             # General UI components
-│   │   └── Charts/         # Data visualization components
+│   │   └── InteractiveCrimeMap.js
 │   ├── screens/            # Application screens
-│   │   ├── Home/           # Main dashboard
-│   │   ├── Map/            # Full-screen crime map
-│   │   ├── Profile/        # User settings and preferences
-│   │   ├── Safety/         # Safety features and alerts
-│   │   └── Statistics/     # Crime analytics and reports
+│   │   ├── Auth/           # LoginScreen.tsx
+│   │   ├── Home/           # HomeScreen.tsx
+│   │   ├── Map/            # MapScreen.tsx, CrimeMapScreen.js
+│   │   ├── Profile/        # ProfileScreen.tsx
+│   │   ├── Safety/         # SafetyScreen.tsx
+│   │   ├── Settings/       # SettingsScreen.tsx
+│   │   └── Statistics/     # StatisticsScreen.tsx
 │   ├── services/           # API and data services
-│   │   ├── api/            # AmISafe API integration
-│   │   ├── location/       # GPS and geolocation services
-│   │   ├── storage/        # Data persistence
-│   │   └── notifications/  # Push notification handling
-│   ├── utils/              # Helper functions and utilities
-│   │   ├── h3/             # H3 geospatial calculations
-│   │   ├── safety/         # Safety scoring algorithms
-│   │   └── formatters/     # Data formatting utilities
-│   └── assets/             # Images, fonts, and static resources
-├── android/                # Android-specific configuration
-├── ios/                    # iOS-specific configuration
-└── docs/                   # Documentation and guides
+│   │   ├── DrupalAuthService.js      # Authentication
+│   │   ├── DrupalCrimeService.js     # Crime data API
+│   │   ├── GPSLocationService.js     # GPS tracking
+│   │   ├── H3LocationService.js      # H3 geospatial
+│   │   ├── location/
+│   │   │   ├── BackgroundLocationService.ts
+│   │   │   ├── LocationService.ts
+│   │   │   └── PlatformConfiguration.ts
+│   │   ├── notifications/
+│   │   │   └── NotificationService.ts
+│   │   └── storage/
+│   │       └── StorageService.ts
+│   ├── hooks/
+│   │   └── useBackgroundMonitoring.ts
+│   └── utils/
+│       ├── colors.ts
+│       └── permissions.ts
+├── docs/                   # Complete documentation
+│   ├── README.md          # Developer guide
+│   └── ARCHITECTURE.md    # System architecture
+├── android/                # Android native (not initialized yet)
+├── ios/                    # iOS native (not initialized yet)
+├── App.js                  # Main app entry
+├── App.tsx                # TypeScript app entry
+└── package.json           # Dependencies
 ```
 
-## 🔧 **Development Setup**
+## 🔧 Development Setup
 
-### **Prerequisites**
+### Prerequisites
 ```bash
 # Node.js and npm
 node --version  # Should be >= 16
@@ -221,22 +238,22 @@ sudo gem install cocoapods
 # Configure ANDROID_HOME environment variable
 ```
 
-### **Installation**
+### Installation
 ```bash
-# Clone and navigate to mobile app directory
+# Navigate to mobile app directory
 cd /workspaces/stlouisintegration.com/amisafe-mobile
 
 # Install dependencies
 npm install
 
+# Initialize native directories (REQUIRED - not done yet)
+npx react-native init amisafe-mobile --skip-install
+
 # iOS setup (macOS only)
 cd ios && pod install && cd ..
-
-# Android setup
-# Ensure Android SDK and emulator are configured
 ```
 
-### **Development Commands**
+### Development Commands
 ```bash
 # Start Metro bundler
 npm start
@@ -250,64 +267,70 @@ npm run ios
 # Run tests
 npm test
 
-# Lint code
-npm run lint
-
-# Clean project (if having issues)
-npm run clean
+# Web test interface
+# Open web-test.html or crime-map-demo.html in browser
 ```
 
-## 🌐 **API Integration**
+## 🌐 API Integration
 
-### **AmISafe Backend Integration**
+### AmISafe Backend Integration
 - **Base URL**: `http://localhost/amisafe/api` (development)
 - **Production URL**: `https://stlouisintegration.com/amisafe/api`
-- **Endpoints Used**:
-  - `/hexagons` - H3 crime data by resolution
-  - `/incidents` - Individual incident data
-  - `/statistics` - Aggregated crime statistics
-  - `/safety-score` - Location-based safety scoring
 
-### **Data Synchronization**
-- **Real-time Updates**: WebSocket connection for live data
-- **Offline Support**: Cached H3 data for common areas
-- **Background Sync**: Periodic data updates when app is backgrounded
-- **Delta Updates**: Only sync changed data to minimize bandwidth
+### Working Endpoints ✅
+```
+✅ GET /session/token          - CSRF token for security
+✅ GET /api/amisafe/debug      - System diagnostics
+✅ GET /api/amisafe/system-stats - Platform statistics  
+✅ GET /api/amisafe/crime-types - Crime classification data
+✅ GET /api/amisafe/aggregated  - H3 hexagon crime data
+✅ GET /api/amisafe/incidents   - Individual crime records
+✅ GET /api/amisafe/risk-level  - Location-based risk assessment
+```
 
-## 📊 **Key Components**
+### H3 Resolution Strategy
+| Resolution | Area Coverage | Use Case | Update Frequency |
+|------------|---------------|----------|------------------|
+| 5 | 251.1 km² | City statistics | Daily |
+| 8 | 0.7 km² | Neighborhood context | Hourly |
+| 10 | 15,047 m² | Block awareness | 15 minutes |
+| 11 | ~700 m² | Background monitoring | Real-time |
+| 13 | 44 m² | User position tracking | Real-time |
 
-### **CrimeMapComponent**
+## 📊 Key Components
+
+### CrimeMapComponent
 Interactive map with H3 hexagon overlays showing crime density and types.
 
-### **SafetyDashboard**
+### SafetyDashboard
 Real-time safety scoring for user's current location with recommendations.
 
-### **LocationTracker**
+### LocationTracker
 Background location monitoring with privacy-conscious data handling.
 
-### **NotificationManager**
+### NotificationManager
 Push notification system for safety alerts and area warnings.
 
-### **OfflineDataManager**
+### OfflineDataManager
 Local storage management for offline functionality.
 
-## 🔐 **Privacy & Security**
+## 🔐 Privacy & Security
 
-### **Location Privacy**
+### Location Privacy
 - Location data processed locally when possible
 - Optional cloud sync with encrypted transmission
 - User control over data sharing preferences
 - No tracking without explicit consent
 
-### **Data Security**
+### Data Security
 - HTTPS-only API communication
 - Local data encryption using device keystore
 - Session management with secure tokens
 - Regular security updates and patches
 
-## 🚀 **Deployment**
+## 🚀 Deployment
 
-### **Android Deployment**
+### Android Deployment
 ```bash
 # Generate release APK
 npm run build:android
@@ -315,7 +338,7 @@ npm run build:android
 # APK location: android/app/build/outputs/apk/release/
 ```
 
-### **iOS Deployment**
+### iOS Deployment
 ```bash
 # Build for release (macOS + Xcode required)
 npm run build:ios
@@ -323,69 +346,49 @@ npm run build:ios
 # Follow iOS App Store submission guidelines
 ```
 
-### **App Store Information**
+### App Store Information
 - **App Name**: AmISafe - Crime Safety Map
 - **Category**: Navigation / Safety
 - **Target Audience**: General public, safety-conscious individuals
 - **Permissions Required**: Location, Notifications, Storage
 
-## 📈 **Performance Optimization**
+## 🧪 Testing
 
-### **Map Performance**
-- H3 hexagon clustering for zoom levels
-- Lazy loading of crime data
-- Viewport-based data fetching
-- GPU-accelerated map rendering
+### Available Test Files
+- `test-auth.js` - Authentication testing
+- `test-basic-auth.js` - Basic auth flow
+- `test-api-integration.js` - API endpoint testing
+- `test-crime-map.js` - Crime map functionality
+- `test-h3.js` - H3 geospatial calculations
 
-### **Battery Optimization**
-- Intelligent location tracking frequency
-- Background processing limitations
-- Sleep mode for inactive periods
-- Efficient data caching strategies
+### Web Test Interfaces
+- `web-test.html` - Interactive authentication testing
+- `crime-map-demo.html` - Crime map visualization demo
+- `demo-preview.html` - Feature preview
 
-## 🧪 **Testing Strategy**
+## 📚 Documentation
 
-### **Unit Testing**
-- Jest for JavaScript/TypeScript logic
-- Component testing with React Native Testing Library
-- API service mocking and testing
+### Complete Documentation in `/docs`
+- **README.md** - Comprehensive developer guide with all implementation details
+- **ARCHITECTURE.md** - Complete system architecture, data flows, and native setup
 
-### **Integration Testing**
-- E2E testing with Detox
-- Map interaction testing
-- Location service testing
-- Notification flow testing
+### Topics Covered
+- API Integration & Endpoints
+- Crime Map Implementation
+- Development Environment Setup
+- Drupal Modules & Configuration
+- Process Flows & Diagrams
+- Project Summary & Roadmap
+- Technical Specifications
+- User Registration & Authentication
+- Background Monitoring Setup
+- Android/iOS Native Configuration
 
-### **Device Testing**
-- iOS: iPhone 8, iPhone 12, iPhone 14
-- Android: Various devices via Firebase Test Lab
-- Performance testing on older devices
-
-## 📚 **Documentation**
-
-### **User Guides**
-- [Installation Guide](./docs/INSTALLATION.md)
-- [User Manual](./docs/USER_GUIDE.md)
-- [Privacy Policy](./docs/PRIVACY.md)
-
-### **Developer Documentation**
-- [API Integration](./docs/API_INTEGRATION.md)
-- [Contributing Guidelines](./docs/CONTRIBUTING.md)
-- [Deployment Guide](./docs/DEPLOYMENT.md)
-
-## 🤝 **Contributing**
-
-We welcome contributions! Please see our [Contributing Guidelines](./docs/CONTRIBUTING.md) for details on:
-- Code style and standards
-- Pull request process
-- Testing requirements
-- Documentation updates
-
-## 📄 **License**
+## 📄 License
 
 MIT License - see [LICENSE](./LICENSE) file for details.
 
-## 🆘 **Support**
+## 🆘 Support
 
 - **Issues**: GitHub Issues for bug reports and feature requests
 - **Documentation**: Comprehensive docs in `/docs` directory

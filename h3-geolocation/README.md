@@ -78,6 +78,145 @@ h3-geolocation/
 └── ARCHITECTURE.md                   # Detailed technical documentation
 ```
 
+## 🚀 Quick Reference Commands
+
+### Setup
+```bash
+export DB_USER='stlouis_user'
+export DB_PASSWORD='StLouis2024!Secure#DB'
+export DB_SOCKET='/var/run/mysqld/mysqld.sock'
+cd /var/www/html/stlouisintegration/h3-geolocation
+source h3-env/bin/activate
+```
+
+### Run Complete Pipeline
+```bash
+# Run in background
+nohup ./database/etl/run_complete_pipeline.sh --full > pipeline.log 2>&1 &
+```
+
+### Pipeline Stages
+
+| Stage | Script | Time | Output |
+|-------|--------|------|--------|
+| **Bronze** | `amisafe_processor.py` | 30-60 min | ~3.5M raw records |
+| **Silver** | `enhanced_transform_processor_v2.py` | 20-40 min | Clean incidents |
+| **Gold** | `amisafe_aggregator.py` | 15-30 min | ~410K hexagons |
+| **Analytics** | Stored procedures | 3-6 hrs | 84 columns/hex |
+
+### Individual Stage Commands
+```bash
+# Complete pipeline (all 4 stages)
+./database/etl/run_complete_pipeline.sh --full
+
+# Individual stages
+./database/etl/run_complete_pipeline.sh --bronze
+./database/etl/run_complete_pipeline.sh --silver
+./database/etl/run_complete_pipeline.sh --gold
+./database/etl/run_complete_pipeline.sh --analytics
+
+# Fast analytics (skip 12mo/6mo windows)
+./database/etl/run_complete_pipeline.sh --analytics-basic
+
+# Resume from last successful stage
+./database/etl/run_complete_pipeline.sh --resume
+```
+
+### Monitoring Progress
+```bash
+# Watch log
+tail -f database/pipeline_*.log
+
+# Check state
+cat database/pipeline_state.json
+
+# Monitor background process
+ps aux | grep run_complete_pipeline
+```
+
+### Database Stats
+```bash
+mysql -u stlouis_user -p'StLouis2024!Secure#DB' \
+      -S /var/run/mysqld/mysqld.sock amisafe_database << 'EOF'
+-- Record counts
+SELECT 
+    'Bronze' as Layer, COUNT(*) as Records FROM amisafe_raw_incidents
+UNION ALL
+SELECT 'Silver', COUNT(*) FROM amisafe_clean_incidents
+UNION ALL
+SELECT 'Gold', COUNT(*) FROM amisafe_h3_aggregated;
+
+-- Hexagon distribution
+SELECT 
+    h3_resolution,
+    COUNT(*) as hexagons,
+    SUM(incident_count) as incidents,
+    COUNT(CASE WHEN top_crime_type IS NOT NULL THEN 1 END) as with_analytics
+FROM amisafe_h3_aggregated
+GROUP BY h3_resolution
+ORDER BY h3_resolution DESC;
+EOF
+```
+
+### Troubleshooting
+
+**Virtual Environment Issues:**
+```bash
+cd /var/www/html/stlouisintegration/h3-geolocation
+python3 -m venv h3-env
+source h3-env/bin/activate
+pip install pandas numpy h3 mysql-connector-python folium matplotlib plotly seaborn geopy tqdm psutil
+```
+
+**MySQL Connection:**
+```bash
+# Test connection
+mysql -u stlouis_user -p'StLouis2024!Secure#DB' \
+      -S /var/run/mysqld/mysqld.sock -e "SHOW DATABASES;"
+```
+
+## Directory Structure
+```
+h3-geolocation/
+├── README.md                           # Main documentation
+├── ARCHITECTURE.md                     # Technical architecture
+├── install.py                          # Framework installation
+├── quick_start.py                      # Quick start examples
+├── visualizer.py                       # Data visualization
+├── h3_framework.py                     # Core H3 framework
+├── geospatial_utils.py                 # Geospatial utilities
+├── examples.py                         # Usage examples
+├── run.sh                              # Quick runner
+├── composer.json                       # PHP dependencies
+├── config/                             # Configuration files
+│   ├── mysql_config.json              # Database config
+│   └── README.md
+├── data/                               # Data storage
+│   ├── raw/                           # Raw CSV files (20 files, 673MB+)
+│   └── README.md
+├── database/                          # **ACTIVE PIPELINE SCRIPTS**
+│   ├── CURRENT_FILES.md               # Active files documentation
+│   ├── run_amisafe_pipeline_stlouisintegration.sh  # MAIN PIPELINE
+│   ├── setup_amisafe_stlouisintegration.sh         # DATABASE SETUP
+│   ├── amisafe_processor.py           # Bronze→Silver processing
+│   ├── amisafe_aggregator.py          # Silver→Gold aggregation
+│   ├── monitor_processing.py          # Processing monitor
+│   ├── generate_h3_metro_area.py      # Metro area H3 generation
+│   ├── populate_h3_incident_ids.py    # Backfill utility
+│   ├── etl/                           # ETL pipeline scripts
+│   └── archive/                       # Archived files
+├── h3-env/                            # Python virtual environment
+├── scripts/                           # Utility scripts
+│   ├── load_incidents_to_mysql.py     # MySQL loader
+│   └── README.md
+├── tests/                             # Test suites
+│   ├── test_h3_framework.py          # Framework tests
+│   ├── test_transform_processor.py    # Processor tests
+│   ├── fixtures.py                   # Test fixtures
+│   └── data_validation/               # Validation tests
+└── deprecated/                        # Deprecated files
+```
+
 ## Support
 - **Architecture Details:** See `ARCHITECTURE.md`
 - **Current Files:** Check `database/CURRENT_FILES.md`

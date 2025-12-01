@@ -1,0 +1,465 @@
+# St. Louis Integration - Deployment & Operations Guide
+
+## Table of Contents
+1. [Overview](#overview)
+2. [Backup & Restore](#backup--restore)
+3. [Deployment Strategy](#deployment-strategy)
+4. [Security Hardening](#security-hardening)
+5. [Production Checklist](#production-checklist)
+
+---
+
+## Overview
+
+This guide covers deployment, backup, restore, and security operations for the St. Louis Integration website infrastructure, including the main Drupal site and AmISafe crime monitoring application.
+
+### Infrastructure Components
+- **Drupal Website**: Main stlouisintegration.com site
+- **AmISafe Module**: Crime monitoring and safety alerts
+- **H3 Geolocation**: Crime data processing pipeline
+- **Mobile Application**: React Native safety app
+
+---
+
+## Backup & Restore
+
+### Backup Strategy
+
+**Daily Backups** - Automated via Backup and Migrate module
+- Source: Default Database
+- Destination: `/var/backups/stlouisintegration/daily`
+- Retention: 7 days
+- Schedule: Every 24 hours (86400 seconds)
+
+**Weekly Backups** - Full site backup
+- Source: Entire Site (database + files)
+- Destination: `/var/backups/stlouisintegration/weekly`
+- Retention: 20 weeks
+- Schedule: Every 7 days (604800 seconds)
+
+### Backup Management
+
+**Drupal Admin Interface:**
+- Schedules: `/admin/config/development/backup_migrate/schedule`
+- Destinations: `/admin/config/development/backup_migrate/destination`
+- Sources: `/admin/config/development/backup_migrate/source`
+- Manual Backup: `/admin/config/development/backup_migrate`
+
+**Backup Schedules:**
+
+1. **daily_backup**
+   - Runs: Every 24 hours
+   - Keeps: Last 7 backups
+   - Source: Default Database
+   - Destination: Daily Local Backups
+
+2. **weekly_backup**
+   - Runs: Every 7 days
+   - Keeps: Last 20 backups
+   - Source: Entire Site
+   - Destination: Weekly Local Backups
+
+### Manual Backup Creation
+
+**Through Drupal Interface:**
+1. Navigate to `/admin/config/development/backup_migrate`
+2. Select source and destination
+3. Click "Backup now"
+
+**Via Command Line:**
+```bash
+cd /var/www/html/stlouisintegration
+
+# Database backup
+./vendor/bin/drush sql:dump --result-file=../backup-$(date +%Y%m%d-%H%M%S).sql
+
+# Full site backup
+tar -czf ../backup-full-$(date +%Y%m%d-%H%M%S).tar.gz .
+```
+
+### Restoration Procedures
+
+**Database Restoration:**
+```bash
+cd /var/www/html/stlouisintegration
+
+# For compressed backups (.gz)
+gunzip -c /var/backups/stlouisintegration/daily/backup-TIMESTAMP.sql.gz | \
+  sudo -u www-data ./vendor/bin/drush sql:cli
+
+# For regular SQL files
+sudo -u www-data ./vendor/bin/drush sql:cli < \
+  /var/backups/stlouisintegration/daily/backup-TIMESTAMP.sql
+```
+
+**Full Site Restoration:**
+```bash
+cd /var/www/html
+
+# Extract full site backup
+sudo tar -xzf /var/backups/stlouisintegration/weekly/backup-TIMESTAMP.tar.gz
+
+# Fix permissions
+sudo chown -R www-data:www-data stlouisintegration/
+sudo chmod -R 755 stlouisintegration/
+```
+
+**Through Drupal Interface:**
+1. Go to `/admin/config/development/backup_migrate/restore`
+2. Select the backup file to restore
+3. Choose restoration options
+4. Click "Restore"
+
+### Monitoring Backups
+
+Check backup status using the monitoring script:
+```bash
+./scripts/backup-status.sh
+```
+
+Verify backup integrity:
+```bash
+# Verify compressed backups
+gunzip -t /var/backups/stlouisintegration/daily/*.sql.gz
+
+# Test restoration (dry run)
+gunzip -c backup.sql.gz | head -100
+```
+
+---
+
+## Deployment Strategy
+
+### Deployment Options
+
+**Option 1: Automated CI/CD Pipeline (Recommended)**
+
+Advantages:
+- ✅ Fully automated and repeatable
+- ✅ Built-in security hardening
+- ✅ Zero-downtime deployments
+- ✅ Automatic rollback capabilities
+- ✅ Configuration management
+
+GitHub Actions workflow will:
+1. Build production assets (npm run production)
+2. Remove development files automatically
+3. Run security hardening script
+4. Deploy to production server
+5. Update database and configuration
+6. Run post-deployment tests
+
+**Option 2: Manual Deployment with Scripts (Fallback)**
+
+Advantages:
+- ✅ Full control over deployment process
+- ✅ Can be run incrementally
+- ✅ Good for initial deployment
+
+Process:
+1. Run `./scripts/production-security-hardening.sh`
+2. Build and package assets for production
+3. Upload to production server
+4. Run deployment scripts on server
+5. Update database and configuration
+
+### Pre-Deployment Requirements
+
+**1. Production Server Setup**
+- [ ] SSL Certificate installed and configured
+- [ ] Web Server (Apache/Nginx) with security headers
+- [ ] MySQL 8.0+ with production credentials
+- [ ] PHP 8.3+ with security hardening
+- [ ] Proper file permissions and ownership
+- [ ] Firewall configured (allow only necessary ports)
+
+**2. Content and Configuration Export**
+```bash
+# Export Drupal configuration
+cd drupal/web
+../vendor/bin/drush config:export
+
+# Export database structure and content
+../vendor/bin/drush sql:dump --result-file=../database_backup.sql
+
+# Build production theme assets
+cd themes/custom/stlouisintegration
+npm run production
+```
+
+**3. Security Hardening (Critical)**
+```bash
+# Run comprehensive security script
+./scripts/production-security-hardening.sh
+```
+
+### Deployment Process
+
+**Phase 1: Code Deployment**
+```bash
+# Repository management
+git add .
+git commit -m "Production deployment preparation"
+git push origin main
+
+# Asset building
+cd themes/custom/stlouisintegration
+npm install --production
+npm run production  # Creates optimized CSS/JS
+```
+
+**Phase 2: Server Deployment**
+```bash
+# Upload to production server
+rsync -avz --exclude='node_modules' --exclude='.git' \
+  ./ user@production-server:/var/www/html/
+
+# Or use SCP
+scp -r ./drupal user@production-server:/var/www/html/
+```
+
+**Phase 3: Post-Deployment**
+```bash
+# On production server
+cd /var/www/html/drupal/web
+
+# Update database
+../vendor/bin/drush updb -y
+
+# Import configuration
+../vendor/bin/drush cim -y
+
+# Clear caches
+../vendor/bin/drush cr
+
+# Run security hardening
+bash ../../scripts/production-security-hardening.sh
+```
+
+---
+
+## Security Hardening
+
+### Development vs Production Security
+
+**Critical Development Environment Issues:**
+
+1. **World-Writable Files**: Many files have 666 permissions
+2. **Relaxed Directory Permissions**: Directories have 777 permissions
+3. **Exposed Development Files**: README.md, configs, source files
+4. **Default Database Credentials**: Using default/weak credentials
+5. **Missing Security Headers**: No security headers configured
+6. **Development Modules Active**: Devel module and debug tools enabled
+
+### File Permissions Matrix
+
+| File/Directory | Development | Production | Purpose |
+|----------------|-------------|------------|---------|
+| `sites/default/settings.php` | 666 | 444 | Read-only configuration |
+| `sites/default/` | 777 | 555 | Read-only directory |
+| `sites/default/files/` | 777 | 775 | Web server writable |
+| `sites/default/files/*` | 666 | 664 | Web server writable files |
+| All other files | 666 | 644 | Read-only for web |
+| All directories | 777 | 755 | Standard web permissions |
+| Private files | 777 | 600/700 | Restricted access |
+
+### Production Ownership Requirements
+
+```bash
+# Production ownership (not codespace user)
+chown -R www-data:www-data /var/www/html/drupal/web
+```
+
+### Files to Remove in Production
+
+- ✅ `INSTALL.txt`, `README.md`, `CHANGELOG.txt`
+- ✅ `example.gitignore`, `web.config`
+- ✅ Development module directories (`devel/`, `simpletest/`)
+- ✅ Theme source files (`src/`, `node_modules/`, `package.json`)
+- ✅ Module documentation (`ARCHITECTURE.md`)
+
+### Security Headers Configuration
+
+**Apache (.htaccess):**
+```apache
+# Security Headers
+Header set X-Content-Type-Options "nosniff"
+Header set X-Frame-Options "SAMEORIGIN"
+Header set X-XSS-Protection "1; mode=block"
+Header set Referrer-Policy "strict-origin-when-cross-origin"
+Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+
+# HSTS (only after SSL is working)
+Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+```
+
+**Nginx:**
+```nginx
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-XSS-Protection "1; mode=block" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';" always;
+add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+```
+
+### Automated Security Hardening Script
+
+```bash
+#!/bin/bash
+# scripts/production-security-hardening.sh
+
+echo "🔒 Starting Production Security Hardening..."
+
+# 1. Set file permissions
+find . -type f -exec chmod 644 {} \;
+find . -type d -exec chmod 755 {} \;
+
+# 2. Secure settings.php
+chmod 444 sites/default/settings.php
+chmod 555 sites/default/
+
+# 3. Set writable directories
+chmod 775 sites/default/files/
+find sites/default/files/ -type f -exec chmod 664 {} \;
+find sites/default/files/ -type d -exec chmod 775 {} \;
+
+# 4. Remove development files
+rm -f INSTALL.txt README.md CHANGELOG.txt
+rm -f example.gitignore web.config
+
+# 5. Disable development modules
+../vendor/bin/drush pmu devel devel_generate webprofiler -y
+
+# 6. Clear caches
+../vendor/bin/drush cr
+
+echo "✅ Security hardening complete!"
+```
+
+---
+
+## Production Checklist
+
+### Pre-Launch Checklist
+
+**Security:**
+- [ ] Run security hardening script
+- [ ] Remove all development files
+- [ ] Disable development modules (devel, webprofiler)
+- [ ] Set proper file permissions (644/755)
+- [ ] Configure security headers
+- [ ] Enable HTTPS/SSL
+- [ ] Update database credentials
+- [ ] Disable error display
+- [ ] Configure firewall rules
+
+**Performance:**
+- [ ] Enable page caching
+- [ ] Configure CSS/JS aggregation
+- [ ] Set up CDN (if applicable)
+- [ ] Configure Redis/Memcache (if available)
+- [ ] Optimize database queries
+- [ ] Enable Gzip compression
+
+**Monitoring:**
+- [ ] Set up backup monitoring
+- [ ] Configure error logging
+- [ ] Set up uptime monitoring
+- [ ] Enable security logging
+- [ ] Configure email alerts
+
+**Content:**
+- [ ] Export and import configuration
+- [ ] Verify all content migrated
+- [ ] Test all forms and workflows
+- [ ] Verify media files accessible
+- [ ] Check user permissions
+
+**Testing:**
+- [ ] Smoke test all major features
+- [ ] Test user registration/login
+- [ ] Verify email functionality
+- [ ] Test AmISafe API endpoints
+- [ ] Check mobile responsiveness
+- [ ] Cross-browser testing
+
+### Post-Launch Checklist
+
+**Day 1:**
+- [ ] Monitor error logs
+- [ ] Check backup completion
+- [ ] Verify SSL certificate
+- [ ] Test contact forms
+- [ ] Monitor traffic/performance
+
+**Week 1:**
+- [ ] Review backup integrity
+- [ ] Monitor security logs
+- [ ] Check search engine indexing
+- [ ] Review analytics setup
+- [ ] Performance optimization review
+
+**Month 1:**
+- [ ] Security audit
+- [ ] Backup restoration test
+- [ ] Performance review
+- [ ] User feedback collection
+- [ ] Plan feature updates
+
+### Deployment Rollback Procedure
+
+If issues arise after deployment:
+
+```bash
+# 1. Restore from backup
+cd /var/www/html
+sudo tar -xzf /var/backups/stlouisintegration/weekly/backup-TIMESTAMP.tar.gz
+
+# 2. Restore database
+sudo -u www-data drupal/vendor/bin/drush sql:cli < backup-TIMESTAMP.sql
+
+# 3. Fix permissions
+sudo chown -R www-data:www-data stlouisintegration/
+sudo chmod -R 755 stlouisintegration/
+
+# 4. Clear caches
+cd drupal/web
+../vendor/bin/drush cr
+
+# 5. Verify site functionality
+../vendor/bin/drush status
+```
+
+### Maintenance Mode
+
+**Enable Maintenance Mode:**
+```bash
+cd /var/www/html/drupal/web
+../vendor/bin/drush state:set system.maintenance_mode 1 --input-format=integer
+../vendor/bin/drush cr
+```
+
+**Disable Maintenance Mode:**
+```bash
+../vendor/bin/drush state:set system.maintenance_mode 0 --input-format=integer
+../vendor/bin/drush cr
+```
+
+---
+
+## Support & Resources
+
+- **Backup Status**: `./scripts/backup-status.sh`
+- **Security Hardening**: `./scripts/production-security-hardening.sh`
+- **Deployment Scripts**: `/scripts/database/`
+- **Configuration**: `/sites/stlouisintegration/config/sync/`
+
+For additional documentation:
+- **AmISafe Mobile**: `/amisafe-mobile/README.md`
+- **H3 Geolocation**: `/h3-geolocation/README.md`
+- **Database Exports**: `/database-exports/README.md`
+
+---
+
+**Last Updated**: December 2025
