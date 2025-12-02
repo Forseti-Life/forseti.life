@@ -72,6 +72,7 @@ class CrimeMapController extends ControllerBase {
 
     $build = [
       '#theme' => 'amisafe_crime_map',
+      '#title' => '',
       '#map_config' => [
         'zoom' => $default_zoom,
         'center' => $default_center,

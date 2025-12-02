@@ -24,6 +24,11 @@
   font-family: var(--terminal-font);
 }
 
+/* Hide Drupal's default page header block when title is empty */
+.path-amisafe header.page-header {
+  display: none !important;
+}
+
 /* Page header */
 .page-header {
   text-align: center;
