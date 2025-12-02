@@ -11,6 +11,7 @@ on:
       - 'config/sync/**'
       - 'sites/stlouisintegration/web/modules/custom/**'
       - 'sites/stlouisintegration/web/themes/custom/**'
+      - 'sites/stlouisintegration/web/sites/default/files/amisafe/mobile/**'
       # Temporarily disabled while working on AmISafe
       # - 'sites/theoryofconspiracies/web/modules/custom/**'
       # - 'sites/theoryofconspiracies/web/themes/custom/**'
@@ -152,6 +153,32 @@ jobs:
             done
           else
             echo "⚠️ No custom themes directory found"
+          fi
+          
+          # Deploy mobile app files (APK/IPA) to public files directory
+          MOBILE_FILES_DIR="$DRUPAL_ROOT/web/sites/default/files/amisafe/mobile"
+          sudo mkdir -p "$MOBILE_FILES_DIR"
+          
+          if [ -f "sites/stlouisintegration/web/sites/default/files/amisafe/mobile/AmISafe.apk" ]; then
+            echo "Deploying AmISafe APK..."
+            sudo cp "sites/stlouisintegration/web/sites/default/files/amisafe/mobile/AmISafe.apk" "$MOBILE_FILES_DIR/"
+            sudo chown www-data:www-data "$MOBILE_FILES_DIR/AmISafe.apk"
+            sudo chmod 644 "$MOBILE_FILES_DIR/AmISafe.apk"
+            APK_SIZE=$(du -h "$MOBILE_FILES_DIR/AmISafe.apk" | cut -f1)
+            echo "✅ AmISafe.apk deployed ($APK_SIZE)"
+          else
+            echo "⚠️ AmISafe.apk not found in repository"
+          fi
+          
+          if [ -f "sites/stlouisintegration/web/sites/default/files/amisafe/mobile/AmISafe.ipa" ]; then
+            echo "Deploying AmISafe IPA..."
+            sudo cp "sites/stlouisintegration/web/sites/default/files/amisafe/mobile/AmISafe.ipa" "$MOBILE_FILES_DIR/"
+            sudo chown www-data:www-data "$MOBILE_FILES_DIR/AmISafe.ipa"
+            sudo chmod 644 "$MOBILE_FILES_DIR/AmISafe.ipa"
+            IPA_SIZE=$(du -h "$MOBILE_FILES_DIR/AmISafe.ipa" | cut -f1)
+            echo "✅ AmISafe.ipa deployed ($IPA_SIZE)"
+          else
+            echo "⚠️ AmISafe.ipa not found (iOS build not yet available)"
           fi
           
           # Deploy composer files from stlouisintegration site
