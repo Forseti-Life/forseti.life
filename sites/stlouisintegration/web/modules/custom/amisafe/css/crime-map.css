@@ -3,6 +3,11 @@
  * AmISafe Crime Map - Core CSS styling with professional theme
  */
 
+/* Hide the empty Drupal page header - must be first for specificity */
+header.page-header {
+  display: none !important;
+}
+
 /* CSS Variables for consistent theming */
 :root {
   --neon-blue: #00ffff;
@@ -22,11 +27,6 @@
   min-height: 100vh;
   color: var(--neon-green);
   font-family: var(--terminal-font);
-}
-
-/* Hide Drupal's default page header block when title is empty */
-.path-amisafe header.page-header {
-  display: none !important;
 }
 
 /* Page header */
