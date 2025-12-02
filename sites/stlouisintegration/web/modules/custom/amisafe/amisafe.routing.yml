@@ -145,6 +145,15 @@ amisafe.test:
   requirements:
     _permission: 'access content'
 
+# Mobile app download page
+amisafe.mobile_download:
+  path: '/amisafe/download'
+  defaults:
+    _controller: '\Drupal\amisafe\Controller\MobileDownloadController::downloadPage'
+    _title: 'Download AmISafe Mobile App'
+  requirements:
+    _permission: 'access content'
+
 # Admin configuration route
 amisafe.admin_form:
   path: '/admin/config/amisafe'

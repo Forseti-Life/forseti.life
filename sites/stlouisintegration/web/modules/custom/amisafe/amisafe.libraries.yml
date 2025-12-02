@@ -40,3 +40,11 @@ external-libraries:
     https://cdn.jsdelivr.net/npm/h3-js@4.1.0/dist/h3-js.umd.js: { type: external }
     https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js: { type: external }
     https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js: { type: external }
+# Mobile app download page
+mobile-download:
+  version: 1.0
+  css:
+    theme:
+      css/mobile-download.css: {}
+  dependencies:
+    - core/drupal

@@ -38,5 +38,14 @@ function amisafe_theme() {
       ],
       'template' => 'amisafe-crime-map',
     ],
+    'amisafe_mobile_download' => [
+      'variables' => [
+        'apk_url' => NULL,
+        'ipa_url' => NULL,
+        'apk_size' => NULL,
+        'ipa_size' => NULL,
+      ],
+      'template' => 'amisafe-mobile-download',
+    ],
   ];
 }
