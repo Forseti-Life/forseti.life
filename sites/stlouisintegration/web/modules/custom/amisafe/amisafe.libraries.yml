@@ -19,6 +19,7 @@ crime-map:
   version: 8.2  # FIX: Don't pass crime_types/districts when showing all data
   css:
     theme:
+      css/crime-map.css: {}
       css/professional-theme.css: {}
   js:
     js/crime-map.js: {}
