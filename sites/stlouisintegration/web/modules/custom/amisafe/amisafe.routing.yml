@@ -2,7 +2,7 @@ amisafe.dashboard:
   path: '/amisafe'
   defaults:
     _controller: '\Drupal\amisafe\Controller\CrimeMapController::map'
-    _title: 'Crime Map Dashboard'
+    _title: ''
   requirements:
     _permission: 'access content'
 
@@ -13,7 +13,7 @@ amisafe.crime_map:
   path: '/amisafe/crime-map'
   defaults:
     _controller: '\Drupal\amisafe\Controller\CrimeMapController::map'
-    _title: 'Crime Map Dashboard'
+    _title: ''
   requirements:
     _permission: 'access content'
 
