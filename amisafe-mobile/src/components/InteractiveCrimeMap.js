@@ -379,8 +379,11 @@ const InteractiveCrimeMap = ({
       const west = mapRegion.longitude - (mapRegion.longitudeDelta / 2);
       const bounds = `${north},${east},${south},${west}`;
       
+      // Convert activeFilters to API format (only date_range)
+      const apiFilters = convertFiltersForAPI(activeFilters);
+      
       // Use Drupal crime service
-      const data = await drupalCrimeService.getIncidents(bounds, currentFilters);
+      const data = await drupalCrimeService.getIncidents(bounds, apiFilters);
       
       if (data.incidents && data.incidents.length > 0) {
         setIncidents(data.incidents);

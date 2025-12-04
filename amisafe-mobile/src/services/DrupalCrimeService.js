@@ -73,6 +73,7 @@ class DrupalCrimeService {
 
   /**
    * Get H3 aggregated crime data for map visualization
+   * Matches web implementation's buildApiUrl - only sends date_range filter
    */
   async getAggregatedData(resolution, bounds, filters = {}) {
     try {
@@ -93,21 +94,11 @@ class DrupalCrimeService {
         format: 'json'
       });
       
-      // Add filter parameters (only if they're actually filtering)
-      if (filters.crimeTypes && filters.crimeTypes.length > 0) {
-        params.append('crime_types', filters.crimeTypes.join(','));
-      }
-      if (filters.districts && filters.districts.length > 0) {
-        params.append('districts', filters.districts.join(','));
-      }
-      if (filters.startDate) {
-        params.append('start_date', filters.startDate);
-      }
-      if (filters.endDate) {
-        params.append('end_date', filters.endDate);
-      }
-      if (filters.timePeriods && filters.timePeriods.length > 0) {
-        params.append('time_periods', filters.timePeriods.join(','));
+      // Add date range filter ONLY (matching web implementation)
+      // Web does NOT send crime_types, districts, or time_periods
+      if (filters.date_range) {
+        params.append('date_range', filters.date_range);
+        console.log(`  📅 Date filter: ${filters.date_range}`);
       }
       
       const url = `${this.baseUrl}${this.apiEndpoints.aggregated}?${params.toString()}`;
@@ -151,6 +142,7 @@ class DrupalCrimeService {
 
   /**
    * Get individual crime incidents for high-resolution views
+   * Simplified to match web implementation - only date_range filter
    */
   async getIncidents(bounds, filters = {}) {
     try {
@@ -162,15 +154,9 @@ class DrupalCrimeService {
         format: 'json'
       });
       
-      // Add filter parameters
-      if (filters.crimeTypes && filters.crimeTypes.length > 0) {
-        params.append('crime_types', filters.crimeTypes.join(','));
-      }
-      if (filters.startDate) {
-        params.append('start_date', filters.startDate);
-      }
-      if (filters.endDate) {
-        params.append('end_date', filters.endDate);
+      // Add date range filter only (matching web implementation)
+      if (filters.date_range) {
+        params.append('date_range', filters.date_range);
       }
       
       const response = await drupalAuthService.authenticatedRequest({
