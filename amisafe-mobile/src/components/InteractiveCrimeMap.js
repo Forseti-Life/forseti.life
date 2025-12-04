@@ -146,8 +146,21 @@ const InteractiveCrimeMap = ({
    */
   const h3ToPolygonCoords = (h3Index) => {
     try {
+      if (!h3Index) {
+        return null;
+      }
+      
+      if (!h3 || typeof h3.cellToBoundary !== 'function') {
+        console.warn('H3 library not available');
+        return null;
+      }
+      
       // Get H3 boundary coordinates
       const boundary = h3.cellToBoundary(h3Index, true);
+      
+      if (!boundary || !Array.isArray(boundary)) {
+        return null;
+      }
       
       // Convert from H3 [lng, lat] to React Native MapView format
       return boundary.map(coord => ({
@@ -155,7 +168,7 @@ const InteractiveCrimeMap = ({
         longitude: coord[0]
       }));
     } catch (error) {
-      console.warn('Failed to convert H3 to polygon:', error);
+      console.warn('Failed to convert H3 to polygon:', error.message);
       return null;
     }
   };
@@ -264,25 +277,31 @@ const InteractiveCrimeMap = ({
    * Handle map region change
    */
   const onRegionChangeComplete = (region) => {
-    setMapRegion(region);
-    
-    // Estimate zoom level from latitudeDelta
-    const zoom = Math.round(Math.log(360 / region.latitudeDelta) / Math.LN2);
-    setCurrentZoom(zoom);
-    
-    // Notify parent component
-    if (onLocationChange) {
-      onLocationChange({
-        latitude: region.latitude,
-        longitude: region.longitude,
-        zoom: zoom
-      });
+    try {
+      setMapRegion(region);
+      
+      // Estimate zoom level from latitudeDelta
+      const zoom = Math.round(Math.log(360 / region.latitudeDelta) / Math.LN2);
+      setCurrentZoom(zoom);
+      
+      // Notify parent component
+      if (onLocationChange) {
+        onLocationChange({
+          latitude: region.latitude,
+          longitude: region.longitude,
+          zoom: zoom
+        });
+      }
+      
+      // Reload data for new region
+      setTimeout(() => {
+        loadHexagonData().catch(err => {
+          console.error('Error loading hexagons on zoom:', err);
+        });
+      }, 500);
+    } catch (error) {
+      console.error('Error in onRegionChangeComplete:', error);
     }
-    
-    // Reload data for new region
-    setTimeout(() => {
-      loadHexagonData();
-    }, 500);
   };
 
   /**
