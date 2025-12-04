@@ -9,133 +9,31 @@ import {
 } from 'react-native';
 
 const FilterPanel = ({ visible, onClose, onApplyFilters, currentFilters = {} }) => {
-  // Initialize filter state from current filters
-  const [crimeTypes, setCrimeTypes] = useState(currentFilters.crimeTypes || {
-    part1Person: true,
-    part1Property: true,
-    part2: true,
-    violent: true,
-    nonviolent: true,
-  });
+  // Initialize filter state from current filters - SIMPLIFIED to match web version
+  const [datePreset, setDatePreset] = useState(currentFilters.datePreset || '12months');
 
-  const [districts, setDistricts] = useState(currentFilters.districts || []);
-  const [datePreset, setDatePreset] = useState(currentFilters.datePreset || 'alltime');
-  const [timePeriods, setTimePeriods] = useState(currentFilters.timePeriods || {
-    earlyMorning: true,
-    morning: true,
-    afternoon: true,
-    evening: true,
-  });
-
-  // Crime type definitions
-  const crimeTypeOptions = [
-    { key: 'part1Person', label: 'Part I - Crimes Against Person', description: 'Homicide, Rape, Robbery, Aggravated Assault' },
-    { key: 'part1Property', label: 'Part I - Crimes Against Property', description: 'Burglary, Larceny, Vehicle Theft, Arson' },
-    { key: 'part2', label: 'Part II Crimes', description: 'Other offenses' },
-    { key: 'violent', label: 'Violent Crimes', description: 'All violent offenses' },
-    { key: 'nonviolent', label: 'Non-Violent Crimes', description: 'Property and other crimes' },
-  ];
-
-  // District options (1-25)
-  const districtOptions = Array.from({ length: 25 }, (_, i) => i + 1);
-
-  // Date preset options
+  // Date preset options (matching web implementation)
   const datePresetOptions = [
-    { key: 'alltime', label: 'All Time' },
-    { key: '12months', label: 'Last 12 Months' },
-    { key: '6months', label: 'Last 6 Months' },
+    { key: 'alltime', label: 'All Time', description: 'All available crime data' },
+    { key: '12months', label: 'Last 12 Months', description: 'Most recent year of data' },
+    { key: '6months', label: 'Last 6 Months', description: 'Most recent 6 months' },
   ];
 
-  // Time period options
-  const timePeriodOptions = [
-    { key: 'earlyMorning', label: 'Early Morning', time: '12am-6am' },
-    { key: 'morning', label: 'Morning', time: '6am-12pm' },
-    { key: 'afternoon', label: 'Afternoon', time: '12pm-6pm' },
-    { key: 'evening', label: 'Evening', time: '6pm-12am' },
-  ];
+  // No toggle functions needed - only date preset selection
 
-  // Toggle crime type
-  const toggleCrimeType = (key) => {
-    setCrimeTypes(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  // Toggle district
-  const toggleDistrict = (district) => {
-    setDistricts(prev => {
-      if (prev.includes(district)) {
-        return prev.filter(d => d !== district);
-      } else {
-        return [...prev, district];
-      }
-    });
-  };
-
-  // Select all districts
-  const selectAllDistricts = () => {
-    setDistricts(districtOptions);
-  };
-
-  // Deselect all districts
-  const deselectAllDistricts = () => {
-    setDistricts([]);
-  };
-
-  // Toggle time period
-  const toggleTimePeriod = (key) => {
-    setTimePeriods(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  // Apply filters
+  // Apply filters (only date preset)
   const handleApplyFilters = () => {
     const filters = {
-      crimeTypes,
-      districts,
       datePreset,
-      timePeriods,
     };
-    console.log('🔍 FilterPanel: Applying filters:', filters);
+    console.log('🔍 FilterPanel: Applying date filter:', filters);
     onApplyFilters(filters);
     onClose();
   };
 
-  // Clear all filters
+  // Reset to default (12 months)
   const handleClearAll = () => {
-    setCrimeTypes({
-      part1Person: true,
-      part1Property: true,
-      part2: true,
-      violent: true,
-      nonviolent: true,
-    });
-    setDistricts([]);
-    setDatePreset('alltime');
-    setTimePeriods({
-      earlyMorning: true,
-      morning: true,
-      afternoon: true,
-      evening: true,
-    });
-  };
-
-  // Count active filters
-  const getActiveFilterCount = () => {
-    let count = 0;
-    
-    // Crime types that are disabled
-    const disabledCrimeTypes = Object.values(crimeTypes).filter(v => !v).length;
-    if (disabledCrimeTypes > 0) count += disabledCrimeTypes;
-    
-    // Districts selected (only count if not all)
-    if (districts.length > 0 && districts.length < 25) count += 1;
-    
-    // Date preset (if not all time)
-    if (datePreset !== 'alltime') count += 1;
-    
-    // Time periods disabled
-    const disabledTimePeriods = Object.values(timePeriods).filter(v => !v).length;
-    if (disabledTimePeriods > 0) count += disabledTimePeriods;
-    
-    return count;
+    setDatePreset('12months');
   };
 
   return (
@@ -152,128 +50,71 @@ const FilterPanel = ({ visible, onClose, onApplyFilters, currentFilters = {} }) 
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
-        </View>
+      </View>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {/* Crime Types Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Crime Types</Text>
-            {crimeTypeOptions.map(option => (
-              <TouchableOpacity
-                key={option.key}
-                style={styles.checkboxContainer}
-                onPress={() => toggleCrimeType(option.key)}
-              >
-                <View style={[styles.checkbox, crimeTypes[option.key] && styles.checkboxChecked]}>
-                  {crimeTypes[option.key] && <Text style={styles.checkmark}>✓</Text>}
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* Date Range Section - Only Control Needed (matches web version) */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Date Range Filter</Text>
+          <Text style={styles.sectionDescription}>
+            Select the time period for crime data visualization. This matches the web map controls.
+          </Text>
+          {datePresetOptions.map(option => (
+            <TouchableOpacity
+              key={option.key}
+              style={[
+                styles.presetCard,
+                datePreset === option.key && styles.presetCardActive
+              ]}
+              onPress={() => setDatePreset(option.key)}
+            >
+              <View style={styles.radioContainer}>
+                <View style={[styles.radio, datePreset === option.key && styles.radioActive]}>
+                  {datePreset === option.key && <View style={styles.radioDot} />}
                 </View>
-                <View style={styles.checkboxLabelContainer}>
-                  <Text style={styles.checkboxLabel}>{option.label}</Text>
-                  <Text style={styles.checkboxDescription}>{option.description}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Districts Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Districts</Text>
-              <View style={styles.sectionActions}>
-                <TouchableOpacity onPress={selectAllDistricts}>
-                  <Text style={styles.actionLink}>Select All</Text>
-                </TouchableOpacity>
-                <Text style={styles.actionSeparator}>|</Text>
-                <TouchableOpacity onPress={deselectAllDistricts}>
-                  <Text style={styles.actionLink}>Clear</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            <View style={styles.districtGrid}>
-              {districtOptions.map(district => (
-                <TouchableOpacity
-                  key={district}
-                  style={[
-                    styles.districtButton,
-                    districts.includes(district) && styles.districtButtonActive
-                  ]}
-                  onPress={() => toggleDistrict(district)}
-                >
+                <View style={styles.presetLabelContainer}>
                   <Text style={[
-                    styles.districtButtonText,
-                    districts.includes(district) && styles.districtButtonTextActive
-                  ]}>
-                    {district}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            {districts.length > 0 && (
-              <Text style={styles.districtCount}>
-                {districts.length} district{districts.length !== 1 ? 's' : ''} selected
-              </Text>
-            )}
-          </View>
-
-          {/* Date Range Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Date Range</Text>
-            <View style={styles.presetButtons}>
-              {datePresetOptions.map(option => (
-                <TouchableOpacity
-                  key={option.key}
-                  style={[
-                    styles.presetButton,
-                    datePreset === option.key && styles.presetButtonActive
-                  ]}
-                  onPress={() => setDatePreset(option.key)}
-                >
-                  <Text style={[
-                    styles.presetButtonText,
-                    datePreset === option.key && styles.presetButtonTextActive
+                    styles.presetLabel,
+                    datePreset === option.key && styles.presetLabelActive
                   ]}>
                     {option.label}
                   </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Time Period Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Time of Day</Text>
-            {timePeriodOptions.map(option => (
-              <TouchableOpacity
-                key={option.key}
-                style={styles.checkboxContainer}
-                onPress={() => toggleTimePeriod(option.key)}
-              >
-                <View style={[styles.checkbox, timePeriods[option.key] && styles.checkboxChecked]}>
-                  {timePeriods[option.key] && <Text style={styles.checkmark}>✓</Text>}
+                  <Text style={styles.presetDescription}>{option.description}</Text>
                 </View>
-                <View style={styles.checkboxLabelContainer}>
-                  <Text style={styles.checkboxLabel}>{option.label}</Text>
-                  <Text style={styles.checkboxDescription}>{option.time}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
-
-        {/* Footer Actions */}
-        <View style={styles.footer}>
-          <TouchableOpacity style={styles.clearButton} onPress={handleClearAll}>
-            <Text style={styles.clearButtonText}>Clear All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
-            <Text style={styles.applyButtonText}>
-              Apply Filters {getActiveFilterCount() > 0 && `(${getActiveFilterCount()})`}
-            </Text>
-          </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
+
+        {/* Info Section */}
+        <View style={styles.infoSection}>
+          <Text style={styles.infoTitle}>ℹ️ About Filters</Text>
+          <Text style={styles.infoText}>
+            • H3 Resolution automatically adjusts based on zoom level
+          </Text>
+          <Text style={styles.infoText}>
+            • Date range filters apply to all crime data displayed
+          </Text>
+          <Text style={styles.infoText}>
+            • Default is 12 months (matching web map)
+          </Text>
+        </View>
+      </ScrollView>
+
+      {/* Footer Actions */}
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.clearButton} onPress={handleClearAll}>
+          <Text style={styles.clearButtonText}>Reset to 12 Months</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.applyButton} onPress={handleApplyFilters}>
+          <Text style={styles.applyButtonText}>
+            Apply Date Filter
+          </Text>
+        </TouchableOpacity>
       </View>
-    </Modal>
-  );
+    </View>
+  </Modal>
+);
 };
 
 const styles = StyleSheet.create({
@@ -318,126 +159,87 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 30,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
   sectionTitle: {
     color: '#00ff41',
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 10,
   },
-  sectionActions: {
+  sectionDescription: {
+    color: '#999999',
+    fontSize: 14,
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  presetCard: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: '#444444',
+  },
+  presetCardActive: {
+    backgroundColor: 'rgba(0, 255, 65, 0.1)',
+    borderColor: '#00ff41',
+  },
+  radioContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  actionLink: {
-    color: '#00ff41',
-    fontSize: 14,
-  },
-  actionSeparator: {
-    color: '#666666',
-    marginHorizontal: 8,
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 15,
-  },
-  checkbox: {
+  radio: {
     width: 24,
     height: 24,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: '#666666',
-    borderRadius: 4,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-    marginTop: 2,
   },
-  checkboxChecked: {
-    backgroundColor: '#00ff41',
+  radioActive: {
     borderColor: '#00ff41',
   },
-  checkmark: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: 'bold',
+  radioDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#00ff41',
   },
-  checkboxLabelContainer: {
+  presetLabelContainer: {
     flex: 1,
   },
-  checkboxLabel: {
+  presetLabel: {
     color: '#ffffff',
     fontSize: 16,
-    marginBottom: 2,
-  },
-  checkboxDescription: {
-    color: '#999999',
-    fontSize: 12,
-  },
-  districtGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -5,
-  },
-  districtButton: {
-    width: '18%',
-    aspectRatio: 1,
-    margin: '1%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#2a2a2a',
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#444444',
-  },
-  districtButtonActive: {
-    backgroundColor: '#00ff41',
-    borderColor: '#00ff41',
-  },
-  districtButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
     fontWeight: 'bold',
+    marginBottom: 4,
   },
-  districtButtonTextActive: {
-    color: '#000000',
+  presetLabelActive: {
+    color: '#00ff41',
   },
-  districtCount: {
+  presetDescription: {
     color: '#999999',
-    fontSize: 12,
-    marginTop: 10,
-    textAlign: 'center',
+    fontSize: 13,
   },
-  presetButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  presetButton: {
-    flex: 1,
-    paddingVertical: 12,
-    marginHorizontal: 5,
+  infoSection: {
     backgroundColor: '#2a2a2a',
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#444444',
-    alignItems: 'center',
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#00ff41',
   },
-  presetButtonActive: {
-    backgroundColor: '#00ff41',
-    borderColor: '#00ff41',
-  },
-  presetButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
+  infoTitle: {
+    color: '#00ff41',
+    fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 12,
   },
-  presetButtonTextActive: {
-    color: '#000000',
+  infoText: {
+    color: '#cccccc',
+    fontSize: 14,
+    marginBottom: 8,
+    lineHeight: 20,
   },
   footer: {
     flexDirection: 'row',

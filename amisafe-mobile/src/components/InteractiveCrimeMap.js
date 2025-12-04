@@ -53,24 +53,10 @@ const InteractiveCrimeMap = ({
   const [viewMode, setViewMode] = useState('hexagon'); // hexagon, heatmap, points
   const [minimalMode] = useState(true); // Clean data visualization
   
-  // Filter state
+  // Filter state (simplified to match web version - only datePreset)
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [activeFilters, setActiveFilters] = useState({
-    crimeTypes: {
-      part1Person: true,
-      part1Property: true,
-      part2: true,
-      violent: true,
-      nonviolent: true,
-    },
-    districts: [],
-    datePreset: 'alltime',
-    timePeriods: {
-      earlyMorning: true,
-      morning: true,
-      afternoon: true,
-      evening: true,
-    },
+    datePreset: '12months', // Default to 12 months (matching web)
   });
   
   // Performance optimization
@@ -295,50 +281,14 @@ const InteractiveCrimeMap = ({
 
   /**
    * Convert internal filter state to API format
+   * Simplified to match web implementation - only date_range parameter
    */
   const convertFiltersForAPI = (filters) => {
     const apiFilters = {};
     
-    // Crime types - convert to array of enabled types
-    if (filters.crimeTypes) {
-      const enabledTypes = [];
-      if (filters.crimeTypes.part1Person) enabledTypes.push('part1_person');
-      if (filters.crimeTypes.part1Property) enabledTypes.push('part1_property');
-      if (filters.crimeTypes.part2) enabledTypes.push('part2');
-      if (filters.crimeTypes.violent) enabledTypes.push('violent');
-      if (filters.crimeTypes.nonviolent) enabledTypes.push('nonviolent');
-      
-      // Only add if filtering (not all enabled)
-      if (enabledTypes.length > 0 && enabledTypes.length < 5) {
-        apiFilters.crimeTypes = enabledTypes;
-      }
-    }
-    
-    // Districts
-    if (filters.districts && filters.districts.length > 0 && filters.districts.length < 25) {
-      apiFilters.districts = filters.districts;
-    }
-    
-    // Date preset - convert to date range
-    if (filters.datePreset && filters.datePreset !== 'alltime') {
-      const now = new Date();
-      const monthsAgo = filters.datePreset === '6months' ? 6 : 12;
-      const startDate = new Date(now.setMonth(now.getMonth() - monthsAgo));
+    // Date preset - only filter sent to API (matching web implementation)
+    if (filters.datePreset) {
       apiFilters.date_range = filters.datePreset;
-    }
-    
-    // Time periods - convert to array of enabled periods
-    if (filters.timePeriods) {
-      const enabledPeriods = [];
-      if (filters.timePeriods.earlyMorning) enabledPeriods.push('early_morning');
-      if (filters.timePeriods.morning) enabledPeriods.push('morning');
-      if (filters.timePeriods.afternoon) enabledPeriods.push('afternoon');
-      if (filters.timePeriods.evening) enabledPeriods.push('evening');
-      
-      // Only add if filtering (not all enabled)
-      if (enabledPeriods.length > 0 && enabledPeriods.length < 4) {
-        apiFilters.timePeriods = enabledPeriods;
-      }
     }
     
     return apiFilters;
@@ -565,26 +515,12 @@ const InteractiveCrimeMap = ({
 
   /**
    * Clear all filters and reload data
-   * Matches web implementation's clearAllFilters function
+   * Matches web implementation - reset to 12 months default
    */
   const clearAllFilters = () => {
-    console.log('🔍 ClearAllFilters: Resetting to defaults');
+    console.log('🔍 ClearAllFilters: Resetting to 12 months default');
     const defaultFilters = {
-      crimeTypes: {
-        part1Person: true,
-        part1Property: true,
-        part2: true,
-        violent: true,
-        nonviolent: true,
-      },
-      districts: [],
-      datePreset: 'alltime',
-      timePeriods: {
-        earlyMorning: true,
-        morning: true,
-        afternoon: true,
-        evening: true,
-      },
+      datePreset: '12months',
     };
     setActiveFilters(defaultFilters);
     loadHexagonData();
@@ -592,25 +528,28 @@ const InteractiveCrimeMap = ({
 
   /**
    * Count active filters for badge display
+   * Only counts if datePreset is not the default (12months)
    */
   const getActiveFilterCount = () => {
-    let count = 0;
+    // Show badge if date filter is not default (12 months)
+    return activeFilters.datePreset !== '12months' ? 1 : 0;
+  };
+
+  /**
+   * Switch visualization mode
+   * Matches web implementation's switchViewMode function
+   */
+  const switchViewMode = (mode) => {
+    console.log(`🔄 SwitchViewMode: Changing from ${viewMode} to ${mode}`);
+    setViewMode(mode);
     
-    // Crime types that are disabled
-    const disabledCrimeTypes = Object.values(activeFilters.crimeTypes).filter(v => !v).length;
-    if (disabledCrimeTypes > 0) count += disabledCrimeTypes;
-    
-    // Districts selected (only count if not all)
-    if (activeFilters.districts.length > 0 && activeFilters.districts.length < 25) count += 1;
-    
-    // Date preset (if not all time)
-    if (activeFilters.datePreset !== 'alltime') count += 1;
-    
-    // Time periods disabled
-    const disabledTimePeriods = Object.values(activeFilters.timePeriods).filter(v => !v).length;
-    if (disabledTimePeriods > 0) count += disabledTimePeriods;
-    
-    return count;
+    // Load appropriate data for the view mode
+    if (mode === 'hexagon') {
+      loadHexagonData();
+    } else if (mode === 'points') {
+      loadIncidentPoints();
+    }
+    // heatmap uses hexagon data with different rendering
   };
 
   /**
