@@ -20,6 +20,7 @@ import {
 import MapView, { PROVIDER_GOOGLE, Polygon, Circle, Marker } from 'react-native-maps';
 import Svg, { Polygon as SvgPolygon } from 'react-native-svg';
 import { h3 } from 'h3-js';
+import FilterPanel from './FilterPanel';
 
 const { width, height } = Dimensions.get('window');
 
@@ -51,6 +52,26 @@ const InteractiveCrimeMap = ({
   const [currentZoom, setCurrentZoom] = useState(12);
   const [viewMode, setViewMode] = useState('hexagon'); // hexagon, heatmap, points
   const [minimalMode] = useState(true); // Clean data visualization
+  
+  // Filter state
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [activeFilters, setActiveFilters] = useState({
+    crimeTypes: {
+      part1Person: true,
+      part1Property: true,
+      part2: true,
+      violent: true,
+      nonviolent: true,
+    },
+    districts: [],
+    datePreset: 'alltime',
+    timePeriods: {
+      earlyMorning: true,
+      morning: true,
+      afternoon: true,
+      evening: true,
+    },
+  });
   
   // Performance optimization
   const mapRef = useRef(null);
@@ -273,6 +294,57 @@ const InteractiveCrimeMap = ({
   };
 
   /**
+   * Convert internal filter state to API format
+   */
+  const convertFiltersForAPI = (filters) => {
+    const apiFilters = {};
+    
+    // Crime types - convert to array of enabled types
+    if (filters.crimeTypes) {
+      const enabledTypes = [];
+      if (filters.crimeTypes.part1Person) enabledTypes.push('part1_person');
+      if (filters.crimeTypes.part1Property) enabledTypes.push('part1_property');
+      if (filters.crimeTypes.part2) enabledTypes.push('part2');
+      if (filters.crimeTypes.violent) enabledTypes.push('violent');
+      if (filters.crimeTypes.nonviolent) enabledTypes.push('nonviolent');
+      
+      // Only add if filtering (not all enabled)
+      if (enabledTypes.length > 0 && enabledTypes.length < 5) {
+        apiFilters.crimeTypes = enabledTypes;
+      }
+    }
+    
+    // Districts
+    if (filters.districts && filters.districts.length > 0 && filters.districts.length < 25) {
+      apiFilters.districts = filters.districts;
+    }
+    
+    // Date preset - convert to date range
+    if (filters.datePreset && filters.datePreset !== 'alltime') {
+      const now = new Date();
+      const monthsAgo = filters.datePreset === '6months' ? 6 : 12;
+      const startDate = new Date(now.setMonth(now.getMonth() - monthsAgo));
+      apiFilters.date_range = filters.datePreset;
+    }
+    
+    // Time periods - convert to array of enabled periods
+    if (filters.timePeriods) {
+      const enabledPeriods = [];
+      if (filters.timePeriods.earlyMorning) enabledPeriods.push('early_morning');
+      if (filters.timePeriods.morning) enabledPeriods.push('morning');
+      if (filters.timePeriods.afternoon) enabledPeriods.push('afternoon');
+      if (filters.timePeriods.evening) enabledPeriods.push('evening');
+      
+      // Only add if filtering (not all enabled)
+      if (enabledPeriods.length > 0 && enabledPeriods.length < 4) {
+        apiFilters.timePeriods = enabledPeriods;
+      }
+    }
+    
+    return apiFilters;
+  };
+
+  /**
    * Load hexagon crime data
    */
   const loadHexagonData = async () => {
@@ -301,10 +373,13 @@ const InteractiveCrimeMap = ({
       const bounds = `${north},${east},${south},${west}`;
       
       console.log(`  Bounds: N=${north.toFixed(4)} S=${south.toFixed(4)} E=${east.toFixed(4)} W=${west.toFixed(4)}`);
-      console.log(`  Filters:`, currentFilters);
+      console.log(`  Active Filters:`, activeFilters);
+      
+      // Convert activeFilters to API format
+      const apiFilters = convertFiltersForAPI(activeFilters);
       
       // Use Drupal crime service
-      const data = await drupalCrimeService.getAggregatedData(resolution, bounds, currentFilters);
+      const data = await drupalCrimeService.getAggregatedData(resolution, bounds, apiFilters);
       
       console.log('\n📊 [MOBILE] Received data from Drupal API:');
       console.log(`  Hexagons: ${data.hexagons ? data.hexagons.length : 0}`);
@@ -474,6 +549,68 @@ const InteractiveCrimeMap = ({
       
       console.log(`📍 Fitted map to ${hexagons.length} hexagons`);
     }
+  };
+
+  /**
+   * Apply filters to crime data
+   * Matches web implementation's applyFilters function
+   */
+  const applyFilters = (filters) => {
+    console.log('🔍 ApplyFilters: New filters applied:', filters);
+    setActiveFilters(filters);
+    
+    // Reload data with new filters
+    loadHexagonData();
+  };
+
+  /**
+   * Clear all filters and reload data
+   * Matches web implementation's clearAllFilters function
+   */
+  const clearAllFilters = () => {
+    console.log('🔍 ClearAllFilters: Resetting to defaults');
+    const defaultFilters = {
+      crimeTypes: {
+        part1Person: true,
+        part1Property: true,
+        part2: true,
+        violent: true,
+        nonviolent: true,
+      },
+      districts: [],
+      datePreset: 'alltime',
+      timePeriods: {
+        earlyMorning: true,
+        morning: true,
+        afternoon: true,
+        evening: true,
+      },
+    };
+    setActiveFilters(defaultFilters);
+    loadHexagonData();
+  };
+
+  /**
+   * Count active filters for badge display
+   */
+  const getActiveFilterCount = () => {
+    let count = 0;
+    
+    // Crime types that are disabled
+    const disabledCrimeTypes = Object.values(activeFilters.crimeTypes).filter(v => !v).length;
+    if (disabledCrimeTypes > 0) count += disabledCrimeTypes;
+    
+    // Districts selected (only count if not all)
+    if (activeFilters.districts.length > 0 && activeFilters.districts.length < 25) count += 1;
+    
+    // Date preset (if not all time)
+    if (activeFilters.datePreset !== 'alltime') count += 1;
+    
+    // Time periods disabled
+    const disabledTimePeriods = Object.values(activeFilters.timePeriods).filter(v => !v).length;
+    if (disabledTimePeriods > 0) count += disabledTimePeriods;
+    
+    return count;
   };
 
   /**
@@ -666,10 +803,26 @@ const InteractiveCrimeMap = ({
         <TouchableOpacity style={styles.actionButton} onPress={fitMapToHexagons}>
           <Text style={styles.actionButtonText}>Fit View</Text>
         </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.actionButton, getActiveFilterCount() > 0 && styles.actionButtonActive]} 
+          onPress={() => setShowFilterPanel(true)}
+        >
+          <Text style={styles.actionButtonText}>
+            Filters {getActiveFilterCount() > 0 && `(${getActiveFilterCount()})`}
+          </Text>
+        </TouchableOpacity>
       </View>
       
       {/* Hexagon Details Modal */}
       {renderHexagonDetails()}
+      
+      {/* Filter Panel */}
+      <FilterPanel
+        visible={showFilterPanel}
+        onClose={() => setShowFilterPanel(false)}
+        onApplyFilters={applyFilters}
+        currentFilters={activeFilters}
+      />
     </View>
   );
 };
@@ -754,6 +907,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  actionButtonActive: {
+    backgroundColor: 'rgba(255, 165, 0, 0.9)', // Orange for active filters
   },
   modalContainer: {
     flex: 1,
