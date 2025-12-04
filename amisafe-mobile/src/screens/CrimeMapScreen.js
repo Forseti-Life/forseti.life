@@ -308,12 +308,7 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Crime Map</Text>
-        <TouchableOpacity
-          style={styles.locationButton}
-          onPress={getCurrentLocation}
-        >
-          <Text style={styles.locationButtonText}>📍</Text>
-        </TouchableOpacity>
+        <View style={styles.headerSpacer} />
       </View>
       
       {/* Interactive Crime Map */}
@@ -375,11 +370,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  locationButton: {
-    padding: 8,
-  },
-  locationButtonText: {
-    fontSize: 20,
+  headerSpacer: {
+    width: 60, // Match backButton width for centered title
   },
   actionButtons: {
     position: 'absolute',

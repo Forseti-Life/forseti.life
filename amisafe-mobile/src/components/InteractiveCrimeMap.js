@@ -735,24 +735,24 @@ const InteractiveCrimeMap = ({
         <Text style={styles.incidentCount}>
           {getCurrentIncidentCount().toLocaleString()} incidents | {incidents.length} points
         </Text>
-      </View>
-      
-      {/* Action Buttons */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.actionButton} onPress={resetView}>
-          <Text style={styles.actionButtonText}>Reset</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={fitMapToHexagons}>
-          <Text style={styles.actionButtonText}>Fit View</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.actionButton, getActiveFilterCount() > 0 && styles.actionButtonActive]} 
-          onPress={() => setShowFilterPanel(true)}
-        >
-          <Text style={styles.actionButtonText}>
-            Filters {getActiveFilterCount() > 0 && `(${getActiveFilterCount()})`}
-          </Text>
-        </TouchableOpacity>
+        
+        {/* Action Buttons - Moved to Bottom */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.actionButton} onPress={resetView}>
+            <Text style={styles.actionButtonText}>Reset</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={fitMapToHexagons}>
+            <Text style={styles.actionButtonText}>Fit View</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.actionButton, getActiveFilterCount() > 0 && styles.actionButtonActive]} 
+            onPress={() => setShowFilterPanel(true)}
+          >
+            <Text style={styles.actionButtonText}>
+              Filters {getActiveFilterCount() > 0 && `(${getActiveFilterCount()})`}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
       
       {/* Hexagon Details Modal */}
@@ -826,23 +826,22 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   actionButtons: {
-    position: 'absolute',
-    top: 60,
-    right: 10,
-    flexDirection: 'column',
-    gap: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    gap: 8,
   },
   actionButton: {
+    flex: 1,
     backgroundColor: 'rgba(0, 255, 65, 0.9)',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    elevation: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   actionButtonText: {
     color: '#000000',
