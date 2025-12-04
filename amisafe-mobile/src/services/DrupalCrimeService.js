@@ -76,16 +76,24 @@ class DrupalCrimeService {
    */
   async getAggregatedData(resolution, bounds, filters = {}) {
     try {
-      console.log(`📊 Loading H3 Resolution ${resolution} aggregated data...`);
+      console.log(`\n📊 [DRUPAL API] Requesting H3 Resolution ${resolution} aggregated data...`);
+      
+      // Set limit based on resolution - higher resolution needs more hexagons (matching web)
+      let limit = 1000;
+      if (resolution >= 11) {
+        limit = 20000; // Ultra-precision needs many hexagons
+      } else if (resolution >= 8) {
+        limit = 5000; // Medium precision
+      }
       
       const params = new URLSearchParams({
         resolution: resolution.toString(),
         bounds: bounds,
-        limit: '1000',
+        limit: limit.toString(),
         format: 'json'
       });
       
-      // Add filter parameters
+      // Add filter parameters (only if they're actually filtering)
       if (filters.crimeTypes && filters.crimeTypes.length > 0) {
         params.append('crime_types', filters.crimeTypes.join(','));
       }
@@ -102,11 +110,19 @@ class DrupalCrimeService {
         params.append('time_periods', filters.timePeriods.join(','));
       }
       
+      const url = `${this.baseUrl}${this.apiEndpoints.aggregated}?${params.toString()}`;
+      console.log('🔗 [DRUPAL API] URL:', url);
+      
       const response = await drupalAuthService.authenticatedRequest({
         method: 'GET',
-        url: `${this.baseUrl}${this.apiEndpoints.aggregated}?${params.toString()}`,
+        url: url,
         timeout: 15000
       });
+      
+      console.log('\n📊 [DRUPAL API] Response received:');
+      console.log('  Status:', response.status);
+      console.log('  Has data:', !!response.data);
+      console.log('  Hexagons:', response.data?.hexagons?.length || 0);
       
       if (response.data) {
         return {
@@ -124,7 +140,11 @@ class DrupalCrimeService {
       return { hexagons: [], meta: { resolution, bounds, total: 0 } };
       
     } catch (error) {
-      console.error('Error loading aggregated data:', error);
+      console.error('❌ [DRUPAL API] Error loading aggregated data:', error);
+      if (error.response) {
+        console.error('  Response status:', error.response.status);
+        console.error('  Response data:', error.response.data);
+      }
       return { hexagons: [], meta: { resolution, bounds, total: 0, error: error.message } };
     }
   }

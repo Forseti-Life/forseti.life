@@ -106,16 +106,115 @@ const InteractiveCrimeMap = ({
   /**
    * Calculate hexagon styling based on incident count
    */
-  const calculateHexagonStyle = (incidentCount) => {
-    const maxIntensity = 100;
-    const intensity = Math.min(incidentCount / maxIntensity, 1);
+  /**
+   * Calculate hexagon styling based on z-score (matching web implementation)
+   * Uses incident_z_score for normalized heat map coloring across resolutions
+   */
+  const calculateHexagonStyle = (hexagonData) => {
+    // Extract z-score from analytics if available, otherwise use incident count
+    let zScore = 0;
+    let incidentCount = 0;
+    
+    if (typeof hexagonData === 'object') {
+      // Get z-score from analytics (prioritize this for accurate coloring)
+      if (hexagonData.analytics && hexagonData.analytics.z_scores) {
+        zScore = hexagonData.analytics.z_scores.incident || 0;
+      }
+      incidentCount = hexagonData.incident_count || hexagonData.incidentCount || 0;
+    } else {
+      // Legacy: hexagonData is just an incident count number
+      incidentCount = hexagonData;
+      // Fallback: estimate z-score from count
+      zScore = Math.log10(Math.max(1, incidentCount));
+    }
+    
+    // Color gradient based on z-score from -1 (green) to 11+ (red)
+    let fillColor, strokeColor;
+    let fillOpacity = 0.6;
+    
+    if (zScore >= 11.0) {
+      fillColor = 'rgba(139, 0, 0, 0.95)';  // Dark red
+      strokeColor = '#FF0000';
+    } else if (zScore >= 10.0) {
+      fillColor = 'rgba(165, 0, 0, 0.92)';  // Very dark red
+      strokeColor = '#FF0000';
+    } else if (zScore >= 9.0) {
+      fillColor = 'rgba(220, 20, 60, 0.88)';  // Crimson
+      strokeColor = '#FF1493';
+    } else if (zScore >= 8.0) {
+      fillColor = 'rgba(232, 37, 60, 0.85)';  // Bright crimson
+      strokeColor = '#FF4444';
+    } else if (zScore >= 7.0) {
+      fillColor = 'rgba(255, 0, 0, 0.82)';  // Red
+      strokeColor = '#FF4500';
+    } else if (zScore >= 6.0) {
+      fillColor = 'rgba(255, 36, 0, 0.78)';  // Scarlet
+      strokeColor = '#FF5500';
+    } else if (zScore >= 5.0) {
+      fillColor = 'rgba(255, 69, 0, 0.75)';  // Orange-red
+      strokeColor = '#FF6347';
+    } else if (zScore >= 4.0) {
+      fillColor = 'rgba(255, 102, 0, 0.72)';  // Red-orange
+      strokeColor = '#FF7700';
+    } else if (zScore >= 3.0) {
+      fillColor = 'rgba(255, 140, 0, 0.68)';  // Dark orange
+      strokeColor = '#FFA500';
+    } else if (zScore >= 2.0) {
+      fillColor = 'rgba(255, 165, 0, 0.65)';  // Orange
+      strokeColor = '#FFB833';
+    } else if (zScore >= 1.0) {
+      fillColor = 'rgba(255, 176, 0, 0.62)';  // Yellow-orange
+      strokeColor = '#FFC800';
+    } else if (zScore >= 0.5) {
+      fillColor = 'rgba(255, 200, 0, 0.58)';  // Gold
+      strokeColor = '#FFD700';
+    } else if (zScore >= 0) {
+      fillColor = 'rgba(255, 215, 0, 0.55)';  // Yellow
+      strokeColor = '#FFEC8B';
+    } else if (zScore >= -0.5) {
+      fillColor = 'rgba(173, 255, 47, 0.52)';  // Yellow-green
+      strokeColor = '#90EE90';
+    } else if (zScore >= -1.0) {
+      fillColor = 'rgba(144, 238, 144, 0.48)';  // Light green
+      strokeColor = '#7FFF7F';
+    } else {
+      fillColor = 'rgba(50, 205, 50, 0.45)';  // Green (very safe)
+      strokeColor = '#3CB371';
+    }
     
     return {
-      fillColor: minimalMode ? '#00ff41' : '#ff0040',
-      strokeColor: minimalMode ? '#00ff41' : '#00bfff',
-      strokeWidth: 1,
-      fillOpacity: 0.3 + (intensity * 0.4),
+      fillColor,
+      strokeColor,
+      strokeWidth: 1
     };
+  };
+
+  /**
+   * Get crime type name from code (matching web implementation)
+   */
+  const getCrimeTypeName = (code) => {
+    const crimeTypes = {
+      '1': 'Part I Crimes Against Person',
+      '2': 'Part I Crimes Against Property',
+      '3': 'Part II Crimes Against Person',
+      '4': 'Part II Crimes Against Property',
+      '5': 'Part II Crimes Against Society',
+      '6': 'Crimes Against Children',
+      '7': 'Other Offenses',
+      '8': 'Traffic',
+      '9': 'Unknown/Other'
+    };
+    
+    if (!code) return 'Unknown';
+    
+    const codeStr = code.toString();
+    for (const [key, value] of Object.entries(crimeTypes)) {
+      if (codeStr.startsWith(key)) {
+        return value;
+      }
+    }
+    
+    return 'Other';
   };
 
   /**
@@ -187,31 +286,47 @@ const InteractiveCrimeMap = ({
       }
       
       const resolution = getOptimalResolution(currentZoom);
-      console.log(`📊 Loading H3 Resolution ${resolution} data for mobile map...`);
+      console.log(`\n📊 [MOBILE] Loading H3 Resolution ${resolution} data...`);
+      console.log(`  Zoom: ${currentZoom}`);
+      console.log(`  Map Region:`, {
+        center: [mapRegion.latitude.toFixed(4), mapRegion.longitude.toFixed(4)],
+        delta: [mapRegion.latitudeDelta.toFixed(4), mapRegion.longitudeDelta.toFixed(4)]
+      });
       
-      // Build bounds string for API
+      // Build bounds string for API (matching web format)
       const north = mapRegion.latitude + (mapRegion.latitudeDelta / 2);
       const south = mapRegion.latitude - (mapRegion.latitudeDelta / 2);
       const east = mapRegion.longitude + (mapRegion.longitudeDelta / 2);
       const west = mapRegion.longitude - (mapRegion.longitudeDelta / 2);
       const bounds = `${north},${east},${south},${west}`;
       
+      console.log(`  Bounds: N=${north.toFixed(4)} S=${south.toFixed(4)} E=${east.toFixed(4)} W=${west.toFixed(4)}`);
+      console.log(`  Filters:`, currentFilters);
+      
       // Use Drupal crime service
       const data = await drupalCrimeService.getAggregatedData(resolution, bounds, currentFilters);
       
-      console.log('📊 Received mobile hexagon data via Drupal:', {
-        hexagons: data.hexagons ? data.hexagons.length : 0,
-        resolution: data.meta ? data.meta.resolution : 'unknown'
-      });
+      console.log('\n📊 [MOBILE] Received data from Drupal API:');
+      console.log(`  Hexagons: ${data.hexagons ? data.hexagons.length : 0}`);
+      console.log(`  Resolution: ${data.meta ? data.meta.resolution : 'unknown'}`);
+      if (data.hexagons && data.hexagons.length > 0) {
+        console.log(`  Sample hexagon:`, data.hexagons[0]);
+      }
       
       if (data.hexagons && data.hexagons.length > 0) {
+        console.log(`✅ [MOBILE] Setting ${data.hexagons.length} hexagons for rendering`);
         setHexagons(data.hexagons);
+        
+        // Update visible incidents count
+        const incidentCount = updateVisibleIncidentsCount(data.hexagons);
+        console.log(`📊 Total visible incidents: ${incidentCount}`);
         
         // Load individual incidents for high-resolution views
         if (resolution >= 10) {
           loadIncidentPoints();
         }
       } else {
+        console.log('⚠️ [MOBILE] No hexagons received - clearing display');
         setHexagons([]);
       }
       
@@ -270,6 +385,94 @@ const InteractiveCrimeMap = ({
       }
     } catch (error) {
       console.error('Error loading citywide stats:', error);
+    }
+  };
+
+  /**
+   * Update visible incidents count based on rendered hexagons
+   */
+  const updateVisibleIncidentsCount = (hexagonData) => {
+    if (!hexagonData || hexagonData.length === 0) {
+      return 0;
+    }
+    
+    const totalIncidents = hexagonData.reduce((sum, hex) => {
+      return sum + (hex.incident_count || 0);
+    }, 0);
+    
+    console.log(`📊 Visible incidents: ${totalIncidents} across ${hexagonData.length} hexagons`);
+    return totalIncidents;
+  };
+
+  /**
+   * Get current incident count from loaded hexagons
+   */
+  const getCurrentIncidentCount = () => {
+    return hexagons.reduce((sum, hex) => sum + (hex.incident_count || 0), 0);
+  };
+
+  /**
+   * Get active sector count (hexagons with incidents)
+   */
+  const getActiveSectorCount = () => {
+    return hexagons.filter(hex => (hex.incident_count || 0) > 0).length;
+  };
+
+  /**
+   * Reset view to initial state
+   */
+  const resetView = () => {
+    console.log('🔄 Resetting map view...');
+    
+    // Reset map to initial location
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(initialLocation, 1000);
+    }
+    
+    // Clear filters
+    setCurrentFilters({});
+    
+    // Reload data
+    loadHexagonData();
+  };
+
+  /**
+   * Fit map to show all hexagons
+   */
+  const fitMapToHexagons = () => {
+    if (hexagons.length === 0 || !mapRef.current) {
+      return;
+    }
+    
+    // Calculate bounds from hexagons
+    let minLat = Infinity, maxLat = -Infinity;
+    let minLng = Infinity, maxLng = -Infinity;
+    
+    hexagons.forEach(hex => {
+      if (hex.center) {
+        const lat = hex.center.lat;
+        const lng = hex.center.lng;
+        minLat = Math.min(minLat, lat);
+        maxLat = Math.max(maxLat, lat);
+        minLng = Math.min(minLng, lng);
+        maxLng = Math.max(maxLng, lng);
+      }
+    });
+    
+    if (minLat !== Infinity && maxLat !== -Infinity) {
+      const centerLat = (minLat + maxLat) / 2;
+      const centerLng = (minLng + maxLng) / 2;
+      const latDelta = (maxLat - minLat) * 1.2; // Add 20% padding
+      const lngDelta = (maxLng - minLng) * 1.2;
+      
+      mapRef.current.animateToRegion({
+        latitude: centerLat,
+        longitude: centerLng,
+        latitudeDelta: Math.max(latDelta, 0.01),
+        longitudeDelta: Math.max(lngDelta, 0.01),
+      }, 1000);
+      
+      console.log(`📍 Fitted map to ${hexagons.length} hexagons`);
     }
   };
 
@@ -401,7 +604,8 @@ const InteractiveCrimeMap = ({
           const coords = h3ToPolygonCoords(hexagon.h3_index);
           if (!coords) return null;
           
-          const style = calculateHexagonStyle(hexagon.incident_count || 0);
+          // Pass full hexagon object for z-score styling
+          const style = calculateHexagonStyle(hexagon);
           
           return (
             <Polygon
@@ -447,8 +651,21 @@ const InteractiveCrimeMap = ({
           {getResolutionDescription(getOptimalResolution(currentZoom))}
         </Text>
         <Text style={styles.hexagonCount}>
-          {hexagons.length} hexagons | {incidents.length} incidents
+          {hexagons.length} hexagons | {getActiveSectorCount()} active
         </Text>
+        <Text style={styles.incidentCount}>
+          {getCurrentIncidentCount().toLocaleString()} incidents | {incidents.length} points
+        </Text>
+      </View>
+      
+      {/* Action Buttons */}
+      <View style={styles.actionButtons}>
+        <TouchableOpacity style={styles.actionButton} onPress={resetView}>
+          <Text style={styles.actionButtonText}>Reset</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton} onPress={fitMapToHexagons}>
+          <Text style={styles.actionButtonText}>Fit View</Text>
+        </TouchableOpacity>
       </View>
       
       {/* Hexagon Details Modal */}
@@ -506,6 +723,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: 'center',
     marginTop: 2,
+  },
+  incidentCount: {
+    color: '#cccccc',
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  actionButtons: {
+    position: 'absolute',
+    top: 60,
+    right: 10,
+    flexDirection: 'column',
+    gap: 10,
+  },
+  actionButton: {
+    backgroundColor: 'rgba(0, 255, 65, 0.9)',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  actionButtonText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   modalContainer: {
     flex: 1,
