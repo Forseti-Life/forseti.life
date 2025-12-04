@@ -284,16 +284,7 @@ const InteractiveCrimeMap = ({
       const zoom = Math.round(Math.log(360 / region.latitudeDelta) / Math.LN2);
       setCurrentZoom(zoom);
       
-      // Notify parent component
-      if (onLocationChange) {
-        onLocationChange({
-          latitude: region.latitude,
-          longitude: region.longitude,
-          zoom: zoom
-        });
-      }
-      
-      // Reload data for new region
+      // Reload data for new region (matching web implementation handleMapMove)
       setTimeout(() => {
         loadHexagonData().catch(err => {
           console.error('Error loading hexagons on zoom:', err);
