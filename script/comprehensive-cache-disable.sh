@@ -2,7 +2,7 @@
 
 # Comprehensive Cache Disabling Script for Multi-Site Drupal 11
 # Combines functionality from both previous scripts for maximum effectiveness
-# Handles: St. Louis Integration (port 80) and Theory of Conspiracies (port 8080)
+# Handles: St. Louis Integration (port 80), Forseti (port 8080), and Theory of Conspiracies (port 8081)
 
 set -e
 
@@ -42,7 +42,7 @@ create_comprehensive_settings_local() {
     
     print_step "Creating comprehensive settings.local.php for $site_name..."
     
-    local settings_local="/workspaces/stlouisintegration.com/sites/$site_dir/web/sites/default/settings.local.php"
+    local settings_local="/home/keithaumiller/stlouisintegration.com/sites/$site_dir/web/sites/default/settings.local.php"
     
     cat > "$settings_local" << 'EOF'
 <?php
@@ -125,7 +125,7 @@ EOF
     print_status "Comprehensive settings.local.php created for $site_name with ALL cache mechanisms disabled"
 
     # Ensure settings.php includes settings.local.php
-    local settings_php="/workspaces/stlouisintegration.com/sites/$site_dir/web/sites/default/settings.php"
+    local settings_php="/home/keithaumiller/stlouisintegration.com/sites/$site_dir/web/sites/default/settings.php"
     if ! grep -q "settings.local.php" "$settings_php"; then
         echo "" >> "$settings_php"
         echo "// Include local development settings" >> "$settings_php"
@@ -146,7 +146,7 @@ disable_drupal_caching() {
     
     print_step "Disabling Drupal caching for $site_name..."
     
-    cd "/workspaces/stlouisintegration.com/sites/$site_dir"
+    cd "/home/keithaumiller/stlouisintegration.com/sites/$site_dir"
     
     # System Performance Settings - Force disable everything
     print_check "Configuring system performance settings..."
@@ -197,7 +197,7 @@ force_delete_cache_files() {
     
     print_step "Force deleting all cache files for $site_name..."
     
-    local site_path="/workspaces/stlouisintegration.com/sites/$site_dir"
+    local site_path="/home/keithaumiller/stlouisintegration.com/sites/$site_dir"
     
     # Delete CSS/JS aggregated files
     sudo rm -rf "$site_path/web/sites/default/files/css"/* 2>/dev/null || true
@@ -226,23 +226,23 @@ verify_cache_settings() {
     
     print_step "Verifying cache settings for $site_name..."
     
-    cd "/workspaces/stlouisintegration.com/sites/$site_dir"
+    cd "/home/keithaumiller/stlouisintegration.com/sites/$site_dir"
     
-    echo "## $site_name Cache Status ($(date))" >> /workspaces/stlouisintegration.com/cache-status.md
+    echo "## $site_name Cache Status ($(date))" >> /home/keithaumiller/stlouisintegration.com/cache-status.md
     
     # Check page cache only if drush is working
     if vendor/bin/drush status --fields=bootstrap 2>/dev/null | grep -q "Successful"; then
         page_cache=$(vendor/bin/drush config:get system.performance cache.page.max_age 2>/dev/null | cut -d' ' -f2 || echo "unknown")
         if [ "$page_cache" = "0" ]; then
             print_status "✅ Page cache: DISABLED"
-            echo "  - Page cache max age: DISABLED (0)" >> /workspaces/stlouisintegration.com/cache-status.md
+            echo "  - Page cache max age: DISABLED (0)" >> /home/keithaumiller/stlouisintegration.com/cache-status.md
         else
             print_warning "⚠️ Page cache: $page_cache (settings.local.php will override)"
-            echo "  - Page cache max age: $page_cache (overridden by settings.local.php)" >> /workspaces/stlouisintegration.com/cache-status.md
+            echo "  - Page cache max age: $page_cache (overridden by settings.local.php)" >> /home/keithaumiller/stlouisintegration.com/cache-status.md
         fi
     else
         print_status "✅ Page cache: DISABLED (via settings.local.php)"
-        echo "  - Page cache max age: DISABLED (via settings.local.php)" >> /workspaces/stlouisintegration.com/cache-status.md
+        echo "  - Page cache max age: DISABLED (via settings.local.php)" >> /home/keithaumiller/stlouisintegration.com/cache-status.md
     fi
     
     # Check CSS and JS aggregation
@@ -255,26 +255,26 @@ verify_cache_settings() {
     fi
     
     print_status "✅ CSS aggregation: DISABLED (via settings.local.php)"
-    echo "  - CSS aggregation: DISABLED (via settings.local.php)" >> /workspaces/stlouisintegration.com/cache-status.md
+    echo "  - CSS aggregation: DISABLED (via settings.local.php)" >> /home/keithaumiller/stlouisintegration.com/cache-status.md
     
     print_status "✅ JS aggregation: DISABLED (via settings.local.php)"
-    echo "  - JS aggregation: DISABLED (via settings.local.php)" >> /workspaces/stlouisintegration.com/cache-status.md
+    echo "  - JS aggregation: DISABLED (via settings.local.php)" >> /home/keithaumiller/stlouisintegration.com/cache-status.md
     
     # Check settings.local.php
-    local settings_local="/workspaces/stlouisintegration.com/sites/$site_dir/web/sites/default/settings.local.php"
+    local settings_local="/home/keithaumiller/stlouisintegration.com/sites/$site_dir/web/sites/default/settings.local.php"
     if [ -f "$settings_local" ]; then
         print_status "✅ settings.local.php: EXISTS"
-        echo "  - settings.local.php: EXISTS" >> /workspaces/stlouisintegration.com/cache-status.md
+        echo "  - settings.local.php: EXISTS" >> /home/keithaumiller/stlouisintegration.com/cache-status.md
         if grep -q "cache.backend.null" "$settings_local"; then
             print_status "✅ Cache backends: DISABLED"
-            echo "  - Cache backends: DISABLED" >> /workspaces/stlouisintegration.com/cache-status.md
+            echo "  - Cache backends: DISABLED" >> /home/keithaumiller/stlouisintegration.com/cache-status.md
         else
             print_error "❌ Cache backends: NOT PROPERLY DISABLED"
-            echo "  - Cache backends: NOT PROPERLY DISABLED" >> /workspaces/stlouisintegration.com/cache-status.md
+            echo "  - Cache backends: NOT PROPERLY DISABLED" >> /home/keithaumiller/stlouisintegration.com/cache-status.md
         fi
     else
         print_error "❌ settings.local.php: MISSING"
-        echo "  - settings.local.php: MISSING" >> /workspaces/stlouisintegration.com/cache-status.md
+        echo "  - settings.local.php: MISSING" >> /home/keithaumiller/stlouisintegration.com/cache-status.md
     fi
     
     # Test site responsiveness
@@ -287,30 +287,32 @@ verify_cache_settings() {
     # Test site responsiveness with timeout
     if curl -s --max-time 5 "$test_url" | head -n 20 | grep -qi "html\|doctype"; then
         print_status "✅ Site is responding"
-        echo "  - Site responsiveness: OK" >> /workspaces/stlouisintegration.com/cache-status.md
+        echo "  - Site responsiveness: OK" >> /home/keithaumiller/stlouisintegration.com/cache-status.md
     else
         print_warning "⚠️ Site response test inconclusive"
-        echo "  - Site responsiveness: Unknown" >> /workspaces/stlouisintegration.com/cache-status.md
+        echo "  - Site responsiveness: Unknown" >> /home/keithaumiller/stlouisintegration.com/cache-status.md
     fi
     
-    echo "" >> /workspaces/stlouisintegration.com/cache-status.md
+    echo "" >> /home/keithaumiller/stlouisintegration.com/cache-status.md
 }
 
 # Main execution
 echo "=== Comprehensive Cache Disabling Script ==="
-echo "Processing both Drupal sites with complete cache elimination..."
+echo "Processing all three Drupal sites with complete cache elimination..."
 
 # Initialize the results file
-cat > /workspaces/stlouisintegration.com/cache-status.md << 'EOF'
+cat > /home/keithaumiller/stlouisintegration.com/cache-status.md << 'EOF'
 # Comprehensive Cache Disabling Results
 
 This file shows the status of all caching mechanisms after running comprehensive-cache-disable.sh
 
 EOF
 
-# Define site configurations - process stlouisintegration first as it's more stable
+# Define site configurations - process all three sites
 declare -A sites
 sites["stlouisintegration"]="St. Louis Integration:80"
+sites["forseti"]="Forseti Safety:8080"
+sites["theoryofconspiracies"]="Theory of Conspiracies:8081"
 
 # Process each site
 for site_dir in "${!sites[@]}"; do
@@ -337,8 +339,8 @@ print_step "=== Global Cache Clearing ==="
 
 # Clear system-wide cache files
 print_check "Clearing system-wide cache directories..."
-find /workspaces/stlouisintegration.com -type d -name "*cache*" -exec sudo rm -rf {} + 2>/dev/null || true
-find /workspaces/stlouisintegration.com -type d -name "*twig*" -exec sudo rm -rf {} + 2>/dev/null || true
+find /home/keithaumiller/stlouisintegration.com -type d -name "*cache*" -exec sudo rm -rf {} + 2>/dev/null || true
+find /home/keithaumiller/stlouisintegration.com -type d -name "*twig*" -exec sudo rm -rf {} + 2>/dev/null || true
 
 # Restart Apache
 print_step "Restarting Apache to ensure all settings take effect..."
@@ -346,9 +348,9 @@ sudo service apache2 restart
 
 echo ""
 echo "=== COMPREHENSIVE SUMMARY ==="
-print_status "✅ Both sites processed successfully"
+print_status "✅ All three sites processed successfully"
 print_status "✅ All cache mechanisms disabled"
-print_status "✅ Settings.local.php created for both sites"
+print_status "✅ Settings.local.php created for all sites"
 print_status "✅ All cache files deleted"
 print_status "✅ Apache restarted"
 print_status "✅ Cache status logged to cache-status.md"
@@ -356,12 +358,13 @@ print_status "✅ Cache status logged to cache-status.md"
 echo ""
 print_step "=== TEST YOUR CHANGES ==="
 echo "St. Louis Integration: curl -s \"http://localhost/amisafe\" | grep -c \"Crime Map\""
-echo "Theory of Conspiracies: curl -s \"http://localhost:8080/\" | grep -c \"html\""
+echo "Forseti Safety: curl -s \"http://localhost:8080/\" | grep -c \"Philadelphia\""
+echo "Theory of Conspiracies: curl -s \"http://localhost:8081/\" | grep -c \"html\""
 
 echo ""
 print_step "=== USAGE FOR FRONTEND UPDATES ==="
 echo "Run this script after ANY frontend template changes:"
-echo "bash /workspaces/stlouisintegration.com/script/comprehensive-cache-disable.sh"
+echo "bash /home/keithaumiller/stlouisintegration.com/script/comprehensive-cache-disable.sh"
 
 echo ""
 print_warning "Template changes should now take effect IMMEDIATELY without manual cache clearing"
