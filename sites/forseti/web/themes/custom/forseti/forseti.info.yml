@@ -1,7 +1,7 @@
 name: Forseti
-description: "Custom theme for Forseti based on <a href='https://www.drupal.org/project/radix' target='_blank'>Radix 6.x</a> and Bootstrap 5.x"
+description: "AI-powered community safety platform for Philadelphia - Building a safer tomorrow through intelligent monitoring and community engagement"
 screenshot: screenshot.png
-'alt text': 'Forseti theme screenshot'
+'alt text': 'Forseti Safety Community Platform'
 core_version_requirement: ^10.3 || ^11
 # version: '1.0'
 engine: twig
