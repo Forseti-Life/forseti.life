@@ -586,7 +586,7 @@ $settings['update_free_access'] = FALSE;
  * See https://www.drupal.org/documentation/modules/file for more information
  * about securing private files.
  */
-$settings['file_private_path'] = '/var/private/stlouisintegration';
+$settings['file_private_path'] = '/var/private/forseti';
 
 /**
  * Temporary file path:
@@ -863,7 +863,7 @@ if (file_exists($app_root . '/' . $site_path . '/settings.production.php')) {
   include $app_root . '/' . $site_path . '/settings.production.php';
 }
 $databases['default']['default'] = array (
-  'database' => 'stlouisintegration_dev',
+  'database' => 'forseti_dev',
   'username' => 'drupal_user',
   'password' => 'drupal_secure_password',
   'prefix' => '',

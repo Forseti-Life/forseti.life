@@ -4,9 +4,9 @@ dependencies:
   module:
     - system
   theme:
-    - stlouisintegration
-id: stlouisintegration_branding
-theme: stlouisintegration
+    - forseti
+id: forseti_branding
+theme: forseti
 region: navbar_branding
 weight: -1
 provider: null

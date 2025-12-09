@@ -3,11 +3,11 @@ langcode: en
 status: true
 dependencies:
   theme:
-    - stlouisintegration
+    - forseti
 _core:
   default_config_hash: U5VSqywJ6Cdy0aP_9s0vIJ1mee2GBNZNXP3NxBHyWSA
-id: stlouisintegration_local_actions
-theme: stlouisintegration
+id: forseti_local_actions
+theme: forseti
 region: header
 weight: -4
 provider: null

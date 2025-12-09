@@ -65,12 +65,12 @@ Location: `/etc/apache2/sites-available/forseti.life.conf`
 
 ## Related Sites
 
-- **stlouisintegration.com** - Main portfolio and consulting site
+- **forseti.com** - Main portfolio and consulting site
 - **theoryofconspiracies.com** - AI/GenAI demonstration site
 - **forseti.life** - Community institution platform (this site)
 
 ## Contact
 
 Keith Aumiller  
-keith.aumiller@stlouisintegration.com  
-https://stlouisintegration.com
+keith.aumiller@forseti.life  
+https://forseti.life

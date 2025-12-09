@@ -36,15 +36,15 @@ Following **Drupal 11 administrative patterns**, all content is managed through 
 - **Server**: AWS EC2 instance (ip-172-16-4-59)
 - **Operating System**: Ubuntu 24.04.1 LTS (Linux 6.14.0-1013-aws)
 - **Architecture**: x86_64
-- **Web Root**: `/var/www/html/stlouisintegration/`
-- **Drupal Root**: `/var/www/html/stlouisintegration/web/`
+- **Web Root**: `/var/www/html/forseti/`
+- **Drupal Root**: `/var/www/html/forseti/web/`
 - **Web Server User**: `www-data`
 - **SSH User**: `ubuntu`
 
 **Production Drush Commands:**
 ```bash
 # Navigate to Drupal root
-cd /var/www/html/stlouisintegration
+cd /var/www/html/forseti
 
 # Run database updates (requires www-data user)
 sudo -u www-data ./vendor/bin/drush updatedb -y

@@ -58,5 +58,5 @@ theme:
   stable9: 0
   bootstrap5: 0
   radix: 0
-  stlouisintegration: 0
+  forseti: 0
 profile: standard

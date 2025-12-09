@@ -7,5 +7,5 @@ features:
   favicon: false
   node_user_picture: true
 logo:
-  path: themes/custom/stlouisintegration/src/assets/images/logo.png
+  path: themes/custom/forseti/src/assets/images/logo.png
   use_default: false

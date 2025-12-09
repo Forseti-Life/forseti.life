@@ -76,7 +76,7 @@ echo "3. Access user profiles via JSON:API endpoints\n";
 echo "4. Make cross-origin requests from React Native\n\n";
 
 echo "📱 Mobile App Configuration:\n";
-echo "Base URL: https://stlouisintegration.com\n";
+echo "Base URL: https://forseti.com\n";
 echo "OAuth Endpoint: /oauth/token\n";
 echo "Client ID: amisafe_mobile\n";
 echo "JSON:API Endpoints: /jsonapi/*\n";

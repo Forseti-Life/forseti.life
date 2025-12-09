@@ -1,6 +1,6 @@
 {
-	"name": "stlouisintegration",
-	"description": "St. Louis Integration custom theme, based on Radix and Bootstrap 5.",
+	"name": "forseti",
+	"description": "Forseti custom theme, based on Radix and Bootstrap 5.",
 	"private": true,
 	"engines": {
 		"npm": ">=6.0",

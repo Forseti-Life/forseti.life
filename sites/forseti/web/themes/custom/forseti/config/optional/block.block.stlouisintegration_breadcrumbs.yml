@@ -4,9 +4,9 @@ dependencies:
   module:
     - system
   theme:
-    - stlouisintegration
-id: stlouisintegration_breadcrumbs
-theme: stlouisintegration
+    - forseti
+id: forseti_breadcrumbs
+theme: forseti
 region: breadcrumb
 weight: 0
 provider: null

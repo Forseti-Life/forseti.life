@@ -2,9 +2,9 @@ langcode: en
 status: true
 dependencies:
   theme:
-    - stlouisintegration
-id: stlouisintegration_local_actions
-theme: stlouisintegration
+    - forseti
+id: forseti_local_actions
+theme: forseti
 region: header
 weight: -4
 provider: null

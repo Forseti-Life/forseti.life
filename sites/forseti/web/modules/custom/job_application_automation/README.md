@@ -251,7 +251,7 @@ To remove content types/fields after uninstall: Structure > Content types > Dele
 
 ### Getting Help
 For technical issues, feature requests, and development questions:
-- **Project Repository:** https://github.com/keithaumiller/stlouisintegration.com
+- **Project Repository:** https://github.com/keithaumiller/forseti.com
 - **Issue Tracking:** GitHub Issues for bug reports and feature requests
 - **Development Discussions:** GitHub Discussions for architecture and implementation questions
 

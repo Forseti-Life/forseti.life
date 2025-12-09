@@ -35,7 +35,7 @@ The AI Conversation module uses a **node-centric approach** where each conversat
 
 #### **Step 2: Start Chatting**
 1. **Access chat interface:** Navigate to `/node/{nid}/chat` 
-   - Example: `https://stlouisintegration.com/node/11/chat`
+   - Example: `https://forseti.com/node/11/chat`
    - Or click "Start Chat" link from node view page
 
 2. **Chat interface loads:**

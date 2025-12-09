@@ -6,4 +6,4 @@ id: daily_local_backups
 label: 'Daily Local Backups'
 type: Directory
 config:
-  directory: /var/backups/stlouisintegration/daily/
+  directory: /var/backups/forseti/daily/

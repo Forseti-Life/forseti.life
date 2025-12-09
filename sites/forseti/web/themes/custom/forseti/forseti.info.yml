@@ -1,7 +1,7 @@
-name: St. Louis Integration
-description: "Custom theme for St. Louis Integration based on <a href='https://www.drupal.org/project/radix' target='_blank'>Radix 6.x</a> and Bootstrap 5.x"
+name: Forseti
+description: "Custom theme for Forseti based on <a href='https://www.drupal.org/project/radix' target='_blank'>Radix 6.x</a> and Bootstrap 5.x"
 screenshot: screenshot.png
-'alt text': 'St. Louis Integration theme screenshot'
+'alt text': 'Forseti theme screenshot'
 core_version_requirement: ^10.3 || ^11
 # version: '1.0'
 engine: twig
@@ -9,8 +9,8 @@ type: theme
 base theme: radix
 starterkit: true
 
-'interface translation project': stlouisintegration
-'interface translation server pattern': 'themes/custom/stlouisintegration/translations/%language.po'
+'interface translation project': forseti
+'interface translation server pattern': 'themes/custom/forseti/translations/%language.po'
 
 regions:
   navbar_branding: Navbar branding
@@ -23,26 +23,26 @@ regions:
   footer: Footer
 
 libraries:
-  - stlouisintegration/style
+  - forseti/style
 
 ckeditor5-stylesheets:
   - build/css/main.style.css
 
 libraries-extend:
   core/drupal.ajax:
-    - stlouisintegration/drupal.ajax
+    - forseti/drupal.ajax
   core/drupal.checkbox:
-    - stlouisintegration/drupal.checkbox
+    - forseti/drupal.checkbox
   # core/drupal.dialog:
-  #   - stlouisintegration/drupal.dialog
+  #   - forseti/drupal.dialog
   # core/drupal.dialog.ajax:
-  #   - stlouisintegration/drupal.dialog.ajax
+  #   - forseti/drupal.dialog.ajax
   core/drupal.message:
-    - stlouisintegration/drupal.message
+    - forseti/drupal.message
   core/drupal.progress:
-    - stlouisintegration/drupal.progress
+    - forseti/drupal.progress
   clientside_validation_jquery/cv.jquery.validate:
-    - stlouisintegration/jquery.validate
+    - forseti/jquery.validate
 
 # Information added by Drupal.org packaging script on 2025-05-08
 version: '6.0.2'

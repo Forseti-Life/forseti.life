@@ -21,7 +21,7 @@
       console.log('Failed to load favicon, using fallback');
     };
     // Try favicon from build directory - use PNG for better canvas compatibility
-    faviconImage.src = '/themes/custom/stlouisintegration/build/assets/images/favicon.png';
+    faviconImage.src = '/themes/custom/forseti/build/assets/images/favicon.png';
   }
 
   // Create rotating icon elements

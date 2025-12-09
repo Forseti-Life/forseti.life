@@ -5,9 +5,9 @@ dependencies:
   module:
     - system
   theme:
-    - stlouisintegration
-id: stlouisintegration_pagetitle
-theme: stlouisintegration
+    - forseti
+id: forseti_pagetitle
+theme: forseti
 region: header
 weight: 0
 provider: null

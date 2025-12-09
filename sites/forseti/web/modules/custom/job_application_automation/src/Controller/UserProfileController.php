@@ -1153,7 +1153,7 @@ class UserProfileController extends ControllerBase {
    */
   private function isDevelopmentEnvironment() {
     // Check if this is our development workspace
-    $workspace_path = '/workspaces/stlouisintegration.com';
+    $workspace_path = '/workspaces/forseti.com';
     if (file_exists($workspace_path)) {
       return TRUE;
     }

@@ -78,7 +78,7 @@ The module provides a custom navigation block (`professional_navigation_block`) 
 ### Healthcare Page Client Section (Update 9004)
 To update existing Healthcare page with standardized Major Clients section:
 ```bash
-cd /var/www/html/stlouisintegration/web && ../vendor/bin/drush --uri=stlouisintegration.com updatedb -y
+cd /var/www/html/forseti/web && ../vendor/bin/drush --uri=forseti.com updatedb -y
 ```
 
 This update adds three healthcare clients in client-grid format matching other industry pages.
@@ -139,9 +139,9 @@ If needed, the Professional Navigation Block can be manually configured:
 - Professional color schemes (primary, success, info)
 
 ## Files Modified
-- `drupal/web/themes/custom/stlouisintegration/templates/page/page--front.html.twig` - Enhanced navigation
-- `drupal/web/themes/custom/stlouisintegration/src/scss/main.style.scss` - Added professional content import
-- `drupal/web/themes/custom/stlouisintegration/src/scss/_professional-content.scss` - New professional styling
+- `drupal/web/themes/custom/forseti/templates/page/page--front.html.twig` - Enhanced navigation
+- `drupal/web/themes/custom/forseti/src/scss/main.style.scss` - Added professional content import
+- `drupal/web/themes/custom/forseti/src/scss/_professional-content.scss` - New professional styling
 
 ## Result
 Complete transformation from basic animated background site to comprehensive professional business website showcasing real Fortune 500 client work and quantifiable business outcomes.
