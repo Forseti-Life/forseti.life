@@ -5,6 +5,8 @@ forseti.home:
     _title: 'Forseti - AI-Powered Community Safety'
   requirements:
     _permission: 'access content'
+  options:
+    no_cache: TRUE
 
 forseti.about:
   path: '/about'

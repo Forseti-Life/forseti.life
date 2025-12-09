@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * @file
+ * Primary module hooks for Forseti Safety Content module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function forseti_safety_content_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.forseti_safety_content':
+      return '<p>' . t('Forseti Safety Content provides the main pages and content for the Forseti Life website.') . '</p>';
+  }
+}

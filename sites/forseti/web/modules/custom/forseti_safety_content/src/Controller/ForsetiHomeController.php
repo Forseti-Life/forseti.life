@@ -3,6 +3,7 @@
 namespace Drupal\forseti_safety_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Controller for Forseti home page.
@@ -15,7 +16,7 @@ class ForsetiHomeController extends ControllerBase {
   public function content() {
     $build = [];
 
-    $build['#attached']['library'][] = 'forseti/style';
+    $build['#attached']['library'][] = 'forseti_safety_content/style';
 
     $build['philly_banner'] = [
       '#type' => 'markup',
