@@ -29,9 +29,9 @@
 $databases['amisafe']['default'] = [
   'database' => 'amisafe_database',
   'username' => 'drupal_user',
-  'password' => 'drupal_secure_password',  // Update with actual password
+  'password' => 'drupal_secure_password',
   'prefix' => '',
-  'host' => 'localhost',
+  'host' => '127.0.0.1',
   'port' => '3306',
   'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
   'driver' => 'mysql',

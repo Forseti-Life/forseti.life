@@ -1,5 +1,5 @@
 forseti.home:
-  path: '/'
+  path: '/home'
   defaults:
     _controller: '\Drupal\forseti_safety_content\Controller\ForsetiHomeController::content'
     _title: 'Forseti - AI-Powered Community Safety'
