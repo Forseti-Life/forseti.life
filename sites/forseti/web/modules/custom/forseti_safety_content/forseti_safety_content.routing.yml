@@ -1,0 +1,63 @@
+forseti.home:
+  path: '/'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiHomeController::content'
+    _title: 'Forseti - AI-Powered Community Safety'
+  requirements:
+    _permission: 'access content'
+
+forseti.about:
+  path: '/about'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::about'
+    _title: 'About Forseti'
+  requirements:
+    _permission: 'access content'
+
+forseti.how_it_works:
+  path: '/how-it-works'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::howItWorks'
+    _title: 'How It Works'
+  requirements:
+    _permission: 'access content'
+
+forseti.safety_map:
+  path: '/safety-map'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::safetyMap'
+    _title: 'Philadelphia Safety Map'
+  requirements:
+    _permission: 'access content'
+
+forseti.community:
+  path: '/community'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::community'
+    _title: 'Join Our Community'
+  requirements:
+    _permission: 'access content'
+
+forseti.mobile_app:
+  path: '/mobile-app'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::mobileApp'
+    _title: 'AmISafe Mobile App'
+  requirements:
+    _permission: 'access content'
+
+forseti.privacy:
+  path: '/privacy'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::privacy'
+    _title: 'Privacy & Security'
+  requirements:
+    _permission: 'access content'
+
+forseti.contact:
+  path: '/contact'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::contact'
+    _title: 'Contact Us'
+  requirements:
+    _permission: 'access content'
