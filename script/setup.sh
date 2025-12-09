@@ -525,15 +525,17 @@ else
     sudo mysql <<EOF
 CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS theoryofconspiracies_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS forseti_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'127.0.0.1';
 GRANT ALL PRIVILEGES ON theoryofconspiracies_dev.* TO '${DB_USER}'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON forseti_dev.* TO '${DB_USER}'@'127.0.0.1';
 FLUSH PRIVILEGES;
 EOF
-    print_status "MySQL databases '${DB_NAME}' and 'theoryofconspiracies_dev' and user '${DB_USER}' created"
+    print_status "MySQL databases '${DB_NAME}', 'theoryofconspiracies_dev', 'forseti_dev' and user '${DB_USER}' created"
 fi
 
-# Create private files directories for both sites
+# Create private files directories for all sites
 print_status "Creating Drupal private files directories..."
 if [ ! -d "/var/private/stlouisintegration" ]; then
     sudo mkdir -p /var/private/stlouisintegration
@@ -549,18 +551,29 @@ if [ ! -d "/var/private/theoryofconspiracies" ]; then
     print_status "Private files directory created at /var/private/theoryofconspiracies"
 fi
 
+if [ ! -d "/var/private/forseti" ]; then
+    sudo mkdir -p /var/private/forseti
+    sudo chown -R www-data:www-data /var/private/forseti
+    sudo chmod -R 775 /var/private/forseti
+    print_status "Private files directory created at /var/private/forseti"
+fi
+
 # Configure Apache virtual hosts for multi-site setup
 print_status "Configuring Apache virtual hosts for multi-site setup..."
 
-# Configure port 8080 for Apache
-print_status "Configuring Apache to listen on port 8080..."
+# Configure port 8080 and 8081 for Apache
+print_status "Configuring Apache to listen on ports 8080 and 8081..."
 if ! grep -q "Listen 8080" /etc/apache2/ports.conf; then
     sudo bash -c "echo 'Listen 8080' >> /etc/apache2/ports.conf"
+fi
+if ! grep -q "Listen 8081" /etc/apache2/ports.conf; then
+    sudo bash -c "echo 'Listen 8081' >> /etc/apache2/ports.conf"
 fi
 
 # Configure main site (stlouisintegration) on port 80
 sudo bash -c "cat > /etc/apache2/sites-available/000-default.conf" <<EOF
 <VirtualHost *:80>
+        ServerName stlouisintegration.local
         ServerAdmin webmaster@localhost
         DocumentRoot /home/keithaumiller/stlouisintegration.com/sites/stlouisintegration/web
 
@@ -575,9 +588,32 @@ sudo bash -c "cat > /etc/apache2/sites-available/000-default.conf" <<EOF
 </VirtualHost>
 EOF
 
-# Configure Theory of Conspiracies site on port 8080
-sudo bash -c "cat > /etc/apache2/sites-available/theoryofconspiracies.conf" <<EOF
+# Configure Forseti site on port 8080
+sudo bash -c "cat > /etc/apache2/sites-available/forseti.conf" <<EOF
 <VirtualHost *:8080>
+        ServerName forseti.local
+        ServerAlias www.forseti.local
+        ServerAdmin webmaster@localhost
+        DocumentRoot /home/keithaumiller/stlouisintegration.com/sites/forseti/web
+
+        <Directory /home/keithaumiller/stlouisintegration.com/sites/forseti/web>
+                Options Indexes FollowSymLinks
+                AllowOverride All
+                Require all granted
+        </Directory>
+
+        ErrorLog \${APACHE_LOG_DIR}/forseti_error.log
+        CustomLog \${APACHE_LOG_DIR}/forseti_access.log combined
+</VirtualHost>
+EOF
+
+# Enable the Forseti site
+sudo a2ensite forseti.conf
+
+# Configure Theory of Conspiracies site on port 8081
+sudo bash -c "cat > /etc/apache2/sites-available/theoryofconspiracies.conf" <<EOF
+<VirtualHost *:8081>
+        ServerName theoryofconspiracies.local
         ServerAdmin webmaster@localhost
         DocumentRoot /home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies/web
 
@@ -1217,6 +1253,261 @@ EOL
     print_status "Theory of Conspiracies site created and installed successfully"
 fi
 
+print_step "2.6. FORSETI SITE SETUP - Setting up third Drupal site..."
+
+# Configuration for Forseti site
+FORSETI_PROJECT_DIR="/home/keithaumiller/stlouisintegration.com/sites/forseti"
+FORSETI_DB_NAME="forseti_dev"
+FORSETI_SITE_NAME="Forseti"
+FORSETI_ADMIN_EMAIL="admin@forseti.life"
+
+# Check if Forseti site exists
+if [ -d "$FORSETI_PROJECT_DIR" ]; then
+    print_status "Forseti site directory found at $FORSETI_PROJECT_DIR"
+    cd "$FORSETI_PROJECT_DIR"
+    
+    # CRITICAL FIX: Repair corrupted Composer autoloader if needed
+    if [ -d "vendor" ] && [ ! -f "vendor/autoload.php" ]; then
+        print_status "Repairing Forseti Composer dependencies..."
+        rm -rf vendor/
+        /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
+    elif [ -f "vendor/autoload.php" ]; then
+        # Check if autoloader is corrupted (missing Twig)
+        if ! /usr/bin/php8.3 -c /etc/php/8.3/cli/php.ini -r "require 'vendor/autoload.php'; echo 'OK';" 2>/dev/null; then
+            print_status "Fixing corrupted Forseti Composer autoloader..."
+            rm -rf vendor/
+            /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
+        fi
+    fi
+    
+    # Check if it's properly installed
+    if [ ! -f "web/sites/default/settings.php" ] || [ ! -s "web/sites/default/settings.php" ]; then
+        print_status "Forseti site not installed. Setting up..."
+        
+        # Set up file permissions (dev container needs sudo and 777)
+        sudo chmod 755 web/sites/default 2>/dev/null || chmod 755 web/sites/default
+        mkdir -p web/sites/default/files
+        sudo chmod -R 777 web/sites/default/files 2>/dev/null || chmod -R 777 web/sites/default/files
+        # Create PHP storage directory for compiled classes
+        mkdir -p web/sites/default/files/php
+        sudo chmod 777 web/sites/default/files/php 2>/dev/null || chmod 777 web/sites/default/files/php
+        # Set proper ownership for Apache
+        sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
+        
+        # Copy default settings file
+        cp web/sites/default/default.settings.php web/sites/default/settings.php
+        sudo chmod 664 web/sites/default/settings.php 2>/dev/null || chmod 664 web/sites/default/settings.php
+        
+        # Check if Drupal is already installed to avoid data loss
+        print_status "Checking existing Forseti installation..."
+        if ! ./vendor/bin/drush status | grep -q "Drupal bootstrap.*Successful" 2>/dev/null; then
+            print_status "Installing Forseti Drupal site (preserving existing data)..."
+            ./vendor/bin/drush site:install standard \
+                --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${FORSETI_DB_NAME}" \
+                --site-name="${FORSETI_SITE_NAME}" \
+                --account-name="${ADMIN_USER}" \
+                --account-pass="${ADMIN_PASSWORD}" \
+                --account-mail="${FORSETI_ADMIN_EMAIL}" \
+                --yes 2>/dev/null || print_warning "Site installation may have failed"
+        else
+            print_status "Forseti already installed, preserving existing data"
+        fi
+        
+        # Install development modules first
+        print_status "Installing development modules for Forseti..."
+        /usr/bin/php8.3 /usr/local/bin/composer require \
+            drupal/devel \
+            drupal/admin_toolbar \
+            drupal/pathauto \
+            drupal/metatag \
+            drupal/bootstrap5 \
+            drupal/radix \
+            --no-interaction
+        
+        # Enable development modules
+        print_status "Enabling development modules for Forseti..."
+        ./vendor/bin/drush en devel admin_toolbar admin_toolbar_tools pathauto metatag -y
+        
+        # Create development directories
+        mkdir -p web/modules/custom
+        mkdir -p web/themes/custom
+        mkdir -p config/sync
+        chmod 755 web/modules/custom web/themes/custom config/sync
+        
+        # Fix permissions before modifying settings
+        fix_drupal_permissions "$FORSETI_PROJECT_DIR"
+
+        # Add development settings
+        cat >> web/sites/default/settings.php << 'EOL'
+
+/**
+ * Development-specific settings
+ */
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+  include $app_root . '/' . $site_path . '/settings.local.php';
+}
+
+$settings['config_sync_directory'] = '../config/sync';
+$config['system.performance']['css']['preprocess'] = FALSE;
+$config['system.performance']['js']['preprocess'] = FALSE;
+$config['system.logging']['error_level'] = 'verbose';
+$settings['cache']['bins']['render'] = 'cache.backend.null';
+$settings['cache']['bins']['page'] = 'cache.backend.null';
+$settings['cache']['bins']['dynamic_page_cache'] = 'cache.backend.null';
+EOL
+
+        # Create settings.local.php
+        cat > web/sites/default/settings.local.php << EOL
+<?php
+\$databases['default']['default'] = [
+  'database' => '${FORSETI_DB_NAME}',
+  'username' => '${DB_USER}',
+  'password' => '${DB_PASSWORD}',
+  'host' => '127.0.0.1',
+  'port' => '3306',
+  'driver' => 'mysql',
+  'prefix' => '',
+  'collation' => 'utf8mb4_general_ci',
+];
+EOL
+        chmod 644 web/sites/default/settings.local.php
+        
+        print_status "Forseti site installed successfully"
+    else
+        print_status "Forseti site already installed"
+    fi
+    
+    # Enable custom modules and theme for Forseti if Drupal is installed
+    if /usr/bin/php8.3 vendor/drush/drush/drush.php sql:query "SHOW TABLES LIKE 'users'" 2>/dev/null | grep -q "users"; then
+        print_status "Enabling Forseti custom theme..."
+        
+        # Verify Drupal bootstrap works before enabling theme
+        if /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null; then
+            # Enable custom theme if it exists
+            if [ -d "web/themes/custom/forseti" ]; then
+                # Install radix base theme if needed
+                if ! /usr/bin/php8.3 /usr/local/bin/composer show drupal/radix &>/dev/null; then
+                    print_status "Installing radix base theme for Forseti..."
+                    /usr/bin/php8.3 /usr/local/bin/composer require drupal/radix --no-interaction
+                fi
+                
+                # Enable theme if not already enabled
+                if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --type=theme --format=list 2>/dev/null | grep -q "forseti"; then
+                    /usr/bin/php8.3 vendor/drush/drush/drush.php theme:enable forseti -y
+                fi
+                
+                # Set as default theme
+                CURRENT_THEME=$(/usr/bin/php8.3 vendor/drush/drush/drush.php config:get system.theme default --format=string 2>/dev/null || echo "")
+                if [ "$CURRENT_THEME" != "forseti" ]; then
+                    /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.theme default forseti -y
+                    print_status "Forseti theme set as default"
+                fi
+            fi
+            
+            # Configure Forseti home page
+            print_status "Configuring Forseti home page..."
+            /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.site page.front "/node" -y 2>/dev/null
+            print_status "✅ Forseti home page configured"
+            
+            # Final cache rebuild
+            /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
+            print_status "Forseti custom theme enabled successfully"
+        else
+            print_warning "Forseti Drupal bootstrap failed. Skipping theme enablement."
+        fi
+    else
+        print_warning "Forseti not fully installed. Skipping theme enablement."
+    fi
+else
+    print_status "Forseti site directory not found. Creating new installation..."
+    cd /home/keithaumiller/stlouisintegration.com/sites
+    /usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:11.2.5 forseti --no-interaction
+    
+    cd forseti
+    /usr/bin/php8.3 /usr/local/bin/composer require drush/drush --no-interaction
+    /usr/bin/php8.3 /usr/local/bin/composer require \
+        drupal/devel \
+        drupal/admin_toolbar \
+        drupal/pathauto \
+        drupal/metatag \
+        drupal/bootstrap5 \
+        drupal/radix \
+        --no-interaction
+    
+    # Fix any potential Composer autoloader corruption after installing packages
+    if ! /usr/bin/php8.3 -c /etc/php/8.3/cli/php.ini -r "require 'vendor/autoload.php'; echo 'OK';" 2>/dev/null; then
+        print_status "Fixing Composer autoloader after package installation..."
+        /usr/bin/php8.3 /usr/local/bin/composer dump-autoload --optimize --no-interaction
+    fi
+    
+    # Continue with installation as above...
+    chmod 755 web/sites/default
+    mkdir -p web/sites/default/files
+    chmod -R 775 web/sites/default/files
+    # Create PHP storage directory for compiled classes
+    mkdir -p web/sites/default/files/php
+    chmod 775 web/sites/default/files/php
+    # Set proper ownership for Apache
+    sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
+    cp web/sites/default/default.settings.php web/sites/default/settings.php
+    chmod 664 web/sites/default/settings.php
+    
+    # Check if Drupal is already installed to avoid data loss
+    if ! ./vendor/bin/drush status | grep -q "Drupal bootstrap.*Successful" 2>/dev/null; then
+        print_status "Installing Forseti site (preserving existing data)..."
+        ./vendor/bin/drush site:install standard \
+            --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${FORSETI_DB_NAME}" \
+            --site-name="${FORSETI_SITE_NAME}" \
+            --account-name="${ADMIN_USER}" \
+            --account-pass="${ADMIN_PASSWORD}" \
+            --account-mail="${FORSETI_ADMIN_EMAIL}" \
+            --yes 2>/dev/null || print_warning "Site installation may have failed"
+    else
+        print_status "Forseti already installed, preserving existing data"
+    fi
+    
+    ./vendor/bin/drush en devel admin_toolbar admin_toolbar_tools pathauto metatag -y
+    
+    mkdir -p web/modules/custom web/themes/custom config/sync
+    chmod 755 web/modules/custom web/themes/custom config/sync
+    
+    # Add development settings
+    cat >> web/sites/default/settings.php << 'EOL'
+
+/**
+ * Development-specific settings
+ */
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+  include $app_root . '/' . $site_path . '/settings.local.php';
+}
+
+$settings['config_sync_directory'] = '../config/sync';
+$config['system.performance']['css']['preprocess'] = FALSE;
+$config['system.performance']['js']['preprocess'] = FALSE;
+$config['system.logging']['error_level'] = 'verbose';
+$settings['cache']['bins']['render'] = 'cache.backend.null';
+$settings['cache']['bins']['page'] = 'cache.backend.null';
+$settings['cache']['bins']['dynamic_page_cache'] = 'cache.backend.null';
+EOL
+
+    cat > web/sites/default/settings.local.php << EOL
+<?php
+\$databases['default']['default'] = [
+  'database' => '${FORSETI_DB_NAME}',
+  'username' => '${DB_USER}',
+  'password' => '${DB_PASSWORD}',
+  'host' => '127.0.0.1',
+  'port' => '3306',
+  'driver' => 'mysql',
+  'prefix' => '',
+  'collation' => 'utf8mb4_general_ci',
+];
+EOL
+    chmod 644 web/sites/default/settings.local.php
+    
+    print_status "Forseti site created and installed successfully"
+fi
+
 # Return to main site directory for remaining setup
 cd "$PROJECT_DIR"
 
@@ -1529,7 +1820,7 @@ else
     sudo service apache2 restart
 fi
 
-# Test website availability for both sites
+# Test website availability for all sites
 print_status "Testing website availability..."
 if curl -s -o /dev/null -w "%{http_code}" "http://localhost" | grep -q "200\|302\|301"; then
     print_status "✅ St. Louis Integration site is accessible at http://localhost"
@@ -1538,7 +1829,13 @@ else
 fi
 
 if curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080" | grep -q "200\|302\|301"; then
-    print_status "✅ Theory of Conspiracies site is accessible at http://localhost:8080"
+    print_status "✅ Forseti site is accessible at http://localhost:8080"
+else
+    print_warning "⚠️  Forseti site may need additional configuration"
+fi
+
+if curl -s -o /dev/null -w "%{http_code}" "http://localhost:8081" | grep -q "200\|302\|301"; then
+    print_status "✅ Theory of Conspiracies site is accessible at http://localhost:8081"
 else
     print_warning "⚠️  Theory of Conspiracies site may need additional configuration"
 fi
@@ -1552,6 +1849,13 @@ if [ -d "/home/keithaumiller/stlouisintegration.com/sites/stlouisintegration" ];
     echo "St. Louis Integration - Drupal: $STL_DRUPAL_VERSION, Twig: $STL_TWIG_VERSION"
 fi
 
+if [ -d "/home/keithaumiller/stlouisintegration.com/sites/forseti" ]; then
+    cd "/home/keithaumiller/stlouisintegration.com/sites/forseti"
+    FORSETI_DRUPAL_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show drupal/core --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
+    FORSETI_TWIG_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show twig/twig --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
+    echo "Forseti - Drupal: $FORSETI_DRUPAL_VERSION, Twig: $FORSETI_TWIG_VERSION"
+fi
+
 if [ -d "/home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies" ]; then
     cd "/home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies"
     TOC_DRUPAL_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show drupal/core --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
@@ -1559,8 +1863,8 @@ if [ -d "/home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies" 
     echo "Theory of Conspiracies - Drupal: $TOC_DRUPAL_VERSION, Twig: $TOC_TWIG_VERSION"
 fi
 
-if [ "$STL_DRUPAL_VERSION" = "$TOC_DRUPAL_VERSION" ] && [ "$STL_TWIG_VERSION" = "$TOC_TWIG_VERSION" ]; then
-    print_status "✅ Version consistency verified: Both sites use matching Drupal and Twig versions"
+if [ "$STL_DRUPAL_VERSION" = "$FORSETI_DRUPAL_VERSION" ] && [ "$FORSETI_DRUPAL_VERSION" = "$TOC_DRUPAL_VERSION" ] && [ "$STL_TWIG_VERSION" = "$FORSETI_TWIG_VERSION" ] && [ "$FORSETI_TWIG_VERSION" = "$TOC_TWIG_VERSION" ]; then
+    print_status "✅ Version consistency verified: All sites use matching Drupal and Twig versions"
 else
     print_warning "⚠️  Version inconsistency detected - consider standardizing versions"
 fi
@@ -1572,7 +1876,7 @@ echo "========================="
 echo "Installation Summary:"
 echo "========================="
 echo "✓ Environment: PHP 8.3, MySQL, Apache configured with multi-site support"
-echo "✓ Multi-Site Setup: Two Drupal 11.2.5 installations with Twig 3.21.1 configured"
+echo "✓ Multi-Site Setup: Three Drupal 11.2.5 installations with Twig 3.21.1 configured"
 echo "✓ Development Tools: Coder, PHPCS, PHPUnit configured"
 echo "✓ Custom Modules: All 5 custom modules enabled on primary site:"
 echo "  - professional_website_content (Professional Website Content)"
@@ -1580,11 +1884,15 @@ echo "  - ai_conversation (AI Conversation)"
 echo "  - job_application_automation (Job Application Automation)"
 echo "  - resume_tailoring (Resume Tailoring)"
 echo "  - stli_site_customizations (STLI Site Customizations)"
-echo "✓ Custom Theme: stlouisintegration theme enabled and set as default"
-echo "✓ Home Pages: Properly configured for both sites"
+echo "✓ Custom Themes:"
+echo "  - St. Louis Integration: stlouisintegration theme enabled and set as default"
+echo "  - Forseti: forseti theme enabled and set as default"
+echo "  - Theory of Conspiracies: theoryofconspiracies theme enabled and set as default"
+echo "✓ Home Pages: Properly configured for all sites"
 echo "  - St. Louis Integration: 'Welcome to St. Louis Integration' page"
+echo "  - Forseti: Default Drupal home page"
 echo "  - Theory of Conspiracies: Custom controller route (/home)"
-echo "✓ Apache Virtual Hosts: Port-based routing (80, 8080)"
+echo "✓ Apache Virtual Hosts: Port-based routing (80, 8080, 8081)"
 echo "✓ Databases: Separate databases for each site"
 echo "✓ H3 Geolocation Framework: Version 4.3.1 with AmISafe crime mapping pipeline"
 echo "  - H3 Python environment: /home/keithaumiller/stlouisintegration.com/h3-geolocation/h3-env/"
@@ -1602,10 +1910,17 @@ echo "  Admin Login: http://localhost/user/login"
 echo "  Database: ${DB_NAME}"
 echo "  Directory: /home/keithaumiller/stlouisintegration.com/sites/stlouisintegration/"
 echo ""
-echo "SECONDARY SITE - Theory of Conspiracies:"
-echo "  Site Name: ${TOC_SITE_NAME}"
+echo "SITE 2 - Forseti:"
+echo "  Site Name: Forseti"
 echo "  Site URL: http://localhost:8080"
 echo "  Admin Login: http://localhost:8080/user/login"
+echo "  Database: forseti_dev"
+echo "  Directory: /home/keithaumiller/stlouisintegration.com/sites/forseti/"
+echo ""
+echo "SITE 3 - Theory of Conspiracies:"
+echo "  Site Name: ${TOC_SITE_NAME}"
+echo "  Site URL: http://localhost:8081"
+echo "  Admin Login: http://localhost:8081/user/login"
 echo "  Database: ${TOC_DB_NAME}"
 echo "  Directory: /home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies/"
 echo ""
@@ -1620,6 +1935,12 @@ echo "FOR ST. LOUIS INTEGRATION SITE:"
 echo "- Navigate to site: cd /home/keithaumiller/stlouisintegration.com/sites/stlouisintegration"
 echo "- Clear cache: ./vendor/bin/drush cr"
 echo "- Check coding standards: cd /home/keithaumiller/stlouisintegration.com/scripts && ./check-standards.sh"
+echo "- Drush commands: ./vendor/bin/drush [command]"
+echo ""
+echo "FOR FORSETI SITE:"
+echo "- Navigate to site: cd /home/keithaumiller/stlouisintegration.com/sites/forseti"
+echo "- Clear cache: ./vendor/bin/drush cr"
+echo "- One-time login: ./vendor/bin/drush uli"
 echo "- Drush commands: ./vendor/bin/drush [command]"
 echo ""
 echo "FOR THEORY OF CONSPIRACIES SITE:"
@@ -1654,7 +1975,7 @@ print_step "4. POST-INSTALLATION FIXES - Applying known issue resolutions..."
 print_status "Fixing cache backend configuration issues..."
 
 # Remove cache.backend.null references from development services
-for site_dir in "stlouisintegration" "theoryofconspiracies"; do
+for site_dir in "stlouisintegration" "forseti" "theoryofconspiracies"; do
     SERVICES_FILE="/home/keithaumiller/stlouisintegration.com/sites/${site_dir}/web/sites/development.services.yml"
     if [ -f "$SERVICES_FILE" ]; then
         print_status "Updating development services for ${site_dir}..."
@@ -1680,7 +2001,7 @@ done
 
 # Remove cache.backend.null references from settings files
 print_status "Cleaning cache backend references from settings files..."
-for site_dir in "stlouisintegration" "theoryofconspiracies"; do
+for site_dir in "stlouisintegration" "forseti" "theoryofconspiracies"; do
     SETTINGS_FILE="/home/keithaumiller/stlouisintegration.com/sites/${site_dir}/web/sites/default/settings.php"
     SETTINGS_LOCAL_FILE="/home/keithaumiller/stlouisintegration.com/sites/${site_dir}/web/sites/default/settings.local.php"
     
@@ -1770,7 +2091,7 @@ fi
 
 # Fix Composer dependencies and autoloader issues
 print_status "Final Composer dependency verification and cleanup..."
-for site_dir in "stlouisintegration" "theoryofconspiracies"; do
+for site_dir in "stlouisintegration" "forseti" "theoryofconspiracies"; do
     cd "/home/keithaumiller/stlouisintegration.com/sites/${site_dir}"
     if [ -f "composer.json" ]; then
         print_status "Verifying Composer dependencies for ${site_dir}..."
@@ -1806,6 +2127,20 @@ if [ -f "vendor/drush/drush/drush.php" ]; then
     fi
 else
     print_warning "Drush not found for St. Louis Integration site"
+fi
+
+if [ -d "/home/keithaumiller/stlouisintegration.com/sites/forseti" ]; then
+    cd "/home/keithaumiller/stlouisintegration.com/sites/forseti"
+    if [ -f "vendor/drush/drush/drush.php" ]; then
+        if /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json 2>/dev/null | grep -q '"bootstrap":"Successful"'; then
+            print_status "Forseti site is working correctly"
+            /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
+        else
+            print_warning "Forseti site may need manual configuration"
+        fi
+    else
+        print_warning "Drush not found for Forseti site"
+    fi
 fi
 
 if [ -d "/home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies" ]; then
@@ -1921,6 +2256,7 @@ echo "========================="
 # Test final site accessibility
 SITE1_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost" 2>/dev/null || echo "000")
 SITE2_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080" 2>/dev/null || echo "000")
+SITE3_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8081" 2>/dev/null || echo "000")
 
 if [[ "$SITE1_STATUS" =~ ^(200|302|301)$ ]]; then
     print_status "✅ St. Louis Integration site is working - HTTP $SITE1_STATUS"
@@ -1929,9 +2265,15 @@ else
 fi
 
 if [[ "$SITE2_STATUS" =~ ^(200|302|301)$ ]]; then
-    print_status "✅ Theory of Conspiracies site is working - HTTP $SITE2_STATUS"
+    print_status "✅ Forseti site is working - HTTP $SITE2_STATUS"
 else
-    print_warning "⚠️  Theory of Conspiracies site returned HTTP $SITE2_STATUS"
+    print_warning "⚠️  Forseti site returned HTTP $SITE2_STATUS"
+fi
+
+if [[ "$SITE3_STATUS" =~ ^(200|302|301)$ ]]; then
+    print_status "✅ Theory of Conspiracies site is working - HTTP $SITE3_STATUS"
+else
+    print_warning "⚠️  Theory of Conspiracies site returned HTTP $SITE3_STATUS"
 fi
 
 echo ""
@@ -1941,9 +2283,9 @@ echo "✓ Fixed PHP extension detection - consistent php8.3 usage"
 echo "✓ Resolved Composer autoloader corruption issues"  
 echo "✓ Removed invalid cache.backend.null service references"
 echo "✓ Updated development.services.yml configurations"
-echo "✓ Ensured both sites are properly installed via Drush"
+echo "✓ Ensured all three sites are properly installed via Drush"
 echo "✓ Enabled all custom modules with proper dependency order"
-echo "✓ Configured custom themes for both sites"
+echo "✓ Configured custom themes for all sites"
 echo "✓ Cleaned cache configuration from all settings files"
 echo "✓ Rebuilt Composer autoloaders with optimization"
 echo "✓ Cleared PHP container cache directories"
@@ -1954,7 +2296,8 @@ print_status "COMPLETE ENVIRONMENT SETUP SUMMARY:"
 echo "===================================="
 print_status "✅ Drupal Multi-site Environment Ready"
 print_status "   • St. Louis Integration: http://localhost"
-print_status "   • Theory of Conspiracies: http://localhost:8080"
+print_status "   • Forseti: http://localhost:8080"
+print_status "   • Theory of Conspiracies: http://localhost:8081"
 print_status "✅ H3 Geolocation Data Pipeline Ready"
 print_status "   • Database: theoryofconspiracies_dev"
 print_status "   • Tables: Raw → Transform → Final layers"
@@ -1964,5 +2307,5 @@ print_status "   • PHP 8.3, MySQL, Apache, Composer"
 print_status "   • Drush, custom modules, themes"
 echo ""
 print_status "🚀 Environment is now fully configured and verified!"
-print_status "🚀 Both Drupal sites should be accessible and functional!"
+print_status "🚀 All three Drupal sites should be accessible and functional!"
 print_status "📊 H3 data pipeline ready for execution!"
