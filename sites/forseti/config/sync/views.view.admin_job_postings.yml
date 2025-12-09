@@ -1,0 +1,93 @@
+uuid: 028c0873-83fe-4afd-b3dc-b433a4d85ca5
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.job_posting
+    - system.menu.admin
+  module:
+    - node
+    - user
+id: admin_job_postings
+label: 'Admin: Job Postings'
+module: views
+description: 'Administrative view for managing job posting records'
+tag: job_application_automation
+base_table: node_field_data
+base_field: nid
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'Job Postings Administration'
+      access:
+        type: perm
+        options:
+          perm: 'edit any job_posting content'
+      filters:
+        status:
+          id: status
+          table: node_field_data
+          field: status
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: status
+          plugin_id: boolean
+          operator: '='
+          value: '1'
+          group: 1
+          exposed: false
+        type:
+          id: type
+          table: node_field_data
+          field: type
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: type
+          plugin_id: bundle
+          operator: in
+          value:
+            job_posting: job_posting
+          group: 1
+          exposed: false
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_interface'
+        - url.query_args
+        - 'user.node_grants:view'
+        - user.permissions
+      tags: {  }
+  page_1:
+    id: page_1
+    display_title: Page
+    display_plugin: page
+    position: 1
+    display_options:
+      display_extenders: {  }
+      path: admin/content/job-postings
+      menu:
+        type: normal
+        title: 'Job Postings'
+        description: 'Manage job posting records'
+        weight: 1
+        expanded: false
+        menu_name: admin
+        parent: system.admin_content
+        context: '0'
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_interface'
+        - url.query_args
+        - 'user.node_grants:view'
+        - user.permissions
+      tags: {  }

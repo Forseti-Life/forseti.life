@@ -1,0 +1,24 @@
+uuid: 07aa2208-dd34-411c-921e-57a436d16e70
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_job_posting_ref
+    - node.type.error_queue
+    - node.type.job_posting
+id: node.error_queue.field_job_posting_ref
+field_name: field_job_posting_ref
+entity_type: node
+bundle: error_queue
+label: 'Job Posting'
+description: 'Reference to job posting if applicable'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      job_posting: job_posting
+field_type: entity_reference

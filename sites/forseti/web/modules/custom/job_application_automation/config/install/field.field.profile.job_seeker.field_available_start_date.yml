@@ -1,0 +1,21 @@
+uuid: 53de25bd-ec77-4639-862c-9e1691746674
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_available_start_date
+    - profile.type.job_seeker
+  module:
+    - datetime
+    - user
+id: profile.job_seeker.field_available_start_date
+field_name: field_available_start_date
+entity_type: profile
+bundle: job_seeker
+label: 'Available Start Date'
+description: 'Earliest date you can start work'
+required: false
+translatable: true
+default_value: {  }
+settings: {  }
+field_type: datetime

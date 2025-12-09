@@ -1,0 +1,21 @@
+uuid: e103b447-2119-40e1-9454-1593b751da8d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_automated
+    - node.type.application
+id: node.application.field_automated
+field_name: field_automated
+entity_type: node
+bundle: application
+label: 'Automated Application'
+description: 'Whether application was automated or manual'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

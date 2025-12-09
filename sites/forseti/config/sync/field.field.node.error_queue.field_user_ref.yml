@@ -1,0 +1,21 @@
+uuid: 5134582d-6626-4add-8f98-688786fb9a0a
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_user_ref
+    - node.type.error_queue
+id: node.error_queue.field_user_ref
+field_name: field_user_ref
+entity_type: node
+bundle: error_queue
+label: 'Affected User'
+description: 'Reference to affected user'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings: {  }
+field_type: entity_reference

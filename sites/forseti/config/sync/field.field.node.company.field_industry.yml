@@ -1,0 +1,21 @@
+uuid: e6672763-1a0a-4c9f-9e3a-7dea8afb3507
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_industry
+    - node.type.company
+  module:
+    - options
+id: node.company.field_industry
+field_name: field_industry
+entity_type: node
+bundle: company
+label: 'Industry Category'
+description: 'Primary industry classification'
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

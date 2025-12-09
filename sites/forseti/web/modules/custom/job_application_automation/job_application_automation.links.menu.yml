@@ -1,0 +1,41 @@
+job_application_automation.admin:
+  title: 'Job Application Dashboard'
+  route_name: job_application_automation.dashboard
+  description: 'Master dashboard for job application automation management'
+  parent: system.admin_content
+  weight: 50
+
+job_application_automation.main_nav:
+  title: 'Job Dashboard'
+  route_name: job_application_automation.dashboard
+  description: 'Access job application management dashboard'
+  parent: system.admin
+  weight: 25
+
+job_application_automation.companies:
+  title: 'Companies'
+  route_name: view.job_application_companies.page_1
+  description: 'Manage companies for job applications'
+  parent: job_application_automation.admin
+  weight: 0
+
+job_application_automation.job_postings:
+  title: 'Job Postings'
+  route_name: view.job_application_job_postings.page_1
+  description: 'Manage job postings'
+  parent: job_application_automation.admin
+  weight: 1
+
+job_application_automation.applications:
+  title: 'Applications'
+  route_name: view.job_application_applications.page_1
+  description: 'Manage job applications'
+  parent: job_application_automation.admin
+  weight: 2
+
+job_application_automation.issues:
+  title: 'Issues'
+  route_name: view.job_application_issues.page_1
+  description: 'Manage system errors'
+  parent: job_application_automation.admin
+  weight: 3

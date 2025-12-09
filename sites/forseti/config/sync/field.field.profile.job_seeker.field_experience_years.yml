@@ -1,0 +1,20 @@
+uuid: 35ea0a58-353f-4338-97f3-5017384a0182
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_experience_years
+    - profile.type.job_seeker
+  module:
+    - user
+id: profile.job_seeker.field_experience_years
+field_name: field_experience_years
+entity_type: profile
+bundle: job_seeker
+label: 'Years of Experience'
+description: 'Total years of professional experience'
+required: false
+translatable: true
+default_value: {  }
+settings: {}
+field_type: integer

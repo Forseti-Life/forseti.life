@@ -1,0 +1,23 @@
+uuid: 4eca8885-9e2d-4e4b-891c-d7c8b6eab11d
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_linkedin_url
+    - profile.type.job_seeker
+  module:
+    - link
+    - user
+id: profile.job_seeker.field_linkedin_url
+field_name: field_linkedin_url
+entity_type: profile
+bundle: job_seeker
+label: 'LinkedIn Profile URL'
+description: 'Your LinkedIn profile URL'
+required: false
+translatable: true
+default_value: {  }
+settings:
+  title: 1
+  link_type: 16
+field_type: link

@@ -1,0 +1,23 @@
+uuid: e8e37bbd-6ce8-4d50-b12d-c386a19bce1c
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - stlouisintegration
+id: stlouisintegration_branding
+theme: stlouisintegration
+region: navbar_branding
+weight: -10
+provider: null
+plugin: system_branding_block
+settings:
+  id: system_branding_block
+  label: 'Site branding'
+  label_display: '0'
+  provider: system
+  use_site_logo: true
+  use_site_name: false
+  use_site_slogan: false
+visibility: {  }

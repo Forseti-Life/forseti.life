@@ -1,0 +1,19 @@
+uuid: cfdfdcfb-0b1a-45b3-a31c-72ac480c1e72
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_assigned_admin
+field_name: field_assigned_admin
+entity_type: node
+type: entity_reference
+settings:
+  target_type: node
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

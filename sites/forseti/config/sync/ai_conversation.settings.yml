@@ -1,0 +1,11 @@
+_core:
+  default_config_hash: iyMeNsFwWQCgDC0KWTcl_mHWG_kCn1uG10S2-wYoGj0
+aws_access_key_id: ''
+aws_secret_access_key: ''
+aws_region: us-west-2
+aws_model: 'anthropic.claude-3-5-sonnet-20240620-v1:0'
+max_tokens: 4000
+max_recent_messages: 20
+summary_frequency: 10
+max_tokens_before_summary: 6000
+debug_logging: false

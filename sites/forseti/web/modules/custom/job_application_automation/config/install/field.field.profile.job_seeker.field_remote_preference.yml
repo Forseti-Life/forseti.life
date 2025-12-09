@@ -1,0 +1,21 @@
+uuid: 6df74b55-b011-4585-891e-a991d30954b4
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_remote_preference
+    - profile.type.job_seeker
+  module:
+    - options
+    - user
+id: profile.job_seeker.field_remote_preference
+field_name: field_remote_preference
+entity_type: profile
+bundle: job_seeker
+label: 'Remote Work Preference'
+description: 'Your preference for remote work arrangements'
+required: false
+translatable: true
+default_value: {  }
+settings: {  }
+field_type: list_string

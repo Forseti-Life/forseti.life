@@ -1,0 +1,28 @@
+uuid: 55ee069f-7252-4007-9018-238875677e78
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.resume.body
+    - node.type.resume
+  module:
+    - text
+    - user
+id: node.resume.default
+targetEntityType: node
+bundle: resume
+mode: default
+content:
+  body:
+    type: text_default
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    weight: 101
+    region: content
+  links:
+    settings: {  }
+    third_party_settings: {  }
+    weight: 100
+    region: content
+hidden: {  }

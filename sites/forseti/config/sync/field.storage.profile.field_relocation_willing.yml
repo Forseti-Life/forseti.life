@@ -1,0 +1,18 @@
+uuid: 14e82b20-4b45-4c23-813a-3bf7488a4998
+langcode: en
+status: true
+dependencies:
+  module:
+    - profile
+id: profile.field_relocation_willing
+field_name: field_relocation_willing
+entity_type: profile
+type: boolean
+settings: {  }
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

@@ -1,0 +1,19 @@
+uuid: 0006057a-6e07-4f54-b3f2-9d471e628b92
+langcode: en
+status: true
+dependencies:
+  module:
+    - text
+    - profile
+id: profile.field_skills_summary
+field_name: field_skills_summary
+entity_type: profile
+type: text_long
+settings: {  }
+module: text
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

@@ -1,0 +1,14 @@
+# Local development services.
+parameters:
+  http.response.debug_cacheability_headers: true
+  twig.config:
+    debug: true
+    auto_reload: true
+    cache: false
+services:
+  logger.channel.config_schema:
+    parent: logger.channel_base
+    arguments: [ 'config_schema' ]
+  config.schema_checker:
+    class: Drupal\Core\Config\Development\LenientConfigSchemaChecker
+    arguments: [ '@config.typed', '@config.storage.schema' ]

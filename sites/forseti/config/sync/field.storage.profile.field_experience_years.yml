@@ -1,0 +1,20 @@
+uuid: 3065fcac-075f-429a-bcb4-b8d2d1f0291f
+langcode: en
+status: true
+dependencies:
+  module:
+    - profile
+id: profile.field_experience_years
+field_name: field_experience_years
+entity_type: profile
+type: integer
+settings:
+  unsigned: false
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

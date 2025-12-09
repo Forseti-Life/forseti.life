@@ -1,0 +1,206 @@
+uuid: f8f96378-e8dc-4294-bc40-0355cb0d790e
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.profile.job_seeker.field_available_start_date
+    - field.field.profile.job_seeker.field_certifications
+    - field.field.profile.job_seeker.field_cover_letter_template
+    - field.field.profile.job_seeker.field_education_level
+    - field.field.profile.job_seeker.field_experience_years
+    - field.field.profile.job_seeker.field_github_url
+    - field.field.profile.job_seeker.field_keywords_interested
+    - field.field.profile.job_seeker.field_linkedin_url
+    - field.field.profile.job_seeker.field_portfolio_url
+    - field.field.profile.job_seeker.field_professional_summary
+    - field.field.profile.job_seeker.field_references_available
+    - field.field.profile.job_seeker.field_relocation_willing
+    - field.field.profile.job_seeker.field_remote_preference
+    - field.field.profile.job_seeker.field_resume_file
+    - field.field.profile.job_seeker.field_salary_expectation_max
+    - field.field.profile.job_seeker.field_salary_expectation_min
+    - field.field.profile.job_seeker.field_skills_summary
+    - field.field.profile.job_seeker.field_target_companies
+    - field.field.profile.job_seeker.field_target_job_titles
+    - field.field.profile.job_seeker.field_work_authorization
+    - profile.type.job_seeker
+  module:
+    - datetime
+    - file
+    - link
+    - options
+    - text
+id: profile.job_seeker.default
+targetEntityType: profile
+bundle: job_seeker
+mode: default
+content:
+  field_professional_summary:
+    type: text_default
+    label: above
+    settings: { }
+    third_party_settings: { }
+    weight: 1
+    region: content
+  field_resume_file:
+    type: file_default
+    label: above
+    settings:
+      use_description_as_link_text: true
+    third_party_settings: { }
+    weight: 2
+    region: content
+  field_experience_years:
+    type: number_integer
+    label: above
+    settings:
+      thousand_separator: ''
+      prefix_suffix: true
+    third_party_settings: { }
+    weight: 3
+    region: content
+  field_education_level:
+    type: list_default
+    label: above
+    settings: { }
+    third_party_settings: { }
+    weight: 4
+    region: content
+  field_skills_summary:
+    type: text_default
+    label: above
+    settings: { }
+    third_party_settings: { }
+    weight: 5
+    region: content
+  field_certifications:
+    type: text_default
+    label: above
+    settings: { }
+    third_party_settings: { }
+    weight: 6
+    region: content
+  field_remote_preference:
+    type: list_default
+    label: above
+    settings: { }
+    third_party_settings: { }
+    weight: 7
+    region: content
+  field_relocation_willing:
+    type: boolean
+    label: above
+    settings:
+      format: default
+      format_custom_false: ''
+      format_custom_true: ''
+    third_party_settings: { }
+    weight: 8
+    region: content
+  field_work_authorization:
+    type: list_default
+    label: above
+    settings: { }
+    third_party_settings: { }
+    weight: 9
+    region: content
+  field_available_start_date:
+    type: datetime_default
+    label: above
+    settings:
+      timezone_override: ''
+      format_type: medium
+    third_party_settings: { }
+    weight: 10
+    region: content
+  field_salary_expectation_min:
+    type: number_integer
+    label: above
+    settings:
+      thousand_separator: ','
+      prefix_suffix: true
+    third_party_settings: { }
+    weight: 11
+    region: content  
+  field_salary_expectation_max:
+    type: number_integer
+    label: above
+    settings:
+      thousand_separator: ','
+      prefix_suffix: true
+    third_party_settings: { }
+    weight: 12
+    region: content
+  field_linkedin_url:
+    type: link
+    label: above
+    settings:
+      trim_length: 80
+      url_only: false
+      url_plain: false
+      rel: ''
+      target: ''
+    third_party_settings: { }
+    weight: 13
+    region: content
+  field_github_url:
+    type: link
+    label: above
+    settings:
+      trim_length: 80
+      url_only: false
+      url_plain: false
+      rel: ''
+      target: ''
+    third_party_settings: { }
+    weight: 14
+    region: content
+  field_portfolio_url:
+    type: link
+    label: above
+    settings:
+      trim_length: 80
+      url_only: false
+      url_plain: false
+      rel: ''
+      target: ''
+    third_party_settings: { }
+    weight: 15
+    region: content
+  field_target_job_titles:
+    type: text_default
+    label: above
+    settings: { }
+    third_party_settings: { }
+    weight: 16
+    region: content
+  field_target_companies:
+    type: entity_reference_label
+    label: above
+    settings:
+      link: true
+    third_party_settings: { }
+    weight: 17
+    region: content
+  field_keywords_interested:
+    type: text_default
+    label: above
+    settings: { }
+    third_party_settings: { }
+    weight: 18
+    region: content
+  field_references_available:
+    type: boolean
+    label: above
+    settings:
+      format: default
+      format_custom_false: ''
+      format_custom_true: ''
+    third_party_settings: { }
+    weight: 19
+    region: content
+hidden:
+  field_ai_analysis_data: true
+  field_cover_letter_template: true
+  field_last_profile_update: true
+  field_profile_completeness: true

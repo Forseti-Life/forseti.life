@@ -1,0 +1,20 @@
+uuid: 89f0bcd2-8602-4395-afe4-4a28cecc40af
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_profile_completeness
+    - profile.type.job_seeker
+  module:
+    - user
+id: profile.job_seeker.field_profile_completeness
+field_name: field_profile_completeness
+entity_type: profile
+bundle: job_seeker
+label: 'Profile Completeness'
+description: 'Profile completion percentage (system calculated)'
+required: false
+translatable: true
+default_value: {  }
+settings: {}
+field_type: integer

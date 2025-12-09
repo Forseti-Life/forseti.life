@@ -1,0 +1,192 @@
+uuid: e8f96378-e8dc-4294-bc40-0355cb0d790e
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.profile.job_seeker.field_available_start_date
+    - field.field.profile.job_seeker.field_certifications
+    - field.field.profile.job_seeker.field_cover_letter_template
+    - field.field.profile.job_seeker.field_education_level
+    - field.field.profile.job_seeker.field_experience_years
+    - field.field.profile.job_seeker.field_github_url
+    - field.field.profile.job_seeker.field_keywords_interested
+    - field.field.profile.job_seeker.field_linkedin_url
+    - field.field.profile.job_seeker.field_portfolio_url
+    - field.field.profile.job_seeker.field_professional_summary
+    - field.field.profile.job_seeker.field_references_available
+    - field.field.profile.job_seeker.field_relocation_willing
+    - field.field.profile.job_seeker.field_remote_preference
+    - field.field.profile.job_seeker.field_resume_file
+    - field.field.profile.job_seeker.field_salary_expectation_max
+    - field.field.profile.job_seeker.field_salary_expectation_min
+    - field.field.profile.job_seeker.field_skills_summary
+    - field.field.profile.job_seeker.field_target_job_titles
+    - field.field.profile.job_seeker.field_work_authorization
+    - profile.type.job_seeker
+  module:
+    - datetime
+    - file
+    - link
+    - options
+    - text
+id: profile.job_seeker.default
+targetEntityType: profile
+bundle: job_seeker
+mode: default
+content:
+  field_professional_summary:
+    type: text_textarea
+    weight: 1
+    region: content
+    settings:
+      rows: 5
+      placeholder: 'Brief overview of your professional background and career objectives...'
+    third_party_settings: {  }
+  field_resume_file:
+    type: file_generic
+    weight: 2
+    region: content
+    settings:
+      progress_indicator: throbber
+    third_party_settings: {  }
+  field_experience_years:
+    type: number
+    weight: 3
+    region: content
+    settings:
+      placeholder: 'Enter number of years'
+      prefix: null
+      suffix: ' years'
+    third_party_settings: {  }
+  field_education_level:
+    type: options_select
+    weight: 4
+    region: content
+    settings: { }
+    third_party_settings: {  }
+  field_skills_summary:
+    type: text_textarea
+    weight: 5
+    region: content
+    settings:
+      rows: 3
+      placeholder: 'Key skills and technologies...'
+    third_party_settings: {  }
+  field_certifications:
+    type: text_textarea
+    weight: 6
+    region: content
+    settings:
+      rows: 3
+      placeholder: 'Professional certifications and credentials...'
+    third_party_settings: {  }
+  field_remote_preference:
+    type: options_select
+    weight: 7
+    region: content
+    settings: { }
+    third_party_settings: {  }
+  field_relocation_willing:
+    type: boolean_checkbox
+    weight: 8
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  field_work_authorization:
+    type: options_select
+    weight: 9
+    region: content
+    settings: { }
+    third_party_settings: {  }
+  field_available_start_date:
+    type: datetime_default
+    weight: 10
+    region: content
+    settings: { }
+    third_party_settings: {  }
+  field_salary_expectation_min:
+    type: number
+    weight: 11
+    region: content
+    settings:
+      placeholder: 'Minimum expected salary'
+      prefix: '$'
+      suffix: null
+    third_party_settings: {  }
+  field_salary_expectation_max:
+    type: number
+    weight: 12
+    region: content
+    settings:
+      placeholder: 'Maximum expected salary'
+      prefix: '$'
+      suffix: null
+    third_party_settings: {  }
+  field_linkedin_url:
+    type: link_default
+    weight: 13
+    region: content
+    settings:
+      placeholder_url: 'https://linkedin.com/in/yourprofile'
+      placeholder_title: 'LinkedIn Profile'
+    third_party_settings: {  }
+  field_github_url:
+    type: link_default
+    weight: 14
+    region: content
+    settings:
+      placeholder_url: 'https://github.com/yourusername'
+      placeholder_title: 'GitHub Profile'
+    third_party_settings: {  }
+  field_portfolio_url:
+    type: link_default
+    weight: 15
+    region: content
+    settings:
+      placeholder_url: 'https://yourportfolio.com'
+      placeholder_title: 'Portfolio Website'
+    third_party_settings: {  }
+  field_target_job_titles:
+    type: text_textarea
+    weight: 16
+    region: content
+    settings:
+      rows: 2
+      placeholder: 'Job titles you are interested in...'
+    third_party_settings: {  }
+  field_keywords_interested:
+    type: text_textarea
+    weight: 18
+    region: content
+    settings:
+      rows: 2
+      placeholder: 'Keywords related to roles you are interested in...'
+    third_party_settings: {  }
+  field_references_available:
+    type: boolean_checkbox
+    weight: 19
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  field_cover_letter_template:
+    type: text_textarea
+    weight: 20
+    region: content
+    settings:
+      rows: 8
+      placeholder: 'Your customizable cover letter template...'
+    third_party_settings: {  }
+hidden:
+  field_ai_analysis_data: true
+  field_last_profile_update: true
+  field_profile_completeness:
+    type: number
+    weight: 100
+    region: content
+    settings:
+      placeholder: ''
+      prefix: null
+      suffix: null
+    third_party_settings: {  }

@@ -1,0 +1,21 @@
+uuid: a2d5b670-27e7-42db-a115-3bc6bc3e927a
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_fixed
+    - node.type.error_queue
+id: node.error_queue.field_fixed
+field_name: field_fixed
+entity_type: node
+bundle: error_queue
+label: Fixed
+description: 'Simple checkbox for MVP queue management'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  on_label: 'On'
+  off_label: 'Off'
+field_type: boolean

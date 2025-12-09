@@ -1,0 +1,22 @@
+uuid: 207c349b-f06d-4128-9879-0736f78240af
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_requirements
+    - node.type.job_posting
+  module:
+    - text
+id: node.job_posting.field_requirements
+field_name: field_requirements
+entity_type: node
+bundle: job_posting
+label: 'Job Requirements'
+description: 'Job requirements and qualifications'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

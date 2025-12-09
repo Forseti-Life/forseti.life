@@ -1,0 +1,79 @@
+{#
+/**
+ * @file
+ * Theme override to display the front page with animated header.
+ */
+#}
+
+{{ attach_library('stlouisintegration/animated-header') }}
+
+<div class="page-wrapper">
+  {# Animated Header Section #}
+  <div id="large-header" class="large-header home-header">
+    <canvas id="demo-canvas"></canvas>
+    <h1 class="main-title">
+      <span class="highlight">St. Louis</span> <span class="thin">Integration</span>
+    </h1>
+    <p class="main-subtitle">
+      Transforming businesses through AI, automation, and digital innovation across Financial Services, Healthcare, and Energy sectors.
+    </p>
+    <div class="hero-cta">
+      <a href="/services" class="btn btn-primary">Our Services</a>
+      <a href="/contact" class="btn btn-outline-light">Contact Us</a>
+      <a href="https://thetruthperspective.org" class="btn btn-primary" target="_blank" rel="noopener">GenAI News Demo</a>
+    </div>
+  </div>
+
+  {# Navigation and Header #}
+  {% if page.navbar_branding or page.navbar_left or page.navbar_right %}
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container">
+        {% if page.navbar_branding %}
+          {{ page.navbar_branding }}
+        {% endif %}
+        
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="navbarNav">
+          {% if page.navbar_left %}
+            {{ page.navbar_left }}
+          {% endif %}
+          
+          {% if page.navbar_right %}
+            <div class="ms-auto">
+              {{ page.navbar_right }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </nav>
+  {% endif %}
+
+  {# Main Content #}
+  <main class="main-content">
+    {% if page.header %}
+      <div class="header-region">
+        <div class="container">
+          {{ page.header }}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="container">
+      <div class="row">
+        <div class="col">
+          {% if page.content %}
+            {{ page.content }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </main>
+
+  {# Footer #}
+  {% if page.footer %}
+    {{ page.footer }}
+  {% endif %}
+</div>

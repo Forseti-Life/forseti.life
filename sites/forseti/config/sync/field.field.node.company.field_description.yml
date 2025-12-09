@@ -1,0 +1,22 @@
+uuid: e1c04cad-566f-49ca-a4f3-2ea1518ba401
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_description
+    - node.type.company
+  module:
+    - text
+id: node.company.field_description
+field_name: field_description
+entity_type: node
+bundle: company
+label: 'Company Description'
+description: 'Detailed company description and overview'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

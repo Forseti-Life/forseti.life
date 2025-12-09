@@ -1,0 +1,93 @@
+uuid: c5d08b47-42b3-42b6-8c27-a4c3b07d7f1e
+langcode: en
+status: true
+dependencies:
+  config:
+    - node.type.error_queue
+    - system.menu.admin
+  module:
+    - node
+    - user
+id: admin_error_queue
+label: 'Admin: Error Queue'
+module: views
+description: 'Administrative view for managing error queue items'
+tag: job_application_automation
+base_table: node_field_data
+base_field: nid
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'Error Queue Administration'
+      access:
+        type: perm
+        options:
+          perm: 'manage error queue'
+      filters:
+        status:
+          id: status
+          table: node_field_data
+          field: status
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: status
+          plugin_id: boolean
+          operator: '='
+          value: '1'
+          group: 1
+          exposed: false
+        type:
+          id: type
+          table: node_field_data
+          field: type
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: type
+          plugin_id: bundle
+          operator: in
+          value:
+            error_queue: error_queue
+          group: 1
+          exposed: false
+      display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_interface'
+        - url.query_args
+        - 'user.node_grants:view'
+        - user.permissions
+      tags: {  }
+  page_1:
+    id: page_1
+    display_title: Page
+    display_plugin: page
+    position: 1
+    display_options:
+      display_extenders: {  }
+      path: admin/content/error-queue
+      menu:
+        type: normal
+        title: 'Error Queue'
+        description: 'Manage system error queue items'
+        weight: 3
+        expanded: false
+        menu_name: admin
+        parent: system.admin_content
+        context: '0'
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_interface'
+        - url.query_args
+        - 'user.node_grants:view'
+        - user.permissions
+      tags: {  }

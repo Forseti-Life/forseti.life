@@ -1,0 +1,24 @@
+uuid: 38341bdc-4fc8-493e-81ae-a44e853cf725
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - stlouisintegration
+id: stlouisintegration_pagetitle
+theme: stlouisintegration
+region: header
+weight: 0
+provider: null
+plugin: page_title_block
+settings:
+  id: page_title_block
+  label: 'Page title'
+  label_display: '0'
+  provider: core
+visibility:
+  request_path:
+    id: request_path
+    negate: true
+    pages: "/node/15\r\n<front>"

@@ -1,0 +1,22 @@
+uuid: 4f2f7907-9a67-49c5-897d-1aa816cebf30
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_tailored_resume
+    - node.type.job_posting
+  module:
+    - text
+id: node.job_posting.field_tailored_resume
+field_name: field_tailored_resume
+entity_type: node
+bundle: job_posting
+label: 'Tailored Resume'
+description: 'AI-generated tailored resume for this job posting'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

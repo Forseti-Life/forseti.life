@@ -1,0 +1,19 @@
+uuid: 9efcb6af-b6f1-4131-abff-747fd6f27402
+langcode: en
+status: true
+dependencies:
+  module:
+    - link
+    - profile
+id: profile.field_portfolio_url
+field_name: field_portfolio_url
+entity_type: profile
+type: link
+settings: {  }
+module: link
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

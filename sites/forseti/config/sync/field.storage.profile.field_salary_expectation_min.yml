@@ -1,0 +1,20 @@
+uuid: babe7cf6-aea1-4657-9715-80c58892b295
+langcode: en
+status: true
+dependencies:
+  module:
+    - profile
+id: profile.field_salary_expectation_min
+field_name: field_salary_expectation_min
+entity_type: profile
+type: integer
+settings:
+  unsigned: false
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

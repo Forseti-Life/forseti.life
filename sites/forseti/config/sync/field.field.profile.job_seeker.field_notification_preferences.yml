@@ -1,0 +1,22 @@
+uuid: 7882d726-f08b-4ea1-ab8b-f4f76dfbcfd2
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_notification_preferences
+    - profile.type.job_seeker
+  module:
+    - text
+    - user
+id: profile.job_seeker.field_notification_preferences
+field_name: field_notification_preferences
+entity_type: profile
+bundle: job_seeker
+label: 'Notification Preferences'
+description: 'JSON storage for notification settings (system use)'
+required: false
+translatable: true
+default_value: {  }
+settings:
+  allowed_formats: {  }
+field_type: text_long

@@ -1,0 +1,32 @@
+# Local tasks (tabs) for user profile pages
+entity.user.canonical:
+  title: 'View'
+  route_name: entity.user.canonical
+  base_route: entity.user.canonical
+  weight: -10
+
+entity.user.edit_form:
+  title: 'Edit'
+  route_name: entity.user.edit_form
+  base_route: entity.user.canonical
+  weight: 0
+
+job_application_automation.user_job_seeker_view:
+  title: 'Job Seeker Profile'
+  route_name: job_application_automation.user_job_seeker_view
+  base_route: entity.user.canonical
+  weight: 10
+
+# Job Discovery tab
+job_application_automation.start_job_discovery_tab:
+  title: 'AI Job Discovery'
+  route_name: job_application_automation.start_job_discovery
+  base_route: entity.user.canonical
+  weight: 15
+
+# Additional tab for editing job seeker profile if it exists
+job_application_automation.user_profile_dashboard:
+  title: 'Job Profile Dashboard'
+  route_name: job_application_automation.user_profile_dashboard
+  base_route: entity.user.canonical
+  weight: 20

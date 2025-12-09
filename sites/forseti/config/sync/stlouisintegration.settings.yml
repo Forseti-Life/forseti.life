@@ -1,0 +1,11 @@
+favicon:
+  path: ''
+  use_default: false
+features:
+  comment_user_picture: true
+  comment_user_verification: true
+  favicon: false
+  node_user_picture: true
+logo:
+  path: themes/custom/stlouisintegration/src/assets/images/logo.png
+  use_default: false

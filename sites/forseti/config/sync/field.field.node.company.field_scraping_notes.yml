@@ -1,0 +1,22 @@
+uuid: ad962d2d-6515-43ab-8d6a-955f93556a47
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_scraping_notes
+    - node.type.company
+  module:
+    - text
+id: node.company.field_scraping_notes
+field_name: field_scraping_notes
+entity_type: node
+bundle: company
+label: 'Scraping Configuration Notes'
+description: 'Admin notes for scraping configuration and requirements'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

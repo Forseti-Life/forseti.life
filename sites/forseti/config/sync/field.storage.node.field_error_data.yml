@@ -1,0 +1,19 @@
+uuid: 3dcb0d2e-3c74-4388-827c-1c7a6b15f242
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - text
+id: node.field_error_data
+field_name: field_error_data
+entity_type: node
+type: text_long
+settings: {  }
+module: text
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

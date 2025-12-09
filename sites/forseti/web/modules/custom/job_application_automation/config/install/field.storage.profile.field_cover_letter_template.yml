@@ -1,0 +1,19 @@
+uuid: f0c039db-9e6a-4aa4-babd-8342c0d53d2b
+langcode: en
+status: true
+dependencies:
+  module:
+    - text
+    - profile
+id: profile.field_cover_letter_template
+field_name: field_cover_letter_template
+entity_type: profile
+type: text_long
+settings: {  }
+module: text
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

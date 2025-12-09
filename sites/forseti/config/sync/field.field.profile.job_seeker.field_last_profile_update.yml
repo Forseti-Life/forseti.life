@@ -1,0 +1,21 @@
+uuid: 9e868613-c2d7-4c32-a3b3-b8f85a7c4b78
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_last_profile_update
+    - profile.type.job_seeker
+  module:
+    - datetime
+    - user
+id: profile.job_seeker.field_last_profile_update
+field_name: field_last_profile_update
+entity_type: profile
+bundle: job_seeker
+label: 'Last Profile Update'
+description: 'Last time profile was updated (system managed)'
+required: false
+translatable: true
+default_value: {  }
+settings: {  }
+field_type: datetime

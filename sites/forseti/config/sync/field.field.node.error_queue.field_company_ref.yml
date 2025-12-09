@@ -1,0 +1,24 @@
+uuid: 022f8c3c-f315-4a28-9674-e32c01a745f0
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_company_ref
+    - node.type.company
+    - node.type.error_queue
+id: node.error_queue.field_company_ref
+field_name: field_company_ref
+entity_type: node
+bundle: error_queue
+label: Company
+description: 'Reference to company node'
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      company: company
+field_type: entity_reference

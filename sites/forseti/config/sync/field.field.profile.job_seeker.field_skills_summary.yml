@@ -1,0 +1,22 @@
+uuid: 2c838584-2313-4dad-aeac-fde70a17fc55
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_skills_summary
+    - profile.type.job_seeker
+  module:
+    - text
+    - user
+id: profile.job_seeker.field_skills_summary
+field_name: field_skills_summary
+entity_type: profile
+bundle: job_seeker
+label: 'Skills Summary'
+description: 'Overview of your technical and professional skills'
+required: false
+translatable: true
+default_value: {  }
+settings:
+  allowed_formats: {  }
+field_type: text_long
