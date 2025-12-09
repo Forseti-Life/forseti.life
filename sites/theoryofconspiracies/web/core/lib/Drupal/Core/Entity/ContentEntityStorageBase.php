@@ -47,6 +47,13 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
   protected $cacheBackend;
 
   /**
+   * Stores the latest revision IDs for entities.
+   *
+   * @var array
+   */
+  protected $latestRevisionIds = [];
+
+  /**
    * Constructs a ContentEntityStorageBase object.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
@@ -1217,18 +1224,6 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
         $this->cacheBackend->deleteAll();
       }
     }
-  }
-
-  /**
-   * Warns about deprecated/removed properties.
-   */
-  public function __get(string $name): mixed {
-    if ($name === 'latestRevisionIds') {
-      @trigger_error('Getting the static cache of latest revision IDs is deprecated in drupal:11.2.5 and is removed from drupal:12.0.0. You can retrieve it from the \'entity.memory_cache\' service instead. See https://www.drupal.org/node/3535160', E_USER_DEPRECATED);
-      return [];
-    }
-
-    return $this->$name ?? NULL;
   }
 
 }
