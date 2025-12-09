@@ -1,0 +1,52 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Forseti Safety Content module.
+ */
+
+use Drupal\block\Entity\Block;
+
+/**
+ * Implements hook_install().
+ */
+function forseti_safety_content_install() {
+  // Create main menu block in header region.
+  $block_storage = \Drupal::entityTypeManager()->getStorage('block');
+  
+  // Check if block already exists.
+  $existing_block = $block_storage->load('forseti_main_menu');
+  if (!$existing_block) {
+    $block = $block_storage->create([
+      'id' => 'forseti_main_menu',
+      'theme' => 'forseti',
+      'region' => 'header',
+      'weight' => -10,
+      'plugin' => 'system_menu_block:main',
+      'settings' => [
+        'label' => 'Main navigation',
+        'label_display' => '0',
+        'level' => 1,
+        'depth' => 0,
+      ],
+    ]);
+    $block->save();
+    \Drupal::messenger()->addStatus(t('Main navigation menu has been placed in the header region.'));
+  }
+  
+  // Rebuild menu links.
+  \Drupal::service('plugin.manager.menu.link')->rebuild();
+  
+  \Drupal::messenger()->addStatus(t('Forseti Safety Content module installed successfully. Visit /home to see the homepage.'));
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function forseti_safety_content_uninstall() {
+  // Remove the main menu block.
+  $block = Block::load('forseti_main_menu');
+  if ($block) {
+    $block->delete();
+  }
+}
