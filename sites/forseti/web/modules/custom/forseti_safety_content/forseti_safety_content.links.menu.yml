@@ -1,9 +1,3 @@
-forseti.home:
-  title: 'Home'
-  route_name: forseti.home
-  menu_name: main
-  weight: -50
-
 forseti.about:
   title: 'About'
   route_name: forseti.about
