@@ -1,18 +1,18 @@
-/* User AI Conversations Block Styles */
+/* User AI Conversations Block Styles - Forseti Theme */
 
 .user-ai-conversations {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+  background: #1a1a2e;
+  border: 1px solid rgba(0, 212, 255, 0.3);
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
 }
 
 .conversations-title {
-  color: #495057;
+  color: #00d4ff;
   margin-top: 0;
   margin-bottom: 20px;
-  border-bottom: 2px solid #dee2e6;
+  border-bottom: 2px solid rgba(0, 212, 255, 0.3);
   padding-bottom: 10px;
 }
 
@@ -22,8 +22,8 @@
 }
 
 .conversation-item {
-  background: white;
-  border: 1px solid #dee2e6;
+  background: #16213e;
+  border: 1px solid rgba(0, 212, 255, 0.2);
   border-radius: 6px;
   padding: 15px;
   margin-bottom: 15px;
@@ -31,7 +31,8 @@
 }
 
 .conversation-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 212, 255, 0.3);
+  border-color: #00d4ff;
 }
 
 .conversation-item:last-child {
@@ -51,7 +52,7 @@
 }
 
 .conversation-title .chat-link {
-  color: #007bff;
+  color: #00d4ff;
   text-decoration: none;
   font-size: 1.1em;
   font-weight: 600;
@@ -59,19 +60,19 @@
 }
 
 .conversation-title .chat-link:hover {
-  color: #0056b3;
+  color: #33e0ff;
   text-decoration: underline;
 }
 
 .conversation-meta {
   font-size: 0.85em;
-  color: #6c757d;
+  color: #b0b0b0;
   margin-left: 15px;
   white-space: nowrap;
 }
 
 .conversation-preview {
-  color: #6c757d;
+  color: #e0e0e0;
   font-style: italic;
   margin-bottom: 10px;
   font-size: 0.9em;
@@ -86,11 +87,11 @@
 }
 
 .stat-item {
-  color: #495057;
+  color: #e0e0e0;
 }
 
 .stat-item strong {
-  color: #007bff;
+  color: #00d4ff;
 }
 
 .conversation-actions {
