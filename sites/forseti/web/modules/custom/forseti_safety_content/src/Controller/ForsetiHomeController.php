@@ -51,8 +51,8 @@ class ForsetiHomeController extends ControllerBase {
             </p>
             
             <div class="cta-buttons">
-              <a href="/amisafe/crime-map" class="btn btn-light btn-lg">View Safety Map</a>
-              <a href="/amisafe/download" class="btn btn-outline-light btn-lg">Get AmISafe App</a>
+              <a href="/safety-map" class="btn btn-light btn-lg">View Safety Map</a>
+              <a href="/mobile-app" class="btn btn-outline-light btn-lg">Get AmISafe App</a>
             </div>
           </div>
         </div>

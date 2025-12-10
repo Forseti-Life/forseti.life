@@ -27,7 +27,7 @@ forseti.how_it_works:
 forseti.safety_map:
   path: '/safety-map'
   defaults:
-    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::safetyMap'
+    _controller: '\Drupal\amisafe\Controller\CrimeMapController::map'
     _title: 'Philadelphia Safety Map'
   requirements:
     _permission: 'access content'
@@ -43,7 +43,7 @@ forseti.community:
 forseti.mobile_app:
   path: '/mobile-app'
   defaults:
-    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::mobileApp'
+    _controller: '\Drupal\amisafe\Controller\MobileDownloadController::downloadPage'
     _title: 'AmISafe Mobile App'
   requirements:
     _permission: 'access content'

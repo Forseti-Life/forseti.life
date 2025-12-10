@@ -250,8 +250,8 @@ class ForsetiPagesController extends ControllerBase {
             </div>
             
             <div class="text-center mt-5">
-              <a href="/amisafe/crime-map" class="btn btn-primary btn-lg me-3">Explore Safety Map</a>
-              <a href="/amisafe/download" class="btn btn-outline-primary btn-lg">Get Mobile App</a>
+              <a href="/safety-map" class="btn btn-primary btn-lg me-3">Explore Safety Map</a>
+              <a href="/mobile-app" class="btn btn-outline-primary btn-lg">Get Mobile App</a>
             </div>
           </div>
         </div>
@@ -332,7 +332,7 @@ class ForsetiPagesController extends ControllerBase {
           </div>
           
           <div class="text-center mt-4">
-            <a href="/amisafe/download" class="btn btn-primary">Get Early Access via AmISafe App</a>
+            <a href="/mobile-app" class="btn btn-primary">Get Early Access via AmISafe App</a>
           </div>
         </div>
       </div>
@@ -386,7 +386,7 @@ class ForsetiPagesController extends ControllerBase {
                   <div class="card-body">
                     <h5 class="card-title">1. Download AmISafe</h5>
                     <p class="card-text">Get our mobile app for real-time alerts and on-the-go safety information.</p>
-                    <a href="/amisafe/download" class="btn btn-primary">Get the App</a>
+                    <a href="/mobile-app" class="btn btn-primary">Get the App</a>
                   </div>
                 </div>
               </div>
