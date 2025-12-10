@@ -182,15 +182,15 @@ class ForsetiHomeController extends ControllerBase {
     $build['cta_section'] = [
       '#type' => 'markup',
       '#markup' => '
-        <div class="container my-5 py-5 text-center">
-          <h2 class="mb-4">Join the Movement for Safer Communities</h2>
-          <p class="lead mb-4">
+        <div class="container my-3 py-3 text-center">
+          <h2 class="mb-3">Join the Movement for Safer Communities</h2>
+          <p class="mb-3">
             Together, we can make Philadelphia a safer place for everyone.
           </p>
-          <div class="d-flex gap-3 justify-content-center flex-wrap">
-            <a href="/community" class="btn btn-primary btn-lg">Join Community</a>
-            <a href="/how-it-works" class="btn btn-outline-primary btn-lg">Learn More</a>
-            <a href="/contact" class="btn btn-outline-secondary btn-lg">Contact Us</a>
+          <div class="d-flex gap-2 justify-content-center flex-wrap">
+            <a href="/community" class="btn btn-primary">Join Community</a>
+            <a href="/how-it-works" class="btn btn-outline-primary">Learn More</a>
+            <a href="/contact" class="btn btn-outline-secondary">Contact Us</a>
           </div>
         </div>
       ',
