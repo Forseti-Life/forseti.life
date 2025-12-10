@@ -147,9 +147,19 @@
       p1.closest = closest;
     }
 
-    // Assign hexagon to each point
+    // Assign hexagon to each point with status colors
     for(var i in points) {
-      var c = new Circle(points[i], 9+Math.random()*9, 'rgba(0,212,255,0.3)');
+      // Distribute colors: 80% safe (cyan), 19% caution (orange), 1% danger (red)
+      var rand = Math.random();
+      var color;
+      if (rand < 0.80) {
+        color = 'rgba(0,212,255,0.3)'; // Safe - cyan
+      } else if (rand < 0.99) {
+        color = 'rgba(255,152,0,0.3)'; // Caution - orange
+      } else {
+        color = 'rgba(244,67,54,0.3)'; // Danger - red
+      }
+      var c = new Circle(points[i], 9+Math.random()*9, color);
       points[i].circle = c;
     }
   }
@@ -276,9 +286,16 @@
         }
       }
       ctx.closePath();
-      ctx.fillStyle = 'rgba(0,212,255,'+ _this.active+')';
+      // Extract RGB from stored color and apply active opacity
+      var colorMatch = _this.color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (colorMatch) {
+        ctx.fillStyle = 'rgba(' + colorMatch[1] + ',' + colorMatch[2] + ',' + colorMatch[3] + ',' + _this.active + ')';
+        ctx.strokeStyle = 'rgba(' + colorMatch[1] + ',' + colorMatch[2] + ',' + colorMatch[3] + ',' + (_this.active * 0.5) + ')';
+      } else {
+        ctx.fillStyle = 'rgba(0,212,255,'+ _this.active+')';
+        ctx.strokeStyle = 'rgba(0,212,255,'+ (_this.active * 0.5)+')';
+      }
       ctx.fill();
-      ctx.strokeStyle = 'rgba(0,212,255,'+ (_this.active * 0.5)+')';
       ctx.lineWidth = 1;
       ctx.stroke();
     };
