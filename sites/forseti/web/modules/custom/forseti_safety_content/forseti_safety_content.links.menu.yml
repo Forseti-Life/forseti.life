@@ -16,9 +16,10 @@ forseti.how_it_works:
   menu_name: main
   weight: -30
 
-forseti.safety_map:
+# Use amisafe crime map instead of forseti safety map
+amisafe.crime_map_menu:
   title: 'Safety Map'
-  route_name: forseti.safety_map
+  route_name: amisafe.crime_map
   menu_name: main
   weight: -20
 
@@ -28,9 +29,10 @@ forseti.community:
   menu_name: main
   weight: -10
 
-forseti.mobile_app:
+# Use amisafe mobile download instead of forseti mobile app
+amisafe.mobile_app_menu:
   title: 'Mobile App'
-  route_name: forseti.mobile_app
+  route_name: amisafe.mobile_download
   menu_name: main
   weight: 0
 

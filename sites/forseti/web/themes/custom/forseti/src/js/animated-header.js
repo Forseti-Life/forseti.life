@@ -1,6 +1,6 @@
 /**
- * Animated Particle Background for St. Louis Integration
- * Enhanced with rotating favicon elements
+ * Animated Hexagonal Particle Background for Forseti Life
+ * Enhanced with rotating hex-themed elements
  */
 
 (function() {
@@ -73,9 +73,18 @@
       try {
         ctx.drawImage(faviconImage, -icon.size/2, -icon.size/2, icon.size, icon.size);
       } catch(e) {
-        // Fallback: draw a rotating square if favicon fails
+        // Fallback: draw a rotating hexagon if favicon fails
         ctx.fillStyle = 'rgba(0, 212, 255, 0.3)';
-        ctx.fillRect(-icon.size/2, -icon.size/2, icon.size, icon.size);
+        ctx.beginPath();
+        for(var h = 0; h < 6; h++) {
+          var hexAngle = (Math.PI / 3) * h;
+          var hx = (icon.size/2) * Math.cos(hexAngle);
+          var hy = (icon.size/2) * Math.sin(hexAngle);
+          if(h === 0) ctx.moveTo(hx, hy);
+          else ctx.lineTo(hx, hy);
+        }
+        ctx.closePath();
+        ctx.fill();
       }
       
       ctx.restore();
@@ -138,9 +147,9 @@
       p1.closest = closest;
     }
 
-    // Assign circle to each point
+    // Assign hexagon to each point
     for(var i in points) {
-      var c = new Circle(points[i], 2+Math.random()*2, 'rgba(255,255,255,0.3)');
+      var c = new Circle(points[i], 3+Math.random()*3, 'rgba(255,255,255,0.3)');
       points[i].circle = c;
     }
   }
@@ -254,10 +263,24 @@
 
     this.draw = function() {
       if(!_this.active) return;
+      // Draw hexagon instead of circle
       ctx.beginPath();
-      ctx.arc(_this.pos.x, _this.pos.y, _this.radius, 0, 2 * Math.PI, false);
+      for(var i = 0; i < 6; i++) {
+        var angle = (Math.PI / 3) * i;
+        var x = _this.pos.x + _this.radius * Math.cos(angle);
+        var y = _this.pos.y + _this.radius * Math.sin(angle);
+        if(i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.closePath();
       ctx.fillStyle = 'rgba(0,212,255,'+ _this.active+')';
       ctx.fill();
+      ctx.strokeStyle = 'rgba(0,212,255,'+ (_this.active * 0.5)+')';
+      ctx.lineWidth = 1;
+      ctx.stroke();
     };
   }
 
