@@ -74,10 +74,280 @@ Named after the Norse god of justice and peaceful resolution, Forseti represents
 - No sale or sharing of personal data
 - Transparent data usage policies
 
+## Style Guide
+
+### Brand Identity
+**Forseti Life** - AI-powered community safety with a focus on vigilance, transparency, and justice.
+
+### Color Palette
+
+#### Primary Colors
+```css
+--primary-cyan: #00d4ff;        /* Forseti cyan - primary brand color */
+--primary-cyan-dark: #0099cc;   /* Darker cyan for hover states */
+--primary-cyan-light: #33e0ff;  /* Lighter cyan for highlights */
+```
+
+#### Background Colors
+```css
+--dark-bg: #1a1a2e;            /* Primary dark background */
+--dark-bg-alt: #16213e;        /* Alternate dark background */
+--dark-bg-light: #2a2a3e;      /* Lighter dark for cards/sections */
+```
+
+#### Neutral Colors
+```css
+--text-primary: #ffffff;        /* Primary text on dark backgrounds */
+--text-secondary: #e0e0e0;      /* Secondary text */
+--text-muted: #b0b0b0;         /* Muted/disabled text */
+--border-color: rgba(0, 212, 255, 0.3);  /* Borders with cyan tint */
+```
+
+#### Status Colors
+```css
+--status-safe: #4caf50;        /* Safe/positive status */
+--status-caution: #ff9800;     /* Warning/caution status */
+--status-danger: #f44336;      /* Danger/alert status */
+```
+
+### Typography
+
+#### Font Stack
+```css
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 
+             "Helvetica Neue", Arial, sans-serif;
+```
+
+#### Headings
+- **H1**: 2.5rem (40px), font-weight: 700, letter-spacing: -0.02em
+- **H2**: 2rem (32px), font-weight: 600, letter-spacing: -0.01em
+- **H3**: 1.5rem (24px), font-weight: 600
+- **H4**: 1.25rem (20px), font-weight: 600
+- **H5**: 1rem (16px), font-weight: 600
+- **H6**: 0.875rem (14px), font-weight: 600, text-transform: uppercase
+
+#### Body Text
+- **Base**: 1rem (16px), line-height: 1.6
+- **Small**: 0.875rem (14px), line-height: 1.5
+- **Large**: 1.125rem (18px), line-height: 1.7
+
+### Design Patterns
+
+#### Gradients
+```css
+/* Hero/Header gradient - dark to cyan */
+background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #00d4ff 100%);
+
+/* Card gradient - subtle dark variation */
+background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+
+/* Overlay gradient - for depth */
+background: radial-gradient(circle at 20% 50%, rgba(0, 212, 255, 0.1) 0%, transparent 50%);
+```
+
+#### Shadows
+```css
+/* Subtle shadow */
+box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+/* Card shadow */
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+/* Elevated shadow */
+box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+
+/* Cyan glow effect */
+box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+
+/* Hover glow */
+box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+```
+
+#### Border Radius
+```css
+--radius-sm: 0.25rem (4px);    /* Small elements */
+--radius-md: 0.5rem (8px);     /* Buttons, inputs */
+--radius-lg: 1rem (16px);      /* Cards, panels */
+--radius-xl: 1.5rem (24px);    /* Hero sections */
+--radius-full: 50%;            /* Circular elements */
+```
+
+### UI Components
+
+#### Buttons
+```css
+/* Primary Button */
+.btn-primary {
+  background: linear-gradient(45deg, #00d4ff, #0099cc);
+  color: #ffffff;
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+}
+
+/* Secondary Button */
+.btn-secondary {
+  background: transparent;
+  color: #00d4ff;
+  border: 2px solid #00d4ff;
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(0, 212, 255, 0.1);
+  transform: translateY(-2px);
+}
+```
+
+#### Cards
+```css
+.card {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 1rem;
+  padding: 2rem;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  border-color: rgba(0, 212, 255, 0.4);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+```
+
+#### Status Badges
+```css
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.status-safe {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.status-caution {
+  background: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.status-danger {
+  background: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+```
+
+### H3 Hexagonal Theme
+
+Forseti uses H3 geospatial hexagonal grid system throughout the design:
+
+- **Particle Animations**: Hexagons instead of circles in animated backgrounds
+- **Icons**: Hexagonal icon frames and borders
+- **Data Visualization**: Crime maps using H3 hexagonal tiles
+- **UI Elements**: Hexagonal accents in cards and status indicators
+
+#### Hexagon CSS
+```css
+.hexagon {
+  clip-path: polygon(
+    50% 0%, 
+    100% 25%, 
+    100% 75%, 
+    50% 100%, 
+    0% 75%, 
+    0% 25%
+  );
+}
+```
+
+### Animation Guidelines
+
+#### Transitions
+```css
+/* Standard transition */
+transition: all 0.3s ease;
+
+/* Smooth hover effect */
+transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+/* Staggered animations */
+animation-delay: calc(var(--index) * 0.1s);
+```
+
+#### Pulse Effect (for status indicators)
+```css
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+```
+
+### Accessibility Guidelines
+
+- **Contrast Ratio**: Minimum 4.5:1 for normal text, 3:1 for large text
+- **Focus States**: Visible focus indicators with cyan outline
+- **Keyboard Navigation**: All interactive elements accessible via keyboard
+- **Screen Readers**: Proper ARIA labels and semantic HTML
+- **Color Independence**: Don't rely solely on color to convey information
+
+### Responsive Breakpoints
+
+```css
+/* Mobile first approach */
+--breakpoint-sm: 576px;   /* Small devices (phones) */
+--breakpoint-md: 768px;   /* Medium devices (tablets) */
+--breakpoint-lg: 992px;   /* Large devices (desktops) */
+--breakpoint-xl: 1200px;  /* Extra large devices */
+--breakpoint-xxl: 1400px; /* Extra extra large devices */
+```
+
+### Icon System
+
+- **Primary Library**: Font Awesome 6 or Bootstrap Icons
+- **Custom Icons**: SVG format, optimized for web
+- **Icon Colors**: Use cyan (#00d4ff) for primary icons
+- **Icon Sizes**: 16px, 24px, 32px, 48px, 64px
+
+### Implementation Files
+
+- **Main CSS**: `/modules/custom/forseti_safety_content/css/forseti-pages.css`
+- **Theme CSS**: `/themes/custom/forseti/build/css/main.style.css`
+- **Animated Header**: `/themes/custom/forseti/src/js/animated-header.js`
+- **SCSS Variables**: `/themes/custom/forseti/src/scss/base/_variables.scss`
+
+---
+
 ## Technical Details
 
 ### Platform
-- **CMS:** Drupal 10
+- **CMS:** Drupal 11
 - **Server:** Apache 2.4+ with mod_rewrite
 - **Database:** MySQL 8.0+ / MariaDB 10.5+
 - **PHP:** 8.1+ (8.3 recommended)
