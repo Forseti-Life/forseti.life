@@ -46,13 +46,31 @@
 {{ attach_library('forseti/animated-header') }}
 
 <div class="page-wrapper">
-  {# Simplified Header Section for non-front pages #}
-  <div id="large-header" class="large-header page-header">
-    <canvas id="demo-canvas"></canvas>
-    <h1 class="main-title main-title--simple">
-      <span class="highlight">Forseti</span> <span class="thin">Life</span>
-    </h1>
-  </div>
+  {# Animated Header Section - Full height for front page, simplified for other pages #}
+  {% set current_path = path('<current>') %}
+  {% if is_front or current_path == '/home' %}
+    <div id="large-header" class="large-header home-header">
+      <canvas id="demo-canvas"></canvas>
+      <h1 class="main-title">
+        <span class="highlight">Forseti</span> <span class="thin">Life</span>
+      </h1>
+      <p class="main-subtitle">
+        AI-Powered Safety Monitoring for Philadelphia - Building Safer Communities Through Intelligence
+      </p>
+      <div class="hero-cta">
+        <a href="/safety-map" class="btn btn-primary">View Safety Map</a>
+        <a href="/how-it-works" class="btn btn-outline-light">How It Works</a>
+        <a href="/mobile-app" class="btn btn-primary">Get AmISafe App</a>
+      </div>
+    </div>
+  {% else %}
+    <div id="large-header" class="large-header page-header">
+      <canvas id="demo-canvas"></canvas>
+      <h1 class="main-title main-title--simple">
+        <span class="highlight">Forseti</span> <span class="thin">Life</span>
+      </h1>
+    </div>
+  {% endif %}
 
   {# Navigation and Header #}
   {% if page.navbar_branding or page.navbar_left or page.navbar_right %}
