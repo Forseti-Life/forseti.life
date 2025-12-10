@@ -1,0 +1,80 @@
+/* Forseti Theme - Standardized Styling */
+
+/* Text Colors */
+.text-cyan { color: #00d4ff !important; }
+.text-muted-light { color: #e0e0e0 !important; }
+.text-muted-gray { color: #b0b0b0 !important; }
+.text-danger-custom { color: #f44336 !important; }
+.text-warning-custom { color: #ff9800 !important; }
+.text-yellow-custom { color: #fdd835 !important; }
+
+/* Background Colors */
+.bg-dark-primary { background-color: #1a1a2e !important; }
+.bg-dark-alt { background-color: #16213e !important; }
+
+/* Card Styling */
+.card-forseti {
+  background: #16213e;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.card-forseti h4,
+.card-forseti h5 {
+  color: #00d4ff;
+}
+
+/* Alert Styling */
+.alert-emergency {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid #f44336;
+  color: #f44336;
+}
+
+.alert-info-cyan {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid #00d4ff;
+  color: #00d4ff;
+}
+
+/* Link Colors */
+a.link-cyan {
+  color: #00d4ff;
+  text-decoration: none;
+}
+
+a.link-cyan:hover {
+  color: #33dcff;
+  text-decoration: underline;
+}
+
+/* Accordion Forseti Theme */
+.accordion-forseti .accordion-item {
+  background: #16213e;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  margin-bottom: 10px;
+}
+
+.accordion-forseti .accordion-button {
+  background: #16213e;
+  color: #00d4ff;
+  border: none;
+}
+
+.accordion-forseti .accordion-button:not(.collapsed) {
+  background: #1a1a2e;
+  color: #00d4ff;
+}
+
+.accordion-forseti .accordion-button:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 212, 255, 0.25);
+}
+
+.accordion-forseti .accordion-button::after {
+  filter: brightness(0) saturate(100%) invert(68%) sepia(82%) saturate(1974%) hue-rotate(156deg);
+}
+
+.accordion-forseti .accordion-body {
+  background: #1a1a2e;
+  color: #e0e0e0;
+  border-top: 1px solid rgba(0, 212, 255, 0.2);
+}
