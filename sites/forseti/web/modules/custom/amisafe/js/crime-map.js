@@ -982,119 +982,119 @@
         zScore = Math.log10(Math.max(1, incidentCount));
       }
       
-      // Color gradient based on z-score from -1 (green) to 11+ (red)
-      // 18-grade gradient for fine-grained visualization
+      // Color gradient based on z-score using Forseti theme colors
+      // Cyan (safe) → Orange (caution) → Red (danger)
       let fillColor, borderColor;
       let fillOpacity = 0.6;
       
       if (zScore >= 11.0) {
         // Z ≥ 11: EXTREME DANGER - Darkest Red
-        fillColor = '#8B0000';  // Dark red
-        borderColor = '#FF0000';
+        fillColor = '#b71c1c';  // Dark red
+        borderColor = '#f44336';
         fillOpacity = 0.95;
       } else if (zScore >= 10.0) {
         // Z 10-11: EXTREME HIGH - Very Dark Red
-        fillColor = '#A50000';  // Very dark red
-        borderColor = '#FF0000';
+        fillColor = '#c62828';  // Very dark red
+        borderColor = '#f44336';
         fillOpacity = 0.92;
       } else if (zScore >= 9.0) {
-        // Z 9-10: CRITICAL - Crimson
-        fillColor = '#DC143C';  // Crimson
-        borderColor = '#FF1493';
+        // Z 9-10: CRITICAL - Red
+        fillColor = '#d32f2f';  // Red
+        borderColor = '#f44336';
         fillOpacity = 0.88;
       } else if (zScore >= 8.0) {
-        // Z 8-9: VERY HIGH - Bright Crimson
-        fillColor = '#E8253C';  // Bright crimson
-        borderColor = '#FF4444';
+        // Z 8-9: VERY HIGH - Bright Red
+        fillColor = '#f44336';  // Forseti danger red
+        borderColor = '#ff5252';
         fillOpacity = 0.85;
       } else if (zScore >= 7.0) {
-        // Z 7-8: HIGH - Bright Red
-        fillColor = '#FF0000';  // Red
-        borderColor = '#FF4500';
+        // Z 7-8: HIGH - Red/Orange blend
+        fillColor = '#ff5252';  // Bright red
+        borderColor = '#ff6e40';
         fillOpacity = 0.82;
       } else if (zScore >= 6.0) {
         // Z 6-7: HIGH ELEVATED - Red-Orange
-        fillColor = '#FF2400';  // Scarlet
-        borderColor = '#FF5500';
+        fillColor = '#ff6e40';  // Red-orange
+        borderColor = '#ff9800';
         fillOpacity = 0.78;
       } else if (zScore >= 5.0) {
-        // Z 5-6: ELEVATED HIGH - Orange-Red
-        fillColor = '#FF4500';  // Orange-red
-        borderColor = '#FF6347';
+        // Z 5-6: ELEVATED HIGH - Deep Orange
+        fillColor = '#ff7043';  // Orange-red
+        borderColor = '#ff9800';
         fillOpacity = 0.75;
       } else if (zScore >= 4.0) {
-        // Z 4-5: ELEVATED - Red-Orange
-        fillColor = '#FF6600';  // Red-orange
-        borderColor = '#FF7700';
+        // Z 4-5: ELEVATED - Orange (Forseti caution)
+        fillColor = '#ff9800';  // Forseti caution orange
+        borderColor = '#ffb74d';
         fillOpacity = 0.72;
       } else if (zScore >= 3.0) {
-        // Z 3-4: MODERATE-HIGH - Dark Orange
-        fillColor = '#FF8C00';  // Dark orange
-        borderColor = '#FFA500';
+        // Z 3-4: MODERATE-HIGH - Light Orange
+        fillColor = '#ffa726';  // Light orange
+        borderColor = '#ffcc80';
         fillOpacity = 0.68;
       } else if (zScore >= 2.0) {
-        // Z 2-3: MODERATE - Orange
-        fillColor = '#FFA500';  // Orange
-        borderColor = '#FFB833';
+        // Z 2-3: MODERATE - Amber
+        fillColor = '#ffb74d';  // Amber
+        borderColor = '#ffe082';
         fillOpacity = 0.65;
       } else if (zScore >= 1.0) {
-        // Z 1-2: MODERATE LOW - Yellow-Orange
-        fillColor = '#FFB000';  // Yellow-orange
-        borderColor = '#FFC800';
+        // Z 1-2: MODERATE LOW - Orange/Cyan transition
+        fillColor = '#26c6da';  // Light cyan
+        borderColor = '#4dd0e1';
         fillOpacity = 0.62;
       } else if (zScore >= 0.5) {
-        // Z 0.5-1: SLIGHTLY ELEVATED - Light Orange
-        fillColor = '#FFC800';  // Gold
-        borderColor = '#FFD700';
+        // Z 0.5-1: SLIGHTLY ELEVATED - Cyan
+        fillColor = '#00bcd4';  // Cyan
+        borderColor = '#4dd0e1';
         fillOpacity = 0.58;
       } else if (zScore >= 0) {
-        // Z 0-0.5: SLIGHTLY ABOVE AVERAGE - Yellow
-        fillColor = '#FFFF00';  // Yellow
-        borderColor = '#FFFF66';
+        // Z 0-0.5: SLIGHTLY ABOVE AVERAGE - Forseti Cyan
+        fillColor = '#00d4ff';  // Forseti primary cyan
+        borderColor = '#33e0ff';
         fillOpacity = 0.55;
       } else if (zScore >= -0.5) {
-        // Z -0.5 to 0: NEAR AVERAGE - Yellow-Green
-        fillColor = '#CCFF00';  // Yellow-green
-        borderColor = '#DDFF44';
+        // Z -0.5 to 0: NEAR AVERAGE - Bright Cyan
+        fillColor = '#33e0ff';  // Light cyan
+        borderColor = '#66e8ff';
         fillOpacity = 0.52;
       } else if (zScore >= -1.0) {
-        // Z -1 to -0.5: BELOW AVERAGE - Light Green
-        fillColor = '#99FF00';  // Light lime
-        borderColor = '#AAFF33';
+        // Z -1 to -0.5: BELOW AVERAGE - Very Light Cyan
+        fillColor = '#66e8ff';  // Very light cyan
+        borderColor = '#99f0ff';
         fillOpacity = 0.48;
       } else if (zScore >= -1.5) {
-        // Z -1.5 to -1: LOW - Lime Green
-        fillColor = '#66FF00';  // Lime green
-        borderColor = '#77FF22';
+        // Z -1.5 to -1: LOW - Pale Cyan
+        fillColor = '#99f0ff';  // Pale cyan
+        borderColor = '#ccf7ff';
         fillOpacity = 0.45;
       } else if (zScore >= -2.0) {
-        // Z -2 to -1.5: VERY LOW - Green
-        fillColor = '#32CD32';  // Lime green
-        borderColor = '#44DD44';
+        // Z -2 to -1.5: VERY LOW - Faint Cyan
+        fillColor = '#0099cc';  // Forseti cyan dark
+        borderColor = '#33e0ff';
         fillOpacity = 0.42;
       } else {
-        // Z < -2: EXTREMELY LOW - Pure Green (safest)
-        fillColor = '#00FF00';  // Pure green
-        borderColor = '#32CD32';
+        // Z < -2: EXTREMELY LOW - Dark Cyan (safest)
+        fillColor = '#00acc1';  // Dark cyan
+        borderColor = '#26c6da';
         fillOpacity = 0.40;
       }
       
-      // Minimal mode override (green/cyan theme)
+      // Minimal mode override (Forseti cyan theme)
       if (this.minimalMode) {
         if (zScore >= 7.0) {
-          fillColor = '#00ff41';  // Bright green for extreme hotspots
+          fillColor = '#00d4ff';  // Forseti cyan for extreme hotspots
           fillOpacity = 0.9;
         } else if (zScore >= 3.0) {
-          fillColor = '#00dd33';
+          fillColor = '#26c6da';  // Light cyan
           fillOpacity = 0.7;
         } else if (zScore >= 0) {
-          fillColor = '#00bb22';
+          fillColor = '#4dd0e1';  // Pale cyan
           fillOpacity = 0.5;
         } else {
-          fillColor = '#008800';
+          fillColor = '#0099cc';  // Dark cyan (safe)
           fillOpacity = 0.3;
         }
-        borderColor = '#00ff41';
+        borderColor = '#00d4ff';
       }
       
       return {
