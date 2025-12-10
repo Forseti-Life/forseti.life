@@ -16,7 +16,7 @@ logger:
 
 # Core crime map library
 crime-map:
-  version: 8.3  # All API endpoints point to production stlouisintegration.com
+  version: 8.4  # Use local API endpoints to avoid CORS issues
   css:
     theme:
       css/crime-map.css: {}
