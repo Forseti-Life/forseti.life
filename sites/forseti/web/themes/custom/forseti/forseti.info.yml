@@ -1,6 +1,7 @@
 name: Forseti
 description: "AI-powered community safety platform for Philadelphia - Building a safer tomorrow through intelligent monitoring and community engagement"
 screenshot: screenshot.png
+logo: images/logos/forseti_navbar.png
 'alt text': 'Forseti Safety Community Platform'
 core_version_requirement: ^10.3 || ^11
 # version: '1.0'
