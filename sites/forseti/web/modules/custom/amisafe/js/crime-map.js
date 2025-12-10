@@ -665,7 +665,7 @@
         } else if (resolution === 5) {
           // Test if H3:5 data exists at all with minimal filters
           console.log('🧪 Testing if H3:5 data exists anywhere...');
-          const testUrl = '/api/amisafe/aggregated?resolution=5&limit=10';
+          const testUrl = 'https://stlouisintegration.com/api/amisafe/aggregated?resolution=5&limit=10';
           fetch(testUrl)
             .then(response => response.json())
             .then(testData => {
@@ -1380,7 +1380,7 @@
       });
       
       $.ajax({
-        url: '/api/amisafe/citywide-stats',
+        url: 'https://stlouisintegration.com/api/amisafe/citywide-stats',
         method: 'GET',
         dataType: 'json',
         timeout: 5000,
@@ -1499,7 +1499,7 @@
       
       // Load crime types
       $.ajax({
-        url: '/api/amisafe/crime-types',
+        url: 'https://stlouisintegration.com/api/amisafe/crime-types',
         method: 'GET',
         success: function(data) {
           // Handle API response format - extract crime_types array from response
@@ -1515,7 +1515,7 @@
       
       // Load districts
       $.ajax({
-        url: '/api/amisafe/districts',
+        url: 'https://stlouisintegration.com/api/amisafe/districts',
         method: 'GET',
         success: function(data) {
           // Handle API response format - extract districts array from response
@@ -1793,7 +1793,7 @@
       }
       
       $.ajax({
-        url: '/api/amisafe/incidents',
+        url: 'https://stlouisintegration.com/api/amisafe/incidents',
         method: 'GET',
         data: apiData,
         success: function(data) {
@@ -1849,7 +1849,7 @@
       }
 
       $.ajax({
-        url: '/api/amisafe/incidents',
+        url: 'https://stlouisintegration.com/api/amisafe/incidents',
         method: 'GET',
         data: apiData,
         success: function(data) {
