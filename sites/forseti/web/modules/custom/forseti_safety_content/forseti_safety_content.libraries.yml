@@ -1,0 +1,8 @@
+style:
+  version: 1.0
+  css:
+    theme:
+      css/forseti-pages.css: {}
+  dependencies:
+    - core/drupal
+    - forseti/style
