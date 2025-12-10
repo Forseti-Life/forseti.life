@@ -3,6 +3,19 @@
  * Unified styling for all Forseti content pages
  */
 
+/* === Override Animated Header Colors === */
+.large-header {
+  background: #1a1a2e !important;
+}
+
+.large-header.home-header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #00d4ff 100%) !important;
+}
+
+.large-header.page-header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #00d4ff 100%) !important;
+}
+
 /* === Hero Sections === */
 .safety-hero {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);

@@ -2,20 +2,20 @@
 .large-header {
   position: relative;
   width: 100%;
-  background: center center / cover rgb(51, 51, 51);
+  background: center center / cover #1a1a2e;
   overflow: hidden;
   z-index: 1;
   min-height: 60vh;
 }
 
 .large-header.home-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #00d4ff 100%);
   min-height: 80vh;
 }
 
 /* Simplified header for non-front pages */
 .large-header.page-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #00d4ff 100%);
   min-height: 25vh; /* Much shorter than home page */
 }
 
