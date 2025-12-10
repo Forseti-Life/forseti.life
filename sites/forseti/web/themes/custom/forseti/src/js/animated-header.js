@@ -149,7 +149,7 @@
 
     // Assign hexagon to each point
     for(var i in points) {
-      var c = new Circle(points[i], 3+Math.random()*3, 'rgba(0,212,255,0.3)');
+      var c = new Circle(points[i], 9+Math.random()*9, 'rgba(0,212,255,0.3)');
       points[i].circle = c;
     }
   }
