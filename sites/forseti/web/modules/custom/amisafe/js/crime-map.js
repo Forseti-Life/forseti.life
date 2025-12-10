@@ -750,7 +750,7 @@
      * Build API URL for hexagon data
      */
     buildApiUrl: function(resolution, bounds, filters) {
-      const baseUrl = '/api/amisafe/aggregated';
+      const baseUrl = 'https://stlouisintegration.com/api/amisafe/aggregated';
       const params = new URLSearchParams();
       
       // Add basic parameters
