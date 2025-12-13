@@ -46,7 +46,7 @@ $config['block.settings']['cache']['max_age'] = 0;
 $config['node.settings']['use_admin_theme'] = TRUE;
 
 // System caching disabled
-$config['system.site']['page']['front'] = '/node';
+$config['system.site']['page']['front'] = '/home';
 
 // Development settings
 $settings['extension_discovery_scan_tests'] = FALSE;
