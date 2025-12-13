@@ -18,6 +18,133 @@ Multiple Drupal websites in a shared development environment
 ./scripts/verify-setup.sh
 ```
 
+## 📚 Documentation
+
+### Comprehensive Documentation Hub
+
+**Location**: `/docs/`  
+**Status**: 🟢 Complete and Actively Maintained  
+**Last Updated**: December 13, 2024
+
+The `/docs/` directory contains comprehensive product, market, and technical documentation following Lean Startup methodology.
+
+#### Quick Links
+
+| Section | Status | Description | Quick Link |
+|---------|--------|-------------|------------|
+| **📋 Product Docs** | 🟢 Live Beta | Lean Startup product management | [View →](./docs/product/) |
+| **🎯 Process Flow** | 🟢 Complete | End-to-end validation roadmap | [View →](./docs/product/process-flow-validation.md) |
+| **👤 User Journey** | 🟢 Active | Sarah persona journey mapping | [View →](./docs/product/user-journey/) |
+| **📊 MVP Definition** | 🟢 Live Beta | Current MVP scope & features | [View →](./docs/product/mvp/) |
+| **🧪 Experiments** | 🟡 Ready | Hypothesis testing framework | [View →](./docs/product/experiments/) |
+| **📈 Metrics** | 🟡 Setup | AARRR analytics & dashboards | [View →](./docs/product/metrics/) |
+| **💬 Customer Dev** | 🟡 0/35 | Customer interviews & validation | [View →](./docs/product/customer-development/) |
+| **🎨 Lean Canvas** | 🟡 Draft | One-page business model | [View →](./docs/product/lean-canvas/) |
+| **🏪 Market Docs** | 🟡 Template | TAM/SAM/SOM & competitive analysis | [View →](./docs/market/) |
+| **🔧 Technical Docs** | 🟡 Organized | Architecture & API documentation | [View →](./docs/technical/) |
+
+#### Documentation Structure
+
+```
+docs/
+├── README.md                           # 🟢 Documentation hub with operations guide
+├── ARCHITECTURE.md                     # 🟢 Complete system architecture
+├── product/                            # 🟢 Lean Startup product management
+│   ├── README.md                       # Product documentation guide
+│   ├── process-flow-validation.md      # 🟢 End-to-end validation roadmap
+│   ├── lean-canvas/                    # 🟡 Business model (9 blocks)
+│   │   ├── README.md                   # Methodology guide
+│   │   └── forseti-lean-canvas.md      # Draft canvas
+│   ├── customer-development/           # 🟡 Customer discovery (0/35 interviews)
+│   │   ├── README.md                   # Process guide
+│   │   ├── customer-segments.md        # Personas
+│   │   ├── problem-validation.md       # Problem interviews
+│   │   ├── solution-validation.md      # Solution testing
+│   │   └── customer-interviews-log.md  # Interview tracking
+│   ├── experiments/                    # 🟡 Build-Measure-Learn
+│   │   ├── README.md                   # Experiment methodology
+│   │   ├── experiment-log.md           # Hypothesis tests
+│   │   └── pivot-decisions.md          # Pivot framework
+│   ├── metrics/                        # 🟡 AARRR analytics
+│   │   ├── README.md                   # Metrics philosophy
+│   │   ├── pirate-metrics.md           # Acquisition→Referral
+│   │   ├── cohort-analysis.md          # Retention tracking
+│   │   └── key-metrics-dashboard.md    # North Star & KPIs
+│   ├── mvp/                            # 🟢 Phase 4/5 Live Beta
+│   │   ├── README.md                   # MVP principles
+│   │   ├── mvp-definition.md           # Complete MVP spec
+│   │   └── feature-prioritization.md   # ICE/RICE scoring
+│   └── user-journey/                   # 🟢 Active journey mapping
+│       ├── README.md                   # Journey methodology
+│       └── sarah-urban-commuter.md     # Primary persona
+├── market/                             # 🟡 Market analysis
+│   ├── README.md                       # Market framework
+│   ├── market-sizing.md                # TAM/SAM/SOM
+│   ├── competitive-analysis.md         # Competitors
+│   ├── value-proposition.md            # Unique value
+│   └── go-to-market-strategy.md        # Acquisition plan
+└── technical/                          # 🟡 Technical specs
+    ├── README.md                       # Tech guide
+    ├── architecture.md                 # System links
+    ├── api-documentation.md            # API specs
+    ├── data-models.md                  # Database schemas
+    └── integration-guides.md           # Third-party integrations
+```
+
+#### Current MVP Status
+
+**Phase**: 🟢 Phase 4/5 - Live Beta Testing (December 2024)  
+**Target**: 500 users by March 2025  
+**Decision Point**: Pivot or Persevere (March 2025)
+
+**Success Criteria** (Minimum Thresholds):
+- ✅ Activation Rate: 40%+
+- ✅ Day 7 Retention: 20%+
+- ✅ Day 30 Retention: 10%+
+- ✅ Free-to-Paid Conversion: 2%+
+- ✅ NPS Score: 30+
+
+**Core Features** (All ✅ Implemented):
+1. Interactive Safety Map (H3 hexagons, z-scores)
+2. Background Location Monitoring (GPS tracking)
+3. Proactive Push Notifications (deep linking)
+4. User Authentication (Drupal + JWT)
+5. Premium Trial Management (7-day trial)
+6. Configurable Settings (threshold, cooldown)
+
+#### Key Documentation Highlights
+
+**🎯 Process Flow & Validation Roadmap**
+- Complete user journey → system component mapping
+- Validation checkpoints for every touchpoint
+- Testing strategy (unit, integration, E2E, load, UAT)
+- Pre-launch and post-launch checklists
+- System health monitoring metrics
+
+**👤 User Journey: Sarah (Urban Commuter)**
+- Discovery → Activation → Retention → Advocacy
+- Week-by-week usage patterns
+- Emotional journey mapping
+- Failure modes and risk mitigation
+- Success indicators at each stage
+
+**📊 Lean Startup Methodology**
+- Build-Measure-Learn cycle
+- Customer development (4 stages)
+- Innovation accounting (baseline → tune → pivot)
+- AARRR metrics (Pirate Metrics)
+- Product-market fit signals
+
+#### Documentation Principles
+
+1. **Architecture-First**: Comprehensive documentation before code
+2. **Living Documents**: Updated continuously as we learn
+3. **Status Visibility**: Clear indicators (🟢🟡🔴) throughout
+4. **Cross-Linked**: Related docs connected for easy navigation
+5. **Actionable**: Focused on decisions and learning, not just description
+
+---
+
 ## Recent Development Accomplishments
 
 ### **🎯 H3 Geolocation Ultra-Precision Pipeline (November 2025)**
