@@ -713,17 +713,7 @@ class ForsetiPagesController extends ControllerBase {
       '#markup' => '
             
             <div class="row mb-4">
-              <div class="col-md-4 mb-3">
-                <div class="card card-forseti h-100 text-center">
-                  <div class="card-body">
-                    <h4>📧 Email</h4>
-                    <p><a href="mailto:keith.aumiller@forseti.life" class="link-cyan">keith.aumiller@forseti.life</a></p>
-                    <p class="text-muted-gray">We respond within 24-48 hours</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="col-md-4 mb-3">
+              <div class="col-md-6 mb-3">
                 <div class="card card-forseti h-100 text-center">
                   <div class="card-body">
                     <h4>📍 Location</h4>
@@ -733,7 +723,7 @@ class ForsetiPagesController extends ControllerBase {
                 </div>
               </div>
               
-              <div class="col-md-4 mb-3">
+              <div class="col-md-6 mb-3">
                 <div class="card card-forseti h-100 text-center">
                   <div class="card-body">
                     <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon"> Support</h4>
