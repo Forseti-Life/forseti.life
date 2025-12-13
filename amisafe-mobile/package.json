@@ -1,7 +1,7 @@
 {
   "name": "amisafe-mobile",
   "version": "1.0.0",
-  "description": "AmISafe Mobile Application - Cross-platform crime safety app",
+  "description": "AmISafe by Forseti - AI-Powered Safety Monitoring for Philadelphia",
   "main": "index.js",
   "scripts": {
     "android": "react-native run-android",

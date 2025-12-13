@@ -13,7 +13,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Linking,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useBackgroundMonitoring } from '../../hooks/useBackgroundMonitoring';
 import StorageService from '../../services/storage/StorageService';
 
@@ -223,11 +225,50 @@ const SettingsScreen = () => {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🌐 Learn More</Text>
+        <Text style={styles.sectionDescription}>
+          Visit the Forseti website for more information
+        </Text>
+
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => Linking.openURL('https://forseti.life/about')}
+        >
+          <Icon name="information" size={20} color="#2196F3" style={styles.linkIcon} />
+          <Text style={styles.linkButtonText}>About Forseti</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => Linking.openURL('https://forseti.life/how-it-works')}
+        >
+          <Icon name="lightbulb-on" size={20} color="#2196F3" style={styles.linkIcon} />
+          <Text style={styles.linkButtonText}>How It Works</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => Linking.openURL('https://forseti.life/privacy')}
+        >
+          <Icon name="shield-check" size={20} color="#2196F3" style={styles.linkIcon} />
+          <Text style={styles.linkButtonText}>Privacy & Security</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => Linking.openURL('https://forseti.life/contact')}
+        >
+          <Icon name="email" size={20} color="#2196F3" style={styles.linkIcon} />
+          <Text style={styles.linkButtonText}>Contact Us</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>ℹ️ About</Text>
         <Text style={styles.aboutText}>
-          AmISafe monitors your location using H3 geospatial hexagons at
-          resolution 11 (~700m). Safety alerts are based on crime statistics
-          and z-scores calculated from historical incident data.
+          AmISafe is powered by Forseti, using H3 geospatial hexagons at
+          resolution 11 (~700m) to monitor your location. Safety alerts are based on 
+          crime statistics and z-scores calculated from historical incident data.
         </Text>
         <Text style={styles.aboutText}>
           All location data is stored locally on your device and is never
@@ -356,6 +397,24 @@ const styles = StyleSheet.create({
   },
   dangerButtonText: {
     color: '#f44336',
+  },
+  linkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    marginVertical: 4,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  linkIcon: {
+    marginRight: 12,
+  },
+  linkButtonText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#2196F3',
   },
   aboutText: {
     fontSize: 14,

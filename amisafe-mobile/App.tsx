@@ -89,7 +89,7 @@ const TabNavigator = () => {
       <Tab.Screen 
         name="Map" 
         component={MapScreen}
-        options={{ title: 'Crime Map' }}
+        options={{ title: 'Safety Map' }}
       />
       <Tab.Screen 
         name="Safety" 

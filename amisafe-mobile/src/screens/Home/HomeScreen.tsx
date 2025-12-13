@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  Linking,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -155,8 +156,8 @@ const HomeScreen: React.FC = () => {
     >
       {/* Header Section */}
       <View style={styles.header}>
-        <Text style={styles.welcomeText}>Welcome to AmISafe</Text>
-        <Text style={styles.subtitleText}>Stay informed, stay safe</Text>
+        <Text style={styles.welcomeText}>AmISafe by Forseti</Text>
+        <Text style={styles.subtitleText}>AI-Powered Safety Monitoring for Philadelphia</Text>
       </View>
 
       {/* Current Location Card */}
@@ -244,23 +245,56 @@ const HomeScreen: React.FC = () => {
         </View>
         <View style={styles.cardContent}>
           <View style={styles.actionsGrid}>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => Linking.openURL('https://forseti.life/safety-map')}
+            >
               <Icon name="map" size={32} color={Colors.primary} />
-              <Text style={styles.actionText}>View Map</Text>
+              <Text style={styles.actionText}>View Safety Map</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <Icon name="alert" size={32} color={Colors.warning} />
-              <Text style={styles.actionText}>Report Incident</Text>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => Linking.openURL('https://forseti.life/how-it-works')}
+            >
+              <Icon name="lightbulb-on" size={32} color={Colors.warning} />
+              <Text style={styles.actionText}>How It Works</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => Linking.openURL('tel:911')}
+            >
               <Icon name="phone" size={32} color={Colors.danger} />
-              <Text style={styles.actionText}>Emergency</Text>
+              <Text style={styles.actionText}>Emergency 911</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <Icon name="heart" size={32} color={Colors.success} />
-              <Text style={styles.actionText}>Safety Tips</Text>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => Linking.openURL('https://forseti.life/community')}
+            >
+              <Icon name="account-group" size={32} color={Colors.success} />
+              <Text style={styles.actionText}>Community</Text>
             </TouchableOpacity>
           </View>
+        </View>
+      </View>
+
+      {/* About Forseti Card */}
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <Icon name="information" size={24} color={Colors.primary} />
+          <Text style={styles.cardTitle}>About Forseti</Text>
+        </View>
+        <View style={styles.cardContent}>
+          <Text style={styles.aboutText}>
+            Forseti uses advanced AI and geospatial technology to help keep Philadelphia safe. 
+            Get real-time safety alerts based on your location and historical crime data.
+          </Text>
+          <TouchableOpacity 
+            style={styles.learnMoreButton}
+            onPress={() => Linking.openURL('https://forseti.life/about')}
+          >
+            <Text style={styles.learnMoreText}>Learn More</Text>
+            <Icon name="arrow-right" size={16} color={Colors.primary} />
+          </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
@@ -396,6 +430,24 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginTop: 8,
     textAlign: 'center',
+  },
+  aboutText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  learnMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  learnMoreText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.primary,
+    marginRight: 4,
   },
 });
 
