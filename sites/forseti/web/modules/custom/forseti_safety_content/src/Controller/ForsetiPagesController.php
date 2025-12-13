@@ -93,7 +93,7 @@ class ForsetiPagesController extends ControllerBase {
       <div class="container py-3">
         <div class="row">
           <div class="col-lg-8 mx-auto">
-            <h1 class="mb-3 text-cyan">About Forseti</h1>
+            <h1 class="text-center mb-3 text-cyan">About Forseti</h1>
             
             <div class="lead mb-4 text-muted-light">
               Forseti is an AI-powered community safety platform dedicated to making Philadelphia 
@@ -169,7 +169,7 @@ class ForsetiPagesController extends ControllerBase {
   private function getHowItWorksContent() {
     return '
       <div class="container py-3">
-        <h1 class="text-center mb-4 text-cyan">How Forseti Works</h1>
+        <h1 class="text-center mb-3 text-cyan">How Forseti Works</h1>
         
         <div class="row mb-4">
           <div class="col-lg-8 mx-auto">
@@ -547,7 +547,7 @@ class ForsetiPagesController extends ControllerBase {
       <div class="container py-3">
         <div class="row">
           <div class="col-lg-8 mx-auto">
-            <h1 class="mb-3 text-cyan">Privacy & Security</h1>
+            <h1 class="text-center mb-3 text-cyan">Privacy & Security</h1>
             
             <div class="alert alert-info-cyan">
               <h4 class="text-cyan">Our Commitment: Privacy First</h4>
@@ -769,7 +769,7 @@ class ForsetiPagesController extends ControllerBase {
       <div class="container py-3">
         <div class="row">
           <div class="col-lg-8 mx-auto">
-            <h1 class="mb-3 text-cyan">Safety Factors</h1>
+            <h1 class="text-center mb-3 text-cyan">Safety Factors</h1>
             
             <p class="lead mb-4 text-muted-light">
               Understanding safety through the lens of Maslow\'s Hierarchy of Needs - from foundational physical safety to higher-level security needs.
