@@ -33,12 +33,12 @@ class BackgroundLocationService {
   private isMonitoring: boolean = false;
   private currentH3Index: string | null = null;
   private lastNotificationTime: number = 0;
-  private notificationCooldown: number = 300000; // 5 minutes in milliseconds
+  private notificationCooldown: number = 300000; // 5 minutes in milliseconds (default)
+  private zScoreThreshold: number = 2.0; // Default threshold
   
   // Configuration
   private readonly H3_RESOLUTION = 11; // ~700m hexagons for notifications
-  private readonly Z_SCORE_THRESHOLD = 2.0; // Notify when z-score >= 2
-  private readonly API_BASE_URL = 'https://stlouisintegration.com';
+  private readonly API_BASE_URL = 'https://forseti.life';
   private readonly UPDATE_INTERVAL = 60000; // Check location every 60 seconds
   private readonly DISTANCE_FILTER = 50; // meters - minimum movement before update
 
@@ -76,6 +76,9 @@ class BackgroundLocationService {
     }
 
     try {
+      // Load user settings from storage
+      await this.loadUserSettings();
+
       // Initialize notification service
       await NotificationService.initialize();
 
@@ -102,12 +105,34 @@ class BackgroundLocationService {
       );
 
       console.log('✅ Background location monitoring started');
-      console.log(`📍 Monitoring H3 Resolution ${this.H3_RESOLUTION} with z-score threshold >= ${this.Z_SCORE_THRESHOLD}`);
+      console.log(`📍 Monitoring H3 Resolution ${this.H3_RESOLUTION} with z-score threshold >= ${this.zScoreThreshold}`);
 
     } catch (error) {
       console.error('❌ Failed to start background monitoring:', error);
       this.isMonitoring = false;
       throw error;
+    }
+  }
+
+  /**
+   * Load user settings from storage
+   */
+  private async loadUserSettings(): Promise<void> {
+    try {
+      const threshold = await StorageService.getData('z_score_threshold');
+      const cooldown = await StorageService.getData('notification_cooldown');
+
+      if (threshold !== null) {
+        this.zScoreThreshold = threshold;
+      }
+      
+      if (cooldown !== null) {
+        this.notificationCooldown = cooldown * 60000; // Convert minutes to milliseconds
+      }
+
+      console.log(`⚙️ Settings loaded - Z-Score: ${this.zScoreThreshold}, Cooldown: ${cooldown || 5}min`);
+    } catch (error) {
+      console.warn('Could not load user settings, using defaults:', error);
     }
   }
 
@@ -195,11 +220,11 @@ class BackgroundLocationService {
       // Check if z-score meets threshold for notification
       const zScore = hexagonData.incident_z_score || 0;
       
-      if (zScore >= this.Z_SCORE_THRESHOLD) {
+      if (zScore >= this.zScoreThreshold) {
         await this.sendDangerNotification(hexagonData, location);
         this.lastNotificationTime = now;
       } else {
-        console.log(`✅ Safe area - z-score: ${zScore.toFixed(2)} (threshold: ${this.Z_SCORE_THRESHOLD})`);
+        console.log(`✅ Safe area - z-score: ${zScore.toFixed(2)} (threshold: ${this.zScoreThreshold})`);
       }
 
       // Save location history

@@ -1,6 +1,12 @@
 # AmISafe Mobile Application
 
-A cross-platform mobile application for crime safety awareness, built with React Native for both iOS and Android platforms. Integrates with the Drupal-based AmISafe API for real-time crime data and user management.
+A cross-platform mobile application for crime safety awareness built with React Native. Integrates with the Forseti API (forseti.life) for real-time crime data, z-score risk assessment, and continuous background monitoring.
+
+## 📋 Complete Documentation
+
+- **[Background Service Documentation](./BACKGROUND_SERVICE_DOCUMENTATION.md)** - Complete guide to the background monitoring system, API integration, and process flow diagrams
+- **[Architecture Documentation](./ARCHITECTURE.md)** - System architecture and data flow
+- **[Implementation Progress](./IMPLEMENTATION_PROGRESS.md)** - Current status and roadmap
 
 ## 🚦 Current Implementation Status
 
@@ -66,7 +72,38 @@ const currentUser = drupalAuthService.getCurrentUser();
 
 ## 📍 Background Location Monitoring
 
-### Core Services
+### Overview
+AmISafe provides **continuous, real-time safety monitoring** that tracks your location in the background, calculates your H3 hexagon position, queries the Forseti API for z-score risk data, and sends push notifications when entering high-risk areas.
+
+**📖 See [BACKGROUND_SERVICE_DOCUMENTATION.md](./BACKGROUND_SERVICE_DOCUMENTATION.md) for complete details**
+
+### Quick Summary
+
+**How It Works:**
+```
+GPS Update → H3 Calculation → Index Comparison → Risk Query → Notification
+     ↓              ↓              ↓              ↓            ↓
+  Lat/Lng    H3 Level 11    Changed Hex?    API Request   Alert User
+                (~700m)                    (z-score check)  (if z≥2.0)
+```
+
+**Key Features:**
+- **H3 Resolution 11**: ~700m hexagons for precise monitoring
+- **Z-Score Alerts**: Notifies when z-score >= 2.0 (configurable)
+- **Smart Updates**: Only queries API when moving to new hexagon
+- **Battery Optimized**: 60s intervals, 50m distance filter
+- **Cooldown Protection**: 5-minute cooldown between notifications (configurable)
+- **State Persistence**: Auto-restores monitoring on app restart
+
+**API Integration:**
+```
+GET https://forseti.life/api/amisafe/aggregated?
+    resolution=11&
+    h3_index=8b283082d7dffff&
+    format=json
+```
+
+### Configuration Options (Settings Screen)
 
 **BackgroundLocationService.ts**
 - GPS tracking via react-native-geolocation-service

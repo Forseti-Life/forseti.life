@@ -65,7 +65,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const handleForgotPassword = () => {
     Alert.alert(
       'Password Reset',
-      'Please visit https://stlouisintegration.com/user/password to reset your password.'
+      'Please visit https://forseti.life/user/password to reset your password.'
     );
   };
 
