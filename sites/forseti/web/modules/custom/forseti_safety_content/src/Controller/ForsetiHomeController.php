@@ -67,7 +67,7 @@ class ForsetiHomeController extends ControllerBase {
           
           <div class="safety-status-grid">
             <div class="status-card safe">
-              <div class="status-icon"><img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" style="width: 60px; height: 60px;"></div>
+              <div class="status-icon"><img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon"></div>
               <div class="status-title">AI Monitoring Active</div>
               <div class="status-description">
                 24/7 intelligent monitoring analyzing crime patterns, trends, and emerging threats 
@@ -130,7 +130,7 @@ class ForsetiHomeController extends ControllerBase {
               </div>
               
               <div class="feature-card">
-                <div class="feature-icon"><img src="/themes/custom/forseti/images/logos/originals/forseti_energized.png" alt="" style="width: 60px; height: 60px;"></div>
+                <div class="feature-icon"><img src="/themes/custom/forseti/images/logos/originals/forseti_energized.png" alt=""></div>
                 <h3>Predictive AI Alerts</h3>
                 <p>
                   Machine learning algorithms identify patterns and predict high-risk 

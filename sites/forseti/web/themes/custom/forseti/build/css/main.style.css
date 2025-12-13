@@ -163,6 +163,13 @@
   display: inline-block;
 }
 
+/* Feature icon images - fit within the circular container */
+.feature-icon img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+
 /* Navigation Menu Dropdown Improvements */
 /* Make dropdown toggle arrow always visible and consistent */
 .navbar-nav .nav-link.dropdown-toggle::after {
