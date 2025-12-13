@@ -3,7 +3,7 @@
  * Handles push notifications, local notifications, and safety alerts
  */
 
-import { Platform, Alert } from 'react-native';
+import { Platform, Alert, Linking } from 'react-native';
 import PushNotification from 'react-native-push-notification';
 
 export interface NotificationConfig {
@@ -15,6 +15,7 @@ export interface NotificationConfig {
   soundName?: string;
   vibrate?: boolean;
   actions?: string[];
+  url?: string; // URL to open when notification is clicked
 }
 
 export interface SafetyAlert {
@@ -59,6 +60,14 @@ class NotificationService {
 
         onNotification: (notification) => {
           console.log('📬 Notification received:', notification);
+          
+          // Handle notification tap - open URL if provided
+          if (notification.userTapped && notification.data?.url) {
+            Linking.openURL(notification.data.url).catch(err => 
+              console.error('Failed to open URL:', err)
+            );
+          }
+          
           this.handleNotification(notification);
         },
 
@@ -146,7 +155,10 @@ class NotificationService {
       soundName: config.soundName ?? 'default',
       vibrate: config.vibrate ?? true,
       channelId,
-      userInfo: config.userInfo,
+      userInfo: {
+        ...config.userInfo,
+        url: config.url, // Include URL for deep linking
+      },
       actions: config.actions,
     });
   }
@@ -178,20 +190,35 @@ class NotificationService {
   /**
    * Schedule a delayed notification
    */
-  public scheduleNotification(config: NotificationConfig, delayMs: number): void {
+  public scheduleNotification(config: NotificationConfig, delayMs: number = 0): void {
     const channelId = this.getChannelId(config.title);
     
-    PushNotification.localNotificationSchedule({
+    const notificationData = {
       title: config.title,
       message: config.message,
-      date: new Date(Date.now() + delayMs),
       playSound: config.playSound ?? true,
       soundName: config.soundName ?? 'default',
       vibrate: config.vibrate ?? true,
       channelId,
-      userInfo: config.userInfo,
+      userInfo: {
+        ...config.userInfo,
+        url: config.url, // Include URL for deep linking
+      },
+      data: {
+        ...config.data,
+        url: config.url, // Include URL in data as well
+      },
       actions: config.actions,
-    });
+    };
+    
+    if (delayMs > 0) {
+      PushNotification.localNotificationSchedule({
+        ...notificationData,
+        date: new Date(Date.now() + delayMs),
+      });
+    } else {
+      PushNotification.localNotification(notificationData);
+    }
   }
 
   /**
