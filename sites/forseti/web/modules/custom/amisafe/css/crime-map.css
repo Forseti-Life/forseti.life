@@ -99,9 +99,9 @@ header.page-header {
 /* Main layout */
 .crime-map-layout {
   display: flex;
-  height: calc(100vh - 120px);
+  height: calc(100vh - 80px);
   gap: 10px;
-  padding: 10px;
+  padding: 0;
 }
 
 /* Control panel */

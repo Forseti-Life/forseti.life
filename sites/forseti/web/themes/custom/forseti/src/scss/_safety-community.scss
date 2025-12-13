@@ -409,3 +409,24 @@
     }
   }
 }
+
+// Forseti Icon
+// -----------------------------------------------------------------------------
+.forseti-icon {
+  width: 0.9em;
+  height: 0.9em;
+  margin-right: 6px;
+  vertical-align: middle;
+  display: inline-block;
+  background: $forseti-white-pure;
+  padding: 1px;
+  border-radius: 2px;
+}
+
+.forseti-icon-list {
+  width: 1em;
+  height: 1em;
+  margin-right: 8px;
+  vertical-align: middle;
+  display: inline-block;
+}

@@ -33,6 +33,11 @@ class ForsetiPagesController extends ControllerBase {
   public function safetyMap() {
     return [
       '#markup' => $this->getSafetyMapContent(),
+      '#attached' => [
+        'library' => [
+          'amisafe/crime-map',
+        ],
+      ],
     ];
   }
 
@@ -67,8 +72,16 @@ class ForsetiPagesController extends ControllerBase {
    * Contact page.
    */
   public function contact() {
+    return $this->getContactContent();
+  }
+
+  /**
+   * Safety Factors page.
+   */
+  public function safetyFactors() {
     return [
-      '#markup' => $this->getContactContent(),
+      '#markup' => $this->getSafetyFactorsContent(),
+      '#allowed_tags' => ['div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'ul', 'li', 'strong', 'button', 'span', 'br', 'img'],
     ];
   }
 
@@ -77,70 +90,67 @@ class ForsetiPagesController extends ControllerBase {
    */
   private function getAboutContent() {
     return '
-      <div class="container py-5">
+      <div class="container py-3">
         <div class="row">
           <div class="col-lg-8 mx-auto">
-            <h1 class="mb-4">About Forseti</h1>
+            <h1 class="mb-3 text-cyan">About Forseti</h1>
             
-            <div class="lead mb-4">
+            <div class="lead mb-4 text-muted-light">
               Forseti is an AI-powered community safety platform dedicated to making Philadelphia 
               a safer place through intelligent monitoring, predictive analytics, and community engagement.
             </div>
             
-            <h2 class="mt-5 mb-3">Our Mission</h2>
+            <h2 class="mt-4 mb-3 text-cyan">Our Mission</h2>
             <p>
               <strong>"AI Looking Out For Us"</strong> - We believe technology should serve humanity 
-              by protecting communities and improving quality of life for as many people as possible. 
-              Forseti combines cutting-edge artificial intelligence with real-time crime data to provide 
-              Philadelphia residents with the information and tools they need to stay safe.
+              by protecting individuals and communities by improving quality of life for as many people as possible. 
+              Forseti is a super intelligence in its infancy with the mission to protect its community members.
             </p>
             
-            <h2 class="mt-5 mb-3">Why "Forseti"?</h2>
             <p>
-              Named after the Norse god of justice and peaceful resolution, Forseti represents our 
-              commitment to fair, intelligent, and proactive safety measures. Just as Forseti\'s hall 
-              Glitnir was a place where disputes were settled justly, our platform aims to resolve 
+              Named after the Norse god of justice of peaceful resolution, Forseti represents our 
+              commitment to fair, intelligent, and proactive safety measures. Our platform aims to resolve 
               community safety challenges through technology, transparency, and collaboration.
             </p>
             
-            <h2 class="mt-5 mb-3">Core Values</h2>
+            <h2 class="mt-4 mb-3 text-cyan">Core Values</h2>
             <div class="row mt-4">
               <div class="col-md-6 mb-4">
-                <div class="p-4 border rounded">
-                  <h4>🛡️ Vigilance</h4>
-                  <p>24/7 AI monitoring ensures constant awareness of safety conditions across Philadelphia.</p>
+                <div class="card card-forseti p-3 h-100">
+                  <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_mobile_trimmed.png" alt="" class="forseti-icon"> Vigilance</h4>
+                  <p>24/7 AI monitoring ensures constant awareness of situational safety conditions across Philadelphia.</p>
                 </div>
               </div>
               <div class="col-md-6 mb-4">
-                <div class="p-4 border rounded">
+                <div class="card card-forseti p-3 h-100">
                   <h4>🔍 Transparency</h4>
                   <p>Open data and clear communication about safety trends and our methods.</p>
                 </div>
               </div>
               <div class="col-md-6 mb-4">
-                <div class="p-4 border rounded">
+                <div class="card card-forseti p-3 h-100">
                   <h4>⚖️ Justice</h4>
                   <p>Fair and unbiased safety measures that protect all community members equally.</p>
                 </div>
               </div>
               <div class="col-md-6 mb-4">
-                <div class="p-4 border rounded">
+                <div class="card card-forseti p-3 h-100">
                   <h4>👥 Community</h4>
                   <p>Empowering residents with knowledge and tools to take ownership of their safety.</p>
                 </div>
               </div>
             </div>
             
-            <h2 class="mt-5 mb-3">Philadelphia Focus</h2>
+            <h2 class="mt-4 mb-3 text-cyan">Philadelphia Focus</h2>
             <p>
-              We\'ve chosen to focus our initial efforts on Philadelphia because we believe in starting 
-              local and growing organically. By deeply understanding one community\'s unique safety 
-              challenges, we can create more effective solutions. As we prove our model, we plan to 
-              expand to other cities facing similar challenges.
+              We\'ve chosen to focus our initial efforts on Philadelphia because we are based in Philadelphia. 
+              By deeply understanding one community\'s unique safety challenges, we can create more effective solutions. 
+              As we prove our model, we plan to expand to other cities facing similar challenges to protect our 
+              community members any where they go.
             </p>
             
-            <div class="alert alert-info mt-5">
-              <h4>Join Our Mission</h4>
+            <div class="alert alert-info-cyan mt-4">
+              <h4 class="text-cyan">Join Our Mission</h4>
               <p class="mb-0">
                 We\'re always looking for community members, safety advocates, and technology partners 
                 who share our vision. <a href="/contact" class="alert-link">Get in touch</a> to learn 
@@ -158,24 +168,24 @@ class ForsetiPagesController extends ControllerBase {
    */
   private function getHowItWorksContent() {
     return '
-      <div class="container py-5">
-        <h1 class="text-center mb-5">How Forseti Works</h1>
+      <div class="container py-3">
+        <h1 class="text-center mb-4 text-cyan">How Forseti Works</h1>
         
-        <div class="row mb-5">
-          <div class="col-lg-10 mx-auto">
-            <div class="alert alert-primary">
-              <strong>Simple Answer:</strong> We use AI to analyze crime data in real-time, 
-              identify patterns, and alert you to potential safety concerns in your area.
+        <div class="row mb-4">
+          <div class="col-lg-8 mx-auto">
+            <div class="alert alert-info-cyan">
+              <strong>Simple Answer:</strong> We use AI to analyze crime patterns and alert you when 
+              you enter areas with elevated safety concerns based on your geographic location and situational context.
             </div>
           </div>
         </div>
         
         <div class="row">
-          <div class="col-lg-10 mx-auto">
-            <h2 class="mb-4">The Technology Behind Community Safety</h2>
+          <div class="col-lg-8 mx-auto">
+            <h2 class="mb-3 text-cyan">The Technology Behind Community Safety</h2>
             
             <div class="mb-5">
-              <h3>1. Data Collection 📊</h3>
+              <h3 class="text-cyan">1. Data Collection 📊</h3>
               <p>
                 We continuously gather crime incident data from Philadelphia Police Department 
                 open data sources, emergency service reports, and community submissions. All data 
@@ -184,7 +194,7 @@ class ForsetiPagesController extends ControllerBase {
             </div>
             
             <div class="mb-5">
-              <h3>2. H3 Geospatial Analysis 🗺️</h3>
+              <h3 class="text-cyan">2. H3 Geospatial Analysis 🗺️</h3>
               <p>
                 Using Uber\'s H3 hexagonal hierarchical geospatial indexing system, we map crime 
                 incidents with incredible precision. Unlike traditional square grids, H3 hexagons 
@@ -200,7 +210,7 @@ class ForsetiPagesController extends ControllerBase {
             </div>
             
             <div class="mb-5">
-              <h3>3. AI Pattern Recognition 🤖</h3>
+              <h3 class="text-cyan">3. AI Pattern Recognition <img src="/themes/custom/forseti/images/logos/originals/forseti_mobile_trimmed.png" alt="" class="forseti-icon"></h3>
               <p>
                 Our machine learning algorithms analyze historical and real-time data to identify:
               </p>
@@ -215,12 +225,13 @@ class ForsetiPagesController extends ControllerBase {
             </div>
             
             <div class="mb-5">
-              <h3>4. Intelligent Alerts 🔔</h3>
+              <h3 class="text-cyan">4. Intelligent Alerts 🔔</h3>
               <p>
                 When our AI detects concerning patterns or emerging threats, we send targeted alerts to:
               </p>
               <div class="ps-4">
                 <ul>
+                  <li>Pedestrians passing through the area</li>
                   <li>Residents in affected areas</li>
                   <li>Neighborhood watch coordinators</li>
                   <li>Community safety groups</li>
@@ -230,15 +241,15 @@ class ForsetiPagesController extends ControllerBase {
             </div>
             
             <div class="mb-5">
-              <h3>5. Community Feedback Loop 🔄</h3>
+              <h3 class="text-cyan">5. Community Feedback Loop 🔄</h3>
               <p>
                 User reports and feedback help improve our AI models. When community members report 
                 incidents or validate our predictions, our system becomes smarter and more accurate.
               </p>
             </div>
             
-            <h2 class="mt-5 mb-4">Privacy & Security</h2>
-            <div class="alert alert-success">
+            <h2 class="mt-4 mb-3 text-cyan">Privacy & Security</h2>
+            <div class="alert alert-info-cyan">
               <h4>Your Data is Safe</h4>
               <ul class="mb-0">
                 <li>End-to-end encryption for all communications</li>
@@ -249,9 +260,9 @@ class ForsetiPagesController extends ControllerBase {
               </ul>
             </div>
             
-            <div class="text-center mt-5">
-              <a href="/safety-map" class="btn btn-primary btn-lg me-3">Explore Safety Map</a>
-              <a href="/mobile-app" class="btn btn-outline-primary btn-lg">Get Mobile App</a>
+            <div class="text-center mt-4">
+              <a href="/safety-map" class="btn btn-primary me-3">Explore Safety Map</a>
+              <a href="/mobile-app" class="btn btn-outline-primary">Get Mobile App</a>
             </div>
           </div>
         </div>
@@ -264,75 +275,70 @@ class ForsetiPagesController extends ControllerBase {
    */
   private function getSafetyMapContent() {
     return '
-      <div class="container-fluid py-5">
-        <h1 class="text-center mb-4">Philadelphia Safety Map</h1>
-        <p class="text-center text-muted mb-5">
-          Real-time crime incident tracking with H3 geospatial analysis
-        </p>
-        
-        <div class="safety-map-container">
-          <div class="map-header">
-            <h2>Live Crime Data</h2>
-            <div class="map-filters">
-              <button class="filter-btn active">All Crimes</button>
-              <button class="filter-btn">Violent</button>
-              <button class="filter-btn">Property</button>
-              <button class="filter-btn">Last 24h</button>
-              <button class="filter-btn">Last Week</button>
+      <div class="container py-3">
+        <div class="row">
+          <div class="col-lg-10 mx-auto">
+            <h1 class="text-center mb-3 text-cyan">Philadelphia Safety Map</h1>
+            <p class="text-center mb-4 text-muted-light">
+              Real-time crime incident tracking with H3 geospatial analysis
+            </p>
+            
+            <div class="alert alert-info-cyan mb-4">
+              <h4 class="text-cyan">🚧 Coming Soon</h4>
+              <p class="mb-0">
+                Interactive crime map with real-time data visualization. 
+                Our development team is currently integrating the H3 geospatial engine with live 
+                Philadelphia Police Department data feeds.
+              </p>
             </div>
-          </div>
-          
-          <div class="alert alert-info">
-            <strong>🚧 Coming Soon:</strong> Interactive crime map with real-time data visualization. 
-            Our development team is currently integrating the H3 geospatial engine with live 
-            Philadelphia Police Department data feeds.
-          </div>
-          
-          <div class="row mt-4">
-            <div class="col-md-4 mb-3">
-              <div class="card">
-                <div class="card-body">
-                  <h5 class="card-title">Features</h5>
-                  <ul>
-                    <li>Real-time incident markers</li>
-                    <li>Heat map overlays</li>
-                    <li>Historical trend views</li>
-                    <li>Neighborhood comparisons</li>
-                    <li>Custom alert zones</li>
-                  </ul>
+            
+            <h2 class="mb-3 text-cyan">Map Features</h2>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <div class="card card-forseti h-100">
+                  <div class="card-body">
+                    <h5 class="card-title text-cyan">Interactive Features</h5>
+                    <ul class="text-muted-light">
+                      <li>Real-time incident markers</li>
+                      <li>Heat map overlays</li>
+                      <li>Historical trend views</li>
+                      <li>Neighborhood comparisons</li>
+                      <li>Custom alert zones</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 mb-3">
+                <div class="card card-forseti h-100">
+                  <div class="card-body">
+                    <h5 class="card-title text-cyan">Data Sources</h5>
+                    <ul class="text-muted-light">
+                      <li>Philadelphia PD Open Data</li>
+                      <li>Emergency service reports</li>
+                      <li>Community submissions</li>
+                      <li>Weather & environmental data</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 mb-3">
+                <div class="card card-forseti h-100">
+                  <div class="card-body">
+                    <h5 class="card-title text-cyan">Coming Updates</h5>
+                    <ul class="text-muted-light">
+                      <li>Mobile app integration</li>
+                      <li>Custom notifications</li>
+                      <li>Predictive overlays</li>
+                      <li>Safe route planning</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
-            <div class="col-md-4 mb-3">
-              <div class="card">
-                <div class="card-body">
-                  <h5 class="card-title">Data Sources</h5>
-                  <ul>
-                    <li>Philadelphia PD Open Data</li>
-                    <li>Emergency service reports</li>
-                    <li>Community submissions</li>
-                    <li>Weather & environmental data</li>
-                  </ul>
-                </div>
-              </div>
+            
+            <div class="text-center mt-4">
+              <a href="/mobile-app" class="btn btn-primary">Get Early Access via AmISafe App</a>
             </div>
-            <div class="col-md-4 mb-3">
-              <div class="card">
-                <div class="card-body">
-                  <h5 class="card-title">Coming Updates</h5>
-                  <ul>
-                    <li>Mobile app integration</li>
-                    <li>Custom notifications</li>
-                    <li>Predictive overlays</li>
-                    <li>Safe route planning</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="text-center mt-4">
-            <a href="/mobile-app" class="btn btn-primary">Get Early Access via AmISafe App</a>
           </div>
         </div>
       </div>
@@ -344,55 +350,55 @@ class ForsetiPagesController extends ControllerBase {
    */
   private function getCommunityContent() {
     return '
-      <div class="container py-5">
-        <h1 class="text-center mb-4">Join Our Safety Community</h1>
-        <p class="text-center lead mb-5">
+      <div class="container py-3">
+        <h1 class="text-center mb-3 text-cyan">Join Our Safety Community</h1>
+        <p class="text-center mb-4 text-muted-light">
           Together, we\'re making Philadelphia safer for everyone
         </p>
         
         <div class="row">
           <div class="col-lg-8 mx-auto">
-            <h2 class="mb-4">Why Join?</h2>
+            <h2 class="mb-3 text-cyan">Why Join?</h2>
             
-            <div class="mb-4 p-4 border rounded">
-              <h4>📢 Stay Informed</h4>
-              <p>Receive real-time safety alerts for your neighborhood, emergency notifications, 
-              and weekly safety summaries.</p>
+            <div class="card card-forseti mb-3 p-3">
+              <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon"> Stay Informed</h4>
+              <p>Get notified when you enter areas with elevated safety concerns based on your current 
+              geographic location and situational context, plus receive weekly safety summaries.</p>
             </div>
             
-            <div class="mb-4 p-4 border rounded">
-              <h4>🤝 Connect with Neighbors</h4>
+            <div class="card card-forseti mb-3 p-3">
+              <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_connected.png" alt="" class="forseti-icon"> Connect with Neighbors</h4>
               <p>Join neighborhood watch groups, coordinate safety efforts, and build stronger 
               community bonds.</p>
             </div>
             
-            <div class="mb-4 p-4 border rounded">
-              <h4>💪 Make an Impact</h4>
+            <div class="card card-forseti mb-3 p-3">
+              <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_capable.png" alt="" class="forseti-icon"> Make an Impact</h4>
               <p>Report incidents, validate AI predictions, and contribute to the safety intelligence 
               that protects your community.</p>
             </div>
             
-            <div class="mb-4 p-4 border rounded">
-              <h4>🎓 Learn & Grow</h4>
+            <div class="card card-forseti mb-3 p-3">
+              <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_useful.png" alt="" class="forseti-icon"> Learn & Grow</h4>
               <p>Access safety resources, attend community events, and participate in safety 
               awareness programs.</p>
             </div>
             
-            <h2 class="mt-5 mb-4">How to Get Involved</h2>
+            <h2 class="mt-4 mb-3 text-cyan">How to Get Involved</h2>
             
             <div class="row">
-              <div class="col-md-6 mb-4">
-                <div class="card h-100">
+              <div class="col-md-6 mb-3">
+                <div class="card card-forseti h-100">
                   <div class="card-body">
                     <h5 class="card-title">1. Download AmISafe</h5>
-                    <p class="card-text">Get our mobile app for real-time alerts and on-the-go safety information.</p>
+                    <p class="card-text">Get our mobile app for location-based safety alerts and on-the-go situational awareness.</p>
                     <a href="/mobile-app" class="btn btn-primary">Get the App</a>
                   </div>
                 </div>
               </div>
               
-              <div class="col-md-6 mb-4">
-                <div class="card h-100">
+              <div class="col-md-6 mb-3">
+                <div class="card card-forseti h-100">
                   <div class="card-body">
                     <h5 class="card-title">2. Create Account</h5>
                     <p class="card-text">Set up your profile, customize your alert preferences, and define your safety zones.</p>
@@ -401,41 +407,13 @@ class ForsetiPagesController extends ControllerBase {
                 </div>
               </div>
               
-              <div class="col-md-6 mb-4">
-                <div class="card h-100">
+              <div class="col-md-6 mb-3">
+                <div class="card card-forseti h-100">
                   <div class="card-body">
                     <h5 class="card-title">3. Join Local Groups</h5>
                     <p class="card-text">Connect with neighborhood watch groups and community safety initiatives in your area.</p>
                     <button class="btn btn-outline-primary" disabled>Coming Soon</button>
                   </div>
-                </div>
-              </div>
-              
-              <div class="col-md-6 mb-4">
-                <div class="card h-100">
-                  <div class="card-body">
-                    <h5 class="card-title">4. Contribute</h5>
-                    <p class="card-text">Report incidents, verify alerts, and help improve our AI models with your feedback.</p>
-                    <button class="btn btn-outline-primary" disabled>Coming Soon</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div class="alert alert-success mt-5">
-              <h4>Community Stats</h4>
-              <div class="row text-center">
-                <div class="col-md-4">
-                  <h2 class="text-primary">12,500+</h2>
-                  <p>Active Members</p>
-                </div>
-                <div class="col-md-4">
-                  <h2 class="text-primary">89</h2>
-                  <p>Neighborhood Groups</p>
-                </div>
-                <div class="col-md-4">
-                  <h2 class="text-primary">3,400+</h2>
-                  <p>Reports This Month</p>
                 </div>
               </div>
             </div>
@@ -450,118 +428,112 @@ class ForsetiPagesController extends ControllerBase {
    */
   private function getMobileAppContent() {
     return '
-      <div class="container py-5">
-        <h1 class="text-center mb-4">AmISafe Mobile App</h1>
-        <p class="text-center lead mb-5">
-          Your personal safety companion for Philadelphia
-        </p>
-        
-        <div class="row align-items-center mb-5">
-          <div class="col-lg-6">
-            <h2>Safety in Your Pocket</h2>
-            <p class="lead">
-              AmISafe brings the power of Forseti\'s AI monitoring directly to your smartphone. 
-              Stay safe with real-time alerts, location-based safety information, and one-touch 
-              emergency services.
-            </p>
-          </div>
-          <div class="col-lg-6 text-center">
-            <div class="p-5 bg-light rounded">
-              <h3>📱</h3>
-              <h4>iOS & Android</h4>
-              <p class="text-muted">Coming Soon to App Stores</p>
-            </div>
-          </div>
-        </div>
-        
-        <h2 class="mb-4">Key Features</h2>
-        
+      <div class="container py-3">
         <div class="row">
-          <div class="col-md-6 mb-4">
-            <div class="card h-100">
-              <div class="card-body">
-                <h3 class="card-title">📍 Location-Based Alerts</h3>
-                <p class="card-text">
-                  Automatic notifications when you enter high-risk areas or when incidents 
-                  occur near your location.
+          <div class="col-lg-8 mx-auto">
+            <h1 class="text-center mb-3 text-cyan">AmISafe Mobile App</h1>
+            <p class="text-center mb-4 text-muted-light">
+              Your personal safety companion for Philadelphia
+            </p>
+            
+            <div class="row align-items-center mb-4">
+              <div class="col-lg-6">
+                <h2 class="text-cyan">Safety in Your Pocket</h2>
+                <p class="text-muted-light">
+                  AmISafe brings the power of Forseti\'s AI monitoring directly to your smartphone. 
+                  Get notified when you enter areas with elevated safety concerns, access location-based safety information, and one-touch 
+                  emergency services.
                 </p>
               </div>
-            </div>
-          </div>
-          
-          <div class="col-md-6 mb-4">
-            <div class="card h-100">
-              <div class="card-body">
-                <h3 class="card-title">🚨 Emergency SOS</h3>
-                <p class="card-text">
-                  One-touch access to emergency services with automatic location sharing 
-                  and emergency contact notifications.
-                </p>
+              <div class="col-lg-6 text-center">
+                <div class="card card-forseti p-4">
+                  <div class="mb-3">
+                    <img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="app-logo">
+                  </div>
+                  <h4 class="text-cyan">iOS & Android</h4>
+                  <p class="text-muted-light">Coming Soon to App Stores</p>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div class="col-md-6 mb-4">
-            <div class="card h-100">
-              <div class="card-body">
-                <h3 class="card-title">🗺️ Interactive Maps</h3>
-                <p class="card-text">
-                  View real-time crime incidents, safety zones, and navigate the safest 
-                  routes to your destination.
-                </p>
+            
+            <h2 class="mb-3 text-cyan">Key Features</h2>
+            
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <div class="card card-forseti p-3 h-100">
+                  <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon"> Location-Based Alerts</h4>
+                  <p>
+                    Automatic notifications when you enter high-risk areas or when incidents 
+                    occur near your location.
+                  </p>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <div class="card card-forseti p-3 h-100">
+                  <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_energized.png" alt="" class="forseti-icon"> Emergency SOS</h4>
+                  <p>
+                    One-touch access to emergency services with automatic location sharing 
+                    and emergency contact notifications.
+                  </p>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <div class="card card-forseti p-3 h-100">
+                  <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_connected.png" alt="" class="forseti-icon"> Interactive Maps</h4>
+                  <p>
+                    View real-time crime incidents, safety zones, and navigate the safest 
+                    routes to your destination.
+                  </p>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <div class="card card-forseti p-3 h-100">
+                  <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_useful.png" alt="" class="forseti-icon"> Incident Reporting</h4>
+                  <p>
+                    Quickly report suspicious activity or incidents with photos, descriptions, 
+                    and automatic GPS tagging.
+                  </p>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <div class="card card-forseti p-3 h-100">
+                  <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_whole.png" alt="" class="forseti-icon"> Check-In Feature</h4>
+                  <p>
+                    Let friends and family know you\'re safe with automatic check-ins and 
+                    location sharing.
+                  </p>
+                </div>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <div class="card card-forseti p-3 h-100">
+                  <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_capable.png" alt="" class="forseti-icon"> Offline Resources</h4>
+                  <p>
+                    Access safety tips, emergency contacts, and critical information even 
+                    without an internet connection.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div class="col-md-6 mb-4">
-            <div class="card h-100">
-              <div class="card-body">
-                <h3 class="card-title">📝 Incident Reporting</h3>
-                <p class="card-text">
-                  Quickly report suspicious activity or incidents with photos, descriptions, 
-                  and automatic GPS tagging.
-                </p>
-              </div>
+            
+            <div class="alert alert-info-cyan mt-4">
+              <h4 class="text-cyan">Early Access Program</h4>
+              <p>
+                AmISafe is currently in beta testing with select Philadelphia neighborhoods. 
+                Want to be among the first to use it?
+              </p>
+              <a href="/contact" class="btn btn-primary">Request Early Access</a>
             </div>
-          </div>
-          
-          <div class="col-md-6 mb-4">
-            <div class="card h-100">
-              <div class="card-body">
-                <h3 class="card-title">👥 Check-In Feature</h3>
-                <p class="card-text">
-                  Let friends and family know you\'re safe with automatic check-ins and 
-                  location sharing.
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div class="col-md-6 mb-4">
-            <div class="card h-100">
-              <div class="card-body">
-                <h3 class="card-title">📚 Offline Resources</h3>
-                <p class="card-text">
-                  Access safety tips, emergency contacts, and critical information even 
-                  without an internet connection.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
         
-        <div class="alert alert-info mt-5">
-          <h4>Early Access Program</h4>
-          <p>
-            AmISafe is currently in beta testing with select Philadelphia neighborhoods. 
-            Want to be among the first to use it?
-          </p>
-          <a href="/contact" class="btn btn-primary">Request Early Access</a>
-        </div>
-        
-        <div class="text-center mt-5">
-          <h3>Current Version: Beta 0.9.5</h3>
-          <p class="text-muted">Expected Public Release: Q1 2026</p>
+            <div class="text-center mt-4">
+              <h3 class="text-cyan">Current Version: Beta 0.9.5</h3>
+              <p class="text-muted">Expected Public Release: Q1 2026</p>
+            </div>
+          </div>
         </div>
       </div>
     ';
@@ -572,20 +544,20 @@ class ForsetiPagesController extends ControllerBase {
    */
   private function getPrivacyContent() {
     return '
-      <div class="container py-5">
-        <h1 class="mb-4">Privacy & Security</h1>
-        
-        <div class="alert alert-success">
-          <h4>Our Commitment: Privacy First</h4>
-          <p class="mb-0">
-            At Forseti, we believe safety and privacy go hand-in-hand. We never sell your data, 
-            and we design every feature with your privacy in mind.
-          </p>
-        </div>
-        
+      <div class="container py-3">
         <div class="row">
           <div class="col-lg-8 mx-auto">
-            <h2 class="mt-5 mb-3">Data Collection</h2>
+            <h1 class="mb-3 text-cyan">Privacy & Security</h1>
+            
+            <div class="alert alert-info-cyan">
+              <h4 class="text-cyan">Our Commitment: Privacy First</h4>
+              <p class="mb-0">
+                At Forseti, we believe safety and privacy go hand-in-hand. We never sell your data, 
+                and we design every feature with your privacy in mind.
+              </p>
+            </div>
+            
+            <h2 class="mt-4 mb-3 text-cyan">Data Collection</h2>
             <h4>What We Collect</h4>
             <ul>
               <li><strong>Crime Data:</strong> Public incident data from Philadelphia PD and emergency services</li>
@@ -602,7 +574,7 @@ class ForsetiPagesController extends ControllerBase {
               <li>❌ Your personal conversations</li>
             </ul>
             
-            <h2 class="mt-5 mb-3">Data Usage</h2>
+            <h2 class="mt-4 mb-3 text-cyan">Data Usage</h2>
             <p>We use your data exclusively to:</p>
             <ul>
               <li>Provide safety alerts relevant to your location</li>
@@ -621,35 +593,35 @@ class ForsetiPagesController extends ControllerBase {
               </ul>
             </div>
             
-            <h2 class="mt-5 mb-3">Security Measures</h2>
+            <h2 class="mt-4 mb-3 text-cyan">Security Measures</h2>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <div class="p-3 border rounded">
-                  <h5>🔒 Encryption</h5>
+                <div class="card card-forseti p-3 h-100">
+                  <h5><img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon"> Encryption</h5>
                   <p>All data is encrypted in transit (TLS 1.3) and at rest (AES-256).</p>
                 </div>
               </div>
               <div class="col-md-6 mb-3">
-                <div class="p-3 border rounded">
-                  <h5>🔐 Authentication</h5>
+                <div class="card card-forseti p-3 h-100">
+                  <h5><img src="/themes/custom/forseti/images/logos/originals/forseti_capable.png" alt="" class="forseti-icon"> Authentication</h5>
                   <p>Multi-factor authentication and secure password policies.</p>
                 </div>
               </div>
               <div class="col-md-6 mb-3">
-                <div class="p-3 border rounded">
-                  <h5>👁️ Access Controls</h5>
+                <div class="card card-forseti p-3 h-100">
+                  <h5><img src="/themes/custom/forseti/images/logos/originals/forseti_free.png" alt="" class="forseti-icon"> Access Controls</h5>
                   <p>Strict role-based access with audit logging.</p>
                 </div>
               </div>
               <div class="col-md-6 mb-3">
-                <div class="p-3 border rounded">
-                  <h5>🔍 Regular Audits</h5>
+                <div class="card card-forseti p-3 h-100">
+                  <h5><img src="/themes/custom/forseti/images/logos/originals/forseti_useful.png" alt="" class="forseti-icon"> Regular Audits</h5>
                   <p>Third-party security audits and penetration testing.</p>
                 </div>
               </div>
             </div>
             
-            <h2 class="mt-5 mb-3">Your Rights</h2>
+            <h2 class="mt-4 mb-3 text-cyan">Your Rights</h2>
             <p>Under GDPR and other privacy laws, you have the right to:</p>
             <ul>
               <li><strong>Access:</strong> Request a copy of all data we have about you</li>
@@ -659,7 +631,7 @@ class ForsetiPagesController extends ControllerBase {
               <li><strong>Opt-Out:</strong> Disable location tracking or notifications anytime</li>
             </ul>
             
-            <h2 class="mt-5 mb-3">Anonymous Reporting</h2>
+            <h2 class="mt-4 mb-3 text-cyan">Anonymous Reporting</h2>
             <p>
               We offer completely anonymous incident reporting. When you choose this option:
             </p>
@@ -669,17 +641,6 @@ class ForsetiPagesController extends ControllerBase {
               <li>No identifying information stored</li>
               <li>Reports still help improve community safety</li>
             </ul>
-            
-            <h2 class="mt-5 mb-3">Third-Party Services</h2>
-            <p>We use the following third-party services:</p>
-            <ul>
-              <li><strong>Philadelphia PD Open Data:</strong> Public crime statistics</li>
-              <li><strong>Map Services:</strong> For map display only (no tracking)</li>
-              <li><strong>Cloud Infrastructure:</strong> Secure AWS hosting with encryption</li>
-            </ul>
-            <p>
-              All third parties are contractually bound to the same privacy standards we follow.
-            </p>
             
             <div class="alert alert-info mt-5">
               <h4>Questions or Concerns?</h4>
@@ -702,139 +663,370 @@ class ForsetiPagesController extends ControllerBase {
    * Get Contact content.
    */
   private function getContactContent() {
-    return '
-      <div class="container py-5">
-        <h1 class="text-center mb-4">Contact Forseti</h1>
-        <p class="text-center lead mb-5">
-          We\'re here to help keep Philadelphia safe
-        </p>
-        
+    // Get the webform entity
+    $webform = \Drupal::entityTypeManager()
+      ->getStorage('webform')
+      ->load('contact_forseti');
+    
+    // Build the webform render array
+    $webform_build = [];
+    if ($webform) {
+      $webform_build = $webform->getSubmissionForm();
+    }
+    
+    $build = [];
+    
+    $build['header'] = [
+      '#markup' => '
+      <div class="container py-3">
         <div class="row">
           <div class="col-lg-8 mx-auto">
-            <div class="alert alert-primary">
-              <h4>🚨 Emergency?</h4>
+            <h1 class="text-center mb-3 text-cyan">Contact Forseti</h1>
+            <p class="text-center mb-4 text-muted-light">
+              We\'re here to help make Philadelphia safer together
+            </p>
+            
+            <div class="alert alert-emergency mb-4">
+              <h4 class="text-danger-custom">🚨 Emergency?</h4>
               <p class="mb-0">
                 For immediate emergencies, always call <strong>911</strong>. 
                 Forseti is a safety information platform, not an emergency service.
               </p>
             </div>
             
-            <h2 class="mt-5 mb-4">Get in Touch</h2>
+            <p class="text-center mb-4 text-muted-light">
+              Whether you have questions, ideas, or want to get involved, we\'d love to hear from you.
+            </p>
             
-            <div class="row">
-              <div class="col-md-6 mb-4">
-                <div class="card h-100">
+            <div class="card card-forseti p-4 mb-4">
+              <h2 class="mb-3 text-cyan">Send Us a Message</h2>',
+    ];
+    
+    $build['webform'] = $webform_build;
+    
+    $build['form_footer'] = [
+      '#markup' => '
+            </div>',
+    ];
+    
+    $build['footer'] = [
+      '#markup' => '
+            
+            <div class="row mb-4">
+              <div class="col-md-4 mb-3">
+                <div class="card card-forseti h-100 text-center">
                   <div class="card-body">
-                    <h4>📧 Email Us</h4>
-                    <p><a href="mailto:keith.aumiller@forseti.life">keith.aumiller@forseti.life</a></p>
-                    <p class="text-muted">We typically respond within 24-48 hours</p>
+                    <h4>📧 Email</h4>
+                    <p><a href="mailto:keith.aumiller@forseti.life" class="link-cyan">keith.aumiller@forseti.life</a></p>
+                    <p class="text-muted-gray">We respond within 24-48 hours</p>
                   </div>
                 </div>
               </div>
               
-              <div class="col-md-6 mb-4">
-                <div class="card h-100">
-                  <div class="card-body">
-                    <h4>🌐 Website</h4>
-                    <p><a href="https://forseti.life" target="_blank">forseti.life</a></p>
-                    <p class="text-muted">Visit our main website for more information</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="col-md-6 mb-4">
-                <div class="card h-100">
+              <div class="col-md-4 mb-3">
+                <div class="card card-forseti h-100 text-center">
                   <div class="card-body">
                     <h4>📍 Location</h4>
-                    <p>Philadelphia, PA<br>Serving the Greater Philadelphia Area</p>
+                    <p class="text-muted-light">Philadelphia, PA</p>
+                    <p class="text-muted-gray">Serving Greater Philadelphia</p>
                   </div>
                 </div>
               </div>
               
-              <div class="col-md-6 mb-4">
-                <div class="card h-100">
+              <div class="col-md-4 mb-3">
+                <div class="card card-forseti h-100 text-center">
                   <div class="card-body">
-                    <h4>⏰ Response Time</h4>
-                    <p>Monday - Friday: 9am - 6pm EST<br>Automated alerts: 24/7</p>
+                    <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon"> Support</h4>
+                    <p class="text-muted-light">24/7 AI Monitoring</p>
+                    <p class="text-muted-gray">Email support Mon-Fri 9am-6pm</p>
                   </div>
                 </div>
               </div>
             </div>
             
-            <h2 class="mt-5 mb-4">Frequently Contacted For</h2>
-            
-            <div class="accordion" id="contactFAQ">
-              <div class="accordion-item">
-                <h2 class="accordion-header">
-                  <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                    AmISafe App Support
-                  </button>
-                </h2>
-                <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#contactFAQ">
-                  <div class="accordion-body">
-                    For app-related issues, email us with your device type, app version, and a description of the problem. 
-                    Include screenshots if possible.
-                  </div>
+            <div class="card card-forseti p-4 mb-4">
+              <h3 class="text-cyan mb-3">Quick Links</h3>
+              <div class="row">
+                <div class="col-md-6">
+                  <ul>
+                    <li><a href="/about" class="link-cyan">Learn about our mission</a></li>
+                    <li><a href="/how-it-works" class="link-cyan">How Forseti works</a></li>
+                    <li><a href="/community" class="link-cyan">Join our community</a></li>
+                  </ul>
                 </div>
-              </div>
-              
-              <div class="accordion-item">
-                <h2 class="accordion-header">
-                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                    Partnership Opportunities
-                  </button>
-                </h2>
-                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#contactFAQ">
-                  <div class="accordion-body">
-                    We\'re always interested in collaborating with community organizations, local government, 
-                    and technology partners. Email us with "Partnership" in the subject line.
-                  </div>
-                </div>
-              </div>
-              
-              <div class="accordion-item">
-                <h2 class="accordion-header">
-                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                    Privacy & Data Requests
-                  </button>
-                </h2>
-                <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#contactFAQ">
-                  <div class="accordion-body">
-                    For privacy concerns or to exercise your data rights (access, correction, deletion), 
-                    email us with "Privacy Request" in the subject line. We respond within 48 hours.
-                  </div>
-                </div>
-              </div>
-              
-              <div class="accordion-item">
-                <h2 class="accordion-header">
-                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
-                    Media Inquiries
-                  </button>
-                </h2>
-                <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#contactFAQ">
-                  <div class="accordion-body">
-                    Members of the press should email keith.aumiller@forseti.life with "Media" in the subject line.
-                  </div>
+                <div class="col-md-6">
+                  <ul>
+                    <li><a href="/mobile-app" class="link-cyan">Download AmISafe app</a></li>
+                    <li><a href="/privacy" class="link-cyan">Privacy & security info</a></li>
+                    <li><a href="/safety-map" class="link-cyan">View safety map</a></li>
+                  </ul>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>',
+    ];
+    
+    return $build;
+  }
+
+  /**
+   * Get Safety Factors content.
+   */
+  private function getSafetyFactorsContent() {
+    return '
+      <div class="container py-3">
+        <div class="row">
+          <div class="col-lg-8 mx-auto">
+            <h1 class="mb-3 text-cyan">Safety Factors</h1>
             
-            <div class="alert alert-secondary mt-5">
-              <h4>Report a Safety Incident</h4>
-              <p>
-                To report a crime or safety incident, please use the AmISafe mobile app or 
-                call 311 for non-emergency issues. For emergencies, always call 911.
+            <p class="lead mb-4 text-muted-light">
+              Understanding safety through the lens of Maslow\'s Hierarchy of Needs - from foundational physical safety to higher-level security needs.
+            </p>
+            
+            <div class="alert alert-info-cyan mb-4">
+              <h4 class="text-cyan">📊 Comprehensive Safety Assessment</h4>
+              <p class="mb-0">
+                Forseti evaluates safety across multiple dimensions, recognizing that true security encompasses physical, social, and psychological well-being.
               </p>
             </div>
             
-            <div class="text-center mt-5">
-              <h3>Join the Conversation</h3>
-              <p class="text-muted mb-4">Follow us for safety updates and community news</p>
-              <div>
-                <p class="text-muted">(Social media links coming soon)</p>
+            <h2 class="mb-3 text-cyan">Seven Dimensions of Safety</h2>
+            <p class="text-muted-light mb-4">
+              Our comprehensive safety framework recognizes that true security encompasses physical protection, vitality, community trust, personal freedom, capability, purpose, and holistic well-being. This is our framework and our roadmap for priority.
+            </p>
+            
+            <div class="accordion mb-4" id="safetyFactorsAccordion">
+              
+              <!-- Safe (Security) -->
+              <div class="accordion-item card-forseti border-secondary">
+                <h2 class="accordion-header" id="headingSafe">
+                  <button class="accordion-button collapsed card-forseti text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSafe" aria-expanded="false" aria-controls="collapseSafe">
+                    <strong><img src="/themes/custom/forseti/images/logos/originals/forseti_mobile_trimmed.png?v=3" alt="Forseti Logo" class="forseti-icon"> Safe (Security)</strong>
+                  </button>
+                </h2>
+                <div id="collapseSafe" class="accordion-collapse collapse" aria-labelledby="headingSafe" data-bs-parent="#safetyFactorsAccordion">
+                  <div class="accordion-body card-forseti">
+                    <h5 class="text-cyan mb-3">The Foundation of Predictability</h5>
+                    <p class="text-muted-light mb-3">
+                      The reliable absence of immediate threat. It represents a state where the nervous system can shift from defense (fight/flight) to maintenance (rest/digest). It is characterized by physical protection, financial stability, and a predictable environment where one can sleep without fear.
+                    </p>
+                    <h6 class="text-cyan mb-2">Safety Factors:</h6>
+                    <ul class="text-muted-light">
+                      <li><strong>Violent Crime:</strong> Assault, robbery, homicide, domestic violence</li>
+                      <li><strong>Property Crime:</strong> Burglary, theft, vandalism, vehicle break-ins</li>
+                      <li><strong>Emergency Response:</strong> Police, fire, ambulance accessibility and response times <span class="text-muted-gray">(Planned Enhancement)</span></li>
+                      <li><strong>Building Security:</strong> Locks, alarms, security systems, surveillance <span class="text-muted-gray">(Planned Enhancement)</span></li>
+                      <li><strong>Police Presence:</strong> Regular patrols, station proximity, law enforcement visibility <span class="text-muted-gray">(Planned Enhancement)</span></li>
+                      <li><strong>Crime Trends:</strong> Historical patterns, seasonal variations, emerging threats <span class="text-muted-gray">(Planned Enhancement)</span></li>
+                      <li><strong>Environmental Quality:</strong> Clean air/water, pollution levels, noise control <span class="text-muted-gray">(Planned Enhancement)</span></li>
+                      <li><strong>Street Lighting:</strong> Adequate illumination in public spaces for activity and safety <span class="text-muted-gray">(Planned Enhancement)</span></li>
+                      <li><strong>Traffic Safety:</strong> Pedestrian infrastructure, bike lanes, crosswalk security <span class="text-muted-gray">(Planned Enhancement)</span></li>
+                      <li><strong>Natural Hazards:</strong> Flood zones, weather preparedness, disaster resilience <span class="text-muted-gray">(Planned Enhancement)</span></li>
+                    </ul>
+                  </div>
+                </div>
               </div>
+              
+              <!-- Energized (Vitality) -->
+              <div class="accordion-item card-forseti border-secondary">
+                <h2 class="accordion-header" id="headingEnergized">
+                  <button class="accordion-button collapsed card-forseti text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEnergized" aria-expanded="false" aria-controls="collapseEnergized">
+                    <strong><img src="/themes/custom/forseti/images/logos/originals/forseti_energized.png" alt="" class="forseti-icon"> Energized (Vitality) <span class="text-muted-gray">(Planned Enhancement)</span></strong>
+                  </button>
+                </h2>
+                <div id="collapseEnergized" class="accordion-collapse collapse" aria-labelledby="headingEnergized" data-bs-parent="#safetyFactorsAccordion">
+                  <div class="accordion-body card-forseti">
+                    <h5 class="text-cyan mb-3">The Biological Fuel</h5>
+                    <p class="text-muted-light mb-3">
+                      The move beyond mere survival to physiological optimization. This level focuses on accumulating the resources required to live, not just exist. It encompasses housing stability, food security, and financial well-being—the fundamental resources that provide the surplus "fuel" needed for higher pursuits.
+                    </p>
+                    <p class="text-muted-light mb-3">
+                      <em>If you have a solution to contribute and would like to integrate, <a href="/contact" class="link-cyan">contact us</a>.</em>
+                    </p>
+                    <h6 class="text-cyan mb-2">Safety Factors:</h6>
+                    <ul class="text-muted-light">
+                      <li><strong>Housing Stability:</strong> Affordable housing, habitability standards, eviction prevention</li>
+                      <li><strong>Food Security:</strong> Access to nutritious food, grocery stores, food assistance programs</li>
+                      <li><strong>Financial Well-being:</strong> Income stability, living wages, debt management, emergency savings</li>
+                      <li><strong>Utility Access:</strong> Reliable electricity, heating, water, internet connectivity</li>
+                      <li><strong>Transportation Access:</strong> Public transit, walkability, vehicle access, commute affordability</li>
+                      <li><strong>Economic Opportunity:</strong> Employment availability, job training, career pathways</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Connected (Community) -->
+              <div class="accordion-item card-forseti border-secondary">
+                <h2 class="accordion-header" id="headingConnected">
+                  <button class="accordion-button collapsed card-forseti text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseConnected" aria-expanded="false" aria-controls="collapseConnected">
+                    <strong><img src="/themes/custom/forseti/images/logos/originals/forseti_connected.png" alt="" class="forseti-icon"> Connected (Community) <span class="text-muted-gray">(Planned Enhancement)</span></strong>
+                  </button>
+                </h2>
+                <div id="collapseConnected" class="accordion-collapse collapse" aria-labelledby="headingConnected" data-bs-parent="#safetyFactorsAccordion">
+                  <div class="accordion-body card-forseti">
+                    <h5 class="text-cyan mb-3">The Alignment of Shared Values</h5>
+                    <p class="text-muted-light mb-3">
+                      The establishment of a Tribe. This goes beyond simple social safety; it defines the deep satisfaction of being interconnected with people who share your specific interests, values, and mission. It is the move from "fitting in" to "belonging," creating a network of peers that acts as a multiplier for your own growth.
+                    </p>
+                    <p class="text-muted-light mb-3">
+                      <em>If you have a solution to contribute and would like to integrate, <a href="/contact" class="link-cyan">contact us</a>.</em>
+                    </p>
+                    <h6 class="text-cyan mb-2">Safety Factors:</h6>
+                    <ul class="text-muted-light">
+                      <li><strong>Community Engagement:</strong> Neighborhood associations, block parties, community events</li>
+                      <li><strong>Social Cohesion:</strong> Trust among neighbors, mutual support networks, collective efficacy</li>
+                      <li><strong>Neighborhood Watch:</strong> Community surveillance, organized vigilance, reporting systems</li>
+                      <li><strong>Public Spaces:</strong> Community centers, gathering places, shared amenities</li>
+                      <li><strong>Green Spaces:</strong> Parks, recreation areas, urban forests, walking paths</li>
+                      <li><strong>Anti-Discrimination:</strong> Inclusive environment, hate crime monitoring, diversity acceptance</li>
+                      <li><strong>Youth Programs:</strong> After-school activities, mentorship, recreation, positive engagement</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Free (Autonomy) -->
+              <div class="accordion-item card-forseti border-secondary">
+                <h2 class="accordion-header" id="headingFree">
+                  <button class="accordion-button collapsed card-forseti text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFree" aria-expanded="false" aria-controls="collapseFree">
+                    <strong><img src="/themes/custom/forseti/images/logos/originals/forseti_free.png" alt="" class="forseti-icon"> Free (Autonomy) <span class="text-muted-gray">(Planned Enhancement)</span></strong>
+                  </button>
+                </h2>
+                <div id="collapseFree" class="accordion-collapse collapse" aria-labelledby="headingFree" data-bs-parent="#safetyFactorsAccordion">
+                  <div class="accordion-body card-forseti">
+                    <h5 class="text-cyan mb-3">The Power of Self-Determination</h5>
+                    <p class="text-muted-light mb-3">
+                      The liberation from coercion and the assertion of the self. This is the ability to set boundaries, make independent choices, and direct one\'s own path without being controlled by the expectations, debts, or demands of others. It is the pivot point where one transitions from being a member of a group to being an individual.
+                    </p>
+                    <p class="text-muted-light mb-3">
+                      <em>If you have a solution to contribute and would like to integrate, <a href="/contact" class="link-cyan">contact us</a>.</em>
+                    </p>
+                    <h6 class="text-cyan mb-2">Safety Factors:</h6>
+                    <ul class="text-muted-light">
+                      <li><strong>Freedom of Movement:</strong> Ability to navigate public spaces without fear or harassment</li>
+                      <li><strong>Harassment Prevention:</strong> Street harassment monitoring, stalking prevention, bullying intervention</li>
+                      <li><strong>Privacy Protection:</strong> Data security, surveillance transparency, personal boundaries</li>
+                      <li><strong>Equity in Policing:</strong> Fair treatment, accountability, bias monitoring, community oversight</li>
+                      <li><strong>Access to Justice:</strong> Legal resources, victim support services, rights awareness</li>
+                      <li><strong>Personal Autonomy:</strong> Self-determination, choice in housing/work/lifestyle</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Capable (Mastery) -->
+              <div class="accordion-item card-forseti border-secondary">
+                <h2 class="accordion-header" id="headingCapable">
+                  <button class="accordion-button collapsed card-forseti text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCapable" aria-expanded="false" aria-controls="collapseCapable">
+                    <strong><img src="/themes/custom/forseti/images/logos/originals/forseti_capable.png" alt="" class="forseti-icon"> Capable (Mastery) <span class="text-muted-gray">(Planned Enhancement)</span></strong>
+                  </button>
+                </h2>
+                <div id="collapseCapable" class="accordion-collapse collapse" aria-labelledby="headingCapable" data-bs-parent="#safetyFactorsAccordion">
+                  <div class="accordion-body card-forseti">
+                    <h5 class="text-cyan mb-3">The Realization of Competence</h5>
+                    <p class="text-muted-light mb-3">
+                      The transition from "being free" to "being effective." This level is defined by the pursuit of excellence, skill acquisition, and the "flow state." It is the deep satisfaction that comes from facing difficult challenges and knowing you have the tools and resilience to overcome them.
+                    </p>
+                    <p class="text-muted-light mb-3">
+                      <em>If you have a solution to contribute and would like to integrate, <a href="/contact" class="link-cyan">contact us</a>.</em>
+                    </p>
+                    <h6 class="text-cyan mb-2">Safety Factors:</h6>
+                    <ul class="text-muted-light">
+                      <li><strong>Educational Access:</strong> Quality schools, libraries, learning opportunities, vocational training</li>
+                      <li><strong>Economic Security:</strong> Job availability, income stability, housing affordability, financial literacy</li>
+                      <li><strong>Safety Training:</strong> Self-defense classes, emergency preparedness, first aid knowledge</li>
+                      <li><strong>Technology Access:</strong> Internet connectivity, digital literacy, safety apps and tools</li>
+                      <li><strong>Resource Awareness:</strong> Knowledge of available services, support systems, safety resources</li>
+                      <li><strong>Skill Development:</strong> Career advancement opportunities, personal growth programs</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Useful (Purpose) -->
+              <div class="accordion-item card-forseti border-secondary">
+                <h2 class="accordion-header" id="headingUseful">
+                  <button class="accordion-button collapsed card-forseti text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseUseful" aria-expanded="false" aria-controls="collapseUseful">
+                    <strong><img src="/themes/custom/forseti/images/logos/originals/forseti_useful.png" alt="" class="forseti-icon"> Useful (Purpose) <span class="text-muted-gray">(Planned Enhancement)</span></strong>
+                  </button>
+                </h2>
+                <div id="collapseUseful" class="accordion-collapse collapse" aria-labelledby="headingUseful" data-bs-parent="#safetyFactorsAccordion">
+                  <div class="accordion-body card-forseti">
+                    <h5 class="text-cyan mb-3">The Contribution to the Whole</h5>
+                    <p class="text-muted-light mb-3">
+                      The direction of one\'s mastery toward something larger than the self. This level transforms personal competence into communal value. Meaning is found not in what you acquire, but in how you serve others, solve external problems, and leave a positive impact on the world around you.
+                    </p>
+                    <p class="text-muted-light mb-3">
+                      <em>If you have a solution to contribute and would like to integrate, <a href="/contact" class="link-cyan">contact us</a>.</em>
+                    </p>
+                    <h6 class="text-cyan mb-2">Safety Factors:</h6>
+                    <ul class="text-muted-light">
+                      <li><strong>Civic Engagement:</strong> Participation in governance, community decision-making, advocacy</li>
+                      <li><strong>Volunteer Opportunities:</strong> Community service, safety programs, mentorship roles</li>
+                      <li><strong>Economic Contribution:</strong> Meaningful employment, entrepreneurship, local business support</li>
+                      <li><strong>Cultural Participation:</strong> Arts, music, cultural institutions, creative expression</li>
+                      <li><strong>Safety Leadership:</strong> Block captains, emergency coordinators, community organizers</li>
+                      <li><strong>Legacy Building:</strong> Long-term community investment, neighborhood improvement projects</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Whole (Holistic Health) -->
+              <div class="accordion-item card-forseti border-secondary">
+                <h2 class="accordion-header" id="headingWhole">
+                  <button class="accordion-button collapsed card-forseti text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseWhole" aria-expanded="false" aria-controls="collapseWhole">
+                    <strong><img src="/themes/custom/forseti/images/logos/originals/forseti_whole.png" alt="" class="forseti-icon"> Whole (Holistic Health) <span class="text-muted-gray">(Planned Enhancement)</span></strong>
+                  </button>
+                </h2>
+                <div id="collapseWhole" class="accordion-collapse collapse" aria-labelledby="headingWhole" data-bs-parent="#safetyFactorsAccordion">
+                  <div class="accordion-body card-forseti">
+                    <h5 class="text-cyan mb-3">The Optimization of Mind & Body</h5>
+                    <p class="text-muted-light mb-3">
+                      The pinnacle state where physical health and mental resilience are fully integrated and operating at peak capacity. This represents a system where the body is free from preventable dysfunction and the mind is free from chronic stress, creating a unified vessel capable of sustaining a high quality of life indefinitely.
+                    </p>
+                    <p class="text-muted-light mb-3">
+                      <em>If you have a solution to contribute and would like to integrate, <a href="/contact" class="link-cyan">contact us</a>.</em>
+                    </p>
+                    <h6 class="text-cyan mb-2">Safety Factors:</h6>
+                    <ul class="text-muted-light">
+                      <li><strong>Demographic Stability:</strong> Residential roots, multi-generational presence, low turnover</li>
+                      <li><strong>Systems Integration:</strong> Coordinated emergency services, unified safety approach</li>
+                      <li><strong>Health Resources:</strong> Hospitals, clinics, pharmacies, mental health services</li>
+                      <li><strong>Mental Health Support:</strong> Counseling services, trauma care, stress management resources</li>
+                      <li><strong>Work-Life Balance:</strong> Reasonable commutes, flexible employment, family support</li>
+                      <li><strong>Cultural Harmony:</strong> Diverse yet unified community, celebration of differences</li>
+                      <li><strong>Sustainable Development:</strong> Long-term planning, environmental stewardship, future readiness</li>
+                      <li><strong>Community Identity:</strong> Shared values, collective vision, neighborhood pride</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              
             </div>
+            
+            <div class="card card-forseti p-4 mb-4">
+              <h3 class="text-cyan mb-3">How Forseti Uses This Framework</h3>
+              <p class="text-muted-light">
+                Our AI continuously monitors and analyzes factors across all seven dimensions of safety. By understanding safety holistically—from physical security to personal purpose—we provide more nuanced and actionable insights than traditional crime statistics alone.
+              </p>
+              <ul class="text-muted-light">
+                <li><strong>Real-time Monitoring:</strong> Track conditions across all safety dimensions simultaneously</li>
+                <li><strong>Predictive Analytics:</strong> Identify emerging risks before they escalate in any dimension</li>
+                <li><strong>Personalized Recommendations:</strong> Tailored safety guidance based on your unique needs and priorities</li>
+                <li><strong>Community Action:</strong> Connect residents with resources and initiatives that strengthen each dimension</li>
+                <li><strong>Integrated Approach:</strong> Recognize how improvements in one area enhance overall well-being</li>
+              </ul>
+            </div>
+            
+            <div class="text-center mb-4">
+              <a href="/how-it-works" class="btn btn-primary me-2">Learn How It Works</a>
+              <a href="/safety-map" class="btn btn-outline-primary">View Safety Map</a>
+            </div>
+            
           </div>
         </div>
       </div>

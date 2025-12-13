@@ -1,7 +1,4 @@
 dashboard-styling:
-  css:
-    theme:
-      css/dashboard.css: {}
   dependencies:
     - core/drupal
 
@@ -17,10 +14,6 @@ logger:
 # Core crime map library
 crime-map:
   version: 8.4  # Use local API endpoints to avoid CORS issues
-  css:
-    theme:
-      css/crime-map.css: {}
-      css/professional-theme.css: {}
   js:
     js/crime-map.js: {}
   dependencies:
@@ -44,8 +37,5 @@ external-libraries:
 # Mobile app download page
 mobile-download:
   version: 1.0
-  css:
-    theme:
-      css/mobile-download.css: {}
   dependencies:
     - core/drupal

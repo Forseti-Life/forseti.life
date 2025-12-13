@@ -116,10 +116,6 @@ AddType image/webp .webp
   # uncomment the following line:
   # RewriteBase /
 
-  # Redirect root path to /home
-  RewriteCond %{REQUEST_URI} ^/$
-  RewriteRule ^(.*)$ /home [R=302,L]
-
   # Redirect common PHP files to their new locations.
   RewriteCond %{REQUEST_URI} ^(.*)?/(install\.php) [OR]
   RewriteCond %{REQUEST_URI} ^(.*)?/(rebuild\.php)

@@ -146,3 +146,150 @@
   padding-left: 0.5rem;
   background: none;
 }
+
+.forseti-icon {
+  width: 1.8em;
+  height: 1.8em;
+  margin-right: 8px;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.forseti-icon-list {
+  width: 2em;
+  height: 2em;
+  margin-right: 10px;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+/* Navigation Menu Dropdown Improvements */
+/* Make dropdown toggle arrow always visible and consistent */
+.navbar-nav .nav-link.dropdown-toggle::after {
+  display: inline-block !important;
+  margin-left: 0.5em !important;
+  vertical-align: 0.15em !important;
+  content: "" !important;
+  border-top: 0.3em solid !important;
+  border-right: 0.3em solid transparent !important;
+  border-bottom: 0 !important;
+  border-left: 0.3em solid transparent !important;
+  opacity: 0.8 !important;
+}
+
+/* Ensure dropdown items have proper parent styling */
+.navbar-nav .dropdown,
+.navbar-nav .nav-item.dropdown {
+  position: relative !important;
+}
+
+/* Dropdown menu base styling - hidden by default */
+.navbar-nav .dropdown-menu {
+  display: block !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  transform: translateY(-10px) !important;
+  transition: visibility 0s linear 0.2s, opacity 0.2s ease-in-out, transform 0.2s ease-in-out !important;
+  margin-top: 0 !important;
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  z-index: 1000 !important;
+  background-color: #1e293b !important;
+  border: 1px solid #334155 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2) !important;
+  min-width: 10rem !important;
+  padding: 0.5rem 0 !important;
+  border-radius: 0.375rem !important;
+}
+
+/* Show dropdown on hover with smooth transition */
+.navbar-nav .dropdown:hover > .dropdown-menu,
+.navbar-nav .nav-item.dropdown:hover > .dropdown-menu {
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  transition-delay: 0s !important;
+}
+
+/* Prevent default Bootstrap behavior */
+.navbar-nav .dropdown > .dropdown-toggle,
+.navbar-nav .nav-item.dropdown > .dropdown-toggle {
+  cursor: pointer !important;
+}
+
+.navbar-nav .dropdown > .dropdown-toggle:active,
+.navbar-nav .nav-item.dropdown > .dropdown-toggle:active {
+  pointer-events: auto !important;
+}
+
+/* Dropdown menu item styling */
+.navbar-nav .dropdown-menu .dropdown-item {
+  color: #e2e8f0 !important;
+  padding: 0.5rem 1rem !important;
+  display: block !important;
+  width: 100% !important;
+  clear: both !important;
+  font-weight: 400 !important;
+  text-align: inherit !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  background-color: transparent !important;
+  border: 0 !important;
+}
+
+.navbar-nav .dropdown-menu .dropdown-item:hover,
+.navbar-nav .dropdown-menu .dropdown-item:focus {
+  background-color: #334155 !important;
+  color: #06b6d4 !important;
+}
+
+/* Ensure proper spacing and alignment */
+.navbar-nav .nav-item.dropdown {
+  margin-right: 0.5rem;
+}
+
+/* Webform styling fix - ensure form elements are visible */
+.webform-submission-form label,
+.webform-submission-form .form-label,
+.webform-submission-form .form-text {
+  color: #a0aec0 !important;
+}
+
+.webform-submission-form input[type="text"],
+.webform-submission-form input[type="email"],
+.webform-submission-form select,
+.webform-submission-form textarea {
+  background-color: #2d3748 !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #4a5568 !important;
+}
+
+.webform-submission-form input[type="text"]:focus,
+.webform-submission-form input[type="email"]:focus,
+.webform-submission-form select:focus,
+.webform-submission-form textarea:focus {
+  background-color: #374151 !important;
+  color: #e2e8f0 !important;
+  border-color: #06b6d4 !important;
+}
+
+/* Remove extra padding from page-content wrapper for crime map */
+.path-safety-map .page-content {
+  padding: 0 !important;
+  margin-top: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* AmISafe image sizing */
+.app-logo {
+  width: 80px;
+  height: 80px;
+}
+
+.platform-logo {
+  width: 60px;
+  height: 60px;
+}

@@ -88,7 +88,7 @@
 .crime-map-layout {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 15px;
+  padding: 0;
   display: grid;
   grid-template-columns: 300px 1fr;
   gap: 2rem;

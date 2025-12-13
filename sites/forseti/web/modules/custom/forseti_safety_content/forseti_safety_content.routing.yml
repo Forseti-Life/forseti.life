@@ -1,3 +1,13 @@
+forseti.root:
+  path: '/'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiHomeController::content'
+    _title: 'Forseti - AI-Powered Community Safety'
+  requirements:
+    _permission: 'access content'
+  options:
+    no_cache: TRUE
+
 forseti.home:
   path: '/home'
   defaults:
@@ -43,7 +53,7 @@ forseti.community:
 forseti.mobile_app:
   path: '/mobile-app'
   defaults:
-    _controller: '\Drupal\amisafe\Controller\MobileDownloadController::downloadPage'
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::mobileApp'
     _title: 'AmISafe Mobile App'
   requirements:
     _permission: 'access content'
@@ -63,3 +73,13 @@ forseti.contact:
     _title: 'Contact Us'
   requirements:
     _permission: 'access content'
+
+forseti.safety_factors:
+  path: '/safety-factors'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::safetyFactors'
+    _title: 'Safety Factors'
+  requirements:
+    _permission: 'access content'
+  options:
+    no_cache: TRUE

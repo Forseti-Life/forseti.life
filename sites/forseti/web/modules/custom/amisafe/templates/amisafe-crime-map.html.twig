@@ -11,28 +11,29 @@
  */
 #}
 
-<div class="amisafe-crime-map-page">
-  <div class="page-header">
-    <div class="container">
-      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+<div class="container py-3">
+  <div class="row">
+    <div class="col-lg-10 mx-auto">
+      <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
         <div>
-          <h1 class="page-title">Philadelphia Crime Map</h1>
-          <p class="page-subtitle">Interactive crime data visualization and analysis</p>
+          <h1 class="text-cyan mb-2">Philadelphia Crime Map</h1>
+          <p class="text-muted-light">Interactive crime data visualization and analysis</p>
         </div>
         <div>
-          <a href="/amisafe/download" class="btn btn-primary" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; padding: 0.75rem 1.5rem; border-radius: 8px; color: white; text-decoration: none; font-weight: 600; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;">
-            <span style="font-size: 1.2rem;">📱</span>
+          <a href="/amisafe/download" class="btn btn-primary">
+            <img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon">
             Get Mobile App
           </a>
         </div>
       </div>
     </div>
   </div>
+</div>
 
-  <div class="crime-map-layout">
-    <div class="crime-map-container">
+<div class="crime-map-layout">
+  <div class="crime-map-container">
       <!-- Loading Overlay -->
-      <div id="loading-overlay" class="loading-overlay" style="display: none;">
+      <div id="loading-overlay" class="loading-overlay d-none">
         <div class="loading-spinner"></div>
         <div class="loading-text">Loading crime data...</div>
       </div>
@@ -60,7 +61,7 @@
         </div>
         
         <!-- Crime Type Dropdown (hidden by default) -->
-        <div id="crime-type-dropdown" class="filter-dropdown" style="display: none;">
+        <div id="crime-type-dropdown" class="filter-dropdown d-none">
           <div class="dropdown-header">
             <strong>Crime Types</strong>
             <button id="close-crime-filter" class="btn-close-filter">&times;</button>
@@ -95,7 +96,7 @@
       </div>
       
       <!-- Hexagon Detail Panel (fixed at bottom) -->
-      <div id="hexagon-detail-panel" class="hexagon-detail-panel" style="display: none;">
+      <div id="hexagon-detail-panel" class="hexagon-detail-panel d-none">
         <button id="close-detail-panel" class="close-panel-btn" title="Close">&times;</button>
         <div id="hexagon-detail-content"></div>
       </div>
@@ -106,10 +107,10 @@
 <!-- Incident Details Modal -->
 <div id="incident-modal" class="modal fade">
   <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title">Incident Analysis</h3>
-        <button class="btn-close modal-close" aria-label="Close">&times;</button>
+    <div class="modal-content bg-dark">
+      <div class="modal-header border-secondary">
+        <h3 class="modal-title text-cyan">Incident Analysis</h3>
+        <button class="btn-close btn-close-white modal-close" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <div id="incident-details"></div>

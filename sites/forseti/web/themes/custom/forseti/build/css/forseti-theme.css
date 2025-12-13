@@ -2,8 +2,8 @@
 
 /* Text Colors */
 .text-cyan { color: #00d4ff !important; }
-.text-muted-light { color: #e0e0e0 !important; }
-.text-muted-gray { color: #b0b0b0 !important; }
+.text-muted-light { color: #b8b8b8 !important; }
+.text-muted-gray { color: #909090 !important; }
 .text-danger-custom { color: #f44336 !important; }
 .text-warning-custom { color: #ff9800 !important; }
 .text-yellow-custom { color: #fdd835 !important; }
@@ -21,6 +21,11 @@
 .card-forseti h4,
 .card-forseti h5 {
   color: #00d4ff;
+}
+
+.card-forseti p,
+.card-forseti li {
+  color: #e8e8e8;
 }
 
 /* Alert Styling */
