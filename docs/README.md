@@ -1,23 +1,175 @@
-# St. Louis Integration - Deployment & Operations Guide
+# St. Louis Integration - Documentation Hub
+
+**Last Updated**: December 13, 2024  
+**Repository**: stlouisintegration.com  
+**Products**: Forseti Safety Platform, AmISafe Mobile App
+
+---
 
 ## Table of Contents
 1. [Overview](#overview)
-2. [Backup & Restore](#backup--restore)
-3. [Deployment Strategy](#deployment-strategy)
-4. [Security Hardening](#security-hardening)
-5. [Production Checklist](#production-checklist)
+2. [Documentation Structure](#documentation-structure)
+3. [Product Documentation](#product-documentation)
+4. [Technical Documentation](#technical-documentation)
+5. [Market Documentation](#market-documentation)
+6. [Operations Guide](#operations-guide)
 
 ---
 
 ## Overview
 
-This guide covers deployment, backup, restore, and security operations for the St. Louis Integration website infrastructure, including the main Drupal site and AmISafe crime monitoring application.
+This directory contains comprehensive documentation for the St. Louis Integration project, including:
+- **Forseti Safety Platform**: Web-based hyperlocal crime safety visualization
+- **AmISafe Mobile App**: React Native mobile app with background monitoring and proactive alerts
+- **H3 Geolocation System**: Crime data processing pipeline using Uber's H3 hexagonal indexing
 
-### Infrastructure Components
-- **Drupal Website**: Main stlouisintegration.com site
-- **AmISafe Module**: Crime monitoring and safety alerts
-- **H3 Geolocation**: Crime data processing pipeline
-- **Mobile Application**: React Native safety app
+---
+
+## Documentation Structure
+
+```
+docs/
+├── README.md (this file)                # Documentation hub and operations guide
+├── ARCHITECTURE.md                      # System architecture overview
+├── product/                             # 🟢 Product management (Lean Startup)
+│   ├── README.md                        # Product documentation guide
+│   ├── process-flow-validation.md       # End-to-end validation roadmap
+│   ├── lean-canvas/                     # Business model canvas
+│   ├── customer-development/            # Customer interviews & validation
+│   ├── experiments/                     # Hypothesis testing & pivots
+│   ├── metrics/                         # AARRR analytics & dashboards
+│   ├── mvp/                             # MVP definition & prioritization
+│   └── user-journey/                    # Persona journey mapping
+├── market/                              # 🟡 Market analysis
+│   ├── README.md                        # Market documentation guide
+│   ├── market-sizing.md                 # TAM/SAM/SOM analysis
+│   ├── competitive-analysis.md          # Competitor landscape
+│   ├── value-proposition.md             # Unique value proposition
+│   └── go-to-market-strategy.md         # Customer acquisition plan
+└── technical/                           # 🟡 Technical documentation
+    ├── README.md                        # Technical documentation guide
+    ├── architecture.md                  # Links to architecture docs
+    ├── api-documentation.md             # API endpoints & specs
+    ├── data-models.md                   # Database schemas
+    └── integration-guides.md            # Third-party integrations
+```
+
+---
+
+## Product Documentation
+
+**Location**: `/docs/product/`  
+**Purpose**: Lean Startup product management framework  
+**Status**: 🟢 Live Beta Testing
+
+### Key Documents
+
+#### [Process Flow & Validation Roadmap](./product/process-flow-validation.md)
+End-to-end system validation connecting user journey to technical implementation.
+- Discovery & Activation flows
+- Retention & Engagement mechanics
+- Conversion & Monetization process
+- Testing strategy and go/no-go criteria
+
+#### [MVP Definition](./product/mvp/mvp-definition.md)
+Current MVP scope with 6 core features in live beta testing.
+- Interactive safety map with H3 hexagons
+- Background location monitoring
+- Proactive push notifications
+- Success criteria: 40% activation, 20% D7 retention, 2% conversion
+
+#### [User Journey: Sarah](./product/user-journey/sarah-urban-commuter.md)
+Detailed persona journey from discovery to advocacy.
+- Primary persona: Urban professional, 28, walks/uses transit
+- Journey stages: Problem trigger → Aha moment → Trial → Paid conversion
+- Success indicators at each touchpoint
+
+#### [Lean Canvas](./product/lean-canvas/)
+One-page business model with 9 building blocks.
+- Problem, Solution, Customer Segments, Value Proposition
+- Channels, Revenue, Costs, Metrics, Unfair Advantage
+
+#### [Customer Development](./product/customer-development/)
+Customer discovery and validation process.
+- Target: 35 interviews (15 Urban Commuters, 10 Parents, 10 Real Estate)
+- Current: 0 completed
+- Problem and solution validation frameworks
+
+#### [Experiments](./product/experiments/)
+Build-Measure-Learn hypothesis testing.
+- Experiment logging and tracking
+- Pivot vs. persevere decision framework
+- Innovation accounting
+
+#### [Metrics](./product/metrics/)
+AARRR (Pirate Metrics) and analytics.
+- North Star Metric (TBD)
+- Acquisition → Activation → Retention → Revenue → Referral
+- Cohort analysis and PMF signals
+
+---
+
+## Technical Documentation
+
+**Location**: `/docs/technical/`  
+**Purpose**: System architecture and implementation guides  
+**Status**: 🟡 Organized
+
+### System Architecture
+
+**Primary Document**: [`/docs/ARCHITECTURE.md`](./ARCHITECTURE.md)
+
+Comprehensive overview of:
+- Frontend (Drupal 11 web, React Native mobile)
+- Backend (RESTful APIs, Python ETL)
+- Data Layer (MySQL, H3 geospatial indexing)
+- Integration points
+
+**Related Architectures**:
+- `/amisafe-mobile/ARCHITECTURE.md` - Mobile app architecture
+- `/h3-geolocation/ARCHITECTURE.md` - Geospatial processing
+- `/amisafe-mobile/BACKGROUND_SERVICE_DOCUMENTATION.md` - Background monitoring
+
+### Technology Stack
+
+**Frontend**:
+- Web: Drupal 11, Radix theme, Leaflet.js maps
+- Mobile: React Native 0.72.6, TypeScript
+
+**Backend**:
+- CMS: Drupal 11 with custom modules
+- API: RESTful endpoints
+- Processing: Python scripts, cron jobs
+
+**Data**:
+- Database: MySQL
+- Geospatial: H3 (resolution 11, ~700m hexagons)
+- ETL: Python for crime data ingestion
+
+---
+
+## Market Documentation
+
+**Location**: `/docs/market/`  
+**Purpose**: Market analysis and go-to-market strategy  
+**Status**: 🟡 Template Ready
+
+### Framework
+
+- **Market Sizing**: TAM/SAM/SOM analysis for safety apps in St. Louis
+- **Competitive Analysis**: Direct/indirect competitors, substitutes
+- **Value Proposition**: Why Forseti is different (hyperlocal, proactive, statistical)
+- **Go-to-Market**: Acquisition channels, positioning, launch plan
+
+---
+
+## Operations Guide
+
+**Sections Below**:
+1. [Backup & Restore](#backup--restore) - Daily/weekly backup strategy
+2. [Deployment Strategy](#deployment-strategy) - Deployment procedures
+3. [Security Hardening](#security-hardening) - Security best practices
+4. [Production Checklist](#production-checklist) - Launch readiness
 
 ---
 
