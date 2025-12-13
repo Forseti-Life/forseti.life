@@ -209,69 +209,35 @@ _Features to consider after MVP validation._
 
 ## User Journey (MVP)
 
-### Persona: Sarah (Urban Commuter, 32, Chicago)
+_How does a user discover, activate, and retain with the MVP?_
 
-#### First-Time User Experience
+For detailed user journey documentation, see:
 
-1. **Discovery** (Acquisition)
-   - Sarah searches "St. Louis crime map" or "is my neighborhood safe" on Google
-   - Finds Forseti website (forseti.life) in search results
-   - OR discovers through Reddit r/StLouis discussion about safety
+### 📖 [Sarah - Urban Commuter Journey Map](../user-journey/sarah-urban-commuter.md)
 
-2. **Landing Page** (Activation Start)
-   - Sees clear value prop: "Know before you go - Hyperlocal safety intelligence"
-   - Views interactive safety map immediately (no signup wall)
-   - Sees St. Louis metro area with color-coded hexagons
-   - Notices her neighborhood and surrounding areas
+**Quick Summary**:
+- **Persona**: Sarah, 28, Urban Professional in St. Louis
+- **Discovery**: Feels unsafe walking at night → Googles "St. Louis crime map" → finds Forseti
+- **Aha Moment**: Compares route z-scores (0.8 vs 2.3) → realizes she can make informed decisions
+- **Activation**: Signs up, downloads mobile app, enables background alerts
+- **Retention**: Receives proactive alerts, adjusts routes, builds trust over weeks
+- **Conversion**: Converts to $4.99/month premium after 7-day trial
+- **Advocacy**: Refers friends, leaves 5-star review, becomes power user
 
-3. **Aha Moment** (Activation)
-   - Zooms to her typical walking route from apartment to Metro station
-   - Clicks on hexagons along route to see z-scores
-   - Discovers one route has z-score 0.8 (low risk) vs. alternative with z-score 2.1 (elevated risk)
-   - **Realizes**: "I can make informed decisions about which way to walk!"
+**Key Journey Stages**:
+1. Problem Trigger → Discovery (Google search)
+2. Landing Page → Aha Moment (route comparison)
+3. Signup → Onboarding (location permissions, alert setup)
+4. Week 1 → First Alert (validates value)
+5. Week 2-4 → Habit Formation (background monitoring trusted)
+6. Month 2+ → Paid Conversion & Advocacy
 
-4. **Signup** (Activation Continue)
-   - Decides she wants proactive alerts while walking
-   - Clicks "Get Mobile Alerts" CTA
-   - Quick signup (email + password, <2 minutes)
-   - Downloads "AmISafe by Forseti" mobile app from App Store
-
-5. **Onboarding** (Activation Complete)
-   - Opens app, logs in with website credentials
-   - Grants location permission ("Allow While Using" then "Always Allow")
-   - Starts 7-day free trial of Premium (background monitoring)
-   - Sets alert threshold to z-score 2.0 (moderate-risk notification)
-   - Sees confirmation: "You're protected! We'll alert you if you enter higher-risk areas."
-
-#### Ongoing Usage (Retention)
-
-**Week 1 (Trial Period)**:
-- **Day 1-2**: Opens map website 2x to check new areas before going out
-- **Day 3**: Receives first notification while walking near higher-risk zone (z-score 2.3)
-  - Taps notification → opens safety map in browser at her location
-  - Sees she's at edge of elevated zone, takes parallel street
-  - **Value delivered**: Avoided potentially dangerous area
-- **Day 5-7**: Checks map 1-2x more, feels more confident exploring city
-
-**Week 2-4 (Building Habit)**:
-- Opens map less frequently (background monitoring gives peace of mind)
-- Receives 1-2 alerts per week during evening walks
-- Shares with roommate after alert helps her avoid sketchy area
-- Trusts the system, adjusts routes based on notifications
-
-**Month 2+ (Retained User)**:
-- Rarely opens map manually - relies on background alerts
-- Feels safer in daily activities, reduced anxiety
-- Recommends to coworker who walks to work (Referral)
-- Trial ends → converts to paid subscription at $4.99/month (Revenue)
-  - Thinks: "Worth it for peace of mind, cheaper than one Uber ride"
-
-#### Power User Evolution (Month 3+)
-
-- Checks map when planning to visit new restaurants/venues
-- Uses it when traveling to other cities (future feature)
-- Active in feedback: requests crime type filtering
-- Posts positive review on App Store
+See [full journey documentation](../user-journey/sarah-urban-commuter.md) for:
+- Detailed week-by-week usage patterns
+- Emotional journey mapping
+- Failure modes and risk mitigation
+- Success metrics at each stage
+- Iteration opportunities based on user behavior
 
 ---
 
