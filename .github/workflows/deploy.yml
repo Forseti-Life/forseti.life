@@ -78,7 +78,15 @@ jobs:
           
           echo "Downloading code from repository..."
           git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
-          git sparse-checkout set sites/stlouisintegration drupal/web/modules/custom drupal/web/themes/custom drupal
+          git sparse-checkout set sites/stlouisintegration drupal/web/modules/custom drupal/web/themes/custom drupal amisafe-mobile/android/app/build/outputs/apk/release
+          
+          # Copy built APK to deployment location if it exists
+          if [ -f "amisafe-mobile/android/app/build/outputs/apk/release/app-release.apk" ]; then
+            echo "Copying built APK to deployment location..."
+            mkdir -p sites/stlouisintegration/web/sites/default/files/amisafe/mobile
+            cp "amisafe-mobile/android/app/build/outputs/apk/release/app-release.apk" "sites/stlouisintegration/web/sites/default/files/amisafe/mobile/AmISafe.apk"
+            echo "✅ APK copied to deployment location"
+          fi
           
           # Deploy custom modules from stlouisintegration site
           CUSTOM_MODULES_DIR="$DRUPAL_ROOT/web/modules/custom"
@@ -160,22 +168,20 @@ jobs:
           MOBILE_FILES_DIR="$DRUPAL_ROOT/web/sites/default/files/amisafe/mobile"
           sudo mkdir -p "$MOBILE_FILES_DIR"
           
-          # Deploy Android APK from build output
-          if [ -f "amisafe-mobile/android/app/build/outputs/apk/release/app-release.apk" ]; then
-            echo "Deploying AmISafe APK from build output..."
-            sudo cp "amisafe-mobile/android/app/build/outputs/apk/release/app-release.apk" "$MOBILE_FILES_DIR/AmISafe.apk"
+          if [ -f "sites/stlouisintegration/web/sites/default/files/amisafe/mobile/AmISafe.apk" ]; then
+            echo "Deploying AmISafe APK..."
+            sudo cp "sites/stlouisintegration/web/sites/default/files/amisafe/mobile/AmISafe.apk" "$MOBILE_FILES_DIR/"
             sudo chown www-data:www-data "$MOBILE_FILES_DIR/AmISafe.apk"
             sudo chmod 644 "$MOBILE_FILES_DIR/AmISafe.apk"
             APK_SIZE=$(du -h "$MOBILE_FILES_DIR/AmISafe.apk" | cut -f1)
             echo "✅ AmISafe.apk deployed ($APK_SIZE)"
           else
-            echo "⚠️ AmISafe.apk not found in build outputs"
+            echo "⚠️ AmISafe.apk not found in repository"
           fi
           
-          # Deploy iOS IPA from build output (when available)
-          if [ -f "amisafe-mobile/ios/build/AmISafe.ipa" ]; then
-            echo "Deploying AmISafe IPA from build output..."
-            sudo cp "amisafe-mobile/ios/build/AmISafe.ipa" "$MOBILE_FILES_DIR/AmISafe.ipa"
+          if [ -f "sites/stlouisintegration/web/sites/default/files/amisafe/mobile/AmISafe.ipa" ]; then
+            echo "Deploying AmISafe IPA..."
+            sudo cp "sites/stlouisintegration/web/sites/default/files/amisafe/mobile/AmISafe.ipa" "$MOBILE_FILES_DIR/"
             sudo chown www-data:www-data "$MOBILE_FILES_DIR/AmISafe.ipa"
             sudo chmod 644 "$MOBILE_FILES_DIR/AmISafe.ipa"
             IPA_SIZE=$(du -h "$MOBILE_FILES_DIR/AmISafe.ipa" | cut -f1)
