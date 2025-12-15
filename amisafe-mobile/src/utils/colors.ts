@@ -1,29 +1,31 @@
 /**
  * Color palette for AmISafe Mobile Application
- * Consistent with web application branding
+ * Consistent with Forseti branding and web application
+ * 
+ * Brand colors sourced from: sites/forseti/web/themes/custom/forseti/images/logos/README.md
  */
 
 export const Colors = {
-  // Primary colors
-  primary: '#007bff',
-  primaryDark: '#0056b3',
-  primaryLight: '#66b3ff',
+  // Primary colors - Forseti brand cyan
+  primary: '#00d4ff',
+  primaryDark: '#00a0cc',
+  primaryLight: '#33dcff',
   
-  // Secondary colors
-  secondary: '#6c757d',
-  secondaryDark: '#495057',
-  secondaryLight: '#adb5bd',
+  // Secondary colors - Forseti brand dark blue
+  secondary: '#16213e',
+  secondaryDark: '#0f1829',
+  secondaryLight: '#1a1a2e',
   
   // Status colors
   success: '#28a745',
-  warning: '#ffc107',
-  danger: '#dc3545',
-  info: '#17a2b8',
+  warning: '#fdd835',
+  danger: '#f44336',
+  info: '#00d4ff',
   
-  // Safety risk colors (matching web app)
-  riskCritical: '#dc3545',
-  riskHigh: '#fd7e14',
-  riskMedium: '#ffc107',
+  // Safety risk colors (matching Forseti palette)
+  riskCritical: '#f44336',
+  riskHigh: '#ff9800',
+  riskMedium: '#fdd835',
   riskLow: '#28a745',
   riskMinimal: '#6c757d',
   
@@ -32,29 +34,29 @@ export const Colors = {
   black: '#000000',
   gray: '#6c757d',
   lightGray: '#e9ecef',
-  darkGray: '#343a40',
+  darkGray: '#1a1a2e',
   
-  // Background colors
-  background: '#f8f9fa',
-  backgroundDark: '#212529',
+  // Background colors - Forseti dark theme
+  background: '#1a1a2e',
+  backgroundDark: '#16213e',
   lighter: '#ffffff',
   darker: '#000000',
   
   // Text colors
-  textPrimary: '#212529',
-  textSecondary: '#6c757d',
+  textPrimary: '#ffffff',
+  textSecondary: '#00d4ff',
   textMuted: '#adb5bd',
   textLight: '#ffffff',
   
-  // Map colors
-  mapBackground: '#f8f9fa',
-  hexagonFill: 'rgba(0, 123, 255, 0.3)',
-  hexagonStroke: '#007bff',
+  // Map colors - Forseti branded
+  mapBackground: '#1a1a2e',
+  hexagonFill: 'rgba(0, 212, 255, 0.3)',
+  hexagonStroke: '#00d4ff',
   
-  // Chart colors
-  chartPrimary: '#007bff',
-  chartSecondary: '#6c757d',
-  chartAccent: '#28a745',
+  // Chart colors - Forseti palette
+  chartPrimary: '#00d4ff',
+  chartSecondary: '#16213e',
+  chartAccent: '#33dcff',
   
   // Shadow colors
   shadowLight: 'rgba(0, 0, 0, 0.1)',
@@ -63,18 +65,18 @@ export const Colors = {
   
   // Overlay colors
   overlayLight: 'rgba(255, 255, 255, 0.9)',
-  overlayDark: 'rgba(0, 0, 0, 0.7)',
+  overlayDark: 'rgba(26, 26, 46, 0.9)',
   
-  // Crime type colors (consistent with web interface)
+  // Crime type colors (consistent with Forseti palette)
   crimeTypeColors: {
-    burglary: '#dc3545',
-    theft: '#fd7e14',
+    burglary: '#f44336',
+    theft: '#ff9800',
     robbery: '#e83e8c',
-    violence: '#dc3545',
+    violence: '#f44336',
     drugs: '#6f42c1',
-    vandalism: '#fd7e14',
-    assault: '#dc3545',
-    weapons: '#343a40',
+    vandalism: '#ff9800',
+    assault: '#f44336',
+    weapons: '#1a1a2e',
     fraud: '#20c997',
     other: '#6c757d',
   },
