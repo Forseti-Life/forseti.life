@@ -38,6 +38,8 @@
     "@babel/runtime": "^7.20.0",
     "@react-native/metro-config": "^0.72.11",
     "babel-plugin-module-resolver": "^5.0.2",
+    "metro-cache-key": "^0.82.5",
+    "metro-file-map": "^0.76.8",
     "metro-react-native-babel-preset": "^0.76.8"
   }
 }
