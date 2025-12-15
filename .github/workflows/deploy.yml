@@ -19,6 +19,7 @@ on:
       - 'h3-geolocation/**'
       - 'database-exports/**'
       - 'testing/amisafe/**'
+      - 'amisafe-mobile/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
