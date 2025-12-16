@@ -19,7 +19,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useBackgroundMonitoring } from '../../hooks/useBackgroundMonitoring';
 import StorageService from '../../services/storage/StorageService';
 
-const SettingsScreen = () => {
+const SettingsScreen = ({ navigation }: any) => {
   const {
     isMonitoring,
     currentH3Index,
@@ -227,12 +227,12 @@ const SettingsScreen = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🌐 Learn More</Text>
         <Text style={styles.sectionDescription}>
-          Visit the Forseti website for more information
+          Explore Forseti's mission and technology
         </Text>
 
         <TouchableOpacity
           style={styles.linkButton}
-          onPress={() => Linking.openURL('https://forseti.life/about')}
+          onPress={() => navigation.navigate('About')}
         >
           <Icon name="information" size={20} color="#2196F3" style={styles.linkIcon} />
           <Text style={styles.linkButtonText}>About Forseti</Text>
@@ -240,7 +240,7 @@ const SettingsScreen = () => {
 
         <TouchableOpacity
           style={styles.linkButton}
-          onPress={() => Linking.openURL('https://forseti.life/how-it-works')}
+          onPress={() => navigation.navigate('HowItWorks')}
         >
           <Icon name="lightbulb-on" size={20} color="#2196F3" style={styles.linkIcon} />
           <Text style={styles.linkButtonText}>How It Works</Text>
@@ -248,7 +248,7 @@ const SettingsScreen = () => {
 
         <TouchableOpacity
           style={styles.linkButton}
-          onPress={() => Linking.openURL('https://forseti.life/privacy')}
+          onPress={() => navigation.navigate('Privacy')}
         >
           <Icon name="shield-check" size={20} color="#2196F3" style={styles.linkIcon} />
           <Text style={styles.linkButtonText}>Privacy & Security</Text>
@@ -259,7 +259,7 @@ const SettingsScreen = () => {
           onPress={() => Linking.openURL('https://forseti.life/contact')}
         >
           <Icon name="email" size={20} color="#2196F3" style={styles.linkIcon} />
-          <Text style={styles.linkButtonText}>Contact Us</Text>
+          <Text style={styles.linkButtonText}>Contact Us (Website)</Text>
         </TouchableOpacity>
       </View>
 

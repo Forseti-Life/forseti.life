@@ -28,6 +28,10 @@ import StatisticsScreen from './src/screens/Statistics/StatisticsScreen';
 import ProfileScreen from './src/screens/Profile/ProfileScreen';
 import ChatScreen from './src/screens/Chat/ChatScreen';
 import ConversationListScreen from './src/screens/Chat/ConversationListScreen';
+import { AboutScreen } from './src/screens/About';
+import { HowItWorksScreen } from './src/screens/HowItWorks';
+import { PrivacyScreen } from './src/screens/Privacy';
+import SettingsScreen from './src/screens/Settings/SettingsScreen';
 
 // Services
 import LocationService from './src/services/location/LocationService';
@@ -205,9 +209,49 @@ const App: React.FC = () => {
             component={ConversationListScreen}
             options={{
               headerShown: true,
-              headerStyle: { backgroundColor: Colors.card },
-              headerTintColor: Colors.text,
+              headerStyle: { backgroundColor: Colors.primary },
+              headerTintColor: Colors.white,
               headerTitle: 'Conversations',
+            }}
+          />
+          <Stack.Screen 
+            name="About" 
+            component={AboutScreen}
+            options={{
+              headerShown: true,
+              headerStyle: { backgroundColor: Colors.primary },
+              headerTintColor: Colors.white,
+              headerTitle: 'About Forseti',
+            }}
+          />
+          <Stack.Screen 
+            name="HowItWorks" 
+            component={HowItWorksScreen}
+            options={{
+              headerShown: true,
+              headerStyle: { backgroundColor: Colors.primary },
+              headerTintColor: Colors.white,
+              headerTitle: 'How It Works',
+            }}
+          />
+          <Stack.Screen 
+            name="Privacy" 
+            component={PrivacyScreen}
+            options={{
+              headerShown: true,
+              headerStyle: { backgroundColor: Colors.primary },
+              headerTintColor: Colors.white,
+              headerTitle: 'Privacy & Security',
+            }}
+          />
+          <Stack.Screen 
+            name="Settings" 
+            component={SettingsScreen}
+            options={{
+              headerShown: true,
+              headerStyle: { backgroundColor: Colors.primary },
+              headerTintColor: Colors.white,
+              headerTitle: 'Settings',
             }}
           />
         </Stack.Navigator>

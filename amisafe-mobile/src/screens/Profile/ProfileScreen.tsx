@@ -182,7 +182,7 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
           <Icon name="chevron-right" size={24} color={Colors.textSecondary} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Settings')}>
           <Icon name="cog" size={24} color={Colors.cyan} />
           <View style={styles.menuItemContent}>
             <Text style={styles.menuItemTitle}>Settings</Text>
@@ -191,11 +191,29 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
           <Icon name="chevron-right" size={24} color={Colors.textSecondary} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('About')}>
           <Icon name="information" size={24} color={Colors.cyan} />
           <View style={styles.menuItemContent}>
             <Text style={styles.menuItemTitle}>About</Text>
             <Text style={styles.menuItemSubtitle}>Learn more about Forseti</Text>
+          </View>
+          <Icon name="chevron-right" size={24} color={Colors.textSecondary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('HowItWorks')}>
+          <Icon name="cog-outline" size={24} color={Colors.cyan} />
+          <View style={styles.menuItemContent}>
+            <Text style={styles.menuItemTitle}>How It Works</Text>
+            <Text style={styles.menuItemSubtitle}>Technology and AI behind Forseti</Text>
+          </View>
+          <Icon name="chevron-right" size={24} color={Colors.textSecondary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Privacy')}>
+          <Icon name="shield-lock" size={24} color={Colors.cyan} />
+          <View style={styles.menuItemContent}>
+            <Text style={styles.menuItemTitle}>Privacy & Security</Text>
+            <Text style={styles.menuItemSubtitle}>How we protect your data</Text>
           </View>
           <Icon name="chevron-right" size={24} color={Colors.textSecondary} />
         </TouchableOpacity>
