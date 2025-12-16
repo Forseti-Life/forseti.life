@@ -16,3 +16,17 @@ function forseti_safety_content_help($route_name, RouteMatchInterface $route_mat
       return '<p>' . t('Forseti Safety Content provides the main pages and content for the Forseti Life website.') . '</p>';
   }
 }
+
+/**
+ * Implements hook_theme().
+ */
+function forseti_safety_content_theme($existing, $type, $theme, $path) {
+  return [
+    'forseti_footer_block' => [
+      'variables' => [
+        'menu_items' => [],
+        'current_year' => NULL,
+      ],
+    ],
+  ];
+}
