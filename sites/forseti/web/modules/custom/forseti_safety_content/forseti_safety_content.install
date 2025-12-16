@@ -11,19 +11,17 @@ use Drupal\block\Entity\Block;
  * Implements hook_install().
  */
 function forseti_safety_content_install() {
-  // Note: If webform already exists, it will be skipped during config install.
-  // Webform submissions are stored separately and will be preserved.
-  // 
-  // TODO: If the contact_forseti webform is modified, we need to handle updates
-  // differently - either via hook_update_N() for existing sites, or by moving
-  // the webform config to config/optional to prevent installation conflicts.
-  // Current approach assumes webform in config/install may conflict on reinstall.
+  // NOTE: The contact_forseti webform config is in config/optional to prevent
+  // conflicts when reinstalling the module. Optional configs are only installed
+  // if they don't already exist, preserving webform submissions.
+  
+  $messenger = \Drupal::messenger();
+  $logger = \Drupal::logger('forseti_safety_content');
   
   // Create main menu block in header region.
   $block_storage = \Drupal::entityTypeManager()->getStorage('block');
-  
-  // Check if block already exists.
   $existing_block = $block_storage->load('forseti_main_menu');
+  
   if (!$existing_block) {
     $block = $block_storage->create([
       'id' => 'forseti_main_menu',
@@ -39,30 +37,55 @@ function forseti_safety_content_install() {
       ],
     ]);
     $block->save();
-    \Drupal::messenger()->addStatus(t('Main navigation menu has been placed in the header region.'));
+    $messenger->addStatus(t('Main navigation menu has been placed in the header region.'));
+    $logger->info('Created main navigation menu block in header region.');
+    
+    // Rebuild menu links only if we created the block.
+    \Drupal::service('plugin.manager.menu.link')->rebuild();
+    $logger->info('Rebuilt menu links.');
+  }
+  else {
+    $messenger->addWarning(t('Main navigation menu block already exists. Skipping creation.'));
+    $logger->info('Main navigation menu block already exists, skipped creation.');
   }
   
-  // Rebuild menu links.
-  \Drupal::service('plugin.manager.menu.link')->rebuild();
-  
-  // Configure custom error pages.
+  // Configure custom error pages (safe to overwrite on reinstall).
   $config = \Drupal::configFactory()->getEditable('system.site');
   $config->set('page.403', '/error/403');
   $config->set('page.404', '/error/404');
   $config->set('page.503', '/error/503');
   $config->save();
   
-  \Drupal::messenger()->addStatus(t('Custom error pages (403, 404, 503) have been configured.'));
-  \Drupal::messenger()->addStatus(t('Forseti Safety Content module installed successfully. Visit /home to see the homepage.'));
+  $messenger->addStatus(t('Custom error pages (403, 404, 503) have been configured.'));
+  $logger->info('Configured custom error pages.');
+  
+  $messenger->addStatus(t('Forseti Safety Content module installed successfully. Visit /home to see the homepage.'));
 }
 
 /**
  * Implements hook_uninstall().
  */
 function forseti_safety_content_uninstall() {
+  $logger = \Drupal::logger('forseti_safety_content');
+  
   // Remove the main menu block.
   $block = Block::load('forseti_main_menu');
   if ($block) {
     $block->delete();
+    $logger->info('Removed main navigation menu block.');
   }
+  
+  // Reset custom error pages to defaults (empty = use Drupal defaults).
+  $config = \Drupal::configFactory()->getEditable('system.site');
+  $config->clear('page.403');
+  $config->clear('page.404');
+  $config->clear('page.503');
+  $config->save();
+  $logger->info('Reset custom error pages to defaults.');
+  
+  // NOTE: The contact_forseti webform and its submissions are NOT deleted.
+  // If you need to remove the webform, do it manually via the Webform UI
+  // or with: drush entity:delete webform contact_forseti
+  $logger->info('Webform contact_forseti and submissions preserved (not deleted).');
 }
+
