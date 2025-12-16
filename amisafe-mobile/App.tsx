@@ -26,6 +26,8 @@ import MapScreen from './src/screens/Map/MapScreen';
 import SafetyScreen from './src/screens/Safety/SafetyScreen';
 import StatisticsScreen from './src/screens/Statistics/StatisticsScreen';
 import ProfileScreen from './src/screens/Profile/ProfileScreen';
+import ChatScreen from './src/screens/Chat/ChatScreen';
+import ConversationListScreen from './src/screens/Chat/ConversationListScreen';
 
 // Services
 import LocationService from './src/services/location/LocationService';
@@ -53,6 +55,9 @@ const TabNavigator = () => {
               break;
             case 'Map':
               iconName = focused ? 'map' : 'map-outline';
+              break;
+            case 'Chat':
+              iconName = focused ? 'robot' : 'robot-outline';
               break;
             case 'Safety':
               iconName = focused ? 'shield-check' : 'shield-check-outline';
@@ -90,6 +95,11 @@ const TabNavigator = () => {
         name="Map" 
         component={MapScreen}
         options={{ title: 'Safety Map' }}
+      />
+      <Tab.Screen 
+        name="Chat" 
+        component={ChatScreen}
+        options={{ title: 'Talk with Forseti', headerShown: false }}
       />
       <Tab.Screen 
         name="Safety" 
@@ -190,6 +200,16 @@ const App: React.FC = () => {
           }}
         >
           <Stack.Screen name="MainTabs" component={TabNavigator} />
+          <Stack.Screen 
+            name="ConversationList" 
+            component={ConversationListScreen}
+            options={{
+              headerShown: true,
+              headerStyle: { backgroundColor: Colors.card },
+              headerTintColor: Colors.text,
+              headerTitle: 'Conversations',
+            }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaView>

@@ -43,10 +43,16 @@ export const Colors = {
   darker: '#000000',
   
   // Text colors
+  text: '#ffffff',
   textPrimary: '#ffffff',
-  textSecondary: '#00d4ff',
+  textSecondary: '#adb5bd',
   textMuted: '#adb5bd',
   textLight: '#ffffff',
+  
+  // UI element colors
+  card: '#16213e',
+  border: '#2a3f5f',
+  cyan: '#00d4ff',
   
   // Map colors - Forseti branded
   mapBackground: '#1a1a2e',
