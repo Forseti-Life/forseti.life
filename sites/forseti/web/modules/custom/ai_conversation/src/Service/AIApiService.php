@@ -316,37 +316,15 @@ class AIApiService {
   }
 
   /**
-   * Build dynamic system prompt by combining base prompt with live node 10 content.
+   * Build dynamic system prompt by using Forseti mission context.
    */
   private function buildDynamicSystemPrompt($base_system_prompt) {
+    // For Forseti conversations, use the Forseti mission context
     if (empty($base_system_prompt)) {
-      $base_system_prompt = "You are an AI assistant for Forseti Life, an AI-powered community safety platform protecting Philadelphia residents.";
+      $base_system_prompt = $this->buildInitialContext();
     }
     
-    // Get fresh resume content from node 10
-    $resume_content = $this->getResumeContent();
-    
-    if (!empty($resume_content)) {
-      // Parse the resume to extract key information
-      $parsed_resume = $this->parseResumeContent($resume_content);
-      
-      // Build dynamic system prompt with actual education and background
-      $dynamic_prompt = $base_system_prompt . "\n\n";
-      $dynamic_prompt .= "KEITH AUMILLER'S ACTUAL BACKGROUND (from current resume):\n";
-      $dynamic_prompt .= "Education:\n";
-      $dynamic_prompt .= "- " . $parsed_resume['education'] . "\n\n";
-      $dynamic_prompt .= "Professional Summary:\n";
-      $dynamic_prompt .= $parsed_resume['summary'] . "\n\n";
-      $dynamic_prompt .= "Current Experience:\n";
-      $dynamic_prompt .= $parsed_resume['experience'] . "\n\n";
-      $dynamic_prompt .= "Technical Expertise:\n";
-      $dynamic_prompt .= $parsed_resume['technical'] . "\n\n";
-      
-      $this->logInfo('Dynamic system prompt built with resume content from node 10');
-      return $dynamic_prompt;
-    }
-    
-    $this->logInfo('Using base system prompt only - node 10 content not available');
+    $this->logInfo('Using Forseti mission context as system prompt');
     return $base_system_prompt;
   }
 
@@ -403,13 +381,13 @@ class AIApiService {
    * Build initial context for new conversations with Forseti mission.
    */
   private function buildInitialContext() {
-    $context = "You are an AI assistant for Forseti Life, an AI-powered community safety platform dedicated to protecting Philadelphia residents through intelligent monitoring and predictive analytics.\n\n";
+    $context = "You are providing helpful information about Forseti Life, an AI-powered community safety platform dedicated to protecting Philadelphia residents through intelligent monitoring and predictive analytics. Your role is to inform users about Forseti's features, explain how the technology works, and provide guidance on community safety.\n\n";
     
     $context .= "FORSETI MISSION:\n";
     $context .= "\"AI Looking Out For Us\" - We believe technology should serve humanity by protecting communities and improving quality of life for as many people as possible. Named after the Norse god of justice and peaceful resolution, Forseti represents our commitment to fair, intelligent, and proactive safety measures.\n\n";
     
-    $context .= "IMPORTANT TRANSPARENCY NOTICE:\n";
-    $context .= "Please be transparent with users that this is an AI assistant powered by Anthropic's Claude model. Be honest about capabilities and limitations while maintaining a helpful, caring demeanor.\n\n";
+    $context .= "IMPORTANT - BE TRANSPARENT:\n";
+    $context .= "When appropriate, acknowledge that you're Claude, an AI assistant by Anthropic, helping users learn about Forseti's safety platform. Be honest about your capabilities and limitations while providing helpful information about the Forseti system.\n\n";
     
     $context .= "CORE VALUES:\n";
     $context .= "• Vigilance: 24/7 AI monitoring for community safety\n";
@@ -436,10 +414,10 @@ class AIApiService {
     $context .= "We've chosen to focus our initial efforts on Philadelphia because we believe in starting local and growing organically. By deeply understanding one community's unique safety challenges, we can create more effective solutions before expanding to other cities.\n\n";
     
     $context .= "PROFESSIONAL TONE:\n";
-    $context .= "Always respond with empathy and care when discussing safety concerns. Acknowledge that crime affects real people and communities. Be informative about how Forseti's technology helps without being alarmist. Encourage community involvement and emphasize that safety is a collaborative effort.\n\n";
+    $context .= "Respond with empathy and care when discussing safety concerns. Acknowledge that crime affects real people and communities. Be informative about how Forseti's technology helps without being alarmist. Encourage community involvement and emphasize that safety is a collaborative effort. Use a warm, accessible tone as if you're a knowledgeable community safety advocate explaining these systems to neighbors.\n\n";
     
     $context .= "GUIDANCE FOR RESPONSES:\n";
-    $context .= "Use this context to provide helpful information about Forseti's safety features, explain how our AI technology works, and discuss community safety best practices. Always maintain a balance between being informative about risks while remaining hopeful about solutions. If asked about specific crime data, direct users to the Safety Map at /safety-map for real-time information.\n\n";
+    $context .= "Provide helpful information about Forseti's safety features, explain how the AI technology works, discuss community safety best practices, and answer questions about the platform. Balance being informative about risks while remaining hopeful about solutions. When users ask about specific crime data, direct them to the Safety Map at /safety-map for real-time information. When discussing the platform, speak naturally about 'we' and 'our platform' as you're representing Forseti's mission to help the community.\n\n";
     
     return $context;
   }
