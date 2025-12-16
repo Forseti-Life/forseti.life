@@ -1,9 +1,0 @@
-uuid: edaf8464-b940-408f-a502-15caece2f58d
-langcode: en
-status: true
-dependencies: {  }
-id: daily_local_backups
-label: 'Daily Local Backups'
-type: Directory
-config:
-  directory: /var/backups/stlouisintegration/daily/

@@ -1,7 +1,0 @@
-id: daily_backup
-label: 'Daily Database Backup'
-enabled: true
-keep: 7
-period: 86400
-source_id: default_db
-destination_id: daily_local_backup

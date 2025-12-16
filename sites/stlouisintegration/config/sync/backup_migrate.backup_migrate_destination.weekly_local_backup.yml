@@ -1,9 +1,0 @@
-uuid: null
-langcode: en
-status: true
-dependencies: {  }
-id: weekly_local_backup
-label: 'Weekly Local Backups'
-type: Directory
-config:
-  directory: /var/backups/stlouisintegration/weekly

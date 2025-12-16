@@ -82,19 +82,19 @@ else
 fi
 
 # Configuration
-PROJECT_NAME="stlouisintegration"
-PROJECT_DIR="/home/keithaumiller/stlouisintegration.com/sites/stlouisintegration"
-DB_NAME="stlouisintegration_dev"
+PROJECT_NAME="forseti"
+PROJECT_DIR="/home/keithaumiller/forseti.life/sites/forseti"
+DB_NAME="forseti_dev"
 DB_USER="drupal_user"
 DB_PASSWORD="drupal_secure_password"
 DB_HOST="127.0.0.1"
-SITE_NAME="St. Louis Integration"
+SITE_NAME="Forseti"
 ADMIN_USER="admin"
 ADMIN_PASSWORD="admin_secure_password"
-ADMIN_EMAIL="admin@stlouisintegration.com"
+ADMIN_EMAIL="admin@forseti.life"
 
 # Check if .env file exists and source it
-ENV_FILE="/home/keithaumiller/stlouisintegration.com/.env"
+ENV_FILE="/home/keithaumiller/forseti.life/.env"
 if [ -f "$ENV_FILE" ]; then
     print_status "Loading configuration from .env file..."
     source "$ENV_FILE"
@@ -412,10 +412,10 @@ if [ ${#MISSING_H3_PACKAGES[@]} -gt 0 ]; then
 fi
 
 # Setup H3 Python virtual environment
-H3_ENV_DIR="/home/keithaumiller/stlouisintegration.com/h3-geolocation/h3-env"
+H3_ENV_DIR="/home/keithaumiller/forseti.life/h3-geolocation/h3-env"
 if [ ! -d "$H3_ENV_DIR" ]; then
     print_status "Creating H3 Python virtual environment..."
-    cd /home/keithaumiller/stlouisintegration.com/h3-geolocation
+    cd /home/keithaumiller/forseti.life/h3-geolocation
     python3 -m venv h3-env
     
     print_status "Installing H3 Python packages..."
@@ -558,45 +558,18 @@ if [ ! -d "/var/private/forseti" ]; then
     print_status "Private files directory created at /var/private/forseti"
 fi
 
-# Configure Apache virtual hosts for multi-site setup
-print_status "Configuring Apache virtual hosts for multi-site setup..."
+# Configure Apache virtual hosts for Forseti
+print_status "Configuring Apache virtual host for Forseti..."
 
-# Configure port 8080 and 8081 for Apache
-print_status "Configuring Apache to listen on ports 8080 and 8081..."
-if ! grep -q "Listen 8080" /etc/apache2/ports.conf; then
-    sudo bash -c "echo 'Listen 8080' >> /etc/apache2/ports.conf"
-fi
-if ! grep -q "Listen 8081" /etc/apache2/ports.conf; then
-    sudo bash -c "echo 'Listen 8081' >> /etc/apache2/ports.conf"
-fi
-
-# Configure main site (stlouisintegration) on port 80
-sudo bash -c "cat > /etc/apache2/sites-available/000-default.conf" <<EOF
-<VirtualHost *:80>
-        ServerName stlouisintegration.local
-        ServerAdmin webmaster@localhost
-        DocumentRoot /home/keithaumiller/stlouisintegration.com/sites/stlouisintegration/web
-
-        <Directory /home/keithaumiller/stlouisintegration.com/sites/stlouisintegration/web>
-                Options Indexes FollowSymLinks
-                AllowOverride All
-                Require all granted
-        </Directory>
-
-        ErrorLog \${APACHE_LOG_DIR}/stlouisintegration_error.log
-        CustomLog \${APACHE_LOG_DIR}/stlouisintegration_access.log combined
-</VirtualHost>
-EOF
-
-# Configure Forseti site on port 8080
+# Configure Forseti site on port 80
 sudo bash -c "cat > /etc/apache2/sites-available/forseti.conf" <<EOF
-<VirtualHost *:8080>
+<VirtualHost *:80>
         ServerName forseti.local
-        ServerAlias www.forseti.local
+        ServerAlias www.forseti.local localhost
         ServerAdmin webmaster@localhost
-        DocumentRoot /home/keithaumiller/stlouisintegration.com/sites/forseti/web
+        DocumentRoot /home/keithaumiller/forseti.life/sites/forseti/web
 
-        <Directory /home/keithaumiller/stlouisintegration.com/sites/forseti/web>
+        <Directory /home/keithaumiller/forseti.life/sites/forseti/web>
                 Options Indexes FollowSymLinks
                 AllowOverride All
                 Require all granted
@@ -610,44 +583,23 @@ EOF
 # Enable the Forseti site
 sudo a2ensite forseti.conf
 
-# Configure Theory of Conspiracies site on port 8081
-sudo bash -c "cat > /etc/apache2/sites-available/theoryofconspiracies.conf" <<EOF
-<VirtualHost *:8081>
-        ServerName theoryofconspiracies.local
-        ServerAdmin webmaster@localhost
-        DocumentRoot /home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies/web
-
-        <Directory /home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies/web>
-                Options Indexes FollowSymLinks
-                AllowOverride All
-                Require all granted
-        </Directory>
-
-        ErrorLog \${APACHE_LOG_DIR}/theoryofconspiracies_error.log
-        CustomLog \${APACHE_LOG_DIR}/theoryofconspiracies_access.log combined
-</VirtualHost>
-EOF
-
-# Enable the Theory of Conspiracies site
-sudo a2ensite theoryofconspiracies.conf
-
 # Start services
 print_status "Starting services..."
 ensure_mysql_running
 sudo service apache2 restart
 
-print_step "2. DRUPAL INSTALLATION - Setting up multi-site directory structure..."
+print_step "2. DRUPAL INSTALLATION - Setting up Forseti site..."
 
 # Ensure we're using the correct PHP version for all operations
 export PATH="/usr/bin:$PATH"
 print_status "Enforcing PHP 8.3 for Drupal operations: $(php --version | head -n1)"
 
 # Ensure sites directory exists
-print_status "Creating multi-site directory structure..."
-mkdir -p /home/keithaumiller/stlouisintegration.com/sites
+print_status "Creating site directory structure..."
+mkdir -p /home/keithaumiller/forseti.life/sites
 
 # Check for legacy drupal directory and migrate if needed
-LEGACY_DIR="/home/keithaumiller/stlouisintegration.com/drupal"
+LEGACY_DIR="/home/keithaumiller/forseti.life/drupal"
 if [ -d "$LEGACY_DIR" ] && [ ! -d "$PROJECT_DIR" ]; then
     print_status "Migrating legacy Drupal installation to multi-site structure..."
     mv "$LEGACY_DIR" "$PROJECT_DIR"
@@ -660,7 +612,7 @@ if [ -d "$PROJECT_DIR" ]; then
     print_status "Using existing Drupal installation at $PROJECT_DIR"
 else
     print_status "No existing primary Drupal directory found. Creating new Drupal 11.2.5 project..."
-    cd /home/keithaumiller/stlouisintegration.com/sites
+    cd /home/keithaumiller/forseti.life/sites
     /usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:11.2.5 stlouisintegration --no-interaction
 fi
 
@@ -987,7 +939,7 @@ fi
 print_step "2.5. THEORY OF CONSPIRACIES SITE SETUP - Setting up second Drupal site..."
 
 # Configuration for Theory of Conspiracies site
-TOC_PROJECT_DIR="/home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies"
+TOC_PROJECT_DIR="/home/keithaumiller/forseti.life/sites/theoryofconspiracies"
 TOC_DB_NAME="theoryofconspiracies_dev"
 TOC_SITE_NAME="Theory of Conspiracies"
 TOC_ADMIN_EMAIL="admin@theoryofconspiracies.com"
@@ -1167,7 +1119,7 @@ EOL
     fi
 else
     print_status "Theory of Conspiracies site directory not found. Creating new installation..."
-    cd /home/keithaumiller/stlouisintegration.com/sites
+    cd /home/keithaumiller/forseti.life/sites
     /usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:11.2.5 theoryofconspiracies --no-interaction
     
     cd theoryofconspiracies
@@ -1256,7 +1208,7 @@ fi
 print_step "2.6. FORSETI SITE SETUP - Setting up third Drupal site..."
 
 # Configuration for Forseti site
-FORSETI_PROJECT_DIR="/home/keithaumiller/stlouisintegration.com/sites/forseti"
+FORSETI_PROJECT_DIR="/home/keithaumiller/forseti.life/sites/forseti"
 FORSETI_DB_NAME="forseti_dev"
 FORSETI_SITE_NAME="Forseti"
 FORSETI_ADMIN_EMAIL="admin@forseti.life"
@@ -1420,7 +1372,7 @@ EOL
     fi
 else
     print_status "Forseti site directory not found. Creating new installation..."
-    cd /home/keithaumiller/stlouisintegration.com/sites
+    cd /home/keithaumiller/forseti.life/sites
     /usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:11.2.5 forseti --no-interaction
     
     cd forseti
@@ -1750,8 +1702,8 @@ chmod -R 755 web/modules/custom web/themes/custom
 print_status "Fixing Composer autoloader issues..."
 
 # Fix St. Louis Integration site
-if [ -d "/home/keithaumiller/stlouisintegration.com/sites/stlouisintegration" ]; then
-    cd "/home/keithaumiller/stlouisintegration.com/sites/stlouisintegration"
+if [ -d "/home/keithaumiller/forseti.life/sites/stlouisintegration" ]; then
+    cd "/home/keithaumiller/forseti.life/sites/stlouisintegration"
     if [ -f "composer.json" ]; then
         print_status "Verifying Composer autoloader for St. Louis Integration..."
         # Test if autoloader is working correctly
@@ -1767,8 +1719,8 @@ if [ -d "/home/keithaumiller/stlouisintegration.com/sites/stlouisintegration" ];
 fi
 
 # Fix Theory of Conspiracies site
-if [ -d "/home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies" ]; then
-    cd "/home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies"
+if [ -d "/home/keithaumiller/forseti.life/sites/theoryofconspiracies" ]; then
+    cd "/home/keithaumiller/forseti.life/sites/theoryofconspiracies"
     if [ -f "composer.json" ]; then
         print_status "Verifying Composer autoloader for Theory of Conspiracies..."
         # Test if autoloader is working correctly
@@ -1842,22 +1794,22 @@ fi
 
 # Version consistency check
 print_status "Verifying version consistency across sites..."
-if [ -d "/home/keithaumiller/stlouisintegration.com/sites/stlouisintegration" ]; then
-    cd "/home/keithaumiller/stlouisintegration.com/sites/stlouisintegration"
+if [ -d "/home/keithaumiller/forseti.life/sites/stlouisintegration" ]; then
+    cd "/home/keithaumiller/forseti.life/sites/stlouisintegration"
     STL_DRUPAL_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show drupal/core --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
     STL_TWIG_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show twig/twig --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
     echo "St. Louis Integration - Drupal: $STL_DRUPAL_VERSION, Twig: $STL_TWIG_VERSION"
 fi
 
-if [ -d "/home/keithaumiller/stlouisintegration.com/sites/forseti" ]; then
-    cd "/home/keithaumiller/stlouisintegration.com/sites/forseti"
+if [ -d "/home/keithaumiller/forseti.life/sites/forseti" ]; then
+    cd "/home/keithaumiller/forseti.life/sites/forseti"
     FORSETI_DRUPAL_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show drupal/core --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
     FORSETI_TWIG_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show twig/twig --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
     echo "Forseti - Drupal: $FORSETI_DRUPAL_VERSION, Twig: $FORSETI_TWIG_VERSION"
 fi
 
-if [ -d "/home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies" ]; then
-    cd "/home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies"
+if [ -d "/home/keithaumiller/forseti.life/sites/theoryofconspiracies" ]; then
+    cd "/home/keithaumiller/forseti.life/sites/theoryofconspiracies"
     TOC_DRUPAL_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show drupal/core --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
     TOC_TWIG_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show twig/twig --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
     echo "Theory of Conspiracies - Drupal: $TOC_DRUPAL_VERSION, Twig: $TOC_TWIG_VERSION"
@@ -1895,7 +1847,7 @@ echo "  - Theory of Conspiracies: Custom controller route (/home)"
 echo "✓ Apache Virtual Hosts: Port-based routing (80, 8080, 8081)"
 echo "✓ Databases: Separate databases for each site"
 echo "✓ H3 Geolocation Framework: Version 4.3.1 with AmISafe crime mapping pipeline"
-echo "  - H3 Python environment: /home/keithaumiller/stlouisintegration.com/h3-geolocation/h3-env/"
+echo "  - H3 Python environment: /home/keithaumiller/forseti.life/h3-geolocation/h3-env/"
 echo "  - AmISafe database tables: amisafe_raw_incidents, amisafe_clean_incidents, amisafe_h3_aggregated"
 echo "  - Crime data pipeline: 20 CSV files ready for processing (673MB+)"
 echo "  - Pipeline scripts: run_amisafe_pipeline_stlouisintegration.sh for full data processing"
@@ -1908,21 +1860,21 @@ echo "  Site Name: ${SITE_NAME}"
 echo "  Site URL: http://localhost"
 echo "  Admin Login: http://localhost/user/login"
 echo "  Database: ${DB_NAME}"
-echo "  Directory: /home/keithaumiller/stlouisintegration.com/sites/stlouisintegration/"
+echo "  Directory: /home/keithaumiller/forseti.life/sites/stlouisintegration/"
 echo ""
 echo "SITE 2 - Forseti:"
 echo "  Site Name: Forseti"
 echo "  Site URL: http://localhost:8080"
 echo "  Admin Login: http://localhost:8080/user/login"
 echo "  Database: forseti_dev"
-echo "  Directory: /home/keithaumiller/stlouisintegration.com/sites/forseti/"
+echo "  Directory: /home/keithaumiller/forseti.life/sites/forseti/"
 echo ""
 echo "SITE 3 - Theory of Conspiracies:"
 echo "  Site Name: ${TOC_SITE_NAME}"
 echo "  Site URL: http://localhost:8081"
 echo "  Admin Login: http://localhost:8081/user/login"
 echo "  Database: ${TOC_DB_NAME}"
-echo "  Directory: /home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies/"
+echo "  Directory: /home/keithaumiller/forseti.life/sites/theoryofconspiracies/"
 echo ""
 echo "SHARED CREDENTIALS:"
 echo "  Admin User: ${ADMIN_USER}"
@@ -1932,25 +1884,25 @@ echo "========================="
 
 print_status "Available development commands:"
 echo "FOR ST. LOUIS INTEGRATION SITE:"
-echo "- Navigate to site: cd /home/keithaumiller/stlouisintegration.com/sites/stlouisintegration"
+echo "- Navigate to site: cd /home/keithaumiller/forseti.life/sites/stlouisintegration"
 echo "- Clear cache: ./vendor/bin/drush cr"
-echo "- Check coding standards: cd /home/keithaumiller/stlouisintegration.com/scripts && ./check-standards.sh"
+echo "- Check coding standards: cd /home/keithaumiller/forseti.life/scripts && ./check-standards.sh"
 echo "- Drush commands: ./vendor/bin/drush [command]"
 echo ""
 echo "FOR FORSETI SITE:"
-echo "- Navigate to site: cd /home/keithaumiller/stlouisintegration.com/sites/forseti"
+echo "- Navigate to site: cd /home/keithaumiller/forseti.life/sites/forseti"
 echo "- Clear cache: ./vendor/bin/drush cr"
 echo "- One-time login: ./vendor/bin/drush uli"
 echo "- Drush commands: ./vendor/bin/drush [command]"
 echo ""
 echo "FOR THEORY OF CONSPIRACIES SITE:"
-echo "- Navigate to site: cd /home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies"
+echo "- Navigate to site: cd /home/keithaumiller/forseti.life/sites/theoryofconspiracies"
 echo "- Clear cache: ./vendor/bin/drush cr"
 echo "- One-time login: ./vendor/bin/drush uli"
 echo "- Drush commands: ./vendor/bin/drush [command]"
 echo ""
 echo "FOR H3 GEOLOCATION & AMISAFE CRIME MAPPING:"
-echo "- Navigate to H3: cd /home/keithaumiller/stlouisintegration.com/h3-geolocation"
+echo "- Navigate to H3: cd /home/keithaumiller/forseti.life/h3-geolocation"
 echo "- Activate environment: source h3-env/bin/activate"
 echo "- Run sample pipeline: cd database && bash run_amisafe_pipeline_stlouisintegration.sh sample"
 echo "- Run full pipeline: cd database && bash run_amisafe_pipeline_stlouisintegration.sh full"
@@ -1976,7 +1928,7 @@ print_status "Fixing cache backend configuration issues..."
 
 # Remove cache.backend.null references from development services
 for site_dir in "stlouisintegration" "forseti" "theoryofconspiracies"; do
-    SERVICES_FILE="/home/keithaumiller/stlouisintegration.com/sites/${site_dir}/web/sites/development.services.yml"
+    SERVICES_FILE="/home/keithaumiller/forseti.life/sites/${site_dir}/web/sites/development.services.yml"
     if [ -f "$SERVICES_FILE" ]; then
         print_status "Updating development services for ${site_dir}..."
         # Create a clean development services file
@@ -2002,8 +1954,8 @@ done
 # Remove cache.backend.null references from settings files
 print_status "Cleaning cache backend references from settings files..."
 for site_dir in "stlouisintegration" "forseti" "theoryofconspiracies"; do
-    SETTINGS_FILE="/home/keithaumiller/stlouisintegration.com/sites/${site_dir}/web/sites/default/settings.php"
-    SETTINGS_LOCAL_FILE="/home/keithaumiller/stlouisintegration.com/sites/${site_dir}/web/sites/default/settings.local.php"
+    SETTINGS_FILE="/home/keithaumiller/forseti.life/sites/${site_dir}/web/sites/default/settings.php"
+    SETTINGS_LOCAL_FILE="/home/keithaumiller/forseti.life/sites/${site_dir}/web/sites/default/settings.local.php"
     
     if [ -f "$SETTINGS_FILE" ]; then
         # Remove cache.backend.null references from main settings
@@ -2028,7 +1980,7 @@ done
 print_status "Verifying site installations and fixing if needed..."
 
 # Check and fix St. Louis Integration site
-cd "/home/keithaumiller/stlouisintegration.com/sites/stlouisintegration"
+cd "/home/keithaumiller/forseti.life/sites/stlouisintegration"
 if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json | grep -q '"bootstrap":"Successful"' 2>/dev/null; then
     print_status "St. Louis Integration site needs installation/repair..."
     
@@ -2059,7 +2011,7 @@ if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json | grep -q
 fi
 
 # Check and fix Theory of Conspiracies site
-cd "/home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies"
+cd "/home/keithaumiller/forseti.life/sites/theoryofconspiracies"
 if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json | grep -q '"bootstrap":"Successful"' 2>/dev/null; then
     print_status "Theory of Conspiracies site needs installation/repair..."
     
@@ -2092,7 +2044,7 @@ fi
 # Fix Composer dependencies and autoloader issues
 print_status "Final Composer dependency verification and cleanup..."
 for site_dir in "stlouisintegration" "forseti" "theoryofconspiracies"; do
-    cd "/home/keithaumiller/stlouisintegration.com/sites/${site_dir}"
+    cd "/home/keithaumiller/forseti.life/sites/${site_dir}"
     if [ -f "composer.json" ]; then
         print_status "Verifying Composer dependencies for ${site_dir}..."
         
@@ -2117,7 +2069,7 @@ sudo service apache2 restart
 # Final verification with error handling
 print_status "Final verification and cache rebuild..."
 
-cd "/home/keithaumiller/stlouisintegration.com/sites/stlouisintegration"
+cd "/home/keithaumiller/forseti.life/sites/stlouisintegration"
 if [ -f "vendor/drush/drush/drush.php" ]; then
     if /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json 2>/dev/null | grep -q '"bootstrap":"Successful"'; then
         print_status "St. Louis Integration site is working correctly"
@@ -2129,8 +2081,8 @@ else
     print_warning "Drush not found for St. Louis Integration site"
 fi
 
-if [ -d "/home/keithaumiller/stlouisintegration.com/sites/forseti" ]; then
-    cd "/home/keithaumiller/stlouisintegration.com/sites/forseti"
+if [ -d "/home/keithaumiller/forseti.life/sites/forseti" ]; then
+    cd "/home/keithaumiller/forseti.life/sites/forseti"
     if [ -f "vendor/drush/drush/drush.php" ]; then
         if /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json 2>/dev/null | grep -q '"bootstrap":"Successful"'; then
             print_status "Forseti site is working correctly"
@@ -2143,8 +2095,8 @@ if [ -d "/home/keithaumiller/stlouisintegration.com/sites/forseti" ]; then
     fi
 fi
 
-if [ -d "/home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies" ]; then
-    cd "/home/keithaumiller/stlouisintegration.com/sites/theoryofconspiracies"
+if [ -d "/home/keithaumiller/forseti.life/sites/theoryofconspiracies" ]; then
+    cd "/home/keithaumiller/forseti.life/sites/theoryofconspiracies"
     if [ -f "vendor/drush/drush/drush.php" ]; then
         if /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json 2>/dev/null | grep -q '"bootstrap":"Successful"'; then
             print_status "Theory of Conspiracies site is working correctly"
@@ -2165,7 +2117,7 @@ echo "========================="
 
 # Setup AmISafe Data Pipeline Database Tables (includes stored procedures)
 print_status "Setting up AmISafe H3 geolocation data pipeline database with analytics..."
-AMISAFE_SETUP_SCRIPT="/home/keithaumiller/stlouisintegration.com/h3-geolocation/database/setup/setup_amisafe_complete.sh"
+AMISAFE_SETUP_SCRIPT="/home/keithaumiller/forseti.life/h3-geolocation/database/setup/setup_amisafe_complete.sh"
 
 if [ -f "$AMISAFE_SETUP_SCRIPT" ]; then
     print_status "Running AmISafe complete database setup (tables + stored procedures)..."
@@ -2174,9 +2126,9 @@ if [ -f "$AMISAFE_SETUP_SCRIPT" ]; then
         
         # Run sample data pipeline to verify functionality
         print_status "Running AmISafe sample data pipeline..."
-        PIPELINE_SCRIPT="/home/keithaumiller/stlouisintegration.com/h3-geolocation/database/run_amisafe_pipeline_stlouisintegration.sh"
+        PIPELINE_SCRIPT="/home/keithaumiller/forseti.life/h3-geolocation/database/run_amisafe_pipeline_stlouisintegration.sh"
         if [ -f "$PIPELINE_SCRIPT" ]; then
-            cd /home/keithaumiller/stlouisintegration.com/h3-geolocation/database
+            cd /home/keithaumiller/forseti.life/h3-geolocation/database
             if bash "$PIPELINE_SCRIPT" sample; then
                 print_status "✅ AmISafe sample data pipeline completed successfully"
             else
