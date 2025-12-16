@@ -28,10 +28,10 @@ applyTo: '**'
 - **Context continuity**: Project-specific guidance remains active throughout extended workflows
 
 **MANDATORY CONTEXT INCLUSION PROTOCOL**: 
-1. **Instructions File**: Always include /workspaces/stlouisintegration.com/.github/instructions/instructions.md in context
-2. **Architecture Documentation**: Always include drupal/web/modules/custom/job_application_automation/ARCHITECTURE.md when working on module development
+1. **Instructions File**: Always include /home/keithaumiller/forseti.life/.github/instructions/instructions.md in context
+2. **Architecture Documentation**: Always include relevant ARCHITECTURE.md files when working on module development
 
-**DRUPAL MODULE DEVELOPMENT REQUIREMENTS**: When working on the Job Application Automation module, these architectural constraints are mandatory:
+**DRUPAL MODULE DEVELOPMENT REQUIREMENTS**: When working on custom modules, these architectural constraints are mandatory:
 
 **DRUPAL-NATIVE IMPLEMENTATION MANDATE**:
 - **Content-centric architecture**: All data storage MUST utilize Drupal nodes with custom fields
@@ -42,7 +42,7 @@ applyTo: '**'
 - **Field-based validation**: Use Drupal's native field validation and form_alter hooks rather than custom validation services
 
 **ARCHITECTURE COMPLIANCE VERIFICATION**: Before any module development work:
-1. **Read ARCHITECTURE.md**: Always include drupal/web/modules/custom/job_application_automation/ARCHITECTURE.md in context
+1. **Read ARCHITECTURE.md**: Always include relevant ARCHITECTURE.md files in context
 2. **Verify Drupal-native approach**: Confirm implementation uses nodes, fields, Views, and default forms
 3. **Validate necessity**: Ensure any custom code serves automation/integration purposes only
 
@@ -77,31 +77,32 @@ applyTo: '**'
 **LAMP STACK CONFIGURATION**: This project utilizes a complete LAMP (Linux, Apache, MySQL, PHP) technology stack:
 
 ## Linux Environment
-- **Production**: Ubuntu 22.04 LTS on AWS EC2
-- **Development**: Ubuntu 24.04.2 LTS (dev containers)
-- **Kernel**: 6.8.0-1031-aws (x86_64 architecture)
+- **Production**: Ubuntu 24.04 LTS on AWS EC2
+- **Development**: Debian 12 (Codespaces/dev containers)
+- **Kernel**: 6.14.0-1013-aws (x86_64 architecture)
 
 ## Apache Web Server Configuration
 ### Production Server
-- **Version**: Apache 2.4.58
+- **Version**: Apache 2.4.58+
 - **Configuration**: Multi-site virtual hosts
-- **Document Root**: `/var/www/html/stlouisintegration/web`
+- **Multi-Site Setup**: Multiple independent Drupal installations
+  - `/var/www/html/stlouisintegration` → stlouisintegration.com
+  - `/var/www/html/drupal` → thetruthperspective.org
+  - `/var/www/html/forseti` → forseti.life (new)
+  - `/var/www/html/theoryofconspiracies` → theoryofconspiracies.com
+  - Other sites: angelicafeliciano, unicorninvesting
 - **SSL/HTTPS**: Enabled with proper certificate management
-- **Multi-domain**: Supports stlouisintegration.com and thetruthperspective.org
-- **Site-Specific Logging**: 
-  - **stlouisintegration.com Access Log**: `/var/log/apache2/stlouisintegration_access.log`
-  - **stlouisintegration.com Error Log**: `/var/log/apache2/stlouisintegration_error.log`
-  - **Configuration**: Custom log format "cloudflare" for both sites
+- **Site-Specific Logging**: Each site has dedicated logs
+  - Pattern: `/var/log/apache2/{sitename}_access.log`
+  - Pattern: `/var/log/apache2/{sitename}_error.log`
+  - **Configuration**: Custom log format "cloudflare" for all sites
 
 ### Development Environment
 - **Version**: Apache 2.4+ 
-- **Configuration**: Port-based multi-site virtual hosts
-- **Multi-Site Support**:
-  - **St. Louis Integration**: http://localhost (port 80) → `/workspaces/stlouisintegration.com/sites/stlouisintegration/web`
-  - **Theory of Conspiracies**: http://localhost:8080 (port 8080) → `/workspaces/stlouisintegration.com/sites/theoryofconspiracies/web`
+- **Configuration**: Single site on port 80
+- **Forseti Site**: http://localhost (port 80) → `/home/keithaumiller/forseti.life/sites/forseti/web`
 - **Development Logging**:
-  - **Primary Site Logs**: `/var/log/apache2/stlouisintegration_error.log`, `/var/log/apache2/stlouisintegration_access.log`
-  - **Secondary Site Logs**: `/var/log/apache2/theoryofconspiracies_error.log`, `/var/log/apache2/theoryofconspiracies_access.log`
+  - **Forseti Logs**: `/var/log/apache2/forseti_error.log`, `/var/log/apache2/forseti_access.log`
 
 ## MySQL Database Configuration
 ### Production Databases
@@ -117,14 +118,21 @@ applyTo: '**'
 - **Version**: MySQL 8.0+
 - **Database Engine**: InnoDB (default)
 - **Character Set**: utf8mb4 (full UTF-8 support)
-- **Development Databases**:
-  - `stlouisintegration_dev` - St. Louis Integration development database
-  - `theoryofconspiracies_dev` - Theory of Conspiracies development database
-- **Connection**: 127.0.0.1:3306 with shared drupal_user
+- **Development Database**:
+  - `forseti_dev` - Forseti development database
+- **Connection**: 127.0.0.1:3306 with drupal_user
 - **Credentials**: drupal_user / drupal_secure_password (default development)
 
+### Production Databases
+- **Version**: MySQL 8.0+
+- **Database Engine**: InnoDB (default)
+- **Character Set**: utf8mb4 (full UTF-8 support)
+- **Production Database**:
+  - `forseti_prod` - Forseti production database
+- **Connection**: localhost:3306 with drupal_user
+
 ## Production PHP Runtime
-- **Version**: PHP 8.3.6 (CLI and mod_php for Apache)
+- **Version**: PHP 8.3+ (CLI and mod_php for Apache)
 - **Server API**: mod_php (shared module, not PHP-FPM)
 - **Configuration Files**:
   - **CLI**: `/etc/php/8.3/cli/php.ini`
@@ -132,63 +140,57 @@ applyTo: '**'
 - **Error Logging Configuration**:
   - **log_errors**: On (enabled)
   - **error_log**: No value (defaults to Apache error logs)
-  - **PHP errors logged to**: `/var/log/apache2/stlouisintegration_error.log` (site-specific Apache error log)
-- **Extensions**: OPcache enabled, Zend Engine v4.3.6
+  - **PHP errors logged to**: Site-specific Apache error logs (e.g., `/var/log/apache2/forseti_error.log`)
+- **Extensions**: OPcache enabled, Zend Engine v4.3.6+
 - **Memory Limit**: Configured for Drupal 11 requirements
 
 ## Drupal Logging System
-- **Drupal Root**: `/var/www/html/stlouisintegration` (multisite: stlouisintegration.com)
-- **Drush Context**: All commands require `--uri=stlouisintegration.com` for multisite
+- **Drupal Roots**: Each site has independent Drupal installation
+  - Forseti: `/var/www/html/forseti`
+  - St. Louis Integration: `/var/www/html/stlouisintegration`
+  - Others: Various in `/var/www/html/`
 - **Logging Modules**:
   - **Database Logging (dblog)**: **Enabled** - All logs stored in database
   - **Syslog (syslog)**: **Disabled** - Not using system syslog
 - **Error Level**: `some` (errors, warnings, notices - excludes debug messages)
-- **Storage**: Database watchdog table in `stlouisintegration_drupal` database
-- **Commands**:
-  - **View logs**: `cd /var/www/html/stlouisintegration && drush --uri=stlouisintegration.com watchdog:show --count=10`
-  - **Check config**: `cd /var/www/html/stlouisintegration && drush --uri=stlouisintegration.com config:get system.logging`
-  - **Module status**: `cd /var/www/html/stlouisintegration && drush --uri=stlouisintegration.com pm:list | grep -E "dblog|syslog"`
-- **Status**: **Active and functional** (confirmed with recent PHP deprecation entries)
+- **Storage**: Database watchdog table in each site's database
+- **Forseti Commands**:
+  - **View logs**: `cd /var/www/html/forseti && ./vendor/bin/drush watchdog:show --count=10`
+  - **Check config**: `cd /var/www/html/forseti && ./vendor/bin/drush config:get system.logging`
+  - **Module status**: `cd /var/www/html/forseti && ./vendor/bin/drush pm:list | grep -E "dblog|syslog"`
 - **Integration**: Works alongside Apache error logs for comprehensive error tracking
 
 ## Additional Stack Components
-- **Drupal**: 11.2.3 (latest stable)
+- **Drupal**: 11.0+ (targeting Drupal 11)
 - **Composer**: Dependency management
-- **Drush**: 13.6.2.0 (site-specific installations)
+- **Drush**: Site-specific installations (each site has own vendor/bin/drush)
 - **Git**: Version control and deployment
-- **SMTP**: Gmail relay (smtp-relay.gmail.com:587) for email services
+- **GitHub Actions**: Automated deployment via deploy.yml workflow
 
 ---
 
 Dev/prod environment: The code is deployed on a production server with the following specifications:
-- **Server**: Ubuntu 22.04 LTS
-- **Drupal Root**: /var/www/html/stlouisintegration
-- **Web Directory**: /var/www/html/stlouisintegration/web
-- **Site Path**: sites/default
-- **Drush Access**: Available via SSH to production server
+- **Server**: Ubuntu 24.04 LTS on AWS EC2
+- **Kernel**: Linux 6.14.0-1013-aws (x86_64)
+- **PHP Version**: PHP 8.3+ (CLI and Apache mod_php)
+- **Multi-Site Setup**: Multiple independent Drupal installations in `/var/www/html/`
+  - forseti.life → `/var/www/html/forseti`
+  - stlouisintegration.com → `/var/www/html/stlouisintegration`
+  - theoryofconspiracies.com → `/var/www/html/theoryofconspiracies`
+  - thetruthperspective.org → `/var/www/html/drupal`
+  - Others: angelicafeliciano, unicorninvesting
+- **Drush Access**: Each site has own Drush installation (./vendor/bin/drush)
+- **Site Path**: sites/default (standard Drupal structure for each site)
 
-ubuntu@ip-:~$ uname -a
-Linux ip- 6.8.0-1031-aws #33-Ubuntu SMP Fri Jun 20 18:11:07 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
-ubuntu@ip-:~$ php -version
-PHP 8.3.6 (cli) (built: Jul 14 2025 18:30:55) (NTS)
-Copyright (c) The PHP Group
-Zend Engine v4.3.6, Copyright (c) Zend Technologies
-    with Zend OPcache v8.3.6, Copyright (c), by Zend Technologies
-
-ubuntu@ip-172-16-4-59:/var/www/html/stlouisintegration$ drush status
-Drupal version   : 11.2.2
-DB driver        : mysql
-DB hostname      : localhost
-DB port          : 3306
-DB username      : drupal_user
-DB name          : drupal_db
-Database         : Connected
-Drupal bootstrap : Successful
-Default theme    : olivero
-Admin theme      : claro
-PHP binary       : /usr/bin/php8.3
-Drush version    : 13.6.0.0
-Drupal root      : /var/www/html/stlouisintegration
+Production server directory listing:
+```
+root@ip-172-16-4-59:/var/www/html# ls -ltr
+drwxr-xr-x  5 www-data www-data  4096 Aug 21 16:54 angelicafeliciano
+drwxr-xr-x 10 www-data www-data  4096 Aug 21 16:57 unicorninvesting
+drwxr-xr-x 10 www-data www-data  4096 Sep 23 19:09 drupal
+drwxr-xr-x  6 www-data www-data  4096 Oct 23 16:49 theoryofconspiracies
+drwxr-xr-x  9 www-data www-data  4096 Nov 25 16:29 stlouisintegration
+```
 
 
 Skip giving "Immediate Fix:" solutions
@@ -205,44 +207,44 @@ Levers: actions taken based on processed data
 
 Always assume we are troubleshooting on the production server
 all curl testing functions should assume they need to run against the production URL:
-https://stlouisintegration.com
+https://forseti.life (or the specific site being worked on)
 
 **MULTI-SITE DRUPAL CONFIGURATION**: 
 
 ### Production Multi-Site Configuration
-This is a multi-site Drupal installation with separate Drupal installations. CRITICAL: Use the site-specific Drush installation, NOT the global one:
-- Correct: `cd /var/www/html/stlouisintegration/web && ../vendor/bin/drush --uri=stlouisintegration.com ws --count=10`
-- Correct: `cd /var/www/html/stlouisintegration/web && ../vendor/bin/drush --uri=stlouisintegration.com user:login admin`
-- Correct: `cd /var/www/html/stlouisintegration/web && ../vendor/bin/drush --uri=stlouisintegration.com cache:rebuild`
-- Incorrect: `drush --uri=stlouisintegration.com ws --count=10` (uses wrong Drupal installation)
+This is a multi-site server with separate, independent Drupal installations. CRITICAL: Use the site-specific Drush installation, NOT a global one:
+- **Correct Pattern**: `cd /var/www/html/[sitename] && ./vendor/bin/drush [command]`
+- **Forseti Example**: `cd /var/www/html/forseti && ./vendor/bin/drush watchdog:show --count=10`
+- **Forseti Example**: `cd /var/www/html/forseti && ./vendor/bin/drush cache:rebuild`
+- Incorrect: `drush [command]` (may use wrong Drupal installation)
 - Incorrect: Using global `/usr/local/bin/drush` (will connect to wrong database)
 
 **PRODUCTION SERVER DATABASE SEPARATION**: Each site has its own database and Drush installation:
-- stlouisintegration.com → `/var/www/html/stlouisintegration/web` → `stlouisintegration_drupal` database
+- forseti.life → `/var/www/html/forseti` → `forseti_prod` database
+- stlouisintegration.com → `/var/www/html/stlouisintegration` → `stlouisintegration_drupal` database
 - thetruthperspective.org → `/var/www/html/drupal` → `drupal_db` database
+- theoryofconspiracies.com → `/var/www/html/theoryofconspiracies` → database TBD
 
-### Development Multi-Site Configuration
-The development environment uses a different multi-site architecture with separate Drupal installations:
+### Development Configuration
+The development environment has a single Drupal installation:
 
 **DEVELOPMENT SITE STRUCTURE**:
-- **St. Louis Integration (Primary)**: `/workspaces/stlouisintegration.com/sites/stlouisintegration/` → `stlouisintegration_dev` database
-- **Theory of Conspiracies (Secondary)**: `/workspaces/stlouisintegration.com/sites/theoryofconspiracies/` → `theoryofconspiracies_dev` database
+- **Forseti**: `/home/keithaumiller/forseti.life/sites/forseti/` → `forseti_dev` database
 
-**DEVELOPMENT DRUSH COMMANDS**: Each site has its own Drush installation:
-- St. Louis Integration: `cd /workspaces/stlouisintegration.com/sites/stlouisintegration && ./vendor/bin/drush status`
-- Theory of Conspiracies: `cd /workspaces/stlouisintegration.com/sites/theoryofconspiracies && ./vendor/bin/drush status`
+**DEVELOPMENT DRUSH COMMANDS**: Site-specific Drush installation:
+- Forseti: `cd /home/keithaumiller/forseti.life/sites/forseti && ./vendor/bin/drush status`
 
-**DEVELOPMENT URLS**:
-- St. Louis Integration: http://localhost (port 80)
-- Theory of Conspiracies: http://localhost:8080 (port 8080)
+**DEVELOPMENT URL**:
+- Forseti: http://localhost (port 80)
 
 **PRODUCTION SERVER LOG LOCATIONS**: Site-specific Apache logging for troubleshooting:
-- **stlouisintegration.com logs**:
-  - Access Log: `/var/log/apache2/stlouisintegration_access.log`
-  - Error Log: `/var/log/apache2/stlouisintegration_error.log`
+- **forseti.life logs**:
+  - Access Log: `/var/log/apache2/forseti_access.log`
+  - Error Log: `/var/log/apache2/forseti_error.log`
   - **PHP Errors**: Logged to Apache error log (no separate PHP log file)
+- **Log Pattern**: Each site follows pattern `/var/log/apache2/{sitename}_{access|error}.log`
 - **Global Apache logs**: `/var/log/apache2/access.log` and `/var/log/apache2/error.log` (not site-specific)
-- **Drupal logs**: Use site-specific Drush: `cd /var/www/html/stlouisintegration/web && ../vendor/bin/drush --uri=stlouisintegration.com watchdog:show`
+- **Drupal logs**: Use site-specific Drush: `cd /var/www/html/forseti && ./vendor/bin/drush watchdog:show`
 - **PHP Configuration**: mod_php using `/etc/php/8.3/apache2/php.ini` with errors directed to Apache logs
 
 Do not SSH out or create debug php files to be deployed to the server.
@@ -255,27 +257,25 @@ Remember to sudo into www-data when appropriate
 The autodeploy clears the cache on the server during deployment. Do not recomend a drush cr.
 
 **Development Environment Notes:**
-- **Local URL**: https://curly-space-winner-67wvv944pr2rqj-80.app.github.dev/
+- **Platform**: GitHub Codespaces or local development environment
 - **LAMP Stack Development**: Complete local LAMP environment matching production
 - **Apache Web Server**: Use Apache locally for development, not PHP's built-in development server
-- **MySQL Database**: Local MySQL instance with development databases
-- **PHP/Drush Configuration**: ✅ **RESOLVED** - System PHP 8.3.25 is now default
-  - ✅ **Current Setup**: Default `php` command now uses system PHP with all required extensions
-  - ✅ **Drush Usage**: Can now use `./vendor/drush/drush/drush.php [command]` or the direct path
-  - 🔧 **Previous Issue**: Was using custom PHP installation missing PDO MySQL extension
-  - 📝 **Fix Applied**: PATH and alias configured to prioritize `/usr/bin/php8.3` as default PHP
-- Use `service` command instead of `systemctl` in GitHub Codespaces (systemd not available)
-- Example: `sudo service apache2 restart` instead of `sudo systemctl restart apache2`
-- Local Drupal site accessed via Apache virtual hosts configuration
+- **MySQL Database**: Local MySQL instance with `forseti_dev` database
+- **PHP Configuration**: System PHP 8.3+ with all required extensions
+  - Default `php` command uses system PHP (`/usr/bin/php8.3`)
+  - All required Drupal extensions installed (PDO MySQL, GD, XML, etc.)
+- **Service Management**: Use `service` command instead of `systemctl` in Codespaces
+  - Example: `sudo service apache2 restart` instead of `sudo systemctl restart apache2`
+- **Drupal Access**: Local site on http://localhost via Apache virtual host
+- **Workspace Path**: `/home/keithaumiller/forseti.life`
 - Always use Apache for local development to match production LAMP environment
 
-# St. Louis Integration Website - AI Coding Instructions
+# Forseti.life Website - AI Coding Instructions
 
 ## Project Context
-- **Platform**: St. Louis Integration - Professional integration services website
+- **Platform**: Forseti - Professional website
 - **Environment**: Drupal 11 on Ubuntu Linux
-- **Primary Focus**: Business integration services, professional consulting, and client solutions
-- **Tech Stack**: Drupal 11, PHP 8.1+, MySQL
+- **Tech Stack**: Drupal 11, PHP 8.3+, MySQL 8.0+
 
 ## Core Website Architecture
 - **LAMP Stack**: Complete Linux, Apache, MySQL, PHP technology stack
@@ -449,58 +449,28 @@ The autodeploy clears the cache on the server during deployment. Do not recomend
 
 ---
 
-# RECENT DEVELOPMENT ACCOMPLISHMENTS (December 2024)
+# RECENT DEVELOPMENT ACCOMPLISHMENTS (December 2025)
 
-## **Theory of Conspiracies Website - Complete Implementation**
-Successfully delivered a fully functional cyberpunk-themed website with Philadelphia 2085 setting:
+## **Forseti.life Project Restructuring**
+Streamlined repository to focus on single Drupal site:
 
-### **Multi-Site Infrastructure Achievement**
-- ✅ **Port-Based Virtual Host Configuration**: Configured Apache with dual-site support
-  - **Primary Site**: St. Louis Integration (localhost:80) 
-  - **Secondary Site**: Theory of Conspiracies (localhost:8080)
-- ✅ **Database Architecture**: Separate development databases for site isolation
-  - `stlouisintegration_dev` - Primary business site
-  - `theoryofconspiracies_dev` - Cyberpunk themed site
-- ✅ **Service Management**: Automated quick-start scripts for MySQL and Apache restart
+### **Repository Cleanup**
+- ✅ **Removed Legacy Sites**: Cleaned up stlouisintegration and theoryofconspiracies sites
+- ✅ **Single Site Focus**: Restructured to maintain only forseti.life codebase
+- ✅ **Database Cleanup**: Dropped development databases for removed sites
+- ✅ **Apache Configuration**: Updated to serve forseti on port 80 (localhost)
 
-### **Custom Drupal Module Development** 
-Three production-ready custom modules following Drupal-native architecture:
+### **Deployment Infrastructure**
+- ✅ **GitHub Actions Workflow**: Updated deploy.yml for forseti.life deployment
+- ✅ **Production Multi-Site Preparation**: Ready to add forseti to existing multi-site server
+- ✅ **Path Updates**: All workspace paths updated to `/home/keithaumiller/forseti.life`
 
-#### **1. Theory Content Module**
-- **Purpose**: Philadelphia 2085 setting management with characters, locations, and story elements
-- **Architecture**: Content-centric using Drupal nodes and custom fields
-- **Integration**: Views-based displays with native form utilization
+### **Documentation Updates**
+- ✅ **Instructions.md**: Updated with current forseti configuration
+- ✅ **Environment Configuration**: Updated .env and setup scripts for forseti
+- ✅ **Production Server Mapping**: Documented multi-site production structure
 
-#### **2. Am I Safe Module** 
-- **Purpose**: Real-time safety monitoring dashboard for cyberpunk world immersion
-- **Architecture**: Dashboard interface with cyberpunk styling and responsive design
-- **Features**: Mobile-optimized portrait/landscape layouts with neon visual effects
-
-#### **3. AI Conversation Module**
-- **Purpose**: Interactive chat system with cyberpunk theming and AI persona integration
-- **Architecture**: Native Drupal forms with custom styling and animation effects
-- **Integration**: Seamless theme integration with consistent cyberpunk aesthetics
-
-### **Responsive Cyberpunk Theme Development**
-- ✅ **Custom SCSS Build Process**: Complete theme with neon effects and animations
-- ✅ **Mobile-First Design**: Portrait and landscape responsive layouts across all modules
-- ✅ **Typography System**: Cyberpunk-appropriate fonts with proper readability
-- ✅ **Animation Framework**: Subtle hover effects and transitions for immersive experience
-- ✅ **Color Palette**: Neon green/blue cyberpunk palette with dark backgrounds
-
-### **Quality Assurance & Documentation**
-- ✅ **Architecture Documentation**: Comprehensive ARCHITECTURE.md files for all modules
-- ✅ **Process Documentation**: Updated README.md and instructions.md with current accomplishments
-- ✅ **Testing Validation**: Mobile responsiveness verified across devices and orientations
-- ✅ **Performance Optimization**: Efficient CSS loading and minimal JavaScript overhead
-
-### **Development Process Achievements**
-- ✅ **Architecture-First Methodology**: Followed comprehensive planning before implementation
-- ✅ **Drupal-Native Compliance**: All modules use nodes, fields, Views, and default forms
-- ✅ **Git Version Control**: Proper commit management and branching for multi-site development
-- ✅ **Service Automation**: Quick diagnostic and restart capabilities for development workflow
-
-This comprehensive implementation demonstrates successful multi-site Drupal development with custom theming, module creation, and responsive design - all while maintaining architectural standards and documentation best practices.
+Next phase: Setting up forseti.life on production server at `/var/www/html/forseti`
 
 ---
 

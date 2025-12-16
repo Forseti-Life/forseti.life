@@ -1,25 +1,15 @@
-name: Deploy to Production Server
+name: Deploy Forseti Site to Production
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'drupal/web/modules/custom/**'
-      - 'drupal/web/themes/custom/**'
-      - 'drupal/composer.json'
-      - 'drupal/composer.lock'
-      - 'config/sync/**'
-      - 'sites/stlouisintegration/web/modules/custom/**'
-      - 'sites/stlouisintegration/web/themes/custom/**'
-      - 'sites/stlouisintegration/web/sites/default/files/amisafe/mobile/**'
-      # Temporarily disabled while working on AmISafe
-      # - 'sites/theoryofconspiracies/web/modules/custom/**'
-      # - 'sites/theoryofconspiracies/web/themes/custom/**'
-      - 'script/database/**'
+      - 'sites/forseti/web/modules/custom/**'
+      - 'sites/forseti/web/themes/custom/**'
+      - 'sites/forseti/composer.json'
+      - 'sites/forseti/composer.lock'
+      - 'sites/forseti/config/sync/**'
       - 'h3-geolocation/**'
-      - 'database-exports/**'
-      - 'testing/amisafe/**'
-      - 'amisafe-mobile/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -41,7 +31,7 @@ jobs:
           
           echo "=== Creating Pre-deployment Backup ==="
           
-          DRUPAL_ROOT="/var/www/html/stlouisintegration"
+          DRUPAL_ROOT="/var/www/html/forseti"
           BACKUP_DIR="/var/backups/drupal-deployments/$(date +%Y%m%d_%H%M%S)"
           
           # Create backup directory
@@ -69,7 +59,7 @@ jobs:
           
           echo "=== Deploying Modules and Themes ==="
           
-          DRUPAL_ROOT="/var/www/html/stlouisintegration"
+          DRUPAL_ROOT="/var/www/html/forseti"
           TEMP_DIR="/tmp/deploy-$(date +%s)"
           
           # Create temporary directory and download code
@@ -77,40 +67,16 @@ jobs:
           cd "$TEMP_DIR"
           
           echo "Downloading code from repository..."
-          git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
-          git sparse-checkout set sites/stlouisintegration drupal/web/modules/custom drupal/web/themes/custom drupal amisafe-mobile/android/app/build/outputs/apk/release
+          git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git .
+          git sparse-checkout set sites/forseti h3-geolocation
           
-          # Copy built APK to deployment location if it exists
-          if [ -f "amisafe-mobile/android/app/build/outputs/apk/release/app-release.apk" ]; then
-            echo "Copying built APK to deployment location..."
-            mkdir -p sites/stlouisintegration/web/sites/default/files/amisafe/mobile
-            cp "amisafe-mobile/android/app/build/outputs/apk/release/app-release.apk" "sites/stlouisintegration/web/sites/default/files/amisafe/mobile/AmISafe.apk"
-            echo "✅ APK copied to deployment location"
-          fi
-          
-          # Deploy custom modules from stlouisintegration site
+          # Deploy custom modules from forseti site
           CUSTOM_MODULES_DIR="$DRUPAL_ROOT/web/modules/custom"
           sudo mkdir -p "$CUSTOM_MODULES_DIR"
           
-          # First try stlouisintegration site structure
-          if [ -d "sites/stlouisintegration/web/modules/custom" ]; then
-            echo "Deploying custom modules from stlouisintegration site..."
-            for MODULE_DIR in sites/stlouisintegration/web/modules/custom/*; do
-              if [ -d "$MODULE_DIR" ]; then
-                MODULE_NAME=$(basename "$MODULE_DIR")
-                echo "Deploying module: $MODULE_NAME"
-                sudo rm -rf "$CUSTOM_MODULES_DIR/$MODULE_NAME"
-                sudo cp -r "$MODULE_DIR" "$CUSTOM_MODULES_DIR/"
-                sudo chown -R www-data:www-data "$CUSTOM_MODULES_DIR/$MODULE_NAME"
-                sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type f -exec chmod 644 {} \;
-                sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type d -exec chmod 755 {} \;
-                echo "✅ $MODULE_NAME deployed"
-              fi
-            done
-          # Fallback to old drupal structure  
-          elif [ -d "drupal/web/modules/custom" ]; then
-            echo "Deploying custom modules from drupal structure..."
-            for MODULE_DIR in drupal/web/modules/custom/*; do
+          if [ -d "sites/forseti/web/modules/custom" ]; then
+            echo "Deploying custom modules from forseti site..."
+            for MODULE_DIR in sites/forseti/web/modules/custom/*; do
               if [ -d "$MODULE_DIR" ]; then
                 MODULE_NAME=$(basename "$MODULE_DIR")
                 echo "Deploying module: $MODULE_NAME"
@@ -126,29 +92,13 @@ jobs:
             echo "⚠️ No custom modules directory found"
           fi
           
-          # Deploy custom themes from stlouisintegration site
+          # Deploy custom themes from forseti site
           CUSTOM_THEMES_DIR="$DRUPAL_ROOT/web/themes/custom"
           sudo mkdir -p "$CUSTOM_THEMES_DIR"
           
-          # First try stlouisintegration site structure
-          if [ -d "sites/stlouisintegration/web/themes/custom" ]; then
-            echo "Deploying custom themes from stlouisintegration site..."
-            for THEME_DIR in sites/stlouisintegration/web/themes/custom/*; do
-              if [ -d "$THEME_DIR" ]; then
-                THEME_NAME=$(basename "$THEME_DIR")
-                echo "Deploying theme: $THEME_NAME"
-                sudo rm -rf "$CUSTOM_THEMES_DIR/$THEME_NAME"
-                sudo cp -r "$THEME_DIR" "$CUSTOM_THEMES_DIR/"
-                sudo chown -R www-data:www-data "$CUSTOM_THEMES_DIR/$THEME_NAME"
-                sudo find "$CUSTOM_THEMES_DIR/$THEME_NAME" -type f -exec chmod 644 {} \;
-                sudo find "$CUSTOM_THEMES_DIR/$THEME_NAME" -type d -exec chmod 755 {} \;
-                echo "✅ $THEME_NAME deployed"
-              fi
-            done
-          # Fallback to old drupal structure
-          elif [ -d "drupal/web/themes/custom" ]; then
-            echo "Deploying custom themes from drupal structure..."
-            for THEME_DIR in drupal/web/themes/custom/*; do
+          if [ -d "sites/forseti/web/themes/custom" ]; then
+            echo "Deploying custom themes from forseti site..."
+            for THEME_DIR in sites/forseti/web/themes/custom/*; do
               if [ -d "$THEME_DIR" ]; then
                 THEME_NAME=$(basename "$THEME_DIR")
                 echo "Deploying theme: $THEME_NAME"
@@ -164,51 +114,17 @@ jobs:
             echo "⚠️ No custom themes directory found"
           fi
           
-          # Deploy mobile app files (APK/IPA) to public files directory
-          MOBILE_FILES_DIR="$DRUPAL_ROOT/web/sites/default/files/amisafe/mobile"
-          sudo mkdir -p "$MOBILE_FILES_DIR"
-          
-          if [ -f "sites/stlouisintegration/web/sites/default/files/amisafe/mobile/AmISafe.apk" ]; then
-            echo "Deploying AmISafe APK..."
-            sudo cp "sites/stlouisintegration/web/sites/default/files/amisafe/mobile/AmISafe.apk" "$MOBILE_FILES_DIR/"
-            sudo chown www-data:www-data "$MOBILE_FILES_DIR/AmISafe.apk"
-            sudo chmod 644 "$MOBILE_FILES_DIR/AmISafe.apk"
-            APK_SIZE=$(du -h "$MOBILE_FILES_DIR/AmISafe.apk" | cut -f1)
-            echo "✅ AmISafe.apk deployed ($APK_SIZE)"
-          else
-            echo "⚠️ AmISafe.apk not found in repository"
-          fi
-          
-          if [ -f "sites/stlouisintegration/web/sites/default/files/amisafe/mobile/AmISafe.ipa" ]; then
-            echo "Deploying AmISafe IPA..."
-            sudo cp "sites/stlouisintegration/web/sites/default/files/amisafe/mobile/AmISafe.ipa" "$MOBILE_FILES_DIR/"
-            sudo chown www-data:www-data "$MOBILE_FILES_DIR/AmISafe.ipa"
-            sudo chmod 644 "$MOBILE_FILES_DIR/AmISafe.ipa"
-            IPA_SIZE=$(du -h "$MOBILE_FILES_DIR/AmISafe.ipa" | cut -f1)
-            echo "✅ AmISafe.ipa deployed ($IPA_SIZE)"
-          else
-            echo "⚠️ AmISafe.ipa not found (iOS build not yet available)"
-          fi
-          
-          # Deploy composer files from stlouisintegration site
-          if [ -f "sites/stlouisintegration/composer.json" ]; then
-            sudo cp "sites/stlouisintegration/composer.json" "$DRUPAL_ROOT/"
+          # Deploy composer files from forseti site
+          if [ -f "sites/forseti/composer.json" ]; then
+            sudo cp "sites/forseti/composer.json" "$DRUPAL_ROOT/"
             sudo chown www-data:www-data "$DRUPAL_ROOT/composer.json"
-            echo "✅ composer.json deployed from stlouisintegration"
-          elif [ -f "drupal/composer.json" ]; then
-            sudo cp "drupal/composer.json" "$DRUPAL_ROOT/"
-            sudo chown www-data:www-data "$DRUPAL_ROOT/composer.json"
-            echo "✅ composer.json deployed from drupal"
+            echo "✅ composer.json deployed from forseti"
           fi
           
-          if [ -f "sites/stlouisintegration/composer.lock" ]; then
-            sudo cp "sites/stlouisintegration/composer.lock" "$DRUPAL_ROOT/"
+          if [ -f "sites/forseti/composer.lock" ]; then
+            sudo cp "sites/forseti/composer.lock" "$DRUPAL_ROOT/"
             sudo chown www-data:www-data "$DRUPAL_ROOT/composer.lock"
-            echo "✅ composer.lock deployed from stlouisintegration"
-          elif [ -f "drupal/composer.lock" ]; then
-            sudo cp "drupal/composer.lock" "$DRUPAL_ROOT/"
-            sudo chown www-data:www-data "$DRUPAL_ROOT/composer.lock"
-            echo "✅ composer.lock deployed from drupal"
+            echo "✅ composer.lock deployed from forseti"
           fi
           
           # Install/update composer dependencies
@@ -219,93 +135,25 @@ jobs:
             echo "⚠️ Composer install had warnings (continuing)"
           fi
           
-          # Clean up
-          rm -rf "$TEMP_DIR"
-
-    - name: Deploy database and H3 scripts
-      uses: appleboy/ssh-action@v0.1.5
-      env:
-        HUBGIT_PAT: ${{ secrets.HUBGIT_PAT }}
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        envs: HUBGIT_PAT
-        script: |
-          set -e
-          
-          echo "=== Deploying Database and H3 Geolocation Scripts ==="
-          
-          DRUPAL_ROOT="/var/www/html/stlouisintegration"
-          SCRIPTS_DIR="$DRUPAL_ROOT/scripts"
-          TEMP_DIR="/tmp/scripts-deploy-$(date +%s)"
-          
-          # Create temporary directory and download scripts
-          mkdir -p "$TEMP_DIR"
-          cd "$TEMP_DIR"
-          
-          echo "Downloading scripts from repository..."
-          git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
-          git sparse-checkout set script/database h3-geolocation database-exports testing/amisafe
-          
-          # Deploy database scripts
-          if [ -d "script/database" ]; then
-            echo "Deploying database scripts..."
-            sudo mkdir -p "$SCRIPTS_DIR/database"
-            sudo cp -r script/database/* "$SCRIPTS_DIR/database/"
-            sudo chown -R www-data:www-data "$SCRIPTS_DIR"
-            sudo find "$SCRIPTS_DIR/database" -type f -name "*.sh" -exec chmod 755 {} \;
-            sudo find "$SCRIPTS_DIR/database" -type f -name "*.md" -exec chmod 644 {} \;
-            echo "✅ Database scripts deployed"
-          else
-            echo "⚠️ No database scripts found"
-          fi
-          
-          # Deploy H3 geolocation framework (if needed for AmISafe)
-          if [ -d "h3-geolocation" ]; then
+          # Deploy H3 geolocation framework (if exists)
+          if [ -d "$TEMP_DIR/h3-geolocation" ]; then
             echo "Deploying H3 geolocation framework..."
             H3_DIR="$DRUPAL_ROOT/h3-geolocation"
             sudo mkdir -p "$H3_DIR"
             
-            # Copy only essential files/directories (exclude large data, venv, deprecated)
-            cd h3-geolocation
-            
             # Copy Python scripts and core files
+            cd "$TEMP_DIR/h3-geolocation"
             sudo cp -r *.py "$H3_DIR/" 2>/dev/null || true
             sudo cp -r *.sh "$H3_DIR/" 2>/dev/null || true
             sudo cp -r *.md "$H3_DIR/" 2>/dev/null || true
             sudo cp -r *.json "$H3_DIR/" 2>/dev/null || true
             
-            # Copy essential directories only
+            # Copy essential directories
             [ -d "config" ] && sudo cp -r config "$H3_DIR/"
-            [ -d "database/etl" ] && sudo mkdir -p "$H3_DIR/database" && sudo cp -r database/etl "$H3_DIR/database/"
-            [ -d "database/setup" ] && sudo mkdir -p "$H3_DIR/database" && sudo cp -r database/setup "$H3_DIR/database/"
+            [ -d "database" ] && sudo cp -r database "$H3_DIR/"
             [ -d "scripts" ] && sudo cp -r scripts "$H3_DIR/"
-            [ -d "tests" ] && sudo cp -r tests "$H3_DIR/"
             
-            # Copy testing directory for validation scripts
-            if [ -d "../testing/amisafe" ]; then
-              sudo mkdir -p "$H3_DIR/testing/amisafe"
-              sudo cp ../testing/amisafe/*.sh "$H3_DIR/testing/amisafe/" 2>/dev/null || true
-              sudo cp ../testing/amisafe/*.md "$H3_DIR/testing/amisafe/" 2>/dev/null || true
-              sudo find "$H3_DIR/testing/amisafe" -type f -name "*.sh" -exec chmod 755 {} \;
-              echo "✅ Testing scripts deployed"
-            fi
-            
-            # Copy data directory structure with scripts (but not CSV files)
-            if [ -d "data" ]; then
-              sudo mkdir -p "$H3_DIR/data/raw"
-              [ -f "data/README.md" ] && sudo cp data/README.md "$H3_DIR/data/"
-              [ -f "data/raw/download_crime_data.sh" ] && sudo cp data/raw/download_crime_data.sh "$H3_DIR/data/raw/" && sudo chmod 755 "$H3_DIR/data/raw/download_crime_data.sh"
-            fi
-            
-            # Copy README files from archive/documentation for reference
-            if [ -d "archive/documentation" ]; then
-              sudo mkdir -p "$H3_DIR/documentation"
-              sudo cp archive/documentation/*.md "$H3_DIR/documentation/" 2>/dev/null || true
-            fi
-            
-            cd ..
+            cd "$TEMP_DIR"
             
             # Set permissions
             sudo chown -R www-data:www-data "$H3_DIR"
@@ -313,31 +161,11 @@ jobs:
             sudo find "$H3_DIR" -type f -name "*.sh" -exec chmod 755 {} \;
             sudo find "$H3_DIR" -type f -name "*.md" -exec chmod 644 {} \;
             
-            echo "✅ H3 geolocation framework deployed (essential files only)"
-            echo "ℹ️ Excluded: h3-env/ (recreate on server), data/raw/ (use database), deprecated/"
-          else
-            echo "⚠️ No H3 geolocation framework found"
-          fi
-          
-          # Create database-exports directory structure (for backups)
-          if [ -d "database-exports" ]; then
-            echo "Setting up database-exports directory..."
-            sudo mkdir -p "$DRUPAL_ROOT/database-exports/dumps"
-            if [ -f "database-exports/README.md" ]; then
-              sudo cp database-exports/README.md "$DRUPAL_ROOT/database-exports/"
-            fi
-            sudo chown -R www-data:www-data "$DRUPAL_ROOT/database-exports"
-            echo "✅ Database-exports directory configured"
+            echo "✅ H3 geolocation framework deployed"
           fi
           
           # Clean up
           rm -rf "$TEMP_DIR"
-          
-          echo ""
-          echo "✅ Database and H3 scripts deployed successfully"
-          echo "ℹ️ Scripts location: $SCRIPTS_DIR/database/"
-          echo "ℹ️ H3 framework location: $H3_DIR/"
-          echo "ℹ️ Backup destination: $DRUPAL_ROOT/database-exports/dumps/"
 
     - name: Deploy configuration
       uses: appleboy/ssh-action@v0.1.5
@@ -353,7 +181,7 @@ jobs:
           
           echo "=== Deploying Configuration ==="
           
-          DRUPAL_ROOT="/var/www/html/stlouisintegration"
+          DRUPAL_ROOT="/var/www/html/forseti"
           CONFIG_DIR="$DRUPAL_ROOT/config/sync"
           TEMP_DIR="/tmp/config-deploy-$(date +%s)"
           
@@ -361,15 +189,15 @@ jobs:
           mkdir -p "$TEMP_DIR"
           cd "$TEMP_DIR"
           
-          git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
-          git sparse-checkout set config/sync
+          git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git .
+          git sparse-checkout set sites/forseti/config/sync
           
-          if [ -d "config/sync" ] && [ "$(ls -A config/sync)" ]; then
+          if [ -d "sites/forseti/config/sync" ] && [ "$(ls -A sites/forseti/config/sync)" ]; then
             echo "✅ Configuration files downloaded"
             
             # Deploy configuration files
             sudo mkdir -p "$CONFIG_DIR"
-            sudo rsync -av --delete config/sync/ "$CONFIG_DIR/"
+            sudo rsync -av --delete sites/forseti/config/sync/ "$CONFIG_DIR/"
             sudo chown -R www-data:www-data "$DRUPAL_ROOT/config"
             sudo find "$CONFIG_DIR" -type f -exec chmod 644 {} \;
             
@@ -391,7 +219,7 @@ jobs:
           
           echo "=== Finalizing Deployment ==="
           
-          DRUPAL_ROOT="/var/www/html/stlouisintegration"
+          DRUPAL_ROOT="/var/www/html/forseti"
           cd "$DRUPAL_ROOT"
           
           # Import configuration (preserves content)
@@ -402,29 +230,14 @@ jobs:
           echo "Applying database updates..."
           sudo -u www-data ./vendor/bin/drush updatedb -y || echo "ℹ️ No database updates needed"
           
-          # Fix NumberWidget configuration for PHP 8.3+ compatibility (only if module is already enabled)
-          echo "Checking for NumberWidget configuration fix..."
-          if sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^job_application_automation$"; then
-            sudo -u www-data ./vendor/bin/drush job-app:fix-numberwidget || echo "⚠️ NumberWidget fix completed with warnings"
-            echo "✅ NumberWidget configuration fixed for PHP 8.3+ compatibility"
-          else
-            echo "ℹ️ job_application_automation module not enabled, skipping NumberWidget fix"
-          fi
-          
-          # Note: Modules are NOT automatically enabled during deployment
-          # Enable modules manually using: drush pm:enable <module_name>
-          echo "ℹ️ Custom modules deployed but NOT automatically enabled"
-          echo "ℹ️ Available modules: professional_website_content, ai_conversation, job_application_automation, resume_tailoring, amisafe"
-          echo "ℹ️ To enable: drush pm:enable <module_name>"
-          
           # Generate URL aliases with Pathauto
           echo "Generating clean URL aliases..."
           if sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^pathauto$"; then
-            echo "Pathauto is enabled, generating aliases for all pages..."
-            sudo -u www-data ./vendor/bin/drush pathauto:generate-page-path-aliases --all || echo "⚠️ Pathauto generation had warnings"
+            echo "Pathauto is enabled, generating aliases..."
+            sudo -u www-data ./vendor/bin/drush pathauto:aliases-generate --all || echo "⚠️ Pathauto generation had warnings"
             echo "✅ URL aliases generated"
           else
-            echo "⚠️ Pathauto not enabled, skipping URL alias generation"
+            echo "ℹ️ Pathauto not enabled, skipping URL alias generation"
           fi
           
           # Clear all caches thoroughly
@@ -448,178 +261,17 @@ jobs:
           echo "✅ Apache restarted"
           
           echo ""
-          echo "🎉 === DEPLOYMENT COMPLETED SUCCESSFULLY === 🎉"
-          echo "✅ Modules and themes deployed from stlouisintegration site"
-          echo "✅ Database and H3 geolocation scripts deployed"
+          echo "🎉 === FORSETI DEPLOYMENT COMPLETED SUCCESSFULLY === 🎉"
+          echo "✅ Modules and themes deployed from forseti site"
+          echo "✅ H3 geolocation scripts deployed (if present)"
           echo "✅ Configuration imported"
           echo "✅ Database updates applied"
-          echo "✅ NumberWidget configuration checked (PHP 8.3+ compatibility)"
-          echo "ℹ️ Modules NOT automatically enabled (enable manually via Drush)"
           echo "✅ CSS/JS aggregation cleared and rebuilt"
           echo "✅ All caches cleared"
           echo "✅ Apache restarted"
           echo "✅ File permissions set"
           echo ""
-          echo "Available custom modules (not auto-enabled):"
-          echo "  - professional_website_content"
-          echo "  - ai_conversation"
-          echo "  - job_application_automation"
-          echo "  - resume_tailoring"
-          echo "  - amisafe (requires database setup)"
-          echo ""
-          echo "Database scripts location: /var/www/html/stlouisintegration/scripts/database/"
-          echo "H3 framework location: /var/www/html/stlouisintegration/h3-geolocation/"
-          echo ""
           echo "Deployment completed at: $(date)"
           echo ""
-          echo "🔧 Theme changes should now be visible!"
+          echo "🔧 Changes should now be visible at https://forseti.life"
           echo "💡 If still not visible, try hard refresh (Ctrl+F5) or clear browser cache"
-
-  deploy-theoryofconspiracies:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-    - name: Deploy modules and themes to theoryofconspiracies.com
-      uses: appleboy/ssh-action@v0.1.5
-      env:
-        HUBGIT_PAT: ${{ secrets.HUBGIT_PAT }}
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        envs: HUBGIT_PAT
-        script: |
-          set -e
-          
-          echo "=== Deploying Modules and Themes to theoryofconspiracies.com ==="
-          
-          DRUPAL_ROOT="/var/www/html/theoryofconspiracies"
-          TEMP_DIR="/tmp/deploy-theoryofconspiracies-$(date +%s)"
-          
-          # Create temporary directory and download code
-          mkdir -p "$TEMP_DIR"
-          cd "$TEMP_DIR"
-          
-          echo "Downloading code from repository..."
-          git clone --depth 1 https://${HUBGIT_PAT}@github.com/keithaumiller/stlouisintegration.com.git .
-          
-          # Deploy custom modules
-          CUSTOM_MODULES_DIR="$DRUPAL_ROOT/web/modules/custom"
-          echo "DEBUG: CUSTOM_MODULES_DIR: $CUSTOM_MODULES_DIR"
-          sudo mkdir -p "$CUSTOM_MODULES_DIR"
-          
-          if [ -d "sites/theoryofconspiracies/web/modules/custom" ]; then
-            echo "Deploying custom modules..."
-            for MODULE_DIR in sites/theoryofconspiracies/web/modules/custom/*; do
-              if [ -d "$MODULE_DIR" ]; then
-                MODULE_NAME=$(basename "$MODULE_DIR")
-                echo "Deploying module: $MODULE_NAME"
-                sudo rm -rf "$CUSTOM_MODULES_DIR/$MODULE_NAME"
-                sudo cp -r "$MODULE_DIR" "$CUSTOM_MODULES_DIR/"
-                sudo chown -R www-data:www-data "$CUSTOM_MODULES_DIR/$MODULE_NAME"
-                sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type f -exec chmod 644 {} \;
-                sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type d -exec chmod 755 {} \;
-                echo "✅ $MODULE_NAME deployed"
-              fi
-            done
-          else
-            echo "DEBUG: No custom modules directory found to deploy"
-          fi
-          
-          # Deploy custom themes
-          CUSTOM_THEMES_DIR="$DRUPAL_ROOT/web/themes/custom"
-          echo "DEBUG: CUSTOM_THEMES_DIR: $CUSTOM_THEMES_DIR"
-          sudo mkdir -p "$CUSTOM_THEMES_DIR"
-          
-          if [ -d "sites/theoryofconspiracies/web/themes/custom" ]; then
-            echo "Deploying custom themes..."
-            for THEME_DIR in sites/theoryofconspiracies/web/themes/custom/*; do
-              if [ -d "$THEME_DIR" ]; then
-                THEME_NAME=$(basename "$THEME_DIR")
-                echo "Deploying theme: $THEME_NAME"
-                sudo rm -rf "$CUSTOM_THEMES_DIR/$THEME_NAME"
-                sudo cp -r "$THEME_DIR" "$CUSTOM_THEMES_DIR/"
-                sudo chown -R www-data:www-data "$CUSTOM_THEMES_DIR/$THEME_NAME"
-                sudo find "$CUSTOM_THEMES_DIR/$THEME_NAME" -type f -exec chmod 644 {} \;
-                sudo find "$CUSTOM_THEMES_DIR/$THEME_NAME" -type d -exec chmod 755 {} \;
-                echo "✅ $THEME_NAME deployed"
-              fi
-            done
-          else
-            echo "DEBUG: No custom themes directory found to deploy"
-          fi
-          
-          # Deploy composer files
-          if [ -f "sites/theoryofconspiracies/composer.json" ]; then
-            sudo cp "sites/theoryofconspiracies/composer.json" "$DRUPAL_ROOT/"
-            sudo chown www-data:www-data "$DRUPAL_ROOT/composer.json"
-            echo "✅ composer.json deployed"
-          fi
-          
-          if [ -f "sites/theoryofconspiracies/composer.lock" ]; then
-            sudo cp "sites/theoryofconspiracies/composer.lock" "$DRUPAL_ROOT/"
-            sudo chown www-data:www-data "$DRUPAL_ROOT/composer.lock"
-            echo "✅ composer.lock deployed"
-          fi
-          
-          # Ensure Radix theme is present before composer install
-          cd "$DRUPAL_ROOT"
-          echo "Checking for Radix theme dependency..."
-          if ! grep -q "drupal/radix" composer.json; then
-            echo "⚠️ Adding missing Radix theme dependency..."
-            sudo -u www-data composer require drupal/radix:^6.0 --no-update
-          fi
-          
-          # Install/update composer dependencies
-          if sudo -u www-data composer install --no-dev --optimize-autoloader; then
-            echo "✅ Composer dependencies updated"
-          else
-            echo "⚠️ Composer install had warnings (continuing)"
-          fi
-          
-          # Enable theory_content module and import its configuration
-          echo "Enabling theory_content module..."
-          if [ -d "$DRUPAL_ROOT/web/modules/custom/theory_content" ]; then
-            if ! sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^theory_content$"; then
-              sudo -u www-data ./vendor/bin/drush en theory_content -y || echo "⚠️ Failed to enable theory_content"
-              echo "✅ theory_content module enabled"
-              
-              # Import the module's configuration (content types)
-              echo "Importing theory_content configuration..."
-              sudo -u www-data ./vendor/bin/drush config:import --partial --source="$DRUPAL_ROOT/web/modules/custom/theory_content/config/install" -y || echo "⚠️ Config import had warnings"
-              echo "✅ theory_content configuration imported"
-            else
-              echo "✅ theory_content already enabled"
-            fi
-          else
-            echo "⚠️ theory_content module not found in $DRUPAL_ROOT/web/modules/custom/"
-          fi
-          
-          # Ensure Radix theme is enabled
-          echo "Ensuring Radix theme is enabled..."
-          if ! sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^radix$"; then
-            sudo -u www-data ./vendor/bin/drush theme:enable radix -y || echo "⚠️ Failed to enable Radix theme"
-            echo "✅ Radix theme enabled"
-          else
-            echo "✅ Radix theme already enabled"
-          fi
-          
-          # Set the front page to use the theory_content home route
-          echo "Setting front page to theory_content home..."
-          sudo -u www-data ./vendor/bin/drush config:set system.site page.front /home -y || echo "⚠️ Failed to set front page"
-          echo "✅ Front page set to /home"
-          
-          # Clear all caches to ensure new JavaScript is loaded
-          echo "Clearing caches..."
-          sudo -u www-data ./vendor/bin/drush cache:rebuild
-          echo "✅ Caches cleared"
-          
-          # Clean up
-          rm -rf "$TEMP_DIR"
-          
-          echo ""
-          echo "🎉 === THEORYOFCONSPIRACIES.COM DEPLOYMENT COMPLETED SUCCESSFULLY === 🎉"
-          echo "✅ Modules and themes deployed"
-          echo "✅ Composer dependencies updated"
-          echo ""
-          echo "Deployment completed at: $(date)"
