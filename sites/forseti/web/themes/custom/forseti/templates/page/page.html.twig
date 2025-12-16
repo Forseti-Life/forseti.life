@@ -159,11 +159,7 @@
   </div>
 
   {# Footer #}
-  <footer class="footer site-footer" role="contentinfo">
-    <div class="container">
-      {% if page.footer %}
-        {{ page.footer }}
-      {% endif %}
-    </div>
-  </footer>
+  {% if page.footer %}
+    {{ page.footer }}
+  {% endif %}
 </div>

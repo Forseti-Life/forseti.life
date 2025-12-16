@@ -85,23 +85,3 @@ forseti.safety_factors:
     _permission: 'access content'
   options:
     no_cache: TRUE
-
-forseti.403:
-  path: '/error/403'
-  defaults:
-    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::error403'
-    _title: 'Access Denied'
-  requirements:
-    _permission: 'access content'
-  options:
-    no_cache: TRUE
-
-forseti.404:
-  path: '/error/404'
-  defaults:
-    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::error404'
-    _title: 'Page Not Found'
-  requirements:
-    _permission: 'access content'
-  options:
-    no_cache: TRUE
