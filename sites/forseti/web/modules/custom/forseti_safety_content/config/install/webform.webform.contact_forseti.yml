@@ -47,7 +47,7 @@ settings:
   ajax_effect: ''
   ajax_speed: null
   page: true
-  page_submit_path: ''
+  page_submit_path: /talk-with-forseti
   page_confirm_path: ''
   page_theme_name: ''
   form_title: both
@@ -142,10 +142,10 @@ settings:
   draft_loaded_message: ''
   draft_pending_single_message: ''
   draft_pending_multiple_message: ''
-  confirmation_type: page
-  confirmation_url: ''
-  confirmation_title: 'Thank You!'
-  confirmation_message: 'Thank you for contacting Forseti. We will respond within 24-48 hours.'
+  confirmation_type: url
+  confirmation_url: /contact/thank-you
+  confirmation_title: ''
+  confirmation_message: ''
   confirmation_attributes: {  }
   confirmation_back: true
   confirmation_back_label: ''

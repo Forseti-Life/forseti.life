@@ -763,4 +763,65 @@ class AIApiService {
     return $stats;
   }
 
+  /**
+   * Create a community suggestion node.
+   *
+   * @param \Drupal\node\NodeInterface $conversation
+   *   The conversation node where the suggestion was made.
+   * @param string $summary
+   *   AI-generated summary of the suggestion.
+   * @param string $original_message
+   *   The original user message containing the suggestion.
+   * @param string $category
+   *   The suggestion category.
+   *
+   * @return \Drupal\node\NodeInterface|null
+   *   The created suggestion node or NULL on failure.
+   */
+  public function createSuggestion(NodeInterface $conversation, $summary, $original_message, $category) {
+    try {
+      // Get the current user (author of the conversation).
+      $user = \Drupal::currentUser();
+      
+      // Create a title from the summary (first 100 chars).
+      $title = mb_strlen($summary) > 100 ? mb_substr($summary, 0, 97) . '...' : $summary;
+      
+      // Create the suggestion node.
+      $suggestion = Node::create([
+        'type' => 'community_suggestion',
+        'title' => $title,
+        'uid' => $user->id(),
+        'status' => TRUE,
+        'field_suggestion_summary' => [
+          'value' => $summary,
+          'format' => 'plain_text',
+        ],
+        'field_original_message' => [
+          'value' => $original_message,
+          'format' => 'plain_text',
+        ],
+        'field_conversation_reference' => [
+          'target_id' => $conversation->id(),
+        ],
+        'field_suggestion_category' => $category,
+        'field_suggestion_status' => 'new',
+      ]);
+      
+      $suggestion->save();
+      
+      $this->logInfo('Created community suggestion: @title (nid: @nid)', [
+        '@title' => $title,
+        '@nid' => $suggestion->id(),
+      ]);
+      
+      return $suggestion;
+      
+    } catch (\Exception $e) {
+      $this->logError('Failed to create community suggestion: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
+  }
+
 }

@@ -13,28 +13,63 @@ use Drupal\field\Entity\FieldStorageConfig;
  * Implements hook_install().
  */
 function ai_conversation_install() {
-  // Create the conversation content type.
-  $conversation_type = NodeType::create([
-    'type' => 'ai_conversation',
-    'name' => 'AI Conversation',
-    'description' => 'A conversation with an AI model',
-    'settings' => [
-      'node' => [
-        'options' => [
-          'status' => TRUE,
-          'promote' => FALSE,
-          'sticky' => FALSE,
-          'revision' => TRUE,
+  // Create the conversation content type if it doesn't exist.
+  $conversation_type = NodeType::load('ai_conversation');
+  if (!$conversation_type) {
+    $conversation_type = NodeType::create([
+      'type' => 'ai_conversation',
+      'name' => 'AI Conversation',
+      'description' => 'A conversation with an AI model',
+      'settings' => [
+        'node' => [
+          'options' => [
+            'status' => TRUE,
+            'promote' => FALSE,
+            'sticky' => FALSE,
+            'revision' => TRUE,
+          ],
+          'preview' => DRUPAL_DISABLED,
+          'submitted' => TRUE,
         ],
-        'preview' => DRUPAL_DISABLED,
-        'submitted' => TRUE,
       ],
-    ],
-  ]);
-  $conversation_type->save();
+    ]);
+    $conversation_type->save();
+    \Drupal::logger('ai_conversation')->notice('Created ai_conversation content type.');
+  } else {
+    \Drupal::logger('ai_conversation')->notice('ai_conversation content type already exists, skipping creation.');
+  }
+
+  // Create the community suggestion content type if it doesn't exist.
+  $suggestion_type = NodeType::load('community_suggestion');
+  if (!$suggestion_type) {
+    $suggestion_type = NodeType::create([
+      'type' => 'community_suggestion',
+      'name' => 'Community Suggestion',
+      'description' => 'A suggestion submitted by a community member through Forseti AI',
+      'settings' => [
+        'node' => [
+          'options' => [
+            'status' => TRUE,
+            'promote' => FALSE,
+            'sticky' => FALSE,
+            'revision' => TRUE,
+          ],
+          'preview' => DRUPAL_DISABLED,
+          'submitted' => TRUE,
+        ],
+      ],
+    ]);
+    $suggestion_type->save();
+    \Drupal::logger('ai_conversation')->notice('Created community_suggestion content type.');
+  } else {
+    \Drupal::logger('ai_conversation')->notice('community_suggestion content type already exists, skipping creation.');
+  }
 
   // Create fields for the conversation content type.
   _ai_conversation_create_fields();
+  
+  // Create fields for the suggestion content type.
+  _ai_conversation_create_suggestion_fields();
 
   // Set default permissions.
   _ai_conversation_set_permissions();
@@ -143,6 +178,106 @@ function _ai_conversation_create_fields() {
 }
 
 /**
+ * Create fields for the community suggestion content type.
+ */
+function _ai_conversation_create_suggestion_fields() {
+  $fields_to_create = [
+    'field_suggestion_summary' => [
+      'type' => 'text_long',
+      'cardinality' => 1,
+      'label' => 'Suggestion Summary',
+      'description' => 'AI-generated summary of the suggestion',
+      'required' => TRUE,
+      'settings' => [],
+    ],
+    'field_original_message' => [
+      'type' => 'text_long',
+      'cardinality' => 1,
+      'label' => 'Original Message',
+      'description' => 'The original user message containing the suggestion',
+      'settings' => [],
+    ],
+    'field_conversation_reference' => [
+      'type' => 'entity_reference',
+      'cardinality' => 1,
+      'label' => 'Conversation',
+      'description' => 'Reference to the conversation where this suggestion was made',
+      'settings' => [
+        'target_type' => 'node',
+        'handler' => 'default:node',
+        'handler_settings' => [
+          'target_bundles' => ['ai_conversation' => 'ai_conversation'],
+        ],
+      ],
+    ],
+    'field_suggestion_category' => [
+      'type' => 'list_string',
+      'cardinality' => 1,
+      'label' => 'Category',
+      'description' => 'Category of the suggestion',
+      'settings' => [
+        'allowed_values' => [
+          'safety_feature' => 'Safety Feature',
+          'partnership' => 'Partnership Opportunity',
+          'community_initiative' => 'Community Initiative',
+          'technical_improvement' => 'Technical Improvement',
+          'content_update' => 'Content Update',
+          'general_feedback' => 'General Feedback',
+          'other' => 'Other',
+        ],
+      ],
+    ],
+    'field_suggestion_status' => [
+      'type' => 'list_string',
+      'cardinality' => 1,
+      'label' => 'Status',
+      'description' => 'Status of the suggestion',
+      'default_value' => [['value' => 'new']],
+      'settings' => [
+        'allowed_values' => [
+          'new' => 'New',
+          'under_review' => 'Under Review',
+          'in_progress' => 'In Progress',
+          'implemented' => 'Implemented',
+          'declined' => 'Declined',
+          'deferred' => 'Deferred',
+        ],
+      ],
+    ],
+  ];
+
+  foreach ($fields_to_create as $field_name => $field_info) {
+    // Create field storage if it doesn't exist.
+    $field_storage = FieldStorageConfig::loadByName('node', $field_name);
+    if (!$field_storage) {
+      $field_storage = FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => $field_info['type'],
+        'cardinality' => $field_info['cardinality'],
+        'settings' => $field_info['settings'] ?? [],
+      ]);
+      $field_storage->save();
+    }
+
+    // Create field config if it doesn't exist.
+    $field_config = FieldConfig::loadByName('node', 'community_suggestion', $field_name);
+    if (!$field_config) {
+      $field_config = FieldConfig::create([
+        'field_storage' => $field_storage,
+        'bundle' => 'community_suggestion',
+        'label' => $field_info['label'],
+        'description' => $field_info['description'],
+        'required' => $field_info['required'] ?? FALSE,
+        'default_value' => $field_info['default_value'] ?? NULL,
+        'settings' => [],
+      ]);
+      $field_config->save();
+    }
+  }
+}
+
+/**
  * Set default permissions for the conversation content type.
  */
 function _ai_conversation_set_permissions() {
@@ -170,25 +305,46 @@ function ai_conversation_uninstall() {
   // Only remove the content type configuration, not the fields or data.
   // This allows the module to be safely disabled/enabled without data loss.
   
-  // Count total conversations to inform the user
   $node_storage = \Drupal::entityTypeManager()->getStorage('node');
-  $query = $node_storage->getQuery()
+  
+  // Count total conversations
+  $conversation_query = $node_storage->getQuery()
     ->condition('type', 'ai_conversation')
     ->accessCheck(FALSE);
-  $total_conversations = $query->count()->execute();
+  $total_conversations = $conversation_query->count()->execute();
 
+  // Count total suggestions
+  $suggestion_query = $node_storage->getQuery()
+    ->condition('type', 'community_suggestion')
+    ->accessCheck(FALSE);
+  $total_suggestions = $suggestion_query->count()->execute();
+
+  $messages = [];
+  
+  // Handle ai_conversation content type
   if ($total_conversations == 0) {
-    // Safe to remove content type only if no nodes exist
     $conversation_type = NodeType::load('ai_conversation');
     if ($conversation_type) {
       $conversation_type->delete();
       \Drupal::logger('ai_conversation')->notice('Removed ai_conversation content type (no existing nodes found).');
-      \Drupal::messenger()->addStatus(t('AI Conversation module uninstalled successfully. No conversation data was found.'));
+      $messages[] = 'AI Conversation content type removed (no data found).';
     }
   } else {
-    // Log that content type was preserved due to existing data
     \Drupal::logger('ai_conversation')->warning('ai_conversation content type and @count conversations preserved during uninstall.', ['@count' => $total_conversations]);
-    \Drupal::messenger()->addWarning(t('AI Conversation module uninstalled but @count conversations and all fields have been preserved. To completely remove all data, use: drush php-eval "_ai_conversation_complete_removal();"', ['@count' => $total_conversations]));
+    $messages[] = t('@count conversations preserved.', ['@count' => $total_conversations]);
+  }
+  
+  // Handle community_suggestion content type
+  if ($total_suggestions == 0) {
+    $suggestion_type = NodeType::load('community_suggestion');
+    if ($suggestion_type) {
+      $suggestion_type->delete();
+      \Drupal::logger('ai_conversation')->notice('Removed community_suggestion content type (no existing nodes found).');
+      $messages[] = 'Community Suggestion content type removed (no data found).';
+    }
+  } else {
+    \Drupal::logger('ai_conversation')->warning('community_suggestion content type and @count suggestions preserved during uninstall.', ['@count' => $total_suggestions]);
+    $messages[] = t('@count suggestions preserved.', ['@count' => $total_suggestions]);
   }
 
   // Always remove module-specific configuration
@@ -197,12 +353,19 @@ function ai_conversation_uninstall() {
     $config->delete();
     \Drupal::logger('ai_conversation')->notice('Removed ai_conversation module settings.');
   }
+  
+  // Display appropriate message
+  if ($total_conversations > 0 || $total_suggestions > 0) {
+    \Drupal::messenger()->addWarning(t('AI Conversation module uninstalled. @messages To completely remove all data, use: drush php-eval "_ai_conversation_complete_removal();"', ['@messages' => implode(' ', $messages)]));
+  } else {
+    \Drupal::messenger()->addStatus(t('AI Conversation module uninstalled successfully. @messages', ['@messages' => implode(' ', $messages)]));
+  }
 }
 
 /**
  * Helper function to completely remove all AI conversation data and fields.
  * 
- * WARNING: This will permanently delete all conversation data!
+ * WARNING: This will permanently delete all conversation and suggestion data!
  * Only call this if you're absolutely sure you want to remove all data.
  * 
  * Usage: Run this via drush php-eval:
@@ -211,27 +374,46 @@ function ai_conversation_uninstall() {
 function _ai_conversation_complete_removal() {
   $node_storage = \Drupal::entityTypeManager()->getStorage('node');
   
-  // First, delete all ai_conversation nodes
-  $query = $node_storage->getQuery()
+  // Delete all ai_conversation nodes
+  $conversation_query = $node_storage->getQuery()
     ->condition('type', 'ai_conversation')
     ->accessCheck(FALSE);
-  $nids = $query->execute();
+  $conversation_nids = $conversation_query->execute();
   
-  if (!empty($nids)) {
-    $nodes = $node_storage->loadMultiple($nids);
+  if (!empty($conversation_nids)) {
+    $nodes = $node_storage->loadMultiple($conversation_nids);
     $node_storage->delete($nodes);
-    \Drupal::logger('ai_conversation')->notice('Deleted @count AI conversation nodes.', ['@count' => count($nids)]);
+    \Drupal::logger('ai_conversation')->notice('Deleted @count AI conversation nodes.', ['@count' => count($conversation_nids)]);
   }
   
-  // Then remove the content type
+  // Delete all community_suggestion nodes
+  $suggestion_query = $node_storage->getQuery()
+    ->condition('type', 'community_suggestion')
+    ->accessCheck(FALSE);
+  $suggestion_nids = $suggestion_query->execute();
+  
+  if (!empty($suggestion_nids)) {
+    $nodes = $node_storage->loadMultiple($suggestion_nids);
+    $node_storage->delete($nodes);
+    \Drupal::logger('ai_conversation')->notice('Deleted @count community suggestion nodes.', ['@count' => count($suggestion_nids)]);
+  }
+  
+  // Remove the ai_conversation content type
   $conversation_type = NodeType::load('ai_conversation');
   if ($conversation_type) {
     $conversation_type->delete();
     \Drupal::logger('ai_conversation')->notice('Removed ai_conversation content type.');
   }
   
-  // Finally, remove all field configurations and storage
-  $fields = [
+  // Remove the community_suggestion content type
+  $suggestion_type = NodeType::load('community_suggestion');
+  if ($suggestion_type) {
+    $suggestion_type->delete();
+    \Drupal::logger('ai_conversation')->notice('Removed community_suggestion content type.');
+  }
+  
+  // Remove all ai_conversation field configurations and storage
+  $conversation_fields = [
     'field_messages', 
     'field_ai_model', 
     'field_context',
@@ -242,9 +424,33 @@ function _ai_conversation_complete_removal() {
     'field_total_tokens'
   ];
   
-  foreach ($fields as $field_name) {
+  foreach ($conversation_fields as $field_name) {
     // Remove field configuration
     $field_config = FieldConfig::loadByName('node', 'ai_conversation', $field_name);
+    if ($field_config) {
+      $field_config->delete();
+    }
+    
+    // Remove field storage (this will delete all data in the field)
+    $field_storage = FieldStorageConfig::loadByName('node', $field_name);
+    if ($field_storage) {
+      $field_storage->delete();
+      \Drupal::logger('ai_conversation')->notice('Removed field storage for @field.', ['@field' => $field_name]);
+    }
+  }
+  
+  // Remove all community_suggestion field configurations and storage
+  $suggestion_fields = [
+    'field_suggestion_summary',
+    'field_original_message',
+    'field_conversation_reference',
+    'field_suggestion_category',
+    'field_suggestion_status'
+  ];
+  
+  foreach ($suggestion_fields as $field_name) {
+    // Remove field configuration
+    $field_config = FieldConfig::loadByName('node', 'community_suggestion', $field_name);
     if ($field_config) {
       $field_config->delete();
     }

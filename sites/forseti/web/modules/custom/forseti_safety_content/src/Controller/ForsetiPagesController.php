@@ -3,11 +3,60 @@
 namespace Drupal\forseti_safety_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\node\Entity\Node;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\Core\Url;
 
 /**
  * Controller for Forseti content pages.
  */
 class ForsetiPagesController extends ControllerBase {
+
+  /**
+   * Talk with Forseti page/redirect.
+   */
+  public function talkWithForseti() {
+    $current_user = $this->currentUser();
+    
+    // If user is not authenticated, redirect to registration with message.
+    if ($current_user->isAnonymous()) {
+      $this->messenger()->addWarning($this->t('Conversations with Forseti are reserved for community members. Please register for a free account to get started.'));
+      $url = Url::fromRoute('user.register');
+      return new RedirectResponse($url->toString());
+    }
+    
+    // User is authenticated - create a new conversation and redirect to it.
+    $conversation = Node::create([
+      'type' => 'ai_conversation',
+      'title' => 'Conversation with Forseti - ' . date('Y-m-d H:i'),
+      'uid' => $current_user->id(),
+      'status' => TRUE,
+      'field_messages' => [],
+      'field_ai_model' => 'claude-3-5-sonnet-20241022',
+      'field_message_count' => 0,
+      'field_total_tokens' => 0,
+    ]);
+    
+    $conversation->save();
+    
+    // Redirect to the chat interface.
+    $url = Url::fromRoute('ai_conversation.chat_interface', ['node' => $conversation->id()]);
+    return new RedirectResponse($url->toString());
+  }
+
+  /**
+   * 403 Error page.
+   */
+  public function error403() {
+    return [
+      '#markup' => $this->get403Content(),
+      '#attached' => [
+        'library' => [
+          'forseti_safety_content/style',
+        ],
+      ],
+    ];
+  }
 
   /**
    * About page.
@@ -65,6 +114,78 @@ class ForsetiPagesController extends ControllerBase {
   public function privacy() {
     return [
       '#markup' => $this->getPrivacyContent(),
+    ];
+  }
+
+  /**
+   * 404 Error page.
+   */
+  public function error404() {
+    return [
+      '#markup' => $this->get404Content(),
+      '#attached' => [
+        'library' => [
+          'forseti_safety_content/style',
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Get 403 Error content.
+   */
+  private function get403Content() {
+    return '
+      <div class="community-features">
+        <div class="container py-5">
+          <div class="text-center">
+            
+            <div class="mb-4">
+              <img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="Forseti" class="forseti-chat-icon">
+            </div>
+            
+            <h1 class="mb-3" style="font-size: 6rem; color: #00d4ff; font-weight: 700;">403</h1>
+            <h2 class="mb-4">Access Denied</h2>
+            
+            <div class="mb-5 mx-auto" style="max-width: 700px;">
+              <p class="lead">
+                You don\'t have permission to access this page or resource. 
+                Forseti protects community areas that require authentication or special privileges.
+              </p>
+            </div>
+            
+            <div class="d-flex justify-content-center gap-3 flex-wrap mt-5">
+              <a href="/user/register" class="btn btn-primary btn-lg">Create Account</a>
+              <a href="/user/login" class="btn btn-outline-primary btn-lg">Sign In</a>
+              <a href="/" class="btn btn-outline-primary btn-lg">Return Home</a>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+    ';
+  }
+
+  /**
+   * 503 Error page.
+   */
+  public function error503() {
+    return [
+      '#markup' => $this->get503Content(),
+      '#attached' => [
+        'library' => [
+          'forseti_safety_content/style',
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Contact thank you page.
+   */
+  public function contactThankYou() {
+    return [
+      '#markup' => $this->getContactThankYouContent(),
     ];
   }
 
@@ -153,7 +274,7 @@ class ForsetiPagesController extends ControllerBase {
               <h4 class="text-cyan">Join Our Mission</h4>
               <p class="mb-0">
                 We\'re always looking for community members, safety advocates, and technology partners 
-                who share our vision. <a href="/contact" class="alert-link">Get in touch</a> to learn 
+                who share our vision. <a href="/talk-with-forseti" class="alert-link">Talk with Forseti</a> to learn 
                 how you can contribute to safer communities.
               </p>
             </div>
@@ -526,7 +647,7 @@ class ForsetiPagesController extends ControllerBase {
                 AmISafe is currently in beta testing with select Philadelphia neighborhoods. 
                 Want to be among the first to use it?
               </p>
-              <a href="/contact" class="btn btn-primary">Request Early Access</a>
+              <a href="/talk-with-forseti" class="btn btn-primary">Request Early Access</a>
             </div>
         
             <div class="text-center mt-4">
@@ -646,7 +767,7 @@ class ForsetiPagesController extends ControllerBase {
               <h4>Questions or Concerns?</h4>
               <p class="mb-0">
                 If you have any questions about our privacy practices or want to exercise your rights, 
-                please <a href="/contact" class="alert-link">contact us</a>. We typically respond within 48 hours.
+                please <a href="/talk-with-forseti" class="alert-link">talk with Forseti</a>. We typically respond within 48 hours.
               </p>
             </div>
             
@@ -833,7 +954,7 @@ class ForsetiPagesController extends ControllerBase {
                       The move beyond mere survival to physiological optimization. This level focuses on accumulating the resources required to live, not just exist. It encompasses housing stability, food security, and financial well-being—the fundamental resources that provide the surplus "fuel" needed for higher pursuits.
                     </p>
                     <p class="text-muted-light mb-3">
-                      <em>If you have a solution to contribute and would like to integrate, <a href="/contact" class="link-cyan">contact us</a>.</em>
+                      <em>If you have a solution to contribute and would like to integrate, <a href="/talk-with-forseti" class="link-cyan">talk with Forseti</a>.</em>
                     </p>
                     <h6 class="text-cyan mb-2">Safety Factors:</h6>
                     <ul class="text-muted-light">
@@ -862,7 +983,7 @@ class ForsetiPagesController extends ControllerBase {
                       The establishment of a Tribe. This goes beyond simple social safety; it defines the deep satisfaction of being interconnected with people who share your specific interests, values, and mission. It is the move from "fitting in" to "belonging," creating a network of peers that acts as a multiplier for your own growth.
                     </p>
                     <p class="text-muted-light mb-3">
-                      <em>If you have a solution to contribute and would like to integrate, <a href="/contact" class="link-cyan">contact us</a>.</em>
+                      <em>If you have a solution to contribute and would like to integrate, <a href="/talk-with-forseti" class="link-cyan">talk with Forseti</a>.</em>
                     </p>
                     <h6 class="text-cyan mb-2">Safety Factors:</h6>
                     <ul class="text-muted-light">
@@ -892,7 +1013,7 @@ class ForsetiPagesController extends ControllerBase {
                       The liberation from coercion and the assertion of the self. This is the ability to set boundaries, make independent choices, and direct one\'s own path without being controlled by the expectations, debts, or demands of others. It is the pivot point where one transitions from being a member of a group to being an individual.
                     </p>
                     <p class="text-muted-light mb-3">
-                      <em>If you have a solution to contribute and would like to integrate, <a href="/contact" class="link-cyan">contact us</a>.</em>
+                      <em>If you have a solution to contribute and would like to integrate, <a href="/talk-with-forseti" class="link-cyan">talk with Forseti</a>.</em>
                     </p>
                     <h6 class="text-cyan mb-2">Safety Factors:</h6>
                     <ul class="text-muted-light">
@@ -921,7 +1042,7 @@ class ForsetiPagesController extends ControllerBase {
                       The transition from "being free" to "being effective." This level is defined by the pursuit of excellence, skill acquisition, and the "flow state." It is the deep satisfaction that comes from facing difficult challenges and knowing you have the tools and resilience to overcome them.
                     </p>
                     <p class="text-muted-light mb-3">
-                      <em>If you have a solution to contribute and would like to integrate, <a href="/contact" class="link-cyan">contact us</a>.</em>
+                      <em>If you have a solution to contribute and would like to integrate, <a href="/talk-with-forseti" class="link-cyan">talk with Forseti</a>.</em>
                     </p>
                     <h6 class="text-cyan mb-2">Safety Factors:</h6>
                     <ul class="text-muted-light">
@@ -950,7 +1071,7 @@ class ForsetiPagesController extends ControllerBase {
                       The direction of one\'s mastery toward something larger than the self. This level transforms personal competence into communal value. Meaning is found not in what you acquire, but in how you serve others, solve external problems, and leave a positive impact on the world around you.
                     </p>
                     <p class="text-muted-light mb-3">
-                      <em>If you have a solution to contribute and would like to integrate, <a href="/contact" class="link-cyan">contact us</a>.</em>
+                      <em>If you have a solution to contribute and would like to integrate, <a href="/talk-with-forseti" class="link-cyan">talk with Forseti</a>.</em>
                     </p>
                     <h6 class="text-cyan mb-2">Safety Factors:</h6>
                     <ul class="text-muted-light">
@@ -979,7 +1100,7 @@ class ForsetiPagesController extends ControllerBase {
                       The pinnacle state where physical health and mental resilience are fully integrated and operating at peak capacity. This represents a system where the body is free from preventable dysfunction and the mind is free from chronic stress, creating a unified vessel capable of sustaining a high quality of life indefinitely.
                     </p>
                     <p class="text-muted-light mb-3">
-                      <em>If you have a solution to contribute and would like to integrate, <a href="/contact" class="link-cyan">contact us</a>.</em>
+                      <em>If you have a solution to contribute and would like to integrate, <a href="/talk-with-forseti" class="link-cyan">talk with Forseti</a>.</em>
                     </p>
                     <h6 class="text-cyan mb-2">Safety Factors:</h6>
                     <ul class="text-muted-light">
@@ -1015,6 +1136,137 @@ class ForsetiPagesController extends ControllerBase {
             <div class="text-center mb-4">
               <a href="/how-it-works" class="btn btn-primary me-2">Learn How It Works</a>
               <a href="/safety-map" class="btn btn-outline-primary">View Safety Map</a>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+    ';
+  }
+
+  /**
+   * Get Contact Thank You content.
+   */
+  private function getContactThankYouContent() {
+    return '
+      <div class="container py-5">
+        <div class="row">
+          <div class="col-lg-8 mx-auto text-center">
+            <div class="mb-4">
+              <div style="font-size: 5rem; color: #00d4ff;">✓</div>
+            </div>
+            
+            <h1 class="mb-3 text-cyan">Thank You for Reaching Out!</h1>
+            
+            <p class="lead mb-4 text-muted-light">
+              Your message has been received and we\'ll get back to you within 24-48 hours.
+            </p>
+            
+            <div class="card card-forseti p-4 mb-4">
+              <h3 class="text-cyan mb-3">What Happens Next?</h3>
+              <div class="text-start">
+                <ul class="text-muted-light">
+                  <li class="mb-2"><strong>Review:</strong> Our team will carefully review your message</li>
+                  <li class="mb-2"><strong>Response:</strong> You\'ll receive a personal response via email</li>
+                  <li class="mb-2"><strong>Support:</strong> We\'re committed to addressing your needs</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div class="mb-4">
+              <p class="text-muted-light">In the meantime, explore more about Forseti:</p>
+            </div>
+            
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+              <a href="/" class="btn btn-primary">Return Home</a>
+              <a href="/safety-map" class="btn btn-outline-primary">View Safety Map</a>
+              <a href="/mobile-app" class="btn btn-outline-primary">Download AmISafe</a>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+    ';
+  }
+
+  /**
+   * Returns 404 error page content.
+   */
+  private function get404Content() {
+    return '
+      <div class="community-features">
+        <div class="container py-5">
+          <div class="text-center">
+            
+            <div class="mb-4">
+              <img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="Forseti" class="forseti-chat-icon">
+            </div>
+            
+            <h1 class="mb-3" style="font-size: 6rem; color: #00d4ff; font-weight: 700;">404</h1>
+            <h2 class="mb-4">Page Not Found</h2>
+            
+            <div class="mb-5 mx-auto" style="max-width: 700px;">
+              <p class="lead">
+                The page you\'re looking for doesn\'t exist or has been moved. 
+                Forseti has searched the entire safety network, but this path leads nowhere.
+              </p>
+            </div>
+            
+            <div class="d-flex justify-content-center gap-3 flex-wrap mt-5">
+              <a href="/" class="btn btn-primary btn-lg">Return Home</a>
+              <a href="/safety-map" class="btn btn-outline-primary btn-lg">View Safety Map</a>
+              <a href="/talk-with-forseti" class="btn btn-outline-primary btn-lg">Talk with Forseti</a>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+    ';
+  }
+
+  /**
+   * Returns 503 error page content.
+   */
+  private function get503Content() {
+    return '
+      <div class="community-features">
+        <div class="container py-5">
+          <div class="text-center">
+            
+            <div class="mb-4">
+              <img src="/themes/custom/forseti/images/logos/originals/forseti_energized.png" alt="Forseti" class="forseti-chat-icon">
+            </div>
+            
+            <h1 class="mb-3" style="font-size: 6rem; color: #00d4ff; font-weight: 700;">503</h1>
+            <h2 class="mb-4">Service Temporarily Unavailable</h2>
+            
+            <div class="mb-5 mx-auto" style="max-width: 700px;">
+              <p class="lead">
+                Forseti is currently undergoing maintenance or experiencing high traffic. 
+                Our AI guardian is working hard to restore full service as quickly as possible.
+              </p>
+            </div>
+            
+            <div class="mb-5 mx-auto" style="max-width: 550px;">
+              <div class="card-forseti p-4">
+                <div class="mb-3">
+                  <div style="font-size: 2.5rem; margin-bottom: 1rem;">⚡</div>
+                  <h3 class="mb-3">System Status</h3>
+                  <p class="mb-0">Temporary maintenance in progress</p>
+                </div>
+                <hr class="my-4" style="border-color: rgba(0, 212, 255, 0.3);">
+                <div>
+                  <p class="mb-0">
+                    <strong>Expected restoration:</strong> A few minutes<br>
+                    Try refreshing this page shortly
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="d-flex justify-content-center gap-3 flex-wrap mt-5">
+              <a href="/" class="btn btn-primary btn-lg">Return Home</a>
+              <a href="javascript:location.reload()" class="btn btn-outline-primary btn-lg">Refresh Page</a>
             </div>
             
           </div>

@@ -18,6 +18,16 @@ forseti.home:
   options:
     no_cache: TRUE
 
+forseti.talk_with_forseti:
+  path: '/talk-with-forseti'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::talkWithForseti'
+    _title: 'Talk with Forseti'
+  requirements:
+    _permission: 'access content'
+  options:
+    no_cache: TRUE
+
 forseti.about:
   path: '/about'
   defaults:
@@ -66,19 +76,41 @@ forseti.privacy:
   requirements:
     _permission: 'access content'
 
-forseti.contact:
-  path: '/contact'
-  defaults:
-    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::contact'
-    _title: 'Contact Us'
-  requirements:
-    _permission: 'access content'
-
 forseti.safety_factors:
   path: '/safety-factors'
   defaults:
     _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::safetyFactors'
     _title: 'Safety Factors'
+  requirements:
+    _permission: 'access content'
+  options:
+    no_cache: TRUE
+
+forseti.403:
+  path: '/error/403'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::error403'
+    _title: 'Access Denied'
+  requirements:
+    _permission: 'access content'
+  options:
+    no_cache: TRUE
+
+forseti.404:
+  path: '/error/404'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::error404'
+    _title: 'Page Not Found'
+  requirements:
+    _permission: 'access content'
+  options:
+    no_cache: TRUE
+
+forseti.503:
+  path: '/error/503'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::error503'
+    _title: 'Service Unavailable'
   requirements:
     _permission: 'access content'
   options:

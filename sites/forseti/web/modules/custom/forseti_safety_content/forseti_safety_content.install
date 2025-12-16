@@ -37,6 +37,14 @@ function forseti_safety_content_install() {
   // Rebuild menu links.
   \Drupal::service('plugin.manager.menu.link')->rebuild();
   
+  // Configure custom error pages.
+  $config = \Drupal::configFactory()->getEditable('system.site');
+  $config->set('page.403', '/error/403');
+  $config->set('page.404', '/error/404');
+  $config->set('page.503', '/error/503');
+  $config->save();
+  
+  \Drupal::messenger()->addStatus(t('Custom error pages (403, 404, 503) have been configured.'));
   \Drupal::messenger()->addStatus(t('Forseti Safety Content module installed successfully. Visit /home to see the homepage.'));
 }
 

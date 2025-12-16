@@ -4,6 +4,12 @@ forseti.about:
   menu_name: main
   weight: -40
 
+forseti.talk_with_forseti:
+  title: 'Talk with Forseti'
+  route_name: forseti.talk_with_forseti
+  menu_name: main
+  weight: -35
+
 forseti.how_it_works:
   title: 'How It Works'
   route_name: forseti.how_it_works
@@ -41,9 +47,3 @@ forseti.privacy:
   route_name: forseti.privacy
   menu_name: main
   weight: 10
-
-forseti.contact:
-  title: 'Contact'
-  route_name: forseti.contact
-  menu_name: main
-  weight: 20

@@ -10,12 +10,6 @@ forseti.footer.privacy:
   menu_name: footer
   weight: -40
 
-forseti.footer.contact:
-  title: 'Contact'
-  route_name: forseti.contact
-  menu_name: footer
-  weight: -30
-
 forseti.footer.safety_map:
   title: 'Safety Map'
   route_name: forseti.safety_map

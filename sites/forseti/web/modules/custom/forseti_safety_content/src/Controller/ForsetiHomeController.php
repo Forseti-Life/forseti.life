@@ -41,7 +41,6 @@ class ForsetiHomeController extends ControllerBase {
               AI Looking Out For You
             </div>
             
-            <h1>Building Safer Communities Through Intelligence</h1>
             <p class="hero-tagline">AI-Powered Safety Monitoring for Philadelphia</p>
             
             <p class="hero-mission">
@@ -51,7 +50,13 @@ class ForsetiHomeController extends ControllerBase {
             </p>
             
             <div class="cta-buttons">
-              <a href="/safety-map" class="btn btn-light btn-lg">View Safety Map</a>
+              <a href="/talk-with-forseti" class="btn btn-primary btn-lg me-3">
+                <svg class="ai-icon" fill="currentColor" viewBox="0 0 24 24" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
+                  <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                </svg>
+                Talk with Forseti
+              </a>
+              <a href="/safety-map" class="btn btn-light btn-lg me-2">View Safety Map</a>
               <a href="/mobile-app" class="btn btn-outline-light btn-lg">Get AmISafe App</a>
             </div>
           </div>
@@ -59,49 +64,46 @@ class ForsetiHomeController extends ControllerBase {
       ',
     ];
 
-    $build['safety_status'] = [
+    $build['talk_with_forseti'] = [
       '#type' => 'markup',
       '#markup' => '
-        <div class="container my-5">
-          <h2 class="text-center mb-5">Philadelphia Safety Overview</h2>
-          
-          <div class="safety-status-grid">
-            <div class="status-card safe">
-              <div class="status-icon"><img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon"></div>
-              <div class="status-title">AI Monitoring Active</div>
-              <div class="status-description">
-                24/7 intelligent monitoring analyzing crime patterns, trends, and emerging threats 
-                across Philadelphia neighborhoods.
+        <div class="talk-with-forseti-section my-5 py-5">
+          <div class="container">
+            <div class="row align-items-center">
+              <div class="col-md-6 mb-4 mb-md-0">
+                <div class="forseti-chat-preview">
+                  <div class="chat-icon-wrapper">
+                    <img src="/themes/custom/forseti/images/logos/originals/forseti_energized.png" alt="Forseti AI" class="forseti-chat-icon">
+                  </div>
+                </div>
               </div>
-              <div class="status-metric">
-                <span class="metric-value">99.9%</span>
-                <span class="metric-label">Uptime</span>
-              </div>
-            </div>
-            
-            <div class="status-card safe">
-              <div class="status-icon">📊</div>
-              <div class="status-title">Real-Time Data</div>
-              <div class="status-description">
-                Live crime incident tracking with H3 geospatial analysis providing 
-                precise location-based safety information.
-              </div>
-              <div class="status-metric">
-                <span class="metric-value">1,247</span>
-                <span class="metric-label">Incidents This Month</span>
-              </div>
-            </div>
-            
-            <div class="status-card safe">
-              <div class="status-icon">👥</div>
-              <div class="status-title">Community Strong</div>
-              <div class="status-description">
-                Thousands of Philadelphia residents staying informed and connected 
-                through our safety network.
-              </div>
-              <div class="status-metric">
-                <span class="metric-value">12.5K+</span>
-                <span class="metric-label">Active Members</span>
+              <div class="col-md-6">
+                <h2 class="mb-3">
+                  <svg fill="currentColor" viewBox="0 0 24 24" style="width: 32px; height: 32px; margin-right: 12px; vertical-align: middle; color: #00d4ff;">
+                    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                  </svg>
+                  Talk with Forseti
+                </h2>
+                <p class="lead mb-4">
+                  Have a conversation with Forseti, our AI guardian. Ask questions about safety in your neighborhood, 
+                  get personalized advice, make suggestions, or learn more about how we can work together to keep Philadelphia safe.
+                </p>
+                <ul class="forseti-features-list mb-4">
+                  <li><img src="/themes/custom/forseti/images/logos/originals/forseti_connected.png" alt="" class="forseti-icon"> Natural conversation powered by advanced AI</li>
+                  <li><img src="/themes/custom/forseti/images/logos/originals/forseti_capable.png" alt="" class="forseti-icon"> Personalized safety recommendations</li>
+                  <li><img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon"> Location-specific crime insights</li>
+                  <li><img src="/themes/custom/forseti/images/logos/originals/forseti_useful.png" alt="" class="forseti-icon"> Submit suggestions and feedback</li>
+                  <li><img src="/themes/custom/forseti/images/logos/originals/forseti_free.png" alt="" class="forseti-icon"> Private and secure conversations</li>
+                </ul>
+                <a href="/talk-with-forseti" class="btn btn-primary btn-lg">
+                  Start Conversation
+                  <svg fill="currentColor" viewBox="0 0 24 24" style="width: 18px; height: 18px; margin-left: 8px; vertical-align: middle;">
+                    <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
+                  </svg>
+                </a>
+                <p class="text-muted mt-3 small">
+                  <em>Free for all community members</em>
+                </p>
               </div>
             </div>
           </div>
@@ -174,23 +176,6 @@ class ForsetiHomeController extends ControllerBase {
                 </p>
               </div>
             </div>
-          </div>
-        </div>
-      ',
-    ];
-
-    $build['cta_section'] = [
-      '#type' => 'markup',
-      '#markup' => '
-        <div class="container my-3 py-3 text-center">
-          <h2 class="mb-3">Join the Movement for Safer Communities</h2>
-          <p class="mb-3">
-            Together, we can make Philadelphia a safer place for everyone.
-          </p>
-          <div class="d-flex gap-2 justify-content-center flex-wrap">
-            <a href="/community" class="btn btn-primary">Join Community</a>
-            <a href="/how-it-works" class="btn btn-outline-primary">Learn More</a>
-            <a href="/contact" class="btn btn-outline-secondary">Contact Us</a>
           </div>
         </div>
       ',
