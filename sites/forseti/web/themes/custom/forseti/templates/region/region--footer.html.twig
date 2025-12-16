@@ -12,6 +12,8 @@
 #}
 {% if content %}
   <footer{{ attributes.addClass('footer', 'site-footer') }} role="contentinfo">
-    {{ content }}
+    <div class="container">
+      {{ content }}
+    </div>
   </footer>
 {% endif %}
