@@ -49,15 +49,15 @@ function forseti_safety_content_install() {
     $logger->info('Main navigation menu block already exists, skipped creation.');
   }
   
-  // Configure custom error pages (safe to overwrite on reinstall).
+  // Configure custom error pages (Drupal only supports 403 and 404).
+  // Note: 503 errors are handled by the route system, not system.site config.
   $config = \Drupal::configFactory()->getEditable('system.site');
   $config->set('page.403', '/error/403');
   $config->set('page.404', '/error/404');
-  $config->set('page.503', '/error/503');
   $config->save();
   
-  $messenger->addStatus(t('Custom error pages (403, 404, 503) have been configured.'));
-  $logger->info('Configured custom error pages.');
+  $messenger->addStatus(t('Custom error pages (403, 404) have been configured.'));
+  $logger->info('Configured custom error pages (403: /error/403, 404: /error/404).');
   
   $messenger->addStatus(t('Forseti Safety Content module installed successfully. Visit /home to see the homepage.'));
 }
@@ -76,10 +76,10 @@ function forseti_safety_content_uninstall() {
   }
   
   // Reset custom error pages to defaults (empty = use Drupal defaults).
+  // Note: Only 403 and 404 are supported in system.site config.
   $config = \Drupal::configFactory()->getEditable('system.site');
   $config->clear('page.403');
   $config->clear('page.404');
-  $config->clear('page.503');
   $config->save();
   $logger->info('Reset custom error pages to defaults.');
   

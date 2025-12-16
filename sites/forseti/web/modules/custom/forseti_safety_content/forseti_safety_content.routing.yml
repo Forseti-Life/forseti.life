@@ -105,13 +105,3 @@ forseti.404:
     _permission: 'access content'
   options:
     no_cache: TRUE
-
-forseti.503:
-  path: '/error/503'
-  defaults:
-    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::error503'
-    _title: 'Service Unavailable'
-  requirements:
-    _permission: 'access content'
-  options:
-    no_cache: TRUE

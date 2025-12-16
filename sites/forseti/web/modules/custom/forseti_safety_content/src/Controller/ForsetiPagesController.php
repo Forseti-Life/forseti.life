@@ -167,20 +167,6 @@ class ForsetiPagesController extends ControllerBase {
   }
 
   /**
-   * 503 Error page.
-   */
-  public function error503() {
-    return [
-      '#markup' => $this->get503Content(),
-      '#attached' => [
-        'library' => [
-          'forseti_safety_content/style',
-        ],
-      ],
-    ];
-  }
-
-  /**
    * Contact thank you page.
    */
   public function contactThankYou() {
@@ -1216,57 +1202,6 @@ class ForsetiPagesController extends ControllerBase {
               <a href="/" class="btn btn-primary btn-lg">Return Home</a>
               <a href="/safety-map" class="btn btn-outline-primary btn-lg">View Safety Map</a>
               <a href="/talk-with-forseti" class="btn btn-outline-primary btn-lg">Talk with Forseti</a>
-            </div>
-            
-          </div>
-        </div>
-      </div>
-    ';
-  }
-
-  /**
-   * Returns 503 error page content.
-   */
-  private function get503Content() {
-    return '
-      <div class="community-features">
-        <div class="container py-5">
-          <div class="text-center">
-            
-            <div class="mb-4">
-              <img src="/themes/custom/forseti/images/logos/originals/forseti_energized.png" alt="Forseti" class="forseti-chat-icon">
-            </div>
-            
-            <h1 class="mb-3" style="font-size: 6rem; color: #00d4ff; font-weight: 700;">503</h1>
-            <h2 class="mb-4">Service Temporarily Unavailable</h2>
-            
-            <div class="mb-5 mx-auto" style="max-width: 700px;">
-              <p class="lead">
-                Forseti is currently undergoing maintenance or experiencing high traffic. 
-                Our AI guardian is working hard to restore full service as quickly as possible.
-              </p>
-            </div>
-            
-            <div class="mb-5 mx-auto" style="max-width: 550px;">
-              <div class="card-forseti p-4">
-                <div class="mb-3">
-                  <div style="font-size: 2.5rem; margin-bottom: 1rem;">⚡</div>
-                  <h3 class="mb-3">System Status</h3>
-                  <p class="mb-0">Temporary maintenance in progress</p>
-                </div>
-                <hr class="my-4" style="border-color: rgba(0, 212, 255, 0.3);">
-                <div>
-                  <p class="mb-0">
-                    <strong>Expected restoration:</strong> A few minutes<br>
-                    Try refreshing this page shortly
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div class="d-flex justify-content-center gap-3 flex-wrap mt-5">
-              <a href="/" class="btn btn-primary btn-lg">Return Home</a>
-              <a href="javascript:location.reload()" class="btn btn-outline-primary btn-lg">Refresh Page</a>
             </div>
             
           </div>
