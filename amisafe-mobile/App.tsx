@@ -22,7 +22,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // Screens
 import HomeScreen from './src/screens/Home/HomeScreen';
-import MapScreen from './src/screens/Map/MapScreen';
+import CrimeMapScreen from './src/screens/CrimeMapScreen';
 import SafetyScreen from './src/screens/Safety/SafetyScreen';
 import StatisticsScreen from './src/screens/Statistics/StatisticsScreen';
 import ProfileScreen from './src/screens/Profile/ProfileScreen';
@@ -97,8 +97,8 @@ const TabNavigator = () => {
       />
       <Tab.Screen 
         name="Map" 
-        component={MapScreen}
-        options={{ title: 'Safety Map' }}
+        component={CrimeMapScreen}
+        options={{ title: 'Safety Map', headerShown: false }}
       />
       <Tab.Screen 
         name="Chat" 

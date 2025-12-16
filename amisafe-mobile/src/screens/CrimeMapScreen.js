@@ -304,10 +304,12 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
       
       {/* Map Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Crime Map</Text>
+        {onBack && (
+          <TouchableOpacity style={styles.backButton} onPress={onBack}>
+            <Text style={styles.backButtonText}>← Back</Text>
+          </TouchableOpacity>
+        )}
+        <Text style={[styles.headerTitle, !onBack && styles.headerTitleCentered]}>Crime Map</Text>
         <View style={styles.headerSpacer} />
       </View>
       
@@ -369,6 +371,10 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  headerTitleCentered: {
+    flex: 1,
+    textAlign: 'center',
   },
   headerSpacer: {
     width: 60, // Match backButton width for centered title
