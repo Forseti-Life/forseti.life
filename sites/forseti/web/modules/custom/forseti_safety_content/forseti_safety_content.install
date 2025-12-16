@@ -52,6 +52,15 @@ function forseti_safety_content_install() {
   // Configure custom error pages (Drupal only supports 403 and 404).
   // Note: 503 errors are handled by the route system, not system.site config.
   $config = \Drupal::configFactory()->getEditable('system.site');
+  
+  // Get current page config to check for invalid 503 setting
+  $page_config = $config->get('page');
+  if (is_array($page_config) && isset($page_config['503'])) {
+    unset($page_config['503']);
+    $config->set('page', $page_config);
+    $logger->info('Removed invalid page.503 setting during installation.');
+  }
+  
   $config->set('page.403', '/error/403');
   $config->set('page.404', '/error/404');
   
