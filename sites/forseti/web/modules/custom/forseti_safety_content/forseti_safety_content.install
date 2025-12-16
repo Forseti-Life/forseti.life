@@ -54,6 +54,14 @@ function forseti_safety_content_install() {
   $config = \Drupal::configFactory()->getEditable('system.site');
   $config->set('page.403', '/error/403');
   $config->set('page.404', '/error/404');
+  
+  // Set front page to homepage if not already set
+  $current_front = $config->get('page.front');
+  if (empty($current_front) || $current_front === '/node') {
+    $config->set('page.front', '/home');
+    $logger->info('Set front page to /home');
+  }
+  
   $config->save();
   
   $messenger->addStatus(t('Custom error pages (403, 404) have been configured.'));
@@ -87,5 +95,27 @@ function forseti_safety_content_uninstall() {
   // If you need to remove the webform, do it manually via the Webform UI
   // or with: drush entity:delete webform contact_forseti
   $logger->info('Webform contact_forseti and submissions preserved (not deleted).');
+}
+
+/**
+ * Remove invalid 503 error page setting from system.site config.
+ */
+function forseti_safety_content_update_9001() {
+  $config = \Drupal::configFactory()->getEditable('system.site');
+  
+  // Get all page settings
+  $page_config = $config->get('page');
+  
+  // Remove 503 if it exists (not a valid Drupal setting)
+  if (is_array($page_config) && isset($page_config['503'])) {
+    unset($page_config['503']);
+    $config->set('page', $page_config);
+    $config->save();
+    
+    \Drupal::logger('forseti_safety_content')->info('Removed invalid page.503 setting from system.site config.');
+    return t('Removed invalid 503 error page setting from system configuration.');
+  }
+  
+  return t('No 503 error page setting found to remove.');
 }
 
