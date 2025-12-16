@@ -83,3 +83,63 @@ ai_conversation.start_chat:
     _title: 'AI Chat'
   requirements:
     _permission: 'use ai conversation'
+
+# REST API Endpoints for Mobile App
+
+ai_conversation.api_create:
+  path: '/api/ai-conversation/create'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\ApiController::createConversation'
+  requirements:
+    _permission: 'use ai conversation'
+    _method: 'POST'
+    _format: 'json'
+
+ai_conversation.api_send_message:
+  path: '/api/ai-conversation/{conversation_id}/message'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\ApiController::sendMessage'
+  requirements:
+    _permission: 'use ai conversation'
+    _method: 'POST'
+    _format: 'json'
+    conversation_id: \d+
+
+ai_conversation.api_get_history:
+  path: '/api/ai-conversation/{conversation_id}/history'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\ApiController::getHistory'
+  requirements:
+    _permission: 'use ai conversation'
+    _method: 'GET'
+    _format: 'json'
+    conversation_id: \d+
+
+ai_conversation.api_get_conversations:
+  path: '/api/ai-conversation/conversations'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\ApiController::getUserConversations'
+  requirements:
+    _permission: 'use ai conversation'
+    _method: 'GET'
+    _format: 'json'
+
+ai_conversation.api_delete:
+  path: '/api/ai-conversation/{conversation_id}'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\ApiController::deleteConversation'
+  requirements:
+    _permission: 'use ai conversation'
+    _method: 'DELETE'
+    _format: 'json'
+    conversation_id: \d+
+
+ai_conversation.api_get_stats:
+  path: '/api/ai-conversation/{conversation_id}/stats'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\ApiController::getConversationStats'
+  requirements:
+    _permission: 'use ai conversation'
+    _method: 'GET'
+    _format: 'json'
+    conversation_id: \d+
