@@ -11,6 +11,14 @@ use Drupal\block\Entity\Block;
  * Implements hook_install().
  */
 function forseti_safety_content_install() {
+  // Note: If webform already exists, it will be skipped during config install.
+  // Webform submissions are stored separately and will be preserved.
+  // 
+  // TODO: If the contact_forseti webform is modified, we need to handle updates
+  // differently - either via hook_update_N() for existing sites, or by moving
+  // the webform config to config/optional to prevent installation conflicts.
+  // Current approach assumes webform in config/install may conflict on reinstall.
+  
   // Create main menu block in header region.
   $block_storage = \Drupal::entityTypeManager()->getStorage('block');
   
