@@ -32,7 +32,7 @@ class ForsetiPagesController extends ControllerBase {
       'uid' => $current_user->id(),
       'status' => TRUE,
       'field_messages' => [],
-      'field_ai_model' => 'claude-3-5-sonnet-20241022',
+      'field_ai_model' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
       'field_message_count' => 0,
       'field_total_tokens' => 0,
     ]);
