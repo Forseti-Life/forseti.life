@@ -6,9 +6,9 @@ name: 'St. Louis Integration'
 mail: admin@example.com
 slogan: ''
 page:
-  403: /user/login
-  404: ''
-  front: /node/17
+  403: /error/403
+  404: /error/404
+  front: /home
 admin_compact_mode: false
 weight_select_max: 100
 default_langcode: en
