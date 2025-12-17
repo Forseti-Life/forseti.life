@@ -296,10 +296,10 @@ class AIApiService {
     
     // For new conversations, use enhanced context with Forseti mission info.
     if ($is_conversation_start) {
-      $context = $this->buildInitialContext();
+      $context = $this->promptManager->getBaseSystemPrompt();
     } else {
       // For existing conversations, use the original system prompt.
-      $system_prompt = $conversation->get('field_context')->value ?: 'You are a helpful AI assistant.';
+      $system_prompt = $conversation->get('field_context')->value ?: $this->promptManager->getBaseSystemPrompt();
       $context = $system_prompt . "\n\n";
     }
 
