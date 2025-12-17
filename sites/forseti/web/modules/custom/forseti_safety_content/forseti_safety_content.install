@@ -49,6 +49,32 @@ function forseti_safety_content_install() {
     $logger->info('Main navigation menu block already exists, skipped creation.');
   }
   
+  // Create footer menu block in footer region.
+  $existing_footer_block = $block_storage->load('forseti_forsetifootermenu');
+  
+  if (!$existing_footer_block) {
+    $footer_block = $block_storage->create([
+      'id' => 'forseti_forsetifootermenu',
+      'theme' => 'forseti',
+      'region' => 'footer',
+      'weight' => 0,
+      'plugin' => 'system_menu_block:footer',
+      'settings' => [
+        'label' => 'Footer menu',
+        'label_display' => '0',
+        'level' => 1,
+        'depth' => 0,
+      ],
+    ]);
+    $footer_block->save();
+    $messenger->addStatus(t('Footer menu has been placed in the footer region.'));
+    $logger->info('Created footer menu block in footer region.');
+  }
+  else {
+    $messenger->addWarning(t('Footer menu block already exists. Skipping creation.'));
+    $logger->info('Footer menu block already exists, skipped creation.');
+  }
+  
   // Configure custom error pages to use theme templates.
   // Leave page.403 and page.404 empty so Drupal uses default error handling
   // which will render page--403.html.twig and page--404.html.twig theme templates.
@@ -95,6 +121,13 @@ function forseti_safety_content_uninstall() {
   if ($block) {
     $block->delete();
     $logger->info('Removed main navigation menu block.');
+  }
+  
+  // Remove the footer menu block.
+  $footer_block = Block::load('forseti_forsetifootermenu');
+  if ($footer_block) {
+    $footer_block->delete();
+    $logger->info('Removed footer menu block.');
   }
   
   // Reset custom error pages to defaults (empty = use Drupal defaults).

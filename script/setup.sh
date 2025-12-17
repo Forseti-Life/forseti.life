@@ -756,74 +756,7 @@ if [ "$DRUPAL_INSTALLED" = true ]; then
     fi
     
     # ------------------------------------------------------------------------------
-    # 2.8 Enable Custom Modules
-    # ------------------------------------------------------------------------------
-    if /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "devel"; then
-        print_status "Development modules verified. Proceeding with custom modules..."
-        
-        if [ -d "web/modules/custom" ]; then
-            CUSTOM_MODULES_NEEDED=false
-            for module in professional_website_content ai_conversation job_application_automation resume_tailoring stli_site_customizations; do
-                if [ -d "web/modules/custom/$module" ] && ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "$module"; then
-                    CUSTOM_MODULES_NEEDED=true
-                    break
-                fi
-            done
-            
-            if [ "$CUSTOM_MODULES_NEEDED" = true ]; then
-                print_status "Enabling custom modules in dependency order..."
-            
-                # Enable profile module first (dependency for job_application_automation)
-                if [ -d "web/modules/custom/job_application_automation" ]; then
-                    /usr/bin/php8.3 vendor/drush/drush/drush.php en profile -y 2>/dev/null || true
-                fi
-                
-                # Enable modules in dependency order
-                [ -d "web/modules/custom/professional_website_content" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en professional_website_content -y
-                [ -d "web/modules/custom/ai_conversation" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en ai_conversation -y
-                [ -d "web/modules/custom/stli_site_customizations" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en stli_site_customizations -y
-                [ -d "web/modules/custom/resume_tailoring" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en resume_tailoring -y
-                
-                # Clear cache before complex modules
-                /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
-                
-                # Enable job_application_automation last
-                if [ -d "web/modules/custom/job_application_automation" ]; then
-                    /usr/bin/php8.3 vendor/drush/drush/drush.php en job_application_automation -y 2>/dev/null || print_warning "Job application automation module may need manual configuration"
-                fi
-                
-                print_status "All available custom modules enabled successfully"
-            else
-                print_status "All custom modules already enabled"
-            fi
-        fi
-    else
-        print_warning "Development modules not properly enabled. Skipping custom modules."
-    fi
-    
-    # ------------------------------------------------------------------------------
-    # 2.9 Theme Installation and Configuration
-    # ------------------------------------------------------------------------------
-    if [ -d "web/themes/custom/forseti" ]; then
-        # Enable theme if not installed
-        if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --type=theme --format=list 2>/dev/null | grep -q "forseti"; then
-            print_status "Enabling Forseti custom theme..."
-            /usr/bin/php8.3 vendor/drush/drush/drush.php theme:enable forseti -y
-        fi
-        
-        # Set as default theme
-        CURRENT_THEME=$(/usr/bin/php8.3 vendor/drush/drush/drush.php config:get system.theme default --format=string 2>/dev/null || echo "")
-        if [ "$CURRENT_THEME" != "forseti" ]; then
-            print_status "Setting Forseti theme as default..."
-            /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.theme default forseti -y
-            print_status "Forseti theme set as default"
-        else
-            print_status "Forseti theme already set as default"
-        fi
-    fi
-    
-    # ------------------------------------------------------------------------------
-    # 2.10 Home Page Configuration
+    # 2.8 Home Page Configuration
     # ------------------------------------------------------------------------------
     print_status "Configuring Forseti home page..."
     if /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "professional_website_content"; then
@@ -850,7 +783,7 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# 2.11 Development Directories
+# 2.10 Development Directories
 # ------------------------------------------------------------------------------
 print_status "Ensuring custom development directories exist..."
 mkdir -p web/modules/custom
@@ -862,7 +795,7 @@ chmod 755 web/themes/custom
 chmod 755 config/sync
 
 # ------------------------------------------------------------------------------
-# 2.12 Settings Configuration
+# 2.11 Settings Configuration
 # ------------------------------------------------------------------------------
 fix_drupal_permissions "$PROJECT_DIR"
 
@@ -1312,6 +1245,95 @@ else
 fi
 
 print_status "✅ STEP 4 COMPLETE: Post-installation fixes applied"
+
+# ------------------------------------------------------------------------------
+# 4.8 Custom Modules and Theme Configuration (Post-Bootstrap)
+# ------------------------------------------------------------------------------
+print_status "Configuring custom modules and theme..."
+if [ -f "vendor/drush/drush/drush.php" ]; then
+    # Enable Custom Modules
+    if [ -d "web/modules/custom" ]; then
+        print_status "Checking custom modules..."
+        
+        # NOTE: This workaround may need investigation if module functionality issues arise later.
+        # The forseti_safety_content module ships with user.mail.yml and user.settings.yml in
+        # config/install, which conflicts with core Drupal user config already in active storage.
+        # We backup the install config directory to prevent PreExistingConfigException errors.
+        # If user email templates or settings from this module are needed, they may need to be
+        # manually imported or the module's install hook may need refactoring to use config/optional
+        # or programmatic configuration instead of config/install for these system-level configs.
+        if [ -d "web/modules/custom/forseti_safety_content/config/install" ]; then
+            print_status "Backing up forseti_safety_content install config to avoid user.mail/user.settings conflicts..."
+            mv web/modules/custom/forseti_safety_content/config/install web/modules/custom/forseti_safety_content/config/install.backup 2>/dev/null || true
+        fi
+        
+        CUSTOM_MODULES_NEEDED=false
+        for module in professional_website_content ai_conversation job_application_automation resume_tailoring stli_site_customizations amisafe forseti_safety_content; do
+            if [ -d "web/modules/custom/$module" ] && ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "$module"; then
+                CUSTOM_MODULES_NEEDED=true
+                break
+            fi
+        done
+        
+        if [ "$CUSTOM_MODULES_NEEDED" = true ]; then
+            print_status "Enabling custom modules in dependency order..."
+        
+            # Enable profile module first (dependency for job_application_automation)
+            if [ -d "web/modules/custom/job_application_automation" ]; then
+                /usr/bin/php8.3 vendor/drush/drush/drush.php en profile -y 2>/dev/null || true
+            fi
+            
+            # Enable modules in dependency order
+            [ -d "web/modules/custom/professional_website_content" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en professional_website_content -y 2>/dev/null
+            [ -d "web/modules/custom/ai_conversation" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en ai_conversation -y 2>/dev/null
+            [ -d "web/modules/custom/stli_site_customizations" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en stli_site_customizations -y 2>/dev/null
+            [ -d "web/modules/custom/resume_tailoring" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en resume_tailoring -y 2>/dev/null
+            [ -d "web/modules/custom/amisafe" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en amisafe -y 2>/dev/null
+            [ -d "web/modules/custom/forseti_safety_content" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en forseti_safety_content -y 2>/dev/null
+            
+            # Clear cache before complex modules
+            /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
+            
+            # Enable job_application_automation last
+            if [ -d "web/modules/custom/job_application_automation" ]; then
+                /usr/bin/php8.3 vendor/drush/drush/drush.php en job_application_automation -y 2>/dev/null || print_warning "Job application automation module may need manual configuration"
+            fi
+            
+            print_status "✅ All available custom modules enabled successfully"
+        else
+            print_status "✅ All custom modules already enabled"
+        fi
+    fi
+    
+    # Enable Forseti Theme
+    if [ -d "web/themes/custom/forseti" ]; then
+        print_status "Configuring Forseti theme..."
+        
+        # Enable theme if not installed
+        if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --type=theme --format=list 2>/dev/null | grep -q "forseti"; then
+            print_status "Enabling Forseti custom theme..."
+            /usr/bin/php8.3 vendor/drush/drush/drush.php theme:enable forseti -y 2>/dev/null || print_warning "Could not enable Forseti theme"
+        else
+            print_status "Forseti theme already enabled"
+        fi
+        
+        # Set as default theme
+        CURRENT_THEME=$(/usr/bin/php8.3 vendor/drush/drush/drush.php config:get system.theme default --format=string 2>/dev/null || echo "")
+        if [ "$CURRENT_THEME" != "forseti" ]; then
+            print_status "Setting Forseti theme as default..."
+            /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.theme default forseti -y 2>/dev/null || print_warning "Could not set Forseti as default theme"
+            if [ $? -eq 0 ]; then
+                print_status "✅ Forseti theme set as default"
+            fi
+        else
+            print_status "✅ Forseti theme already set as default"
+        fi
+    else
+        print_warning "Forseti theme directory not found at web/themes/custom/forseti"
+    fi
+else
+    print_warning "Drush not available for module and theme configuration"
+fi
 
 
 # ==============================================================================

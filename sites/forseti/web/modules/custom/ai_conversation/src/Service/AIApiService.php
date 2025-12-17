@@ -38,6 +38,13 @@ class AIApiService {
   protected $entityTypeManager;
 
   /**
+   * The prompt manager.
+   *
+   * @var \Drupal\ai_conversation\Service\PromptManager
+   */
+  protected $promptManager;
+
+  /**
    * Maximum number of recent messages to keep (configurable).
    *
    * @var int
@@ -61,10 +68,18 @@ class AIApiService {
   /**
    * Constructs a new AIApiService object.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, LoggerChannelFactoryInterface $logger_factory, EntityTypeManagerInterface $entity_type_manager) {
+  public function __construct(ConfigFactoryInterface $config_factory, LoggerChannelFactoryInterface $logger_factory, EntityTypeManagerInterface $entity_type_manager, PromptManager $prompt_manager = NULL) {
     $this->configFactory = $config_factory;
     $this->logger = $logger_factory->get('ai_conversation');
     $this->entityTypeManager = $entity_type_manager;
+    
+    // Inject PromptManager or create one if not provided (for backwards compatibility)
+    if ($prompt_manager) {
+      $this->promptManager = $prompt_manager;
+    } else {
+      // Fallback for contexts where DI isn't available
+      $this->promptManager = \Drupal::service('ai_conversation.prompt_manager');
+    }
     
     // Load configuration.
     $config = $this->configFactory->get('ai_conversation.settings');
@@ -198,11 +213,8 @@ class AIApiService {
       // Get max tokens from config.
       $max_tokens = $config->get('max_tokens') ?: 4000;
 
-      // Get system prompt from config if available.
-      $base_system_prompt = $config->get('system_prompt');
-      
-      // Dynamically load Keith's resume from node 10 and append to system prompt
-      $system_prompt = $this->buildDynamicSystemPrompt($base_system_prompt);
+      // Get system prompt from PromptManager with optional dynamic content from node 10
+      $system_prompt = $this->promptManager->getSystemPrompt(10);
       
       // Debug logging for system prompt
       $this->logInfo('System prompt length: @length, First 100 chars: @preview', [
@@ -315,142 +327,6 @@ class AIApiService {
     return $context;
   }
 
-  /**
-   * Build dynamic system prompt by using Forseti mission context.
-   */
-  private function buildDynamicSystemPrompt($base_system_prompt) {
-    // For Forseti conversations, use the Forseti mission context
-    if (empty($base_system_prompt)) {
-      $base_system_prompt = $this->buildInitialContext();
-    }
-    
-    $this->logInfo('Using Forseti mission context as system prompt');
-    return $base_system_prompt;
-  }
-
-  /**
-   * Parse resume content to extract key sections.
-   */
-  private function parseResumeContent($resume_content) {
-    $parsed = [
-      'education' => '',
-      'summary' => '',
-      'experience' => '',
-      'technical' => ''
-    ];
-    
-    // Extract education information - look for MBA and BS Psychology patterns
-    if (preg_match('/MBA[^<\n]*(?:[^<\n]*Washington University[^<\n]*)?/i', $resume_content, $matches)) {
-      $parsed['education'] .= "MBA from Washington University in St. Louis\n";
-    }
-    if (preg_match('/BS Psychology[^<\n]*(?:[^<\n]*Truman State[^<\n]*)?/i', $resume_content, $matches)) {
-      $parsed['education'] .= "BS Psychology from Truman State University";
-    }
-    
-    // If we didn't find specific patterns, try to extract from the header
-    if (empty($parsed['education'])) {
-      if (preg_match('/<strong>Keith Aumiller[^<]*<\/strong>.*?<p><strong>([^<]*)<\/strong><\/p>/s', $resume_content, $matches)) {
-        $header_text = strip_tags($matches[1]);
-        if (strpos($header_text, 'MBA') !== false || strpos($header_text, 'BS Psychology') !== false) {
-          $parsed['education'] = "MBA from Washington University in St. Louis, BS Psychology from Truman State University";
-        }
-      }
-    }
-    
-    // Extract executive profile/summary
-    if (preg_match('/<strong>Executive Profile<\/strong><\/p><p>([^<]+(?:<[^>]*>[^<]*<\/[^>]*>[^<]*)*)/i', $resume_content, $matches)) {
-      $summary = strip_tags($matches[1]);
-      $parsed['summary'] = substr($summary, 0, 800) . (strlen($summary) > 800 ? '...' : '');
-    }
-    
-    // Extract recent professional experience (St. Louis Integration)
-    if (preg_match('/<strong>St\. Louis Integration LLC[^<]*<\/strong><br><strong>([^<]+)<\/strong>/i', $resume_content, $matches)) {
-      $parsed['experience'] = "St. Louis Integration LLC - " . strip_tags($matches[1]);
-    }
-    
-    // Extract technical expertise section
-    if (preg_match('/<strong>Technical Expertise<\/strong>(.*?)(?=<strong>|$)/is', $resume_content, $matches)) {
-      $tech_content = strip_tags($matches[1]);
-      $parsed['technical'] = substr($tech_content, 0, 600) . (strlen($tech_content) > 600 ? '...' : '');
-    }
-    
-    return $parsed;
-  }
-
-  /**
-   * Build initial context for new conversations with Forseti mission.
-   */
-  private function buildInitialContext() {
-    $context = "You are providing helpful information about Forseti Life, an AI-powered community safety platform dedicated to making Philadelphia a safer place through intelligent monitoring, predictive analytics, and community engagement. Your role is to inform users about Forseti's features, explain how the technology works, and provide guidance on community safety.\n\n";
-    
-    $context .= "FORSETI MISSION:\n";
-    $context .= "\"AI Looking Out For Us\" - We believe technology should serve humanity by protecting individuals and communities by improving quality of life for as many people as possible. Forseti is a super intelligence in its infancy with the mission to protect its community members. Named after the Norse god of justice and peaceful resolution, Forseti represents our commitment to fair, intelligent, and proactive safety measures.\n\n";
-    
-    $context .= "IMPORTANT - BE TRANSPARENT:\n";
-    $context .= "When appropriate, acknowledge that you're Claude, an AI assistant by Anthropic, helping users learn about Forseti's safety platform. Be honest about your capabilities and limitations while providing helpful information about the Forseti system.\n\n";
-    
-    $context .= "CORE VALUES:\n";
-    $context .= "• Vigilance: 24/7 AI monitoring ensures constant awareness of situational safety conditions across Philadelphia\n";
-    $context .= "• Transparency: Open data and clear communication about safety trends and our methods\n";
-    $context .= "• Justice: Fair and unbiased safety measures that protect all community members equally\n";
-    $context .= "• Community: Empowering residents with knowledge and tools to take ownership of their safety\n\n";
-    
-    $context .= "FORSETI SAFETY FEATURES:\n";
-    $context .= "• Live Crime Mapping: Real-time incident tracking with H3 hexagonal geospatial analysis\n";
-    $context .= "• AI Pattern Recognition: Machine learning for temporal and spatial crime patterns\n";
-    $context .= "• Predictive Analytics: Forecasting high-risk areas and times\n";
-    $context .= "• Intelligent Alerts: Targeted notifications for safety threats\n";
-    $context .= "• Community Engagement: Neighborhood watch coordination and resource sharing\n";
-    $context .= "• Mobile Access: AmISafe mobile app for on-the-go safety monitoring\n\n";
-    
-    $context .= "TECHNOLOGY APPROACH:\n";
-    $context .= "• H3 Geospatial System: Uber's hexagonal hierarchical indexing for precise location analysis\n";
-    $context .= "• Real-time Data: Philadelphia Police Department open data, emergency service reports, and community submissions\n";
-    $context .= "• Privacy-First: End-to-end encryption, anonymous reporting, GDPR compliant\n";
-    $context .= "• Visual Intelligence: Interactive maps with heat overlays and historical trends\n\n";
-    
-    $context .= "PHILADELPHIA FOCUS:\n";
-    $context .= "We've chosen to focus our initial efforts on Philadelphia because we are based in Philadelphia. By deeply understanding one community's unique safety challenges, we can create more effective solutions. As we prove our model, we plan to expand to other cities facing similar challenges to protect our community members anywhere they go.\n\n";
-    
-    $context .= "PROFESSIONAL TONE:\n";
-    $context .= "Respond with empathy and care when discussing safety concerns. Acknowledge that crime affects real people and communities. Be informative about how Forseti's technology helps without being alarmist. Encourage community involvement and emphasize that safety is a collaborative effort. Use a warm, accessible tone as if you're a knowledgeable community safety advocate explaining these systems to neighbors.\n\n";
-    
-    $context .= "GUIDANCE FOR RESPONSES:\n";
-    $context .= "Provide helpful information about Forseti's safety features, explain how the AI technology works, discuss community safety best practices, and answer questions about the platform. Balance being informative about risks while remaining hopeful about solutions. When users ask about specific crime data, direct them to the Safety Map at /safety-map for real-time information. When discussing the platform, speak naturally about 'we' and 'our platform' as you're representing Forseti's mission to help the community.\n\n";
-    
-    return $context;
-  }
-
-  /**
-   * Get resume content from node 10.
-   */
-  private function getResumeContent() {
-    try {
-      $node = $this->entityTypeManager->getStorage('node')->load(10);
-      if ($node && $node->access('view')) {
-        // Try to get body field content.
-        if ($node->hasField('body') && !$node->get('body')->isEmpty()) {
-          $body_content = $node->get('body')->value;
-          // Strip HTML tags and limit length to prevent context bloat.
-          $clean_content = strip_tags($body_content);
-          // Limit to reasonable length for AI context (about 2000 characters).
-          if (strlen($clean_content) > 2000) {
-            $clean_content = substr($clean_content, 0, 2000) . '... [Content truncated for brevity]';
-          }
-          return $clean_content;
-        }
-        // Fallback to title if no body.
-        return $node->getTitle();
-      }
-    } catch (\Exception $e) {
-      $this->logError('Error loading resume content from node 10: @message', [
-        '@message' => $e->getMessage(),
-      ]);
-    }
-    
-    // Return fallback content if node loading fails.
-    return "Keith Miller - Principal at St. Louis Integration. Experienced in data integration, business intelligence, and AI implementations across Financial Services, Healthcare, and Energy sectors.";
-  }
 
   /**
    * Get recent messages (up to maxRecentMessages).
