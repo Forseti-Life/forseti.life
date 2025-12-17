@@ -1,21 +1,22 @@
 #!/bin/bash
 
-# St. Louis Integration - Complete Development Environment Setup
-# This script combines environment setup, Drupal installation, and development configuration
-# into one comprehensive setup process
-#
-# ✅ SAFE TO RUN: This script now preserves existing database data
-# ✅ NO DATA LOSS: Checks for existing Drupal installations before running site:install  
+# ==============================================================================
+# Forseti.Life Development Environment Setup Script
+# ==============================================================================
+# ✅ SAFE TO RUN: This script preserves existing database data
+# ✅ NO DATA LOSS: Checks for existing Drupal installations before running site:install
 # ✅ AMISAFE PROTECTION: Will not drop or truncate AmISafe crime data tables
 
 set -e  # Exit on any error
 
 # CRITICAL: Set PHP 8.3 PATH priority FIRST, before any other operations
-# This ensures that PHP 8.3 takes precedence over Codespace's default PHP
 export PATH="/usr/bin:/usr/sbin:$PATH"
 
-echo "=== St. Louis Integration - Complete Development Environment Setup ==="
+echo "=== Forseti.Life - Complete Development Environment Setup ==="
 
+# ------------------------------------------------------------------------------
+# CONFIGURATION VARIABLES
+# ------------------------------------------------------------------------------
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -23,6 +24,28 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Project configuration
+PROJECT_NAME="forseti"
+PROJECT_DIR="/home/keithaumiller/forseti.life/sites/forseti"
+DB_NAME="forseti_dev"
+DB_USER="drupal_user"
+DB_PASSWORD="drupal_secure_password"
+DB_HOST="127.0.0.1"
+SITE_NAME="Forseti"
+ADMIN_USER="admin"
+ADMIN_PASSWORD="admin_secure_password"
+ADMIN_EMAIL="admin@forseti.life"
+
+# Check if .env file exists and source it
+ENV_FILE="/home/keithaumiller/forseti.life/.env"
+if [ -f "$ENV_FILE" ]; then
+    echo -e "${GREEN}[INFO]${NC} Loading configuration from .env file..."
+    source "$ENV_FILE"
+fi
+
+# ------------------------------------------------------------------------------
+# UTILITY FUNCTIONS
+# ------------------------------------------------------------------------------
 # Function to print colored output
 print_status() {
     echo -e "${GREEN}[INFO]${NC} $1"
@@ -61,44 +84,11 @@ fix_drupal_permissions() {
     fi
     if [ -d "$site_dir/web/sites/default/files" ]; then
         sudo chmod -R 775 "$site_dir/web/sites/default/files" 2>/dev/null || chmod -R 775 "$site_dir/web/sites/default/files" 2>/dev/null || true
-        # Create PHP storage directory for compiled classes
         mkdir -p "$site_dir/web/sites/default/files/php" 2>/dev/null || true
         sudo chmod 775 "$site_dir/web/sites/default/files/php" 2>/dev/null || chmod 775 "$site_dir/web/sites/default/files/php" 2>/dev/null || true
-        # Set proper ownership for Apache (www-data) to write to files directory
         sudo chown -R www-data:www-data "$site_dir/web/sites/default/files" 2>/dev/null || true
     fi
 }
-
-# Ensure we prioritize system PHP 8.3 over codespace PHP throughout script execution
-# This is a redundant safety check since we set it at the top
-export PATH="/usr/bin:/usr/sbin:$PATH"
-
-# Verify PHP version immediately after PATH setup
-print_status "Verifying PHP path priority: $(which php)"
-if which php | grep -q "/usr/bin/php"; then
-    print_status "✅ System PHP is properly prioritized"
-else
-    print_warning "⚠️  PHP path may need adjustment"
-fi
-
-# Configuration
-PROJECT_NAME="forseti"
-PROJECT_DIR="/home/keithaumiller/forseti.life/sites/forseti"
-DB_NAME="forseti_dev"
-DB_USER="drupal_user"
-DB_PASSWORD="drupal_secure_password"
-DB_HOST="127.0.0.1"
-SITE_NAME="Forseti"
-ADMIN_USER="admin"
-ADMIN_PASSWORD="admin_secure_password"
-ADMIN_EMAIL="admin@forseti.life"
-
-# Check if .env file exists and source it
-ENV_FILE="/home/keithaumiller/forseti.life/.env"
-if [ -f "$ENV_FILE" ]; then
-    print_status "Loading configuration from .env file..."
-    source "$ENV_FILE"
-fi
 
 # Function to ensure MySQL is running
 ensure_mysql_running() {
@@ -144,22 +134,35 @@ ensure_mysql_running() {
     return 1
 }
 
+# Verify PHP version immediately after PATH setup
+print_status "Verifying PHP path priority: $(which php)"
+if which php | grep -q "/usr/bin/php"; then
+    print_status "✅ System PHP is properly prioritized"
+else
+    print_warning "⚠️  PHP path may need adjustment"
+fi
+
+# ==============================================================================
+# STEP 1: ENVIRONMENT SETUP
+# ==============================================================================
+
 print_step "1. ENVIRONMENT SETUP - Installing system dependencies..."
 
+# ------------------------------------------------------------------------------
+# 1.1 PHP 8.3 Installation
+# ------------------------------------------------------------------------------
 print_status "Updating package lists..."
 sudo apt update
 
-# CRITICAL: PHP 8.3 is REQUIRED for this system
 print_status "Checking PHP 8.3 installation (REQUIRED)..."
 
-# Check if PHP 8.3 is installed
 if [ ! -x "/usr/bin/php8.3" ]; then
     print_warning "PHP 8.3 is NOT installed. Installing PHP 8.3 from Sury repository..."
     
     # Install prerequisites
     sudo apt install -y ca-certificates apt-transport-https software-properties-common lsb-release
     
-    # Add Sury PHP repository (provides PHP 8.3 for Debian)
+    # Add Sury PHP repository
     print_status "Adding Sury PHP repository..."
     sudo curl -sSL https://packages.sury.org/php/README.txt
     sudo curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
@@ -183,9 +186,6 @@ else
     print_status "✅ PHP 8.3 is already installed: $PHP83_VERSION"
 fi
 
-# Ensure latest PHP version is available
-print_status "Ensuring PHP 8.3 is properly configured..."
-
 # Install required PHP 8.3 extensions
 print_status "Checking PHP 8.3 extensions..."
 REQUIRED_EXTENSIONS=("gd" "xml" "mbstring" "curl" "zip" "bcmath" "json" "tokenizer" "fileinfo" "intl" "dom" "mysql" "opcache")
@@ -205,7 +205,7 @@ if [ ${#MISSING_EXTENSIONS[@]} -gt 0 ]; then
     sudo apt install -y "${MISSING_EXTENSIONS[@]}"
 fi
 
-# Ensure critical extensions are installed for PHP 8.3
+# Ensure critical extensions are installed
 print_status "Ensuring critical PHP 8.3 extensions are properly installed..."
 CRITICAL_EXTENSIONS=("php8.3-xml" "php8.3-mysql")
 for ext_package in "${CRITICAL_EXTENSIONS[@]}"; do
@@ -215,7 +215,9 @@ for ext_package in "${CRITICAL_EXTENSIONS[@]}"; do
     fi
 done
 
-# Install Composer
+# ------------------------------------------------------------------------------
+# 1.2 Composer Installation
+# ------------------------------------------------------------------------------
 print_status "Checking Composer installation..."
 if command -v composer &> /dev/null; then
     print_status "Composer is already installed: $(composer --version)"
@@ -226,11 +228,12 @@ else
     sudo chmod +x /usr/local/bin/composer
 fi
 
-# Verify Composer works with installed PHP
 print_status "Verifying Composer..."
 php /usr/local/bin/composer --version || print_error "Composer verification failed"
 
-# Install MySQL/MariaDB
+# ------------------------------------------------------------------------------
+# 1.3 MySQL/MariaDB Installation
+# ------------------------------------------------------------------------------
 print_status "Checking MySQL/MariaDB installation..."
 if command -v mysql &> /dev/null; then
     print_status "MySQL/MariaDB is already installed"
@@ -260,7 +263,9 @@ else
     print_status "MariaDB optimizations already configured"
 fi
 
-# Install Apache
+# ------------------------------------------------------------------------------
+# 1.4 Apache Installation
+# ------------------------------------------------------------------------------
 print_status "Checking Apache installation..."
 if command -v apache2 &> /dev/null; then
     print_status "Apache is already installed"
@@ -273,7 +278,6 @@ fi
 # Configure Apache PHP 8.3 module
 print_status "Configuring Apache PHP 8.3 module..."
 
-# Ensure libapache2-mod-php8.3 is installed
 if ! dpkg -l | grep -q "^ii.*libapache2-mod-php8.3"; then
     print_status "Installing Apache PHP 8.3 module..."
     sudo apt install -y libapache2-mod-php8.3
@@ -287,13 +291,12 @@ for php_mod in php8.0 php8.1 php8.2 php8.4; do
     fi
 done
 
-# Ensure Apache PHP 8.3 module is enabled
+# Enable Apache PHP 8.3 module
 if ! sudo a2query -m php8.3 2>/dev/null; then
     print_status "Enabling PHP 8.3 module for Apache..."
     sudo a2enmod php8.3 2>/dev/null || true
 fi
 
-# Verify PHP 8.3 module is loaded
 if sudo a2query -m php8.3 2>/dev/null; then
     print_status "✅ PHP 8.3 module enabled in Apache"
 else
@@ -313,7 +316,7 @@ EOF'
 sudo chmod +x /etc/profile.d/99-php-priority.sh
 print_status "Created system-wide PHP 8.3 priority profile script"
 
-# Also update .bashrc for interactive sessions
+# Update .bashrc for interactive sessions
 if ! grep -q 'export PATH="/usr/bin:/usr/sbin' ~/.bashrc; then
     echo '' >> ~/.bashrc
     echo '# PHP 8.3 Priority - Must be at the end to override defaults' >> ~/.bashrc
@@ -325,10 +328,6 @@ fi
 print_status "Reloading Apache to use PHP 8.3..."
 sudo service apache2 reload || true
 
-# Verify PHP 8.3 is default
-SYSTEM_PHP_VERSION=$(/usr/bin/php8.3 --version | head -n1)
-print_status "PHP 8.3 version: $SYSTEM_PHP_VERSION"
-
 # Set PHP 8.3 as default alternative
 print_status "Setting PHP 8.3 as system default..."
 sudo update-alternatives --install /usr/bin/php php /usr/bin/php8.3 100
@@ -338,7 +337,9 @@ sudo update-alternatives --set php /usr/bin/php8.3
 DEFAULT_PHP=$(php --version | head -n1)
 print_status "Default 'php' command: $DEFAULT_PHP"
 
-# Install Git
+# ------------------------------------------------------------------------------
+# 1.5 Additional System Tools
+# ------------------------------------------------------------------------------
 print_status "Checking Git installation..."
 if command -v git &> /dev/null; then
     print_status "Git is already installed: $(git --version)"
@@ -347,7 +348,6 @@ else
     sudo apt install -y git
 fi
 
-# Install Node.js and npm
 print_status "Checking Node.js installation..."
 if command -v node &> /dev/null; then
     print_status "Node.js is already installed: $(node --version)"
@@ -357,7 +357,6 @@ else
     sudo apt install -y nodejs
 fi
 
-# Install additional development tools
 print_status "Checking additional development tools..."
 TOOLS=("unzip" "wget" "curl" "vim" "htop")
 MISSING_TOOLS=()
@@ -373,7 +372,6 @@ if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
     sudo apt install -y "${MISSING_TOOLS[@]}"
 fi
 
-# Install resume text extraction dependencies
 print_status "Checking resume text extraction tools..."
 TEXT_EXTRACTION_TOOLS=("pdftotext" "docx2txt" "antiword")
 TEXT_EXTRACTION_PACKAGES=("poppler-utils" "docx2txt" "antiword")
@@ -394,7 +392,9 @@ if [ ${#MISSING_TEXT_TOOLS[@]} -gt 0 ]; then
     print_status "Resume text extraction dependencies installed successfully"
 fi
 
-# Install H3 Geolocation Framework dependencies
+# ------------------------------------------------------------------------------
+# 1.6 H3 Geolocation Framework Setup
+# ------------------------------------------------------------------------------
 print_status "Setting up H3 Geolocation Framework for AmISafe crime mapping..."
 H3_SYSTEM_PACKAGES=("python3-dev" "python3-pip" "python3-venv" "python3-full" "build-essential" "libgeos-dev" "libproj-dev" "libgdal-dev")
 MISSING_H3_PACKAGES=()
@@ -440,21 +440,7 @@ if [ -f "$H3_ENV_DIR/bin/python" ]; then
     fi
 fi
 
-# Configure PHP 8.3 as default version
-print_status "Configuring PHP 8.3 as default version..."
-
-# Configure update-alternatives
-if command -v update-alternatives &> /dev/null && [ -x "/usr/bin/php8.3" ]; then
-    # Remove any existing alternatives
-    sudo update-alternatives --remove-all php 2>/dev/null || true
-    
-    # Install PHP 8.3 as primary alternative
-    sudo update-alternatives --install /usr/bin/php php /usr/bin/php8.3 100
-    sudo update-alternatives --set php /usr/bin/php8.3
-    print_status "PHP 8.3 configured as default CLI version via update-alternatives"
-fi
-
-# Configure environment for PHP 8.3 (comprehensive)
+# Configure environment for PHP 8.3
 print_status "Configuring environment for PHP 8.3..."
 BASHRC_FILE="$HOME/.bashrc"
 if [ -f "$BASHRC_FILE" ]; then
@@ -467,7 +453,7 @@ if [ -f "$BASHRC_FILE" ]; then
     
     # Add comprehensive PHP 8.3 configuration
     echo "" >> "$BASHRC_FILE"
-    echo "# PHP 8.3 Configuration - Auto-generated by complete-setup.sh" >> "$BASHRC_FILE"
+    echo "# PHP 8.3 Configuration - Auto-generated by setup.sh" >> "$BASHRC_FILE"
     echo 'export PATH="/usr/bin:/usr/sbin:$PATH"' >> "$BASHRC_FILE"
     echo 'alias php="/usr/bin/php8.3"' >> "$BASHRC_FILE"
     echo 'alias composer="/usr/bin/php8.3 /usr/local/bin/composer"' >> "$BASHRC_FILE"
@@ -476,30 +462,27 @@ if [ -f "$BASHRC_FILE" ]; then
     print_status "Updated .bashrc with comprehensive PHP 8.3 configuration"
 fi
 
-# Apply environment changes to current session (force override for Codespaces)
+# Apply environment changes to current session
 export PATH="/usr/bin:/usr/sbin:/usr/local/bin:$PATH"
-# Create functions instead of aliases for script use (ensures PHP 8.3 regardless of PATH)
 php() { /usr/bin/php8.3 "$@"; }
 composer() { /usr/bin/php8.3 /usr/local/bin/composer "$@"; }
 drush() { /usr/bin/php8.3 "$PWD/vendor/bin/drush" "$@"; }
 export -f php composer drush
 print_status "Created shell functions to force PHP 8.3 usage"
 
-# CRITICAL VERIFICATION: Ensure PHP 8.3 is working
+# VERIFICATION
 print_status "=== PHP 8.3 VERIFICATION ==="
 print_status "which php: $(which php)"
 print_status "/usr/bin/php8.3 version: $(/usr/bin/php8.3 --version | head -n1)"
 print_status "php (function) version: $(php --version | head -n1)"
 print_status "composer (function) version: $(composer --version | head -n1)"
 
-# Verify MySQL extension is loaded in PHP 8.3
 if /usr/bin/php8.3 -m | grep -q mysqli; then
     print_status "✅ PHP 8.3 MySQL extension loaded"
 else
     print_error "❌ PHP 8.3 MySQL extension not found"
 fi
 
-# Test composer with PHP 8.3
 if /usr/bin/php8.3 /usr/local/bin/composer about >/dev/null 2>&1; then
     print_status "✅ Composer working with PHP 8.3"
 else
@@ -507,10 +490,13 @@ else
 fi
 print_status "=== END PHP 8.3 VERIFICATION ==="
 
-# Configure MySQL database
+# ------------------------------------------------------------------------------
+# 1.7 MySQL Database Creation
+# ------------------------------------------------------------------------------
+# NOTE: This section creates the DATABASES only.
+#       Table creation happens later in Step 5 (H3 Geolocation Setup)
 print_status "Configuring MySQL database..."
 
-# Ensure MySQL is running
 ensure_mysql_running
 if sudo mysql -e "SELECT 1;" &>/dev/null; then
     print_status "✅ MySQL is now running"
@@ -524,48 +510,42 @@ else
     print_status "Creating MySQL database and user for Drupal..."
     sudo mysql <<EOF
 CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE IF NOT EXISTS theoryofconspiracies_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE DATABASE IF NOT EXISTS forseti_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'127.0.0.1';
-GRANT ALL PRIVILEGES ON theoryofconspiracies_dev.* TO '${DB_USER}'@'127.0.0.1';
-GRANT ALL PRIVILEGES ON forseti_dev.* TO '${DB_USER}'@'127.0.0.1';
 FLUSH PRIVILEGES;
 EOF
-    print_status "MySQL databases '${DB_NAME}', 'theoryofconspiracies_dev', 'forseti_dev' and user '${DB_USER}' created"
+    print_status "MySQL database '${DB_NAME}' and user '${DB_USER}' created"
 fi
 
-# Create private files directories for all sites
-print_status "Creating Drupal private files directories..."
-if [ ! -d "/var/private/stlouisintegration" ]; then
-    sudo mkdir -p /var/private/stlouisintegration
-    sudo chown -R $USER:$USER /var/private/stlouisintegration
-    sudo chmod -R 775 /var/private/stlouisintegration
-    print_status "Private files directory created at /var/private/stlouisintegration"
-fi
+# Create additional database for AmISafe module
+print_status "Creating AmISafe database..."
+sudo mysql <<EOF
+CREATE DATABASE IF NOT EXISTS amisafe_database CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON amisafe_database.* TO '${DB_USER}'@'127.0.0.1';
+FLUSH PRIVILEGES;
+EOF
+print_status "AmISafe database created"
 
-if [ ! -d "/var/private/theoryofconspiracies" ]; then
-    sudo mkdir -p /var/private/theoryofconspiracies
-    sudo chown -R $USER:$USER /var/private/theoryofconspiracies
-    sudo chmod -R 775 /var/private/theoryofconspiracies
-    print_status "Private files directory created at /var/private/theoryofconspiracies"
-fi
-
+# ------------------------------------------------------------------------------
+# 1.8 Private Files Directory
+# ------------------------------------------------------------------------------
+print_status "Creating Drupal private files directory..."
 if [ ! -d "/var/private/forseti" ]; then
     sudo mkdir -p /var/private/forseti
-    sudo chown -R www-data:www-data /var/private/forseti
-    sudo chmod -R 775 /var/private/forseti
-    print_status "Private files directory created at /var/private/forseti"
 fi
+sudo chown -R www-data:www-data /var/private/forseti
+sudo chmod -R 777 /var/private/forseti
+print_status "Private files directory created at /var/private/forseti"
 
-# Configure Apache virtual hosts for Forseti
+# ------------------------------------------------------------------------------
+# 1.9 Apache Virtual Host Configuration
+# ------------------------------------------------------------------------------
 print_status "Configuring Apache virtual host for Forseti..."
 
-# Configure Forseti site on port 80
 sudo bash -c "cat > /etc/apache2/sites-available/forseti.conf" <<EOF
 <VirtualHost *:80>
-        ServerName forseti.local
-        ServerAlias www.forseti.local localhost
+        ServerName localhost
+        ServerAlias forseti.local www.forseti.local penguin.linux.test
         ServerAdmin webmaster@localhost
         DocumentRoot /home/keithaumiller/forseti.life/sites/forseti/web
 
@@ -580,46 +560,47 @@ sudo bash -c "cat > /etc/apache2/sites-available/forseti.conf" <<EOF
 </VirtualHost>
 EOF
 
-# Enable the Forseti site
+# Disable default Apache site and enable Forseti
+sudo a2dissite 000-default.conf 2>/dev/null || true
 sudo a2ensite forseti.conf
 
-# Start services
 print_status "Starting services..."
 ensure_mysql_running
 sudo service apache2 restart
 
+print_status "✅ STEP 1 COMPLETE: Environment setup finished"
+
+
+# ==============================================================================
+# STEP 2: DRUPAL INSTALLATION - FORSETI SITE
+# ==============================================================================
+
 print_step "2. DRUPAL INSTALLATION - Setting up Forseti site..."
 
-# Ensure we're using the correct PHP version for all operations
+# Ensure we're using the correct PHP version
 export PATH="/usr/bin:$PATH"
 print_status "Enforcing PHP 8.3 for Drupal operations: $(php --version | head -n1)"
 
-# Ensure sites directory exists
+# ------------------------------------------------------------------------------
+# 2.1 Directory Setup
+# ------------------------------------------------------------------------------
 print_status "Creating site directory structure..."
 mkdir -p /home/keithaumiller/forseti.life/sites
 
-# Check for legacy drupal directory and migrate if needed
-LEGACY_DIR="/home/keithaumiller/forseti.life/drupal"
-if [ -d "$LEGACY_DIR" ] && [ ! -d "$PROJECT_DIR" ]; then
-    print_status "Migrating legacy Drupal installation to multi-site structure..."
-    mv "$LEGACY_DIR" "$PROJECT_DIR"
-    print_status "Moved legacy installation from /drupal/ to /sites/stlouisintegration/"
-fi
-
-# Check if primary Drupal directory exists
 if [ -d "$PROJECT_DIR" ]; then
     print_status "Existing Drupal directory found. Skipping fresh installation to preserve custom work."
     print_status "Using existing Drupal installation at $PROJECT_DIR"
 else
-    print_status "No existing primary Drupal directory found. Creating new Drupal 11.2.5 project..."
+    print_status "No existing Drupal directory found. Creating new Drupal 11.2.5 project..."
     cd /home/keithaumiller/forseti.life/sites
-    /usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:11.2.5 stlouisintegration --no-interaction
+    /usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:11.2.5 forseti --no-interaction
 fi
 
-# Move into the project directory
 cd "$PROJECT_DIR"
 
-# Fix Composer dependencies if needed
+# ------------------------------------------------------------------------------
+# 2.2 Composer Dependencies
+# ------------------------------------------------------------------------------
 if [ -f "composer.json" ] && [ ! -f "vendor/autoload.php" ]; then
     print_status "Installing Composer dependencies..."
     /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
@@ -627,7 +608,7 @@ elif [ -f "vendor/autoload.php" ] && [ ! -f "vendor/bin/drush" ]; then
     print_status "Installing missing dependencies..."
     /usr/bin/php8.3 /usr/local/bin/composer update --no-interaction
 elif [ -f "vendor/autoload.php" ]; then
-    # Check if autoloader is corrupted (missing Twig)
+    # Check if autoloader is corrupted
     if ! /usr/bin/php8.3 -c /etc/php/8.3/cli/php.ini -r "require 'vendor/autoload.php'; echo 'OK';" 2>/dev/null; then
         print_status "Fixing corrupted Composer autoloader..."
         rm -rf vendor/
@@ -635,13 +616,17 @@ elif [ -f "vendor/autoload.php" ]; then
     fi
 fi
 
-# Only install dependencies if this is a fresh installation
+# ------------------------------------------------------------------------------
+# 2.3 Drush Installation
+# ------------------------------------------------------------------------------
 if [ ! -f "vendor/bin/drush" ]; then
     print_status "Installing Drush..."
     /usr/bin/php8.3 /usr/local/bin/composer require drush/drush --no-interaction
 fi
 
-# Check if development modules are already installed
+# ------------------------------------------------------------------------------
+# 2.4 Development Modules Installation
+# ------------------------------------------------------------------------------
 if [ ! -d "web/modules/contrib/devel" ]; then
     print_status "Installing development modules and packages..."
     /usr/bin/php8.3 /usr/local/bin/composer require \
@@ -662,33 +647,38 @@ else
     print_status "Development modules already installed. Skipping to preserve existing setup."
 fi
 
-# Check if Drupal is actually installed (not just if settings.php exists)
+# ------------------------------------------------------------------------------
+# 2.5 Database Verification
+# ------------------------------------------------------------------------------
 DRUPAL_NEEDS_INSTALL=true
 if [ -f "web/sites/default/settings.php" ] && [ -s "web/sites/default/settings.php" ]; then
-    # Check if database tables exist
-    if /usr/bin/php8.3 vendor/drush/drush/drush.php sql:query "SHOW TABLES LIKE 'users'" 2>/dev/null | grep -q "users"; then
+    # Check if Drupal users table exists (specifically check for Drupal tables, not AmISafe)
+    USER_TABLE_COUNT=$(/usr/bin/php8.3 vendor/drush/drush/drush.php sql:query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}' AND table_name='users'" 2>/dev/null | tail -n1)
+    if [ "$USER_TABLE_COUNT" = "1" ]; then
         DRUPAL_NEEDS_INSTALL=false
         print_status "Existing Drupal installation detected and verified."
     else
-        print_status "Settings file exists but database is empty. Need to install Drupal."
+        print_status "No Drupal installation found. Need to install Drupal."
     fi
 fi
 
-# Set up permissions and install if needed
+# ------------------------------------------------------------------------------
+# 2.6 Drupal Site Installation
+# ------------------------------------------------------------------------------
 if [ "$DRUPAL_NEEDS_INSTALL" = true ]; then
     print_status "Setting up file permissions and installing Drupal..."
     sudo chmod 755 web/sites/default 2>/dev/null || chmod 755 web/sites/default
     
-    # Create files directory with proper permissions (dev container needs 777)
+    # Create files directory with proper permissions
     print_status "Creating and configuring files directory..."
     mkdir -p web/sites/default/files
     sudo chmod -R 777 web/sites/default/files 2>/dev/null || chmod -R 777 web/sites/default/files
     
-    # Create PHP storage directory for compiled classes
+    # Create PHP storage directory
     mkdir -p web/sites/default/files/php
     sudo chmod 777 web/sites/default/files/php 2>/dev/null || chmod 777 web/sites/default/files/php
     
-    # Set proper ownership for Apache (try multiple approaches)
+    # Set proper ownership for Apache
     if sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null; then
         print_status "Successfully set www-data ownership"
     elif sudo chown -R $(whoami):$(whoami) web/sites/default/files 2>/dev/null; then
@@ -697,47 +687,58 @@ if [ "$DRUPAL_NEEDS_INSTALL" = true ]; then
         print_warning "Could not change ownership, but will continue with current permissions"
     fi
     
-    # Ensure files directory is writable (use sudo for dev container)
     sudo chmod -R 777 web/sites/default/files 2>/dev/null || chmod -R 777 web/sites/default/files
 
-    # Copy default settings file if it doesn't exist
+    # Copy default settings file
     if [ ! -f "web/sites/default/settings.php" ]; then
         cp web/sites/default/default.settings.php web/sites/default/settings.php
     fi
     sudo chmod 664 web/sites/default/settings.php 2>/dev/null || chmod 664 web/sites/default/settings.php
 
-    # Check if Drupal is already installed to avoid data loss
+    # Install Drupal if not already installed
     print_status "Checking existing Drupal installation..."
     if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status | grep -q "Drupal bootstrap.*Successful" 2>/dev/null; then
-        print_status "Installing Drupal (preserving existing database data)..."
+        print_status "Installing Drupal..."
         /usr/bin/php8.3 vendor/drush/drush/drush.php site:install standard \
             --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${DB_NAME}" \
             --site-name="${SITE_NAME}" \
             --account-name="${ADMIN_USER}" \
             --account-pass="${ADMIN_PASSWORD}" \
             --account-mail="${ADMIN_EMAIL}" \
-            --yes 2>/dev/null || print_warning "Site installation may have failed"
+            --yes
+        
+        if [ $? -eq 0 ]; then
+            print_status "✅ Drupal installed successfully"
+        else
+            print_error "❌ Drupal installation failed"
+            exit 1
+        fi
     else
         print_status "Drupal already installed, preserving existing data"
     fi
 fi
 
-# Check if Drupal is properly installed by checking database tables
+# Check if Drupal is properly installed
 DRUPAL_INSTALLED=false
 if [ "$DRUPAL_NEEDS_INSTALL" = false ]; then
     DRUPAL_INSTALLED=true
     print_status "Drupal installation detected and verified"
-elif /usr/bin/php8.3 vendor/drush/drush/drush.php sql:query "SHOW TABLES LIKE 'users'" 2>/dev/null | grep -q "users"; then
-    DRUPAL_INSTALLED=true
-    print_status "Drupal installation detected and verified"
+else
+    # Check if installation just completed successfully
+    USER_TABLE_COUNT=$(/usr/bin/php8.3 vendor/drush/drush/drush.php sql:query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}' AND table_name='users'" 2>/dev/null | tail -n1)
+    if [ "$USER_TABLE_COUNT" = "1" ]; then
+        DRUPAL_INSTALLED=true
+        print_status "Drupal installation completed and verified"
+    fi
 fi
 
-# Only enable modules if Drupal is properly installed
+# ------------------------------------------------------------------------------
+# 2.7 Enable Development Modules
+# ------------------------------------------------------------------------------
 if [ "$DRUPAL_INSTALLED" = true ]; then
-    # Verify Drupal is fully functional before enabling any modules
+    # Verify Drupal functionality before enabling modules
     print_status "Verifying Drupal functionality before enabling modules..."
     if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json 2>/dev/null | grep -q '"bootstrap":"Successful"'; then
-        # Try to bootstrap Drupal to ensure it's working
         if ! /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null; then
             print_warning "Drupal bootstrap failed. Skipping module enablement."
             DRUPAL_INSTALLED=false
@@ -745,9 +746,8 @@ if [ "$DRUPAL_INSTALLED" = true ]; then
     fi
 fi
 
-# Only proceed with module enablement if Drupal is confirmed functional
 if [ "$DRUPAL_INSTALLED" = true ]; then
-    # Check if development modules are already enabled
+    # Enable development modules
     if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "devel"; then
         print_status "Enabling development and utility modules..."
         /usr/bin/php8.3 vendor/drush/drush/drush.php en devel admin_toolbar admin_toolbar_tools pathauto metatag -y
@@ -755,13 +755,13 @@ if [ "$DRUPAL_INSTALLED" = true ]; then
         print_status "Development modules already enabled. Skipping to preserve existing configuration."
     fi
     
-    # Verify development modules are working before proceeding to custom modules
+    # ------------------------------------------------------------------------------
+    # 2.8 Enable Custom Modules
+    # ------------------------------------------------------------------------------
     if /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "devel"; then
         print_status "Development modules verified. Proceeding with custom modules..."
         
-        # Enable custom modules if they exist and aren't already enabled
         if [ -d "web/modules/custom" ]; then
-            # Check if any custom modules need to be enabled
             CUSTOM_MODULES_NEEDED=false
             for module in professional_website_content ai_conversation job_application_automation resume_tailoring stli_site_customizations; do
                 if [ -d "web/modules/custom/$module" ] && ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "$module"; then
@@ -773,25 +773,25 @@ if [ "$DRUPAL_INSTALLED" = true ]; then
             if [ "$CUSTOM_MODULES_NEEDED" = true ]; then
                 print_status "Enabling custom modules in dependency order..."
             
-            # Enable profile module first (dependency for job_application_automation)
-            if [ -d "web/modules/custom/job_application_automation" ]; then
-                /usr/bin/php8.3 vendor/drush/drush/drush.php en profile -y 2>/dev/null || true
-            fi
-            
-            # Enable modules in dependency order
-            [ -d "web/modules/custom/professional_website_content" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en professional_website_content -y
-            [ -d "web/modules/custom/ai_conversation" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en ai_conversation -y
-            [ -d "web/modules/custom/stli_site_customizations" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en stli_site_customizations -y
-            [ -d "web/modules/custom/resume_tailoring" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en resume_tailoring -y
-            
-            # Clear cache before enabling job_application_automation (it has complex config)
-            /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
-            
-            # Enable job_application_automation last due to complex dependencies
-            if [ -d "web/modules/custom/job_application_automation" ]; then
-                /usr/bin/php8.3 vendor/drush/drush/drush.php en job_application_automation -y 2>/dev/null || print_warning "Job application automation module may need manual configuration"
-            fi
-            
+                # Enable profile module first (dependency for job_application_automation)
+                if [ -d "web/modules/custom/job_application_automation" ]; then
+                    /usr/bin/php8.3 vendor/drush/drush/drush.php en profile -y 2>/dev/null || true
+                fi
+                
+                # Enable modules in dependency order
+                [ -d "web/modules/custom/professional_website_content" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en professional_website_content -y
+                [ -d "web/modules/custom/ai_conversation" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en ai_conversation -y
+                [ -d "web/modules/custom/stli_site_customizations" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en stli_site_customizations -y
+                [ -d "web/modules/custom/resume_tailoring" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en resume_tailoring -y
+                
+                # Clear cache before complex modules
+                /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
+                
+                # Enable job_application_automation last
+                if [ -d "web/modules/custom/job_application_automation" ]; then
+                    /usr/bin/php8.3 vendor/drush/drush/drush.php en job_application_automation -y 2>/dev/null || print_warning "Job application automation module may need manual configuration"
+                fi
+                
                 print_status "All available custom modules enabled successfully"
             else
                 print_status "All custom modules already enabled"
@@ -801,42 +801,44 @@ if [ "$DRUPAL_INSTALLED" = true ]; then
         print_warning "Development modules not properly enabled. Skipping custom modules."
     fi
     
-    # Enable and set custom theme if it exists (only if Drupal is fully functional)
-    if [ -d "web/themes/custom/stlouisintegration" ]; then
-        # Check if theme is installed
-        if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --type=theme --format=list 2>/dev/null | grep -q "stlouisintegration"; then
-            print_status "Enabling St. Louis Integration custom theme..."
-            /usr/bin/php8.3 vendor/drush/drush/drush.php theme:enable stlouisintegration -y
+    # ------------------------------------------------------------------------------
+    # 2.9 Theme Installation and Configuration
+    # ------------------------------------------------------------------------------
+    if [ -d "web/themes/custom/forseti" ]; then
+        # Enable theme if not installed
+        if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --type=theme --format=list 2>/dev/null | grep -q "forseti"; then
+            print_status "Enabling Forseti custom theme..."
+            /usr/bin/php8.3 vendor/drush/drush/drush.php theme:enable forseti -y
         fi
         
-        # Check if theme is set as default
+        # Set as default theme
         CURRENT_THEME=$(/usr/bin/php8.3 vendor/drush/drush/drush.php config:get system.theme default --format=string 2>/dev/null || echo "")
-        if [ "$CURRENT_THEME" != "stlouisintegration" ]; then
-            print_status "Setting St. Louis Integration theme as default..."
-            /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.theme default stlouisintegration -y
-            print_status "St. Louis Integration theme set as default"
+        if [ "$CURRENT_THEME" != "forseti" ]; then
+            print_status "Setting Forseti theme as default..."
+            /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.theme default forseti -y
+            print_status "Forseti theme set as default"
         else
-            print_status "St. Louis Integration theme already set as default"
+            print_status "Forseti theme already set as default"
         fi
     fi
     
-    # Configure St. Louis Integration home page
-    print_status "Configuring St. Louis Integration home page..."
+    # ------------------------------------------------------------------------------
+    # 2.10 Home Page Configuration
+    # ------------------------------------------------------------------------------
+    print_status "Configuring Forseti home page..."
     if /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "professional_website_content"; then
-        # Find the "Welcome to St. Louis Integration" node created by the module
-        HOME_NODE_ID=$(/usr/bin/php8.3 vendor/drush/drush/drush.php sql:query "SELECT nid FROM node_field_data WHERE title = 'Welcome to St. Louis Integration' AND status = 1 ORDER BY nid DESC LIMIT 1;" 2>/dev/null | tail -n1 | tr -d '\r\n')
+        HOME_NODE_ID=$(/usr/bin/php8.3 vendor/drush/drush/drush.php sql:query "SELECT nid FROM node_field_data WHERE title = 'Welcome to Forseti' AND status = 1 ORDER BY nid DESC LIMIT 1;" 2>/dev/null | tail -n1 | tr -d '\r\n')
         if [ -n "$HOME_NODE_ID" ] && [ "$HOME_NODE_ID" != "nid" ]; then
-            # Set the home page to the Welcome node
             /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.site page.front "/node/$HOME_NODE_ID" -y 2>/dev/null
-            print_status "✅ St. Louis Integration home page set to 'Welcome to St. Louis Integration' (node/$HOME_NODE_ID)"
+            print_status "✅ Forseti home page set to 'Welcome to Forseti' (node/$HOME_NODE_ID)"
         else
-            print_warning "⚠️  Could not find 'Welcome to St. Louis Integration' node - using default home page"
+            print_warning "⚠️  Could not find 'Welcome to Forseti' node - using default home page"
         fi
     else
         print_warning "⚠️  Professional website content module not enabled - using default home page"
     fi
 
-    # Final verification that all modules and theme are working
+    # Final verification
     print_status "Performing final verification of modules and theme..."
     if /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null; then
         print_status "✅ All modules and theme successfully enabled and verified"
@@ -847,6 +849,9 @@ else
     print_status "Drupal not fully installed yet. Skipping module and theme enabling."
 fi
 
+# ------------------------------------------------------------------------------
+# 2.11 Development Directories
+# ------------------------------------------------------------------------------
 print_status "Ensuring custom development directories exist..."
 mkdir -p web/modules/custom
 mkdir -p web/themes/custom
@@ -856,13 +861,15 @@ chmod 755 web/modules/custom
 chmod 755 web/themes/custom
 chmod 755 config/sync
 
-    # Fix permissions before modifying settings
-    fix_drupal_permissions "$PROJECT_DIR"
+# ------------------------------------------------------------------------------
+# 2.12 Settings Configuration
+# ------------------------------------------------------------------------------
+fix_drupal_permissions "$PROJECT_DIR"
 
-    # Only add development settings if they don't already exist
-    if ! grep -q "Development-specific settings" web/sites/default/settings.php; then
-        print_status "Adding development-specific settings..."
-        cat >> web/sites/default/settings.php << 'EOL'
+# Add development settings if they don't exist
+if ! grep -q "Development-specific settings" web/sites/default/settings.php; then
+    print_status "Adding development-specific settings..."
+    cat >> web/sites/default/settings.php << 'EOL'
 /**
  * Development-specific settings
  */
@@ -891,7 +898,7 @@ else
     print_status "Development settings already exist in settings.php. Skipping to preserve existing configuration."
 fi
 
-# Create settings.local.php only if it doesn't exist
+# Create settings.local.php
 if [ ! -f "web/sites/default/settings.local.php" ]; then
     print_status "Creating local development settings..."
     cat > web/sites/default/settings.local.php << EOL
@@ -936,546 +943,38 @@ else
     print_status "Local development settings already exist. Skipping to preserve existing configuration."
 fi
 
-print_step "2.5. THEORY OF CONSPIRACIES SITE SETUP - Setting up second Drupal site..."
-
-# Configuration for Theory of Conspiracies site
-TOC_PROJECT_DIR="/home/keithaumiller/forseti.life/sites/theoryofconspiracies"
-TOC_DB_NAME="theoryofconspiracies_dev"
-TOC_SITE_NAME="Theory of Conspiracies"
-TOC_ADMIN_EMAIL="admin@theoryofconspiracies.com"
-
-# Check if Theory of Conspiracies site exists
-if [ -d "$TOC_PROJECT_DIR" ]; then
-    print_status "Theory of Conspiracies site directory found at $TOC_PROJECT_DIR"
-    cd "$TOC_PROJECT_DIR"
-    
-    # CRITICAL FIX: Repair corrupted Composer autoloader if needed
-    if [ -d "vendor" ] && [ ! -f "vendor/autoload.php" ]; then
-        print_status "Repairing Theory of Conspiracies Composer dependencies..."
-        rm -rf vendor/
-        /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
-    elif [ -f "vendor/autoload.php" ]; then
-        # Check if autoloader is corrupted (missing Twig)
-        if ! /usr/bin/php8.3 -c /etc/php/8.3/cli/php.ini -r "require 'vendor/autoload.php'; echo 'OK';" 2>/dev/null; then
-            print_status "Fixing corrupted Theory of Conspiracies Composer autoloader..."
-            rm -rf vendor/
-            /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
-        fi
-    fi
-    
-    # Check if it's properly installed
-    if [ ! -f "web/sites/default/settings.php" ] || [ ! -s "web/sites/default/settings.php" ]; then
-        print_status "Theory of Conspiracies site not installed. Setting up..."
-        
-        # Set up file permissions (dev container needs sudo and 777)
-        sudo chmod 755 web/sites/default 2>/dev/null || chmod 755 web/sites/default
-        mkdir -p web/sites/default/files
-        sudo chmod -R 777 web/sites/default/files 2>/dev/null || chmod -R 777 web/sites/default/files
-        # Create PHP storage directory for compiled classes
-        mkdir -p web/sites/default/files/php
-        sudo chmod 777 web/sites/default/files/php 2>/dev/null || chmod 777 web/sites/default/files/php
-        # Set proper ownership for Apache
-        sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
-        
-        # Copy default settings file
-        cp web/sites/default/default.settings.php web/sites/default/settings.php
-        sudo chmod 664 web/sites/default/settings.php 2>/dev/null || chmod 664 web/sites/default/settings.php
-        
-        # Check if Drupal is already installed to avoid data loss
-        print_status "Checking existing Theory of Conspiracies installation..."
-        if ! ./vendor/bin/drush status | grep -q "Drupal bootstrap.*Successful" 2>/dev/null; then
-            print_status "Installing Theory of Conspiracies Drupal site (preserving existing data)..."
-            ./vendor/bin/drush site:install standard \
-                --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${TOC_DB_NAME}" \
-                --site-name="${TOC_SITE_NAME}" \
-                --account-name="${ADMIN_USER}" \
-                --account-pass="${ADMIN_PASSWORD}" \
-                --account-mail="${TOC_ADMIN_EMAIL}" \
-                --yes 2>/dev/null || print_warning "Site installation may have failed"
-        else
-            print_status "Theory of Conspiracies already installed, preserving existing data"
-        fi
-        
-        # Install development modules first
-        print_status "Installing development modules for Theory of Conspiracies..."
-        /usr/bin/php8.3 /usr/local/bin/composer require \
-            drupal/devel \
-            drupal/admin_toolbar \
-            drupal/pathauto \
-            drupal/metatag \
-            --no-interaction
-        
-        # Enable development modules
-        print_status "Enabling development modules for Theory of Conspiracies..."
-        ./vendor/bin/drush en devel admin_toolbar admin_toolbar_tools pathauto metatag -y
-        
-        # Create development directories
-        mkdir -p web/modules/custom
-        mkdir -p web/themes/custom
-        mkdir -p config/sync
-        chmod 755 web/modules/custom web/themes/custom config/sync
-        
-        # Fix permissions before modifying settings
-        fix_drupal_permissions "$TOC_PROJECT_DIR"
-
-        # Add development settings
-        cat >> web/sites/default/settings.php << 'EOL'
-
-/**
- * Development-specific settings
- */
-if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
-  include $app_root . '/' . $site_path . '/settings.local.php';
-}
-
-$settings['config_sync_directory'] = '../config/sync';
-$config['system.performance']['css']['preprocess'] = FALSE;
-$config['system.performance']['js']['preprocess'] = FALSE;
-$config['system.logging']['error_level'] = 'verbose';
-$settings['cache']['bins']['render'] = 'cache.backend.null';
-$settings['cache']['bins']['page'] = 'cache.backend.null';
-$settings['cache']['bins']['dynamic_page_cache'] = 'cache.backend.null';
-EOL
-
-        # Create settings.local.php
-        cat > web/sites/default/settings.local.php << EOL
-<?php
-\$databases['default']['default'] = [
-  'database' => '${TOC_DB_NAME}',
-  'username' => '${DB_USER}',
-  'password' => '${DB_PASSWORD}',
-  'host' => '127.0.0.1',
-  'port' => '3306',
-  'driver' => 'mysql',
-  'prefix' => '',
-  'collation' => 'utf8mb4_general_ci',
-];
-EOL
-        chmod 644 web/sites/default/settings.local.php
-        
-        print_status "Theory of Conspiracies site installed successfully"
-    else
-        print_status "Theory of Conspiracies site already installed"
-    fi
-    
-    # Enable custom modules and theme for Theory of Conspiracies if Drupal is installed
-    if /usr/bin/php8.3 vendor/drush/drush/drush.php sql:query "SHOW TABLES LIKE 'users'" 2>/dev/null | grep -q "users"; then
-        print_status "Enabling Theory of Conspiracies custom modules and theme..."
-        
-        # Verify Drupal bootstrap works before enabling modules
-        if /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null; then
-            # Enable custom modules in order
-            if [ -d "web/modules/ai_conversation" ] && ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "ai_conversation"; then
-                /usr/bin/php8.3 vendor/drush/drush/drush.php en ai_conversation -y
-            fi
-            
-            if [ -d "web/modules/theory_content" ] && ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "theory_content"; then
-                /usr/bin/php8.3 vendor/drush/drush/drush.php en theory_content -y
-            fi
-            
-            if [ -d "web/modules/amisafe" ] && ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "amisafe"; then
-                /usr/bin/php8.3 vendor/drush/drush/drush.php en amisafe -y
-            fi
-            
-            # Enable custom theme if it exists
-            if [ -d "web/themes/theoryofconspiracies" ]; then
-                # Install radix base theme if needed
-                if ! /usr/bin/php8.3 /usr/local/bin/composer show drupal/radix &>/dev/null; then
-                    print_status "Installing radix base theme for Theory of Conspiracies..."
-                    /usr/bin/php8.3 /usr/local/bin/composer require drupal/radix --no-interaction
-                fi
-                
-                # Enable theme if not already enabled
-                if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --type=theme --format=list 2>/dev/null | grep -q "theoryofconspiracies"; then
-                    /usr/bin/php8.3 vendor/drush/drush/drush.php theme:enable theoryofconspiracies -y
-                fi
-                
-                # Set as default theme
-                CURRENT_THEME=$(/usr/bin/php8.3 vendor/drush/drush/drush.php config:get system.theme default --format=string 2>/dev/null || echo "")
-                if [ "$CURRENT_THEME" != "theoryofconspiracies" ]; then
-                    /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.theme default theoryofconspiracies -y
-                    print_status "Theory of Conspiracies theme set as default"
-                fi
-            fi
-            
-            # Configure Theory of Conspiracies home page
-            print_status "Configuring Theory of Conspiracies home page..."
-            if /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "theory_content"; then
-                # Set home page to use the custom theory_content controller route
-                /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.site page.front "/home" -y 2>/dev/null
-                print_status "✅ Theory of Conspiracies home page set to custom controller route (/home)"
-            else
-                print_warning "⚠️  Theory content module not enabled - using default home page"
-            fi
-            
-            # Final cache rebuild
-            /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
-            print_status "Theory of Conspiracies custom modules and theme enabled successfully"
-        else
-            print_warning "Theory of Conspiracies Drupal bootstrap failed. Skipping module/theme enablement."
-        fi
-    else
-        print_warning "Theory of Conspiracies not fully installed. Skipping module/theme enablement."
-    fi
-else
-    print_status "Theory of Conspiracies site directory not found. Creating new installation..."
-    cd /home/keithaumiller/forseti.life/sites
-    /usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:11.2.5 theoryofconspiracies --no-interaction
-    
-    cd theoryofconspiracies
-    /usr/bin/php8.3 /usr/local/bin/composer require drush/drush --no-interaction
-    /usr/bin/php8.3 /usr/local/bin/composer require \
-        drupal/devel \
-        drupal/admin_toolbar \
-        drupal/pathauto \
-        drupal/metatag \
-        --no-interaction
-    
-    # Fix any potential Composer autoloader corruption after installing packages
-    if ! /usr/bin/php8.3 -c /etc/php/8.3/cli/php.ini -r "require 'vendor/autoload.php'; echo 'OK';" 2>/dev/null; then
-        print_status "Fixing Composer autoloader after package installation..."
-        /usr/bin/php8.3 /usr/local/bin/composer dump-autoload --optimize --no-interaction
-    fi
-    
-    # Continue with installation as above...
-    chmod 755 web/sites/default
-    mkdir -p web/sites/default/files
-    chmod -R 775 web/sites/default/files
-    # Create PHP storage directory for compiled classes
-    mkdir -p web/sites/default/files/php
-    chmod 775 web/sites/default/files/php
-    # Set proper ownership for Apache
-    sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
-    cp web/sites/default/default.settings.php web/sites/default/settings.php
-    chmod 664 web/sites/default/settings.php
-    
-    # Check if Drupal is already installed to avoid data loss
-    if ! ./vendor/bin/drush status | grep -q "Drupal bootstrap.*Successful" 2>/dev/null; then
-        print_status "Installing Theory of Conspiracies site (preserving existing data)..."
-        ./vendor/bin/drush site:install standard \
-            --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${TOC_DB_NAME}" \
-            --site-name="${TOC_SITE_NAME}" \
-            --account-name="${ADMIN_USER}" \
-            --account-pass="${ADMIN_PASSWORD}" \
-            --account-mail="${TOC_ADMIN_EMAIL}" \
-            --yes 2>/dev/null || print_warning "Site installation may have failed"
-    else
-        print_status "Theory of Conspiracies already installed, preserving existing data"
-    fi
-    
-    ./vendor/bin/drush en devel admin_toolbar admin_toolbar_tools pathauto metatag -y
-    
-    mkdir -p web/modules/custom web/themes/custom config/sync
-    chmod 755 web/modules/custom web/themes/custom config/sync
-    
-    # Add development settings (same as above)
-    cat >> web/sites/default/settings.php << 'EOL'
-
-/**
- * Development-specific settings
- */
-if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
-  include $app_root . '/' . $site_path . '/settings.local.php';
-}
-
-$settings['config_sync_directory'] = '../config/sync';
-$config['system.performance']['css']['preprocess'] = FALSE;
-$config['system.performance']['js']['preprocess'] = FALSE;
-$config['system.logging']['error_level'] = 'verbose';
-$settings['cache']['bins']['render'] = 'cache.backend.null';
-$settings['cache']['bins']['page'] = 'cache.backend.null';
-$settings['cache']['bins']['dynamic_page_cache'] = 'cache.backend.null';
-EOL
-
-    cat > web/sites/default/settings.local.php << EOL
-<?php
-\$databases['default']['default'] = [
-  'database' => '${TOC_DB_NAME}',
-  'username' => '${DB_USER}',
-  'password' => '${DB_PASSWORD}',
-  'host' => '127.0.0.1',
-  'port' => '3306',
-  'driver' => 'mysql',
-  'prefix' => '',
-  'collation' => 'utf8mb4_general_ci',
-];
-EOL
-    chmod 644 web/sites/default/settings.local.php
-    
-    print_status "Theory of Conspiracies site created and installed successfully"
-fi
-
-print_step "2.6. FORSETI SITE SETUP - Setting up third Drupal site..."
-
-# Configuration for Forseti site
-FORSETI_PROJECT_DIR="/home/keithaumiller/forseti.life/sites/forseti"
-FORSETI_DB_NAME="forseti_dev"
-FORSETI_SITE_NAME="Forseti"
-FORSETI_ADMIN_EMAIL="admin@forseti.life"
-
-# Check if Forseti site exists
-if [ -d "$FORSETI_PROJECT_DIR" ]; then
-    print_status "Forseti site directory found at $FORSETI_PROJECT_DIR"
-    cd "$FORSETI_PROJECT_DIR"
-    
-    # CRITICAL FIX: Repair corrupted Composer autoloader if needed
-    if [ -d "vendor" ] && [ ! -f "vendor/autoload.php" ]; then
-        print_status "Repairing Forseti Composer dependencies..."
-        rm -rf vendor/
-        /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
-    elif [ -f "vendor/autoload.php" ]; then
-        # Check if autoloader is corrupted (missing Twig)
-        if ! /usr/bin/php8.3 -c /etc/php/8.3/cli/php.ini -r "require 'vendor/autoload.php'; echo 'OK';" 2>/dev/null; then
-            print_status "Fixing corrupted Forseti Composer autoloader..."
-            rm -rf vendor/
-            /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
-        fi
-    fi
-    
-    # Check if it's properly installed
-    if [ ! -f "web/sites/default/settings.php" ] || [ ! -s "web/sites/default/settings.php" ]; then
-        print_status "Forseti site not installed. Setting up..."
-        
-        # Set up file permissions (dev container needs sudo and 777)
-        sudo chmod 755 web/sites/default 2>/dev/null || chmod 755 web/sites/default
-        mkdir -p web/sites/default/files
-        sudo chmod -R 777 web/sites/default/files 2>/dev/null || chmod -R 777 web/sites/default/files
-        # Create PHP storage directory for compiled classes
-        mkdir -p web/sites/default/files/php
-        sudo chmod 777 web/sites/default/files/php 2>/dev/null || chmod 777 web/sites/default/files/php
-        # Set proper ownership for Apache
-        sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
-        
-        # Copy default settings file
-        cp web/sites/default/default.settings.php web/sites/default/settings.php
-        sudo chmod 664 web/sites/default/settings.php 2>/dev/null || chmod 664 web/sites/default/settings.php
-        
-        # Check if Drupal is already installed to avoid data loss
-        print_status "Checking existing Forseti installation..."
-        if ! ./vendor/bin/drush status | grep -q "Drupal bootstrap.*Successful" 2>/dev/null; then
-            print_status "Installing Forseti Drupal site (preserving existing data)..."
-            ./vendor/bin/drush site:install standard \
-                --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${FORSETI_DB_NAME}" \
-                --site-name="${FORSETI_SITE_NAME}" \
-                --account-name="${ADMIN_USER}" \
-                --account-pass="${ADMIN_PASSWORD}" \
-                --account-mail="${FORSETI_ADMIN_EMAIL}" \
-                --yes 2>/dev/null || print_warning "Site installation may have failed"
-        else
-            print_status "Forseti already installed, preserving existing data"
-        fi
-        
-        # Install development modules first
-        print_status "Installing development modules for Forseti..."
-        /usr/bin/php8.3 /usr/local/bin/composer require \
-            drupal/devel \
-            drupal/admin_toolbar \
-            drupal/pathauto \
-            drupal/metatag \
-            drupal/bootstrap5 \
-            drupal/radix \
-            --no-interaction
-        
-        # Enable development modules
-        print_status "Enabling development modules for Forseti..."
-        ./vendor/bin/drush en devel admin_toolbar admin_toolbar_tools pathauto metatag -y
-        
-        # Create development directories
-        mkdir -p web/modules/custom
-        mkdir -p web/themes/custom
-        mkdir -p config/sync
-        chmod 755 web/modules/custom web/themes/custom config/sync
-        
-        # Fix permissions before modifying settings
-        fix_drupal_permissions "$FORSETI_PROJECT_DIR"
-
-        # Add development settings
-        cat >> web/sites/default/settings.php << 'EOL'
-
-/**
- * Development-specific settings
- */
-if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
-  include $app_root . '/' . $site_path . '/settings.local.php';
-}
-
-$settings['config_sync_directory'] = '../config/sync';
-$config['system.performance']['css']['preprocess'] = FALSE;
-$config['system.performance']['js']['preprocess'] = FALSE;
-$config['system.logging']['error_level'] = 'verbose';
-$settings['cache']['bins']['render'] = 'cache.backend.null';
-$settings['cache']['bins']['page'] = 'cache.backend.null';
-$settings['cache']['bins']['dynamic_page_cache'] = 'cache.backend.null';
-EOL
-
-        # Create settings.local.php
-        cat > web/sites/default/settings.local.php << EOL
-<?php
-\$databases['default']['default'] = [
-  'database' => '${FORSETI_DB_NAME}',
-  'username' => '${DB_USER}',
-  'password' => '${DB_PASSWORD}',
-  'host' => '127.0.0.1',
-  'port' => '3306',
-  'driver' => 'mysql',
-  'prefix' => '',
-  'collation' => 'utf8mb4_general_ci',
-];
-EOL
-        chmod 644 web/sites/default/settings.local.php
-        
-        print_status "Forseti site installed successfully"
-    else
-        print_status "Forseti site already installed"
-    fi
-    
-    # Enable custom modules and theme for Forseti if Drupal is installed
-    if /usr/bin/php8.3 vendor/drush/drush/drush.php sql:query "SHOW TABLES LIKE 'users'" 2>/dev/null | grep -q "users"; then
-        print_status "Enabling Forseti custom theme..."
-        
-        # Verify Drupal bootstrap works before enabling theme
-        if /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null; then
-            # Enable custom theme if it exists
-            if [ -d "web/themes/custom/forseti" ]; then
-                # Install radix base theme if needed
-                if ! /usr/bin/php8.3 /usr/local/bin/composer show drupal/radix &>/dev/null; then
-                    print_status "Installing radix base theme for Forseti..."
-                    /usr/bin/php8.3 /usr/local/bin/composer require drupal/radix --no-interaction
-                fi
-                
-                # Enable theme if not already enabled
-                if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --type=theme --format=list 2>/dev/null | grep -q "forseti"; then
-                    /usr/bin/php8.3 vendor/drush/drush/drush.php theme:enable forseti -y
-                fi
-                
-                # Set as default theme
-                CURRENT_THEME=$(/usr/bin/php8.3 vendor/drush/drush/drush.php config:get system.theme default --format=string 2>/dev/null || echo "")
-                if [ "$CURRENT_THEME" != "forseti" ]; then
-                    /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.theme default forseti -y
-                    print_status "Forseti theme set as default"
-                fi
-            fi
-            
-            # Configure Forseti home page
-            print_status "Configuring Forseti home page..."
-            /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.site page.front "/node" -y 2>/dev/null
-            print_status "✅ Forseti home page configured"
-            
-            # Final cache rebuild
-            /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
-            print_status "Forseti custom theme enabled successfully"
-        else
-            print_warning "Forseti Drupal bootstrap failed. Skipping theme enablement."
-        fi
-    else
-        print_warning "Forseti not fully installed. Skipping theme enablement."
-    fi
-else
-    print_status "Forseti site directory not found. Creating new installation..."
-    cd /home/keithaumiller/forseti.life/sites
-    /usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:11.2.5 forseti --no-interaction
-    
-    cd forseti
-    /usr/bin/php8.3 /usr/local/bin/composer require drush/drush --no-interaction
-    /usr/bin/php8.3 /usr/local/bin/composer require \
-        drupal/devel \
-        drupal/admin_toolbar \
-        drupal/pathauto \
-        drupal/metatag \
-        drupal/bootstrap5 \
-        drupal/radix \
-        --no-interaction
-    
-    # Fix any potential Composer autoloader corruption after installing packages
-    if ! /usr/bin/php8.3 -c /etc/php/8.3/cli/php.ini -r "require 'vendor/autoload.php'; echo 'OK';" 2>/dev/null; then
-        print_status "Fixing Composer autoloader after package installation..."
-        /usr/bin/php8.3 /usr/local/bin/composer dump-autoload --optimize --no-interaction
-    fi
-    
-    # Continue with installation as above...
-    chmod 755 web/sites/default
-    mkdir -p web/sites/default/files
-    chmod -R 775 web/sites/default/files
-    # Create PHP storage directory for compiled classes
-    mkdir -p web/sites/default/files/php
-    chmod 775 web/sites/default/files/php
-    # Set proper ownership for Apache
-    sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
-    cp web/sites/default/default.settings.php web/sites/default/settings.php
-    chmod 664 web/sites/default/settings.php
-    
-    # Check if Drupal is already installed to avoid data loss
-    if ! ./vendor/bin/drush status | grep -q "Drupal bootstrap.*Successful" 2>/dev/null; then
-        print_status "Installing Forseti site (preserving existing data)..."
-        ./vendor/bin/drush site:install standard \
-            --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${FORSETI_DB_NAME}" \
-            --site-name="${FORSETI_SITE_NAME}" \
-            --account-name="${ADMIN_USER}" \
-            --account-pass="${ADMIN_PASSWORD}" \
-            --account-mail="${FORSETI_ADMIN_EMAIL}" \
-            --yes 2>/dev/null || print_warning "Site installation may have failed"
-    else
-        print_status "Forseti already installed, preserving existing data"
-    fi
-    
-    ./vendor/bin/drush en devel admin_toolbar admin_toolbar_tools pathauto metatag -y
-    
-    mkdir -p web/modules/custom web/themes/custom config/sync
-    chmod 755 web/modules/custom web/themes/custom config/sync
-    
-    # Add development settings
-    cat >> web/sites/default/settings.php << 'EOL'
-
-/**
- * Development-specific settings
- */
-if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
-  include $app_root . '/' . $site_path . '/settings.local.php';
-}
-
-$settings['config_sync_directory'] = '../config/sync';
-$config['system.performance']['css']['preprocess'] = FALSE;
-$config['system.performance']['js']['preprocess'] = FALSE;
-$config['system.logging']['error_level'] = 'verbose';
-$settings['cache']['bins']['render'] = 'cache.backend.null';
-$settings['cache']['bins']['page'] = 'cache.backend.null';
-$settings['cache']['bins']['dynamic_page_cache'] = 'cache.backend.null';
-EOL
-
-    cat > web/sites/default/settings.local.php << EOL
-<?php
-\$databases['default']['default'] = [
-  'database' => '${FORSETI_DB_NAME}',
-  'username' => '${DB_USER}',
-  'password' => '${DB_PASSWORD}',
-  'host' => '127.0.0.1',
-  'port' => '3306',
-  'driver' => 'mysql',
-  'prefix' => '',
-  'collation' => 'utf8mb4_general_ci',
-];
-EOL
-    chmod 644 web/sites/default/settings.local.php
-    
-    print_status "Forseti site created and installed successfully"
-fi
-
-# Return to main site directory for remaining setup
 cd "$PROJECT_DIR"
+
+print_status "✅ STEP 2 COMPLETE: Drupal installation finished"
+
+
+# ==============================================================================
+# STEP 3: DEVELOPMENT CONFIGURATION
+# ==============================================================================
 
 print_step "3. DEVELOPMENT CONFIGURATION - Setting up development tools..."
 
+cd "$PROJECT_DIR"
+
+# ------------------------------------------------------------------------------
+# 3.1 Drupal Coder and PHP CodeSniffer
+# ------------------------------------------------------------------------------
 print_status "Installing Drupal Coder and PHP CodeSniffer..."
 /usr/bin/php8.3 /usr/local/bin/composer require drupal/coder --dev --no-interaction
-
-print_status "Installing additional development tools..."
-/usr/bin/php8.3 /usr/local/bin/composer require phpunit/phpunit symfony/phpunit-bridge --dev --no-interaction
 
 print_status "Configuring PHP CodeSniffer for Drupal standards..."
 ./vendor/bin/phpcs --config-set installed_paths vendor/drupal/coder/coder_sniffer
 ./vendor/bin/phpcs --config-set default_standard Drupal
 
-# Only create development services if it doesn't exist
+# ------------------------------------------------------------------------------
+# 3.2 PHPUnit Installation
+# ------------------------------------------------------------------------------
+print_status "Installing additional development tools..."
+/usr/bin/php8.3 /usr/local/bin/composer require phpunit/phpunit symfony/phpunit-bridge --dev --no-interaction
+
+# ------------------------------------------------------------------------------
+# 3.3 Development Services Configuration
+# ------------------------------------------------------------------------------
 if [ ! -f "web/sites/development.services.yml" ]; then
     print_status "Creating development services configuration..."
     cat > web/sites/development.services.yml << 'EOL'
@@ -1494,14 +993,16 @@ else
     print_status "Development services configuration already exists. Skipping to preserve existing setup."
 fi
 
-# Create custom module template only if it doesn't exist
+# ------------------------------------------------------------------------------
+# 3.4 Custom Module Template
+# ------------------------------------------------------------------------------
 CUSTOM_MODULES_DIR="$PROJECT_DIR/web/modules/custom"
 if [ ! -f "$CUSTOM_MODULES_DIR/README.md" ]; then
     print_status "Creating custom module template..."
     cat > "$CUSTOM_MODULES_DIR/README.md" << 'EOL'
 # Custom Modules
 
-This directory contains custom modules for the St. Louis Integration website.
+This directory contains custom modules for the Forseti website.
 
 ## Module Structure
 
@@ -1553,14 +1054,16 @@ else
     print_status "Custom module template already exists. Skipping to preserve existing modules."
 fi
 
-# Create custom theme template only if it doesn't exist
+# ------------------------------------------------------------------------------
+# 3.5 Custom Theme Template
+# ------------------------------------------------------------------------------
 CUSTOM_THEMES_DIR="$PROJECT_DIR/web/themes/custom"
 if [ ! -f "$CUSTOM_THEMES_DIR/README.md" ]; then
     print_status "Creating custom theme template..."
     cat > "$CUSTOM_THEMES_DIR/README.md" << 'EOL'
 # Custom Themes
 
-This directory contains custom themes for the St. Louis Integration website.
+This directory contains custom themes for the Forseti website.
 
 ## Theme Structure
 
@@ -1605,11 +1108,12 @@ else
     print_status "Custom theme template already exists. Skipping to preserve existing themes."
 fi
 
-# Create development scripts
+# ------------------------------------------------------------------------------
+# 3.6 Git Configuration
+# ------------------------------------------------------------------------------
 SCRIPTS_DIR="$PROJECT_DIR/scripts"
 mkdir -p "$SCRIPTS_DIR"
 
-# Only create utility scripts if they don't exist
 if [ ! -f "$SCRIPTS_DIR/clear-cache.sh" ]; then
     print_status "Creating development utility scripts..."
 
@@ -1683,7 +1187,7 @@ else
     print_status "Development utility scripts already exist. Skipping to preserve existing scripts."
 fi
 
-# Clear cache after all configuration (only if Drupal is properly installed)
+# Clear cache after configuration
 if [ "$DRUPAL_INSTALLED" = true ]; then
     print_status "Clearing cache after configuration..."
     /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || print_warning "Cache clear failed"
@@ -1698,241 +1202,25 @@ if [ -f "web/sites/default/settings.php" ]; then
 fi
 chmod -R 755 web/modules/custom web/themes/custom
 
-# Fix Composer autoloader issues for both sites
-print_status "Fixing Composer autoloader issues..."
+print_status "✅ STEP 3 COMPLETE: Development configuration finished"
 
-# Fix St. Louis Integration site
-if [ -d "/home/keithaumiller/forseti.life/sites/stlouisintegration" ]; then
-    cd "/home/keithaumiller/forseti.life/sites/stlouisintegration"
-    if [ -f "composer.json" ]; then
-        print_status "Verifying Composer autoloader for St. Louis Integration..."
-        # Test if autoloader is working correctly
-        if ! /usr/bin/php8.3 -c /etc/php/8.3/cli/php.ini -r "require 'vendor/autoload.php'; echo 'OK';" 2>/dev/null; then
-            print_status "Rebuilding corrupted Composer autoloader for St. Louis Integration..."
-            rm -rf vendor/
-            /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
-        else
-            print_status "St. Louis Integration Composer autoloader is working correctly"
-            /usr/bin/php8.3 /usr/local/bin/composer dump-autoload --optimize --no-interaction 2>/dev/null || true
-        fi
-    fi
-fi
-
-# Fix Theory of Conspiracies site
-if [ -d "/home/keithaumiller/forseti.life/sites/theoryofconspiracies" ]; then
-    cd "/home/keithaumiller/forseti.life/sites/theoryofconspiracies"
-    if [ -f "composer.json" ]; then
-        print_status "Verifying Composer autoloader for Theory of Conspiracies..."
-        # Test if autoloader is working correctly
-        if ! /usr/bin/php8.3 -c /etc/php/8.3/cli/php.ini -r "require 'vendor/autoload.php'; echo 'OK';" 2>/dev/null; then
-            print_status "Rebuilding corrupted Composer autoloader for Theory of Conspiracies..."
-            rm -rf vendor/
-            /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
-        else
-            print_status "Theory of Conspiracies Composer autoloader is working correctly"
-            /usr/bin/php8.3 /usr/local/bin/composer dump-autoload --optimize --no-interaction 2>/dev/null || true
-        fi
-    fi
-fi
-
-# Return to main site directory
-cd "$PROJECT_DIR"
-
-# Verify installations
-print_status "Verifying installations..."
-echo "========================="
-echo "PHP Version: $(/usr/bin/php8.3 --version | head -n 1)"
-echo "Composer Version: $(/usr/bin/php8.3 /usr/local/bin/composer --version)"
-echo "Apache PHP Module: $(apache2ctl -M 2>/dev/null | grep php || echo 'Not found')"
-echo "MySQL Version: $(mysql --version)"
-echo "Apache Version: $(apache2 -v | head -n 1)"
-echo "Drupal Version: $(./vendor/bin/drush status | grep 'Drupal version' || echo 'Drupal 11 installed')"
-echo "========================="
-
-# Validate critical PHP extensions
-print_status "Validating PHP 8.3 extensions..."
-REQUIRED_EXTENSIONS=("dom" "mysqli" "pdo_mysql" "xml" "gd" "curl" "zip" "intl")
-MISSING_EXTENSIONS=()
-
-for ext in "${REQUIRED_EXTENSIONS[@]}"; do
-    if ! /usr/bin/php8.3 -m | grep -q "^$ext$"; then
-        MISSING_EXTENSIONS+=("$ext")
-    fi
-done
-
-if [ ${#MISSING_EXTENSIONS[@]} -eq 0 ]; then
-    print_status "✅ All required PHP 8.3 extensions are loaded"
-else
-    print_warning "⚠️  Missing PHP 8.3 extensions: ${MISSING_EXTENSIONS[*]}"
-    print_status "Installing missing PHP extensions..."
-    for ext in "${MISSING_EXTENSIONS[@]}"; do
-        sudo apt install -y "php8.3-$ext" || print_warning "Failed to install php8.3-$ext"
-    done
-    # Restart Apache to load new extensions
-    sudo service apache2 restart
-fi
-
-# Test website availability for all sites
-print_status "Testing website availability..."
-if curl -s -o /dev/null -w "%{http_code}" "http://localhost" | grep -q "200\|302\|301"; then
-    print_status "✅ St. Louis Integration site is accessible at http://localhost"
-else
-    print_warning "⚠️  St. Louis Integration site may need additional configuration"
-fi
-
-if curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080" | grep -q "200\|302\|301"; then
-    print_status "✅ Forseti site is accessible at http://localhost:8080"
-else
-    print_warning "⚠️  Forseti site may need additional configuration"
-fi
-
-if curl -s -o /dev/null -w "%{http_code}" "http://localhost:8081" | grep -q "200\|302\|301"; then
-    print_status "✅ Theory of Conspiracies site is accessible at http://localhost:8081"
-else
-    print_warning "⚠️  Theory of Conspiracies site may need additional configuration"
-fi
-
-# Version consistency check
-print_status "Verifying version consistency across sites..."
-if [ -d "/home/keithaumiller/forseti.life/sites/stlouisintegration" ]; then
-    cd "/home/keithaumiller/forseti.life/sites/stlouisintegration"
-    STL_DRUPAL_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show drupal/core --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
-    STL_TWIG_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show twig/twig --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
-    echo "St. Louis Integration - Drupal: $STL_DRUPAL_VERSION, Twig: $STL_TWIG_VERSION"
-fi
-
-if [ -d "/home/keithaumiller/forseti.life/sites/forseti" ]; then
-    cd "/home/keithaumiller/forseti.life/sites/forseti"
-    FORSETI_DRUPAL_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show drupal/core --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
-    FORSETI_TWIG_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show twig/twig --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
-    echo "Forseti - Drupal: $FORSETI_DRUPAL_VERSION, Twig: $FORSETI_TWIG_VERSION"
-fi
-
-if [ -d "/home/keithaumiller/forseti.life/sites/theoryofconspiracies" ]; then
-    cd "/home/keithaumiller/forseti.life/sites/theoryofconspiracies"
-    TOC_DRUPAL_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show drupal/core --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
-    TOC_TWIG_VERSION=$(/usr/bin/php8.3 /usr/local/bin/composer show twig/twig --format=json | grep '"version"' | head -1 | cut -d'"' -f4)
-    echo "Theory of Conspiracies - Drupal: $TOC_DRUPAL_VERSION, Twig: $TOC_TWIG_VERSION"
-fi
-
-if [ "$STL_DRUPAL_VERSION" = "$FORSETI_DRUPAL_VERSION" ] && [ "$FORSETI_DRUPAL_VERSION" = "$TOC_DRUPAL_VERSION" ] && [ "$STL_TWIG_VERSION" = "$FORSETI_TWIG_VERSION" ] && [ "$FORSETI_TWIG_VERSION" = "$TOC_TWIG_VERSION" ]; then
-    print_status "✅ Version consistency verified: All sites use matching Drupal and Twig versions"
-else
-    print_warning "⚠️  Version inconsistency detected - consider standardizing versions"
-fi
-
-echo "========================="
-print_status "COMPLETE SETUP FINISHED SUCCESSFULLY!"
-echo "========================="
-
-echo "Installation Summary:"
-echo "========================="
-echo "✓ Environment: PHP 8.3, MySQL, Apache configured with multi-site support"
-echo "✓ Multi-Site Setup: Three Drupal 11.2.5 installations with Twig 3.21.1 configured"
-echo "✓ Development Tools: Coder, PHPCS, PHPUnit configured"
-echo "✓ Custom Modules: All 5 custom modules enabled on primary site:"
-echo "  - professional_website_content (Professional Website Content)"
-echo "  - ai_conversation (AI Conversation)"
-echo "  - job_application_automation (Job Application Automation)"
-echo "  - resume_tailoring (Resume Tailoring)"
-echo "  - stli_site_customizations (STLI Site Customizations)"
-echo "✓ Custom Themes:"
-echo "  - St. Louis Integration: stlouisintegration theme enabled and set as default"
-echo "  - Forseti: forseti theme enabled and set as default"
-echo "  - Theory of Conspiracies: theoryofconspiracies theme enabled and set as default"
-echo "✓ Home Pages: Properly configured for all sites"
-echo "  - St. Louis Integration: 'Welcome to St. Louis Integration' page"
-echo "  - Forseti: Default Drupal home page"
-echo "  - Theory of Conspiracies: Custom controller route (/home)"
-echo "✓ Apache Virtual Hosts: Port-based routing (80, 8080, 8081)"
-echo "✓ Databases: Separate databases for each site"
-echo "✓ H3 Geolocation Framework: Version 4.3.1 with AmISafe crime mapping pipeline"
-echo "  - H3 Python environment: /home/keithaumiller/forseti.life/h3-geolocation/h3-env/"
-echo "  - AmISafe database tables: amisafe_raw_incidents, amisafe_clean_incidents, amisafe_h3_aggregated"
-echo "  - Crime data pipeline: 20 CSV files ready for processing (673MB+)"
-echo "  - Pipeline scripts: run_amisafe_pipeline_stlouisintegration.sh for full data processing"
-echo "========================="
-
-echo "Multi-Site Information:"
-echo "========================="
-echo "PRIMARY SITE - St. Louis Integration:"
-echo "  Site Name: ${SITE_NAME}"
-echo "  Site URL: http://localhost"
-echo "  Admin Login: http://localhost/user/login"
-echo "  Database: ${DB_NAME}"
-echo "  Directory: /home/keithaumiller/forseti.life/sites/stlouisintegration/"
-echo ""
-echo "SITE 2 - Forseti:"
-echo "  Site Name: Forseti"
-echo "  Site URL: http://localhost:8080"
-echo "  Admin Login: http://localhost:8080/user/login"
-echo "  Database: forseti_dev"
-echo "  Directory: /home/keithaumiller/forseti.life/sites/forseti/"
-echo ""
-echo "SITE 3 - Theory of Conspiracies:"
-echo "  Site Name: ${TOC_SITE_NAME}"
-echo "  Site URL: http://localhost:8081"
-echo "  Admin Login: http://localhost:8081/user/login"
-echo "  Database: ${TOC_DB_NAME}"
-echo "  Directory: /home/keithaumiller/forseti.life/sites/theoryofconspiracies/"
-echo ""
-echo "SHARED CREDENTIALS:"
-echo "  Admin User: ${ADMIN_USER}"
-echo "  Admin Password: ${ADMIN_PASSWORD}"
-echo "  DB User: ${DB_USER}"
-echo "========================="
-
-print_status "Available development commands:"
-echo "FOR ST. LOUIS INTEGRATION SITE:"
-echo "- Navigate to site: cd /home/keithaumiller/forseti.life/sites/stlouisintegration"
-echo "- Clear cache: ./vendor/bin/drush cr"
-echo "- Check coding standards: cd /home/keithaumiller/forseti.life/scripts && ./check-standards.sh"
-echo "- Drush commands: ./vendor/bin/drush [command]"
-echo ""
-echo "FOR FORSETI SITE:"
-echo "- Navigate to site: cd /home/keithaumiller/forseti.life/sites/forseti"
-echo "- Clear cache: ./vendor/bin/drush cr"
-echo "- One-time login: ./vendor/bin/drush uli"
-echo "- Drush commands: ./vendor/bin/drush [command]"
-echo ""
-echo "FOR THEORY OF CONSPIRACIES SITE:"
-echo "- Navigate to site: cd /home/keithaumiller/forseti.life/sites/theoryofconspiracies"
-echo "- Clear cache: ./vendor/bin/drush cr"
-echo "- One-time login: ./vendor/bin/drush uli"
-echo "- Drush commands: ./vendor/bin/drush [command]"
-echo ""
-echo "FOR H3 GEOLOCATION & AMISAFE CRIME MAPPING:"
-echo "- Navigate to H3: cd /home/keithaumiller/forseti.life/h3-geolocation"
-echo "- Activate environment: source h3-env/bin/activate"
-echo "- Run sample pipeline: cd database && bash run_amisafe_pipeline_stlouisintegration.sh sample"
-echo "- Run full pipeline: cd database && bash run_amisafe_pipeline_stlouisintegration.sh full"
-echo "- Quick H3 examples: python quick_start.py"
-echo "- Data visualization: python visualizer.py"
-echo "- AmISafe dashboard: http://localhost/amisafe (after enabling AmISafe module)"
-
-print_warning "Important reminders:"
-echo "- Change admin password after first login for security"
-echo "- Each site operates independently with its own database"
-echo "- Custom development can proceed separately on each site"
-echo "- Use port-specific URLs: localhost (80) and localhost:8080"
-echo "- Regular database backups during development"
-echo "- See MULTI_SITE_SETUP.md for detailed documentation"
-
-print_status "🚀 Your multi-site Drupal development environment is ready!"
-print_status "📖 See MULTI_SITE_SETUP.md for comprehensive documentation"
+# ==============================================================================
+# STEP 4: POST-INSTALLATION FIXES
+# ==============================================================================
 
 print_step "4. POST-INSTALLATION FIXES - Applying known issue resolutions..."
 
-# Fix cache backend configuration issues
+cd "$PROJECT_DIR"
+
+# ------------------------------------------------------------------------------
+# 4.1 Cache Backend Configuration Fix
+# ------------------------------------------------------------------------------
 print_status "Fixing cache backend configuration issues..."
 
-# Remove cache.backend.null references from development services
-for site_dir in "stlouisintegration" "forseti" "theoryofconspiracies"; do
-    SERVICES_FILE="/home/keithaumiller/forseti.life/sites/${site_dir}/web/sites/development.services.yml"
-    if [ -f "$SERVICES_FILE" ]; then
-        print_status "Updating development services for ${site_dir}..."
-        # Create a clean development services file
-        cat > "$SERVICES_FILE" << 'EOF'
+SERVICES_FILE="$PROJECT_DIR/web/sites/development.services.yml"
+if [ -f "$SERVICES_FILE" ]; then
+    print_status "Updating development services..."
+    cat > "$SERVICES_FILE" << 'EOF'
 # Local development services.
 parameters:
   http.response.debug_cacheability_headers: true
@@ -1948,204 +1236,149 @@ services:
     class: Drupal\Core\Config\Development\LenientConfigSchemaChecker
     arguments: [ '@config.typed', '@config.storage.schema' ]
 EOF
-    fi
-done
+fi
 
-# Remove cache.backend.null references from settings files
+# ------------------------------------------------------------------------------
+# 4.2 Settings File Cleanup
+# ------------------------------------------------------------------------------
 print_status "Cleaning cache backend references from settings files..."
-for site_dir in "stlouisintegration" "forseti" "theoryofconspiracies"; do
-    SETTINGS_FILE="/home/keithaumiller/forseti.life/sites/${site_dir}/web/sites/default/settings.php"
-    SETTINGS_LOCAL_FILE="/home/keithaumiller/forseti.life/sites/${site_dir}/web/sites/default/settings.local.php"
-    
-    if [ -f "$SETTINGS_FILE" ]; then
-        # Remove cache.backend.null references from main settings
-        sed -i '/cache.backend.null/d' "$SETTINGS_FILE" || true
-        print_status "Cleaned cache references from ${site_dir} settings.php"
-    fi
-    
-    if [ -f "$SETTINGS_LOCAL_FILE" ]; then
-        # Remove cache.backend.null references from local settings
-        sed -i '/cache.backend.null/d' "$SETTINGS_LOCAL_FILE" || true
-        # Add proper cache configuration instead
-        if ! grep -q "cache.*max_age" "$SETTINGS_LOCAL_FILE"; then
-            echo "" >> "$SETTINGS_LOCAL_FILE"
-            echo "// Disable page caching for development" >> "$SETTINGS_LOCAL_FILE"
-            echo "\$config['system.performance']['cache']['page']['max_age'] = 0;" >> "$SETTINGS_LOCAL_FILE"
-        fi
-        print_status "Cleaned cache references from ${site_dir} settings.local.php"
-    fi
-done
+SETTINGS_FILE="$PROJECT_DIR/web/sites/default/settings.php"
+SETTINGS_LOCAL_FILE="$PROJECT_DIR/web/sites/default/settings.local.php"
 
-# Ensure both sites are properly installed
-print_status "Verifying site installations and fixing if needed..."
-
-# Check and fix St. Louis Integration site
-cd "/home/keithaumiller/forseti.life/sites/stlouisintegration"
-if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json | grep -q '"bootstrap":"Successful"' 2>/dev/null; then
-    print_status "St. Louis Integration site needs installation/repair..."
-    
-    # Ensure proper file permissions
-    chmod 755 web/sites/default 2>/dev/null || true
-    mkdir -p web/sites/default/files 2>/dev/null || true
-    chmod -R 775 web/sites/default/files 2>/dev/null || true
-    # Create PHP storage directory for compiled classes
-    mkdir -p web/sites/default/files/php 2>/dev/null || true
-    chmod 775 web/sites/default/files/php 2>/dev/null || true
-    # Set proper ownership for Apache
-    sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
-    
-    # Check if we need to install
-    if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status | grep -q "Drupal bootstrap.*Successful" 2>/dev/null; then
-        print_status "Installing St. Louis Integration site..."
-        /usr/bin/php8.3 vendor/drush/drush/drush.php site:install standard \
-            --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${DB_NAME}" \
-            --site-name="${SITE_NAME}" \
-            --account-name="${ADMIN_USER}" \
-            --account-pass="${ADMIN_PASSWORD}" \
-            --account-mail="${ADMIN_EMAIL}" \
-            --yes 2>/dev/null || print_warning "Site installation may have failed"
-    fi
-    
-    # Clear any cached container issues
-    rm -rf web/sites/default/files/php 2>/dev/null || true
+if [ -f "$SETTINGS_FILE" ]; then
+    sed -i '/cache.backend.null/d' "$SETTINGS_FILE" || true
+    print_status "Cleaned cache references from settings.php"
 fi
 
-# Check and fix Theory of Conspiracies site
-cd "/home/keithaumiller/forseti.life/sites/theoryofconspiracies"
-if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json | grep -q '"bootstrap":"Successful"' 2>/dev/null; then
-    print_status "Theory of Conspiracies site needs installation/repair..."
-    
-    # Ensure proper file permissions
-    chmod 755 web/sites/default 2>/dev/null || true
-    mkdir -p web/sites/default/files 2>/dev/null || true
-    chmod -R 775 web/sites/default/files 2>/dev/null || true
-    # Create PHP storage directory for compiled classes
-    mkdir -p web/sites/default/files/php 2>/dev/null || true
-    chmod 775 web/sites/default/files/php 2>/dev/null || true
-    # Set proper ownership for Apache
-    sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null || true
-    
-    # Check if we need to install
-    if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status | grep -q "Drupal bootstrap.*Successful" 2>/dev/null; then
-        print_status "Installing Theory of Conspiracies site..."
-        /usr/bin/php8.3 vendor/drush/drush/drush.php site:install standard \
-            --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/theoryofconspiracies_dev" \
-            --site-name="Theory of Conspiracies" \
-            --account-name="${ADMIN_USER}" \
-            --account-pass="${ADMIN_PASSWORD}" \
-            --account-mail="admin@theoryofconspiracies.com" \
-            --yes 2>/dev/null || print_warning "Site installation may have failed"
+if [ -f "$SETTINGS_LOCAL_FILE" ]; then
+    sed -i '/cache.backend.null/d' "$SETTINGS_LOCAL_FILE" || true
+    if ! grep -q "cache.*max_age" "$SETTINGS_LOCAL_FILE"; then
+        echo "" >> "$SETTINGS_LOCAL_FILE"
+        echo "// Disable page caching for development" >> "$SETTINGS_LOCAL_FILE"
+        echo "\$config['system.performance']['cache']['page']['max_age'] = 0;" >> "$SETTINGS_LOCAL_FILE"
     fi
-    
-    # Clear any cached container issues
-    rm -rf web/sites/default/files/php 2>/dev/null || true
+    print_status "Cleaned cache references from settings.local.php"
 fi
 
-# Fix Composer dependencies and autoloader issues
-print_status "Final Composer dependency verification and cleanup..."
-for site_dir in "stlouisintegration" "forseti" "theoryofconspiracies"; do
-    cd "/home/keithaumiller/forseti.life/sites/${site_dir}"
-    if [ -f "composer.json" ]; then
-        print_status "Verifying Composer dependencies for ${site_dir}..."
-        
-        # Update lock file if needed
-        if [ -f "composer.lock" ]; then
-            /usr/bin/php8.3 /usr/local/bin/composer validate --no-check-all 2>/dev/null || {
-                print_status "Updating Composer dependencies for ${site_dir}..."
-                /usr/bin/php8.3 /usr/local/bin/composer update --no-interaction --with-all-dependencies 2>/dev/null || true
-            }
-        fi
-        
-        # Rebuild autoloader
-        /usr/bin/php8.3 /usr/local/bin/composer dump-autoload --optimize --no-interaction 2>/dev/null || true
-        print_status "Composer autoloader rebuilt for ${site_dir}"
-    fi
-done
+# ------------------------------------------------------------------------------
+# 4.3 CORS Module Installation
+# ------------------------------------------------------------------------------
+# CORS module installation if needed (placeholder for future use)
+# /usr/bin/php8.3 /usr/local/bin/composer require drupal/cors --no-interaction
+# /usr/bin/php8.3 vendor/drush/drush/drush.php en cors -y
 
-# Clear all caches and restart services
+# ------------------------------------------------------------------------------
+# 4.4 Simple OAuth Fix
+# ------------------------------------------------------------------------------
+# Simple OAuth fixes if needed (placeholder for future use)
+
+# ------------------------------------------------------------------------------
+# 4.5 Composer Verification
+# ------------------------------------------------------------------------------
+print_status "Final Composer dependency verification..."
+if [ -f "composer.json" ]; then
+    print_status "Verifying Composer dependencies..."
+    
+    if [ -f "composer.lock" ]; then
+        /usr/bin/php8.3 /usr/local/bin/composer validate --no-check-all 2>/dev/null || {
+            print_status "Updating Composer dependencies..."
+            /usr/bin/php8.3 /usr/local/bin/composer update --no-interaction --with-all-dependencies 2>/dev/null || true
+        }
+    fi
+    
+    /usr/bin/php8.3 /usr/local/bin/composer dump-autoload --optimize --no-interaction 2>/dev/null || true
+    print_status "Composer autoloader rebuilt"
+fi
+
+# ------------------------------------------------------------------------------
+# 4.6 Final Cache Rebuild
+# ------------------------------------------------------------------------------
 print_status "Clearing caches and restarting services..."
 sudo service apache2 restart
 
-# Final verification with error handling
+# ------------------------------------------------------------------------------
+# 4.7 Site Verification
+# ------------------------------------------------------------------------------
 print_status "Final verification and cache rebuild..."
-
-cd "/home/keithaumiller/forseti.life/sites/stlouisintegration"
 if [ -f "vendor/drush/drush/drush.php" ]; then
     if /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json 2>/dev/null | grep -q '"bootstrap":"Successful"'; then
-        print_status "St. Louis Integration site is working correctly"
+        print_status "Forseti site is working correctly"
         /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
     else
-        print_warning "St. Louis Integration site may need manual configuration"
+        print_warning "Forseti site may need manual configuration"
     fi
 else
-    print_warning "Drush not found for St. Louis Integration site"
+    print_warning "Drush not found for Forseti site"
 fi
 
-if [ -d "/home/keithaumiller/forseti.life/sites/forseti" ]; then
-    cd "/home/keithaumiller/forseti.life/sites/forseti"
-    if [ -f "vendor/drush/drush/drush.php" ]; then
-        if /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json 2>/dev/null | grep -q '"bootstrap":"Successful"'; then
-            print_status "Forseti site is working correctly"
-            /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
-        else
-            print_warning "Forseti site may need manual configuration"
-        fi
-    else
-        print_warning "Drush not found for Forseti site"
-    fi
-fi
+print_status "✅ STEP 4 COMPLETE: Post-installation fixes applied"
 
-if [ -d "/home/keithaumiller/forseti.life/sites/theoryofconspiracies" ]; then
-    cd "/home/keithaumiller/forseti.life/sites/theoryofconspiracies"
-    if [ -f "vendor/drush/drush/drush.php" ]; then
-        if /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json 2>/dev/null | grep -q '"bootstrap":"Successful"'; then
-            print_status "Theory of Conspiracies site is working correctly"
-            /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
-        else
-            print_warning "Theory of Conspiracies site may need manual configuration"
-        fi
-    else
-        print_warning "Drush not found for Theory of Conspiracies site"
-    fi
-fi
 
-print_status "Post-installation fixes completed"
-echo ""
-echo "========================="
+# ==============================================================================
+# STEP 5: H3 GEOLOCATION DATABASE SETUP
+# ==============================================================================
+# NOTE: This section creates TABLES within databases that were created in Step 1.7
+#       It does NOT create databases - those already exist (forseti_dev, amisafe_database)
+
 print_step "5. H3 GEOLOCATION DATABASE SETUP - Initializing AmISafe crime mapping pipeline..."
-echo "========================="
 
-# Setup AmISafe Data Pipeline Database Tables (includes stored procedures)
-print_status "Setting up AmISafe H3 geolocation data pipeline database with analytics..."
+# ------------------------------------------------------------------------------
+# 5.1 MySQL Connection Test
+# ------------------------------------------------------------------------------
+ensure_mysql_running
+if sudo mysql -e "SELECT 1;" &>/dev/null; then
+    print_status "✅ MySQL is running and accessible"
+else
+    print_error "❌ MySQL connection test failed"
+fi
+
+# ------------------------------------------------------------------------------
+# 5.2 H3 Python Environment Verification
+# ------------------------------------------------------------------------------
+H3_ENV_DIR="/home/keithaumiller/forseti.life/h3-geolocation/h3-env"
+if [ -f "$H3_ENV_DIR/bin/python" ]; then
+    H3_TEST_RESULT=$($H3_ENV_DIR/bin/python -c "import h3; import pandas; import mysql.connector; print('H3 packages verified')" 2>/dev/null || echo "FAILED")
+    if [ "$H3_TEST_RESULT" = "H3 packages verified" ]; then
+        print_status "✅ H3 Python environment verified"
+    else
+        print_warning "⚠️  H3 Python environment verification failed"
+    fi
+else
+    print_warning "⚠️  H3 Python environment not found"
+fi
+
+# ------------------------------------------------------------------------------
+# 5.3 Database Table Verification
+# ------------------------------------------------------------------------------
+print_status "Setting up AmISafe H3 geolocation data pipeline database..."
 AMISAFE_SETUP_SCRIPT="/home/keithaumiller/forseti.life/h3-geolocation/database/setup/setup_amisafe_complete.sh"
 
 if [ -f "$AMISAFE_SETUP_SCRIPT" ]; then
-    print_status "Running AmISafe complete database setup (tables + stored procedures)..."
-    if bash "$AMISAFE_SETUP_SCRIPT" "amisafe_database"; then
-        print_status "✅ AmISafe database setup completed successfully (ETL + Analytics)"
+    print_status "Running AmISafe complete database setup..."
+    if bash "$AMISAFE_SETUP_SCRIPT" "$DB_NAME"; then
+        print_status "✅ AmISafe database setup completed successfully"
         
-        # Run sample data pipeline to verify functionality
+        # ------------------------------------------------------------------------------
+        # 5.4 ETL Pipeline Status
+        # ------------------------------------------------------------------------------
         print_status "Running AmISafe sample data pipeline..."
         PIPELINE_SCRIPT="/home/keithaumiller/forseti.life/h3-geolocation/database/run_amisafe_pipeline_stlouisintegration.sh"
         if [ -f "$PIPELINE_SCRIPT" ]; then
             cd /home/keithaumiller/forseti.life/h3-geolocation/database
             if bash "$PIPELINE_SCRIPT" sample; then
-                print_status "✅ AmISafe sample data pipeline completed successfully"
+                print_status "✅ AmISafe sample data pipeline completed"
             else
-                print_warning "⚠️  AmISafe pipeline had issues - continuing..."
+                print_warning "⚠️  AmISafe pipeline had issues"
             fi
             cd - > /dev/null
         fi
     else
-        print_warning "⚠️  AmISafe database setup encountered issues - continuing..."
+        print_warning "⚠️  AmISafe database setup encountered issues"
     fi
 else
     print_warning "⚠️  AmISafe database setup script not found - setting up basic tables..."
     
-    # Ensure MySQL is running
-    ensure_mysql_running
-    
-    # Create basic AmISafe tables directly
+    # Create basic AmISafe tables
     print_status "Creating basic AmISafe database tables..."
     mysql -h127.0.0.1 -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" << 'EOF' || print_warning "AmISafe table creation failed"
 CREATE TABLE IF NOT EXISTS amisafe_raw_incidents (
@@ -2196,68 +1429,71 @@ CREATE TABLE IF NOT EXISTS amisafe_h3_aggregated (
 EOF
     
     if [ $? -eq 0 ]; then
-        print_status "✅ Basic AmISafe database tables created successfully"
+        print_status "✅ Basic AmISafe database tables created"
     fi
 fi
 
+# ------------------------------------------------------------------------------
+# 5.5 Database Statistics
+# ------------------------------------------------------------------------------
+print_status "Checking AmISafe database statistics..."
+AMISAFE_RAW_COUNT=$(mysql -h127.0.0.1 -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "SELECT COUNT(*) FROM amisafe_raw_incidents;" 2>/dev/null || echo "0")
+AMISAFE_CLEAN_COUNT=$(mysql -h127.0.0.1 -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "SELECT COUNT(*) FROM amisafe_clean_incidents;" 2>/dev/null || echo "0")
+AMISAFE_H3_COUNT=$(mysql -h127.0.0.1 -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -sN -e "SELECT COUNT(*) FROM amisafe_h3_aggregated;" 2>/dev/null || echo "0")
+
+print_status "AmISafe Data Statistics:"
+echo "  - Raw Incidents: $AMISAFE_RAW_COUNT"
+echo "  - Clean Incidents: $AMISAFE_CLEAN_COUNT"
+echo "  - H3 Aggregated: $AMISAFE_H3_COUNT"
+
+# ------------------------------------------------------------------------------
+# 5.6 Import Instructions
+# ------------------------------------------------------------------------------
+print_status "✅ STEP 5 COMPLETE: H3 geolocation setup finished"
+
+# ==============================================================================
+# COMPLETION MESSAGE
+# ==============================================================================
+
+print_step "SETUP COMPLETE - Forseti.Life Development Environment Ready!"
+
 echo ""
 echo "========================="
-print_status "FINAL VERIFICATION - Testing sites accessibility..."
+echo "Installation Summary"
 echo "========================="
-
-# Test final site accessibility
-SITE1_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost" 2>/dev/null || echo "000")
-SITE2_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080" 2>/dev/null || echo "000")
-SITE3_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:8081" 2>/dev/null || echo "000")
-
-if [[ "$SITE1_STATUS" =~ ^(200|302|301)$ ]]; then
-    print_status "✅ St. Louis Integration site is working - HTTP $SITE1_STATUS"
-else
-    print_warning "⚠️  St. Louis Integration site returned HTTP $SITE1_STATUS"
-fi
-
-if [[ "$SITE2_STATUS" =~ ^(200|302|301)$ ]]; then
-    print_status "✅ Forseti site is working - HTTP $SITE2_STATUS"
-else
-    print_warning "⚠️  Forseti site returned HTTP $SITE2_STATUS"
-fi
-
-if [[ "$SITE3_STATUS" =~ ^(200|302|301)$ ]]; then
-    print_status "✅ Theory of Conspiracies site is working - HTTP $SITE3_STATUS"
-else
-    print_warning "⚠️  Theory of Conspiracies site returned HTTP $SITE3_STATUS"
-fi
-
+echo "✓ Environment: PHP 8.3, MySQL, Apache configured"
+echo "✓ Drupal: 11.2.5 installed and configured"
+echo "✓ Development Tools: Coder, PHPCS, PHPUnit configured"
+echo "✓ H3 Geolocation Framework: Ready for AmISafe crime mapping"
+echo "✓ Database: $DB_NAME with AmISafe tables"
 echo ""
-print_status "TROUBLESHOOTING FIXES APPLIED:"
-echo "================================"
-echo "✓ Fixed PHP extension detection - consistent php8.3 usage"
-echo "✓ Resolved Composer autoloader corruption issues"  
-echo "✓ Removed invalid cache.backend.null service references"
-echo "✓ Updated development.services.yml configurations"
-echo "✓ Ensured all three sites are properly installed via Drush"
-echo "✓ Enabled all custom modules with proper dependency order"
-echo "✓ Configured custom themes for all sites"
-echo "✓ Cleaned cache configuration from all settings files"
-echo "✓ Rebuilt Composer autoloaders with optimization"
-echo "✓ Cleared PHP container cache directories"
-echo "✓ Set up H3 geolocation data pipeline database"
-echo "✓ Verified final site accessibility"
+echo "========================="
+echo "Access Information"
+echo "========================="
+echo "Site URL: http://forseti.local"
+echo "Admin Login: http://forseti.local/user/login"
+echo "Admin User: $ADMIN_USER"
+echo "Admin Password: $ADMIN_PASSWORD"
+echo "Database: $DB_NAME"
+echo "Directory: $PROJECT_DIR"
 echo ""
-print_status "COMPLETE ENVIRONMENT SETUP SUMMARY:"
-echo "===================================="
-print_status "✅ Drupal Multi-site Environment Ready"
-print_status "   • St. Louis Integration: http://localhost"
-print_status "   • Forseti: http://localhost:8080"
-print_status "   • Theory of Conspiracies: http://localhost:8081"
-print_status "✅ H3 Geolocation Data Pipeline Ready"
-print_status "   • Database: theoryofconspiracies_dev"
-print_status "   • Tables: Raw → Transform → Final layers"
-print_status "   • Location: h3-geolocation/ directory"
-print_status "✅ Development Tools Configured"
-print_status "   • PHP 8.3, MySQL, Apache, Composer"
-print_status "   • Drush, custom modules, themes"
+echo "========================="
+echo "Available Commands"
+echo "========================="
+echo "Navigate to site: cd $PROJECT_DIR"
+echo "Clear cache: ./vendor/bin/drush cr"
+echo "One-time login: ./vendor/bin/drush uli"
+echo "Check coding standards: ./scripts/check-standards.sh"
+echo "Backup database: ./scripts/backup-database.sh"
 echo ""
-print_status "🚀 Environment is now fully configured and verified!"
-print_status "🚀 All three Drupal sites should be accessible and functional!"
-print_status "📊 H3 data pipeline ready for execution!"
+echo "H3 Geolocation Commands:"
+echo "Navigate to H3: cd /home/keithaumiller/forseti.life/h3-geolocation"
+echo "Activate environment: source h3-env/bin/activate"
+echo "Run pipeline: cd database && bash run_amisafe_pipeline_stlouisintegration.sh"
+echo "Quick examples: python quick_start.py"
+echo "Visualization: python visualizer.py"
+echo ""
+echo "========================="
+print_status "🚀 Your Forseti development environment is ready!"
+print_status "📖 See README.md for detailed documentation"
+echo "========================="

@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit608e2195b8e68e0d14c24d4383216c60
+class ComposerStaticInitb3b964f611786963fd76f1b8170c6074
 {
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
@@ -7961,16 +7961,14 @@ class ComposerStaticInit608e2195b8e68e0d14c24d4383216c60
         'Symfony\\Bridge\\PhpUnit\\Extension\\EnableClockMockSubscriber' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Extension/EnableClockMockSubscriber.php',
         'Symfony\\Bridge\\PhpUnit\\Extension\\RegisterClockMockSubscriber' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Extension/RegisterClockMockSubscriber.php',
         'Symfony\\Bridge\\PhpUnit\\Extension\\RegisterDnsMockSubscriber' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Extension/RegisterDnsMockSubscriber.php',
-        'Symfony\\Bridge\\PhpUnit\\Legacy\\CommandForV7' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Legacy/CommandForV7.php',
+        'Symfony\\Bridge\\PhpUnit\\Legacy\\CommandForV8' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Legacy/CommandForV8.php',
         'Symfony\\Bridge\\PhpUnit\\Legacy\\CommandForV9' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Legacy/CommandForV9.php',
         'Symfony\\Bridge\\PhpUnit\\Legacy\\ConstraintLogicTrait' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Legacy/ConstraintLogicTrait.php',
-        'Symfony\\Bridge\\PhpUnit\\Legacy\\ConstraintTraitForV7' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Legacy/ConstraintTraitForV7.php',
         'Symfony\\Bridge\\PhpUnit\\Legacy\\ConstraintTraitForV8' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Legacy/ConstraintTraitForV8.php',
         'Symfony\\Bridge\\PhpUnit\\Legacy\\ConstraintTraitForV9' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Legacy/ConstraintTraitForV9.php',
         'Symfony\\Bridge\\PhpUnit\\Legacy\\ExpectDeprecationTraitBeforeV8_4' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Legacy/ExpectDeprecationTraitBeforeV8_4.php',
         'Symfony\\Bridge\\PhpUnit\\Legacy\\ExpectDeprecationTraitForV8_4' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Legacy/ExpectDeprecationTraitForV8_4.php',
         'Symfony\\Bridge\\PhpUnit\\Legacy\\PolyfillAssertTrait' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Legacy/PolyfillAssertTrait.php',
-        'Symfony\\Bridge\\PhpUnit\\Legacy\\PolyfillTestCaseTrait' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Legacy/PolyfillTestCaseTrait.php',
         'Symfony\\Bridge\\PhpUnit\\Legacy\\SymfonyTestsListenerForV7' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Legacy/SymfonyTestsListenerForV7.php',
         'Symfony\\Bridge\\PhpUnit\\Legacy\\SymfonyTestsListenerTrait' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Legacy/SymfonyTestsListenerTrait.php',
         'Symfony\\Bridge\\PhpUnit\\Metadata\\AttributeReader' => __DIR__ . '/..' . '/symfony/phpunit-bridge/Metadata/AttributeReader.php',
@@ -9722,10 +9720,10 @@ class ComposerStaticInit608e2195b8e68e0d14c24d4383216c60
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit608e2195b8e68e0d14c24d4383216c60::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit608e2195b8e68e0d14c24d4383216c60::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit608e2195b8e68e0d14c24d4383216c60::$prefixesPsr0;
-            $loader->classMap = ComposerStaticInit608e2195b8e68e0d14c24d4383216c60::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitb3b964f611786963fd76f1b8170c6074::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitb3b964f611786963fd76f1b8170c6074::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInitb3b964f611786963fd76f1b8170c6074::$prefixesPsr0;
+            $loader->classMap = ComposerStaticInitb3b964f611786963fd76f1b8170c6074::$classMap;
 
         }, null, ClassLoader::class);
     }
