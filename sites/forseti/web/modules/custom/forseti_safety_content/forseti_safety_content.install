@@ -147,3 +147,66 @@ function forseti_safety_content_update_9002() {
   \Drupal::logger('forseti_safety_content')->info('Cleared page.403 and page.404 settings - theme templates now handle error pages.');
   return t('Cleared error page routes. Theme templates (page--403.html.twig, page--404.html.twig) now handle error pages.');
 }
+
+/**
+ * Update user registration settings and email templates with Forseti branding.
+ */
+function forseti_safety_content_update_9003() {
+  $config_factory = \Drupal::configFactory();
+  $logger = \Drupal::logger('forseti_safety_content');
+  $messages = [];
+  
+  // Update user.settings to enable visitor registration
+  $user_settings = $config_factory->getEditable('user.settings');
+  $current_register = $user_settings->get('register');
+  
+  if ($current_register !== 'visitors') {
+    $user_settings->set('register', 'visitors');
+    $user_settings->save();
+    $messages[] = t('Enabled visitor registration (was: @old)', ['@old' => $current_register]);
+    $logger->info('Updated user.settings: register changed from @old to visitors', ['@old' => $current_register]);
+  }
+  
+  // Update user.mail with Forseti branded email templates
+  $user_mail = $config_factory->getEditable('user.mail');
+  $module_path = \Drupal::service('extension.list.module')->getPath('forseti_safety_content');
+  $config_path = $module_path . '/config/install/user.mail.yml';
+  
+  if (file_exists($config_path)) {
+    $yaml = \Drupal::service('serialization.yaml');
+    $new_config = $yaml->decode(file_get_contents($config_path));
+    
+    // Update each email template
+    $templates = [
+      'cancel_confirm',
+      'password_reset',
+      'register_admin_created',
+      'register_no_approval_required',
+      'register_pending_approval',
+      'register_pending_approval_admin',
+      'status_activated',
+      'status_blocked',
+      'status_canceled'
+    ];
+    
+    foreach ($templates as $template) {
+      if (isset($new_config[$template])) {
+        $user_mail->set($template, $new_config[$template]);
+      }
+    }
+    
+    $user_mail->save();
+    $messages[] = t('Updated all user email templates with Forseti branding');
+    $logger->info('Updated user.mail with Forseti branded templates');
+  }
+  else {
+    $messages[] = t('Warning: Could not find user.mail.yml config file');
+    $logger->warning('Could not find user.mail.yml at @path', ['@path' => $config_path]);
+  }
+  
+  // Clear cache to ensure new configs are loaded
+  drupal_flush_all_caches();
+  $messages[] = t('Cleared all caches');
+  
+  return implode(' | ', $messages);
+}
