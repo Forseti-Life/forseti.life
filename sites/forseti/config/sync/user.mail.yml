@@ -80,7 +80,7 @@ register_admin_created:
     Forseti.life - AI Looking Out For Us
     Vigilance • Transparency • Justice • Community
 register_no_approval_required:
-  subject: 'Welcome to Forseti - Let\'s Get Started'
+  subject: 'Welcome to Forseti - Let''s Get Started'
   body: |-
     Hello [user:display-name],
 
