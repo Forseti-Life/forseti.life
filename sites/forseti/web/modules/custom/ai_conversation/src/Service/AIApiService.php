@@ -97,26 +97,49 @@ class AIApiService {
   protected function isDevelopmentEnvironment(): bool {
     // Check for GitHub Codespaces environment variable
     if (getenv('CODESPACES') === 'true') {
+      $this->logger->info('Development detected: CODESPACES=true');
       return TRUE;
     }
     
     // Check for common development indicators
     if (getenv('ENVIRONMENT') === 'development' || 
-        getenv('APP_ENV') === 'dev' ||
-        $_SERVER['SERVER_NAME'] === 'localhost' ||
-        strpos($_SERVER['HTTP_HOST'] ?? '', 'codespace') !== FALSE) {
+        getenv('APP_ENV') === 'dev') {
+      $this->logger->info('Development detected: ENVIRONMENT or APP_ENV');
+      return TRUE;
+    }
+    
+    // Check server name
+    if (isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME'] === 'localhost') {
+      $this->logger->info('Development detected: SERVER_NAME=localhost');
+      return TRUE;
+    }
+    
+    // Check HTTP_HOST for codespace
+    if (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'codespace') !== FALSE) {
+      $this->logger->info('Development detected: HTTP_HOST contains codespace');
       return TRUE;
     }
     
     // Check Drupal site URI for development patterns
     $request = \Drupal::request();
     $host = $request->getHost();
+    
+    $this->logger->info('Checking host for development patterns: @host', ['@host' => $host]);
+    
     if (strpos($host, 'localhost') !== FALSE || 
         strpos($host, '127.0.0.1') !== FALSE ||
         strpos($host, 'codespace') !== FALSE ||
-        strpos($host, '.local') !== FALSE) {
+        strpos($host, '.local') !== FALSE ||
+        strpos($host, '.test') !== FALSE) {
+      $this->logger->info('Development detected: host pattern match');
       return TRUE;
     }
+    
+    $this->logger->warning('Production environment detected. Host: @host, SERVER_NAME: @server, HTTP_HOST: @http_host', [
+      '@host' => $host,
+      '@server' => $_SERVER['SERVER_NAME'] ?? 'not set',
+      '@http_host' => $_SERVER['HTTP_HOST'] ?? 'not set',
+    ]);
     
     return FALSE;
   }
