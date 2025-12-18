@@ -15,7 +15,7 @@ import {
   PermissionsAndroid,
   Platform,
 } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -44,6 +44,21 @@ import { requestLocationPermission } from './src/utils/permissions';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
+
+// Custom navigation theme using Forseti colors with fallbacks
+const ForsetiNavigationTheme = {
+  ...DefaultTheme,
+  dark: true,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: Colors?.primary || '#00d4ff',
+    background: Colors?.background || '#1a1a2e',
+    card: Colors?.card || '#16213e',
+    text: Colors?.text || '#ffffff',
+    border: Colors?.border || '#2a3f5f',
+    notification: Colors?.primary || '#00d4ff',
+  },
+};
 
 // Main Tab Navigator
 const TabNavigator = () => {
@@ -255,7 +270,7 @@ const App: React.FC = () => {
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={Colors.primary}
       />
-      <NavigationContainer>
+      <NavigationContainer theme={ForsetiNavigationTheme}>
         <Stack.Navigator
           screenOptions={{
             headerShown: false,
