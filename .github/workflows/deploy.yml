@@ -185,7 +185,7 @@ jobs:
             MOBILE_DIR="$DRUPAL_ROOT/web/sites/default/files/forseti/mobile"
             sudo mkdir -p "$MOBILE_DIR"
             
-            # Copy APK file from the repository
+            # Copy production APK file from the repository
             if [ -f "$TEMP_DIR/sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk" ]; then
               sudo cp "$TEMP_DIR/sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk" "$MOBILE_DIR/"
               sudo chown www-data:www-data "$MOBILE_DIR/Forseti-latest.apk"
@@ -193,6 +193,16 @@ jobs:
               echo "✅ Forseti-latest.apk deployed to $MOBILE_DIR"
             else
               echo "⚠️ Forseti-latest.apk not found in repository"
+            fi
+            
+            # Copy debug APK file from the repository
+            if [ -f "$TEMP_DIR/sites/forseti/web/sites/default/files/forseti/mobile/Forseti-debug.apk" ]; then
+              sudo cp "$TEMP_DIR/sites/forseti/web/sites/default/files/forseti/mobile/Forseti-debug.apk" "$MOBILE_DIR/"
+              sudo chown www-data:www-data "$MOBILE_DIR/Forseti-debug.apk"
+              sudo chmod 644 "$MOBILE_DIR/Forseti-debug.apk"
+              echo "✅ Forseti-debug.apk deployed to $MOBILE_DIR"
+            else
+              echo "⚠️ Forseti-debug.apk not found in repository"
             fi
           else
             echo "ℹ️ No Forseti Mobile directory found in repository"
