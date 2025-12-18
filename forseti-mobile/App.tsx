@@ -36,7 +36,7 @@ import SettingsScreen from './src/screens/Settings/SettingsScreen';
 // Services
 import LocationService from './src/services/location/LocationService';
 import StorageService from './src/services/storage/StorageService';
-import NotificationService from './src/services/notifications/NotificationService';
+// import NotificationService from './src/services/notifications/NotificationService'; // Temporarily disabled
 
 // Utils
 import { Colors } from './src/utils/colors';
@@ -164,8 +164,8 @@ const App: React.FC = () => {
       }
 
       // Initialize notification service
-      await NotificationService.initialize();
-      console.log('✅ Notification service initialized');
+      // await NotificationService.initialize(); // Temporarily disabled
+      console.log('✅ Notification service skipped (not implemented yet)');
 
       // Load user preferences
       const userPreferences = await StorageService.getItem('userPreferences');

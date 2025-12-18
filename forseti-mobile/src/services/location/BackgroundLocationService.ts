@@ -8,7 +8,7 @@
 import Geolocation from 'react-native-geolocation-service';
 import { Platform, AppState, AppStateStatus } from 'react-native';
 import { h3 } from 'h3-js';
-import NotificationService from '../notifications/NotificationService';
+// import NotificationService from '../notifications/NotificationService'; // Temporarily disabled
 import StorageService from '../storage/StorageService';
 import axios from 'axios';
 
@@ -80,7 +80,7 @@ class BackgroundLocationService {
       await this.loadUserSettings();
 
       // Initialize notification service
-      await NotificationService.initialize();
+      // await NotificationService.initialize(); // Temporarily disabled
 
       // Save monitoring state
       await StorageService.saveData('background_monitoring_enabled', true);
@@ -281,7 +281,8 @@ class BackgroundLocationService {
     const incidentCount = hexagonData.incident_count;
     const riskLevel = hexagonData.risk_level;
 
-    await NotificationService.scheduleNotification({
+    // await NotificationService.scheduleNotification({ // Temporarily disabled
+    console.log('⚠️ Would send danger notification:', {
       id: `danger-alert-${Date.now()}`,
       title: '⚠️ High Crime Area Alert',
       message: `You are entering a potentially dangerous area. ${incidentCount} incidents reported here (Risk: ${riskLevel}, Z-Score: ${zScore})`,
@@ -297,9 +298,9 @@ class BackgroundLocationService {
       priority: 'high',
       sound: true,
       vibrate: true,
-    });
+    }); // Closing console.log
 
-    console.log(`🚨 DANGER NOTIFICATION SENT - Z-Score: ${zScore}, Incidents: ${incidentCount}`);
+    console.log(`🚨 DANGER NOTIFICATION (DISABLED) - Z-Score: ${zScore}, Incidents: ${incidentCount}`);
   }
 
   /**
