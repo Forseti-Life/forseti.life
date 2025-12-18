@@ -42,6 +42,11 @@ import StorageService from './src/services/storage/StorageService';
 import { Colors } from './src/utils/colors';
 import { requestLocationPermission } from './src/utils/permissions';
 
+// Debug: Log Colors on module load
+console.log('🎨 [DEBUG] Colors object loaded:', Colors);
+console.log('🎨 [DEBUG] Colors.background:', Colors?.background);
+console.log('🎨 [DEBUG] Colors type:', typeof Colors);
+
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
@@ -93,13 +98,13 @@ const TabNavigator = () => {
 
           return <Icon name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.gray,
+        tabBarActiveTintColor: Colors?.primary || '#00d4ff',
+        tabBarInactiveTintColor: Colors?.gray || '#6c757d',
         tabBarStyle: styles.tabBar,
         headerStyle: {
-          backgroundColor: Colors.primary,
+          backgroundColor: Colors?.primary || '#00d4ff',
         },
-        headerTintColor: Colors.white,
+        headerTintColor: Colors?.white || '#ffffff',
         headerTitleStyle: {
           fontWeight: 'bold',
         },
@@ -146,7 +151,7 @@ const App: React.FC = () => {
   const [initError, setInitError] = useState<string | null>(null);
 
   const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+    backgroundColor: isDarkMode ? (Colors?.darker || '#000000') : (Colors?.lighter || '#ffffff'),
     flex: 1,
   };
 
@@ -268,7 +273,7 @@ const App: React.FC = () => {
     <SafeAreaView style={backgroundStyle}>
       <StatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={Colors.primary}
+        backgroundColor={Colors?.primary || '#00d4ff'}
       />
       <NavigationContainer theme={ForsetiNavigationTheme}>
         <Stack.Navigator
@@ -282,8 +287,8 @@ const App: React.FC = () => {
             component={ConversationListScreen}
             options={{
               headerShown: true,
-              headerStyle: { backgroundColor: Colors.primary },
-              headerTintColor: Colors.white,
+              headerStyle: { backgroundColor: Colors?.primary || '#00d4ff' },
+              headerTintColor: Colors?.white || '#ffffff',
               headerTitle: 'Conversations',
             }}
           />
@@ -292,8 +297,8 @@ const App: React.FC = () => {
             component={AboutScreen}
             options={{
               headerShown: true,
-              headerStyle: { backgroundColor: Colors.primary },
-              headerTintColor: Colors.white,
+              headerStyle: { backgroundColor: Colors?.primary || '#00d4ff' },
+              headerTintColor: Colors?.white || '#ffffff',
               headerTitle: 'About Forseti',
             }}
           />
@@ -302,8 +307,8 @@ const App: React.FC = () => {
             component={HowItWorksScreen}
             options={{
               headerShown: true,
-              headerStyle: { backgroundColor: Colors.primary },
-              headerTintColor: Colors.white,
+              headerStyle: { backgroundColor: Colors?.primary || '#00d4ff' },
+              headerTintColor: Colors?.white || '#ffffff',
               headerTitle: 'How It Works',
             }}
           />
@@ -312,8 +317,8 @@ const App: React.FC = () => {
             component={PrivacyScreen}
             options={{
               headerShown: true,
-              headerStyle: { backgroundColor: Colors.primary },
-              headerTintColor: Colors.white,
+              headerStyle: { backgroundColor: Colors?.primary || '#00d4ff' },
+              headerTintColor: Colors?.white || '#ffffff',
               headerTitle: 'Privacy & Security',
             }}
           />
@@ -322,8 +327,8 @@ const App: React.FC = () => {
             component={SettingsScreen}
             options={{
               headerShown: true,
-              headerStyle: { backgroundColor: Colors.primary },
-              headerTintColor: Colors.white,
+              headerStyle: { backgroundColor: Colors?.primary || '#00d4ff' },
+              headerTintColor: Colors?.white || '#ffffff',
               headerTitle: 'Settings',
             }}
           />
@@ -335,8 +340,8 @@ const App: React.FC = () => {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: Colors.white,
-    borderTopColor: Colors.lightGray,
+    backgroundColor: Colors?.white || '#ffffff',
+    borderTopColor: Colors?.lightGray || '#e9ecef',
     borderTopWidth: 1,
     paddingBottom: Platform.OS === 'ios' ? 20 : 5,
     paddingTop: 5,
