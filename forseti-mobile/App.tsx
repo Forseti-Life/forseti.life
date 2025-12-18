@@ -1,5 +1,5 @@
 /**
- * AmISafe Mobile Application
+ * Forseti Mobile Application
  * Main App Component - Entry point for React Native application
  * 
  * @format
@@ -23,8 +23,8 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 // Screens
 import HomeScreen from './src/screens/Home/HomeScreen';
 import CrimeMapScreen from './src/screens/CrimeMapScreen';
-import SafetyScreen from './src/screens/Safety/SafetyScreen';
-import StatisticsScreen from './src/screens/Statistics/StatisticsScreen';
+import CommunityScreen from './src/screens/Community/CommunityScreen';
+import SafetyFactorsScreen from './src/screens/SafetyFactors/SafetyFactorsScreen';
 import ProfileScreen from './src/screens/Profile/ProfileScreen';
 import ChatScreen from './src/screens/Chat/ChatScreen';
 import ConversationListScreen from './src/screens/Chat/ConversationListScreen';
@@ -63,11 +63,11 @@ const TabNavigator = () => {
             case 'Chat':
               iconName = focused ? 'robot' : 'robot-outline';
               break;
-            case 'Safety':
-              iconName = focused ? 'shield-check' : 'shield-check-outline';
+            case 'Community':
+              iconName = focused ? 'account-group' : 'account-group-outline';
               break;
-            case 'Statistics':
-              iconName = focused ? 'chart-line' : 'chart-line-variant';
+            case 'SafetyFactors':
+              iconName = focused ? 'information' : 'information-outline';
               break;
             case 'Profile':
               iconName = focused ? 'account' : 'account-outline';
@@ -93,7 +93,7 @@ const TabNavigator = () => {
       <Tab.Screen 
         name="Home" 
         component={HomeScreen}
-        options={{ title: 'AmISafe' }}
+        options={{ title: 'Forseti' }}
       />
       <Tab.Screen 
         name="Map" 
@@ -106,14 +106,14 @@ const TabNavigator = () => {
         options={{ title: 'Talk with Forseti', headerShown: false }}
       />
       <Tab.Screen 
-        name="Safety" 
-        component={SafetyScreen}
-        options={{ title: 'Safety' }}
+        name="Community" 
+        component={CommunityScreen}
+        options={{ title: 'Community' }}
       />
       <Tab.Screen 
-        name="Statistics" 
-        component={StatisticsScreen}
-        options={{ title: 'Statistics' }}
+        name="SafetyFactors" 
+        component={SafetyFactorsScreen}
+        options={{ title: 'Safety Factors' }}
       />
       <Tab.Screen 
         name="Profile" 
@@ -140,7 +140,7 @@ const App: React.FC = () => {
 
   const initializeApp = async () => {
     try {
-      console.log('🚀 Initializing AmISafe Mobile App...');
+      console.log('🚀 Initializing Forseti Mobile App...');
 
       // Initialize storage service
       await StorageService.initialize();
@@ -158,7 +158,7 @@ const App: React.FC = () => {
         console.warn('⚠️ Location permission denied');
         Alert.alert(
           'Location Permission Required',
-          'AmISafe needs location access to provide safety information for your area. Please enable location permissions in your device settings.',
+          'Forseti needs location access to provide safety information for your area. Please enable location permissions in your device settings.',
           [{ text: 'OK' }]
         );
       }
@@ -174,7 +174,7 @@ const App: React.FC = () => {
       }
 
       setIsInitialized(true);
-      console.log('🎉 AmISafe Mobile App initialization complete!');
+      console.log('🎉 Forseti Mobile App initialization complete!');
 
     } catch (error) {
       console.error('❌ App initialization failed:', error);

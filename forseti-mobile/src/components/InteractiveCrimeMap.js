@@ -1,5 +1,5 @@
 /**
- * Interactive Crime Map Component for AmISafe Mobile
+ * Interactive Crime Map Component for Forseti Mobile
  * 
  * React Native implementation based on the web crime-map.js functionality
  * Features: H3 hexagon visualization, zoom-based resolution switching, crime incidents
@@ -918,11 +918,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 5,
   },
-  riskSAFE: { color: '#00ff00' },
-  riskLOW: { color: '#88ff00' },
-  riskMODERATE: { color: '#ffff00' },
-  riskHIGH: { color: '#ff8800' },
-  riskCRITICAL: { color: '#ff0000' },
+  riskSAFE: { color: '#28a745' },
+  riskLOW: { color: '#28a745' },
+  riskMODERATE: { color: '#fdd835' },
+  riskHIGH: { color: '#ff9800' },
+  riskCRITICAL: { color: '#f44336' },
 });
 
 export default InteractiveCrimeMap;

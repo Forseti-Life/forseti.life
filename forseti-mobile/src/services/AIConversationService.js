@@ -1,5 +1,5 @@
 /**
- * AI Conversation Service for AmISafe Mobile
+ * AI Conversation Service for Forseti Mobile
  * 
  * Integrates with Drupal's ai_conversation module
  * Provides AI-powered conversations with Forseti

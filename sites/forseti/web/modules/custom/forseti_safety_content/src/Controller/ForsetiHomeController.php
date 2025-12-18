@@ -57,7 +57,7 @@ class ForsetiHomeController extends ControllerBase {
                 Talk with Forseti
               </a>
               <a href="/safety-map" class="btn btn-light btn-lg me-2">View Safety Map</a>
-              <a href="/mobile-app" class="btn btn-outline-light btn-lg">Get Forseti App</a>
+              <a href="/mobile-app" class="btn btn-outline-light btn-lg">Get Forseti Mobile</a>
             </div>
           </div>
         </div>

@@ -61,8 +61,8 @@ export class GPSLocationService {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
           {
-            title: 'AmISafe Location Permission',
-            message: 'AmISafe needs access to your location to provide real-time safety alerts.',
+            title: 'Forseti Location Permission',
+            message: 'Forseti needs access to your location to provide real-time safety alerts.',
             buttonNeutral: 'Ask Me Later',
             buttonNegative: 'Cancel',
             buttonPositive: 'OK',

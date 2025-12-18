@@ -1,5 +1,5 @@
 /**
- * Crime Map Screen for AmISafe Mobile App
+ * Crime Map Screen for Forseti Mobile App
  * 
  * Full-screen crime map interface with controls and filtering
  */

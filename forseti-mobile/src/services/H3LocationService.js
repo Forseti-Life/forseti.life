@@ -1,5 +1,5 @@
 /**
- * H3 Geospatial Service for AmISafe Mobile Application
+ * H3 Geospatial Service for Forseti Mobile Application
  * 
  * Implements ultra-precise location tracking using H3 hexagonal indexing
  * at Level 13 resolution (44m²) as specified in the technical documentation.

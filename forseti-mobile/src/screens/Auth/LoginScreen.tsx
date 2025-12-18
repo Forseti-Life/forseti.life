@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { DrupalAuthService } from '../../services/DrupalAuthService';
 import { StorageService } from '../../services/storage/StorageService';
-import { colors } from '../../utils/colors';
+import { Theme } from '../../utils/theme';
+
+const { Colors, Spacing, Typography } = Theme;
 
 interface LoginScreenProps {
   navigation: any;
@@ -41,7 +43,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
         await StorageService.setItem('userId', result.user.uid.toString());
         await StorageService.setItem('username', result.user.name);
 
-        Alert.alert('Success', 'Welcome to AmISafe!', [
+        Alert.alert('Success', 'Welcome to Forseti!', [
           {
             text: 'OK',
             onPress: () => navigation.replace('Home'),
@@ -80,7 +82,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       >
         <View style={styles.header}>
           <Text style={styles.logo}>🛡️</Text>
-          <Text style={styles.title}>AmISafe</Text>
+          <Text style={styles.title}>Forseti</Text>
           <Text style={styles.subtitle}>Stay Informed, Stay Safe</Text>
         </View>
 

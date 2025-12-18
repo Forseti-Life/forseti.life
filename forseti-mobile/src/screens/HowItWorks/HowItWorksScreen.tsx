@@ -57,13 +57,13 @@ const HowItWorksScreen: React.FC = () => {
             <View style={styles.stepContent}>
               <View style={styles.stepHeader}>
                 <Icon name="brain" size={24} color={Colors.primary} />
-                <Text style={styles.stepTitle}>AI Analysis 🧠</Text>
+                <Text style={styles.stepTitle}>AI Pattern Recognition 🧠</Text>
               </View>
               <Text style={styles.stepDescription}>
-                Our artificial intelligence systems analyze millions of data points to 
-                identify patterns, trends, and potential risk factors. The AI considers 
-                time of day, day of week, weather conditions, historical patterns, and 
-                proximity to recent incidents.
+                Our machine learning algorithms analyze historical and real-time data to identify: 
+                temporal patterns (when crimes are most likely to occur), spatial patterns (geographic 
+                clustering and crime migration), trend analysis (increasing or decreasing crime rates 
+                over time), and predictive modeling (forecasting high-risk areas and times).
               </Text>
             </View>
           </View>
@@ -75,13 +75,15 @@ const HowItWorksScreen: React.FC = () => {
             <View style={styles.stepContent}>
               <View style={styles.stepHeader}>
                 <Icon name="hexagon-multiple" size={24} color={Colors.primary} />
-                <Text style={styles.stepTitle}>H3 Geospatial Indexing 🗺️</Text>
+                <Text style={styles.stepTitle}>H3 Geospatial Analysis 🗺️</Text>
               </View>
               <Text style={styles.stepDescription}>
-                We use Uber's H3 hexagonal hierarchical spatial index to divide 
-                Philadelphia into precise geographic cells. This allows us to provide 
-                hyper-local safety assessments for your exact location rather than 
-                broad neighborhood ratings.
+                Using Uber's H3 hexagonal hierarchical geospatial indexing system, we map crime 
+                incidents with incredible precision. Unlike traditional square grids, H3 hexagons 
+                provide more accurate spatial analysis and better visualization of crime patterns. 
+                Resolution levels range from neighborhood overviews to block-level details, enabling 
+                incident density calculations for hotspot identification and neighbor analysis to 
+                understand how crime spreads between adjacent areas.
               </Text>
             </View>
           </View>
@@ -93,13 +95,12 @@ const HowItWorksScreen: React.FC = () => {
             <View style={styles.stepContent}>
               <View style={styles.stepHeader}>
                 <Icon name="bell-alert" size={24} color={Colors.primary} />
-                <Text style={styles.stepTitle}>Real-Time Alerts ⚡</Text>
+                <Text style={styles.stepTitle}>Intelligent Alerts 🔔</Text>
               </View>
               <Text style={styles.stepDescription}>
-                As you move through the city, AmISafe continuously monitors your 
-                location and compares it against current safety data. If you enter 
-                an area with elevated risk, you receive an immediate notification with 
-                actionable safety recommendations.
+                When our AI detects concerning patterns or emerging threats, we send targeted alerts 
+                to pedestrians passing through the area, residents in affected areas, neighborhood 
+                watch coordinators, community safety groups, and local authorities (with user consent).
               </Text>
             </View>
           </View>
@@ -111,12 +112,11 @@ const HowItWorksScreen: React.FC = () => {
             <View style={styles.stepContent}>
               <View style={styles.stepHeader}>
                 <Icon name="shield-check" size={24} color={Colors.primary} />
-                <Text style={styles.stepTitle}>Continuous Learning 📈</Text>
+                <Text style={styles.stepTitle}>Community Feedback Loop 🔄</Text>
               </View>
               <Text style={styles.stepDescription}>
-                The AI model continuously learns from new data, improving accuracy over 
-                time. Community feedback helps refine our predictions and ensures the 
-                system remains relevant and effective.
+                User reports and feedback help improve our AI models. When community members report 
+                incidents or validate our predictions, our system becomes smarter and more accurate.
               </Text>
             </View>
           </View>

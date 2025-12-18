@@ -18,6 +18,9 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useBackgroundMonitoring } from '../../hooks/useBackgroundMonitoring';
 import StorageService from '../../services/storage/StorageService';
+import { Theme } from '../../utils/theme';
+
+const { Colors, Spacing, Typography, Shadows } = Theme;
 
 const SettingsScreen = ({ navigation }: any) => {
   const {
@@ -118,8 +121,8 @@ const SettingsScreen = ({ navigation }: any) => {
           <Switch
             value={isMonitoring}
             onValueChange={toggleMonitoring}
-            trackColor={{ false: '#ccc', true: '#4CAF50' }}
-            thumbColor={isMonitoring ? '#fff' : '#f4f3f4'}
+            trackColor={{ false: Colors.gray, true: Colors.success }}
+            thumbColor={isMonitoring ? Colors.white : Colors.lightGray}
           />
         </View>
 
@@ -234,7 +237,7 @@ const SettingsScreen = ({ navigation }: any) => {
           style={styles.linkButton}
           onPress={() => navigation.navigate('About')}
         >
-          <Icon name="information" size={20} color="#2196F3" style={styles.linkIcon} />
+          <Icon name="information" size={20} color={Colors.primary} style={styles.linkIcon} />
           <Text style={styles.linkButtonText}>About Forseti</Text>
         </TouchableOpacity>
 
@@ -242,7 +245,7 @@ const SettingsScreen = ({ navigation }: any) => {
           style={styles.linkButton}
           onPress={() => navigation.navigate('HowItWorks')}
         >
-          <Icon name="lightbulb-on" size={20} color="#2196F3" style={styles.linkIcon} />
+          <Icon name="lightbulb-on" size={20} color={Colors.primary} style={styles.linkIcon} />
           <Text style={styles.linkButtonText}>How It Works</Text>
         </TouchableOpacity>
 
@@ -250,7 +253,7 @@ const SettingsScreen = ({ navigation }: any) => {
           style={styles.linkButton}
           onPress={() => navigation.navigate('Privacy')}
         >
-          <Icon name="shield-check" size={20} color="#2196F3" style={styles.linkIcon} />
+          <Icon name="shield-check" size={20} color={Colors.primary} style={styles.linkIcon} />
           <Text style={styles.linkButtonText}>Privacy & Security</Text>
         </TouchableOpacity>
 
@@ -258,7 +261,7 @@ const SettingsScreen = ({ navigation }: any) => {
           style={styles.linkButton}
           onPress={() => Linking.openURL('https://forseti.life/contact')}
         >
-          <Icon name="email" size={20} color="#2196F3" style={styles.linkIcon} />
+          <Icon name="email" size={20} color={Colors.primary} style={styles.linkIcon} />
           <Text style={styles.linkButtonText}>Contact Us (Website)</Text>
         </TouchableOpacity>
       </View>
@@ -266,7 +269,7 @@ const SettingsScreen = ({ navigation }: any) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>ℹ️ About</Text>
         <Text style={styles.aboutText}>
-          AmISafe is powered by Forseti, using H3 geospatial hexagons at
+          Forseti uses H3 geospatial hexagons at
           resolution 11 (~700m) to monitor your location. Safety alerts are based on 
           crime statistics and z-scores calculated from historical incident data.
         </Text>
@@ -282,145 +285,143 @@ const SettingsScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.lightGray,
   },
   section: {
-    backgroundColor: '#fff',
-    marginTop: 12,
-    padding: 16,
+    backgroundColor: Colors.white,
+    marginTop: Spacing.md,
+    padding: Spacing.md,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: Colors.lightGray,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    ...Typography.heading3,
+    marginBottom: Spacing.xs,
   },
   sectionDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.md,
   },
   settingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: Spacing.sm,
   },
   settingInfo: {
     flex: 1,
   },
   settingLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
+    ...Typography.body,
+    fontWeight: Typography.fontWeight.semibold,
+    marginBottom: Spacing.xs,
   },
   settingDescription: {
-    fontSize: 14,
-    color: '#666',
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
   },
   statusBox: {
     backgroundColor: '#e8f5e9',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 12,
+    padding: Spacing.md,
+    borderRadius: Spacing.borderRadius.md,
+    marginTop: Spacing.md,
   },
   statusLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.xs,
   },
   statusValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    ...Typography.bodySmall,
+    fontWeight: Typography.fontWeight.bold,
     fontFamily: 'monospace',
-    marginBottom: 4,
+    marginBottom: Spacing.xs,
   },
   statusDescription: {
-    fontSize: 12,
-    color: '#666',
+    ...Typography.caption,
+    color: Colors.textSecondary,
   },
   thresholdButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
-    marginBottom: 16,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   thresholdButton: {
     flex: 1,
-    padding: 10,
-    marginHorizontal: 4,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
+    padding: Spacing.sm + 2,
+    marginHorizontal: Spacing.xs,
+    backgroundColor: Colors.lightGray,
+    borderRadius: Spacing.borderRadius.md,
     alignItems: 'center',
   },
   thresholdButtonActive: {
-    backgroundColor: '#2196F3',
+    backgroundColor: Colors.primary,
   },
   thresholdButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
+    ...Typography.bodySmall,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.textSecondary,
   },
   thresholdButtonTextActive: {
-    color: '#fff',
+    color: Colors.white,
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
-    padding: 14,
-    borderRadius: 8,
+    backgroundColor: Colors.success,
+    padding: Spacing.md + 2,
+    borderRadius: Spacing.borderRadius.md,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: Spacing.sm,
   },
   saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.button,
+    color: Colors.white,
   },
   actionButton: {
-    backgroundColor: '#2196F3',
-    padding: 14,
-    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    padding: Spacing.md + 2,
+    borderRadius: Spacing.borderRadius.md,
     alignItems: 'center',
-    marginVertical: 6,
+    marginVertical: Spacing.xs + 2,
   },
   actionButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.bodySmall,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.white,
   },
   dangerButton: {
-    backgroundColor: '#fff',
+    backgroundColor: Colors.white,
     borderWidth: 1,
-    borderColor: '#f44336',
+    borderColor: Colors.danger,
   },
   dangerButtonText: {
-    color: '#f44336',
+    color: Colors.danger,
   },
   linkButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    marginVertical: 4,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    padding: Spacing.md + 2,
+    marginVertical: Spacing.xs,
+    backgroundColor: Colors.lightGray,
+    borderRadius: Spacing.borderRadius.md,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: Colors.lightGray,
   },
   linkIcon: {
-    marginRight: 12,
+    marginRight: Spacing.md,
   },
   linkButtonText: {
     fontSize: 15,
-    fontWeight: '500',
-    color: '#2196F3',
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.primary,
   },
   aboutText: {
-    fontSize: 14,
-    color: '#666',
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
     lineHeight: 20,
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
 });
 

@@ -440,8 +440,8 @@ class ForsetiPagesController extends ControllerBase {
               <div class="col-md-6 mb-3">
                 <div class="card card-forseti h-100">
                   <div class="card-body">
-                    <h5 class="card-title">1. Download AmISafe</h5>
-                    <p class="card-text">Get our mobile app for location-based safety alerts and on-the-go situational awareness.</p>
+                    <h5 class="card-title">1. Get Forseti Mobile</h5>
+                    <p class="card-text">Download our mobile app for location-based safety alerts and on-the-go situational awareness.</p>
                     <a href="/mobile-app" class="btn btn-primary">Get the App</a>
                   </div>
                 </div>
@@ -500,8 +500,10 @@ class ForsetiPagesController extends ControllerBase {
                   <div class="mb-3">
                     <img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="app-logo">
                   </div>
-                  <h4 class="text-cyan">iOS & Android</h4>
-                  <p class="text-muted-light">Coming Soon to App Stores</p>
+                  <a href="/sites/default/files/forseti/mobile/Forseti-latest.apk" class="btn btn-primary btn-lg mt-2" download>
+                    <i class="fas fa-download"></i> Download Android APK
+                  </a>
+                  <p class="text-muted mt-2"><small>iOS version coming soon</small></p>
                 </div>
               </div>
             </div>
@@ -577,15 +579,6 @@ class ForsetiPagesController extends ControllerBase {
                 Want to be among the first to use it?
               </p>
               <a href="/talk-with-forseti" class="btn btn-primary">Request Early Access</a>
-            </div>
-        
-            <div class="text-center mt-4">
-              <h3 class="text-cyan">Current Version: 1.0.0</h3>
-              <p class="text-muted mb-3">Beta Release - December 2025</p>
-              <a href="/sites/default/files/forseti/mobile/Forseti-v1.0.0.apk" class="btn btn-lg btn-primary" download>
-                <i class="fas fa-download"></i> Download Android APK
-              </a>
-              <p class="text-muted mt-2"><small>iOS version coming soon</small></p>
             </div>
           </div>
         </div>

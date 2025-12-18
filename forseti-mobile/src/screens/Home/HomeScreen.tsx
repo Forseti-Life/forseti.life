@@ -1,5 +1,5 @@
 /**
- * Home Screen - Main dashboard for AmISafe Mobile Application
+ * Home Screen - Main dashboard for Forseti Mobile Application
  */
 
 import React, { useEffect, useState } from 'react';
@@ -20,7 +20,9 @@ import LocationService, { Location } from '../../services/location/LocationServi
 import StorageService from '../../services/storage/StorageService';
 
 // Utils
-import { Colors } from '../../utils/colors';
+import { Theme } from '../../utils/theme';
+
+const { Colors, Spacing, Typography, Shadows } = Theme;
 
 interface SafetyScore {
   score: number;
@@ -156,7 +158,7 @@ const HomeScreen: React.FC = () => {
     >
       {/* Header Section */}
       <View style={styles.header}>
-        <Text style={styles.welcomeText}>AmISafe by Forseti</Text>
+        <Text style={styles.welcomeText}>Forseti Mobile</Text>
         <Text style={styles.subtitleText}>AI-Powered Safety Monitoring for Philadelphia</Text>
       </View>
 
@@ -313,63 +315,57 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
+    marginTop: Spacing.md,
+    ...Typography.body,
     color: Colors.textSecondary,
   },
   header: {
-    padding: 20,
+    padding: Spacing.lg,
     backgroundColor: Colors.primary,
     alignItems: 'center',
   },
   welcomeText: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    ...Typography.heading2,
     color: Colors.white,
-    marginBottom: 4,
+    marginBottom: Spacing.xs,
   },
   subtitleText: {
-    fontSize: 16,
+    ...Typography.body,
     color: Colors.white,
     opacity: 0.9,
   },
   card: {
     backgroundColor: Colors.white,
-    margin: 16,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: Colors.shadowMedium,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    margin: Spacing.md,
+    borderRadius: Spacing.borderRadius.lg,
+    padding: Spacing.md,
+    ...Shadows.md,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    ...Typography.heading4,
     color: Colors.textPrimary,
-    marginLeft: 8,
+    marginLeft: Spacing.sm,
   },
   cardContent: {
-    paddingLeft: 32,
+    paddingLeft: Spacing.xl,
   },
   locationText: {
-    fontSize: 16,
+    ...Typography.body,
     color: Colors.textPrimary,
     fontFamily: 'monospace',
   },
   accuracyText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     color: Colors.textSecondary,
-    marginTop: 4,
+    marginTop: Spacing.xs,
   },
   errorText: {
-    fontSize: 16,
+    ...Typography.body,
     color: Colors.danger,
     fontStyle: 'italic',
   },
@@ -379,19 +375,18 @@ const styles = StyleSheet.create({
   },
   safetyScoreNumber: {
     fontSize: 48,
-    fontWeight: 'bold',
-    marginRight: 16,
+    fontWeight: Typography.fontWeight.bold,
+    marginRight: Spacing.md,
   },
   safetyScoreDetails: {
     flex: 1,
   },
   safetyLevel: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
+    ...Typography.heading4,
+    marginBottom: Spacing.xs,
   },
   safetyDescription: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     color: Colors.textSecondary,
   },
   statsRow: {
@@ -402,14 +397,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...Typography.xl,
+    fontWeight: Typography.fontWeight.bold,
     color: Colors.textPrimary,
   },
   statLabel: {
-    fontSize: 12,
+    ...Typography.caption,
     color: Colors.textSecondary,
-    marginTop: 4,
+    marginTop: Spacing.xs,
     textAlign: 'center',
   },
   actionsGrid: {
@@ -420,34 +415,34 @@ const styles = StyleSheet.create({
   actionButton: {
     width: '48%',
     backgroundColor: Colors.lightGray,
-    borderRadius: 8,
-    padding: 16,
+    borderRadius: Spacing.borderRadius.md,
+    padding: Spacing.md,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
   actionText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     color: Colors.textPrimary,
-    marginTop: 8,
+    marginTop: Spacing.sm,
     textAlign: 'center',
   },
   aboutText: {
-    fontSize: 14,
+    ...Typography.bodySmall,
     color: Colors.textSecondary,
     lineHeight: 20,
-    marginBottom: 12,
+    marginBottom: Spacing.md,
   },
   learnMoreButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: Spacing.sm,
   },
   learnMoreText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: Typography.fontWeight.semibold,
     color: Colors.primary,
-    marginRight: 4,
+    marginRight: Spacing.xs,
   },
 });
 

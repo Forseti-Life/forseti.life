@@ -264,25 +264,25 @@ class DrupalCrimeService {
   }
 
   /**
-   * Test connection to AmISafe APIs
+   * Test connection to Forseti APIs
    */
   async testConnection() {
     try {
-      console.log('🧪 Testing AmISafe API connection...');
+      console.log('🧪 Testing Forseti API connection...');
       
       // Test basic endpoint
       const response = await axios.get(`${this.baseUrl}/api/amisafe/citywide-stats?format=json`, {
         timeout: 5000
       });
       
-      console.log('✅ AmISafe API connection successful');
+      console.log('✅ Forseti API connection successful');
       return {
         success: true,
         status: response.status,
         data: response.data
       };
     } catch (error) {
-      console.error('❌ AmISafe API connection failed:', error);
+      console.error('❌ Forseti API connection failed:', error);
       return {
         success: false,
         error: error.message,

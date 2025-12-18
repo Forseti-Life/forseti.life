@@ -1,5 +1,5 @@
 /**
- * Notification Service for AmISafe Mobile Application
+ * Notification Service for Forseti Mobile Application
  * Handles push notifications, local notifications, and safety alerts
  */
 
