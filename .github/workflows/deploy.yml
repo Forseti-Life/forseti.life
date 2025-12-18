@@ -185,12 +185,19 @@ jobs:
             MOBILE_DIR="$DRUPAL_ROOT/web/sites/default/files/forseti/mobile"
             sudo mkdir -p "$MOBILE_DIR"
             
-            # Copy all APK files from the repository
+            # Copy all APK files and symlinks from the repository
             sudo cp -r "$TEMP_DIR/sites/forseti/web/sites/default/files/forseti/mobile/"*.apk "$MOBILE_DIR/" 2>/dev/null || true
+            
+            # Recreate the latest symlink if it exists in the repo
+            if [ -L "$TEMP_DIR/sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk" ]; then
+              LATEST_TARGET=$(readlink "$TEMP_DIR/sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk")
+              echo "Creating symlink: Forseti-latest.apk -> $LATEST_TARGET"
+              sudo ln -sf "$LATEST_TARGET" "$MOBILE_DIR/Forseti-latest.apk"
+            fi
             
             # Set permissions
             sudo chown -R www-data:www-data "$MOBILE_DIR"
-            sudo find "$MOBILE_DIR" -name "*.apk" -exec chmod 644 {} \;
+            sudo find "$MOBILE_DIR" -name "*.apk" -type f -exec chmod 644 {} \;
             
             echo "✅ Forseti Mobile APK(s) deployed to $MOBILE_DIR"
           else
