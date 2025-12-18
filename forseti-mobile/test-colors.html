@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forseti Colors Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #ffffff;
+        }
+        .container {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .test-result {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 2px solid #00d4ff;
+        }
+        .success { background: #28a745; color: white; }
+        .error { background: #f44336; color: white; }
+        .info { background: #00d4ff; color: #000; }
+        pre {
+            background: #0f1829;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            color: #00d4ff;
+        }
+        h1 { color: #00d4ff; }
+        h2 { color: #33dcff; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Forseti Colors Module Test</h1>
+        <p>Testing if Colors object loads correctly and Colors.background is defined</p>
+        
+        <div id="test-results"></div>
+        
+        <h2>Colors Object Contents:</h2>
+        <pre id="colors-dump"></pre>
+    </div>
+
+    <script type="module">
+        const resultsDiv = document.getElementById('test-results');
+        const colorsDump = document.getElementById('colors-dump');
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            resultsDiv.appendChild(div);
+        }
+        
+        try {
+            addResult('Starting Colors module test...', 'info');
+            
+            // Inline Colors object from src/utils/colors.ts
+            const Colors = {
+              // Primary colors - Forseti brand cyan
+              primary: '#00d4ff',
+              primaryDark: '#00a0cc',
+              primaryLight: '#33dcff',
+              
+              // Secondary colors - Forseti brand dark blue
+              secondary: '#16213e',
+              secondaryDark: '#0f1829',
+              secondaryLight: '#1a1a2e',
+              
+              // Status colors
+              success: '#28a745',
+              warning: '#fdd835',
+              danger: '#f44336',
+              info: '#00d4ff',
+              
+              // Safety risk colors (matching Forseti palette)
+              riskCritical: '#f44336',
+              riskHigh: '#ff9800',
+              riskMedium: '#fdd835',
+              riskLow: '#28a745',
+              riskMinimal: '#6c757d',
+              
+              // Neutral colors
+              white: '#ffffff',
+              black: '#000000',
+              gray: '#6c757d',
+              lightGray: '#e9ecef',
+              darkGray: '#1a1a2e',
+              
+              // Background colors - Forseti dark theme
+              background: '#1a1a2e',
+              backgroundDark: '#16213e',
+              lighter: '#ffffff',
+              darker: '#000000',
+              
+              // Text colors
+              text: '#ffffff',
+              textPrimary: '#ffffff',
+              textSecondary: '#adb5bd',
+              textMuted: '#adb5bd',
+              textLight: '#ffffff',
+              
+              // UI element colors
+              card: '#16213e',
+              border: '#2a3f5f',
+              cyan: '#00d4ff',
+            };
+            
+            addResult('✅ Colors object loaded successfully', 'success');
+            
+            // Test if Colors exists
+            if (Colors) {
+                addResult('✅ Colors object exists', 'success');
+            } else {
+                addResult('❌ Colors object is undefined', 'error');
+            }
+            
+            // Test if Colors.background exists
+            if (Colors && Colors.background) {
+                addResult(`✅ Colors.background exists: ${Colors.background}`, 'success');
+            } else {
+                addResult('❌ Colors.background is undefined', 'error');
+            }
+            
+            // Test other important colors
+            const testColors = [
+                'primary', 'secondary', 'background', 'backgroundDark',
+                'text', 'white', 'card', 'border', 'gray', 'lightGray'
+            ];
+            
+            testColors.forEach(colorKey => {
+                if (Colors && Colors[colorKey]) {
+                    addResult(`✅ Colors.${colorKey}: ${Colors[colorKey]}`, 'success');
+                } else {
+                    addResult(`❌ Colors.${colorKey} is undefined`, 'error');
+                }
+            });
+            
+            // Dump full Colors object
+            if (Colors) {
+                colorsDump.textContent = JSON.stringify(Colors, null, 2);
+            } else {
+                colorsDump.textContent = 'Colors object is undefined';
+            }
+            
+            // Test with optional chaining (like in App.tsx)
+            const testOptionalChaining = Colors?.background || '#1a1a2e';
+            addResult(`✅ Optional chaining test: Colors?.background || '#1a1a2e' = ${testOptionalChaining}`, 'success');
+            
+            // Apply background color to body
+            if (Colors && Colors.background) {
+                document.body.style.background = Colors.background;
+                addResult(`✅ Applied Colors.background to body`, 'success');
+            }
+            
+        } catch (error) {
+            addResult(`❌ Error: ${error.message}`, 'error');
+            colorsDump.textContent = `Error stack:\n${error.stack}`;
+            console.error('Colors module test error:', error);
+        }
+    </script>
+</body>
+</html>

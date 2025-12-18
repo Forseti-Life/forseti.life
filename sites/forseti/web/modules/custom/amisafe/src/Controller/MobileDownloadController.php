@@ -16,10 +16,10 @@ class MobileDownloadController extends ControllerBase {
    */
   public function downloadPage() {
     $module_path = \Drupal::service('extension.list.module')->getPath('amisafe');
-    $files_path = 'public://amisafe/mobile';
+    $files_path = 'public://forseti/mobile';
     
-    // Check if APK exists
-    $apk_uri = $files_path . '/AmISafe.apk';
+    // Check if APK exists (using debug version during development)
+    $apk_uri = $files_path . '/Forseti-debug.apk';
     $apk_url = file_exists(\Drupal::service('file_system')->realpath($apk_uri)) 
       ? \Drupal::service('file_url_generator')->generateAbsoluteString($apk_uri)
       : null;
