@@ -10,6 +10,7 @@ on:
       - 'sites/forseti/composer.lock'
       - 'sites/forseti/config/sync/**'
       - 'sites/forseti/web/sites/default/files/forseti/mobile/*.apk'
+      - 'forseti-mobile/index.js'
       - 'h3-geolocation/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
