@@ -1,539 +1,915 @@
-# Forseti Mobile Application
+# Forseti Mobile Application - Complete Documentation
 
-**Version**: 1.0.0  
-**Status**: 🟢 Phase 4/5 - Live Beta Testing  
-**Last Updated**: December 13, 2024
+**Version**: 1.0.2  
+**Status**: 🟢 Active Development  
+**Platform**: React Native 0.76.9 (iOS & Android)  
+**Last Updated**: December 18, 2025
 
 A cross-platform mobile application for hyperlocal crime safety awareness built with React Native. Integrates with the Forseti API (forseti.life) for real-time crime data visualization, z-score risk assessment, and continuous background monitoring with proactive alerts.
 
 ---
 
-## 📋 Complete Documentation
+## 📋 Table of Contents
 
-| Document | Purpose | Status |
-|----------|---------|--------|
-| [Background Service Documentation](./BACKGROUND_SERVICE_DOCUMENTATION.md) | Complete 12-step process flow, API integration | 🟢 Complete |
-| [Architecture Documentation](./ARCHITECTURE.md) | System architecture, data flow, native setup | 🟢 Complete |
-| [Implementation Progress](./IMPLEMENTATION_PROGRESS.md) | Feature tracking and roadmap | 🟢 Active |
-| [Function Mapping](./FUNCTION_MAPPING.md) | Code-to-feature mapping | 🟢 Reference |
+1. [Quick Start](#quick-start)
+2. [Application Architecture](#application-architecture)
+3. [Features & Implementation Status](#features--implementation-status)
+4. [Build & Deployment](#build--deployment)
+5. [Background Monitoring System](#background-monitoring-system)
+6. [API Integration](#api-integration)
+7. [Screen-by-Screen Guide](#screen-by-screen-guide)
+8. [Known Issues & Troubleshooting](#known-issues--troubleshooting)
+9. [Development Workflow](#development-workflow)
+10. [Branding & Assets](#branding--assets)
 
 ---
 
-## 🚦 Current Implementation Status
+## Quick Start
+
+### Prerequisites
+- Node.js 16+
+- React Native CLI
+- Android Studio (for Android builds)
+- Xcode (for iOS builds, Mac only)
+- ImageMagick (for icon generation)
+
+### Installation
+```bash
+cd forseti-mobile
+npm install
+
+# iOS only
+cd ios && pod install && cd ..
+```
+
+### Development
+```bash
+# Start Metro bundler
+npm start
+
+# Run on Android
+npm run android
+
+# Run on iOS
+npm run ios
+```
+
+### Production Build
+```bash
+# Android APK
+cd android
+./gradlew clean assembleRelease
+
+# Output: android/app/build/outputs/apk/release/app-release.apk
+```
+
+---
+
+## Application Architecture
+
+### System Overview
+
+The Forseti mobile application operates on a three-tier architecture:
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
+│   Mobile App    │◄──►│   Drupal API     │◄──►│  H3 Database        │
+│  React Native   │    │  forseti.life    │    │  MySQL + H3 Index   │
+│                 │    │                  │    │                     │
+│ • GPS Tracking  │    │ • Authentication │    │ • 3.4M+ Incidents   │
+│ • Notifications │    │ • Spatial Queries│    │ • 413K+ Hexagons    │
+│ • Risk Display  │    │ • Risk Calc      │    │ • Multi-Resolution  │
+│ • Offline Cache │    │ • User Mgmt      │    │ • Z-Score Analytics │
+└─────────────────┘    └──────────────────┘    └─────────────────────┘
+```
+
+### Technology Stack
+
+**Frontend (Mobile)**:
+- React Native 0.76.9
+- TypeScript 5.x
+- React Navigation 6.x
+- H3-js 4.1.0 (Uber's geospatial library)
+- react-native-maps (Google Maps)
+- AsyncStorage (local persistence)
+- Hermes JavaScript engine
+
+**Backend (API)**:
+- Drupal 9/10/11 custom modules
+- RESTful JSON APIs
+- Session-based authentication
+- CSRF token protection
+
+**Database**:
+- MySQL 8.0+ with H3 spatial indexing
+- Bronze → Silver → Gold data warehouse layers
+- Pre-computed aggregations for performance
+
+### Project Structure
+
+```
+forseti-mobile/
+├── android/              # Android native code
+├── ios/                  # iOS native code
+├── src/
+│   ├── components/       # Reusable UI components
+│   ├── hooks/            # Custom React hooks
+│   ├── screens/          # Screen components
+│   │   ├── Home/
+│   │   ├── Map/
+│   │   ├── Chat/
+│   │   ├── Community/
+│   │   ├── SafetyFactors/
+│   │   └── Profile/
+│   ├── services/         # API & business logic
+│   │   ├── location/
+│   │   ├── notifications/
+│   │   └── storage/
+│   └── utils/            # Helper functions & theme
+├── App.tsx               # Main application entry
+├── app.json              # App configuration
+└── package.json          # Dependencies
+```
+
+### Data Flow Architecture
+
+**Location Tracking Flow**:
+```
+GPS Update → H3 Calculation → Index Comparison → Risk Query → Notification
+     ↓              ↓              ↓              ↓            ↓
+  Lat/Lng    H3 Level 11    Changed Hex?    API Request   Alert User
+   60s or    (~700m hex)     If yes, call   /aggregated   if z≥2.0
+  50m moved                   API
+```
+
+**H3 Resolution Strategy**:
+
+| Resolution | Area Coverage | Use Case | Update Frequency |
+|------------|--------------|----------|------------------|
+| 5 | 251.1 km² | Citywide statistics | Daily |
+| 8 | 0.7 km² | Neighborhood context | Hourly |
+| 10 | 15,047 m² | Block-level awareness | Every 15 min |
+| 11 | ~700 m² | Background monitoring | Real-time |
+| 13 | 44 m² | User position tracking | Real-time |
+
+---
+
+## Features & Implementation Status
 
 ### ✅ Fully Implemented & Tested
 
-**Core Application Structure**:
-- ✅ **Native iOS/Android**: Complete native directories initialized and configured
-- ✅ **Navigation**: 5-screen bottom tab navigation (Home, Map, Safety, Statistics, Profile)
-- ✅ **TypeScript Support**: Type-safe codebase with proper interfaces
+**Core Application**:
+- ✅ Bottom tab navigation (6 screens)
+- ✅ Stack navigation for auxiliary screens
+- ✅ TypeScript support throughout
+- ✅ Theme system with Forseti branding
+- ✅ Dark mode support (system-based)
 
-**Location & Monitoring**:
-- ✅ **Background Location Service**: GPS tracking with H3 index calculation (Resolution 11, ~700m)
-- ✅ **Location Permissions**: Foreground + background permission handling (iOS/Android)
-- ✅ **H3 Geospatial**: h3-js integration for hexagon conversion (Res 5-13)
-- ✅ **Auto-Restore**: Monitoring state persists across app restarts
-- ✅ **Platform Configuration**: iOS and Android specific optimizations
+**Location Services**:
+- ✅ GPS tracking via react-native-geolocation-service
+- ✅ Foreground + background location permissions
+- ✅ H3 geospatial indexing (h3-js integration)
+- ✅ Location history tracking (last 100 locations)
+- ✅ Auto-restore monitoring on app restart
 
-**Notifications & Alerts**:
-- ✅ **Push Notification Service**: react-native-push-notification integrated
-- ✅ **Local Notifications**: Immediate alerts when entering high-risk areas
-- ✅ **Deep Linking**: Notification tap opens safety map at location
-- ✅ **Cooldown Logic**: Configurable notification throttling (1-30 minutes)
-- ✅ **Platform Support**: iOS (APNs) and Android (FCM) notification channels
+**Background Monitoring**:
+- ✅ Continuous H3 hexagon change detection
+- ✅ API queries only when user moves to new hexagon
+- ✅ Z-score threshold monitoring (configurable 1.0-3.0)
+- ✅ Notification cooldown system (1-30 minutes)
+- ✅ Deep linking to safety map from notifications
+- ✅ State persistence via AsyncStorage
 
-**API Integration**:
-- ✅ **DrupalAuthService**: Session-based authentication with CSRF tokens
-- ✅ **DrupalCrimeService**: Complete API client for all Forseti endpoints
-- ✅ **Endpoint Coverage**: 7+ production endpoints fully integrated
-- ✅ **Error Handling**: Comprehensive error handling and retry logic
-- ✅ **Demo Mode**: Development-friendly fallback authentication
+**Map Features**:
+- ✅ Interactive Google Maps with H3 hexagons
+- ✅ Z-score color gradient (18 levels)
+- ✅ Hexagon press for detailed info
+- ✅ Real-time data updates on zoom/pan
+- ✅ Filter system (crime type, district, date, time)
+- ✅ Statistics dashboard
+- ✅ User location marker
 
 **Data & Storage**:
-- ✅ **AsyncStorage**: Persistent user sessions, preferences, and history
-- ✅ **StorageService**: Centralized data management layer
-- ✅ **Location History**: Last 100 locations tracked (with clear functionality)
-- ✅ **Settings Persistence**: User preferences saved and restored
+- ✅ AsyncStorage wrapper (StorageService)
+- ✅ User preferences persistence
+- ✅ Location history management
+- ✅ Session token storage
+- ✅ Monitoring state tracking
 
-**User Interface**:
-- ✅ **Home Dashboard**: Real-time safety scores and location display
-- ✅ **Crime Map Screen**: Interactive map with H3 hexagon overlays
-- ✅ **Settings Screen**: Full monitoring configuration (threshold, cooldown, history)
-- ✅ **Safety Screen**: Risk assessment and recommendations
-- ✅ **Statistics Screen**: Crime analytics and trends
-- ✅ **Profile Screen**: User account management
+**Authentication**:
+- ✅ Drupal session-based auth
+- ✅ CSRF token management
+- ✅ Auto-login on app launch
+- ✅ Secure token storage
+- ✅ Demo mode for development
 
-### 🔄 Partially Implemented
+### ⚠️ Temporarily Disabled
 
-**Map Functionality**:
-- 🔄 **H3 Hexagon Visualization**: Framework complete, needs live data integration
-- 🔄 **Real-time Updates**: API calls work, need continuous refresh logic
-- 🔄 **Crime Incident Markers**: Individual incident overlay pending
+**Notification System**:
+- ⚠️ NotificationService code complete (401 lines)
+- ⚠️ Package missing: react-native-push-notification
+- ⚠️ Will be re-enabled after package install
+- ⚠️ Local notifications ready
+- ⚠️ Deep linking configured
 
-**Analytics**:
-- 🔄 **Statistics Dashboard**: UI framework complete, needs chart library integration
-- 🔄 **Trend Analysis**: Data structure ready, visualization pending
+### 🔄 In Progress
+
+**Content Parity**:
+- 🔄 About screen content from website
+- 🔄 How It Works screen updates
+- 🔄 Privacy screen content
+- 🔄 Community screen integration
+
+**UI Polish**:
+- 🔄 Loading states and error handling
+- 🔄 Empty states for screens
+- 🔄 Onboarding tutorial
 
 ### ❌ Future Enhancements
 
-- ❌ **Offline Mode**: Cached hexagon data for offline access
-- ❌ **Route Planning**: Safe route suggestions
-- ❌ **Community Reports**: User-submitted safety reports
-- ❌ **Social Features**: Share safety alerts with contacts
-- ❌ **Wearable Integration**: Apple Watch/Wear OS support
+- ❌ Offline mode with cached hexagon data
+- ❌ Route planning with safe routes
+- ❌ User-submitted community reports
+- ❌ Social features (share alerts)
+- ❌ Wearable integration (Apple Watch, Wear OS)
+- ❌ Heatmap visualization mode
+- ❌ Individual incident points mode
+- ❌ Push notifications (APNs/FCM)
 
 ---
 
-## 🛡️ Authentication System
+## Build & Deployment
 
-### Drupal Session-Based Authentication
+### Current Build Status
 
-**Implementation**: DrupalAuthService.js  
-**Status**: ✅ Production Ready
+**Latest Build**: v1.0.2
+- **Date**: December 18, 2025
+- **Size**: 24MB (up from 23MB v1.0.1)
+- **Hash**: 2d55c0cb3dc5799d9f794d4075cced01
+- **Engine**: Hermes JavaScript bytecode v94
+- **Status**: Fixed App.js/App.tsx conflict
 
-```javascript
-// Simple, secure authentication
-const result = await drupalAuthService.login(username, password);
-const user = drupalAuthService.getCurrentUser();
-const isAuthenticated = drupalAuthService.isAuthenticated();
+### Android Build Process
+
+**Prerequisites**:
+```bash
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export ANDROID_HOME=~/Android
 ```
 
-**Key Features**:
-- ✅ **CSRF Token Management**: Automatic security token handling for all API requests
-- ✅ **Session Persistence**: Login state preserved across app restarts via AsyncStorage
-- ✅ **Demo Mode**: Development-friendly fallback for testing without backend
-- ✅ **Error Handling**: Comprehensive error messages and retry logic
-- ✅ **Logout**: Clean session termination and storage cleanup
+**Clean Build**:
+```bash
+cd forseti-mobile/android
+./gradlew clean assembleRelease
+```
 
-**Authentication Flow**:
+**Output**:
 ```
-1. CSRF Token Request → /session/token
-2. Login POST → /user/login (form-based)
-3. Session Storage → AsyncStorage persistence
-4. Authenticated Requests → CSRF token in headers
-5. Auto-Restore → Session loaded on app launch
+APK: android/app/build/outputs/apk/release/app-release.apk
+Size: ~24MB
+Target: Android 5.0+ (API 21)
+Architecture: ARM64-v8a
 ```
+
+**Build Configuration**:
+- Min SDK: Android 5.0 (API 21)
+- Target SDK: Android 13 (API 33)
+- Package: com.stlouisintegration.forseti
+- Hermes: Enabled (optimized)
+- ProGuard: Disabled (for now)
+
+### iOS Build Process
+
+**Prerequisites**:
+- macOS with Xcode
+- Apple Developer account
+- CocoaPods installed
+
+**Build**:
+```bash
+cd forseti-mobile/ios
+pod install
+open AmISafeTempInit.xcworkspace
+
+# In Xcode:
+# Product → Archive
+# Distribute App → Ad Hoc or App Store
+```
+
+### Icon Generation
+
+**Android Icons** (5 densities):
+```bash
+./generate-icons.sh
+```
+
+Generates:
+- mdpi: 48x48px
+- hdpi: 72x72px
+- xhdpi: 96x96px
+- xxhdpi: 144x144px
+- xxxhdpi: 192x192px
+
+**iOS Icons** (9 sizes):
+```bash
+./generate-ios-icons.sh
+```
+
+Generates all required iOS icon sizes from 40x40 to 1024x1024.
+
+**Source Image**: `sites/forseti/web/themes/custom/forseti/images/logos/originals/forseti_safe.png`
+
+### Deployment Workflow
+
+**Git Repository Structure**:
+```
+forseti.life/
+├── forseti-mobile/              # React Native code
+└── sites/forseti/web/sites/default/files/forseti/mobile/
+    └── Forseti-latest.apk       # Production APK
+```
+
+**Automated Deployment** (via GitHub Actions):
+1. Commit APK to `sites/forseti/.../mobile/Forseti-latest.apk`
+2. Push to main branch
+3. deploy.yml workflow triggers
+4. Copies APK to production `/var/www/html/forseti/.../mobile/`
+5. Sets permissions (www-data:www-data, 644)
+
+**Manual Deployment**:
+```bash
+# Build APK
+cd forseti-mobile/android
+./gradlew assembleRelease
+
+# Copy to git repo
+cp app/build/outputs/apk/release/app-release.apk \
+   ../../sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk
+
+# Commit and push
+git add sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk
+git commit -m "Deploy Forseti Mobile v1.0.X"
+git push
+```
+
+**Production URL**: https://forseti.life/sites/default/files/forseti/mobile/Forseti-latest.apk
 
 ---
 
-## 📍 Background Location Monitoring
+## Background Monitoring System
 
-### Continuous Safety Monitoring System
+### Overview
 
-**Implementation**: BackgroundLocationService.ts + NotificationService.ts  
-**Status**: ✅ Production Ready
+Provides continuous, real-time safety monitoring by tracking GPS location, calculating H3 hexagon position, querying the Forseti API for crime data, and sending notifications when entering high-risk areas.
 
-**📖 Complete Details**: See [BACKGROUND_SERVICE_DOCUMENTATION.md](./BACKGROUND_SERVICE_DOCUMENTATION.md)
+### Architecture
 
-### How It Works
+**12-Step Process Flow**:
 
+1. **App Initialization**: Check StorageService for previous monitoring state
+2. **User Enables**: Toggle "Enable Protection" in Settings screen
+3. **Permission Requests**: Foreground + background location permissions
+4. **Start Tracking**: Geolocation.watchPosition() with 60s interval, 50m filter
+5. **Location Update**: GPS coordinates received every 60s or 50m movement
+6. **H3 Calculation**: Convert lat/lng to H3 index (resolution 11, ~700m hexagons)
+7. **Hexagon Detection**: Compare with previous index, skip if same hexagon
+8. **Cooldown Check**: Skip if < 5 minutes since last notification
+9. **API Query**: GET `/api/amisafe/aggregated` with H3 index and resolution
+10. **Z-Score Evaluation**: Compare incident_z_score with threshold (default 2.0)
+11. **Send Notification**: If z≥2.0, trigger high-priority local notification
+12. **State Persistence**: Save monitoring state, location history to AsyncStorage
+
+### Key Components
+
+**BackgroundLocationService.ts** (369 lines):
+- Main monitoring service
+- GPS tracking wrapper
+- H3 calculation
+- API communication
+- Notification triggering
+- State management
+
+**useBackgroundMonitoring.ts**:
+- React hook for UI
+- Permission handling
+- Start/stop controls
+- State restoration
+
+**NotificationService.ts** (401 lines):
+- Local notification delivery
+- Channel management (Android)
+- Deep linking configuration
+- Priority settings
+
+**StorageService.ts**:
+- AsyncStorage wrapper
+- Monitoring state tracking
+- Location history (last 100)
+- User preferences
+
+### Configuration
+
+**Default Settings**:
+```typescript
+H3_RESOLUTION = 11               // ~700m hexagons
+Z_SCORE_THRESHOLD = 2.0          // Alert when z≥2.0
+UPDATE_INTERVAL = 60000          // 60 seconds
+DISTANCE_FILTER = 50             // 50 meters
+NOTIFICATION_COOLDOWN = 300000   // 5 minutes
 ```
-GPS Update (60s) → H3 Index (Res 11) → Changed? → API Query → Z-Score Check → Alert
-      ↓                  ↓                 ↓            ↓              ↓           ↓
-   Lat/Lng          ~700m hex         Compare    forseti.life    z ≥ threshold  Notify
-```
 
-### Key Features
-
-**Monitoring**:
-- ✅ **H3 Resolution 11**: ~700m hexagons for precise neighborhood-level monitoring
-- ✅ **Smart Updates**: Only queries API when user moves to new hexagon (battery efficient)
-- ✅ **Auto-Start**: Monitoring resumes automatically on app restart
-- ✅ **State Persistence**: All settings and history saved via AsyncStorage
-
-**Notifications**:
-- ✅ **Z-Score Alerts**: Configurable threshold (1.0 - 3.0, default 2.0)
-- ✅ **Cooldown Protection**: Prevents notification spam (1-30 minutes configurable)
-- ✅ **Deep Linking**: Tap notification → opens safety map at your location
-- ✅ **Platform Native**: Uses iOS APNs and Android FCM properly
-
-**Configuration** (via Settings Screen):
-- ✅ **Enable/Disable Toggle**: Turn monitoring on/off
-- ✅ **Threshold Selector**: Choose risk sensitivity (1.0-3.0)
-- ✅ **Cooldown Selector**: Set notification frequency (1-30 minutes)
-- ✅ **Location History**: View last 100 locations with clear function
-
-**Battery Optimization**:
-- ✅ **60-second intervals**: Balance between accuracy and battery life
-- ✅ **50-meter distance filter**: Only update when meaningful movement occurs
-- ✅ **Smart API calls**: Only when hexagon changes, not every GPS update
-- ✅ **Platform-specific optimizations**: iOS and Android best practices
+**User Configurable** (Settings Screen):
+- Enable/disable monitoring toggle
+- Z-score threshold: 1.0 - 3.0 (sensitivity)
+- Cooldown period: 1-30 minutes
+- View location history (last 100)
+- Clear location history
 
 ### API Integration
 
-**Primary Endpoint**:
-```http
-GET https://forseti.life/api/amisafe/aggregated?
-    resolution=11&
-    h3_index=8b283082d7dffff&
-    format=json
+**Endpoint**: `GET https://forseti.life/api/amisafe/aggregated`
+
+**Parameters**:
+```
+resolution=11
+h3_index=8b283082d7dffff
+format=json
 ```
 
-**Response** (used for alerts):
+**Response**:
 ```json
 {
-  "h3_index": "8b283082d7dffff",
-  "incident_count": 45,
-  "incident_z_score": 2.3,
-  "risk_level": "elevated",
-  "resolution": 11
+  "hexagons": [{
+    "h3_index": "8b283082d7dffff",
+    "incident_count": 145,
+    "incident_z_score": 2.34,
+    "risk_level": "HIGH",
+    "last_updated": "2025-12-18T10:30:00Z"
+  }]
 }
 ```
 
+**Z-Score Interpretation**:
+- `< 1.0`: Below average crime (safe)
+- `1.0-2.0`: Normal range (typical)
+- `2.0-3.0`: HIGH risk (2 std deviations above mean)
+- `> 3.0`: CRITICAL risk (3+ std deviations)
+
+### Notification Example
+
+**Title**: "⚠️ High Crime Area Alert"  
+**Message**: "You are entering a potentially dangerous area. 145 incidents reported here (Risk: HIGH, Z-Score: 2.3)"  
+**Action**: Tap to view safety map at your location  
+**URL**: `https://forseti.life/safety-map?lat=39.9526&lng=-75.1652`
+
 ---
 
-## 🗺️ Crime Data Visualization
+## API Integration
 
-### Interactive Safety Map
+### Base URL
 
-**Implementation**: CrimeMapScreen.js + DrupalCrimeService.js  
-**Status**: ✅ Production Ready
+**Production**: `https://forseti.life`  
+**Authentication**: Session-based with CSRF tokens
+
+### Endpoints
+
+#### 1. Aggregated Hexagon Data
+```http
+GET /api/amisafe/aggregated?resolution=11&h3_index=8b283082d7dffff&format=json
+```
+
+**Response**:
+```json
+{
+  "hexagons": [{
+    "h3_index": "8b283082d7dffff",
+    "incident_count": 145,
+    "incident_z_score": 2.34,
+    "risk_level": "HIGH",
+    "crime_types": {...},
+    "time_distribution": {...}
+  }],
+  "analytics": {
+    "z_scores": {...}
+  }
+}
+```
+
+#### 2. Individual Incidents
+```http
+GET /api/amisafe/incidents?limit=1000&format=json
+```
+
+#### 3. Citywide Statistics
+```http
+GET /api/amisafe/citywide-stats?format=json
+```
+
+#### 4. Authentication
+```http
+GET /session/token
+POST /user/login
+```
+
+### Service Classes
+
+**DrupalCrimeService.js**:
+- Complete API client for crime data
+- 7+ production endpoints
+- Axios-based HTTP client
+- Error handling and retry logic
+
+**DrupalAuthService.js**:
+- Session-based authentication
+- CSRF token management
+- Auto-login support
+- Demo mode fallback
+
+**H3LocationService.js**:
+- H3 spatial calculations
+- Resolution mapping
+- Coordinate conversions
+
+---
+
+## Screen-by-Screen Guide
+
+### Home Screen
+**File**: `src/screens/Home/HomeScreen.tsx`
 
 **Features**:
-- ✅ **React Native Maps**: Native iOS/Android map rendering (Google Maps/Apple Maps)
-- ✅ **H3 Hexagon Overlay**: Visual crime risk hexagons at multiple resolutions (5-13)
-- ✅ **Real-time User Location**: Blue dot shows current position with GPS tracking
-- ✅ **Crime Incident Markers**: Individual crime points with details
-- ✅ **Color-coded Risk Levels**: Red (high) → Yellow (medium) → Green (low) based on z-scores
-- ✅ **Zoom-based Resolution**: Auto-adjusts hexagon granularity (city → neighborhood → block)
-- ✅ **Tap for Details**: Touch hexagons for incident count and risk statistics
+- Current location display
+- Real-time safety score
+- Quick statistics (incidents, alerts)
+- Quick action buttons:
+  - View Safety Map
+  - How It Works
+  - Emergency 911
+  - Community
+  - About Forseti
 
-**API Endpoints**:
-```javascript
-// Get hexagon aggregated data
-GET /api/amisafe/aggregated?resolution=11&h3_index={index}
+**API Calls**:
+- Location service for current position
+- Mock safety score (will integrate real API)
 
-// Get all crime incidents
-GET /api/crime_incidents?_format=json
+### Map Screen
+**File**: `src/screens/CrimeMapScreen.js`
 
-// Get incidents by location
-GET /api/crime_incidents?lat={lat}&lon={lon}&radius={meters}
-```
+**Features**:
+- Interactive Google Maps
+- H3 hexagon overlays with z-score colors
+- Tap hexagon for details
+- Filter panel (crime type, district, date, time)
+- Statistics display
+- Zoom-based resolution switching
 
-**Map Controls**:
-- Zoom in/out gesture controls
-- Pan to explore different areas
-- Center on user location button
-- Resolution selector for hexagon detail level
-- Risk legend overlay
+**API Calls**:
+- `/api/amisafe/aggregated` - Main hexagon data
+- `/api/amisafe/citywide-stats` - Statistics
 
----
+### Chat Screen
+**File**: `src/screens/Chat/ChatScreen.js`
 
-## 🚀 Key Features Summary
+**Features**:
+- AI conversation with Forseti
+- Message history
+- Connects to Drupal AI backend
+- Save conversations (authenticated users)
 
-### ✅ Fully Operational
-- **📍 Real-time Location Tracking**: Continuous GPS monitoring with H3 indexing
-- **🔔 Push Notifications**: Immediate alerts when entering high-risk areas
-- **🗺️ Interactive Crime Map**: Color-coded hexagons showing risk levels
-- **🔐 Secure Authentication**: Drupal session-based login with CSRF protection
-- **⚡ Background Monitoring**: Auto-start service that runs 24/7
-- **⚙️ User Settings**: Configurable thresholds, cooldowns, and monitoring controls
-- **💾 State Persistence**: All preferences and history saved locally
-- **📱 Cross-Platform**: Native iOS and Android support
+**API Calls**:
+- `/api/amisafe/chat` - AI conversation endpoint
 
-### 🟡 Planned Enhancements
-- **🎯 Predictive Risk Scoring**: AI-powered future risk prediction (API exists, UI integration pending)
-- **📊 Personal Safety Dashboard**: Historical trends and personalized insights
-- **👥 Community Reporting**: User-submitted safety observations
-- **🔄 Offline Mode**: Cached hexagon data for areas without internet
-- **🌙 Dark Mode**: Low-light optimized interface
-- **🗣️ Multi-language**: Spanish localization for St. Louis demographics
+### Community Screen
+**File**: `src/screens/Community/CommunityScreen.tsx`
 
----
+**Features**:
+- Community guidelines
+- Safety tips
+- Links to website resources
+- Get Forseti Mobile download info
 
-## 📱 Platform Support
+### SafetyFactors Screen
+**File**: `src/screens/SafetyFactors/SafetyFactorsScreen.tsx`
 
-### iOS Requirements
-- iOS 12.0 or later
-- iPhone 6s or newer
-- Location services enabled
-- Push notification permissions
+**Features**:
+- Explanation of 7-dimension safety framework
+- How safety scores are calculated
+- Factor definitions (Safe, Energized, Connected, etc.)
+- Links to website for detailed info
 
-### Android Requirements
-- Android 7.0 (API level 24) or later
-- GPS and network location enabled
-- Storage permissions for offline maps
-- Notification permissions
+### Profile Screen
+**File**: `src/screens/Profile/ProfileScreen.tsx`
 
----
+**Features**:
+- Login/logout
+- User profile information
+- Settings access
+- Conversation history
+- About/Privacy/Contact links
 
-## 🏗️ Architecture
+### Settings Screen
+**File**: `src/screens/Settings/SettingsScreen.tsx`
 
-### Technology Stack
-- **Framework**: React Native 0.72.6 ✅
-- **Language**: TypeScript (screens) + JavaScript (services) ✅
-- **Navigation**: React Navigation 6 with bottom tabs ✅
-- **Maps**: React Native Maps v1.7.1 ✅
-- **Geospatial**: h3-js v4.1.0 for H3 hexagon calculations ✅
-- **HTTP Client**: Axios v1.6.0 with CSRF token handling ✅
-- **Storage**: @react-native-async-storage/async-storage v1.19.5 ✅
-- **Location**: react-native-geolocation-service v5.3.1 ✅
-- **State Management**: React Context + Hooks ✅
-
-### Project Structure
-```
-amisafe-mobile/
-├── src/
-│   ├── components/          # Reusable UI components
-│   │   └── InteractiveCrimeMap.js
-│   ├── screens/            # Application screens
-│   │   ├── Auth/           # LoginScreen.tsx
-│   │   ├── Home/           # HomeScreen.tsx (dashboard)
-│   │   ├── Map/            # MapScreen.tsx, CrimeMapScreen.js
-│   │   ├── Profile/        # ProfileScreen.tsx
-│   │   ├── Safety/         # SafetyScreen.tsx
-│   │   ├── Settings/       # SettingsScreen.tsx (monitoring config)
-│   │   └── Statistics/     # StatisticsScreen.tsx
-│   ├── services/           # API and data services
-│   │   ├── DrupalAuthService.js      # Authentication
-│   │   ├── DrupalCrimeService.js     # Crime data API
-│   │   ├── GPSLocationService.js     # GPS tracking
-│   │   ├── H3LocationService.js      # H3 geospatial
-│   │   ├── location/
-│   │   │   ├── BackgroundLocationService.ts  # Core monitoring
-│   │   │   ├── LocationService.ts
-│   │   │   └── PlatformConfiguration.ts
-│   │   ├── notifications/
-│   │   │   └── NotificationService.ts        # Push alerts
-│   │   └── storage/
-│   │       └── StorageService.ts             # AsyncStorage wrapper
-│   ├── hooks/
-│   │   └── useBackgroundMonitoring.ts        # Monitoring React hook
-│   └── utils/
-│       ├── colors.ts
-│       └── permissions.ts
-├── docs/                   # Complete documentation
-│   ├── README.md          # Developer guide
-│   └── ARCHITECTURE.md    # System architecture
-├── android/                # ✅ Android native project (initialized)
-│   ├── app/src/main/      # Java source + AndroidManifest.xml
-│   └── build.gradle       # Gradle configuration
-├── ios/                    # ✅ iOS native project (initialized)
-│   ├── AmISafeTempInit.xcodeproj/  # Xcode project
-│   ├── Podfile            # CocoaPods dependencies
-│   └── AmISafeTempInit/   # Objective-C/Swift source + Info.plist
-├── App.js                  # Main app entry (legacy)
-├── App.tsx                # TypeScript app entry (active)
-└── package.json           # Dependencies
-```
+**Features**:
+- Background monitoring toggle
+- Z-score threshold slider
+- Cooldown period selector
+- Location history viewer
+- Clear history button
+- About/How It Works/Privacy navigation
 
 ---
 
-## ⚙️ Development Setup
+## Known Issues & Troubleshooting
 
-### Prerequisites
-- Node.js 18+ and npm
-- React Native CLI (not Expo)
-- Xcode 14+ (Mac only, for iOS)
-- Android Studio (for Android)
-- CocoaPods (Mac only, for iOS dependencies)
+### Current Issues
 
-### Quick Start
+**1. App Crashes on Launch** ⚠️
+- **Status**: Under investigation
+- **Symptoms**: "Forseti keeps stopping" message
+- **Possible Causes**:
+  - LocationService.initialize() failing
+  - StorageService.initialize() failing
+  - Missing permissions
+  - Uncaught promise rejection
 
+**2. NotificationService Disabled** ⚠️
+- **Status**: Temporarily commented out
+- **Reason**: `react-native-push-notification` package not installed
+- **Solution**: Install package and rebuild
+- **Code**: Complete but inactive
+
+**3. Old App.js Conflict** ✅ FIXED
+- **Issue**: Both App.js and App.tsx existed
+- **Impact**: Metro bundled old AmISafe code instead of new Forseti code
+- **Resolution**: Renamed App.js to App.js.old
+- **Version**: Fixed in v1.0.2
+
+### Troubleshooting Guide
+
+**Build Failures**:
 ```bash
-# Navigate to project
-cd /home/keithaumiller/stlouisintegration.com/amisafe-mobile
-
-# Install dependencies
-npm install
-
-# iOS setup (Mac only)
-cd ios
-pod install
-cd ..
-
-# Run on iOS
-npx react-native run-ios
-
-# Run on Android
-npx react-native run-android
-```
-
-### Required Package Installation
-
-**Missing Package** (imported in code but not in dependencies):
-```bash
-# Install push notification library
-npm install react-native-push-notification
-
-# iOS only - native module
-npm install @react-native-community/push-notification-ios
-cd ios && pod install && cd ..
-```
-
-### Environment Configuration
-
-**API Configuration**: Edit `src/utils/config.js`
-```javascript
-export const API_BASE_URL = 'https://forseti.life';
-export const AMISAFE_ENDPOINT = '/api/amisafe/aggregated';
-export const CRIME_INCIDENTS_ENDPOINT = '/api/crime_incidents';
-```
-
-**H3 Configuration**: Edit `src/services/location/BackgroundLocationService.ts`
-```typescript
-const H3_RESOLUTION = 11; // ~700m hexagons (5-13 available)
-const DEFAULT_Z_SCORE_THRESHOLD = 2.0; // Alert trigger
-const DEFAULT_COOLDOWN_MINUTES = 5; // Notification cooldown
-```
-
----
-
-## 📦 Dependencies
-
-### Core Libraries
-```json
-{
-  "react-native": "0.72.6",
-  "react-navigation": "6.x",
-  "h3-js": "4.1.0",
-  "react-native-maps": "1.7.1",
-  "react-native-geolocation-service": "5.3.1",
-  "@react-native-async-storage/async-storage": "1.19.5",
-  "axios": "1.6.0"
-}
-```
-
-### Platform-Specific
-- **iOS**: CocoaPods dependencies for maps, geolocation, push notifications
-- **Android**: Gradle dependencies, Google Play Services for maps
-
-### Required Manual Installation
-```bash
-npm install react-native-push-notification
-npm install @react-native-community/push-notification-ios  # iOS only
-```
-
----
-
----
-
-## 🧪 Testing
-
-### Current Test Coverage
-- Unit tests for services (auth, location, H3)
-- Integration tests for API endpoints
-- Component tests for key screens
-
-### Run Tests
-```bash
-npm test                    # Run all tests
-npm run test:watch         # Watch mode
-npm run test:coverage      # Coverage report
-```
-
----
-
-## 🚢 Deployment
-
-### iOS App Store
-1. Configure signing in Xcode (AmISafeTempInit.xcodeproj)
-2. Update version in `ios/AmISafeTempInit/Info.plist`
-3. Build archive: Product → Archive
-4. Submit to App Store Connect
-
-### Android Google Play
-1. Generate release keystore (first time only)
-2. Update version in `android/app/build.gradle`
-3. Build release APK:
-```bash
-cd android
-./gradlew assembleRelease
-```
-4. Upload AAB to Google Play Console
-
-### Environment Variables
-Create `.env` for production:
-```bash
-API_BASE_URL=https://forseti.life
-ENABLE_DEMO_MODE=false
-SENTRY_DSN=your-sentry-dsn
-```
-
----
-
-## 📚 Additional Documentation
-
-- **[ARCHITECTURE.md](./docs/ARCHITECTURE.md)**: Detailed system architecture and native setup
-- **[BACKGROUND_SERVICE_DOCUMENTATION.md](./BACKGROUND_SERVICE_DOCUMENTATION.md)**: Complete background monitoring guide
-- **[docs/README.md](./docs/README.md)**: Developer onboarding guide
-
----
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**"Unable to resolve module 'react-native-push-notification'"**
-```bash
-npm install react-native-push-notification
-cd ios && pod install && cd ..
-```
-
-**Background location not working on iOS**
-- Check Info.plist has location usage descriptions
-- Verify "Location updates" background mode enabled
-- Request "Always" permission, not just "When In Use"
-
-**Android build fails**
-```bash
+# Clean everything
 cd android
 ./gradlew clean
 cd ..
-npx react-native run-android
+rm -rf node_modules
+rm -rf android/.gradle
+npm install
+cd android && ./gradlew assembleRelease
 ```
 
-**Maps not displaying**
-- iOS: Verify Maps.app works on simulator/device
-- Android: Check Google Play Services installed and API key configured
+**Metro Bundler Issues**:
+```bash
+# Clear Metro cache
+npm start -- --reset-cache
+
+# Or
+rm -rf $TMPDIR/metro-*
+rm -rf $TMPDIR/react-*
+```
+
+**Permission Errors**:
+```bash
+# Android: Check AndroidManifest.xml has:
+# - ACCESS_FINE_LOCATION
+# - ACCESS_COARSE_LOCATION
+# - INTERNET
+
+# iOS: Check Info.plist has:
+# - NSLocationWhenInUseUsageDescription
+# - NSLocationAlwaysUsageDescription
+```
+
+**APK Installation Fails**:
+```bash
+# Check APK signature
+keytool -printcert -jarfile app-release.apk
+
+# Uninstall old version first
+adb uninstall com.stlouisintegration.forseti
+adb install app-release.apk
+```
 
 ---
 
-## 📞 Support & Contact
+## Development Workflow
 
-- **Technical Issues**: See [ARCHITECTURE.md](./docs/ARCHITECTURE.md)
-- **API Documentation**: https://forseti.life/api/docs
-- **Project Repository**: /home/keithaumiller/stlouisintegration.com
+### Development Environment
+
+**Requirements**:
+- Node.js 16+ (18+ recommended)
+- npm or yarn
+- React Native CLI (`npm install -g react-native-cli`)
+- Android Studio with SDK 33
+- Java 17 (for Android builds)
+
+**IDE Recommendations**:
+- VS Code with React Native Tools extension
+- Android Studio for Android-specific debugging
+- Xcode for iOS (Mac only)
+
+### Running in Development
+
+**Start Metro Bundler**:
+```bash
+npm start
+```
+
+**Run on Android Emulator**:
+```bash
+npm run android
+```
+
+**Run on iOS Simulator** (Mac only):
+```bash
+npm run ios
+```
+
+**Run on Physical Device**:
+```bash
+# Android
+adb devices
+npm run android
+
+# iOS
+# Open Xcode, select your device, click Run
+```
+
+### Debugging
+
+**React Native Debugger**:
+- Shake device or press Cmd+D (iOS) / Cmd+M (Android)
+- Select "Debug" to open Chrome DevTools
+
+**Console Logs**:
+```bash
+# Android
+adb logcat | grep ReactNativeJS
+
+# iOS
+react-native log-ios
+```
+
+**Network Debugging**:
+- React Native Debugger has Network tab
+- Or use Flipper (Facebook's mobile debugging tool)
+
+### Testing
+
+**Manual Testing Checklist**:
+- [ ] App launches without crashes
+- [ ] Location permissions requested and granted
+- [ ] Map loads with hexagons
+- [ ] Background monitoring toggles on/off
+- [ ] Settings persist after app restart
+- [ ] Login/logout works
+- [ ] Chat sends and receives messages
+- [ ] All navigation works
+
+**Automated Tests** (TODO):
+```bash
+npm test
+```
+
+### Code Style
+
+**Linting**:
+```bash
+npm run lint
+```
+
+**Format**:
+```bash
+npm run format
+```
+
+**TypeScript Check**:
+```bash
+tsc --noEmit
+```
 
 ---
 
-## 📄 License
+## Branding & Assets
 
-[Specify your license here]
+### Application Names
+
+**Current Status**:
+- **Display Name**: "Forseti" ✅
+- **Android Package**: com.stlouisintegration.forseti
+- **iOS Bundle**: AmISafeTempInit (needs update to Forseti)
+
+### App Icons
+
+**Source Image**: `forseti_safe.png`
+- Location: `sites/forseti/web/themes/custom/forseti/images/logos/originals/`
+- Dimensions: 407 x 462 pixels
+- Format: PNG with transparency
+
+**Android Icons** (5 densities):
+- ✅ mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi
+- ✅ Round variants for all densities
+- Location: `android/app/src/main/res/mipmap-*/`
+
+**iOS Icons** (9 sizes):
+- ✅ All required sizes (40x40 to 1024x1024)
+- Location: `ios/AmISafeTempInit/Images.xcassets/AppIcon.appiconset/`
+
+**Icon Update**: December 18, 2025
+- Changed from default React Native icon
+- Now uses forseti_safe.png (less whitespace)
+- Generated via ImageMagick scripts
+
+### Colors
+
+**Forseti Brand Colors**:
+```typescript
+primary: '#1E40AF'      // Forseti blue
+secondary: '#10B981'    // Success green
+accent: '#F59E0B'       // Warning amber
+danger: '#EF4444'       // Error red
+background: '#F9FAFB'   // Light gray
+text: '#111827'         // Dark gray
+```
+
+**Previous (AmISafe)**:
+- ❌ Neon green (#00FF00) - removed
+- ❌ Bright orange accents - removed
+
+### Links to Website
+
+**All External Links Point to forseti.life** ✅:
+- Safety Map: https://forseti.life/safety-map
+- How It Works: https://forseti.life/how-it-works
+- About: https://forseti.life/about
+- Community: https://forseti.life/community
+- Privacy: https://forseti.life/privacy
+- Contact: https://forseti.life/contact
 
 ---
 
-## 🎯 Roadmap
+## Appendix
 
-### Phase 1: MVP (Current - 80% Complete)
-- ✅ Core location tracking
-- ✅ Background monitoring with H3 indexing
-- ✅ Push notifications (package needs installation)
-- ✅ Crime map visualization
-- ✅ User authentication
-- 🔄 Native testing on physical devices
+### Version History
 
-### Phase 2: Enhanced Features (Q2 2025)
-- 🔄 Offline mode with cached hexagon data
-- 🔄 Predictive risk scoring UI (API exists)
-- 🔄 Personal safety dashboard with trends
-- 🔄 Dark mode interface
-- 🔄 Spanish localization
+**v1.0.2** (December 18, 2025):
+- Fixed App.js/App.tsx conflict
+- Removed old AmISafe single-file app
+- Temporarily disabled NotificationService
+- Updated icons to forseti_safe.png
+- Simplified APK deployment (no versioning/symlinks)
 
-### Phase 3: Community Features (Q3 2025)
-- 📋 User-submitted safety reports
-- 📋 Social sharing (safe route recommendations)
-- 📋 Community safety groups
-- 📋 Emergency contact quick dial
+**v1.0.1** (December 18, 2025):
+- Updated content parity with website
+- Enhanced HowItWorks screen
+- Updated SafetyFactors screen
+- Icon updates
+- Symlink deployment strategy
 
-### Phase 4: Advanced Analytics (Q4 2025)
-- 📋 Machine learning risk predictions
-- 📋 Historical trend analysis by time/day
-- 📋 Personalized safety recommendations
-- 📋 Integration with St. Louis 311 services
+**v1.0.0** (December 13, 2024):
+- Initial Forseti rebranding
+- Tab navigation implementation
+- Background monitoring system
+- H3 geospatial integration
+- Authentication system
+
+### Dependencies
+
+**Core**:
+- react: 18.2.0
+- react-native: 0.76.9
+- @react-navigation/native: 6.x
+- @react-navigation/bottom-tabs: 6.x
+- @react-navigation/stack: 6.x
+
+**Location & Maps**:
+- react-native-geolocation-service: 5.3.1
+- react-native-maps: 1.7.1
+- h3-js: 4.1.0
+
+**Storage & State**:
+- @react-native-async-storage/async-storage: 1.19.5
+- axios: 1.6.0
+
+**UI**:
+- react-native-vector-icons: 10.x
+- react-native-gesture-handler: 2.x
+- react-native-safe-area-context: 4.x
+- react-native-screens: 3.x
+
+**Development**:
+- typescript: 5.x
+- @types/react: 18.x
+- @types/react-native: 0.72.x
+
+### Contact & Support
+
+**Project Repository**: https://github.com/keithaumiller/forseti.life  
+**Website**: https://forseti.life  
+**Developer**: Keith Aumiller
 
 ---
 
-**Last Updated**: January 2025  
-**Version**: 0.1.0 (MVP - Beta Testing Phase)  
-**Status**: Live background monitoring, production API, native builds complete
+*Last Updated: December 18, 2025*
+*Document Version: 1.0*
