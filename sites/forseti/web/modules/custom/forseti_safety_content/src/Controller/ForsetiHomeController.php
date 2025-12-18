@@ -57,7 +57,7 @@ class ForsetiHomeController extends ControllerBase {
                 Talk with Forseti
               </a>
               <a href="/safety-map" class="btn btn-light btn-lg me-2">View Safety Map</a>
-              <a href="/mobile-app" class="btn btn-outline-light btn-lg">Get AmISafe App</a>
+              <a href="/mobile-app" class="btn btn-outline-light btn-lg">Get Forseti App</a>
             </div>
           </div>
         </div>
@@ -144,7 +144,7 @@ class ForsetiHomeController extends ControllerBase {
                 <div class="feature-icon">📱</div>
                 <h3>Mobile Access</h3>
                 <p>
-                  AmISafe mobile app provides on-the-go safety information, location-based 
+                  Forseti mobile app provides on-the-go safety information, location-based 
                   alerts, and one-touch emergency services.
                 </p>
               </div>

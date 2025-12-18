@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AmISafe Mobile App Preview</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .device-frame {
+            width: 375px;
+            height: 812px;
+            background: #000;
+            border-radius: 40px;
+            padding: 10px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .screen {
+            width: 100%;
+            height: 100%;
+            background: #1976D2;
+            border-radius: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .status-bar {
+            height: 44px;
+            background: rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .content {
+            height: calc(100% - 44px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px;
+            color: white;
+        }
+        
+        .app-icon {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .app-title {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        
+        .app-tagline {
+            font-size: 16px;
+            opacity: 0.8;
+            margin-bottom: 40px;
+            line-height: 1.4;
+        }
+        
+        .feature-list {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            text-align: left;
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        
+        .feature-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .feature-icon {
+            margin-right: 12px;
+            font-size: 18px;
+        }
+        
+        .demo-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            padding: 12px 30px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .demo-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        
+        .info-panel {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: -120px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            width: 350px;
+            color: #333;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .info-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #1976D2;
+        }
+        
+        .info-text {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            background: #4CAF50;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: currentColor;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="device-frame">
+        <div class="screen">
+            <div class="status-bar">
+                <span>9:41</span>
+                <span>AmISafe</span>
+                <span>100%</span>
+            </div>
+            
+            <div class="content">
+                <div class="app-icon">🛡️</div>
+                <div class="app-title">AmISafe</div>
+                <div class="app-tagline">Stay Safe, Stay Informed<br>Crime Safety Made Simple</div>
+                
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <span class="feature-icon">🔐</span>
+                        <span>Secure Authentication</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">📊</span>
+                        <span>Real-time Safety Scores</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">📍</span>
+                        <span>Location-based Alerts</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🚨</span>
+                        <span>Crime Incident Tracking</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">👥</span>
+                        <span>Community Features</span>
+                    </div>
+                </div>
+                
+                <button class="demo-button" onclick="showDemo()">Enter Demo Mode</button>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-title">🚀 Development Status</div>
+            <div class="info-text">
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    React Native App Ready
+                </div>
+            </div>
+            <div class="info-text">
+                The AmISafe mobile app is fully implemented with authentication, safety scoring, and real-time features. 
+                Currently running in demo mode with mock data services.
+            </div>
+            <div class="info-text">
+                <strong>Metro Server:</strong> Running on port 8081<br>
+                <strong>Backend:</strong> Drupal 11 + Simple OAuth<br>
+                <strong>Status:</strong> Ready for simulator testing
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showDemo() {
+            alert('🎭 Demo Mode\n\nThe AmISafe mobile app is running with:\n\n✅ Full UI Implementation\n✅ Mock Authentication\n✅ Real-time Safety Updates\n✅ Crime Incident Tracking\n✅ Location Services\n\nTo test:\n• Use any username/password to login\n• View real-time safety scores\n• See nearby crime incidents\n• Access quick action buttons\n\nReady for mobile simulator deployment!');
+        }
+        
+        // Add some animation
+        document.querySelector('.device-frame').style.animation = 'fadeIn 1s ease-out';
+        
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

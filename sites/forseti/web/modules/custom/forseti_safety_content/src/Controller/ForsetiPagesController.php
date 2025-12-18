@@ -387,7 +387,7 @@ class ForsetiPagesController extends ControllerBase {
             </div>
             
             <div class="text-center mt-4">
-              <a href="/mobile-app" class="btn btn-primary">Get Early Access via AmISafe App</a>
+              <a href="/mobile-app" class="btn btn-primary">Get Early Access via Forseti App</a>
             </div>
           </div>
         </div>
@@ -481,7 +481,7 @@ class ForsetiPagesController extends ControllerBase {
       <div class="container py-3">
         <div class="row">
           <div class="col-lg-8 mx-auto">
-            <h1 class="text-center mb-3 text-cyan">AmISafe Mobile App</h1>
+            <h1 class="text-center mb-3 text-cyan">Forseti Mobile App</h1>
             <p class="text-center mb-4 text-muted-light">
               Your personal safety companion for Philadelphia
             </p>
@@ -490,7 +490,7 @@ class ForsetiPagesController extends ControllerBase {
               <div class="col-lg-6">
                 <h2 class="text-cyan">Safety in Your Pocket</h2>
                 <p class="text-muted-light">
-                  AmISafe brings the power of Forseti\'s AI monitoring directly to your smartphone. 
+                  Forseti Mobile brings the power of AI monitoring directly to your smartphone. 
                   Get notified when you enter areas with elevated safety concerns, access location-based safety information, and one-touch 
                   emergency services.
                 </p>
@@ -571,17 +571,21 @@ class ForsetiPagesController extends ControllerBase {
             </div>
             
             <div class="alert alert-info-cyan mt-4">
-              <h4 class="text-cyan">Early Access Program</h4>
+              <h4 class="text-cyan">Beta Testing Available</h4>
               <p>
-                AmISafe is currently in beta testing with select Philadelphia neighborhoods. 
+                Forseti Mobile is currently in beta testing with select Philadelphia neighborhoods. 
                 Want to be among the first to use it?
               </p>
               <a href="/talk-with-forseti" class="btn btn-primary">Request Early Access</a>
             </div>
         
             <div class="text-center mt-4">
-              <h3 class="text-cyan">Current Version: Beta 0.9.5</h3>
-              <p class="text-muted">Expected Public Release: Q1 2026</p>
+              <h3 class="text-cyan">Current Version: 1.0.0</h3>
+              <p class="text-muted mb-3">Beta Release - December 2025</p>
+              <a href="/sites/default/files/forseti/mobile/Forseti-v1.0.0.apk" class="btn btn-lg btn-primary" download>
+                <i class="fas fa-download"></i> Download Android APK
+              </a>
+              <p class="text-muted mt-2"><small>iOS version coming soon</small></p>
             </div>
           </div>
         </div>
@@ -796,7 +800,7 @@ class ForsetiPagesController extends ControllerBase {
                 </div>
                 <div class="col-md-6">
                   <ul>
-                    <li><a href="/mobile-app" class="link-cyan">Download AmISafe app</a></li>
+                    <li><a href="/mobile-app" class="link-cyan">Download Forseti app</a></li>
                     <li><a href="/privacy" class="link-cyan">Privacy & security info</a></li>
                     <li><a href="/safety-map" class="link-cyan">View safety map</a></li>
                   </ul>
@@ -1109,7 +1113,7 @@ class ForsetiPagesController extends ControllerBase {
             <div class="d-flex justify-content-center gap-3 flex-wrap">
               <a href="/" class="btn btn-primary">Return Home</a>
               <a href="/safety-map" class="btn btn-outline-primary">View Safety Map</a>
-              <a href="/mobile-app" class="btn btn-outline-primary">Download AmISafe</a>
+              <a href="/mobile-app" class="btn btn-outline-primary">Download Forseti App</a>
             </div>
             
           </div>

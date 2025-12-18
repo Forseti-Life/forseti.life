@@ -1,0 +1,21 @@
+{
+  "name": "amisafe-mobile",
+  "version": "1.0.0",
+  "description": "AmISafe Mobile Application - Cross-platform crime safety app",
+  "main": "index.js",
+  "scripts": {
+    "start": "react-native start",
+    "test": "node test-auth.js",
+    "auth-test": "node test-auth.js"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-native": "0.72.6",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@babel/preset-env": "^7.20.0",
+    "@babel/runtime": "^7.20.0"
+  }
+}

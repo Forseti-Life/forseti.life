@@ -9,6 +9,7 @@ on:
       - 'sites/forseti/composer.json'
       - 'sites/forseti/composer.lock'
       - 'sites/forseti/config/sync/**'
+      - 'sites/forseti/web/sites/default/files/forseti/mobile/*.apk'
       - 'h3-geolocation/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
@@ -164,6 +165,38 @@ jobs:
             echo "✅ H3 geolocation framework deployed"
           fi
           
+          # ==================================================================================
+          # Deploy Forseti Mobile APK (MANUAL BUILD REQUIRED)
+          # ==================================================================================
+          # NOTE: The mobile app APK is NOT automatically built by this workflow.
+          # 
+          # To release a new mobile app version:
+          # 1. Build locally: cd forseti-mobile/android && ./gradlew assembleRelease
+          # 2. Copy to production location: 
+          #    cp forseti-mobile/android/app/build/outputs/apk/release/app-release.apk \
+          #       sites/forseti/web/sites/default/files/forseti/mobile/Forseti-vX.X.X.apk
+          # 3. Update download link in ForsetiPagesController.php if needed
+          # 4. Commit and push the versioned APK file
+          #
+          # This workflow will then deploy the committed APK file from the repository.
+          # ==================================================================================
+          if [ -d "$TEMP_DIR/sites/forseti/web/sites/default/files/forseti/mobile" ]; then
+            echo "Deploying Forseti Mobile APK..."
+            MOBILE_DIR="$DRUPAL_ROOT/web/sites/default/files/forseti/mobile"
+            sudo mkdir -p "$MOBILE_DIR"
+            
+            # Copy all APK files from the repository
+            sudo cp -r "$TEMP_DIR/sites/forseti/web/sites/default/files/forseti/mobile/"*.apk "$MOBILE_DIR/" 2>/dev/null || true
+            
+            # Set permissions
+            sudo chown -R www-data:www-data "$MOBILE_DIR"
+            sudo find "$MOBILE_DIR" -name "*.apk" -exec chmod 644 {} \;
+            
+            echo "✅ Forseti Mobile APK(s) deployed to $MOBILE_DIR"
+          else
+            echo "ℹ️ No Forseti Mobile APK found in repository"
+          fi
+          
           # Clean up
           rm -rf "$TEMP_DIR"
 
@@ -264,12 +297,16 @@ jobs:
           echo "🎉 === FORSETI DEPLOYMENT COMPLETED SUCCESSFULLY === 🎉"
           echo "✅ Modules and themes deployed from forseti site"
           echo "✅ H3 geolocation scripts deployed (if present)"
+          echo "✅ Mobile app APK deployed (if committed to repository)"
           echo "✅ Configuration imported"
           echo "✅ Database updates applied"
           echo "✅ CSS/JS aggregation cleared and rebuilt"
           echo "✅ All caches cleared"
           echo "✅ Apache restarted"
           echo "✅ File permissions set"
+          echo ""
+          echo "⚠️  NOTE: Mobile app APK must be built and committed manually"
+          echo "   See mobile app deployment section above for instructions"
           echo ""
           echo "Deployment completed at: $(date)"
           echo ""
