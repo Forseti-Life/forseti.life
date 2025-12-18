@@ -128,6 +128,7 @@ const App: React.FC = () => {
   const isDarkMode = useColorScheme() === 'dark';
   const [isInitialized, setIsInitialized] = useState(false);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
@@ -140,55 +141,112 @@ const App: React.FC = () => {
 
   const initializeApp = async () => {
     try {
-      console.log('🚀 Initializing Forseti Mobile App...');
+      console.log('🚀 [INIT STEP 1] Starting Forseti Mobile App initialization...');
 
       // Initialize storage service
-      await StorageService.initialize();
-      console.log('✅ Storage service initialized');
+      try {
+        console.log('🚀 [INIT STEP 2] Initializing storage service...');
+        await StorageService.initialize();
+        console.log('✅ [INIT STEP 2] Storage service initialized');
+      } catch (error) {
+        console.error('❌ [INIT STEP 2] Storage initialization failed:', error);
+        setInitError(`Storage initialization failed: ${error}`);
+        throw error;
+      }
 
       // Request location permissions
-      const locationGranted = await requestLocationPermission();
-      setHasLocationPermission(locationGranted);
-      
-      if (locationGranted) {
-        // Initialize location service
-        await LocationService.initialize();
-        console.log('✅ Location service initialized');
-      } else {
-        console.warn('⚠️ Location permission denied');
-        Alert.alert(
-          'Location Permission Required',
-          'Forseti needs location access to provide safety information for your area. Please enable location permissions in your device settings.',
-          [{ text: 'OK' }]
-        );
+      try {
+        console.log('🚀 [INIT STEP 3] Requesting location permissions...');
+        const locationGranted = await requestLocationPermission();
+        setHasLocationPermission(locationGranted);
+        console.log(`✅ [INIT STEP 3] Location permission: ${locationGranted}`);
+        
+        if (locationGranted) {
+          // Initialize location service
+          try {
+            console.log('🚀 [INIT STEP 4] Initializing location service...');
+            await LocationService.initialize();
+            console.log('✅ [INIT STEP 4] Location service initialized');
+          } catch (error) {
+            console.error('❌ [INIT STEP 4] Location service initialization failed:', error);
+            setInitError(`Location service initialization failed: ${error}`);
+            throw error;
+          }
+        } else {
+          console.warn('⚠️ [INIT STEP 3] Location permission denied - continuing without location');
+        }
+      } catch (error) {
+        console.error('❌ [INIT STEP 3] Permission request failed:', error);
+        setInitError(`Permission request failed: ${error}`);
+        throw error;
       }
 
       // Initialize notification service
-      // await NotificationService.initialize(); // Temporarily disabled
-      console.log('✅ Notification service skipped (not implemented yet)');
+      console.log('✅ [INIT STEP 5] Notification service skipped (not implemented yet)');
 
       // Load user preferences
-      const userPreferences = await StorageService.getItem('userPreferences');
-      if (userPreferences) {
-        console.log('✅ User preferences loaded');
+      try {
+        console.log('🚀 [INIT STEP 6] Loading user preferences...');
+        const userPreferences = await StorageService.getItem('userPreferences');
+        if (userPreferences) {
+          console.log('✅ [INIT STEP 6] User preferences loaded');
+        } else {
+          console.log('ℹ️ [INIT STEP 6] No user preferences found (first run)');
+        }
+      } catch (error) {
+        console.error('❌ [INIT STEP 6] Preferences load failed (non-critical):', error);
+        // Don't throw - preferences are optional
       }
 
       setIsInitialized(true);
-      console.log('🎉 Forseti Mobile App initialization complete!');
+      console.log('🎉 [INIT COMPLETE] Forseti Mobile App initialization complete!');
 
     } catch (error) {
-      console.error('❌ App initialization failed:', error);
-      Alert.alert(
-        'Initialization Error',
-        'There was a problem starting the app. Please restart and try again.',
-        [{ text: 'OK' }]
-      );
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ [INIT FAILED] App initialization failed:', error);
+      console.error('❌ [INIT FAILED] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      setInitError(`App initialization failed: ${errorMessage}`);
+      setIsInitialized(true); // Still show UI with error message
     }
   };
 
   if (!isInitialized) {
-    // You could show a splash screen here
-    return null;
+    // Show splash/loading screen
+    return (
+      <SafeAreaView style={[backgroundStyle, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+        <StatusBar
+          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+          backgroundColor={Colors.primary}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  // Show error screen if initialization failed
+  if (initError) {
+    const Text = require('react-native').Text;
+    const View = require('react-native').View;
+    const ScrollView = require('react-native').ScrollView;
+    const Button = require('react-native').Button;
+    return (
+      <SafeAreaView style={[backgroundStyle, { flex: 1 }]}>
+        <StatusBar
+          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+          backgroundColor="#EF4444"
+        />
+        <ScrollView style={{ flex: 1, padding: 20 }}>
+          <View style={{ backgroundColor: '#FEE2E2', padding: 16, borderRadius: 8, marginBottom: 16 }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#DC2626', marginBottom: 8 }}>⚠️ Initialization Error</Text>
+            <Text style={{ fontSize: 14, color: '#991B1B', marginBottom: 16 }}>{initError}</Text>
+            <Button title="Retry" onPress={() => { setInitError(null); setIsInitialized(false); initializeApp(); }} color="#DC2626" />
+          </View>
+          <View style={{ backgroundColor: '#F3F4F6', padding: 16, borderRadius: 8 }}>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#374151', marginBottom: 8 }}>Debug Information</Text>
+            <Text style={{ fontSize: 12, color: '#6B7280', fontFamily: 'monospace' }}>Check console logs for detailed error information.</Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
   }
 
   return (
