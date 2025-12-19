@@ -14,18 +14,18 @@
 
 /* Card Styling */
 .card-forseti {
-  background: #16213e;
-  border: 1px solid rgba(0, 212, 255, 0.3);
+  background: #16213e !important;
+  border: 1px solid rgba(0, 212, 255, 0.3) !important;
 }
 
 .card-forseti h4,
 .card-forseti h5 {
-  color: #00d4ff;
+  color: #00d4ff !important;
 }
 
 .card-forseti p,
 .card-forseti li {
-  color: #e8e8e8;
+  color: #e8e8e8 !important;
 }
 
 /* Form Elements within card-forseti */
