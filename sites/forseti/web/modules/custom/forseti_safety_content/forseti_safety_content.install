@@ -53,26 +53,27 @@ function forseti_safety_content_install() {
   $existing_footer_block = $block_storage->load('forseti_forsetifootermenu');
   
   if (!$existing_footer_block) {
+    // Get the default theme to ensure block is placed in active theme.
+    $default_theme = \Drupal::config('system.theme')->get('default');
+    
     $footer_block = $block_storage->create([
       'id' => 'forseti_forsetifootermenu',
-      'theme' => 'forseti',
+      'theme' => $default_theme,
       'region' => 'footer',
       'weight' => 0,
-      'plugin' => 'system_menu_block:footer',
+      'plugin' => 'forseti_footer_menu',
       'settings' => [
-        'label' => 'Footer menu',
+        'label' => 'Forseti Footer Menu',
         'label_display' => '0',
-        'level' => 1,
-        'depth' => 0,
       ],
     ]);
     $footer_block->save();
-    $messenger->addStatus(t('Footer menu has been placed in the footer region.'));
-    $logger->info('Created footer menu block in footer region.');
+    $messenger->addStatus(t('Forseti Footer Menu has been placed in the footer region.'));
+    $logger->info('Created Forseti Footer Menu block in footer region.');
   }
   else {
-    $messenger->addWarning(t('Footer menu block already exists. Skipping creation.'));
-    $logger->info('Footer menu block already exists, skipped creation.');
+    $messenger->addWarning(t('Forseti Footer Menu block already exists. Skipping creation.'));
+    $logger->info('Forseti Footer Menu block already exists, skipped creation.');
   }
   
   // Configure custom error pages to use theme templates.
