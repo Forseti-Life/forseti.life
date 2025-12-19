@@ -164,7 +164,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: Colors?.background || '#1a1a2e',
   },
   scrollContent: {
     flexGrow: 1,
