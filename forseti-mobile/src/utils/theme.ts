@@ -19,6 +19,14 @@ import { Typography } from './typography';
 import { Shadows } from './shadows';
 
 export const Theme = {
+  Colors: Colors,
+  Spacing: Spacing,
+  Typography: Typography,
+  Shadows: Shadows,
+};
+
+// Also export with lowercase for flexibility
+export const theme = {
   colors: Colors,
   spacing: Spacing,
   typography: Typography,

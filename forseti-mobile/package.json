@@ -9,8 +9,9 @@
     "start": "react-native start",
     "test": "node test-auth.js",
     "auth-test": "node test-auth.js",
-    "web": "npx react-native-web-cli start",
-    "build": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle"
+    "web": "webpack serve --mode development",
+    "build": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle",
+    "build:web": "webpack --mode production"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.19.5",
@@ -29,17 +30,24 @@
     "react-native-safe-area-context": "^4.4.1",
     "react-native-screens": "^3.18.2",
     "react-native-svg": "^13.14.0",
-    "react-native-vector-icons": "^9.2.0",
-    "react-native-web": "^0.19.9"
+    "react-native-vector-icons": "^9.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
     "@babel/preset-env": "^7.20.0",
+    "@babel/preset-react": "^7.28.5",
     "@babel/runtime": "^7.20.0",
     "@react-native/metro-config": "^0.72.11",
+    "babel-loader": "^10.0.0",
     "babel-plugin-module-resolver": "^5.0.2",
+    "html-webpack-plugin": "^5.6.5",
     "metro-cache-key": "^0.82.5",
     "metro-file-map": "^0.76.8",
-    "metro-react-native-babel-preset": "^0.76.8"
+    "metro-react-native-babel-preset": "^0.76.8",
+    "react-native-web": "^0.19.13",
+    "react-native-web-maps": "^0.3.0",
+    "webpack": "^5.104.1",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.2"
   }
 }
