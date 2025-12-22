@@ -17,6 +17,7 @@ import HomeScreen from './src/screens/Home/HomeScreen.web';
 import ProfileScreen from './src/screens/Profile/ProfileScreen.web';
 import CommunityScreen from './src/screens/Community/CommunityScreen.web';
 import ChatScreen from './src/screens/Chat/ChatScreen.web';
+import SafetyScreen from './src/screens/Safety/SafetyScreen.web';
 
 // Simple placeholder screens
 const MapScreen = () => (
@@ -27,16 +28,6 @@ const MapScreen = () => (
       <Text style={styles.placeholderText}>
         Interactive crime maps available in native mobile app
       </Text>
-    </View>
-  </View>
-);
-
-const SafetyScreen = () => (
-  <View style={styles.screenContainer}>
-    <View style={styles.placeholderContent}>
-      <Icon name="shield-check" size={64} color={Colors.primary} />
-      <Text style={styles.placeholderTitle}>Safety Factors</Text>
-      <Text style={styles.placeholderText}>Learn about safety factors in your area</Text>
     </View>
   </View>
 );
