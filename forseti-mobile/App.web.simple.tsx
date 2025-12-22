@@ -185,8 +185,7 @@ const App = () => {
                     style={{
                       width: 24,
                       height: 24,
-                      tintColor: isActive ? Colors.primary : Colors.textSecondary,
-                      opacity: isActive ? 1 : 0.6,
+                      opacity: isActive ? 1 : 0.7,
                     }}
                     resizeMode="contain"
                   />
