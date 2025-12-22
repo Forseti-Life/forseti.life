@@ -16,6 +16,7 @@ import storageService from './src/services/storage/StorageService';
 import HomeScreen from './src/screens/Home/HomeScreen.web';
 import ProfileScreen from './src/screens/Profile/ProfileScreen.web';
 import CommunityScreen from './src/screens/Community/CommunityScreen.web';
+import ChatScreen from './src/screens/Chat/ChatScreen.web';
 
 // Simple placeholder screens
 const MapScreen = () => (
@@ -26,16 +27,6 @@ const MapScreen = () => (
       <Text style={styles.placeholderText}>
         Interactive crime maps available in native mobile app
       </Text>
-    </View>
-  </View>
-);
-
-const ChatScreen = () => (
-  <View style={styles.screenContainer}>
-    <View style={styles.placeholderContent}>
-      <Icon name="robot" size={64} color={Colors.primary} />
-      <Text style={styles.placeholderTitle}>AI Chat</Text>
-      <Text style={styles.placeholderText}>Chat with Forseti AI assistant</Text>
     </View>
   </View>
 );
