@@ -25,7 +25,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import HomeScreen from './src/screens/Home/HomeScreen';
 import CrimeMapScreen from './src/screens/CrimeMapScreen';
 import CommunityScreen from './src/screens/Community/CommunityScreen';
-import SafetyFactorsScreen from './src/screens/SafetyFactors/SafetyFactorsScreen';
+import SafetyScreen from './src/screens/Safety/SafetyScreen';
 import ProfileScreen from './src/screens/Profile/ProfileScreen';
 import ChatScreen from './src/screens/Chat/ChatScreen';
 import ConversationListScreen from './src/screens/Chat/ConversationListScreen';
@@ -69,92 +69,102 @@ const ForsetiNavigationTheme = {
   },
 };
 
-// Main Tab Navigator
-const TabNavigator = () => {
+// Main Tab Navigator with custom header
+const TabNavigator = ({ navigation }: { navigation: any }) => {
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: string;
+    <>
+      {/* Custom Header Bar with Forseti Logo */}
+      <View style={styles.headerBar}>
+        <TouchableOpacity onPress={() => navigation.navigate('Home')} style={styles.logoContainer}>
+          <Image
+            source={require('./assets/images/forseti_logo_final.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.logoText}>Forseti</Text>
+        </TouchableOpacity>
+      </View>
 
-          switch (route.name) {
-            case 'Home':
-              iconName = focused ? 'home' : 'home-outline';
-              break;
-            case 'Map':
-              iconName = focused ? 'map' : 'map-outline';
-              break;
-            case 'Chat':
-              // Use custom Forseti AI branding icon
-              return (
-                <Image
-                  source={require('./assets/images/forseti_ai.png')}
-                  style={{
-                    width: size,
-                    height: size,
-                    tintColor: color,
-                    opacity: focused ? 1 : 0.6,
-                  }}
-                  resizeMode="contain"
-                />
-              );
-            case 'Community':
-              iconName = focused ? 'account-group' : 'account-group-outline';
-              break;
-            case 'SafetyFactors':
-              // Use custom Forseti safety branding icon
-              return (
-                <Image
-                  source={require('./assets/images/forseti_safe.png')}
-                  style={{
-                    width: size,
-                    height: size,
-                    tintColor: color,
-                    opacity: focused ? 1 : 0.6,
-                  }}
-                  resizeMode="contain"
-                />
-              );
-            case 'Profile':
-              iconName = focused ? 'account' : 'account-outline';
-              break;
-            default:
-              iconName = 'help-circle-outline';
-          }
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          tabBarIcon: ({ focused, color, size }) => {
+            let iconName: string;
 
-          return <Icon name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: Colors?.primary || '#00d4ff',
-        tabBarInactiveTintColor: Colors?.gray || '#6c757d',
-        tabBarStyle: styles.tabBar,
-        headerStyle: {
-          backgroundColor: Colors?.primary || '#00d4ff',
-        },
-        headerTintColor: Colors?.white || '#ffffff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      })}
-    >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Forseti' }} />
-      <Tab.Screen
-        name="Map"
-        component={CrimeMapScreen}
-        options={{ title: 'Safety Map', headerShown: false }}
-      />
-      <Tab.Screen
-        name="Chat"
-        component={ChatScreen}
-        options={{ title: 'Talk with Forseti', headerShown: false }}
-      />
-      <Tab.Screen name="Community" component={CommunityScreen} options={{ title: 'Community' }} />
-      <Tab.Screen
-        name="SafetyFactors"
-        component={SafetyFactorsScreen}
-        options={{ title: 'Safety Factors' }}
-      />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
-    </Tab.Navigator>
+            switch (route.name) {
+              case 'Home':
+                iconName = focused ? 'home' : 'home-outline';
+                break;
+              case 'Map':
+                iconName = focused ? 'map' : 'map-outline';
+                break;
+              case 'Chat':
+                // Use custom Forseti AI branding icon (no tintColor for branded images)
+                return (
+                  <Image
+                    source={require('./assets/images/forseti_chat.png')}
+                    style={{
+                      width: size,
+                      height: size,
+                      opacity: focused ? 1 : 0.6,
+                    }}
+                    resizeMode="contain"
+                  />
+                );
+              case 'Safety':
+                // Use custom Forseti safety branding icon (no tintColor for branded images)
+                return (
+                  <Image
+                    source={require('./assets/images/forseti_safe.png')}
+                    style={{
+                      width: size,
+                      height: size,
+                      opacity: focused ? 1 : 0.6,
+                    }}
+                    resizeMode="contain"
+                  />
+                );
+              case 'Profile':
+                iconName = focused ? 'account' : 'account-outline';
+                break;
+              default:
+                iconName = 'help-circle-outline';
+            }
+
+            return <Icon name={iconName} size={size} color={color} />;
+          },
+          tabBarActiveTintColor: Colors?.primary || '#00d4ff',
+          tabBarInactiveTintColor: Colors?.gray || '#6c757d',
+          tabBarStyle: styles.tabBar,
+          headerShown: false, // Hide default header, we use custom header
+        })}
+      >
+        {/* Home is first in navigation but hidden from tab bar */}
+        <Tab.Screen 
+          name="Home" 
+          component={HomeScreen} 
+          options={{ 
+            tabBarButton: () => null, // Hide from tab bar
+            tabBarStyle: { display: 'none' },
+          }} 
+        />
+        <Tab.Screen
+          name="Map"
+          component={CrimeMapScreen}
+          options={{ title: 'Map' }}
+        />
+        <Tab.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={{ title: 'AI' }}
+        />
+        <Tab.Screen
+          name="Safety"
+          component={SafetyScreen}
+          options={{ title: 'Safety' }}
+        />
+        <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
+      </Tab.Navigator>
+    </>
   );
 };
 
@@ -334,7 +344,7 @@ const App: React.FC = () => {
     <SafeAreaView style={backgroundStyle}>
       <StatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={Colors?.primary || '#00d4ff'}
+        backgroundColor={Colors?.background || '#1a1a2e'}
       />
       <NavigationContainer theme={ForsetiNavigationTheme}>
         <Stack.Navigator
@@ -342,7 +352,9 @@ const App: React.FC = () => {
             headerShown: false,
           }}
         >
-          <Stack.Screen name="MainTabs" component={TabNavigator} />
+          <Stack.Screen name="MainTabs">
+            {(props) => <TabNavigator {...props} />}
+          </Stack.Screen>
           <Stack.Screen
             name="ConversationList"
             component={ConversationListScreen}
@@ -400,9 +412,32 @@ const App: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  headerBar: {
+    alignItems: 'center',
+    backgroundColor: Colors?.background || '#1a1a2e',
+    borderBottomColor: Colors?.border || '#2a3f5f',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    height: 60,
+    paddingHorizontal: 16,
+  },
+  logo: {
+    height: 40,
+    marginRight: 8,
+    width: 40,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  logoText: {
+    color: Colors?.text || '#ffffff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
   tabBar: {
-    backgroundColor: Colors?.white || '#ffffff',
-    borderTopColor: Colors?.lightGray || '#e9ecef',
+    backgroundColor: Colors?.card || '#16213e',
+    borderTopColor: Colors?.border || '#2a3f5f',
     borderTopWidth: 1,
     height: Platform.OS === 'ios' ? 85 : 60,
     paddingBottom: Platform.OS === 'ios' ? 20 : 5,

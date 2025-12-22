@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
-  Linking,
+  Image,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -36,7 +36,11 @@ interface QuickStats {
   safetyTrend: 'improving' | 'stable' | 'declining';
 }
 
-const HomeScreen: React.FC = () => {
+interface HomeScreenProps {
+  navigation?: any;
+}
+
+const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
   const [safetyScore, setSafetyScore] = useState<SafetyScore | null>(null);
   const [quickStats, setQuickStats] = useState<QuickStats | null>(null);
@@ -245,31 +249,39 @@ const HomeScreen: React.FC = () => {
           <View style={styles.actionsGrid}>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => Linking.openURL('https://forseti.life/safety-map')}
+              onPress={() => navigation?.navigate('Map')}
             >
               <Icon name="map" size={32} color={Colors.primary} />
-              <Text style={styles.actionText}>View Safety Map</Text>
+              <Text style={styles.actionText}>View Map</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => Linking.openURL('https://forseti.life/how-it-works')}
+              onPress={() => navigation?.navigate('Chat')}
             >
-              <Icon name="lightbulb-on" size={32} color={Colors.warning} />
-              <Text style={styles.actionText}>How It Works</Text>
+              <Image
+                source={require('../../../assets/images/forseti_chat.png')}
+                style={styles.actionIcon}
+                resizeMode="contain"
+              />
+              <Text style={styles.actionText}>AI Chat</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => Linking.openURL('tel:911')}
+              onPress={() => navigation?.navigate('Chat')}
             >
-              <Icon name="phone" size={32} color={Colors.danger} />
-              <Text style={styles.actionText}>Emergency 911</Text>
+              <Icon name="alert" size={32} color={Colors.danger} />
+              <Text style={styles.actionText}>Report Incident</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => Linking.openURL('https://forseti.life/community')}
+              onPress={() => navigation?.navigate('Safety')}
             >
-              <Icon name="account-group" size={32} color={Colors.success} />
-              <Text style={styles.actionText}>Community</Text>
+              <Image
+                source={require('../../../assets/images/forseti_safe.png')}
+                style={styles.actionIcon}
+                resizeMode="contain"
+              />
+              <Text style={styles.actionText}>Safety Tips</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -318,6 +330,10 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     padding: Spacing.md,
     width: '48%',
+  },
+  actionIcon: {
+    height: 32,
+    width: 32,
   },
   actionText: {
     ...Typography.bodySmall,
