@@ -210,7 +210,7 @@
       this.currentFilters = {
         crimeTypes: [],
         districts: [],
-        dateRange: '12months', // Use preset instead of specific dates
+        dateRange: 'alltime', // Use preset instead of specific dates
         timePeriods: ['early-morning', 'morning', 'afternoon', 'evening'],
         viewMode: 'hexagon'
       };
@@ -249,7 +249,7 @@
         $('#crime-type-dropdown').hide();
       });
       
-      console.log('✅ Filters initialized with date range: 12months');
+      console.log('✅ Filters initialized with date range: alltime');
       
       // View mode buttons
       $('#hexagon-view').on('click', function() {
@@ -1672,7 +1672,7 @@
       // Collect filter values
       this.currentFilters.crimeTypes = $('#crime-type-selector').val() || [];
       this.currentFilters.districts = $('#district-selector').val() || [];
-      this.currentFilters.dateRange = $('#date-range-filter').val() || '12months';
+      this.currentFilters.dateRange = $('#date-range-filter').val() || 'alltime';
       this.currentFilters.timePeriods = $('#time-period-selector').val() || [];
       
       console.log('🔍 Applying filters:', this.currentFilters);
@@ -1705,7 +1705,7 @@
       // Clear all selectors (deselect all options = show all data)
       $('#crime-type-selector option').prop('selected', false);
       $('#district-selector option').prop('selected', false);
-      $('#date-range-filter').val('12months');
+      $('#date-range-filter').val('alltime');
       $('#time-period-selector option').prop('selected', true);
       
       // Reset preset button states to 12 months
