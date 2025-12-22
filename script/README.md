@@ -78,7 +78,20 @@ This workspace supports two independent Drupal websites:
 - **complete-setup.sh** - 🔧 **Complete multi-site environment setup** (use for first-time setup)
 - **quick-start.sh** - 🚀 **Rapid startup** after workspace restarts (starts services, tests sites)
 - **verify-setup.sh** - ✅ **Comprehensive verification** of entire multi-site setup
-- **setup-mobile.sh** - 📱 **Mobile app environment setup** (React Native, dependencies, testing)
+
+### Forseti Mobile App Scripts
+- **setup-forseti-mobile-dev.sh** - 📱 **Complete Forseti Mobile development environment** (NEW - Recommended)
+  - Installs all dependencies (React Native, ESLint, Prettier, Jest, TypeScript)
+  - Sets up Android SDK (optional with --skip-android)
+  - Configures web preview (optional with --skip-web)
+  - Verifies all configuration files
+  - Includes VS Code debugging, testing, and code quality tools
+  - Usage: `./setup-forseti-mobile-dev.sh [--skip-android] [--skip-web] [--quick]`
+
+### Legacy Mobile Scripts (Deprecated - Use setup-forseti-mobile-dev.sh instead)
+- **setup-mobile.sh** - Original mobile app environment setup (points to old directory)
+- **setup-mobile-web.sh** - Web preview setup only (functionality now in consolidated script)
+- **setup-android-build.sh** - Android SDK setup only (functionality now in consolidated script)
 
 ### Legacy Scripts (archived/)
 - **setup-environment.sh** - Install system dependencies only
