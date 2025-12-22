@@ -18,19 +18,7 @@ import ProfileScreen from './src/screens/Profile/ProfileScreen.web';
 import CommunityScreen from './src/screens/Community/CommunityScreen.web';
 import ChatScreen from './src/screens/Chat/ChatScreen.web';
 import SafetyScreen from './src/screens/Safety/SafetyScreen.web';
-
-// Simple placeholder screens
-const MapScreen = () => (
-  <View style={styles.screenContainer}>
-    <View style={styles.placeholderContent}>
-      <Icon name="map" size={64} color={Colors.primary} />
-      <Text style={styles.placeholderTitle}>Safety Map</Text>
-      <Text style={styles.placeholderText}>
-        Interactive crime maps available in native mobile app
-      </Text>
-    </View>
-  </View>
-);
+import MapScreen from './src/screens/Map/MapScreen.web';
 
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
