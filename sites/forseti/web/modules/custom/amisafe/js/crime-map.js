@@ -1184,14 +1184,16 @@
     showHexagonDetailPanel: function(hexagon) {
       const content = this.createHexagonDetailContent(hexagon);
       $('#hexagon-detail-content').html(content);
-      $('#hexagon-detail-panel').fadeIn(300);
+      $('#hexagon-detail-panel').removeClass('d-none').fadeIn(300);
     },
 
     /**
      * Close hexagon detail panel
      */
     closeHexagonDetailPanel: function() {
-      $('#hexagon-detail-panel').fadeOut(300);
+      $('#hexagon-detail-panel').fadeOut(300, function() {
+        $(this).addClass('d-none');
+      });
     },
 
     /**
