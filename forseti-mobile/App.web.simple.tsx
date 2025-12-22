@@ -141,7 +141,7 @@ const App = () => {
 
       {/* Screen Content - Scrollable */}
       <View style={styles.contentContainer}>
-        <ActiveScreen />
+        <ActiveScreen navigation={{ navigate: setActiveTab }} />
       </View>
 
       {/* Bottom Tab Bar - Fixed */}

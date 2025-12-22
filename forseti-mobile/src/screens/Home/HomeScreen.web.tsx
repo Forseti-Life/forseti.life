@@ -8,7 +8,13 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'rea
 import Icon from '../../components/Icon.web';
 import { Colors } from '../../utils/colors';
 
-const HomeScreen: React.FC = () => {
+interface HomeScreenProps {
+  navigation?: {
+    navigate: (tab: string) => void;
+  };
+}
+
+const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   console.log('🏠 HomeScreen.web.tsx rendering...');
 
   // TODO: Replace with actual location-based safety data from API
@@ -24,10 +30,10 @@ const HomeScreen: React.FC = () => {
   };
 
   const quickActions = [
-    { icon: 'map', label: 'View Map', color: Colors.primary, type: 'icon' },
-    { icon: require('../../../assets/images/forseti_chat.png'), label: 'AI Chat', color: '#9C27B0', type: 'image' },
-    { icon: 'alert', label: 'Report Incident', color: '#F44336', type: 'icon' },
-    { icon: require('../../../assets/images/forseti_safe.png'), label: 'Safety Tips', color: '#4CAF50', type: 'image' },
+    { icon: 'map', label: 'View Map', color: Colors.primary, type: 'icon', navigateTo: 'map' },
+    { icon: require('../../../assets/images/forseti_chat.png'), label: 'AI Chat', color: '#9C27B0', type: 'image', navigateTo: 'chat' },
+    { icon: 'alert', label: 'Report Incident', color: '#F44336', type: 'icon', navigateTo: 'chat' },
+    { icon: require('../../../assets/images/forseti_safe.png'), label: 'Safety Tips', color: '#4CAF50', type: 'image', navigateTo: 'safety' },
   ];
 
   console.log('HomeScreen about to render, Colors:', Colors);
@@ -65,7 +71,12 @@ const HomeScreen: React.FC = () => {
             <TouchableOpacity
               key={index}
               style={styles.actionButton}
-              onPress={() => console.log(`${action.label} pressed`)}
+              onPress={() => {
+                console.log(`${action.label} pressed`);
+                if (navigation && action.navigateTo) {
+                  navigation.navigate(action.navigateTo);
+                }
+              }}
             >
               <View style={[styles.actionIcon, { backgroundColor: action.color + '20' }]}>
                 {action.type === 'image' ? (
