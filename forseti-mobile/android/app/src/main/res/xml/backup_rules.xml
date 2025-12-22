@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Exclude shared preferences that contain sensitive data -->
+    <exclude domain="sharedpref" path="RCTAsyncLocalStorage_V1" />
+    
+    <!-- Exclude database files if they contain sensitive data -->
+    <exclude domain="database" path="." />
+    
+    <!-- Include app-specific files that are safe to backup -->
+    <include domain="file" path="." />
+    
+    <!-- Exclude cache directory -->
+    <exclude domain="file" path="cache" />
+</full-backup-content>

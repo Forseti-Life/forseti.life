@@ -5,8 +5,15 @@
   "main": "index.js",
   "scripts": {
     "android": "react-native run-android",
+    "android:dev": "react-native run-android --mode=debug",
+    "android:release": "react-native run-android --mode=release",
+    "android:build": "cd android && ./gradlew assembleRelease",
+    "android:build:debug": "cd android && ./gradlew assembleDebug",
+    "android:clean": "cd android && ./gradlew clean",
+    "android:bundle": "cd android && ./gradlew bundleRelease",
     "ios": "react-native run-ios",
     "start": "react-native start",
+    "start:reset": "react-native start --reset-cache",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -16,8 +23,11 @@
     "type-check": "tsc --noEmit",
     "auth-test": "node test-auth.js",
     "web": "webpack serve --mode development",
+    "web:prod": "webpack serve --mode production",
     "build": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle",
-    "build:web": "webpack --mode production"
+    "build:web": "webpack --mode production",
+    "prebuild:android": "cd android && ./gradlew clean",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.19.5",

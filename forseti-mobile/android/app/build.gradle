@@ -51,9 +51,15 @@ react {
 }
 
 /**
- * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
+ * Set this to true to enable R8/Proguard on Release builds to minify the Java bytecode.
+ * R8 is the successor to ProGuard and is more efficient.
  */
-def enableProguardInReleaseBuilds = false
+def enableProguardInReleaseBuilds = true
+
+/**
+ * Enable separate APKs per CPU architecture to reduce APK size
+ */
+def enableSeparateBuildPerCPUArchitecture = true
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -88,17 +94,61 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            // For production builds, create a release.keystore and set these in gradle.properties:
+            // FORSETI_RELEASE_STORE_FILE=release.keystore
+            // FORSETI_RELEASE_STORE_PASSWORD=your_keystore_password
+            // FORSETI_RELEASE_KEY_ALIAS=your_key_alias
+            // FORSETI_RELEASE_KEY_PASSWORD=your_key_password
+            if (project.hasProperty('FORSETI_RELEASE_STORE_FILE')) {
+                storeFile file(FORSETI_RELEASE_STORE_FILE)
+                storePassword FORSETI_RELEASE_STORE_PASSWORD
+                keyAlias FORSETI_RELEASE_KEY_ALIAS
+                keyPassword FORSETI_RELEASE_KEY_PASSWORD
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
+            applicationIdSuffix ".debug"
+            debuggable true
+            minifyEnabled false
+            shrinkResources false
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig project.hasProperty('FORSETI_RELEASE_STORE_FILE') 
+                ? signingConfigs.release 
+                : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            shrinkResources enableProguardInReleaseBuilds
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            debuggable false
+        }
+    }
+
+    // Enable split APKs by ABI to reduce download size
+    splits {
+        abi {
+            reset()
+            enable enableSeparateBuildPerCPUArchitecture
+            universalApk false  // Generate an additional universal APK
+            include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+        }
+    }
+
+    // Output APK naming
+    applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+            def versionCode = defaultConfig.versionCode
+            def versionName = defaultConfig.versionName
+            def abi = output.getFilter(com.android.build.OutputFile.ABI)
+            def outputFileName = "forseti-${variant.name}-${versionName}-${versionCode}"
+            if (abi != null) {
+                outputFileName += "-${abi}"
+            }
+            outputFileName += ".apk"
+            output.outputFileName = outputFileName
         }
     }
 }
