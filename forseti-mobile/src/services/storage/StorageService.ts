@@ -281,4 +281,6 @@ class StorageService {
 }
 
 // Export singleton instance
-export default StorageService.getInstance();
+const storageService = StorageService.getInstance();
+export default storageService;
+export { StorageService, storageService };

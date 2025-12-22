@@ -6,6 +6,15 @@
  */
 
 class DrupalAuthService {
+  static instance = null;
+
+  static getInstance() {
+    if (!DrupalAuthService.instance) {
+      DrupalAuthService.instance = new DrupalAuthService();
+    }
+    return DrupalAuthService.instance;
+  }
+
   constructor() {
     this.baseUrl = 'https://forseti.life';
     this.currentUser = {
@@ -67,6 +76,7 @@ class DrupalAuthService {
     console.log('🔐 Mock: Login attempt for', username);
     this.currentUser = {
       uid: '1',
+      name: username,
       username: username,
       mail: `${username}@forseti.life`,
       roles: ['authenticated'],
@@ -75,6 +85,7 @@ class DrupalAuthService {
     return {
       success: true,
       user: this.currentUser,
+      token: this.sessionToken,
       session: this.sessionToken,
     };
   }
@@ -154,4 +165,5 @@ class DrupalAuthService {
 }
 
 // Export the class so it can be instantiated
+export { DrupalAuthService };
 export default DrupalAuthService;

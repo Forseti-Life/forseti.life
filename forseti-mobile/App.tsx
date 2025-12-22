@@ -32,6 +32,9 @@ import { AboutScreen } from './src/screens/About';
 import { HowItWorksScreen } from './src/screens/HowItWorks';
 import { PrivacyScreen } from './src/screens/Privacy';
 import SettingsScreen from './src/screens/Settings/SettingsScreen';
+import { SplashScreen } from './src/screens/Auth/SplashScreen';
+import { LoginScreen } from './src/screens/Auth/LoginScreen';
+import { RegisterScreen } from './src/screens/Auth/RegisterScreen';
 
 // Services
 import LocationService from './src/services/location/LocationService';
@@ -135,6 +138,8 @@ const TabNavigator = () => {
 const App: React.FC = () => {
   const isDarkMode = useColorScheme() === 'dark';
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
 
@@ -162,48 +167,47 @@ const App: React.FC = () => {
         throw error;
       }
 
-      // Request location permissions
+      // Check if user is already logged in
       try {
-        console.log('🚀 [INIT STEP 3] Requesting location permissions...');
-        const locationGranted = await requestLocationPermission();
-        setHasLocationPermission(locationGranted);
-        console.log(`✅ [INIT STEP 3] Location permission: ${locationGranted}`);
-
-        if (locationGranted) {
-          // Initialize location service
-          try {
-            console.log('🚀 [INIT STEP 4] Initializing location service...');
-            await LocationService.initialize();
-            console.log('✅ [INIT STEP 4] Location service initialized');
-          } catch (error) {
-            console.error('❌ [INIT STEP 4] Location service initialization failed:', error);
-            setInitError(`Location service initialization failed: ${error}`);
-            throw error;
-          }
+        console.log('🚀 [INIT STEP 3] Checking authentication status...');
+        const userToken = await StorageService.getItem('userToken');
+        if (userToken) {
+          console.log('✅ [INIT STEP 3] User token found - auto-login');
+          setIsAuthenticated(true);
         } else {
-          console.warn('⚠️ [INIT STEP 3] Location permission denied - continuing without location');
+          console.log('ℹ️ [INIT STEP 3] No user token found - need login');
+          setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('❌ [INIT STEP 3] Permission request failed:', error);
-        setInitError(`Permission request failed: ${error}`);
-        throw error;
+        console.error('❌ [INIT STEP 3] Auth check failed:', error);
+        setIsAuthenticated(false);
       }
 
-      // Initialize notification service
-      console.log('✅ [INIT STEP 5] Notification service skipped (not implemented yet)');
+      // Request location permissions (only if authenticated)
+      if (isAuthenticated) {
+        try {
+          console.log('🚀 [INIT STEP 4] Requesting location permissions...');
+          const locationGranted = await requestLocationPermission();
+          setHasLocationPermission(locationGranted);
+          console.log(`✅ [INIT STEP 4] Location permission: ${locationGranted}`);
 
-      // Load user preferences
-      try {
-        console.log('🚀 [INIT STEP 6] Loading user preferences...');
-        const userPreferences = await StorageService.getItem('userPreferences');
-        if (userPreferences) {
-          console.log('✅ [INIT STEP 6] User preferences loaded');
-        } else {
-          console.log('ℹ️ [INIT STEP 6] No user preferences found (first run)');
+          if (locationGranted) {
+            // Initialize location service
+            try {
+              console.log('🚀 [INIT STEP 5] Initializing location service...');
+              await LocationService.initialize();
+              console.log('✅ [INIT STEP 5] Location service initialized');
+            } catch (error) {
+              console.error('❌ [INIT STEP 5] Location service initialization failed:', error);
+              // Don't throw - location is optional for viewing app
+            }
+          } else {
+            console.warn('⚠️ [INIT STEP 4] Location permission denied - continuing without location');
+          }
+        } catch (error) {
+          console.error('❌ [INIT STEP 4] Permission request failed:', error);
+          // Don't throw - permissions can be requested later
         }
-      } catch (error) {
-        console.error('❌ [INIT STEP 6] Preferences load failed (non-critical):', error);
-        // Don't throw - preferences are optional
       }
 
       setIsInitialized(true);
@@ -220,22 +224,23 @@ const App: React.FC = () => {
     }
   };
 
-  if (!isInitialized) {
-    // Show splash/loading screen
-    return (
-      <SafeAreaView
-        style={[backgroundStyle, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}
-      >
-        <StatusBar
-          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-          backgroundColor={Colors.primary}
-        />
-      </SafeAreaView>
-    );
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+    // Re-initialize location services after login
+    initializeApp();
+  };
+
+  // Show splash screen first
+  if (showSplash) {
+    return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
   // Show error screen if initialization failed
-  if (initError) {
+  if (initError && !isAuthenticated) {
     const Text = require('react-native').Text;
     const View = require('react-native').View;
     const ScrollView = require('react-native').ScrollView;
@@ -277,6 +282,31 @@ const App: React.FC = () => {
     );
   }
 
+  // Show auth screens if not authenticated
+  if (!isAuthenticated && isInitialized) {
+    return (
+      <SafeAreaView style={backgroundStyle}>
+        <StatusBar
+          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+          backgroundColor={Colors?.primary || '#00d4ff'}
+        />
+        <NavigationContainer theme={ForsetiNavigationTheme}>
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="Login">
+              {(props) => <LoginScreen {...props} onLoginSuccess={handleLoginSuccess} />}
+            </Stack.Screen>
+            <Stack.Screen name="Register" component={RegisterScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SafeAreaView>
+    );
+  }
+
+  // Show main app if authenticated
   return (
     <SafeAreaView style={backgroundStyle}>
       <StatusBar

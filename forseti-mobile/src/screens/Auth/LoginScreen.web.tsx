@@ -14,7 +14,7 @@ import {
   Linking,
 } from 'react-native';
 import { DrupalAuthService } from '../../services/DrupalAuthService';
-import { StorageService } from '../../services/storage/StorageService';
+import storageService from '../../services/storage/StorageService';
 import { Theme } from '../../utils/theme';
 
 const { Colors, Spacing, Typography } = Theme;
@@ -30,40 +30,66 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    console.log('Login attempt:', { username, password: '***' });
+    
     if (!username || !password) {
-      Alert.alert('Error', 'Please enter both username and password');
+      if (Platform.OS === 'web') {
+        window.alert('Please enter both username and password');
+      } else {
+        Alert.alert('Error', 'Please enter both username and password');
+      }
       return;
     }
 
     setLoading(true);
+    console.log('Starting login process...');
+    
     try {
       const authService = DrupalAuthService.getInstance();
+      console.log('Auth service:', authService);
+      
       const result = await authService.login(username, password);
+      console.log('Login result:', result);
 
       if (result.success) {
         // Store user session
-        await StorageService.setItem('userToken', result.token);
-        await StorageService.setItem('userId', result.user.uid.toString());
-        await StorageService.setItem('username', result.user.name);
+        await storageService.setItem('userToken', result.token);
+        await storageService.setItem('userId', result.user.uid.toString());
+        await storageService.setItem('username', result.user.name);
 
+        console.log('Login success, calling onLoginSuccess');
         if (onLoginSuccess) {
           onLoginSuccess();
         } else {
-          Alert.alert('Success', 'Welcome to Forseti!', [
-            {
-              text: 'OK',
-              onPress: () => navigation.replace('Home'),
-            },
-          ]);
+          if (Platform.OS === 'web') {
+            window.alert('Welcome to Forseti!');
+          } else {
+            Alert.alert('Success', 'Welcome to Forseti!', [
+              {
+                text: 'OK',
+                onPress: () => navigation.replace('Home'),
+              },
+            ]);
+          }
         }
       } else {
-        Alert.alert('Login Failed', result.message || 'Invalid credentials');
+        console.error('Login failed:', result.message);
+        if (Platform.OS === 'web') {
+          window.alert('Login Failed: ' + (result.message || 'Invalid credentials'));
+        } else {
+          Alert.alert('Login Failed', result.message || 'Invalid credentials');
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
-      Alert.alert('Error', 'An error occurred during login. Please try again.');
+      if (Platform.OS === 'web') {
+        window.alert('An error occurred during login. Please try again.');
+      } else {
+        Alert.alert('Error', 'An error occurred during login. Please try again.');
+      }
     } finally {
       setLoading(false);
+      console.log('Login process complete');
     }
   };
 
@@ -86,19 +112,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <View style={styles.logoWrapper}>
-            {Platform.OS === 'web' ? (
-              <Image 
-                source={{ uri: '/forseti-logo.png' }}
-                style={styles.logoImage}
-                resizeMode="contain"
-              />
-            ) : (
-              <Image 
-                source={require('../../assets/images/forseti_logo_final.png')}
-                style={styles.logoImage}
-                resizeMode="contain"
-              />
-            )}
+            <Image 
+              source={{ uri: '/forseti-logo.png' }}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
           </View>
           <Text style={styles.title}>Forseti</Text>
           <Text style={styles.subtitle}>Stay Informed, Stay Safe</Text>

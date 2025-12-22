@@ -9,8 +9,17 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 class DrupalAuthService {
+  static instance = null;
+
+  static getInstance() {
+    if (!DrupalAuthService.instance) {
+      DrupalAuthService.instance = new DrupalAuthService();
+    }
+    return DrupalAuthService.instance;
+  }
+
   constructor() {
-    this.baseUrl = 'https://stlouisintegration.com'; // Drupal backend URL (St. Louis Integration site)
+    this.baseUrl = 'https://forseti.life'; // Drupal backend URL (Forseti production site)
     this.currentUser = null;
     this.sessionToken = null;
     this.csrfToken = null;
@@ -414,3 +423,4 @@ class DrupalAuthService {
 const drupalAuthService = new DrupalAuthService();
 
 export default drupalAuthService;
+export { DrupalAuthService, drupalAuthService };

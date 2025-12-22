@@ -4,18 +4,18 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import Icon from '../../components/Icon.web';
 import { Colors } from '../../utils/colors';
 
 const HomeScreen: React.FC = () => {
   console.log('🏠 HomeScreen.web.tsx rendering...');
 
-  const [safetyScore] = useState(75);
-  const safetyLevel = 'MEDIUM';
-  const location = 'Philadelphia, PA';
+  // TODO: Replace with actual location-based safety data from API
+  const [safetyScore] = useState<number | null>(null); // null = no data available
+  const location = null; // Will be populated when location services are integrated
 
-  console.log('HomeScreen state:', { safetyScore, safetyLevel, location });
+  console.log('HomeScreen state:', { safetyScore, location });
 
   const getSafetyColor = () => {
     if (safetyScore >= 80) return '#4CAF50';
@@ -24,16 +24,10 @@ const HomeScreen: React.FC = () => {
   };
 
   const quickActions = [
-    { icon: 'map', label: 'View Map', color: Colors.primary },
-    { icon: 'robot', label: 'AI Chat', color: '#9C27B0' },
-    { icon: 'alert', label: 'Report Incident', color: '#F44336' },
-    { icon: 'shield-check', label: 'Safety Tips', color: '#4CAF50' },
-  ];
-
-  const recentIncidents = [
-    { type: 'Theft', distance: '0.3 mi', time: '2 hours ago', severity: 'low' },
-    { type: 'Assault', distance: '0.8 mi', time: '5 hours ago', severity: 'high' },
-    { type: 'Vandalism', distance: '1.2 mi', time: '1 day ago', severity: 'medium' },
+    { icon: 'map', label: 'View Map', color: Colors.primary, type: 'icon' },
+    { icon: '/forseti-logo.png', label: 'AI Chat', color: '#9C27B0', type: 'image' },
+    { icon: 'alert', label: 'Report Incident', color: '#F44336', type: 'icon' },
+    { icon: '/forseti-logo.png', label: 'Safety Tips', color: '#4CAF50', type: 'image' },
   ];
 
   console.log('HomeScreen about to render, Colors:', Colors);
@@ -50,49 +44,22 @@ const HomeScreen: React.FC = () => {
         <Text style={styles.subtitleText}>AI-Powered Safety Monitoring</Text>
       </View>
 
-      {/* Location Card */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Icon name="map-marker" size={20} color={Colors.primary} />
-          <Text style={styles.cardTitle}>Current Location</Text>
-        </View>
-        <Text style={styles.locationText}>{location}</Text>
-        <Text style={styles.locationSubtext}>Tap to change location</Text>
-      </View>
-
       {/* Safety Score */}
       <View style={[styles.card, styles.safetyCard]}>
         <Text style={styles.cardTitle}>Safety Score</Text>
         <View style={styles.scoreContainer}>
-          <View style={[styles.scoreCircle, { borderColor: getSafetyColor() }]}>
-            <Text style={[styles.scoreNumber, { color: getSafetyColor() }]}>{safetyScore}</Text>
-          </View>
           <View style={styles.scoreDetails}>
-            <Text style={[styles.scoreLevel, { color: getSafetyColor() }]}>{safetyLevel}</Text>
-            <Text style={styles.scoreDescription}>Moderate safety level in your area</Text>
+            <Text style={styles.scoreLevel}>Not within service area</Text>
+            <Text style={styles.scoreDescription}>
+              Safety data is currently available for select metropolitan areas.
+              {'\n'}Check back soon as we expand coverage.
+            </Text>
           </View>
-        </View>
-      </View>
-
-      {/* Statistics */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>1,247</Text>
-          <Text style={styles.statLabel}>Total Incidents</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>18</Text>
-          <Text style={styles.statLabel}>This Month</Text>
-        </View>
-        <View style={styles.statBox}>
-          <Icon name="trending-up" size={32} color="#4CAF50" />
-          <Text style={styles.statLabel}>Improving</Text>
         </View>
       </View>
 
       {/* Quick Actions */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Quick Actions</Text>
         <View style={styles.actionsGrid}>
           {quickActions.map((action, index) => (
             <TouchableOpacity
@@ -101,61 +68,19 @@ const HomeScreen: React.FC = () => {
               onPress={() => console.log(`${action.label} pressed`)}
             >
               <View style={[styles.actionIcon, { backgroundColor: action.color + '20' }]}>
-                <Icon name={action.icon} size={24} color={action.color} />
+                {action.type === 'image' ? (
+                  <Image 
+                    source={{ uri: action.icon }}
+                    style={styles.actionIconImage}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Icon name={action.icon} size={24} color={action.color} />
+                )}
               </View>
-              <Text style={styles.actionLabel}>{action.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
-      </View>
-
-      {/* Recent Incidents */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Icon name="alert-circle" size={20} color={Colors.primary} />
-          <Text style={styles.cardTitle}>Recent Nearby Incidents</Text>
-        </View>
-        {recentIncidents.map((incident, index) => (
-          <View key={index} style={styles.incidentRow}>
-            <View
-              style={[
-                styles.severityDot,
-                {
-                  backgroundColor:
-                    incident.severity === 'high'
-                      ? '#F44336'
-                      : incident.severity === 'medium'
-                        ? '#FF9800'
-                        : '#FFC107',
-                },
-              ]}
-            />
-            <View style={styles.incidentInfo}>
-              <Text style={styles.incidentType}>{incident.type}</Text>
-              <Text style={styles.incidentDetails}>
-                {incident.distance} • {incident.time}
-              </Text>
-            </View>
-            <TouchableOpacity>
-              <Icon name="chevron-right" size={20} color={Colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-        ))}
-        <TouchableOpacity style={styles.viewAllButton}>
-          <Text style={styles.viewAllText}>View All Incidents</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Safety Tips */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Icon name="lightbulb" size={20} color="#FFC107" />
-          <Text style={styles.cardTitle}>Safety Tip of the Day</Text>
-        </View>
-        <Text style={styles.tipText}>
-          Stay aware of your surroundings, especially in unfamiliar areas. Keep valuables out of
-          sight and walk in well-lit areas at night.
-        </Text>
       </View>
 
       <View style={styles.footer}>
@@ -180,6 +105,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
     width: 56,
+  },
+  actionIconImage: {
+    width: 32,
+    height: 32,
   },
   actionLabel: {
     color: Colors.text,

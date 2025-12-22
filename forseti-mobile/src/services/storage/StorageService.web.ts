@@ -13,6 +13,15 @@ class StorageService {
     return StorageService.instance;
   }
 
+  async initialize(): Promise<void> {
+    console.log('[Web Mock] StorageService.initialize()');
+    // Check if localStorage is available
+    if (typeof localStorage === 'undefined') {
+      throw new Error('localStorage is not available');
+    }
+    return Promise.resolve();
+  }
+
   async setItem(key: string, value: string): Promise<void> {
     console.log(`[Web Mock] StorageService.setItem(${key})`);
     localStorage.setItem(key, value);
@@ -39,4 +48,7 @@ class StorageService {
   }
 }
 
-export default StorageService.getInstance();
+const storageService = StorageService.getInstance();
+
+export { StorageService, storageService };
+export default storageService;

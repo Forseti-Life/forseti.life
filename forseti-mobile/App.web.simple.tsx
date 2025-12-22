@@ -3,13 +3,18 @@
  * Custom navigation without react-navigation complexity
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Icon from './src/components/Icon.web';
 import { Colors } from './src/utils/colors';
+import { SplashScreen } from './src/screens/Auth/SplashScreen';
+import { LoginScreen } from './src/screens/Auth/LoginScreen';
+import { RegisterScreen } from './src/screens/Auth/RegisterScreen';
+import storageService from './src/services/storage/StorageService';
 
 // Screens
 import HomeScreen from './src/screens/Home/HomeScreen.web';
+import ProfileScreen from './src/screens/Profile/ProfileScreen.web';
 import CommunityScreen from './src/screens/Community/CommunityScreen.web';
 
 // Simple placeholder screens
@@ -45,30 +50,78 @@ const SafetyScreen = () => (
   </View>
 );
 
-const ProfileScreen = () => (
-  <View style={styles.screenContainer}>
-    <View style={styles.placeholderContent}>
-      <Icon name="account" size={64} color={Colors.primary} />
-      <Text style={styles.placeholderTitle}>Profile</Text>
-      <Text style={styles.placeholderText}>Manage your account and settings</Text>
-    </View>
-  </View>
-);
-
 const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  useEffect(() => {
+    initializeApp();
+  }, []);
+
+  const initializeApp = async () => {
+    try {
+      // Initialize storage
+      await storageService.initialize();
+      
+      // Check if user is logged in
+      const userToken = await storageService.getItem('userToken');
+      if (userToken) {
+        setIsAuthenticated(true);
+      }
+      
+      setIsInitialized(true);
+    } catch (error) {
+      console.error('Initialization error:', error);
+      setIsInitialized(true);
+    }
+  };
+
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleShowRegister = () => {
+    setShowRegister(true);
+  };
+
+  const handleBackToLogin = () => {
+    setShowRegister(false);
+  };
+
+  // Show splash screen
+  if (showSplash) {
+    return <SplashScreen onFinish={handleSplashFinish} />;
+  }
+
+  // Show auth screens if not authenticated
+  if (!isAuthenticated && isInitialized) {
+    if (showRegister) {
+      return <RegisterScreen navigation={{ navigate: handleBackToLogin }} />;
+    }
+    return (
+      <LoginScreen 
+        navigation={{ navigate: (screen: string) => {
+          if (screen === 'Register') {
+            handleShowRegister();
+          }
+        }}}
+        onLoginSuccess={handleLoginSuccess}
+      />
+    );
+  }
+
+  // Show main app if authenticated
   const tabs = [
     { id: 'home', label: 'Home', icon: 'home', iconActive: 'home', screen: HomeScreen },
     { id: 'map', label: 'Map', icon: 'map-outline', iconActive: 'map', screen: MapScreen },
     { id: 'chat', label: 'AI', icon: 'robot-outline', iconActive: 'robot', screen: ChatScreen },
-    {
-      id: 'community',
-      label: 'Community',
-      icon: 'account-group-outline',
-      iconActive: 'account-group',
-      screen: CommunityScreen,
-    },
     {
       id: 'safety',
       label: 'Safety',

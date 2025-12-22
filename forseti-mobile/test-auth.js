@@ -6,7 +6,7 @@
 const axios = require('axios');
 
 // API Configuration
-const API_BASE = 'https://stlouisintegration.com';
+const API_BASE = 'https://forseti.life';
 const CLIENT_ID = 'forseti_mobile';
 
 class ForsetiAuthTest {
