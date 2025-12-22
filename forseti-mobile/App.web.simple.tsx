@@ -148,12 +148,12 @@ const App = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Screen Content */}
-      <View style={styles.content}>
+      {/* Screen Content - Scrollable */}
+      <View style={styles.contentContainer}>
         <ActiveScreen />
       </View>
 
-      {/* Bottom Tab Bar */}
+      {/* Bottom Tab Bar - Fixed */}
       <View style={styles.tabBar}>
         {tabs.filter(tab => !tab.hideFromTabBar).map(tab => {
           const isActive = activeTab === tab.id;
@@ -194,15 +194,20 @@ const App = () => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.background,
-    flex: 1,
-    height: '100%',
-    width: '100%',
-  },
-  content: {
-    flex: 1,
-    height: '100%',
+    height: '100vh',
+    width: '100vw',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'fixed',
+    top: 0,
+    left: 0,
     overflow: 'hidden',
+  },
+  contentContainer: {
+    flex: 1,
+    overflow: 'auto',
     width: '100%',
+    minHeight: 0,
   },
   headerBar: {
     backgroundColor: Colors.primary,
@@ -267,6 +272,7 @@ const styles = StyleSheet.create({
     height: 70,
     paddingBottom: 8,
     paddingTop: 4,
+    flexShrink: 0,
   },
   tabButton: {
     alignItems: 'center',

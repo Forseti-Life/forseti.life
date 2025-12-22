@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import Icon from '../../components/Icon.web';
 import { Colors } from '../../utils/colors';
 
@@ -151,7 +151,11 @@ const ChatScreen: React.FC = () => {
     return (
       <View key={message.id} style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
         {!isUser && (
-          <Icon name="robot" size={20} color={Colors.primary} style={styles.aiIcon} />
+          <Image
+            source={require('../../../assets/images/forseti_chat.png')}
+            style={styles.aiIcon}
+            resizeMode="contain"
+          />
         )}
         <View style={[styles.messageContent, isUser ? styles.userContent : styles.aiContent]}>
           <Text style={[styles.messageText, isUser ? styles.userText : styles.aiText]}>
@@ -211,11 +215,15 @@ const ChatScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    height: '100%',
+    width: '100%',
     backgroundColor: Colors.background,
+    display: 'flex',
+    flexDirection: 'column',
   },
   messageList: {
     flex: 1,
+    overflow: 'auto',
   },
   messageListContent: {
     padding: 16,
@@ -233,6 +241,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   aiIcon: {
+    width: 24,
+    height: 24,
     marginRight: 8,
     marginTop: 4,
   },
@@ -292,6 +302,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cardBackground,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
+    flexShrink: 0,
   },
   input: {
     flex: 1,
