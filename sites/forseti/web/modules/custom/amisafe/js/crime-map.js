@@ -1193,12 +1193,8 @@
     showHexagonDetailPanel: function(hexagon) {
       console.log('🔍 showHexagonDetailPanel called', hexagon);
       
-      // Use native JavaScript to ensure panel shows
       const panel = document.getElementById('hexagon-detail-panel');
       const contentDiv = document.getElementById('hexagon-detail-content');
-      
-      console.log('📋 Panel element:', panel ? 'found' : 'NOT FOUND');
-      console.log('📋 Content div:', contentDiv ? 'found' : 'NOT FOUND');
       
       if (!panel || !contentDiv) {
         console.error('❌ Panel elements not found!');
@@ -1206,25 +1202,12 @@
       }
       
       const content = this.createHexagonDetailContent(hexagon);
-      console.log('📝 Content created, length:', content.length);
-      
       contentDiv.innerHTML = content;
-      panel.style.display = 'block';
-      panel.style.position = 'fixed';
-      panel.style.bottom = '0';
-      panel.style.left = '0';
-      panel.style.right = '0';
-      panel.style.zIndex = '9999';
-      panel.style.backgroundColor = 'white';
-      panel.style.minHeight = '200px';
-      panel.style.maxHeight = '50vh';
-      panel.style.overflowY = 'auto';
-      panel.style.boxShadow = '0 -4px 20px rgba(0,0,0,0.15)';
-      panel.style.padding = '1rem';
       
-      console.log('✅ Panel display set to:', panel.style.display);
-      console.log('✅ Panel position:', panel.style.position);
-      console.log('✅ Panel z-index:', panel.style.zIndex);
+      // Simply show the panel - CSS handles all the styling
+      panel.style.display = 'block';
+      
+      console.log('✅ Panel opened for hex:', hexagon.hex_id);
     },
 
     /**
@@ -1312,13 +1295,13 @@
         : 'N/A';
       
       return `
-        <div class="hexagon-popup-content">
-          <div class="popup-header">
-            <h4>H3:${h3Resolution} Sector Analysis</h4>
-            <div class="h3-index">${h3Index}</div>
+        <div class="hexagon-detail-inner">
+          <div class="detail-header">
+            <h4>H3 Resolution ${h3Resolution} Sector Analysis</h4>
+            <div class="h3-index-badge">${h3Index}</div>
           </div>
           
-          <div class="popup-section">
+          <div class="detail-section">
             <h5>📊 Crime Statistics</h5>
             <div class="stat-grid">
               <div class="stat-item">
@@ -1352,7 +1335,7 @@
             </div>
           </div>
           
-          <div class="popup-section">
+          <div class="detail-section">
             <h5>📈 Statistical Breakdown</h5>
             <div class="stat-grid">
               <div class="stat-item">
@@ -1364,12 +1347,12 @@
                 <span class="stat-value" style="color: ${this.getZScoreColor(nonviolentZScore)};">${nonviolentZScore ? nonviolentZScore.toFixed(2) : 'N/A'}</span>
               </div>
             </div>
-            <div class="z-score-explanation" style="font-size: 0.75rem; color: #666; margin-top: 0.5rem;">
+            <div class="z-score-explanation">
               <em>Z-Score Scale: -2 (much safer than average) to 11+ (extreme danger)</em>
             </div>
           </div>
           
-          <div class="popup-section">
+          <div class="detail-section">
             <h5>🌍 Geographic Details</h5>
             <div class="geo-info">
               <div><strong>Precision:</strong> ${precisionLevel}</div>
@@ -1378,7 +1361,7 @@
             </div>
           </div>
           
-          <div class="popup-section">
+          <div class="detail-section">
             <h5>⏰ Temporal Analysis</h5>
             <div class="temporal-info">
               <div><strong>Date Range:</strong> ${formatDate(earliestIncident)} - ${formatDate(latestIncident)}</div>
@@ -1387,17 +1370,17 @@
             </div>
           </div>
           
-          <div class="popup-section">
+          <div class="detail-section">
             <h5>🔍 Top Crime Types</h5>
             <div class="crime-breakdown">${topCrimeTypes}</div>
           </div>
           
-          <div class="popup-section">
+          <div class="detail-section">
             <h5>🏛️ Police Districts</h5>
             <div class="district-breakdown">${topDistricts}</div>
           </div>
           
-          <div class="popup-footer">
+          <div class="detail-footer">
             <div class="data-quality">Data Quality: ${(avgScore * 100).toFixed(1)}% (${validRecords.toLocaleString()} valid records)</div>
           </div>
         </div>

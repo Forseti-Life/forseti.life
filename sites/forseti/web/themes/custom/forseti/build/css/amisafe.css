@@ -217,37 +217,184 @@
 
 /* Hexagon Detail Panel */
 .hexagon-detail-panel {
-  position: absolute;
+  position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  max-height: 40vh;
-  background: rgba(26, 32, 44, 0.98);
-  border-top: 2px solid #06b6d4;
+  max-height: 45vh;
+  background: #16213e;
+  border-top: 2px solid #00d4ff;
+  border-left: 1px solid rgba(0, 212, 255, 0.3);
+  border-right: 1px solid rgba(0, 212, 255, 0.3);
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 9999;
   padding: 20px;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+  border-radius: 8px 8px 0 0;
+}
+
+.hexagon-detail-panel h4,
+.hexagon-detail-panel h5 {
+  color: #00d4ff;
+  margin-bottom: 1rem;
+}
+
+.hexagon-detail-panel p,
+.hexagon-detail-panel li,
+.hexagon-detail-panel td {
+  color: #e8e8e8;
+}
+
+.hexagon-detail-panel .stat-label {
+  color: #b8b8b8;
+  font-weight: 500;
+}
+
+.hexagon-detail-panel .stat-value {
+  color: #00d4ff;
+  font-weight: 600;
 }
 
 .close-panel-btn {
   position: absolute;
-  top: 10px;
-  right: 15px;
-  background: transparent;
-  border: none;
-  color: #e2e8f0;
+  top: 15px;
+  right: 20px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: #00d4ff;
   font-size: 1.5rem;
   cursor: pointer;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   line-height: 1;
   border-radius: 4px;
+  transition: all 0.2s ease;
 }
 
 .close-panel-btn:hover {
-  background: #2d3748;
-  color: #06b6d4;
+  background: rgba(0, 212, 255, 0.2);
+  border-color: #00d4ff;
+  color: #fff;
+  transform: scale(1.1);
+}
+
+/* Panel Detail Content */
+.hexagon-detail-inner {
+  padding-right: 40px;
+}
+
+.detail-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.detail-header h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+}
+
+.h3-index-badge {
+  font-family: monospace;
+  color: #b8b8b8;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0, 212, 255, 0.1);
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.detail-section {
+  margin-bottom: 1.5rem;
+}
+
+.detail-section h5 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  background: rgba(0, 212, 255, 0.05);
+  border-radius: 4px;
+  border-left: 2px solid rgba(0, 212, 255, 0.3);
+}
+
+.geo-info div,
+.temporal-info div,
+.crime-breakdown,
+.district-breakdown {
+  padding: 0.4rem 0;
+  color: #e8e8e8;
+  line-height: 1.6;
+}
+
+.crime-breakdown,
+.district-breakdown {
+  padding-left: 1rem;
+}
+
+.z-score-explanation {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(0, 212, 255, 0.05);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: #b8b8b8;
+  font-style: italic;
+}
+
+.detail-footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.data-quality {
+  color: #b8b8b8;
+  font-size: 0.85rem;
+}
+
+/* Risk level colors */
+.stat-value.critical,
+.stat-value.risk-critical {
+  color: #ff4444 !important;
+}
+
+.stat-value.high,
+.stat-value.risk-high {
+  color: #ff9800 !important;
+}
+
+.stat-value.moderate,
+.stat-value.risk-moderate {
+  color: #fdd835 !important;
+}
+
+.stat-value.low,
+.stat-value.risk-low {
+  color: #4caf50 !important;
+}
+
+/* Hotspot status colors */
+.stat-value.hotspot-true {
+  color: #ff4444 !important;
+  font-weight: bold;
+}
+
+.stat-value.hotspot-false {
+  color: #4caf50 !important;
 }
 
 /* Modal Overrides for Crime Map */
