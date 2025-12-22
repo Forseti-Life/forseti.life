@@ -18,10 +18,16 @@ class MobileDownloadController extends ControllerBase {
     $module_path = \Drupal::service('extension.list.module')->getPath('amisafe');
     $files_path = 'public://forseti/mobile';
     
-    // Check if APK exists (using debug version during development)
-    $apk_uri = $files_path . '/Forseti-debug.apk';
+    // Check if production APK exists
+    $apk_uri = $files_path . '/Forseti-release.apk';
     $apk_url = file_exists(\Drupal::service('file_system')->realpath($apk_uri)) 
       ? \Drupal::service('file_url_generator')->generateAbsoluteString($apk_uri)
+      : null;
+    
+    // Check if development APK exists
+    $apk_dev_uri = $files_path . '/Forseti-debug.apk';
+    $apk_dev_url = file_exists(\Drupal::service('file_system')->realpath($apk_dev_uri)) 
+      ? \Drupal::service('file_url_generator')->generateAbsoluteString($apk_dev_uri)
       : null;
     
     // Check if IPA exists
@@ -32,13 +38,16 @@ class MobileDownloadController extends ControllerBase {
     
     // Get file sizes
     $apk_size = $apk_url ? filesize(\Drupal::service('file_system')->realpath($apk_uri)) : 0;
+    $apk_dev_size = $apk_dev_url ? filesize(\Drupal::service('file_system')->realpath($apk_dev_uri)) : 0;
     $ipa_size = $ipa_url ? filesize(\Drupal::service('file_system')->realpath($ipa_uri)) : 0;
     
     return [
       '#theme' => 'amisafe_mobile_download',
       '#apk_url' => $apk_url,
+      '#apk_dev_url' => $apk_dev_url,
       '#ipa_url' => $ipa_url,
       '#apk_size' => $this->formatBytes($apk_size),
+      '#apk_dev_size' => $this->formatBytes($apk_dev_size),
       '#ipa_size' => $this->formatBytes($ipa_size),
       '#attached' => [
         'library' => [
