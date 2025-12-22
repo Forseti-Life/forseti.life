@@ -15,6 +15,8 @@ import {
   Platform,
   View,
   Text,
+  Image,
+  TouchableOpacity,
 } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -122,10 +124,12 @@ const TabIcon = ({
   iconName,
   focused,
   label,
+  imageSource,
 }: {
-  iconName: string;
+  iconName?: string;
   focused: boolean;
   label: string;
+  imageSource?: any;
 }) => {
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center', paddingTop: 6 }}>
@@ -137,7 +141,20 @@ const TabIcon = ({
           backgroundColor: focused ? Colors.primary + '20' : 'transparent',
         }}
       >
-        <Icon name={iconName} size={24} color={focused ? Colors.primary : Colors.textSecondary} />
+        {imageSource ? (
+          <Image
+            source={imageSource}
+            style={{
+              width: 24,
+              height: 24,
+              tintColor: focused ? Colors.primary : Colors.textSecondary,
+              opacity: focused ? 1 : 0.6,
+            }}
+            resizeMode="contain"
+          />
+        ) : (
+          <Icon name={iconName || ''} size={24} color={focused ? Colors.primary : Colors.textSecondary} />
+        )}
       </View>
       <Text
         style={{
@@ -155,6 +172,7 @@ const TabIcon = ({
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
+  const [navigationRef, setNavigationRef] = useState<any>(null);
 
   const navigationTheme = {
     ...DefaultTheme,
@@ -172,13 +190,30 @@ function App(): React.JSX.Element {
     console.log('Forseti Mobile (Web) - Application loaded');
   }, []);
 
+  const navigateToHome = () => {
+    if (navigationRef) {
+      navigationRef.navigate('Home'); // Navigate to home screen (hidden from tabs)
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar
         barStyle={isDarkMode ? 'light-content' : 'dark-content'}
         backgroundColor={Colors.primary}
       />
-      <NavigationContainer theme={navigationTheme}>
+      {/* Custom Header with Logo */}
+      <View style={styles.headerBar}>
+        <TouchableOpacity onPress={navigateToHome} style={styles.logoContainer}>
+          <Image
+            source={require('./assets/images/forseti_logo_final.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.logoText}>Forseti</Text>
+        </TouchableOpacity>
+      </View>
+      <NavigationContainer theme={navigationTheme} ref={setNavigationRef}>
         <Tab.Navigator
           sceneContainerStyle={{ flex: 1 }}
           screenOptions={{
@@ -193,28 +228,15 @@ function App(): React.JSX.Element {
             tabBarShowLabel: false,
             tabBarActiveTintColor: Colors.primary,
             tabBarInactiveTintColor: Colors.textSecondary,
-            headerStyle: {
-              backgroundColor: Colors.primary,
-            },
-            headerTintColor: Colors.white,
-            headerTitleStyle: {
-              fontWeight: 'bold',
-              fontSize: 18,
-            },
+            headerShown: false, // Hide default header since we have custom one
           }}
         >
+          {/* Hidden Home screen - accessed via logo click */}
           <Tab.Screen
             name="Home"
             component={HomeScreen}
             options={{
-              title: 'Forseti',
-              tabBarIcon: ({ focused }) => (
-                <TabIcon
-                  iconName={focused ? 'home' : 'home-outline'}
-                  focused={focused}
-                  label="Home"
-                />
-              ),
+              tabBarButton: () => null, // Hide from tab bar
             }}
           />
           <Tab.Screen
@@ -235,7 +257,7 @@ function App(): React.JSX.Element {
               title: 'AI Chat',
               tabBarIcon: ({ focused }) => (
                 <TabIcon
-                  iconName={focused ? 'robot' : 'robot-outline'}
+                  imageSource={require('./assets/images/forseti_ai.png')}
                   focused={focused}
                   label="AI"
                 />
@@ -263,7 +285,7 @@ function App(): React.JSX.Element {
               title: 'Safety Factors',
               tabBarIcon: ({ focused }) => (
                 <TabIcon
-                  iconName={focused ? 'shield-check' : 'shield-check-outline'}
+                  imageSource={require('./assets/images/forseti_safe.png')}
                   focused={focused}
                   label="Safety"
                 />
@@ -297,6 +319,36 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     width: '100%',
+  },
+  headerBar: {
+    backgroundColor: Colors.primary,
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    cursor: 'pointer',
+  },
+  logo: {
+    width: 40,
+    height: 40,
+    marginRight: 12,
+  },
+  logoText: {
+    color: Colors.white,
+    fontSize: 20,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
 });
 

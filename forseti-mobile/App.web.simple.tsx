@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import Icon from './src/components/Icon.web';
 import { Colors } from './src/utils/colors';
 import { SplashScreen } from './src/screens/Auth/SplashScreen';
@@ -119,15 +119,17 @@ const App = () => {
 
   // Show main app if authenticated
   const tabs = [
-    { id: 'home', label: 'Home', icon: 'home', iconActive: 'home', screen: HomeScreen },
-    { id: 'map', label: 'Map', icon: 'map-outline', iconActive: 'map', screen: MapScreen },
-    { id: 'chat', label: 'AI', icon: 'robot-outline', iconActive: 'robot', screen: ChatScreen },
+    { id: 'home', label: 'Home', icon: 'home-outline', iconActive: 'home', screen: HomeScreen, useIcon: true, hideFromTabBar: true },
+    { id: 'map', label: 'Map', icon: 'map-outline', iconActive: 'map', screen: MapScreen, useIcon: true },
+    { id: 'chat', label: 'AI', icon: 'robot-outline', iconActive: 'robot', screen: ChatScreen, useIcon: false, imageSource: require('./assets/images/forseti_chat.png') },
     {
       id: 'safety',
       label: 'Safety',
       icon: 'shield-check-outline',
       iconActive: 'shield-check',
       screen: SafetyScreen,
+      useIcon: false,
+      imageSource: require('./assets/images/forseti_safe.png')
     },
     {
       id: 'profile',
@@ -135,6 +137,7 @@ const App = () => {
       icon: 'account-outline',
       iconActive: 'account',
       screen: ProfileScreen,
+      useIcon: true
     },
   ];
 
@@ -142,6 +145,18 @@ const App = () => {
 
   return (
     <View style={styles.container}>
+      {/* Header Bar with Logo */}
+      <View style={styles.headerBar}>
+        <TouchableOpacity onPress={() => setActiveTab('home')} style={styles.logoContainer}>
+          <Image
+            source={require('./assets/images/forseti_logo_final.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.logoText}>Forseti</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Screen Content */}
       <View style={styles.content}>
         <ActiveScreen />
@@ -149,7 +164,7 @@ const App = () => {
 
       {/* Bottom Tab Bar */}
       <View style={styles.tabBar}>
-        {tabs.map(tab => {
+        {tabs.filter(tab => !tab.hideFromTabBar).map(tab => {
           const isActive = activeTab === tab.id;
           return (
             <TouchableOpacity
@@ -158,11 +173,24 @@ const App = () => {
               onPress={() => setActiveTab(tab.id)}
             >
               <View style={[styles.tabIconContainer, isActive && styles.tabIconActive]}>
-                <Icon
-                  name={isActive ? tab.iconActive : tab.icon}
-                  size={24}
-                  color={isActive ? Colors.primary : Colors.textSecondary}
-                />
+                {tab.useIcon ? (
+                  <Icon
+                    name={isActive ? tab.iconActive : tab.icon}
+                    size={24}
+                    color={isActive ? Colors.primary : Colors.textSecondary}
+                  />
+                ) : (
+                  <Image
+                    source={tab.imageSource}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      tintColor: isActive ? Colors.primary : Colors.textSecondary,
+                      opacity: isActive ? 1 : 0.6,
+                    }}
+                    resizeMode="contain"
+                  />
+                )}
               </View>
               <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
             </TouchableOpacity>
@@ -185,6 +213,36 @@ const styles = StyleSheet.create({
     height: '100%',
     overflow: 'hidden',
     width: '100%',
+  },
+  headerBar: {
+    backgroundColor: Colors.primary,
+    height: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    cursor: 'pointer',
+  },
+  logo: {
+    width: 40,
+    height: 40,
+    marginRight: 12,
+  },
+  logoText: {
+    color: Colors.white,
+    fontSize: 20,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
   placeholderContent: {
     alignItems: 'center',

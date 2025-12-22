@@ -25,9 +25,9 @@ const HomeScreen: React.FC = () => {
 
   const quickActions = [
     { icon: 'map', label: 'View Map', color: Colors.primary, type: 'icon' },
-    { icon: '/forseti-logo.png', label: 'AI Chat', color: '#9C27B0', type: 'image' },
+    { icon: require('../../assets/images/forseti_chat.png'), label: 'AI Chat', color: '#9C27B0', type: 'image' },
     { icon: 'alert', label: 'Report Incident', color: '#F44336', type: 'icon' },
-    { icon: '/forseti-logo.png', label: 'Safety Tips', color: '#4CAF50', type: 'image' },
+    { icon: require('../../assets/images/forseti_safe.png'), label: 'Safety Tips', color: '#4CAF50', type: 'image' },
   ];
 
   console.log('HomeScreen about to render, Colors:', Colors);
@@ -70,7 +70,7 @@ const HomeScreen: React.FC = () => {
               <View style={[styles.actionIcon, { backgroundColor: action.color + '20' }]}>
                 {action.type === 'image' ? (
                   <Image 
-                    source={{ uri: action.icon }}
+                    source={action.icon}
                     style={styles.actionIconImage}
                     resizeMode="contain"
                   />
@@ -78,6 +78,7 @@ const HomeScreen: React.FC = () => {
                   <Icon name={action.icon} size={24} color={action.color} />
                 )}
               </View>
+              <Text style={styles.actionLabel}>{action.label}</Text>
             </TouchableOpacity>
           ))}
         </View>

@@ -14,6 +14,7 @@ import {
   Alert,
   PermissionsAndroid,
   Platform,
+  Image,
 } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -84,14 +85,36 @@ const TabNavigator = () => {
               iconName = focused ? 'map' : 'map-outline';
               break;
             case 'Chat':
-              iconName = focused ? 'robot' : 'robot-outline';
-              break;
+              // Use custom Forseti AI branding icon
+              return (
+                <Image
+                  source={require('./assets/images/forseti_ai.png')}
+                  style={{
+                    width: size,
+                    height: size,
+                    tintColor: color,
+                    opacity: focused ? 1 : 0.6,
+                  }}
+                  resizeMode="contain"
+                />
+              );
             case 'Community':
               iconName = focused ? 'account-group' : 'account-group-outline';
               break;
             case 'SafetyFactors':
-              iconName = focused ? 'information' : 'information-outline';
-              break;
+              // Use custom Forseti safety branding icon
+              return (
+                <Image
+                  source={require('./assets/images/forseti_safe.png')}
+                  style={{
+                    width: size,
+                    height: size,
+                    tintColor: color,
+                    opacity: focused ? 1 : 0.6,
+                  }}
+                  resizeMode="contain"
+                />
+              );
             case 'Profile':
               iconName = focused ? 'account' : 'account-outline';
               break;
