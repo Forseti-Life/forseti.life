@@ -168,12 +168,6 @@
       // Hexagon detail panel close button
       $('#close-detail-panel').on('click', () => this.closeHexagonDetailPanel());
       
-      // Test panel button
-      $('#test-panel').on('click', () => {
-        console.log('🧪 Test panel button clicked');
-        this.showHexagonDetailPanel({});
-      });
-      
       // Close panel with Escape key
       $(document).on('keydown', (e) => {
         if (e.key === 'Escape' && $('#hexagon-detail-panel').is(':visible')) {
@@ -197,6 +191,12 @@
       // Re-center map to fit hexagons
       $('#fit-hexagons-btn').on('click', function() {
         self.fitMapToHexagons();
+      });
+      
+      // Test panel button - using delegated event handler
+      $(document).on('click', '#test-panel-btn', function() {
+        console.log('🧪 Test panel button clicked');
+        self.showHexagonDetailPanel({});
       });
     },
 
@@ -1191,10 +1191,26 @@
       console.log('🔍 showHexagonDetailPanel called', hexagon);
       const content = this.createHexagonDetailContent(hexagon);
       console.log('📝 Content created, length:', content.length);
-      $('#hexagon-detail-content').html(content);
-      const panel = $('#hexagon-detail-panel');
-      console.log('🎯 Panel element found:', panel.length, 'classes:', panel.attr('class'));
-      panel.removeClass('d-none').fadeIn(300);
+      
+      // Use native JavaScript to ensure panel shows
+      const panel = document.getElementById('hexagon-detail-panel');
+      const contentDiv = document.getElementById('hexagon-detail-content');
+      
+      contentDiv.innerHTML = content;
+      panel.classList.remove('d-none');
+      panel.style.display = 'block';
+      panel.style.position = 'fixed';
+      panel.style.bottom = '0';
+      panel.style.left = '0';
+      panel.style.right = '0';
+      panel.style.zIndex = '9999';
+      panel.style.backgroundColor = 'white';
+      panel.style.minHeight = '200px';
+      panel.style.maxHeight = '50vh';
+      panel.style.overflowY = 'auto';
+      panel.style.boxShadow = '0 -4px 20px rgba(0,0,0,0.15)';
+      panel.style.padding = '1rem';
+      
       console.log('✅ Panel should be visible now');
     },
 
@@ -1202,9 +1218,9 @@
      * Close hexagon detail panel
      */
     closeHexagonDetailPanel: function() {
-      $('#hexagon-detail-panel').fadeOut(300, function() {
-        $(this).addClass('d-none');
-      });
+      const panel = document.getElementById('hexagon-detail-panel');
+      panel.style.display = 'none';
+      panel.classList.add('d-none');
     },
 
     /**
