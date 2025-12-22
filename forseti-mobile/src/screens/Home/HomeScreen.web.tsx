@@ -25,9 +25,9 @@ const HomeScreen: React.FC = () => {
 
   const quickActions = [
     { icon: 'map', label: 'View Map', color: Colors.primary, type: 'icon' },
-    { icon: require('../../assets/images/forseti_chat.png'), label: 'AI Chat', color: '#9C27B0', type: 'image' },
+    { icon: require('../../../assets/images/forseti_chat.png'), label: 'AI Chat', color: '#9C27B0', type: 'image' },
     { icon: 'alert', label: 'Report Incident', color: '#F44336', type: 'icon' },
-    { icon: require('../../assets/images/forseti_safe.png'), label: 'Safety Tips', color: '#4CAF50', type: 'image' },
+    { icon: require('../../../assets/images/forseti_safe.png'), label: 'Safety Tips', color: '#4CAF50', type: 'image' },
   ];
 
   console.log('HomeScreen about to render, Colors:', Colors);
