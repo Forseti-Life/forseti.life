@@ -168,6 +168,12 @@
       // Hexagon detail panel close button
       $('#close-detail-panel').on('click', () => this.closeHexagonDetailPanel());
       
+      // Test panel button
+      $('#test-panel').on('click', () => {
+        console.log('🧪 Test panel button clicked');
+        this.showHexagonDetailPanel({});
+      });
+      
       // Close panel with Escape key
       $(document).on('keydown', (e) => {
         if (e.key === 'Escape' && $('#hexagon-detail-panel').is(':visible')) {
@@ -1182,9 +1188,14 @@
      * Show hexagon details in fixed bottom panel
      */
     showHexagonDetailPanel: function(hexagon) {
+      console.log('🔍 showHexagonDetailPanel called', hexagon);
       const content = this.createHexagonDetailContent(hexagon);
+      console.log('📝 Content created, length:', content.length);
       $('#hexagon-detail-content').html(content);
-      $('#hexagon-detail-panel').removeClass('d-none').fadeIn(300);
+      const panel = $('#hexagon-detail-panel');
+      console.log('🎯 Panel element found:', panel.length, 'classes:', panel.attr('class'));
+      panel.removeClass('d-none').fadeIn(300);
+      console.log('✅ Panel should be visible now');
     },
 
     /**
@@ -1200,9 +1211,14 @@
      * Create comprehensive detail content for hexagon
      */
     createHexagonDetailContent: function(hexagon) {
+      // Handle null/undefined hexagon
+      if (!hexagon || typeof hexagon !== 'object') {
+        hexagon = {};
+      }
+      
       const incidentCount = hexagon.incident_count || hexagon.incidentCount || 0;
-      const h3Index = hexagon.h3_index || hexagon.h3Index || 'Unknown';
-      const h3Resolution = hexagon.resolution || hexagon.h3_resolution || 'Unknown';
+      const h3Index = hexagon.h3_index || hexagon.h3Index || 'N/A';
+      const h3Resolution = hexagon.resolution || hexagon.h3_resolution || 'N/A';
       const uniqueTypes = hexagon.unique_incident_types || hexagon.unique_types || 0;
       const centerLat = hexagon.center_latitude || hexagon.center?.lat || hexagon.lat || 0;
       const centerLng = hexagon.center_longitude || hexagon.center?.lng || hexagon.lng || 0;
@@ -1212,7 +1228,7 @@
       const precisionLevel = this.getPrecisionLevel(h3Resolution);
       
       // Use database-calculated risk category (based on z-scores)
-      const riskLevel = hexagon.analytics?.risk_level || 'UNKNOWN';
+      const riskLevel = hexagon.analytics?.risk_level || 'N/A';
       const riskScore = hexagon.analytics?.risk_score || 0;
       
       // Extract z-scores for display
@@ -1221,11 +1237,11 @@
       const nonviolentZScore = hexagon.analytics?.z_scores?.nonviolent || 0;
       
       // Hotspot status
-      const hotspotStatus = hexagon.analytics?.hotspot_status || 'UNKNOWN';
+      const hotspotStatus = hexagon.analytics?.hotspot_status || 'N/A';
       
       // Temporal data
-      const earliestIncident = hexagon.earliest_incident || hexagon.temporal?.earliest || 'Unknown';
-      const latestIncident = hexagon.latest_incident || hexagon.temporal?.latest || 'Unknown';
+      const earliestIncident = hexagon.earliest_incident || hexagon.temporal?.earliest || 'N/A';
+      const latestIncident = hexagon.latest_incident || hexagon.temporal?.latest || 'N/A';
       const last30Days = hexagon.incidents_last_30_days || hexagon.temporal?.last_30_days || 0;
       const lastYear = hexagon.incidents_last_year || hexagon.temporal?.last_year || 0;
       
@@ -1239,7 +1255,7 @@
       
       // Format dates
       const formatDate = (dateStr) => {
-        if (!dateStr || dateStr === 'Unknown') return 'Unknown';
+        if (!dateStr || dateStr === 'N/A' || dateStr === 'Unknown') return 'N/A';
         try {
           return new Date(dateStr).toLocaleDateString();
         } catch {
@@ -1248,18 +1264,22 @@
       };
       
       // Top crime types
-      const topCrimeTypes = Object.entries(crimeTypes)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 3)
-        .map(([code, count]) => `${this.getCrimeTypeName(code)}: ${count}`)
-        .join('<br>');
+      const topCrimeTypes = (crimeTypes && Object.keys(crimeTypes).length > 0) 
+        ? Object.entries(crimeTypes)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 3)
+            .map(([code, count]) => `${this.getCrimeTypeName(code)}: ${count}`)
+            .join('<br>')
+        : 'N/A';
       
       // Top districts
-      const topDistricts = Object.entries(districts)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 3)
-        .map(([dist, count]) => `District ${dist}: ${count}`)
-        .join('<br>');
+      const topDistricts = (districts && Object.keys(districts).length > 0)
+        ? Object.entries(districts)
+            .sort(([,a], [,b]) => b - a)
+            .slice(0, 3)
+            .map(([dist, count]) => `District ${dist}: ${count}`)
+            .join('<br>')
+        : 'N/A';
       
       return `
         <div class="hexagon-popup-content">
@@ -1285,11 +1305,11 @@
               </div>
               <div class="stat-item">
                 <span class="stat-label">Risk Score:</span>
-                <span class="stat-value">${riskScore.toFixed(2)}</span>
+                <span class="stat-value">${riskScore ? riskScore.toFixed(2) : 'N/A'}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">Z-Score:</span>
-                <span class="stat-value" style="color: ${this.getZScoreColor(zScore)};">${zScore.toFixed(2)}</span>
+                <span class="stat-value" style="color: ${this.getZScoreColor(zScore)};">${zScore ? zScore.toFixed(2) : 'N/A'}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">Hotspot Status:</span>
@@ -1307,11 +1327,11 @@
             <div class="stat-grid">
               <div class="stat-item">
                 <span class="stat-label">Violent Z-Score:</span>
-                <span class="stat-value" style="color: ${this.getZScoreColor(violentZScore)};">${violentZScore.toFixed(2)}</span>
+                <span class="stat-value" style="color: ${this.getZScoreColor(violentZScore)};">${violentZScore ? violentZScore.toFixed(2) : 'N/A'}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">Nonviolent Z-Score:</span>
-                <span class="stat-value" style="color: ${this.getZScoreColor(nonviolentZScore)};">${nonviolentZScore.toFixed(2)}</span>
+                <span class="stat-value" style="color: ${this.getZScoreColor(nonviolentZScore)};">${nonviolentZScore ? nonviolentZScore.toFixed(2) : 'N/A'}</span>
               </div>
             </div>
             <div class="z-score-explanation" style="font-size: 0.75rem; color: #666; margin-top: 0.5rem;">
@@ -1337,19 +1357,15 @@
             </div>
           </div>
           
-          ${topCrimeTypes ? `
           <div class="popup-section">
             <h5>🔍 Top Crime Types</h5>
             <div class="crime-breakdown">${topCrimeTypes}</div>
           </div>
-          ` : ''}
           
-          ${topDistricts ? `
           <div class="popup-section">
             <h5>🏛️ Police Districts</h5>
             <div class="district-breakdown">${topDistricts}</div>
           </div>
-          ` : ''}
           
           <div class="popup-footer">
             <div class="data-quality">Data Quality: ${(avgScore * 100).toFixed(1)}% (${validRecords.toLocaleString()} valid records)</div>
