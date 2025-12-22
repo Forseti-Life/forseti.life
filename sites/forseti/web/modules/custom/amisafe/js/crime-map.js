@@ -893,7 +893,10 @@
           });
           
           // Add click handler to show detail panel
-          polygon.on('click', () => this.showHexagonDetailPanel(hexagon));
+          polygon.on('click', () => {
+            console.log('🖱️ Hexagon clicked!', hexagon.h3_index);
+            this.showHexagonDetailPanel(hexagon);
+          });
           
           // Enhanced hover effects with visual feedback
           polygon.on('mouseover', function(e) {
@@ -1189,15 +1192,23 @@
      */
     showHexagonDetailPanel: function(hexagon) {
       console.log('🔍 showHexagonDetailPanel called', hexagon);
-      const content = this.createHexagonDetailContent(hexagon);
-      console.log('📝 Content created, length:', content.length);
       
       // Use native JavaScript to ensure panel shows
       const panel = document.getElementById('hexagon-detail-panel');
       const contentDiv = document.getElementById('hexagon-detail-content');
       
+      console.log('📋 Panel element:', panel ? 'found' : 'NOT FOUND');
+      console.log('📋 Content div:', contentDiv ? 'found' : 'NOT FOUND');
+      
+      if (!panel || !contentDiv) {
+        console.error('❌ Panel elements not found!');
+        return;
+      }
+      
+      const content = this.createHexagonDetailContent(hexagon);
+      console.log('📝 Content created, length:', content.length);
+      
       contentDiv.innerHTML = content;
-      panel.classList.remove('d-none');
       panel.style.display = 'block';
       panel.style.position = 'fixed';
       panel.style.bottom = '0';
@@ -1211,7 +1222,9 @@
       panel.style.boxShadow = '0 -4px 20px rgba(0,0,0,0.15)';
       panel.style.padding = '1rem';
       
-      console.log('✅ Panel should be visible now');
+      console.log('✅ Panel display set to:', panel.style.display);
+      console.log('✅ Panel position:', panel.style.position);
+      console.log('✅ Panel z-index:', panel.style.zIndex);
     },
 
     /**
@@ -1219,8 +1232,9 @@
      */
     closeHexagonDetailPanel: function() {
       const panel = document.getElementById('hexagon-detail-panel');
-      panel.style.display = 'none';
-      panel.classList.add('d-none');
+      if (panel) {
+        panel.style.display = 'none';
+      }
     },
 
     /**
