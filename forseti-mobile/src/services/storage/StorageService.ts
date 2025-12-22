@@ -49,7 +49,7 @@ class StorageService {
         key,
         value,
         timestamp: Date.now(),
-        expiry: expiryHours ? Date.now() + (expiryHours * 60 * 60 * 1000) : undefined,
+        expiry: expiryHours ? Date.now() + expiryHours * 60 * 60 * 1000 : undefined,
       };
 
       await AsyncStorage.setItem(key, JSON.stringify(item));
@@ -70,7 +70,7 @@ class StorageService {
       }
 
       const item: StorageItem = JSON.parse(jsonValue);
-      
+
       // Check if item has expired
       if (item.expiry && Date.now() > item.expiry) {
         await this.removeItem(key);
@@ -161,7 +161,7 @@ class StorageService {
    * Get user's favorite locations
    */
   public async getFavoriteLocations(): Promise<any[]> {
-    return await this.getItem('favoriteLocations') || [];
+    return (await this.getItem('favoriteLocations')) || [];
   }
 
   /**
@@ -175,7 +175,7 @@ class StorageService {
    * Get safety alerts history
    */
   public async getSafetyAlerts(): Promise<any[]> {
-    return await this.getItem('safetyAlerts') || [];
+    return (await this.getItem('safetyAlerts')) || [];
   }
 
   /**
@@ -245,7 +245,7 @@ class StorageService {
           if (jsonValue) {
             totalSize += jsonValue.length;
             const item: StorageItem = JSON.parse(jsonValue);
-            
+
             if (item.timestamp) {
               if (item.timestamp < oldestTimestamp) {
                 oldestTimestamp = item.timestamp;

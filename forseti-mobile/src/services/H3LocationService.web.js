@@ -1,6 +1,6 @@
 /**
  * H3 Geospatial Service for Web (Mock)
- * 
+ *
  * Web-compatible mock using h3-js library
  */
 
@@ -9,18 +9,18 @@
 
 // H3 Resolution configuration
 export const H3_RESOLUTIONS = {
-  CITY_WIDE: 5,     // 251.1 km² - City-wide statistics
-  NEIGHBORHOOD: 8,  // 0.7 km² - Neighborhood context  
-  BLOCK: 10,        // 15,047 m² - Block awareness
-  USER_TRACKING: 13 // 44 m² - User tracking (primary resolution)
+  CITY_WIDE: 5, // 251.1 km² - City-wide statistics
+  NEIGHBORHOOD: 8, // 0.7 km² - Neighborhood context
+  BLOCK: 10, // 15,047 m² - Block awareness
+  USER_TRACKING: 13, // 44 m² - User tracking (primary resolution)
 };
 
 // Update frequencies for different resolutions
 export const UPDATE_FREQUENCIES = {
-  [H3_RESOLUTIONS.CITY_WIDE]: 24 * 60 * 60 * 1000,      // Daily
-  [H3_RESOLUTIONS.NEIGHBORHOOD]: 60 * 60 * 1000,        // Hourly
-  [H3_RESOLUTIONS.BLOCK]: 15 * 60 * 1000,               // Every 15 minutes  
-  [H3_RESOLUTIONS.USER_TRACKING]: 0                     // Real-time
+  [H3_RESOLUTIONS.CITY_WIDE]: 24 * 60 * 60 * 1000, // Daily
+  [H3_RESOLUTIONS.NEIGHBORHOOD]: 60 * 60 * 1000, // Hourly
+  [H3_RESOLUTIONS.BLOCK]: 15 * 60 * 1000, // Every 15 minutes
+  [H3_RESOLUTIONS.USER_TRACKING]: 0, // Real-time
 };
 
 /**
@@ -44,16 +44,18 @@ export class H3LocationService {
 
       // Return mock H3 index for San Francisco area
       const mockIndexes = {
-        5: '852830827ffffff',  // City wide
-        8: '8828308281fffff',  // Neighborhood
+        5: '852830827ffffff', // City wide
+        8: '8828308281fffff', // Neighborhood
         10: '8a28308280c7fff', // Block
-        13: '8d283082813ffff'  // User tracking
+        13: '8d283082813ffff', // User tracking
       };
 
       const h3Index = mockIndexes[resolution] || mockIndexes[13];
-      
-      console.log(`[H3LocationService.web] Mock H3 index for [${lat}, ${lng}] at res ${resolution}: ${h3Index}`);
-      
+
+      console.log(
+        `[H3LocationService.web] Mock H3 index for [${lat}, ${lng}] at res ${resolution}: ${h3Index}`
+      );
+
       return h3Index;
     } catch (error) {
       console.error('[H3LocationService.web] Error converting to H3:', error);
@@ -90,7 +92,7 @@ export class H3LocationService {
       timestamp: Date.now(),
       lat,
       lng,
-      resolution
+      resolution,
     });
 
     // Limit history to 100 entries
@@ -131,7 +133,7 @@ export class H3LocationService {
       '8d283082811ffff',
       '8d283082814ffff',
       '8d283082815ffff',
-      '8d283082816ffff'
+      '8d283082816ffff',
     ];
   }
 
@@ -142,7 +144,7 @@ export class H3LocationService {
     // Return San Francisco coordinates
     return {
       lat: 37.7749,
-      lng: -122.4194
+      lng: -122.4194,
     };
   }
 

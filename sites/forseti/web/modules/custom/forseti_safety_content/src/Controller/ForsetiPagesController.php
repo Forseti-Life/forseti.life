@@ -324,75 +324,10 @@ class ForsetiPagesController extends ControllerBase {
    * Get Safety Map content.
    */
   private function getSafetyMapContent() {
-    return '
-      <div class="container py-3">
-        <div class="row">
-          <div class="col-lg-10 mx-auto">
-            <h1 class="text-center mb-3 text-cyan">Philadelphia Safety Map</h1>
-            <p class="text-center mb-4 text-muted-light">
-              Real-time crime incident tracking with H3 geospatial analysis
-            </p>
-            
-            <div class="alert alert-info-cyan mb-4">
-              <h4 class="text-cyan">🚧 Coming Soon</h4>
-              <p class="mb-0">
-                Interactive crime map with real-time data visualization. 
-                Our development team is currently integrating the H3 geospatial engine with live 
-                Philadelphia Police Department data feeds.
-              </p>
-            </div>
-            
-            <h2 class="mb-3 text-cyan">Map Features</h2>
-            <div class="row">
-              <div class="col-md-4 mb-3">
-                <div class="card card-forseti h-100">
-                  <div class="card-body">
-                    <h5 class="card-title text-cyan">Interactive Features</h5>
-                    <ul class="text-muted-light">
-                      <li>Real-time incident markers</li>
-                      <li>Heat map overlays</li>
-                      <li>Historical trend views</li>
-                      <li>Neighborhood comparisons</li>
-                      <li>Custom alert zones</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-4 mb-3">
-                <div class="card card-forseti h-100">
-                  <div class="card-body">
-                    <h5 class="card-title text-cyan">Data Sources</h5>
-                    <ul class="text-muted-light">
-                      <li>Philadelphia PD Open Data</li>
-                      <li>Emergency service reports</li>
-                      <li>Community submissions</li>
-                      <li>Weather & environmental data</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-4 mb-3">
-                <div class="card card-forseti h-100">
-                  <div class="card-body">
-                    <h5 class="card-title text-cyan">Coming Updates</h5>
-                    <ul class="text-muted-light">
-                      <li>Mobile app integration</li>
-                      <li>Custom notifications</li>
-                      <li>Predictive overlays</li>
-                      <li>Safe route planning</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div class="text-center mt-4">
-              <a href="/mobile-app" class="btn btn-primary">Get Early Access via Forseti App</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    ';
+    // Redirect to the fully functional crime map
+    $response = new \Symfony\Component\HttpFoundation\RedirectResponse('/amisafe/crime-map');
+    $response->send();
+    return '';
   }
 
   /**
@@ -486,11 +421,28 @@ class ForsetiPagesController extends ControllerBase {
               Your personal safety companion for Philadelphia
             </p>
             
+            <div class="alert alert-info-cyan text-center mb-4">
+              <h3 class="text-cyan mb-3">
+                <i class="fas fa-mobile-alt"></i> Coming Soon!
+              </h3>
+              <p class="lead">
+                The Forseti Mobile App is currently in active development. We\'re building a powerful 
+                safety companion that will bring AI-powered protection directly to your smartphone.
+              </p>
+              <p class="mb-3">
+                Want to be notified when the app launches? <a href="/talk-with-forseti" class="text-cyan"><strong>Request early access</strong></a> 
+                and you\'ll be among the first to know!
+              </p>
+              <p class="text-muted mb-0">
+                <small>Expected launch: Q1 2026 | Android & iOS</small>
+              </p>
+            </div>
+            
             <div class="row align-items-center mb-4">
               <div class="col-lg-6">
                 <h2 class="text-cyan">Safety in Your Pocket</h2>
                 <p class="text-muted-light">
-                  Forseti Mobile brings the power of AI monitoring directly to your smartphone. 
+                  Forseti Mobile will bring the power of AI monitoring directly to your smartphone. 
                   Get notified when you enter areas with elevated safety concerns, access location-based safety information, and one-touch 
                   emergency services.
                 </p>
@@ -498,17 +450,19 @@ class ForsetiPagesController extends ControllerBase {
               <div class="col-lg-6 text-center">
                 <div class="card card-forseti p-4">
                   <div class="mb-3">
-                    <img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="app-logo">
+                    <img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="Forseti Mobile App" class="app-logo">
                   </div>
-                  <a href="/sites/default/files/forseti/mobile/Forseti-latest.apk" class="btn btn-primary btn-lg mt-2" download>
-                    <i class="fas fa-download"></i> Download Android APK
-                  </a>
-                  <p class="text-muted mt-2"><small>iOS version coming soon</small></p>
+                  <div class="text-muted">
+                    <p class="mb-2"><i class="fab fa-android fa-2x text-success"></i></p>
+                    <p class="mb-2"><i class="fab fa-apple fa-2x"></i></p>
+                    <p class="mt-3"><strong>In Development</strong></p>
+                    <p class="text-muted"><small>Android & iOS versions coming soon</small></p>
+                  </div>
                 </div>
               </div>
             </div>
             
-            <h2 class="mb-3 text-cyan">Key Features</h2>
+            <h2 class="mb-3 text-cyan">Planned Features</h2>
             
             <div class="row">
               <div class="col-md-6 mb-3">
@@ -573,10 +527,12 @@ class ForsetiPagesController extends ControllerBase {
             </div>
             
             <div class="alert alert-info-cyan mt-4">
-              <h4 class="text-cyan">Beta Testing Available</h4>
+              <h4 class="text-cyan">
+                <i class="fas fa-bell"></i> Get Notified When We Launch
+              </h4>
               <p>
-                Forseti Mobile is currently in beta testing with select Philadelphia neighborhoods. 
-                Want to be among the first to use it?
+                Sign up for early access and be among the first to download the Forseti Mobile App 
+                when it becomes available.
               </p>
               <a href="/talk-with-forseti" class="btn btn-primary">Request Early Access</a>
             </div>

@@ -53,30 +53,30 @@ class NotificationService {
     try {
       // Configure push notifications
       PushNotification.configure({
-        onRegister: (token) => {
+        onRegister: token => {
           console.log('📱 Push notification token:', token);
           // Send token to backend for remote notifications
         },
 
-        onNotification: (notification) => {
+        onNotification: notification => {
           console.log('📬 Notification received:', notification);
-          
+
           // Handle notification tap - open URL if provided
           if (notification.userTapped && notification.data?.url) {
-            Linking.openURL(notification.data.url).catch(err => 
+            Linking.openURL(notification.data.url).catch(err =>
               console.error('Failed to open URL:', err)
             );
           }
-          
+
           this.handleNotification(notification);
         },
 
-        onAction: (notification) => {
+        onAction: notification => {
           console.log('📬 Notification action:', notification);
           this.handleNotificationAction(notification);
         },
 
-        onRegistrationError: (error) => {
+        onRegistrationError: error => {
           console.error('❌ Push notification registration error:', error);
         },
 
@@ -115,7 +115,7 @@ class NotificationService {
         importance: 4, // HIGH
         vibrate: true,
       },
-      (created) => console.log(`Safety alerts channel created: ${created}`)
+      created => console.log(`Safety alerts channel created: ${created}`)
     );
 
     PushNotification.createChannel(
@@ -126,7 +126,7 @@ class NotificationService {
         importance: 3, // DEFAULT
         vibrate: false,
       },
-      (created) => console.log(`General channel created: ${created}`)
+      created => console.log(`General channel created: ${created}`)
     );
 
     PushNotification.createChannel(
@@ -138,7 +138,7 @@ class NotificationService {
         vibrate: true,
         playSound: true,
       },
-      (created) => console.log(`Emergency channel created: ${created}`)
+      created => console.log(`Emergency channel created: ${created}`)
     );
   }
 
@@ -147,7 +147,7 @@ class NotificationService {
    */
   public sendLocalNotification(config: NotificationConfig): void {
     const channelId = this.getChannelId(config.title);
-    
+
     PushNotification.localNotification({
       title: config.title,
       message: config.message,
@@ -168,7 +168,7 @@ class NotificationService {
    */
   public sendSafetyAlert(alert: SafetyAlert): void {
     const channelId = this.getSafetyChannelId(alert.priority);
-    
+
     PushNotification.localNotification({
       id: alert.id,
       title: alert.title,
@@ -192,7 +192,7 @@ class NotificationService {
    */
   public scheduleNotification(config: NotificationConfig, delayMs: number = 0): void {
     const channelId = this.getChannelId(config.title);
-    
+
     const notificationData = {
       title: config.title,
       message: config.message,
@@ -210,7 +210,7 @@ class NotificationService {
       },
       actions: config.actions,
     };
-    
+
     if (delayMs > 0) {
       PushNotification.localNotificationSchedule({
         ...notificationData,
@@ -278,7 +278,7 @@ class NotificationService {
    */
   private handleNotification(notification: any): void {
     this.notifyCallbacks(notification);
-    
+
     // Handle specific notification types
     if (notification.userInfo?.alertType) {
       this.handleSafetyAlert(notification);
@@ -311,19 +311,15 @@ class NotificationService {
    */
   private handleSafetyAlert(notification: any): void {
     const { alertType, priority, location } = notification.userInfo;
-    
+
     console.log(`🚨 Safety alert received: ${alertType} (${priority})`);
-    
+
     // Show alert dialog for critical notifications
     if (priority === 'critical') {
-      Alert.alert(
-        'Critical Safety Alert',
-        notification.alert?.body || notification.message,
-        [
-          { text: 'Dismiss', style: 'cancel' },
-          { text: 'View Map', onPress: () => this.navigateToMap(location) },
-        ]
-      );
+      Alert.alert('Critical Safety Alert', notification.alert?.body || notification.message, [
+        { text: 'Dismiss', style: 'cancel' },
+        { text: 'View Map', onPress: () => this.navigateToMap(location) },
+      ]);
     }
   }
 
@@ -340,7 +336,7 @@ class NotificationService {
    */
   public onNotification(callback: (notification: any) => void): () => void {
     this.notificationCallbacks.push(callback);
-    
+
     // Return unsubscribe function
     return () => {
       const index = this.notificationCallbacks.indexOf(callback);
@@ -367,8 +363,8 @@ class NotificationService {
    * Check notification permissions
    */
   public async checkPermissions(): Promise<boolean> {
-    return new Promise((resolve) => {
-      PushNotification.checkPermissions((permissions) => {
+    return new Promise(resolve => {
+      PushNotification.checkPermissions(permissions => {
         const hasPermissions = permissions.alert && permissions.badge && permissions.sound;
         resolve(hasPermissions);
       });
@@ -379,8 +375,8 @@ class NotificationService {
    * Request notification permissions
    */
   public async requestPermissions(): Promise<boolean> {
-    return new Promise((resolve) => {
-      PushNotification.requestPermissions().then((permissions) => {
+    return new Promise(resolve => {
+      PushNotification.requestPermissions().then(permissions => {
         const hasPermissions = permissions.alert && permissions.badge && permissions.sound;
         resolve(hasPermissions);
       });

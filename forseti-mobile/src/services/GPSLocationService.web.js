@@ -1,6 +1,6 @@
 /**
  * GPS Location Service for Web (Mock)
- * 
+ *
  * Web-compatible mock version using browser Geolocation API
  */
 
@@ -11,7 +11,7 @@ const DEFAULT_LOCATION = {
   accuracy: 10,
   altitude: 0,
   heading: 0,
-  speed: 0
+  speed: 0,
 };
 
 /**
@@ -51,7 +51,7 @@ export class GPSLocationService {
     console.log('[GPSLocationService.web] Returning mock location:', this.currentLocation);
     return {
       coords: this.currentLocation,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -70,25 +70,25 @@ export class GPSLocationService {
     // Try to use browser geolocation if available
     if (navigator.geolocation) {
       this.watchId = navigator.geolocation.watchPosition(
-        (position) => {
+        position => {
           this.currentLocation = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy,
             altitude: position.coords.altitude || 0,
             heading: position.coords.heading || 0,
-            speed: position.coords.speed || 0
+            speed: position.coords.speed || 0,
           };
           this.notifyLocationCallbacks(this.currentLocation);
         },
-        (error) => {
+        error => {
           console.warn('[GPSLocationService.web] Geolocation error:', error.message);
           this.notifyErrorCallbacks(error);
         },
         {
           enableHighAccuracy: true,
           timeout: 15000,
-          maximumAge: 10000
+          maximumAge: 10000,
         }
       );
     } else {
@@ -184,7 +184,7 @@ export class GPSLocationService {
   async getLastKnownLocation() {
     return {
       coords: this.currentLocation,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -211,7 +211,7 @@ export class GPSLocationService {
     return {
       isHighAccuracy: true,
       accuracy: this.currentLocation.accuracy || 10,
-      message: 'Mock location data for web preview'
+      message: 'Mock location data for web preview',
     };
   }
 }

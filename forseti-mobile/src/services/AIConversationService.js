@@ -1,6 +1,6 @@
 /**
  * AI Conversation Service for Forseti Mobile
- * 
+ *
  * Integrates with Drupal's ai_conversation module
  * Provides AI-powered conversations with Forseti
  */
@@ -21,7 +21,7 @@ class AIConversationService {
   async createConversation() {
     try {
       const user = await this.authService.getCurrentUser();
-      
+
       if (!user) {
         throw new Error('User must be authenticated to create conversation');
       }
@@ -33,15 +33,15 @@ class AIConversationService {
         `${this.baseUrl}/api/ai-conversation/create`,
         {
           title: `Conversation with Forseti - ${new Date().toLocaleString()}`,
-          ai_model: 'claude-3-5-sonnet-20241022'
+          ai_model: 'claude-3-5-sonnet-20241022',
         },
         {
           headers: {
             'Content-Type': 'application/json',
             'X-CSRF-Token': csrfToken,
-            'Cookie': sessionCookie
+            Cookie: sessionCookie,
           },
-          timeout: 10000
+          timeout: 10000,
         }
       );
 
@@ -69,15 +69,15 @@ class AIConversationService {
       const response = await axios.post(
         `${this.baseUrl}/api/ai-conversation/${conversationId}/message`,
         {
-          message: message.trim()
+          message: message.trim(),
         },
         {
           headers: {
             'Content-Type': 'application/json',
             'X-CSRF-Token': csrfToken,
-            'Cookie': sessionCookie
+            Cookie: sessionCookie,
           },
-          timeout: 60000 // AI responses can take time
+          timeout: 60000, // AI responses can take time
         }
       );
 
@@ -104,9 +104,9 @@ class AIConversationService {
         {
           headers: {
             'X-CSRF-Token': csrfToken,
-            'Cookie': sessionCookie
+            Cookie: sessionCookie,
           },
-          timeout: 10000
+          timeout: 10000,
         }
       );
 
@@ -124,7 +124,7 @@ class AIConversationService {
   async getUserConversations() {
     try {
       const user = await this.authService.getCurrentUser();
-      
+
       if (!user) {
         return [];
       }
@@ -132,16 +132,13 @@ class AIConversationService {
       const csrfToken = await this.authService.getCsrfToken();
       const sessionCookie = await this.authService.getSessionCookie();
 
-      const response = await axios.get(
-        `${this.baseUrl}/api/ai-conversation/user/${user.uid}`,
-        {
-          headers: {
-            'X-CSRF-Token': csrfToken,
-            'Cookie': sessionCookie
-          },
-          timeout: 10000
-        }
-      );
+      const response = await axios.get(`${this.baseUrl}/api/ai-conversation/user/${user.uid}`, {
+        headers: {
+          'X-CSRF-Token': csrfToken,
+          Cookie: sessionCookie,
+        },
+        timeout: 10000,
+      });
 
       return response.data.conversations || [];
     } catch (error) {
@@ -160,16 +157,13 @@ class AIConversationService {
       const csrfToken = await this.authService.getCsrfToken();
       const sessionCookie = await this.authService.getSessionCookie();
 
-      await axios.delete(
-        `${this.baseUrl}/api/ai-conversation/${conversationId}`,
-        {
-          headers: {
-            'X-CSRF-Token': csrfToken,
-            'Cookie': sessionCookie
-          },
-          timeout: 10000
-        }
-      );
+      await axios.delete(`${this.baseUrl}/api/ai-conversation/${conversationId}`, {
+        headers: {
+          'X-CSRF-Token': csrfToken,
+          Cookie: sessionCookie,
+        },
+        timeout: 10000,
+      });
 
       console.log('✅ Deleted conversation:', conversationId);
       return true;
@@ -194,9 +188,9 @@ class AIConversationService {
         {
           headers: {
             'X-CSRF-Token': csrfToken,
-            'Cookie': sessionCookie
+            Cookie: sessionCookie,
           },
-          timeout: 10000
+          timeout: 10000,
         }
       );
 

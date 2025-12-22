@@ -21,7 +21,7 @@ export const requestLocationPermission = async (): Promise<boolean> => {
       const fineLocationGranted = await PermissionsAndroid.check(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
       );
-      
+
       const coarseLocationGranted = await PermissionsAndroid.check(
         PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION
       );
@@ -43,16 +43,16 @@ export const requestLocationPermission = async (): Promise<boolean> => {
       // iOS location permissions
       const permission = PERMISSIONS.IOS.LOCATION_WHEN_IN_USE;
       const result = await check(permission);
-      
+
       if (result === RESULTS.GRANTED) {
         return true;
       }
-      
+
       if (result === RESULTS.DENIED) {
         const requestResult = await request(permission);
         return requestResult === RESULTS.GRANTED;
       }
-      
+
       return false;
     }
   } catch (error) {
@@ -79,16 +79,16 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
       // iOS notification permissions
       const permission = PERMISSIONS.IOS.NOTIFICATIONS;
       const result = await check(permission);
-      
+
       if (result === RESULTS.GRANTED) {
         return true;
       }
-      
+
       if (result === RESULTS.DENIED) {
         const requestResult = await request(permission);
         return requestResult === RESULTS.GRANTED;
       }
-      
+
       return false;
     }
   } catch (error) {
@@ -153,10 +153,10 @@ export const requestAllPermissions = async (): Promise<{
   try {
     // Request location permission
     results.location = await requestLocationPermission();
-    
+
     // Request notification permission
     results.notifications = await requestNotificationPermission();
-    
+
     // Request storage permission
     results.storage = await requestStoragePermission();
 

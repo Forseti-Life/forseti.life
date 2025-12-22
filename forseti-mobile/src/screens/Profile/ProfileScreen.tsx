@@ -69,26 +69,22 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
    * Handle logout
    */
   const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await DrupalAuthService.logout();
-              setUser(null);
-              setShowLogin(true);
-            } catch (error) {
-              console.error('Logout error:', error);
-            }
+    Alert.alert('Logout', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await DrupalAuthService.logout();
+            setUser(null);
+            setShowLogin(true);
+          } catch (error) {
+            console.error('Logout error:', error);
           }
-        }
-      ]
-    );
+        },
+      },
+    ]);
   };
 
   /**
@@ -146,14 +142,11 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
             onPress={handleLogin}
             disabled={loggingIn}
           >
-            <Text style={styles.loginButtonText}>
-              {loggingIn ? 'Signing in...' : 'Sign In'}
-            </Text>
+            <Text style={styles.loginButtonText}>{loggingIn ? 'Signing in...' : 'Sign In'}</Text>
           </TouchableOpacity>
 
           <Text style={styles.registerText}>
-            Don't have an account?{' '}
-            <Text style={styles.registerLink}>Register at forseti.life</Text>
+            Don't have an account? <Text style={styles.registerLink}>Register at forseti.life</Text>
           </Text>
         </View>
       </ScrollView>
@@ -230,61 +223,48 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
+  avatar: {
+    marginBottom: 16,
+  },
   container: {
-    flex: 1,
     backgroundColor: Colors.background,
-  },
-  placeholderText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.textPrimary,
-    textAlign: 'center',
-  },
-  loginContainer: {
-    alignItems: 'center',
-    padding: 24,
-    paddingTop: 60,
-  },
-  loginTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.text,
-    marginTop: 24,
-    marginBottom: 8,
-  },
-  loginSubtitle: {
-    fontSize: 16,
-    color: Colors.textSecondary,
-    marginBottom: 40,
+    flex: 1,
   },
   form: {
-    width: '100%',
     maxWidth: 400,
+    width: '100%',
   },
-  inputGroup: {
-    flexDirection: 'row',
+  header: {
     alignItems: 'center',
     backgroundColor: Colors.card,
+    borderRadius: 12,
+    marginBottom: 24,
+    paddingVertical: 32,
+  },
+  input: {
+    color: Colors.text,
+    flex: 1,
+    fontSize: 16,
+    height: 48,
+  },
+  inputGroup: {
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderColor: Colors.border,
     borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
     marginBottom: 16,
     paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
   },
   inputIcon: {
     marginRight: 8,
   },
-  input: {
-    flex: 1,
-    height: 48,
-    color: Colors.text,
-    fontSize: 16,
-  },
   loginButton: {
+    alignItems: 'center',
     backgroundColor: Colors.cyan,
     borderRadius: 8,
     height: 48,
-    alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
   },
@@ -292,42 +272,32 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   loginButtonText: {
+    color: Colors.background,
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.background,
   },
-  registerText: {
-    fontSize: 14,
+  loginContainer: {
+    alignItems: 'center',
+    padding: 24,
+    paddingTop: 60,
+  },
+  loginSubtitle: {
     color: Colors.textSecondary,
-    textAlign: 'center',
+    fontSize: 16,
+    marginBottom: 40,
+  },
+  loginTitle: {
+    color: Colors.text,
+    fontSize: 28,
+    fontWeight: '700',
+    marginBottom: 8,
     marginTop: 24,
   },
-  registerLink: {
-    color: Colors.cyan,
-    fontWeight: '600',
+  logoutItem: {
+    borderBottomWidth: 0,
   },
-  profileContainer: {
-    padding: 16,
-  },
-  header: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    marginBottom: 24,
-  },
-  avatar: {
-    marginBottom: 16,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+  logoutText: {
+    color: Colors.danger,
   },
   menu: {
     backgroundColor: Colors.card,
@@ -335,31 +305,54 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   menuItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
     borderBottomColor: Colors.border,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    padding: 16,
   },
   menuItemContent: {
     flex: 1,
     marginLeft: 12,
   },
+  menuItemSubtitle: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+  },
   menuItemTitle: {
+    color: Colors.text,
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text,
     marginBottom: 2,
   },
-  menuItemSubtitle: {
-    fontSize: 13,
+  placeholderText: {
+    color: Colors.textPrimary,
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  profileContainer: {
+    padding: 16,
+  },
+  registerLink: {
+    color: Colors.cyan,
+    fontWeight: '600',
+  },
+  registerText: {
     color: Colors.textSecondary,
+    fontSize: 14,
+    marginTop: 24,
+    textAlign: 'center',
   },
-  logoutItem: {
-    borderBottomWidth: 0,
+  userEmail: {
+    color: Colors.textSecondary,
+    fontSize: 14,
   },
-  logoutText: {
-    color: Colors.danger,
+  userName: {
+    color: Colors.text,
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 4,
   },
 });
 

@@ -93,11 +93,7 @@ function ChatStack() {
         component={ConversationListScreen}
         options={{ title: 'AI Conversations' }}
       />
-      <Stack.Screen
-        name="Chat"
-        component={ChatScreen}
-        options={{ title: 'Chat' }}
-      />
+      <Stack.Screen name="Chat" component={ChatScreen} options={{ title: 'Chat' }} />
     </Stack.Navigator>
   );
 }
@@ -121,11 +117,7 @@ function SettingsStack() {
         component={SettingsScreen}
         options={{ title: 'Settings' }}
       />
-      <Stack.Screen
-        name="About"
-        component={AboutScreen}
-        options={{ title: 'About Forseti' }}
-      />
+      <Stack.Screen name="About" component={AboutScreen} options={{ title: 'About Forseti' }} />
       <Stack.Screen
         name="HowItWorks"
         component={HowItWorksScreen}
@@ -146,6 +138,9 @@ const TabIcon = ({ emoji, focused }: { emoji: string; focused: boolean }) => (
 );
 
 function App() {
+  console.log('🎨 App rendering with Colors:', Colors);
+  console.log('📱 SafeAreaView styles:', styles.container);
+
   const navigationTheme = {
     ...DefaultTheme,
     colors: {
@@ -158,8 +153,10 @@ function App() {
     },
   };
 
+  console.log('🎨 Navigation theme:', navigationTheme);
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
       <NavigationContainer theme={navigationTheme}>
         <Tab.Navigator
@@ -231,32 +228,32 @@ function App() {
           />
         </Tab.Navigator>
       </NavigationContainer>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: Colors.background,
+    flex: 1,
   },
   screen: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.background,
+    flex: 1,
+    justifyContent: 'center',
     padding: 20,
   },
+  text: {
+    color: Colors.textSecondary,
+    fontSize: 16,
+    textAlign: 'center',
+  },
   title: {
+    color: Colors.text,
     fontSize: 32,
     fontWeight: 'bold',
-    color: Colors.text,
     marginBottom: 16,
-  },
-  text: {
-    fontSize: 16,
-    color: Colors.textSecondary,
-    textAlign: 'center',
   },
 });
 

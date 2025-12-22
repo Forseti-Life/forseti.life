@@ -1,6 +1,6 @@
 /**
  * Settings Screen
- * 
+ *
  * User settings for background monitoring and safety preferences
  */
 
@@ -23,11 +23,7 @@ import { Theme } from '../../utils/theme';
 const { Colors, Spacing, Typography, Shadows } = Theme;
 
 const SettingsScreen = ({ navigation }: any) => {
-  const {
-    isMonitoring,
-    currentH3Index,
-    toggleMonitoring,
-  } = useBackgroundMonitoring();
+  const { isMonitoring, currentH3Index, toggleMonitoring } = useBackgroundMonitoring();
 
   const [zScoreThreshold, setZScoreThreshold] = useState(2.0);
   const [notificationCooldown, setNotificationCooldown] = useState(5);
@@ -53,14 +49,10 @@ const SettingsScreen = ({ navigation }: any) => {
       await StorageService.saveData('z_score_threshold', zScoreThreshold);
       await StorageService.saveData('notification_cooldown', notificationCooldown);
 
-      Alert.alert('Settings Saved', 'Your preferences have been updated.', [
-        { text: 'OK' },
-      ]);
+      Alert.alert('Settings Saved', 'Your preferences have been updated.', [{ text: 'OK' }]);
     } catch (error) {
       console.error('Error saving settings:', error);
-      Alert.alert('Error', 'Failed to save settings. Please try again.', [
-        { text: 'OK' },
-      ]);
+      Alert.alert('Error', 'Failed to save settings. Please try again.', [{ text: 'OK' }]);
     }
   };
 
@@ -68,7 +60,7 @@ const SettingsScreen = ({ navigation }: any) => {
     try {
       const history = await StorageService.getData('location_history');
       const count = history ? history.length : 0;
-      
+
       Alert.alert(
         'Location History',
         `You have ${count} location records stored.\n\nThis data is used to improve your safety alerts and is stored locally on your device.`,
@@ -107,16 +99,12 @@ const SettingsScreen = ({ navigation }: any) => {
     <ScrollView style={styles.container}>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🛡️ Background Monitoring</Text>
-        <Text style={styles.sectionDescription}>
-          Get alerted when entering high-crime areas
-        </Text>
+        <Text style={styles.sectionDescription}>Get alerted when entering high-crime areas</Text>
 
         <View style={styles.settingRow}>
           <View style={styles.settingInfo}>
             <Text style={styles.settingLabel}>Enable Protection</Text>
-            <Text style={styles.settingDescription}>
-              Monitor location in background
-            </Text>
+            <Text style={styles.settingDescription}>Monitor location in background</Text>
           </View>
           <Switch
             value={isMonitoring}
@@ -130,9 +118,7 @@ const SettingsScreen = ({ navigation }: any) => {
           <View style={styles.statusBox}>
             <Text style={styles.statusLabel}>Current Location</Text>
             <Text style={styles.statusValue}>H3: {currentH3Index}</Text>
-            <Text style={styles.statusDescription}>
-              Monitoring at ~700m resolution
-            </Text>
+            <Text style={styles.statusDescription}>Monitoring at ~700m resolution</Text>
           </View>
         )}
       </View>
@@ -150,7 +136,7 @@ const SettingsScreen = ({ navigation }: any) => {
         </View>
 
         <View style={styles.thresholdButtons}>
-          {[1.0, 1.5, 2.0, 2.5, 3.0].map((value) => (
+          {[1.0, 1.5, 2.0, 2.5, 3.0].map(value => (
             <TouchableOpacity
               key={value}
               style={[
@@ -181,7 +167,7 @@ const SettingsScreen = ({ navigation }: any) => {
         </View>
 
         <View style={styles.thresholdButtons}>
-          {[1, 5, 10, 15, 30].map((value) => (
+          {[1, 5, 10, 15, 30].map(value => (
             <TouchableOpacity
               key={value}
               style={[
@@ -210,10 +196,7 @@ const SettingsScreen = ({ navigation }: any) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>📊 Data & Privacy</Text>
 
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={viewLocationHistory}
-        >
+        <TouchableOpacity style={styles.actionButton} onPress={viewLocationHistory}>
           <Text style={styles.actionButtonText}>View Location History</Text>
         </TouchableOpacity>
 
@@ -229,14 +212,9 @@ const SettingsScreen = ({ navigation }: any) => {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>🌐 Learn More</Text>
-        <Text style={styles.sectionDescription}>
-          Explore Forseti's mission and technology
-        </Text>
+        <Text style={styles.sectionDescription}>Explore Forseti's mission and technology</Text>
 
-        <TouchableOpacity
-          style={styles.linkButton}
-          onPress={() => navigation.navigate('About')}
-        >
+        <TouchableOpacity style={styles.linkButton} onPress={() => navigation.navigate('About')}>
           <Icon name="information" size={20} color={Colors.primary} style={styles.linkIcon} />
           <Text style={styles.linkButtonText}>About Forseti</Text>
         </TouchableOpacity>
@@ -249,10 +227,7 @@ const SettingsScreen = ({ navigation }: any) => {
           <Text style={styles.linkButtonText}>How It Works</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.linkButton}
-          onPress={() => navigation.navigate('Privacy')}
-        >
+        <TouchableOpacity style={styles.linkButton} onPress={() => navigation.navigate('Privacy')}>
           <Icon name="shield-check" size={20} color={Colors.primary} style={styles.linkIcon} />
           <Text style={styles.linkButtonText}>Privacy & Security</Text>
         </TouchableOpacity>
@@ -269,13 +244,12 @@ const SettingsScreen = ({ navigation }: any) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>ℹ️ About</Text>
         <Text style={styles.aboutText}>
-          Forseti uses H3 geospatial hexagons at
-          resolution 11 (~700m) to monitor your location. Safety alerts are based on 
-          crime statistics and z-scores calculated from historical incident data.
+          Forseti uses H3 geospatial hexagons at resolution 11 (~700m) to monitor your location.
+          Safety alerts are based on crime statistics and z-scores calculated from historical
+          incident data.
         </Text>
         <Text style={styles.aboutText}>
-          All location data is stored locally on your device and is never
-          shared with third parties.
+          All location data is stored locally on your device and is never shared with third parties.
         </Text>
       </View>
     </ScrollView>
@@ -283,32 +257,85 @@ const SettingsScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
+  aboutText: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: Spacing.md,
+  },
+  actionButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: Spacing.borderRadius.md,
+    marginVertical: Spacing.xs + 2,
+    padding: Spacing.md + 2,
+  },
+  actionButtonText: {
+    ...Typography.bodySmall,
+    color: Colors.white,
+    fontWeight: Typography.fontWeight.semibold,
+  },
   container: {
-    flex: 1,
     backgroundColor: Colors.lightGray,
+    flex: 1,
+  },
+  dangerButton: {
+    backgroundColor: Colors.white,
+    borderColor: Colors.danger,
+    borderWidth: 1,
+  },
+  dangerButtonText: {
+    color: Colors.danger,
+  },
+  linkButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.lightGray,
+    borderColor: Colors.lightGray,
+    borderRadius: Spacing.borderRadius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    marginVertical: Spacing.xs,
+    padding: Spacing.md + 2,
+  },
+  linkButtonText: {
+    color: Colors.primary,
+    fontSize: 15,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  linkIcon: {
+    marginRight: Spacing.md,
+  },
+  saveButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.success,
+    borderRadius: Spacing.borderRadius.md,
+    marginTop: Spacing.sm,
+    padding: Spacing.md + 2,
+  },
+  saveButtonText: {
+    ...Typography.button,
+    color: Colors.white,
   },
   section: {
     backgroundColor: Colors.white,
-    marginTop: Spacing.md,
-    padding: Spacing.md,
-    borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: Colors.lightGray,
-  },
-  sectionTitle: {
-    ...Typography.heading3,
-    marginBottom: Spacing.xs,
+    borderTopWidth: 1,
+    marginTop: Spacing.md,
+    padding: Spacing.md,
   },
   sectionDescription: {
     ...Typography.bodySmall,
     color: Colors.textSecondary,
     marginBottom: Spacing.md,
   },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
+  sectionTitle: {
+    ...Typography.heading3,
+    marginBottom: Spacing.xs,
+  },
+  settingDescription: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
   },
   settingInfo: {
     flex: 1,
@@ -318,15 +345,21 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     marginBottom: Spacing.xs,
   },
-  settingDescription: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
+  settingRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
   },
   statusBox: {
     backgroundColor: '#e8f5e9',
-    padding: Spacing.md,
     borderRadius: Spacing.borderRadius.md,
     marginTop: Spacing.md,
+    padding: Spacing.md,
+  },
+  statusDescription: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
   },
   statusLabel: {
     ...Typography.caption,
@@ -335,93 +368,34 @@ const styles = StyleSheet.create({
   },
   statusValue: {
     ...Typography.bodySmall,
-    fontWeight: Typography.fontWeight.bold,
     fontFamily: 'monospace',
+    fontWeight: Typography.fontWeight.bold,
     marginBottom: Spacing.xs,
   },
-  statusDescription: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-  },
-  thresholdButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
   thresholdButton: {
-    flex: 1,
-    padding: Spacing.sm + 2,
-    marginHorizontal: Spacing.xs,
+    alignItems: 'center',
     backgroundColor: Colors.lightGray,
     borderRadius: Spacing.borderRadius.md,
-    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: Spacing.xs,
+    padding: Spacing.sm + 2,
   },
   thresholdButtonActive: {
     backgroundColor: Colors.primary,
   },
   thresholdButtonText: {
     ...Typography.bodySmall,
-    fontWeight: Typography.fontWeight.semibold,
     color: Colors.textSecondary,
+    fontWeight: Typography.fontWeight.semibold,
   },
   thresholdButtonTextActive: {
     color: Colors.white,
   },
-  saveButton: {
-    backgroundColor: Colors.success,
-    padding: Spacing.md + 2,
-    borderRadius: Spacing.borderRadius.md,
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-  },
-  saveButtonText: {
-    ...Typography.button,
-    color: Colors.white,
-  },
-  actionButton: {
-    backgroundColor: Colors.primary,
-    padding: Spacing.md + 2,
-    borderRadius: Spacing.borderRadius.md,
-    alignItems: 'center',
-    marginVertical: Spacing.xs + 2,
-  },
-  actionButtonText: {
-    ...Typography.bodySmall,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.white,
-  },
-  dangerButton: {
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.danger,
-  },
-  dangerButtonText: {
-    color: Colors.danger,
-  },
-  linkButton: {
+  thresholdButtons: {
     flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md + 2,
-    marginVertical: Spacing.xs,
-    backgroundColor: Colors.lightGray,
-    borderRadius: Spacing.borderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.lightGray,
-  },
-  linkIcon: {
-    marginRight: Spacing.md,
-  },
-  linkButtonText: {
-    fontSize: 15,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.primary,
-  },
-  aboutText: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-    lineHeight: 20,
+    justifyContent: 'space-between',
     marginBottom: Spacing.md,
+    marginTop: Spacing.sm,
   },
 });
 

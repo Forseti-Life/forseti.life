@@ -7,9 +7,11 @@ The AmISafe mobile application is a location-aware safety application that provi
 ## 🏗️ Architecture Components
 
 ### 1. Mobile Application (React Native)
+
 **Platform**: Cross-platform iOS and Android  
 **Framework**: React Native 0.72.6 with TypeScript  
 **Primary Functions**:
+
 - Real-time GPS location tracking (H3 Level 11-13 precision)
 - Background location monitoring with geo-fence detection
 - Push notification system for risk level changes
@@ -17,9 +19,11 @@ The AmISafe mobile application is a location-aware safety application that provi
 - User authentication and account management
 
 ### 2. API Layer (Drupal Module)
+
 **Location**: `/sites/stlouisintegration/web/modules/custom/amisafe/`  
 **Platform**: Drupal 9/10/11 with custom API endpoints  
 **Primary Functions**:
+
 - RESTful API endpoints for crime data access
 - User authentication and session management
 - H3 spatial query processing
@@ -27,9 +31,11 @@ The AmISafe mobile application is a location-aware safety application that provi
 - Data aggregation and statistics
 
 ### 3. Database Layer (H3 Geospatial Database)
+
 **Database**: MySQL 8.0+ with H3 spatial indexing  
 **Data Warehouse**: 3-layer architecture (Bronze → Silver → Gold)  
 **Primary Functions**:
+
 - Raw incident storage (3.4M+ crime records)
 - H3 spatial indexing (Resolutions 5-13)
 - Pre-computed aggregations (413K+ hexagons)
@@ -57,17 +63,19 @@ The AmISafe mobile application is a location-aware safety application that provi
 ## 🗺️ H3 Geospatial Integration
 
 ### Resolution Strategy
+
 The application uses different H3 resolutions for different purposes:
 
-| Resolution | Area Coverage | Use Case | Update Frequency |
-|------------|--------------|----------|------------------|
-| 5 | 251.1 km² | Citywide statistics | Daily |
-| 8 | 0.7 km² | Neighborhood context | Hourly |
-| 10 | 15,047 m² | Block-level awareness | Every 15 min |
-| 11 | ~700 m² | Background monitoring | Real-time |
-| 13 | 44 m² | User position tracking | Real-time |
+| Resolution | Area Coverage | Use Case               | Update Frequency |
+| ---------- | ------------- | ---------------------- | ---------------- |
+| 5          | 251.1 km²     | Citywide statistics    | Daily            |
+| 8          | 0.7 km²       | Neighborhood context   | Hourly           |
+| 10         | 15,047 m²     | Block-level awareness  | Every 15 min     |
+| 11         | ~700 m²       | Background monitoring  | Real-time        |
+| 13         | 44 m²         | User position tracking | Real-time        |
 
 ### Spatial Query Flow
+
 1. **GPS Location Capture**: Mobile app captures precise GPS coordinates
 2. **H3 Index Calculation**: Convert lat/lng to H3 Level 11-13 index
 3. **API Query**: Request risk data for current and surrounding hexagons
@@ -79,6 +87,7 @@ The application uses different H3 resolutions for different purposes:
 ### Core Components
 
 **BackgroundLocationService.ts** - Main monitoring service
+
 - GPS tracking via react-native-geolocation-service
 - H3 index calculation at resolution 11 (~700m hexagons)
 - Z-score checking via AmISafe API
@@ -88,18 +97,21 @@ The application uses different H3 resolutions for different purposes:
 - Auto-restore on app restart
 
 **NotificationService.ts** - Push notification handler
+
 - Local notification creation
 - Channel management (Android)
 - Deep linking to crime map
 - Notification permissions
 
 **StorageService.ts** - Persistent data storage
+
 - AsyncStorage wrapper
 - Monitoring state tracking
 - Location history
 - User preferences
 
 **useBackgroundMonitoring.ts** - React hook
+
 - Permission management
 - Start/stop monitoring
 - State restoration
@@ -116,11 +128,13 @@ GPS Update → H3 Calculation → Index Comparison → Risk Query → Notificati
 ### How It Works
 
 **1. Location Tracking**
+
 - **GPS Updates**: Every 60 seconds or when user moves 50+ meters
 - **Accuracy**: High-accuracy mode enabled
 - **Battery**: Optimized with distance filter and interval settings
 
 **2. H3 Hexagon Monitoring**
+
 ```typescript
 // Convert GPS coordinates to H3 index
 const h3Index = h3.latLngToCell(latitude, longitude, 11);
@@ -133,6 +147,7 @@ if (h3Index !== previousH3Index) {
 ```
 
 **3. Crime Data API Call**
+
 ```typescript
 GET https://stlouisintegration.com/api/amisafe/aggregated
   ?resolution=11
@@ -151,12 +166,14 @@ Response:
 ```
 
 **4. Notification Triggering**
+
 - **Threshold**: Z-score ≥ 2.0 (configurable)
 - **Cooldown**: 5 minutes between notifications (configurable)
 - **Priority**: High priority for immediate delivery
 - **Action**: Deep link to crime map at current location
 
 **5. State Persistence**
+
 - Monitoring state saved to AsyncStorage
 - Restored on app restart
 - Service auto-starts on device boot if enabled
@@ -164,6 +181,7 @@ Response:
 ## 🔔 Notification System Architecture
 
 ### Risk Level Monitoring
+
 The application continuously monitors the user's H3 Level 11-13 hexagon and triggers notifications based on:
 
 1. **Risk Level Changes**: When moving from low to medium/high risk areas
@@ -174,11 +192,13 @@ The application continuously monitors the user's H3 Level 11-13 hexagon and trig
 ### Notification Types
 
 **Immediate Alerts (Push Notifications)**
+
 - **High Risk Entry**: "⚠️ You've entered a high-crime area. Stay alert."
 - **Hotspot Proximity**: "🚨 Crime hotspot detected 100m ahead."
 - **Time-based Risk**: "🌙 This area shows increased risk at night."
 
 **Background Monitoring**
+
 - **Geofence Triggers**: Silent monitoring of risk boundaries
 - **Battery Optimization**: Intelligent location update intervals
 - **Offline Mode**: Cached risk data for areas without connectivity
@@ -199,6 +219,7 @@ The app uses straightforward Drupal session-based authentication:
 ```
 
 **Key Features:**
+
 - **CSRF Token Management**: Proper security token handling
 - **Persistent Sessions**: Login state preserved across restarts
 - **Demo Mode**: Development-friendly testing
@@ -207,75 +228,82 @@ The app uses straightforward Drupal session-based authentication:
 ## 📦 Service Layer Architecture
 
 ### LocationService
+
 ```typescript
 class LocationService {
   // Real-time GPS tracking with H3 conversion
-  getCurrentLocation(): Promise<H3Location>
-  startLocationUpdates(): void
-  stopLocationUpdates(): void
-  
+  getCurrentLocation(): Promise<H3Location>;
+  startLocationUpdates(): void;
+  stopLocationUpdates(): void;
+
   // H3 spatial operations
-  getCurrentH3Index(resolution: number): string
-  getH3Neighbors(h3Index: string): string[]
-  calculateH3Distance(h3Index1: string, h3Index2: string): number
+  getCurrentH3Index(resolution: number): string;
+  getH3Neighbors(h3Index: string): string[];
+  calculateH3Distance(h3Index1: string, h3Index2: string): number;
 }
 ```
 
 ### ApiService
+
 ```typescript
 class ApiService {
   // Authentication endpoints
-  login(credentials: LoginCredentials): Promise<AuthResponse>
-  register(userData: RegisterData): Promise<AuthResponse>
-  
+  login(credentials: LoginCredentials): Promise<AuthResponse>;
+  register(userData: RegisterData): Promise<AuthResponse>;
+
   // Crime data endpoints
-  getRiskLevel(h3Index: string): Promise<RiskLevel>
-  getCrimeData(bounds: H3Bounds): Promise<CrimeData[]>
-  getHotspots(resolution: number): Promise<Hotspot[]>
+  getRiskLevel(h3Index: string): Promise<RiskLevel>;
+  getCrimeData(bounds: H3Bounds): Promise<CrimeData[]>;
+  getHotspots(resolution: number): Promise<Hotspot[]>;
 }
 ```
 
 ### NotificationService
+
 ```typescript
 class NotificationService {
   // Risk-based notifications
-  checkRiskLevelChange(currentH3: string, previousH3: string): void
-  sendRiskAlert(riskLevel: RiskLevel, location: H3Location): void
-  
+  checkRiskLevelChange(currentH3: string, previousH3: string): void;
+  sendRiskAlert(riskLevel: RiskLevel, location: H3Location): void;
+
   // System notifications
-  requestPermissions(): Promise<boolean>
-  scheduleSafetyReminders(): void
+  requestPermissions(): Promise<boolean>;
+  scheduleSafetyReminders(): void;
 }
 ```
 
 ### StorageService
+
 ```typescript
 class StorageService {
   // Offline data caching
-  cacheCrimeData(h3Index: string, data: CrimeData): Promise<void>
-  getCachedRiskLevel(h3Index: string): Promise<RiskLevel | null>
-  
+  cacheCrimeData(h3Index: string, data: CrimeData): Promise<void>;
+  getCachedRiskLevel(h3Index: string): Promise<RiskLevel | null>;
+
   // User preferences
-  getUserPreferences(): Promise<UserPreferences>
-  updateUserPreferences(prefs: UserPreferences): Promise<void>
+  getUserPreferences(): Promise<UserPreferences>;
+  updateUserPreferences(prefs: UserPreferences): Promise<void>;
 }
 ```
 
 ## 🔗 API Integration Architecture
 
 ### Authentication Endpoints
+
 - `POST /user/register` - User registration
 - `POST /user/login` - User authentication
 - `POST /user/logout` - Session termination
 - `GET /user/profile` - User profile data
 
 ### Crime Data Endpoints
+
 - `GET /api/amisafe/risk-level` - Current location risk assessment
 - `GET /api/amisafe/aggregated` - H3 hexagon crime aggregations
 - `GET /api/amisafe/incidents` - Individual crime incidents
 - `GET /api/amisafe/hotspots` - High-crime area identification
 
 ### System Information
+
 - `GET /api/amisafe/system-stats` - Database and system statistics
 - `GET /api/amisafe/crime-types` - Available crime categories
 - `GET /api/amisafe/districts` - Police district boundaries
@@ -283,12 +311,14 @@ class StorageService {
 ## 🛡️ Security Architecture
 
 ### Data Protection
+
 - **Local Storage Encryption**: Sensitive data encrypted using device keychain
 - **API Token Management**: CSRF tokens with session management
 - **Location Privacy**: Option to anonymize location data
 - **Minimal Data Collection**: Only essential data for safety features
 
 ### Authentication Security
+
 - **Session Authentication**: Secure API access with Drupal
 - **Device Registration**: Unique device identifiers for push notifications
 - **Session Management**: Automatic logout after inactivity
@@ -297,12 +327,14 @@ class StorageService {
 ## 📊 Performance Architecture
 
 ### Caching Strategy
+
 - **H3 Index Cache**: Recently calculated H3 indexes stored locally
 - **Risk Level Cache**: 30-minute cache for risk assessments
 - **Crime Data Cache**: Offline storage of surrounding area data
 - **Image Caching**: Map tiles and UI assets cached for offline use
 
 ### Battery Optimization
+
 - **Adaptive Location Updates**: Frequency based on movement and risk level
 - **Background App Refresh**: Intelligent background processing
 - **Network Efficiency**: Batch API requests when possible
@@ -311,6 +343,7 @@ class StorageService {
 ### Configuration Options
 
 **Current Settings (Balanced)**
+
 ```typescript
 interval: 60000,          // 60 seconds
 distanceFilter: 50,       // 50 meters
@@ -321,6 +354,7 @@ notificationCooldown: 300000, // 5 minutes
 ```
 
 **Battery Saving Mode**
+
 ```typescript
 interval: 300000,         // 5 minutes
 distanceFilter: 200,      // 200 meters
@@ -328,6 +362,7 @@ enableHighAccuracy: false,
 ```
 
 **Maximum Monitoring (Higher Battery Drain)**
+
 ```typescript
 interval: 30000,          // 30 seconds
 distanceFilter: 25,       // 25 meters
@@ -337,6 +372,7 @@ enableHighAccuracy: true,
 ## 🔄 Offline Capability Architecture
 
 ### Data Synchronization
+
 ```
 Online Mode:
 GPS Update → H3 Calculation → API Query → Risk Display → Cache Update
@@ -352,6 +388,7 @@ GPS Update → H3 Calculation → Cache Lookup → Risk Display → Sync Queue
 ```
 
 ### Critical Data Caching
+
 - **Home/Work Area**: Extended cache for frequently visited locations
 - **Recent Routes**: Cache of recently traveled hexagons
 - **Emergency Data**: Always-available emergency contacts and numbers
@@ -363,27 +400,28 @@ GPS Update → H3 Calculation → Cache Lookup → Risk Display → Sync Queue
 **Required Files:**
 
 **1. AndroidManifest.xml**
+
 ```xml
 <manifest>
   <!-- Location Permissions -->
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
   <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-  
+
   <!-- Background Service -->
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
-  
+
   <!-- Boot Auto-Start -->
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-  
+
   <!-- Notifications -->
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
   <uses-permission android:name="android.permission.VIBRATE" />
 
   <application>
     <!-- Boot Receiver -->
-    <receiver 
+    <receiver
       android:name=".BootReceiver"
       android:enabled="true"
       android:exported="true">
@@ -405,6 +443,7 @@ GPS Update → H3 Calculation → Cache Lookup → Risk Display → Sync Queue
 ```
 
 **2. BootReceiver.java**
+
 ```java
 package com.amisafe;
 
@@ -421,7 +460,7 @@ public class BootReceiver extends BroadcastReceiver {
                 "RCTAsyncLocalStorage", Context.MODE_PRIVATE
             );
             boolean enabled = prefs.getBoolean("background_monitoring_enabled", false);
-            
+
             if (enabled) {
                 Intent serviceIntent = new Intent(context, LocationMonitoringService.class);
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -436,6 +475,7 @@ public class BootReceiver extends BroadcastReceiver {
 ```
 
 **3. LocationMonitoringService.java**
+
 ```java
 package com.amisafe;
 
@@ -506,6 +546,7 @@ public class LocationMonitoringService extends Service {
 ### iOS Configuration
 
 **Info.plist**
+
 ```xml
 <key>UIBackgroundModes</key>
 <array>
@@ -527,18 +568,21 @@ public class LocationMonitoringService extends Service {
 ## 🧪 Testing Architecture
 
 ### Unit Tests
+
 - H3 Resolution Mapping
 - Risk Level Calculation
 - API URL Building
 - Component Dependencies
 
 ### Integration Tests
+
 - Location service integration
 - Map rendering performance
 - Filter functionality
 - API data loading
 
 ### Performance Metrics
+
 - **Initial Load**: < 2 seconds for Philadelphia metro area
 - **Zoom Transitions**: < 1 second resolution switching
 - **Filter Application**: < 500ms with cached data

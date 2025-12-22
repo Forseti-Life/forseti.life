@@ -76,10 +76,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <Text style={styles.logo}>🛡️</Text>
           <Text style={styles.title}>Forseti</Text>
@@ -162,122 +159,122 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors?.background || '#1a1a2e',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logo: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-  formContainer: {
-    width: '100%',
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: colors.text,
-  },
-  forgotPasswordContainer: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  loginButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
   buttonDisabled: {
     opacity: 0.6,
   },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+  container: {
+    backgroundColor: Colors?.background || '#1a1a2e',
+    flex: 1,
   },
   divider: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     marginVertical: 24,
   },
   dividerLine: {
+    backgroundColor: colors.border,
     flex: 1,
     height: 1,
-    backgroundColor: colors.border,
   },
   dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
     color: colors.textSecondary,
+    fontSize: 14,
     fontWeight: '600',
-  },
-  registerButton: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  registerButtonText: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: 'bold',
+    marginHorizontal: 16,
   },
   footer: {
     alignItems: 'center',
     paddingTop: 20,
   },
   footerText: {
-    fontSize: 12,
     color: colors.textSecondary,
-    textAlign: 'center',
+    fontSize: 12,
     lineHeight: 18,
+    textAlign: 'center',
+  },
+  forgotPasswordContainer: {
+    alignSelf: 'flex-end',
+    marginBottom: 24,
+  },
+  forgotPasswordText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  formContainer: {
+    width: '100%',
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    color: colors.text,
+    fontSize: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  label: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  loginButton: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    elevation: 4,
+    marginBottom: 20,
+    paddingVertical: 16,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  logo: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  registerButton: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: colors.primary,
+    borderRadius: 12,
+    borderWidth: 2,
+    marginBottom: 24,
+    paddingVertical: 16,
+  },
+  registerButtonText: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  subtitle: {
+    color: colors.textSecondary,
+    fontSize: 16,
+  },
+  title: {
+    color: colors.primary,
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
 });

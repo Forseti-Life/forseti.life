@@ -1,7 +1,7 @@
 /**
  * Forseti Mobile Application
  * Main App Component - Entry point for React Native application
- * 
+ *
  * @format
  */
 
@@ -110,36 +110,24 @@ const TabNavigator = () => {
         },
       })}
     >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeScreen}
-        options={{ title: 'Forseti' }}
-      />
-      <Tab.Screen 
-        name="Map" 
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Forseti' }} />
+      <Tab.Screen
+        name="Map"
         component={CrimeMapScreen}
         options={{ title: 'Safety Map', headerShown: false }}
       />
-      <Tab.Screen 
-        name="Chat" 
+      <Tab.Screen
+        name="Chat"
         component={ChatScreen}
         options={{ title: 'Talk with Forseti', headerShown: false }}
       />
-      <Tab.Screen 
-        name="Community" 
-        component={CommunityScreen}
-        options={{ title: 'Community' }}
-      />
-      <Tab.Screen 
-        name="SafetyFactors" 
+      <Tab.Screen name="Community" component={CommunityScreen} options={{ title: 'Community' }} />
+      <Tab.Screen
+        name="SafetyFactors"
         component={SafetyFactorsScreen}
         options={{ title: 'Safety Factors' }}
       />
-      <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreen}
-        options={{ title: 'Profile' }}
-      />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
     </Tab.Navigator>
   );
 };
@@ -151,7 +139,7 @@ const App: React.FC = () => {
   const [initError, setInitError] = useState<string | null>(null);
 
   const backgroundStyle = {
-    backgroundColor: isDarkMode ? (Colors?.darker || '#000000') : (Colors?.lighter || '#ffffff'),
+    backgroundColor: isDarkMode ? Colors?.darker || '#000000' : Colors?.lighter || '#ffffff',
     flex: 1,
   };
 
@@ -180,7 +168,7 @@ const App: React.FC = () => {
         const locationGranted = await requestLocationPermission();
         setHasLocationPermission(locationGranted);
         console.log(`✅ [INIT STEP 3] Location permission: ${locationGranted}`);
-        
+
         if (locationGranted) {
           // Initialize location service
           try {
@@ -220,11 +208,13 @@ const App: React.FC = () => {
 
       setIsInitialized(true);
       console.log('🎉 [INIT COMPLETE] Forseti Mobile App initialization complete!');
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('❌ [INIT FAILED] App initialization failed:', error);
-      console.error('❌ [INIT FAILED] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error(
+        '❌ [INIT FAILED] Error stack:',
+        error instanceof Error ? error.stack : 'No stack trace'
+      );
       setInitError(`App initialization failed: ${errorMessage}`);
       setIsInitialized(true); // Still show UI with error message
     }
@@ -233,7 +223,9 @@ const App: React.FC = () => {
   if (!isInitialized) {
     // Show splash/loading screen
     return (
-      <SafeAreaView style={[backgroundStyle, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+      <SafeAreaView
+        style={[backgroundStyle, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}
+      >
         <StatusBar
           barStyle={isDarkMode ? 'light-content' : 'dark-content'}
           backgroundColor={Colors.primary}
@@ -255,14 +247,30 @@ const App: React.FC = () => {
           backgroundColor="#EF4444"
         />
         <ScrollView style={{ flex: 1, padding: 20 }}>
-          <View style={{ backgroundColor: '#FEE2E2', padding: 16, borderRadius: 8, marginBottom: 16 }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#DC2626', marginBottom: 8 }}>⚠️ Initialization Error</Text>
+          <View
+            style={{ backgroundColor: '#FEE2E2', padding: 16, borderRadius: 8, marginBottom: 16 }}
+          >
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#DC2626', marginBottom: 8 }}>
+              ⚠️ Initialization Error
+            </Text>
             <Text style={{ fontSize: 14, color: '#991B1B', marginBottom: 16 }}>{initError}</Text>
-            <Button title="Retry" onPress={() => { setInitError(null); setIsInitialized(false); initializeApp(); }} color="#DC2626" />
+            <Button
+              title="Retry"
+              onPress={() => {
+                setInitError(null);
+                setIsInitialized(false);
+                initializeApp();
+              }}
+              color="#DC2626"
+            />
           </View>
           <View style={{ backgroundColor: '#F3F4F6', padding: 16, borderRadius: 8 }}>
-            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#374151', marginBottom: 8 }}>Debug Information</Text>
-            <Text style={{ fontSize: 12, color: '#6B7280', fontFamily: 'monospace' }}>Check console logs for detailed error information.</Text>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#374151', marginBottom: 8 }}>
+              Debug Information
+            </Text>
+            <Text style={{ fontSize: 12, color: '#6B7280', fontFamily: 'monospace' }}>
+              Check console logs for detailed error information.
+            </Text>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -282,8 +290,8 @@ const App: React.FC = () => {
           }}
         >
           <Stack.Screen name="MainTabs" component={TabNavigator} />
-          <Stack.Screen 
-            name="ConversationList" 
+          <Stack.Screen
+            name="ConversationList"
             component={ConversationListScreen}
             options={{
               headerShown: true,
@@ -292,8 +300,8 @@ const App: React.FC = () => {
               headerTitle: 'Conversations',
             }}
           />
-          <Stack.Screen 
-            name="About" 
+          <Stack.Screen
+            name="About"
             component={AboutScreen}
             options={{
               headerShown: true,
@@ -302,8 +310,8 @@ const App: React.FC = () => {
               headerTitle: 'About Forseti',
             }}
           />
-          <Stack.Screen 
-            name="HowItWorks" 
+          <Stack.Screen
+            name="HowItWorks"
             component={HowItWorksScreen}
             options={{
               headerShown: true,
@@ -312,8 +320,8 @@ const App: React.FC = () => {
               headerTitle: 'How It Works',
             }}
           />
-          <Stack.Screen 
-            name="Privacy" 
+          <Stack.Screen
+            name="Privacy"
             component={PrivacyScreen}
             options={{
               headerShown: true,
@@ -322,8 +330,8 @@ const App: React.FC = () => {
               headerTitle: 'Privacy & Security',
             }}
           />
-          <Stack.Screen 
-            name="Settings" 
+          <Stack.Screen
+            name="Settings"
             component={SettingsScreen}
             options={{
               headerShown: true,
@@ -343,9 +351,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors?.white || '#ffffff',
     borderTopColor: Colors?.lightGray || '#e9ecef',
     borderTopWidth: 1,
+    height: Platform.OS === 'ios' ? 85 : 60,
     paddingBottom: Platform.OS === 'ios' ? 20 : 5,
     paddingTop: 5,
-    height: Platform.OS === 'ios' ? 85 : 60,
   },
 });
 

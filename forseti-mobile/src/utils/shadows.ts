@@ -15,7 +15,7 @@ export const Shadows = {
     shadowRadius: 1.0,
     elevation: 1,
   },
-  
+
   // Medium shadow (default cards)
   md: {
     shadowColor: '#000',
@@ -27,7 +27,7 @@ export const Shadows = {
     shadowRadius: 2.62,
     elevation: 4,
   },
-  
+
   // Large shadow (prominent cards, modals)
   lg: {
     shadowColor: '#000',
@@ -35,11 +35,11 @@ export const Shadows = {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.30,
+    shadowOpacity: 0.3,
     shadowRadius: 4.65,
     elevation: 8,
   },
-  
+
   // Extra large shadow (floating buttons, overlays)
   xl: {
     shadowColor: '#000',
@@ -51,7 +51,7 @@ export const Shadows = {
     shadowRadius: 7.49,
     elevation: 12,
   },
-  
+
   // No shadow
   none: {
     shadowColor: 'transparent',

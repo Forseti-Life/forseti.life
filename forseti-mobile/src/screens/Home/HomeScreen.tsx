@@ -50,14 +50,13 @@ const HomeScreen: React.FC = () => {
   const initializeHomeScreen = async () => {
     try {
       setIsLoading(true);
-      
+
       // Get current location
       const location = await LocationService.getCurrentLocation();
       setCurrentLocation(location);
-      
+
       // Load safety data for current location
       await loadSafetyData(location);
-      
     } catch (error) {
       console.error('Error initializing home screen:', error);
       Alert.alert(
@@ -87,7 +86,6 @@ const HomeScreen: React.FC = () => {
         safetyTrend: 'stable',
       };
       setQuickStats(mockStats);
-
     } catch (error) {
       console.error('Error loading safety data:', error);
     }
@@ -152,9 +150,7 @@ const HomeScreen: React.FC = () => {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
-      }
+      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />}
     >
       {/* Header Section */}
       <View style={styles.header}>
@@ -193,16 +189,16 @@ const HomeScreen: React.FC = () => {
           </View>
           <View style={styles.cardContent}>
             <View style={styles.safetyScoreContainer}>
-              <Text style={[styles.safetyScoreNumber, { color: getSafetyColor(safetyScore.level) }]}>
+              <Text
+                style={[styles.safetyScoreNumber, { color: getSafetyColor(safetyScore.level) }]}
+              >
                 {safetyScore.score}
               </Text>
               <View style={styles.safetyScoreDetails}>
                 <Text style={[styles.safetyLevel, { color: getSafetyColor(safetyScore.level) }]}>
                   {safetyScore.level}
                 </Text>
-                <Text style={styles.safetyDescription}>
-                  {safetyScore.description}
-                </Text>
+                <Text style={styles.safetyDescription}>{safetyScore.description}</Text>
               </View>
             </View>
           </View>
@@ -227,10 +223,10 @@ const HomeScreen: React.FC = () => {
                 <Text style={styles.statLabel}>Last 30 Days</Text>
               </View>
               <View style={styles.statItem}>
-                <Icon 
-                  name={getTrendIcon(quickStats.safetyTrend)} 
-                  size={24} 
-                  color={getTrendColor(quickStats.safetyTrend)} 
+                <Icon
+                  name={getTrendIcon(quickStats.safetyTrend)}
+                  size={24}
+                  color={getTrendColor(quickStats.safetyTrend)}
                 />
                 <Text style={styles.statLabel}>Trend</Text>
               </View>
@@ -247,28 +243,28 @@ const HomeScreen: React.FC = () => {
         </View>
         <View style={styles.cardContent}>
           <View style={styles.actionsGrid}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => Linking.openURL('https://forseti.life/safety-map')}
             >
               <Icon name="map" size={32} color={Colors.primary} />
               <Text style={styles.actionText}>View Safety Map</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => Linking.openURL('https://forseti.life/how-it-works')}
             >
               <Icon name="lightbulb-on" size={32} color={Colors.warning} />
               <Text style={styles.actionText}>How It Works</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => Linking.openURL('tel:911')}
             >
               <Icon name="phone" size={32} color={Colors.danger} />
               <Text style={styles.actionText}>Emergency 911</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.actionButton}
               onPress={() => Linking.openURL('https://forseti.life/community')}
             >
@@ -287,10 +283,10 @@ const HomeScreen: React.FC = () => {
         </View>
         <View style={styles.cardContent}>
           <Text style={styles.aboutText}>
-            Forseti uses advanced AI and geospatial technology to help keep Philadelphia safe. 
-            Get real-time safety alerts based on your location and historical crime data.
+            Forseti uses advanced AI and geospatial technology to help keep Philadelphia safe. Get
+            real-time safety alerts based on your location and historical crime data.
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.learnMoreButton}
             onPress={() => Linking.openURL('https://forseti.life/about')}
           >
@@ -304,121 +300,24 @@ const HomeScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.background,
-  },
-  loadingText: {
-    marginTop: Spacing.md,
-    ...Typography.body,
+  aboutText: {
+    ...Typography.bodySmall,
     color: Colors.textSecondary,
-  },
-  header: {
-    padding: Spacing.lg,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-  },
-  welcomeText: {
-    ...Typography.heading2,
-    color: Colors.white,
-    marginBottom: Spacing.xs,
-  },
-  subtitleText: {
-    ...Typography.body,
-    color: Colors.white,
-    opacity: 0.9,
-  },
-  card: {
-    backgroundColor: Colors.white,
-    margin: Spacing.md,
-    borderRadius: Spacing.borderRadius.lg,
-    padding: Spacing.md,
-    ...Shadows.md,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    lineHeight: 20,
     marginBottom: Spacing.md,
-  },
-  cardTitle: {
-    ...Typography.heading4,
-    color: Colors.textPrimary,
-    marginLeft: Spacing.sm,
-  },
-  cardContent: {
-    paddingLeft: Spacing.xl,
-  },
-  locationText: {
-    ...Typography.body,
-    color: Colors.textPrimary,
-    fontFamily: 'monospace',
   },
   accuracyText: {
     ...Typography.bodySmall,
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
   },
-  errorText: {
-    ...Typography.body,
-    color: Colors.danger,
-    fontStyle: 'italic',
-  },
-  safetyScoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  safetyScoreNumber: {
-    fontSize: 48,
-    fontWeight: Typography.fontWeight.bold,
-    marginRight: Spacing.md,
-  },
-  safetyScoreDetails: {
-    flex: 1,
-  },
-  safetyLevel: {
-    ...Typography.heading4,
-    marginBottom: Spacing.xs,
-  },
-  safetyDescription: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    ...Typography.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.textPrimary,
-  },
-  statLabel: {
-    ...Typography.caption,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
-    textAlign: 'center',
-  },
-  actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
   actionButton: {
-    width: '48%',
+    alignItems: 'center',
     backgroundColor: Colors.lightGray,
     borderRadius: Spacing.borderRadius.md,
-    padding: Spacing.md,
-    alignItems: 'center',
     marginBottom: Spacing.md,
+    padding: Spacing.md,
+    width: '48%',
   },
   actionText: {
     ...Typography.bodySmall,
@@ -426,23 +325,120 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     textAlign: 'center',
   },
-  aboutText: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-    lineHeight: 20,
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  card: {
+    backgroundColor: Colors.white,
+    borderRadius: Spacing.borderRadius.lg,
+    margin: Spacing.md,
+    padding: Spacing.md,
+    ...Shadows.md,
+  },
+  cardContent: {
+    paddingLeft: Spacing.xl,
+  },
+  cardHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
     marginBottom: Spacing.md,
   },
-  learnMoreButton: {
-    flexDirection: 'row',
+  cardTitle: {
+    ...Typography.heading4,
+    color: Colors.textPrimary,
+    marginLeft: Spacing.sm,
+  },
+  container: {
+    backgroundColor: Colors.background,
+    flex: 1,
+  },
+  errorText: {
+    ...Typography.body,
+    color: Colors.danger,
+    fontStyle: 'italic',
+  },
+  header: {
     alignItems: 'center',
+    backgroundColor: Colors.primary,
+    padding: Spacing.lg,
+  },
+  learnMoreButton: {
+    alignItems: 'center',
+    flexDirection: 'row',
     justifyContent: 'center',
     paddingVertical: Spacing.sm,
   },
   learnMoreText: {
+    color: Colors.primary,
     fontSize: 15,
     fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary,
     marginRight: Spacing.xs,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: Spacing.md,
+    ...Typography.body,
+    color: Colors.textSecondary,
+  },
+  locationText: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+    fontFamily: 'monospace',
+  },
+  safetyDescription: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
+  },
+  safetyLevel: {
+    ...Typography.heading4,
+    marginBottom: Spacing.xs,
+  },
+  safetyScoreContainer: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  safetyScoreDetails: {
+    flex: 1,
+  },
+  safetyScoreNumber: {
+    fontSize: 48,
+    fontWeight: Typography.fontWeight.bold,
+    marginRight: Spacing.md,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
+    textAlign: 'center',
+  },
+  statNumber: {
+    ...Typography.xl,
+    color: Colors.textPrimary,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  subtitleText: {
+    ...Typography.body,
+    color: Colors.white,
+    opacity: 0.9,
+  },
+  welcomeText: {
+    ...Typography.heading2,
+    color: Colors.white,
+    marginBottom: Spacing.xs,
   },
 });
 

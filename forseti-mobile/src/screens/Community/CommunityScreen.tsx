@@ -3,14 +3,7 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Linking,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Theme } from '../../utils/theme';
 
@@ -38,7 +31,8 @@ export const CommunityScreen: React.FC = () => {
           <Text style={styles.cardTitle}>Community Forums</Text>
         </View>
         <Text style={styles.cardText}>
-          Join discussions with neighbors about safety concerns, local events, and community initiatives.
+          Join discussions with neighbors about safety concerns, local events, and community
+          initiatives.
         </Text>
         <TouchableOpacity
           style={styles.button}
@@ -110,7 +104,8 @@ export const CommunityScreen: React.FC = () => {
           <Text style={styles.cardTitle}>Share Your Experience</Text>
         </View>
         <Text style={styles.cardText}>
-          Help others by sharing safety tips, reporting concerns, and contributing to community awareness.
+          Help others by sharing safety tips, reporting concerns, and contributing to community
+          awareness.
         </Text>
         <TouchableOpacity
           style={styles.button}
@@ -131,36 +126,35 @@ export const CommunityScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    padding: Spacing.lg,
-    backgroundColor: Colors.backgroundDark,
+  button: {
     alignItems: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: Spacing.borderRadius.md,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    padding: Spacing.md,
   },
-  headerTitle: {
-    ...Typography.heading2,
-    color: Colors.primary,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  headerSubtitle: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    textAlign: 'center',
+  buttonText: {
+    ...Typography.button,
+    color: Colors.white,
+    marginRight: Spacing.xs,
   },
   card: {
     backgroundColor: Colors.white,
+    borderRadius: Spacing.borderRadius.lg,
     margin: Spacing.md,
     padding: Spacing.md,
-    borderRadius: Spacing.borderRadius.lg,
     ...Shadows.md,
   },
   cardHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
+    marginBottom: Spacing.md,
+  },
+  cardText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    lineHeight: 24,
     marginBottom: Spacing.md,
   },
   cardTitle: {
@@ -168,34 +162,35 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginLeft: Spacing.sm,
   },
-  cardText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
-    lineHeight: 24,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.primary,
-    padding: Spacing.md,
-    borderRadius: Spacing.borderRadius.md,
-  },
-  buttonText: {
-    ...Typography.button,
-    color: Colors.white,
-    marginRight: Spacing.xs,
+  container: {
+    backgroundColor: Colors.background,
+    flex: 1,
   },
   footer: {
-    padding: Spacing.xl,
     alignItems: 'center',
+    padding: Spacing.xl,
   },
   footerText: {
     ...Typography.body,
     color: Colors.textSecondary,
-    textAlign: 'center',
     fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    backgroundColor: Colors.backgroundDark,
+    padding: Spacing.lg,
+  },
+  headerSubtitle: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  headerTitle: {
+    ...Typography.heading2,
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.md,
   },
 });
 

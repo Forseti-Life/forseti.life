@@ -1,6 +1,6 @@
 /**
  * GPS Location Service for Forseti Mobile Application
- * 
+ *
  * Provides continuous GPS tracking, location permissions management,
  * and integration with H3 geospatial indexing for ultra-precise location monitoring.
  */
@@ -16,7 +16,7 @@ const LOCATION_CONFIG = {
   timeout: 15000,
   maximumAge: 10000,
   distanceFilter: 10, // Minimum distance in meters before update
-  interval: 10000,    // Update interval in milliseconds (10 seconds)
+  interval: 10000, // Update interval in milliseconds (10 seconds)
   fastestInterval: 5000, // Fastest update interval (5 seconds)
   showLocationDialog: true,
   forceRequestLocation: true,
@@ -26,7 +26,7 @@ const LOCATION_CONFIG = {
 const STORAGE_KEYS = {
   LAST_LOCATION: 'forseti_last_location',
   LOCATION_HISTORY: 'forseti_location_history',
-  PERMISSION_STATUS: 'forseti_permission_status'
+  PERMISSION_STATUS: 'forseti_permission_status',
 };
 
 /**
@@ -41,12 +41,12 @@ export class GPSLocationService {
     this.errorCallbacks = [];
     this.h3ChangeCallbacks = [];
     this.permissionStatus = 'unknown';
-    
+
     // Bind methods to maintain context
     this.onLocationUpdate = this.onLocationUpdate.bind(this);
     this.onLocationError = this.onLocationError.bind(this);
     this.handleAppStateChange = this.handleAppStateChange.bind(this);
-    
+
     // Listen to app state changes for background/foreground handling
     AppState.addEventListener('change', this.handleAppStateChange);
   }
@@ -68,13 +68,13 @@ export class GPSLocationService {
             buttonPositive: 'OK',
           }
         );
-        
+
         const hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
         this.permissionStatus = hasPermission ? 'granted' : 'denied';
-        
+
         // Cache permission status
         await AsyncStorage.setItem(STORAGE_KEYS.PERMISSION_STATUS, this.permissionStatus);
-        
+
         console.log(`📍 Location Permission: ${this.permissionStatus}`);
         return hasPermission;
       } else {
@@ -109,7 +109,7 @@ export class GPSLocationService {
       } else {
         this.permissionStatus = 'granted'; // Assume granted on iOS
       }
-      
+
       return this.permissionStatus;
     } catch (error) {
       console.error('Permission Check Error:', error);
@@ -129,7 +129,7 @@ export class GPSLocationService {
       }
 
       Geolocation.getCurrentPosition(
-        (position) => {
+        position => {
           const location = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
@@ -137,13 +137,15 @@ export class GPSLocationService {
             timestamp: position.timestamp,
             altitude: position.coords.altitude,
             heading: position.coords.heading,
-            speed: position.coords.speed
+            speed: position.coords.speed,
           };
-          
-          console.log(`📍 Current Location: [${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}] ±${location.accuracy}m`);
+
+          console.log(
+            `📍 Current Location: [${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}] ±${location.accuracy}m`
+          );
           resolve(location);
         },
-        (error) => {
+        error => {
           console.error('Get Current Location Error:', error);
           reject(error);
         },
@@ -173,7 +175,7 @@ export class GPSLocationService {
       }
 
       console.log('🚀 Starting GPS location tracking...');
-      
+
       this.watchId = Geolocation.watchPosition(
         this.onLocationUpdate,
         this.onLocationError,
@@ -183,7 +185,6 @@ export class GPSLocationService {
       this.isTracking = true;
       console.log('✅ GPS tracking started successfully');
       return true;
-      
     } catch (error) {
       console.error('Start Tracking Error:', error);
       this.isTracking = false;
@@ -215,7 +216,7 @@ export class GPSLocationService {
       timestamp: position.timestamp,
       altitude: position.coords.altitude,
       heading: position.coords.heading,
-      speed: position.coords.speed
+      speed: position.coords.speed,
     };
 
     // Update current location
@@ -223,8 +224,10 @@ export class GPSLocationService {
 
     // Process with H3 service for hexagon tracking
     const h3Result = h3LocationService.checkLocationChange(location.lat, location.lng);
-    
-    console.log(`📍 Location Update: [${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}] → ${h3Result.currentH3}`);
+
+    console.log(
+      `📍 Location Update: [${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}] → ${h3Result.currentH3}`
+    );
 
     // Cache location
     await this.cacheLocation(location);
@@ -241,7 +244,7 @@ export class GPSLocationService {
     // Notify H3 change callbacks if hexagon changed
     if (h3Result.hasChanged && h3Result.shouldTriggerUpdate) {
       console.log(`🔄 H3 Hexagon Changed: ${h3Result.previousH3} → ${h3Result.currentH3}`);
-      
+
       this.h3ChangeCallbacks.forEach(callback => {
         try {
           callback(h3Result, location);
@@ -258,7 +261,7 @@ export class GPSLocationService {
    */
   onLocationError(error) {
     console.error('GPS Location Error:', error);
-    
+
     this.errorCallbacks.forEach(callback => {
       try {
         callback(error);
@@ -274,7 +277,7 @@ export class GPSLocationService {
    */
   handleAppStateChange(nextAppState) {
     console.log(`📱 App State Changed: ${nextAppState}`);
-    
+
     if (nextAppState === 'background' && this.isTracking) {
       // Continue tracking in background for safety monitoring
       console.log('📍 Continuing location tracking in background');
@@ -292,21 +295,21 @@ export class GPSLocationService {
   async cacheLocation(location) {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.LAST_LOCATION, JSON.stringify(location));
-      
+
       // Maintain location history (last 50 locations)
       const historyJson = await AsyncStorage.getItem(STORAGE_KEYS.LOCATION_HISTORY);
       let history = historyJson ? JSON.parse(historyJson) : [];
-      
+
       history.push({
         ...location,
-        h3Index: h3LocationService.getCurrentH3Index()
+        h3Index: h3LocationService.getCurrentH3Index(),
       });
-      
+
       // Keep only last 50 locations
       if (history.length > 50) {
         history = history.slice(-50);
       }
-      
+
       await AsyncStorage.setItem(STORAGE_KEYS.LOCATION_HISTORY, JSON.stringify(history));
     } catch (error) {
       console.error('Cache Location Error:', error);
@@ -386,7 +389,7 @@ export class GPSLocationService {
       permissionStatus: this.permissionStatus,
       currentLocation: this.currentLocation,
       currentH3Index: h3LocationService.getCurrentH3Index(),
-      watchId: this.watchId
+      watchId: this.watchId,
     };
   }
 

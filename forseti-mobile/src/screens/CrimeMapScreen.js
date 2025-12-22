@@ -1,6 +1,6 @@
 /**
  * Crime Map Screen for Forseti Mobile App
- * 
+ *
  * Full-screen crime map interface with controls and filtering
  */
 
@@ -27,7 +27,7 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
   const [showStats, setShowStats] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(initialLocation);
   const [citywideStats, setCitywideStats] = useState(null);
-  
+
   // Filter state
   const [filters, setFilters] = useState({
     crimeTypes: [],
@@ -35,7 +35,7 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
     startDate: '2006-01-01',
     endDate: '2025-12-31',
     timePeriods: ['early-morning', 'morning', 'afternoon', 'evening'],
-    viewMode: 'hexagon'
+    viewMode: 'hexagon',
   });
 
   // Available filter options
@@ -45,23 +45,23 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
       { id: 'property', name: 'Property Crimes', codes: ['3', '5'] },
       { id: 'drug', name: 'Drug Offenses', codes: ['4'] },
       { id: 'traffic', name: 'Traffic Violations', codes: ['7'] },
-      { id: 'other', name: 'Other Incidents', codes: ['6', '8', '9'] }
+      { id: 'other', name: 'Other Incidents', codes: ['6', '8', '9'] },
     ],
     districts: Array.from({ length: 25 }, (_, i) => ({ id: i + 1, name: `District ${i + 1}` })),
     timePeriods: [
       { id: 'early-morning', name: 'Early Morning (12AM-6AM)' },
       { id: 'morning', name: 'Morning (6AM-12PM)' },
       { id: 'afternoon', name: 'Afternoon (12PM-6PM)' },
-      { id: 'evening', name: 'Evening (6PM-12AM)' }
-    ]
+      { id: 'evening', name: 'Evening (6PM-12AM)' },
+    ],
   });
 
   /**
    * Handle location change from map
    */
-  const handleLocationChange = (location) => {
+  const handleLocationChange = location => {
     setCurrentLocation(location);
-    
+
     // Update H3 location service with new coordinates
     h3LocationService.updateLocation(location.latitude, location.longitude);
   };
@@ -85,7 +85,7 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
       startDate: '2006-01-01',
       endDate: '2025-12-31',
       timePeriods: ['early-morning', 'morning', 'afternoon', 'evening'],
-      viewMode: 'hexagon'
+      viewMode: 'hexagon',
     };
     setFilters(clearedFilters);
     console.log('🧹 Filters cleared');
@@ -94,32 +94,32 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
   /**
    * Toggle crime type filter
    */
-  const toggleCrimeType = (crimeType) => {
+  const toggleCrimeType = crimeType => {
     const newCrimeTypes = filters.crimeTypes.includes(crimeType)
       ? filters.crimeTypes.filter(type => type !== crimeType)
       : [...filters.crimeTypes, crimeType];
-    
+
     setFilters({ ...filters, crimeTypes: newCrimeTypes });
   };
 
   /**
    * Toggle district filter
    */
-  const toggleDistrict = (district) => {
+  const toggleDistrict = district => {
     const newDistricts = filters.districts.includes(district)
       ? filters.districts.filter(d => d !== district)
       : [...filters.districts, district];
-    
+
     setFilters({ ...filters, districts: newDistricts });
   };
 
   /**
    * Set date preset
    */
-  const setDatePreset = (preset) => {
+  const setDatePreset = preset => {
     const now = new Date();
     let startDate, endDate;
-    
+
     switch (preset) {
       case 'lastMonth':
         startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -136,11 +136,11 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
       default:
         return;
     }
-    
+
     setFilters({
       ...filters,
       startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0]
+      endDate: endDate.toISOString().split('T')[0],
     });
   };
 
@@ -148,22 +148,15 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
    * Render filter modal
    */
   const renderFilterModal = () => (
-    <Modal
-      visible={showFilters}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
+    <Modal visible={showFilters} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Crime Map Filters</Text>
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setShowFilters(false)}
-          >
+          <TouchableOpacity style={styles.closeButton} onPress={() => setShowFilters(false)}>
             <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
         </View>
-        
+
         <ScrollView style={styles.modalContent}>
           {/* Crime Types */}
           <View style={styles.filterSection}>
@@ -173,20 +166,22 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
                 key={crimeType.id}
                 style={[
                   styles.filterOption,
-                  filters.crimeTypes.includes(crimeType.id) && styles.filterOptionSelected
+                  filters.crimeTypes.includes(crimeType.id) && styles.filterOptionSelected,
                 ]}
                 onPress={() => toggleCrimeType(crimeType.id)}
               >
-                <Text style={[
-                  styles.filterOptionText,
-                  filters.crimeTypes.includes(crimeType.id) && styles.filterOptionTextSelected
-                ]}>
+                <Text
+                  style={[
+                    styles.filterOptionText,
+                    filters.crimeTypes.includes(crimeType.id) && styles.filterOptionTextSelected,
+                  ]}
+                >
                   {crimeType.name}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-          
+
           {/* Police Districts */}
           <View style={styles.filterSection}>
             <Text style={styles.filterSectionTitle}>Police Districts</Text>
@@ -196,21 +191,23 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
                   key={district.id}
                   style={[
                     styles.districtOption,
-                    filters.districts.includes(district.id) && styles.filterOptionSelected
+                    filters.districts.includes(district.id) && styles.filterOptionSelected,
                   ]}
                   onPress={() => toggleDistrict(district.id)}
                 >
-                  <Text style={[
-                    styles.districtOptionText,
-                    filters.districts.includes(district.id) && styles.filterOptionTextSelected
-                  ]}>
+                  <Text
+                    style={[
+                      styles.districtOptionText,
+                      filters.districts.includes(district.id) && styles.filterOptionTextSelected,
+                    ]}
+                  >
                     {district.id}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
-          
+
           {/* Date Range */}
           <View style={styles.filterSection}>
             <Text style={styles.filterSectionTitle}>Date Range</Text>
@@ -234,14 +231,14 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
                 <Text style={styles.presetButtonText}>All Time</Text>
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.dateInputs}>
               <View style={styles.dateInputContainer}>
                 <Text style={styles.dateLabel}>Start Date:</Text>
                 <TextInput
                   style={styles.dateInput}
                   value={filters.startDate}
-                  onChangeText={(date) => setFilters({ ...filters, startDate: date })}
+                  onChangeText={date => setFilters({ ...filters, startDate: date })}
                   placeholder="YYYY-MM-DD"
                   placeholderTextColor="#666666"
                 />
@@ -251,7 +248,7 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
                 <TextInput
                   style={styles.dateInput}
                   value={filters.endDate}
-                  onChangeText={(date) => setFilters({ ...filters, endDate: date })}
+                  onChangeText={date => setFilters({ ...filters, endDate: date })}
                   placeholder="YYYY-MM-DD"
                   placeholderTextColor="#666666"
                 />
@@ -259,18 +256,12 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
             </View>
           </View>
         </ScrollView>
-        
+
         <View style={styles.modalActions}>
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={clearFilters}
-          >
+          <TouchableOpacity style={styles.clearButton} onPress={clearFilters}>
             <Text style={styles.clearButtonText}>Clear Filters</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.applyButton}
-            onPress={applyFilters}
-          >
+          <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
             <Text style={styles.applyButtonText}>Apply Filters</Text>
           </TouchableOpacity>
         </View>
@@ -289,7 +280,7 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
           latitude: location.latitude,
           longitude: location.longitude,
           latitudeDelta: 0.01,
-          longitudeDelta: 0.01
+          longitudeDelta: 0.01,
         });
         console.log('📍 Updated to current GPS location');
       }
@@ -301,7 +292,7 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#000000" />
-      
+
       {/* Map Header */}
       <View style={styles.header}>
         {onBack && (
@@ -312,7 +303,7 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
         <Text style={[styles.headerTitle, !onBack && styles.headerTitleCentered]}>Crime Map</Text>
         <View style={styles.headerSpacer} />
       </View>
-      
+
       {/* Interactive Crime Map */}
       <InteractiveCrimeMap
         initialLocation={currentLocation}
@@ -320,24 +311,18 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
         filters={filters}
         drupalCrimeService={drupalCrimeService}
       />
-      
+
       {/* Map Action Buttons */}
       <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => setShowFilters(true)}
-        >
+        <TouchableOpacity style={styles.actionButton} onPress={() => setShowFilters(true)}>
           <Text style={styles.actionButtonText}>🔧 Filters</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => setShowStats(true)}
-        >
+
+        <TouchableOpacity style={styles.actionButton} onPress={() => setShowStats(true)}>
           <Text style={styles.actionButtonText}>📊 Stats</Text>
         </TouchableOpacity>
       </View>
-      
+
       {/* Filter Modal */}
       {renderFilterModal()}
     </View>
@@ -345,19 +330,35 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  actionButton: {
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    backgroundColor: '#1a1a1a',
-    borderBottomWidth: 1,
-    borderBottomColor: '#333333',
+    backgroundColor: 'rgba(0, 255, 65, 0.8)',
+    borderRadius: 25,
+    minWidth: 80,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+  },
+  actionButtonText: {
+    color: '#000000',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  actionButtons: {
+    gap: 10,
+    position: 'absolute',
+    right: 20,
+    top: 100,
+  },
+  applyButton: {
+    backgroundColor: '#00ff41',
+    borderRadius: 25,
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+  },
+  applyButtonText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   backButton: {
     padding: 8,
@@ -367,85 +368,85 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  headerTitle: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  headerTitleCentered: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerSpacer: {
-    width: 60, // Match backButton width for centered title
-  },
-  actionButtons: {
-    position: 'absolute',
-    top: 100,
-    right: 20,
-    gap: 10,
-  },
-  actionButton: {
-    backgroundColor: 'rgba(0, 255, 65, 0.8)',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+  clearButton: {
+    backgroundColor: '#666666',
     borderRadius: 25,
-    minWidth: 80,
-    alignItems: 'center',
+    paddingHorizontal: 30,
+    paddingVertical: 12,
   },
-  actionButtonText: {
-    color: '#000000',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333333',
-  },
-  modalTitle: {
-    color: '#00ff41',
-    fontSize: 18,
+  clearButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
     fontWeight: 'bold',
   },
   closeButton: {
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#333333',
     borderRadius: 15,
+    height: 30,
+    justifyContent: 'center',
+    width: 30,
   },
   closeButtonText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  modalContent: {
+  container: {
+    backgroundColor: '#000000',
     flex: 1,
-    padding: 20,
   },
-  filterSection: {
-    marginBottom: 25,
+  dateInput: {
+    backgroundColor: '#333333',
+    borderRadius: 8,
+    color: '#ffffff',
+    flex: 1,
+    fontSize: 14,
+    padding: 10,
   },
-  filterSectionTitle: {
-    color: '#00ff41',
-    fontSize: 16,
+  dateInputContainer: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  dateInputs: {
+    gap: 10,
+  },
+  dateLabel: {
+    color: '#cccccc',
+    fontSize: 14,
+    width: 80,
+  },
+  datePresets: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 15,
+  },
+  districtGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  districtOption: {
+    alignItems: 'center',
+    backgroundColor: '#333333',
+    borderRadius: 20,
+    minWidth: 40,
+    padding: 10,
+  },
+  districtOptionText: {
+    color: '#ffffff',
+    fontSize: 12,
     fontWeight: 'bold',
-    marginBottom: 10,
+  },
+  districtOptionTextSelected: {
+    color: '#000000',
   },
   filterOption: {
     backgroundColor: '#333333',
-    padding: 12,
     borderRadius: 8,
     marginBottom: 8,
+    padding: 12,
   },
   filterOptionSelected: {
     backgroundColor: '#00ff41',
@@ -458,90 +459,74 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontWeight: 'bold',
   },
-  districtGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+  filterSection: {
+    marginBottom: 25,
   },
-  districtOption: {
-    backgroundColor: '#333333',
-    padding: 10,
-    borderRadius: 20,
-    minWidth: 40,
+  filterSectionTitle: {
+    color: '#00ff41',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  header: {
     alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    borderBottomColor: '#333333',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
   },
-  districtOptionText: {
+  headerSpacer: {
+    width: 60, // Match backButton width for centered title
+  },
+  headerTitle: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  districtOptionTextSelected: {
-    color: '#000000',
+  headerTitleCentered: {
+    flex: 1,
+    textAlign: 'center',
   },
-  datePresets: {
+  modalActions: {
+    borderTopColor: '#333333',
+    borderTopWidth: 1,
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 15,
+    justifyContent: 'space-between',
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: '#1a1a1a',
+    flex: 1,
+  },
+  modalContent: {
+    flex: 1,
+    padding: 20,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    borderBottomColor: '#333333',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 20,
+  },
+  modalTitle: {
+    color: '#00ff41',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   presetButton: {
     backgroundColor: '#333333',
+    borderRadius: 15,
     paddingHorizontal: 15,
     paddingVertical: 8,
-    borderRadius: 15,
   },
   presetButtonText: {
     color: '#ffffff',
     fontSize: 12,
-  },
-  dateInputs: {
-    gap: 10,
-  },
-  dateInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  dateLabel: {
-    color: '#cccccc',
-    fontSize: 14,
-    width: 80,
-  },
-  dateInput: {
-    flex: 1,
-    backgroundColor: '#333333',
-    color: '#ffffff',
-    padding: 10,
-    borderRadius: 8,
-    fontSize: 14,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#333333',
-  },
-  clearButton: {
-    backgroundColor: '#666666',
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 25,
-  },
-  clearButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  applyButton: {
-    backgroundColor: '#00ff41',
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 25,
-  },
-  applyButtonText: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });
 

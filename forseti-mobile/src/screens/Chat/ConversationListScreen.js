@@ -1,6 +1,6 @@
 /**
  * Conversation List Screen
- * 
+ *
  * Display list of user's past conversations with Forseti
  * Allow users to resume or delete conversations
  */
@@ -42,14 +42,10 @@ const ConversationListScreen = ({ navigation }) => {
         await loadConversations();
       } else {
         setIsAuthenticated(false);
-        Alert.alert(
-          'Authentication Required',
-          'Please sign in to view your conversations',
-          [
-            { text: 'Cancel', onPress: () => navigation.goBack() },
-            { text: 'Sign In', onPress: () => navigation.navigate('Profile') }
-          ]
-        );
+        Alert.alert('Authentication Required', 'Please sign in to view your conversations', [
+          { text: 'Cancel', onPress: () => navigation.goBack() },
+          { text: 'Sign In', onPress: () => navigation.navigate('Profile') },
+        ]);
       }
     } catch (error) {
       console.error('Error checking authentication:', error);
@@ -92,7 +88,7 @@ const ConversationListScreen = ({ navigation }) => {
   /**
    * Open a conversation
    */
-  const openConversation = (conversationId) => {
+  const openConversation = conversationId => {
     navigation.navigate('Chat', { conversationId });
   };
 
@@ -111,15 +107,15 @@ const ConversationListScreen = ({ navigation }) => {
           onPress: async () => {
             try {
               await AIConversationService.deleteConversation(conversationId);
-              setConversations(prev => 
+              setConversations(prev =>
                 prev.filter(conv => conv.conversation_id !== conversationId)
               );
             } catch (error) {
               console.error('Error deleting conversation:', error);
               Alert.alert('Error', 'Failed to delete conversation. Please try again.');
             }
-          }
-        }
+          },
+        },
       ]
     );
   };
@@ -127,7 +123,7 @@ const ConversationListScreen = ({ navigation }) => {
   /**
    * Format date for display
    */
-  const formatDate = (dateString) => {
+  const formatDate = dateString => {
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = Math.abs(now - date);
@@ -150,9 +146,8 @@ const ConversationListScreen = ({ navigation }) => {
   const renderConversation = ({ item }) => {
     const messageCount = item.message_count || 0;
     const lastMessage = item.last_message || 'No messages yet';
-    const truncatedMessage = lastMessage.length > 80 
-      ? lastMessage.substring(0, 80) + '...'
-      : lastMessage;
+    const truncatedMessage =
+      lastMessage.length > 80 ? lastMessage.substring(0, 80) + '...' : lastMessage;
 
     return (
       <TouchableOpacity
@@ -162,12 +157,8 @@ const ConversationListScreen = ({ navigation }) => {
         <View style={styles.conversationHeader}>
           <Icon name="chat" size={24} color={Colors.cyan} />
           <View style={styles.conversationInfo}>
-            <Text style={styles.conversationTitle}>
-              {item.title || 'Conversation'}
-            </Text>
-            <Text style={styles.conversationDate}>
-              {formatDate(item.created_at)}
-            </Text>
+            <Text style={styles.conversationTitle}>{item.title || 'Conversation'}</Text>
+            <Text style={styles.conversationDate}>{formatDate(item.created_at)}</Text>
           </View>
           <TouchableOpacity
             style={styles.deleteButton}
@@ -176,9 +167,9 @@ const ConversationListScreen = ({ navigation }) => {
             <Icon name="delete-outline" size={20} color={Colors.danger} />
           </TouchableOpacity>
         </View>
-        
+
         <Text style={styles.lastMessage}>{truncatedMessage}</Text>
-        
+
         <View style={styles.conversationFooter}>
           <View style={styles.statItem}>
             <Icon name="message-text" size={14} color={Colors.textSecondary} />
@@ -202,10 +193,7 @@ const ConversationListScreen = ({ navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Conversations</Text>
-        <TouchableOpacity
-          style={styles.newButton}
-          onPress={startNewConversation}
-        >
+        <TouchableOpacity style={styles.newButton} onPress={startNewConversation}>
           <Icon name="plus" size={24} color={Colors.background} />
         </TouchableOpacity>
       </View>
@@ -223,10 +211,7 @@ const ConversationListScreen = ({ navigation }) => {
           <Text style={styles.emptyText}>
             Start a conversation with Forseti to get personalized safety advice
           </Text>
-          <TouchableOpacity
-            style={styles.startButton}
-            onPress={startNewConversation}
-          >
+          <TouchableOpacity style={styles.startButton} onPress={startNewConversation}>
             <Icon name="plus" size={20} color={Colors.background} />
             <Text style={styles.startButtonText}>Start Conversation</Text>
           </TouchableOpacity>
@@ -238,11 +223,7 @@ const ConversationListScreen = ({ navigation }) => {
           keyExtractor={item => item.conversation_id.toString()}
           contentContainerStyle={styles.listContainer}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={Colors.cyan}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.cyan} />
           }
         />
       )}
@@ -252,88 +233,28 @@ const ConversationListScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: Colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  newButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.cyan,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: Colors.textSecondary,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.text,
-    marginTop: 20,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  startButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.cyan,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  startButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.background,
-    marginLeft: 8,
-  },
-  listContainer: {
-    padding: 16,
   },
   conversationCard: {
     backgroundColor: Colors.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
     borderColor: Colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 12,
+    padding: 16,
+  },
+  conversationDate: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+  },
+  conversationFooter: {
+    alignItems: 'center',
+    flexDirection: 'row',
   },
   conversationHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     marginBottom: 12,
   },
   conversationInfo: {
@@ -341,36 +262,96 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   conversationTitle: {
+    color: Colors.text,
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text,
     marginBottom: 4,
-  },
-  conversationDate: {
-    fontSize: 12,
-    color: Colors.textSecondary,
   },
   deleteButton: {
     padding: 8,
   },
-  lastMessage: {
-    fontSize: 14,
+  emptyContainer: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyText: {
     color: Colors.textSecondary,
+    fontSize: 15,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  emptyTitle: {
+    color: Colors.text,
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginTop: 20,
+  },
+  header: {
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderBottomColor: Colors.border,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  headerTitle: {
+    color: Colors.text,
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  lastMessage: {
+    color: Colors.textSecondary,
+    fontSize: 14,
     lineHeight: 20,
     marginBottom: 12,
   },
-  conversationFooter: {
-    flexDirection: 'row',
+  listContainer: {
+    padding: 16,
+  },
+  loadingContainer: {
     alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  loadingText: {
+    color: Colors.textSecondary,
+    fontSize: 16,
+    marginTop: 12,
+  },
+  newButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.cyan,
+    borderRadius: 20,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  startButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.cyan,
+    borderRadius: 8,
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  startButtonText: {
+    color: Colors.background,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   statItem: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     marginRight: 16,
   },
   statText: {
-    fontSize: 12,
     color: Colors.textSecondary,
+    fontSize: 12,
     marginLeft: 4,
   },
 });

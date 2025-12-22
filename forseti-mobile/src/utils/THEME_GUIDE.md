@@ -1,11 +1,13 @@
 # Forseti Mobile Theme System
 
 ## Overview
+
 Centralized design tokens for consistent styling across the Forseti Mobile application.
 
 ## Usage
 
 ### Import the theme
+
 ```typescript
 import { Theme } from '../utils/theme';
 // or import individual modules
@@ -13,6 +15,7 @@ import { Colors, Spacing, Typography, Shadows } from '../utils/theme';
 ```
 
 ### Apply styles
+
 ```typescript
 const styles = StyleSheet.create({
   container: {
@@ -32,6 +35,7 @@ const styles = StyleSheet.create({
 ## Design Tokens
 
 ### Colors (`Theme.colors`)
+
 - **Primary**: `#00d4ff` (Forseti brand cyan)
 - **Secondary**: `#16213e` (Forseti dark blue)
 - **Status colors**: success, warning, danger, info
@@ -41,23 +45,27 @@ const styles = StyleSheet.create({
 - **Text**: text, textPrimary, textSecondary, textMuted
 
 ### Spacing (`Theme.spacing`)
+
 - **Base units** (8px grid): xs(4), sm(8), md(16), lg(24), xl(32), xxl(48), xxxl(64)
 - **Specific use**: screenPadding, cardPadding, buttonPadding, inputPadding, sectionSpacing, itemSpacing
 - **Border radius**: sm(4), md(8), lg(12), xl(16), full(9999)
 
 ### Typography (`Theme.typography`)
+
 - **Font sizes**: xs(12), sm(14), base(16), lg(18), xl(20), xxl(24), xxxl(32), display(40)
 - **Font weights**: light(300), regular(400), medium(500), semibold(600), bold(700)
 - **Line heights**: tight(1.2), normal(1.5), relaxed(1.8)
 - **Presets**: heading1, heading2, heading3, heading4, body, bodySmall, caption, button
 
 ### Shadows (`Theme.shadows`)
+
 - **Elevations**: none, sm, md, lg, xl
 - Includes shadowColor, shadowOffset, shadowOpacity, shadowRadius, elevation
 
 ## Examples
 
 ### Card with shadow
+
 ```typescript
 const cardStyle = {
   backgroundColor: Theme.colors.white,
@@ -68,6 +76,7 @@ const cardStyle = {
 ```
 
 ### Primary button
+
 ```typescript
 const buttonStyle = {
   backgroundColor: Theme.colors.primary,
@@ -83,6 +92,7 @@ const buttonText = {
 ```
 
 ### Heading with margin
+
 ```typescript
 const headingStyle = {
   ...Theme.typography.heading2,
@@ -94,6 +104,7 @@ const headingStyle = {
 ## Migration Guide
 
 ### Before (hardcoded values)
+
 ```typescript
 const styles = StyleSheet.create({
   container: {
@@ -110,6 +121,7 @@ const styles = StyleSheet.create({
 ```
 
 ### After (using theme)
+
 ```typescript
 const styles = StyleSheet.create({
   container: {
@@ -122,6 +134,7 @@ const styles = StyleSheet.create({
 ```
 
 ## Benefits
+
 1. **Consistency** - Same values used everywhere
 2. **Maintainability** - Change once, update everywhere
 3. **Type safety** - TypeScript autocomplete for all values
@@ -129,6 +142,7 @@ const styles = StyleSheet.create({
 5. **Documentation** - Self-documenting code
 
 ## Future Enhancements
+
 - [ ] Add dark mode theme variant
 - [ ] Add animation/transition constants
 - [ ] Add icon size presets

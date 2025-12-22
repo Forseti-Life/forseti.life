@@ -11,20 +11,20 @@ const TestApp = () => (
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#1a1a2e',
-  },
-  text: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 10,
+    flex: 1,
+    justifyContent: 'center',
   },
   subtitle: {
-    fontSize: 16,
     color: '#16c79a',
+    fontSize: 16,
+  },
+  text: {
+    color: '#ffffff',
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
 });
 

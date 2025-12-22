@@ -3,12 +3,7 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../utils/colors';
 
@@ -25,30 +20,28 @@ const AboutScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Our Mission</Text>
           <Text style={styles.paragraph}>
-            We believe technology should serve humanity by protecting individuals and 
-            communities by improving quality of life for as many people as possible. 
-            Forseti is a super intelligence in its infancy with the mission to protect 
-            its community members.
+            We believe technology should serve humanity by protecting individuals and communities by
+            improving quality of life for as many people as possible. Forseti is a super
+            intelligence in its infancy with the mission to protect its community members.
           </Text>
           <Text style={styles.paragraph}>
-            Named after the Norse god of justice and peaceful resolution, Forseti 
-            represents our commitment to fair, intelligent, and proactive safety measures. 
-            Our platform aims to resolve community safety challenges through technology, 
-            transparency, and collaboration.
+            Named after the Norse god of justice and peaceful resolution, Forseti represents our
+            commitment to fair, intelligent, and proactive safety measures. Our platform aims to
+            resolve community safety challenges through technology, transparency, and collaboration.
           </Text>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Core Values</Text>
-          
+
           <View style={styles.valueCard}>
             <View style={styles.valueHeader}>
               <Icon name="eye" size={24} color={Colors.primary} />
               <Text style={styles.valueTitle}>Vigilance</Text>
             </View>
             <Text style={styles.valueDescription}>
-              24/7 AI monitoring ensures constant awareness of situational safety 
-              conditions across Philadelphia.
+              24/7 AI monitoring ensures constant awareness of situational safety conditions across
+              Philadelphia.
             </Text>
           </View>
 
@@ -86,20 +79,19 @@ const AboutScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Philadelphia Focus</Text>
           <Text style={styles.paragraph}>
-            We've chosen to focus our initial efforts on Philadelphia because we are 
-            based in Philadelphia. By deeply understanding one community's unique safety 
-            challenges, we can create more effective solutions. As we prove our model, 
-            we plan to expand to other cities facing similar challenges to protect our 
-            community members anywhere they go.
+            We've chosen to focus our initial efforts on Philadelphia because we are based in
+            Philadelphia. By deeply understanding one community's unique safety challenges, we can
+            create more effective solutions. As we prove our model, we plan to expand to other
+            cities facing similar challenges to protect our community members anywhere they go.
           </Text>
         </View>
 
         <View style={styles.callout}>
           <Text style={styles.calloutTitle}>Join Our Mission</Text>
           <Text style={styles.calloutText}>
-            We're always looking for community members, safety advocates, and technology 
-            partners who share our vision. Use the Chat feature to talk with Forseti and 
-            learn how you can contribute to safer communities.
+            We're always looking for community members, safety advocates, and technology partners
+            who share our vision. Use the Chat feature to talk with Forseti and learn how you can
+            contribute to safer communities.
           </Text>
         </View>
       </View>
@@ -108,91 +100,91 @@ const AboutScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    paddingHorizontal: 20,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.primary,
+  callout: {
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 12,
     marginTop: 16,
-    marginBottom: 8,
+    padding: 20,
   },
-  tagline: {
+  calloutText: {
+    color: Colors.text,
     fontSize: 16,
-    color: Colors.gray,
-    fontStyle: 'italic',
+    lineHeight: 24,
+  },
+  calloutTitle: {
+    color: Colors.primary,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  container: {
+    backgroundColor: Colors.background,
+    flex: 1,
   },
   content: {
     padding: 20,
+  },
+  header: {
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderBottomColor: Colors.lightGray,
+    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 32,
+  },
+  paragraph: {
+    color: Colors.text,
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 16,
   },
   section: {
     marginBottom: 32,
   },
   sectionTitle: {
+    color: Colors.primary,
     fontSize: 22,
     fontWeight: 'bold',
-    color: Colors.primary,
     marginBottom: 16,
   },
-  paragraph: {
+  tagline: {
+    color: Colors.gray,
     fontSize: 16,
-    lineHeight: 24,
-    color: Colors.text,
-    marginBottom: 16,
+    fontStyle: 'italic',
+  },
+  title: {
+    color: Colors.primary,
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    marginTop: 16,
   },
   valueCard: {
     backgroundColor: Colors.white,
     borderRadius: 12,
-    padding: 16,
+    elevation: 3,
     marginBottom: 12,
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+  },
+  valueDescription: {
+    color: Colors.text,
+    fontSize: 14,
+    lineHeight: 20,
   },
   valueHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     marginBottom: 8,
   },
   valueTitle: {
+    color: Colors.dark,
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.dark,
     marginLeft: 12,
-  },
-  valueDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: Colors.text,
-  },
-  callout: {
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 12,
-    padding: 20,
-    marginTop: 16,
-  },
-  calloutTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.primary,
-    marginBottom: 12,
-  },
-  calloutText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: Colors.text,
   },
 });
 

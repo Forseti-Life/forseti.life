@@ -1,6 +1,6 @@
 /**
  * Web Mock for Drupal Authentication Service
- * 
+ *
  * Provides a mock authentication service for web preview
  * In production, this would connect to the actual Drupal backend
  */
@@ -13,11 +13,11 @@ class DrupalAuthService {
       username: 'guest',
       mail: 'guest@forseti.life',
       roles: ['anonymous'],
-      display_name: 'Guest User'
+      display_name: 'Guest User',
     };
     this.sessionToken = 'mock-session-token';
     this.csrfToken = 'mock-csrf-token';
-    
+
     console.log('🌐 DrupalAuthService (Web Mock) initialized');
   }
 
@@ -70,12 +70,12 @@ class DrupalAuthService {
       username: username,
       mail: `${username}@forseti.life`,
       roles: ['authenticated'],
-      display_name: username
+      display_name: username,
     };
     return {
       success: true,
       user: this.currentUser,
-      session: this.sessionToken
+      session: this.sessionToken,
     };
   }
 
@@ -91,8 +91,8 @@ class DrupalAuthService {
         username: username,
         mail: email,
         roles: ['authenticated'],
-        display_name: username
-      }
+        display_name: username,
+      },
     };
   }
 
@@ -106,7 +106,7 @@ class DrupalAuthService {
       username: 'guest',
       mail: 'guest@forseti.life',
       roles: ['anonymous'],
-      display_name: 'Guest User'
+      display_name: 'Guest User',
     };
     return { success: true };
   }
@@ -118,7 +118,7 @@ class DrupalAuthService {
     console.log('🔄 Mock: Password reset requested for', email);
     return {
       success: true,
-      message: 'Password reset instructions sent (mock)'
+      message: 'Password reset instructions sent (mock)',
     };
   }
 
@@ -129,7 +129,7 @@ class DrupalAuthService {
     console.log('✏️ Mock: Update profile for user', userId);
     return {
       success: true,
-      user: { ...this.currentUser, ...profileData }
+      user: { ...this.currentUser, ...profileData },
     };
   }
 
@@ -148,7 +148,7 @@ class DrupalAuthService {
     console.log('🔄 Mock: Tokens refreshed');
     return {
       session: this.sessionToken,
-      csrf: this.csrfToken
+      csrf: this.csrfToken,
     };
   }
 }

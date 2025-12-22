@@ -1,7 +1,9 @@
 # Forseti Mobile App - Website Content Parity Report
+
 Generated: December 18, 2025
 
 ## Executive Summary
+
 This report maps mobile app screens to drupal website pages and identifies content gaps.
 
 ---
@@ -9,11 +11,13 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ## 📱 Mobile App Screens → 🌐 Website Pages Mapping
 
 ### ✅ Home Tab → forseti.life/
+
 **Mobile Screen**: `src/screens/Home/HomeScreen.tsx`
 **Website Route**: `/` or `/home` (ForsetiHomeController)
 **Status**: ✅ **Content Available**
 
 **Mobile Content**:
+
 - Welcome header "Forseti Mobile"
 - Current location display
 - Safety score/risk level
@@ -26,12 +30,14 @@ This report maps mobile app screens to drupal website pages and identifies conte
 - About Forseti card → links to forseti.life/about
 
 **Website Content**:
+
 - Hero banner with "Talk with Forseti" CTA
 - "View Safety Map" button
 - "Get Forseti Mobile" button (links to /mobile-app)
 - Philadelphia safety messaging
 
-**Parity Assessment**: 
+**Parity Assessment**:
+
 - ✅ Mobile has more actionable content
 - ✅ Links to website for detailed info
 - ⚠️ Mobile lacks hero/marketing messaging (intentional - app is for users already onboarded)
@@ -39,22 +45,26 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ---
 
 ### ✅ Map Tab → forseti.life/safety-map
+
 **Mobile Screen**: `src/screens/CrimeMapScreen.js` / `src/screens/Map/MapScreen.tsx`
 **Website Route**: `/safety-map` (CrimeMapController)
 **Status**: ✅ **Full Parity**
 
 **Shared Content**:
+
 - Interactive crime map with H3 hexagons
 - Risk level visualization
 - Filter controls
 - Incident data from same API endpoints
 
 **Mobile Advantages**:
+
 - Native map performance
 - GPS location tracking
 - Background monitoring capability
 
 **Website Advantages**:
+
 - Larger screen for viewing
 - Desktop-optimized controls
 
@@ -63,11 +73,13 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ---
 
 ### ✅ Chat Tab → forseti.life/talk-with-forseti
+
 **Mobile Screen**: `src/screens/Chat/ChatScreen.js`
 **Website Route**: `/talk-with-forseti` (talkWithForseti)
 **Status**: ✅ **Full Parity**
 
 **Shared Content**:
+
 - AI conversation interface
 - Same Drupal AI conversation backend
 - Creates conversation nodes in Drupal
@@ -78,23 +90,27 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ---
 
 ### ⚠️ Safety Tab → ❌ No Direct Website Equivalent
+
 **Mobile Screen**: `src/screens/Safety/SafetyScreen.tsx`
 **Website Route**: ❌ **None** (closest: /safety-factors)
 **Status**: ⚠️ **Mobile-Only Feature**
 
 **Mobile Content**:
+
 - Safety tips and guidelines
 - Emergency contacts
 - Safety checklist
 - Contextual safety advice
 
 **Potential Website Match**: `/safety-factors`
+
 - Shows what factors affect safety scores
 - Different purpose than mobile Safety screen
 
 **Gap**: Mobile has dedicated safety tips screen, website has safety factors explanation
 
-**Recommendation**: 
+**Recommendation**:
+
 - Option A: Create `/safety-tips` page on website
 - Option B: Embed safety tips in existing pages
 - Option C: Keep mobile-only (acceptable for on-the-go safety info)
@@ -102,11 +118,13 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ---
 
 ### ⚠️ Statistics Tab → ❌ No Direct Website Equivalent
+
 **Mobile Screen**: `src/screens/Statistics/StatisticsScreen.tsx`
 **Website Route**: ❌ **None**
 **Status**: ⚠️ **Mobile-Only Feature**
 
 **Mobile Content**:
+
 - Crime statistics dashboard
 - Trend charts
 - Neighborhood comparisons
@@ -115,6 +133,7 @@ This report maps mobile app screens to drupal website pages and identifies conte
 **Gap**: Website lacks dedicated statistics page
 
 **Recommendation**:
+
 - Option A: Create `/statistics` or `/data` page on website
 - Option B: Embed stats in /safety-map page
 - Option C: Keep mobile-only (acceptable - users want quick stats on-the-go)
@@ -122,17 +141,20 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ---
 
 ### ✅ Profile Tab → forseti.life/user
+
 **Mobile Screen**: `src/screens/Profile/ProfileScreen.tsx`
 **Website Route**: `/user` (Drupal core user pages)
 **Status**: ✅ **Backend Parity**
 
 **Mobile Content**:
+
 - Login/logout
 - User profile info
 - Settings link
 - Conversations list
 
 **Website Content**:
+
 - Drupal user authentication
 - User profile pages
 - Conversation history
@@ -142,11 +164,13 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ---
 
 ### ✅ About Screen → forseti.life/about
+
 **Mobile Screen**: `src/screens/About/AboutScreen.tsx`
 **Website Route**: `/about` (ForsetiPagesController::about)
 **Status**: ✅ **Content Available**
 
 **Website Content** (from getAboutContent):
+
 - "What is Forseti?" section
 - Mission statement
 - Technology explanation (H3, AI)
@@ -154,7 +178,8 @@ This report maps mobile app screens to drupal website pages and identifies conte
 - Team/company info
 - Features list
 
-**Mobile Content**: 
+**Mobile Content**:
+
 - Currently basic/placeholder
 - Links to website for full content
 
@@ -165,11 +190,13 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ---
 
 ### ✅ How It Works Screen → forseti.life/how-it-works
+
 **Mobile Screen**: `src/screens/HowItWorks/HowItWorksScreen.tsx`
 **Website Route**: `/how-it-works` (ForsetiPagesController::howItWorks)
 **Status**: ✅ **Content Available**
 
 **Website Content** (from getHowItWorksContent):
+
 - 4-step process: Monitor, Analyze, Alert, Protect
 - H3 hexagon explanation
 - AI analysis description
@@ -177,6 +204,7 @@ This report maps mobile app screens to drupal website pages and identifies conte
 - Safety score methodology
 
 **Mobile Content**:
+
 - Step-by-step explanation
 - Visual illustrations
 - Technical details about H3 and AI
@@ -188,11 +216,13 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ---
 
 ### ✅ Privacy Screen → forseti.life/privacy
+
 **Mobile Screen**: `src/screens/Privacy/PrivacyScreen.tsx`
 **Website Route**: `/privacy` (ForsetiPagesController::privacy)
 **Status**: ✅ **Content Available**
 
 **Website Content** (from getPrivacyContent):
+
 - Data collection policies
 - What we collect / don't collect
 - Data usage explanation
@@ -201,6 +231,7 @@ This report maps mobile app screens to drupal website pages and identifies conte
 - Contact for privacy concerns
 
 **Mobile Content**:
+
 - Privacy policy
 - Data handling info
 - User controls
@@ -212,11 +243,13 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ---
 
 ### ✅ Settings Screen → ❌ No Website Equivalent (Mobile-Only)
+
 **Mobile Screen**: `src/screens/Settings/SettingsScreen.tsx`
 **Website Route**: ❌ **None** (app-specific settings)
 **Status**: ✅ **Intentionally Mobile-Only**
 
 **Mobile Content**:
+
 - Background monitoring toggle
 - Notification settings
 - Alert sensitivity (z-score threshold)
@@ -229,15 +262,18 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ---
 
 ### ⚠️ Conversation List Screen → forseti.life/user/conversations
+
 **Mobile Screen**: `src/screens/Chat/ConversationListScreen.js`
 **Website Route**: User profile → conversations (likely)
 **Status**: ⚠️ **Backend Parity**
 
 **Mobile Content**:
+
 - List of user's AI conversations
 - Access past chats
 
 **Website Content**:
+
 - User can view conversations in their profile
 - Drupal conversation nodes
 
@@ -246,11 +282,13 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ---
 
 ### ❌ Login Screen → forseti.life/user/login
+
 **Mobile Screen**: `src/screens/Auth/LoginScreen.tsx`
 **Website Route**: `/user/login` (Drupal core)
 **Status**: ✅ **Full Parity**
 
 **Both have**:
+
 - Username/password login
 - Drupal authentication backend
 - Session management
@@ -260,22 +298,29 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ## 🌐 Website Pages → 📱 Mobile App Mapping
 
 ### ✅ / (Home) → Home Tab
+
 ✅ Mapped
 
-### ✅ /talk-with-forseti → Chat Tab  
+### ✅ /talk-with-forseti → Chat Tab
+
 ✅ Mapped
 
 ### ✅ /about → About Screen
+
 ✅ Mapped
 
 ### ✅ /how-it-works → How It Works Screen
+
 ✅ Mapped
 
 ### ✅ /safety-map → Map Tab
+
 ✅ Mapped
 
 ### ✅ /community → ❌ No Mobile Screen
+
 **Website Content** (from getCommunityContent):
+
 - Community forums
 - User groups
 - Neighborhood watch info
@@ -286,6 +331,7 @@ This report maps mobile app screens to drupal website pages and identifies conte
 **Gap**: ❌ **Website-Only** - No dedicated mobile community screen
 
 **Recommendation**:
+
 - Option A: Create mobile community screen
 - Option B: Keep as website link (current approach - acceptable)
 - Option C: Integrate community features into Profile tab
@@ -293,7 +339,9 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ---
 
 ### ✅ /mobile-app → ❌ No Mobile Equivalent
+
 **Website Content**:
+
 - Download Forseti Mobile app
 - App features
 - Screenshots
@@ -306,10 +354,13 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ---
 
 ### ✅ /privacy → Privacy Screen
+
 ✅ Mapped
 
 ### ⚠️ /safety-factors → ❌ No Mobile Screen
+
 **Website Content** (from getSafetyFactorsContent):
+
 - Explanation of factors that affect safety scores
 - Crime types and weights
 - Time-of-day factors
@@ -321,6 +372,7 @@ This report maps mobile app screens to drupal website pages and identifies conte
 **Gap**: ⚠️ **Website-Only Feature**
 
 **Recommendation**:
+
 - Option A: Create mobile screen showing safety factor methodology
 - Option B: Integrate into How It Works screen
 - Option C: Keep website-only (users can visit site for deep dives)
@@ -328,7 +380,9 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ---
 
 ### ⚠️ /contact → ❌ No Mobile Screen
+
 **Website Content**:
+
 - Contact form
 - Email address
 - Social media links
@@ -339,6 +393,7 @@ This report maps mobile app screens to drupal website pages and identifies conte
 **Gap**: ⚠️ **No Native Contact Form**
 
 **Recommendation**:
+
 - Option A: Add contact form to mobile app
 - Option B: Add email/call buttons in Settings
 - Option C: Keep linking to website (current approach)
@@ -348,6 +403,7 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ## 📊 Content Parity Summary
 
 ### ✅ Full Parity (7)
+
 1. Home screen ↔ Home page
 2. Map tab ↔ Safety Map page
 3. Chat tab ↔ Talk with Forseti page
@@ -357,15 +413,18 @@ This report maps mobile app screens to drupal website pages and identifies conte
 7. Login screen ↔ Login page
 
 ### ⚠️ Partial Parity (2)
+
 1. **Safety tab** - Mobile-only, website has /safety-factors (different purpose)
 2. **Statistics tab** - Mobile-only feature
 
 ### ❌ Missing in Mobile (3)
+
 1. **/community** - Website has community page, mobile just links to it
 2. **/safety-factors** - Website explains methodology, mobile doesn't have this
 3. **/contact** - Website has contact form, mobile just links to it
 
 ### ✅ Mobile-Only Features (2)
+
 1. **Settings screen** - App-specific settings (intentional)
 2. **Profile tab** - Enhanced mobile profile with quick actions (uses Drupal backend)
 
@@ -374,16 +433,19 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ## 🎯 Recommendations
 
 ### Priority 1: Content Updates Needed
+
 - [ ] **About screen** - Update mobile content to match website About page
 - [ ] **How It Works screen** - Verify content matches website
 - [ ] **Privacy screen** - Ensure legal text is identical to website
 
 ### Priority 2: Feature Gaps to Address
+
 - [ ] **Community** - Decide: Create mobile screen or keep website link?
 - [ ] **Safety Factors** - Decide: Add to mobile or keep website-only?
 - [ ] **Contact** - Decide: Native contact form or keep website link?
 
 ### Priority 3: Mobile-Only Features to Consider for Website
+
 - [ ] **Statistics Dashboard** - Consider adding to website for desktop users
 - [ ] **Safety Tips** - Consider adding dedicated safety tips page to website
 
@@ -392,6 +454,7 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ## 🔍 API Endpoints Parity
 
 ### Shared APIs (Mobile & Website)
+
 - ✅ `/api/amisafe/risk-level` - Safety score calculation
 - ✅ `/api/amisafe/aggregated` - H3 hexagon crime data
 - ✅ `/api/amisafe/incidents` - Individual crime incidents
@@ -400,6 +463,7 @@ This report maps mobile app screens to drupal website pages and identifies conte
 - ✅ AI conversation endpoints - Chat functionality
 
 ### Mobile-Only APIs
+
 - Background location tracking endpoints (if any)
 - Push notification registration (if implemented)
 
@@ -421,16 +485,19 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ## ✅ Action Items
 
 ### Immediate (Before Next Build)
+
 1. Update About screen content to match website
 2. Verify How It Works content is current
 3. Verify Privacy policy text matches website exactly
 
 ### Short Term (Next Sprint)
+
 1. Decide on Community screen (create or keep link)
 2. Decide on Contact form (native or keep link)
 3. Add Safety Factors explanation somewhere in app
 
 ### Long Term (Future Enhancement)
+
 1. Consider Statistics page for website
 2. Consider Safety Tips page for website
 3. Implement any missing community features
@@ -440,16 +507,19 @@ This report maps mobile app screens to drupal website pages and identifies conte
 ## 🎨 Brand & Design Parity
 
 ### Colors ✅
+
 - Website: Uses #00d4ff (cyan), #16213e (dark blue)
 - Mobile: Uses same colors from Theme system
 - **Status**: ✅ **Perfect Match**
 
 ### Typography ✅
+
 - Both use similar hierarchies
 - Mobile uses system fonts, website uses web fonts
 - **Status**: ✅ **Aligned**
 
 ### UX Patterns ✅
+
 - Both use card-based layouts
 - Similar navigation patterns
 - Consistent icon usage

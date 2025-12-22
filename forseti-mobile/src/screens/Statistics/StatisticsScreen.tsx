@@ -10,9 +10,21 @@ const StatisticsScreen: React.FC = () => (
 );
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background, padding: 20 },
-  placeholderText: { fontSize: 24, fontWeight: 'bold', color: Colors.textPrimary, marginBottom: 10, textAlign: 'center' },
-  subText: { fontSize: 16, color: Colors.textSecondary, textAlign: 'center' },
+  container: {
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  placeholderText: {
+    color: Colors.textPrimary,
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  subText: { color: Colors.textSecondary, fontSize: 16, textAlign: 'center' },
 });
 
 export default StatisticsScreen;

@@ -1,6 +1,6 @@
 /**
  * H3 Geospatial Service for Forseti Mobile Application
- * 
+ *
  * Implements ultra-precise location tracking using H3 hexagonal indexing
  * at Level 13 resolution (44m²) as specified in the technical documentation.
  */
@@ -9,18 +9,18 @@ import * as h3 from 'h3-js';
 
 // H3 Resolution configuration based on TECHNICAL_SPECIFICATION.md
 export const H3_RESOLUTIONS = {
-  CITY_WIDE: 5,     // 251.1 km² - City-wide statistics
-  NEIGHBORHOOD: 8,  // 0.7 km² - Neighborhood context  
-  BLOCK: 10,        // 15,047 m² - Block awareness
-  USER_TRACKING: 13 // 44 m² - User tracking (primary resolution)
+  CITY_WIDE: 5, // 251.1 km² - City-wide statistics
+  NEIGHBORHOOD: 8, // 0.7 km² - Neighborhood context
+  BLOCK: 10, // 15,047 m² - Block awareness
+  USER_TRACKING: 13, // 44 m² - User tracking (primary resolution)
 };
 
 // Update frequencies for different resolutions
 export const UPDATE_FREQUENCIES = {
-  [H3_RESOLUTIONS.CITY_WIDE]: 24 * 60 * 60 * 1000,      // Daily
-  [H3_RESOLUTIONS.NEIGHBORHOOD]: 60 * 60 * 1000,        // Hourly
-  [H3_RESOLUTIONS.BLOCK]: 15 * 60 * 1000,               // Every 15 minutes  
-  [H3_RESOLUTIONS.USER_TRACKING]: 0                     // Real-time
+  [H3_RESOLUTIONS.CITY_WIDE]: 24 * 60 * 60 * 1000, // Daily
+  [H3_RESOLUTIONS.NEIGHBORHOOD]: 60 * 60 * 1000, // Hourly
+  [H3_RESOLUTIONS.BLOCK]: 15 * 60 * 1000, // Every 15 minutes
+  [H3_RESOLUTIONS.USER_TRACKING]: 0, // Real-time
 };
 
 /**
@@ -36,7 +36,7 @@ export class H3LocationService {
   /**
    * Convert GPS coordinates to H3 index
    * @param {number} lat Latitude coordinate
-   * @param {number} lng Longitude coordinate  
+   * @param {number} lng Longitude coordinate
    * @param {number} resolution H3 resolution level (default: 13 for user tracking)
    * @returns {string} H3 index string
    */
@@ -47,10 +47,12 @@ export class H3LocationService {
       }
 
       const h3Index = h3.latLngToCell(lat, lng, resolution);
-      
+
       // Log the conversion for debugging
-      console.log(`🗺️ H3 Conversion: [${lat.toFixed(6)}, ${lng.toFixed(6)}] → ${h3Index} (res: ${resolution})`);
-      
+      console.log(
+        `🗺️ H3 Conversion: [${lat.toFixed(6)}, ${lng.toFixed(6)}] → ${h3Index} (res: ${resolution})`
+      );
+
       return h3Index;
     } catch (error) {
       console.error('H3 Conversion Error:', error);
@@ -59,7 +61,7 @@ export class H3LocationService {
   }
 
   /**
-   * Convert H3 index back to GPS coordinates  
+   * Convert H3 index back to GPS coordinates
    * @param {string} h3Index H3 hexagon index
    * @returns {object} {lat, lng} coordinates
    */
@@ -82,15 +84,15 @@ export class H3LocationService {
   getNeighbors(h3Index, ringSize = 1) {
     try {
       let neighbors = [];
-      
+
       for (let ring = 1; ring <= ringSize; ring++) {
         const ringNeighbors = h3.gridRingUnsafe(h3Index, ring);
         neighbors = neighbors.concat(ringNeighbors);
       }
-      
+
       // Include the center hexagon
       neighbors.push(h3Index);
-      
+
       console.log(`🔍 Found ${neighbors.length} neighbors for ${h3Index} (${ringSize} rings)`);
       return neighbors;
     } catch (error) {
@@ -102,7 +104,7 @@ export class H3LocationService {
   /**
    * Calculate distance between two H3 hexagons
    * @param {string} h3Index1 First hexagon
-   * @param {string} h3Index2 Second hexagon  
+   * @param {string} h3Index2 Second hexagon
    * @returns {number} Distance in number of hexagons
    */
   h3Distance(h3Index1, h3Index2) {
@@ -124,18 +126,18 @@ export class H3LocationService {
     const newH3Index = this.convertToH3(lat, lng);
     const hasChanged = newH3Index !== this.currentH3Index;
     const distance = this.currentH3Index ? this.h3Distance(this.currentH3Index, newH3Index) : 0;
-    
+
     // Update tracking
     this.previousH3Index = this.currentH3Index;
     this.currentH3Index = newH3Index;
-    
+
     // Add to history
     this.locationHistory.push({
       h3Index: newH3Index,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    
-    // Keep only last 100 location points  
+
+    // Keep only last 100 location points
     if (this.locationHistory.length > 100) {
       this.locationHistory = this.locationHistory.slice(-100);
     }
@@ -145,11 +147,13 @@ export class H3LocationService {
       currentH3: newH3Index,
       previousH3: this.previousH3Index,
       distance,
-      shouldTriggerUpdate: hasChanged // Trigger API call when hexagon changes
+      shouldTriggerUpdate: hasChanged, // Trigger API call when hexagon changes
     };
 
     if (hasChanged) {
-      console.log(`📍 Location Change Detected: ${this.previousH3Index} → ${newH3Index} (distance: ${distance})`);
+      console.log(
+        `📍 Location Change Detected: ${this.previousH3Index} → ${newH3Index} (distance: ${distance})`
+      );
     }
 
     return result;
@@ -212,11 +216,14 @@ export class H3LocationService {
    */
   isValidCoordinate(lat, lng) {
     return (
-      typeof lat === 'number' && 
+      typeof lat === 'number' &&
       typeof lng === 'number' &&
-      lat >= -90 && lat <= 90 &&
-      lng >= -180 && lng <= 180 &&
-      !isNaN(lat) && !isNaN(lng)
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180 &&
+      !isNaN(lat) &&
+      !isNaN(lng)
     );
   }
 
@@ -228,17 +235,17 @@ export class H3LocationService {
   getResolutionInfo(resolution) {
     const descriptions = {
       5: 'City-wide statistics',
-      8: 'Neighborhood context', 
+      8: 'Neighborhood context',
       10: 'Block awareness',
-      13: 'User tracking (primary)'
+      13: 'User tracking (primary)',
     };
 
     const sampleH3 = h3.latLngToCell(0, 0, resolution);
-    
+
     return {
       area: h3.cellArea(sampleH3, h3.UNITS.m2),
       avgEdgeLength: h3.edgeLength(resolution, h3.UNITS.m),
-      description: descriptions[resolution] || `Resolution ${resolution}`
+      description: descriptions[resolution] || `Resolution ${resolution}`,
     };
   }
 
@@ -258,26 +265,20 @@ export const h3LocationService = new H3LocationService();
 
 // Export utility functions for direct use
 export const H3Utils = {
-  convertToH3: (lat, lng, resolution = H3_RESOLUTIONS.USER_TRACKING) => 
+  convertToH3: (lat, lng, resolution = H3_RESOLUTIONS.USER_TRACKING) =>
     h3LocationService.convertToH3(lat, lng, resolution),
-  
-  convertFromH3: (h3Index) => 
-    h3LocationService.convertFromH3(h3Index),
-    
-  getNeighbors: (h3Index, rings = 1) => 
-    h3LocationService.getNeighbors(h3Index, rings),
-    
-  distance: (h3Index1, h3Index2) => 
-    h3LocationService.h3Distance(h3Index1, h3Index2),
-    
-  boundary: (h3Index) => 
-    h3LocationService.getHexagonBoundary(h3Index),
-    
-  center: (h3Index) => 
-    h3LocationService.getHexagonCenter(h3Index),
-    
-  area: (resolution) => 
-    h3LocationService.getHexagonArea(resolution)
+
+  convertFromH3: h3Index => h3LocationService.convertFromH3(h3Index),
+
+  getNeighbors: (h3Index, rings = 1) => h3LocationService.getNeighbors(h3Index, rings),
+
+  distance: (h3Index1, h3Index2) => h3LocationService.h3Distance(h3Index1, h3Index2),
+
+  boundary: h3Index => h3LocationService.getHexagonBoundary(h3Index),
+
+  center: h3Index => h3LocationService.getHexagonCenter(h3Index),
+
+  area: resolution => h3LocationService.getHexagonArea(resolution),
 };
 
 export default h3LocationService;

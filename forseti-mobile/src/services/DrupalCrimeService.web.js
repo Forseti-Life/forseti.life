@@ -1,6 +1,6 @@
 /**
  * Drupal Crime Data Service for Web (Mock)
- * 
+ *
  * Web-compatible mock returning sample crime data
  */
 
@@ -14,29 +14,29 @@ const MOCK_CRIME_DATA = {
       type: 'Theft',
       severity: 'Medium',
       timestamp: Date.now() - 2 * 60 * 60 * 1000,
-      distance: '0.3 miles'
+      distance: '0.3 miles',
     },
     {
       id: 2,
       type: 'Vandalism',
       severity: 'Low',
       timestamp: Date.now() - 5 * 60 * 60 * 1000,
-      distance: '0.5 miles'
+      distance: '0.5 miles',
     },
     {
       id: 3,
       type: 'Assault',
       severity: 'High',
       timestamp: Date.now() - 12 * 60 * 60 * 1000,
-      distance: '0.8 miles'
-    }
+      distance: '0.8 miles',
+    },
   ],
   neighborhoodStats: {
     totalIncidents: 234,
     trend: 'decreasing',
     safestHours: ['9am-5pm'],
-    riskiestHours: ['11pm-3am']
-  }
+    riskiestHours: ['11pm-3am'],
+  },
 };
 
 class DrupalCrimeService {
@@ -46,7 +46,7 @@ class DrupalCrimeService {
       riskLevel: '/api/amisafe/risk-level',
       aggregated: '/api/amisafe/aggregated',
       incidents: '/api/amisafe/incidents',
-      citywideStats: '/api/amisafe/citywide-stats'
+      citywideStats: '/api/amisafe/citywide-stats',
     };
   }
 
@@ -54,11 +54,13 @@ class DrupalCrimeService {
    * Get safety score for a specific location (mock)
    */
   async getSafetyScore(latitude, longitude, h3Index = null) {
-    console.log(`[DrupalCrimeService.web] Mock safety data for: [${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`);
-    
+    console.log(
+      `[DrupalCrimeService.web] Mock safety data for: [${latitude.toFixed(6)}, ${longitude.toFixed(6)}]`
+    );
+
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 300));
-    
+
     return {
       safetyScore: MOCK_CRIME_DATA.safetyScore,
       crimeCount: MOCK_CRIME_DATA.crimeCount,
@@ -66,7 +68,7 @@ class DrupalCrimeService {
       h3Index: h3Index || '8d283082813ffff',
       timestamp: Date.now(),
       recentIncidents: MOCK_CRIME_DATA.recentIncidents,
-      message: 'Mock data for web preview'
+      message: 'Mock data for web preview',
     };
   }
 
@@ -75,9 +77,9 @@ class DrupalCrimeService {
    */
   async getAggregatedData(h3Index, resolution = 13) {
     console.log(`[DrupalCrimeService.web] Mock aggregated data for H3: ${h3Index}`);
-    
+
     await new Promise(resolve => setTimeout(resolve, 300));
-    
+
     return {
       h3Index,
       resolution,
@@ -87,16 +89,16 @@ class DrupalCrimeService {
         theft: 8,
         vandalism: 4,
         assault: 2,
-        other: 1
+        other: 1,
       },
       timeDistribution: {
         morning: 2,
         afternoon: 5,
         evening: 4,
-        night: 4
+        night: 4,
       },
       trend: 'stable',
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
     };
   }
 
@@ -105,15 +107,15 @@ class DrupalCrimeService {
    */
   async getRecentIncidents(latitude, longitude, radius = 1000) {
     console.log(`[DrupalCrimeService.web] Mock incidents near: [${latitude}, ${longitude}]`);
-    
+
     await new Promise(resolve => setTimeout(resolve, 300));
-    
+
     return {
       incidents: MOCK_CRIME_DATA.recentIncidents,
       totalCount: MOCK_CRIME_DATA.recentIncidents.length,
       radius,
       center: { lat: latitude, lng: longitude },
-      message: 'Mock data for web preview'
+      message: 'Mock data for web preview',
     };
   }
 
@@ -122,9 +124,9 @@ class DrupalCrimeService {
    */
   async getCitywideStats() {
     console.log('[DrupalCrimeService.web] Mock citywide stats');
-    
+
     await new Promise(resolve => setTimeout(resolve, 300));
-    
+
     return {
       totalIncidents: 15420,
       averageSafetyScore: 68,
@@ -133,7 +135,7 @@ class DrupalCrimeService {
       highRiskAreas: ['Tenderloin', 'Mission', 'SOMA'],
       trendingUp: false,
       lastUpdated: Date.now(),
-      message: 'Mock data for web preview'
+      message: 'Mock data for web preview',
     };
   }
 
@@ -142,9 +144,9 @@ class DrupalCrimeService {
    */
   async getHeatmapData(bounds, resolution = 9) {
     console.log('[DrupalCrimeService.web] Mock heatmap data');
-    
+
     await new Promise(resolve => setTimeout(resolve, 400));
-    
+
     // Return mock hexagonal data points
     return {
       hexagons: [
@@ -152,12 +154,12 @@ class DrupalCrimeService {
         { h3Index: '8928308281fffff', intensity: 0.4, count: 6 },
         { h3Index: '8928308282fffff', intensity: 0.9, count: 18 },
         { h3Index: '8928308283fffff', intensity: 0.2, count: 3 },
-        { h3Index: '8928308284fffff', intensity: 0.5, count: 8 }
+        { h3Index: '8928308284fffff', intensity: 0.5, count: 8 },
       ],
       resolution,
       bounds,
       totalHexagons: 5,
-      message: 'Mock data for web preview'
+      message: 'Mock data for web preview',
     };
   }
 
@@ -166,7 +168,7 @@ class DrupalCrimeService {
    */
   async subscribeToLocationUpdates(callback) {
     console.log('[DrupalCrimeService.web] Location subscription (mock)');
-    
+
     // Return mock unsubscribe function
     return () => {
       console.log('[DrupalCrimeService.web] Unsubscribed from location updates');

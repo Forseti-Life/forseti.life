@@ -24,9 +24,11 @@ The AmISafe background monitoring service provides **continuous, real-time safet
 ## Core Components
 
 ### 1. BackgroundLocationService.ts
+
 **Location**: `/src/services/location/BackgroundLocationService.ts`
 
 **Primary Responsibilities**:
+
 - GPS location tracking via `react-native-geolocation-service`
 - H3 geospatial index calculation at resolution 11 (~700m hexagons)
 - Hexagon change detection (monitoring when user moves to new hex)
@@ -36,19 +38,22 @@ The AmISafe background monitoring service provides **continuous, real-time safet
 - State management and restoration
 
 **Key Configuration**:
+
 ```typescript
-H3_RESOLUTION = 11               // ~700m hexagons for monitoring
-Z_SCORE_THRESHOLD = 2.0          // Alert when z-score >= 2.0
-API_BASE_URL = 'https://forseti.life'
-UPDATE_INTERVAL = 60000          // Check every 60 seconds
-DISTANCE_FILTER = 50             // Minimum 50m movement before update
-NOTIFICATION_COOLDOWN = 300000   // 5 minutes between alerts
+H3_RESOLUTION = 11; // ~700m hexagons for monitoring
+Z_SCORE_THRESHOLD = 2.0; // Alert when z-score >= 2.0
+API_BASE_URL = 'https://forseti.life';
+UPDATE_INTERVAL = 60000; // Check every 60 seconds
+DISTANCE_FILTER = 50; // Minimum 50m movement before update
+NOTIFICATION_COOLDOWN = 300000; // 5 minutes between alerts
 ```
 
 ### 2. useBackgroundMonitoring.ts
+
 **Location**: `/src/hooks/useBackgroundMonitoring.ts`
 
 **Primary Responsibilities**:
+
 - React hook interface for UI components
 - Permission management (foreground + background location)
 - Start/stop monitoring controls
@@ -56,13 +61,16 @@ NOTIFICATION_COOLDOWN = 300000   // 5 minutes between alerts
 - User feedback (alerts and confirmations)
 
 **Permissions Required**:
+
 - **iOS**: `LOCATION_WHEN_IN_USE` + `LOCATION_ALWAYS`
 - **Android**: `ACCESS_FINE_LOCATION` + `ACCESS_BACKGROUND_LOCATION` (API 29+)
 
 ### 3. NotificationService.ts
+
 **Location**: `/src/services/notifications/NotificationService.ts`
 
 **Primary Responsibilities**:
+
 - Local push notification delivery
 - Notification channel management (Android)
 - Sound and vibration configuration
@@ -70,9 +78,11 @@ NOTIFICATION_COOLDOWN = 300000   // 5 minutes between alerts
 - Priority and delivery settings
 
 ### 4. StorageService.ts
+
 **Location**: `/src/services/storage/StorageService.ts`
 
 **Primary Responsibilities**:
+
 - AsyncStorage wrapper for data persistence
 - Monitoring state tracking
 - Location history management
@@ -243,6 +253,7 @@ NOTIFICATION_COOLDOWN = 300000   // 5 minutes between alerts
 | `format` | string | Response format | `json` |
 
 **Response Format**:
+
 ```json
 {
   "hexagons": [
@@ -267,6 +278,7 @@ NOTIFICATION_COOLDOWN = 300000   // 5 minutes between alerts
 ```
 
 **Z-Score Risk Levels**:
+
 - **< 0.0**: Very Low (Below average)
 - **0.0 - 1.0**: Low (Normal)
 - **1.0 - 2.0**: Moderate (Slightly elevated)
@@ -278,22 +290,26 @@ NOTIFICATION_COOLDOWN = 300000   // 5 minutes between alerts
 ### Settings Screen Controls
 
 **1. Enable Protection Toggle**
+
 - Start/stop background monitoring
 - Requires location permissions
 - Shows current H3 index when active
 
 **2. Danger Threshold Selector**
+
 - Options: 1.0, 1.5, 2.0, 2.5, 3.0
 - Default: 2.0
 - Higher = fewer notifications (only very dangerous areas)
 - Lower = more notifications (moderately dangerous areas)
 
 **3. Notification Cooldown**
+
 - Options: 1, 5, 10, 15, 30 minutes
 - Default: 5 minutes
 - Prevents repeated alerts in same area
 
 **4. Location History**
+
 - View count of stored locations
 - Clear history button
 - Stored locally, never uploaded
@@ -303,6 +319,7 @@ NOTIFICATION_COOLDOWN = 300000   // 5 minutes between alerts
 ### iOS Configuration
 
 **Info.plist Required Keys**:
+
 ```xml
 <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 <string>AmISafe needs continuous access to your location to alert you when entering high-crime areas, even when the app is in the background.</string>
@@ -317,6 +334,7 @@ NOTIFICATION_COOLDOWN = 300000   // 5 minutes between alerts
 ```
 
 **Background Location Indicator**:
+
 - Blue bar shown at top of screen when tracking
 - `showsBackgroundLocationIndicator: true` in config
 - Cannot be disabled (iOS requirement for transparency)
@@ -324,6 +342,7 @@ NOTIFICATION_COOLDOWN = 300000   // 5 minutes between alerts
 ### Android Configuration
 
 **AndroidManifest.xml Required Permissions**:
+
 ```xml
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -332,12 +351,14 @@ NOTIFICATION_COOLDOWN = 300000   // 5 minutes between alerts
 ```
 
 **Android 10+ (API 29+)**:
+
 - Background location requires separate permission request
 - Must request `ACCESS_FINE_LOCATION` first
 - Then request `ACCESS_BACKGROUND_LOCATION`
 - User must select "Allow all the time" in settings
 
 **Foreground Service**:
+
 - Consider implementing foreground service for Android 8.0+
 - Shows persistent notification while tracking
 - Prevents system from killing service
@@ -345,17 +366,20 @@ NOTIFICATION_COOLDOWN = 300000   // 5 minutes between alerts
 ## Battery Optimization
 
 ### Current Settings (Balanced)
+
 - **Update Interval**: 60 seconds (good balance)
 - **Distance Filter**: 50 meters (prevents over-polling)
 - **High Accuracy**: Enabled (necessary for H3 precision)
 
 ### Optimization Strategies
+
 1. **Coarse Updates**: Use `distanceFilter` to reduce GPS calls
 2. **H3 Change Detection**: Only query API when hex changes
 3. **Notification Cooldown**: Prevents repeated API calls
 4. **Geofencing**: Consider geofence API for area-based triggers
 
 ### Battery Impact Estimates
+
 - **Low**: ~5-10% per day (current settings)
 - **Medium**: ~10-15% per day (high frequency updates)
 - **High**: ~15-25% per day (always-on high-accuracy GPS)
@@ -365,6 +389,7 @@ NOTIFICATION_COOLDOWN = 300000   // 5 minutes between alerts
 ### Enable Debug Logging
 
 All console logs are prefixed for easy filtering:
+
 - `📍` - Location updates
 - `🚨` - Danger notifications
 - `✅` - Safe areas
@@ -375,6 +400,7 @@ All console logs are prefixed for easy filtering:
 ### Test Scenarios
 
 **1. Basic Monitoring**
+
 ```bash
 # Start monitoring
 # Move 50+ meters
@@ -383,6 +409,7 @@ All console logs are prefixed for easy filtering:
 ```
 
 **2. High-Risk Area Notification**
+
 ```bash
 # Find hexagon with z-score >= 2.0 from web map
 # Navigate to that location (or simulate GPS)
@@ -391,6 +418,7 @@ All console logs are prefixed for easy filtering:
 ```
 
 **3. State Restoration**
+
 ```bash
 # Enable monitoring
 # Force quit app
@@ -399,6 +427,7 @@ All console logs are prefixed for easy filtering:
 ```
 
 **4. Permission Handling**
+
 ```bash
 # Revoke location permissions
 # Try to enable monitoring
@@ -412,24 +441,28 @@ All console logs are prefixed for easy filtering:
 ### Common Issues
 
 **1. Notifications Not Appearing**
+
 - Check notification permissions granted
 - Verify z-score >= threshold
 - Check cooldown period (5 min default)
 - Ensure NotificationService initialized
 
 **2. Location Not Updating**
+
 - Verify location permissions (foreground + background)
 - Check GPS enabled on device
 - Ensure app not in battery optimization list
 - Verify network connectivity for API calls
 
 **3. API Errors**
+
 - Check network connectivity
 - Verify forseti.life is accessible
 - Check API endpoint returns data for H3 index
 - Review console logs for specific error messages
 
 **4. High Battery Drain**
+
 - Increase UPDATE_INTERVAL (60s → 120s)
 - Increase DISTANCE_FILTER (50m → 100m)
 - Consider disabling high accuracy mode
@@ -438,6 +471,7 @@ All console logs are prefixed for easy filtering:
 ## Future Enhancements
 
 ### Planned Features
+
 1. **Geofencing**: Use native geofence API for better battery life
 2. **Route Safety**: Pre-calculate safety along routes
 3. **Time-based Risk**: Adjust alerts based on time of day
@@ -446,6 +480,7 @@ All console logs are prefixed for easy filtering:
 6. **Analytics Dashboard**: Visualize location history and risk exposure
 
 ### Performance Improvements
+
 1. **Batch API Calls**: Query multiple hexagons at once
 2. **Local Cache**: Store hexagon data for 24 hours
 3. **Predictive Loading**: Pre-fetch data for nearby hexagons
@@ -454,12 +489,14 @@ All console logs are prefixed for easy filtering:
 ## Security & Privacy
 
 ### Data Collection
+
 - **Location Data**: Stored locally only (last 100 points)
 - **API Calls**: Only H3 index sent, not raw GPS coordinates
 - **No Tracking**: User location never uploaded to server
 - **No Third Parties**: No data sharing with external services
 
 ### User Control
+
 - **Opt-in Only**: Monitoring disabled by default
 - **Easy Disable**: One-tap to stop monitoring
 - **Clear History**: User can delete all location history
@@ -468,6 +505,7 @@ All console logs are prefixed for easy filtering:
 ## Code References
 
 ### Key Files
+
 - `/src/services/location/BackgroundLocationService.ts` - Main service
 - `/src/hooks/useBackgroundMonitoring.ts` - React hook interface
 - `/src/services/notifications/NotificationService.ts` - Notifications
@@ -475,6 +513,7 @@ All console logs are prefixed for easy filtering:
 - `/src/screens/Settings/SettingsScreen.tsx` - User controls
 
 ### External Dependencies
+
 - `react-native-geolocation-service` - GPS tracking
 - `h3-js` - H3 geospatial calculations
 - `@react-native-async-storage/async-storage` - Data persistence

@@ -10,6 +10,7 @@
 ## 📱 Build Configuration
 
 ### Target Platform
+
 - **Package Name**: `com.stlouisintegration.amisafe`
 - **Min SDK**: Android 5.0 (API 21)
 - **Target SDK**: Android 13 (API 33)
@@ -17,6 +18,7 @@
 - **Architecture**: ARM64-v8a (64-bit)
 
 ### Build Tools
+
 - **Build Tools**: 33.0.0
 - **Gradle**: 8.x
 - **Kotlin**: 1.8.0
@@ -24,6 +26,7 @@
 - **React Native**: 0.72.6
 
 ### JavaScript Engine
+
 - **Hermes**: ✅ Enabled (optimized for performance)
 - **Bundle Size**: 1.75MB (`assets/index.android.bundle`)
 - **Source Maps**: Included for production debugging
@@ -35,6 +38,7 @@
 ### Core Application Features
 
 #### 1. **Navigation System** ✅ IMPLEMENTED
+
 - Bottom tab navigation with 5 screens
 - Stack navigation for deep linking
 - Navigation library: `@react-navigation/native` + `@react-navigation/bottom-tabs`
@@ -46,8 +50,9 @@
   - 👤 Profile (User settings and account)
 
 #### 2. **Location Services** ✅ FULLY IMPLEMENTED
+
 - **GPS Tracking**: `react-native-geolocation-service` v5.3.1
-- **Permissions**: 
+- **Permissions**:
   - `ACCESS_FINE_LOCATION` (precise GPS)
   - `ACCESS_COARSE_LOCATION` (network location)
 - **Features**:
@@ -58,14 +63,17 @@
   - Current location retrieval for safety score
 
 **Implementation Files**:
+
 - `src/services/location/LocationService.ts` - Core GPS wrapper
 - `src/services/location/BackgroundLocationService.ts` - H3 monitoring (368 lines)
 - `src/utils/permissions.ts` - Permission request logic
 
 #### 3. **Background Location Monitoring** ✅ PRODUCTION READY
+
 **Status**: Code complete, configured, ready to test
 
 **How It Works**:
+
 1. User enables monitoring in Settings screen
 2. GPS updates every 60 seconds (configurable)
 3. Calculates H3 index (Resolution 11, ~700m hexagons)
@@ -76,6 +84,7 @@
 8. Cooldown period prevents spam (default 5 minutes)
 
 **User Configuration** (Settings Screen):
+
 - Enable/disable toggle
 - Z-score threshold: 1.0 - 3.0 (sensitivity)
 - Cooldown period: 1-30 minutes
@@ -83,11 +92,13 @@
 - Clear history function
 
 **State Persistence**:
+
 - All settings saved via AsyncStorage
 - Monitoring auto-restores on app restart
 - Location history persisted locally
 
 **API Integration**:
+
 ```http
 GET https://forseti.life/api/amisafe/aggregated?
     resolution=11&
@@ -96,11 +107,13 @@ GET https://forseti.life/api/amisafe/aggregated?
 ```
 
 **Implementation Files**:
+
 - `src/services/location/BackgroundLocationService.ts` (368 lines)
 - `src/hooks/useBackgroundMonitoring.ts` - React hook for UI
 - `src/screens/Settings/SettingsScreen.tsx` - Settings UI
 
 #### 4. **H3 Geospatial Indexing** ✅ IMPLEMENTED
+
 - **Library**: `h3-js` v4.1.0 (Uber's H3 library)
 - **Resolution**: 11 (~700m hexagons for monitoring)
 - **Functions Used**:
@@ -110,12 +123,14 @@ GET https://forseti.life/api/amisafe/aggregated?
   - `cellToBoundary()` - Get hexagon polygon for map display
 
 **Why H3?**:
+
 - Hierarchical spatial indexing (zoom from city → block level)
 - Consistent hexagon sizes (better than rectangular grids)
 - Efficient neighbor searches
 - Industry standard (Uber, DoorDash use for geospatial)
 
 #### 5. **Local Data Storage** ✅ IMPLEMENTED
+
 - **Library**: `@react-native-async-storage/async-storage` v1.19.5
 - **Stored Data**:
   - User preferences (theme, language)
@@ -128,9 +143,11 @@ GET https://forseti.life/api/amisafe/aggregated?
 **Implementation**: `src/services/storage/StorageService.ts`
 
 #### 6. **Push Notifications** ⚠️ CODE COMPLETE, PACKAGE MISSING
+
 **Status**: NotificationService.ts fully implemented (401 lines), but `react-native-push-notification` not installed
 
 **Current Implementation**:
+
 - Full notification service class written
 - Local notification support
 - Deep linking to safety map
@@ -139,6 +156,7 @@ GET https://forseti.life/api/amisafe/aggregated?
 - iOS/Android platform-specific config
 
 **What's Missing**:
+
 ```bash
 # Required to make notifications work
 npm install react-native-push-notification
@@ -147,6 +165,7 @@ cd ios && pod install && cd ..
 ```
 
 **Once Installed, Features Include**:
+
 - Local notifications (no server required)
 - Rich notifications with title, body, URL
 - Deep linking: tap notification → opens Map screen at location
@@ -157,10 +176,11 @@ cd ios && pod install && cd ..
 **Implementation File**: `src/services/notifications/NotificationService.ts` (401 lines)
 
 #### 7. **Map Integration** ✅ IMPLEMENTED
+
 - **Library**: `react-native-maps` v1.7.1
 - **Google Maps API Key**: Configured in AndroidManifest.xml
 - **Current Implementation**: External link to `forseti.life/safety-map`
-- **Why External?**: 
+- **Why External?**:
   - Web map already has full crime data overlay
   - Reduces mobile app complexity
   - Shared map experience across platforms
@@ -171,18 +191,21 @@ cd ios && pod install && cd ..
 **Future Enhancement**: Embedded native map with H3 hexagon overlays
 
 #### 8. **API Integration** ✅ IMPLEMENTED
+
 - **HTTP Client**: `axios` v1.6.0
 - **Base URL**: `https://forseti.life`
 - **Authentication**: Session-based (Drupal)
 - **CSRF Protection**: Token-based security
 
 **API Endpoints Used**:
+
 - `GET /api/amisafe/aggregated` - H3 hexagon crime data
 - `GET /api/crime_incidents` - Individual crime records
 - `GET /session/token` - CSRF token for auth
 - `POST /user/login` - User authentication
 
 **Implementation Files**:
+
 - `src/services/DrupalAuthService.js` - Authentication
 - `src/services/DrupalCrimeService.js` - Crime data fetching
 - `src/services/H3LocationService.js` - H3 calculations
@@ -192,6 +215,7 @@ cd ios && pod install && cd ..
 ## 📋 Native Android Features
 
 ### Permissions (AndroidManifest.xml)
+
 ```xml
 ✅ INTERNET - API calls and map loading
 ✅ ACCESS_FINE_LOCATION - GPS location
@@ -199,18 +223,21 @@ cd ios && pod install && cd ..
 ```
 
 ### Google Play Services
+
 ```xml
 ✅ Google Maps API Key configured
 ✅ Key: AIzaSyA_M0E9Eda1K1MDqs8vvlGEZ970DqudFUI
 ```
 
 ### Native Libraries Included
+
 - **React Native Core**: 11+ native libs (JSI, Hermes, Fabric, etc.)
 - **Hermes Engine**: JavaScript VM optimized for React Native
 - **Flipper**: Debug tools (debug builds only)
 - **Google Play Services**: Maps support
 
 ### Architecture Support
+
 - **ARM64-v8a**: Primary (modern devices)
 - **ARMv7**: Not included (could add for older devices)
 - **x86/x86_64**: Not included (Intel/emulator support)
@@ -222,7 +249,9 @@ cd ios && pod install && cd ..
 ### Screens Implemented
 
 #### 1. HomeScreen.tsx (454 lines)
+
 **Features**:
+
 - Current location display
 - Safety score for user's area (mock data - needs API integration)
 - Quick statistics (recent incidents, trends)
@@ -233,7 +262,9 @@ cd ios && pod install && cd ..
 **Status**: ✅ Complete UI, needs live API data integration
 
 #### 2. MapScreen.tsx
+
 **Features**:
+
 - External link button to forseti.life/safety-map
 - Opens device browser with full crime map
 - "Powered by Forseti" branding
@@ -241,7 +272,9 @@ cd ios && pod install && cd ..
 **Status**: ✅ Complete (intentionally external)
 
 #### 3. SafetyScreen.tsx
+
 **Features**:
+
 - Safety tips for walking in urban areas
 - Emergency contact quick dial
 - Community resources
@@ -250,7 +283,9 @@ cd ios && pod install && cd ..
 **Status**: ✅ Content-driven screen
 
 #### 4. StatisticsScreen.tsx
+
 **Features**:
+
 - Crime statistics dashboard
 - Charts and graphs (placeholder)
 - Historical trends
@@ -259,7 +294,9 @@ cd ios && pod install && cd ..
 **Status**: 🟡 UI framework ready, needs data visualization
 
 #### 5. ProfileScreen.tsx
+
 **Features**:
+
 - User account info
 - App settings
 - About/Help links
@@ -268,7 +305,9 @@ cd ios && pod install && cd ..
 **Status**: ✅ Basic profile complete
 
 #### 6. SettingsScreen.tsx (uses `useBackgroundMonitoring` hook)
+
 **Features**:
+
 - Background monitoring enable/disable toggle
 - Z-score threshold slider (1.0 - 3.0)
 - Cooldown period selector (1-30 minutes)
@@ -279,6 +318,7 @@ cd ios && pod install && cd ..
 **Status**: ✅ Fully functional settings management
 
 ### Design System
+
 - **Color Palette**: `src/utils/colors.ts`
   - Primary: Custom blue
   - Secondary: Accent colors
@@ -340,6 +380,7 @@ cd ios && pod install && cd ..
 ## 🧪 Testing Status
 
 ### What's Been Tested
+
 - ✅ Build succeeds (APK generated)
 - ✅ Bundle size reasonable (23MB)
 - ✅ AndroidManifest permissions correct
@@ -348,6 +389,7 @@ cd ios && pod install && cd ..
 - ✅ All screens compile without errors
 
 ### What Needs Testing
+
 - [ ] Physical device install (sideload APK)
 - [ ] GPS location acquisition
 - [ ] Background monitoring after screen off
@@ -364,12 +406,14 @@ cd ios && pod install && cd ..
 ## ⚠️ Known Limitations
 
 ### Critical Issues
+
 1. **react-native-push-notification NOT installed** 🔴
    - Code imports it but package missing
    - Will crash when NotificationService initializes
    - **Fix**: `npm install react-native-push-notification`
 
 ### Android-Specific Constraints
+
 1. **Background Location Restrictions**:
    - Android 10+: Requires "Allow all the time" permission
    - Battery optimization: Users must whitelist app
@@ -386,10 +430,12 @@ cd ios && pod install && cd ..
    - Some devices (Huawei new, Amazon Fire) don't have it
 
 ### Release Build Limitations
+
 1. **Debug Keystore Used** ⚠️:
    - Current APK signed with debug key
    - Cannot publish to Google Play with debug signature
    - Need to generate production keystore:
+
    ```bash
    keytool -genkey -v -keystore amisafe-release.keystore \
      -alias amisafe-key -keyalg RSA -keysize 2048 -validity 10000
@@ -410,6 +456,7 @@ cd ios && pod install && cd ..
 ## 📦 Dependencies Summary
 
 ### Production Dependencies (in APK)
+
 ```json
 {
   "@react-navigation/native": "^6.x",
@@ -425,6 +472,7 @@ cd ios && pod install && cd ..
 ```
 
 ### Missing (Required for Notifications)
+
 ```json
 {
   "react-native-push-notification": "NOT INSTALLED",
@@ -437,6 +485,7 @@ cd ios && pod install && cd ..
 ## 🚀 Ready for Testing
 
 ### What Works Right Now
+
 ✅ Install APK on Android device (sideload)  
 ✅ Open app and see Home dashboard  
 ✅ Navigate between 5 screens  
@@ -444,25 +493,28 @@ cd ios && pod install && cd ..
 ✅ Get current GPS location  
 ✅ Open external safety map (browser)  
 ✅ View safety tips  
-✅ Access settings screen  
+✅ Access settings screen
 
 ### What Will Work After Package Install
+
 ⚠️ Background location monitoring (after npm install)  
 ⚠️ Push notifications (after npm install)  
 ⚠️ Deep linking from notifications (after npm install)  
-⚠️ Alert history (after npm install)  
+⚠️ Alert history (after npm install)
 
 ### What Needs API Integration
+
 🟡 Live safety scores (currently mock data)  
 🟡 Real-time crime statistics  
 🟡 Historical trends  
-🟡 Crime incident markers on map  
+🟡 Crime incident markers on map
 
 ---
 
 ## 📱 Installation Instructions
 
 ### Option 1: Sideload APK (Testing)
+
 ```bash
 # Transfer APK to device
 adb push android/app/build/outputs/apk/release/app-release.apk /sdcard/
@@ -479,6 +531,7 @@ adb install android/app/build/outputs/apk/release/app-release.apk
 ```
 
 ### Option 2: Google Play Internal Testing
+
 1. Create Google Play Console account
 2. Create app listing
 3. Upload APK to Internal Testing track
@@ -490,6 +543,7 @@ adb install android/app/build/outputs/apk/release/app-release.apk
 ## 🔮 Next Steps
 
 ### Immediate (Before Public Launch)
+
 1. ✅ Install missing push notification packages
 2. ✅ Test on physical Android devices (3+ different manufacturers)
 3. ✅ Verify background monitoring works after screen lock
@@ -499,6 +553,7 @@ adb install android/app/build/outputs/apk/release/app-release.apk
 7. ✅ Configure ProGuard rules for code minification
 
 ### Before Google Play Submission
+
 1. ✅ Create production-signed APK
 2. ✅ Prepare app screenshots (2-8 required)
 3. ✅ Write store description
@@ -508,6 +563,7 @@ adb install android/app/build/outputs/apk/release/app-release.apk
 7. ✅ Complete Store Listing questionnaire
 
 ### Post-Launch Improvements
+
 1. 🔄 Embedded native map instead of external link
 2. 🔄 Server-side push notifications (Firebase Cloud Messaging)
 3. 🔄 Real-time API data for safety scores

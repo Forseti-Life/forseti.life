@@ -3,12 +3,7 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Theme } from '../../utils/theme';
 
@@ -21,9 +16,9 @@ export const SafetyFactorsScreen: React.FC = () => {
         <Icon name="information" size={48} color={Colors.primary} />
         <Text style={styles.headerTitle}>Safety Factors</Text>
         <Text style={styles.headerSubtitle}>
-          Understanding how we calculate crime risk scores. Our comprehensive framework also 
-          evaluates safety across 7 dimensions (Safe, Energized, Connected, Free, Capable, Useful, Whole). 
-          Visit forseti.life/safety-factors for full details.
+          Understanding how we calculate crime risk scores. Our comprehensive framework also
+          evaluates safety across 7 dimensions (Safe, Energized, Connected, Free, Capable, Useful,
+          Whole). Visit forseti.life/safety-factors for full details.
         </Text>
       </View>
 
@@ -39,15 +34,21 @@ export const SafetyFactorsScreen: React.FC = () => {
         <View style={styles.factorList}>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.riskCritical} />
-            <Text style={styles.factorText}><Text style={styles.bold}>Violent crimes</Text> (assault, robbery) - Highest weight</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>Violent crimes</Text> (assault, robbery) - Highest weight
+            </Text>
           </View>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.riskHigh} />
-            <Text style={styles.factorText}><Text style={styles.bold}>Property crimes</Text> (theft, burglary) - High weight</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>Property crimes</Text> (theft, burglary) - High weight
+            </Text>
           </View>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.riskMedium} />
-            <Text style={styles.factorText}><Text style={styles.bold}>Quality of life</Text> (vandalism, noise) - Medium weight</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>Quality of life</Text> (vandalism, noise) - Medium weight
+            </Text>
           </View>
         </View>
       </View>
@@ -58,21 +59,25 @@ export const SafetyFactorsScreen: React.FC = () => {
           <Icon name="clock-outline" size={24} color={Colors.warning} />
           <Text style={styles.cardTitle}>Time of Day</Text>
         </View>
-        <Text style={styles.cardText}>
-          Crime patterns vary by time:
-        </Text>
+        <Text style={styles.cardText}>Crime patterns vary by time:</Text>
         <View style={styles.factorList}>
           <View style={styles.factorItem}>
             <Icon name="weather-night" size={20} color={Colors.riskHigh} />
-            <Text style={styles.factorText}><Text style={styles.bold}>Late night (10 PM - 4 AM)</Text> - Higher risk multiplier</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>Late night (10 PM - 4 AM)</Text> - Higher risk multiplier
+            </Text>
           </View>
           <View style={styles.factorItem}>
             <Icon name="weather-sunset" size={20} color={Colors.riskMedium} />
-            <Text style={styles.factorText}><Text style={styles.bold}>Evening (6 PM - 10 PM)</Text> - Moderate risk</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>Evening (6 PM - 10 PM)</Text> - Moderate risk
+            </Text>
           </View>
           <View style={styles.factorItem}>
             <Icon name="white-balance-sunny" size={20} color={Colors.riskLow} />
-            <Text style={styles.factorText}><Text style={styles.bold}>Daytime (6 AM - 6 PM)</Text> - Lower risk</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>Daytime (6 AM - 6 PM)</Text> - Lower risk
+            </Text>
           </View>
         </View>
       </View>
@@ -83,25 +88,31 @@ export const SafetyFactorsScreen: React.FC = () => {
           <Icon name="calendar-clock" size={24} color={Colors.info} />
           <Text style={styles.cardTitle}>Historical Data & Trends</Text>
         </View>
-        <Text style={styles.cardText}>
-          Recent incidents weigh more heavily than older ones:
-        </Text>
+        <Text style={styles.cardText}>Recent incidents weigh more heavily than older ones:</Text>
         <View style={styles.factorList}>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.riskHigh} />
-            <Text style={styles.factorText}><Text style={styles.bold}>Last 7 days</Text> - Highest weight</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>Last 7 days</Text> - Highest weight
+            </Text>
           </View>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.riskMedium} />
-            <Text style={styles.factorText}><Text style={styles.bold}>Last 30 days</Text> - High weight</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>Last 30 days</Text> - High weight
+            </Text>
           </View>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.riskLow} />
-            <Text style={styles.factorText}><Text style={styles.bold}>Last 90 days</Text> - Moderate weight</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>Last 90 days</Text> - Moderate weight
+            </Text>
           </View>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.riskMinimal} />
-            <Text style={styles.factorText}><Text style={styles.bold}>Over 90 days</Text> - Lower weight</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>Over 90 days</Text> - Lower weight
+            </Text>
           </View>
         </View>
       </View>
@@ -112,9 +123,7 @@ export const SafetyFactorsScreen: React.FC = () => {
           <Icon name="map-marker-radius" size={24} color={Colors.primary} />
           <Text style={styles.cardTitle}>Geographic Density</Text>
         </View>
-        <Text style={styles.cardText}>
-          We use H3 hexagons to analyze crime patterns:
-        </Text>
+        <Text style={styles.cardText}>We use H3 hexagons to analyze crime patterns:</Text>
         <View style={styles.factorList}>
           <View style={styles.factorItem}>
             <Icon name="hexagon-multiple" size={20} color={Colors.primary} />
@@ -137,21 +146,25 @@ export const SafetyFactorsScreen: React.FC = () => {
           <Icon name="account-group" size={24} color={Colors.secondary} />
           <Text style={styles.cardTitle}>Population Density</Text>
         </View>
-        <Text style={styles.cardText}>
-          Crime rates are normalized by population:
-        </Text>
+        <Text style={styles.cardText}>Crime rates are normalized by population:</Text>
         <View style={styles.factorList}>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.textPrimary} />
-            <Text style={styles.factorText}>Areas with more people naturally have more incidents</Text>
+            <Text style={styles.factorText}>
+              Areas with more people naturally have more incidents
+            </Text>
           </View>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.textPrimary} />
-            <Text style={styles.factorText}>We calculate crimes per capita for fair comparison</Text>
+            <Text style={styles.factorText}>
+              We calculate crimes per capita for fair comparison
+            </Text>
           </View>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.textPrimary} />
-            <Text style={styles.factorText}>This ensures accurate risk assessment across neighborhoods</Text>
+            <Text style={styles.factorText}>
+              This ensures accurate risk assessment across neighborhoods
+            </Text>
           </View>
         </View>
       </View>
@@ -162,29 +175,37 @@ export const SafetyFactorsScreen: React.FC = () => {
           <Icon name="chart-bell-curve" size={24} color={Colors.success} />
           <Text style={styles.cardTitle}>Statistical Analysis</Text>
         </View>
-        <Text style={styles.cardText}>
-          We use z-scores to determine risk levels:
-        </Text>
+        <Text style={styles.cardText}>We use z-scores to determine risk levels:</Text>
         <View style={styles.factorList}>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.riskCritical} />
-            <Text style={styles.factorText}><Text style={styles.bold}>Critical:</Text> Z-score &gt; 2.0 (top 2.5%)</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>Critical:</Text> Z-score &gt; 2.0 (top 2.5%)
+            </Text>
           </View>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.riskHigh} />
-            <Text style={styles.factorText}><Text style={styles.bold}>High:</Text> Z-score 1.0 - 2.0 (top 16%)</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>High:</Text> Z-score 1.0 - 2.0 (top 16%)
+            </Text>
           </View>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.riskMedium} />
-            <Text style={styles.factorText}><Text style={styles.bold}>Medium:</Text> Z-score 0 - 1.0 (average)</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>Medium:</Text> Z-score 0 - 1.0 (average)
+            </Text>
           </View>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.riskLow} />
-            <Text style={styles.factorText}><Text style={styles.bold}>Low:</Text> Z-score -1.0 - 0 (below average)</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>Low:</Text> Z-score -1.0 - 0 (below average)
+            </Text>
           </View>
           <View style={styles.factorItem}>
             <Icon name="circle-small" size={20} color={Colors.success} />
-            <Text style={styles.factorText}><Text style={styles.bold}>Minimal:</Text> Z-score &lt; -1.0 (safest areas)</Text>
+            <Text style={styles.factorText}>
+              <Text style={styles.bold}>Minimal:</Text> Z-score &lt; -1.0 (safest areas)
+            </Text>
           </View>
         </View>
       </View>
@@ -195,9 +216,7 @@ export const SafetyFactorsScreen: React.FC = () => {
           <Icon name="robot" size={24} color={Colors.primary} />
           <Text style={styles.cardTitle}>AI-Powered Insights</Text>
         </View>
-        <Text style={styles.cardText}>
-          Forseti's AI continuously learns and adapts:
-        </Text>
+        <Text style={styles.cardText}>Forseti's AI continuously learns and adapts:</Text>
         <View style={styles.factorList}>
           <View style={styles.factorItem}>
             <Icon name="brain" size={20} color={Colors.primary} />
@@ -216,7 +235,8 @@ export const SafetyFactorsScreen: React.FC = () => {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Our methodology is continuously refined to provide the most accurate safety assessments for Philadelphia neighborhoods.
+          Our methodology is continuously refined to provide the most accurate safety assessments
+          for Philadelphia neighborhoods.
         </Text>
       </View>
     </ScrollView>
@@ -224,36 +244,25 @@ export const SafetyFactorsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    padding: Spacing.lg,
-    backgroundColor: Colors.backgroundDark,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    ...Typography.heading2,
-    color: Colors.primary,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  headerSubtitle: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    textAlign: 'center',
+  bold: {
+    fontWeight: Typography.fontWeight.semibold,
   },
   card: {
     backgroundColor: Colors.white,
+    borderRadius: Spacing.borderRadius.lg,
     margin: Spacing.md,
     padding: Spacing.md,
-    borderRadius: Spacing.borderRadius.lg,
     ...Shadows.md,
   },
   cardHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
+    marginBottom: Spacing.md,
+  },
+  cardText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    lineHeight: 24,
     marginBottom: Spacing.md,
   },
   cardTitle: {
@@ -261,28 +270,23 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginLeft: Spacing.sm,
   },
-  cardText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.md,
-    lineHeight: 24,
+  container: {
+    backgroundColor: Colors.background,
+    flex: 1,
+  },
+  factorItem: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    marginBottom: Spacing.sm,
   },
   factorList: {
     marginTop: Spacing.sm,
-  },
-  factorItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.sm,
   },
   factorText: {
     ...Typography.bodySmall,
     color: Colors.textPrimary,
     flex: 1,
     marginLeft: Spacing.xs,
-  },
-  bold: {
-    fontWeight: Typography.fontWeight.semibold,
   },
   footer: {
     padding: Spacing.xl,
@@ -291,9 +295,25 @@ const styles = StyleSheet.create({
   footerText: {
     ...Typography.bodySmall,
     color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
     fontStyle: 'italic',
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    backgroundColor: Colors.backgroundDark,
+    padding: Spacing.lg,
+  },
+  headerSubtitle: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  headerTitle: {
+    ...Typography.heading2,
+    color: Colors.primary,
+    marginBottom: Spacing.sm,
+    marginTop: Spacing.md,
   },
 });
 

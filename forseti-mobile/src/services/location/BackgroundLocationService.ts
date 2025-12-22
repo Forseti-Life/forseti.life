@@ -1,6 +1,6 @@
 /**
  * Background Location Monitoring Service
- * 
+ *
  * Monitors user location in the background, tracks H3 hexagon changes,
  * and sends notifications when entering high-crime areas (z-score >= 2)
  */
@@ -35,7 +35,7 @@ class BackgroundLocationService {
   private lastNotificationTime: number = 0;
   private notificationCooldown: number = 300000; // 5 minutes in milliseconds (default)
   private zScoreThreshold: number = 2.0; // Default threshold
-  
+
   // Configuration
   private readonly H3_RESOLUTION = 11; // ~700m hexagons for notifications
   private readonly API_BASE_URL = 'https://forseti.life';
@@ -86,11 +86,11 @@ class BackgroundLocationService {
       await StorageService.saveData('background_monitoring_enabled', true);
 
       this.isMonitoring = true;
-      
+
       // Start watching location
       this.watchId = Geolocation.watchPosition(
-        (position) => this.handleLocationUpdate(position.coords),
-        (error) => this.handleLocationError(error),
+        position => this.handleLocationUpdate(position.coords),
+        error => this.handleLocationError(error),
         {
           enableHighAccuracy: true,
           distanceFilter: this.DISTANCE_FILTER,
@@ -105,8 +105,9 @@ class BackgroundLocationService {
       );
 
       console.log('✅ Background location monitoring started');
-      console.log(`📍 Monitoring H3 Resolution ${this.H3_RESOLUTION} with z-score threshold >= ${this.zScoreThreshold}`);
-
+      console.log(
+        `📍 Monitoring H3 Resolution ${this.H3_RESOLUTION} with z-score threshold >= ${this.zScoreThreshold}`
+      );
     } catch (error) {
       console.error('❌ Failed to start background monitoring:', error);
       this.isMonitoring = false;
@@ -125,12 +126,14 @@ class BackgroundLocationService {
       if (threshold !== null) {
         this.zScoreThreshold = threshold;
       }
-      
+
       if (cooldown !== null) {
         this.notificationCooldown = cooldown * 60000; // Convert minutes to milliseconds
       }
 
-      console.log(`⚙️ Settings loaded - Z-Score: ${this.zScoreThreshold}, Cooldown: ${cooldown || 5}min`);
+      console.log(
+        `⚙️ Settings loaded - Z-Score: ${this.zScoreThreshold}, Cooldown: ${cooldown || 5}min`
+      );
     } catch (error) {
       console.warn('Could not load user settings, using defaults:', error);
     }
@@ -171,23 +174,18 @@ class BackgroundLocationService {
       };
 
       // Convert to H3 index
-      const h3Index = h3.latLngToCell(
-        location.latitude,
-        location.longitude,
-        this.H3_RESOLUTION
-      );
+      const h3Index = h3.latLngToCell(location.latitude, location.longitude, this.H3_RESOLUTION);
 
       // Check if we've moved to a new hexagon
       if (h3Index !== this.currentH3Index) {
         console.log(`📍 Moved to new H3:${this.H3_RESOLUTION} hexagon: ${h3Index}`);
-        
+
         const previousH3 = this.currentH3Index;
         this.currentH3Index = h3Index;
 
         // Fetch crime data for new hexagon
         await this.checkHexagonSafety(h3Index, location, previousH3);
       }
-
     } catch (error) {
       console.error('Error handling location update:', error);
     }
@@ -219,17 +217,18 @@ class BackgroundLocationService {
 
       // Check if z-score meets threshold for notification
       const zScore = hexagonData.incident_z_score || 0;
-      
+
       if (zScore >= this.zScoreThreshold) {
         await this.sendDangerNotification(hexagonData, location);
         this.lastNotificationTime = now;
       } else {
-        console.log(`✅ Safe area - z-score: ${zScore.toFixed(2)} (threshold: ${this.zScoreThreshold})`);
+        console.log(
+          `✅ Safe area - z-score: ${zScore.toFixed(2)} (threshold: ${this.zScoreThreshold})`
+        );
       }
 
       // Save location history
       await this.saveLocationHistory(h3Index, location, zScore);
-
     } catch (error) {
       console.error('Error checking hexagon safety:', error);
     }
@@ -240,17 +239,14 @@ class BackgroundLocationService {
    */
   private async fetchHexagonData(h3Index: string): Promise<H3HexagonData | null> {
     try {
-      const response = await axios.get(
-        `${this.API_BASE_URL}/api/amisafe/aggregated`,
-        {
-          params: {
-            resolution: this.H3_RESOLUTION,
-            h3_index: h3Index,
-            format: 'json',
-          },
-          timeout: 10000,
-        }
-      );
+      const response = await axios.get(`${this.API_BASE_URL}/api/amisafe/aggregated`, {
+        params: {
+          resolution: this.H3_RESOLUTION,
+          h3_index: h3Index,
+          format: 'json',
+        },
+        timeout: 10000,
+      });
 
       if (response.data && response.data.hexagons && response.data.hexagons.length > 0) {
         const hexagon = response.data.hexagons[0];
@@ -300,7 +296,9 @@ class BackgroundLocationService {
       vibrate: true,
     }); // Closing console.log
 
-    console.log(`🚨 DANGER NOTIFICATION (DISABLED) - Z-Score: ${zScore}, Incidents: ${incidentCount}`);
+    console.log(
+      `🚨 DANGER NOTIFICATION (DISABLED) - Z-Score: ${zScore}, Incidents: ${incidentCount}`
+    );
   }
 
   /**
@@ -319,8 +317,8 @@ class BackgroundLocationService {
     zScore: number
   ): Promise<void> {
     try {
-      const history = await StorageService.getData('location_history') || [];
-      
+      const history = (await StorageService.getData('location_history')) || [];
+
       history.push({
         h3_index: h3Index,
         latitude: location.latitude,
@@ -333,7 +331,6 @@ class BackgroundLocationService {
       // Keep only last 100 locations
       const trimmedHistory = history.slice(-100);
       await StorageService.saveData('location_history', trimmedHistory);
-
     } catch (error) {
       console.error('Error saving location history:', error);
     }

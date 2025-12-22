@@ -12,7 +12,7 @@ export const Spacing = {
   xl: 32,
   xxl: 48,
   xxxl: 64,
-  
+
   // Specific use cases
   screenPadding: 16,
   cardPadding: 16,
@@ -20,7 +20,7 @@ export const Spacing = {
   inputPadding: 12,
   sectionSpacing: 24,
   itemSpacing: 8,
-  
+
   // Border radius
   borderRadius: {
     sm: 4,

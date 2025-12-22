@@ -16,11 +16,7 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
-            presets: [
-              '@babel/preset-env',
-              '@babel/preset-react',
-              '@babel/preset-typescript',
-            ],
+            presets: ['@babel/preset-env', '@babel/preset-react', '@babel/preset-typescript'],
           },
         },
       },
@@ -34,9 +30,18 @@ module.exports = {
     extensions: ['.web.js', '.web.ts', '.web.tsx', '.js', '.jsx', '.ts', '.tsx'],
     alias: {
       'react-native$': 'react-native-web',
-      'react-native-vector-icons/MaterialCommunityIcons': path.resolve(__dirname, 'src/components/Icon.web.tsx'),
-      'react-native-vector-icons/MaterialIcons': path.resolve(__dirname, 'src/components/Icon.web.tsx'),
-      'react-native-vector-icons/FontAwesome': path.resolve(__dirname, 'src/components/Icon.web.tsx'),
+      'react-native-vector-icons/MaterialCommunityIcons': path.resolve(
+        __dirname,
+        'src/components/Icon.web.tsx'
+      ),
+      'react-native-vector-icons/MaterialIcons': path.resolve(
+        __dirname,
+        'src/components/Icon.web.tsx'
+      ),
+      'react-native-vector-icons/FontAwesome': path.resolve(
+        __dirname,
+        'src/components/Icon.web.tsx'
+      ),
       'react-native-vector-icons/Ionicons': path.resolve(__dirname, 'src/components/Icon.web.tsx'),
       'react-native-maps': 'react-native-web-maps',
     },

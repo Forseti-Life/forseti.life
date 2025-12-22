@@ -88,7 +88,7 @@ class LocationService {
   public async getCurrentLocation(): Promise<Location> {
     return new Promise((resolve, reject) => {
       Geolocation.getCurrentPosition(
-        (position) => {
+        position => {
           const location: Location = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -98,7 +98,7 @@ class LocationService {
           this.currentLocation = location;
           resolve(location);
         },
-        (error) => {
+        error => {
           const locationError: LocationError = {
             code: error.code,
             message: error.message,
@@ -125,18 +125,18 @@ class LocationService {
     const finalConfig = { ...this.defaultConfig, ...config };
 
     this.watchId = Geolocation.watchPosition(
-      (position) => {
+      position => {
         const location: Location = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           accuracy: position.coords.accuracy,
           timestamp: position.timestamp,
         };
-        
+
         this.currentLocation = location;
         this.notifyLocationCallbacks(location);
       },
-      (error) => {
+      error => {
         const locationError: LocationError = {
           code: error.code,
           message: error.message,
@@ -171,7 +171,7 @@ class LocationService {
    */
   public onLocationUpdate(callback: (location: Location) => void): () => void {
     this.locationUpdateCallbacks.push(callback);
-    
+
     // Return unsubscribe function
     return () => {
       const index = this.locationUpdateCallbacks.indexOf(callback);
@@ -186,7 +186,7 @@ class LocationService {
    */
   public onLocationError(callback: (error: LocationError) => void): () => void {
     this.errorCallbacks.push(callback);
-    
+
     // Return unsubscribe function
     return () => {
       const index = this.errorCallbacks.indexOf(callback);
@@ -206,23 +206,18 @@ class LocationService {
   /**
    * Calculate distance between two points (Haversine formula)
    */
-  public calculateDistance(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ): number {
+  public calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371; // Earth's radius in kilometers
     const dLat = this.toRadians(lat2 - lat1);
     const dLon = this.toRadians(lon2 - lon1);
-    
+
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(this.toRadians(lat1)) *
-      Math.cos(this.toRadians(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-    
+        Math.cos(this.toRadians(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c; // Distance in kilometers
   }

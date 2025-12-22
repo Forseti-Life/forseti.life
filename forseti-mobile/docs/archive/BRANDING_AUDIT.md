@@ -8,17 +8,19 @@
 ## ✅ Brand Names - VERIFIED
 
 ### Application Names
+
 - **App Display Name**: ✅ "AmISafe by Forseti" (`app.json`)
 - **Android Package**: `com.stlouisintegration.amisafe` ✅
 - **iOS Bundle**: Currently "AmISafeTempInit" ⚠️ (should be "AmISafe by Forseti")
 - **Android App Name**: ✅ "AmISafe" (`strings.xml`)
 
 ### In-App Branding
+
 ```typescript
 // Home Screen
 "AmISafe by Forseti" ✅
 
-// Login Screen  
+// Login Screen
 "AmISafe" ✅
 
 // Settings Screen
@@ -35,24 +37,29 @@
 ### All Links Point to forseti.life ✅
 
 **Map Screen**:
+
 - ✅ `https://forseti.life/safety-map` - Main interactive map
 
 **Home Screen Quick Actions**:
+
 - ✅ `https://forseti.life/safety-map` - View map
 - ✅ `https://forseti.life/how-it-works` - Learn more
 - ✅ `https://forseti.life/community` - Join community
 - ✅ `https://forseti.life/about` - About Forseti footer link
 
 **Settings Screen External Links**:
+
 - ✅ `https://forseti.life/about` - About Forseti
 - ✅ `https://forseti.life/how-it-works` - How It Works
 - ✅ `https://forseti.life/privacy` - Privacy Policy
 - ✅ `https://forseti.life/contact` - Contact Us
 
 **Login Screen**:
+
 - ✅ `https://forseti.life/user/password` - Password reset
 
 **Background Service**:
+
 - ✅ `https://forseti.life/safety-map?lat=X&lng=Y` - Deep link from notifications
 
 ---
@@ -60,24 +67,28 @@
 ## ✅ API Endpoints - VERIFIED
 
 ### Primary API Base URL
+
 ```typescript
 // BackgroundLocationService.ts
 private readonly API_BASE_URL = 'https://forseti.life'; ✅
 
-// DrupalCrimeService.js  
+// DrupalCrimeService.js
 this.baseUrl = 'https://forseti.life'; ✅
 ```
 
 ### API Endpoints Used
+
 - ✅ `GET https://forseti.life/api/amisafe/aggregated` - H3 hexagon data
 - ✅ `GET https://forseti.life/api/crime_incidents` - Crime records
 - ✅ `GET https://forseti.life/session/token` - CSRF tokens
 
 ### Authentication Base URL
+
 ```javascript
 // DrupalAuthService.js
 this.baseUrl = 'https://stlouisintegration.com'; ⚠️
 ```
+
 **Note**: Auth still points to stlouisintegration.com (legacy). Should this be forseti.life?
 
 ---
@@ -85,30 +96,35 @@ this.baseUrl = 'https://stlouisintegration.com'; ⚠️
 ## ⚠️ App Icons - DEFAULT REACT NATIVE ICONS
 
 ### Android Icons
+
 **Location**: `android/app/src/main/res/mipmap-*/`
 
 **Current Status**: ❌ Using default React Native green Android icon
 
 **Sizes Present**:
+
 - ✅ mdpi: 48x48px - `ic_launcher.png`
-- ✅ hdpi: 72x72px - `ic_launcher.png` 
+- ✅ hdpi: 72x72px - `ic_launcher.png`
 - ✅ xhdpi: 96x96px - `ic_launcher.png`
 - ✅ xxhdpi: 144x144px - `ic_launcher.png`
 - ✅ xxxhdpi: 192x192px - `ic_launcher.png`
 - ✅ Round icons for all densities - `ic_launcher_round.png`
 
-**What's Needed**: 
+**What's Needed**:
+
 - Custom "AmISafe by Forseti" branded icon
 - Should incorporate Forseti visual identity
 - Shield/safety theme recommended
 - Needs 5 density variants + round versions
 
-### iOS Icons  
+### iOS Icons
+
 **Location**: `ios/AmISafeTempInit/Images.xcassets/AppIcon.appiconset/`
 
 **Current Status**: ❌ No actual image files, only placeholder JSON
 
 **Required Sizes** (per Contents.json):
+
 - 20x20 @2x, @3x (iPhone notification)
 - 29x29 @2x, @3x (iPhone settings)
 - 40x40 @2x, @3x (iPhone spotlight)
@@ -116,6 +132,7 @@ this.baseUrl = 'https://stlouisintegration.com'; ⚠️
 - 1024x1024 @1x (App Store marketing)
 
 **What's Needed**:
+
 - All iOS icon sizes generated from master artwork
 - 10 PNG files total
 - Must match Android icon design
@@ -125,9 +142,11 @@ this.baseUrl = 'https://stlouisintegration.com'; ⚠️
 ## 🎨 Missing Branding Assets
 
 ### 1. App Icons (Critical) 🔴
+
 **Status**: Using default React Native icons
 
 **Required**:
+
 ```
 android/app/src/main/res/
   ├── mipmap-mdpi/ic_launcher.png (48x48)
@@ -150,35 +169,42 @@ ios/AmISafeTempInit/Images.xcassets/AppIcon.appiconset/
 ```
 
 **Design Recommendations**:
+
 - Shield icon (safety theme)
 - Forseti color palette
 - Simple, recognizable at small sizes
 - Works on both light and dark backgrounds
 
 ### 2. Splash Screen / Launch Screen
+
 **Android**: ❌ No custom splash screen
 **iOS**: ⚠️ Basic LaunchScreen.storyboard (no branding)
 
 **Recommended**:
+
 - "AmISafe by Forseti" logo
 - Shield/safety icon
 - Brand colors
 - Loading indicator
 
 ### 3. In-App Logo/Header Images
+
 **Status**: ❌ No logo images imported
 
 **Potential Uses**:
+
 - Login screen header
 - Settings screen about section
 - Home screen banner
 - Empty states
 
 ### 4. Forseti Logo Source
+
 **Found**: `sites/forseti/themes/custom/stlouisintegration/src/assets/images/logo-main.png`
 **Issue**: ❌ File is only 118 bytes, contains base64 data URI stub (1x1 pixel placeholder)
 
 **Action Needed**:
+
 - Locate actual Forseti logo file (SVG, PNG, AI)
 - Export at required sizes for mobile
 - Import into React Native assets
@@ -188,6 +214,7 @@ ios/AmISafeTempInit/Images.xcassets/AppIcon.appiconset/
 ## 📝 Text Branding - COMPLETE ✅
 
 ### Consistent Naming Across App
+
 - ✅ "AmISafe" as primary app name
 - ✅ "AmISafe by Forseti" as full brand name
 - ✅ "Powered by Forseti" attribution in Settings
@@ -195,6 +222,7 @@ ios/AmISafeTempInit/Images.xcassets/AppIcon.appiconset/
 - ✅ API calls use forseti.life domain
 
 ### Branding Mentions
+
 **Count**: 16+ references to "Forseti" across codebase
 **Count**: 25+ references to "AmISafe" across codebase
 
@@ -211,26 +239,28 @@ ios/AmISafeTempInit/Images.xcassets/AppIcon.appiconset/
    - **Timeline**: Before app store submission
 
 2. **iOS Bundle Display Name**
+
    ```xml
    <!-- ios/AmISafeTempInit/Info.plist -->
    <key>CFBundleDisplayName</key>
    <string>AmISafeTempInit</string> ❌
-   
+
    <!-- Should be: -->
    <key>CFBundleDisplayName</key>
    <string>AmISafe</string> ✅
    ```
 
 3. **iOS Location Permission Descriptions**
+
    ```xml
    <!-- Info.plist - EMPTY STRINGS -->
    <key>NSLocationWhenInUseUsageDescription</key>
    <string></string> ❌
-   
+
    <!-- Should describe why app needs location -->
    <key>NSLocationWhenInUseUsageDescription</key>
    <string>AmISafe needs your location to show crime safety information for your area.</string> ✅
-   
+
    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
    <string>AmISafe monitors your location in the background to alert you when entering high-crime areas.</string> ✅
    ```
@@ -270,12 +300,14 @@ ios/AmISafeTempInit/Images.xcassets/AppIcon.appiconset/
 ## 🎯 Action Items
 
 ### Immediate (This Week)
+
 - [ ] **Design AmISafe app icon** (or commission designer)
   - Shield + location pin theme suggested
   - Forseti brand colors
   - Export all required sizes
 
 - [ ] **Generate all icon sizes**
+
   ```bash
   # Can use tools like:
   # - https://appicon.co/ (online generator)
@@ -289,11 +321,12 @@ ios/AmISafeTempInit/Images.xcassets/AppIcon.appiconset/
   - Add background modes descriptions
 
 - [ ] **Replace default icons**
-  - Copy generated icons to android/app/src/main/res/mipmap-*
+  - Copy generated icons to android/app/src/main/res/mipmap-\*
   - Copy generated icons to ios/AmISafeTempInit/Images.xcassets/AppIcon.appiconset/
   - Update Contents.json with filenames
 
 ### Before App Store Submission
+
 - [ ] **Create splash screen**
   - Android: launch_screen.xml
   - iOS: Update LaunchScreen.storyboard
@@ -309,6 +342,7 @@ ios/AmISafeTempInit/Images.xcassets/AppIcon.appiconset/
   - Description mentions "powered by Forseti"
 
 ### Future Enhancements
+
 - [ ] **In-app logo usage**
   - Import Forseti logo to React Native
   - Add to Login, Settings, About screens
@@ -321,6 +355,7 @@ ios/AmISafeTempInit/Images.xcassets/AppIcon.appiconset/
 ## 📊 Branding Score: 75/100
 
 ### Breakdown
+
 - ✅ **Text Branding**: 100% - All names, links, and copy correct
 - ✅ **Domain References**: 100% - All point to forseti.life
 - ✅ **API Integration**: 95% - Correct endpoints (auth domain questionable)
@@ -328,12 +363,14 @@ ios/AmISafeTempInit/Images.xcassets/AppIcon.appiconset/
 - ⚠️ **iOS Configuration**: 60% - Missing display name and permission descriptions
 
 ### What's Good
+
 - Consistent "AmISafe by Forseti" naming
 - All external links properly branded
 - API calls to forseti.life
 - Code references brand throughout
 
 ### What Needs Work
+
 - **No custom app icon** (most critical)
 - **iOS Info.plist incomplete**
 - **No splash screen branding**

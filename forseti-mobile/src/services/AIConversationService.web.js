@@ -1,6 +1,6 @@
 /**
  * AI Conversation Service for Web (Mock)
- * 
+ *
  * Web-compatible mock with simulated AI responses
  */
 
@@ -23,9 +23,9 @@ class AIConversationService {
   async createConversation() {
     try {
       console.log('[AIConversationService.web] Creating mock conversation');
-      
+
       const user = await this.authService.getCurrentUser();
-      
+
       if (!user) {
         throw new Error('User must be authenticated to create conversation');
       }
@@ -36,7 +36,7 @@ class AIConversationService {
         title: `Conversation with Forseti - ${new Date().toLocaleString()}`,
         ai_model: 'claude-3-5-sonnet-20241022',
         created: Date.now(),
-        messages: []
+        messages: [],
       };
 
       mockConversations.set(conversationId, conversation);
@@ -66,7 +66,7 @@ class AIConversationService {
         id: nextMessageId++,
         role: 'user',
         content: message.trim(),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       conversation.messages.push(userMessage);
 
@@ -79,14 +79,14 @@ class AIConversationService {
         id: nextMessageId++,
         role: 'assistant',
         content: aiResponse,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       conversation.messages.push(aiMessage);
 
       console.log('✅ Received mock AI response');
       return {
         message: aiMessage,
-        conversation_id: conversationId
+        conversation_id: conversationId,
       };
     } catch (error) {
       console.error('❌ Error sending message:', error.message);
@@ -109,7 +109,7 @@ class AIConversationService {
     }
 
     if (lower.includes('help') || lower.includes('what can you')) {
-      return "I can help you with:\n\n• Real-time safety scores for your location\n• Crime incident reports and analysis\n• Neighborhood safety comparisons\n• Safety recommendations based on time and location\n• Emergency contact assistance\n• Safe route suggestions\n\nWhat would you like to know?";
+      return 'I can help you with:\n\n• Real-time safety scores for your location\n• Crime incident reports and analysis\n• Neighborhood safety comparisons\n• Safety recommendations based on time and location\n• Emergency contact assistance\n• Safe route suggestions\n\nWhat would you like to know?';
     }
 
     if (lower.includes('hello') || lower.includes('hi') || lower.includes('hey')) {
@@ -160,9 +160,8 @@ class AIConversationService {
         title: conv.title,
         created: conv.created,
         messageCount: conv.messages.length,
-        lastMessage: conv.messages.length > 0 
-          ? conv.messages[conv.messages.length - 1].content 
-          : null
+        lastMessage:
+          conv.messages.length > 0 ? conv.messages[conv.messages.length - 1].content : null,
       }));
 
       return conversations;

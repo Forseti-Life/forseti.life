@@ -11,10 +11,10 @@ import { Colors } from '../../utils/colors';
 const MapScreen: React.FC = () => {
   const handleOpenSafetyMap = async () => {
     const url = 'https://forseti.life/safety-map';
-    
+
     try {
       const supported = await Linking.canOpenURL(url);
-      
+
       if (supported) {
         await Linking.openURL(url);
       } else {
@@ -26,11 +26,7 @@ const MapScreen: React.FC = () => {
       }
     } catch (error) {
       console.error('Error opening safety map:', error);
-      Alert.alert(
-        'Error',
-        'An error occurred while opening the safety map.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Error', 'An error occurred while opening the safety map.', [{ text: 'OK' }]);
     }
   };
 
@@ -38,27 +34,22 @@ const MapScreen: React.FC = () => {
     <View style={styles.container}>
       <View style={styles.content}>
         <Icon name="map-marker-radius" size={80} color={Colors.primary} />
-        
+
         <Text style={styles.title}>Philadelphia Safety Map</Text>
-        
+
         <Text style={styles.description}>
-          View the interactive safety map on the Forseti website to see real-time crime data, 
-          safety scores, and detailed area information.
+          View the interactive safety map on the Forseti website to see real-time crime data, safety
+          scores, and detailed area information.
         </Text>
 
-        <TouchableOpacity 
-          style={styles.button}
-          onPress={handleOpenSafetyMap}
-        >
+        <TouchableOpacity style={styles.button} onPress={handleOpenSafetyMap}>
           <Icon name="web" size={24} color={Colors.white} style={styles.buttonIcon} />
           <Text style={styles.buttonText}>Open Safety Map</Text>
         </TouchableOpacity>
 
         <View style={styles.infoBox}>
           <Icon name="information" size={20} color={Colors.info} />
-          <Text style={styles.infoText}>
-            The map will open in your web browser
-          </Text>
+          <Text style={styles.infoText}>The map will open in your web browser</Text>
         </View>
       </View>
     </View>
@@ -66,41 +57,15 @@ const MapScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginTop: 24,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  description: {
-    fontSize: 16,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 32,
-    paddingHorizontal: 16,
-  },
   button: {
-    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.primary,
+    borderRadius: 8,
+    elevation: 3,
+    flexDirection: 'row',
+    marginBottom: 24,
     paddingHorizontal: 32,
     paddingVertical: 16,
-    borderRadius: 8,
-    marginBottom: 24,
-    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -110,22 +75,48 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   buttonText: {
+    color: Colors.white,
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.white,
+  },
+  container: {
+    backgroundColor: Colors.background,
+    flex: 1,
+  },
+  content: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  description: {
+    color: Colors.textSecondary,
+    fontSize: 16,
+    lineHeight: 24,
+    marginBottom: 32,
+    paddingHorizontal: 16,
+    textAlign: 'center',
   },
   infoBox: {
-    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.lightGray,
-    padding: 12,
     borderRadius: 8,
+    flexDirection: 'row',
     marginTop: 8,
+    padding: 12,
   },
   infoText: {
-    fontSize: 14,
     color: Colors.textSecondary,
+    fontSize: 14,
     marginLeft: 8,
+  },
+  title: {
+    color: Colors.text,
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    marginTop: 24,
+    textAlign: 'center',
   },
 });
 

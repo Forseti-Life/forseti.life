@@ -16,20 +16,20 @@ class ForsetiAuthTest {
 
   async testUserRegistration() {
     console.log('🧪 Testing User Registration...');
-    
+
     const testUser = {
       name: `testuser_${Date.now()}@example.com`,
       mail: `testuser_${Date.now()}@example.com`,
       pass: 'TestPassword123!',
       field_first_name: 'Test',
-      field_last_name: 'User'
+      field_last_name: 'User',
     };
 
     try {
       const response = await axios.post(`${API_BASE}/user/register`, testUser, {
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
 
       console.log('✅ User Registration Success:', response.data);
@@ -42,25 +42,25 @@ class ForsetiAuthTest {
 
   async testOAuthLogin(email, password) {
     console.log('🔐 Testing OAuth Authentication...');
-    
+
     const authData = {
       grant_type: 'password',
       client_id: CLIENT_ID,
       username: email,
-      password: password
+      password: password,
     };
 
     try {
       const response = await axios.post(`${API_BASE}/oauth/token`, authData, {
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
 
       console.log('✅ OAuth Login Success!');
       console.log('Access Token:', response.data.access_token.substring(0, 50) + '...');
       console.log('Expires In:', response.data.expires_in, 'seconds');
-      
+
       this.tokens = response.data;
       return response.data;
     } catch (error) {
@@ -80,9 +80,9 @@ class ForsetiAuthTest {
     try {
       const response = await axios.get(`${API_BASE}/jsonapi/user/user`, {
         headers: {
-          'Authorization': `Bearer ${this.tokens.access_token}`,
-          'Accept': 'application/vnd.api+json'
-        }
+          Authorization: `Bearer ${this.tokens.access_token}`,
+          Accept: 'application/vnd.api+json',
+        },
       });
 
       console.log('✅ User Profile Access Success!');
@@ -92,7 +92,7 @@ class ForsetiAuthTest {
         console.log('Sample User:', {
           id: user.id,
           email: user.attributes.mail,
-          name: user.attributes.display_name
+          name: user.attributes.display_name,
         });
       }
     } catch (error) {
@@ -111,9 +111,9 @@ class ForsetiAuthTest {
     try {
       const response = await axios.get(`${API_BASE}/api/amisafe/system-stats`, {
         headers: {
-          'Authorization': `Bearer ${this.tokens.access_token}`,
-          'Accept': 'application/json'
-        }
+          Authorization: `Bearer ${this.tokens.access_token}`,
+          Accept: 'application/json',
+        },
       });
 
       console.log('✅ AmISafe API Access Success!');
@@ -126,7 +126,7 @@ class ForsetiAuthTest {
 
   async runFullTest() {
     console.log('🚀 Starting AmISafe Mobile Authentication Test\n');
-    
+
     // Test 1: User Registration
     const testUser = await this.testUserRegistration();
     console.log('');

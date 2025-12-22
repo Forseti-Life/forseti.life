@@ -15,7 +15,7 @@ export const Typography = {
     xxxl: 32,
     display: 40,
   },
-  
+
   // Font weights
   fontWeight: {
     light: '300' as const,
@@ -24,14 +24,14 @@ export const Typography = {
     semibold: '600' as const,
     bold: '700' as const,
   },
-  
+
   // Line heights (multipliers of font size)
   lineHeight: {
     tight: 1.2,
     normal: 1.5,
     relaxed: 1.8,
   },
-  
+
   // Text styles (preset combinations)
   heading1: {
     fontSize: 32,

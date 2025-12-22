@@ -3,13 +3,7 @@
  */
 
 import React from 'react';
-import {
-  SafeAreaView,
-  StatusBar,
-  Text,
-  View,
-  StyleSheet,
-} from 'react-native';
+import { SafeAreaView, StatusBar, Text, View, StyleSheet } from 'react-native';
 
 function App() {
   return (
@@ -26,29 +20,29 @@ function App() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: '#1a1a2e',
+    flex: 1,
   },
   content: {
+    alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
     padding: 20,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#667eea',
-    marginBottom: 10,
+  message: {
+    color: '#4ade80',
+    fontSize: 16,
   },
   subtitle: {
-    fontSize: 18,
     color: '#ffffff',
+    fontSize: 18,
     marginBottom: 30,
   },
-  message: {
-    fontSize: 16,
-    color: '#4ade80',
+  title: {
+    color: '#667eea',
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
 });
 

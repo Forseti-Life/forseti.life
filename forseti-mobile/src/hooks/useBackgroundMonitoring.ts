@@ -1,6 +1,6 @@
 /**
  * Background Monitoring Hook
- * 
+ *
  * React hook to integrate background location monitoring into the app
  */
 
@@ -71,7 +71,6 @@ export const useBackgroundMonitoring = () => {
 
       setPermissionsGranted(true);
       return true;
-
     } catch (error) {
       console.error('Error requesting permissions:', error);
       return false;
@@ -95,17 +94,14 @@ export const useBackgroundMonitoring = () => {
 
       Alert.alert(
         '🛡️ Protection Enabled',
-        'Forseti is now monitoring your location. You\'ll be alerted if you enter high-crime areas.',
+        "Forseti is now monitoring your location. You'll be alerted if you enter high-crime areas.",
         [{ text: 'OK' }]
       );
-
     } catch (error) {
       console.error('Error starting monitoring:', error);
-      Alert.alert(
-        'Error',
-        'Failed to start background monitoring. Please try again.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Error', 'Failed to start background monitoring. Please try again.', [
+        { text: 'OK' },
+      ]);
     }
   };
 
@@ -117,12 +113,9 @@ export const useBackgroundMonitoring = () => {
       await BackgroundLocationService.stopMonitoring();
       setIsMonitoring(false);
 
-      Alert.alert(
-        'Protection Disabled',
-        'Background monitoring has been stopped.',
-        [{ text: 'OK' }]
-      );
-
+      Alert.alert('Protection Disabled', 'Background monitoring has been stopped.', [
+        { text: 'OK' },
+      ]);
     } catch (error) {
       console.error('Error stopping monitoring:', error);
     }
@@ -147,7 +140,7 @@ export const useBackgroundMonitoring = () => {
       try {
         // Restore monitoring if it was enabled before
         await BackgroundLocationService.restoreMonitoringState();
-        
+
         // Update UI state
         const active = BackgroundLocationService.isActive();
         setIsMonitoring(active);
@@ -159,7 +152,6 @@ export const useBackgroundMonitoring = () => {
         }, 5000);
 
         return () => clearInterval(interval);
-
       } catch (error) {
         console.error('Error restoring monitoring state:', error);
       }

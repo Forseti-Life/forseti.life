@@ -1,6 +1,6 @@
 /**
  * Boot Receiver Configuration for Android
- * 
+ *
  * This file documents the Android configuration needed for auto-start on boot.
  * Manual Android configuration is required in AndroidManifest.xml and Java/Kotlin code.
  */
@@ -180,12 +180,9 @@ export const ANDROID_CONFIG = {
     'POST_NOTIFICATIONS',
     'VIBRATE',
   ],
-  
-  services: [
-    'BootReceiver',
-    'LocationMonitoringService',
-  ],
-  
+
+  services: ['BootReceiver', 'LocationMonitoringService'],
+
   notificationChannels: [
     {
       id: 'location_monitoring',
@@ -203,12 +200,8 @@ export const ANDROID_CONFIG = {
 };
 
 export const IOS_CONFIG = {
-  backgroundModes: [
-    'location',
-    'fetch',
-    'remote-notification',
-  ],
-  
+  backgroundModes: ['location', 'fetch', 'remote-notification'],
+
   locationPermissions: [
     'NSLocationWhenInUseUsageDescription',
     'NSLocationAlwaysAndWhenInUseUsageDescription',

@@ -1,6 +1,7 @@
 # AmISafe Mobile Application - Complete Developer Guide
 
 ## Table of Contents
+
 1. [Project Overview](#project-overview)
 2. [Development Environment Setup](#development-environment-setup)
 3. [API Integration](#api-integration)
@@ -19,6 +20,7 @@
 The AmISafe mobile application is a sophisticated, cross-platform safety solution built on React Native that provides real-time crime risk assessment through ultra-precise H3 geospatial analysis. The application integrates seamlessly with the existing Drupal-based AmISafe API infrastructure, delivering location-aware safety notifications to protect users in high-crime areas.
 
 ### Key Technical Specifications
+
 - **Platform**: Cross-platform iOS and Android using React Native
 - **Authentication**: Integration with existing Drupal user system
 - **Geospatial Precision**: H3 Level 13 (44m² resolution) for user tracking
@@ -29,6 +31,7 @@ The AmISafe mobile application is a sophisticated, cross-platform safety solutio
 ### Current Status
 
 **✅ Implemented:**
+
 - Basic Drupal authentication with session management
 - Background location monitoring framework
 - H3 geospatial conversion services
@@ -37,12 +40,14 @@ The AmISafe mobile application is a sophisticated, cross-platform safety solutio
 - Permission management
 
 **🔄 In Progress:**
+
 - Native platform initialization (Android/iOS folders)
 - Push notification implementation
 - Crime map H3 visualization
 - Real-time data integration
 
 **❌ Not Yet Started:**
+
 - App store deployment
 - Offline caching
 - Community reporting features
@@ -55,17 +60,20 @@ The AmISafe mobile application is a sophisticated, cross-platform safety solutio
 ### Prerequisites
 
 **Node.js & npm**
+
 ```bash
 node --version  # Should be >= 16
 npm --version
 ```
 
 **React Native CLI**
+
 ```bash
 npm install -g react-native-cli
 ```
 
 **Android Development Setup**
+
 - Install [Android Studio](https://developer.android.com/studio)
 - Configure Android SDK (API level 24+)
 - Set up Android Virtual Device (AVD)
@@ -81,6 +89,7 @@ export PATH=$PATH:$ANDROID_HOME/platform-tools
 ```
 
 **iOS Development Setup** (macOS only)
+
 - Install Xcode from App Store
 - Install Xcode Command Line Tools: `xcode-select --install`
 - Install CocoaPods: `sudo gem install cocoapods`
@@ -158,6 +167,7 @@ const API_CONFIG = {
 ### Available Endpoints
 
 #### Authentication APIs
+
 ```
 POST /user/register        - Create new user account
 POST /user/login          - User authentication
@@ -167,6 +177,7 @@ GET  /session/token       - Get CSRF token
 ```
 
 #### Crime Data APIs
+
 ```
 GET /api/amisafe/risk-level      - Location risk assessment
 GET /api/amisafe/aggregated      - H3 hexagon crime data
@@ -180,6 +191,7 @@ GET /api/amisafe/districts       - Police districts
 ### Risk Level Assessment API
 
 **Request:**
+
 ```typescript
 GET /api/amisafe/risk-level?h3_index=8d2a1072b5b5fff&include_neighbors=true&time_window=24h
 
@@ -190,6 +202,7 @@ Parameters:
 ```
 
 **Response:**
+
 ```json
 {
   "risk_level": "high",
@@ -201,8 +214,8 @@ Parameters:
   "confidence": 0.87,
   "last_updated": "2025-11-07T14:30:00Z",
   "neighbors": {
-    "8d2a1072b5b1fff": {"risk_level": "medium", "risk_score": 45},
-    "8d2a1072b5b3fff": {"risk_level": "high", "risk_score": 82}
+    "8d2a1072b5b1fff": { "risk_level": "medium", "risk_score": 45 },
+    "8d2a1072b5b3fff": { "risk_level": "high", "risk_score": 82 }
   }
 }
 ```
@@ -210,6 +223,7 @@ Parameters:
 ### H3 Aggregated Data API
 
 **Request:**
+
 ```typescript
 GET /api/amisafe/aggregated?resolution=13&bounds=39.95,-75.17,39.96,-75.16&limit=1000
 
@@ -222,6 +236,7 @@ Parameters:
 ```
 
 **Response:**
+
 ```json
 {
   "hexagons": [
@@ -231,7 +246,7 @@ Parameters:
       "risk_level": "high",
       "center_lat": 39.9526,
       "center_lng": -75.1652,
-      "crime_types": {"theft": 8, "assault": 4, "vandalism": 3},
+      "crime_types": { "theft": 8, "assault": 4, "vandalism": 3 },
       "last_incident": "2025-11-06T20:15:00Z"
     }
   ],
@@ -246,6 +261,7 @@ Parameters:
 ### API Service Implementation
 
 **DrupalAuthService.js**
+
 ```javascript
 class DrupalAuthService {
   async getCsrfToken() {
@@ -277,6 +293,7 @@ class DrupalAuthService {
 ```
 
 **DrupalCrimeService.js**
+
 ```javascript
 class DrupalCrimeService {
   async getRiskLevel(h3Index) {
@@ -308,6 +325,7 @@ class DrupalCrimeService {
 ### Registration Requirements
 
 **Mandatory Information:**
+
 - Email Address (primary identifier)
 - Password (strong password required)
 - First Name
@@ -316,12 +334,14 @@ class DrupalCrimeService {
 - Emergency Contact (recommended)
 
 **Security Requirements:**
+
 - **Password Strength**: Minimum 8 characters with uppercase, lowercase, number, and special character
 - **Email Verification**: Email confirmation required before account activation
 - **Terms of Service**: Acceptance of terms and privacy policy required
 - **Age Verification**: Must be 18+ or have parental consent
 
 **Privacy Considerations:**
+
 - **Location Consent**: Explicit consent for location tracking
 - **Data Sharing**: Optional consent for anonymized data sharing
 - **Notification Preferences**: Granular control over alert types
@@ -330,6 +350,7 @@ class DrupalCrimeService {
 ### Registration Flow
 
 **Step 1: Account Creation**
+
 ```typescript
 interface RegistrationData {
   email: string;
@@ -350,6 +371,7 @@ interface RegistrationData {
 ```
 
 **Step 2: API Call**
+
 ```typescript
 POST https://stlouisintegration.com/user/register
 Content-Type: application/json
@@ -372,12 +394,14 @@ Content-Type: application/json
 ```
 
 **Step 3: Email Verification**
+
 1. Account Created - User receives confirmation
 2. Verification Email - Automated email with verification link
 3. Email Confirmation - User clicks link to activate account
 4. Account Activated - User can now log in
 
 **Step 4: Mobile App Setup**
+
 1. Login with Credentials
 2. JWT Token Received
 3. Profile Setup
@@ -398,12 +422,12 @@ class AuthService {
   async getValidToken(): Promise<string | null> {
     const tokenData = await AsyncStorage.getItem('auth_token');
     if (!tokenData) return null;
-    
+
     const token = JSON.parse(tokenData);
     if (this.isTokenExpired(token)) {
       await this.refreshToken();
     }
-    
+
     return token.access_token;
   }
 
@@ -444,12 +468,16 @@ Zoom Level → H3 Resolution → Coverage Area → Use Case
 #### Risk Assessment Algorithm
 
 ```javascript
-const calculateRiskLevel = (incidentCount) => {
-  if (incidentCount === 0) return 'SAFE';        // Green
-  else if (incidentCount <= 5) return 'LOW';     // Light green
-  else if (incidentCount <= 15) return 'MODERATE'; // Yellow
-  else if (incidentCount <= 30) return 'HIGH';   // Orange
-  else return 'CRITICAL';                        // Red
+const calculateRiskLevel = incidentCount => {
+  if (incidentCount === 0)
+    return 'SAFE'; // Green
+  else if (incidentCount <= 5)
+    return 'LOW'; // Light green
+  else if (incidentCount <= 15)
+    return 'MODERATE'; // Yellow
+  else if (incidentCount <= 30)
+    return 'HIGH'; // Orange
+  else return 'CRITICAL'; // Red
 };
 ```
 
@@ -471,7 +499,7 @@ const InteractiveCrimeMap = ({ initialLocation }) => {
     setHexagons(data.hexagons);
   };
 
-  const onRegionChange = (region) => {
+  const onRegionChange = region => {
     const newResolution = calculateResolution(region.zoom);
     if (newResolution !== resolution) {
       setResolution(newResolution);
@@ -480,10 +508,7 @@ const InteractiveCrimeMap = ({ initialLocation }) => {
   };
 
   return (
-    <MapView
-      initialRegion={initialLocation}
-      onRegionChangeComplete={onRegionChange}
-    >
+    <MapView initialRegion={initialLocation} onRegionChangeComplete={onRegionChange}>
       {hexagons.map(hex => (
         <Polygon
           key={hex.h3_index}
@@ -504,11 +529,11 @@ const InteractiveCrimeMap = ({ initialLocation }) => {
 
 ```javascript
 const CRIME_TYPE_COLORS = {
-  'Violent Crimes': '#ff4444',      // Red
-  'Property Crimes': '#ff8800',     // Orange
-  'Drug Offenses': '#8844ff',       // Purple
-  'Traffic Violations': '#44ff44',  // Green
-  'Other Incidents': '#44ffff'      // Cyan
+  'Violent Crimes': '#ff4444', // Red
+  'Property Crimes': '#ff8800', // Orange
+  'Drug Offenses': '#8844ff', // Purple
+  'Traffic Violations': '#44ff44', // Green
+  'Other Incidents': '#44ffff', // Cyan
 };
 ```
 
@@ -521,12 +546,14 @@ const CRIME_TYPE_COLORS = {
 The AmISafe mobile app requires the following Drupal modules on stlouisintegration.com:
 
 #### Core API Modules (Pre-installed)
+
 - ✅ **JSON:API** - Automatic REST endpoints for user management
 - ✅ **REST** - RESTful web services foundation
 - ✅ **Serialization** - JSON/XML data serialization
 - ✅ **Basic Auth** - HTTP basic authentication
 
 #### Authentication Modules (Installed)
+
 - ✅ **Simple OAuth** (v6.0.9) - OAuth 2.0 authentication with JWT tokens
 - ✅ **Consumers** (v1.21.0) - OAuth client management
 - ✅ **OpenAPI** (v2.3.0) - API documentation generation
@@ -586,13 +613,13 @@ If using OAuth instead of basic session authentication:
 
 ### H3 Geospatial Strategy
 
-| Resolution | Area Coverage | Precision | Use Case | Update Frequency |
-|------------|---------------|-----------|----------|------------------|
-| 5 | 251.1 km² | City-level | Citywide statistics | Daily |
-| 8 | 0.7 km² | District | Neighborhood context | Hourly |
-| 10 | 15,047 m² | Block | Block-level awareness | Every 15 min |
-| 11 | ~700 m² | Street | Background monitoring | Real-time |
-| 13 | 44 m² | Building | User tracking | Real-time |
+| Resolution | Area Coverage | Precision  | Use Case              | Update Frequency |
+| ---------- | ------------- | ---------- | --------------------- | ---------------- |
+| 5          | 251.1 km²     | City-level | Citywide statistics   | Daily            |
+| 8          | 0.7 km²       | District   | Neighborhood context  | Hourly           |
+| 10         | 15,047 m²     | Block      | Block-level awareness | Every 15 min     |
+| 11         | ~700 m²       | Street     | Background monitoring | Real-time        |
+| 13         | 44 m²         | Building   | User tracking         | Real-time        |
 
 ### Location Processing Pipeline
 
@@ -600,13 +627,13 @@ If using OAuth instead of basic session authentication:
 interface LocationProcessor {
   // Convert GPS coordinates to H3 index
   convertToH3(lat: number, lng: number, resolution: number): string;
-  
+
   // Get surrounding hexagons for context
   getNeighbors(h3Index: string, ringSize: number): string[];
-  
+
   // Calculate distance between hexagons
   h3Distance(h3Index1: string, h3Index2: string): number;
-  
+
   // Check if user has moved to new hexagon
   hasLocationChanged(currentH3: string, previousH3: string): boolean;
 }
@@ -616,19 +643,19 @@ interface LocationProcessor {
 
 ```typescript
 enum RiskLevel {
-  LOW = 'low',        // Green - Safe area
-  MEDIUM = 'medium',  // Yellow - Exercise caution
-  HIGH = 'high',      // Orange - Stay alert
-  EXTREME = 'extreme' // Red - Consider leaving area
+  LOW = 'low', // Green - Safe area
+  MEDIUM = 'medium', // Yellow - Exercise caution
+  HIGH = 'high', // Orange - Stay alert
+  EXTREME = 'extreme', // Red - Consider leaving area
 }
 
 interface RiskAssessment {
   level: RiskLevel;
-  score: number;        // 0-100 risk score
-  factors: string[];    // Contributing risk factors
-  timeWindow: string;   // Time period for assessment
-  confidence: number;   // Confidence level (0-1)
-  incidents: number;    // Recent incident count
+  score: number; // 0-100 risk score
+  factors: string[]; // Contributing risk factors
+  timeWindow: string; // Time period for assessment
+  confidence: number; // Confidence level (0-1)
+  incidents: number; // Recent incident count
   trend: 'increasing' | 'stable' | 'decreasing';
 }
 ```
@@ -733,18 +760,21 @@ npm test -- --coverage
 ### Debugging
 
 **React Native Debugger:**
+
 1. Install React Native Debugger
 2. Start Metro bundler: `npm start`
 3. Open debugger
 4. Enable debugging in app (Cmd+D on iOS, Cmd+M on Android)
 
 **Chrome DevTools:**
+
 1. Start Metro bundler
 2. Press Cmd+D (iOS) or Cmd+M (Android)
 3. Select "Debug" option
 4. Open Chrome DevTools
 
 **Logging:**
+
 ```javascript
 import { LogBox } from 'react-native';
 
@@ -764,6 +794,7 @@ console.error('Error:', error);
 ### Android Deployment
 
 **1. Generate Signing Key**
+
 ```bash
 keytool -genkeypair -v -storetype PKCS12 -keystore amisafe-release-key.keystore -alias amisafe-key-alias -keyalg RSA -keysize 2048 -validity 10000
 ```
@@ -771,6 +802,7 @@ keytool -genkeypair -v -storetype PKCS12 -keystore amisafe-release-key.keystore 
 **2. Configure Gradle**
 
 Edit `android/app/build.gradle`:
+
 ```gradle
 android {
     signingConfigs {
@@ -792,6 +824,7 @@ android {
 ```
 
 **3. Build Release APK**
+
 ```bash
 cd android
 ./gradlew assembleRelease
@@ -802,16 +835,19 @@ cd android
 ### iOS Deployment (macOS only)
 
 **1. Open Xcode**
+
 ```bash
 open ios/amisafe-mobile.xcworkspace
 ```
 
 **2. Configure Signing**
+
 - Select target in Xcode
 - Signing & Capabilities → Team → Select development team
 - Choose appropriate provisioning profile
 
 **3. Archive for Release**
+
 - Product → Scheme → Edit Scheme → Run → Release
 - Product → Archive
 - Organizer → Distribute App

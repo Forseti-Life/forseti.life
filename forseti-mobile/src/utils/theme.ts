@@ -1,10 +1,10 @@
 /**
  * Forseti Mobile Application Theme
  * Central export for all design tokens: colors, spacing, typography, shadows
- * 
+ *
  * Usage:
  * import { Theme } from '../utils/theme';
- * 
+ *
  * style={{
  *   color: Theme.colors.primary,
  *   padding: Theme.spacing.md,

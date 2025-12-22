@@ -1,6 +1,6 @@
 /**
  * Chat Screen - Talk with Forseti
- * 
+ *
  * AI-powered conversation interface for safety questions,
  * personalized advice, and community suggestions
  */
@@ -53,14 +53,10 @@ const ChatScreen = ({ navigation, route }) => {
         setIsAuthenticated(true);
       } else {
         // Redirect to login
-        Alert.alert(
-          'Authentication Required',
-          'Please sign in to talk with Forseti',
-          [
-            { text: 'Cancel', onPress: () => navigation.goBack() },
-            { text: 'Sign In', onPress: () => navigation.navigate('Profile') }
-          ]
-        );
+        Alert.alert('Authentication Required', 'Please sign in to talk with Forseti', [
+          { text: 'Cancel', onPress: () => navigation.goBack() },
+          { text: 'Sign In', onPress: () => navigation.navigate('Profile') },
+        ]);
       }
     } catch (error) {
       console.error('Error checking authentication:', error);
@@ -76,14 +72,17 @@ const ChatScreen = ({ navigation, route }) => {
       setLoading(true);
       const result = await AIConversationService.createConversation();
       setConversationId(result.conversation_id);
-      
+
       // Add welcome message
-      setMessages([{
-        id: 'welcome',
-        role: 'assistant',
-        content: "Hello! I'm Forseti, your AI guardian for community safety. I can help you with:\n\n• Safety questions about your neighborhood\n• Personalized crime insights\n• Understanding safety data\n• Making suggestions for improvements\n\nWhat would you like to know?",
-        timestamp: new Date().toISOString()
-      }]);
+      setMessages([
+        {
+          id: 'welcome',
+          role: 'assistant',
+          content:
+            "Hello! I'm Forseti, your AI guardian for community safety. I can help you with:\n\n• Safety questions about your neighborhood\n• Personalized crime insights\n• Understanding safety data\n• Making suggestions for improvements\n\nWhat would you like to know?",
+          timestamp: new Date().toISOString(),
+        },
+      ]);
     } catch (error) {
       Alert.alert('Error', 'Failed to start conversation. Please try again.');
       console.error('Error starting conversation:', error);
@@ -99,12 +98,14 @@ const ChatScreen = ({ navigation, route }) => {
     try {
       setLoading(true);
       const history = await AIConversationService.getConversationHistory(conversationId);
-      setMessages(history.map((msg, index) => ({
-        id: `msg-${index}`,
-        role: msg.role,
-        content: msg.content,
-        timestamp: msg.timestamp
-      })));
+      setMessages(
+        history.map((msg, index) => ({
+          id: `msg-${index}`,
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp,
+        }))
+      );
     } catch (error) {
       console.error('Error loading history:', error);
     } finally {
@@ -122,7 +123,7 @@ const ChatScreen = ({ navigation, route }) => {
       id: `user-${Date.now()}`,
       role: 'user',
       content: inputText.trim(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     // Add user message to UI
@@ -132,10 +133,7 @@ const ChatScreen = ({ navigation, route }) => {
 
     try {
       // Send to API
-      const response = await AIConversationService.sendMessage(
-        conversationId,
-        userMessage.content
-      );
+      const response = await AIConversationService.sendMessage(conversationId, userMessage.content);
 
       // Add AI response to UI
       const aiMessage = {
@@ -143,7 +141,7 @@ const ChatScreen = ({ navigation, route }) => {
         role: 'assistant',
         content: response.response,
         timestamp: new Date().toISOString(),
-        suggestion_created: response.suggestion_created || false
+        suggestion_created: response.suggestion_created || false,
       };
 
       setMessages(prev => [...prev, aiMessage]);
@@ -159,7 +157,7 @@ const ChatScreen = ({ navigation, route }) => {
     } catch (error) {
       Alert.alert('Error', 'Failed to send message. Please try again.');
       console.error('Error sending message:', error);
-      
+
       // Remove user message on error
       setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
     } finally {
@@ -172,28 +170,14 @@ const ChatScreen = ({ navigation, route }) => {
    */
   const renderMessage = ({ item }) => {
     const isUser = item.role === 'user';
-    
+
     return (
-      <View style={[
-        styles.messageBubble,
-        isUser ? styles.userBubble : styles.aiBubble
-      ]}>
+      <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
         {!isUser && (
-          <Icon 
-            name="shield-check" 
-            size={20} 
-            color={Colors.cyan} 
-            style={styles.aiIcon}
-          />
+          <Icon name="shield-check" size={20} color={Colors.cyan} style={styles.aiIcon} />
         )}
-        <View style={[
-          styles.messageContent,
-          isUser ? styles.userContent : styles.aiContent
-        ]}>
-          <Text style={[
-            styles.messageText,
-            isUser ? styles.userText : styles.aiText
-          ]}>
+        <View style={[styles.messageContent, isUser ? styles.userContent : styles.aiContent]}>
+          <Text style={[styles.messageText, isUser ? styles.userText : styles.aiText]}>
             {item.content}
           </Text>
           {item.suggestion_created && (
@@ -229,7 +213,7 @@ const ChatScreen = ({ navigation, route }) => {
   }
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
@@ -278,18 +262,15 @@ const ChatScreen = ({ navigation, route }) => {
           multiline
           maxLength={1000}
         />
-        <TouchableOpacity 
-          style={[
-            styles.sendButton,
-            (!inputText.trim() || loading) && styles.sendButtonDisabled
-          ]}
+        <TouchableOpacity
+          style={[styles.sendButton, (!inputText.trim() || loading) && styles.sendButtonDisabled]}
           onPress={sendMessage}
           disabled={!inputText.trim() || loading}
         >
-          <Icon 
-            name="send" 
-            size={24} 
-            color={(!inputText.trim() || loading) ? Colors.textSecondary : Colors.background}
+          <Icon
+            name="send"
+            size={24}
+            color={!inputText.trim() || loading ? Colors.textSecondary : Colors.background}
           />
         </TouchableOpacity>
       </View>
@@ -298,136 +279,136 @@ const ChatScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
+  aiBubble: {
+    alignSelf: 'flex-start',
+  },
+  aiContent: {
+    backgroundColor: Colors.card,
+    borderColor: Colors.border,
+    borderWidth: 1,
+  },
+  aiIcon: {
+    marginRight: 8,
+    marginTop: 4,
+  },
+  aiText: {
+    color: Colors.text,
+  },
   container: {
-    flex: 1,
     backgroundColor: Colors.background,
+    flex: 1,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    color: Colors.textSecondary,
+    fontSize: 16,
+    marginTop: 16,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderBottomColor: Colors.border,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: Colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
     color: Colors.text,
     flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
     marginLeft: 12,
   },
-  messageList: {
-    padding: 16,
-    flexGrow: 1,
+  input: {
+    backgroundColor: Colors.background,
+    borderRadius: 20,
+    color: Colors.text,
+    flex: 1,
+    fontSize: 15,
+    marginRight: 8,
+    maxHeight: 100,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  inputContainer: {
+    alignItems: 'flex-end',
+    backgroundColor: Colors.card,
+    borderTopColor: Colors.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    padding: 12,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    borderTopColor: Colors.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    padding: 12,
+  },
+  loadingText: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    marginLeft: 8,
   },
   messageBubble: {
     flexDirection: 'row',
     marginBottom: 16,
     maxWidth: '85%',
   },
-  userBubble: {
-    alignSelf: 'flex-end',
-    flexDirection: 'row-reverse',
-  },
-  aiBubble: {
-    alignSelf: 'flex-start',
-  },
-  aiIcon: {
-    marginRight: 8,
-    marginTop: 4,
-  },
   messageContent: {
     borderRadius: 16,
-    padding: 12,
     flex: 1,
+    padding: 12,
   },
-  userContent: {
-    backgroundColor: Colors.cyan,
-  },
-  aiContent: {
-    backgroundColor: Colors.card,
-    borderWidth: 1,
-    borderColor: Colors.border,
+  messageList: {
+    flexGrow: 1,
+    padding: 16,
   },
   messageText: {
     fontSize: 15,
     lineHeight: 20,
   },
-  userText: {
-    color: Colors.background,
-  },
-  aiText: {
-    color: Colors.text,
-  },
-  suggestionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  suggestionText: {
-    fontSize: 12,
-    color: Colors.success,
-    marginLeft: 4,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-    backgroundColor: Colors.card,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  loadingText: {
-    marginLeft: 8,
-    color: Colors.textSecondary,
-    fontSize: 14,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    backgroundColor: Colors.card,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    alignItems: 'flex-end',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginRight: 8,
-    maxHeight: 100,
-    color: Colors.text,
-    fontSize: 15,
-  },
   sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.cyan,
     alignItems: 'center',
+    backgroundColor: Colors.cyan,
+    borderRadius: 22,
+    height: 44,
     justifyContent: 'center',
+    width: 44,
   },
   sendButtonDisabled: {
     backgroundColor: Colors.border,
   },
-  emptyContainer: {
-    flex: 1,
+  suggestionBadge: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
+    borderTopColor: Colors.border,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    marginTop: 8,
+    paddingTop: 8,
   },
-  emptyText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: Colors.textSecondary,
+  suggestionText: {
+    color: Colors.success,
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  userBubble: {
+    alignSelf: 'flex-end',
+    flexDirection: 'row-reverse',
+  },
+  userContent: {
+    backgroundColor: Colors.cyan,
+  },
+  userText: {
+    color: Colors.background,
   },
 });
 

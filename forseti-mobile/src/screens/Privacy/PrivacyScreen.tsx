@@ -3,12 +3,7 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../utils/colors';
 
@@ -24,42 +19,42 @@ const PrivacyScreen: React.FC = () => {
         <View style={styles.commitment}>
           <Text style={styles.commitmentTitle}>Our Commitment: Privacy First</Text>
           <Text style={styles.commitmentText}>
-            At Forseti, we believe safety and privacy go hand-in-hand. We never sell 
-            your data, and we design every feature with your privacy in mind.
+            At Forseti, we believe safety and privacy go hand-in-hand. We never sell your data, and
+            we design every feature with your privacy in mind.
           </Text>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Data Collection</Text>
-          
+
           <Text style={styles.subTitle}>What We Collect</Text>
           <View style={styles.list}>
             <View style={styles.listItem}>
               <Icon name="check-circle" size={20} color={Colors.success} />
               <Text style={styles.listItemText}>
-                <Text style={styles.bold}>Crime Data:</Text> Public incident data from 
-                Philadelphia PD and emergency services
+                <Text style={styles.bold}>Crime Data:</Text> Public incident data from Philadelphia
+                PD and emergency services
               </Text>
             </View>
             <View style={styles.listItem}>
               <Icon name="check-circle" size={20} color={Colors.success} />
               <Text style={styles.listItemText}>
-                <Text style={styles.bold}>Location Data:</Text> Only when you explicitly 
-                enable location services
+                <Text style={styles.bold}>Location Data:</Text> Only when you explicitly enable
+                location services
               </Text>
             </View>
             <View style={styles.listItem}>
               <Icon name="check-circle" size={20} color={Colors.success} />
               <Text style={styles.listItemText}>
-                <Text style={styles.bold}>User Reports:</Text> Incident reports you 
-                voluntarily submit
+                <Text style={styles.bold}>User Reports:</Text> Incident reports you voluntarily
+                submit
               </Text>
             </View>
             <View style={styles.listItem}>
               <Icon name="check-circle" size={20} color={Colors.success} />
               <Text style={styles.listItemText}>
-                <Text style={styles.bold}>Usage Analytics:</Text> Anonymous app usage 
-                data to improve our service
+                <Text style={styles.bold}>Usage Analytics:</Text> Anonymous app usage data to
+                improve our service
               </Text>
             </View>
           </View>
@@ -68,15 +63,11 @@ const PrivacyScreen: React.FC = () => {
           <View style={styles.list}>
             <View style={styles.listItem}>
               <Icon name="close-circle" size={20} color={Colors.danger} />
-              <Text style={styles.listItemText}>
-                Your browsing history outside Forseti
-              </Text>
+              <Text style={styles.listItemText}>Your browsing history outside Forseti</Text>
             </View>
             <View style={styles.listItem}>
               <Icon name="close-circle" size={20} color={Colors.danger} />
-              <Text style={styles.listItemText}>
-                Your contacts or messages
-              </Text>
+              <Text style={styles.listItemText}>Your contacts or messages</Text>
             </View>
             <View style={styles.listItem}>
               <Icon name="close-circle" size={20} color={Colors.danger} />
@@ -86,9 +77,7 @@ const PrivacyScreen: React.FC = () => {
             </View>
             <View style={styles.listItem}>
               <Icon name="close-circle" size={20} color={Colors.danger} />
-              <Text style={styles.listItemText}>
-                Your personal conversations
-              </Text>
+              <Text style={styles.listItemText}>Your personal conversations</Text>
             </View>
           </View>
         </View>
@@ -116,7 +105,7 @@ const PrivacyScreen: React.FC = () => {
               'Sell your personal information',
               'Share your data with advertisers',
               'Track you across other websites',
-              'Use your data for purposes you didn\'t consent to',
+              "Use your data for purposes you didn't consent to",
             ].map((item, index) => (
               <View key={index} style={styles.listItem}>
                 <Icon name="close" size={16} color={Colors.danger} />
@@ -128,7 +117,7 @@ const PrivacyScreen: React.FC = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Security Measures</Text>
-          
+
           <View style={styles.securityCard}>
             <Icon name="lock" size={32} color={Colors.primary} />
             <Text style={styles.securityTitle}>Encryption</Text>
@@ -148,9 +137,7 @@ const PrivacyScreen: React.FC = () => {
           <View style={styles.securityCard}>
             <Icon name="shield-check" size={32} color={Colors.primary} />
             <Text style={styles.securityTitle}>Access Controls</Text>
-            <Text style={styles.securityText}>
-              Strict role-based access with audit logging.
-            </Text>
+            <Text style={styles.securityText}>Strict role-based access with audit logging.</Text>
           </View>
 
           <View style={styles.securityCard}>
@@ -207,9 +194,8 @@ const PrivacyScreen: React.FC = () => {
           <Icon name="help-circle" size={32} color={Colors.primary} />
           <Text style={styles.contactTitle}>Questions or Concerns?</Text>
           <Text style={styles.contactText}>
-            If you have any questions about our privacy practices or want to exercise 
-            your rights, please use the Chat feature to talk with Forseti. We typically 
-            respond within 48 hours.
+            If you have any questions about our privacy practices or want to exercise your rights,
+            please use the Chat feature to talk with Forseti. We typically respond within 48 hours.
           </Text>
         </View>
 
@@ -220,176 +206,176 @@ const PrivacyScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    paddingHorizontal: 20,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
-  },
-  title: {
-    fontSize: 28,
+  bold: {
     fontWeight: 'bold',
-    color: Colors.primary,
-    marginTop: 16,
-  },
-  content: {
-    padding: 20,
   },
   commitment: {
     backgroundColor: Colors.primaryLight,
     borderRadius: 12,
-    padding: 20,
     marginBottom: 24,
-  },
-  commitmentTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.primary,
-    marginBottom: 12,
+    padding: 20,
   },
   commitmentText: {
+    color: Colors.text,
     fontSize: 15,
     lineHeight: 22,
-    color: Colors.text,
   },
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
+  commitmentTitle: {
     color: Colors.primary,
-    marginBottom: 16,
-  },
-  subTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.dark,
-    marginTop: 16,
     marginBottom: 12,
   },
-  paragraph: {
+  contactBox: {
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    elevation: 3,
+    marginTop: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  contactText: {
+    color: Colors.text,
     fontSize: 15,
     lineHeight: 22,
-    color: Colors.text,
-    marginBottom: 12,
+    textAlign: 'center',
   },
-  bold: {
+  contactTitle: {
+    color: Colors.primary,
+    fontSize: 18,
     fontWeight: 'bold',
+    marginBottom: 8,
+    marginTop: 12,
+  },
+  container: {
+    backgroundColor: Colors.background,
+    flex: 1,
+  },
+  content: {
+    padding: 20,
+  },
+  header: {
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderBottomColor: Colors.lightGray,
+    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 32,
+  },
+  lastUpdated: {
+    color: Colors.gray,
+    fontSize: 12,
+    marginBottom: 16,
+    marginTop: 24,
+    textAlign: 'center',
   },
   list: {
     marginTop: 8,
   },
   listItem: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
+    flexDirection: 'row',
     marginBottom: 12,
     paddingLeft: 8,
   },
   listItemText: {
+    color: Colors.text,
+    flex: 1,
     fontSize: 15,
     lineHeight: 22,
-    color: Colors.text,
-    flex: 1,
     marginLeft: 12,
   },
-  warningBox: {
-    backgroundColor: '#FFF3CD',
-    borderLeftWidth: 4,
-    borderLeftColor: '#FFA000',
-    borderRadius: 8,
-    padding: 16,
-    marginTop: 16,
-  },
-  warningTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginBottom: 12,
-  },
-  warningText: {
-    fontSize: 14,
+  paragraph: {
     color: Colors.text,
-    flex: 1,
-    marginLeft: 12,
-  },
-  securityCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: 20,
+    fontSize: 15,
+    lineHeight: 22,
     marginBottom: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  securityTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.dark,
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  securityText: {
+  rightDesc: {
+    color: Colors.text,
     fontSize: 14,
     lineHeight: 20,
-    color: Colors.text,
-    textAlign: 'center',
   },
   rightItem: {
     marginBottom: 16,
     paddingLeft: 8,
   },
   rightTitle: {
+    color: Colors.dark,
     fontSize: 16,
     fontWeight: 'bold',
-    color: Colors.dark,
     marginBottom: 4,
   },
-  rightDesc: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: Colors.text,
+  section: {
+    marginBottom: 32,
   },
-  contactBox: {
+  sectionTitle: {
+    color: Colors.primary,
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  securityCard: {
+    alignItems: 'center',
     backgroundColor: Colors.white,
     borderRadius: 12,
+    elevation: 3,
+    marginBottom: 12,
     padding: 20,
-    alignItems: 'center',
-    marginTop: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
   },
-  contactTitle: {
+  securityText: {
+    color: Colors.text,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  securityTitle: {
+    color: Colors.dark,
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.primary,
-    marginTop: 12,
     marginBottom: 8,
+    marginTop: 12,
   },
-  contactText: {
-    fontSize: 15,
-    lineHeight: 22,
+  subTitle: {
+    color: Colors.dark,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    marginTop: 16,
+  },
+  title: {
+    color: Colors.primary,
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginTop: 16,
+  },
+  warningBox: {
+    backgroundColor: '#FFF3CD',
+    borderLeftColor: '#FFA000',
+    borderLeftWidth: 4,
+    borderRadius: 8,
+    marginTop: 16,
+    padding: 16,
+  },
+  warningText: {
     color: Colors.text,
-    textAlign: 'center',
+    flex: 1,
+    fontSize: 14,
+    marginLeft: 12,
   },
-  lastUpdated: {
-    fontSize: 12,
-    color: Colors.gray,
-    textAlign: 'center',
-    marginTop: 24,
-    marginBottom: 16,
+  warningTitle: {
+    color: Colors.dark,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,
   },
 });
 
