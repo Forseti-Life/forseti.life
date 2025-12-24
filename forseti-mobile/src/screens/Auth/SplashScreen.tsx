@@ -64,7 +64,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
             />
           ) : (
             <Image 
-              source={require('../../assets/images/forseti_logo_final.png')}
+              source={require('../../../assets/images/forseti_logo_final.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />

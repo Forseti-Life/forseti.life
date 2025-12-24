@@ -94,7 +94,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
               />
             ) : (
               <Image 
-                source={require('../../assets/images/forseti_logo_final.png')}
+                source={require('../../../assets/images/forseti_logo_final.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
