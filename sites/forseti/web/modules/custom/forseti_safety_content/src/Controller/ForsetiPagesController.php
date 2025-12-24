@@ -421,20 +421,25 @@ class ForsetiPagesController extends ControllerBase {
               Your personal safety companion for Philadelphia
             </p>
             
-            <div class="alert alert-info-cyan text-center mb-4">
-              <h3 class="text-cyan mb-3">
-                <i class="fas fa-mobile-alt"></i> Coming Soon!
+            <div class="alert alert-success text-center mb-4">
+              <h3 class="text-success mb-3">
+                <i class="fas fa-mobile-alt"></i> Beta Testing Now Available!
               </h3>
               <p class="lead">
-                The Forseti Mobile App is currently in active development. We\'re building a powerful 
-                safety companion that will bring AI-powered protection directly to your smartphone.
+                The Forseti Mobile App is now available for beta testing on Android devices. 
+                Help us improve by testing the app and providing feedback!
               </p>
-              <p class="mb-3">
-                Want to be notified when the app launches? <a href="/talk-with-forseti" class="text-cyan"><strong>Request early access</strong></a> 
-                and you\'ll be among the first to know!
+              <a href="/sites/default/files/forseti/mobile/Forseti-latest.apk" 
+                 class="btn btn-success btn-lg mb-3" 
+                 download
+                 style="background-color: #28a745; border-color: #28a745;">
+                <i class="fas fa-download"></i> Beta Testers Download
+              </a>
+              <p class="text-muted mb-2">
+                <small><strong>Version 1.0.0</strong> | Android 5.0+ | 18MB</small>
               </p>
               <p class="text-muted mb-0">
-                <small>Expected launch: Q1 2026 | Android & iOS</small>
+                <small>iOS version coming soon | Full launch: Q1 2026</small>
               </p>
             </div>
             
@@ -454,9 +459,9 @@ class ForsetiPagesController extends ControllerBase {
                   </div>
                   <div class="text-muted">
                     <p class="mb-2"><i class="fab fa-android fa-2x text-success"></i></p>
-                    <p class="mb-2"><i class="fab fa-apple fa-2x"></i></p>
-                    <p class="mt-3"><strong>In Development</strong></p>
-                    <p class="text-muted"><small>Android & iOS versions coming soon</small></p>
+                    <p class="mb-2"><i class="fab fa-apple fa-2x text-muted"></i></p>
+                    <p class="mt-3"><strong class="text-success">Beta Testing Available</strong></p>
+                    <p class="text-muted"><small>Android beta | iOS coming soon</small></p>
                   </div>
                 </div>
               </div>
