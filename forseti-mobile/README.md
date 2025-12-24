@@ -28,17 +28,18 @@ A cross-platform mobile application for hyperlocal crime safety awareness built 
 
 ### Prerequisites
 
-- Node.js 16+
+- Node.js 18+
+- npm or yarn package manager
 - React Native CLI
 - Android Studio (for Android builds)
 - Xcode (for iOS builds, Mac only)
-- ImageMagick (for icon generation)
+- Java JDK 11 (for Android)
 
 ### Installation
 
 ```bash
 cd forseti-mobile
-npm install
+npm install --legacy-peer-deps
 
 # iOS only
 cd ios && pod install && cd ..
@@ -50,21 +51,77 @@ cd ios && pod install && cd ..
 # Start Metro bundler
 npm start
 
-# Run on Android
-npm run android
+# Run on Android (debug)
+npm run android:dev
 
 # Run on iOS
 npm run ios
+
+# Web development (experimental)
+npm run web
 ```
 
 ### Production Build
 
+#### Android Debug APK
 ```bash
-# Android APK
-cd android
-./gradlew clean assembleRelease
+npm run android:clean
+npm run android:build:debug
 
-# Output: android/app/build/outputs/apk/release/app-release.apk
+# Output: android/app/build/outputs/apk/debug/
+# Files:
+#   - forseti-debug-1.0.0-1-arm64-v8a.apk (49MB) - Modern ARM 64-bit devices
+#   - forseti-debug-1.0.0-1-armeabi-v7a.apk (36MB) - Older ARM 32-bit devices
+#   - forseti-debug-1.0.0-1-x86_64.apk (51MB) - 64-bit emulators
+#   - forseti-debug-1.0.0-1-x86.apk (52MB) - 32-bit emulators
+```
+
+#### Android Release APK (Production)
+```bash
+npm run android:clean
+npm run android:build
+
+# Output: android/app/build/outputs/apk/release/
+# Files will be signed with release keystore
+```
+
+#### Android App Bundle (for Google Play)
+```bash
+npm run android:bundle
+
+# Output: android/app/build/outputs/bundle/release/app-release.aab
+```
+
+### 🔐 Release Signing Configuration
+
+**CRITICAL**: The release keystore is required for all production builds and Google Play updates.
+
+**Keystore Location**: `forseti-mobile/android/app/forseti-release.keystore`
+
+**Credentials**:
+- **Store Password**: `forseti2024`
+- **Key Alias**: `forseti-key`
+- **Key Password**: `forseti2024`
+- **Validity**: 10,000 days (expires ~2052)
+
+**Certificate Details**:
+- **Organization**: St Louis Integration
+- **Unit**: Mobile
+- **Location**: Philadelphia, PA, USA
+- **Common Name**: Forseti
+
+**⚠️ BACKUP WARNING**: 
+- Store the keystore file in multiple secure locations (cloud storage, external drive, password manager)
+- If you lose this keystore, you **CANNOT update the app** on Google Play
+- You would need to publish a completely new app with a different package name
+- All existing users, reviews, and downloads would be lost
+
+**Configured in**: `android/gradle.properties`
+```properties
+FORSETI_RELEASE_STORE_FILE=forseti-release.keystore
+FORSETI_RELEASE_STORE_PASSWORD=forseti2024
+FORSETI_RELEASE_KEY_ALIAS=forseti-key
+FORSETI_RELEASE_KEY_PASSWORD=forseti2024
 ```
 
 ---
@@ -91,26 +148,56 @@ The Forseti mobile application operates on a three-tier architecture:
 
 **Frontend (Mobile)**:
 
-- React Native 0.76.9
-- TypeScript 5.x
-- React Navigation 6.x
-- H3-js 4.1.0 (Uber's geospatial library)
-- react-native-maps (Google Maps)
-- AsyncStorage (local persistence)
-- Hermes JavaScript engine
+- **React Native**: 0.72.6
+- **TypeScript**: 5.x
+- **React**: 18.2.0
+- **React Navigation**: 6.x (Stack + Bottom Tabs)
+- **H3-js**: 4.1.0 (Uber's H3 geospatial indexing library)
+- **react-native-maps**: 1.7.1 (Google Maps integration)
+- **AsyncStorage**: 1.19.5 (local persistence)
+- **Hermes**: Enabled (optimized JavaScript engine)
+- **react-native-geolocation-service**: 5.3.1 (GPS tracking)
+- **react-native-permissions**: 3.10.1 (runtime permissions)
+- **axios**: 1.6.0 (HTTP client)
 
-**Backend (API)**:
+**Build Tools & Configuration**:
 
-- Drupal 9/10/11 custom modules
-- RESTful JSON APIs
-- Session-based authentication
-- CSRF token protection
+- **Gradle**: 8.x (Android build system)
+- **Gradle Plugin**: 7.4.2
+- **Android SDK**: 33 (targetSdk), 21 (minSdk)
+- **NDK Version**: 23.1.7779620
+- **Kotlin**: 1.8.0
+- **Java**: 11 (JVM target)
+- **Metro Bundler**: Built-in React Native bundler
+- **Flipper**: 0.182.0 (debugging - debug builds only)
+- **ProGuard/R8**: Enabled for release builds (code minification)
 
-**Database**:
+**Package Management**:
 
-- MySQL 8.0+ with H3 spatial indexing
-- Bronze → Silver → Gold data warehouse layers
-- Pre-computed aggregations for performance
+- **npm**: Package manager (use `--legacy-peer-deps` flag)
+- **CocoaPods**: iOS dependency management
+
+**Backend API (forseti.life)**:
+
+- **Drupal**: 9/10/11 custom modules
+- **RESTful JSON APIs**: Custom endpoints for spatial queries
+- **Authentication**: Session-based with CSRF token protection
+- **Base URL**: `https://forseti.life`
+
+**Database (H3 Geospatial)**:
+
+- **MySQL**: 8.0+ with H3 spatial indexing
+- **Architecture**: Bronze → Silver → Gold data warehouse layers
+- **Pre-computed aggregations** for performance
+- **Dataset**: 3.4M+ crime incidents, 413K+ hexagons
+- **Resolutions**: H3 levels 5-13 (citywide to block-level)
+
+**Development Environment**:
+
+- **OS**: Linux (Chromebook/Debian-based)
+- **IDE**: VS Code
+- **Debugging**: Chrome DevTools, React DevTools, Flipper
+- **Version Control**: Git
 
 ### Project Structure
 
@@ -772,11 +859,12 @@ adb install app-release.apk
 
 **Requirements**:
 
-- Node.js 16+ (18+ recommended)
-- npm or yarn
+- Node.js 18+ (LTS recommended)
+- npm package manager
 - React Native CLI (`npm install -g react-native-cli`)
 - Android Studio with SDK 33
-- Java 17 (for Android builds)
+- Java JDK 11 (for Android builds)
+- Android NDK 23.1.7779620
 
 **IDE Recommendations**:
 
@@ -790,11 +878,15 @@ adb install app-release.apk
 
 ```bash
 npm start
+# Or with cache reset
+npm run start:reset
 ```
 
 **Run on Android Emulator**:
 
 ```bash
+npm run android:dev
+# Or simply
 npm run android
 ```
 
@@ -810,6 +902,51 @@ npm run ios
 # Android
 adb devices
 npm run android
+```
+
+### Build Fixes & Configuration
+
+**Known Build Issues (Resolved)**:
+
+1. **Flipper Version Mismatch**
+   - **Issue**: `Could not find com.facebook.flipper:flipper-fresco-plugin:0.201.0`
+   - **Fix**: Changed Flipper version to 0.182.0 in `android/gradle.properties`
+
+2. **Manifest Merger Conflict**
+   - **Issue**: `usesCleartextTraffic` conflict between debug and main manifest
+   - **Fix**: Added `tools:replace="android:usesCleartextTraffic"` to debug manifest
+
+3. **React Native Maps Package Import**
+   - **Issue**: Wrong package path in autogenerated code
+   - **Fix**: Cleaned build cache and regenerated with proper configuration
+
+4. **npm Peer Dependencies**
+   - **Issue**: Conflicting peer dependencies
+   - **Fix**: Use `npm install --legacy-peer-deps` for all installations
+
+5. **patch-package Missing**
+   - **Issue**: postinstall script failing
+   - **Fix**: Removed postinstall script from package.json
+
+**If Build Fails, Try This Sequence**:
+
+```bash
+# 1. Clean everything
+cd forseti-mobile
+rm -rf node_modules
+rm -rf android/app/build
+rm -rf android/.gradle
+cd android && ./gradlew clean && cd ..
+
+# 2. Reinstall dependencies
+npm install --legacy-peer-deps
+
+# 3. Clean Metro cache
+npm start -- --reset-cache
+
+# 4. Build again
+npm run android:build:debug
+```
 
 # iOS
 # Open Xcode, select your device, click Run

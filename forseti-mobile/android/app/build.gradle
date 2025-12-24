@@ -80,6 +80,16 @@ android {
     compileSdkVersion rootProject.ext.compileSdkVersion
 
     namespace "com.stlouisintegration.forseti"
+    
+    buildFeatures {
+        buildConfig true
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    
     defaultConfig {
         applicationId "com.stlouisintegration.forseti"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -150,6 +160,12 @@ android {
             outputFileName += ".apk"
             output.outputFileName = outputFileName
         }
+    }
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+    kotlinOptions {
+        jvmTarget = "11"
     }
 }
 
