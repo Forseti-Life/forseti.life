@@ -87,7 +87,12 @@
                  aria-labelledby="heading{{ level_data.level }}" 
                  data-bs-parent="#levelsAccordion">
               <div class="accordion-body card-forseti">
-                <p class="text-muted-light mb-0">{{ level_data.description }}</p>
+                <p class="text-muted-light">{{ level_data.description }}</p>
+                {% if level_data.example %}
+                  <div class="alert alert-info-cyan mt-3 mb-0">
+                    <strong><i class="fas fa-building"></i> {{ 'Real-World Example:'|t }}</strong> {{ level_data.example }}
+                  </div>
+                {% endif %}
               </div>
             </div>
           </div>
