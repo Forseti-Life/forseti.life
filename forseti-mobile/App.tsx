@@ -15,6 +15,9 @@ import {
   PermissionsAndroid,
   Platform,
   Image,
+  View,
+  Text,
+  TouchableOpacity,
 } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
