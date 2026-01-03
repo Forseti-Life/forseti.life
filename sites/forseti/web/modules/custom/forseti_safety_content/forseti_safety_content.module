@@ -121,5 +121,15 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'forseti-page-agent-hierarchy',
     ],
+    'forseti_page_dimension' => [
+      'variables' => [
+        'dimension_id' => NULL,
+        'dimension_name' => NULL,
+        'dimension_description' => NULL,
+        'levels' => [],
+        'back_link' => NULL,
+      ],
+      'template' => 'forseti-page-dimension',
+    ],
   ];
 }

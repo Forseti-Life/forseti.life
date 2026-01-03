@@ -31,16 +31,20 @@
       
       <h2 class="mt-5 mb-3 text-cyan">{{ 'Nine Information Access Dimensions'|t }}</h2>
       <p class="text-muted-light mb-4">
-        {{ 'Each power level operates across nine key dimensions of information access. Understanding these dimensions reveals the specific constraints and capabilities at each level.'|t }}
+        {{ 'Each power level operates across nine key dimensions of information access. Understanding these dimensions reveals the specific constraints and capabilities at each level. Click any dimension to explore its complete 0-8 level breakdown.'|t }}
       </p>
       
       <div class="row row-cols-1 row-cols-md-3 g-3 mb-5">
         {% for dimension in dimension_info %}
           <div class="col">
-            <div class="card card-forseti h-100 p-3">
-              <h5 class="text-cyan mb-2">{{ dimension.name }}</h5>
-              <p class="small mb-0">{{ dimension.description }}</p>
-            </div>
+            <a href="/ai-agent-hierarchy/{{ dimension.id }}" class="text-decoration-none">
+              <div class="card card-forseti h-100 p-3 hover-lift">
+                <h5 class="text-cyan mb-2">
+                  {{ dimension.name }} <i class="fas fa-arrow-right fa-xs"></i>
+                </h5>
+                <p class="small mb-0 text-muted-light">{{ dimension.description }}</p>
+              </div>
+            </a>
           </div>
         {% endfor %}
       </div>

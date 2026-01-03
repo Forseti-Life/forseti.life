@@ -552,6 +552,132 @@ class ForsetiPagesController extends ControllerBase {
   }
 
   /**
+   * Scope dimension detail page.
+   */
+  public function dimensionScope() {
+    return $this->buildDimensionPage(
+      'scope',
+      $this->t('Scope & Breadth'),
+      $this->t('Breadth of knowledge domains accessible - from universal all-domain access to narrow single-task context.'),
+      $this->buildScopeLevels()
+    );
+  }
+
+  /**
+   * Restriction dimension detail page.
+   */
+  public function dimensionRestriction() {
+    return $this->buildDimensionPage(
+      'restriction',
+      $this->t('Content Restriction'),
+      $this->t('Level of content filtering applied - from zero filtering to extreme pre-approved only responses.'),
+      $this->buildRestrictionLevels()
+    );
+  }
+
+  /**
+   * Classification dimension detail page.
+   */
+  public function dimensionClassification() {
+    return $this->buildDimensionPage(
+      'classification',
+      $this->t('Classification Access'),
+      $this->t('Level of data classification accessible - from top secret to basic public FAQs only.'),
+      $this->buildClassificationLevels()
+    );
+  }
+
+  /**
+   * Temporal dimension detail page.
+   */
+  public function dimensionTemporal() {
+    return $this->buildDimensionPage(
+      'temporal',
+      $this->t('Temporal Reach'),
+      $this->t('Access to historical data and real-time feeds - from complete timeline to static snapshot.'),
+      $this->buildTemporalLevels()
+    );
+  }
+
+  /**
+   * Sources dimension detail page.
+   */
+  public function dimensionSources() {
+    return $this->buildDimensionPage(
+      'sources',
+      $this->t('Source Diversity'),
+      $this->t('Range and diversity of information sources - from all sources globally to single internal knowledge base.'),
+      $this->buildSourcesLevels()
+    );
+  }
+
+  /**
+   * Granularity dimension detail page.
+   */
+  public function dimensionGranularity() {
+    return $this->buildDimensionPage(
+      'granularity',
+      $this->t('Data Granularity'),
+      $this->t('Level of detail accessible - from atomic individual records to general concepts only.'),
+      $this->buildGranularityLevels()
+    );
+  }
+
+  /**
+   * Authority dimension detail page.
+   */
+  public function dimensionAuthority() {
+    return $this->buildDimensionPage(
+      'authority',
+      $this->t('Authority Level'),
+      $this->t('System permissions and capabilities - from full read/write/execute to basic retrieval only.'),
+      $this->buildAuthorityLevels()
+    );
+  }
+
+  /**
+   * Synthesis dimension detail page.
+   */
+  public function dimensionSynthesis() {
+    return $this->buildDimensionPage(
+      'synthesis',
+      $this->t('Information Synthesis'),
+      $this->t('Ability to connect information across domains - from universal connections to no synthesis capability.'),
+      $this->buildSynthesisLevels()
+    );
+  }
+
+  /**
+   * Verification dimension detail page.
+   */
+  public function dimensionVerification() {
+    return $this->buildDimensionPage(
+      'verification',
+      $this->t('Data Verification'),
+      $this->t('Level of information validation - from raw + all verification levels to pre-written only.'),
+      $this->buildVerificationLevels()
+    );
+  }
+
+  /**
+   * Helper method to build dimension detail pages.
+   */
+  private function buildDimensionPage($dimension_id, $dimension_name, $dimension_description, $levels) {
+    return [
+      '#theme' => 'forseti_page_dimension',
+      '#dimension_id' => $dimension_id,
+      '#dimension_name' => $dimension_name,
+      '#dimension_description' => $dimension_description,
+      '#levels' => $levels,
+      '#back_link' => '/ai-agent-hierarchy',
+      '#cache' => [
+        'max-age' => 3600,
+        'contexts' => ['url'],
+      ],
+    ];
+  }
+
+  /**
    * Build introduction content for agent hierarchy.
    */
   private function buildIntroContent() {

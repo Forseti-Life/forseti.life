@@ -95,3 +95,75 @@ forseti.agent_hierarchy:
     _permission: 'access content'
   options:
     no_cache: TRUE
+
+forseti.dimension_scope:
+  path: '/ai-agent-hierarchy/scope'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::dimensionScope'
+    _title: 'Scope & Breadth'
+  requirements:
+    _permission: 'access content'
+
+forseti.dimension_restriction:
+  path: '/ai-agent-hierarchy/restriction'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::dimensionRestriction'
+    _title: 'Content Restriction'
+  requirements:
+    _permission: 'access content'
+
+forseti.dimension_classification:
+  path: '/ai-agent-hierarchy/classification'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::dimensionClassification'
+    _title: 'Classification Access'
+  requirements:
+    _permission: 'access content'
+
+forseti.dimension_temporal:
+  path: '/ai-agent-hierarchy/temporal'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::dimensionTemporal'
+    _title: 'Temporal Reach'
+  requirements:
+    _permission: 'access content'
+
+forseti.dimension_sources:
+  path: '/ai-agent-hierarchy/sources'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::dimensionSources'
+    _title: 'Source Diversity'
+  requirements:
+    _permission: 'access content'
+
+forseti.dimension_granularity:
+  path: '/ai-agent-hierarchy/granularity'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::dimensionGranularity'
+    _title: 'Data Granularity'
+  requirements:
+    _permission: 'access content'
+
+forseti.dimension_authority:
+  path: '/ai-agent-hierarchy/authority'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::dimensionAuthority'
+    _title: 'Authority Level'
+  requirements:
+    _permission: 'access content'
+
+forseti.dimension_synthesis:
+  path: '/ai-agent-hierarchy/synthesis'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::dimensionSynthesis'
+    _title: 'Information Synthesis'
+  requirements:
+    _permission: 'access content'
+
+forseti.dimension_verification:
+  path: '/ai-agent-hierarchy/verification'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::dimensionVerification'
+    _title: 'Data Verification'
+  requirements:
+    _permission: 'access content'

@@ -219,19 +219,20 @@ agent-hierarchy:
 - [x] Phase 2: Mobile App page - Template and controller conversion
 - [x] Phase 2: Privacy page - Template and controller conversion
 - [x] Phase 2: Contact Thank You page - Template and controller conversion
-- [x] **File size reduced: 2,263 lines → 1,381 lines (882 lines removed, 39% reduction)**
-- [x] All 7 convertible pages refactored to Drupal 11 best practices
+- [x] Phase 2: Safety Factors page - Template and controller conversion (7 dimensions, ~300 lines removed)
+- [x] **File size reduced: 2,263 lines → 1,313 lines (950 lines removed, 42% reduction)**
+- [x] All 8 convertible pages refactored to Drupal 11 best practices
 
 ### ℹ️ Not Converted (By Design)
 - [x] Safety Map - Simple redirect to /amisafe/crime-map (no template needed)
 - [x] Contact - Contains embedded Drupal webform (already using proper render array)
-- [x] Safety Factors - Very large accordion page (500+ lines), deferred for future optimization
+- [x] Talk with Forseti - Logic-heavy authentication + node creation (not a simple page render)
 
 ## Results
-- **Lines removed**: 882 (39% reduction)
-- **Pages converted**: 7 of 10
-- **Templates created**: 7 Twig files with proper separation of concerns
-- **Theme hooks added**: 7 hook_theme() implementations
+- **Lines removed**: 950 (42% reduction)
+- **Pages converted**: 8 of 11
+- **Templates created**: 8 Twig files with proper separation of concerns
+- **Theme hooks added**: 8 hook_theme() implementations
 - **Separation of concerns**: Logic in PHP, presentation in Twig
 - **Cache support**: Render caching added to all converted pages
 - **Maintainability**: Content updates no longer require PHP edits
@@ -249,10 +250,31 @@ agent-hierarchy:
 7. ✅ **Standards**: Follows Drupal 11 best practices
 8. ✅ **Scalability**: Easy to add new pages or modify existing ones
 
+## Safety Factors Page Details
+
+### Structure
+The Safety Factors page implements a comprehensive safety framework aligned with Maslow's Hierarchy of Needs:
+
+**7 Dimensions** (from foundation to self-actualization):
+1. **Safe (Security)** - 10 factors: Physical safety, crime prevention, emergency response
+2. **Energized (Vitality)** - 6 factors: Housing, food security, financial well-being
+3. **Connected (Community)** - 7 factors: Social cohesion, neighborhood engagement
+4. **Free (Autonomy)** - 6 factors: Freedom of movement, privacy, justice
+5. **Capable (Mastery)** - 6 factors: Education, skills, economic security
+6. **Useful (Purpose)** - 6 factors: Civic engagement, community contribution
+7. **Whole (Holistic Health)** - 8 factors: Mental/physical health, community identity
+
+### Implementation
+- **Template**: forseti-page-safety-factors.html.twig (accordion interface)
+- **Data method**: buildSafetyDimensionsData() (49 total safety factors across 7 dimensions)
+- **Features**: Each dimension has icon, subtitle, description, integration notes, planned enhancement flags
+- **Integration**: Links to /talk-with-forseti for enhanced dimensions
+- **Framework**: "How Forseti Uses This Framework" section explaining AI analysis approach
+
 ## Next Steps
-1. ✅ Phase 1 & 2 complete
-2. ✅ All practical conversions complete
-3. ⏳ Future: Consider converting Safety Factors if content stabilizes
-4. ⏳ Future: Add automated tests for converted pages
-5. ⏳ Future: Consider creating reusable template components for common patterns
+1. ✅ Phase 1 & 2 complete - ALL practical pages converted
+2. ✅ Safety Factors conversion complete
+3. ⏳ Future: Add automated tests for converted pages
+4. ⏳ Future: Consider creating reusable template components for common patterns
+5. ⏳ Future: Extract dimension data to configuration/service layer if it becomes dynamic
 
