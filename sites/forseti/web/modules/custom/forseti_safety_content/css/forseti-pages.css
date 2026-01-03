@@ -183,6 +183,75 @@
   letter-spacing: 0.05em;
 }
 
+/* === Power Level Hierarchy === */
+.power-level-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.power-level-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 212, 255, 0.15);
+}
+
+.power-level-card.level-pinnacle {
+  border-left: 5px solid #00d4ff;
+}
+
+.power-level-badge {
+  font-size: 1.1rem;
+  padding: 0.5rem 0.9rem;
+  margin-right: 1rem;
+}
+
+.power-level-badge.level-0 {
+  font-size: 1.2rem;
+  padding: 0.5rem 1rem;
+}
+
+.power-level-table {
+  background: #1a1a2e;
+}
+
+.power-level-table th {
+  min-width: 120px;
+  padding: 1rem;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.power-level-table td {
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.dimension-card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease;
+}
+
+.dimension-card:hover {
+  transform: translateY(-2px);
+}
+
+.dimension-card h5 {
+  color: #00d4ff;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.dimension-card p {
+  font-size: 0.9rem;
+  margin-bottom: 0;
+  color: #666;
+  line-height: 1.5;
+}
+
 /* === Feature Sections === */
 .features-section {
   padding: 4rem 0;

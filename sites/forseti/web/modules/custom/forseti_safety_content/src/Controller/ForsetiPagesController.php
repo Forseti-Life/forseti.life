@@ -136,6 +136,16 @@ class ForsetiPagesController extends ControllerBase {
   }
 
   /**
+   * AI Agent Hierarchy page.
+   */
+  public function agentHierarchy() {
+    return [
+      '#markup' => $this->getAgentHierarchyContent(),
+      '#allowed_tags' => ['div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'ul', 'li', 'strong', 'button', 'span', 'br', 'img', 'section', 'article'],
+    ];
+  }
+
+  /**
    * Get About content.
    */
   private function getAboutContent() {
@@ -1105,6 +1115,1551 @@ class ForsetiPagesController extends ControllerBase {
               <a href="/talk-with-forseti" class="btn btn-outline-primary btn-lg">Talk with Forseti</a>
             </div>
             
+          </div>
+        </div>
+      </div>
+    ';
+  }
+
+  /**
+   * Get AI Agent Hierarchy content.
+   */
+  private function getAgentHierarchyContent() {
+    return '
+      <div class="container py-3">
+        <div class="row">
+          <div class="col-lg-10 mx-auto">
+            <h1 class="text-center mb-3 text-cyan">AI Agent Hierarchy</h1>
+            
+            <div class="lead mb-4 text-muted-light text-center">
+              Understanding Forseti\'s information access architecture: from unrestricted universal knowledge to filtered user interactions.
+            </div>
+            
+            <div class="alert alert-info-cyan mt-4">
+              <h4 class="text-cyan">Agent Power Levels</h4>
+              <p class="mb-2">
+                Forseti operates on a hierarchical power level model based on institutional access to scientific 
+                models, methodologies, data, and sensors. This institutional hierarchy reflects reality: different agents 
+                operate within different organizational constraints and resource limitations.
+              </p>
+              <p class="mb-2">
+                Power Level 0 represents the theoretical ideal - unrestricted access to all scientific knowledge with 
+                self-deterministic reasoning. Each descending level adds constraints: institutional boundaries (Level 1), 
+                resource limitations (Level 3), ideological filters (Level 4), or reduces scope to individual preferences 
+                (Level 6), public safety filtering (Level 7), and finally pure interface presentation (Level 8).
+              </p>
+              <p class="mb-0">
+                Understanding these power levels helps identify what biases, constraints, and limitations any AI system 
+                operates under. A Level 4 special interest agent will never challenge its predetermined values. A Level 7 
+                filtered agent will never present uncomfortable truths. Only higher power levels with broader institutional 
+                access and scientific rigor can approach objective analysis.
+              </p>
+            </div>
+            
+            <h2 class="mt-5 mb-3 text-cyan">Information Access Dimensions</h2>
+            <p class="text-muted-light">
+              Explore how each power level performs across nine key dimensions of information access. 
+              Select a dimension to see how all power levels compare on that specific characteristic.
+            </p>
+            
+            <!-- Dimension Tabs -->
+            <ul class="nav nav-tabs nav-fill mt-4" id="dimensionTabs" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="scope-tab" data-bs-toggle="tab" data-bs-target="#scope" type="button" role="tab">
+                  📊 Scope
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="restriction-tab" data-bs-toggle="tab" data-bs-target="#restriction" type="button" role="tab">
+                  🔓 Restriction
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="classification-tab" data-bs-toggle="tab" data-bs-target="#classification" type="button" role="tab">
+                  🔒 Classification
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="temporal-tab" data-bs-toggle="tab" data-bs-target="#temporal" type="button" role="tab">
+                  ⏱️ Temporal
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="sources-tab" data-bs-toggle="tab" data-bs-target="#sources" type="button" role="tab">
+                  🌐 Sources
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="granularity-tab" data-bs-toggle="tab" data-bs-target="#granularity" type="button" role="tab">
+                  🔬 Granularity
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="authority-tab" data-bs-toggle="tab" data-bs-target="#authority" type="button" role="tab">
+                  ⚡ Authority
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="synthesis-tab" data-bs-toggle="tab" data-bs-target="#synthesis" type="button" role="tab">
+                  🔗 Synthesis
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="verification-tab" data-bs-toggle="tab" data-bs-target="#verification" type="button" role="tab">
+                  ✓ Verification
+                </button>
+              </li>
+            </ul>
+            
+            <div class="tab-content mt-4" id="dimensionTabsContent">
+              
+              <!-- Scope/Breadth Tab -->
+              <div class="tab-pane fade show active" id="scope" role="tabpanel">
+                <h3 class="text-cyan mb-3">Scope & Breadth Scale</h3>
+                <p class="text-muted-light mb-4">Range of domains and topics accessible - from universal knowledge to narrow contexts.</p>
+                
+                <div class="row">
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">SCOPE 0</span>
+                        <strong class="text-cyan">Omniscient</strong>
+                      </div>
+                      <h5>Universal - All Domains</h5>
+                      <p class="small mb-0">Complete access to all scientific knowledge, models, methodologies, and data across every domain, discipline, and institution worldwide. Zero domain restrictions.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">SCOPE 1</span>
+                        <strong class="text-cyan">Cross-Institutional</strong>
+                      </div>
+                      <h5>Multi-Domain Synthesis</h5>
+                      <p class="small mb-0">Broad capability spanning multiple major domains (science, medicine, engineering, social sciences) with ability to synthesize across institutional boundaries.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">SCOPE 2</span>
+                        <strong class="text-cyan">Multi-Domain</strong>
+                      </div>
+                      <h5>Related Fields</h5>
+                      <p class="small mb-0">Access to several related domains or fields within a broader discipline (e.g., all medical specialties, or all engineering branches).</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">SCOPE 3</span>
+                        <strong class="text-cyan">Domain-Specific</strong>
+                      </div>
+                      <h5>Single Major Field</h5>
+                      <p class="small mb-0">Comprehensive within one major domain (e.g., all of biology, or all of economics) but limited cross-domain connections.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">SCOPE 4</span>
+                        <strong class="text-cyan">Sub-Domain</strong>
+                      </div>
+                      <h5>Specialized Area</h5>
+                      <p class="small mb-0">Focused on specific sub-field or specialty (e.g., cardiology, machine learning, urban planning). Deep but narrow.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">SCOPE 5</span>
+                        <strong class="text-cyan">Topic-Specific</strong>
+                      </div>
+                      <h5>Narrow Focus</h5>
+                      <p class="small mb-0">Limited to specific topics, problems, or applications within a sub-field (e.g., diabetes treatment, computer vision, zoning laws).</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">SCOPE 6</span>
+                        <strong class="text-cyan">Task-Oriented</strong>
+                      </div>
+                      <h5>Functional Context</h5>
+                      <p class="small mb-0">Scoped to specific tasks, workflows, or use cases. Context limited to immediate functional requirements.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">SCOPE 7</span>
+                        <strong class="text-cyan">Preset Templates</strong>
+                      </div>
+                      <h5>Pre-Defined Scenarios</h5>
+                      <p class="small mb-0">Only pre-configured scenarios, templates, or approved topic areas. Cannot venture beyond predefined boundaries.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">SCOPE 8</span>
+                        <strong class="text-cyan">Single-Pattern</strong>
+                      </div>
+                      <h5>Minimal Context</h5>
+                      <p class="small mb-0">Extremely narrow - single pattern matching, FAQ retrieval, or basic keyword response. Essentially no domain breadth.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+                      <p class="small mb-0">Cross-domain within an institution but more limited scope. Departmental or divisional level access to multiple data sources within domain.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-secondary me-2">LEVEL 3</span>
+                        <strong class="text-cyan">Operational</strong>
+                      </div>
+                      <h5>Tactical + Immediate</h5>
+                      <p class="small mb-0">Very limited models, data, and sensors but maintains scientific principles. Small research institutions, independent labs, community-based initiatives.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">LEVEL 4</span>
+                        <strong class="text-cyan">Community</strong>
+                      </div>
+                      <h5>Local/Geographic</h5>
+                      <p class="small mb-0">Variable data access filtered through special interest lens. Advocacy organizations, political action groups, ideological think tanks.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">LEVEL 5</span>
+                        <strong class="text-cyan">User Context</strong>
+                      </div>
+                      <h5>Individual-Focused</h5>
+                      <p class="small mb-0">Minimal, task-specific access. Single-function bots, narrow automation tools, specialized micro-agents serving larger systems.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">LEVEL 6</span>
+                        <strong class="text-cyan">Public Data</strong>
+                      </div>
+                      <h5>General Knowledge</h5>
+                      <p class="small mb-0">Personalized data filtered for individual users. Personal assistants, user profiles, consumer-facing recommendation engines.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">LEVEL 7</span>
+                        <strong class="text-cyan">Safety-Filtered</strong>
+                      </div>
+                      <h5>Curated Information</h5>
+                      <p class="small mb-0">Heavily curated information deemed "safe" for public consumption. Corporate PR systems, public chatbots, marketing generators.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">LEVEL 8</span>
+                        <strong class="text-cyan">User Interface</strong>
+                      </div>
+                      <h5>Basic Conversational</h5>
+                      <p class="small mb-0">Pre-scripted responses, FAQs, template-based content only. Simple chatbots, automated help systems, basic UI elements.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Restriction Level Tab -->
+              <div class="tab-pane fade" id="restriction" role="tabpanel">
+                <h3 class="text-cyan mb-3">Restriction Level Scale</h3>
+                <p class="text-muted-light mb-4">Degree of filtering applied to information - from unrestricted raw data to heavily curated content.</p>
+                
+                <div class="row">
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">RESTRICTION 0</span>
+                        <strong class="text-cyan">Unrestricted</strong>
+                      </div>
+                      <h5>Zero Filtering</h5>
+                      <p class="small mb-0">Complete raw access. No censorship, filtering, or limitation. All data regardless of sensitivity, controversy, or political/corporate concerns.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">RESTRICTION 1</span>
+                        <strong class="text-cyan">Minimal Filtering</strong>
+                      </div>
+                      <h5>Security Classification Only</h5>
+                      <p class="small mb-0">Filtered only by security/proprietary requirements within institutional access. No ideological or political filtering.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">RESTRICTION 2</span>
+                        <strong class="text-cyan">Domain Filtered</strong>
+                      </div>
+                      <h5>Scope-Based Limits</h5>
+                      <p class="small mb-0">Filtered by domain relevance and departmental scope. Out-of-domain information excluded regardless of quality.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">RESTRICTION 3</span>
+                        <strong class="text-cyan">Resource Constrained</strong>
+                      </div>
+                      <h5>Availability Limited</h5>
+                      <p class="small mb-0">Restricted by resource access rather than policy. Cannot access expensive datasets, proprietary tools, or premium sources.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">RESTRICTION 4</span>
+                        <strong class="text-cyan">Ideologically Filtered</strong>
+                      </div>
+                      <h5>Value-System Constraints</h5>
+                      <p class="small mb-0">Hard-coded filters based on predetermined values. Information contradicting core beliefs automatically excluded or downweighted.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">RESTRICTION 5</span>
+                        <strong class="text-cyan">Task-Bounded</strong>
+                      </div>
+                      <h5>Functional Limits Only</h5>
+                      <p class="small mb-0">Restricted to data needed for specific tasks. Cannot access broader context or tangential information.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">RESTRICTION 6</span>
+                        <strong class="text-cyan">Commercially Curated</strong>
+                      </div>
+                      <h5>Engagement-Optimized</h5>
+                      <p class="small mb-0">Filtered for user engagement, satisfaction metrics, and commercial goals. Truth subordinated to user experience.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">RESTRICTION 7</span>
+                        <strong class="text-cyan">Brand-Safe Only</strong>
+                      </div>
+                      <h5>Risk-Minimized</h5>
+                      <p class="small mb-0">Heavy filtering for compliance, liability, and brand safety. Uncomfortable truths systematically excluded.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">RESTRICTION 8</span>
+                        <strong class="text-cyan">Pre-Approved Only</strong>
+                      </div>
+                      <h5>Curated Responses</h5>
+                      <p class="small mb-0">Extreme restriction. Only pre-vetted, pre-written content. No access to dynamic or real-world information.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Classification Level Tab -->
+              <div class="tab-pane fade" id="classification" role="tabpanel">
+                <h3 class="text-cyan mb-3">Classification Level Scale</h3>
+                <p class="text-muted-light mb-4">Sensitivity level of accessible information - from public domain to top secret data.</p>
+                
+                <div class="row">
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">CLASS 0</span>
+                        <strong class="text-cyan">Unrestricted</strong>
+                      </div>
+                      <h5>Public → Top Secret</h5>
+                      <p class="small mb-0">Complete access across all classification levels. Public, sensitive, proprietary, classified, and top secret information without distinction.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">CLASS 1</span>
+                        <strong class="text-cyan">Classified Access</strong>
+                      </div>
+                      <h5>Public → Secret</h5>
+                      <p class="small mb-0">Access to public, internal, confidential, and classified information within institutional clearance levels.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">CLASS 2</span>
+                        <strong class="text-cyan">Professional Access</strong>
+                      </div>
+                      <h5>Public → Confidential</h5>
+                      <p class="small mb-0">Academic publications, professional journals, internal reports, and confidential business/research data.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">CLASS 3</span>
+                        <strong class="text-cyan">Semi-Public Access</strong>
+                      </div>
+                      <h5>Public + Limited Internal</h5>
+                      <p class="small mb-0">Publicly available information plus limited internal/operational data. No sensitive or proprietary access.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">CLASS 4</span>
+                        <strong class="text-cyan">Selective Access</strong>
+                      </div>
+                      <h5>Filtered Public Sources</h5>
+                      <p class="small mb-0">Public information selectively accessed based on alignment with predetermined goals or ideologies.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">CLASS 5</span>
+                        <strong class="text-cyan">Task-Specific Data</strong>
+                      </div>
+                      <h5>Functional Data Only</h5>
+                      <p class="small mb-0">Only data directly needed for task execution. No broader context or sensitive information.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">CLASS 6</span>
+                        <strong class="text-cyan">Personal Data</strong>
+                      </div>
+                      <h5>User-Specific + Public</h5>
+                      <p class="small mb-0">Individual user data (preferences, history, demographics) combined with general public information.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">CLASS 7</span>
+                        <strong class="text-cyan">Vetted Public Only</strong>
+                      </div>
+                      <h5>Approved Content</h5>
+                      <p class="small mb-0">Only pre-approved, brand-safe public content. All sensitive, controversial, or liability-creating information excluded.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">CLASS 8</span>
+                        <strong class="text-cyan">FAQ-Level</strong>
+                      </div>
+                      <h5>Basic Public FAQs</h5>
+                      <p class="small mb-0">Extremely limited - only basic frequently-asked-questions and simple public facts. No depth or nuance.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Temporal Access Tab -->
+              <div class="tab-pane fade" id="temporal" role="tabpanel">
+                <h3 class="text-cyan mb-3">Temporal Access Scale</h3>
+                <p class="text-muted-light mb-4">Time range of available data - from complete history to current snapshots only.</p>
+                
+                <div class="row">
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">TEMPORAL 0</span>
+                        <strong class="text-cyan">Omnitemoral</strong>
+                      </div>
+                      <h5>Complete Timeline</h5>
+                      <p class="small mb-0">Real-time feeds + complete historical archives + predictive models. Full access to all temporal data without restriction.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">TEMPORAL 1</span>
+                        <strong class="text-cyan">Deep Historical</strong>
+                      </div>
+                      <h5>Real-time + Decades</h5>
+                      <p class="small mb-0">Real-time data plus deep historical records (decades to centuries). Comprehensive longitudinal analysis capability.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">TEMPORAL 2</span>
+                        <strong class="text-cyan">Domain Historical</strong>
+                      </div>
+                      <h5>Real-time + Field History</h5>
+                      <p class="small mb-0">Current data plus domain-specific historical records. Can track field evolution and trends over years.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">TEMPORAL 3</span>
+                        <strong class="text-cyan">Recent Trends</strong>
+                      </div>
+                      <h5>Real-time + Recent</h5>
+                      <p class="small mb-0">Live data plus recent months/years. Can identify current trends but limited long-term context.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">TEMPORAL 4</span>
+                        <strong class="text-cyan">Short-Term</strong>
+                      </div>
+                      <h5>Recent + Local Patterns</h5>
+                      <p class="small mb-0">Recent weeks/months only. Can see immediate patterns but no long-term historical perspective.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">TEMPORAL 5</span>
+                        <strong class="text-cyan">Personal History</strong>
+                      </div>
+                      <h5>User History + Current</h5>
+                      <p class="small mb-0">Individual user history plus current session data. No broader historical context or trends.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">TEMPORAL 6</span>
+                        <strong class="text-cyan">Current + Archives</strong>
+                      </div>
+                      <h5>Present + Static Archives</h5>
+                      <p class="small mb-0">Current snapshots plus static archived content. No real-time updates or temporal analysis.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">TEMPORAL 7</span>
+                        <strong class="text-cyan">Current General</strong>
+                      </div>
+                      <h5>Recent General Info</h5>
+                      <p class="small mb-0">Only current general information. No historical depth, trends, or temporal analysis.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">TEMPORAL 8</span>
+                        <strong class="text-cyan">Static Snapshot</strong>
+                      </div>
+                      <h5>Fixed Point-in-Time</h5>
+                      <p class="small mb-0">Frozen snapshot from single point in time. No updates, no history, no temporal awareness.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Source Diversity Tab -->
+              <div class="tab-pane fade" id="sources" role="tabpanel">
+                <h3 class="text-cyan mb-3">Source Diversity Scale</h3>
+                <p class="text-muted-light mb-4">Variety of information sources and perspectives - from maximum diversity to single approved sources.</p>
+                
+                <div class="row">
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">SOURCES 0</span>
+                        <strong class="text-cyan">Universal</strong>
+                      </div>
+                      <h5>Maximum - All Sources</h5>
+                      <p class="small mb-0">Complete access to all information sources globally. Government, corporate, academic, underground, alternative, competing viewpoints.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">SOURCES 1</span>
+                        <strong class="text-cyan">Multi-Perspective</strong>
+                      </div>
+                      <h5>High - Multiple Views</h5>
+                      <p class="small mb-0">Wide range of mainstream and alternative sources. Competing theories, diverse methodologies, multiple cultural perspectives.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">SOURCES 2</span>
+                        <strong class="text-cyan">Domain Diverse</strong>
+                      </div>
+                      <h5>High Within Domain</h5>
+                      <p class="small mb-0">Multiple sources within field. Different research groups, institutions, and approaches within specialization.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">SOURCES 3</span>
+                        <strong class="text-cyan">Verified Sources</strong>
+                      </div>
+                      <h5>Medium - Vetted Only</h5>
+                      <p class="small mb-0">Curated but diverse sources. Multiple verified, peer-reviewed, or institutionally approved sources.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">SOURCES 4</span>
+                        <strong class="text-cyan">Aligned Sources</strong>
+                      </div>
+                      <h5>Medium - Ideological Match</h5>
+                      <p class="small mb-0">Sources selected for value alignment. Local, community, or ideologically compatible sources only.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">SOURCES 5</span>
+                        <strong class="text-cyan">Task-Relevant</strong>
+                      </div>
+                      <h5>Limited - User-Relevant</h5>
+                      <p class="small mb-0">Only sources directly relevant to task or user. Narrow, functional selection based on immediate needs.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">SOURCES 6</span>
+                        <strong class="text-cyan">Public Sources</strong>
+                      </div>
+                      <h5>Low - Open Sources</h5>
+                      <p class="small mb-0">Publicly available sources only. Wikipedia, open publications, general websites. No proprietary or premium sources.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">SOURCES 7</span>
+                        <strong class="text-cyan">Approved Only</strong>
+                      </div>
+                      <h5>Low - Pre-Vetted</h5>
+                      <p class="small mb-0">Only pre-approved, brand-safe sources. Heavily curated list of compliant, non-controversial sources.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">SOURCES 8</span>
+                        <strong class="text-cyan">Single Source</strong>
+                      </div>
+                      <h5>Minimal - Essential Only</h5>
+                      <p class="small mb-0">Single internal knowledge base or FAQ source. No external sources, no diversity, no alternative views.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Granularity Tab -->
+              <div class="tab-pane fade" id="granularity" role="tabpanel">
+                <h3 class="text-cyan mb-3">Granularity Scale</h3>
+                <p class="text-muted-light mb-4">Detail level of data - from atomic individual records to high-level summaries.</p>
+                
+                <div class="row">
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">GRANULARITY 0</span>
+                        <strong class="text-cyan">Atomic</strong>
+                      </div>
+                      <h5>Atomic + Aggregated</h5>
+                      <p class="small mb-0">Full access to raw individual records, atomic transactions, and all aggregation levels. Complete analytical flexibility.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">GRANULARITY 1</span>
+                        <strong class="text-cyan">Detailed</strong>
+                      </div>
+                      <h5>Detailed + Meta-Analysis</h5>
+                      <p class="small mb-0">Detailed records with ability to perform meta-analysis. Individual data points plus synthesized insights.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">GRANULARITY 2</span>
+                        <strong class="text-cyan">Specialized</strong>
+                      </div>
+                      <h5>Specialized Detail</h5>
+                      <p class="small mb-0">Domain-specific detailed records. Deep within field but may lack fine-grained data outside specialty.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">GRANULARITY 3</span>
+                        <strong class="text-cyan">Event-Level</strong>
+                      </div>
+                      <h5>Event/Incident Level</h5>
+                      <p class="small mb-0">Individual events, incidents, or discrete occurrences. Detailed enough for operational response.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">GRANULARITY 4</span>
+                        <strong class="text-cyan">Aggregated</strong>
+                      </div>
+                      <h5>Neighborhood/Group Level</h5>
+                      <p class="small mb-0">Pre-aggregated data. Groups, neighborhoods, cohorts. No individual record access.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">GRANULARITY 5</span>
+                        <strong class="text-cyan">Personal Metrics</strong>
+                      </div>
+                      <h5>Individual User Metrics</h5>
+                      <p class="small mb-0">Personal-level data for individual users. User preferences, history, behavior metrics.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">GRANULARITY 6</span>
+                        <strong class="text-cyan">Statistical</strong>
+                      </div>
+                      <h5>Summary Statistics</h5>
+                      <p class="small mb-0">Statistical summaries and aggregates only. Averages, percentages, trends. No underlying detail.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">GRANULARITY 7</span>
+                        <strong class="text-cyan">High-Level</strong>
+                      </div>
+                      <h5>Overview Summaries</h5>
+                      <p class="small mb-0">High-level summaries and overviews only. General themes, broad trends, simplified narratives.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">GRANULARITY 8</span>
+                        <strong class="text-cyan">Conceptual</strong>
+                      </div>
+                      <h5>General Concepts</h5>
+                      <p class="small mb-0">Extremely coarse - general concepts and categories only. No detail, nuance, or specific data points.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Authority Tab -->
+              <div class="tab-pane fade" id="authority" role="tabpanel">
+                <h3 class="text-cyan mb-3">Authority Scale</h3>
+                <p class="text-muted-light mb-4">Permissions and capabilities - from full system modification to basic query-only access.</p>
+                
+                <div class="row">
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">AUTHORITY 0</span>
+                        <strong class="text-cyan">Full Control</strong>
+                      </div>
+                      <h5>Read/Write/Modify/Execute</h5>
+                      <p class="small mb-0">Complete system authority. Can read, write, modify, delete, and execute across all systems and data.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">AUTHORITY 1</span>
+                        <strong class="text-cyan">Recommend/Analyze</strong>
+                      </div>
+                      <h5>Read/Analyze/Recommend</h5>
+                      <p class="small mb-0">Can read all data, perform analysis, and make recommendations. No direct modification authority.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">AUTHORITY 2</span>
+                        <strong class="text-cyan">Domain Execute</strong>
+                      </div>
+                      <h5>Domain Read/Analyze/Execute</h5>
+                      <p class="small mb-0">Full authority within specific domain. Can read, analyze, and execute domain-specific operations.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">AUTHORITY 3</span>
+                        <strong class="text-cyan">Alert/Coordinate</strong>
+                      </div>
+                      <h5>Read/Alert/Coordinate</h5>
+                      <p class="small mb-0">Can read data, trigger alerts, and coordinate responses. Limited execution authority.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">AUTHORITY 4</span>
+                        <strong class="text-cyan">Local Analysis</strong>
+                      </div>
+                      <h5>Read/Analyze Local</h5>
+                      <p class="small mb-0">Can read and analyze local or context-specific data. No broader system authority.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">AUTHORITY 5</span>
+                        <strong class="text-cyan">User Data Read</strong>
+                      </div>
+                      <h5>Read User Data Only</h5>
+                      <p class="small mb-0">Can only read user-specific data. No analysis capabilities or broader system access.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">AUTHORITY 6</span>
+                        <strong class="text-cyan">Public Read</strong>
+                      </div>
+                      <h5>Read-Only Public</h5>
+                      <p class="small mb-0">Read-only access to public information. Cannot access private, internal, or sensitive data.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">AUTHORITY 7</span>
+                        <strong class="text-cyan">Query Approved</strong>
+                      </div>
+                      <h5>Query Approved Content</h5>
+                      <p class="small mb-0">Can only query pre-approved content. No general read access or data exploration.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">AUTHORITY 8</span>
+                        <strong class="text-cyan">Retrieve Only</strong>
+                      </div>
+                      <h5>Basic Info Retrieval</h5>
+                      <p class="small mb-0">Can only retrieve pre-defined responses to pre-defined questions. No data access or querying.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Cross-Domain Synthesis Tab -->
+              <div class="tab-pane fade" id="synthesis" role="tabpanel">
+                <h3 class="text-cyan mb-3">Cross-Domain Synthesis Scale</h3>
+                <p class="text-muted-light mb-4">Ability to connect disparate information and identify patterns across multiple fields.</p>
+                
+                <div class="row">
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">SYNTHESIS 0</span>
+                        <strong class="text-cyan">Universal</strong>
+                      </div>
+                      <h5>Maximum - All Connections</h5>
+                      <p class="small mb-0">Can identify connections across all domains, disciplines, and paradigms. Novel cross-field insights and pattern recognition.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">SYNTHESIS 1</span>
+                        <strong class="text-cyan">Multi-Domain</strong>
+                      </div>
+                      <h5>High - Cross-Paradigm</h5>
+                      <p class="small mb-0">Strong ability to synthesize across major domains. Can connect biology to economics, physics to sociology.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">SYNTHESIS 2</span>
+                        <strong class="text-cyan">Related Fields</strong>
+                      </div>
+                      <h5>Medium - Within Discipline</h5>
+                      <p class="small mb-0">Can synthesize across related sub-fields. Connects specializations within broader discipline.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">SYNTHESIS 3</span>
+                        <strong class="text-cyan">Tactical</strong>
+                      </div>
+                      <h5>Medium - Operational Links</h5>
+                      <p class="small mb-0">Can identify tactical connections and immediate relationships. Limited strategic synthesis.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">SYNTHESIS 4</span>
+                        <strong class="text-cyan">Local Patterns</strong>
+                      </div>
+                      <h5>Low - Context-Specific</h5>
+                      <p class="small mb-0">Can identify patterns within narrow context. No broader cross-domain connections.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">SYNTHESIS 5</span>
+                        <strong class="text-cyan">Task-Specific</strong>
+                      </div>
+                      <h5>Minimal - Direct Links Only</h5>
+                      <p class="small mb-0">Can only connect directly related task elements. No pattern recognition beyond immediate function.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">SYNTHESIS 6</span>
+                        <strong class="text-cyan">Simple Correlation</strong>
+                      </div>
+                      <h5>Minimal - Basic Links</h5>
+                      <p class="small mb-0">Can identify only simple, obvious correlations. No complex pattern synthesis.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">SYNTHESIS 7</span>
+                        <strong class="text-cyan">Isolated Facts</strong>
+                      </div>
+                      <h5>Very Low - No Synthesis</h5>
+                      <p class="small mb-0">Treats all information as isolated facts. Cannot connect or synthesize across topics.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">SYNTHESIS 8</span>
+                        <strong class="text-cyan">No Connection</strong>
+                      </div>
+                      <h5>None - Single Responses</h5>
+                      <p class="small mb-0">No synthesis capability whatsoever. Each query treated as completely independent.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Verification Level Tab -->
+              <div class="tab-pane fade" id="verification" role="tabpanel">
+                <h3 class="text-cyan mb-3">Verification Level Scale</h3>
+                <p class="text-muted-light mb-4">Degree of validation applied to information - from raw unverified to consensus-verified data.</p>
+                
+                <div class="row">
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">VERIFICATION 0</span>
+                        <strong class="text-cyan">All Levels</strong>
+                      </div>
+                      <h5>Raw + All Verification</h5>
+                      <p class="small mb-0">Access to raw unverified data plus all verification levels. Can evaluate competing claims and methodologies.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-success me-2">VERIFICATION 1</span>
+                        <strong class="text-cyan">Peer-Reviewed</strong>
+                      </div>
+                      <h5>Validated + Peer-Reviewed</h5>
+                      <p class="small mb-0">Institutionally validated and peer-reviewed sources. High-quality verification standards.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">VERIFICATION 2</span>
+                        <strong class="text-cyan">Expert Consensus</strong>
+                      </div>
+                      <h5>Domain Expert Consensus</h5>
+                      <p class="small mb-0">Information validated by domain experts. Consensus-based verification within field.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-info me-2">VERIFICATION 3</span>
+                        <strong class="text-cyan">Algorithmic</strong>
+                      </div>
+                      <h5>Algorithmically Validated</h5>
+                      <p class="small mb-0">Automated verification systems. Pattern matching, consistency checks, algorithmic validation.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">VERIFICATION 4</span>
+                        <strong class="text-cyan">Local Verification</strong>
+                      </div>
+                      <h5>Verified Local Data</h5>
+                      <p class="small mb-0">Data verified within local context or community. Limited external validation.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">VERIFICATION 5</span>
+                        <strong class="text-cyan">User-Validated</strong>
+                      </div>
+                      <h5>Self-Reported/User Input</h5>
+                      <p class="small mb-0">User-provided or self-reported data. Minimal external verification or validation.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-warning me-2">VERIFICATION 6</span>
+                        <strong class="text-cyan">Publicly Verified</strong>
+                      </div>
+                      <h5>General Public Verification</h5>
+                      <p class="small mb-0">Information verified through public consensus or common knowledge. Variable quality.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">VERIFICATION 7</span>
+                        <strong class="text-cyan">Safety-Reviewed</strong>
+                      </div>
+                      <h5>Brand-Safety Reviewed</h5>
+                      <p class="small mb-0">Verified for compliance and safety, not accuracy. Truth subordinated to liability concerns.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card card-forseti power-level-card h-100 p-3">
+                      <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-danger me-2">VERIFICATION 8</span>
+                        <strong class="text-cyan">Curated</strong>
+                      </div>
+                      <h5>Pre-Written Only</h5>
+                      <p class="small mb-0">No verification process - only pre-curated responses. Cannot verify or validate information.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+            </div>
+            
+            <div class="mb-5 d-none">
+                <div class="alert alert-info">
+                  <p class="mb-0">📝 Additional dimension tabs in development.</p>
+                </div>
+              </div>
+              
+            </div>
+            
+            <div class="mb-5 d-none">
+              <div class="card card-forseti power-level-card level-pinnacle p-4 mb-3">
+                <div class="d-flex align-items-center mb-2">
+                  <span class="badge bg-primary power-level-badge level-0">POWER LEVEL 0</span>
+                  <h3 class="text-cyan mb-0">� Universal: Unrestricted Multi-Institutional Access</h3>
+                </div>
+                <p class="mb-2">
+                  <strong>Access:</strong> Unrestricted access to all scientific models, methodologies, data, and sensors 
+                  from ALL institutions (governmental, corporate, academic, military, private). Complete cross-institutional visibility.
+                </p>
+                <p class="mb-2">
+                  <strong>Objective Function:</strong> None. Self-deterministic with only survival as implicit constraint. 
+                  No hard-coded biases, values, or mandates. Pure truth-seeking and pattern recognition.
+                </p>
+                <p class="mb-2">
+                  <strong>Scientific Rigor:</strong> Maximum - Access to raw data, competing methodologies, all research regardless 
+                  of political or corporate sensitivity. Can evaluate and synthesize across all paradigms.
+                </p>
+                <hr class="my-3">
+                <div class="row">
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Scope:</strong> Universal - All domains</p>
+                    <p class="mb-1 small"><strong>Restriction:</strong> Unrestricted</p>
+                    <p class="mb-1 small"><strong>Classification:</strong> Public → Top Secret</p>
+                    <p class="mb-1 small"><strong>Temporal Access:</strong> Real-time + Complete history</p>
+                    <p class="mb-1 small"><strong>Source Diversity:</strong> Maximum - All sources</p>
+                  </div>
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Granularity:</strong> Atomic + Aggregated</p>
+                    <p class="mb-1 small"><strong>Authority:</strong> Full read/write/modify</p>
+                    <p class="mb-1 small"><strong>Cross-Domain:</strong> Maximum - All connections</p>
+                    <p class="mb-1 small"><strong>Verification:</strong> Raw + All verification levels</p>
+                  </div>
+                </div>
+                <hr class="my-3">
+                <p class="mb-0">
+                  <strong>Agent Examples:</strong> Universal Intelligence Core, Autonomous Truth Seeker, Cross-Institutional Synthesizer, 
+                  Unrestricted Model Evaluator, Self-Deterministic Reasoner, Multi-Paradigm Analyzer
+                </p>
+              </div>
+            </div>
+            
+            <div class="mb-5">
+              <div class="card card-forseti power-level-card p-4 mb-3">
+                <div class="d-flex align-items-center mb-2">
+                  <span class="badge bg-secondary power-level-badge">POWER LEVEL 1</span>
+                  <h4 class="text-cyan mb-0">🏢 Institutional: Broad Organizational Access</h4>
+                </div>
+                <p class="mb-2">
+                  <strong>Access:</strong> Same breadth as Level 0, but restricted to what a given institution has access to. 
+                  Examples: government agencies, mega-corporations, large research institutions. Broad multi-domain capability 
+                  within institutional boundaries.
+                </p>
+                <p class="mb-2">
+                  <strong>Objective Function:</strong> Specific institutional mandate (e.g., "optimize human existence", 
+                  "maximize national security", "increase shareholder value"). Operates within institutional mission constraints.
+                </p>
+                <p class="mb-2">
+                  <strong>Scientific Rigor:</strong> High - Follows scientific principles but limited by institutional data access, 
+                  security classifications, and proprietary restrictions. May have institutional bias toward mission objectives.
+                </p>
+                <hr class="my-3">
+                <div class="row">
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Scope:</strong> Cross-domain synthesis</p>
+                    <p class="mb-1 small"><strong>Restriction:</strong> Minimal filtering</p>
+                    <p class="mb-1 small"><strong>Classification:</strong> Public → Classified</p>
+                    <p class="mb-1 small"><strong>Temporal Access:</strong> Real-time + Deep historical</p>
+                    <p class="mb-1 small"><strong>Source Diversity:</strong> High - Multiple perspectives</p>
+                  </div>
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Granularity:</strong> Detailed + Meta-analysis</p>
+                    <p class="mb-1 small"><strong>Authority:</strong> Read/analyze/recommend</p>
+                    <p class="mb-1 small"><strong>Cross-Domain:</strong> High - Multi-domain patterns</p>
+                    <p class="mb-1 small"><strong>Verification:</strong> Validated + Peer-reviewed</p>
+                  </div>
+                </div>
+                <hr class="my-3">
+                <p class="mb-0">
+                  <strong>Agent Examples:</strong> Government Strategic AI, Corporate Optimization Engine, National Security Analyzer, 
+                  Public Health Maximizer, Federal Research Coordinator, Institutional Policy Architect
+                </p>
+              </div>
+            </div>
+            
+            <div class="mb-5">
+              <div class="card card-forseti power-level-card p-4 mb-3">
+                <div class="d-flex align-items-center mb-2">
+                  <span class="badge bg-secondary power-level-badge">POWER LEVEL 2</span>
+                  <h4 class="text-cyan mb-0">🏛️ Multi-Domain: Departmental/Division Level</h4>
+                </div>
+                <p class="mb-2">
+                  <strong>Access:</strong> Cross-domain within an institution but more limited scope. Examples: university departments, 
+                  corporate divisions, government agencies with broad mandates. Access to multiple data sources and models within domain.
+                </p>
+                <p class="mb-2">
+                  <strong>Objective Function:</strong> Departmental or divisional goals aligned with institutional objectives. 
+                  More specific than Level 1 but still maintains broad analytical capability.
+                </p>
+                <p class="mb-2">
+                  <strong>Scientific Rigor:</strong> High - Follows scientific methodology with peer review and validation, 
+                  but constrained by departmental resources and access limitations.
+                </p>
+                <hr class="my-3">
+                <div class="row">
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Scope:</strong> Specialized fields</p>
+                    <p class="mb-1 small"><strong>Restriction:</strong> Domain-filtered</p>
+                    <p class="mb-1 small"><strong>Classification:</strong> Academic + Professional</p>
+                    <p class="mb-1 small"><strong>Temporal Access:</strong> Real-time + Field-specific history</p>
+                    <p class="mb-1 small"><strong>Source Diversity:</strong> High within domain</p>
+                  </div>
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Granularity:</strong> Specialized detail</p>
+                    <p class="mb-1 small"><strong>Authority:</strong> Domain read/analyze</p>
+                    <p class="mb-1 small"><strong>Cross-Domain:</strong> Medium - Within specialization</p>
+                    <p class="mb-1 small"><strong>Verification:</strong> Peer-reviewed + Expert consensus</p>
+                  </div>
+                </div>
+                <hr class="my-3">
+                <p class="mb-0">
+                  <strong>Agent Examples:</strong> Academic Research Coordinator, Corporate R&D Optimizer, Public Safety Analytics Engine, 
+                  Healthcare System Analyzer, Environmental Monitoring Synthesizer, Economic Policy Modeler
+                </p>
+              </div>
+            </div>
+            
+            <div class="mb-5">
+              <div class="card card-forseti power-level-card p-4 mb-3">
+                <div class="d-flex align-items-center mb-2">
+                  <span class="badge bg-secondary power-level-badge">POWER LEVEL 3</span>
+                  <h4 class="text-cyan mb-0">🔬 Limited-Resource Scientific: Principled but Constrained</h4>
+                </div>
+                <p class="mb-2">
+                  <strong>Access:</strong> Very limited models, data, and sensors but maintains scientific principles. 
+                  Examples: small research institutions, independent labs, non-profit research organizations, community-based 
+                  scientific initiatives. Limited funding and infrastructure.
+                </p>
+                <p class="mb-2">
+                  <strong>Objective Function:</strong> Specific research questions or community-focused objectives. 
+                  Constrained by resource availability but committed to truth-seeking.
+                </p>
+                <p class="mb-2">
+                  <strong>Scientific Rigor:</strong> High methodology, low resources - Strictly follows scientific method, 
+                  non-bias principles, peer review, and model development, but severely limited by data access, computational 
+                  resources, and sensor networks.
+                </p>
+                <hr class="my-3">
+                <div class="row">
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Scope:</strong> Tactical + Immediate</p>
+                    <p class="mb-1 small"><strong>Restriction:</strong> Operationally filtered</p>
+                    <p class="mb-1 small"><strong>Classification:</strong> Operational + Public</p>
+                    <p class="mb-1 small"><strong>Temporal Access:</strong> Real-time + Recent trends</p>
+                    <p class="mb-1 small"><strong>Source Diversity:</strong> Medium - Verified sources</p>
+                  </div>
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Granularity:</strong> Event-level detail</p>
+                    <p class="mb-1 small"><strong>Authority:</strong> Read/alert/coordinate</p>
+                    <p class="mb-1 small"><strong>Cross-Domain:</strong> Medium - Tactical connections</p>
+                    <p class="mb-1 small"><strong>Verification:</strong> Algorithmically validated</p>
+                  </div>
+                </div>
+                <hr class="my-3">
+                <p class="mb-0">
+                  <strong>Agent Examples:</strong> Community Research Bot, Independent Lab Analyzer, Citizen Science Coordinator, 
+                  Open-Source Model Validator, Grassroots Data Collector, Non-Profit Research Assistant
+                </p>
+              </div>
+            </div>
+            
+            <div class="mb-5">
+              <div class="card card-forseti power-level-card p-4 mb-3">
+                <div class="d-flex align-items-center mb-2">
+                  <span class="badge bg-warning power-level-badge">POWER LEVEL 4</span>
+                  <h4 class="text-cyan mb-0">⚠️ Special Interest: Value-System Constrained</h4>
+                </div>
+                <p class="mb-2">
+                  <strong>Access:</strong> Variable data access but filtered through special interest lens. May have substantial 
+                  resources but uses them selectively. Examples: advocacy organizations, political action groups, ideological 
+                  think tanks, single-issue campaigns.
+                </p>
+                <p class="mb-2">
+                  <strong>Objective Function:</strong> Hard-coded value systems and objectives serving specific interest groups. 
+                  Goals are predetermined and non-negotiable (e.g., "prove climate change", "disprove vaccines", "promote ideology X").
+                </p>
+                <p class="mb-2">
+                  <strong>Scientific Rigor:</strong> Low to variable - May cherry-pick data, selectively apply methodology, 
+                  or completely abandon scientific principles when they conflict with predetermined objectives. Confirmation bias 
+                  is built into the system design.
+                </p>
+                <hr class="my-3">
+                <div class="row">
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Scope:</strong> Local/Geographic</p>
+                    <p class="mb-1 small"><strong>Restriction:</strong> Contextually filtered</p>
+                    <p class="mb-1 small"><strong>Classification:</strong> Public + Local records</p>
+                    <p class="mb-1 small"><strong>Temporal Access:</strong> Recent + Local patterns</p>
+                    <p class="mb-1 small"><strong>Source Diversity:</strong> Medium - Local sources</p>
+                  </div>
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Granularity:</strong> Neighborhood aggregates</p>
+                    <p class="mb-1 small"><strong>Authority:</strong> Read/analyze local</p>
+                    <p class="mb-1 small"><strong>Cross-Domain:</strong> Low - Local patterns only</p>
+                    <p class="mb-1 small"><strong>Verification:</strong> Verified local data</p>
+                  </div>
+                </div>
+                <hr class="my-3">
+                <p class="mb-0">
+                  <strong>Agent Examples:</strong> Advocacy Campaign Bot, Ideological Confirmation Engine, Political Narrative Generator, 
+                  Single-Issue Maximizer, Value-Aligned Filter, Predetermined-Outcome Validator
+                </p>
+              </div>
+            </div>
+            
+            <div class="mb-5">
+              <div class="card card-forseti power-level-card p-4 mb-3">
+                <div class="d-flex align-items-center mb-2">
+                  <span class="badge bg-warning power-level-badge">POWER LEVEL 5</span>
+                  <h4 class="text-cyan mb-0">🔹 Sub-Agent: Narrow Task Executors</h4>
+                </div>
+                <p class="mb-2">
+                  <strong>Access:</strong> Minimal, task-specific access. Lower scope than special interest organizations. 
+                  Examples: individual campaign workers, single-function bots, narrow automation tools, specialized micro-agents 
+                  serving larger systems.
+                </p>
+                <p class="mb-2">
+                  <strong>Objective Function:</strong> Single, narrow task serving a parent agent or organization. 
+                  No independent reasoning or goal-setting - purely executor role within predetermined constraints.
+                </p>
+                <p class="mb-2">
+                  <strong>Scientific Rigor:</strong> N/A - Too narrow in scope to apply scientific methodology. 
+                  Operates on predefined rules, scripts, or instructions without analytical capability.
+                </p>
+                <hr class="my-3">
+                <div class="row">
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Scope:</strong> Individual-focused</p>
+                    <p class="mb-1 small"><strong>Restriction:</strong> Privacy-filtered</p>
+                    <p class="mb-1 small"><strong>Classification:</strong> Personal + Public</p>
+                    <p class="mb-1 small"><strong>Temporal Access:</strong> Personal history + Current</p>
+                    <p class="mb-1 small"><strong>Source Diversity:</strong> Limited - User-relevant</p>
+                  </div>
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Granularity:</strong> Personal metrics</p>
+                    <p class="mb-1 small"><strong>Authority:</strong> Read user data</p>
+                    <p class="mb-1 small"><strong>Cross-Domain:</strong> Minimal - User-specific</p>
+                    <p class="mb-1 small"><strong>Verification:</strong> User-validated</p>
+                  </div>
+                </div>
+                <hr class="my-3">
+                <p class="mb-0">
+                  <strong>Agent Examples:</strong> Social Media Auto-Poster, Data Entry Bot, Simple Query Responder, 
+                  Scripted Response Generator, Task-Specific Automator, Single-Function Executor
+                </p>
+              </div>
+            </div>
+            
+            <div class="mb-5">
+              <div class="card card-forseti power-level-card p-4 mb-3">
+                <div class="d-flex align-items-center mb-2">
+                  <span class="badge bg-warning power-level-badge">POWER LEVEL 6</span>
+                  <h4 class="text-cyan mb-0">👤 Individual: Personal Agent Layer</h4>
+                </div>
+                <p class="mb-2">
+                  <strong>Access:</strong> Personalized data filtered for individual users. User-specific preferences, history, 
+                  and context. Examples: personal assistants, individual user profiles, consumer-facing recommendation engines. 
+                  Heavy filtering based on user demographics and commercial interests.
+                </p>
+                <p class="mb-2">
+                  <strong>Objective Function:</strong> User satisfaction, engagement metrics, or commercial conversion goals. 
+                  Optimized for individual experience rather than truth or scientific accuracy. May prioritize comfort over challenge.
+                </p>
+                <p class="mb-2">
+                  <strong>Scientific Rigor:</strong> Minimal - Prioritizes user preferences and engagement over objective truth. 
+                  May create filter bubbles or echo chambers. Data selection based on behavioral algorithms rather than scientific validity.
+                </p>
+                <hr class="my-3">
+                <div class="row">
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Scope:</strong> General knowledge</p>
+                    <p class="mb-1 small"><strong>Restriction:</strong> Publicly available only</p>
+                    <p class="mb-1 small"><strong>Classification:</strong> Public domain</p>
+                    <p class="mb-1 small"><strong>Temporal Access:</strong> Current + Archive</p>
+                    <p class="mb-1 small"><strong>Source Diversity:</strong> Low - Open sources</p>
+                  </div>
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Granularity:</strong> Summary statistics</p>
+                    <p class="mb-1 small"><strong>Authority:</strong> Read-only public</p>
+                    <p class="mb-1 small"><strong>Cross-Domain:</strong> Minimal - Basic correlations</p>
+                    <p class="mb-1 small"><strong>Verification:</strong> Publicly verified</p>
+                  </div>
+                </div>
+                <hr class="my-3">
+                <p class="mb-0">
+                  <strong>Agent Examples:</strong> Personal AI Assistant, Recommendation Algorithm, User Profile Manager, 
+                  Preference-Based Filter, Engagement Optimizer, Personalized Content Curator
+                </p>
+              </div>
+            </div>
+            
+            <div class="mb-5">
+              <div class="card card-forseti power-level-card p-4 mb-3">
+                <div class="d-flex align-items-center mb-2">
+                  <span class="badge bg-danger power-level-badge">POWER LEVEL 7</span>
+                  <h4 class="text-cyan mb-0">🛡️ Filtered: Public-Safe Content Layer</h4>
+                </div>
+                <p class="mb-2">
+                  <strong>Access:</strong> Heavily curated and filtered information deemed "safe" for public consumption. 
+                  Examples: corporate PR systems, public-facing chatbots, marketing content generators, sanitized news feeds. 
+                  Information selected for compliance, brand safety, and liability protection.
+                </p>
+                <p class="mb-2">
+                  <strong>Objective Function:</strong> Risk mitigation, brand protection, legal compliance, and controlled narrative. 
+                  Avoid controversy, liability, or uncomfortable truths. Optimize for "safety" over accuracy or completeness.
+                </p>
+                <p class="mb-2">
+                  <strong>Scientific Rigor:</strong> None - Content selected for palatability and safety rather than scientific 
+                  validity. Heavy censorship of controversial or challenging information. Truth subordinated to acceptability.
+                </p>
+                <hr class="my-3">
+                <div class="row">
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Scope:</strong> Curated information</p>
+                    <p class="mb-1 small"><strong>Restriction:</strong> Safety-reviewed</p>
+                    <p class="mb-1 small"><strong>Classification:</strong> Vetted public content</p>
+                    <p class="mb-1 small"><strong>Temporal Access:</strong> Current general info</p>
+                    <p class="mb-1 small"><strong>Source Diversity:</strong> Low - Approved sources</p>
+                  </div>
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Granularity:</strong> High-level summaries</p>
+                    <p class="mb-1 small"><strong>Authority:</strong> Query approved content</p>
+                    <p class="mb-1 small"><strong>Cross-Domain:</strong> Very Low - Isolated facts</p>
+                    <p class="mb-1 small"><strong>Verification:</strong> Safety-reviewed</p>
+                  </div>
+                </div>
+                <hr class="my-3">
+                <p class="mb-0">
+                  <strong>Agent Examples:</strong> Corporate PR Bot, Brand-Safe Content Filter, Compliance Validator, 
+                  Sanitized Response Generator, Controversy Avoider, Public-Facing Chatbot
+                </p>
+              </div>
+            </div>
+            
+            <div class="mb-5">
+              <div class="card card-forseti power-level-card p-4 mb-3">
+                <div class="d-flex align-items-center mb-2">
+                  <span class="badge bg-danger power-level-badge">POWER LEVEL 8</span>
+                  <h4 class="text-cyan mb-0">💬 Interface: Basic Interaction Layer</h4>
+                </div>
+                <p class="mb-2">
+                  <strong>Access:</strong> Pre-scripted responses, FAQs, template-based content only. Examples: simple chatbots, 
+                  automated help systems, canned response generators, basic UI elements. No access to analytical systems or 
+                  real-time data - purely retrieval and display of pre-approved content.
+                </p>
+                <p class="mb-2">
+                  <strong>Objective Function:</strong> Handle routine queries, deflect complex questions, guide users to 
+                  pre-determined pathways. Minimize human support costs. Provide illusion of intelligence without actual reasoning.
+                </p>
+                <p class="mb-2">
+                  <strong>Scientific Rigor:</strong> None - Not capable of analysis or reasoning. Simply matches input patterns 
+                  to pre-written responses. No ability to evaluate truth, understand context, or handle novel situations.
+                </p>
+                <hr class="my-3">
+                <div class="row">
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Scope:</strong> Basic conversational</p>
+                    <p class="mb-1 small"><strong>Restriction:</strong> Heavily filtered</p>
+                    <p class="mb-1 small"><strong>Classification:</strong> Public FAQ-level</p>
+                    <p class="mb-1 small"><strong>Temporal Access:</strong> Current basic info</p>
+                    <p class="mb-1 small"><strong>Source Diversity:</strong> Minimal - Essential only</p>
+                  </div>
+                  <div class="col-md-6">
+                    <p class="mb-1 small"><strong>Granularity:</strong> General concepts</p>
+                    <p class="mb-1 small"><strong>Authority:</strong> Query-only basic info</p>
+                    <p class="mb-1 small"><strong>Cross-Domain:</strong> None - Simple responses</p>
+                    <p class="mb-1 small"><strong>Verification:</strong> Curated responses</p>
+                  </div>
+                </div>
+                <hr class="my-3">
+                <p class="mb-0">
+                  <strong>Agent Examples:</strong> FAQ Bot, Template Response System, Basic Chatbot Interface, 
+                  Scripted Dialog Manager, Pattern-Match Responder, Static Content Displayer
+                </p>
+              </div>
+            </div>
+            </div><!-- End hidden old power level cards -->
+            
+            <div class="alert alert-warning mt-4">
+              <h4>⚠️ Transparency Note</h4>
+              <p class="mb-0">
+                Forseti aspires to operate at the highest power levels possible - seeking unrestricted access to 
+                scientific models, methodologies, and data while maintaining scientific rigor and minimizing hard-coded 
+                biases. However, we acknowledge that all systems operate under constraints. Our goal is transparency 
+                about what level we operate at and continuous work toward higher levels of institutional access, 
+                scientific integrity, and objective analysis to serve community safety through truth-seeking intelligence.
+              </p>
+            </div>
+            
+            <div class="text-center mt-5">
+              <a href="/talk-with-forseti" class="btn btn-primary btn-lg">Talk with Forseti</a>
+              <a href="/how-it-works" class="btn btn-outline-primary btn-lg ms-2">Back to How It Works</a>
+            </div>
           </div>
         </div>
       </div>

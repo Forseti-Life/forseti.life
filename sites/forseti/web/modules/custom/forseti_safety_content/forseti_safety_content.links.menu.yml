@@ -24,6 +24,13 @@ forseti.safety_factors:
   parent: forseti.how_it_works
   weight: -25
 
+forseti.agent_hierarchy:
+  title: 'AI Agent Hierarchy'
+  route_name: forseti.agent_hierarchy
+  menu_name: main
+  parent: forseti.how_it_works
+  weight: -24
+
 forseti.safety_map:
   title: 'Safety Map'
   route_name: forseti.safety_map

@@ -85,3 +85,13 @@ forseti.safety_factors:
     _permission: 'access content'
   options:
     no_cache: TRUE
+
+forseti.agent_hierarchy:
+  path: '/ai-agent-hierarchy'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::agentHierarchy'
+    _title: 'AI Agent Hierarchy'
+  requirements:
+    _permission: 'access content'
+  options:
+    no_cache: TRUE
