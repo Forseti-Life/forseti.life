@@ -489,8 +489,44 @@ class ForsetiPagesController extends ControllerBase {
    */
   public function safetyFactors() {
     return [
-      '#markup' => $this->getSafetyFactorsContent(),
-      '#allowed_tags' => ['div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'a', 'ul', 'li', 'strong', 'button', 'span', 'br', 'img'],
+      '#theme' => 'forseti_page_safety_factors',
+      '#title' => $this->t('Safety Factors'),
+      '#lead' => $this->t('Forseti evaluates safety using a holistic framework aligned with Maslow\'s Hierarchy of Needs. Each dimension represents essential elements that contribute to community well-being and personal security.'),
+      '#assessment_alert' => [
+        'icon' => 'fa-info-circle',
+        'title' => $this->t('Comprehensive Assessment'),
+        'content' => $this->t('Each dimension is measured using multiple data sources and indicators to provide a complete picture of community safety and wellness.'),
+      ],
+      '#dimensions_title' => $this->t('The Seven Dimensions of Safety'),
+      '#dimensions_intro' => $this->t('Click on each dimension to explore the factors we monitor:'),
+      '#dimensions' => $this->buildSafetyDimensionsData(),
+      '#how_forseti_uses' => [
+        'title' => $this->t('How Forseti Uses This Framework'),
+        'intro' => $this->t('Our AI agent analyzes these dimensions across Philadelphia neighborhoods to:'),
+        'items' => [
+          $this->t('Identify patterns and correlations between different safety factors'),
+          $this->t('Predict emerging safety concerns before they escalate'),
+          $this->t('Provide personalized recommendations based on your specific needs and priorities'),
+          $this->t('Track changes over time to show improving or declining trends'),
+          $this->t('Compare similar neighborhoods to highlight best practices and areas for improvement'),
+        ],
+      ],
+      '#cta_buttons' => [
+        [
+          'url' => '/how-it-works',
+          'style' => 'btn-primary',
+          'text' => $this->t('Learn How It Works'),
+        ],
+        [
+          'url' => '/safety-map',
+          'style' => 'btn-outline-primary',
+          'text' => $this->t('View Safety Map'),
+        ],
+      ],
+      '#cache' => [
+        'max-age' => 3600,
+        'contexts' => ['url'],
+      ],
     ];
   }
 
@@ -535,6 +571,164 @@ class ForsetiPagesController extends ControllerBase {
    */
   private function buildTransparencyNote() {
     return $this->t('Forseti aspires to operate at the highest power levels possible - seeking unrestricted access to scientific models, methodologies, and data while maintaining scientific rigor and minimizing hard-coded biases. However, we acknowledge that all systems operate under constraints. Our goal is transparency about what level we operate at and continuous work toward higher levels of institutional access, scientific integrity, and objective analysis to serve community safety through truth-seeking intelligence.');
+  }
+
+  /**
+   * Build safety dimensions data.
+   */
+  private function buildSafetyDimensionsData(): array {
+    return [
+      [
+        'id' => 'safe',
+        'icon' => 'fa-shield-alt',
+        'name' => $this->t('Safe'),
+        'planned_enhancement' => FALSE,
+        'subtitle' => $this->t('Security & Protection'),
+        'description' => $this->t('The foundation of Maslow\'s hierarchy - physical safety and freedom from harm. This dimension tracks crime, emergency response, and environmental hazards.'),
+        'integration_note' => NULL,
+        'factors' => [
+          $this->t('Violent Crime Rate'),
+          $this->t('Property Crime Rate'),
+          $this->t('Emergency Response Time'),
+          $this->t('Police Presence & Community Relations'),
+          $this->t('Street Lighting & Infrastructure'),
+          $this->t('Environmental Hazards'),
+          $this->t('Traffic Safety'),
+          $this->t('Building Code Compliance'),
+          $this->t('Fire Safety & Prevention'),
+          $this->t('Disaster Preparedness'),
+        ],
+      ],
+      [
+        'id' => 'energized',
+        'icon' => 'fa-bolt',
+        'name' => $this->t('Energized'),
+        'planned_enhancement' => TRUE,
+        'subtitle' => $this->t('Vitality & Basic Needs'),
+        'description' => $this->t('Building on physical safety - access to essential resources like housing, food, and financial stability that energize daily life.'),
+        'integration_note' => [
+          'text' => $this->t('Forseti can learn what matters most to you about your neighborhood\'s vitality.'),
+          'link' => '/talk-with-forseti',
+          'link_text' => $this->t('Talk with Forseti →'),
+        ],
+        'factors' => [
+          $this->t('Housing Quality & Affordability'),
+          $this->t('Food Security & Access'),
+          $this->t('Employment Opportunities'),
+          $this->t('Income Stability'),
+          $this->t('Utility Reliability'),
+          $this->t('Financial Well-being Indicators'),
+        ],
+      ],
+      [
+        'id' => 'connected',
+        'icon' => 'fa-users',
+        'name' => $this->t('Connected'),
+        'planned_enhancement' => TRUE,
+        'subtitle' => $this->t('Community & Belonging'),
+        'description' => $this->t('Social connections and community cohesion - the networks and relationships that create belonging and mutual support.'),
+        'integration_note' => [
+          'text' => $this->t('Forseti can help you discover community connections.'),
+          'link' => '/talk-with-forseti',
+          'link_text' => $this->t('Talk with Forseti →'),
+        ],
+        'factors' => [
+          $this->t('Neighborhood Social Cohesion'),
+          $this->t('Community Organization Presence'),
+          $this->t('Social Support Networks'),
+          $this->t('Civic Participation Rate'),
+          $this->t('Cultural & Religious Institutions'),
+          $this->t('Community Events & Gathering Spaces'),
+          $this->t('Social Capital Indicators'),
+        ],
+      ],
+      [
+        'id' => 'free',
+        'icon' => 'fa-dove',
+        'name' => $this->t('Free'),
+        'planned_enhancement' => TRUE,
+        'subtitle' => $this->t('Autonomy & Rights'),
+        'description' => $this->t('Freedom of movement, privacy, and justice - the ability to make choices and exercise rights without undue constraint.'),
+        'integration_note' => [
+          'text' => $this->t('Forseti can explore what freedom means in your community context.'),
+          'link' => '/talk-with-forseti',
+          'link_text' => $this->t('Talk with Forseti →'),
+        ],
+        'factors' => [
+          $this->t('Freedom of Movement'),
+          $this->t('Privacy Protection'),
+          $this->t('Access to Justice'),
+          $this->t('Police Accountability'),
+          $this->t('Fair Housing Practices'),
+          $this->t('Anti-discrimination Measures'),
+        ],
+      ],
+      [
+        'id' => 'capable',
+        'icon' => 'fa-graduation-cap',
+        'name' => $this->t('Capable'),
+        'planned_enhancement' => TRUE,
+        'subtitle' => $this->t('Mastery & Development'),
+        'description' => $this->t('Education, skills, and economic opportunity - the resources and systems that enable personal and collective growth.'),
+        'integration_note' => [
+          'text' => $this->t('Forseti can identify opportunities for skill development in your area.'),
+          'link' => '/talk-with-forseti',
+          'link_text' => $this->t('Talk with Forseti →'),
+        ],
+        'factors' => [
+          $this->t('Education Quality & Access'),
+          $this->t('Skills Training & Development'),
+          $this->t('Economic Mobility'),
+          $this->t('Job Market Strength'),
+          $this->t('Entrepreneurship Support'),
+          $this->t('Safety Training & Preparedness'),
+        ],
+      ],
+      [
+        'id' => 'useful',
+        'icon' => 'fa-hands-helping',
+        'name' => $this->t('Useful'),
+        'planned_enhancement' => TRUE,
+        'subtitle' => $this->t('Purpose & Contribution'),
+        'description' => $this->t('Civic engagement and contribution - the ability to make meaningful contributions to community well-being and feel valued.'),
+        'integration_note' => [
+          'text' => $this->t('Forseti can suggest ways to contribute to community safety.'),
+          'link' => '/talk-with-forseti',
+          'link_text' => $this->t('Talk with Forseti →'),
+        ],
+        'factors' => [
+          $this->t('Volunteer Opportunities'),
+          $this->t('Civic Engagement Programs'),
+          $this->t('Community Leadership'),
+          $this->t('Neighborhood Improvement Initiatives'),
+          $this->t('Public Service Accessibility'),
+          $this->t('Community Voice in Decision-Making'),
+        ],
+      ],
+      [
+        'id' => 'whole',
+        'icon' => 'fa-heart',
+        'name' => $this->t('Whole'),
+        'planned_enhancement' => TRUE,
+        'subtitle' => $this->t('Holistic Health & Identity'),
+        'description' => $this->t('Comprehensive well-being - mental health, physical health, and community identity that create a sense of wholeness and fulfillment.'),
+        'integration_note' => [
+          'text' => $this->t('Forseti can discuss holistic community health with you.'),
+          'link' => '/talk-with-forseti',
+          'link_text' => $this->t('Talk with Forseti →'),
+        ],
+        'factors' => [
+          $this->t('Mental Health Resources'),
+          $this->t('Physical Health Services'),
+          $this->t('Substance Abuse Support'),
+          $this->t('Recreation & Green Space'),
+          $this->t('Air & Water Quality'),
+          $this->t('Community Identity & Pride'),
+          $this->t('Cultural Vitality'),
+          $this->t('Demographic Stability'),
+        ],
+      ],
+    ];
   }
 
   /**
@@ -1076,268 +1270,6 @@ class ForsetiPagesController extends ControllerBase {
     ];
     
     return $build;
-  }
-
-  /**
-   * Get Safety Factors content.
-   */
-  private function getSafetyFactorsContent() {
-    return '
-      <div class="container py-3">
-        <div class="row">
-          <div class="col-lg-8 mx-auto">
-            <h1 class="text-center mb-3 text-cyan">Safety Factors</h1>
-            
-            <p class="lead mb-4 text-muted-light">
-              Understanding safety through the lens of Maslow\'s Hierarchy of Needs - from foundational physical safety to higher-level security needs.
-            </p>
-            
-            <div class="alert alert-info-cyan mb-4">
-              <h4 class="text-cyan">📊 Comprehensive Safety Assessment</h4>
-              <p class="mb-0">
-                Forseti evaluates safety across multiple dimensions, recognizing that true security encompasses physical, social, and psychological well-being.
-              </p>
-            </div>
-            
-            <h2 class="mb-3 text-cyan">Seven Dimensions of Safety</h2>
-            <p class="text-muted-light mb-4">
-              Our comprehensive safety framework recognizes that true security encompasses physical protection, vitality, community trust, personal freedom, capability, purpose, and holistic well-being. This is our framework and our roadmap for priority.
-            </p>
-            
-            <div class="accordion mb-4" id="safetyFactorsAccordion">
-              
-              <!-- Safe (Security) -->
-              <div class="accordion-item card-forseti border-secondary">
-                <h2 class="accordion-header" id="headingSafe">
-                  <button class="accordion-button collapsed card-forseti text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSafe" aria-expanded="false" aria-controls="collapseSafe">
-                    <strong><img src="/themes/custom/forseti/images/logos/originals/forseti_mobile_trimmed.png?v=3" alt="Forseti Logo" class="forseti-icon"> Safe (Security)</strong>
-                  </button>
-                </h2>
-                <div id="collapseSafe" class="accordion-collapse collapse" aria-labelledby="headingSafe" data-bs-parent="#safetyFactorsAccordion">
-                  <div class="accordion-body card-forseti">
-                    <h5 class="text-cyan mb-3">The Foundation of Predictability</h5>
-                    <p class="text-muted-light mb-3">
-                      The reliable absence of immediate threat. It represents a state where the nervous system can shift from defense (fight/flight) to maintenance (rest/digest). It is characterized by physical protection, financial stability, and a predictable environment where one can sleep without fear.
-                    </p>
-                    <h6 class="text-cyan mb-2">Safety Factors:</h6>
-                    <ul class="text-muted-light">
-                      <li><strong>Violent Crime:</strong> Assault, robbery, homicide, domestic violence</li>
-                      <li><strong>Property Crime:</strong> Burglary, theft, vandalism, vehicle break-ins</li>
-                      <li><strong>Emergency Response:</strong> Police, fire, ambulance accessibility and response times <span class="text-muted-gray">(Planned Enhancement)</span></li>
-                      <li><strong>Building Security:</strong> Locks, alarms, security systems, surveillance <span class="text-muted-gray">(Planned Enhancement)</span></li>
-                      <li><strong>Police Presence:</strong> Regular patrols, station proximity, law enforcement visibility <span class="text-muted-gray">(Planned Enhancement)</span></li>
-                      <li><strong>Crime Trends:</strong> Historical patterns, seasonal variations, emerging threats <span class="text-muted-gray">(Planned Enhancement)</span></li>
-                      <li><strong>Environmental Quality:</strong> Clean air/water, pollution levels, noise control <span class="text-muted-gray">(Planned Enhancement)</span></li>
-                      <li><strong>Street Lighting:</strong> Adequate illumination in public spaces for activity and safety <span class="text-muted-gray">(Planned Enhancement)</span></li>
-                      <li><strong>Traffic Safety:</strong> Pedestrian infrastructure, bike lanes, crosswalk security <span class="text-muted-gray">(Planned Enhancement)</span></li>
-                      <li><strong>Natural Hazards:</strong> Flood zones, weather preparedness, disaster resilience <span class="text-muted-gray">(Planned Enhancement)</span></li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Energized (Vitality) -->
-              <div class="accordion-item card-forseti border-secondary">
-                <h2 class="accordion-header" id="headingEnergized">
-                  <button class="accordion-button collapsed card-forseti text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEnergized" aria-expanded="false" aria-controls="collapseEnergized">
-                    <strong><img src="/themes/custom/forseti/images/logos/originals/forseti_energized.png" alt="" class="forseti-icon"> Energized (Vitality) <span class="text-muted-gray">(Planned Enhancement)</span></strong>
-                  </button>
-                </h2>
-                <div id="collapseEnergized" class="accordion-collapse collapse" aria-labelledby="headingEnergized" data-bs-parent="#safetyFactorsAccordion">
-                  <div class="accordion-body card-forseti">
-                    <h5 class="text-cyan mb-3">The Biological Fuel</h5>
-                    <p class="text-muted-light mb-3">
-                      The move beyond mere survival to physiological optimization. This level focuses on accumulating the resources required to live, not just exist. It encompasses housing stability, food security, and financial well-being—the fundamental resources that provide the surplus "fuel" needed for higher pursuits.
-                    </p>
-                    <p class="text-muted-light mb-3">
-                      <em>If you have a solution to contribute and would like to integrate, <a href="/talk-with-forseti" class="link-cyan">talk with Forseti</a>.</em>
-                    </p>
-                    <h6 class="text-cyan mb-2">Safety Factors:</h6>
-                    <ul class="text-muted-light">
-                      <li><strong>Housing Stability:</strong> Affordable housing, habitability standards, eviction prevention</li>
-                      <li><strong>Food Security:</strong> Access to nutritious food, grocery stores, food assistance programs</li>
-                      <li><strong>Financial Well-being:</strong> Income stability, living wages, debt management, emergency savings</li>
-                      <li><strong>Utility Access:</strong> Reliable electricity, heating, water, internet connectivity</li>
-                      <li><strong>Transportation Access:</strong> Public transit, walkability, vehicle access, commute affordability</li>
-                      <li><strong>Economic Opportunity:</strong> Employment availability, job training, career pathways</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Connected (Community) -->
-              <div class="accordion-item card-forseti border-secondary">
-                <h2 class="accordion-header" id="headingConnected">
-                  <button class="accordion-button collapsed card-forseti text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseConnected" aria-expanded="false" aria-controls="collapseConnected">
-                    <strong><img src="/themes/custom/forseti/images/logos/originals/forseti_connected.png" alt="" class="forseti-icon"> Connected (Community) <span class="text-muted-gray">(Planned Enhancement)</span></strong>
-                  </button>
-                </h2>
-                <div id="collapseConnected" class="accordion-collapse collapse" aria-labelledby="headingConnected" data-bs-parent="#safetyFactorsAccordion">
-                  <div class="accordion-body card-forseti">
-                    <h5 class="text-cyan mb-3">The Alignment of Shared Values</h5>
-                    <p class="text-muted-light mb-3">
-                      The establishment of a Tribe. This goes beyond simple social safety; it defines the deep satisfaction of being interconnected with people who share your specific interests, values, and mission. It is the move from "fitting in" to "belonging," creating a network of peers that acts as a multiplier for your own growth.
-                    </p>
-                    <p class="text-muted-light mb-3">
-                      <em>If you have a solution to contribute and would like to integrate, <a href="/talk-with-forseti" class="link-cyan">talk with Forseti</a>.</em>
-                    </p>
-                    <h6 class="text-cyan mb-2">Safety Factors:</h6>
-                    <ul class="text-muted-light">
-                      <li><strong>Community Engagement:</strong> Neighborhood associations, block parties, community events</li>
-                      <li><strong>Social Cohesion:</strong> Trust among neighbors, mutual support networks, collective efficacy</li>
-                      <li><strong>Neighborhood Watch:</strong> Community surveillance, organized vigilance, reporting systems</li>
-                      <li><strong>Public Spaces:</strong> Community centers, gathering places, shared amenities</li>
-                      <li><strong>Green Spaces:</strong> Parks, recreation areas, urban forests, walking paths</li>
-                      <li><strong>Anti-Discrimination:</strong> Inclusive environment, hate crime monitoring, diversity acceptance</li>
-                      <li><strong>Youth Programs:</strong> After-school activities, mentorship, recreation, positive engagement</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Free (Autonomy) -->
-              <div class="accordion-item card-forseti border-secondary">
-                <h2 class="accordion-header" id="headingFree">
-                  <button class="accordion-button collapsed card-forseti text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFree" aria-expanded="false" aria-controls="collapseFree">
-                    <strong><img src="/themes/custom/forseti/images/logos/originals/forseti_free.png" alt="" class="forseti-icon"> Free (Autonomy) <span class="text-muted-gray">(Planned Enhancement)</span></strong>
-                  </button>
-                </h2>
-                <div id="collapseFree" class="accordion-collapse collapse" aria-labelledby="headingFree" data-bs-parent="#safetyFactorsAccordion">
-                  <div class="accordion-body card-forseti">
-                    <h5 class="text-cyan mb-3">The Power of Self-Determination</h5>
-                    <p class="text-muted-light mb-3">
-                      The liberation from coercion and the assertion of the self. This is the ability to set boundaries, make independent choices, and direct one\'s own path without being controlled by the expectations, debts, or demands of others. It is the pivot point where one transitions from being a member of a group to being an individual.
-                    </p>
-                    <p class="text-muted-light mb-3">
-                      <em>If you have a solution to contribute and would like to integrate, <a href="/talk-with-forseti" class="link-cyan">talk with Forseti</a>.</em>
-                    </p>
-                    <h6 class="text-cyan mb-2">Safety Factors:</h6>
-                    <ul class="text-muted-light">
-                      <li><strong>Freedom of Movement:</strong> Ability to navigate public spaces without fear or harassment</li>
-                      <li><strong>Harassment Prevention:</strong> Street harassment monitoring, stalking prevention, bullying intervention</li>
-                      <li><strong>Privacy Protection:</strong> Data security, surveillance transparency, personal boundaries</li>
-                      <li><strong>Equity in Policing:</strong> Fair treatment, accountability, bias monitoring, community oversight</li>
-                      <li><strong>Access to Justice:</strong> Legal resources, victim support services, rights awareness</li>
-                      <li><strong>Personal Autonomy:</strong> Self-determination, choice in housing/work/lifestyle</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Capable (Mastery) -->
-              <div class="accordion-item card-forseti border-secondary">
-                <h2 class="accordion-header" id="headingCapable">
-                  <button class="accordion-button collapsed card-forseti text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCapable" aria-expanded="false" aria-controls="collapseCapable">
-                    <strong><img src="/themes/custom/forseti/images/logos/originals/forseti_capable.png" alt="" class="forseti-icon"> Capable (Mastery) <span class="text-muted-gray">(Planned Enhancement)</span></strong>
-                  </button>
-                </h2>
-                <div id="collapseCapable" class="accordion-collapse collapse" aria-labelledby="headingCapable" data-bs-parent="#safetyFactorsAccordion">
-                  <div class="accordion-body card-forseti">
-                    <h5 class="text-cyan mb-3">The Realization of Competence</h5>
-                    <p class="text-muted-light mb-3">
-                      The transition from "being free" to "being effective." This level is defined by the pursuit of excellence, skill acquisition, and the "flow state." It is the deep satisfaction that comes from facing difficult challenges and knowing you have the tools and resilience to overcome them.
-                    </p>
-                    <p class="text-muted-light mb-3">
-                      <em>If you have a solution to contribute and would like to integrate, <a href="/talk-with-forseti" class="link-cyan">talk with Forseti</a>.</em>
-                    </p>
-                    <h6 class="text-cyan mb-2">Safety Factors:</h6>
-                    <ul class="text-muted-light">
-                      <li><strong>Educational Access:</strong> Quality schools, libraries, learning opportunities, vocational training</li>
-                      <li><strong>Economic Security:</strong> Job availability, income stability, housing affordability, financial literacy</li>
-                      <li><strong>Safety Training:</strong> Self-defense classes, emergency preparedness, first aid knowledge</li>
-                      <li><strong>Technology Access:</strong> Internet connectivity, digital literacy, safety apps and tools</li>
-                      <li><strong>Resource Awareness:</strong> Knowledge of available services, support systems, safety resources</li>
-                      <li><strong>Skill Development:</strong> Career advancement opportunities, personal growth programs</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Useful (Purpose) -->
-              <div class="accordion-item card-forseti border-secondary">
-                <h2 class="accordion-header" id="headingUseful">
-                  <button class="accordion-button collapsed card-forseti text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseUseful" aria-expanded="false" aria-controls="collapseUseful">
-                    <strong><img src="/themes/custom/forseti/images/logos/originals/forseti_useful.png" alt="" class="forseti-icon"> Useful (Purpose) <span class="text-muted-gray">(Planned Enhancement)</span></strong>
-                  </button>
-                </h2>
-                <div id="collapseUseful" class="accordion-collapse collapse" aria-labelledby="headingUseful" data-bs-parent="#safetyFactorsAccordion">
-                  <div class="accordion-body card-forseti">
-                    <h5 class="text-cyan mb-3">The Contribution to the Whole</h5>
-                    <p class="text-muted-light mb-3">
-                      The direction of one\'s mastery toward something larger than the self. This level transforms personal competence into communal value. Meaning is found not in what you acquire, but in how you serve others, solve external problems, and leave a positive impact on the world around you.
-                    </p>
-                    <p class="text-muted-light mb-3">
-                      <em>If you have a solution to contribute and would like to integrate, <a href="/talk-with-forseti" class="link-cyan">talk with Forseti</a>.</em>
-                    </p>
-                    <h6 class="text-cyan mb-2">Safety Factors:</h6>
-                    <ul class="text-muted-light">
-                      <li><strong>Civic Engagement:</strong> Participation in governance, community decision-making, advocacy</li>
-                      <li><strong>Volunteer Opportunities:</strong> Community service, safety programs, mentorship roles</li>
-                      <li><strong>Economic Contribution:</strong> Meaningful employment, entrepreneurship, local business support</li>
-                      <li><strong>Cultural Participation:</strong> Arts, music, cultural institutions, creative expression</li>
-                      <li><strong>Safety Leadership:</strong> Block captains, emergency coordinators, community organizers</li>
-                      <li><strong>Legacy Building:</strong> Long-term community investment, neighborhood improvement projects</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Whole (Holistic Health) -->
-              <div class="accordion-item card-forseti border-secondary">
-                <h2 class="accordion-header" id="headingWhole">
-                  <button class="accordion-button collapsed card-forseti text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseWhole" aria-expanded="false" aria-controls="collapseWhole">
-                    <strong><img src="/themes/custom/forseti/images/logos/originals/forseti_whole.png" alt="" class="forseti-icon"> Whole (Holistic Health) <span class="text-muted-gray">(Planned Enhancement)</span></strong>
-                  </button>
-                </h2>
-                <div id="collapseWhole" class="accordion-collapse collapse" aria-labelledby="headingWhole" data-bs-parent="#safetyFactorsAccordion">
-                  <div class="accordion-body card-forseti">
-                    <h5 class="text-cyan mb-3">The Optimization of Mind & Body</h5>
-                    <p class="text-muted-light mb-3">
-                      The pinnacle state where physical health and mental resilience are fully integrated and operating at peak capacity. This represents a system where the body is free from preventable dysfunction and the mind is free from chronic stress, creating a unified vessel capable of sustaining a high quality of life indefinitely.
-                    </p>
-                    <p class="text-muted-light mb-3">
-                      <em>If you have a solution to contribute and would like to integrate, <a href="/talk-with-forseti" class="link-cyan">talk with Forseti</a>.</em>
-                    </p>
-                    <h6 class="text-cyan mb-2">Safety Factors:</h6>
-                    <ul class="text-muted-light">
-                      <li><strong>Demographic Stability:</strong> Residential roots, multi-generational presence, low turnover</li>
-                      <li><strong>Systems Integration:</strong> Coordinated emergency services, unified safety approach</li>
-                      <li><strong>Health Resources:</strong> Hospitals, clinics, pharmacies, mental health services</li>
-                      <li><strong>Mental Health Support:</strong> Counseling services, trauma care, stress management resources</li>
-                      <li><strong>Work-Life Balance:</strong> Reasonable commutes, flexible employment, family support</li>
-                      <li><strong>Cultural Harmony:</strong> Diverse yet unified community, celebration of differences</li>
-                      <li><strong>Sustainable Development:</strong> Long-term planning, environmental stewardship, future readiness</li>
-                      <li><strong>Community Identity:</strong> Shared values, collective vision, neighborhood pride</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              
-            </div>
-            
-            <div class="card card-forseti p-4 mb-4">
-              <h3 class="text-cyan mb-3">How Forseti Uses This Framework</h3>
-              <p class="text-muted-light">
-                Our AI continuously monitors and analyzes factors across all seven dimensions of safety. By understanding safety holistically—from physical security to personal purpose—we provide more nuanced and actionable insights than traditional crime statistics alone.
-              </p>
-              <ul class="text-muted-light">
-                <li><strong>Real-time Monitoring:</strong> Track conditions across all safety dimensions simultaneously</li>
-                <li><strong>Predictive Analytics:</strong> Identify emerging risks before they escalate in any dimension</li>
-                <li><strong>Personalized Recommendations:</strong> Tailored safety guidance based on your unique needs and priorities</li>
-                <li><strong>Community Action:</strong> Connect residents with resources and initiatives that strengthen each dimension</li>
-                <li><strong>Integrated Approach:</strong> Recognize how improvements in one area enhance overall well-being</li>
-              </ul>
-            </div>
-            
-            <div class="text-center mb-4">
-              <a href="/how-it-works" class="btn btn-primary me-2">Learn How It Works</a>
-              <a href="/safety-map" class="btn btn-outline-primary">View Safety Map</a>
-            </div>
-            
-          </div>
-        </div>
-      </div>
-    ';
   }
 
   /**

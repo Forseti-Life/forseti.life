@@ -98,6 +98,19 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'forseti-page-contact-thank-you',
     ],
+    'forseti_page_safety_factors' => [
+      'variables' => [
+        'title' => NULL,
+        'lead' => NULL,
+        'assessment_alert' => [],
+        'dimensions_title' => NULL,
+        'dimensions_intro' => NULL,
+        'dimensions' => [],
+        'how_forseti_uses' => [],
+        'cta_buttons' => [],
+      ],
+      'template' => 'forseti-page-safety-factors',
+    ],
     'forseti_page_agent_hierarchy' => [
       'variables' => [
         'title' => NULL,
