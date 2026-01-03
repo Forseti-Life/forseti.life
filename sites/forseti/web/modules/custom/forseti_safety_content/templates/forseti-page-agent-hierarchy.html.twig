@@ -6,13 +6,14 @@
  * Available variables:
  * - title: Page title
  * - intro: Introduction content array with 'lead', 'title', and 'paragraphs'
- * - dimensions: Array of dimension data
+ * - power_levels: Array of unified power level data with dimensional profiles
+ * - dimension_info: Reference information about the 9 dimensions
  * - transparency_note: Transparency note text
  */
 #}
 <div class="container py-3">
   <div class="row">
-    <div class="col-lg-10 mx-auto">
+    <div class="col-lg-11 mx-auto">
       <h1 class="text-center mb-3 text-cyan">{{ title }}</h1>
       
       <div class="lead mb-4 text-muted-light text-center">
@@ -28,54 +29,80 @@
         {% endfor %}
       </div>
       
-      <h2 class="mt-5 mb-3 text-cyan">{{ 'Information Access Dimensions'|t }}</h2>
-      <p class="text-muted-light">
-        {{ 'Explore how each power level performs across nine key dimensions of information access. Select a dimension to see how all power levels compare on that specific characteristic.'|t }}
+      <h2 class="mt-5 mb-3 text-cyan">{{ 'Nine Information Access Dimensions'|t }}</h2>
+      <p class="text-muted-light mb-4">
+        {{ 'Each power level operates across nine key dimensions of information access. Understanding these dimensions reveals the specific constraints and capabilities at each level.'|t }}
       </p>
       
-      {# Dimension Tabs Navigation #}
-      <ul class="nav nav-tabs nav-fill mt-4" id="dimensionTabs" role="tablist">
-        {% for dimension in dimensions %}
-          <li class="nav-item" role="presentation">
-            <button class="nav-link{% if loop.first %} active{% endif %}" 
-                    id="{{ dimension.id }}-tab" 
-                    data-bs-toggle="tab" 
-                    data-bs-target="#{{ dimension.id }}" 
-                    type="button" 
-                    role="tab">
-              {{ dimension.name }}
-            </button>
-          </li>
-        {% endfor %}
-      </ul>
-      
-      {# Dimension Tab Content #}
-      <div class="tab-content mt-4" id="dimensionTabsContent">
-        {% for dimension in dimensions %}
-          <div class="tab-pane fade{% if loop.first %} show active{% endif %}" 
-               id="{{ dimension.id }}" 
-               role="tabpanel">
-            <h3 class="text-cyan mb-3">{{ dimension.name }} {{ 'Scale'|t }}</h3>
-            <p class="text-muted-light mb-4">{{ dimension.description }}</p>
-            <div class="row">
-              {% for level in dimension.levels %}
-                <div class="col-md-6 col-lg-4 mb-3">
-                  <div class="card card-forseti power-level-card h-100 p-3">
-                    <div class="d-flex align-items-center mb-2">
-                      <span class="badge {{ level.badge }} me-2">{{ level.label }}</span>
-                      <strong class="text-cyan">{{ level.name }}</strong>
-                    </div>
-                    <h5>{{ level.title }}</h5>
-                    <p class="small mb-0">{{ level.description }}</p>
-                  </div>
-                </div>
-              {% endfor %}
+      <div class="row row-cols-1 row-cols-md-3 g-3 mb-5">
+        {% for dimension in dimension_info %}
+          <div class="col">
+            <div class="card card-forseti h-100 p-3">
+              <h5 class="text-cyan mb-2">{{ dimension.name }}</h5>
+              <p class="small mb-0">{{ dimension.description }}</p>
             </div>
           </div>
         {% endfor %}
       </div>
       
-      <div class="alert alert-warning mt-4">
+      <h2 class="mt-5 mb-3 text-cyan">{{ 'Unified Power Levels (0-8)'|t }}</h2>
+      <p class="text-muted-light mb-4">
+        {{ 'Each power level represents a distinct profile across all nine dimensions. Explore how institutional access, resource constraints, and filtering affect agent capabilities.'|t }}
+      </p>
+      
+      {# Power Level Accordion #}
+      <div class="accordion" id="powerLevelAccordion">
+        {% for power_level in power_levels %}
+          <div class="accordion-item bg-dark-secondary border-forseti mb-3">
+            <h2 class="accordion-header" id="heading{{ power_level.level }}">
+              <button class="accordion-button{% if power_level.level != 0 %} collapsed{% endif %} bg-dark-secondary text-cyan" 
+                      type="button" 
+                      data-bs-toggle="collapse" 
+                      data-bs-target="#collapse{{ power_level.level }}">
+                <span class="badge {{ power_level.badge }} me-3">LEVEL {{ power_level.level }}</span>
+                <strong class="fs-5">{{ power_level.name }}</strong>
+              </button>
+            </h2>
+            <div id="collapse{{ power_level.level }}" 
+                 class="accordion-collapse collapse{% if power_level.level == 0 %} show{% endif %}" 
+                 data-bs-parent="#powerLevelAccordion">
+              <div class="accordion-body">
+                <p class="lead text-muted-light mb-4">{{ power_level.description }}</p>
+                
+                <h5 class="text-cyan mb-3">{{ 'Dimensional Profile'|t }}</h5>
+                <div class="row row-cols-1 row-cols-lg-3 g-2">
+                  {% for key, dimension in power_level.dimensions %}
+                    <div class="col">
+                      <div class="card card-forseti h-100 p-2">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                          <strong class="text-cyan small">
+                            {% if key == 'scope' %}{{ 'Scope'|t }}
+                            {% elseif key == 'restriction' %}{{ 'Restriction'|t }}
+                            {% elseif key == 'classification' %}{{ 'Classification'|t }}
+                            {% elseif key == 'temporal' %}{{ 'Temporal'|t }}
+                            {% elseif key == 'sources' %}{{ 'Sources'|t }}
+                            {% elseif key == 'granularity' %}{{ 'Granularity'|t }}
+                            {% elseif key == 'authority' %}{{ 'Authority'|t }}
+                            {% elseif key == 'synthesis' %}{{ 'Synthesis'|t }}
+                            {% elseif key == 'verification' %}{{ 'Verification'|t }}
+                            {% endif %}
+                          </strong>
+                          <span class="badge {% if dimension.level <= 1 %}bg-success{% elseif dimension.level <= 3 %}bg-info{% elseif dimension.level <= 6 %}bg-warning{% else %}bg-danger{% endif %} small">
+                            {{ dimension.level }}
+                          </span>
+                        </div>
+                        <p class="small mb-0 text-muted-light">{{ dimension.value }}</p>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      
+      <div class="alert alert-warning mt-5">
         <h4>{{ '⚠️ Transparency Note'|t }}</h4>
         <p class="mb-0">{{ transparency_note }}</p>
       </div>

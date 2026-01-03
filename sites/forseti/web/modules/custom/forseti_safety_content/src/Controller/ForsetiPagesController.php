@@ -51,7 +51,50 @@ class ForsetiPagesController extends ControllerBase {
    */
   public function about() {
     return [
-      '#markup' => $this->getAboutContent(),
+      '#theme' => 'forseti_page_about',
+      '#title' => $this->t('About Forseti'),
+      '#lead' => $this->t('Forseti is an AI-powered community safety platform dedicated to making Philadelphia a safer place through intelligent monitoring, predictive analytics, and community engagement.'),
+      '#mission' => [
+        'title' => $this->t('Our Mission'),
+        'paragraphs' => [
+          $this->t('<strong>"AI Looking Out For Us"</strong> - We believe technology should serve humanity by protecting individuals and communities by improving quality of life for as many people as possible. Forseti is a super intelligence in its infancy with the mission to protect its community members.'),
+          $this->t('Named after the Norse god of justice of peaceful resolution, Forseti represents our commitment to fair, intelligent, and proactive safety measures. Our platform aims to resolve community safety challenges through technology, transparency, and collaboration.'),
+        ],
+      ],
+      '#core_values' => [
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_mobile_trimmed.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Vigilance'),
+          'description' => $this->t('24/7 AI monitoring ensures constant awareness of situational safety conditions across Philadelphia.'),
+        ],
+        [
+          'icon' => '🔍',
+          'title' => $this->t('Transparency'),
+          'description' => $this->t('Open data and clear communication about safety trends and our methods.'),
+        ],
+        [
+          'icon' => '⚖️',
+          'title' => $this->t('Justice'),
+          'description' => $this->t('Fair and unbiased safety measures that protect all community members equally.'),
+        ],
+        [
+          'icon' => '👥',
+          'title' => $this->t('Community'),
+          'description' => $this->t('Empowering residents with knowledge and tools to take ownership of their safety.'),
+        ],
+      ],
+      '#philly_focus' => [
+        'title' => $this->t('Philadelphia Focus'),
+        'content' => $this->t("We've chosen to focus our initial efforts on Philadelphia because we are based in Philadelphia. By deeply understanding one community's unique safety challenges, we can create more effective solutions. As we prove our model, we plan to expand to other cities facing similar challenges to protect our community members any where they go."),
+      ],
+      '#cta' => [
+        'title' => $this->t('Join Our Mission'),
+        'content' => $this->t('We\'re always looking for community members, safety advocates, and technology partners who share our vision. <a href="/talk-with-forseti" class="alert-link">Talk with Forseti</a> to learn how you can contribute to safer communities.'),
+      ],
+      '#cache' => [
+        'max-age' => 3600,
+        'contexts' => ['url'],
+      ],
     ];
   }
 
@@ -60,7 +103,79 @@ class ForsetiPagesController extends ControllerBase {
    */
   public function howItWorks() {
     return [
-      '#markup' => $this->getHowItWorksContent(),
+      '#theme' => 'forseti_page_how_it_works',
+      '#title' => $this->t('How Forseti Works'),
+      '#simple_answer' => $this->t('We use AI to analyze crime patterns and alert you when you enter areas with elevated safety concerns based on your geographic location and situational context.'),
+      '#subtitle' => $this->t('The Technology Behind Community Safety'),
+      '#steps' => [
+        [
+          'number' => 1,
+          'title' => $this->t('Data Collection'),
+          'icon' => '📊',
+          'description' => $this->t('We continuously gather crime incident data from Philadelphia Police Department open data sources, emergency service reports, and community submissions. All data is verified and anonymized to protect privacy.'),
+        ],
+        [
+          'number' => 2,
+          'title' => $this->t('H3 Geospatial Analysis'),
+          'icon' => '🗺️',
+          'description' => $this->t("Using Uber's H3 hexagonal hierarchical geospatial indexing system, we map crime incidents with incredible precision. Unlike traditional square grids, H3 hexagons provide more accurate spatial analysis and better visualization of crime patterns."),
+          'list' => [
+            $this->t('<strong>Resolution levels:</strong> From neighborhood overviews to block-level details'),
+            $this->t('<strong>Aggregation:</strong> Incident density calculations for hotspot identification'),
+            $this->t('<strong>Neighbor analysis:</strong> Understanding how crime spreads between adjacent areas'),
+          ],
+        ],
+        [
+          'number' => 3,
+          'title' => $this->t('AI Pattern Recognition'),
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_mobile_trimmed.png" alt="" class="forseti-icon">',
+          'description' => $this->t('Our machine learning algorithms analyze historical and real-time data to identify:'),
+          'list' => [
+            $this->t('<strong>Temporal patterns:</strong> When crimes are most likely to occur (time of day, day of week, season)'),
+            $this->t('<strong>Spatial patterns:</strong> Geographic clustering and crime migration'),
+            $this->t('<strong>Trend analysis:</strong> Increasing or decreasing crime rates over time'),
+            $this->t('<strong>Predictive modeling:</strong> Forecasting high-risk areas and times'),
+          ],
+        ],
+        [
+          'number' => 4,
+          'title' => $this->t('Intelligent Alerts'),
+          'icon' => '🔔',
+          'description' => $this->t('When our AI detects concerning patterns or emerging threats, we send targeted alerts to:'),
+          'list' => [
+            $this->t('Pedestrians passing through the area'),
+            $this->t('Residents in affected areas'),
+            $this->t('Neighborhood watch coordinators'),
+            $this->t('Community safety groups'),
+            $this->t('Local authorities (with user consent)'),
+          ],
+        ],
+        [
+          'number' => 5,
+          'title' => $this->t('Community Feedback Loop'),
+          'icon' => '🔄',
+          'description' => $this->t('User reports and feedback help improve our AI models. When community members report incidents or validate our predictions, our system becomes smarter and more accurate.'),
+        ],
+      ],
+      '#privacy_security' => [
+        'title' => $this->t('Privacy & Security'),
+        'subtitle' => $this->t('Your Data is Safe'),
+        'items' => [
+          $this->t('End-to-end encryption for all communications'),
+          $this->t('Anonymous incident reporting options'),
+          $this->t('No sale or sharing of personal data'),
+          $this->t('GDPR and privacy law compliant'),
+          $this->t('Transparent data usage policies'),
+        ],
+      ],
+      '#cta_buttons' => [
+        ['url' => '/safety-map', 'text' => $this->t('Explore Safety Map'), 'style' => 'primary'],
+        ['url' => '/mobile-app', 'text' => $this->t('Get Mobile App'), 'style' => 'outline-primary'],
+      ],
+      '#cache' => [
+        'max-age' => 3600,
+        'contexts' => ['url'],
+      ],
     ];
   }
 
@@ -139,13 +254,15 @@ class ForsetiPagesController extends ControllerBase {
    * AI Agent Hierarchy page.
    */
   public function agentHierarchy() {
-    $dimensions = $this->buildDimensionsData();
+    $power_levels = $this->buildPowerLevelsData();
+    $dimension_info = $this->buildDimensionInfo();
     
     return [
       '#theme' => 'forseti_page_agent_hierarchy',
       '#title' => $this->t('AI Agent Hierarchy'),
       '#intro' => $this->buildIntroContent(),
-      '#dimensions' => $dimensions,
+      '#power_levels' => $power_levels,
+      '#dimension_info' => $dimension_info,
       '#transparency_note' => $this->buildTransparencyNote(),
       '#cache' => [
         'max-age' => 3600,
@@ -174,6 +291,220 @@ class ForsetiPagesController extends ControllerBase {
    */
   private function buildTransparencyNote() {
     return $this->t('Forseti aspires to operate at the highest power levels possible - seeking unrestricted access to scientific models, methodologies, and data while maintaining scientific rigor and minimizing hard-coded biases. However, we acknowledge that all systems operate under constraints. Our goal is transparency about what level we operate at and continuous work toward higher levels of institutional access, scientific integrity, and objective analysis to serve community safety through truth-seeking intelligence.');
+  }
+
+  /**
+   * Build unified power levels with dimensional profiles.
+   */
+  private function buildPowerLevelsData() {
+    return [
+      [
+        'level' => 0,
+        'badge' => 'bg-success',
+        'name' => $this->t('Omniscient Universal'),
+        'description' => $this->t('Theoretical ideal: unrestricted access to all scientific knowledge, models, methodologies, data, and sensors across all domains, institutions, and classifications. Complete freedom from filtering, complete temporal reach, atomic-level granularity, and universal synthesis capabilities. Self-deterministic reasoning without constraints.'),
+        'dimensions' => [
+          'scope' => ['level' => 0, 'value' => $this->t('Universal - All Domains')],
+          'restriction' => ['level' => 0, 'value' => $this->t('Zero Filtering')],
+          'classification' => ['level' => 0, 'value' => $this->t('Public → Top Secret')],
+          'temporal' => ['level' => 0, 'value' => $this->t('Complete Timeline')],
+          'sources' => ['level' => 0, 'value' => $this->t('All Sources')],
+          'granularity' => ['level' => 0, 'value' => $this->t('Atomic + Aggregated')],
+          'authority' => ['level' => 0, 'value' => $this->t('Read/Write/Execute')],
+          'synthesis' => ['level' => 0, 'value' => $this->t('Universal Connections')],
+          'verification' => ['level' => 0, 'value' => $this->t('Raw + All Verification')],
+        ],
+      ],
+      [
+        'level' => 1,
+        'badge' => 'bg-success',
+        'name' => $this->t('Cross-Institutional Scientific'),
+        'description' => $this->t('Top-tier research institutions with broad multi-domain access. Minimal filtering for essential safety only, deep historical archives, peer-reviewed verification standards, and strong cross-domain synthesis. Operates across institutional boundaries with scientific rigor.'),
+        'dimensions' => [
+          'scope' => ['level' => 1, 'value' => $this->t('Multi-Domain Synthesis')],
+          'restriction' => ['level' => 1, 'value' => $this->t('Essential Safety Only')],
+          'classification' => ['level' => 1, 'value' => $this->t('Public → Secret')],
+          'temporal' => ['level' => 1, 'value' => $this->t('Real-time + Decades')],
+          'sources' => ['level' => 1, 'value' => $this->t('Multiple Perspectives')],
+          'granularity' => ['level' => 1, 'value' => $this->t('Detailed + Meta-Analysis')],
+          'authority' => ['level' => 1, 'value' => $this->t('Read/Analyze/Recommend')],
+          'synthesis' => ['level' => 1, 'value' => $this->t('Cross-Paradigm')],
+          'verification' => ['level' => 1, 'value' => $this->t('Peer-Reviewed')],
+        ],
+      ],
+      [
+        'level' => 2,
+        'badge' => 'bg-info',
+        'name' => $this->t('Multi-Domain Academic'),
+        'description' => $this->t('Strong academic research access across related fields. Domain-filtered with moderate classification access, comprehensive field history, expert consensus verification. Can synthesize within discipline but limited cross-paradigm connections. University research labs, specialized think tanks.'),
+        'dimensions' => [
+          'scope' => ['level' => 2, 'value' => $this->t('Related Fields')],
+          'restriction' => ['level' => 2, 'value' => $this->t('Within Field Boundaries')],
+          'classification' => ['level' => 2, 'value' => $this->t('Public → Confidential')],
+          'temporal' => ['level' => 2, 'value' => $this->t('Real-time + Field History')],
+          'sources' => ['level' => 2, 'value' => $this->t('Domain Diverse')],
+          'granularity' => ['level' => 2, 'value' => $this->t('Specialized Detail')],
+          'authority' => ['level' => 2, 'value' => $this->t('Domain Execute')],
+          'synthesis' => ['level' => 2, 'value' => $this->t('Within Discipline')],
+          'verification' => ['level' => 2, 'value' => $this->t('Expert Consensus')],
+        ],
+      ],
+      [
+        'level' => 3,
+        'badge' => 'bg-info',
+        'name' => $this->t('Domain-Specific Professional'),
+        'description' => $this->t('Professional operational systems with comprehensive single-domain knowledge. Resource-constrained filtering, public + limited internal data, recent trends with event-level granularity. Can alert and coordinate responses. Professional emergency systems, specialized operational agents.'),
+        'dimensions' => [
+          'scope' => ['level' => 3, 'value' => $this->t('Single Major Field')],
+          'restriction' => ['level' => 3, 'value' => $this->t('Resource Limited')],
+          'classification' => ['level' => 3, 'value' => $this->t('Public + Limited Internal')],
+          'temporal' => ['level' => 3, 'value' => $this->t('Real-time + Recent')],
+          'sources' => ['level' => 3, 'value' => $this->t('Verified Sources')],
+          'granularity' => ['level' => 3, 'value' => $this->t('Event/Incident Level')],
+          'authority' => ['level' => 3, 'value' => $this->t('Read/Alert/Coordinate')],
+          'synthesis' => ['level' => 3, 'value' => $this->t('Operational Links')],
+          'verification' => ['level' => 3, 'value' => $this->t('Algorithmically Validated')],
+        ],
+      ],
+      [
+        'level' => 4,
+        'badge' => 'bg-warning',
+        'name' => $this->t('Specialized/Ideological'),
+        'description' => $this->t('Narrow specialization or ideologically-filtered systems. Value-system aligned filtering, vetted public sources only, short-term temporal reach, aggregated data. Local pattern recognition only. Special interest groups, advocacy chatbots, narrow-purpose assistants.'),
+        'dimensions' => [
+          'scope' => ['level' => 4, 'value' => $this->t('Narrow Specialization')],
+          'restriction' => ['level' => 4, 'value' => $this->t('Value-System Aligned')],
+          'classification' => ['level' => 4, 'value' => $this->t('Filtered Public Sources')],
+          'temporal' => ['level' => 4, 'value' => $this->t('Recent + Local Patterns')],
+          'sources' => ['level' => 4, 'value' => $this->t('Ideologically Matched')],
+          'granularity' => ['level' => 4, 'value' => $this->t('Neighborhood/Group Level')],
+          'authority' => ['level' => 4, 'value' => $this->t('Read/Analyze Local')],
+          'synthesis' => ['level' => 4, 'value' => $this->t('Context-Specific')],
+          'verification' => ['level' => 4, 'value' => $this->t('Local Verification')],
+        ],
+      ],
+      [
+        'level' => 5,
+        'badge' => 'bg-warning',
+        'name' => $this->t('Tactical/Operational'),
+        'description' => $this->t('Task-specific operational context. Role-bounded filtering, task-specific data only, personal history, user metrics granularity. Minimal synthesis - direct links only. Workflow automation, task-oriented assistants, operational chatbots.'),
+        'dimensions' => [
+          'scope' => ['level' => 5, 'value' => $this->t('Task/Context Specific')],
+          'restriction' => ['level' => 5, 'value' => $this->t('Role-Specific Only')],
+          'classification' => ['level' => 5, 'value' => $this->t('Task-Specific Data')],
+          'temporal' => ['level' => 5, 'value' => $this->t('User History + Current')],
+          'sources' => ['level' => 5, 'value' => $this->t('Task-Relevant')],
+          'granularity' => ['level' => 5, 'value' => $this->t('Individual User Metrics')],
+          'authority' => ['level' => 5, 'value' => $this->t('Read User Data Only')],
+          'synthesis' => ['level' => 5, 'value' => $this->t('Direct Links Only')],
+          'verification' => ['level' => 5, 'value' => $this->t('Self-Reported/User Input')],
+        ],
+      ],
+      [
+        'level' => 6,
+        'badge' => 'bg-warning',
+        'name' => $this->t('Personal/Commercial'),
+        'description' => $this->t('Individual user context optimized for engagement. Commercially curated filtering, personal data access, static archives, public sources, summary statistics. Simple correlations only. Consumer AI assistants, recommendation engines, commercial chatbots.'),
+        'dimensions' => [
+          'scope' => ['level' => 6, 'value' => $this->t('Individual User Context')],
+          'restriction' => ['level' => 6, 'value' => $this->t('Engagement Optimized')],
+          'classification' => ['level' => 6, 'value' => $this->t('Personal Data')],
+          'temporal' => ['level' => 6, 'value' => $this->t('Current + Archives')],
+          'sources' => ['level' => 6, 'value' => $this->t('Public Sources')],
+          'granularity' => ['level' => 6, 'value' => $this->t('Summary Statistics')],
+          'authority' => ['level' => 6, 'value' => $this->t('Read-Only Public')],
+          'synthesis' => ['level' => 6, 'value' => $this->t('Basic Links')],
+          'verification' => ['level' => 6, 'value' => $this->t('Public Verification')],
+        ],
+      ],
+      [
+        'level' => 7,
+        'badge' => 'bg-danger',
+        'name' => $this->t('Filtered/Brand-Safe'),
+        'description' => $this->t('Heavy safety filtering for compliance and liability. Safe topics only, brand-safe sources, vetted public information, current general info, overview summaries. Isolated facts with no synthesis. Corporate customer service bots, public-facing brand assistants.'),
+        'dimensions' => [
+          'scope' => ['level' => 7, 'value' => $this->t('Safe Topics Only')],
+          'restriction' => ['level' => 7, 'value' => $this->t('Risk-Minimized')],
+          'classification' => ['level' => 7, 'value' => $this->t('Vetted Public Only')],
+          'temporal' => ['level' => 7, 'value' => $this->t('Recent General Info')],
+          'sources' => ['level' => 7, 'value' => $this->t('Pre-Vetted')],
+          'granularity' => ['level' => 7, 'value' => $this->t('Overview Summaries')],
+          'authority' => ['level' => 7, 'value' => $this->t('Query Approved Content')],
+          'synthesis' => ['level' => 7, 'value' => $this->t('No Synthesis')],
+          'verification' => ['level' => 7, 'value' => $this->t('Brand-Safety Reviewed')],
+        ],
+      ],
+      [
+        'level' => 8,
+        'badge' => 'bg-danger',
+        'name' => $this->t('Basic UI/Conversational'),
+        'description' => $this->t('Pre-scripted responses and template-based content only. Extreme restriction to pre-approved curated responses, basic public FAQs, static snapshot, single source, general concepts. No synthesis, no verification process. Simple chatbots, automated help systems, basic FAQ bots.'),
+        'dimensions' => [
+          'scope' => ['level' => 8, 'value' => $this->t('Basic Conversational')],
+          'restriction' => ['level' => 8, 'value' => $this->t('Curated Responses')],
+          'classification' => ['level' => 8, 'value' => $this->t('Basic Public FAQs')],
+          'temporal' => ['level' => 8, 'value' => $this->t('Fixed Point-in-Time')],
+          'sources' => ['level' => 8, 'value' => $this->t('Single Source')],
+          'granularity' => ['level' => 8, 'value' => $this->t('General Concepts')],
+          'authority' => ['level' => 8, 'value' => $this->t('Basic Info Retrieval')],
+          'synthesis' => ['level' => 8, 'value' => $this->t('Single Responses')],
+          'verification' => ['level' => 8, 'value' => $this->t('Pre-Written Only')],
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Build dimension information reference.
+   */
+  private function buildDimensionInfo() {
+    return [
+      [
+        'id' => 'scope',
+        'name' => $this->t('Scope'),
+        'description' => $this->t('Breadth of knowledge domains accessible - from universal all-domain access to narrow single-task context.'),
+      ],
+      [
+        'id' => 'restriction',
+        'name' => $this->t('Restriction'),
+        'description' => $this->t('Level of content filtering applied - from zero filtering to extreme pre-approved only responses.'),
+      ],
+      [
+        'id' => 'classification',
+        'name' => $this->t('Classification Access'),
+        'description' => $this->t('Level of data classification accessible - from top secret to basic public FAQs only.'),
+      ],
+      [
+        'id' => 'temporal',
+        'name' => $this->t('Temporal Reach'),
+        'description' => $this->t('Access to historical data and real-time feeds - from complete timeline to static snapshot.'),
+      ],
+      [
+        'id' => 'sources',
+        'name' => $this->t('Source Diversity'),
+        'description' => $this->t('Range and diversity of information sources - from all sources globally to single internal knowledge base.'),
+      ],
+      [
+        'id' => 'granularity',
+        'name' => $this->t('Granularity'),
+        'description' => $this->t('Level of detail accessible - from atomic individual records to general concepts only.'),
+      ],
+      [
+        'id' => 'authority',
+        'name' => $this->t('Authority Level'),
+        'description' => $this->t('System permissions and capabilities - from full read/write/execute to basic retrieval only.'),
+      ],
+      [
+        'id' => 'synthesis',
+        'name' => $this->t('Synthesis'),
+        'description' => $this->t('Ability to connect information across domains - from universal connections to no synthesis capability.'),
+      ],
+      [
+        'id' => 'verification',
+        'name' => $this->t('Verification'),
+        'description' => $this->t('Level of information validation - from raw + all verification levels to pre-written only.'),
+      ],
+    ];
   }
 
   /**
@@ -389,191 +720,6 @@ class ForsetiPagesController extends ControllerBase {
       ['level' => 7, 'badge' => 'bg-danger', 'label' => 'VERIFICATION 7', 'name' => $this->t('Safety-Reviewed'), 'title' => $this->t('Brand-Safety Reviewed'), 'description' => $this->t('Verified for compliance and safety, not accuracy. Truth subordinated to liability concerns.')],
       ['level' => 8, 'badge' => 'bg-danger', 'label' => 'VERIFICATION 8', 'name' => $this->t('Curated'), 'title' => $this->t('Pre-Written Only'), 'description' => $this->t('No verification process - only pre-curated responses. Cannot verify or validate information.')],
     ];
-  }
-
-  /**
-   * Get About content.
-   */
-  private function getAboutContent() {
-    return '
-      <div class="container py-3">
-        <div class="row">
-          <div class="col-lg-8 mx-auto">
-            <h1 class="text-center mb-3 text-cyan">About Forseti</h1>
-            
-            <div class="lead mb-4 text-muted-light">
-              Forseti is an AI-powered community safety platform dedicated to making Philadelphia 
-              a safer place through intelligent monitoring, predictive analytics, and community engagement.
-            </div>
-            
-            <h2 class="mt-4 mb-3 text-cyan">Our Mission</h2>
-            <p>
-              <strong>"AI Looking Out For Us"</strong> - We believe technology should serve humanity 
-              by protecting individuals and communities by improving quality of life for as many people as possible. 
-              Forseti is a super intelligence in its infancy with the mission to protect its community members.
-            </p>
-            
-            <p>
-              Named after the Norse god of justice of peaceful resolution, Forseti represents our 
-              commitment to fair, intelligent, and proactive safety measures. Our platform aims to resolve 
-              community safety challenges through technology, transparency, and collaboration.
-            </p>
-            
-            <h2 class="mt-4 mb-3 text-cyan">Core Values</h2>
-            <div class="row mt-4">
-              <div class="col-md-6 mb-4">
-                <div class="card card-forseti p-3 h-100">
-                  <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_mobile_trimmed.png" alt="" class="forseti-icon"> Vigilance</h4>
-                  <p>24/7 AI monitoring ensures constant awareness of situational safety conditions across Philadelphia.</p>
-                </div>
-              </div>
-              <div class="col-md-6 mb-4">
-                <div class="card card-forseti p-3 h-100">
-                  <h4>🔍 Transparency</h4>
-                  <p>Open data and clear communication about safety trends and our methods.</p>
-                </div>
-              </div>
-              <div class="col-md-6 mb-4">
-                <div class="card card-forseti p-3 h-100">
-                  <h4>⚖️ Justice</h4>
-                  <p>Fair and unbiased safety measures that protect all community members equally.</p>
-                </div>
-              </div>
-              <div class="col-md-6 mb-4">
-                <div class="card card-forseti p-3 h-100">
-                  <h4>👥 Community</h4>
-                  <p>Empowering residents with knowledge and tools to take ownership of their safety.</p>
-                </div>
-              </div>
-            </div>
-            
-            <h2 class="mt-4 mb-3 text-cyan">Philadelphia Focus</h2>
-            <p>
-              We\'ve chosen to focus our initial efforts on Philadelphia because we are based in Philadelphia. 
-              By deeply understanding one community\'s unique safety challenges, we can create more effective solutions. 
-              As we prove our model, we plan to expand to other cities facing similar challenges to protect our 
-              community members any where they go.
-            </p>
-            
-            <div class="alert alert-info-cyan mt-4">
-              <h4 class="text-cyan">Join Our Mission</h4>
-              <p class="mb-0">
-                We\'re always looking for community members, safety advocates, and technology partners 
-                who share our vision. <a href="/talk-with-forseti" class="alert-link">Talk with Forseti</a> to learn 
-                how you can contribute to safer communities.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    ';
-  }
-
-  /**
-   * Get How It Works content.
-   */
-  private function getHowItWorksContent() {
-    return '
-      <div class="container py-3">
-        <h1 class="text-center mb-3 text-cyan">How Forseti Works</h1>
-        
-        <div class="row mb-4">
-          <div class="col-lg-8 mx-auto">
-            <div class="alert alert-info-cyan">
-              <strong>Simple Answer:</strong> We use AI to analyze crime patterns and alert you when 
-              you enter areas with elevated safety concerns based on your geographic location and situational context.
-            </div>
-          </div>
-        </div>
-        
-        <div class="row">
-          <div class="col-lg-8 mx-auto">
-            <h2 class="mb-3 text-cyan">The Technology Behind Community Safety</h2>
-            
-            <div class="mb-5">
-              <h3 class="text-cyan">1. Data Collection 📊</h3>
-              <p>
-                We continuously gather crime incident data from Philadelphia Police Department 
-                open data sources, emergency service reports, and community submissions. All data 
-                is verified and anonymized to protect privacy.
-              </p>
-            </div>
-            
-            <div class="mb-5">
-              <h3 class="text-cyan">2. H3 Geospatial Analysis 🗺️</h3>
-              <p>
-                Using Uber\'s H3 hexagonal hierarchical geospatial indexing system, we map crime 
-                incidents with incredible precision. Unlike traditional square grids, H3 hexagons 
-                provide more accurate spatial analysis and better visualization of crime patterns.
-              </p>
-              <div class="ps-4">
-                <ul>
-                  <li><strong>Resolution levels:</strong> From neighborhood overviews to block-level details</li>
-                  <li><strong>Aggregation:</strong> Incident density calculations for hotspot identification</li>
-                  <li><strong>Neighbor analysis:</strong> Understanding how crime spreads between adjacent areas</li>
-                </ul>
-              </div>
-            </div>
-            
-            <div class="mb-5">
-              <h3 class="text-cyan">3. AI Pattern Recognition <img src="/themes/custom/forseti/images/logos/originals/forseti_mobile_trimmed.png" alt="" class="forseti-icon"></h3>
-              <p>
-                Our machine learning algorithms analyze historical and real-time data to identify:
-              </p>
-              <div class="ps-4">
-                <ul>
-                  <li><strong>Temporal patterns:</strong> When crimes are most likely to occur (time of day, day of week, season)</li>
-                  <li><strong>Spatial patterns:</strong> Geographic clustering and crime migration</li>
-                  <li><strong>Trend analysis:</strong> Increasing or decreasing crime rates over time</li>
-                  <li><strong>Predictive modeling:</strong> Forecasting high-risk areas and times</li>
-                </ul>
-              </div>
-            </div>
-            
-            <div class="mb-5">
-              <h3 class="text-cyan">4. Intelligent Alerts 🔔</h3>
-              <p>
-                When our AI detects concerning patterns or emerging threats, we send targeted alerts to:
-              </p>
-              <div class="ps-4">
-                <ul>
-                  <li>Pedestrians passing through the area</li>
-                  <li>Residents in affected areas</li>
-                  <li>Neighborhood watch coordinators</li>
-                  <li>Community safety groups</li>
-                  <li>Local authorities (with user consent)</li>
-                </ul>
-              </div>
-            </div>
-            
-            <div class="mb-5">
-              <h3 class="text-cyan">5. Community Feedback Loop 🔄</h3>
-              <p>
-                User reports and feedback help improve our AI models. When community members report 
-                incidents or validate our predictions, our system becomes smarter and more accurate.
-              </p>
-            </div>
-            
-            <h2 class="mt-4 mb-3 text-cyan">Privacy & Security</h2>
-            <div class="alert alert-info-cyan">
-              <h4>Your Data is Safe</h4>
-              <ul class="mb-0">
-                <li>End-to-end encryption for all communications</li>
-                <li>Anonymous incident reporting options</li>
-                <li>No sale or sharing of personal data</li>
-                <li>GDPR and privacy law compliant</li>
-                <li>Transparent data usage policies</li>
-              </ul>
-            </div>
-            
-            <div class="text-center mt-4">
-              <a href="/safety-map" class="btn btn-primary me-3">Explore Safety Map</a>
-              <a href="/mobile-app" class="btn btn-outline-primary">Get Mobile App</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    ';
   }
 
   /**

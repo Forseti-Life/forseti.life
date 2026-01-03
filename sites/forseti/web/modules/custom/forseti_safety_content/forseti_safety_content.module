@@ -28,11 +28,34 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
         'current_year' => NULL,
       ],
     ],
+    'forseti_page_about' => [
+      'variables' => [
+        'title' => NULL,
+        'lead' => NULL,
+        'mission' => [],
+        'core_values' => [],
+        'philly_focus' => [],
+        'cta' => [],
+      ],
+      'template' => 'forseti-page-about',
+    ],
+    'forseti_page_how_it_works' => [
+      'variables' => [
+        'title' => NULL,
+        'simple_answer' => NULL,
+        'subtitle' => NULL,
+        'steps' => [],
+        'privacy_security' => [],
+        'cta_buttons' => [],
+      ],
+      'template' => 'forseti-page-how-it-works',
+    ],
     'forseti_page_agent_hierarchy' => [
       'variables' => [
         'title' => NULL,
         'intro' => [],
-        'dimensions' => [],
+        'power_levels' => [],
+        'dimension_info' => [],
         'transparency_note' => NULL,
       ],
       'template' => 'forseti-page-agent-hierarchy',
