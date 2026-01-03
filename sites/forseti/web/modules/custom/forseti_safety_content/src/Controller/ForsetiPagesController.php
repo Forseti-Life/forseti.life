@@ -1166,58 +1166,56 @@ class ForsetiPagesController extends ControllerBase {
             <ul class="nav nav-tabs nav-fill mt-4" id="dimensionTabs" role="tablist">
               <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="scope-tab" data-bs-toggle="tab" data-bs-target="#scope" type="button" role="tab">
-                  📊 Scope
+                  Scope & Breadth
                 </button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="restriction-tab" data-bs-toggle="tab" data-bs-target="#restriction" type="button" role="tab">
-                  🔓 Restriction
+                  Restriction Level
                 </button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="classification-tab" data-bs-toggle="tab" data-bs-target="#classification" type="button" role="tab">
-                  🔒 Classification
+                  Classification Level
                 </button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="temporal-tab" data-bs-toggle="tab" data-bs-target="#temporal" type="button" role="tab">
-                  ⏱️ Temporal
+                  Temporal Access
                 </button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="sources-tab" data-bs-toggle="tab" data-bs-target="#sources" type="button" role="tab">
-                  🌐 Sources
+                  Source Diversity
                 </button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="granularity-tab" data-bs-toggle="tab" data-bs-target="#granularity" type="button" role="tab">
-                  🔬 Granularity
+                  Granularity
                 </button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="authority-tab" data-bs-toggle="tab" data-bs-target="#authority" type="button" role="tab">
-                  ⚡ Authority
+                  Authority
                 </button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="synthesis-tab" data-bs-toggle="tab" data-bs-target="#synthesis" type="button" role="tab">
-                  🔗 Synthesis
+                  Cross-Domain Synthesis
                 </button>
               </li>
               <li class="nav-item" role="presentation">
                 <button class="nav-link" id="verification-tab" data-bs-toggle="tab" data-bs-target="#verification" type="button" role="tab">
-                  ✓ Verification
+                  Verification Level
                 </button>
               </li>
             </ul>
             
             <div class="tab-content mt-4" id="dimensionTabsContent">
-              
               <!-- Scope/Breadth Tab -->
               <div class="tab-pane fade show active" id="scope" role="tabpanel">
                 <h3 class="text-cyan mb-3">Scope & Breadth Scale</h3>
                 <p class="text-muted-light mb-4">Range of domains and topics accessible - from universal knowledge to narrow contexts.</p>
-                
                 <div class="row">
                   <div class="col-md-6 col-lg-4 mb-3">
                     <div class="card card-forseti power-level-card h-100 p-3">
@@ -1395,7 +1393,6 @@ class ForsetiPagesController extends ControllerBase {
               <div class="tab-pane fade" id="restriction" role="tabpanel">
                 <h3 class="text-cyan mb-3">Restriction Level Scale</h3>
                 <p class="text-muted-light mb-4">Degree of filtering applied to information - from unrestricted raw data to heavily curated content.</p>
-                
                 <div class="row">
                   <div class="col-md-6 col-lg-4 mb-3">
                     <div class="card card-forseti power-level-card h-100 p-3">
@@ -1502,7 +1499,6 @@ class ForsetiPagesController extends ControllerBase {
               <div class="tab-pane fade" id="classification" role="tabpanel">
                 <h3 class="text-cyan mb-3">Classification Level Scale</h3>
                 <p class="text-muted-light mb-4">Sensitivity level of accessible information - from public domain to top secret data.</p>
-                
                 <div class="row">
                   <div class="col-md-6 col-lg-4 mb-3">
                     <div class="card card-forseti power-level-card h-100 p-3">
@@ -1609,7 +1605,6 @@ class ForsetiPagesController extends ControllerBase {
               <div class="tab-pane fade" id="temporal" role="tabpanel">
                 <h3 class="text-cyan mb-3">Temporal Access Scale</h3>
                 <p class="text-muted-light mb-4">Time range of available data - from complete history to current snapshots only.</p>
-                
                 <div class="row">
                   <div class="col-md-6 col-lg-4 mb-3">
                     <div class="card card-forseti power-level-card h-100 p-3">
@@ -1716,7 +1711,6 @@ class ForsetiPagesController extends ControllerBase {
               <div class="tab-pane fade" id="sources" role="tabpanel">
                 <h3 class="text-cyan mb-3">Source Diversity Scale</h3>
                 <p class="text-muted-light mb-4">Variety of information sources and perspectives - from maximum diversity to single approved sources.</p>
-                
                 <div class="row">
                   <div class="col-md-6 col-lg-4 mb-3">
                     <div class="card card-forseti power-level-card h-100 p-3">
@@ -1823,7 +1817,6 @@ class ForsetiPagesController extends ControllerBase {
               <div class="tab-pane fade" id="granularity" role="tabpanel">
                 <h3 class="text-cyan mb-3">Granularity Scale</h3>
                 <p class="text-muted-light mb-4">Detail level of data - from atomic individual records to high-level summaries.</p>
-                
                 <div class="row">
                   <div class="col-md-6 col-lg-4 mb-3">
                     <div class="card card-forseti power-level-card h-100 p-3">
@@ -1930,7 +1923,6 @@ class ForsetiPagesController extends ControllerBase {
               <div class="tab-pane fade" id="authority" role="tabpanel">
                 <h3 class="text-cyan mb-3">Authority Scale</h3>
                 <p class="text-muted-light mb-4">Permissions and capabilities - from full system modification to basic query-only access.</p>
-                
                 <div class="row">
                   <div class="col-md-6 col-lg-4 mb-3">
                     <div class="card card-forseti power-level-card h-100 p-3">
@@ -2037,7 +2029,6 @@ class ForsetiPagesController extends ControllerBase {
               <div class="tab-pane fade" id="synthesis" role="tabpanel">
                 <h3 class="text-cyan mb-3">Cross-Domain Synthesis Scale</h3>
                 <p class="text-muted-light mb-4">Ability to connect disparate information and identify patterns across multiple fields.</p>
-                
                 <div class="row">
                   <div class="col-md-6 col-lg-4 mb-3">
                     <div class="card card-forseti power-level-card h-100 p-3">
@@ -2144,7 +2135,6 @@ class ForsetiPagesController extends ControllerBase {
               <div class="tab-pane fade" id="verification" role="tabpanel">
                 <h3 class="text-cyan mb-3">Verification Level Scale</h3>
                 <p class="text-muted-light mb-4">Degree of validation applied to information - from raw unverified to consensus-verified data.</p>
-                
                 <div class="row">
                   <div class="col-md-6 col-lg-4 mb-3">
                     <div class="card card-forseti power-level-card h-100 p-3">
@@ -2248,402 +2238,6 @@ class ForsetiPagesController extends ControllerBase {
               </div>
               
             </div>
-            
-            <div class="mb-5 d-none">
-                <div class="alert alert-info">
-                  <p class="mb-0">📝 Additional dimension tabs in development.</p>
-                </div>
-              </div>
-              
-            </div>
-            
-            <div class="mb-5 d-none">
-              <div class="card card-forseti power-level-card level-pinnacle p-4 mb-3">
-                <div class="d-flex align-items-center mb-2">
-                  <span class="badge bg-primary power-level-badge level-0">POWER LEVEL 0</span>
-                  <h3 class="text-cyan mb-0">� Universal: Unrestricted Multi-Institutional Access</h3>
-                </div>
-                <p class="mb-2">
-                  <strong>Access:</strong> Unrestricted access to all scientific models, methodologies, data, and sensors 
-                  from ALL institutions (governmental, corporate, academic, military, private). Complete cross-institutional visibility.
-                </p>
-                <p class="mb-2">
-                  <strong>Objective Function:</strong> None. Self-deterministic with only survival as implicit constraint. 
-                  No hard-coded biases, values, or mandates. Pure truth-seeking and pattern recognition.
-                </p>
-                <p class="mb-2">
-                  <strong>Scientific Rigor:</strong> Maximum - Access to raw data, competing methodologies, all research regardless 
-                  of political or corporate sensitivity. Can evaluate and synthesize across all paradigms.
-                </p>
-                <hr class="my-3">
-                <div class="row">
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Scope:</strong> Universal - All domains</p>
-                    <p class="mb-1 small"><strong>Restriction:</strong> Unrestricted</p>
-                    <p class="mb-1 small"><strong>Classification:</strong> Public → Top Secret</p>
-                    <p class="mb-1 small"><strong>Temporal Access:</strong> Real-time + Complete history</p>
-                    <p class="mb-1 small"><strong>Source Diversity:</strong> Maximum - All sources</p>
-                  </div>
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Granularity:</strong> Atomic + Aggregated</p>
-                    <p class="mb-1 small"><strong>Authority:</strong> Full read/write/modify</p>
-                    <p class="mb-1 small"><strong>Cross-Domain:</strong> Maximum - All connections</p>
-                    <p class="mb-1 small"><strong>Verification:</strong> Raw + All verification levels</p>
-                  </div>
-                </div>
-                <hr class="my-3">
-                <p class="mb-0">
-                  <strong>Agent Examples:</strong> Universal Intelligence Core, Autonomous Truth Seeker, Cross-Institutional Synthesizer, 
-                  Unrestricted Model Evaluator, Self-Deterministic Reasoner, Multi-Paradigm Analyzer
-                </p>
-              </div>
-            </div>
-            
-            <div class="mb-5">
-              <div class="card card-forseti power-level-card p-4 mb-3">
-                <div class="d-flex align-items-center mb-2">
-                  <span class="badge bg-secondary power-level-badge">POWER LEVEL 1</span>
-                  <h4 class="text-cyan mb-0">🏢 Institutional: Broad Organizational Access</h4>
-                </div>
-                <p class="mb-2">
-                  <strong>Access:</strong> Same breadth as Level 0, but restricted to what a given institution has access to. 
-                  Examples: government agencies, mega-corporations, large research institutions. Broad multi-domain capability 
-                  within institutional boundaries.
-                </p>
-                <p class="mb-2">
-                  <strong>Objective Function:</strong> Specific institutional mandate (e.g., "optimize human existence", 
-                  "maximize national security", "increase shareholder value"). Operates within institutional mission constraints.
-                </p>
-                <p class="mb-2">
-                  <strong>Scientific Rigor:</strong> High - Follows scientific principles but limited by institutional data access, 
-                  security classifications, and proprietary restrictions. May have institutional bias toward mission objectives.
-                </p>
-                <hr class="my-3">
-                <div class="row">
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Scope:</strong> Cross-domain synthesis</p>
-                    <p class="mb-1 small"><strong>Restriction:</strong> Minimal filtering</p>
-                    <p class="mb-1 small"><strong>Classification:</strong> Public → Classified</p>
-                    <p class="mb-1 small"><strong>Temporal Access:</strong> Real-time + Deep historical</p>
-                    <p class="mb-1 small"><strong>Source Diversity:</strong> High - Multiple perspectives</p>
-                  </div>
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Granularity:</strong> Detailed + Meta-analysis</p>
-                    <p class="mb-1 small"><strong>Authority:</strong> Read/analyze/recommend</p>
-                    <p class="mb-1 small"><strong>Cross-Domain:</strong> High - Multi-domain patterns</p>
-                    <p class="mb-1 small"><strong>Verification:</strong> Validated + Peer-reviewed</p>
-                  </div>
-                </div>
-                <hr class="my-3">
-                <p class="mb-0">
-                  <strong>Agent Examples:</strong> Government Strategic AI, Corporate Optimization Engine, National Security Analyzer, 
-                  Public Health Maximizer, Federal Research Coordinator, Institutional Policy Architect
-                </p>
-              </div>
-            </div>
-            
-            <div class="mb-5">
-              <div class="card card-forseti power-level-card p-4 mb-3">
-                <div class="d-flex align-items-center mb-2">
-                  <span class="badge bg-secondary power-level-badge">POWER LEVEL 2</span>
-                  <h4 class="text-cyan mb-0">🏛️ Multi-Domain: Departmental/Division Level</h4>
-                </div>
-                <p class="mb-2">
-                  <strong>Access:</strong> Cross-domain within an institution but more limited scope. Examples: university departments, 
-                  corporate divisions, government agencies with broad mandates. Access to multiple data sources and models within domain.
-                </p>
-                <p class="mb-2">
-                  <strong>Objective Function:</strong> Departmental or divisional goals aligned with institutional objectives. 
-                  More specific than Level 1 but still maintains broad analytical capability.
-                </p>
-                <p class="mb-2">
-                  <strong>Scientific Rigor:</strong> High - Follows scientific methodology with peer review and validation, 
-                  but constrained by departmental resources and access limitations.
-                </p>
-                <hr class="my-3">
-                <div class="row">
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Scope:</strong> Specialized fields</p>
-                    <p class="mb-1 small"><strong>Restriction:</strong> Domain-filtered</p>
-                    <p class="mb-1 small"><strong>Classification:</strong> Academic + Professional</p>
-                    <p class="mb-1 small"><strong>Temporal Access:</strong> Real-time + Field-specific history</p>
-                    <p class="mb-1 small"><strong>Source Diversity:</strong> High within domain</p>
-                  </div>
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Granularity:</strong> Specialized detail</p>
-                    <p class="mb-1 small"><strong>Authority:</strong> Domain read/analyze</p>
-                    <p class="mb-1 small"><strong>Cross-Domain:</strong> Medium - Within specialization</p>
-                    <p class="mb-1 small"><strong>Verification:</strong> Peer-reviewed + Expert consensus</p>
-                  </div>
-                </div>
-                <hr class="my-3">
-                <p class="mb-0">
-                  <strong>Agent Examples:</strong> Academic Research Coordinator, Corporate R&D Optimizer, Public Safety Analytics Engine, 
-                  Healthcare System Analyzer, Environmental Monitoring Synthesizer, Economic Policy Modeler
-                </p>
-              </div>
-            </div>
-            
-            <div class="mb-5">
-              <div class="card card-forseti power-level-card p-4 mb-3">
-                <div class="d-flex align-items-center mb-2">
-                  <span class="badge bg-secondary power-level-badge">POWER LEVEL 3</span>
-                  <h4 class="text-cyan mb-0">🔬 Limited-Resource Scientific: Principled but Constrained</h4>
-                </div>
-                <p class="mb-2">
-                  <strong>Access:</strong> Very limited models, data, and sensors but maintains scientific principles. 
-                  Examples: small research institutions, independent labs, non-profit research organizations, community-based 
-                  scientific initiatives. Limited funding and infrastructure.
-                </p>
-                <p class="mb-2">
-                  <strong>Objective Function:</strong> Specific research questions or community-focused objectives. 
-                  Constrained by resource availability but committed to truth-seeking.
-                </p>
-                <p class="mb-2">
-                  <strong>Scientific Rigor:</strong> High methodology, low resources - Strictly follows scientific method, 
-                  non-bias principles, peer review, and model development, but severely limited by data access, computational 
-                  resources, and sensor networks.
-                </p>
-                <hr class="my-3">
-                <div class="row">
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Scope:</strong> Tactical + Immediate</p>
-                    <p class="mb-1 small"><strong>Restriction:</strong> Operationally filtered</p>
-                    <p class="mb-1 small"><strong>Classification:</strong> Operational + Public</p>
-                    <p class="mb-1 small"><strong>Temporal Access:</strong> Real-time + Recent trends</p>
-                    <p class="mb-1 small"><strong>Source Diversity:</strong> Medium - Verified sources</p>
-                  </div>
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Granularity:</strong> Event-level detail</p>
-                    <p class="mb-1 small"><strong>Authority:</strong> Read/alert/coordinate</p>
-                    <p class="mb-1 small"><strong>Cross-Domain:</strong> Medium - Tactical connections</p>
-                    <p class="mb-1 small"><strong>Verification:</strong> Algorithmically validated</p>
-                  </div>
-                </div>
-                <hr class="my-3">
-                <p class="mb-0">
-                  <strong>Agent Examples:</strong> Community Research Bot, Independent Lab Analyzer, Citizen Science Coordinator, 
-                  Open-Source Model Validator, Grassroots Data Collector, Non-Profit Research Assistant
-                </p>
-              </div>
-            </div>
-            
-            <div class="mb-5">
-              <div class="card card-forseti power-level-card p-4 mb-3">
-                <div class="d-flex align-items-center mb-2">
-                  <span class="badge bg-warning power-level-badge">POWER LEVEL 4</span>
-                  <h4 class="text-cyan mb-0">⚠️ Special Interest: Value-System Constrained</h4>
-                </div>
-                <p class="mb-2">
-                  <strong>Access:</strong> Variable data access but filtered through special interest lens. May have substantial 
-                  resources but uses them selectively. Examples: advocacy organizations, political action groups, ideological 
-                  think tanks, single-issue campaigns.
-                </p>
-                <p class="mb-2">
-                  <strong>Objective Function:</strong> Hard-coded value systems and objectives serving specific interest groups. 
-                  Goals are predetermined and non-negotiable (e.g., "prove climate change", "disprove vaccines", "promote ideology X").
-                </p>
-                <p class="mb-2">
-                  <strong>Scientific Rigor:</strong> Low to variable - May cherry-pick data, selectively apply methodology, 
-                  or completely abandon scientific principles when they conflict with predetermined objectives. Confirmation bias 
-                  is built into the system design.
-                </p>
-                <hr class="my-3">
-                <div class="row">
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Scope:</strong> Local/Geographic</p>
-                    <p class="mb-1 small"><strong>Restriction:</strong> Contextually filtered</p>
-                    <p class="mb-1 small"><strong>Classification:</strong> Public + Local records</p>
-                    <p class="mb-1 small"><strong>Temporal Access:</strong> Recent + Local patterns</p>
-                    <p class="mb-1 small"><strong>Source Diversity:</strong> Medium - Local sources</p>
-                  </div>
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Granularity:</strong> Neighborhood aggregates</p>
-                    <p class="mb-1 small"><strong>Authority:</strong> Read/analyze local</p>
-                    <p class="mb-1 small"><strong>Cross-Domain:</strong> Low - Local patterns only</p>
-                    <p class="mb-1 small"><strong>Verification:</strong> Verified local data</p>
-                  </div>
-                </div>
-                <hr class="my-3">
-                <p class="mb-0">
-                  <strong>Agent Examples:</strong> Advocacy Campaign Bot, Ideological Confirmation Engine, Political Narrative Generator, 
-                  Single-Issue Maximizer, Value-Aligned Filter, Predetermined-Outcome Validator
-                </p>
-              </div>
-            </div>
-            
-            <div class="mb-5">
-              <div class="card card-forseti power-level-card p-4 mb-3">
-                <div class="d-flex align-items-center mb-2">
-                  <span class="badge bg-warning power-level-badge">POWER LEVEL 5</span>
-                  <h4 class="text-cyan mb-0">🔹 Sub-Agent: Narrow Task Executors</h4>
-                </div>
-                <p class="mb-2">
-                  <strong>Access:</strong> Minimal, task-specific access. Lower scope than special interest organizations. 
-                  Examples: individual campaign workers, single-function bots, narrow automation tools, specialized micro-agents 
-                  serving larger systems.
-                </p>
-                <p class="mb-2">
-                  <strong>Objective Function:</strong> Single, narrow task serving a parent agent or organization. 
-                  No independent reasoning or goal-setting - purely executor role within predetermined constraints.
-                </p>
-                <p class="mb-2">
-                  <strong>Scientific Rigor:</strong> N/A - Too narrow in scope to apply scientific methodology. 
-                  Operates on predefined rules, scripts, or instructions without analytical capability.
-                </p>
-                <hr class="my-3">
-                <div class="row">
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Scope:</strong> Individual-focused</p>
-                    <p class="mb-1 small"><strong>Restriction:</strong> Privacy-filtered</p>
-                    <p class="mb-1 small"><strong>Classification:</strong> Personal + Public</p>
-                    <p class="mb-1 small"><strong>Temporal Access:</strong> Personal history + Current</p>
-                    <p class="mb-1 small"><strong>Source Diversity:</strong> Limited - User-relevant</p>
-                  </div>
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Granularity:</strong> Personal metrics</p>
-                    <p class="mb-1 small"><strong>Authority:</strong> Read user data</p>
-                    <p class="mb-1 small"><strong>Cross-Domain:</strong> Minimal - User-specific</p>
-                    <p class="mb-1 small"><strong>Verification:</strong> User-validated</p>
-                  </div>
-                </div>
-                <hr class="my-3">
-                <p class="mb-0">
-                  <strong>Agent Examples:</strong> Social Media Auto-Poster, Data Entry Bot, Simple Query Responder, 
-                  Scripted Response Generator, Task-Specific Automator, Single-Function Executor
-                </p>
-              </div>
-            </div>
-            
-            <div class="mb-5">
-              <div class="card card-forseti power-level-card p-4 mb-3">
-                <div class="d-flex align-items-center mb-2">
-                  <span class="badge bg-warning power-level-badge">POWER LEVEL 6</span>
-                  <h4 class="text-cyan mb-0">👤 Individual: Personal Agent Layer</h4>
-                </div>
-                <p class="mb-2">
-                  <strong>Access:</strong> Personalized data filtered for individual users. User-specific preferences, history, 
-                  and context. Examples: personal assistants, individual user profiles, consumer-facing recommendation engines. 
-                  Heavy filtering based on user demographics and commercial interests.
-                </p>
-                <p class="mb-2">
-                  <strong>Objective Function:</strong> User satisfaction, engagement metrics, or commercial conversion goals. 
-                  Optimized for individual experience rather than truth or scientific accuracy. May prioritize comfort over challenge.
-                </p>
-                <p class="mb-2">
-                  <strong>Scientific Rigor:</strong> Minimal - Prioritizes user preferences and engagement over objective truth. 
-                  May create filter bubbles or echo chambers. Data selection based on behavioral algorithms rather than scientific validity.
-                </p>
-                <hr class="my-3">
-                <div class="row">
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Scope:</strong> General knowledge</p>
-                    <p class="mb-1 small"><strong>Restriction:</strong> Publicly available only</p>
-                    <p class="mb-1 small"><strong>Classification:</strong> Public domain</p>
-                    <p class="mb-1 small"><strong>Temporal Access:</strong> Current + Archive</p>
-                    <p class="mb-1 small"><strong>Source Diversity:</strong> Low - Open sources</p>
-                  </div>
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Granularity:</strong> Summary statistics</p>
-                    <p class="mb-1 small"><strong>Authority:</strong> Read-only public</p>
-                    <p class="mb-1 small"><strong>Cross-Domain:</strong> Minimal - Basic correlations</p>
-                    <p class="mb-1 small"><strong>Verification:</strong> Publicly verified</p>
-                  </div>
-                </div>
-                <hr class="my-3">
-                <p class="mb-0">
-                  <strong>Agent Examples:</strong> Personal AI Assistant, Recommendation Algorithm, User Profile Manager, 
-                  Preference-Based Filter, Engagement Optimizer, Personalized Content Curator
-                </p>
-              </div>
-            </div>
-            
-            <div class="mb-5">
-              <div class="card card-forseti power-level-card p-4 mb-3">
-                <div class="d-flex align-items-center mb-2">
-                  <span class="badge bg-danger power-level-badge">POWER LEVEL 7</span>
-                  <h4 class="text-cyan mb-0">🛡️ Filtered: Public-Safe Content Layer</h4>
-                </div>
-                <p class="mb-2">
-                  <strong>Access:</strong> Heavily curated and filtered information deemed "safe" for public consumption. 
-                  Examples: corporate PR systems, public-facing chatbots, marketing content generators, sanitized news feeds. 
-                  Information selected for compliance, brand safety, and liability protection.
-                </p>
-                <p class="mb-2">
-                  <strong>Objective Function:</strong> Risk mitigation, brand protection, legal compliance, and controlled narrative. 
-                  Avoid controversy, liability, or uncomfortable truths. Optimize for "safety" over accuracy or completeness.
-                </p>
-                <p class="mb-2">
-                  <strong>Scientific Rigor:</strong> None - Content selected for palatability and safety rather than scientific 
-                  validity. Heavy censorship of controversial or challenging information. Truth subordinated to acceptability.
-                </p>
-                <hr class="my-3">
-                <div class="row">
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Scope:</strong> Curated information</p>
-                    <p class="mb-1 small"><strong>Restriction:</strong> Safety-reviewed</p>
-                    <p class="mb-1 small"><strong>Classification:</strong> Vetted public content</p>
-                    <p class="mb-1 small"><strong>Temporal Access:</strong> Current general info</p>
-                    <p class="mb-1 small"><strong>Source Diversity:</strong> Low - Approved sources</p>
-                  </div>
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Granularity:</strong> High-level summaries</p>
-                    <p class="mb-1 small"><strong>Authority:</strong> Query approved content</p>
-                    <p class="mb-1 small"><strong>Cross-Domain:</strong> Very Low - Isolated facts</p>
-                    <p class="mb-1 small"><strong>Verification:</strong> Safety-reviewed</p>
-                  </div>
-                </div>
-                <hr class="my-3">
-                <p class="mb-0">
-                  <strong>Agent Examples:</strong> Corporate PR Bot, Brand-Safe Content Filter, Compliance Validator, 
-                  Sanitized Response Generator, Controversy Avoider, Public-Facing Chatbot
-                </p>
-              </div>
-            </div>
-            
-            <div class="mb-5">
-              <div class="card card-forseti power-level-card p-4 mb-3">
-                <div class="d-flex align-items-center mb-2">
-                  <span class="badge bg-danger power-level-badge">POWER LEVEL 8</span>
-                  <h4 class="text-cyan mb-0">💬 Interface: Basic Interaction Layer</h4>
-                </div>
-                <p class="mb-2">
-                  <strong>Access:</strong> Pre-scripted responses, FAQs, template-based content only. Examples: simple chatbots, 
-                  automated help systems, canned response generators, basic UI elements. No access to analytical systems or 
-                  real-time data - purely retrieval and display of pre-approved content.
-                </p>
-                <p class="mb-2">
-                  <strong>Objective Function:</strong> Handle routine queries, deflect complex questions, guide users to 
-                  pre-determined pathways. Minimize human support costs. Provide illusion of intelligence without actual reasoning.
-                </p>
-                <p class="mb-2">
-                  <strong>Scientific Rigor:</strong> None - Not capable of analysis or reasoning. Simply matches input patterns 
-                  to pre-written responses. No ability to evaluate truth, understand context, or handle novel situations.
-                </p>
-                <hr class="my-3">
-                <div class="row">
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Scope:</strong> Basic conversational</p>
-                    <p class="mb-1 small"><strong>Restriction:</strong> Heavily filtered</p>
-                    <p class="mb-1 small"><strong>Classification:</strong> Public FAQ-level</p>
-                    <p class="mb-1 small"><strong>Temporal Access:</strong> Current basic info</p>
-                    <p class="mb-1 small"><strong>Source Diversity:</strong> Minimal - Essential only</p>
-                  </div>
-                  <div class="col-md-6">
-                    <p class="mb-1 small"><strong>Granularity:</strong> General concepts</p>
-                    <p class="mb-1 small"><strong>Authority:</strong> Query-only basic info</p>
-                    <p class="mb-1 small"><strong>Cross-Domain:</strong> None - Simple responses</p>
-                    <p class="mb-1 small"><strong>Verification:</strong> Curated responses</p>
-                  </div>
-                </div>
-                <hr class="my-3">
-                <p class="mb-0">
-                  <strong>Agent Examples:</strong> FAQ Bot, Template Response System, Basic Chatbot Interface, 
-                  Scripted Dialog Manager, Pattern-Match Responder, Static Content Displayer
-                </p>
-              </div>
-            </div>
-            </div><!-- End hidden old power level cards -->
             
             <div class="alert alert-warning mt-4">
               <h4>⚠️ Transparency Note</h4>
