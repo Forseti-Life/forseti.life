@@ -28,5 +28,14 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
         'current_year' => NULL,
       ],
     ],
+    'forseti_page_agent_hierarchy' => [
+      'variables' => [
+        'title' => NULL,
+        'intro' => [],
+        'dimensions' => [],
+        'transparency_note' => NULL,
+      ],
+      'template' => 'forseti-page-agent-hierarchy',
+    ],
   ];
 }

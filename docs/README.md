@@ -1,7 +1,7 @@
-# St. Louis Integration - Documentation Hub
+# Forseti.life - Documentation Hub
 
-**Last Updated**: December 13, 2024  
-**Repository**: stlouisintegration.com  
+**Last Updated**: January 3, 2026  
+**Repository**: forseti.life  
 **Products**: Forseti Safety Platform, AmISafe Mobile App
 
 ---
@@ -18,7 +18,7 @@
 
 ## Overview
 
-This directory contains comprehensive documentation for the St. Louis Integration project, including:
+This directory contains comprehensive documentation for the Forseti.life project, including:
 - **Forseti Safety Platform**: Web-based hyperlocal crime safety visualization
 - **AmISafe Mobile App**: React Native mobile app with background monitoring and proactive alerts
 - **H3 Geolocation System**: Crime data processing pipeline using Uber's H3 hexagonal indexing

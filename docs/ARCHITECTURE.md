@@ -1,14 +1,14 @@
-# St. Louis Integration - Infrastructure Architecture
+# Forseti.life - Infrastructure Architecture
 
 ## System Overview
 
-This document describes the complete infrastructure architecture for the St. Louis Integration platform, including the Drupal CMS, AmISafe crime monitoring system, H3 geolocation framework, and mobile applications.
+This document describes the complete infrastructure architecture for the Forseti.life platform, including the Drupal 11 CMS, AmISafe crime monitoring system, H3 geolocation framework, and mobile applications.
 
 ## 🏗️ Platform Architecture
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│                    St. Louis Integration Platform              │
+│                    Forseti.life Platform                       │
 ├────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐  │
@@ -42,12 +42,13 @@ This document describes the complete infrastructure architecture for the St. Lou
 **Document Root Structure:**
 ```
 /var/www/html/
-├── stlouisintegration/           # Main Drupal site
+├── forseti/                      # Forseti Drupal site (production)
 │   ├── web/                      # Public web root
-│   │   ├── core/                 # Drupal core
+│   │   ├── core/                 # Drupal 11 core
 │   │   ├── modules/              # Contributed & custom modules
 │   │   │   └── custom/
-│   │   │       └── amisafe/      # AmISafe crime monitoring
+│   │   │       ├── amisafe/      # AmISafe crime monitoring
+│   │   │       └── forseti_safety_content/  # Website pages
 │   │   ├── themes/               # Drupal themes
 │   │   ├── sites/
 │   │   │   └── default/

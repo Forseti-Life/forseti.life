@@ -1,6 +1,6 @@
 # Custom Modules
 
-This directory contains custom modules for the St. Louis Integration website.
+This directory contains custom modules for the Forseti.life website.
 
 ## Module Structure
 

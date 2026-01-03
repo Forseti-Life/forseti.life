@@ -650,12 +650,24 @@ ai_conversation (Core AI Service Provider)
 
 ### **Production Server Documentation**
 
-#### **Comprehensive Logging Infrastructure** (Updated Sept 26, 2025)
-- **Apache Logs**: Site-specific logs at `/var/log/apache2/stlouisintegration_access.log` and `stlouisintegration_error.log`
+#### **Comprehensive Logging Infrastructure** (Updated January 3, 2026)
+- **Apache Logs**: Site-specific logs at `/var/log/apache2/forseti_access.log` and `/var/log/apache2/forseti_error.log`
 - **PHP Logging**: mod_php configuration sends errors to Apache error logs
-- **Drupal Logging**: Database logging (dblog) enabled, accessed via `drush --uri=stlouisintegration.com watchdog:show`
-- **Multisite Context**: All drush commands require `--uri=stlouisintegration.com` specification
+- **Drupal Logging**: Database logging (dblog) enabled, accessed via `cd /var/www/html/forseti && ./vendor/bin/drush watchdog:show`
+- **Multisite Context**: Each site has its own Drush installation in vendor/bin/
 - **Complete Documentation**: All logging details documented in `.github/instructions/instructions.md`
+
+#### **Forseti Site Architecture** (Updated January 3, 2026)
+**Module Structure:**
+- **forseti_safety_content** - All user-facing website pages and content (routes: `/home`, `/about`, `/how-it-works`, `/community`, `/mobile-app`, `/privacy`, `/contact`, `/ai-agent-hierarchy`)
+- **amisafe** - Crime data API, H3 processing, mobile app backend (routes: `/api/amisafe/*`, powers `/safety-map` and `/mobile-app`)
+- **forseti** (theme) - Base theme with Bootstrap 5, animated hexagonal header, layout
+
+**Page Status:** ✅ All pages loading (HTTP 200)  
+**Styling:** ✅ Unified color scheme (--primary-blue: #00d4ff, --dark-bg: #1a1a2e)  
+**Refactoring:** Phase 1 complete - Agent Hierarchy page converted to Twig templates (39% controller reduction)
+
+**See:** [sites/forseti/README.md](sites/forseti/README.md) for detailed Drupal site documentation
 
 ### **AWS Bedrock Configuration**
 

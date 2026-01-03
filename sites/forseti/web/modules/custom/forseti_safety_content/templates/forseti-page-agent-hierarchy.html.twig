@@ -1,0 +1,89 @@
+{#
+/**
+ * @file
+ * Template for AI Agent Hierarchy page.
+ *
+ * Available variables:
+ * - title: Page title
+ * - intro: Introduction content array with 'lead', 'title', and 'paragraphs'
+ * - dimensions: Array of dimension data
+ * - transparency_note: Transparency note text
+ */
+#}
+<div class="container py-3">
+  <div class="row">
+    <div class="col-lg-10 mx-auto">
+      <h1 class="text-center mb-3 text-cyan">{{ title }}</h1>
+      
+      <div class="lead mb-4 text-muted-light text-center">
+        {{ intro.lead }}
+      </div>
+      
+      <div class="alert alert-info-cyan mt-4">
+        <h4 class="text-cyan">{{ intro.title }}</h4>
+        {% for paragraph in intro.paragraphs %}
+          <p{% if loop.last %} class="mb-0"{% else %} class="mb-2"{% endif %}>
+            {{ paragraph }}
+          </p>
+        {% endfor %}
+      </div>
+      
+      <h2 class="mt-5 mb-3 text-cyan">{{ 'Information Access Dimensions'|t }}</h2>
+      <p class="text-muted-light">
+        {{ 'Explore how each power level performs across nine key dimensions of information access. Select a dimension to see how all power levels compare on that specific characteristic.'|t }}
+      </p>
+      
+      {# Dimension Tabs Navigation #}
+      <ul class="nav nav-tabs nav-fill mt-4" id="dimensionTabs" role="tablist">
+        {% for dimension in dimensions %}
+          <li class="nav-item" role="presentation">
+            <button class="nav-link{% if loop.first %} active{% endif %}" 
+                    id="{{ dimension.id }}-tab" 
+                    data-bs-toggle="tab" 
+                    data-bs-target="#{{ dimension.id }}" 
+                    type="button" 
+                    role="tab">
+              {{ dimension.name }}
+            </button>
+          </li>
+        {% endfor %}
+      </ul>
+      
+      {# Dimension Tab Content #}
+      <div class="tab-content mt-4" id="dimensionTabsContent">
+        {% for dimension in dimensions %}
+          <div class="tab-pane fade{% if loop.first %} show active{% endif %}" 
+               id="{{ dimension.id }}" 
+               role="tabpanel">
+            <h3 class="text-cyan mb-3">{{ dimension.name }} {{ 'Scale'|t }}</h3>
+            <p class="text-muted-light mb-4">{{ dimension.description }}</p>
+            <div class="row">
+              {% for level in dimension.levels %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                  <div class="card card-forseti power-level-card h-100 p-3">
+                    <div class="d-flex align-items-center mb-2">
+                      <span class="badge {{ level.badge }} me-2">{{ level.label }}</span>
+                      <strong class="text-cyan">{{ level.name }}</strong>
+                    </div>
+                    <h5>{{ level.title }}</h5>
+                    <p class="small mb-0">{{ level.description }}</p>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      
+      <div class="alert alert-warning mt-4">
+        <h4>{{ '⚠️ Transparency Note'|t }}</h4>
+        <p class="mb-0">{{ transparency_note }}</p>
+      </div>
+      
+      <div class="text-center mt-5">
+        <a href="/talk-with-forseti" class="btn btn-primary btn-lg">{{ 'Talk with Forseti'|t }}</a>
+        <a href="/how-it-works" class="btn btn-outline-primary btn-lg ms-2">{{ 'Back to How It Works'|t }}</a>
+      </div>
+    </div>
+  </div>
+</div>
