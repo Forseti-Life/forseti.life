@@ -198,7 +198,60 @@ class ForsetiPagesController extends ControllerBase {
    */
   public function community() {
     return [
-      '#markup' => $this->getCommunityContent(),
+      '#theme' => 'forseti_page_community',
+      '#title' => $this->t('Join Our Safety Community'),
+      '#subtitle' => $this->t('Together, we\'re making Philadelphia safer for everyone'),
+      '#why_join_title' => $this->t('Why Join?'),
+      '#benefits' => [
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Stay Informed'),
+          'description' => $this->t('Get notified when you enter areas with elevated safety concerns based on your current geographic location and situational context, plus receive weekly safety summaries.'),
+        ],
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_connected.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Connect with Neighbors'),
+          'description' => $this->t('Join neighborhood watch groups, coordinate safety efforts, and build stronger community bonds.'),
+        ],
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_capable.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Make an Impact'),
+          'description' => $this->t('Report incidents, validate AI predictions, and contribute to the safety intelligence that protects your community.'),
+        ],
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_useful.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Learn & Grow'),
+          'description' => $this->t('Access safety resources, attend community events, and participate in safety awareness programs.'),
+        ],
+      ],
+      '#how_to_title' => $this->t('How to Get Involved'),
+      '#steps' => [
+        [
+          'title' => $this->t('1. Get Forseti Mobile'),
+          'description' => $this->t('Download our mobile app for location-based safety alerts and on-the-go situational awareness.'),
+          'button_url' => '/mobile-app',
+          'button_text' => $this->t('Get the App'),
+          'button_style' => 'primary',
+        ],
+        [
+          'title' => $this->t('2. Create Account'),
+          'description' => $this->t('Set up your profile, customize your alert preferences, and define your safety zones.'),
+          'button_url' => '/user/register',
+          'button_text' => $this->t('Sign Up'),
+          'button_style' => 'outline-primary',
+        ],
+        [
+          'title' => $this->t('3. Join Local Groups'),
+          'description' => $this->t('Connect with neighborhood watch groups and community safety initiatives in your area.'),
+          'button_disabled' => TRUE,
+          'button_text' => $this->t('Coming Soon'),
+          'button_style' => 'outline-primary',
+        ],
+      ],
+      '#cache' => [
+        'max-age' => 3600,
+        'contexts' => ['url'],
+      ],
     ];
   }
 
@@ -207,7 +260,71 @@ class ForsetiPagesController extends ControllerBase {
    */
   public function mobileApp() {
     return [
-      '#markup' => $this->getMobileAppContent(),
+      '#theme' => 'forseti_page_mobile_app',
+      '#title' => $this->t('Forseti Mobile App'),
+      '#subtitle' => $this->t('Your personal safety companion for Philadelphia'),
+      '#beta_alert' => [
+        'title' => '<i class="fas fa-mobile-alt"></i> ' . $this->t('Beta Testing Now Available!'),
+        'description' => $this->t('The Forseti Mobile App is now available for beta testing on Android devices. Help us improve by testing the app and providing feedback!'),
+        'download_url' => '/sites/default/files/forseti/mobile/Forseti-latest.apk',
+        'button_text' => '<i class="fas fa-download"></i> ' . $this->t('Beta Testers Download'),
+        'version_info' => '<strong>' . $this->t('Version 1.0.0') . '</strong> | ' . $this->t('Android 5.0+') . ' | 18MB',
+        'availability' => $this->t('iOS version coming soon | Full launch: Q1 2026'),
+      ],
+      '#intro' => [
+        'title' => $this->t('Safety in Your Pocket'),
+        'description' => $this->t('Forseti Mobile will bring the power of AI monitoring directly to your smartphone. Get notified when you enter areas with elevated safety concerns, access location-based safety information, and one-touch emergency services.'),
+      ],
+      '#app_display' => [
+        'logo' => '/themes/custom/forseti/images/logos/originals/forseti_safe.png',
+        'android_icon' => '<i class="fab fa-android fa-2x text-success"></i>',
+        'ios_icon' => '<i class="fab fa-apple fa-2x text-muted"></i>',
+        'status' => $this->t('Beta Testing Available'),
+        'availability' => $this->t('Android beta | iOS coming soon'),
+      ],
+      '#features_title' => $this->t('Planned Features'),
+      '#features' => [
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Location-Based Alerts'),
+          'description' => $this->t('Automatic notifications when you enter high-risk areas or when incidents occur near your location.'),
+        ],
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_energized.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Emergency SOS'),
+          'description' => $this->t('One-touch access to emergency services with automatic location sharing and emergency contact notifications.'),
+        ],
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_connected.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Interactive Maps'),
+          'description' => $this->t('View real-time crime incidents, safety zones, and navigate the safest routes to your destination.'),
+        ],
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_useful.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Incident Reporting'),
+          'description' => $this->t('Quickly report suspicious activity or incidents with photos, descriptions, and automatic GPS tagging.'),
+        ],
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_whole.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Check-In Feature'),
+          'description' => $this->t('Let friends and family know you\'re safe with automatic check-ins and location sharing.'),
+        ],
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_capable.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Offline Resources'),
+          'description' => $this->t('Access safety tips, emergency contacts, and critical information even without an internet connection.'),
+        ],
+      ],
+      '#cta' => [
+        'title' => '<i class="fas fa-bell"></i> ' . $this->t('Get Notified When We Launch'),
+        'description' => $this->t('Sign up for early access and be among the first to download the Forseti Mobile App when it becomes available.'),
+        'button_url' => '/talk-with-forseti',
+        'button_text' => $this->t('Request Early Access'),
+      ],
+      '#cache' => [
+        'max-age' => 3600,
+        'contexts' => ['url'],
+      ],
     ];
   }
 
@@ -216,7 +333,104 @@ class ForsetiPagesController extends ControllerBase {
    */
   public function privacy() {
     return [
-      '#markup' => $this->getPrivacyContent(),
+      '#theme' => 'forseti_page_privacy',
+      '#title' => $this->t('Privacy & Security'),
+      '#commitment' => [
+        'title' => $this->t('Our Commitment: Privacy First'),
+        'content' => $this->t('At Forseti, we believe safety and privacy go hand-in-hand. We never sell your data, and we design every feature with your privacy in mind.'),
+      ],
+      '#data_collection' => [
+        'title' => $this->t('Data Collection'),
+        'what_we_collect' => [
+          'title' => $this->t('What We Collect'),
+          'items' => [
+            $this->t('<strong>Crime Data:</strong> Public incident data from Philadelphia PD and emergency services'),
+            $this->t('<strong>Location Data:</strong> Only when you explicitly enable location services'),
+            $this->t('<strong>User Reports:</strong> Incident reports you voluntarily submit'),
+            $this->t('<strong>Usage Analytics:</strong> Anonymous app usage data to improve our service'),
+          ],
+        ],
+        'what_we_dont' => [
+          'title' => $this->t('What We DON\'T Collect'),
+          'items' => [
+            '❌ ' . $this->t('Your browsing history outside Forseti'),
+            '❌ ' . $this->t('Your contacts or messages'),
+            '❌ ' . $this->t('Your photos (unless you choose to attach them to a report)'),
+            '❌ ' . $this->t('Your personal conversations'),
+          ],
+        ],
+      ],
+      '#data_usage' => [
+        'title' => $this->t('Data Usage'),
+        'intro' => $this->t('We use your data exclusively to:'),
+        'items' => [
+          $this->t('Provide safety alerts relevant to your location'),
+          $this->t('Improve our AI prediction models'),
+          $this->t('Generate anonymized crime statistics'),
+          $this->t('Communicate important safety information'),
+        ],
+      ],
+      '#never_do' => [
+        'title' => $this->t('We Never:'),
+        'items' => [
+          $this->t('Sell your personal information'),
+          $this->t('Share your data with advertisers'),
+          $this->t('Track you across other websites'),
+          $this->t('Use your data for purposes you didn\'t consent to'),
+        ],
+      ],
+      '#security_measures' => [
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Encryption'),
+          'description' => $this->t('All data is encrypted in transit (TLS 1.3) and at rest (AES-256).'),
+        ],
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_capable.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Authentication'),
+          'description' => $this->t('Multi-factor authentication and secure password policies.'),
+        ],
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_free.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Access Controls'),
+          'description' => $this->t('Strict role-based access with audit logging.'),
+        ],
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_useful.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Regular Audits'),
+          'description' => $this->t('Third-party security audits and penetration testing.'),
+        ],
+      ],
+      '#rights' => [
+        'title' => $this->t('Your Rights'),
+        'intro' => $this->t('Under GDPR and other privacy laws, you have the right to:'),
+        'items' => [
+          $this->t('<strong>Access:</strong> Request a copy of all data we have about you'),
+          $this->t('<strong>Correction:</strong> Update or correct inaccurate information'),
+          $this->t('<strong>Deletion:</strong> Request deletion of your personal data'),
+          $this->t('<strong>Portability:</strong> Export your data in a standard format'),
+          $this->t('<strong>Opt-Out:</strong> Disable location tracking or notifications anytime'),
+        ],
+      ],
+      '#anonymous_reporting' => [
+        'title' => $this->t('Anonymous Reporting'),
+        'intro' => $this->t('We offer completely anonymous incident reporting. When you choose this option:'),
+        'items' => [
+          $this->t('No account required'),
+          $this->t('No location tracking'),
+          $this->t('No identifying information stored'),
+          $this->t('Reports still help improve community safety'),
+        ],
+      ],
+      '#contact_cta' => [
+        'title' => $this->t('Questions or Concerns?'),
+        'content' => $this->t('If you have any questions about our privacy practices or want to exercise your rights, please <a href="/talk-with-forseti" class="alert-link">talk with Forseti</a>. We typically respond within 48 hours.'),
+      ],
+      '#last_updated' => $this->t('Last Updated: December 9, 2025'),
+      '#cache' => [
+        'max-age' => 3600,
+        'contexts' => ['url'],
+      ],
     ];
   }
 
@@ -229,7 +443,37 @@ class ForsetiPagesController extends ControllerBase {
    */
   public function contactThankYou() {
     return [
-      '#markup' => $this->getContactThankYouContent(),
+      '#theme' => 'forseti_page_contact_thank_you',
+      '#title' => $this->t('Thank You for Reaching Out!'),
+      '#message' => [
+        'title' => $this->t('Message Received'),
+        'content' => $this->t('Your message has been received and we\'ll get back to you within 24-48 hours.'),
+      ],
+      '#what_next' => [
+        'title' => $this->t('What Happens Next?'),
+        'items' => [
+          $this->t('<strong>Review:</strong> Our team will carefully review your message'),
+          $this->t('<strong>Response:</strong> You\'ll receive a personal response via email'),
+          $this->t('<strong>Support:</strong> We\'re committed to addressing your needs'),
+        ],
+      ],
+      '#quick_links' => [
+        'title' => $this->t('Explore More About Forseti'),
+        'column1' => [
+          '<a href="/" class="link-cyan">' . $this->t('Return Home') . '</a>',
+          '<a href="/about" class="link-cyan">' . $this->t('Learn About Forseti') . '</a>',
+          '<a href="/how-it-works" class="link-cyan">' . $this->t('How It Works') . '</a>',
+        ],
+        'column2' => [
+          '<a href="/safety-map" class="link-cyan">' . $this->t('View Safety Map') . '</a>',
+          '<a href="/mobile-app" class="link-cyan">' . $this->t('Download App') . '</a>',
+          '<a href="/community" class="link-cyan">' . $this->t('Join Community') . '</a>',
+        ],
+      ],
+      '#cache' => [
+        'max-age' => 3600,
+        'contexts' => ['url'],
+      ],
     ];
   }
 
@@ -733,343 +977,6 @@ class ForsetiPagesController extends ControllerBase {
   }
 
   /**
-   * Get Community content.
-   */
-  private function getCommunityContent() {
-    return '
-      <div class="container py-3">
-        <h1 class="text-center mb-3 text-cyan">Join Our Safety Community</h1>
-        <p class="text-center mb-4 text-muted-light">
-          Together, we\'re making Philadelphia safer for everyone
-        </p>
-        
-        <div class="row">
-          <div class="col-lg-8 mx-auto">
-            <h2 class="mb-3 text-cyan">Why Join?</h2>
-            
-            <div class="card card-forseti mb-3 p-3">
-              <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon"> Stay Informed</h4>
-              <p>Get notified when you enter areas with elevated safety concerns based on your current 
-              geographic location and situational context, plus receive weekly safety summaries.</p>
-            </div>
-            
-            <div class="card card-forseti mb-3 p-3">
-              <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_connected.png" alt="" class="forseti-icon"> Connect with Neighbors</h4>
-              <p>Join neighborhood watch groups, coordinate safety efforts, and build stronger 
-              community bonds.</p>
-            </div>
-            
-            <div class="card card-forseti mb-3 p-3">
-              <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_capable.png" alt="" class="forseti-icon"> Make an Impact</h4>
-              <p>Report incidents, validate AI predictions, and contribute to the safety intelligence 
-              that protects your community.</p>
-            </div>
-            
-            <div class="card card-forseti mb-3 p-3">
-              <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_useful.png" alt="" class="forseti-icon"> Learn & Grow</h4>
-              <p>Access safety resources, attend community events, and participate in safety 
-              awareness programs.</p>
-            </div>
-            
-            <h2 class="mt-4 mb-3 text-cyan">How to Get Involved</h2>
-            
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <div class="card card-forseti h-100">
-                  <div class="card-body">
-                    <h5 class="card-title">1. Get Forseti Mobile</h5>
-                    <p class="card-text">Download our mobile app for location-based safety alerts and on-the-go situational awareness.</p>
-                    <a href="/mobile-app" class="btn btn-primary">Get the App</a>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="col-md-6 mb-3">
-                <div class="card card-forseti h-100">
-                  <div class="card-body">
-                    <h5 class="card-title">2. Create Account</h5>
-                    <p class="card-text">Set up your profile, customize your alert preferences, and define your safety zones.</p>
-                    <a href="/user/register" class="btn btn-outline-primary">Sign Up</a>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="col-md-6 mb-3">
-                <div class="card card-forseti h-100">
-                  <div class="card-body">
-                    <h5 class="card-title">3. Join Local Groups</h5>
-                    <p class="card-text">Connect with neighborhood watch groups and community safety initiatives in your area.</p>
-                    <button class="btn btn-outline-primary" disabled>Coming Soon</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    ';
-  }
-
-  /**
-   * Get Mobile App content.
-   */
-  private function getMobileAppContent() {
-    return '
-      <div class="container py-3">
-        <div class="row">
-          <div class="col-lg-8 mx-auto">
-            <h1 class="text-center mb-3 text-cyan">Forseti Mobile App</h1>
-            <p class="text-center mb-4 text-muted-light">
-              Your personal safety companion for Philadelphia
-            </p>
-            
-            <div class="alert alert-success text-center mb-4">
-              <h3 class="text-success mb-3">
-                <i class="fas fa-mobile-alt"></i> Beta Testing Now Available!
-              </h3>
-              <p class="lead">
-                The Forseti Mobile App is now available for beta testing on Android devices. 
-                Help us improve by testing the app and providing feedback!
-              </p>
-              <a href="/sites/default/files/forseti/mobile/Forseti-latest.apk" 
-                 class="btn btn-success btn-lg mb-3" 
-                 download
-                 style="background-color: #28a745; border-color: #28a745;">
-                <i class="fas fa-download"></i> Beta Testers Download
-              </a>
-              <p class="text-muted mb-2">
-                <small><strong>Version 1.0.0</strong> | Android 5.0+ | 18MB</small>
-              </p>
-              <p class="text-muted mb-0">
-                <small>iOS version coming soon | Full launch: Q1 2026</small>
-              </p>
-            </div>
-            
-            <div class="row align-items-center mb-4">
-              <div class="col-lg-6">
-                <h2 class="text-cyan">Safety in Your Pocket</h2>
-                <p class="text-muted-light">
-                  Forseti Mobile will bring the power of AI monitoring directly to your smartphone. 
-                  Get notified when you enter areas with elevated safety concerns, access location-based safety information, and one-touch 
-                  emergency services.
-                </p>
-              </div>
-              <div class="col-lg-6 text-center">
-                <div class="card card-forseti p-4">
-                  <div class="mb-3">
-                    <img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="Forseti Mobile App" class="app-logo">
-                  </div>
-                  <div class="text-muted">
-                    <p class="mb-2"><i class="fab fa-android fa-2x text-success"></i></p>
-                    <p class="mb-2"><i class="fab fa-apple fa-2x text-muted"></i></p>
-                    <p class="mt-3"><strong class="text-success">Beta Testing Available</strong></p>
-                    <p class="text-muted"><small>Android beta | iOS coming soon</small></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <h2 class="mb-3 text-cyan">Planned Features</h2>
-            
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <div class="card card-forseti p-3 h-100">
-                  <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon"> Location-Based Alerts</h4>
-                  <p>
-                    Automatic notifications when you enter high-risk areas or when incidents 
-                    occur near your location.
-                  </p>
-                </div>
-              </div>
-              
-              <div class="col-md-6 mb-3">
-                <div class="card card-forseti p-3 h-100">
-                  <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_energized.png" alt="" class="forseti-icon"> Emergency SOS</h4>
-                  <p>
-                    One-touch access to emergency services with automatic location sharing 
-                    and emergency contact notifications.
-                  </p>
-                </div>
-              </div>
-              
-              <div class="col-md-6 mb-3">
-                <div class="card card-forseti p-3 h-100">
-                  <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_connected.png" alt="" class="forseti-icon"> Interactive Maps</h4>
-                  <p>
-                    View real-time crime incidents, safety zones, and navigate the safest 
-                    routes to your destination.
-                  </p>
-                </div>
-              </div>
-              
-              <div class="col-md-6 mb-3">
-                <div class="card card-forseti p-3 h-100">
-                  <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_useful.png" alt="" class="forseti-icon"> Incident Reporting</h4>
-                  <p>
-                    Quickly report suspicious activity or incidents with photos, descriptions, 
-                    and automatic GPS tagging.
-                  </p>
-                </div>
-              </div>
-              
-              <div class="col-md-6 mb-3">
-                <div class="card card-forseti p-3 h-100">
-                  <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_whole.png" alt="" class="forseti-icon"> Check-In Feature</h4>
-                  <p>
-                    Let friends and family know you\'re safe with automatic check-ins and 
-                    location sharing.
-                  </p>
-                </div>
-              </div>
-              
-              <div class="col-md-6 mb-3">
-                <div class="card card-forseti p-3 h-100">
-                  <h4><img src="/themes/custom/forseti/images/logos/originals/forseti_capable.png" alt="" class="forseti-icon"> Offline Resources</h4>
-                  <p>
-                    Access safety tips, emergency contacts, and critical information even 
-                    without an internet connection.
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div class="alert alert-info-cyan mt-4">
-              <h4 class="text-cyan">
-                <i class="fas fa-bell"></i> Get Notified When We Launch
-              </h4>
-              <p>
-                Sign up for early access and be among the first to download the Forseti Mobile App 
-                when it becomes available.
-              </p>
-              <a href="/talk-with-forseti" class="btn btn-primary">Request Early Access</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    ';
-  }
-
-  /**
-   * Get Privacy content.
-   */
-  private function getPrivacyContent() {
-    return '
-      <div class="container py-3">
-        <div class="row">
-          <div class="col-lg-8 mx-auto">
-            <h1 class="text-center mb-3 text-cyan">Privacy & Security</h1>
-            
-            <div class="alert alert-info-cyan">
-              <h4 class="text-cyan">Our Commitment: Privacy First</h4>
-              <p class="mb-0">
-                At Forseti, we believe safety and privacy go hand-in-hand. We never sell your data, 
-                and we design every feature with your privacy in mind.
-              </p>
-            </div>
-            
-            <h2 class="mt-4 mb-3 text-cyan">Data Collection</h2>
-            <h4>What We Collect</h4>
-            <ul>
-              <li><strong>Crime Data:</strong> Public incident data from Philadelphia PD and emergency services</li>
-              <li><strong>Location Data:</strong> Only when you explicitly enable location services</li>
-              <li><strong>User Reports:</strong> Incident reports you voluntarily submit</li>
-              <li><strong>Usage Analytics:</strong> Anonymous app usage data to improve our service</li>
-            </ul>
-            
-            <h4 class="mt-4">What We DON\'T Collect</h4>
-            <ul>
-              <li>❌ Your browsing history outside Forseti</li>
-              <li>❌ Your contacts or messages</li>
-              <li>❌ Your photos (unless you choose to attach them to a report)</li>
-              <li>❌ Your personal conversations</li>
-            </ul>
-            
-            <h2 class="mt-4 mb-3 text-cyan">Data Usage</h2>
-            <p>We use your data exclusively to:</p>
-            <ul>
-              <li>Provide safety alerts relevant to your location</li>
-              <li>Improve our AI prediction models</li>
-              <li>Generate anonymized crime statistics</li>
-              <li>Communicate important safety information</li>
-            </ul>
-            
-            <div class="alert alert-warning mt-4">
-              <strong>We Never:</strong>
-              <ul class="mb-0">
-                <li>Sell your personal information</li>
-                <li>Share your data with advertisers</li>
-                <li>Track you across other websites</li>
-                <li>Use your data for purposes you didn\'t consent to</li>
-              </ul>
-            </div>
-            
-            <h2 class="mt-4 mb-3 text-cyan">Security Measures</h2>
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <div class="card card-forseti p-3 h-100">
-                  <h5><img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon"> Encryption</h5>
-                  <p>All data is encrypted in transit (TLS 1.3) and at rest (AES-256).</p>
-                </div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="card card-forseti p-3 h-100">
-                  <h5><img src="/themes/custom/forseti/images/logos/originals/forseti_capable.png" alt="" class="forseti-icon"> Authentication</h5>
-                  <p>Multi-factor authentication and secure password policies.</p>
-                </div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="card card-forseti p-3 h-100">
-                  <h5><img src="/themes/custom/forseti/images/logos/originals/forseti_free.png" alt="" class="forseti-icon"> Access Controls</h5>
-                  <p>Strict role-based access with audit logging.</p>
-                </div>
-              </div>
-              <div class="col-md-6 mb-3">
-                <div class="card card-forseti p-3 h-100">
-                  <h5><img src="/themes/custom/forseti/images/logos/originals/forseti_useful.png" alt="" class="forseti-icon"> Regular Audits</h5>
-                  <p>Third-party security audits and penetration testing.</p>
-                </div>
-              </div>
-            </div>
-            
-            <h2 class="mt-4 mb-3 text-cyan">Your Rights</h2>
-            <p>Under GDPR and other privacy laws, you have the right to:</p>
-            <ul>
-              <li><strong>Access:</strong> Request a copy of all data we have about you</li>
-              <li><strong>Correction:</strong> Update or correct inaccurate information</li>
-              <li><strong>Deletion:</strong> Request deletion of your personal data</li>
-              <li><strong>Portability:</strong> Export your data in a standard format</li>
-              <li><strong>Opt-Out:</strong> Disable location tracking or notifications anytime</li>
-            </ul>
-            
-            <h2 class="mt-4 mb-3 text-cyan">Anonymous Reporting</h2>
-            <p>
-              We offer completely anonymous incident reporting. When you choose this option:
-            </p>
-            <ul>
-              <li>No account required</li>
-              <li>No location tracking</li>
-              <li>No identifying information stored</li>
-              <li>Reports still help improve community safety</li>
-            </ul>
-            
-            <div class="alert alert-info mt-5">
-              <h4>Questions or Concerns?</h4>
-              <p class="mb-0">
-                If you have any questions about our privacy practices or want to exercise your rights, 
-                please <a href="/talk-with-forseti" class="alert-link">talk with Forseti</a>. We typically respond within 48 hours.
-              </p>
-            </div>
-            
-            <p class="text-muted mt-5">
-              <small>Last Updated: December 9, 2025</small>
-            </p>
-          </div>
-        </div>
-      </div>
-    ';
-  }
-
-  /**
    * Get Contact content.
    */
   private function getContactContent() {
@@ -1425,51 +1332,6 @@ class ForsetiPagesController extends ControllerBase {
             <div class="text-center mb-4">
               <a href="/how-it-works" class="btn btn-primary me-2">Learn How It Works</a>
               <a href="/safety-map" class="btn btn-outline-primary">View Safety Map</a>
-            </div>
-            
-          </div>
-        </div>
-      </div>
-    ';
-  }
-
-  /**
-   * Get Contact Thank You content.
-   */
-  private function getContactThankYouContent() {
-    return '
-      <div class="container py-5">
-        <div class="row">
-          <div class="col-lg-8 mx-auto text-center">
-            <div class="mb-4">
-              <div style="font-size: 5rem; color: #00d4ff;">✓</div>
-            </div>
-            
-            <h1 class="mb-3 text-cyan">Thank You for Reaching Out!</h1>
-            
-            <p class="lead mb-4 text-muted-light">
-              Your message has been received and we\'ll get back to you within 24-48 hours.
-            </p>
-            
-            <div class="card card-forseti p-4 mb-4">
-              <h3 class="text-cyan mb-3">What Happens Next?</h3>
-              <div class="text-start">
-                <ul class="text-muted-light">
-                  <li class="mb-2"><strong>Review:</strong> Our team will carefully review your message</li>
-                  <li class="mb-2"><strong>Response:</strong> You\'ll receive a personal response via email</li>
-                  <li class="mb-2"><strong>Support:</strong> We\'re committed to addressing your needs</li>
-                </ul>
-              </div>
-            </div>
-            
-            <div class="mb-4">
-              <p class="text-muted-light">In the meantime, explore more about Forseti:</p>
-            </div>
-            
-            <div class="d-flex justify-content-center gap-3 flex-wrap">
-              <a href="/" class="btn btn-primary">Return Home</a>
-              <a href="/safety-map" class="btn btn-outline-primary">View Safety Map</a>
-              <a href="/mobile-app" class="btn btn-outline-primary">Download Forseti App</a>
             </div>
             
           </div>
