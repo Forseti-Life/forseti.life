@@ -25,7 +25,7 @@ forseti.safety_factors:
   weight: -25
 
 forseti.agent_hierarchy:
-  title: 'AI Agent Hierarchy'
+  title: 'Agent Power Framework'
   route_name: forseti.agent_hierarchy
   menu_name: main
   parent: forseti.how_it_works
