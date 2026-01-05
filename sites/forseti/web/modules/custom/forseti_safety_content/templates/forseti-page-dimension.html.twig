@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * Template for AI Agent Hierarchy dimension detail pages.
+ * Template for Agent Power Framework dimension detail pages.
  *
  * Available variables:
  * - dimension_id: Machine name of the dimension (scope, restriction, etc.)
@@ -25,7 +25,7 @@
       <nav aria-label="breadcrumb" class="mb-3">
         <ol class="breadcrumb">
           <li class="breadcrumb-item"><a href="/" class="link-cyan">{{ 'Home'|t }}</a></li>
-          <li class="breadcrumb-item"><a href="{{ back_link }}" class="link-cyan">{{ 'AI Agent Hierarchy'|t }}</a></li>
+          <li class="breadcrumb-item"><a href="{{ back_link }}" class="link-cyan">{{ 'Agent Power Framework'|t }}</a></li>
           <li class="breadcrumb-item active text-cyan" aria-current="page">{{ dimension_name }}</li>
         </ol>
       </nav>
@@ -48,13 +48,14 @@
       <div class="alert alert-info-cyan mb-4">
         <h4 class="text-cyan mb-2"><i class="fas fa-info-circle"></i> {{ 'Understanding the Scale'|t }}</h4>
         <p class="mb-2">
-          {{ 'Each dimension is measured on a scale from 0 to 8, where:'|t }}
+          {{ 'Each dimension is measured on a scale from 0 to 9, where:'|t }}
         </p>
         <ul class="mb-0">
-          <li><strong class="text-success">{{ 'Level 0'|t }}</strong> - {{ 'Theoretical ideal: Maximum capability, unrestricted access'|t }}</li>
-          <li><strong class="text-info">{{ 'Levels 1-3'|t }}</strong> - {{ 'High to moderate capability with some institutional constraints'|t }}</li>
-          <li><strong class="text-warning">{{ 'Levels 4-6'|t }}</strong> - {{ 'Limited capability with significant restrictions'|t }}</li>
-          <li><strong class="text-danger">{{ 'Levels 7-8'|t }}</strong> - {{ 'Minimal capability with extreme constraints'|t }}</li>
+          <li><strong class="text-danger">{{ 'Level 0'|t }}</strong> - {{ 'Nothing: Zero capability, no access or processing'|t }}</li>
+          <li><strong class="text-danger">{{ 'Levels 1-2'|t }}</strong> - {{ 'Minimal capability with extreme constraints and filtering'|t }}</li>
+          <li><strong class="text-warning">{{ 'Levels 3-5'|t }}</strong> - {{ 'Limited to moderate capability with significant restrictions'|t }}</li>
+          <li><strong class="text-info">{{ 'Levels 6-7'|t }}</strong> - {{ 'High capability with some institutional constraints'|t }}</li>
+          <li><strong class="text-success">{{ 'Levels 8-9'|t }}</strong> - {{ 'Maximum capability approaching omniscience (∞)'|t }}</li>
         </ul>
       </div>
 
@@ -102,7 +103,7 @@
       {# Navigation back #}
       <div class="text-center mb-4">
         <a href="{{ back_link }}" class="btn btn-primary">
-          <i class="fas fa-arrow-left"></i> {{ 'Return to AI Agent Hierarchy'|t }}
+          <i class="fas fa-arrow-left"></i> {{ 'Return to Agent Power Framework'|t }}
         </a>
       </div>
 

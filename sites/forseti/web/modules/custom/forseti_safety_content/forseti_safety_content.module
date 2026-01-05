@@ -115,6 +115,7 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
       'variables' => [
         'title' => NULL,
         'intro' => [],
+        'power_categories' => [],
         'power_levels' => [],
         'dimension_info' => [],
         'transparency_note' => NULL,
@@ -130,6 +131,22 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
         'back_link' => NULL,
       ],
       'template' => 'forseti-page-dimension',
+    ],
+    'forseti_evaluation_matrix' => [
+      'variables' => [
+        'dimensions' => [],
+        'entities' => [],
+      ],
+      'template' => 'forseti-evaluation-matrix',
+    ],
+    'forseti_page_all_dimensions' => [
+      'variables' => [
+        'title' => NULL,
+        'intro' => NULL,
+        'all_dimensions' => [],
+        'total_count' => NULL,
+      ],
+      'template' => 'forseti-page-all-dimensions',
     ],
   ];
 }
