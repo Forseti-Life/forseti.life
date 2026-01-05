@@ -6,3 +6,11 @@ style:
   dependencies:
     - core/drupal
     - forseti/style
+
+agent-power:
+  version: 1.0
+  css:
+    theme: {}
+  dependencies:
+    - core/drupal
+    - forseti/style

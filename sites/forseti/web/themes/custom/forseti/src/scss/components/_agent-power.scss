@@ -1,6 +1,26 @@
 // Agent Power Framework Card Styles
 // =============================================================================
 
+// Utility classes
+.text-muted-light {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.hover-lift {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.card-forseti {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
 // Style for all card elements in the agent power framework pages
 .card {
   border: none;

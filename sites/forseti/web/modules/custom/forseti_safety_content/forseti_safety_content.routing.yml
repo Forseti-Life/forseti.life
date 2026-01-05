@@ -153,10 +153,50 @@ forseti.dimension_authority:
     _permission: 'access content'
 
 forseti.dimension_synthesis:
-  path: '/agent-power-framework/synthesis-capability'
+  path: '/agent-power-framework/information-synthesis'
   defaults:
     _controller: '\Drupal\forseti_safety_content\Controller\AgentPowerFrameworkController::dimensionSynthesis'
     _title: 'Information Synthesis'
+  requirements:
+    _permission: 'access content'
+
+forseti.dimension_creativity:
+  path: '/agent-power-framework/creativity-generation'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\AgentPowerFrameworkController::dimensionCreativity'
+    _title: 'Creativity & Novel Generation'
+  requirements:
+    _permission: 'access content'
+
+forseti.dimension_strategic_planning:
+  path: '/agent-power-framework/strategic-planning'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\AgentPowerFrameworkController::dimensionStrategicPlanning'
+    _title: 'Strategic Planning Depth'
+  requirements:
+    _permission: 'access content'
+
+forseti.dimension_decision_quality:
+  path: '/agent-power-framework/decision-quality'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\AgentPowerFrameworkController::dimensionDecisionQuality'
+    _title: 'Decision Quality'
+  requirements:
+    _permission: 'access content'
+
+forseti.dimension_adaptive_learning:
+  path: '/agent-power-framework/adaptive-learning'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\AgentPowerFrameworkController::dimensionAdaptiveLearning'
+    _title: 'Adaptive Learning Rate'
+  requirements:
+    _permission: 'access content'
+
+forseti.dimension_memory_architecture:
+  path: '/agent-power-framework/memory-architecture'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\AgentPowerFrameworkController::dimensionMemoryArchitecture'
+    _title: 'Memory Architecture'
   requirements:
     _permission: 'access content'
 

@@ -171,12 +171,75 @@ class AgentPowerFrameworkController extends ControllerBase {
   /**
    * Synthesis dimension detail page.
    */
+  /**
+   * Information Synthesis dimension detail page.
+   */
   public function dimensionSynthesis() {
     return $this->buildDimensionPage(
       'synthesis',
       $this->t('Information Synthesis'),
-      $this->t('Ability to connect information across domains - from universal connections to no synthesis capability.'),
+      $this->t('Cross-domain pattern recognition and insight generation - from no synthesis to universal connections.'),
       $this->agentPowerService->getSynthesisLevels()
+    );
+  }
+
+  /**
+   * Creativity & Novel Generation dimension detail page.
+   */
+  public function dimensionCreativity() {
+    return $this->buildDimensionPage(
+      'creativity',
+      $this->t('Creativity & Novel Generation'),
+      $this->t('Producing genuinely new ideas and solutions - from template-only to breakthrough innovation.'),
+      $this->agentPowerService->getCreativityLevels()
+    );
+  }
+
+  /**
+   * Strategic Planning Depth dimension detail page.
+   */
+  public function dimensionStrategicPlanning() {
+    return $this->buildDimensionPage(
+      'strategic_planning',
+      $this->t('Strategic Planning Depth'),
+      $this->t('Multi-horizon planning sophistication - from reactive-only to multi-decade scenario modeling.'),
+      $this->agentPowerService->getStrategicPlanningLevels()
+    );
+  }
+
+  /**
+   * Decision Quality dimension detail page.
+   */
+  public function dimensionDecisionQuality() {
+    return $this->buildDimensionPage(
+      'decision_quality',
+      $this->t('Decision Quality'),
+      $this->t('Accuracy and appropriateness of choices under uncertainty - from random to near-optimal.'),
+      $this->agentPowerService->getDecisionQualityLevels()
+    );
+  }
+
+  /**
+   * Adaptive Learning Rate dimension detail page.
+   */
+  public function dimensionAdaptiveLearning() {
+    return $this->buildDimensionPage(
+      'adaptive_learning',
+      $this->t('Adaptive Learning Rate'),
+      $this->t('Speed of learning from feedback - from static/never learns to real-time continuous improvement.'),
+      $this->agentPowerService->getAdaptiveLearningLevels()
+    );
+  }
+
+  /**
+   * Memory Architecture dimension detail page.
+   */
+  public function dimensionMemoryArchitecture() {
+    return $this->buildDimensionPage(
+      'memory_architecture',
+      $this->t('Memory Architecture'),
+      $this->t('Knowledge storage, indexing, and retrieval sophistication - from no memory to perfect recall.'),
+      $this->agentPowerService->getMemoryArchitectureLevels()
     );
   }
 
@@ -524,21 +587,28 @@ class AgentPowerFrameworkController extends ControllerBase {
     $content .= '<h2 class="text-cyan mb-4">Six Information Access Dimensions</h2>';
     
     $dimensions = [
-      ['name' => 'Scope & Breadth', 'link' => '/agent-power-framework/scope', 'desc' => 'Breadth of knowledge domains accessible'],
-      ['name' => 'Content Restriction', 'link' => '/agent-power-framework/restriction', 'desc' => 'Level of content filtering applied'],
-      ['name' => 'Temporal Reach', 'link' => '/agent-power-framework/temporal', 'desc' => 'Access to historical data and real-time feeds'],
-      ['name' => 'Source Diversity', 'link' => '/agent-power-framework/sources', 'desc' => 'Range and diversity of information sources'],
-      ['name' => 'Data Granularity', 'link' => '/agent-power-framework/granularity', 'desc' => 'Level of detail accessible'],
-      ['name' => 'Data Verification', 'link' => '/agent-power-framework/verification', 'desc' => 'Level of information validation'],
+      ['name' => 'Scope & Breadth', 'link' => '/agent-power-framework/scope', 'desc' => 'Breadth of knowledge domains accessible', 'icon' => 'fa-globe'],
+      ['name' => 'Content Restriction', 'link' => '/agent-power-framework/restriction', 'desc' => 'Level of content filtering applied', 'icon' => 'fa-filter'],
+      ['name' => 'Temporal Reach', 'link' => '/agent-power-framework/temporal', 'desc' => 'Access to historical data and real-time feeds', 'icon' => 'fa-clock'],
+      ['name' => 'Source Diversity', 'link' => '/agent-power-framework/sources', 'desc' => 'Range and diversity of information sources', 'icon' => 'fa-network-wired'],
+      ['name' => 'Data Granularity', 'link' => '/agent-power-framework/granularity', 'desc' => 'Level of detail accessible', 'icon' => 'fa-microscope'],
+      ['name' => 'Data Verification', 'link' => '/agent-power-framework/verification', 'desc' => 'Level of information validation', 'icon' => 'fa-check-circle'],
     ];
     
     $content .= '<div class="row row-cols-1 row-cols-md-2 g-4 mb-5">';
     foreach ($dimensions as $dim) {
       $content .= '<div class="col">';
-      $content .= '<div class="card h-100"><div class="card-body">';
-      $content .= '<h5><a href="' . $dim['link'] . '">' . $dim['name'] . '</a></h5>';
-      $content .= '<p class="text-muted">' . $dim['desc'] . '</p>';
-      $content .= '</div></div>';
+      $content .= '<a href="' . $dim['link'] . '" class="text-decoration-none">';
+      $content .= '<div class="card card-forseti h-100 p-4 hover-lift">';
+      $content .= '<div class="d-flex align-items-start mb-3">';
+      $content .= '<i class="fas ' . $dim['icon'] . ' fa-2x text-cyan me-3"></i>';
+      $content .= '<div class="flex-grow-1">';
+      $content .= '<h4 class="text-cyan mb-1">' . $dim['name'] . '</h4>';
+      $content .= '</div>';
+      $content .= '</div>';
+      $content .= '<p class="text-muted-light mb-0">' . $dim['desc'] . '</p>';
+      $content .= '</div>';
+      $content .= '</a>';
       $content .= '</div>';
     }
     $content .= '</div>';
@@ -582,21 +652,26 @@ class AgentPowerFrameworkController extends ControllerBase {
     $content .= '<h2 class="text-cyan mb-4">Six Resource Control Dimensions</h2>';
     
     $dimensions = [
-      ['name' => 'Computational Resources', 'link' => '/agent-power-framework/computational-resources', 'desc' => 'Processing power, memory, storage, and GPU access'],
-      ['name' => 'Financial Capital', 'link' => '/agent-power-framework/financial-capital', 'desc' => 'Budget availability for operations and initiatives'],
-      ['name' => 'Infrastructure Access', 'link' => '/agent-power-framework/infrastructure-access', 'desc' => 'Physical facilities, data centers, network bandwidth'],
-      ['name' => 'Human Capital', 'link' => '/agent-power-framework/human-capital', 'desc' => 'Workforce expertise, labor availability, talent quality'],
-      ['name' => 'Energy Resources', 'link' => '/agent-power-framework/energy-resources', 'desc' => 'Power availability and efficiency for computation'],
-      ['name' => 'Time Allocation', 'link' => '/agent-power-framework/time-allocation', 'desc' => 'Attention, priority, and temporal resources'],
+      ['name' => 'Computational Resources', 'icon' => 'fa-microchip', 'link' => '/agent-power-framework/computational-resources', 'desc' => 'Processing power, memory, storage, and GPU access'],
+      ['name' => 'Financial Capital', 'icon' => 'fa-dollar-sign', 'link' => '/agent-power-framework/financial-capital', 'desc' => 'Budget availability for operations and initiatives'],
+      ['name' => 'Infrastructure Access', 'icon' => 'fa-building', 'link' => '/agent-power-framework/infrastructure-access', 'desc' => 'Physical facilities, data centers, network bandwidth'],
+      ['name' => 'Human Capital', 'icon' => 'fa-users', 'link' => '/agent-power-framework/human-capital', 'desc' => 'Workforce expertise, labor availability, talent quality'],
+      ['name' => 'Energy Resources', 'icon' => 'fa-bolt', 'link' => '/agent-power-framework/energy-resources', 'desc' => 'Power availability and efficiency for computation'],
+      ['name' => 'Time Allocation', 'icon' => 'fa-clock', 'link' => '/agent-power-framework/time-allocation', 'desc' => 'Attention, priority, and temporal resources'],
     ];
     
     $content .= '<div class="row row-cols-1 row-cols-md-2 g-4 mb-5">';
     foreach ($dimensions as $dim) {
       $content .= '<div class="col">';
-      $content .= '<div class="card h-100"><div class="card-body">';
-      $content .= '<h5><a href="' . $dim['link'] . '">' . $dim['name'] . '</a></h5>';
-      $content .= '<p class="text-muted">' . $dim['desc'] . '</p>';
+      $content .= '<a href="' . $dim['link'] . '" class="text-decoration-none">';
+      $content .= '<div class="card card-forseti h-100 p-4 hover-lift">';
+      $content .= '<div class="d-flex align-items-start mb-3">';
+      $content .= '<i class="fas ' . $dim['icon'] . ' fa-2x text-cyan me-3"></i>';
+      $content .= '<div class="flex-grow-1">';
+      $content .= '<h4 class="text-cyan mb-1">' . $dim['name'] . '</h4>';
       $content .= '</div></div>';
+      $content .= '<p class="text-muted-light mb-0">' . $dim['desc'] . '</p>';
+      $content .= '</div></a>';
       $content .= '</div>';
     }
     $content .= '</div>';
@@ -640,21 +715,26 @@ class AgentPowerFrameworkController extends ControllerBase {
     $content .= '<h2 class="text-cyan mb-4">Six Network Position Dimensions</h2>';
     
     $dimensions = [
-      ['name' => 'Trust Network Depth', 'link' => '/agent-power-framework/trust-network-depth', 'desc' => 'Quality and strength of trusted relationships'],
-      ['name' => 'Dependency Relationships', 'link' => '/agent-power-framework/dependency-relationships', 'desc' => 'How many entities depend on this entity'],
-      ['name' => 'Gatekeeping Power', 'link' => '/agent-power-framework/gatekeeping-power', 'desc' => 'Control over critical pathways and bottlenecks'],
-      ['name' => 'Influence Reach', 'link' => '/agent-power-framework/influence-reach', 'desc' => 'Ability to shape opinions and decisions'],
-      ['name' => 'Reputation Capital', 'link' => '/agent-power-framework/reputation-capital', 'desc' => 'Accumulated credibility and social proof'],
-      ['name' => 'Mobilization Capability', 'link' => '/agent-power-framework/mobilization-capability', 'desc' => 'Speed and scale of resource coordination'],
+      ['name' => 'Trust Network Depth', 'icon' => 'fa-handshake', 'link' => '/agent-power-framework/trust-network-depth', 'desc' => 'Quality and strength of trusted relationships'],
+      ['name' => 'Dependency Relationships', 'icon' => 'fa-link', 'link' => '/agent-power-framework/dependency-relationships', 'desc' => 'How many entities depend on this entity'],
+      ['name' => 'Gatekeeping Power', 'icon' => 'fa-key', 'link' => '/agent-power-framework/gatekeeping-power', 'desc' => 'Control over critical pathways and bottlenecks'],
+      ['name' => 'Influence Reach', 'icon' => 'fa-bullhorn', 'link' => '/agent-power-framework/influence-reach', 'desc' => 'Ability to shape opinions and decisions'],
+      ['name' => 'Reputation Capital', 'icon' => 'fa-star', 'link' => '/agent-power-framework/reputation-capital', 'desc' => 'Accumulated credibility and social proof'],
+      ['name' => 'Mobilization Capability', 'icon' => 'fa-rocket', 'link' => '/agent-power-framework/mobilization-capability', 'desc' => 'Speed and scale of resource coordination'],
     ];
     
     $content .= '<div class="row row-cols-1 row-cols-md-2 g-4 mb-5">';
     foreach ($dimensions as $dim) {
       $content .= '<div class="col">';
-      $content .= '<div class="card h-100"><div class="card-body">';
-      $content .= '<h5><a href="' . $dim['link'] . '">' . $dim['name'] . '</a></h5>';
-      $content .= '<p class="text-muted">' . $dim['desc'] . '</p>';
+      $content .= '<a href="' . $dim['link'] . '" class="text-decoration-none">';
+      $content .= '<div class="card card-forseti h-100 p-4 hover-lift">';
+      $content .= '<div class="d-flex align-items-start mb-3">';
+      $content .= '<i class="fas ' . $dim['icon'] . ' fa-2x text-cyan me-3"></i>';
+      $content .= '<div class="flex-grow-1">';
+      $content .= '<h4 class="text-cyan mb-1">' . $dim['name'] . '</h4>';
       $content .= '</div></div>';
+      $content .= '<p class="text-muted-light mb-0">' . $dim['desc'] . '</p>';
+      $content .= '</div></a>';
       $content .= '</div>';
     }
     $content .= '</div>';
@@ -698,21 +778,26 @@ class AgentPowerFrameworkController extends ControllerBase {
     $content .= '<h2 class="text-cyan mb-4">Six Authority Dimensions</h2>';
     
     $dimensions = [
-      ['name' => 'Legal Authorization', 'link' => '/agent-power-framework/legal-authorization', 'desc' => 'Licensed, certified, or legally permitted activities'],
-      ['name' => 'Decision-Making Scope', 'link' => '/agent-power-framework/decision-making-scope', 'desc' => 'Range and significance of authorized decisions'],
-      ['name' => 'Budget Authority', 'link' => '/agent-power-framework/budget-authority', 'desc' => 'Financial resources that can be committed'],
-      ['name' => 'Jurisdictional Reach', 'link' => '/agent-power-framework/jurisdictional-reach', 'desc' => 'Geographic and organizational scope'],
-      ['name' => 'Enforcement Power', 'link' => '/agent-power-framework/enforcement-power', 'desc' => 'Ability to compel compliance and impose consequences'],
-      ['name' => 'Moral Authority', 'link' => '/agent-power-framework/moral-authority', 'desc' => 'Ethical legitimacy and social credibility'],
+      ['name' => 'Legal Authorization', 'icon' => 'fa-gavel', 'link' => '/agent-power-framework/legal-authorization', 'desc' => 'Licensed, certified, or legally permitted activities'],
+      ['name' => 'Decision-Making Scope', 'icon' => 'fa-sitemap', 'link' => '/agent-power-framework/decision-making-scope', 'desc' => 'Range and significance of authorized decisions'],
+      ['name' => 'Budget Authority', 'icon' => 'fa-wallet', 'link' => '/agent-power-framework/budget-authority', 'desc' => 'Financial resources that can be committed'],
+      ['name' => 'Jurisdictional Reach', 'icon' => 'fa-map-marked-alt', 'link' => '/agent-power-framework/jurisdictional-reach', 'desc' => 'Geographic and organizational scope'],
+      ['name' => 'Enforcement Power', 'icon' => 'fa-shield-alt', 'link' => '/agent-power-framework/enforcement-power', 'desc' => 'Ability to compel compliance and impose consequences'],
+      ['name' => 'Moral Authority', 'icon' => 'fa-balance-scale', 'link' => '/agent-power-framework/moral-authority', 'desc' => 'Ethical legitimacy and social credibility'],
     ];
     
     $content .= '<div class="row row-cols-1 row-cols-md-2 g-4 mb-5">';
     foreach ($dimensions as $dim) {
       $content .= '<div class="col">';
-      $content .= '<div class="card h-100"><div class="card-body">';
-      $content .= '<h5><a href="' . $dim['link'] . '">' . $dim['name'] . '</a></h5>';
-      $content .= '<p class="text-muted">' . $dim['desc'] . '</p>';
+      $content .= '<a href="' . $dim['link'] . '" class="text-decoration-none">';
+      $content .= '<div class="card card-forseti h-100 p-4 hover-lift">';
+      $content .= '<div class="d-flex align-items-start mb-3">';
+      $content .= '<i class="fas ' . $dim['icon'] . ' fa-2x text-cyan me-3"></i>';
+      $content .= '<div class="flex-grow-1">';
+      $content .= '<h4 class="text-cyan mb-1">' . $dim['name'] . '</h4>';
       $content .= '</div></div>';
+      $content .= '<p class="text-muted-light mb-0">' . $dim['desc'] . '</p>';
+      $content .= '</div></a>';
       $content .= '</div>';
     }
     $content .= '</div>';
@@ -751,58 +836,38 @@ class AgentPowerFrameworkController extends ControllerBase {
     $content .= '</ol></nav>';
     
     $content .= '<h1 class="text-cyan mb-4">Synthesis & Application</h1>';
-    $content .= '<p class="lead text-muted-light mb-4">Cognitive power: the ability to connect information across domains and execute strategically. Quality of thinking and speed of action transform raw capability into effective outcomes.</p>';
+    $content .= '<p class="lead text-muted-light mb-4">Cognitive algorithm quality: the sophistication of thinking processes independent of computational resources. These dimensions measure how well an entity reasons, learns, plans, and creates.</p>';
     
     $content .= '<div class="alert alert-info-cyan mb-5">';
-    $content .= '<h4 class="text-cyan">Why Synthesis Matters</h4>';
-    $content .= '<p class="mb-0">You can have perfect information access, unlimited resources, full authority, and vast networks - but without the ability to synthesize insights across domains and apply them strategically, power remains potential rather than kinetic. This is where intelligence, wisdom, and strategic thinking convert capability into impact. The best-funded, most-connected entity can still fail if it cannot see the patterns or act decisively.</p>';
+    $content .= '<h4 class="text-cyan">Why Cognitive Algorithms Matter</h4>';
+    $content .= '<p class="mb-0">You can have perfect information access, unlimited computational resources, full authority, and vast networks—but without sophisticated cognitive algorithms, power remains unrealized. A brilliant algorithm on limited hardware outperforms a mediocre algorithm on infinite compute. This category measures the quality of your mental software: pattern recognition, creativity, planning, decision-making, learning, and memory architecture. It\'s not about how fast you think (Resource Control) or what you know (Information Access)—it\'s about how well you think.</p>';
     $content .= '</div>';
     
-    $content .= '<h2 class="text-cyan mb-4">One Core Dimension</h2>';
+    $content .= '<h2 class="text-cyan mb-4">Six Cognitive Algorithm Dimensions</h2>';
     
-    $dimension = [
-      'id' => 'synthesis-capability',
-      'name' => 'Information Synthesis',
-      'icon' => 'brain',
-      'description' => 'Ability to connect information across domains, identify patterns, and generate novel insights that drive strategic action.',
-      'scale_note' => 'From no synthesis capability (pure information retrieval) to universal cross-domain pattern recognition approaching divine insight.',
-      'examples' => [
-        '<strong>Level 0-2:</strong> No synthesis, simple keyword matching, template responses',
-        '<strong>Level 3-5:</strong> Within-domain connections, basic pattern recognition, narrow context synthesis',
-        '<strong>Level 6-8:</strong> Cross-domain synthesis, complex pattern recognition, strategic insight generation',
-        '<strong>Level 9-∞:</strong> Universal synthesis, novel breakthrough insights, approaching god-like wisdom',
-      ],
+    $dimensions = [
+      ['name' => 'Information Synthesis', 'icon' => 'fa-brain', 'link' => '/agent-power-framework/information-synthesis', 'desc' => 'Cross-domain pattern recognition, connecting disparate information, generating novel insights'],
+      ['name' => 'Creativity & Novel Generation', 'icon' => 'fa-lightbulb', 'link' => '/agent-power-framework/creativity-generation', 'desc' => 'Producing genuinely new ideas, hypothesis generation, innovation algorithms'],
+      ['name' => 'Strategic Planning Depth', 'icon' => 'fa-chess', 'link' => '/agent-power-framework/strategic-planning', 'desc' => 'Multi-step planning across time horizons, scenario modeling, uncertainty handling'],
+      ['name' => 'Decision Quality', 'icon' => 'fa-balance-scale-right', 'link' => '/agent-power-framework/decision-quality', 'desc' => 'Accuracy and appropriateness of choices under uncertainty and constraint'],
+      ['name' => 'Adaptive Learning Rate', 'icon' => 'fa-chart-line', 'link' => '/agent-power-framework/adaptive-learning', 'desc' => 'Speed of learning from feedback, meta-learning, continuous improvement'],
+      ['name' => 'Memory Architecture', 'icon' => 'fa-database', 'link' => '/agent-power-framework/memory-architecture', 'desc' => 'Storage, indexing, and retrieval algorithms for knowledge management'],
     ];
     
-    $content .= '<div class="row"><div class="col-lg-12">';
-    $content .= '<a href="/agent-power-framework/' . $dimension['id'] . '" class="text-decoration-none">';
-    $content .= '<div class="card card-forseti p-4 hover-lift">';
-    $content .= '<h4 class="text-cyan mb-3"><i class="fas fa-' . $dimension['icon'] . ' me-2"></i>' . $dimension['name'] . '</h4>';
-    $content .= '<p class="text-muted-light mb-3">' . $dimension['description'] . '</p>';
-    
-    $content .= '<div class="alert alert-dark mb-3">';
-    $content .= '<strong class="text-cyan">Scale:</strong> ' . $dimension['scale_note'];
-    $content .= '</div>';
-    
-    $content .= '<div class="mb-0">';
-    $content .= '<strong class="text-cyan d-block mb-2">Example Levels:</strong>';
-    $content .= '<ul class="mb-0 small text-muted-light">';
-    foreach ($dimension['examples'] as $example) {
-      $content .= '<li>' . $example . '</li>';
+    $content .= '<div class="row row-cols-1 row-cols-md-2 g-4 mb-5">';
+    foreach ($dimensions as $dim) {
+      $content .= '<div class="col">';
+      $content .= '<a href="' . $dim['link'] . '" class="text-decoration-none">';
+      $content .= '<div class="card card-forseti h-100 p-4 hover-lift">';
+      $content .= '<div class="d-flex align-items-start mb-3">';
+      $content .= '<i class="fas ' . $dim['icon'] . ' fa-2x text-cyan me-3"></i>';
+      $content .= '<div class="flex-grow-1">';
+      $content .= '<h4 class="text-cyan mb-1">' . $dim['name'] . '</h4>';
+      $content .= '</div></div>';
+      $content .= '<p class="text-muted-light mb-0">' . $dim['desc'] . '</p>';
+      $content .= '</div></a>';
+      $content .= '</div>';
     }
-    $content .= '</ul></div>';
-    
-    $content .= '</div></a></div></div>';
-    
-    $content .= '<div class="alert alert-warning mt-5">';
-    $content .= '<h4 class="text-warning"><i class="fas fa-flask"></i> Planned Expansions</h4>';
-    $content .= '<p class="mb-2">Future dimensions in this category may include:</p>';
-    $content .= '<ul class="mb-0">';
-    $content .= '<li><strong>Execution Speed:</strong> Time from decision to action</li>';
-    $content .= '<li><strong>Decision Quality:</strong> Accuracy and appropriateness of strategic choices</li>';
-    $content .= '<li><strong>Strategic Thinking:</strong> Ability to plan and anticipate across time horizons</li>';
-    $content .= '<li><strong>Action Capability:</strong> Effectiveness of translating plans into results</li>';
-    $content .= '</ul>';
     $content .= '</div>';
     
     $content .= '<div class="text-center mt-5">';

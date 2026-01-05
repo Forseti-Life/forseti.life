@@ -96,6 +96,46 @@ interface AgentPowerServiceInterface {
   public function getSynthesisLevels();
 
   /**
+   * Get creativity dimension levels.
+   *
+   * @return array
+   *   Array of creativity levels.
+   */
+  public function getCreativityLevels();
+
+  /**
+   * Get strategic planning dimension levels.
+   *
+   * @return array
+   *   Array of strategic planning levels.
+   */
+  public function getStrategicPlanningLevels();
+
+  /**
+   * Get decision quality dimension levels.
+   *
+   * @return array
+   *   Array of decision quality levels.
+   */
+  public function getDecisionQualityLevels();
+
+  /**
+   * Get adaptive learning dimension levels.
+   *
+   * @return array
+   *   Array of adaptive learning levels.
+   */
+  public function getAdaptiveLearningLevels();
+
+  /**
+   * Get memory architecture dimension levels.
+   *
+   * @return array
+   *   Array of memory architecture levels.
+   */
+  public function getMemoryArchitectureLevels();
+
+  /**
    * Get verification dimension levels.
    *
    * @return array
