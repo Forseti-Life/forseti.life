@@ -360,14 +360,6 @@ forseti.dimension_moral_authority:
   requirements:
     _permission: 'access content'
 
-forseti_safety_content.all_dimensions:
-  path: '/agent-power-framework/all-dimensions'
-  defaults:
-    _controller: '\Drupal\forseti_safety_content\Controller\AgentPowerFrameworkController::allDimensions'
-    _title: 'Exploring All the Dimensions'
-  requirements:
-    _permission: 'access content'
-
 forseti_safety_content.information_access:
   path: '/agent-power-framework/information-access'
   defaults:
