@@ -270,6 +270,14 @@
         justify-content: center;
         font-size: 2.5rem;
         color: $forseti-white-pure;
+
+        img {
+          max-width: 70%;
+          max-height: 70%;
+          width: auto;
+          height: auto;
+          object-fit: contain;
+        }
       }
 
       h3 {

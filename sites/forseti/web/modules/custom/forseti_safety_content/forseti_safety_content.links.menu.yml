@@ -48,9 +48,3 @@ forseti.mobile_app:
   route_name: forseti.mobile_app
   menu_name: main
   weight: 0
-
-forseti.privacy:
-  title: 'Privacy'
-  route_name: forseti.privacy
-  menu_name: main
-  weight: 10
