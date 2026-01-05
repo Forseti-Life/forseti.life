@@ -208,14 +208,6 @@ forseti.dimension_verification:
   requirements:
     _permission: 'access content'
 
-forseti_safety_content.evaluation_matrix:
-  path: '/agent-power-framework/evaluation-matrix'
-  defaults:
-    _controller: '\Drupal\forseti_safety_content\Controller\AgentPowerFrameworkController::evaluationMatrix'
-    _title: 'Entity Evaluation Matrix'
-  requirements:
-    _permission: 'access content'
-
 forseti.dimension_computational_resources:
   path: '/agent-power-framework/computational-resources'
   defaults:
