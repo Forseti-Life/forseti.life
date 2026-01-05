@@ -89,7 +89,9 @@ class AgentPowerFrameworkController extends ControllerBase {
     $sub_dimension_markup .= '<p><strong><a href="/agent-power-framework/restriction/classification">Classification Access</a></strong> - Sensitivity level of accessible information, from public domain to top secret data.</p>';
     $sub_dimension_markup .= '</div>';
     
-    $page['#markup'] .= $sub_dimension_markup;
+    $page['sub_dimension'] = [
+      '#markup' => $sub_dimension_markup,
+    ];
     return $page;
   }
 
@@ -111,7 +113,10 @@ class AgentPowerFrameworkController extends ControllerBase {
     $breadcrumb .= '<strong>Classification Access (Sub-dimension)</strong>';
     $breadcrumb .= '</div>';
     
-    $page['#markup'] = $breadcrumb . $page['#markup'];
+    $page['breadcrumb'] = [
+      '#markup' => $breadcrumb,
+      '#weight' => -10,
+    ];
     return $page;
   }
 
