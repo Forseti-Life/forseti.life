@@ -479,7 +479,7 @@ class AgentPowerFrameworkController extends ControllerBase {
     
     $content = '<div class="evaluation-matrix-page">';
     $content .= '<h1>Entity Evaluation Matrix</h1>';
-    $content .= '<p class="intro">Comprehensive evaluation of 110 entities across 9 critical dimensions of AI safety and governance.</p>';
+    $content .= '<p class="intro">Comprehensive evaluation of 110 entities across 9 critical dimensions of agent safety and governance.</p>';
     
     $content .= '<div class="evaluation-table-wrapper">';
     $content .= '<table class="evaluation-matrix">';
@@ -531,7 +531,7 @@ class AgentPowerFrameworkController extends ControllerBase {
     $dimensions = $this->agentPowerService->getAllDimensionsList();
     
     $content = '<div class="all-dimensions-page">';
-    $content .= '<h1>All AI Evaluation Dimensions</h1>';
+    $content .= '<h1>All Agent Evaluation Dimensions</h1>';
     $content .= '<p class="intro">Comprehensive framework of 74 dimensions across 10 categories for evaluating agent systems.</p>';
     
     foreach ($dimensions as $category => $items) {
@@ -804,7 +804,7 @@ class AgentPowerFrameworkController extends ControllerBase {
     
     $content .= '<div class="alert alert-warning-cyan mb-0">';
     $content .= '<h5 class="text-cyan mb-3"><i class="fas fa-lightbulb me-2"></i>Authority vs. Capability</h5>';
-    $content .= '<p class="mb-0">These dimensions measure <strong>what you\'re allowed to do</strong>, not <strong>what you can do</strong>. An AI system might have technical capability to execute trades (Resource Control), but without proper regulatory licenses (Legal Authorization) and financial limits (Budget Authority), those actions would be illegitimate. Authority without resources is powerless; resources without authority are illegitimate. Together they enable legitimate, effective action.</p>';
+    $content .= '<p class="mb-0">These dimensions measure <strong>what you\'re allowed to do</strong>, not <strong>what you can do</strong>. An agent system might have technical capability to execute trades (Resource Control), but without proper regulatory licenses (Legal Authorization) and financial limits (Budget Authority), those actions would be illegitimate. Authority without resources is powerless; resources without authority are illegitimate. Together they enable legitimate, effective action.</p>';
     $content .= '</div>';
     
     $content .= '<div class="text-center mt-5">';
@@ -910,7 +910,7 @@ class AgentPowerFrameworkController extends ControllerBase {
       'lead' => $this->t('A comprehensive framework for understanding agent capabilities across five fundamental dimensions and 30 measurable sub-dimensions.'),
       'title' => $this->t('Five Dimensions of Agent Power'),
       'paragraphs' => [
-        $this->t('Power is multidimensional. Understanding what any agent system—human or AI—can actually do requires measuring across five fundamental dimensions: Information Access, Resource Control, Authority & Permission, Network Position, and Synthesis & Application. Each dimension contains 6 sub-dimensions that together define capability.'),
+        $this->t('Power is multidimensional. Understanding what any agent system—human or machine—can actually do requires measuring across five fundamental dimensions: Information Access, Resource Control, Authority & Permission, Network Position, and Synthesis & Application. Each dimension contains 6 sub-dimensions that together define capability.'),
         $this->t('This framework enables precise measurement of agent capabilities on scales from 0 (no capability) to 9+ (approaching universal capability). By evaluating an agent across all 30 sub-dimensions, we can accurately assess what it knows, what it can do, whom it can influence, and how effectively it processes information.'),
         $this->t('Understanding these dimensions helps identify the constraints, biases, and limitations any agent operates under. A filtered information agent will never access uncomfortable truths. An under-resourced agent cannot execute sophisticated plans. An isolated agent lacks the network position to coordinate action. Only agents with high scores across multiple dimensions can approach comprehensive capability.'),
       ],
