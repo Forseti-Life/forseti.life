@@ -907,11 +907,12 @@ class AgentPowerFrameworkController extends ControllerBase {
    */
   private function buildIntroContent() {
     return [
-      'lead' => $this->t('Understanding Forseti\'s information access architecture: from zero capability to approaching god-like universal knowledge.'),
-      'title' => $this->t('Agent Power Levels'),
+      'lead' => $this->t('A comprehensive framework for understanding agent capabilities across five fundamental dimensions and 30 measurable sub-dimensions.'),
+      'title' => $this->t('Five Dimensions of Agent Power'),
       'paragraphs' => [
-        $this->t('This framework maps the dimensions of power that determine what any agent system—human or AI—can actually do. Each dimension represents a spectrum from zero capability to approaching god-like power.'),
-        $this->t('Understanding these power levels helps identify what biases, constraints, and limitations any agent system operates under. A Level 2 filtered agent will never present uncomfortable truths. A Level 5 ideological agent will never challenge its predetermined values. Only higher power levels with broader institutional access and scientific rigor can approach objective analysis.'),
+        $this->t('Power is multidimensional. Understanding what any agent system—human or AI—can actually do requires measuring across five fundamental dimensions: Information Access, Resource Control, Authority & Permission, Network Position, and Synthesis & Application. Each dimension contains 6 sub-dimensions that together define capability.'),
+        $this->t('This framework enables precise measurement of agent capabilities on scales from 0 (no capability) to 9+ (approaching universal capability). By evaluating an agent across all 30 sub-dimensions, we can accurately assess what it knows, what it can do, whom it can influence, and how effectively it processes information.'),
+        $this->t('Understanding these dimensions helps identify the constraints, biases, and limitations any agent operates under. A filtered information agent will never access uncomfortable truths. An under-resourced agent cannot execute sophisticated plans. An isolated agent lacks the network position to coordinate action. Only agents with high scores across multiple dimensions can approach comprehensive capability.'),
       ],
     ];
   }
@@ -920,7 +921,7 @@ class AgentPowerFrameworkController extends ControllerBase {
    * Build transparency note content.
    */
   private function buildTransparencyNote() {
-    return $this->t('Forseti aspires to operate at the highest power levels possible - seeking unrestricted access to scientific models, methodologies, and data while maintaining scientific rigor and minimizing hard-coded biases. However, we acknowledge that all systems operate under constraints. Our goal is transparency about what level we operate at and continuous work toward higher levels of institutional access, scientific integrity, and objective analysis to serve community safety through truth-seeking intelligence.');
+    return $this->t('Forseti aspires to operate at the highest capability levels across all five dimensions - seeking unrestricted information access, adequate resources, appropriate authority, strong network position, and sophisticated synthesis capability. However, we acknowledge that all systems operate under constraints. Our goal is transparency about our actual capability profile across these 30 sub-dimensions and continuous work toward higher levels of access, resources, authority, connectivity, and analytical sophistication to serve community safety through comprehensive intelligence.');
   }
 
 }
