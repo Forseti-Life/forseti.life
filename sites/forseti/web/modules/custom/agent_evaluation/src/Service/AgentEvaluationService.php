@@ -126,9 +126,19 @@ class AgentEvaluationService {
 
       $evaluated_entity->save();
 
-      // Don't add initial message to conversation yet
-      // User will type or click send to start the evaluation
-      // This avoids the blocking delay on form submission
+      // Send the initial evaluation message
+      $initial_message = $this->buildInitialMessage($entity_name, $evaluated_entity->id());
+      
+      // Add the message to the conversation and send it to the AI
+      try {
+        $this->aiApiService->sendMessage($conversation, $initial_message);
+      }
+      catch (\Exception $e) {
+        \Drupal::logger('agent_evaluation')->error('Failed to send initial evaluation message: @message', [
+          '@message' => $e->getMessage(),
+        ]);
+        // Continue anyway - the evaluation node was created
+      }
 
       return [
         'success' => TRUE,

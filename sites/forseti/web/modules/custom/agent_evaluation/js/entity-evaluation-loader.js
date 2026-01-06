@@ -8,15 +8,24 @@
 
   Drupal.behaviors.entityEvaluationLoader = {
     attach: function (context, settings) {
+      console.log('🔍 Evaluation Loader - Checking for loading state');
+      console.log('Settings:', settings.evaluatedEntity);
+      
       once('evaluation-loader', '.evaluated-entity-node', context).forEach(function (element) {
+        console.log('✅ Found evaluated-entity-node element');
         const nodeId = settings.evaluatedEntity?.nodeId;
         const isUnpublished = settings.evaluatedEntity?.unpublished;
         const totalPower = settings.evaluatedEntity?.totalPower;
+        
+        console.log('Node ID:', nodeId, 'Unpublished:', isUnpublished, 'Total Power:', totalPower);
 
         // Only show loading state if node is unpublished (status = 0) and has no evaluation yet
         if (isUnpublished && totalPower === 0) {
+          console.log('🎬 Showing loading overlay and starting polling');
           showLoadingOverlay();
           startPolling(nodeId);
+        } else {
+          console.log('ℹ️ Not showing loading overlay - conditions not met');
         }
       });
 
