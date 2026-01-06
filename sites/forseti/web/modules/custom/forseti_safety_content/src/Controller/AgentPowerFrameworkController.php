@@ -906,15 +906,19 @@ class AgentPowerFrameworkController extends ControllerBase {
    * Agent evaluation tool page.
    */
   public function evaluate() {
+    // Get entity name from query parameter if provided
+    $entity_name = \Drupal::request()->query->get('entity');
+    
     return [
       '#theme' => 'forseti_page_agent_evaluate',
       '#title' => $this->t('Evaluate an Agent'),
       '#intro' => [
         'description' => $this->t('Use our automated evaluation tool to assess agent capabilities across all five dimensions and 30 sub-dimensions. This tool will help you understand the power profile of any agent system.'),
       ],
+      '#entity_name' => $entity_name,
       '#cache' => [
         'max-age' => 3600,
-        'contexts' => ['url'],
+        'contexts' => ['url', 'url.query_args'],
       ],
     ];
   }
@@ -1003,6 +1007,101 @@ class AgentPowerFrameworkController extends ControllerBase {
       '#cache' => [
         'max-age' => 300, // Cache for 5 minutes
         'contexts' => ['url.query_args'],
+      ],
+    ];
+  }
+
+  /**
+   * Example Entities page - lists all entities mentioned in framework examples.
+   */
+  public function exampleEntities() {
+    $entities = $this->getExampleEntitiesList();
+    
+    return [
+      '#theme' => 'forseti_example_entities',
+      '#entities' => $entities,
+      '#cache' => [
+        'max-age' => 86400, // Cache for 24 hours
+      ],
+    ];
+  }
+
+  /**
+   * Get organized list of all example entities from the framework.
+   */
+  private function getExampleEntitiesList() {
+    return [
+      'Government Agencies' => [
+        'NSA', 'CIA', 'FBI', 'DARPA', 'NASA', 'DOE', 'DEA', 'ATF', 'NIST', 'DHS', 'CISA', 'FDA',
+        'EPA', 'NOAA', 'CDC', 'IRS', 'Social Security Administration', 'Veterans Affairs', 'USPS',
+        'Federal Reserve', 'Pentagon', 'Department of Defense',
+      ],
+      'Tech Companies' => [
+        'OpenAI', 'Anthropic', 'Google', 'Microsoft', 'Meta', 'Amazon', 'Apple', 'IBM', 'NVIDIA',
+        'Palantir', 'Databricks', 'Scale AI', 'Hugging Face', 'Cohere', 'DeepSeek', 'Baidu',
+        'Tencent', 'Alibaba', 'SenseTime', 'Megvii', 'iFlytek', 'Yandex', 'Samsung', 'Sony',
+        'Intel', 'AMD', 'Qualcomm', 'Mistral AI', 'Stability AI', 'Inflection AI', 'Adept AI',
+        'Character.AI', 'Runway ML', 'Midjourney', 'xAI', 'AI21 Labs', 'Netflix', 'Uber',
+        'Spotify', 'Target', 'Walmart', 'TikTok', 'Instagram', 'YouTube', 'Twitter/X',
+        'LinkedIn', 'Disney+', 'Comcast', 'AT&T', 'Verizon', 'Cloudflare', 'Akamai',
+      ],
+      'Financial Institutions' => [
+        'Bank of America', 'Wells Fargo', 'Fifth Third Bank', 'Citibank', 'HSBC',
+        'SWIFT Network', 'Bloomberg Terminal', 'Federal Reserve',
+      ],
+      'Healthcare Organizations' => [
+        'Mayo Clinic', 'Johns Hopkins Hospital', 'Kaiser Permanente', 'HCA Healthcare',
+        'Epic Systems', 'IBM Watson for Oncology', 'Radiology Partners',
+      ],
+      'Universities' => [
+        'MIT', 'Stanford', 'Berkeley', 'Carnegie Mellon', 'Oxford', 'Cambridge', 'ETH Zurich',
+        'Princeton', 'Caltech', 'Toronto', 'Harvard', 'Yale', 'UCLA', 'University of California',
+        'Tsinghua University', 'Peking University', 'Seoul National University', 'Tokyo University',
+      ],
+      'Law Enforcement' => [
+        'Kansas City Police Department (KCPD)', 'Philadelphia Police Department',
+      ],
+      'Transportation' => [
+        'Southwest Airlines', 'Uber', 'FAA', 'TSA',
+      ],
+      'Retail & Consumer' => [
+        'Amazon', 'Target', 'Walmart', 'McDonald\'s', 'Disney+', 'Netflix', 'Spotify',
+      ],
+      'Defense & Aerospace' => [
+        'Lockheed Martin', 'Boeing', 'NASA', 'Pentagon', 'DARPA',
+      ],
+      'Energy & Resources' => [
+        'Saudi Aramco', 'Bitcoin Network', 'CERN',
+      ],
+      'Pharmaceutical' => [
+        'Pfizer', 'Moderna', 'Johnson & Johnson',
+      ],
+      'International Organizations' => [
+        'United Nations', 'UN Security Council', 'WHO', 'WTO', 'OECD', 'NATO',
+        'International Criminal Court', 'World Economic Forum', 'G7',
+      ],
+      'Non-Profits & Research' => [
+        'Partnership on AI', 'AI Now Institute', 'Future of Humanity Institute',
+        'Center for AI Safety', 'Machine Intelligence Research Institute', 'OpenMined',
+        'EleutherAI', 'Allen Institute for AI', 'OpenPhilanthropy', 'Effective Altruism',
+        'Red Cross', 'Doctors Without Borders', 'Smithsonian',
+      ],
+      'Media & Publishing' => [
+        'Wikipedia', 'Reuters', 'Google News', 'Fox News', 'MSNBC', 'Newsmax',
+        'The Daily Wire', 'Democracy Now', 'Ground.news', 'New York Times',
+      ],
+      'Notable Individuals' => [
+        'Taylor Swift', 'Oprah Winfrey', 'Elon Musk', 'Mark Zuckerberg', 'Bill Gates',
+        'Warren Buffett', 'Tim Cook', 'Satya Nadella', 'Jerome Powell', 'Christine Lagarde',
+        'Joe Rogan', 'Cristiano Ronaldo', 'Pope Francis', 'Dalai Lama', 'Nelson Mandela',
+        'Mother Teresa', 'Walter Cronkite', 'Dr. Fauci', 'Einstein', 'Mozart',
+      ],
+      'Standards & Certification' => [
+        'ISO', 'IEEE', 'ICANN', 'American Bar Association', 'FDA', 'FAA',
+      ],
+      'AI Systems' => [
+        'ChatGPT', 'GPT-4', 'Claude', 'AlphaGo', 'AlphaFold', 'DALL-E', 'GitHub Copilot',
+        'Jasper AI', 'Nest Thermostat', 'Apple Siri', 'Google Assistant', 'Amazon Alexa',
       ],
     ];
   }

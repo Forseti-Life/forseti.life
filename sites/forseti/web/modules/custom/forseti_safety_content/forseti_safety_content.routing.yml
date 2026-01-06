@@ -124,6 +124,26 @@ forseti.agent_evaluate:
   options:
     no_cache: TRUE
 
+forseti.example_entities:
+  path: '/agent-power-framework/example-entities'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\AgentPowerFrameworkController::exampleEntities'
+    _title: 'Example Entities - Admin Batch Processing'
+  requirements:
+    _permission: 'administer site configuration'
+  options:
+    no_cache: TRUE
+
+forseti.batch_process_entity:
+  path: '/api/batch-evaluate-entity'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\BatchEvaluationController::processEntity'
+  requirements:
+    _permission: 'administer site configuration'
+    _csrf_token: 'TRUE'
+  options:
+    no_cache: TRUE
+
 forseti.dimension_scope:
   path: '/agent-power-framework/scope'
   defaults:

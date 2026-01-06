@@ -134,6 +134,7 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
       'variables' => [
         'title' => NULL,
         'intro' => [],
+        'entity_name' => NULL,
       ],
       'template' => 'forseti-page-agent-evaluate',
     ],
@@ -172,6 +173,12 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
         'sort_direction' => NULL,
       ],
       'template' => 'forseti-evaluations-list',
+    ],
+    'forseti_example_entities' => [
+      'variables' => [
+        'entities' => [],
+      ],
+      'template' => 'forseti-example-entities',
     ],
   ];
 }

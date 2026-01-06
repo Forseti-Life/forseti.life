@@ -13,6 +13,15 @@
     <div class="col-lg-11 mx-auto">
       <h1 class="text-center mb-3 text-cyan">{{ title }}</h1>
       
+      {% if entity_name %}
+        <div class="alert alert-success-cyber mb-4 text-center">
+          <h4 class="text-cyan mb-2">
+            <i class="fas fa-crosshairs me-2"></i>{{ 'Ready to Evaluate'|t }}
+          </h4>
+          <h3 class="text-white mb-0">{{ entity_name }}</h3>
+        </div>
+      {% endif %}
+      
       <div class="lead mb-4 text-muted-light text-center">
         {{ 'Measure agent capabilities across five fundamental dimensions and 30 sub-dimensions'|t }}
       </div>
@@ -22,9 +31,16 @@
         <p class="mb-2">
           {{ 'This evaluation tool analyzes any agent system—human or machine—across the five dimensions of power: Information Access, Resource Control, Authority & Permission, Network Position, and Synthesis & Application. You provide information about the agent, and the system scores its capabilities on each of 30 sub-dimensions.'|t }}
         </p>
-        <p class="mb-0">
+        <p class="mb-2">
           {{ 'The result is an interactive radar chart visualization showing the agent\'s complete power profile, overall capability level (0-9+), and specific strengths, constraints, and limitations.'|t }}
         </p>
+        {% if not entity_name %}
+        <div class="text-center mt-3">
+          <a href="/agent-power-framework/example-entities" class="btn btn-sm btn-outline-cyan">
+            <i class="fas fa-lightbulb me-1"></i>{{ 'Browse Example Entities'|t }}
+          </a>
+        </div>
+        {% endif %}
       </div>
       
       <h2 class="mt-5 mb-3 text-cyan text-center">
@@ -46,7 +62,7 @@
                 <span class="badge bg-primary me-2">{{ 'Interactive'|t }}</span>
                 <span class="badge bg-info">{{ 'Guided'|t }}</span>
               </div>
-              <a href="/talk-with-forseti" class="btn btn-primary btn-lg">
+              <a href="/talk-with-forseti{% if entity_name %}?entity={{ entity_name|url_encode }}{% endif %}" class="btn btn-primary btn-lg">
                 <i class="fas fa-comment-dots"></i> {{ 'Start Chat Evaluation'|t }}
               </a>
             </div>
