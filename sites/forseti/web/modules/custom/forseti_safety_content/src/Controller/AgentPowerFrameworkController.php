@@ -924,7 +924,7 @@ class AgentPowerFrameworkController extends ControllerBase {
    */
   private function buildIntroContent() {
     return [
-      'lead' => $this->t('A framework for understanding agent capabilities across five fundamental dimensions and 30 measurable sub-dimensions.'),
+      'lead' => $this->t('A framework for understanding agent capabilities across five fundamental dimensions and 30 measurable sub-dimensions. This system automates analyst research and evaluation, providing rapid assessments of entities, organizations, and AI systems. All evaluations are high-level assessments that may vary depending on the LLM used for analysis and the information available at the time of evaluation.'),
       'title' => '',
       'paragraphs' => [],
     ];
