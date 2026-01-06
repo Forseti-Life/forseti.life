@@ -20,6 +20,12 @@
         {{ intro.lead }}
       </div>
       
+      <div class="text-center mb-4">
+        <a href="/agent-power-framework/evaluate" class="btn btn-primary btn-lg">
+          <i class="fas fa-chart-line"></i> {{ 'Try our automated evaluation tool!'|t }}
+        </a>
+      </div>
+      
       {% if intro.title or intro.paragraphs|length > 0 %}
       <div class="alert alert-info-cyan mt-4">
         {% if intro.title %}

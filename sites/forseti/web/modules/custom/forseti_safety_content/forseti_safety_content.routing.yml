@@ -104,6 +104,16 @@ forseti.agent_hierarchy:
   options:
     no_cache: TRUE
 
+forseti.agent_evaluate:
+  path: '/agent-power-framework/evaluate'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\AgentPowerFrameworkController::evaluate'
+    _title: 'Evaluate an Agent'
+  requirements:
+    _permission: 'access content'
+  options:
+    no_cache: TRUE
+
 forseti.dimension_scope:
   path: '/agent-power-framework/scope'
   defaults:

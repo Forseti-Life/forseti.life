@@ -903,11 +903,28 @@ class AgentPowerFrameworkController extends ControllerBase {
   }
 
   /**
+   * Agent evaluation tool page.
+   */
+  public function evaluate() {
+    return [
+      '#theme' => 'forseti_page_agent_evaluate',
+      '#title' => $this->t('Evaluate an Agent'),
+      '#intro' => [
+        'description' => $this->t('Use our automated evaluation tool to assess agent capabilities across all five dimensions and 30 sub-dimensions. This tool will help you understand the power profile of any agent system.'),
+      ],
+      '#cache' => [
+        'max-age' => 3600,
+        'contexts' => ['url'],
+      ],
+    ];
+  }
+
+  /**
    * Build introduction content for agent hierarchy.
    */
   private function buildIntroContent() {
     return [
-      'lead' => $this->t('A comprehensive framework for understanding agent capabilities across five fundamental dimensions and 30 measurable sub-dimensions.'),
+      'lead' => $this->t('A framework for understanding agent capabilities across five fundamental dimensions and 30 measurable sub-dimensions.'),
       'title' => '',
       'paragraphs' => [],
     ];

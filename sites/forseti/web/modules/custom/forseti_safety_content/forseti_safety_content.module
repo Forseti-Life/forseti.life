@@ -130,6 +130,13 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'forseti-page-agent-hierarchy',
     ],
+    'forseti_page_agent_evaluate' => [
+      'variables' => [
+        'title' => NULL,
+        'intro' => [],
+      ],
+      'template' => 'forseti-page-agent-evaluate',
+    ],
     'forseti_page_dimension' => [
       'variables' => [
         'dimension_id' => NULL,
