@@ -172,8 +172,6 @@ class AgentEvaluationService {
    * @return \Drupal\node\NodeInterface|null
    *   The existing node or NULL.
    */
-IMPORTANT: You will evaluate entities IMMEDIATELY upon request, providing LIVE STATUS UPDATES as you work through each dimension. Show your progress as you evaluate each of the 5 main dimensions and their 6 sub-dimensions.
-
   protected function findExistingEntity($entity_name) {
     $node_storage = $this->entityTypeManager->getStorage('node');
     
