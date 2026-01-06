@@ -276,15 +276,96 @@
       // Show chart container
       chartContainer.style.display = 'block';
       
-      console.log('Attempting to trigger Drupal behavior...');
+      // Show chart container
+      chartContainer.style.display = 'block';
       
-      // Trigger Drupal behavior to reinitialize the chart
-      if (typeof Drupal !== 'undefined' && Drupal.behaviors.powerRadarChart) {
-        Drupal.behaviors.powerRadarChart.attach(chartElement);
-        console.log('Drupal behavior triggered');
-      } else {
-        console.error('Drupal behaviors not available');
+      console.log('Rendering chart directly...');
+      
+      // Render the chart directly using Chart.js
+      const canvas = document.getElementById('evaluationsRadarChart');
+      if (!canvas) {
+        console.error('Canvas element not found');
+        return;
       }
+      
+      // Check if Chart.js is loaded
+      if (typeof Chart === 'undefined') {
+        console.error('Chart.js is not loaded');
+        return;
+      }
+      
+      // Destroy existing chart if it exists
+      const existingChart = Chart.getChart(canvas);
+      if (existingChart) {
+        existingChart.destroy();
+      }
+      
+      // Create new chart
+      const ctx = canvas.getContext('2d');
+      new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: chartData.primary_labels,
+          datasets: [{
+            label: entityData.name,
+            data: chartData.primary_scores,
+            backgroundColor: 'rgba(0, 212, 255, 0.2)',
+            borderColor: '#00d4ff',
+            borderWidth: 2,
+            pointBackgroundColor: '#00d4ff',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: '#00d4ff',
+            pointRadius: 5,
+            pointHoverRadius: 7
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          scales: {
+            r: {
+              min: 0,
+              max: 9,
+              ticks: {
+                stepSize: 1,
+                color: '#00d4ff',
+                backdropColor: 'transparent'
+              },
+              grid: {
+                color: 'rgba(0, 212, 255, 0.2)'
+              },
+              pointLabels: {
+                color: '#00d4ff',
+                font: {
+                  size: 14,
+                  weight: 'bold'
+                }
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              display: true,
+              labels: {
+                color: '#00d4ff',
+                font: {
+                  size: 14
+                }
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(22, 33, 62, 0.95)',
+              titleColor: '#00d4ff',
+              bodyColor: '#fff',
+              borderColor: '#00d4ff',
+              borderWidth: 1
+            }
+          }
+        }
+      });
+      
+      console.log('Chart rendered successfully');
     });
     
     console.log('Chart initialization complete');
