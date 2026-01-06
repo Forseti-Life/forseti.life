@@ -197,15 +197,35 @@
 (function() {
   'use strict';
   
-  // Store entities data for chart
-  const entitiesData = {{ entities_data|json_encode|raw }};
+  // Wait for DOM to be fully loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initChart);
+  } else {
+    initChart();
+  }
   
-  const selector = document.getElementById('entity-selector');
-  const chartContainer = document.getElementById('chart-container');
-  const chartElement = document.getElementById('evaluations-radar-chart');
-  
-  if (selector && chartContainer && chartElement) {
+  function initChart() {
+    console.log('Initializing evaluations chart...');
+    
+    // Store entities data for chart
+    const entitiesData = {{ entities_data|json_encode|raw }};
+    console.log('Entities data:', entitiesData);
+    
+    const selector = document.getElementById('entity-selector');
+    const chartContainer = document.getElementById('chart-container');
+    const chartElement = document.getElementById('evaluations-radar-chart');
+    
+    console.log('Selector:', selector);
+    console.log('Chart container:', chartContainer);
+    console.log('Chart element:', chartElement);
+    
+    if (!selector || !chartContainer || !chartElement) {
+      console.error('Required elements not found');
+      return;
+    }
+    
     selector.addEventListener('change', function() {
+      console.log('Entity selected:', this.value);
       const selectedNid = this.value;
       
       if (!selectedNid) {
@@ -215,7 +235,12 @@
       
       // Find the selected entity data
       const entityData = entitiesData.find(e => e.nid == selectedNid);
-      if (!entityData) return;
+      console.log('Entity data:', entityData);
+      
+      if (!entityData) {
+        console.error('Entity data not found for nid:', selectedNid);
+        return;
+      }
       
       // Prepare chart data
       const chartData = {
@@ -242,6 +267,8 @@
         ]
       };
       
+      console.log('Chart data:', chartData);
+      
       // Update chart element attributes
       chartElement.dataset.chart = JSON.stringify(chartData);
       chartElement.dataset.entityName = entityData.name;
@@ -249,11 +276,18 @@
       // Show chart container
       chartContainer.style.display = 'block';
       
+      console.log('Attempting to trigger Drupal behavior...');
+      
       // Trigger Drupal behavior to reinitialize the chart
       if (typeof Drupal !== 'undefined' && Drupal.behaviors.powerRadarChart) {
         Drupal.behaviors.powerRadarChart.attach(chartElement);
+        console.log('Drupal behavior triggered');
+      } else {
+        console.error('Drupal behaviors not available');
       }
     });
+    
+    console.log('Chart initialization complete');
   }
 })();
 </script>
