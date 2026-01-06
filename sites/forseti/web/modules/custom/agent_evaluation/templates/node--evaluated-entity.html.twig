@@ -1,0 +1,89 @@
+{#
+/**
+ * @file
+ * Theme implementation to display an evaluated_entity node.
+ *
+ * Available variables:
+ * - node: The node entity with access to the field values.
+ * - evaluation_data: Preprocessed evaluation data with organized dimensions.
+ * - url: Direct URL of the current node.
+ * - label: Label for the node (entity name).
+ * - view_mode: View mode; for example, "full" or "teaser".
+ *
+ * @see template_preprocess_node()
+ * @see agent_evaluation_preprocess_node()
+ */
+#}
+{{ attach_library('agent_evaluation/evaluated-entity') }}
+
+<article{{ attributes.addClass('node', 'node--type-evaluated-entity', 'node--view-mode-' ~ view_mode) }}>
+
+  <div class="evaluated-entity">
+    
+    <header class="evaluated-entity__header">
+      <h1 class="evaluated-entity__title">{{ label }}</h1>
+      {% if evaluation_data.total_power is not null %}
+        <div class="evaluated-entity__total-power">
+          <span class="power-label">Total Power Score</span>
+          <span class="power-value power-value--{{ evaluation_data.total_power_level }}">{{ evaluation_data.total_power }}</span>
+          <span class="power-scale">/9</span>
+        </div>
+      {% endif %}
+    </header>
+
+    {% if evaluation_data.source_conversation %}
+      <div class="evaluated-entity__meta">
+        <a href="{{ evaluation_data.source_conversation.url }}" class="conversation-link">
+          View Evaluation Conversation →
+        </a>
+      </div>
+    {% endif %}
+
+    <div class="evaluated-entity__dimensions">
+      
+      {% for dimension in evaluation_data.dimensions %}
+        <section class="dimension-section">
+          <div class="dimension-header">
+            <h2 class="dimension-title">{{ dimension.label }}</h2>
+            {% if dimension.score is not null %}
+              <div class="dimension-score">
+                <span class="score-value score-value--{{ dimension.level }}">{{ dimension.score }}</span>
+                <span class="score-scale">/9</span>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="sub-dimensions">
+            {% for sub_dimension in dimension.sub_dimensions %}
+              <div class="sub-dimension">
+                <div class="sub-dimension__header">
+                  <span class="sub-dimension__label">{{ sub_dimension.label }}</span>
+                  {% if sub_dimension.score is not null %}
+                    <span class="sub-dimension__score score-value--{{ sub_dimension.level }}">{{ sub_dimension.score }}</span>
+                  {% else %}
+                    <span class="sub-dimension__score sub-dimension__score--empty">—</span>
+                  {% endif %}
+                </div>
+                {% if sub_dimension.description %}
+                  <p class="sub-dimension__description">{{ sub_dimension.description }}</p>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+
+    </div>
+
+    {% if evaluation_data.all_empty %}
+      <div class="evaluated-entity__empty-state">
+        <p>This entity is being evaluated. Scores will appear here once the AI completes the evaluation.</p>
+        {% if evaluation_data.source_conversation %}
+          <a href="{{ evaluation_data.source_conversation.url }}" class="button">View Evaluation Progress</a>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  </div>
+
+</article>

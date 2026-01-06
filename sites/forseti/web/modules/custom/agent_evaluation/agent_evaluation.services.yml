@@ -1,0 +1,33 @@
+services:
+  logger.channel.agent_evaluation:
+    parent: logger.channel_base
+    arguments: ['agent_evaluation']
+
+  agent_evaluation.service:
+    class: Drupal\agent_evaluation\Service\AgentEvaluationService
+    arguments: ['@entity_type.manager', '@current_user', '@forseti_safety_content.agent_power_service', '@ai_conversation.api_service']
+    tags:
+      - { name: service }
+
+  agent_evaluation.field_parser:
+    class: Drupal\agent_evaluation\Service\FieldUpdateParser
+    arguments: ['@logger.factory']
+    tags:
+      - { name: service }
+
+  agent_evaluation.calculator:
+    class: Drupal\agent_evaluation\Service\EvaluationCalculator
+    tags:
+      - { name: service }
+
+  agent_evaluation.prompt_manager:
+    class: Drupal\agent_evaluation\Service\PromptManager
+    arguments: ['@config.factory', '@entity_type.manager', '@logger.channel.agent_evaluation']
+    tags:
+      - { name: service }
+
+  agent_evaluation.api_service:
+    class: Drupal\agent_evaluation\Service\AIApiService
+    arguments: ['@config.factory', '@logger.factory', '@entity_type.manager', '@agent_evaluation.prompt_manager']
+    tags:
+      - { name: service }
