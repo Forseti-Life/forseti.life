@@ -977,14 +977,17 @@ class AgentPowerFrameworkController extends ControllerBase {
     $nids = $query->execute();
     $entities = $storage->loadMultiple($nids);
     
-    // Build table rows
+    // Build table rows and entity data for visualization
     $rows = [];
+    $entities_data = [];
     foreach ($entities as $entity) {
+      $entity_title = $entity->getTitle();
       $rows[] = [
+        'nid' => $entity->id(),
         'title' => [
           'data' => [
             '#type' => 'link',
-            '#title' => $entity->getTitle(),
+            '#title' => $entity_title,
             '#url' => $entity->toUrl(),
           ],
         ],
@@ -995,6 +998,19 @@ class AgentPowerFrameworkController extends ControllerBase {
         'synthesis_application' => $entity->get('field_synthesis_application')->value ?? 0,
         'total_power' => $entity->get('field_total_power')->value ?? 0,
       ];
+      
+      // Store entity data for chart visualization
+      $entities_data[] = [
+        'nid' => $entity->id(),
+        'name' => $entity_title,
+        'scores' => [
+          'information_access' => $entity->get('field_information_access')->value ?? 0,
+          'resource_control' => $entity->get('field_resource_control')->value ?? 0,
+          'authority_permission' => $entity->get('field_authority_permission')->value ?? 0,
+          'network_position' => $entity->get('field_network_position')->value ?? 0,
+          'synthesis_application' => $entity->get('field_synthesis_application')->value ?? 0,
+        ],
+      ];
     }
     
     return [
@@ -1002,6 +1018,7 @@ class AgentPowerFrameworkController extends ControllerBase {
       '#title' => $this->t('Evaluated Entities'),
       '#intro' => $this->t('Browse all evaluated entities and compare their power profiles across the five fundamental dimensions.'),
       '#rows' => $rows,
+      '#entities_data' => $entities_data,
       '#sort_field' => $sort_field,
       '#sort_direction' => $sort_direction,
       '#cache' => [

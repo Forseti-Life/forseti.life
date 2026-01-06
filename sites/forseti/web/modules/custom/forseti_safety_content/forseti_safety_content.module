@@ -169,6 +169,7 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
         'title' => NULL,
         'intro' => NULL,
         'rows' => [],
+        'entities_data' => [],
         'sort_field' => NULL,
         'sort_direction' => NULL,
       ],
