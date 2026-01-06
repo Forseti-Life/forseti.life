@@ -13,115 +13,139 @@
     <div class="col-lg-10 mx-auto">
       <h1 class="text-center mb-3 text-cyan">{{ title }}</h1>
       
-      <div class="alert alert-info-cyan mb-4">
-        <p class="mb-0">{{ intro.description }}</p>
+      <div class="lead mb-4 text-muted-light text-center">
+        {{ 'Measure agent capabilities across five fundamental dimensions and 30 sub-dimensions'|t }}
       </div>
       
-      <div class="card card-forseti mb-4">
-        <div class="card-body">
-          <h3 class="text-cyan mb-4">
-            <i class="fas fa-robot"></i> {{ 'Start Your Evaluation'|t }}
-          </h3>
-          
-          <p class="text-muted-light mb-4">
-            {{ 'To evaluate an agent, you can either:'|t }}
-          </p>
-          
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <div class="card h-100" style="border: 2px solid #00d4ff;">
-                <div class="card-body text-center">
-                  <h4 class="text-cyan mb-3">
-                    <i class="fas fa-comments"></i><br>
-                    {{ 'Chat with Forseti'|t }}
-                  </h4>
-                  <p class="text-muted-light mb-3">
-                    {{ 'Describe the agent you want to evaluate, and Forseti will guide you through an interactive evaluation process.'|t }}
-                  </p>
-                  <a href="/talk-with-forseti" class="btn btn-primary">
-                    <i class="fas fa-comment-dots"></i> {{ 'Start Chat Evaluation'|t }}
-                  </a>
-                </div>
+      <div class="alert alert-info-cyan mb-4">
+        <h5 class="text-cyan mb-2">
+          <i class="fas fa-info-circle"></i> {{ 'How It Works'|t }}
+        </h5>
+        <p class="mb-2">
+          {{ 'This evaluation tool analyzes any agent system—human or machine—across the five dimensions of power: Information Access, Resource Control, Authority & Permission, Network Position, and Synthesis & Application. You provide information about the agent, and the system scores its capabilities on each of 30 sub-dimensions.'|t }}
+        </p>
+        <p class="mb-0">
+          {{ 'The result is an interactive radar chart visualization showing the agent\'s complete power profile, overall capability level (0-9+), and specific strengths, constraints, and limitations.'|t }}
+        </p>
+      </div>
+      
+      <h2 class="mt-5 mb-4 text-cyan text-center">
+        <i class="fas fa-rocket"></i> {{ 'Choose Your Evaluation Method'|t }}
+      </h2>
+      
+      <div class="row mb-5">
+        <div class="col-md-6 mb-4">
+          <div class="card card-forseti h-100 hover-lift" style="border: 3px solid #00d4ff;">
+            <div class="card-body text-center p-4">
+              <div class="mb-3">
+                <i class="fas fa-comments fa-4x text-cyan"></i>
               </div>
+              <h3 class="text-cyan mb-3">{{ 'Chat with Forseti'|t }}</h3>
+              <p class="text-muted-light mb-4">
+                {{ 'Recommended for most users. Have a natural conversation with Forseti about the agent you want to evaluate. Forseti will ask clarifying questions and automatically score each dimension based on your responses.'|t }}
+              </p>
+              <div class="mb-3">
+                <span class="badge bg-primary me-2">{{ 'Interactive'|t }}</span>
+                <span class="badge bg-info">{{ 'Guided'|t }}</span>
+              </div>
+              <a href="/talk-with-forseti" class="btn btn-primary btn-lg">
+                <i class="fas fa-comment-dots"></i> {{ 'Start Chat Evaluation'|t }}
+              </a>
             </div>
-            
-            <div class="col-md-6 mb-3">
-              <div class="card h-100" style="border: 2px solid #4caf50;">
-                <div class="card-body text-center">
-                  <h4 class="text-success mb-3">
-                    <i class="fas fa-list-alt"></i><br>
-                    {{ 'Manual Form'|t }}
-                  </h4>
-                  <p class="text-muted-light mb-3">
-                    {{ 'Fill out a structured form to manually score each dimension and sub-dimension.'|t }}
-                  </p>
-                  <a href="/node/add/evaluated_entity" class="btn btn-success">
-                    <i class="fas fa-edit"></i> {{ 'Create Manual Evaluation'|t }}
-                  </a>
-                </div>
+          </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+          <div class="card card-forseti h-100 hover-lift" style="border: 3px solid #4caf50;">
+            <div class="card-body text-center p-4">
+              <div class="mb-3">
+                <i class="fas fa-edit fa-4x text-success"></i>
               </div>
+              <h3 class="text-success mb-3">{{ 'Manual Form'|t }}</h3>
+              <p class="text-muted-light mb-4">
+                {{ 'For experts familiar with the framework. Directly input scores for each of the 30 sub-dimensions using a structured form. Provides complete control over the evaluation process.'|t }}
+              </p>
+              <div class="mb-3">
+                <span class="badge bg-success me-2">{{ 'Direct'|t }}</span>
+                <span class="badge bg-secondary">{{ 'Expert'|t }}</span>
+              </div>
+              <a href="/node/add/evaluated_entity" class="btn btn-success btn-lg">
+                <i class="fas fa-list-alt"></i> {{ 'Manual Evaluation Form'|t }}
+              </a>
             </div>
           </div>
         </div>
       </div>
       
-      <div class="card card-forseti mb-4">
-        <div class="card-body">
-          <h3 class="text-cyan mb-3">
-            <i class="fas fa-info-circle"></i> {{ 'What You Will Get'|t }}
-          </h3>
-          
-          <ul class="text-muted-light">
-            <li class="mb-2">
-              <strong>{{ 'Interactive Radar Chart:'|t }}</strong> 
-              {{ 'Visual representation of the agent\'s power profile across all five dimensions'|t }}
-            </li>
-            <li class="mb-2">
-              <strong>{{ 'Detailed Scores:'|t }}</strong> 
-              {{ 'Scores for all 30 sub-dimensions (6 per dimension)'|t }}
-            </li>
-            <li class="mb-2">
-              <strong>{{ 'Overall Power Level:'|t }}</strong> 
-              {{ 'Classification from Level 0 (No Capability) to Level 9+ (Universal Capability)'|t }}
-            </li>
-            <li class="mb-2">
-              <strong>{{ 'Capability Assessment:'|t }}</strong> 
-              {{ 'Identification of strengths, weaknesses, and constraints'|t }}
-            </li>
-            <li>
-              <strong>{{ 'Advanced Metrics:'|t }}</strong> 
-              {{ 'For Level 8+ entities, quantitative benchmarks beyond the heuristic scale'|t }}
-            </li>
-          </ul>
+      <h2 class="mt-5 mb-4 text-cyan">
+        <i class="fas fa-gift"></i> {{ 'What You\'ll Receive'|t }}
+      </h2>
+      
+      <div class="row row-cols-1 row-cols-md-2 g-4 mb-5">
+        <div class="col">
+          <div class="card card-forseti p-4 h-100">
+            <div class="mb-2">
+              <i class="fas fa-chart-radar fa-2x text-cyan"></i>
+            </div>
+            <h4 class="text-cyan mb-2">{{ 'Interactive Radar Chart'|t }}</h4>
+            <p class="text-muted-light mb-0">
+              {{ 'Beautiful visualization of the agent\'s power profile with click-to-expand dimensions showing all 30 sub-dimension scores'|t }}
+            </p>
+          </div>
+        </div>
+        
+        <div class="col">
+          <div class="card card-forseti p-4 h-100">
+            <div class="mb-2">
+              <i class="fas fa-clipboard-list fa-2x text-cyan"></i>
+            </div>
+            <h4 class="text-cyan mb-2">{{ 'Detailed Assessment'|t }}</h4>
+            <p class="text-muted-light mb-0">
+              {{ 'Complete breakdown of scores across all five dimensions and 30 sub-dimensions with explanatory text'|t }}
+            </p>
+          </div>
+        </div>
+        
+        <div class="col">
+          <div class="card card-forseti p-4 h-100">
+            <div class="mb-2">
+              <i class="fas fa-layer-group fa-2x text-cyan"></i>
+            </div>
+            <h4 class="text-cyan mb-2">{{ 'Power Level Classification'|t }}</h4>
+            <p class="text-muted-light mb-0">
+              {{ 'Overall capability rating from Level 0 (No Capability) to Level 9+ (Universal Capability) with detailed profile'|t }}
+            </p>
+          </div>
+        </div>
+        
+        <div class="col">
+          <div class="card card-forseti p-4 h-100">
+            <div class="mb-2">
+              <i class="fas fa-search fa-2x text-cyan"></i>
+            </div>
+            <h4 class="text-cyan mb-2">{{ 'Constraint Analysis'|t }}</h4>
+            <p class="text-muted-light mb-0">
+              {{ 'Identification of specific limitations, biases, and constraints affecting the agent\'s capabilities'|t }}
+            </p>
+          </div>
         </div>
       </div>
       
-      <div class="card card-forseti mb-4" style="border-left: 4px solid #ffc107;">
-        <div class="card-body">
-          <h3 class="text-warning mb-3">
-            <i class="fas fa-exclamation-triangle"></i> {{ 'Important Notes'|t }}
-          </h3>
-          
-          <ul class="text-muted-light">
-            <li class="mb-2">
-              {{ 'The 0-9 scale is a heuristic designed for quick capability assessment'|t }}
-            </li>
-            <li class="mb-2">
-              {{ 'Evaluations require judgment - no automated system can perfectly assess agent capabilities'|t }}
-            </li>
-            <li class="mb-2">
-              {{ 'For high-power entities (Level 8+), consider using advanced quantitative metrics'|t }}
-            </li>
-            <li>
-              {{ 'This framework is designed to reveal constraints, biases, and limitations in agent systems'|t }}
-            </li>
-          </ul>
-        </div>
+      <div class="alert alert-warning mb-4" style="border-left: 4px solid #ffc107;">
+        <h5 class="mb-2">
+          <i class="fas fa-exclamation-triangle"></i> {{ 'Understanding the Heuristic Scale'|t }}
+        </h5>
+        <p class="mb-2">
+          {{ 'The 0-9 scale is a heuristic tool designed for rapid capability assessment. Evaluations require judgment—no automated system can perfectly measure agent power.'|t }}
+        </p>
+        <p class="mb-0">
+          <strong>{{ 'For Level 8+ entities:'|t }}</strong> {{ 'Consider supplementing with quantitative metrics like Net Worth (Resource Control), Data Asset Valuation (Information Access), Approval Rating (Authority), Network Reach (Network Position), or AI Benchmarks (Synthesis).'|t }}
+        </p>
       </div>
       
       <div class="text-center mb-4">
-        <a href="/agent-power-framework" class="btn btn-outline-cyan">
-          <i class="fas fa-arrow-left"></i> {{ 'Back to Framework Overview'|t }}
+        <a href="/agent-power-framework" class="btn btn-outline-cyan btn-lg">
+          <i class="fas fa-arrow-left"></i> {{ 'Learn About the Framework'|t }}
         </a>
       </div>
     </div>
