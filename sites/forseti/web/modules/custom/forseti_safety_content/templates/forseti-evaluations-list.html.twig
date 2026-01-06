@@ -29,13 +29,29 @@
             </h3>
             
             <div class="mb-3">
-              <label for="entity-selector" class="form-label text-cyan">Select Entity to Visualize:</label>
-              <select id="entity-selector" class="form-select form-select-lg">
-                <option value="">-- Select an Entity --</option>
+              <label for="entity-search" class="form-label text-cyan">Search and Select Entities (up to 5):</label>
+              <input type="text" 
+                     id="entity-search" 
+                     class="form-control form-control-lg mb-2" 
+                     placeholder="Type to search entities...">
+              
+              <div id="selected-entities" class="mb-3" style="display: none;">
+                <div class="d-flex flex-wrap gap-2" id="selected-entities-list"></div>
+              </div>
+              
+              <div id="entity-list" class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
                 {% for entity in entities_data %}
-                  <option value="{{ entity.nid }}">{{ entity.name }}</option>
+                  <div class="form-check entity-item" data-entity-name="{{ entity.name|lower }}" data-entity-nid="{{ entity.nid }}">
+                    <input class="form-check-input entity-checkbox" 
+                           type="checkbox" 
+                           value="{{ entity.nid }}" 
+                           id="entity-{{ entity.nid }}">
+                    <label class="form-check-label" for="entity-{{ entity.nid }}">
+                      {{ entity.name }}
+                    </label>
+                  </div>
                 {% endfor %}
-              </select>
+              </div>
             </div>
             
             <div id="chart-container" style="display: none;">
@@ -211,77 +227,110 @@
     const entitiesData = {{ entities_data|json_encode|raw }};
     console.log('Entities data:', entitiesData);
     
-    const selector = document.getElementById('entity-selector');
+    const searchInput = document.getElementById('entity-search');
+    const entityList = document.getElementById('entity-list');
+    const selectedEntitiesContainer = document.getElementById('selected-entities');
+    const selectedEntitiesList = document.getElementById('selected-entities-list');
     const chartContainer = document.getElementById('chart-container');
-    const chartElement = document.getElementById('evaluations-radar-chart');
+    const checkboxes = document.querySelectorAll('.entity-checkbox');
     
-    console.log('Selector:', selector);
-    console.log('Chart container:', chartContainer);
-    console.log('Chart element:', chartElement);
-    
-    if (!selector || !chartContainer || !chartElement) {
+    if (!searchInput || !entityList || !chartContainer) {
       console.error('Required elements not found');
       return;
     }
     
-    selector.addEventListener('change', function() {
-      console.log('Entity selected:', this.value);
-      const selectedNid = this.value;
+    let selectedEntities = [];
+    const maxSelections = 5;
+    
+    // Colors for different entities
+    const entityColors = [
+      { bg: 'rgba(0, 212, 255, 0.2)', border: '#00d4ff' },
+      { bg: 'rgba(76, 175, 80, 0.2)', border: '#4caf50' },
+      { bg: 'rgba(233, 30, 99, 0.2)', border: '#e91e63' },
+      { bg: 'rgba(156, 39, 176, 0.2)', border: '#9c27b0' },
+      { bg: 'rgba(255, 235, 59, 0.2)', border: '#ffeb3b' }
+    ];
+    
+    // Search functionality
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      const entityItems = entityList.querySelectorAll('.entity-item');
       
-      if (!selectedNid) {
+      entityItems.forEach(item => {
+        const entityName = item.dataset.entityName;
+        if (entityName.includes(searchTerm)) {
+          item.style.display = 'block';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    });
+    
+    // Checkbox selection handler
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', function() {
+        const nid = this.value;
+        const entityData = entitiesData.find(e => e.nid == nid);
+        
+        if (this.checked) {
+          if (selectedEntities.length >= maxSelections) {
+            this.checked = false;
+            alert(`Maximum ${maxSelections} entities can be selected`);
+            return;
+          }
+          selectedEntities.push(entityData);
+        } else {
+          selectedEntities = selectedEntities.filter(e => e.nid != nid);
+        }
+        
+        updateSelectedEntities();
+        renderChart();
+      });
+    });
+    
+    function updateSelectedEntities() {
+      if (selectedEntities.length === 0) {
+        selectedEntitiesContainer.style.display = 'none';
+        return;
+      }
+      
+      selectedEntitiesContainer.style.display = 'block';
+      selectedEntitiesList.innerHTML = '';
+      
+      selectedEntities.forEach((entity, index) => {
+        const badge = document.createElement('span');
+        badge.className = 'badge bg-secondary d-flex align-items-center gap-2';
+        badge.style.backgroundColor = entityColors[index].border;
+        badge.innerHTML = `
+          ${entity.name}
+          <button type="button" class="btn-close btn-close-white btn-sm" 
+                  onclick="removeEntity('${entity.nid}')" 
+                  style="font-size: 0.7em; padding: 0;">
+          </button>
+        `;
+        selectedEntitiesList.appendChild(badge);
+      });
+    }
+    
+    // Make removeEntity available globally
+    window.removeEntity = function(nid) {
+      const checkbox = document.getElementById('entity-' + nid);
+      if (checkbox) {
+        checkbox.checked = false;
+        selectedEntities = selectedEntities.filter(e => e.nid != nid);
+        updateSelectedEntities();
+        renderChart();
+      }
+    };
+    
+    function renderChart() {
+      if (selectedEntities.length === 0) {
         chartContainer.style.display = 'none';
         return;
       }
       
-      // Find the selected entity data
-      const entityData = entitiesData.find(e => e.nid == selectedNid);
-      console.log('Entity data:', entityData);
-      
-      if (!entityData) {
-        console.error('Entity data not found for nid:', selectedNid);
-        return;
-      }
-      
-      // Prepare chart data
-      const chartData = {
-        primary_labels: [
-          'Information Access',
-          'Resource Control',
-          'Authority & Permission',
-          'Network Position',
-          'Synthesis & Application'
-        ],
-        primary_scores: [
-          entityData.scores.information_access,
-          entityData.scores.resource_control,
-          entityData.scores.authority_permission,
-          entityData.scores.network_position,
-          entityData.scores.synthesis_application
-        ],
-        primary_keys: [
-          'information_access',
-          'resource_control',
-          'authority_&_permission',
-          'network_position',
-          'synthesis_&_application'
-        ]
-      };
-      
-      console.log('Chart data:', chartData);
-      
-      // Update chart element attributes
-      chartElement.dataset.chart = JSON.stringify(chartData);
-      chartElement.dataset.entityName = entityData.name;
-      
-      // Show chart container
       chartContainer.style.display = 'block';
       
-      // Show chart container
-      chartContainer.style.display = 'block';
-      
-      console.log('Rendering chart directly...');
-      
-      // Render the chart directly using Chart.js
       const canvas = document.getElementById('evaluationsRadarChart');
       if (!canvas) {
         console.error('Canvas element not found');
@@ -300,25 +349,46 @@
         existingChart.destroy();
       }
       
+      // Prepare chart labels
+      const labels = [
+        'Information Access',
+        'Resource Control',
+        'Authority & Permission',
+        'Network Position',
+        'Synthesis & Application'
+      ];
+      
+      // Create datasets for each selected entity
+      const datasets = selectedEntities.map((entity, index) => {
+        const color = entityColors[index];
+        return {
+          label: entity.name,
+          data: [
+            entity.scores.information_access,
+            entity.scores.resource_control,
+            entity.scores.authority_permission,
+            entity.scores.network_position,
+            entity.scores.synthesis_application
+          ],
+          backgroundColor: color.bg,
+          borderColor: color.border,
+          borderWidth: 2,
+          pointBackgroundColor: color.border,
+          pointBorderColor: '#fff',
+          pointHoverBackgroundColor: '#fff',
+          pointHoverBorderColor: color.border,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        };
+      });
+      
       // Create new chart
       const ctx = canvas.getContext('2d');
       new Chart(ctx, {
         type: 'radar',
         data: {
-          labels: chartData.primary_labels,
-          datasets: [{
-            label: entityData.name,
-            data: chartData.primary_scores,
-            backgroundColor: 'rgba(0, 212, 255, 0.2)',
-            borderColor: '#00d4ff',
-            borderWidth: 2,
-            pointBackgroundColor: '#00d4ff',
-            pointBorderColor: '#fff',
-            pointHoverBackgroundColor: '#fff',
-            pointHoverBorderColor: '#00d4ff',
-            pointRadius: 5,
-            pointHoverRadius: 7
-          }]
+          labels: labels,
+          datasets: datasets
         },
         options: {
           responsive: true,
@@ -347,11 +417,14 @@
           plugins: {
             legend: {
               display: true,
+              position: 'top',
               labels: {
                 color: '#00d4ff',
                 font: {
                   size: 14
-                }
+                },
+                padding: 15,
+                usePointStyle: true
               }
             },
             tooltip: {
@@ -365,10 +438,11 @@
         }
       });
       
-      console.log('Chart rendered successfully');
-    });
+      console.log('Chart rendered with ' + selectedEntities.length + ' entities');
+    }
     
     console.log('Chart initialization complete');
   }
 })();
 </script>
+
