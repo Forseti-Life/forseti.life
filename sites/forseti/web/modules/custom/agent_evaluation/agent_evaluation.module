@@ -271,11 +271,18 @@ function agent_evaluation_preprocess_node(&$variables) {
 
   $variables['evaluation_data'] = $evaluation_data;
   
+  // Get conversation node ID for redirect
+  $conversation_nid = NULL;
+  if (!$node->get('field_source_conversation')->isEmpty()) {
+    $conversation_nid = $node->get('field_source_conversation')->target_id;
+  }
+  
   // Add settings for JavaScript evaluation loader
   $variables['#attached']['drupalSettings']['evaluatedEntity'] = [
     'nodeId' => $node->id(),
     'unpublished' => !$node->isPublished(),
     'totalPower' => (int) $node->get('field_total_power')->value,
+    'conversationNid' => $conversation_nid,
   ];
   
   // Add CSS class for JavaScript targeting

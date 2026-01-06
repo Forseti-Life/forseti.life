@@ -121,27 +121,32 @@ class ChatController extends ControllerBase {
     // Get conversation statistics.
     $stats = $this->aiApiService->getConversationStats($node);
 
+    // Find the evaluated_entity node linked to this conversation
+    $evaluated_entity = NULL;
+    $node_storage = $this->entityTypeManager->getStorage('node');
+    $query = $node_storage->getQuery()
+      ->condition('type', 'evaluated_entity')
+      ->condition('field_source_conversation', $node->id())
+      ->accessCheck(FALSE)
+      ->range(0, 1);
+    $nids = $query->execute();
+    
+    if (!empty($nids)) {
+      $entity_nid = reset($nids);
+      $evaluated_entity = $node_storage->load($entity_nid);
+    }
+
     // Check if this is a new evaluation conversation (no messages yet)
     $pre_fill_message = '';
     if (empty($messages) && strpos($node->getTitle(), 'Evaluating:') === 0) {
       // Extract entity name from title "Evaluating: EntityName"
       $entity_name = trim(substr($node->getTitle(), 11));
       
-      // Find the evaluated_entity node to get its ID
-      $node_storage = $this->entityTypeManager->getStorage('node');
-      $query = $node_storage->getQuery()
-        ->condition('type', 'evaluated_entity')
-        ->condition('field_source_conversation', $node->id())
-        ->accessCheck(FALSE)
-        ->range(0, 1);
-      $nids = $query->execute();
-      
-      if (!empty($nids)) {
-        $entity_nid = reset($nids);
+      if ($evaluated_entity) {
         $pre_fill_message = sprintf(
           "Please evaluate the entity '%s' using the Agent Power Framework. Provide scores (0-9) for all 30 sub-dimensions and include a JSON block at the end with the field values. The evaluated_entity node ID is %d.",
           $entity_name,
-          $entity_nid
+          $evaluated_entity->id()
         );
       }
     }
@@ -151,6 +156,7 @@ class ChatController extends ControllerBase {
       '#conversation' => $node,
       '#messages' => $messages,
       '#stats' => $stats,
+      '#evaluated_entity' => $evaluated_entity,
       '#attached' => [
         'library' => [
           'agent_evaluation/chat-interface',

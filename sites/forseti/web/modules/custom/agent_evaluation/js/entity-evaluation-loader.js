@@ -16,20 +16,21 @@
         const nodeId = settings.evaluatedEntity?.nodeId;
         const isUnpublished = settings.evaluatedEntity?.unpublished;
         const totalPower = settings.evaluatedEntity?.totalPower;
+        const conversationNid = settings.evaluatedEntity?.conversationNid;
         
-        console.log('Node ID:', nodeId, 'Unpublished:', isUnpublished, 'Total Power:', totalPower);
+        console.log('Node ID:', nodeId, 'Unpublished:', isUnpublished, 'Total Power:', totalPower, 'Conversation:', conversationNid);
 
         // Only show loading state if node is unpublished (status = 0) and has no evaluation yet
         if (isUnpublished && totalPower === 0) {
           console.log('🎬 Showing loading overlay and starting polling');
-          showLoadingOverlay();
-          startPolling(nodeId);
+          showLoadingOverlay(conversationNid);
+          startPolling(nodeId, conversationNid);
         } else {
           console.log('ℹ️ Not showing loading overlay - conditions not met');
         }
       });
 
-      function showLoadingOverlay() {
+      function showLoadingOverlay(conversationNid) {
         const overlay = $('<div class="evaluation-loading-overlay"></div>');
         const content = $(`
           <div class="evaluation-loading-content">
@@ -83,17 +84,17 @@
         }
       }
 
-      function startPolling(nodeId) {
+      function startPolling(nodeId, conversationNid) {
         let pollCount = 0;
-        const maxPolls = 60; // Poll for up to 2 minutes (2 second intervals)
+        const maxPolls = 22; // Poll for 45 seconds (22 polls * ~2 seconds)
         
         const pollInterval = setInterval(function() {
           pollCount++;
           
-          // Stop polling after max attempts
+          // After 45 seconds, redirect to chat for help
           if (pollCount > maxPolls) {
             clearInterval(pollInterval);
-            showTimeoutMessage();
+            redirectToChat(conversationNid);
             return;
           }
 
@@ -117,6 +118,25 @@
             }
           });
         }, 2000); // Poll every 2 seconds
+      }
+
+      function redirectToChat(conversationNid) {
+        if (conversationNid) {
+          $('.evaluation-loading-content').html(`
+            <div class="alert alert-info">
+              <h4 class="alert-heading">Evaluation Needs Your Input</h4>
+              <p>The AI may need more information to complete the evaluation.</p>
+              <p class="mb-0">Redirecting you to the conversation...</p>
+            </div>
+          `);
+          
+          // Redirect after a brief delay
+          setTimeout(function() {
+            window.location.href = '/node/' + conversationNid + '/chat';
+          }, 2000);
+        } else {
+          showTimeoutMessage();
+        }
       }
 
       function showTimeoutMessage() {

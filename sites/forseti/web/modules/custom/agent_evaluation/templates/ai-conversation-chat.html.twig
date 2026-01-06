@@ -34,6 +34,13 @@
 <div class="ai-conversation-chat">
   <div class="chat-header">
     <h2>{{ conversation.label }}</h2>
+    {% if evaluated_entity %}
+      <div class="mb-3">
+        <a href="/node/{{ evaluated_entity.id }}" class="btn btn-outline-primary btn-sm">
+          <i class="fas fa-chart-radar"></i> View Evaluation Results
+        </a>
+      </div>
+    {% endif %}
     {% if conversation.field_context.value %}
       <div class="context-info">
         <strong>{{ 'Context'|t }}:</strong> {{ conversation.field_context.value|striptags|slice(0, 100) }}{% if conversation.field_context.value|striptags|length > 100 %}...{% endif %}
