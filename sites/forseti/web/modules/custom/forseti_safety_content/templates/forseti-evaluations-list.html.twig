@@ -1,0 +1,158 @@
+{#
+/**
+ * @file
+ * Template for the evaluations list page.
+ *
+ * Available variables:
+ * - title: Page title
+ * - intro: Introduction text
+ * - rows: Array of entity data
+ * - sort_field: Current sort field
+ * - sort_direction: Current sort direction (ASC/DESC)
+ */
+#}
+{{ attach_library('forseti_safety_content/agent-power') }}
+
+<div class="container py-4">
+  <div class="row">
+    <div class="col-12">
+      <h1 class="mb-3 text-cyan">{{ title }}</h1>
+      <p class="lead mb-4">{{ intro }}</p>
+
+      <div class="card card-forseti mb-4">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover table-striped">
+              <thead>
+                <tr>
+                  <th>
+                    <a href="?sort=title&order={{ sort_field == 'title' and sort_direction == 'ASC' ? 'DESC' : 'ASC' }}">
+                      Entity Name
+                      {% if sort_field == 'title' %}
+                        <i class="fas fa-sort-{{ sort_direction == 'ASC' ? 'up' : 'down' }}"></i>
+                      {% else %}
+                        <i class="fas fa-sort text-muted"></i>
+                      {% endif %}
+                    </a>
+                  </th>
+                  <th class="text-center">
+                    <a href="?sort=information_access&order={{ sort_field == 'information_access' and sort_direction == 'ASC' ? 'DESC' : 'ASC' }}">
+                      Information Access
+                      {% if sort_field == 'information_access' %}
+                        <i class="fas fa-sort-{{ sort_direction == 'ASC' ? 'up' : 'down' }}"></i>
+                      {% else %}
+                        <i class="fas fa-sort text-muted"></i>
+                      {% endif %}
+                    </a>
+                  </th>
+                  <th class="text-center">
+                    <a href="?sort=resource_control&order={{ sort_field == 'resource_control' and sort_direction == 'ASC' ? 'DESC' : 'ASC' }}">
+                      Resource Control
+                      {% if sort_field == 'resource_control' %}
+                        <i class="fas fa-sort-{{ sort_direction == 'ASC' ? 'up' : 'down' }}"></i>
+                      {% else %}
+                        <i class="fas fa-sort text-muted"></i>
+                      {% endif %}
+                    </a>
+                  </th>
+                  <th class="text-center">
+                    <a href="?sort=authority_permission&order={{ sort_field == 'authority_permission' and sort_direction == 'ASC' ? 'DESC' : 'ASC' }}">
+                      Authority & Permission
+                      {% if sort_field == 'authority_permission' %}
+                        <i class="fas fa-sort-{{ sort_direction == 'ASC' ? 'up' : 'down' }}"></i>
+                      {% else %}
+                        <i class="fas fa-sort text-muted"></i>
+                      {% endif %}
+                    </a>
+                  </th>
+                  <th class="text-center">
+                    <a href="?sort=network_position&order={{ sort_field == 'network_position' and sort_direction == 'ASC' ? 'DESC' : 'ASC' }}">
+                      Network Position
+                      {% if sort_field == 'network_position' %}
+                        <i class="fas fa-sort-{{ sort_direction == 'ASC' ? 'up' : 'down' }}"></i>
+                      {% else %}
+                        <i class="fas fa-sort text-muted"></i>
+                      {% endif %}
+                    </a>
+                  </th>
+                  <th class="text-center">
+                    <a href="?sort=synthesis_application&order={{ sort_field == 'synthesis_application' and sort_direction == 'ASC' ? 'DESC' : 'ASC' }}">
+                      Synthesis & Application
+                      {% if sort_field == 'synthesis_application' %}
+                        <i class="fas fa-sort-{{ sort_direction == 'ASC' ? 'up' : 'down' }}"></i>
+                      {% else %}
+                        <i class="fas fa-sort text-muted"></i>
+                      {% endif %}
+                    </a>
+                  </th>
+                  <th class="text-center">
+                    <a href="?sort=total_power&order={{ sort_field == 'total_power' and sort_direction == 'ASC' ? 'DESC' : 'ASC' }}">
+                      Total Power
+                      {% if sort_field == 'total_power' %}
+                        <i class="fas fa-sort-{{ sort_direction == 'ASC' ? 'up' : 'down' }}"></i>
+                      {% else %}
+                        <i class="fas fa-sort text-muted"></i>
+                      {% endif %}
+                    </a>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if rows is empty %}
+                  <tr>
+                    <td colspan="7" class="text-center text-muted py-5">
+                      <i class="fas fa-inbox fa-3x mb-3"></i>
+                      <p>No evaluated entities yet. <a href="/agent-power-framework">Start an evaluation</a> to see results here.</p>
+                    </td>
+                  </tr>
+                {% else %}
+                  {% for row in rows %}
+                    <tr>
+                      <td>{{ row.title }}</td>
+                      <td class="text-center">
+                        <span class="badge bg-{{ row.information_access <= 3 ? 'danger' : (row.information_access <= 6 ? 'warning' : 'success') }}">
+                          {{ row.information_access }}/9
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <span class="badge bg-{{ row.resource_control <= 3 ? 'danger' : (row.resource_control <= 6 ? 'warning' : 'success') }}">
+                          {{ row.resource_control }}/9
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <span class="badge bg-{{ row.authority_permission <= 3 ? 'danger' : (row.authority_permission <= 6 ? 'warning' : 'success') }}">
+                          {{ row.authority_permission }}/9
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <span class="badge bg-{{ row.network_position <= 3 ? 'danger' : (row.network_position <= 6 ? 'warning' : 'success') }}">
+                          {{ row.network_position }}/9
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <span class="badge bg-{{ row.synthesis_application <= 3 ? 'danger' : (row.synthesis_application <= 6 ? 'warning' : 'success') }}">
+                          {{ row.synthesis_application }}/9
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <strong class="text-{{ row.total_power <= 3 ? 'danger' : (row.total_power <= 6 ? 'warning' : 'success') }}">
+                          {{ row.total_power }}/9
+                        </strong>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center mt-4">
+        <a href="/agent-power-framework" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Evaluate New Entity
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

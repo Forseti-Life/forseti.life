@@ -937,4 +937,74 @@ class AgentPowerFrameworkController extends ControllerBase {
     return $this->t('Forseti aspires to operate at the highest capability levels across all five dimensions - seeking unrestricted information access, adequate resources, appropriate authority, strong network position, and sophisticated synthesis capability. However, we acknowledge that all systems operate under constraints. Our goal is transparency about our actual capability profile across these 30 sub-dimensions and continuous work toward higher levels of access, resources, authority, connectivity, and analytical sophistication to serve community safety through comprehensive intelligence.');
   }
 
+  /**
+   * Evaluations list page showing all evaluated entities.
+   */
+  public function evaluationsList() {
+    // Get sort parameter from URL
+    $request = \Drupal::request();
+    $sort_field = $request->query->get('sort', 'title');
+    $sort_direction = $request->query->get('order', 'ASC');
+    
+    // Validate sort direction
+    $sort_direction = strtoupper($sort_direction) === 'DESC' ? 'DESC' : 'ASC';
+    
+    // Map sort field to actual field names
+    $field_map = [
+      'title' => 'title',
+      'information_access' => 'field_information_access',
+      'resource_control' => 'field_resource_control',
+      'authority_permission' => 'field_authority_permission',
+      'network_position' => 'field_network_position',
+      'synthesis_application' => 'field_synthesis_application',
+      'total_power' => 'field_total_power',
+    ];
+    
+    $sort_field_name = $field_map[$sort_field] ?? 'title';
+    
+    // Query for all published evaluated_entity nodes
+    $storage = $this->entityTypeManager()->getStorage('node');
+    $query = $storage->getQuery()
+      ->condition('type', 'evaluated_entity')
+      ->condition('status', 1)
+      ->sort($sort_field_name, $sort_direction)
+      ->accessCheck(TRUE);
+    
+    $nids = $query->execute();
+    $entities = $storage->loadMultiple($nids);
+    
+    // Build table rows
+    $rows = [];
+    foreach ($entities as $entity) {
+      $rows[] = [
+        'title' => [
+          'data' => [
+            '#type' => 'link',
+            '#title' => $entity->getTitle(),
+            '#url' => $entity->toUrl(),
+          ],
+        ],
+        'information_access' => $entity->get('field_information_access')->value ?? 0,
+        'resource_control' => $entity->get('field_resource_control')->value ?? 0,
+        'authority_permission' => $entity->get('field_authority_permission')->value ?? 0,
+        'network_position' => $entity->get('field_network_position')->value ?? 0,
+        'synthesis_application' => $entity->get('field_synthesis_application')->value ?? 0,
+        'total_power' => $entity->get('field_total_power')->value ?? 0,
+      ];
+    }
+    
+    return [
+      '#theme' => 'forseti_evaluations_list',
+      '#title' => $this->t('Evaluated Entities'),
+      '#intro' => $this->t('Browse all evaluated entities and compare their power profiles across the five fundamental dimensions.'),
+      '#rows' => $rows,
+      '#sort_field' => $sort_field,
+      '#sort_direction' => $sort_direction,
+      '#cache' => [
+        'max-age' => 300, // Cache for 5 minutes
+        'contexts' => ['url.query_args'],
+      ],
+    ];
+  }
+
 }

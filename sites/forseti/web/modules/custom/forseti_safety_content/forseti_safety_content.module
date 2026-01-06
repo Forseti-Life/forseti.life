@@ -163,5 +163,15 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'forseti-page-all-dimensions',
     ],
+    'forseti_evaluations_list' => [
+      'variables' => [
+        'title' => NULL,
+        'intro' => NULL,
+        'rows' => [],
+        'sort_field' => NULL,
+        'sort_direction' => NULL,
+      ],
+      'template' => 'forseti-evaluations-list',
+    ],
   ];
 }

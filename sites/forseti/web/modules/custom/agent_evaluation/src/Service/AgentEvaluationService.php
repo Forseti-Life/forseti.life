@@ -88,11 +88,14 @@ class AgentEvaluationService {
       // Build the system prompt with complete framework context
       $system_prompt = $this->buildEvaluationPrompt();
 
+      // Determine the owner - use admin (uid 1) for anonymous users
+      $owner_uid = $this->currentUser->isAnonymous() ? 1 : $this->currentUser->id();
+
       // Create the AI conversation node
       $conversation = $node_storage->create([
         'type' => 'ai_conversation',
         'title' => $this->t('Evaluating: @entity', ['@entity' => $entity_name]),
-        'uid' => $this->currentUser->id(),
+        'uid' => $owner_uid,
         'status' => 1,
         'field_ai_model' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
         'field_context' => $system_prompt,
@@ -106,7 +109,7 @@ class AgentEvaluationService {
       $evaluated_entity = $node_storage->create([
         'type' => 'evaluated_entity',
         'title' => $entity_name,
-        'uid' => $this->currentUser->id(),
+        'uid' => $owner_uid,
         'status' => 0, // Unpublished until AI completes evaluation
         'field_source_conversation' => $conversation->id(),
         'field_total_power' => 0,
