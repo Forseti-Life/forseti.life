@@ -176,6 +176,11 @@ function _agent_evaluation_create_entity_fields() {
     }
   }
 }
+
+/**
+ * Create fields for the ai_conversation content type.
+ */
+function _agent_evaluation_create_conversation_fields() {
   $fields_to_create = [
     'field_messages' => [
       'type' => 'text_long',
@@ -520,6 +525,7 @@ function _agent_evaluation_complete_removal() {
   \Drupal::messenger()->addStatus(t('Complete Agent Evaluation data removal finished. All evaluation data has been permanently deleted.'));
 }
 
+/**
  * Update hook to add summary message count field for existing installations.
  */
 function agent_evaluation_update_8003() {
