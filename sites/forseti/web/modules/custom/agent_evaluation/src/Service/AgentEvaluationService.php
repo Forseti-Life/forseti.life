@@ -126,30 +126,9 @@ class AgentEvaluationService {
 
       $evaluated_entity->save();
 
-      // Add initial message to conversation
-      $initial_message = $this->buildInitialMessage($entity_name, $evaluated_entity->id());
-      
-      // Update conversation with initial message
-      $conversation->field_messages[] = [
-        'value' => json_encode([
-          'role' => 'user',
-          'content' => $initial_message,
-          'timestamp' => time(),
-        ]),
-      ];
-      $conversation->field_message_count = 1;
-      $conversation->save();
-
-      // Trigger AI response immediately
-      try {
-        $this->aiApiService->sendMessage($conversation, $initial_message);
-      }
-      catch (\Exception $e) {
-        \Drupal::logger('agent_evaluation')->warning('Failed to trigger initial AI response: @message', [
-          '@message' => $e->getMessage(),
-        ]);
-        // Continue anyway - user can still manually send message
-      }
+      // Don't add initial message to conversation yet
+      // User will type or click send to start the evaluation
+      // This avoids the blocking delay on form submission
 
       return [
         'success' => TRUE,

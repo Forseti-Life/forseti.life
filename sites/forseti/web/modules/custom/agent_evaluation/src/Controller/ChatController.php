@@ -121,6 +121,31 @@ class ChatController extends ControllerBase {
     // Get conversation statistics.
     $stats = $this->aiApiService->getConversationStats($node);
 
+    // Check if this is a new evaluation conversation (no messages yet)
+    $pre_fill_message = '';
+    if (empty($messages) && strpos($node->getTitle(), 'Evaluating:') === 0) {
+      // Extract entity name from title "Evaluating: EntityName"
+      $entity_name = trim(substr($node->getTitle(), 11));
+      
+      // Find the evaluated_entity node to get its ID
+      $node_storage = $this->entityTypeManager->getStorage('node');
+      $query = $node_storage->getQuery()
+        ->condition('type', 'evaluated_entity')
+        ->condition('field_source_conversation', $node->id())
+        ->accessCheck(FALSE)
+        ->range(0, 1);
+      $nids = $query->execute();
+      
+      if (!empty($nids)) {
+        $entity_nid = reset($nids);
+        $pre_fill_message = sprintf(
+          "Please evaluate the entity '%s' using the Agent Power Framework. Provide scores (0-9) for all 30 sub-dimensions and include a JSON block at the end with the field values. The evaluated_entity node ID is %d.",
+          $entity_name,
+          $entity_nid
+        );
+      }
+    }
+
     $build = [
       '#theme' => 'agent_evaluation_chat',
       '#conversation' => $node,
@@ -137,6 +162,8 @@ class ChatController extends ControllerBase {
             'statsUrl' => '/ai-conversation/stats',
             'csrfToken' => \Drupal::csrfToken()->get('agent_evaluation_send_message'),
             'stats' => $stats,
+            'preFillMessage' => $pre_fill_message,
+            'autoSend' => !empty($pre_fill_message), // Auto-send if pre-filled
           ],
         ],
       ],
@@ -253,7 +280,7 @@ class ChatController extends ControllerBase {
 
     // Load the conversation node.
     $node = $this->entityTypeManager->getStorage('node')->load($node_id);
-    if (!$node || $node->bundle() !== 'agent_evaluation') {
+    if (!$node || $node->bundle() !== 'ai_conversation') {
       return new JsonResponse(['error' => 'Invalid conversation'], 400);
     }
 
@@ -362,7 +389,7 @@ class ChatController extends ControllerBase {
 
     // Load the conversation node.
     $node = $this->entityTypeManager->getStorage('node')->load($node_id);
-    if (!$node || $node->bundle() !== 'agent_evaluation') {
+    if (!$node || $node->bundle() !== 'ai_conversation') {
       return new JsonResponse(['error' => 'Invalid conversation'], 400);
     }
 

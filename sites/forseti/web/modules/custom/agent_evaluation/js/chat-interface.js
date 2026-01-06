@@ -414,6 +414,20 @@
         '</small>'
       );
       $('.chat-controls').append($helpText);
+
+      // Pre-fill message input if provided (e.g., for new evaluations)
+      if (chatSettings.preFillMessage) {
+        $messageInput.val(chatSettings.preFillMessage);
+        console.log('📝 Pre-filled message input with evaluation request');
+        
+        // Auto-send if configured
+        if (chatSettings.autoSend) {
+          console.log('🚀 Auto-sending pre-filled message');
+          setTimeout(function() {
+            $sendButton.click();
+          }, 1000); // 1 second delay to let user see what's happening
+        }
+      }
     }
   };
 
