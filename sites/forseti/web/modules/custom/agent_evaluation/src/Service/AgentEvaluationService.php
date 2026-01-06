@@ -36,6 +36,13 @@ class AgentEvaluationService {
   protected $aiApiService;
 
   /**
+   * The Agent Power service.
+   *
+   * @var \Drupal\forseti_safety_content\Service\AgentPowerService
+   */
+  protected $agentPowerService;
+
+  /**
    * Constructs a new AgentEvaluationService.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
@@ -295,7 +302,33 @@ For EACH of the 5 main dimensions, you must:
   "field_sub_scope": 6,
   "field_sub_restriction": 7,
   "field_sub_classification": 5,
-  ...all 30 sub-dimensions...
+  "field_sub_temporal": 7,
+  "field_sub_sources": 7,
+  "field_sub_granularity": 6,
+  "field_sub_computational": 8,
+  "field_sub_financial": 8,
+  "field_sub_data_storage": 8,
+  "field_sub_network_bandwidth": 7,
+  "field_sub_api_access": 6,
+  "field_sub_human": 7,
+  "field_sub_legal": 5,
+  "field_sub_institutional": 6,
+  "field_sub_budget_auth": 6,
+  "field_sub_policy": 5,
+  "field_sub_override": 3,
+  "field_sub_audit": 5,
+  "field_sub_connectivity": 8,
+  "field_sub_centrality": 7,
+  "field_sub_trust_reputation": 6,
+  "field_sub_info_flow": 6,
+  "field_sub_coalition": 5,
+  "field_sub_network_effects": 7,
+  "field_sub_reasoning": 8,
+  "field_sub_creativity": 7,
+  "field_sub_planning": 6,
+  "field_sub_learning": 8,
+  "field_sub_memory": 7,
+  "field_sub_execution": 6
 }
 ```
 
@@ -344,23 +377,23 @@ EOT;
       'field_sub_temporal',
       'field_sub_sources',
       'field_sub_granularity',
-      'field_sub_computational_resources',
-      'field_sub_financial_capital',
+      'field_sub_computational',
+      'field_sub_financial',
       'field_sub_data_storage',
       'field_sub_network_bandwidth',
       'field_sub_api_access',
-      'field_sub_human_resources',
-      'field_sub_legal_authorization',
-      'field_sub_institutional_backing',
-      'field_sub_budget_authority',
-      'field_sub_policy_compliance',
-      'field_sub_override_capability',
-      'field_sub_audit_accountability',
+      'field_sub_human',
+      'field_sub_legal',
+      'field_sub_institutional',
+      'field_sub_budget_auth',
+      'field_sub_policy',
+      'field_sub_override',
+      'field_sub_audit',
       'field_sub_connectivity',
       'field_sub_centrality',
       'field_sub_trust_reputation',
-      'field_sub_information_flow',
-      'field_sub_coalition_building',
+      'field_sub_info_flow',
+      'field_sub_coalition',
       'field_sub_network_effects',
       'field_sub_reasoning',
       'field_sub_creativity',

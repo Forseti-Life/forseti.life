@@ -31,22 +31,22 @@ class EvaluationCalculator {
 
     // Resource Control (average of 6 sub-dimensions)
     $scores['field_resource_control'] = $this->calculateAverage([
-      $sub_dimension_values['field_sub_computational_resources'] ?? 0,
-      $sub_dimension_values['field_sub_financial_capital'] ?? 0,
+      $sub_dimension_values['field_sub_computational'] ?? 0,
+      $sub_dimension_values['field_sub_financial'] ?? 0,
       $sub_dimension_values['field_sub_data_storage'] ?? 0,
       $sub_dimension_values['field_sub_network_bandwidth'] ?? 0,
       $sub_dimension_values['field_sub_api_access'] ?? 0,
-      $sub_dimension_values['field_sub_human_resources'] ?? 0,
+      $sub_dimension_values['field_sub_human'] ?? 0,
     ]);
 
     // Authority & Permission (average of 6 sub-dimensions)
     $scores['field_authority_permission'] = $this->calculateAverage([
-      $sub_dimension_values['field_sub_legal_authorization'] ?? 0,
-      $sub_dimension_values['field_sub_institutional_backing'] ?? 0,
-      $sub_dimension_values['field_sub_budget_authority'] ?? 0,
-      $sub_dimension_values['field_sub_policy_compliance'] ?? 0,
-      $sub_dimension_values['field_sub_override_capability'] ?? 0,
-      $sub_dimension_values['field_sub_audit_accountability'] ?? 0,
+      $sub_dimension_values['field_sub_legal'] ?? 0,
+      $sub_dimension_values['field_sub_institutional'] ?? 0,
+      $sub_dimension_values['field_sub_budget_auth'] ?? 0,
+      $sub_dimension_values['field_sub_policy'] ?? 0,
+      $sub_dimension_values['field_sub_override'] ?? 0,
+      $sub_dimension_values['field_sub_audit'] ?? 0,
     ]);
 
     // Network Position (average of 6 sub-dimensions)
@@ -54,8 +54,8 @@ class EvaluationCalculator {
       $sub_dimension_values['field_sub_connectivity'] ?? 0,
       $sub_dimension_values['field_sub_centrality'] ?? 0,
       $sub_dimension_values['field_sub_trust_reputation'] ?? 0,
-      $sub_dimension_values['field_sub_information_flow'] ?? 0,
-      $sub_dimension_values['field_sub_coalition_building'] ?? 0,
+      $sub_dimension_values['field_sub_info_flow'] ?? 0,
+      $sub_dimension_values['field_sub_coalition'] ?? 0,
       $sub_dimension_values['field_sub_network_effects'] ?? 0,
     ]);
 

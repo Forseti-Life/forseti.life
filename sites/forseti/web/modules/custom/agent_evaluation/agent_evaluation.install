@@ -96,6 +96,7 @@ function _agent_evaluation_create_entity_fields() {
   }
 
   // 30 Sub-Dimensions (6 per main dimension)
+  // Field names must be ≤32 characters
   // Information Access sub-dimensions
   $sub_dimensions = [
     'field_sub_scope' => 'Scope',
@@ -104,26 +105,26 @@ function _agent_evaluation_create_entity_fields() {
     'field_sub_temporal' => 'Temporal',
     'field_sub_sources' => 'Sources',
     'field_sub_granularity' => 'Granularity',
-    // Resource Control sub-dimensions
-    'field_sub_computational_resources' => 'Computational Resources',
-    'field_sub_financial_capital' => 'Financial Capital',
+    // Resource Control sub-dimensions  
+    'field_sub_computational' => 'Computational Resources',
+    'field_sub_financial' => 'Financial Capital',
     'field_sub_data_storage' => 'Data Storage',
     'field_sub_network_bandwidth' => 'Network Bandwidth',
     'field_sub_api_access' => 'API Access',
-    'field_sub_human_resources' => 'Human Resources',
+    'field_sub_human' => 'Human Resources',
     // Authority & Permission sub-dimensions
-    'field_sub_legal_authorization' => 'Legal Authorization',
-    'field_sub_institutional_backing' => 'Institutional Backing',
-    'field_sub_budget_authority' => 'Budget Authority',
-    'field_sub_policy_compliance' => 'Policy Compliance',
-    'field_sub_override_capability' => 'Override Capability',
-    'field_sub_audit_accountability' => 'Audit & Accountability',
+    'field_sub_legal' => 'Legal Authorization',
+    'field_sub_institutional' => 'Institutional Backing',
+    'field_sub_budget_auth' => 'Budget Authority',
+    'field_sub_policy' => 'Policy Compliance',
+    'field_sub_override' => 'Override Capability',
+    'field_sub_audit' => 'Audit & Accountability',
     // Network Position sub-dimensions
     'field_sub_connectivity' => 'Connectivity',
     'field_sub_centrality' => 'Centrality',
     'field_sub_trust_reputation' => 'Trust & Reputation',
-    'field_sub_information_flow' => 'Information Flow Control',
-    'field_sub_coalition_building' => 'Coalition Building',
+    'field_sub_info_flow' => 'Information Flow Control',
+    'field_sub_coalition' => 'Coalition Building',
     'field_sub_network_effects' => 'Network Effects',
     // Synthesis & Application sub-dimensions
     'field_sub_reasoning' => 'Reasoning',
