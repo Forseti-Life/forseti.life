@@ -62,8 +62,8 @@ class ChatController extends ControllerBase {
    * Access callback for chat interface.
    */
   public function chatAccess(NodeInterface $node, AccountInterface $account) {
-    // Check if the node is a conversation and the user owns it or is admin.
-    if ($node->bundle() !== 'agent_evaluation') {
+    // Check if the node is an ai_conversation and the user owns it or is admin.
+    if ($node->bundle() !== 'ai_conversation') {
       return AccessResult::forbidden();
     }
     

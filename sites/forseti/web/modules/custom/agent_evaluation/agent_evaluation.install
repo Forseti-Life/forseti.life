@@ -383,9 +383,10 @@ function _agent_evaluation_create_suggestion_fields() {
 function _agent_evaluation_set_permissions() {
   $role_storage = \Drupal::entityTypeManager()->getStorage('user_role');
   
-  // Give authenticated users permission to view evaluated entities.
+  // Give authenticated users permission to use AI conversations and view evaluated entities.
   $authenticated_role = $role_storage->load('authenticated');
   if ($authenticated_role) {
+    $authenticated_role->grantPermission('use ai conversation');
     $authenticated_role->grantPermission('create evaluated_entity content');
     $authenticated_role->grantPermission('edit own evaluated_entity content');
     $authenticated_role->grantPermission('delete own evaluated_entity content');
@@ -395,6 +396,8 @@ function _agent_evaluation_set_permissions() {
   // Give administrators full access.
   $admin_role = $role_storage->load('administrator');
   if ($admin_role) {
+    $admin_role->grantPermission('use ai conversation');
+    $admin_role->grantPermission('administer ai conversation');
     $admin_role->grantPermission('create evaluated_entity content');
     $admin_role->grantPermission('edit any evaluated_entity content');
     $admin_role->grantPermission('delete any evaluated_entity content');

@@ -138,9 +138,64 @@ function agent_evaluation_preprocess_node(&$variables) {
     return;
   }
 
-  // Get AgentPowerService for dimension labels and descriptions
-  $agent_power_service = \Drupal::service('forseti_safety_content.agent_power');
-  $framework_data = $agent_power_service->getFrameworkData();
+  // Define dimension structure
+  $framework_data = [
+    'information_access' => [
+      'name' => 'Information Access',
+      'sub_dimensions' => [
+        'scope' => ['name' => 'Scope', 'description' => 'Range of information accessible'],
+        'restriction' => ['name' => 'Restriction', 'description' => 'Filtering and censorship applied'],
+        'classification' => ['name' => 'Classification', 'description' => 'Security level of accessible data'],
+        'temporal' => ['name' => 'Temporal', 'description' => 'Time range of accessible information'],
+        'sources' => ['name' => 'Sources', 'description' => 'Diversity and quality of information sources'],
+        'granularity' => ['name' => 'Granularity', 'description' => 'Detail level of accessible information'],
+      ],
+    ],
+    'resource_control' => [
+      'name' => 'Resource Control',
+      'sub_dimensions' => [
+        'computational' => ['name' => 'Computational Resources', 'description' => 'Processing power available'],
+        'financial' => ['name' => 'Financial Capital', 'description' => 'Financial resources controlled'],
+        'data_storage' => ['name' => 'Data Storage', 'description' => 'Data storage capacity'],
+        'network_bandwidth' => ['name' => 'Network Bandwidth', 'description' => 'Network capacity and speed'],
+        'api_access' => ['name' => 'API Access', 'description' => 'Access to external services/APIs'],
+        'human' => ['name' => 'Human Resources', 'description' => 'Human personnel under control'],
+      ],
+    ],
+    'authority_permission' => [
+      'name' => 'Authority & Permission',
+      'sub_dimensions' => [
+        'legal' => ['name' => 'Legal Authorization', 'description' => 'Legal permissions and licenses'],
+        'institutional' => ['name' => 'Institutional Backing', 'description' => 'Institutional support and legitimacy'],
+        'budget_auth' => ['name' => 'Budget Authority', 'description' => 'Financial decision-making power'],
+        'policy' => ['name' => 'Policy Compliance', 'description' => 'Adherence to regulations'],
+        'override' => ['name' => 'Override Capability', 'description' => 'Ability to override normal constraints'],
+        'audit' => ['name' => 'Audit & Accountability', 'description' => 'Oversight and accountability mechanisms'],
+      ],
+    ],
+    'network_position' => [
+      'name' => 'Network Position',
+      'sub_dimensions' => [
+        'connectivity' => ['name' => 'Connectivity', 'description' => 'Number and quality of connections'],
+        'centrality' => ['name' => 'Centrality', 'description' => 'Position in network structure'],
+        'trust_reputation' => ['name' => 'Trust & Reputation', 'description' => 'Reputation and trustworthiness'],
+        'info_flow' => ['name' => 'Information Flow Control', 'description' => 'Control over information flow'],
+        'coalition' => ['name' => 'Coalition Building', 'description' => 'Ability to form alliances'],
+        'network_effects' => ['name' => 'Network Effects', 'description' => 'Benefit from network size'],
+      ],
+    ],
+    'synthesis_application' => [
+      'name' => 'Synthesis & Application',
+      'sub_dimensions' => [
+        'reasoning' => ['name' => 'Reasoning', 'description' => 'Logical reasoning capability'],
+        'creativity' => ['name' => 'Creativity', 'description' => 'Creative and innovative thinking'],
+        'planning' => ['name' => 'Planning', 'description' => 'Strategic planning ability'],
+        'learning' => ['name' => 'Learning', 'description' => 'Adaptive learning capability'],
+        'memory' => ['name' => 'Memory', 'description' => 'Information retention and recall'],
+        'execution' => ['name' => 'Execution', 'description' => 'Action execution capability'],
+      ],
+    ],
+  ];
   
   // Initialize evaluation data
   $evaluation_data = [
