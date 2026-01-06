@@ -16,6 +16,11 @@
       
       <div class="card-forseti p-4">
         {{ form }}
+        
+        <div class="text-center mt-4 pt-4" style="border-top: 1px solid rgba(0, 212, 255, 0.3);">
+          <p class="text-muted mb-3">Or register with:</p>
+          {{ drupal_block('social_auth_login') }}
+        </div>
       </div>
       
       <div class="text-center mt-4">
