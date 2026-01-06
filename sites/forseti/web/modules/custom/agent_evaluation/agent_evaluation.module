@@ -270,6 +270,16 @@ function agent_evaluation_preprocess_node(&$variables) {
   }
 
   $variables['evaluation_data'] = $evaluation_data;
+  
+  // Add settings for JavaScript evaluation loader
+  $variables['#attached']['drupalSettings']['evaluatedEntity'] = [
+    'nodeId' => $node->id(),
+    'unpublished' => !$node->isPublished(),
+    'totalPower' => (int) $node->get('field_total_power')->value,
+  ];
+  
+  // Add CSS class for JavaScript targeting
+  $variables['attributes']['class'][] = 'evaluated-entity-node';
 }
 
 /**

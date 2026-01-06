@@ -11,6 +11,8 @@
  * - transparency_note: Transparency note text
  */
 #}
+{{ attach_library('forseti_safety_content/agent-power') }}
+
 <div class="container py-3">
   <div class="row">
     <div class="col-lg-11 mx-auto">
@@ -20,10 +22,22 @@
         {{ intro.lead }}
       </div>
       
-      <div class="text-center mb-4">
-        <a href="/agent-power-framework/evaluate" class="btn btn-primary btn-lg">
-          <i class="fas fa-chart-line"></i> {{ 'Try our automated evaluation tool!'|t }}
-        </a>
+      <div class="alert alert-info-cyan mb-4">
+        <h5 class="text-cyan mb-3 text-center"><i class="fas fa-chart-line me-2"></i>{{ 'Evaluate an Agent'|t }}</h5>
+        <p class="mb-3 text-center">
+          {{ 'Enter an agent name to begin evaluation.'|t }}
+        </p>
+        
+        <div class="row justify-content-center">
+          <div class="col-lg-8">
+            <div class="input-group input-group-lg">
+              <input type="text" class="form-control" id="agentNameInput" placeholder="Enter agent name (e.g., ChatGPT, Elon Musk, FBI)">
+              <a href="/talk-with-forseti" class="btn btn-primary btn-lg" id="startEvaluationBtn">
+                <i class="fas fa-comment-dots"></i> {{ 'Start Evaluation'|t }}
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
       
       {% if intro.title or intro.paragraphs|length > 0 %}

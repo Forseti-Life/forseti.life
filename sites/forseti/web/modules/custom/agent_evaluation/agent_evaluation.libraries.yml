@@ -18,14 +18,16 @@ user-conversations-block:
     - core/drupal
 
 evaluated-entity:
-  version: 4.3
+  version: 4.6
   css:
     theme:
       css/evaluated-entity.css: {}
   js:
     js/power-radar-chart.js: {}
+    js/entity-evaluation-loader.js: {}
   dependencies:
     - core/drupal
+    - core/jquery
     - core/once
     - agent_evaluation/chart-js
 

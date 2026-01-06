@@ -185,8 +185,11 @@
 .sub-dimension__description {
   margin: 0;
   font-size: 0.875rem;
-  color: var(--color-text-secondary, #6c757d);
   line-height: 1.5;
+}
+
+.card-forseti .sub-dimension__description {
+  color: #2c3e50 !important;
 }
 
 /* Empty State */

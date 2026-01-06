@@ -6,6 +6,15 @@ agent_evaluation.evaluate_form:
   requirements:
     _permission: 'use ai conversation'
 
+agent_evaluation.create_evaluation:
+  path: '/api/agent-evaluation/create'
+  defaults:
+    _controller: '\Drupal\agent_evaluation\Controller\EvaluationController::createEvaluation'
+  requirements:
+    _permission: 'use ai conversation'
+    _method: 'POST'
+    _format: 'json'
+
 agent_evaluation.settings:
   path: '/admin/config/ai-conversation/settings'
   defaults:
