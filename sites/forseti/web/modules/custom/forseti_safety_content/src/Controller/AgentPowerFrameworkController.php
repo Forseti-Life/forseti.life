@@ -908,12 +908,8 @@ class AgentPowerFrameworkController extends ControllerBase {
   private function buildIntroContent() {
     return [
       'lead' => $this->t('A comprehensive framework for understanding agent capabilities across five fundamental dimensions and 30 measurable sub-dimensions.'),
-      'title' => $this->t('Five Dimensions of Agent Power'),
-      'paragraphs' => [
-        $this->t('Power is multidimensional. Understanding what any agent system—human or machine—can actually do requires measuring across five fundamental dimensions: Information Access, Resource Control, Authority & Permission, Network Position, and Synthesis & Application. Each dimension contains 6 sub-dimensions that together define capability.'),
-        $this->t('This framework enables precise measurement of agent capabilities on scales from 0 (no capability) to 9+ (approaching universal capability). By evaluating an agent across all 30 sub-dimensions, we can accurately assess what it knows, what it can do, whom it can influence, and how effectively it processes information.'),
-        $this->t('Understanding these dimensions helps identify the constraints, biases, and limitations any agent operates under. A filtered information agent will never access uncomfortable truths. An under-resourced agent cannot execute sophisticated plans. An isolated agent lacks the network position to coordinate action. Only agents with high scores across multiple dimensions can approach comprehensive capability.'),
-      ],
+      'title' => '',
+      'paragraphs' => [],
     ];
   }
 

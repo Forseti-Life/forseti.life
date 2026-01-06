@@ -20,19 +20,44 @@
         {{ intro.lead }}
       </div>
       
+      {% if intro.title or intro.paragraphs|length > 0 %}
       <div class="alert alert-info-cyan mt-4">
+        {% if intro.title %}
         <h4 class="text-cyan">{{ intro.title }}</h4>
+        {% endif %}
         {% for paragraph in intro.paragraphs %}
           <p{% if loop.last %} class="mb-0"{% else %} class="mb-2"{% endif %}>
             {{ paragraph }}
           </p>
         {% endfor %}
       </div>
+      {% endif %}
       
       <h2 class="mt-5 mb-3 text-cyan">{{ 'Five Dimensions of Power'|t }}</h2>
-      <p class="text-muted-light mb-4">
-        {{ 'Agent capabilities are measured across five fundamental dimensions. Each dimension contains 6 sub-dimensions (30 total) that together define what an entity can know, do, and influence. Understanding all five dimensions provides a comprehensive capability profile.'|t }}
+      
+      <p class="text-muted-light mb-3">
+        {{ 'Power is multidimensional. Understanding what any agent system—human or machine—can actually do requires measuring across five fundamental dimensions: Information Access, Resource Control, Authority & Permission, Network Position, and Synthesis & Application. Each dimension contains 6 sub-dimensions (30 total) that together define capability.'|t }}
       </p>
+      
+      <p class="text-muted-light mb-3">
+        {{ 'This framework provides a heuristic scale designed for quick evaluation of agent capabilities. Scores range from 0 (no capability) to 9+ (approaching universal capability), enabling rapid assessment of what an agent knows, what it can do, whom it can influence, and how effectively it processes information. By evaluating across all 30 sub-dimensions, we can identify the specific constraints, biases, and limitations any agent operates under.'|t }}
+      </p>
+      
+      <p class="text-muted-light mb-4">
+        {{ 'Understanding these dimensions reveals critical patterns: a filtered information agent will never access uncomfortable truths; an under-resourced agent cannot execute sophisticated plans; an isolated agent lacks network position to coordinate action. Only agents with high scores across multiple dimensions can approach comprehensive capability.'|t }}
+      </p>
+      
+      <div class="alert alert-info-cyan mb-4">
+        <h5 class="text-cyan mb-2"><i class="fas fa-chart-line me-2"></i>{{ 'Beyond the Heuristic: Advanced Metrics for High-Power Entities'|t }}</h5>
+        <p class="mb-2">{{ 'While the 0-9 scale provides rapid capability assessment, entities scoring 8 or higher require additional quantitative metrics for precise evaluation:'|t }}</p>
+        <ul class="mb-0">
+          <li><strong>Information Access (8+):</strong> Data Asset Valuation - monetary value of accessible information resources</li>
+          <li><strong>Resource Control (8+):</strong> Net Worth - total financial assets and resource value under control</li>
+          <li><strong>Authority & Permission (8+):</strong> Approval Rating - quantified public trust and legitimacy metrics</li>
+          <li><strong>Network Position (8+):</strong> Social Media Network Reach - follower counts, engagement rates, and influence metrics</li>
+          <li><strong>Synthesis & Application (8+):</strong> AI Benchmarks - standardized performance scores (MMLU, HumanEval, etc.)</li>
+        </ul>
+      </div>
       
       <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5">
         {% for category in power_categories %}
@@ -56,9 +81,30 @@
                   </div>
                 </div>
                 <p class="text-muted-light mb-3 small">{{ category.description }}</p>
-                <p class="text-muted mb-0" style="font-size: 0.8rem;">
+                <p class="text-muted mb-2" style="font-size: 0.8rem;">
                   <strong>Examples:</strong> {{ category.examples }}
                 </p>
+                {% if category.id == 'information-access' %}
+                  <p class="text-info-light mb-0" style="font-size: 0.75rem; border-top: 1px solid rgba(0,212,255,0.2); padding-top: 8px;">
+                    <i class="fas fa-star me-1"></i><strong>Level 8+ Metric:</strong> Data Asset Valuation
+                  </p>
+                {% elseif category.id == 'resource-control' %}
+                  <p class="text-info-light mb-0" style="font-size: 0.75rem; border-top: 1px solid rgba(0,212,255,0.2); padding-top: 8px;">
+                    <i class="fas fa-star me-1"></i><strong>Level 8+ Metric:</strong> Net Worth
+                  </p>
+                {% elseif category.id == 'authority-permission' %}
+                  <p class="text-info-light mb-0" style="font-size: 0.75rem; border-top: 1px solid rgba(0,212,255,0.2); padding-top: 8px;">
+                    <i class="fas fa-star me-1"></i><strong>Level 8+ Metric:</strong> Approval Rating
+                  </p>
+                {% elseif category.id == 'network-position' %}
+                  <p class="text-info-light mb-0" style="font-size: 0.75rem; border-top: 1px solid rgba(0,212,255,0.2); padding-top: 8px;">
+                    <i class="fas fa-star me-1"></i><strong>Level 8+ Metric:</strong> Social Media Network Reach
+                  </p>
+                {% elseif category.id == 'synthesis-application' %}
+                  <p class="text-info-light mb-0" style="font-size: 0.75rem; border-top: 1px solid rgba(0,212,255,0.2); padding-top: 8px;">
+                    <i class="fas fa-star me-1"></i><strong>Level 8+ Metric:</strong> AI Benchmarks
+                  </p>
+                {% endif %}
               </div>
             </a>
           </div>
