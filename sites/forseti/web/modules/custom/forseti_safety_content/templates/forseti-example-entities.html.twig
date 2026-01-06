@@ -70,11 +70,11 @@
                           </span>
                         </h5>
                         <div class="mt-auto">
-                          <a href="/talk-with-forseti?entity={{ entity|url_encode }}" 
-                             class="btn btn-sm btn-cyber w-100">
+                          <button class="btn btn-sm btn-cyber w-100" 
+                                  onclick="processSingleEntity('{{ entity }}', this.closest('.entity-card'))">
                             <i class="bi bi-clipboard-check me-1"></i>
                             Process Entity
-                          </a>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -153,12 +153,6 @@
 </style>
 
 <script>
-// Get CSRF token for API calls
-let csrfToken = null;
-fetch('/session/token')
-  .then(response => response.text())
-  .then(token => { csrfToken = token; });
-
 async function processEntity(entityName, cardElement) {
   const processingBadge = cardElement.querySelector('.entity-processing');
   const statusBadge = cardElement.querySelector('.entity-status');
@@ -167,12 +161,7 @@ async function processEntity(entityName, cardElement) {
   if (processingBadge) processingBadge.style.display = 'inline-block';
   
   try {
-    const response = await fetch(`/api/batch-evaluate-entity?entity=${encodeURIComponent(entityName)}`, {
-      method: 'GET',
-      headers: {
-        'X-CSRF-Token': csrfToken,
-      },
-    });
+    const response = await fetch(`/api/batch-evaluate-entity?entity=${encodeURIComponent(entityName)}`);
     
     const result = await response.json();
     
@@ -194,6 +183,35 @@ async function processEntity(entityName, cardElement) {
     if (processingBadge) processingBadge.style.display = 'none';
     cardElement.style.border = '2px solid #dc3545';
     return { success: false, error: error.message };
+  }
+}
+
+async function processSingleEntity(entityName, cardElement) {
+  const button = cardElement.querySelector('button');
+  const originalHtml = button.innerHTML;
+  
+  // Disable button during processing
+  button.disabled = true;
+  button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Processing...';
+  
+  const result = await processEntity(entityName, cardElement);
+  
+  // Update button based on result
+  if (result.success) {
+    if (result.existing) {
+      button.innerHTML = '<i class="bi bi-info-circle me-1"></i> Already Exists';
+      button.classList.remove('btn-cyber');
+      button.classList.add('btn-secondary');
+    } else {
+      button.innerHTML = '<i class="bi bi-check-circle me-1"></i> Completed';
+      button.classList.remove('btn-cyber');
+      button.classList.add('btn-success');
+    }
+  } else {
+    button.innerHTML = '<i class="bi bi-x-circle me-1"></i> Failed';
+    button.classList.remove('btn-cyber');
+    button.classList.add('btn-danger');
+    button.disabled = false;
   }
 }
 

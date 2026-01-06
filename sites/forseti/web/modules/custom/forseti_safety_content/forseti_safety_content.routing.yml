@@ -140,7 +140,6 @@ forseti.batch_process_entity:
     _controller: '\Drupal\forseti_safety_content\Controller\BatchEvaluationController::processEntity'
   requirements:
     _permission: 'administer site configuration'
-    _csrf_token: 'TRUE'
   options:
     no_cache: TRUE
 
