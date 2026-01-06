@@ -129,9 +129,28 @@ class AgentEvaluationService {
       // Send the initial evaluation message
       $initial_message = $this->buildInitialMessage($entity_name, $evaluated_entity->id());
       
-      // Add the message to the conversation and send it to the AI
+      // Add the user message to the conversation
+      $user_message = [
+        'role' => 'user',
+        'content' => $initial_message,
+        'timestamp' => time(),
+      ];
+      $this->addMessageToNode($conversation, $user_message);
+      
+      // Send to AI and get response
       try {
-        $this->aiApiService->sendMessage($conversation, $initial_message);
+        $ai_response = $this->aiApiService->sendMessage($conversation, $initial_message);
+        
+        // Add the AI response to the conversation
+        $ai_message = [
+          'role' => 'assistant',
+          'content' => $ai_response,
+          'timestamp' => time(),
+        ];
+        $this->addMessageToNode($conversation, $ai_message);
+        
+        // Save the conversation with all updates
+        $conversation->save();
       }
       catch (\Exception $e) {
         \Drupal::logger('agent_evaluation')->error('Failed to send initial evaluation message: @message', [
@@ -421,6 +440,25 @@ EOT;
       'field_sub_memory',
       'field_sub_execution',
     ];
+  }
+
+  /**
+   * Adds a message to a conversation node.
+   *
+   * @param \Drupal\node\NodeInterface $node
+   *   The conversation node.
+   * @param array $message
+   *   The message array with role, content, and timestamp.
+   */
+  protected function addMessageToNode($node, array $message) {
+    // Add the message to the field.
+    $messages = $node->get('field_messages')->getValue();
+    $messages[] = ['value' => json_encode($message)];
+    $node->set('field_messages', $messages);
+
+    // Update message count.
+    $current_count = $node->get('field_message_count')->value ?: 0;
+    $node->set('field_message_count', $current_count + 1);
   }
 
 }
