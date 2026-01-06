@@ -35,7 +35,7 @@ class BatchEvaluationController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('agent_evaluation.evaluation_service')
+      $container->get('agent_evaluation.service')
     );
   }
 
