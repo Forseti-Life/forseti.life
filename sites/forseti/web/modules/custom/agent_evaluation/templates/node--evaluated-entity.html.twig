@@ -16,74 +16,96 @@
 #}
 {{ attach_library('agent_evaluation/evaluated-entity') }}
 
-<article{{ attributes.addClass('node', 'node--type-evaluated-entity', 'node--view-mode-' ~ view_mode) }}>
-
-  <div class="evaluated-entity">
-    
-    <header class="evaluated-entity__header">
-      <h1 class="evaluated-entity__title">{{ label }}</h1>
-      {% if evaluation_data.total_power is not null %}
-        <div class="evaluated-entity__total-power">
-          <span class="power-label">Total Power Score</span>
-          <span class="power-value power-value--{{ evaluation_data.total_power_level }}">{{ evaluation_data.total_power }}</span>
-          <span class="power-scale">/9</span>
-        </div>
-      {% endif %}
-    </header>
-
-    {% if evaluation_data.source_conversation %}
-      <div class="evaluated-entity__meta">
-        <a href="{{ evaluation_data.source_conversation.url }}" class="conversation-link">
-          View Evaluation Conversation →
-        </a>
-      </div>
-    {% endif %}
-
-    <div class="evaluated-entity__dimensions">
+<div class="container py-3">
+  <div class="row">
+    <div class="col-lg-10 mx-auto">
       
-      {% for dimension in evaluation_data.dimensions %}
-        <section class="dimension-section">
-          <div class="dimension-header">
-            <h2 class="dimension-title">{{ dimension.label }}</h2>
-            {% if dimension.score is not null %}
-              <div class="dimension-score">
-                <span class="score-value score-value--{{ dimension.level }}">{{ dimension.score }}</span>
-                <span class="score-scale">/9</span>
-              </div>
-            {% endif %}
+      {# Page header #}
+      <div class="text-center mb-4">
+        <h1 class="mb-3 text-cyan">{{ label }}</h1>
+        {% if evaluation_data.total_power is not null %}
+          <div class="d-inline-block">
+            <span class="badge bg-{{ evaluation_data.total_power_level <= 2 ? 'danger' : (evaluation_data.total_power_level <= 5 ? 'warning' : (evaluation_data.total_power_level <= 7 ? 'info' : 'success')) }}" style="font-size: 1.5rem; padding: 0.5rem 1rem;">
+              Total Power: {{ evaluation_data.total_power }}/9
+            </span>
           </div>
-
-          <div class="sub-dimensions">
-            {% for sub_dimension in dimension.sub_dimensions %}
-              <div class="sub-dimension">
-                <div class="sub-dimension__header">
-                  <span class="sub-dimension__label">{{ sub_dimension.label }}</span>
-                  {% if sub_dimension.score is not null %}
-                    <span class="sub-dimension__score score-value--{{ sub_dimension.level }}">{{ sub_dimension.score }}</span>
-                  {% else %}
-                    <span class="sub-dimension__score sub-dimension__score--empty">—</span>
-                  {% endif %}
-                </div>
-                {% if sub_dimension.description %}
-                  <p class="sub-dimension__description">{{ sub_dimension.description }}</p>
-                {% endif %}
-              </div>
-            {% endfor %}
-          </div>
-        </section>
-      {% endfor %}
-
-    </div>
-
-    {% if evaluation_data.all_empty %}
-      <div class="evaluated-entity__empty-state">
-        <p>This entity is being evaluated. Scores will appear here once the AI completes the evaluation.</p>
-        {% if evaluation_data.source_conversation %}
-          <a href="{{ evaluation_data.source_conversation.url }}" class="button">View Evaluation Progress</a>
         {% endif %}
       </div>
-    {% endif %}
 
+      {% if evaluation_data.source_conversation %}
+        <div class="text-center mb-4">
+          <a href="{{ evaluation_data.source_conversation.url }}" class="btn btn-outline-primary">
+            <i class="fas fa-comments"></i> View Evaluation Conversation
+          </a>
+        </div>
+      {% endif %}
+
+      <div class="accordion mb-5" id="dimensionsAccordion">
+        {% for dimension in evaluation_data.dimensions %}
+          <div class="accordion-item card-forseti border-secondary mb-2">
+            <h2 class="accordion-header" id="heading{{ loop.index }}">
+              <button class="accordion-button {{ loop.first ? '' : 'collapsed' }} card-forseti text-white d-flex align-items-center" 
+                      type="button" 
+                      data-bs-toggle="collapse" 
+                      data-bs-target="#collapse{{ loop.index }}" 
+                      aria-expanded="{{ loop.first ? 'true' : 'false' }}" 
+                      aria-controls="collapse{{ loop.index }}">
+                <div class="d-flex align-items-center w-100">
+                  <div class="flex-grow-1">
+                    <div class="fw-bold">{{ dimension.label }}</div>
+                  </div>
+                  {% if dimension.score is not null %}
+                    <div class="dimension-score-badge ms-3">
+                      <span class="badge bg-{{ dimension.level <= 2 ? 'danger' : (dimension.level <= 5 ? 'warning' : (dimension.level <= 7 ? 'info' : 'success')) }}" style="min-width: 60px; font-size: 1rem;">
+                        {{ dimension.score }}/9
+                      </span>
+                    </div>
+                  {% endif %}
+                </div>
+              </button>
+            </h2>
+            <div id="collapse{{ loop.index }}" 
+                 class="accordion-collapse collapse {{ loop.first ? 'show' : '' }}" 
+                 aria-labelledby="heading{{ loop.index }}" 
+                 data-bs-parent="#dimensionsAccordion">
+              <div class="accordion-body card-forseti">
+                
+                <div class="sub-dimensions">
+                  {% for sub_dimension in dimension.sub_dimensions %}
+                    <div class="sub-dimension mb-3 pb-3 {{ loop.last ? '' : 'border-bottom border-secondary' }}">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="sub-dimension__label fw-bold text-cyan">{{ sub_dimension.label }}</span>
+                        {% if sub_dimension.score is not null %}
+                          <span class="badge bg-{{ sub_dimension.level <= 2 ? 'danger' : (sub_dimension.level <= 5 ? 'warning' : (sub_dimension.level <= 7 ? 'info' : 'success')) }}" style="min-width: 50px;">
+                            {{ sub_dimension.score }}/9
+                          </span>
+                        {% else %}
+                          <span class="badge bg-secondary" style="min-width: 50px;">—</span>
+                        {% endif %}
+                      </div>
+                      {% if sub_dimension.description %}
+                        <p class="sub-dimension__description text-secondary mb-0">{{ sub_dimension.description }}</p>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+                
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if evaluation_data.all_empty %}
+        <div class="alert alert-info-cyan mt-4 text-center">
+          <p class="mb-2"><i class="fas fa-hourglass-half"></i> This entity is being evaluated.</p>
+          <p class="mb-0">Scores will appear here once the AI completes the evaluation.</p>
+          {% if evaluation_data.source_conversation %}
+            <a href="{{ evaluation_data.source_conversation.url }}" class="btn btn-primary mt-3">View Evaluation Progress</a>
+          {% endif %}
+        </div>
+      {% endif %}
+
+    </div>
   </div>
-
-</article>
+</div>

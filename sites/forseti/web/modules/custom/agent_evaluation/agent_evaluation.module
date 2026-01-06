@@ -211,7 +211,7 @@ function agent_evaluation_preprocess_node(&$variables) {
     $conversation = $node->get('field_source_conversation')->entity;
     if ($conversation) {
       $evaluation_data['source_conversation'] = [
-        'url' => $conversation->toUrl()->toString(),
+        'url' => '/node/' . $conversation->id() . '/chat',
         'title' => $conversation->getTitle(),
       ];
     }
