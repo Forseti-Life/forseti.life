@@ -264,12 +264,11 @@ class ForsetiPagesController extends ControllerBase {
       '#title' => $this->t('Forseti Mobile App'),
       '#subtitle' => $this->t('Your personal safety companion for Philadelphia'),
       '#beta_alert' => [
-        'title' => '<i class="fas fa-mobile-alt"></i> ' . $this->t('Beta Testing Now Available!'),
-        'description' => $this->t('The Forseti Mobile App is now available for beta testing on Android devices. Help us improve by testing the app and providing feedback!'),
-        'download_url' => '/sites/default/files/forseti/mobile/Forseti-latest.apk',
-        'button_text' => '<i class="fas fa-download"></i> ' . $this->t('Beta Testers Download'),
-        'version_info' => '<strong>' . $this->t('Version 1.0.0') . '</strong> | ' . $this->t('Android 5.0+') . ' | 18MB',
-        'availability' => $this->t('iOS version coming soon | Full launch: Q1 2026'),
+        'title' => '<i class="fas fa-mobile-alt"></i> ' . $this->t('Beta Testing Available!'),
+        'description' => $this->t('The Forseti Mobile App is now available for beta testing on Android devices.'),
+        'link_url' => '/mobile-app/beta-testing',
+        'button_text' => $this->t('Access Beta Testing'),
+        'note' => $this->t('Authenticated users only'),
       ],
       '#intro' => [
         'title' => $this->t('Safety in Your Pocket'),
@@ -324,6 +323,29 @@ class ForsetiPagesController extends ControllerBase {
       '#cache' => [
         'max-age' => 3600,
         'contexts' => ['url'],
+      ],
+    ];
+  }
+
+  /**
+   * Mobile App Beta Testing page (authenticated users only).
+   */
+  public function mobileAppBeta() {
+    return [
+      '#theme' => 'forseti_page_mobile_app_beta',
+      '#title' => $this->t('Beta Testing'),
+      '#subtitle' => $this->t('Help us improve the Forseti Mobile App'),
+      '#download_section' => [
+        'title' => '<i class="fas fa-mobile-alt"></i> ' . $this->t('Beta Testing Now Available!'),
+        'description' => $this->t('The Forseti Mobile App is now available for beta testing on Android devices. Help us improve by testing the app and providing feedback!'),
+        'download_url' => '/sites/default/files/forseti/mobile/Forseti-latest.apk',
+        'button_text' => '<i class="fas fa-download"></i> ' . $this->t('Download Beta (Android)'),
+        'version_info' => '<strong>' . $this->t('Version 1.0.0') . '</strong> | ' . $this->t('Android 5.0+') . ' | 18MB',
+        'availability' => $this->t('iOS version coming soon | Full launch: Q1 2026'),
+      ],
+      '#cache' => [
+        'max-age' => 3600,
+        'contexts' => ['user.permissions'],
       ],
     ];
   }

@@ -68,6 +68,14 @@ forseti.mobile_app:
   requirements:
     _permission: 'access content'
 
+forseti.mobile_app_beta:
+  path: '/mobile-app/beta-testing'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::mobileAppBeta'
+    _title: 'Beta Testing'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
 forseti.privacy:
   path: '/privacy'
   defaults:

@@ -74,6 +74,14 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'forseti-page-mobile-app',
     ],
+    'forseti_page_mobile_app_beta' => [
+      'variables' => [
+        'title' => NULL,
+        'subtitle' => NULL,
+        'download_section' => [],
+      ],
+      'template' => 'forseti-page-mobile-app-beta',
+    ],
     'forseti_page_privacy' => [
       'variables' => [
         'title' => NULL,

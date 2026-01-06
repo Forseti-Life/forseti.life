@@ -22,18 +22,14 @@
       
       <div class="alert alert-success text-center mb-4">
         <h3 class="text-success mb-3">{{ beta_alert.title|raw }}</h3>
-        <p class="lead">{{ beta_alert.description }}</p>
-        <a href="{{ beta_alert.download_url }}" 
-           class="btn btn-success btn-lg mb-3" 
-           download
+        <p class="lead mb-3">{{ beta_alert.description }}</p>
+        <a href="{{ beta_alert.link_url }}" 
+           class="btn btn-success btn-lg mb-2" 
            style="background-color: #28a745; border-color: #28a745;">
-          {{ beta_alert.button_text|raw }}
+          {{ beta_alert.button_text }}
         </a>
-        <p class="text-muted mb-2">
-          <small>{{ beta_alert.version_info|raw }}</small>
-        </p>
         <p class="text-muted mb-0">
-          <small>{{ beta_alert.availability }}</small>
+          <small><i class="fas fa-lock"></i> {{ beta_alert.note }}</small>
         </p>
       </div>
       
