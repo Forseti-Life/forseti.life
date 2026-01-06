@@ -40,6 +40,84 @@
         </div>
       {% endif %}
 
+      {# Power Radar Chart #}
+      {% if evaluation_data.dimensions %}
+        {# Define custom order for radar chart positions #}
+        {% set dimension_order = [
+          'Resource Control',
+          'Synthesis & Application',
+          'Authority & Permission',
+          'Network Position',
+          'Information Access'
+        ] %}
+        
+        {# Create lookup for dimensions by label #}
+        {% set dimensions_by_label = {} %}
+        {% for dimension in evaluation_data.dimensions %}
+          {% set dimensions_by_label = dimensions_by_label|merge({(dimension.label): dimension}) %}
+        {% endfor %}
+        
+        {% set chart_data = {
+          'primary_labels': [],
+          'primary_scores': [],
+          'primary_keys': [],
+          'dimensions': {}
+        } %}
+        
+        {# Build chart data in custom order #}
+        {% for label in dimension_order %}
+          {% if dimensions_by_label[label] is defined %}
+            {% set dimension = dimensions_by_label[label] %}
+            {% set dimension_key = dimension.label|lower|replace({' ': '_'}) %}
+            {% set chart_data = chart_data|merge({
+              'primary_labels': chart_data.primary_labels|merge([dimension.label]),
+              'primary_scores': chart_data.primary_scores|merge([dimension.score ?? 0]),
+              'primary_keys': chart_data.primary_keys|merge([dimension_key])
+            }) %}
+            
+            {% set sub_data = {
+              'labels': [],
+              'scores': [],
+              'types': [],
+              'keys': []
+            } %}
+            
+            {# Add all sub-dimensions #}
+            {% for sub_dimension in dimension.sub_dimensions %}
+              {% set sub_data = sub_data|merge({
+                'labels': sub_data.labels|merge([sub_dimension.label]),
+                'scores': sub_data.scores|merge([sub_dimension.score ?? 0]),
+                'types': sub_data.types|merge(['sub']),
+                'keys': sub_data.keys|merge([dimension_key])
+              }) %}
+            {% endfor %}
+            
+            {% set dimensions_obj = chart_data.dimensions %}
+            {% set dimensions_obj = dimensions_obj|merge({(dimension_key): sub_data}) %}
+            {% set chart_data = chart_data|merge({'dimensions': dimensions_obj}) %}
+          {% endif %}
+        {% endfor %}
+        
+        <div class="power-radar-chart mb-5" 
+             data-chart='{{ chart_data|json_encode|raw }}'
+             data-entity-name="{{ label }}">
+          <div class="row">
+            <div class="col-md-10 mx-auto">
+              <div class="card card-forseti p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                  <h3 class="text-cyan mb-0">Power Profile</h3>
+                  <button class="btn btn-sm btn-outline-primary chart-reset-btn" style="display: none;">
+                    <i class="fas fa-compress"></i> Show Overview
+                  </button>
+                </div>
+                <p class="text-muted-light text-center small mb-3">Click on any dimension to expand and view sub-dimensions</p>
+                <canvas id="powerRadarChart" style="max-height: 500px;"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
       <div class="accordion mb-5" id="dimensionsAccordion">
         {% for dimension in evaluation_data.dimensions %}
           <div class="accordion-item card-forseti border-secondary mb-2">
