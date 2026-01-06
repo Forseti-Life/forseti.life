@@ -245,8 +245,13 @@ function agent_evaluation_preprocess_node(&$variables) {
     // Process sub-dimensions
     if (isset($dimension_info['sub_dimensions'])) {
       foreach ($dimension_info['sub_dimensions'] as $sub_key => $sub_info) {
-        $sub_field_name = 'field_sub_' . $dimension_key . '_' . $sub_key;
+        $sub_field_name = 'field_sub_' . $sub_key;
+        $sub_desc_field_name = 'field_sub_' . $sub_key . '_desc';
+        
         $sub_score = $node->hasField($sub_field_name) ? $node->get($sub_field_name)->value : NULL;
+        $sub_description = $node->hasField($sub_desc_field_name) && !$node->get($sub_desc_field_name)->isEmpty() 
+          ? $node->get($sub_desc_field_name)->value 
+          : ($sub_info['description'] ?? '');
         
         if ($sub_score !== NULL) {
           $evaluation_data['all_empty'] = FALSE;
@@ -254,7 +259,7 @@ function agent_evaluation_preprocess_node(&$variables) {
 
         $dimension_data['sub_dimensions'][] = [
           'label' => $sub_info['name'] ?? ucwords(str_replace('_', ' ', $sub_key)),
-          'description' => $sub_info['description'] ?? '',
+          'description' => $sub_description,
           'score' => $sub_score,
           'level' => _agent_evaluation_get_score_level($sub_score),
         ];

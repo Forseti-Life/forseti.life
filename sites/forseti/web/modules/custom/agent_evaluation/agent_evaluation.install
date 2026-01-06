@@ -144,6 +144,16 @@ function _agent_evaluation_create_entity_fields() {
       'default_value' => [['value' => 0]],
       'settings' => ['min' => 0, 'max' => 9],
     ];
+    
+    // Also create description field for this sub-dimension
+    $desc_field_name = $field_name . '_desc';
+    $fields_to_create[$desc_field_name] = [
+      'type' => 'text_long',
+      'cardinality' => 1,
+      'label' => $label . ' Description',
+      'description' => "AI-provided description for {$label} sub-dimension",
+      'settings' => [],
+    ];
   }
 
   // Create field storage and field configs
@@ -572,4 +582,53 @@ function agent_evaluation_update_8005() {
   $prompt_manager->initializeDefaultPrompt();
   
   return t('Updated AI conversation system prompt with Forseti AI assistant persona.');
+}
+
+/**
+ * Add description fields for sub-dimension scores.
+ */
+function agent_evaluation_update_8007() {
+  $sub_dimension_keys = [
+    'scope', 'restriction', 'classification', 'temporal', 'sources', 'granularity',
+    'computational', 'financial', 'data_storage', 'network_bandwidth', 'api_access', 'human',
+    'legal', 'institutional', 'budget_auth', 'policy', 'override', 'audit',
+    'connectivity', 'centrality', 'trust_reputation', 'info_flow', 'coalition', 'network_effects',
+    'reasoning', 'creativity', 'planning', 'learning', 'memory', 'execution',
+  ];
+
+  $fields_created = 0;
+  
+  foreach ($sub_dimension_keys as $key) {
+    $field_name = 'field_sub_' . $key . '_desc';
+    
+    // Create field storage if it doesn't exist
+    $field_storage = \Drupal\field\Entity\FieldStorageConfig::loadByName('node', $field_name);
+    if (!$field_storage) {
+      $field_storage = \Drupal\field\Entity\FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => 'text_long',
+        'cardinality' => 1,
+        'settings' => [],
+      ]);
+      $field_storage->save();
+    }
+
+    // Create field config if it doesn't exist
+    $field_config = \Drupal\field\Entity\FieldConfig::loadByName('node', 'evaluated_entity', $field_name);
+    if (!$field_config) {
+      $field_config = \Drupal\field\Entity\FieldConfig::create([
+        'field_storage' => $field_storage,
+        'bundle' => 'evaluated_entity',
+        'label' => ucwords(str_replace('_', ' ', $key)) . ' Description',
+        'description' => 'AI-provided description for ' . $key . ' sub-dimension',
+        'required' => FALSE,
+        'settings' => [],
+      ]);
+      $field_config->save();
+      $fields_created++;
+    }
+  }
+
+  return t('Added @count description fields for sub-dimension scores.', ['@count' => $fields_created]);
 }
