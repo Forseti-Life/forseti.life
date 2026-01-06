@@ -196,10 +196,21 @@
                 }
               },
               onClick: function(evt, activeElements) {
-                if (activeElements.length > 0 && currentView === 'overview') {
+                if (activeElements.length > 0) {
                   const index = activeElements[0].index;
-                  const dimensionKey = chartData.primary_keys[index];
-                  expandDimension(dimensionKey);
+                  
+                  if (currentView === 'overview') {
+                    // Clicking on primary dimension - expand to sub-dimensions
+                    const dimensionKey = chartData.primary_keys[index];
+                    expandDimension(dimensionKey);
+                  } else {
+                    // Clicking on sub-dimension - scroll to accordion
+                    const subDimensionData = chartData.dimensions[currentView];
+                    if (subDimensionData && subDimensionData.sub_ids && subDimensionData.sub_ids[index]) {
+                      const subDimId = subDimensionData.sub_ids[index];
+                      scrollToSubDimension(subDimId, currentView);
+                    }
+                  }
                 }
               },
               scales: {
@@ -339,6 +350,49 @@
               dimData.types,
               dimData.keys
             );
+          }
+        }
+        
+        function scrollToSubDimension(subDimId, dimensionKey) {
+          console.log('Scrolling to sub-dimension:', subDimId, 'in dimension:', dimensionKey);
+          
+          // Find the sub-dimension element
+          const subDimElement = document.getElementById('subdim-' + subDimId);
+          if (!subDimElement) {
+            console.error('Sub-dimension element not found:', subDimId);
+            return;
+          }
+          
+          // Find the parent accordion item
+          const accordionItem = document.querySelector('[data-dimension="' + dimensionKey + '"]');
+          if (!accordionItem) {
+            console.error('Accordion item not found for dimension:', dimensionKey);
+            return;
+          }
+          
+          // Get the collapse element
+          const collapseElement = accordionItem.querySelector('.accordion-collapse');
+          if (collapseElement) {
+            // Use Bootstrap's Collapse API to open the accordion
+            const bsCollapse = new bootstrap.Collapse(collapseElement, {
+              toggle: false
+            });
+            bsCollapse.show();
+            
+            // Wait for accordion to open, then scroll
+            setTimeout(function() {
+              subDimElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+              });
+              
+              // Add a highlight effect
+              subDimElement.style.transition = 'background-color 0.3s';
+              subDimElement.style.backgroundColor = 'rgba(0, 212, 255, 0.2)';
+              setTimeout(function() {
+                subDimElement.style.backgroundColor = '';
+              }, 2000);
+            }, 350); // Wait for Bootstrap collapse animation
           }
         }
         

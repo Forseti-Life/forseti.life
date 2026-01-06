@@ -79,16 +79,19 @@
               'labels': [],
               'scores': [],
               'types': [],
-              'keys': []
+              'keys': [],
+              'sub_ids': []
             } %}
             
             {# Add all sub-dimensions #}
             {% for sub_dimension in dimension.sub_dimensions %}
+              {% set sub_id = sub_dimension.label|lower|replace({' ': '-', '&': 'and', '/': '-'})|trim('-') %}
               {% set sub_data = sub_data|merge({
                 'labels': sub_data.labels|merge([sub_dimension.label]),
                 'scores': sub_data.scores|merge([sub_dimension.score ?? 0]),
                 'types': sub_data.types|merge(['sub']),
-                'keys': sub_data.keys|merge([dimension_key])
+                'keys': sub_data.keys|merge([dimension_key]),
+                'sub_ids': sub_data.sub_ids|merge([sub_id])
               }) %}
             {% endfor %}
             
@@ -120,7 +123,8 @@
 
       <div class="accordion mb-5" id="dimensionsAccordion">
         {% for dimension in evaluation_data.dimensions %}
-          <div class="accordion-item card-forseti border-secondary mb-2">
+          {% set dimension_key = dimension.label|lower|replace({' ': '_', '&': 'and'})|trim('_') %}
+          <div class="accordion-item card-forseti border-secondary mb-2" data-dimension="{{ dimension_key }}">
             <h2 class="accordion-header" id="heading{{ loop.index }}">
               <button class="accordion-button {{ loop.first ? '' : 'collapsed' }} card-forseti text-white d-flex align-items-center" 
                       type="button" 
@@ -150,7 +154,8 @@
                 
                 <div class="sub-dimensions">
                   {% for sub_dimension in dimension.sub_dimensions %}
-                    <div class="sub-dimension mb-3 pb-3 {{ loop.last ? '' : 'border-bottom border-secondary' }}">
+                    {% set sub_dimension_id = sub_dimension.label|lower|replace({' ': '-', '&': 'and', '/': '-'})|trim('-') %}
+                    <div class="sub-dimension mb-3 pb-3 {{ loop.last ? '' : 'border-bottom border-secondary' }}" id="subdim-{{ sub_dimension_id }}" data-subdimension="{{ sub_dimension_id }}">
                       <div class="d-flex align-items-center justify-content-between mb-2">
                         <span class="sub-dimension__label fw-bold text-cyan">{{ sub_dimension.label }}</span>
                         {% if sub_dimension.score is not null %}
