@@ -19,7 +19,12 @@
         
         <div class="text-center mt-4 pt-4" style="border-top: 1px solid rgba(0, 212, 255, 0.3);">
           <p class="text-muted mb-3">Or register with:</p>
-          {{ drupal_block('social_auth_login') }}
+          <div class="social-auth-container">
+            <a class="social-auth auth-link btn btn-light" href="/user/login/google">
+              <img class="social-auth auth-icon me-2" src="/modules/contrib/social_auth_google/img/google_logo.svg" alt="Google logo" style="width: 20px; height: 20px;">
+              Sign up with Google
+            </a>
+          </div>
         </div>
       </div>
       
