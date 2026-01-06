@@ -30,13 +30,12 @@ forseti.agent_hierarchy:
   menu_name: main
   parent: forseti.how_it_works
   weight: -24
-  expanded: true
 
 forseti.evaluations_list:
   title: 'Evaluated Entities'
   route_name: forseti.evaluations_list
   menu_name: main
-  parent: forseti.agent_hierarchy
+  parent: forseti.how_it_works
   weight: -23
 
 forseti.safety_map:
