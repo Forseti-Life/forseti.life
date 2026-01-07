@@ -143,6 +143,16 @@ forseti.batch_process_entity:
   options:
     no_cache: TRUE
 
+forseti.us_government_power:
+  path: '/agent-power-framework/us-government'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\AgentPowerFrameworkController::usGovernmentPower'
+    _title: 'US Government Power Analysis'
+  requirements:
+    _permission: 'access content'
+  options:
+    no_cache: TRUE
+
 forseti.dimension_scope:
   path: '/agent-power-framework/scope'
   defaults:

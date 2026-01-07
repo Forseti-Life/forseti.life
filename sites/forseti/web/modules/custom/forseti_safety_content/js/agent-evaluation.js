@@ -1,6 +1,6 @@
 /**
  * @file
- * Agent evaluation form handling for the framework page.
+ * Agent evaluation form handling and accordion controls for framework pages.
  */
 
 (function (Drupal, once) {
@@ -66,6 +66,76 @@
           button.textContent = 'Start Evaluation';
         });
       }
+    }
+  };
+
+  /**
+   * Accordion umbrella controls for expand/collapse all functionality.
+   */
+  Drupal.behaviors.accordionUmbrellaControls = {
+    attach: function (context, settings) {
+      // Check if Bootstrap is available
+      if (typeof bootstrap === 'undefined') {
+        console.warn('Bootstrap is not loaded, accordion controls disabled');
+        return;
+      }
+
+      // Expand All Cards
+      once('expand-all-cards', '#expandAllCards', context).forEach(function (button) {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          const collapses = context.querySelectorAll('.rank-collapse');
+          collapses.forEach(function(collapse) {
+            // Only get existing instance, don't create new ones
+            const instance = bootstrap.Collapse.getInstance(collapse);
+            if (instance) {
+              instance.show();
+            }
+          });
+        });
+      });
+
+      // Collapse All Cards
+      once('collapse-all-cards', '#collapseAllCards', context).forEach(function (button) {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          const collapses = context.querySelectorAll('.rank-collapse');
+          collapses.forEach(function(collapse) {
+            const instance = bootstrap.Collapse.getInstance(collapse);
+            if (instance) {
+              instance.hide();
+            }
+          });
+        });
+      });
+
+      // Expand All Sub-Dimensions
+      once('expand-all-subdims', '#expandAllSubDims', context).forEach(function (button) {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          const collapses = context.querySelectorAll('[id^="collapse-subdim-"]');
+          collapses.forEach(function(collapse) {
+            const instance = bootstrap.Collapse.getInstance(collapse);
+            if (instance) {
+              instance.show();
+            }
+          });
+        });
+      });
+
+      // Collapse All Sub-Dimensions
+      once('collapse-all-subdims', '#collapseAllSubDims', context).forEach(function (button) {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          const collapses = context.querySelectorAll('[id^="collapse-subdim-"]');
+          collapses.forEach(function(collapse) {
+            const instance = bootstrap.Collapse.getInstance(collapse);
+            if (instance) {
+              instance.hide();
+            }
+          });
+        });
+      });
     }
   };
 

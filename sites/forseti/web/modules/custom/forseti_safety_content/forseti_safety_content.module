@@ -130,6 +130,14 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'forseti-page-agent-hierarchy',
     ],
+    'forseti_us_government_power' => [
+      'variables' => [
+        'title' => NULL,
+        'intro' => [],
+        'branches' => [],
+      ],
+      'template' => 'forseti-us-government-power',
+    ],
     'forseti_page_agent_evaluate' => [
       'variables' => [
         'title' => NULL,
