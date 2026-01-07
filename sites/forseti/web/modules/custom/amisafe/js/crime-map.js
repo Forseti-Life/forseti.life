@@ -74,6 +74,42 @@
     initialize: function() {
       console.log('🚀 Initializing AmISafe Crime Map...');
       
+      // Wait for container to have dimensions (critical on mobile)
+      const container = document.getElementById('crime-map-container');
+      if (!container) {
+        console.error('❌ Map container not found');
+        return;
+      }
+      
+      const waitForContainer = () => {
+        const rect = container.getBoundingClientRect();
+        console.log('📏 Checking container dimensions:', {
+          width: rect.width,
+          height: rect.height,
+          offsetWidth: container.offsetWidth,
+          offsetHeight: container.offsetHeight
+        });
+        
+        // Check if container has dimensions
+        if (rect.width > 0 && rect.height > 0) {
+          console.log('✅ Container has dimensions, proceeding with initialization');
+          this.proceedWithInitialization();
+        } else {
+          console.log('⏳ Waiting for container to have dimensions...');
+          setTimeout(waitForContainer, 100);
+        }
+      };
+      
+      // Start checking for container dimensions
+      waitForContainer();
+    },
+    
+    /**
+     * Proceed with initialization once container is ready
+     */
+    proceedWithInitialization: function() {
+      console.log('🚀 Proceeding with map initialization...');
+      
       // Template elements verified working - debug removed for cleaner output
       
       // Apply minimal mode styling
