@@ -37,7 +37,7 @@ class SafetyDimensionsService implements SafetyDimensionsServiceInterface {
     return [
       [
         'id' => 'safe',
-        'icon' => 'fa-shield-alt',
+        'icon' => '/themes/custom/forseti/images/logos/originals/forseti_safe.png',
         'name' => $this->t('Safe'),
         'planned_enhancement' => FALSE,
         'subtitle' => $this->t('Security & Protection'),
@@ -58,13 +58,13 @@ class SafetyDimensionsService implements SafetyDimensionsServiceInterface {
       ],
       [
         'id' => 'energized',
-        'icon' => 'fa-bolt',
+        'icon' => '/themes/custom/forseti/images/logos/originals/forseti_energized.png',
         'name' => $this->t('Energized'),
         'planned_enhancement' => TRUE,
         'subtitle' => $this->t('Vitality & Basic Needs'),
         'description' => $this->t('Building on physical safety - access to essential resources like housing, food, and financial stability that energize daily life.'),
         'integration_note' => [
-          'text' => $this->t('Forseti can learn what matters most to you about your neighborhood\'s vitality.'),
+          'message' => $this->t('Forseti can learn what matters most to you about your neighborhood\'s vitality.'),
           'link' => '/talk-with-forseti',
           'link_text' => $this->t('Talk with Forseti →'),
         ],
@@ -79,13 +79,13 @@ class SafetyDimensionsService implements SafetyDimensionsServiceInterface {
       ],
       [
         'id' => 'connected',
-        'icon' => 'fa-users',
+        'icon' => '/themes/custom/forseti/images/logos/originals/forseti_connected.png',
         'name' => $this->t('Connected'),
         'planned_enhancement' => TRUE,
         'subtitle' => $this->t('Community & Belonging'),
         'description' => $this->t('Social connections and community cohesion - the networks and relationships that create belonging and mutual support.'),
         'integration_note' => [
-          'text' => $this->t('Forseti can help you discover community connections.'),
+          'message' => $this->t('Forseti can help you discover community connections.'),
           'link' => '/talk-with-forseti',
           'link_text' => $this->t('Talk with Forseti →'),
         ],
@@ -101,13 +101,13 @@ class SafetyDimensionsService implements SafetyDimensionsServiceInterface {
       ],
       [
         'id' => 'free',
-        'icon' => 'fa-dove',
+        'icon' => '/themes/custom/forseti/images/logos/originals/forseti_free.png',
         'name' => $this->t('Free'),
         'planned_enhancement' => TRUE,
         'subtitle' => $this->t('Autonomy & Rights'),
         'description' => $this->t('Freedom of movement, privacy, and justice - the ability to make choices and exercise rights without undue constraint.'),
         'integration_note' => [
-          'text' => $this->t('Forseti can explore what freedom means in your community context.'),
+          'message' => $this->t('Forseti can explore what freedom means in your community context.'),
           'link' => '/talk-with-forseti',
           'link_text' => $this->t('Talk with Forseti →'),
         ],
@@ -122,13 +122,13 @@ class SafetyDimensionsService implements SafetyDimensionsServiceInterface {
       ],
       [
         'id' => 'capable',
-        'icon' => 'fa-graduation-cap',
+        'icon' => '/themes/custom/forseti/images/logos/originals/forseti_capable.png',
         'name' => $this->t('Capable'),
         'planned_enhancement' => TRUE,
         'subtitle' => $this->t('Mastery & Development'),
         'description' => $this->t('Education, skills, and economic opportunity - the resources and systems that enable personal and collective growth.'),
         'integration_note' => [
-          'text' => $this->t('Forseti can identify opportunities for skill development in your area.'),
+          'message' => $this->t('Forseti can identify opportunities for skill development in your area.'),
           'link' => '/talk-with-forseti',
           'link_text' => $this->t('Talk with Forseti →'),
         ],
@@ -143,13 +143,13 @@ class SafetyDimensionsService implements SafetyDimensionsServiceInterface {
       ],
       [
         'id' => 'useful',
-        'icon' => 'fa-hands-helping',
+        'icon' => '/themes/custom/forseti/images/logos/originals/forseti_useful.png',
         'name' => $this->t('Useful'),
         'planned_enhancement' => TRUE,
         'subtitle' => $this->t('Purpose & Contribution'),
         'description' => $this->t('Civic engagement and contribution - the ability to make meaningful contributions to community well-being and feel valued.'),
         'integration_note' => [
-          'text' => $this->t('Forseti can suggest ways to contribute to community safety.'),
+          'message' => $this->t('Forseti can suggest ways to contribute to community safety.'),
           'link' => '/talk-with-forseti',
           'link_text' => $this->t('Talk with Forseti →'),
         ],
@@ -164,13 +164,13 @@ class SafetyDimensionsService implements SafetyDimensionsServiceInterface {
       ],
       [
         'id' => 'whole',
-        'icon' => 'fa-heart',
+        'icon' => '/themes/custom/forseti/images/logos/originals/forseti_whole.png',
         'name' => $this->t('Whole'),
         'planned_enhancement' => TRUE,
         'subtitle' => $this->t('Holistic Health & Identity'),
         'description' => $this->t('Comprehensive well-being - mental health, physical health, and community identity that create a sense of wholeness and fulfillment.'),
         'integration_note' => [
-          'text' => $this->t('Forseti can discuss holistic community health with you.'),
+          'message' => $this->t('Forseti can discuss holistic community health with you.'),
           'link' => '/talk-with-forseti',
           'link_text' => $this->t('Talk with Forseti →'),
         ],

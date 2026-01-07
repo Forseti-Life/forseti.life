@@ -1,26 +1,21 @@
 /**
- * Mobile Menu Dropdown Functionality
- * Handles click-to-expand for submenu items on mobile devices
+ * Menu Dropdown Functionality
+ * Handles click-to-expand for submenu items on all devices
  */
 
 (function () {
   'use strict';
 
   /**
-   * Initialize mobile menu dropdown click handlers
+   * Initialize menu dropdown click handlers
    */
-  function initMobileMenuDropdowns() {
+  function initMenuDropdowns() {
     // Get all dropdown toggles in the navbar
     const dropdownToggles = document.querySelectorAll('.navbar-nav .dropdown-toggle');
 
     dropdownToggles.forEach(toggle => {
       // Add click event listener
       toggle.addEventListener('click', function(e) {
-        // Only handle on mobile (< 992px)
-        if (window.innerWidth >= 992) {
-          return; // Let hover behavior work on desktop
-        }
-
         // Prevent default link behavior
         e.preventDefault();
         e.stopPropagation();
@@ -63,8 +58,6 @@
 
     // Close dropdowns when clicking outside
     document.addEventListener('click', function(e) {
-      if (window.innerWidth >= 992) return;
-
       const isDropdownToggle = e.target.closest('.dropdown-toggle');
       const isInsideDropdown = e.target.closest('.dropdown-menu');
       
@@ -106,9 +99,9 @@
 
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initMobileMenuDropdowns);
+    document.addEventListener('DOMContentLoaded', initMenuDropdowns);
   } else {
-    initMobileMenuDropdowns();
+    initMenuDropdowns();
   }
 
 })();

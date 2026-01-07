@@ -51,33 +51,14 @@
   border-bottom: 2px solid #00d4ff;
 }
 
-// Navbar dropdown hover functionality
+// Navbar dropdown styling
 // -----------------------------------------------------------------------------
-// Make Bootstrap 5 dropdowns work on hover for desktop navigation
+// Click-only dropdown functionality (hover removed for better mobile experience)
 
-// Show dropdown on hover for navbar items
 .navbar-nav {
-  .nav-item.dropdown:hover > .dropdown-menu {
-    display: block;
-    margin-top: 0; // Remove gap between link and dropdown
-  }
-  
   // Smooth transition for dropdown appearance
   .dropdown-menu {
     margin-top: 0;
     transition: opacity 0.2s ease-in-out;
   }
-  
-  // Keep dropdown open when hovering over the menu itself
-  .dropdown-menu:hover {
-    display: block;
-  }
 }
-
-// Ensure dropdown toggle still works on click for mobile
-@media (max-width: 991.98px) {
-  .navbar-nav .nav-item.dropdown:hover > .dropdown-menu {
-    display: none; // Disable hover on mobile, use click only
-  }
-}
-

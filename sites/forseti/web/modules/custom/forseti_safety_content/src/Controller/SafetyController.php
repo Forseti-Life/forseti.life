@@ -55,7 +55,7 @@ class SafetyController extends ControllerBase {
       '#dimensions' => $this->safetyDimensionsService->getSafetyDimensions(),
       '#how_forseti_uses' => [
         'title' => $this->t('How Forseti Uses These Dimensions'),
-        'content' => [
+        'items' => [
           $this->t('We analyze these seven dimensions across every neighborhood in Philadelphia using data from multiple sources.'),
           $this->t('Our AI combines real-time feeds with historical patterns to assess current safety conditions.'),
           $this->t('When you enter an area with concerning indicators across multiple dimensions, we send contextual safety alerts.'),
@@ -65,12 +65,12 @@ class SafetyController extends ControllerBase {
       '#cta_buttons' => [
         [
           'url' => '/safety-map',
-          'text' => $this->t('View Safety Map'),
+          'label' => $this->t('View Safety Map'),
           'style' => 'primary',
         ],
         [
           'url' => '/mobile-app',
-          'text' => $this->t('Get Mobile App'),
+          'label' => $this->t('Get Mobile App'),
           'style' => 'outline-primary',
         ],
       ],
