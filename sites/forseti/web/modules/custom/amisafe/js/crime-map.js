@@ -6,14 +6,30 @@
  * Features: H3 hexagon visualization, zoom-based resolution switching, minimal mode
  */
 
+// IMMEDIATE DEBUG - This should log before ANYTHING else
+console.log('🔥 CRIME MAP JAVASCRIPT FILE LOADED - VERY FIRST LINE');
+console.log('📱 User Agent:', navigator.userAgent);
+console.log('🌐 Window size:', window.innerWidth, 'x', window.innerHeight);
+
+// MOBILE ALERT - Shows on screen immediately
+if (window.innerWidth < 768) {
+  alert('MOBILE DETECTED: JS LOADED!\nWidth: ' + window.innerWidth + '\nLeaflet: ' + (typeof L !== 'undefined' ? 'YES' : 'NO'));
+}
+
 (function ($, Drupal, drupalSettings) {
   'use strict';
+
+  console.log('🔥 INSIDE IIFE - jQuery:', typeof $, 'Drupal:', typeof Drupal);
+  console.log('🔥 Drupal settings:', drupalSettings);
 
   /**
    * AmISafe Crime Map Drupal Behavior
    */
   Drupal.behaviors.amisafeCrimeMap = {
     attach: function (context, settings) {
+      console.log('🔥 BEHAVIOR ATTACH CALLED');
+      console.log('Settings:', settings);
+      
       if (!settings.amisafe) {
         console.error('AmISafe settings not found');
         return;
