@@ -1,4 +1,58 @@
+// Forseti Navbar Styling
+// -----------------------------------------------------------------------------
+
+// Main navbar container
+.forseti-navbar {
+  background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%) !important;
+  border-bottom: 2px solid #00d4ff;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+
+  // Navigation links
+  .nav-link {
+    color: #e8e8e8 !important;
+    transition: color 0.3s ease;
+    font-weight: 500;
+
+    &:hover,
+    &:focus {
+      color: #00d4ff !important;
+    }
+  }
+
+  // Navbar toggler (mobile hamburger)
+  .navbar-toggler {
+    border-color: #00d4ff;
+
+    &:focus {
+      box-shadow: 0 0 0 0.25rem rgba(0, 212, 255, 0.25);
+    }
+  }
+
+  .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%2300d4ff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+  }
+}
+
+// Mobile menu styles
+@media (max-width: 991.98px) {
+  .forseti-navbar .navbar-collapse {
+    background-color: #1a1a2e;
+    padding: 1rem;
+    margin-top: 0.5rem;
+    border-radius: 0.25rem;
+  }
+}
+
+// Front page navbar variant (darker theme)
+.forseti-navbar-front {
+  background-color: #16213e !important;
+  border-bottom: 2px solid #00d4ff;
+}
+
 // Navbar dropdown hover functionality
+// -----------------------------------------------------------------------------
 // Make Bootstrap 5 dropdowns work on hover for desktop navigation
 
 // Show dropdown on hover for navbar items
@@ -26,3 +80,4 @@
     display: none; // Disable hover on mobile, use click only
   }
 }
+

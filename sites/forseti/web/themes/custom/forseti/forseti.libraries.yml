@@ -2,7 +2,6 @@ style:
   css:
     theme:
       build/css/main.style.css: {}
-      build/css/forseti-theme.css: {}
       build/css/amisafe.css: {}
   js:
     build/js/main.script.js: {}

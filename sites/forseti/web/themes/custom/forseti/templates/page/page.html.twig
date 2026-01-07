@@ -76,37 +76,39 @@
     </div>
   {% endif %}
 
-  {# Navigation and Header #}
-  {% if page.navbar_branding or page.navbar_left or page.navbar_right %}
-    <nav class="navbar navbar-expand-lg navbar-light" style="background-color: transparent; border-bottom: 2px solid #00d4ff; padding-top: 0.25rem; padding-bottom: 0.25rem;">
-      <div class="container">
+  {# Navigation - Using Radix Navbar Component #}
+  {% block page_navigation %}
+    {% embed 'radix:navbar' with {
+      navbar_container_type: null,
+      navbar_expand: 'lg',
+      navbar_theme: 'light',
+      navbar_utility_classes: [
+        'forseti-navbar',
+      ],
+    } %}
+      {% block branding %}
         {% if page.navbar_branding %}
           {{ page.navbar_branding }}
         {% endif %}
-        
-        <button class="navbar-toggler" 
-                type="button" 
-                data-bs-toggle="collapse" 
-                data-bs-target=".navbar-collapse"
-                aria-controls="navbar-collapse"
-                aria-expanded="false"
-                aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        
-        <div class="collapse navbar-collapse">
-          {% if page.navbar_left %}
+      {% endblock %}
+
+      {% block left %}
+        {% if page.navbar_left %}
+          <div class="me-auto">
             {{ page.navbar_left }}
-          {% endif %}
-          {% if page.navbar_right %}
-            <div class="ms-auto">
-              {{ page.navbar_right }}
-            </div>
-          {% endif %}
-        </div>
-      </div>
-    </nav>
-  {% endif %}
+          </div>
+        {% endif %}
+      {% endblock %}
+
+      {% block right %}
+        {% if page.navbar_right %}
+          <div class="ms-auto">
+            {{ page.navbar_right }}
+          </div>
+        {% endif %}
+      {% endblock %}
+    {% endembed %}
+  {% endblock %}
 
   {# Main Content Area #}
   <div class="container-fluid">

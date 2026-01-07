@@ -9,6 +9,7 @@
 @import "base/functions";
 @import "base/helpers";
 @import "base/typography";
+@import "base/utilities";
 
 // Custom components
 @import "components/navbar";
@@ -18,6 +19,7 @@
 @import "components/footer-enhanced";
 @import "components/user_profile";
 @import "components/agent-power";
+@import "components/forseti-cards";
 
 // Forseti Safety Community styles
 @import "safety-community";
