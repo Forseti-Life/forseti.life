@@ -861,6 +861,7 @@ header.page-header {
   .crime-map-layout {
     flex-direction: column;
     height: auto;
+    min-height: 500px;
   }
   
   .control-panel-container {
@@ -874,8 +875,18 @@ header.page-header {
   }
   
   .map-container {
-    height: 400px;
+    height: 500px;
     order: 1;
+  }
+  
+  .crime-map-container {
+    height: 500px !important;
+    min-height: 500px;
+  }
+  
+  #crime-map-container {
+    height: 100% !important;
+    min-height: 500px;
   }
   
   .page-title {

@@ -180,6 +180,17 @@
         this.map.invalidateSize();
         this.updateZoomIndicator(); // Initial zoom indicator update
       }, 1000);
+      
+      // Add additional resize on window resize for mobile
+      let resizeTimeout;
+      $(window).on('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          if (this.map) {
+            this.map.invalidateSize();
+          }
+        }, 250);
+      });
     },
 
     /**
