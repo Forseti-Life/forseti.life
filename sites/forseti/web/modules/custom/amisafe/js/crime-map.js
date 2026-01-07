@@ -113,6 +113,25 @@
         return;
       }
 
+      // Check map container dimensions (especially important on mobile)
+      const container = document.getElementById('crime-map-container');
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        console.log('🗺️ Map container dimensions:', {
+          width: rect.width,
+          height: rect.height,
+          visible: rect.width > 0 && rect.height > 0
+        });
+        
+        // If container has no dimensions, force them
+        if (rect.width === 0 || rect.height === 0) {
+          console.warn('⚠️ Map container has zero dimensions - forcing size');
+          container.style.width = '100%';
+          container.style.height = '500px';
+          container.style.minHeight = '500px';
+        }
+      }
+
       // Create map with Philadelphia center
       const mapConfig = this.settings.mapConfig;
       this.map = L.map('crime-map-container', {
@@ -135,6 +154,14 @@
       // Initialize layers (incident layer on top)
       this.hexagonLayer = L.layerGroup().addTo(this.map);
       this.incidentLayer = L.layerGroup().addTo(this.map); // For individual incident points
+      
+      // Force map to recognize its size on mobile devices
+      setTimeout(() => {
+        if (this.map) {
+          this.map.invalidateSize();
+          console.log('🔄 Map size invalidated after creation');
+        }
+      }, 100);
       
       console.log('🗺️ Map created successfully');
       
@@ -1506,6 +1533,13 @@
      * Hide loading overlay
      */
     hideLoading: function() {
+      // Check if map has been properly initialized
+      if (!this.map) {
+        console.error('❌ Map not initialized when hideLoading called');
+      } else if (this.hexagonLayer && this.hexagonLayer.getLayers().length === 0) {
+        console.warn('⚠️ No hexagons rendered when hideLoading called');
+      }
+      
       $('#loading-overlay').addClass('d-none').fadeOut(300);
     },
 
