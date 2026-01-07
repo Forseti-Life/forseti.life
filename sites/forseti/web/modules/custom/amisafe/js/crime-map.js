@@ -544,7 +544,7 @@
      * Load initial crime data
      */
     loadInitialData: function() {
-      this.showLoading('LOADING CRIME DATA...');
+      this.showLoading('Loading Philadelphia Crime Data', 'Initializing map...');
       this.shouldAutoFit = true; // Allow auto-fit for initial load
       this.isInitialLoad = true; // Flag to skip filters on initial load
       
@@ -556,6 +556,10 @@
       $('#total-incidents').text('0');
       $('#violent-crimes').text('0');
       $('#property-crimes').text('0');
+      
+      setTimeout(() => {
+        this.showLoading('Loading Philadelphia Crime Data', 'Fetching hexagon data...');
+      }, 100);
       
       this.loadHexagonData();
       
@@ -646,9 +650,13 @@
       this.currentRequest = $.ajax({
         url: apiUrl,
         method: 'GET',
-        timeout: 30000
+        timeout: 30000,
+        beforeSend: () => {
+          this.showLoading('Loading Crime Data', `Fetching H3 Resolution ${resolution} data...`);
+        }
       })
       .done((data) => {
+        this.showLoading('Loading Crime Data', 'Processing hexagons...');
         console.log('📊 Received filtered data:', {
           hexagons: data.hexagons ? data.hexagons.length : 0,
           resolution: data.meta ? data.meta.resolution : 'unknown',
@@ -708,6 +716,7 @@
      * Load hexagon data WITH filters applied (only called from applyFilters)
      */
     loadHexagonDataWithFilters: function() {
+      this.showLoading('Applying Filters', 'Preparing filtered data...');
       const zoom = this.map.getZoom();
       
       // Use manual H3 resolution if set, otherwise calculate from zoom
@@ -1471,17 +1480,22 @@
     /**
      * Show loading overlay
      */
-    showLoading: function(message) {
+    showLoading: function(message, status) {
       const overlay = $('#loading-overlay');
-      overlay.find('.terminal-text').text(message || 'LOADING...');
-      overlay.show();
+      overlay.find('.loading-text').text(message || 'LOADING...');
+      if (status) {
+        overlay.find('.loading-status').text(status).show();
+      } else {
+        overlay.find('.loading-status').hide();
+      }
+      overlay.removeClass('d-none').show();
     },
 
     /**
      * Hide loading overlay
      */
     hideLoading: function() {
-      $('#loading-overlay').fadeOut(300);
+      $('#loading-overlay').addClass('d-none').fadeOut(300);
     },
 
     /**
