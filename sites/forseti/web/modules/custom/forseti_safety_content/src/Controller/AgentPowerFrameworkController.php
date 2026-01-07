@@ -1064,13 +1064,9 @@ class AgentPowerFrameworkController extends ControllerBase {
     
     if ($field_storage) {
       $allowed_values = $field_storage->getSetting('allowed_values');
-      if (is_array($allowed_values)) {
-        foreach ($allowed_values as $allowed_value) {
-          // Handle both array and object structures
-          if (is_array($allowed_value) && isset($allowed_value['value']) && $allowed_value['value'] === $value) {
-            return $allowed_value['label'];
-          }
-        }
+      // For list_string fields, allowed_values is a key-value array
+      if (is_array($allowed_values) && isset($allowed_values[$value])) {
+        return $allowed_values[$value];
       }
     }
     
