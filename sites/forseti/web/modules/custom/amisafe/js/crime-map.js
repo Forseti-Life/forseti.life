@@ -165,8 +165,27 @@ if (window.innerWidth < 768) {
           console.log('✅ Container has dimensions, proceeding with initialization');
           this.proceedWithInitialization();
         } else {
-          console.log('⏳ Waiting for container to have dimensions...');
-          setTimeout(waitForContainer, 100);
+          console.log('⏳ Container has zero dimensions - forcing size on mobile');
+          // Force dimensions on mobile
+          container.style.width = '100%';
+          container.style.height = '500px';
+          container.style.minHeight = '500px';
+          container.style.display = 'block';
+          
+          // Check one more time after forcing
+          setTimeout(() => {
+            const newRect = container.getBoundingClientRect();
+            console.log('📏 After forcing dimensions:', {
+              width: newRect.width,
+              height: newRect.height
+            });
+            if (newRect.width > 0 && newRect.height > 0) {
+              console.log('✅ Forced dimensions worked, proceeding');
+              this.proceedWithInitialization();
+            } else {
+              console.error('❌ Still no dimensions after forcing - CSS issue');
+            }
+          }, 100);
         }
       };
       
