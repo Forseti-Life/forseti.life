@@ -541,10 +541,10 @@
     },
 
     /**
-     * Load initial crime data
+     * Load initial safety data
      */
     loadInitialData: function() {
-      this.showLoading('Loading Philadelphia Crime Data', 'Initializing map...');
+      this.showLoading('Loading Philadelphia Safety Data', 'Initializing map...');
       this.shouldAutoFit = true; // Allow auto-fit for initial load
       this.isInitialLoad = true; // Flag to skip filters on initial load
       
@@ -558,7 +558,7 @@
       $('#property-crimes').text('0');
       
       setTimeout(() => {
-        this.showLoading('Loading Philadelphia Crime Data', 'Fetching hexagon data...');
+        this.showLoading('Loading Philadelphia Safety Data', 'Fetching hexagon data...');
       }, 100);
       
       this.loadHexagonData();
@@ -606,7 +606,7 @@
     },
 
     /**
-     * Load hexagon crime data based on current view
+     * Load hexagon safety data based on current view
      */
     loadHexagonData: function() {
       const zoom = this.map.getZoom();
@@ -652,11 +652,11 @@
         method: 'GET',
         timeout: 30000,
         beforeSend: () => {
-          this.showLoading('Loading Crime Data', `Fetching H3 Resolution ${resolution} data...`);
+          this.showLoading('Loading Safety Data', `Fetching H3 Resolution ${resolution} data...`);
         }
       })
       .done((data) => {
-        this.showLoading('Loading Crime Data', 'Processing hexagons...');
+        this.showLoading('Loading Safety Data', 'Processing hexagons...');
         console.log('📊 Received filtered data:', {
           hexagons: data.hexagons ? data.hexagons.length : 0,
           resolution: data.meta ? data.meta.resolution : 'unknown',
