@@ -6,6 +6,60 @@
  * Features: H3 hexagon visualization, zoom-based resolution switching, minimal mode
  */
 
+// MOBILE ON-SCREEN CONSOLE - Creates visible console on page
+(function() {
+  if (window.innerWidth < 1024) { // Show on mobile/tablet
+    // Create console container
+    const consoleDiv = document.createElement('div');
+    consoleDiv.id = 'mobile-console';
+    consoleDiv.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:200px;background:rgba(0,0,0,0.95);color:#0f0;font-family:monospace;font-size:10px;overflow-y:auto;z-index:999999;border-top:2px solid #0ff;padding:5px;';
+    
+    const consoleContent = document.createElement('div');
+    consoleDiv.appendChild(consoleContent);
+    
+    // Add close button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'X';
+    closeBtn.style.cssText = 'position:absolute;top:5px;right:5px;background:#f00;color:#fff;border:none;padding:5px 10px;cursor:pointer;z-index:1000000;';
+    closeBtn.onclick = () => consoleDiv.style.display = 'none';
+    consoleDiv.appendChild(closeBtn);
+    
+    document.body.appendChild(consoleDiv);
+    
+    // Intercept console methods
+    const addLog = (type, args) => {
+      const line = document.createElement('div');
+      line.style.borderBottom = '1px solid #333';
+      line.style.padding = '2px 0';
+      const prefix = type === 'error' ? '❌ ' : type === 'warn' ? '⚠️ ' : '✅ ';
+      line.textContent = prefix + Array.from(args).map(a => 
+        typeof a === 'object' ? JSON.stringify(a) : String(a)
+      ).join(' ');
+      if (type === 'error') line.style.color = '#f00';
+      if (type === 'warn') line.style.color = '#ff0';
+      consoleContent.appendChild(line);
+      consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    };
+    
+    const originalLog = console.log;
+    const originalError = console.error;
+    const originalWarn = console.warn;
+    
+    console.log = function() {
+      originalLog.apply(console, arguments);
+      addLog('log', arguments);
+    };
+    console.error = function() {
+      originalError.apply(console, arguments);
+      addLog('error', arguments);
+    };
+    console.warn = function() {
+      originalWarn.apply(console, arguments);
+      addLog('warn', arguments);
+    };
+  }
+})();
+
 // IMMEDIATE DEBUG - This should log before ANYTHING else
 console.log('🔥 CRIME MAP JAVASCRIPT FILE LOADED - VERY FIRST LINE');
 console.log('📱 User Agent:', navigator.userAgent);
