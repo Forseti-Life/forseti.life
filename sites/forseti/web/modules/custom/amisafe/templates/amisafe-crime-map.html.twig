@@ -11,18 +11,18 @@
  */
 #}
 
-<div class="container py-3">
+<div class="container-fluid py-2 py-md-3">
   <div class="row">
-    <div class="col-lg-10 mx-auto">
-      <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
-        <div>
-          <h1 class="text-cyan mb-2">Philadelphia Crime Map</h1>
-          <p class="text-muted-light">Interactive crime data visualization and analysis</p>
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center flex-wrap mb-3 mb-md-4 gap-2">
+        <div class="text-center text-md-start">
+          <h1 class="text-cyan mb-1 mb-md-2">Philadelphia Crime Map</h1>
+          <p class="text-muted-light mb-0">Interactive crime data visualization</p>
         </div>
-        <div>
-          <a href="/mobile-app" class="btn btn-primary">
-            <img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon">
-            Get Mobile App
+        <div class="text-center text-md-end">
+          <a href="/mobile-app" class="btn btn-primary btn-sm">
+            <img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon" style="height: 20px;">
+            Get App
           </a>
         </div>
       </div>
@@ -45,18 +45,18 @@
       <div id="map-filter-controls" class="floating-controls top-left">
         <!-- Date Range Presets -->
         <div class="control-group">
-          <div class="btn-group btn-group-sm" role="group">
+          <div class="btn-group btn-group-sm w-100" role="group">
             <button type="button" class="btn btn-light preset-btn" id="preset-12-months" data-preset="12months" title="Last 12 Months">12M</button>
             <button type="button" class="btn btn-light preset-btn" id="preset-6-months" data-preset="6months" title="Last 6 Months">6M</button>
-            <button type="button" class="btn btn-light preset-btn active" id="preset-all-time" data-preset="alltime" title="All Time Data (2006-2009)">ALL</button>
+            <button type="button" class="btn btn-light preset-btn active" id="preset-all-time" data-preset="alltime" title="All Time Data">ALL</button>
           </div>
           <input type="hidden" id="date-range-filter" value="alltime">
         </div>
         
         <!-- Crime Type Filter Toggle -->
         <div class="control-group">
-          <button id="toggle-crime-filter" class="btn btn-light btn-sm" title="Filter Crime Types">
-            <span class="filter-icon">🔍</span> Filters
+          <button id="toggle-crime-filter" class="btn btn-light btn-sm w-100" title="Filter Crime Types">
+            <span class="filter-icon">🔍</span> Crime Filters
           </button>
         </div>
         
@@ -67,14 +67,15 @@
             <button id="close-crime-filter" class="btn-close-filter">&times;</button>
           </div>
           <div class="dropdown-body">
-            <select id="crime-type-selector" class="form-control form-select" multiple size="10">
+            <select id="crime-type-selector" class="form-control form-select" multiple size="8">
               <!-- Dynamically populated from API -->
             </select>
-            <small class="text-muted">Hold Ctrl/Cmd for multiple</small>
+            <small class="text-muted d-none d-md-block">Hold Ctrl/Cmd for multiple</small>
+            <small class="text-muted d-md-none">Tap to select multiple</small>
           </div>
-          <div class="dropdown-footer">
-            <button id="apply-crime-filter" class="btn btn-primary btn-sm">Apply</button>
-            <button id="clear-crime-filter" class="btn btn-secondary btn-sm">Clear</button>
+          <div class="dropdown-footer d-flex gap-2">
+            <button id="apply-crime-filter" class="btn btn-primary btn-sm flex-fill">Apply</button>
+            <button id="clear-crime-filter" class="btn btn-secondary btn-sm flex-fill">Clear</button>
           </div>
         </div>
       </div>
