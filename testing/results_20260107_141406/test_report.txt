@@ -1,0 +1,24 @@
+=== FORSETI.LIFE SITE TEST REPORT ===
+Generated: Wed Jan  7 02:14:06 PM EST 2026
+Base URL: http://localhost
+
+CLEAN: Home Page (/)
+CLEAN: Home Alt (/home)
+CLEAN: About Forseti (/about)
+HTTP ERROR 302: Talk with Forseti (/talk-with-forseti)
+CLEAN: How It Works (/how-it-works)
+CLEAN: Safety Factors (/safety-factors)
+CLEAN: Safety Map (/safety-map)
+CLEAN: Community (/community)
+CLEAN: Mobile App (/mobile-app)
+CLEAN: Privacy & Security (/privacy)
+CLEAN: Agent Power Framework (/agent-power-framework)
+CSS ISSUES: Evaluated Entities (/agent-power-framework/evaluations) - 18 CSS properties, 0
+0 style tags
+HTTP ERROR 403: Evaluate an Agent (/agent-power-framework/evaluate)
+CSS ISSUES: US Government Power (/agent-power-framework/us-government) - 141 CSS properties, 0
+0 style tags
+CLEAN: Information Access (/agent-power-framework/information-access)
+CLEAN: Resource Control (/agent-power-framework/resource-control)
+CLEAN: Network Position (/agent-power-framework/network-position)
+CLEAN: Authority Category (/agent-power-framework/authority)

@@ -1,0 +1,101 @@
+=== FORSETI.LIFE SITE TEST REPORT ===
+Generated: Wed Jan  7 02:21:12 PM EST 2026
+Base URL: http://localhost
+
+CLEAN: Home Page (/)
+CLEAN: Home Alt (/home)
+CLEAN: About Forseti (/about)
+HTTP ERROR 302: Talk with Forseti (/talk-with-forseti)
+CLEAN: How It Works (/how-it-works)
+CLEAN: Safety Factors (/safety-factors)
+CLEAN: Safety Map (/safety-map)
+CLEAN: Community (/community)
+CLEAN: Mobile App (/mobile-app)
+CLEAN: Privacy & Security (/privacy)
+CLEAN: Agent Power Framework (/agent-power-framework)
+CLEAN: Evaluated Entities (/agent-power-framework/evaluations)
+HTTP ERROR 403: Evaluate an Agent (/agent-power-framework/evaluate)
+CLEAN: US Government Power (/agent-power-framework/us-government)
+CLEAN: Information Access (/agent-power-framework/information-access)
+CLEAN: Resource Control (/agent-power-framework/resource-control)
+CLEAN: Network Position (/agent-power-framework/network-position)
+CLEAN: Authority Category (/agent-power-framework/authority)
+CLEAN: Synthesis Category (/agent-power-framework/synthesis)
+CLEAN: Scope & Breadth (/agent-power-framework/scope)
+CLEAN: Content Restriction (/agent-power-framework/restriction)
+CLEAN: Classification Access (/agent-power-framework/restriction/classification)
+CLEAN: Temporal Reach (/agent-power-framework/temporal)
+CLEAN: Source Diversity (/agent-power-framework/sources)
+CLEAN: Data Granularity (/agent-power-framework/granularity)
+CLEAN: Authority Level (/agent-power-framework/authority-level)
+CLEAN: Information Synthesis (/agent-power-framework/information-synthesis)
+CLEAN: Data Verification (/agent-power-framework/verification)
+CLEAN: Creativity Generation (/agent-power-framework/creativity-generation)
+CLEAN: Strategic Planning (/agent-power-framework/strategic-planning)
+CLEAN: Decision Quality (/agent-power-framework/decision-quality)
+CLEAN: Adaptive Learning (/agent-power-framework/adaptive-learning)
+CLEAN: Memory Architecture (/agent-power-framework/memory-architecture)
+CLEAN: Computational Resources (/agent-power-framework/computational-resources)
+CLEAN: Financial Capital (/agent-power-framework/financial-capital)
+CLEAN: Infrastructure Access (/agent-power-framework/infrastructure-access)
+CLEAN: Human Capital (/agent-power-framework/human-capital)
+CLEAN: Energy Resources (/agent-power-framework/energy-resources)
+CLEAN: Time Allocation (/agent-power-framework/time-allocation)
+CLEAN: Trust Network Depth (/agent-power-framework/trust-network-depth)
+CLEAN: Dependency Relationships (/agent-power-framework/dependency-relationships)
+CLEAN: Gatekeeping Power (/agent-power-framework/gatekeeping-power)
+CLEAN: Influence Reach (/agent-power-framework/influence-reach)
+CLEAN: Reputation Capital (/agent-power-framework/reputation-capital)
+CLEAN: Mobilization Capability (/agent-power-framework/mobilization-capability)
+CLEAN: Legal Authorization (/agent-power-framework/legal-authorization)
+CLEAN: Decision Making Scope (/agent-power-framework/decision-making-scope)
+CLEAN: Budget Authority (/agent-power-framework/budget-authority)
+CLEAN: Jurisdictional Reach (/agent-power-framework/jurisdictional-reach)
+CLEAN: Enforcement Power (/agent-power-framework/enforcement-power)
+CLEAN: Moral Authority (/agent-power-framework/moral-authority)
+CLEAN: AmISafe Dashboard (/amisafe)
+CLEAN: AmISafe Crime Map (/amisafe/crime-map)
+CLEAN: API System Stats (/api/amisafe/system-stats)
+CLEAN: API Crime Types (/api/amisafe/crime-types)
+CLEAN: API Date Range (/api/amisafe/date-range)
+CLEAN: API Districts (/api/amisafe/districts)
+
+=== SUMMARY ===
+Total Pages Tested: 57
+Pages Clean: 55
+Pages with CSS Issues: 0
+Success Rate: 96%
+Checking forseti_safety_content controllers...
+POSSIBLY MISSING LIBRARY: forseti_safety_content/AgentPowerFrameworkController
+LIBRARY OK: forseti_safety_content/BatchEvaluationController
+LIBRARY OK: forseti_safety_content/ForsetiHomeController
+LIBRARY OK: forseti_safety_content/ForsetiPagesController
+POSSIBLY MISSING LIBRARY: forseti_safety_content/SafetyController
+Checking amisafe controllers...
+POSSIBLY MISSING LIBRARY: amisafe/ApiController
+LIBRARY OK: amisafe/CrimeMapController
+POSSIBLY MISSING LIBRARY: amisafe/MobileDownloadController
+LIBRARY OK: amisafe/TestController
+Checking ai_conversation controllers...
+LIBRARY OK: ai_conversation/AdminController
+LIBRARY OK: ai_conversation/ApiController
+LIBRARY OK: ai_conversation/ChatController
+LIBRARY OK: ai_conversation/UtilityController
+Checking agent_evaluation controllers...
+LIBRARY OK: agent_evaluation/AdminController
+LIBRARY OK: agent_evaluation/ApiController
+LIBRARY OK: agent_evaluation/ChatController
+LIBRARY OK: agent_evaluation/EvaluationController
+LIBRARY OK: agent_evaluation/UtilityController
+
+Controllers checked: 18
+Total Pages Tested: 57
+Pages Clean: 55
+Pages with CSS Issues: 0
+Success Rate: 96%
+=== CONTROLLER LIBRARY CHECK ===
+ERROR: Controllers directory not found
+
+Controllers checked: 0
+Controllers missing site library: 0
+

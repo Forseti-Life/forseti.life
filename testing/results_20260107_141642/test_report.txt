@@ -1,0 +1,74 @@
+=== FORSETI.LIFE SITE TEST REPORT ===
+Generated: Wed Jan  7 02:16:42 PM EST 2026
+Base URL: http://localhost
+
+CLEAN: Home Page (/)
+CLEAN: Home Alt (/home)
+CLEAN: About Forseti (/about)
+HTTP ERROR 302: Talk with Forseti (/talk-with-forseti)
+CLEAN: How It Works (/how-it-works)
+CLEAN: Safety Factors (/safety-factors)
+CLEAN: Safety Map (/safety-map)
+CLEAN: Community (/community)
+CLEAN: Mobile App (/mobile-app)
+CLEAN: Privacy & Security (/privacy)
+CLEAN: Agent Power Framework (/agent-power-framework)
+CLEAN: Evaluated Entities (/agent-power-framework/evaluations)
+HTTP ERROR 403: Evaluate an Agent (/agent-power-framework/evaluate)
+CLEAN: US Government Power (/agent-power-framework/us-government)
+CLEAN: Information Access (/agent-power-framework/information-access)
+CLEAN: Resource Control (/agent-power-framework/resource-control)
+CLEAN: Network Position (/agent-power-framework/network-position)
+CLEAN: Authority Category (/agent-power-framework/authority)
+CLEAN: Synthesis Category (/agent-power-framework/synthesis)
+CLEAN: Scope & Breadth (/agent-power-framework/scope)
+CLEAN: Content Restriction (/agent-power-framework/restriction)
+CLEAN: Classification Access (/agent-power-framework/restriction/classification)
+CLEAN: Temporal Reach (/agent-power-framework/temporal)
+CLEAN: Source Diversity (/agent-power-framework/sources)
+CLEAN: Data Granularity (/agent-power-framework/granularity)
+CLEAN: Authority Level (/agent-power-framework/authority-level)
+CLEAN: Information Synthesis (/agent-power-framework/information-synthesis)
+CLEAN: Data Verification (/agent-power-framework/verification)
+CLEAN: Creativity Generation (/agent-power-framework/creativity-generation)
+CLEAN: Strategic Planning (/agent-power-framework/strategic-planning)
+CLEAN: Decision Quality (/agent-power-framework/decision-quality)
+CLEAN: Adaptive Learning (/agent-power-framework/adaptive-learning)
+CLEAN: Memory Architecture (/agent-power-framework/memory-architecture)
+CLEAN: Computational Resources (/agent-power-framework/computational-resources)
+CLEAN: Financial Capital (/agent-power-framework/financial-capital)
+CLEAN: Infrastructure Access (/agent-power-framework/infrastructure-access)
+Checking forseti_safety_content controllers...
+LIBRARY OK: forseti_safety_content/AgentPowerFrameworkController
+LIBRARY OK: forseti_safety_content/BatchEvaluationController
+LIBRARY OK: forseti_safety_content/ForsetiHomeController
+LIBRARY OK: forseti_safety_content/ForsetiPagesController
+LIBRARY OK: forseti_safety_content/SafetyController
+Checking amisafe controllers...
+LIBRARY OK: amisafe/ApiController
+LIBRARY OK: amisafe/CrimeMapController
+LIBRARY OK: amisafe/MobileDownloadController
+LIBRARY OK: amisafe/TestController
+Checking ai_conversation controllers...
+LIBRARY OK: ai_conversation/AdminController
+LIBRARY OK: ai_conversation/ApiController
+LIBRARY OK: ai_conversation/ChatController
+LIBRARY OK: ai_conversation/UtilityController
+Checking agent_evaluation controllers...
+LIBRARY OK: agent_evaluation/AdminController
+LIBRARY OK: agent_evaluation/ApiController
+LIBRARY OK: agent_evaluation/ChatController
+LIBRARY OK: agent_evaluation/EvaluationController
+LIBRARY OK: agent_evaluation/UtilityController
+
+Controllers checked: 18
+Total Pages Tested: 36
+Pages Clean: 34
+Pages with CSS Issues: 0
+Success Rate: 94%
+=== CONTROLLER LIBRARY CHECK ===
+ERROR: Controllers directory not found
+
+Controllers checked: 0
+Controllers missing site library: 0
+

@@ -74,6 +74,11 @@ class SafetyController extends ControllerBase {
           'style' => 'outline-primary',
         ],
       ],
+      '#attached' => [
+        'library' => [
+          'forseti_safety_content/style',
+        ],
+      ],
       '#cache' => [
         'max-age' => 0,
         'contexts' => ['url'],

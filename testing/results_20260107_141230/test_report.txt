@@ -1,0 +1,5 @@
+=== FORSETI.LIFE SITE TEST REPORT ===
+Generated: Wed Jan  7 02:12:30 PM EST 2026
+Base URL: http://penguin.linux.test
+
+FAILED TO LOAD: Home Page (/)
