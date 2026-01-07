@@ -77,12 +77,20 @@ class AgentEvaluationService {
       // Check if entity already exists
       $existing_entity = $this->findExistingEntity($entity_name);
       if ($existing_entity) {
-        return [
-          'success' => TRUE,
-          'existing' => TRUE,
-          'entity_nid' => $existing_entity->id(),
-          'conversation_nid' => $existing_entity->field_source_conversation->target_id,
-        ];
+        // Check if the existing entity is complete
+        if ($this->isEntityComplete($existing_entity)) {
+          // Entity is complete, return existing
+          return [
+            'success' => TRUE,
+            'existing' => TRUE,
+            'entity_nid' => $existing_entity->id(),
+            'conversation_nid' => $existing_entity->field_source_conversation->target_id,
+          ];
+        }
+        // Entity exists but is incomplete - will re-evaluate below
+        \Drupal::logger('agent_evaluation')->info('Entity "@name" exists but is incomplete. Re-evaluating to fill missing data.', [
+          '@name' => $entity_name,
+        ]);
       }
 
       // Build the system prompt with complete framework context
@@ -105,29 +113,39 @@ class AgentEvaluationService {
       ]);
       $conversation->save();
 
-      // Create the evaluated_entity node with placeholder values
-      $evaluated_entity = $node_storage->create([
-        'type' => 'evaluated_entity',
-        'title' => $entity_name,
-        'uid' => $owner_uid,
-        'status' => 0, // Unpublished until AI completes evaluation
-        'field_source_conversation' => $conversation->id(),
-        'field_total_power' => 0,
-        // Initialize all dimension fields to 0
-        'field_information_access' => 0,
-        'field_resource_control' => 0,
-        'field_authority_permission' => 0,
-        'field_network_position' => 0,
-        'field_synthesis_application' => 0,
-      ]);
-
-      // Initialize all 30 sub-dimension fields to 0
-      $sub_dimensions = $this->getSubDimensionFields();
-      foreach ($sub_dimensions as $field_name) {
-        $evaluated_entity->set($field_name, 0);
+      // Use existing entity or create new one
+      if ($existing_entity) {
+        // Re-use existing entity but update conversation reference
+        $evaluated_entity = $existing_entity;
+        $evaluated_entity->set('field_source_conversation', $conversation->id());
+        $evaluated_entity->set('status', 0); // Unpublish while re-evaluating
+        $evaluated_entity->save();
       }
+      else {
+        // Create the evaluated_entity node with placeholder values
+        $evaluated_entity = $node_storage->create([
+          'type' => 'evaluated_entity',
+          'title' => $entity_name,
+          'uid' => $owner_uid,
+          'status' => 0, // Unpublished until AI completes evaluation
+          'field_source_conversation' => $conversation->id(),
+          'field_total_power' => 0,
+          // Initialize all dimension fields to 0
+          'field_information_access' => 0,
+          'field_resource_control' => 0,
+          'field_authority_permission' => 0,
+          'field_network_position' => 0,
+          'field_synthesis_application' => 0,
+        ]);
 
-      $evaluated_entity->save();
+        // Initialize all 30 sub-dimension fields to 0
+        $sub_dimensions = $this->getSubDimensionFields();
+        foreach ($sub_dimensions as $field_name) {
+          $evaluated_entity->set($field_name, 0);
+        }
+
+        $evaluated_entity->save();
+      }
 
       // Send the initial evaluation message
       $initial_message = $this->buildInitialMessage($entity_name, $evaluated_entity->id());
@@ -322,9 +340,58 @@ For EACH of the 5 main dimensions, you must:
    - Note uncertainty: "⚠️ Limited information available - estimated score"
    - Ask user: "Do you have more specific information about [dimension]?"
 
-**After completing all 5 dimensions**, provide final JSON with both scores AND descriptions:
+## Entity Category Selection
+
+**IMPORTANT**: You must also categorize the entity by selecting the MOST APPROPRIATE category from this list:
+
+- **us_government_executive**: US Government Executive Branch (President, Cabinet, Supreme Court)
+- **us_military_general**: US Military - General/Flag Officers (O-7 to O-10)
+- **us_military_field**: US Military - Field Grade Officers (O-4 to O-6)
+- **us_military_company**: US Military - Company Grade Officers (O-1 to O-3)
+- **us_military_warrant**: US Military - Warrant Officers (WO1 to CW5)
+- **us_military_senior_enlisted**: US Military - Senior Enlisted (E-6 to E-9)
+- **us_military_junior_enlisted**: US Military - Junior Enlisted (E-1 to E-5)
+- **government_agencies**: Government Agencies (NSA, CIA, FBI, NASA, etc.)
+- **intelligence_alliances**: Intelligence Alliances (Five Eyes, etc.)
+- **state_local_government**: State & Local Government (Governors, Police, DMV)
+- **tech_companies**: Tech Companies (Google, Microsoft, OpenAI, etc.)
+- **cybersecurity**: Cybersecurity (CrowdStrike, Palo Alto Networks)
+- **education_learning**: Education & Learning (Khan Academy, Coursera)
+- **legal_services**: Legal Services (Law firms, attorneys)
+- **professional_services**: Professional Services (Accountants, consultants, contractors)
+- **financial_institutions**: Financial Institutions (Banks, payment processors)
+- **healthcare_organizations**: Healthcare Organizations (Hospitals, clinics)
+- **universities**: Universities (MIT, Stanford, Harvard)
+- **research_institutions**: Research Institutions (National Labs, DARPA)
+- **law_enforcement**: Law Enforcement (FBI, local police departments)
+- **transportation**: Transportation (Airlines, transit authorities)
+- **retail_consumer**: Retail & Consumer (Amazon, Walmart, Target)
+- **food_hospitality**: Food & Hospitality (Restaurants, hotels)
+- **manufacturing_industry**: Manufacturing & Industry (Auto, aerospace)
+- **defense_aerospace**: Defense & Aerospace (Lockheed Martin, Boeing)
+- **energy_resources**: Energy & Resources (Oil, gas, utilities)
+- **pharmaceutical**: Pharmaceutical (Pfizer, Moderna)
+- **international_organizations**: International Organizations (UN, NATO, WHO)
+- **nonprofits_research**: Non-Profits & Research (Red Cross, think tanks)
+- **media_publishing**: Media & Publishing (News outlets, publishers)
+- **social_platforms**: Social Platforms (Facebook, Twitter, TikTok)
+- **entertainment_sports**: Entertainment & Sports (Netflix, NFL)
+- **real_estate_construction**: Real Estate & Construction
+- **agriculture_food**: Agriculture & Food Production
+- **telecommunications**: Telecommunications (AT&T, Verizon)
+- **logistics_supply_chain**: Logistics & Supply Chain (FedEx, UPS)
+- **insurance**: Insurance (State Farm, Allstate)
+- **consumer_electronics**: Consumer Electronics & Appliances
+- **fitness_wellness**: Fitness & Wellness (Gyms, fitness apps)
+- **notable_individuals**: Notable Individuals (CEOs, celebrities, leaders)
+- **standards_certification**: Standards & Certification (ISO, IEEE)
+- **ai_systems_automation**: AI Systems & Automation (ChatGPT, Alexa)
+- **basic_services_infrastructure**: Basic Services & Infrastructure (Water, waste, libraries)
+
+**After completing all 5 dimensions**, provide final JSON with scores, descriptions, AND category:
 ```json
 {
+  "field_entity_category": "tech_companies",
   "field_sub_scope": 6,
   "field_sub_scope_desc": "Has access to public + commercial data sources",
   "field_sub_restriction": 7,
@@ -415,7 +482,7 @@ EOT;
    */
   protected function buildInitialMessage($entity_name, $entity_nid) {
     return sprintf(
-      "Please evaluate the entity '%s' using the Agent Power Framework. Provide scores (0-9) for all 30 sub-dimensions and include a JSON block at the end with the field values. The evaluated_entity node ID is %d.",
+      "Please evaluate the entity '%s' using the Agent Power Framework. Provide scores (0-9) for all 30 sub-dimensions, select the most appropriate category, and include a JSON block at the end with ALL field values including 'field_entity_category'. The evaluated_entity node ID is %d.",
       $entity_name,
       $entity_nid
     );
@@ -460,6 +527,69 @@ EOT;
       'field_sub_memory',
       'field_sub_execution',
     ];
+  }
+
+  /**
+   * Checks if an evaluated_entity has all required fields populated.
+   *
+   * @param \Drupal\node\NodeInterface $entity
+   *   The evaluated_entity node to check.
+   *
+   * @return bool
+   *   TRUE if all required fields are populated, FALSE otherwise.
+   */
+  protected function isEntityComplete($entity) {
+    // Check if category field is populated
+    if (!$entity->hasField('field_entity_category') || $entity->get('field_entity_category')->isEmpty()) {
+      return FALSE;
+    }
+
+    // Check all 30 sub-dimension score fields
+    $sub_dimensions = $this->getSubDimensionFields();
+    foreach ($sub_dimensions as $field_name) {
+      if (!$entity->hasField($field_name)) {
+        return FALSE;
+      }
+      
+      $value = $entity->get($field_name)->value;
+      // Consider 0 as incomplete (placeholder value)
+      if ($value === NULL || $value === '' || $value === 0) {
+        return FALSE;
+      }
+    }
+
+    // Check main dimension fields
+    $main_dimensions = [
+      'field_information_access',
+      'field_resource_control',
+      'field_authority_permission',
+      'field_network_position',
+      'field_synthesis_application',
+    ];
+    
+    foreach ($main_dimensions as $field_name) {
+      if (!$entity->hasField($field_name)) {
+        return FALSE;
+      }
+      
+      $value = $entity->get($field_name)->value;
+      if ($value === NULL || $value === '' || $value === 0) {
+        return FALSE;
+      }
+    }
+
+    // Check total power score
+    if (!$entity->hasField('field_total_power')) {
+      return FALSE;
+    }
+    
+    $total_power = $entity->get('field_total_power')->value;
+    if ($total_power === NULL || $total_power === '' || $total_power === 0) {
+      return FALSE;
+    }
+
+    // All checks passed - entity is complete
+    return TRUE;
   }
 
   /**

@@ -244,3 +244,146 @@ function forseti_safety_content_update_9003() {
   
   return implode(' | ', $messages);
 }
+
+/**
+ * Add entity category field to evaluated_entity content type.
+ */
+function forseti_safety_content_update_9004() {
+  $config_factory = \Drupal::configFactory();
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $logger = \Drupal::logger('forseti_safety_content');
+  $messages = [];
+  
+  // Check if field storage already exists
+  $field_storage = \Drupal\field\Entity\FieldStorageConfig::loadByName('node', 'field_entity_category');
+  
+  if (!$field_storage) {
+    // Create field storage from config
+    $field_storage_config = [
+      'field_name' => 'field_entity_category',
+      'entity_type' => 'node',
+      'type' => 'list_string',
+      'cardinality' => 1,
+      'settings' => [
+        'allowed_values' => [
+          'us_government_executive' => 'US Government Executive Branch',
+          'us_military_general' => 'US Military - General/Flag Officers',
+          'us_military_field' => 'US Military - Field Grade Officers',
+          'us_military_company' => 'US Military - Company Grade Officers',
+          'us_military_warrant' => 'US Military - Warrant Officers',
+          'us_military_senior_enlisted' => 'US Military - Senior Enlisted',
+          'us_military_junior_enlisted' => 'US Military - Junior Enlisted',
+          'government_agencies' => 'Government Agencies',
+          'intelligence_alliances' => 'Intelligence Alliances',
+          'state_local_government' => 'State & Local Government',
+          'tech_companies' => 'Tech Companies',
+          'cybersecurity' => 'Cybersecurity',
+          'education_learning' => 'Education & Learning',
+          'legal_services' => 'Legal Services',
+          'professional_services' => 'Professional Services',
+          'financial_institutions' => 'Financial Institutions',
+          'healthcare_organizations' => 'Healthcare Organizations',
+          'universities' => 'Universities',
+          'research_institutions' => 'Research Institutions',
+          'law_enforcement' => 'Law Enforcement',
+          'transportation' => 'Transportation',
+          'retail_consumer' => 'Retail & Consumer',
+          'food_hospitality' => 'Food & Hospitality',
+          'manufacturing_industry' => 'Manufacturing & Industry',
+          'defense_aerospace' => 'Defense & Aerospace',
+          'energy_resources' => 'Energy & Resources',
+          'pharmaceutical' => 'Pharmaceutical',
+          'international_organizations' => 'International Organizations',
+          'nonprofits_research' => 'Non-Profits & Research',
+          'media_publishing' => 'Media & Publishing',
+          'social_platforms' => 'Social Platforms',
+          'entertainment_sports' => 'Entertainment & Sports',
+          'real_estate_construction' => 'Real Estate & Construction',
+          'agriculture_food' => 'Agriculture & Food Production',
+          'telecommunications' => 'Telecommunications',
+          'logistics_supply_chain' => 'Logistics & Supply Chain',
+          'insurance' => 'Insurance',
+          'consumer_electronics' => 'Consumer Electronics & Appliances',
+          'fitness_wellness' => 'Fitness & Wellness',
+          'notable_individuals' => 'Notable Individuals',
+          'standards_certification' => 'Standards & Certification',
+          'ai_systems_automation' => 'AI Systems & Automation',
+          'basic_services_infrastructure' => 'Basic Services & Infrastructure',
+        ],
+      ],
+    ];
+    
+    $field_storage = \Drupal\field\Entity\FieldStorageConfig::create($field_storage_config);
+    $field_storage->save();
+    $messages[] = t('Created field_entity_category storage');
+    $logger->info('Created field_entity_category storage');
+  }
+  else {
+    $messages[] = t('Field storage field_entity_category already exists');
+    $logger->info('Field storage field_entity_category already exists');
+  }
+  
+  // Check if field instance already exists
+  $field = \Drupal\field\Entity\FieldConfig::loadByName('node', 'evaluated_entity', 'field_entity_category');
+  
+  if (!$field) {
+    // Create field instance
+    $field_config = [
+      'field_name' => 'field_entity_category',
+      'entity_type' => 'node',
+      'bundle' => 'evaluated_entity',
+      'label' => 'Entity Category',
+      'description' => 'The category this entity belongs to (e.g., Tech Companies, Government Agencies, Healthcare Organizations)',
+      'required' => FALSE, // Not required to preserve existing nodes
+      'translatable' => FALSE,
+    ];
+    
+    $field = \Drupal\field\Entity\FieldConfig::create($field_config);
+    $field->save();
+    $messages[] = t('Added field_entity_category to evaluated_entity content type');
+    $logger->info('Added field_entity_category to evaluated_entity content type');
+  }
+  else {
+    $messages[] = t('Field field_entity_category already exists on evaluated_entity');
+    $logger->info('Field field_entity_category already exists on evaluated_entity');
+  }
+  
+  // Update form display
+  $form_display = $entity_type_manager
+    ->getStorage('entity_form_display')
+    ->load('node.evaluated_entity.default');
+    
+  if ($form_display && !$form_display->getComponent('field_entity_category')) {
+    $form_display->setComponent('field_entity_category', [
+      'type' => 'options_select',
+      'weight' => 1,
+      'settings' => [],
+    ]);
+    $form_display->save();
+    $messages[] = t('Updated form display for entity category field');
+    $logger->info('Updated form display for entity category field');
+  }
+  
+  // Update view display
+  $view_display = $entity_type_manager
+    ->getStorage('entity_view_display')
+    ->load('node.evaluated_entity.default');
+    
+  if ($view_display && !$view_display->getComponent('field_entity_category')) {
+    $view_display->setComponent('field_entity_category', [
+      'type' => 'list_default',
+      'weight' => 1,
+      'label' => 'above',
+      'settings' => [],
+    ]);
+    $view_display->save();
+    $messages[] = t('Updated view display for entity category field');
+    $logger->info('Updated view display for entity category field');
+  }
+  
+  // Clear cache
+  drupal_flush_all_caches();
+  $messages[] = t('Cleared all caches');
+  
+  return implode(' | ', $messages);
+}

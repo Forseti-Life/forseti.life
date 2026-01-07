@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.evaluated_entity.field_entity_category
+    - node.type.evaluated_entity
+  module:
+    - options
+id: core.entity_form_display.node.evaluated_entity.default
+targetEntityType: node
+bundle: evaluated_entity
+mode: default
+content:
+  field_entity_category:
+    type: options_select
+    weight: 1
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden: {  }
