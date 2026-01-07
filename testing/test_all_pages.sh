@@ -2,15 +2,38 @@
 
 # Site Testing Script for Forseti.Life
 # Tests all pages for CSS being displayed as text content
-# Usage: ./test_all_pages.sh
+# Usage: ./test_all_pages.sh [prod|dev]
+#   prod - Test production site (https://forseti.life)
+#   dev  - Test local development (http://localhost) [default]
 
 set -e
 
-# Configuration
-BASE_URL="http://localhost"
+# Determine environment
+ENVIRONMENT="${1:-dev}"
+
+# Configuration based on environment
+if [ "$ENVIRONMENT" = "prod" ] || [ "$ENVIRONMENT" = "production" ]; then
+    BASE_URL="https://forseti.life"
+    ENV_NAME="PRODUCTION"
+elif [ "$ENVIRONMENT" = "dev" ] || [ "$ENVIRONMENT" = "local" ]; then
+    BASE_URL="http://localhost"
+    ENV_NAME="DEVELOPMENT"
+else
+    echo "Invalid environment: $ENVIRONMENT"
+    echo "Usage: $0 [prod|dev]"
+    echo "  prod - Test production site (https://forseti.life)"
+    echo "  dev  - Test local development (http://localhost) [default]"
+    exit 1
+fi
+
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-RESULTS_DIR="/home/keithaumiller/forseti.life/testing/results_${TIMESTAMP}"
+RESULTS_DIR="/home/keithaumiller/forseti.life/testing/results_${ENV_NAME}_${TIMESTAMP}"
 REPORT_FILE="${RESULTS_DIR}/test_report.txt"
+URLS_CONFIG_FILE="${RESULTS_DIR}/discovered_urls.txt"
+ALL_LINKS_FILE="${RESULTS_DIR}/all_links_by_page.txt"
+
+# Persistent URL configuration file (not timestamped)
+PERSISTENT_URL_CONFIG="/home/keithaumiller/forseti.life/testing/test_urls_config.txt"
 
 # Create results directory
 mkdir -p "$RESULTS_DIR"
@@ -26,10 +49,33 @@ NC='\033[0m' # No Color
 TOTAL_PAGES=0
 PAGES_WITH_CSS_ISSUES=0
 PAGES_CLEAN=0
+TOTAL_LINKS_FOUND=0
 
-echo -e "${BLUE}=== Forseti.Life Site Testing ===${NC}"
+echo -e "${BLUE}=== Forseti.Life Site Testing - $ENV_NAME ===${NC}"
 echo "Testing all pages for CSS display issues..."
+echo "Base URL: $BASE_URL"
 echo "Results will be saved to: $RESULTS_DIR"
+echo ""
+
+# Initialize URL tracking files
+touch "$URLS_CONFIG_FILE"
+touch "$ALL_LINKS_FILE"
+
+# Check if we should use the persistent URL config
+USE_URL_CONFIG=false
+if [ -f "$PERSISTENT_URL_CONFIG" ] && [ -s "$PERSISTENT_URL_CONFIG" ]; then
+    url_count=$(wc -l < "$PERSISTENT_URL_CONFIG")
+    echo -e "${YELLOW}Found existing URL config with $url_count URLs${NC}"
+    echo -e "${BLUE}Use URL config for testing? (y/n) [default: n]:${NC} "
+    read -t 10 -n 1 use_config_response || use_config_response="n"
+    echo ""
+    if [ "$use_config_response" = "y" ] || [ "$use_config_response" = "Y" ]; then
+        USE_URL_CONFIG=true
+        echo -e "${GREEN}✓ Will test URLs from config file${NC}"
+    else
+        echo -e "${YELLOW}→ Using default test pages${NC}"
+    fi
+fi
 echo ""
 
 # Function to test a single page
@@ -75,6 +121,59 @@ test_page() {
         echo -e "${YELLOW}  ⚠️  CSS ISSUES DETECTED: $css_text_count CSS properties as text, $style_tag_count style tags${NC}"
         echo "CSS ISSUES: $page_name ($endpoint) - $css_text_count CSS properties, $style_tag_count style tags" >> "$REPORT_FILE"
     else
+    # Extract all links from the page
+    if [ -f "${RESULTS_DIR}/${page_name}_content.html" ]; then
+        echo "" >> "$ALL_LINKS_FILE"
+        echo "=== Links found on: $page_name ($endpoint) ===" >> "$ALL_LINKS_FILE"
+        
+        # Extract href attributes and clean them up
+        grep -oP 'href="[^"]*"' "${RESULTS_DIR}/${page_name}_content.html" 2>/dev/null | \
+            sed 's/href="//g' | sed 's/"//g' | \
+            grep -v '^#' | \
+            grep -v '^javascript:' | \
+            grep -v '^mailto:' | \
+            grep -v '^tel:' | \
+            sort -u >> "$ALL_LINKS_FILE" 2>/dev/null || true
+        
+        # Count links found
+        link_count=$(grep -oP 'href="[^"]*"' "${RESULTS_DIR}/${page_name}_content.html" 2>/dev/null | wc -l || echo "0")
+        TOTAL_LINKS_FOUND=$((TOTAL_LINKS_FOUND + link_count))
+        echo "  📎 Found $link_count links"
+        
+        # Extract internal links and add to discovered URLs (removing duplicates)
+        grep -oP 'href="[^"]*"' "${RESULTS_DIR}/${page_name}_content.html" 2>/dev/null | \
+            sed 's/href="//g' | sed 's/"//g' | \
+            grep -v '^http' | \
+            grep -v '^#' | \
+            grep -v '^javascript:' | \
+      Testing Mode: $([ "$USE_URL_CONFIG" = true ] && echo "URL Config File" || echo "Default Pages")" >> "$REPORT_FILE"
+echo "" >> "$REPORT_FILE"
+
+# Test pages based on mode
+if [ "$USE_URL_CONFIG" = true ]; then
+    echo -e "${YELLOW}Testing URLs from config file...${NC}"
+    
+    # Read URLs from config and test each one
+    while IFS= read -r url_path; do
+        # Skip empty lines and comments
+        [[ -z "$url_path" || "$url_path" =~ ^# ]] && continue
+        
+        # Skip asset files (CSS, JS, images)
+        [[ "$url_path" =~ \.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)(\?.*)?$ ]] && continue
+        
+        # Clean up the URL
+        url_path=$(echo "$url_path" | sed 's/&amp;/\&/g' | sed 's/\?.*$//')
+        
+        # Generate a clean page name from the URL
+        page_name=$(echo "$url_path" | sed 's/^\/\+//g' | sed 's/\//-/g' | sed 's/[^a-zA-Z0-9-]/_/g')
+        [ -z "$page_name" ] && page_name="home"
+        
+        test_page "$BASE_URL$url_path" "$page_name" "$url_path"
+    done < "$PERSISTENT_URL_CONFIG"
+else
+    # Test default pages (original hardcoded list)
+        fi
+    
         PAGES_CLEAN=$((PAGES_CLEAN + 1))
         echo -e "${GREEN}  ✅ CLEAN${NC}"
         echo "CLEAN: $page_name ($endpoint)" >> "$REPORT_FILE"
@@ -84,7 +183,7 @@ test_page() {
 }
 
 # Initialize report
-echo "=== FORSETI.LIFE SITE TEST REPORT ===" > "$REPORT_FILE"
+echo "=== FORSETI.LIFE SITE TEST REPORT - $ENV_NAME ===" > "$REPORT_FILE"
 echo "Generated: $(date)" >> "$REPORT_FILE"
 echo "Base URL: $BASE_URL" >> "$REPORT_FILE"
 echo "" >> "$REPORT_FILE"
@@ -143,7 +242,42 @@ test_page "$BASE_URL/agent-power-framework/time-allocation" "Time Allocation" "/
 
 echo -e "${YELLOW}Testing Network Position Dimensions...${NC}"
 test_page "$BASE_URL/agent-power-framework/trust-network-depth" "Trust Network Depth" "/agent-power-framework/trust-network-depth"
-test_page "$BASE_URL/agent-power-framework/dependency-relationships" "Dependency Relationships" "/agent-power-framework/dependency-relationships"
+test_page "$BASE_URL/agent-power-framework/dependency-relationships" "Dependency
+echo "Total Links Found: $TOTAL_LINKS_FOUND" >> "$REPORT_FILE"
+
+# Process discovered URLs - remove duplicates and sort
+if [ -f "$URLS_CONFIG_FILE" ]; then
+    sort -u "$URLS_CONFIG_FILE" -o "$URLS_CONFIG_FILE"
+    unique_urls=$(wc -l < "$URLS_CONFIG_FILE")
+    echo "Unique Internal URLs Discovered: $unique_urls" >> "$REPORT_FILE"
+    
+    # Update persistent URL config file
+    if [ -f "$PERSISTENT_URL_CONFIG" ]; then
+        # Merge with existing URLs
+        cat "$PERSISTENT_URL_CONFIG" "$URLS_CONFIG_FILE" | sort -u > "${PERSISTENT_URL_CONFIG}.tmp"
+        mv "${PERSISTENT_URL_CONFIG}.tmp" "$PERSISTENT_URL_CONFIG"
+        persistent_urls=$(wc -l < "$PERSISTENT_URL_CONFIG")
+        new_urls=$((persistent_urls - $(wc -l < "$PERSISTENT_URL_CONFIG" 2>/dev/null || echo 0)))
+        echo -e "${GREEN}✓ Updated persistent URL config${NC}"
+        echo -e "  Total URLs in config: ${BLUE}$persistent_urls${NC}"
+        [ $new_urls -gt 0 ] && echo -e "  New URLs added: ${YELLOW}$new_urls${NC}"
+    else
+        # Create new persistent config
+        cp "$URLS_CONFIG_FILE" "$PERSISTENT_URL_CONFIG"
+        echo -e "${GREEN}✓ Created new persistent URL config${NC}"
+        echo -e "  URLs saved: ${BLUE}$unique_urls${NC}"
+    fi
+    
+    echo ""
+    echo -e "${BLUE}=== URL DISCOVERY SUMMARY ===${NC}"
+    echo -e "Total links found: ${YELLOW}$TOTAL_LINKS_FOUND${NC}"
+    echo -e "Unique internal URLs: ${YELLOW}$unique_urls${NC}"
+    echo -e "Persistent config: ${BLUE}$PERSISTENT_URL_CONFIG${NC}"
+    echo -e "URLs saved to: ${BLUE}$URLS_CONFIG_FILE${NC}"
+    echo -e "Full link report: ${BLUE}$ALL_LINKS_FILE${NC}"
+
+fi  # End of URL config mode check
+fi Relationships" "/agent-power-framework/dependency-relationships"
 test_page "$BASE_URL/agent-power-framework/gatekeeping-power" "Gatekeeping Power" "/agent-power-framework/gatekeeping-power"
 test_page "$BASE_URL/agent-power-framework/influence-reach" "Influence Reach" "/agent-power-framework/influence-reach"
 test_page "$BASE_URL/agent-power-framework/reputation-capital" "Reputation Capital" "/agent-power-framework/reputation-capital"
