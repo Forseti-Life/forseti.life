@@ -96,6 +96,9 @@ drupal/web/sites/default/files/*
 # Drush cache
 .drush/
 
+# Testing results
+testing/results/
+
 # OS generated files
 *~
 .fuse_hidden*

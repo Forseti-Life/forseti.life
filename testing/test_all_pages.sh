@@ -27,7 +27,7 @@ else
 fi
 
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-RESULTS_DIR="/home/keithaumiller/forseti.life/testing/results_${ENV_NAME}_${TIMESTAMP}"
+RESULTS_DIR="/home/keithaumiller/forseti.life/testing/results/results_${ENV_NAME}_${TIMESTAMP}"
 REPORT_FILE="${RESULTS_DIR}/test_report.txt"
 URLS_CONFIG_FILE="${RESULTS_DIR}/discovered_urls.txt"
 ALL_LINKS_FILE="${RESULTS_DIR}/all_links_by_page.txt"
@@ -66,8 +66,8 @@ USE_URL_CONFIG=false
 if [ -f "$PERSISTENT_URL_CONFIG" ] && [ -s "$PERSISTENT_URL_CONFIG" ]; then
     url_count=$(wc -l < "$PERSISTENT_URL_CONFIG")
     echo -e "${YELLOW}Found existing URL config with $url_count URLs${NC}"
-    echo -e "${BLUE}Use URL config for testing? (y/n) [default: n]:${NC} "
-    read -t 10 -n 1 use_config_response || use_config_response="n"
+    echo -n -e "${BLUE}Use URL config for testing? (y/n) [default: n]: ${NC}"
+    read -t 10 -n 1 use_config_response 2>/dev/null || use_config_response="n"
     echo ""
     if [ "$use_config_response" = "y" ] || [ "$use_config_response" = "Y" ]; then
         USE_URL_CONFIG=true
@@ -121,6 +121,11 @@ test_page() {
         echo -e "${YELLOW}  ⚠️  CSS ISSUES DETECTED: $css_text_count CSS properties as text, $style_tag_count style tags${NC}"
         echo "CSS ISSUES: $page_name ($endpoint) - $css_text_count CSS properties, $style_tag_count style tags" >> "$REPORT_FILE"
     else
+        PAGES_CLEAN=$((PAGES_CLEAN + 1))
+        echo -e "${GREEN}  ✅ CLEAN${NC}"
+        echo "CLEAN: $page_name ($endpoint)" >> "$REPORT_FILE"
+    fi
+    
     # Extract all links from the page
     if [ -f "${RESULTS_DIR}/${page_name}_content.html" ]; then
         echo "" >> "$ALL_LINKS_FILE"
@@ -146,7 +151,20 @@ test_page() {
             grep -v '^http' | \
             grep -v '^#' | \
             grep -v '^javascript:' | \
-      Testing Mode: $([ "$USE_URL_CONFIG" = true ] && echo "URL Config File" || echo "Default Pages")" >> "$REPORT_FILE"
+            grep -v '^mailto:' | \
+            grep -v '^tel:' | \
+            sed 's/&amp;/\&/g' | \
+            sort -u >> "$URLS_CONFIG_FILE" 2>/dev/null || true
+    fi
+    
+    echo ""
+}
+
+# Initialize report
+echo "=== FORSETI.LIFE SITE TEST REPORT - $ENV_NAME ===" > "$REPORT_FILE"
+echo "Generated: $(date)" >> "$REPORT_FILE"
+echo "Base URL: $BASE_URL" >> "$REPORT_FILE"
+echo "Testing Mode: $([ "$USE_URL_CONFIG" = true ] && echo "URL Config File" || echo "Default Pages")" >> "$REPORT_FILE"
 echo "" >> "$REPORT_FILE"
 
 # Test pages based on mode
@@ -161,6 +179,9 @@ if [ "$USE_URL_CONFIG" = true ]; then
         # Skip asset files (CSS, JS, images)
         [[ "$url_path" =~ \.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)(\?.*)?$ ]] && continue
         
+        # Skip node URLs (Drupal node IDs)
+        [[ "$url_path" =~ /node/ ]] && continue
+        
         # Clean up the URL
         url_path=$(echo "$url_path" | sed 's/&amp;/\&/g' | sed 's/\?.*$//')
         
@@ -172,22 +193,6 @@ if [ "$USE_URL_CONFIG" = true ]; then
     done < "$PERSISTENT_URL_CONFIG"
 else
     # Test default pages (original hardcoded list)
-        fi
-    
-        PAGES_CLEAN=$((PAGES_CLEAN + 1))
-        echo -e "${GREEN}  ✅ CLEAN${NC}"
-        echo "CLEAN: $page_name ($endpoint)" >> "$REPORT_FILE"
-    fi
-    
-    echo ""
-}
-
-# Initialize report
-echo "=== FORSETI.LIFE SITE TEST REPORT - $ENV_NAME ===" > "$REPORT_FILE"
-echo "Generated: $(date)" >> "$REPORT_FILE"
-echo "Base URL: $BASE_URL" >> "$REPORT_FILE"
-echo "" >> "$REPORT_FILE"
-
 # Test all main pages
 echo -e "${YELLOW}Testing Main Navigation Pages...${NC}"
 test_page "$BASE_URL/" "Home Page" "/"
@@ -242,42 +247,7 @@ test_page "$BASE_URL/agent-power-framework/time-allocation" "Time Allocation" "/
 
 echo -e "${YELLOW}Testing Network Position Dimensions...${NC}"
 test_page "$BASE_URL/agent-power-framework/trust-network-depth" "Trust Network Depth" "/agent-power-framework/trust-network-depth"
-test_page "$BASE_URL/agent-power-framework/dependency-relationships" "Dependency
-echo "Total Links Found: $TOTAL_LINKS_FOUND" >> "$REPORT_FILE"
-
-# Process discovered URLs - remove duplicates and sort
-if [ -f "$URLS_CONFIG_FILE" ]; then
-    sort -u "$URLS_CONFIG_FILE" -o "$URLS_CONFIG_FILE"
-    unique_urls=$(wc -l < "$URLS_CONFIG_FILE")
-    echo "Unique Internal URLs Discovered: $unique_urls" >> "$REPORT_FILE"
-    
-    # Update persistent URL config file
-    if [ -f "$PERSISTENT_URL_CONFIG" ]; then
-        # Merge with existing URLs
-        cat "$PERSISTENT_URL_CONFIG" "$URLS_CONFIG_FILE" | sort -u > "${PERSISTENT_URL_CONFIG}.tmp"
-        mv "${PERSISTENT_URL_CONFIG}.tmp" "$PERSISTENT_URL_CONFIG"
-        persistent_urls=$(wc -l < "$PERSISTENT_URL_CONFIG")
-        new_urls=$((persistent_urls - $(wc -l < "$PERSISTENT_URL_CONFIG" 2>/dev/null || echo 0)))
-        echo -e "${GREEN}✓ Updated persistent URL config${NC}"
-        echo -e "  Total URLs in config: ${BLUE}$persistent_urls${NC}"
-        [ $new_urls -gt 0 ] && echo -e "  New URLs added: ${YELLOW}$new_urls${NC}"
-    else
-        # Create new persistent config
-        cp "$URLS_CONFIG_FILE" "$PERSISTENT_URL_CONFIG"
-        echo -e "${GREEN}✓ Created new persistent URL config${NC}"
-        echo -e "  URLs saved: ${BLUE}$unique_urls${NC}"
-    fi
-    
-    echo ""
-    echo -e "${BLUE}=== URL DISCOVERY SUMMARY ===${NC}"
-    echo -e "Total links found: ${YELLOW}$TOTAL_LINKS_FOUND${NC}"
-    echo -e "Unique internal URLs: ${YELLOW}$unique_urls${NC}"
-    echo -e "Persistent config: ${BLUE}$PERSISTENT_URL_CONFIG${NC}"
-    echo -e "URLs saved to: ${BLUE}$URLS_CONFIG_FILE${NC}"
-    echo -e "Full link report: ${BLUE}$ALL_LINKS_FILE${NC}"
-
-fi  # End of URL config mode check
-fi Relationships" "/agent-power-framework/dependency-relationships"
+test_page "$BASE_URL/agent-power-framework/dependency-relationships" "Dependency Relationships" "/agent-power-framework/dependency-relationships"
 test_page "$BASE_URL/agent-power-framework/gatekeeping-power" "Gatekeeping Power" "/agent-power-framework/gatekeeping-power"
 test_page "$BASE_URL/agent-power-framework/influence-reach" "Influence Reach" "/agent-power-framework/influence-reach"
 test_page "$BASE_URL/agent-power-framework/reputation-capital" "Reputation Capital" "/agent-power-framework/reputation-capital"
@@ -404,6 +374,44 @@ echo "" >> "$REPORT_FILE"
 echo "Controllers checked: $(ls "$CONTROLLERS_DIR"/*.php 2>/dev/null | wc -l)" >> "$REPORT_FILE"
 echo "Controllers missing site library: $CONTROLLERS_WITHOUT_SITE_LIB" >> "$REPORT_FILE"
 echo "" >> "$REPORT_FILE"
+
+fi  # End of URL config mode check
+
+# Process discovered URLs - remove duplicates and sort
+if [ -f "$URLS_CONFIG_FILE" ]; then
+    sort -u "$URLS_CONFIG_FILE" -o "$URLS_CONFIG_FILE"
+    unique_urls=$(wc -l < "$URLS_CONFIG_FILE")
+    echo "Total Links Found: $TOTAL_LINKS_FOUND" >> "$REPORT_FILE"
+    echo "Unique Internal URLs Discovered: $unique_urls" >> "$REPORT_FILE"
+    
+    # Update persistent URL config file
+    if [ -f "$PERSISTENT_URL_CONFIG" ]; then
+        # Count URLs before merge
+        before_count=$(wc -l < "$PERSISTENT_URL_CONFIG")
+        # Merge with existing URLs
+        cat "$PERSISTENT_URL_CONFIG" "$URLS_CONFIG_FILE" | sort -u > "${PERSISTENT_URL_CONFIG}.tmp"
+        mv "${PERSISTENT_URL_CONFIG}.tmp" "$PERSISTENT_URL_CONFIG"
+        persistent_urls=$(wc -l < "$PERSISTENT_URL_CONFIG")
+        new_urls=$((persistent_urls - before_count))
+        echo -e "${GREEN}✓ Updated persistent URL config${NC}"
+        echo -e "  Total URLs in config: ${BLUE}$persistent_urls${NC}"
+        [ $new_urls -gt 0 ] && echo -e "  New URLs added: ${YELLOW}$new_urls${NC}"
+    else
+        # Create new persistent config
+        cp "$URLS_CONFIG_FILE" "$PERSISTENT_URL_CONFIG"
+        echo -e "${GREEN}✓ Created new persistent URL config${NC}"
+        echo -e "  URLs saved: ${BLUE}$unique_urls${NC}"
+    fi
+    
+    echo ""
+    echo -e "${BLUE}=== URL DISCOVERY SUMMARY ===${NC}"
+    echo -e "Total links found: ${YELLOW}$TOTAL_LINKS_FOUND${NC}"
+    echo -e "Unique internal URLs: ${YELLOW}$unique_urls${NC}"
+    echo -e "Persistent config: ${BLUE}$PERSISTENT_URL_CONFIG${NC}"
+    echo -e "URLs saved to: ${BLUE}$URLS_CONFIG_FILE${NC}"
+    echo -e "Full link report: ${BLUE}$ALL_LINKS_FILE${NC}"
+    echo ""
+fi
 
 # Display final summary
 echo -e "${BLUE}=== TEST SUMMARY ===${NC}"
