@@ -28,7 +28,7 @@
         {% if node.field_entity_category.value %}
           <div class="mb-3">
             <span class="badge bg-primary" style="font-size: 1rem; padding: 0.4rem 0.8rem;">
-              <i class="fas fa-tag"></i> {{ node.field_entity_category.value|replace('_', ' ')|title }}
+              <i class="fas fa-tag"></i> {{ node.field_entity_category.value|replace({'_': ' '})|title }}
             </span>
           </div>
         {% endif %}
