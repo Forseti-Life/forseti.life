@@ -1506,10 +1506,61 @@ class AgentPowerFrameworkController extends ControllerBase {
    */
   private function getExampleEntitiesList() {
     return [
+      'US Government Executive Branch' => [
+        'President of the United States', 'Secretary of Defense', 'Treasury Secretary',
+        'Cabinet Secretaries', 'Supreme Court Justices', 'Federal Judges',
+      ],
+      'US Military - General/Flag Officers' => [
+        'Chairman, Joint Chiefs of Staff', 'Combatant Commander',
+        'Lieutenant General / Vice Admiral (O-9)',
+        'Major General / Rear Admiral Upper (O-8)',
+        'Brigadier General / Rear Admiral Lower (O-7)',
+      ],
+      'US Military - Field Grade Officers' => [
+        'Colonel / Captain Navy (O-6)',
+        'Lieutenant Colonel / Commander (O-5)',
+        'Major / Lieutenant Commander (O-4)',
+      ],
+      'US Military - Company Grade Officers' => [
+        'Captain / Lieutenant Navy (O-3)',
+        'First Lieutenant / Lieutenant JG (O-2)',
+        'Second Lieutenant / Ensign (O-1)',
+      ],
+      'US Military - Warrant Officers' => [
+        'Warrant Officer 5 (CW5)',
+        'Warrant Officer 4 (CW4)',
+        'Warrant Officer 3 (CW3)',
+        'Warrant Officer 2 (CW2)',
+        'Warrant Officer 1 (WO1)',
+      ],
+      'US Military - Senior Enlisted' => [
+        'Sergeant Major / Master Chief (E-9)',
+        'First Sergeant / Senior Chief (E-8)',
+        'Master Sergeant / Chief (E-7)',
+        'Staff Sergeant / Petty Officer 1st (E-6)',
+      ],
+      'US Military - Junior Enlisted' => [
+        'Sergeant / Petty Officer 2nd (E-5)',
+        'Corporal / Petty Officer 3rd (E-4)',
+        'Specialist / Seaman (E-4)',
+        'Private First Class / Seaman Apprentice (E-3)',
+        'Private / Seaman Recruit (E-2)',
+        'Private Recruit / Seaman Recruit (E-1)',
+      ],
       'Government Agencies' => [
         'NSA', 'CIA', 'FBI', 'DARPA', 'NASA', 'DOE', 'DEA', 'ATF', 'NIST', 'DHS', 'CISA', 'FDA',
-        'EPA', 'NOAA', 'CDC', 'IRS', 'Social Security Administration', 'Veterans Affairs', 'USPS',
-        'Federal Reserve', 'Pentagon', 'Department of Defense',
+        'EPA', 'NOAA', 'CDC', 'IRS', 'NIH', 'Social Security Administration', 'Veterans Affairs', 'USPS',
+        'Federal Reserve', 'Pentagon', 'Department of Defense', 'OSHA', 'FCC', 'SEC', 'FINRA',
+        'Congressional Research Service', 'Better Business Bureau', 'U.S. Census Bureau',
+      ],
+      'Intelligence Alliances' => [
+        'Five Eyes Intelligence Alliance',
+      ],
+      'State & Local Government' => [
+        'State Governors', 'State Supreme Courts', 'State Attorneys General', 'DMV',
+        'State Health Departments', 'City Councils', 'County Sheriffs', 'Municipal Judges',
+        'Regional Transit Authorities', 'State District Courts', 'City Police Departments',
+        'Local BBB Offices', 'Municipal Building Permit Offices', 'Emergency Management',
       ],
       'Tech Companies' => [
         'OpenAI', 'Anthropic', 'Google', 'Microsoft', 'Meta', 'Amazon', 'Apple', 'IBM', 'NVIDIA',
@@ -1519,64 +1570,183 @@ class AgentPowerFrameworkController extends ControllerBase {
         'Character.AI', 'Runway ML', 'Midjourney', 'xAI', 'AI21 Labs', 'Netflix', 'Uber',
         'Spotify', 'Target', 'Walmart', 'TikTok', 'Instagram', 'YouTube', 'Twitter/X',
         'LinkedIn', 'Disney+', 'Comcast', 'AT&T', 'Verizon', 'Cloudflare', 'Akamai',
+        'SAP', 'Salesforce', 'Oracle', 'Siemens', 'Bosch', 'Tesla', 'Coca-Cola', 'Unilever',
+        'Nike', 'DuckDuckGo', 'Notion', 'Obsidian', 'Canva', 'Grammarly', 'Zoom',
+        'Bluehost', 'GoDaddy', 'WordPress', 'Linode', 'AWS', 'Azure', 'Google Cloud',
+      ],
+      'Cybersecurity' => [
+        'CrowdStrike', 'Palo Alto Networks', 'Facebook/Twitter Content Moderation',
+        'Turnitin', 'IRS Audit Systems',
+      ],
+      'Education & Learning' => [
+        'ABCmouse', 'Khan Academy', 'Duolingo', 'Coursera', 'edX',
+      ],
+      'Legal Services' => [
+        'Wachtell Lipton', 'Westlaw', 'Public Defenders', 'District Attorneys',
+        'Law Firm Associates', 'Solo Practitioners',
+      ],
+      'Professional Services' => [
+        'Accounting Firms (CPA)', 'Engineering Firms (PE)',
+        'Architecture Firms (AIA)', 'Real Estate Agents', 'Insurance Agents',
+        'Licensed Electricians', 'Licensed Plumbers', 'HVAC Technicians',
+        'Licensed Cosmetologists', 'Management Consultants', 'Freelance Graphic Designers',
       ],
       'Financial Institutions' => [
         'Bank of America', 'Wells Fargo', 'Fifth Third Bank', 'Citibank', 'HSBC',
-        'SWIFT Network', 'Bloomberg Terminal', 'Federal Reserve',
+        'SWIFT Network', 'Bloomberg Terminal', 'Federal Reserve', 'Visa', 'Mastercard',
+        'PayPal', 'Stripe', 'Square', 'Sovereign Wealth Funds', 'Hedge Funds',
+        'Investment Banks', 'Credit Unions', 'Microfinance Institutions',
       ],
       'Healthcare Organizations' => [
         'Mayo Clinic', 'Johns Hopkins Hospital', 'Kaiser Permanente', 'HCA Healthcare',
-        'Epic Systems', 'IBM Watson for Oncology', 'Radiology Partners',
+        'Epic Systems', 'IBM Watson for Oncology', 'Radiology Partners', 'Cleveland Clinic',
+        'Partners Healthcare', 'Doctors Without Borders', 'Community Health Centers',
+        'Rural Health Clinics', 'Urgent Care Centers', 'Telemedicine Platforms',
       ],
       'Universities' => [
         'MIT', 'Stanford', 'Berkeley', 'Carnegie Mellon', 'Oxford', 'Cambridge', 'ETH Zurich',
         'Princeton', 'Caltech', 'Toronto', 'Harvard', 'Yale', 'UCLA', 'University of California',
         'Tsinghua University', 'Peking University', 'Seoul National University', 'Tokyo University',
+        'Imperial College London', 'Technical University Munich', 'EPFL', 'National University Singapore',
+        'Max Planck Institute', 'Leverhulme CFI', 'Community Colleges', 'State Universities',
+        'Liberal Arts Colleges',
+      ],
+      'Research Institutions' => [
+        'MIT Media Lab', 'DARPA', 'NIH', 'NSF', 'Max Planck Institute', 'CERN',
+        'National Labs (Oak Ridge, Los Alamos, Lawrence Livermore)', 'Fermilab',
+        'Jet Propulsion Laboratory', 'Argonne National Laboratory',
       ],
       'Law Enforcement' => [
         'Kansas City Police Department (KCPD)', 'Philadelphia Police Department',
+        'FBI', 'DEA', 'ATF', 'U.S. Marshals', 'Secret Service', 'Border Patrol',
+        'State Police', 'County Sheriffs', 'INTERPOL',
       ],
       'Transportation' => [
-        'Southwest Airlines', 'Uber', 'FAA', 'TSA',
+        'Southwest Airlines', 'Uber', 'Lyft', 'FAA', 'TSA', 'Amtrak', 'Greyhound',
+        'Public Transit Authorities', 'Port Authorities', 'Airports', 'Air Traffic Control',
       ],
       'Retail & Consumer' => [
         'Amazon', 'Target', 'Walmart', 'McDonald\'s', 'Disney+', 'Netflix', 'Spotify',
+        'Starbucks', 'Costco', 'Best Buy', 'Home Depot', 'Lowe\'s', 'CVS', 'Walgreens',
+        'Kroger', 'Safeway', 'Whole Foods', 'IKEA', 'Zara', 'H&M',
+      ],
+      'Food & Hospitality' => [
+        'McDonald\'s', 'Starbucks', 'Chipotle', 'Panera Bread', 'Subway',
+        'Marriott', 'Hilton', 'Airbnb', 'DoorDash', 'Grubhub', 'UberEats',
+        'Restaurant Chains', 'Independent Restaurants', 'Food Trucks', 'Catering Services',
+      ],
+      'Manufacturing & Industry' => [
+        'Tesla', 'Ford', 'GM', 'Boeing', 'Lockheed Martin', 'Raytheon',
+        'Caterpillar', 'John Deere', 'General Electric', 'Honeywell',
+        'Aluminum Smelters', 'Steel Mills', 'Chemical Plants', 'Refineries',
       ],
       'Defense & Aerospace' => [
-        'Lockheed Martin', 'Boeing', 'NASA', 'Pentagon', 'DARPA',
+        'Lockheed Martin', 'Boeing', 'NASA', 'Pentagon', 'DARPA', 'Raytheon',
+        'Northrop Grumman', 'SpaceX', 'Blue Origin', 'Virgin Galactic',
       ],
       'Energy & Resources' => [
-        'Saudi Aramco', 'Bitcoin Network', 'CERN',
+        'Saudi Aramco', 'Bitcoin Network', 'CERN', 'ExxonMobil', 'Chevron',
+        'Shell', 'BP', 'ConocoPhillips', 'Duke Energy', 'PG&E',
+        'Nuclear Power Plants', 'Solar Farms', 'Wind Farms', 'Hydroelectric Dams',
+        'Natural Gas Pipelines', 'Oil Refineries',
       ],
       'Pharmaceutical' => [
-        'Pfizer', 'Moderna', 'Johnson & Johnson',
+        'Pfizer', 'Moderna', 'Johnson & Johnson', 'Merck', 'AstraZeneca',
+        'Novartis', 'Roche', 'GSK', 'Sanofi', 'Gilead Sciences',
+        'Eli Lilly', 'Bristol Myers Squibb',
       ],
       'International Organizations' => [
         'United Nations', 'UN Security Council', 'WHO', 'WTO', 'OECD', 'NATO',
-        'International Criminal Court', 'World Economic Forum', 'G7',
+        'International Criminal Court', 'World Economic Forum', 'G7', 'European Union',
+        'IPCC', 'World Bank', 'IMF', 'Cochrane Library', 'Doctors Without Borders',
       ],
       'Non-Profits & Research' => [
         'Partnership on AI', 'AI Now Institute', 'Future of Humanity Institute',
         'Center for AI Safety', 'Machine Intelligence Research Institute', 'OpenMined',
         'EleutherAI', 'Allen Institute for AI', 'OpenPhilanthropy', 'Effective Altruism',
-        'Red Cross', 'Doctors Without Borders', 'Smithsonian',
+        'Red Cross', 'Doctors Without Borders', 'Smithsonian', 'AI Forensics',
+        'Ada Lovelace Institute', 'Data & Society', 'Algorithmic Justice League',
+        'Montreal AI Ethics Institute', 'Center for Security and Emerging Tech',
+        'AI Incident Database', 'Global Partnership on AI', 'AI Standards Hub',
+        'Centre for Long-Term Resilience', 'Rethink Priorities', 'AI Objectives Institute',
+        'AI Safety Support', 'Community Foundations', 'United Way', 'Habitat for Humanity',
+        'Local Food Banks', 'Animal Shelters', 'Environmental NGOs',
       ],
       'Media & Publishing' => [
         'Wikipedia', 'Reuters', 'Google News', 'Fox News', 'MSNBC', 'Newsmax',
         'The Daily Wire', 'Democracy Now', 'Ground.news', 'New York Times',
+        'Wall Street Journal', 'Washington Post', 'CNN', 'BBC', 'Al Jazeera',
+        'Associated Press', 'Bloomberg News', 'The Economist', 'The Guardian',
+        'Local Newspapers', 'Community Blogs', 'Podcasts', 'YouTube Channels',
+        'Encyclopedia Britannica', 'JSTOR', 'PubMed', 'Google Scholar',
+      ],
+      'Social Platforms' => [
+        'Facebook', 'Twitter/X', 'Instagram', 'TikTok', 'LinkedIn', 'Reddit',
+        'Discord', 'Snapchat', 'Pinterest', 'Tumblr', 'WeChat', 'WhatsApp',
+        'Telegram', 'Signal', 'Mastodon', 'Threads',
+      ],
+      'Entertainment & Sports' => [
+        'Netflix', 'Hulu', 'HBO Max', 'Disney+', 'Amazon Prime Video',
+        'Spotify', 'Apple Music', 'Pandora', 'SoundCloud', 'Twitch',
+        'NFL', 'NBA', 'MLB', 'FIFA', 'Olympics', 'ESPN',
+        'Gaming Companies (Nintendo, Sony PlayStation, Xbox)', 'Steam', 'Epic Games Store',
+      ],
+      'Real Estate & Construction' => [
+        'Commercial Real Estate Firms', 'Residential Developers', 'Construction Companies',
+        'Property Management Companies', 'Real Estate Investment Trusts (REITs)',
+        'Architectural Firms', 'Engineering Firms', 'General Contractors',
+      ],
+      'Agriculture & Food Production' => [
+        'Monsanto/Bayer', 'Cargill', 'Tyson Foods', 'Nestle', 'Unilever',
+        'Archer Daniels Midland', 'John Deere', 'Family Farms', 'Cooperatives',
+        'Food Distributors', 'Grocery Wholesalers',
+      ],
+      'Telecommunications' => [
+        'AT&T', 'Verizon', 'T-Mobile', 'Sprint', 'Comcast', 'Charter Spectrum',
+        'Cox Communications', 'CenturyLink', 'Frontier', 'Regional ISPs',
+        'Satellite Providers', 'Fiber Optic Networks',
+      ],
+      'Logistics & Supply Chain' => [
+        'FedEx', 'UPS', 'DHL', 'Amazon Logistics', 'Maersk', 'APL',
+        'C.H. Robinson', 'XPO Logistics', 'J.B. Hunt', 'Freight Forwarders',
+        'Warehouse Operators', 'Last-Mile Delivery',
+      ],
+      'Insurance' => [
+        'State Farm', 'Allstate', 'Geico', 'Progressive', 'Nationwide',
+        'MetLife', 'Prudential', 'AIG', 'Berkshire Hathaway', 'Lloyds of London',
+        'Health Insurance Companies', 'Life Insurance Companies', 'Property & Casualty Insurers',
+      ],
+      'Consumer Electronics & Appliances' => [
+        'Apple', 'Samsung', 'Sony', 'LG', 'Panasonic', 'Philips',
+        'Whirlpool', 'GE Appliances', 'Dyson', 'iRobot',
+      ],
+      'Fitness & Wellness' => [
+        'Fitbit', 'Peloton', 'MyFitnessPal', 'Strava', 'ClassPass',
+        'Planet Fitness', 'LA Fitness', 'Gold\'s Gym', 'Yoga Studios',
+        'Personal Trainers',
       ],
       'Notable Individuals' => [
         'Taylor Swift', 'Oprah Winfrey', 'Elon Musk', 'Mark Zuckerberg', 'Bill Gates',
         'Warren Buffett', 'Tim Cook', 'Satya Nadella', 'Jerome Powell', 'Christine Lagarde',
         'Joe Rogan', 'Cristiano Ronaldo', 'Pope Francis', 'Dalai Lama', 'Nelson Mandela',
         'Mother Teresa', 'Walter Cronkite', 'Dr. Fauci', 'Einstein', 'Mozart',
+        'Martin Luther King Jr.', 'Mahatma Gandhi', 'Malala Yousafzai', 'Archbishop Desmond Tutu',
+        'Ruth Bader Ginsburg', 'Ben Cohen', 'Yvon Chouinard', 'Greta Thunberg', 'Al Gore',
       ],
       'Standards & Certification' => [
-        'ISO', 'IEEE', 'ICANN', 'American Bar Association', 'FDA', 'FAA',
+        'ISO', 'IEEE', 'ICANN', 'American Bar Association', 'FDA', 'FAA', 'FCC',
+        'NIST', 'ANSI', 'BSI', 'SAE', 'ASTM International', 'UL (Underwriters Laboratories)',
       ],
-      'AI Systems' => [
+      'AI Systems & Automation' => [
         'ChatGPT', 'GPT-4', 'Claude', 'AlphaGo', 'AlphaFold', 'DALL-E', 'GitHub Copilot',
         'Jasper AI', 'Nest Thermostat', 'Apple Siri', 'Google Assistant', 'Amazon Alexa',
+        'Automated Trading Systems', 'Robot Process Automation (RPA)', 'Manufacturing Robots',
+        'Warehouse Automation', 'Self-Driving Cars', 'Drones', 'Smart Home Systems',
+      ],
+      'Basic Services & Infrastructure' => [
+        'Water Utilities', 'Sewage Treatment', 'Waste Management', 'Recycling Centers',
+        'Public Libraries', 'Post Offices', 'DMV Offices', 'Social Services',
+        'Parks & Recreation', 'Public Schools', 'Fire Departments',
       ],
     ];
   }
