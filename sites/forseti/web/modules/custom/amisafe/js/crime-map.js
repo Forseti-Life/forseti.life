@@ -180,12 +180,24 @@
       });
 
       // Add dark tile layer
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '',
         subdomains: 'abcd',
         maxZoom: 20,
         className: 'dark-tiles'
-      }).addTo(this.map);
+      });
+      
+      tileLayer.on('tileerror', function(error) {
+        console.error('❌ Tile loading error:', error);
+      });
+      
+      tileLayer.on('tileload', function() {
+        console.log('✅ Tile loaded successfully');
+      });
+      
+      tileLayer.addTo(this.map);
+      
+      console.log('🗺️ Tile layer added to map');
 
       // Initialize layers (incident layer on top)
       this.hexagonLayer = L.layerGroup().addTo(this.map);
