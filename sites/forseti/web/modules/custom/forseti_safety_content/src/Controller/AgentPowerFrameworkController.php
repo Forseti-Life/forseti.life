@@ -977,12 +977,29 @@ class AgentPowerFrameworkController extends ControllerBase {
     $nids = $query->execute();
     $entities = $storage->loadMultiple($nids);
     
-    // Build table rows and entity data for visualization
-    $rows = [];
+    // Build table rows grouped by category and entity data for visualization
+    $categories = [];
     $entities_data = [];
+    $category_counts = [];
+    
     foreach ($entities as $entity) {
       $entity_title = $entity->getTitle();
-      $rows[] = [
+      $category_value = $entity->get('field_entity_category')->value ?? 'uncategorized';
+      $category_label = $entity->get('field_entity_category')->value 
+        ? $this->getFieldLabel('node', 'evaluated_entity', 'field_entity_category', $category_value)
+        : 'Uncategorized';
+      
+      // Initialize category if not exists
+      if (!isset($categories[$category_value])) {
+        $categories[$category_value] = [
+          'label' => $category_label,
+          'value' => $category_value,
+          'rows' => [],
+        ];
+        $category_counts[$category_value] = 0;
+      }
+      
+      $row = [
         'nid' => $entity->id(),
         'title' => [
           'data' => [
@@ -999,6 +1016,9 @@ class AgentPowerFrameworkController extends ControllerBase {
         'total_power' => $entity->get('field_total_power')->value ?? 0,
       ];
       
+      $categories[$category_value]['rows'][] = $row;
+      $category_counts[$category_value]++;
+      
       // Store entity data for chart visualization
       $entities_data[] = [
         'nid' => $entity->id(),
@@ -1013,11 +1033,17 @@ class AgentPowerFrameworkController extends ControllerBase {
       ];
     }
     
+    // Sort categories by label
+    uasort($categories, function($a, $b) {
+      return strcmp($a['label'], $b['label']);
+    });
+    
     return [
       '#theme' => 'forseti_evaluations_list',
       '#title' => $this->t('Evaluated Entities'),
-      '#intro' => $this->t('Browse all evaluated entities and compare their power profiles across the five fundamental dimensions.'),
-      '#rows' => $rows,
+      '#intro' => $this->t('Browse all evaluated entities grouped by category. Compare their power profiles across the five fundamental dimensions.'),
+      '#categories' => $categories,
+      '#category_counts' => $category_counts,
       '#entities_data' => $entities_data,
       '#sort_field' => $sort_field,
       '#sort_direction' => $sort_direction,
@@ -1026,6 +1052,26 @@ class AgentPowerFrameworkController extends ControllerBase {
         'contexts' => ['url.query_args'],
       ],
     ];
+  }
+  
+  /**
+   * Helper function to get field label from allowed values.
+   */
+  private function getFieldLabel($entity_type, $bundle, $field_name, $value) {
+    $field_storage = \Drupal::entityTypeManager()
+      ->getStorage('field_storage_config')
+      ->load($entity_type . '.' . $field_name);
+    
+    if ($field_storage) {
+      $allowed_values = $field_storage->getSetting('allowed_values');
+      foreach ($allowed_values as $allowed_value) {
+        if ($allowed_value['value'] === $value) {
+          return $allowed_value['label'];
+        }
+      }
+    }
+    
+    return $value;
   }
 
   /**
