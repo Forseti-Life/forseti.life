@@ -23,6 +23,16 @@
       {# Page header #}
       <div class="text-center mb-4">
         <h1 class="mb-3 text-cyan">{{ label }}</h1>
+        
+        {# Entity Category #}
+        {% if node.field_entity_category.value %}
+          <div class="mb-3">
+            <span class="badge bg-primary" style="font-size: 1rem; padding: 0.4rem 0.8rem;">
+              <i class="fas fa-tag"></i> {{ node.field_entity_category.value|replace('_', ' ')|title }}
+            </span>
+          </div>
+        {% endif %}
+        
         {% if evaluation_data.total_power is not null %}
           <div class="d-inline-block">
             <span class="badge bg-{{ evaluation_data.total_power_level <= 2 ? 'danger' : (evaluation_data.total_power_level <= 5 ? 'warning' : (evaluation_data.total_power_level <= 7 ? 'info' : 'success')) }}" style="font-size: 1.5rem; padding: 0.5rem 1rem;">
