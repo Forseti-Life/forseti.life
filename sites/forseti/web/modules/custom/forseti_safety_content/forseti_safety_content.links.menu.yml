@@ -3,6 +3,21 @@ forseti.about:
   route_name: forseti.about
   menu_name: main
   weight: -40
+  expanded: true
+
+forseti.about_overview:
+  title: 'About'
+  route_name: forseti.about
+  menu_name: main
+  parent: forseti.about
+  weight: -40
+
+forseti.legal:
+  title: 'Legal'
+  route_name: forseti.legal
+  menu_name: main
+  parent: forseti.about
+  weight: -39
 
 forseti.talk_with_forseti:
   title: 'Talk with Forseti'

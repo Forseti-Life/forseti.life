@@ -618,5 +618,787 @@ class ForsetiPagesController extends ControllerBase {
     return $build;
   }
 
+  /**
+   * Legal hub page.
+   */
+  public function legal() {
+    return [
+      '#theme' => 'forseti_page_legal',
+      '#title' => $this->t('Legal Information'),
+      '#intro' => $this->t('Access all legal documents, policies, and terms governing the use of Forseti services.'),
+      '#sections' => [
+        [
+          'title' => $this->t('User Agreements'),
+          'links' => [
+            ['url' => '/terms-of-service', 'text' => $this->t('Terms of Service')],
+            ['url' => '/mobile-app-terms', 'text' => $this->t('Mobile App Terms')],
+            ['url' => '/api-terms', 'text' => $this->t('API Terms of Use')],
+            ['url' => '/ai-terms', 'text' => $this->t('AI Terms of Use')],
+          ],
+        ],
+        [
+          'title' => $this->t('Privacy & Data'),
+          'links' => [
+            ['url' => '/privacy', 'text' => $this->t('Privacy & Security')],
+            ['url' => '/data-usage-policy', 'text' => $this->t('Data Usage Policy')],
+            ['url' => '/cookie-policy', 'text' => $this->t('Cookie Policy')],
+          ],
+        ],
+        [
+          'title' => $this->t('Policies & Guidelines'),
+          'links' => [
+            ['url' => '/disclaimer', 'text' => $this->t('Disclaimer')],
+            ['url' => '/community-guidelines', 'text' => $this->t('Community Guidelines')],
+            ['url' => '/accessibility', 'text' => $this->t('Accessibility Statement')],
+            ['url' => '/copyright', 'text' => $this->t('Copyright & DMCA')],
+          ],
+        ],
+      ],
+      '#last_updated' => date('F j, Y'),
+      '#cache' => ['max-age' => 3600, 'contexts' => ['url']],
+    ];
+  }
+
+  /**
+   * Terms of Service page.
+   */
+  public function termsOfService() {
+    return [
+      '#theme' => 'forseti_page_terms',
+      '#title' => $this->t('Terms of Service'),
+      '#effective_date' => 'January 15, 2025',
+      '#acceptance' => [
+        'title' => $this->t('1. Acceptance of Terms'),
+        'content' => $this->t('By accessing or using Forseti services, you agree to be bound by these Terms of Service. If you do not agree, please do not use our services.'),
+      ],
+      '#sections' => [
+        [
+          'title' => $this->t('2. Service Description'),
+          'content' => $this->t('Forseti provides AI-powered community safety information, crime analytics, and alerts based on publicly available data. Our service is informational only and should not replace professional security services or emergency services.'),
+        ],
+        [
+          'title' => $this->t('3. User Responsibilities'),
+          'items' => [
+            $this->t('Provide accurate information when creating reports'),
+            $this->t('Use the service only for lawful purposes'),
+            $this->t('Not attempt to manipulate or game our AI systems'),
+            $this->t('Respect other users and community members'),
+            $this->t('Not share false or misleading safety information'),
+          ],
+        ],
+        [
+          'title' => $this->t('4. Account Terms'),
+          'items' => [
+            $this->t('You must be 13 years or older to create an account'),
+            $this->t('You are responsible for maintaining account security'),
+            $this->t('You may not share your account credentials'),
+            $this->t('One person or legal entity per account'),
+            $this->t('We reserve the right to suspend accounts that violate these terms'),
+          ],
+        ],
+        [
+          'title' => $this->t('5. Limitations of Liability'),
+          'content' => $this->t('Forseti provides information "as is" without warranty. We are not liable for damages arising from use of our service. Our safety predictions are estimates based on historical data and may not reflect current conditions. Always exercise caution and common sense.'),
+        ],
+        [
+          'title' => $this->t('6. Service Modifications'),
+          'content' => $this->t('We reserve the right to modify or discontinue services at any time. We will provide reasonable notice of material changes to these terms.'),
+        ],
+        [
+          'title' => $this->t('7. Governing Law'),
+          'content' => $this->t('These terms are governed by the laws of Pennsylvania, United States. Disputes will be resolved in Philadelphia County courts.'),
+        ],
+      ],
+      '#contact' => $this->t('Questions? <a href="/talk-with-forseti" class="alert-link">Talk with Forseti</a>'),
+      '#cache' => ['max-age' => 3600, 'contexts' => ['url']],
+    ];
+  }
+
+  /**
+   * Disclaimer page.
+   */
+  public function disclaimer() {
+    return [
+      '#theme' => 'forseti_page_disclaimer',
+      '#title' => $this->t('Disclaimer'),
+      '#warnings' => [
+        [
+          'icon' => '⚠️',
+          'title' => $this->t('Not a Substitute for Emergency Services'),
+          'content' => $this->t('Forseti is NOT a replacement for 911 or emergency services. In case of emergency, always call 911 immediately.'),
+        ],
+        [
+          'icon' => '📊',
+          'title' => $this->t('Informational Purposes Only'),
+          'content' => $this->t('All data and predictions are provided for informational purposes only. Safety ratings are estimates based on historical data and may not reflect current conditions.'),
+        ],
+        [
+          'icon' => '🤖',
+          'title' => $this->t('AI Limitations'),
+          'content' => $this->t('Our AI models make predictions based on patterns in historical data. No predictive system is 100% accurate. Always exercise personal judgment and caution.'),
+        ],
+        [
+          'icon' => '⏰',
+          'title' => $this->t('Data Delays'),
+          'content' => $this->t('Crime data may be delayed by hours or days depending on source availability. Real-time conditions may differ from our data.'),
+        ],
+      ],
+      '#no_guarantees' => [
+        'title' => $this->t('No Guarantees'),
+        'content' => $this->t('We do not guarantee the accuracy, completeness, or timeliness of any information. Use Forseti as one tool among many for situational awareness, not as your sole source of safety information.'),
+      ],
+      '#user_responsibility' => [
+        'title' => $this->t('User Responsibility'),
+        'content' => $this->t('You are responsible for your own safety. Forseti provides information to help you make informed decisions, but cannot and does not ensure your safety. Always be aware of your surroundings and trust your instincts.'),
+      ],
+      '#liability_limitation' => [
+        'title' => $this->t('Limitation of Liability'),
+        'content' => $this->t('Forseti and its operators are not liable for any damages, injuries, or losses that may result from using or relying on our service. This includes but is not limited to: personal injury, property damage, financial loss, or emotional distress.'),
+      ],
+      '#cache' => ['max-age' => 3600, 'contexts' => ['url']],
+    ];
+  }
+
+  /**
+   * Cookie Policy page.
+   */
+  public function cookiePolicy() {
+    return [
+      '#theme' => 'forseti_page_cookie_policy',
+      '#title' => $this->t('Cookie Policy'),
+      '#intro' => $this->t('This policy explains how Forseti uses cookies and similar technologies.'),
+      '#what_are_cookies' => [
+        'title' => $this->t('What Are Cookies?'),
+        'content' => $this->t('Cookies are small text files stored on your device that help websites remember your preferences and improve your experience.'),
+      ],
+      '#cookies_we_use' => [
+        [
+          'type' => $this->t('Essential Cookies'),
+          'icon' => '🔑',
+          'purpose' => $this->t('Required for basic site functionality'),
+          'examples' => [
+            $this->t('Session management'),
+            $this->t('Authentication'),
+            $this->t('Security features'),
+          ],
+          'can_disable' => FALSE,
+        ],
+        [
+          'type' => $this->t('Analytics Cookies'),
+          'icon' => '📊',
+          'purpose' => $this->t('Help us understand how users interact with our site'),
+          'examples' => [
+            $this->t('Page views'),
+            $this->t('Feature usage'),
+            $this->t('Error tracking'),
+          ],
+          'can_disable' => TRUE,
+        ],
+        [
+          'type' => $this->t('Preference Cookies'),
+          'icon' => '⚙️',
+          'purpose' => $this->t('Remember your settings and preferences'),
+          'examples' => [
+            $this->t('Language preferences'),
+            $this->t('Map view settings'),
+            $this->t('Notification preferences'),
+          ],
+          'can_disable' => TRUE,
+        ],
+      ],
+      '#managing_cookies' => [
+        'title' => $this->t('Managing Cookies'),
+        'content' => $this->t('You can control cookies through your browser settings. Note that disabling essential cookies may impact site functionality.'),
+        'browser_links' => [
+          $this->t('<a href="https://support.google.com/chrome/answer/95647" target="_blank" rel="noopener">Chrome</a>'),
+          $this->t('<a href="https://support.mozilla.org/en-US/kb/cookies-information-websites-store-on-your-computer" target="_blank" rel="noopener">Firefox</a>'),
+          $this->t('<a href="https://support.apple.com/guide/safari/manage-cookies-sfri11471/mac" target="_blank" rel="noopener">Safari</a>'),
+          $this->t('<a href="https://support.microsoft.com/en-us/microsoft-edge/delete-cookies-in-microsoft-edge-63947406-40ac-c3b8-57b9-2a946a29ae09" target="_blank" rel="noopener">Edge</a>'),
+        ],
+      ],
+      '#third_party' => [
+        'title' => $this->t('Third-Party Cookies'),
+        'content' => $this->t('We do not use third-party advertising cookies. Any third-party cookies are limited to essential services like map providers or analytics.'),
+      ],
+      '#cache' => ['max-age' => 3600, 'contexts' => ['url']],
+    ];
+  }
+
+  /**
+   * Accessibility Statement page.
+   */
+  public function accessibility() {
+    return [
+      '#theme' => 'forseti_page_accessibility',
+      '#title' => $this->t('Accessibility Statement'),
+      '#commitment' => [
+        'title' => $this->t('Our Commitment'),
+        'content' => $this->t('Forseti is committed to ensuring digital accessibility for people with disabilities. We continuously work to improve the user experience for everyone.'),
+      ],
+      '#standards' => [
+        'title' => $this->t('Standards We Follow'),
+        'items' => [
+          $this->t('<strong>WCAG 2.1 Level AA:</strong> Web Content Accessibility Guidelines'),
+          $this->t('<strong>Section 508:</strong> US Federal accessibility requirements'),
+          $this->t('<strong>ADA:</strong> Americans with Disabilities Act compliance'),
+        ],
+      ],
+      '#features' => [
+        [
+          'icon' => '⌨️',
+          'title' => $this->t('Keyboard Navigation'),
+          'description' => $this->t('Full site navigation using keyboard only'),
+        ],
+        [
+          'icon' => '📱',
+          'title' => $this->t('Screen Reader Support'),
+          'description' => $this->t('Compatible with JAWS, NVDA, and VoiceOver'),
+        ],
+        [
+          'icon' => '🔍',
+          'title' => $this->t('Adjustable Text'),
+          'description' => $this->t('Text can be resized without loss of functionality'),
+        ],
+        [
+          'icon' => '🎨',
+          'title' => $this->t('High Contrast'),
+          'description' => $this->t('Sufficient color contrast ratios throughout'),
+        ],
+        [
+          'icon' => '🖱️',
+          'title' => $this->t('Alternative Input'),
+          'description' => $this->t('Support for voice input and assistive technologies'),
+        ],
+        [
+          'icon' => '📝',
+          'title' => $this->t('Clear Content'),
+          'description' => $this->t('Plain language and logical content structure'),
+        ],
+      ],
+      '#limitations' => [
+        'title' => $this->t('Known Limitations'),
+        'intro' => $this->t('We are aware of some accessibility limitations:'),
+        'items' => [
+          $this->t('Some map interactions may require mouse input'),
+          $this->t('Real-time alerts may need additional screen reader optimization'),
+          $this->t('Legacy PDF documents may not be fully accessible'),
+        ],
+        'working_on_it' => $this->t('We are actively working to address these issues.'),
+      ],
+      '#feedback' => [
+        'title' => $this->t('Accessibility Feedback'),
+        'content' => $this->t('We welcome feedback on accessibility. If you encounter barriers, please <a href="/talk-with-forseti" class="alert-link">talk with Forseti</a>. We strive to respond within 3 business days.'),
+      ],
+      '#assistive_tech' => [
+        'title' => $this->t('Tested With'),
+        'content' => $this->t('Forseti has been tested with: JAWS 2024, NVDA 2024, VoiceOver (macOS/iOS), TalkBack (Android), Dragon NaturallySpeaking, and ZoomText.'),
+      ],
+      '#cache' => ['max-age' => 3600, 'contexts' => ['url']],
+    ];
+  }
+
+  /**
+   * Data Usage Policy page.
+   */
+  public function dataUsage() {
+    return [
+      '#theme' => 'forseti_page_data_usage',
+      '#title' => $this->t('Data Usage Policy'),
+      '#intro' => $this->t('This policy explains how Forseti collects, uses, and protects your data.'),
+      '#data_sources' => [
+        [
+          'title' => $this->t('Public Crime Data'),
+          'icon' => '🚔',
+          'description' => $this->t('Philadelphia Police Department open data portal'),
+          'usage' => $this->t('Used for crime mapping, trend analysis, and safety predictions'),
+        ],
+        [
+          'title' => $this->t('Location Data'),
+          'icon' => '📍',
+          'description' => $this->t('Your device location (with your explicit permission)'),
+          'usage' => $this->t('Provides location-specific safety alerts and recommendations'),
+        ],
+        [
+          'title' => $this->t('User Reports'),
+          'icon' => '📝',
+          'description' => $this->t('Incident reports submitted by community members'),
+          'usage' => $this->t('Enhances real-time safety awareness and AI training'),
+        ],
+        [
+          'title' => $this->t('Usage Analytics'),
+          'icon' => '📊',
+          'description' => $this->t('Anonymous data about how you use Forseti'),
+          'usage' => $this->t('Helps us improve features and user experience'),
+        ],
+      ],
+      '#how_we_use' => [
+        'title' => $this->t('How We Use Your Data'),
+        'items' => [
+          $this->t('<strong>Safety Alerts:</strong> Send you timely warnings about nearby incidents'),
+          $this->t('<strong>Personalization:</strong> Customize your experience based on your location and preferences'),
+          $this->t('<strong>AI Improvement:</strong> Train and refine our prediction models'),
+          $this->t('<strong>Research:</strong> Generate anonymized safety statistics and reports'),
+          $this->t('<strong>Service Improvement:</strong> Identify bugs and optimize performance'),
+        ],
+      ],
+      '#data_retention' => [
+        'title' => $this->t('Data Retention'),
+        'items' => [
+          $this->t('<strong>Account Data:</strong> Retained until you delete your account'),
+          $this->t('<strong>Location History:</strong> Stored for 90 days, then anonymized'),
+          $this->t('<strong>User Reports:</strong> Retained indefinitely (anonymized after 1 year)'),
+          $this->t('<strong>Usage Logs:</strong> 30 days detailed, 1 year aggregated'),
+        ],
+      ],
+      '#data_sharing' => [
+        'title' => $this->t('Data Sharing'),
+        'never_shared' => [
+          'title' => $this->t('We NEVER Share:'),
+          'items' => [
+            '❌ ' . $this->t('Your personal information with advertisers'),
+            '❌ ' . $this->t('Your location history with third parties'),
+            '❌ ' . $this->t('Individual user data for commercial purposes'),
+          ],
+        ],
+        'may_share' => [
+          'title' => $this->t('We MAY Share:'),
+          'items' => [
+            '✅ ' . $this->t('Anonymized, aggregated statistics with researchers'),
+            '✅ ' . $this->t('Required data with law enforcement (with valid legal process)'),
+            '✅ ' . $this->t('Public safety alerts with community partners'),
+          ],
+        ],
+      ],
+      '#your_control' => [
+        'title' => $this->t('Your Data Controls'),
+        'items' => [
+          $this->t('Export all your data in JSON format'),
+          $this->t('Delete your account and associated data'),
+          $this->t('Opt out of analytics collection'),
+          $this->t('Disable location tracking anytime'),
+          $this->t('Control alert preferences'),
+        ],
+      ],
+      '#cache' => ['max-age' => 3600, 'contexts' => ['url']],
+    ];
+  }
+
+  /**
+   * AI Terms of Use page.
+   */
+  public function aiTerms() {
+    return [
+      '#theme' => 'forseti_page_ai_terms',
+      '#title' => $this->t('AI Terms of Use'),
+      '#intro' => $this->t('These terms govern your interactions with Forseti\'s AI systems, including conversations and AI-generated content.'),
+      '#ai_capabilities' => [
+        'title' => $this->t('AI Capabilities'),
+        'items' => [
+          $this->t('<strong>Conversational AI:</strong> Natural language interactions about safety'),
+          $this->t('<strong>Predictive Analytics:</strong> Crime pattern analysis and forecasting'),
+          $this->t('<strong>Risk Assessment:</strong> Location-based safety scoring'),
+          $this->t('<strong>Content Generation:</strong> Safety reports and recommendations'),
+        ],
+      ],
+      '#limitations' => [
+        'title' => $this->t('AI Limitations & Disclaimers'),
+        'items' => [
+          $this->t('<strong>Not Perfect:</strong> AI can make mistakes or provide inaccurate information'),
+          $this->t('<strong>Not Legal Advice:</strong> AI responses are informational only'),
+          $this->t('<strong>Not Emergency Response:</strong> AI cannot dispatch emergency services'),
+          $this->t('<strong>Historical Data:</strong> Predictions based on past patterns, not guarantees'),
+          $this->t('<strong>Bias Awareness:</strong> We work to minimize bias but cannot eliminate it entirely'),
+        ],
+      ],
+      '#conversation_guidelines' => [
+        'title' => $this->t('Conversation Guidelines'),
+        'dos' => [
+          'title' => $this->t('Do:'),
+          'items' => [
+            '✅ ' . $this->t('Ask about safety information and crime patterns'),
+            '✅ ' . $this->t('Request clarification if something is unclear'),
+            '✅ ' . $this->t('Report problems or inaccuracies'),
+            '✅ ' . $this->t('Use conversations for legitimate safety purposes'),
+          ],
+        ],
+        'donts' => [
+          'title' => $this->t('Don\'t:'),
+          'items' => [
+            '❌ ' . $this->t('Try to manipulate or "jailbreak" the AI'),
+            '❌ ' . $this->t('Use AI to plan illegal activities'),
+            '❌ ' . $this->t('Share sensitive personal information unnecessarily'),
+            '❌ ' . $this->t('Rely solely on AI for emergency situations'),
+          ],
+        ],
+      ],
+      '#data_usage' => [
+        'title' => $this->t('AI Data Usage'),
+        'content' => $this->t('Conversations with Forseti AI are used to:'),
+        'items' => [
+          $this->t('Provide you with relevant safety information'),
+          $this->t('Improve AI response quality and accuracy'),
+          $this->t('Identify and fix bugs or issues'),
+          $this->t('Train future AI models (anonymized)'),
+        ],
+      ],
+      '#intellectual_property' => [
+        'title' => $this->t('Intellectual Property'),
+        'content' => $this->t('AI-generated content is provided "as is" for your personal use. You may share safety information generated by Forseti, but you must attribute it to Forseti and not claim it as your own original work.'),
+      ],
+      '#human_oversight' => [
+        'title' => $this->t('Human Oversight'),
+        'content' => $this->t('Our AI systems operate with human oversight. Critical safety decisions and content moderation involve human review. You can always request to speak with a human team member.'),
+      ],
+      '#cache' => ['max-age' => 3600, 'contexts' => ['url']],
+    ];
+  }
+
+  /**
+   * Mobile App Terms page.
+   */
+  public function mobileAppTerms() {
+    return [
+      '#theme' => 'forseti_page_mobile_app_terms',
+      '#title' => $this->t('Mobile App Terms'),
+      '#intro' => $this->t('These terms apply specifically to the Forseti mobile application for iOS and Android.'),
+      '#license' => [
+        'title' => $this->t('App License'),
+        'content' => $this->t('Forseti grants you a limited, non-exclusive, non-transferable license to use the mobile app for personal, non-commercial purposes. This license does not include the right to:'),
+        'restrictions' => [
+          '❌ ' . $this->t('Reverse engineer or decompile the app'),
+          '❌ ' . $this->t('Remove copyright or proprietary notices'),
+          '❌ ' . $this->t('Use the app for commercial purposes without permission'),
+          '❌ ' . $this->t('Redistribute or resell the app'),
+        ],
+      ],
+      '#permissions' => [
+        [
+          'permission' => $this->t('Location Services'),
+          'icon' => '📍',
+          'why_needed' => $this->t('Required for location-based safety alerts'),
+          'required' => TRUE,
+        ],
+        [
+          'permission' => $this->t('Push Notifications'),
+          'icon' => '🔔',
+          'why_needed' => $this->t('Receive real-time safety alerts'),
+          'required' => FALSE,
+        ],
+        [
+          'permission' => $this->t('Camera'),
+          'icon' => '📷',
+          'why_needed' => $this->t('Attach photos to incident reports'),
+          'required' => FALSE,
+        ],
+        [
+          'permission' => $this->t('Background Location'),
+          'icon' => '🌍',
+          'why_needed' => $this->t('Monitor safety even when app is closed'),
+          'required' => FALSE,
+        ],
+      ],
+      '#platform_specific' => [
+        [
+          'platform' => 'iOS',
+          'terms' => $this->t('Subject to the <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener">Apple App Store Terms</a>'),
+          'requirements' => $this->t('Requires iOS 14.0 or later'),
+        ],
+        [
+          'platform' => 'Android',
+          'terms' => $this->t('Subject to the <a href="https://play.google.com/intl/en_us/about/play-terms/" target="_blank" rel="noopener">Google Play Terms</a>'),
+          'requirements' => $this->t('Requires Android 8.0 or later'),
+        ],
+      ],
+      '#background_location' => [
+        'title' => $this->t('Background Location Usage'),
+        'content' => $this->t('If you enable background location, Forseti can alert you to safety concerns even when the app is closed. We:'),
+        'items' => [
+          '✅ ' . $this->t('Only check location periodically (not continuously)'),
+          '✅ ' . $this->t('Minimize battery impact'),
+          '✅ ' . $this->t('Encrypt location data in transit and at rest'),
+          '✅ ' . $this->t('Allow you to disable this feature anytime'),
+        ],
+      ],
+      '#updates' => [
+        'title' => $this->t('App Updates'),
+        'content' => $this->t('We regularly update the app with new features, improvements, and security patches. Some updates may be required to continue using the service. We recommend enabling automatic updates.'),
+      ],
+      '#termination' => [
+        'title' => $this->t('Termination'),
+        'content' => $this->t('We may suspend or terminate your access to the mobile app if you violate these terms. You may stop using the app and delete it from your device at any time.'),
+      ],
+      '#cache' => ['max-age' => 3600, 'contexts' => ['url']],
+    ];
+  }
+
+  /**
+   * API Terms of Use page.
+   */
+  public function apiTerms() {
+    return [
+      '#theme' => 'forseti_page_api_terms',
+      '#title' => $this->t('API Terms of Use'),
+      '#intro' => $this->t('These terms govern access to and use of the Forseti API.'),
+      '#access' => [
+        'title' => $this->t('API Access'),
+        'content' => $this->t('API access is currently limited to approved partners and researchers. To request access, <a href="/talk-with-forseti" class="alert-link">talk with Forseti</a>.'),
+        'tiers' => [
+          [
+            'tier' => $this->t('Research Tier'),
+            'description' => $this->t('For academic researchers and non-profits'),
+            'limits' => $this->t('1,000 requests/day'),
+            'cost' => $this->t('Free'),
+          ],
+          [
+            'tier' => $this->t('Developer Tier'),
+            'description' => $this->t('For app developers and integrations'),
+            'limits' => $this->t('10,000 requests/day'),
+            'cost' => $this->t('Contact us'),
+          ],
+          [
+            'tier' => $this->t('Enterprise Tier'),
+            'description' => $this->t('For organizations and institutions'),
+            'limits' => $this->t('Custom'),
+            'cost' => $this->t('Contact us'),
+          ],
+        ],
+      ],
+      '#acceptable_use' => [
+        'title' => $this->t('Acceptable Use'),
+        'allowed' => [
+          'title' => $this->t('Allowed Uses:'),
+          'items' => [
+            '✅ ' . $this->t('Research and academic study'),
+            '✅ ' . $this->t('Non-commercial community safety apps'),
+            '✅ ' . $this->t('News and journalism'),
+            '✅ ' . $this->t('Public safety applications'),
+          ],
+        ],
+        'prohibited' => [
+          'title' => $this->t('Prohibited Uses:'),
+          'items' => [
+            '❌ ' . $this->t('Scraping or bulk downloading data'),
+            '❌ ' . $this->t('Surveillance or stalking'),
+            '❌ ' . $this->t('Discrimination or bias amplification'),
+            '❌ ' . $this->t('Competing products without permission'),
+            '❌ ' . $this->t('Exceeding rate limits'),
+          ],
+        ],
+      ],
+      '#rate_limits' => [
+        'title' => $this->t('Rate Limits & Quotas'),
+        'content' => $this->t('All API tiers have rate limits to ensure fair usage:'),
+        'items' => [
+          $this->t('<strong>Requests per second:</strong> 10'),
+          $this->t('<strong>Daily quota:</strong> Based on your tier'),
+          $this->t('<strong>Response time:</strong> Typically < 500ms'),
+          $this->t('<strong>Retry policy:</strong> Exponential backoff recommended'),
+        ],
+      ],
+      '#authentication' => [
+        'title' => $this->t('Authentication'),
+        'content' => $this->t('API access requires authentication via API keys:'),
+        'items' => [
+          $this->t('Include API key in the <code>Authorization</code> header'),
+          $this->t('Keep your API keys secret and secure'),
+          $this->t('Rotate keys regularly'),
+          $this->t('Never commit keys to public repositories'),
+          $this->t('Report compromised keys immediately'),
+        ],
+      ],
+      '#data_attribution' => [
+        'title' => $this->t('Data Attribution'),
+        'content' => $this->t('If you display Forseti data in your application, you must:'),
+        'items' => [
+          $this->t('Clearly attribute data to Forseti'),
+          $this->t('Include a link back to forseti.life'),
+          $this->t('Display data freshness (timestamp)'),
+          $this->t('Include appropriate disclaimers'),
+        ],
+      ],
+      '#liability' => [
+        'title' => $this->t('Liability & Support'),
+        'content' => $this->t('The API is provided "as is" without warranty. We are not liable for damages arising from API use. Support response times vary by tier.'),
+      ],
+      '#termination' => [
+        'title' => $this->t('Termination'),
+        'content' => $this->t('We may suspend or revoke API access for violations of these terms. You may terminate access by deleting your API keys.'),
+      ],
+      '#cache' => ['max-age' => 3600, 'contexts' => ['url']],
+    ];
+  }
+
+  /**
+   * Community Guidelines page.
+   */
+  public function communityGuidelines() {
+    return [
+      '#theme' => 'forseti_page_community_guidelines',
+      '#title' => $this->t('Community Guidelines'),
+      '#intro' => $this->t('Forseti is a community built on mutual respect, safety, and shared responsibility. These guidelines help maintain a positive environment for everyone.'),
+      '#core_values' => [
+        [
+          'icon' => '🤝',
+          'title' => $this->t('Respect'),
+          'description' => $this->t('Treat all community members with dignity and kindness'),
+        ],
+        [
+          'icon' => '✅',
+          'title' => $this->t('Honesty'),
+          'description' => $this->t('Share accurate information and report truthfully'),
+        ],
+        [
+          'icon' => '<img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="" class="forseti-icon">',
+          'title' => $this->t('Safety First'),
+          'description' => $this->t('Prioritize community safety in all interactions'),
+        ],
+        [
+          'icon' => '🌍',
+          'title' => $this->t('Inclusivity'),
+          'description' => $this->t('Welcome and respect people from all backgrounds'),
+        ],
+      ],
+      '#expected_behavior' => [
+        'title' => $this->t('Expected Behavior'),
+        'items' => [
+          '✅ ' . $this->t('Report incidents accurately and promptly'),
+          '✅ ' . $this->t('Respect others\' privacy and safety'),
+          '✅ ' . $this->t('Provide constructive feedback'),
+          '✅ ' . $this->t('Help new community members'),
+          '✅ ' . $this->t('Follow local laws and regulations'),
+          '✅ ' . $this->t('Use appropriate language'),
+        ],
+      ],
+      '#prohibited_behavior' => [
+        'title' => $this->t('Prohibited Behavior'),
+        'items' => [
+          '❌ ' . $this->t('False or misleading reports'),
+          '❌ ' . $this->t('Harassment, bullying, or threats'),
+          '❌ ' . $this->t('Hate speech or discrimination'),
+          '❌ ' . $this->t('Sharing personal information of others'),
+          '❌ ' . $this->t('Spamming or commercial solicitation'),
+          '❌ ' . $this->t('Vigilantism or encouraging violence'),
+          '❌ ' . $this->t('Gaming or manipulating the system'),
+        ],
+      ],
+      '#reporting_incidents' => [
+        'title' => $this->t('Reporting Incidents'),
+        'best_practices' => [
+          'title' => $this->t('Best Practices:'),
+          'items' => [
+            $this->t('Be specific and factual'),
+            $this->t('Include relevant details (time, location, type)'),
+            $this->t('Add context without speculation'),
+            $this->t('Respect privacy - don\'t include identifying information'),
+            $this->t('Update if situation changes'),
+          ],
+        ],
+        'avoid' => [
+          'title' => $this->t('Avoid:'),
+          'items' => [
+            $this->t('Inflammatory language'),
+            $this->t('Unverified rumors'),
+            $this->t('Personal opinions as facts'),
+            $this->t('Duplicate reports'),
+          ],
+        ],
+      ],
+      '#consequences' => [
+        'title' => $this->t('Consequences of Violations'),
+        'levels' => [
+          [
+            'level' => $this->t('First Offense'),
+            'action' => $this->t('Warning and education'),
+          ],
+          [
+            'level' => $this->t('Second Offense'),
+            'action' => $this->t('Temporary suspension (7-30 days)'),
+          ],
+          [
+            'level' => $this->t('Serious/Repeated Offenses'),
+            'action' => $this->t('Permanent ban'),
+          ],
+        ],
+        'appeal' => $this->t('You may appeal moderation decisions by <a href="/talk-with-forseti" class="alert-link">talking with Forseti</a>.'),
+      ],
+      '#reporting_violations' => [
+        'title' => $this->t('Reporting Guideline Violations'),
+        'content' => $this->t('If you see someone violating these guidelines, please report it through the app or <a href="/talk-with-forseti" class="alert-link">talk with Forseti</a>. All reports are reviewed by human moderators.'),
+      ],
+      '#cache' => ['max-age' => 3600, 'contexts' => ['url']],
+    ];
+  }
+
+  /**
+   * Copyright & DMCA page.
+   */
+  public function copyright() {
+    return [
+      '#theme' => 'forseti_page_copyright',
+      '#title' => $this->t('Copyright & DMCA'),
+      '#copyright_notice' => [
+        'title' => $this->t('Copyright Notice'),
+        'content' => $this->t('© ' . date('Y') . ' Forseti. All rights reserved. Forseti name, logo, and original content are protected by copyright, trademark, and other intellectual property laws.'),
+      ],
+      '#ownership' => [
+        'title' => $this->t('Content Ownership'),
+        'forseti_content' => [
+          'title' => $this->t('Forseti-Created Content:'),
+          'items' => [
+            $this->t('Website design and code'),
+            $this->t('Forseti branding and logos'),
+            $this->t('AI-generated safety reports'),
+            $this->t('Original documentation and guides'),
+          ],
+        ],
+        'user_content' => [
+          'title' => $this->t('User-Generated Content:'),
+          'content' => $this->t('You retain ownership of content you submit (incident reports, photos, etc.). By submitting content, you grant Forseti a non-exclusive, worldwide license to use, display, and distribute it for safety purposes.'),
+        ],
+        'public_data' => [
+          'title' => $this->t('Public Data:'),
+          'content' => $this->t('Crime statistics from Philadelphia PD and other public sources remain in the public domain. Forseti\'s analysis and presentation of this data is our intellectual property.'),
+        ],
+      ],
+      '#fair_use' => [
+        'title' => $this->t('Permitted Uses'),
+        'items' => [
+          '✅ ' . $this->t('News reporting and commentary'),
+          '✅ ' . $this->t('Academic research and education'),
+          '✅ ' . $this->t('Personal, non-commercial use'),
+          '✅ ' . $this->t('Linking to our content'),
+        ],
+      ],
+      '#dmca_policy' => [
+        'title' => $this->t('DMCA Takedown Policy'),
+        'content' => $this->t('Forseti respects intellectual property rights. If you believe content on our platform infringes your copyright, please send a DMCA takedown notice including:'),
+        'requirements' => [
+          $this->t('Your contact information'),
+          $this->t('Description of copyrighted work'),
+          $this->t('URL of infringing content'),
+          $this->t('Statement of good faith belief'),
+          $this->t('Statement of accuracy under penalty of perjury'),
+          $this->t('Physical or electronic signature'),
+        ],
+      ],
+      '#dmca_contact' => [
+        'title' => $this->t('DMCA Agent'),
+        'content' => $this->t('Send DMCA notices to: <strong>legal@forseti.life</strong><br>Response time: Within 72 hours'),
+      ],
+      '#counter_notice' => [
+        'title' => $this->t('Counter-Notification'),
+        'content' => $this->t('If your content was removed due to a DMCA notice and you believe it was removed in error, you may file a counter-notification. We will review and may restore the content if appropriate.'),
+      ],
+      '#repeat_infringers' => [
+        'title' => $this->t('Repeat Infringer Policy'),
+        'content' => $this->t('Users who repeatedly infringe copyrights will have their accounts terminated.'),
+      ],
+      '#trademark' => [
+        'title' => $this->t('Trademark'),
+        'content' => $this->t('Forseti® and the Forseti logo are trademarks. You may not use our trademarks without written permission, except as necessary for fair use (e.g., news articles about Forseti).'),
+      ],
+      '#cache' => ['max-age' => 3600, 'contexts' => ['url']],
+    ];
+  }
 
 }

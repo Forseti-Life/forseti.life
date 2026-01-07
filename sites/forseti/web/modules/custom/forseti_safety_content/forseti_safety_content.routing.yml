@@ -84,6 +84,94 @@ forseti.privacy:
   requirements:
     _permission: 'access content'
 
+forseti.legal:
+  path: '/legal'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::legal'
+    _title: 'Legal'
+  requirements:
+    _permission: 'access content'
+
+forseti.terms:
+  path: '/terms-of-service'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::termsOfService'
+    _title: 'Terms of Service'
+  requirements:
+    _permission: 'access content'
+
+forseti.disclaimer:
+  path: '/disclaimer'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::disclaimer'
+    _title: 'Disclaimer'
+  requirements:
+    _permission: 'access content'
+
+forseti.cookie_policy:
+  path: '/cookie-policy'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::cookiePolicy'
+    _title: 'Cookie Policy'
+  requirements:
+    _permission: 'access content'
+
+forseti.accessibility:
+  path: '/accessibility'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::accessibility'
+    _title: 'Accessibility Statement'
+  requirements:
+    _permission: 'access content'
+
+forseti.data_usage:
+  path: '/data-usage-policy'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::dataUsage'
+    _title: 'Data Usage Policy'
+  requirements:
+    _permission: 'access content'
+
+forseti.ai_terms:
+  path: '/ai-terms'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::aiTerms'
+    _title: 'AI Terms of Use'
+  requirements:
+    _permission: 'access content'
+
+forseti.mobile_app_terms:
+  path: '/mobile-app-terms'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::mobileAppTerms'
+    _title: 'Mobile App Terms'
+  requirements:
+    _permission: 'access content'
+
+forseti.api_terms:
+  path: '/api-terms'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::apiTerms'
+    _title: 'API Terms of Use'
+  requirements:
+    _permission: 'access content'
+
+forseti.community_guidelines:
+  path: '/community-guidelines'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::communityGuidelines'
+    _title: 'Community Guidelines'
+  requirements:
+    _permission: 'access content'
+
+forseti.copyright:
+  path: '/copyright'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::copyright'
+    _title: 'Copyright & DMCA'
+  requirements:
+    _permission: 'access content'
+
 forseti.safety_factors:
   path: '/safety-factors'
   defaults:
