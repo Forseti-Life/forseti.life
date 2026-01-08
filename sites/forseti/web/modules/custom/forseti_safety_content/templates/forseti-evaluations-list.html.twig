@@ -436,8 +436,9 @@
         badge.className = 'badge bg-secondary d-flex align-items-center gap-2';
         badge.style.backgroundColor = entityColors[index].border;
         badge.innerHTML = `
-          <a href="/node/${entity.nid}" class="text-white text-decoration-none" style="color: inherit !important;">
-            ${entity.name}
+          <span class="text-white">${entity.name}</span>
+          <a href="/node/${entity.nid}" class="text-decoration-none small fw-bold" style="color: #00d4ff !important;" title="View full profile">
+            <i class="fas fa-external-link-alt"></i> Explore Detail
           </a>
           <button type="button" class="btn-close btn-close-white btn-sm" 
                   onclick="removeEntity('${entity.nid}')" 
