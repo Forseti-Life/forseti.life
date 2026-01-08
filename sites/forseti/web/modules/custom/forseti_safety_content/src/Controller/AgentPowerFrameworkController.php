@@ -1041,7 +1041,7 @@ class AgentPowerFrameworkController extends ControllerBase {
     return [
       '#theme' => 'forseti_evaluations_list',
       '#title' => $this->t('Evaluated Entities'),
-      '#intro' => $this->t('Browse all evaluated entities grouped by category. Compare their power profiles across the five fundamental dimensions.'),
+      '#intro' => $this->t('Browse evaluated entities organized by category. Compare power profiles across the five fundamental dimensions. Click a category to expand and view entities.'),
       '#categories' => $categories,
       '#category_counts' => $category_counts,
       '#entities_data' => $entities_data,
