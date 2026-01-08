@@ -26,6 +26,7 @@
         "drupal/core-recipe-unpack": "^11.2",
         "drupal/core-recommended": "^11.0",
         "drupal/devel": "^5.4",
+        "drupal/google_tag": "^2.0",
         "drupal/metatag": "^2.2",
         "drupal/openapi": "^2.3",
         "drupal/pathauto": "^1.13",
@@ -36,6 +37,7 @@
         "drupal/restui": "^1.22",
         "drupal/simple_oauth": "^6.0",
         "drupal/social_auth_google": "^4.0",
+        "drupal/users_metrics": "^1.0",
         "drupal/webform": "^6.3@beta",
         "drush/drush": "^13.6"
     },
