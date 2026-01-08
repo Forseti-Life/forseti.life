@@ -434,7 +434,10 @@
       selectedEntities.forEach((entity, index) => {
         const badge = document.createElement('span');
         badge.className = 'badge bg-secondary d-flex align-items-center gap-2';
-        badge.style.backgroundColor = entityColors[index].border;
+        const color = entityColors[index];
+        badge.style.backgroundColor = color.bg;
+        badge.style.borderColor = color.border;
+        badge.style.border = `2px solid ${color.border}`;
         badge.innerHTML = `
           <span class="text-white">${entity.name}</span>
           <a href="/node/${entity.nid}" class="text-decoration-none small fw-bold" style="color: #00d4ff !important;" title="View full profile">
@@ -622,7 +625,20 @@
                   size: 14
                 },
                 padding: 15,
-                usePointStyle: true
+                usePointStyle: true,
+                generateLabels: function(chart) {
+                  const datasets = chart.data.datasets;
+                  return datasets.map((dataset, index) => {
+                    return {
+                      text: dataset.label,
+                      fillStyle: dataset.borderColor,
+                      strokeStyle: dataset.borderColor,
+                      lineWidth: 3,
+                      hidden: false,
+                      index: index
+                    };
+                  });
+                }
               }
             },
             tooltip: {
