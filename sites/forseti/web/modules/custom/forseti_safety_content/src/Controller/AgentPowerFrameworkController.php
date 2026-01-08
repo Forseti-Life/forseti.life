@@ -990,48 +990,49 @@ class AgentPowerFrameworkController extends ControllerBase {
     foreach ($entities as $entity) {
       $entity_title = $entity->getTitle();
       
-      // Skip category average entities in the main list
-      if (strpos($entity_title, 'Average: ') === 0) {
-        continue;
-      }
+      // Check if this is a category average entity
+      $is_average = strpos($entity_title, 'Average: ') === 0;
       
-      $category_value = $entity->get('field_entity_category')->value ?? 'uncategorized';
-      $category_label = $entity->get('field_entity_category')->value 
-        ? $this->getFieldLabel('node', 'evaluated_entity', 'field_entity_category', $category_value)
-        : 'Uncategorized';
-      
-      // Initialize category if not exists
-      if (!isset($categories[$category_value])) {
-        $categories[$category_value] = [
-          'label' => $category_label,
-          'value' => $category_value,
-          'rows' => [],
-          'average' => NULL,
-        ];
-        $category_counts[$category_value] = 0;
-      }
-      
-      $row = [
-        'nid' => $entity->id(),
-        'title' => [
-          'data' => [
-            '#type' => 'link',
-            '#title' => $entity_title,
-            '#url' => $entity->toUrl(),
+      // Skip category average entities in the main list (but not in visualization)
+      if (!$is_average) {
+        $category_value = $entity->get('field_entity_category')->value ?? 'uncategorized';
+        $category_label = $entity->get('field_entity_category')->value 
+          ? $this->getFieldLabel('node', 'evaluated_entity', 'field_entity_category', $category_value)
+          : 'Uncategorized';
+        
+        // Initialize category if not exists
+        if (!isset($categories[$category_value])) {
+          $categories[$category_value] = [
+            'label' => $category_label,
+            'value' => $category_value,
+            'rows' => [],
+            'average' => NULL,
+          ];
+          $category_counts[$category_value] = 0;
+        }
+        
+        $row = [
+          'nid' => $entity->id(),
+          'title' => [
+            'data' => [
+              '#type' => 'link',
+              '#title' => $entity_title,
+              '#url' => $entity->toUrl(),
+            ],
           ],
-        ],
-        'information_access' => $entity->get('field_information_access')->value ?? 0,
-        'resource_control' => $entity->get('field_resource_control')->value ?? 0,
-        'authority_permission' => $entity->get('field_authority_permission')->value ?? 0,
-        'network_position' => $entity->get('field_network_position')->value ?? 0,
-        'synthesis_application' => $entity->get('field_synthesis_application')->value ?? 0,
-        'total_power' => $entity->get('field_total_power')->value ?? 0,
-      ];
+          'information_access' => $entity->get('field_information_access')->value ?? 0,
+          'resource_control' => $entity->get('field_resource_control')->value ?? 0,
+          'authority_permission' => $entity->get('field_authority_permission')->value ?? 0,
+          'network_position' => $entity->get('field_network_position')->value ?? 0,
+          'synthesis_application' => $entity->get('field_synthesis_application')->value ?? 0,
+          'total_power' => $entity->get('field_total_power')->value ?? 0,
+        ];
+        
+        $categories[$category_value]['rows'][] = $row;
+        $category_counts[$category_value]++;
+      }
       
-      $categories[$category_value]['rows'][] = $row;
-      $category_counts[$category_value]++;
-      
-      // Store entity data for chart visualization
+      // Add ALL entities (including averages) to visualization data
       $entities_data[] = [
         'nid' => $entity->id(),
         'name' => $entity_title,
@@ -1044,6 +1045,23 @@ class AgentPowerFrameworkController extends ControllerBase {
         ],
       ];
     }
+    
+    // Sort entities_data to put "Average: " entities at the top
+    usort($entities_data, function($a, $b) {
+      $a_is_average = strpos($a['name'], 'Average: ') === 0;
+      $b_is_average = strpos($b['name'], 'Average: ') === 0;
+      
+      // If one is average and the other isn't, average goes first
+      if ($a_is_average && !$b_is_average) {
+        return -1;
+      }
+      if (!$a_is_average && $b_is_average) {
+        return 1;
+      }
+      
+      // Otherwise sort alphabetically
+      return strcmp($a['name'], $b['name']);
+    });
     
     // Load category average entities
     foreach ($categories as $category_value => &$category) {
