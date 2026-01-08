@@ -307,7 +307,8 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
       'variables' => [
         'title' => NULL,
         'intro' => NULL,
-        'rows' => [],
+        'categories' => [],
+        'category_counts' => [],
         'entities_data' => [],
         'sort_field' => NULL,
         'sort_direction' => NULL,

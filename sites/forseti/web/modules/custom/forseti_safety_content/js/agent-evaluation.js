@@ -74,68 +74,79 @@
    */
   Drupal.behaviors.accordionUmbrellaControls = {
     attach: function (context, settings) {
-      // Check if Bootstrap is available
-      if (typeof bootstrap === 'undefined') {
-        console.warn('Bootstrap is not loaded, accordion controls disabled');
-        return;
+      // Wait for Bootstrap to be available
+      function initAccordionControls() {
+        if (typeof bootstrap === 'undefined') {
+          console.warn('Bootstrap is not loaded yet, will retry...');
+          setTimeout(initAccordionControls, 100);
+          return;
+        }
+
+        // Initialize Bootstrap Collapse on all accordion elements with data-bs-toggle
+        const accordionToggles = context.querySelectorAll('[data-bs-toggle="collapse"]');
+        accordionToggles.forEach(function(toggle) {
+          const targetId = toggle.getAttribute('data-bs-target') || toggle.getAttribute('href');
+          if (targetId) {
+            const target = document.querySelector(targetId);
+            if (target && !bootstrap.Collapse.getInstance(target)) {
+              new bootstrap.Collapse(target, {
+                toggle: false
+              });
+            }
+          }
+        });
+
+        // Expand All Cards
+        once('expand-all-cards', '#expandAllCards', context).forEach(function (button) {
+          button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const collapses = context.querySelectorAll('.rank-collapse');
+            collapses.forEach(function(collapse) {
+              const instance = bootstrap.Collapse.getInstance(collapse) || new bootstrap.Collapse(collapse, {toggle: false});
+              instance.show();
+            });
+          });
+        });
+
+        // Collapse All Cards
+        once('collapse-all-cards', '#collapseAllCards', context).forEach(function (button) {
+          button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const collapses = context.querySelectorAll('.rank-collapse');
+            collapses.forEach(function(collapse) {
+              const instance = bootstrap.Collapse.getInstance(collapse) || new bootstrap.Collapse(collapse, {toggle: false});
+              instance.hide();
+            });
+          });
+        });
+
+        // Expand All Sub-Dimensions
+        once('expand-all-subdims', '#expandAllSubDims', context).forEach(function (button) {
+          button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const collapses = context.querySelectorAll('[id^="collapse-subdim-"]');
+            collapses.forEach(function(collapse) {
+              const instance = bootstrap.Collapse.getInstance(collapse) || new bootstrap.Collapse(collapse, {toggle: false});
+              instance.show();
+            });
+          });
+        });
+
+        // Collapse All Sub-Dimensions
+        once('collapse-all-subdims', '#collapseAllSubDims', context).forEach(function (button) {
+          button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const collapses = context.querySelectorAll('[id^="collapse-subdim-"]');
+            collapses.forEach(function(collapse) {
+              const instance = bootstrap.Collapse.getInstance(collapse) || new bootstrap.Collapse(collapse, {toggle: false});
+              instance.hide();
+            });
+          });
+        });
       }
 
-      // Expand All Cards
-      once('expand-all-cards', '#expandAllCards', context).forEach(function (button) {
-        button.addEventListener('click', function(e) {
-          e.preventDefault();
-          const collapses = context.querySelectorAll('.rank-collapse');
-          collapses.forEach(function(collapse) {
-            // Only get existing instance, don't create new ones
-            const instance = bootstrap.Collapse.getInstance(collapse);
-            if (instance) {
-              instance.show();
-            }
-          });
-        });
-      });
-
-      // Collapse All Cards
-      once('collapse-all-cards', '#collapseAllCards', context).forEach(function (button) {
-        button.addEventListener('click', function(e) {
-          e.preventDefault();
-          const collapses = context.querySelectorAll('.rank-collapse');
-          collapses.forEach(function(collapse) {
-            const instance = bootstrap.Collapse.getInstance(collapse);
-            if (instance) {
-              instance.hide();
-            }
-          });
-        });
-      });
-
-      // Expand All Sub-Dimensions
-      once('expand-all-subdims', '#expandAllSubDims', context).forEach(function (button) {
-        button.addEventListener('click', function(e) {
-          e.preventDefault();
-          const collapses = context.querySelectorAll('[id^="collapse-subdim-"]');
-          collapses.forEach(function(collapse) {
-            const instance = bootstrap.Collapse.getInstance(collapse);
-            if (instance) {
-              instance.show();
-            }
-          });
-        });
-      });
-
-      // Collapse All Sub-Dimensions
-      once('collapse-all-subdims', '#collapseAllSubDims', context).forEach(function (button) {
-        button.addEventListener('click', function(e) {
-          e.preventDefault();
-          const collapses = context.querySelectorAll('[id^="collapse-subdim-"]');
-          collapses.forEach(function(collapse) {
-            const instance = bootstrap.Collapse.getInstance(collapse);
-            if (instance) {
-              instance.hide();
-            }
-          });
-        });
-      });
+      // Start initialization
+      initAccordionControls();
     }
   };
 

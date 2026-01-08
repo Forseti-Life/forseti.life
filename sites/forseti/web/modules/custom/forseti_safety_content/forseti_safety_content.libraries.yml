@@ -8,7 +8,7 @@ style:
     - forseti/style
 
 agent-power:
-  version: 1.1
+  version: 1.2
   css:
     theme:
       css/forseti-pages.css: {}
@@ -18,3 +18,4 @@ agent-power:
     - core/drupal
     - core/once
     - forseti/style
+    - bootstrap5/bootstrap5-js-latest
