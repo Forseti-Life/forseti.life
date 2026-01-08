@@ -82,19 +82,8 @@
           return;
         }
 
-        // Initialize Bootstrap Collapse on all accordion elements with data-bs-toggle
-        const accordionToggles = context.querySelectorAll('[data-bs-toggle="collapse"]');
-        accordionToggles.forEach(function(toggle) {
-          const targetId = toggle.getAttribute('data-bs-target') || toggle.getAttribute('href');
-          if (targetId) {
-            const target = document.querySelector(targetId);
-            if (target && !bootstrap.Collapse.getInstance(target)) {
-              new bootstrap.Collapse(target, {
-                toggle: false
-              });
-            }
-          }
-        });
+        // Don't manually handle accordion toggles - let Bootstrap do it
+        // Bootstrap automatically handles [data-bs-toggle="collapse"] elements
 
         // Expand All Cards
         once('expand-all-cards', '#expandAllCards', context).forEach(function (button) {
