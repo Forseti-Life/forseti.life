@@ -31,6 +31,7 @@
             
             <div class="mb-3">
               <label for="entity-search" class="form-label text-cyan">Search and Select Entities (up to 5):</label>
+              <p class="text-muted-light small mb-2">Click on any dimension in the chart to expand and view sub-dimensions</p>
               <input type="text" 
                      id="entity-search" 
                      class="form-control form-control-lg mb-2" 
@@ -59,8 +60,8 @@
               <div class="evaluations-comparison-chart mb-3" 
                    id="evaluations-radar-chart">
                 <div class="chart-controls mb-3 text-end">
-                  <button class="btn btn-sm btn-outline-cyan chart-reset-btn" style="display: none;">
-                    <i class="fas fa-undo"></i> Reset View
+                  <button class="btn btn-sm btn-cyan chart-reset-btn" style="display: none;">
+                    <i class="fas fa-compress"></i> Show Overview
                   </button>
                 </div>
                 <canvas id="evaluationsRadarChart" style="max-height: 500px;"></canvas>
@@ -326,6 +327,41 @@
     
     let selectedEntities = [];
     const maxSelections = 5;
+    let currentView = 'overview'; // 'overview' or dimension key like 'information_access'
+    let currentChart = null;
+    
+    // Define colors for each main dimension (matching individual node chart)
+    const dimensionColors = {
+      'information_access': {
+        primary: '#00d4ff',
+        light: 'rgba(0, 212, 255, 0.6)'
+      },
+      'resource_control': {
+        primary: '#4caf50',
+        light: 'rgba(76, 175, 80, 0.6)'
+      },
+      'authority_permission': {
+        primary: '#e91e63',
+        light: 'rgba(233, 30, 99, 0.6)'
+      },
+      'network_position': {
+        primary: '#9c27b0',
+        light: 'rgba(156, 39, 176, 0.6)'
+      },
+      'synthesis_application': {
+        primary: '#ffeb3b',
+        light: 'rgba(255, 235, 59, 0.6)'
+      }
+    };
+    
+    // Sub-dimension labels mapping
+    const subDimensionLabels = {
+      information_access: ['Scope', 'Restriction', 'Classification', 'Temporal', 'Sources', 'Granularity'],
+      resource_control: ['Computational', 'Financial', 'Data Storage', 'Network Bandwidth', 'API Access', 'Human'],
+      authority_permission: ['Legal', 'Institutional', 'Budget Auth', 'Policy', 'Override', 'Audit'],
+      network_position: ['Connectivity', 'Centrality', 'Trust/Reputation', 'Info Flow', 'Coalition', 'Network Effects'],
+      synthesis_application: ['Reasoning', 'Creativity', 'Planning', 'Learning', 'Memory', 'Execution']
+    };
     
     // Colors for different entities
     const entityColors = [
@@ -335,6 +371,9 @@
       { bg: 'rgba(156, 39, 176, 0.2)', border: '#9c27b0' },
       { bg: 'rgba(255, 235, 59, 0.2)', border: '#ffeb3b' }
     ];
+    
+    const textColor = '#00d4ff';
+    const backgroundColor = '#16213e';
     
     // Search functionality
     searchInput.addEventListener('input', function() {
@@ -368,10 +407,20 @@
           selectedEntities = selectedEntities.filter(e => e.nid != nid);
         }
         
+        currentView = 'overview'; // Reset to overview when selection changes
         updateSelectedEntities();
         renderChart();
       });
     });
+    
+    // Reset button handler
+    const resetBtn = document.querySelector('.chart-reset-btn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function() {
+        currentView = 'overview';
+        renderChart();
+      });
+    }
     
     function updateSelectedEntities() {
       if (selectedEntities.length === 0) {
@@ -419,6 +468,7 @@
       chartContainer.style.display = 'block';
       
       const canvas = document.getElementById('evaluationsRadarChart');
+      const resetBtn = document.querySelector('.chart-reset-btn');
       if (!canvas) {
         console.error('Canvas element not found');
         return;
@@ -431,47 +481,88 @@
       }
       
       // Destroy existing chart if it exists
-      const existingChart = Chart.getChart(canvas);
-      if (existingChart) {
-        existingChart.destroy();
+      if (currentChart) {
+        currentChart.destroy();
       }
       
-      // Prepare chart labels
-      const labels = [
-        'Information Access',
-        'Resource Control',
-        'Authority & Permission',
-        'Network Position',
-        'Synthesis & Application'
-      ];
+      // Determine labels and datasets based on current view
+      let labels, datasets;
+      const dimensionKeys = ['information_access', 'resource_control', 'authority_permission', 'network_position', 'synthesis_application'];
       
-      // Create datasets for each selected entity
-      const datasets = selectedEntities.map((entity, index) => {
-        const color = entityColors[index];
-        return {
-          label: entity.name,
-          data: [
-            entity.scores.information_access,
-            entity.scores.resource_control,
-            entity.scores.authority_permission,
-            entity.scores.network_position,
-            entity.scores.synthesis_application
-          ],
-          backgroundColor: color.bg,
-          borderColor: color.border,
-          borderWidth: 2,
-          pointBackgroundColor: color.border,
-          pointBorderColor: '#fff',
-          pointHoverBackgroundColor: '#fff',
-          pointHoverBorderColor: color.border,
-          pointRadius: 5,
-          pointHoverRadius: 7
-        };
-      });
+      if (currentView === 'overview') {
+        // Show primary dimensions
+        resetBtn.style.display = 'none';
+        labels = [
+          'Information Access',
+          'Resource Control',
+          'Authority & Permission',
+          'Network Position',
+          'Synthesis & Application'
+        ];
+        
+        // Create datasets for each selected entity with dimension colors for points
+        datasets = selectedEntities.map((entity, index) => {
+          const color = entityColors[index];
+          
+          // Get dimension colors for point labels
+          const pointColors = dimensionKeys.map(key => dimensionColors[key].primary);
+          
+          return {
+            label: entity.name,
+            data: [
+              entity.scores.information_access,
+              entity.scores.resource_control,
+              entity.scores.authority_permission,
+              entity.scores.network_position,
+              entity.scores.synthesis_application
+            ],
+            backgroundColor: color.bg,
+            borderColor: color.border,
+            borderWidth: 3,
+            pointBackgroundColor: pointColors,
+            pointBorderColor: backgroundColor,
+            pointBorderWidth: 2,
+            pointHoverBackgroundColor: '#ffffff',
+            pointHoverBorderColor: pointColors,
+            pointRadius: 6,
+            pointHoverRadius: 10,
+            pointHitRadius: 15,
+            tension: 0.2
+          };
+        });
+      } else {
+        // Show sub-dimensions for selected dimension
+        resetBtn.style.display = 'inline-block';
+        labels = subDimensionLabels[currentView] || [];
+        
+        // Create datasets for each selected entity's sub-dimensions
+        datasets = selectedEntities.map((entity, index) => {
+          const color = entityColors[index];
+          const subDims = entity.sub_dimensions[currentView] || {};
+          const subKeys = Object.keys(subDims);
+          const data = subKeys.map(key => subDims[key] || 0);
+          
+          return {
+            label: entity.name,
+            data: data,
+            backgroundColor: color.bg,
+            borderColor: color.border,
+            borderWidth: 2,
+            pointBackgroundColor: color.border,
+            pointBorderColor: backgroundColor,
+            pointBorderWidth: 2,
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: color.border,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            tension: 0.2
+          };
+        });
+      }
       
       // Create new chart
       const ctx = canvas.getContext('2d');
-      new Chart(ctx, {
+      currentChart = new Chart(ctx, {
         type: 'radar',
         data: {
           labels: labels,
@@ -480,20 +571,39 @@
         options: {
           responsive: true,
           maintainAspectRatio: true,
+          onClick: function(event, elements) {
+            if (currentView === 'overview' && elements.length > 0) {
+              // Clicked on a primary dimension - drill down
+              const index = elements[0].index;
+              const dimensionKeys = ['information_access', 'resource_control', 'authority_permission', 'network_position', 'synthesis_application'];
+              currentView = dimensionKeys[index];
+              renderChart();
+            }
+          },
           scales: {
             r: {
               min: 0,
               max: 9,
               ticks: {
                 stepSize: 1,
-                color: '#00d4ff',
-                backdropColor: 'transparent'
+                color: textColor,
+                backdropColor: 'transparent',
+                font: {
+                  size: 9
+                }
               },
               grid: {
-                color: 'rgba(0, 212, 255, 0.2)'
+                color: 'rgba(0, 212, 255, 0.2)',
+                circular: true
               },
               pointLabels: {
-                color: '#00d4ff',
+                color: function(context) {
+                  if (currentView === 'overview') {
+                    // Use dimension colors for primary dimensions
+                    return dimensionColors[dimensionKeys[context.index]].primary;
+                  }
+                  return textColor;
+                },
                 font: {
                   size: 14,
                   weight: 'bold'
@@ -506,7 +616,7 @@
               display: true,
               position: 'top',
               labels: {
-                color: '#00d4ff',
+                color: textColor,
                 font: {
                   size: 14
                 },
@@ -516,16 +626,25 @@
             },
             tooltip: {
               backgroundColor: 'rgba(22, 33, 62, 0.95)',
-              titleColor: '#00d4ff',
+              titleColor: textColor,
               bodyColor: '#fff',
-              borderColor: '#00d4ff',
-              borderWidth: 1
+              borderColor: textColor,
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {
+                title: function(context) {
+                  return context[0].label;
+                },
+                label: function(context) {
+                  return context.dataset.label + ': ' + context.parsed.r + ' / 9';
+                }
+              }
             }
           }
         }
       });
       
-      console.log('Chart rendered with ' + selectedEntities.length + ' entities');
+      console.log('Chart rendered with ' + selectedEntities.length + ' entities in view: ' + currentView);
     }
     
     console.log('Chart initialization complete');

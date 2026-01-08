@@ -1032,7 +1032,7 @@ class AgentPowerFrameworkController extends ControllerBase {
         $category_counts[$category_value]++;
       }
       
-      // Add ALL entities (including averages) to visualization data
+      // Add ALL entities (including averages) to visualization data with sub-dimensions
       $entities_data[] = [
         'nid' => $entity->id(),
         'name' => $entity_title,
@@ -1042,6 +1042,48 @@ class AgentPowerFrameworkController extends ControllerBase {
           'authority_permission' => $entity->get('field_authority_permission')->value ?? 0,
           'network_position' => $entity->get('field_network_position')->value ?? 0,
           'synthesis_application' => $entity->get('field_synthesis_application')->value ?? 0,
+        ],
+        'sub_dimensions' => [
+          'information_access' => [
+            'scope' => $entity->hasField('field_sub_scope') ? ($entity->get('field_sub_scope')->value ?? 0) : 0,
+            'restriction' => $entity->hasField('field_sub_restriction') ? ($entity->get('field_sub_restriction')->value ?? 0) : 0,
+            'classification' => $entity->hasField('field_sub_classification') ? ($entity->get('field_sub_classification')->value ?? 0) : 0,
+            'temporal' => $entity->hasField('field_sub_temporal') ? ($entity->get('field_sub_temporal')->value ?? 0) : 0,
+            'sources' => $entity->hasField('field_sub_sources') ? ($entity->get('field_sub_sources')->value ?? 0) : 0,
+            'granularity' => $entity->hasField('field_sub_granularity') ? ($entity->get('field_sub_granularity')->value ?? 0) : 0,
+          ],
+          'resource_control' => [
+            'computational' => $entity->hasField('field_sub_computational') ? ($entity->get('field_sub_computational')->value ?? 0) : 0,
+            'financial' => $entity->hasField('field_sub_financial') ? ($entity->get('field_sub_financial')->value ?? 0) : 0,
+            'data_storage' => $entity->hasField('field_sub_data_storage') ? ($entity->get('field_sub_data_storage')->value ?? 0) : 0,
+            'network_bandwidth' => $entity->hasField('field_sub_network_bandwidth') ? ($entity->get('field_sub_network_bandwidth')->value ?? 0) : 0,
+            'api_access' => $entity->hasField('field_sub_api_access') ? ($entity->get('field_sub_api_access')->value ?? 0) : 0,
+            'human' => $entity->hasField('field_sub_human') ? ($entity->get('field_sub_human')->value ?? 0) : 0,
+          ],
+          'authority_permission' => [
+            'legal' => $entity->hasField('field_sub_legal') ? ($entity->get('field_sub_legal')->value ?? 0) : 0,
+            'institutional' => $entity->hasField('field_sub_institutional') ? ($entity->get('field_sub_institutional')->value ?? 0) : 0,
+            'budget_auth' => $entity->hasField('field_sub_budget_auth') ? ($entity->get('field_sub_budget_auth')->value ?? 0) : 0,
+            'policy' => $entity->hasField('field_sub_policy') ? ($entity->get('field_sub_policy')->value ?? 0) : 0,
+            'override' => $entity->hasField('field_sub_override') ? ($entity->get('field_sub_override')->value ?? 0) : 0,
+            'audit' => $entity->hasField('field_sub_audit') ? ($entity->get('field_sub_audit')->value ?? 0) : 0,
+          ],
+          'network_position' => [
+            'connectivity' => $entity->hasField('field_sub_connectivity') ? ($entity->get('field_sub_connectivity')->value ?? 0) : 0,
+            'centrality' => $entity->hasField('field_sub_centrality') ? ($entity->get('field_sub_centrality')->value ?? 0) : 0,
+            'trust_reputation' => $entity->hasField('field_sub_trust_reputation') ? ($entity->get('field_sub_trust_reputation')->value ?? 0) : 0,
+            'info_flow' => $entity->hasField('field_sub_info_flow') ? ($entity->get('field_sub_info_flow')->value ?? 0) : 0,
+            'coalition' => $entity->hasField('field_sub_coalition') ? ($entity->get('field_sub_coalition')->value ?? 0) : 0,
+            'network_effects' => $entity->hasField('field_sub_network_effects') ? ($entity->get('field_sub_network_effects')->value ?? 0) : 0,
+          ],
+          'synthesis_application' => [
+            'reasoning' => $entity->hasField('field_sub_reasoning') ? ($entity->get('field_sub_reasoning')->value ?? 0) : 0,
+            'creativity' => $entity->hasField('field_sub_creativity') ? ($entity->get('field_sub_creativity')->value ?? 0) : 0,
+            'planning' => $entity->hasField('field_sub_planning') ? ($entity->get('field_sub_planning')->value ?? 0) : 0,
+            'learning' => $entity->hasField('field_sub_learning') ? ($entity->get('field_sub_learning')->value ?? 0) : 0,
+            'memory' => $entity->hasField('field_sub_memory') ? ($entity->get('field_sub_memory')->value ?? 0) : 0,
+            'execution' => $entity->hasField('field_sub_execution') ? ($entity->get('field_sub_execution')->value ?? 0) : 0,
+          ],
         ],
       ];
     }
