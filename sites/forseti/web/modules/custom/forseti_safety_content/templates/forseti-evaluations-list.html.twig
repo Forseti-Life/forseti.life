@@ -78,50 +78,50 @@
               <i class="fas fa-sort me-2"></i>Sort Categories By:
             </h5>
             <div class="d-flex flex-wrap gap-2">
-              <a href="?category_sort=total_power&category_order={{ category_sort == 'total_power' and category_order == 'DESC' ? 'ASC' : 'DESC' }}#category-sort-controls" 
-                 class="btn btn-sm {{ category_sort == 'total_power' ? 'btn-cyan' : 'btn-outline-cyan' }}">
+              <a href="?category_sort=total_power&category_order={{ category_sort == 'total_power' and category_order == 'DESC' ? 'ASC' : 'DESC' }}" 
+                 class="btn btn-sm {{ category_sort == 'total_power' ? 'btn-cyan' : 'btn-secondary' }}">
                 ⚡ Total Power
                 {% if category_sort == 'total_power' %}
                   <i class="fas fa-sort-{{ category_order == 'DESC' ? 'down' : 'up' }}"></i>
                 {% endif %}
               </a>
-              <a href="?category_sort=information_access&category_order={{ category_sort == 'information_access' and category_order == 'DESC' ? 'ASC' : 'DESC' }}#category-sort-controls" 
-                 class="btn btn-sm {{ category_sort == 'information_access' ? 'btn-cyan' : 'btn-outline-cyan' }}">
+              <a href="?category_sort=information_access&category_order={{ category_sort == 'information_access' and category_order == 'DESC' ? 'ASC' : 'DESC' }}" 
+                 class="btn btn-sm {{ category_sort == 'information_access' ? 'btn-cyan' : 'btn-secondary' }}">
                 ℹ️ Information Access
                 {% if category_sort == 'information_access' %}
                   <i class="fas fa-sort-{{ category_order == 'DESC' ? 'down' : 'up' }}"></i>
                 {% endif %}
               </a>
-              <a href="?category_sort=resource_control&category_order={{ category_sort == 'resource_control' and category_order == 'DESC' ? 'ASC' : 'DESC' }}#category-sort-controls" 
-                 class="btn btn-sm {{ category_sort == 'resource_control' ? 'btn-cyan' : 'btn-outline-cyan' }}">
+              <a href="?category_sort=resource_control&category_order={{ category_sort == 'resource_control' and category_order == 'DESC' ? 'ASC' : 'DESC' }}" 
+                 class="btn btn-sm {{ category_sort == 'resource_control' ? 'btn-cyan' : 'btn-secondary' }}">
                 🔧 Resource Control
                 {% if category_sort == 'resource_control' %}
                   <i class="fas fa-sort-{{ category_order == 'DESC' ? 'down' : 'up' }}"></i>
                 {% endif %}
               </a>
-              <a href="?category_sort=authority_permission&category_order={{ category_sort == 'authority_permission' and category_order == 'DESC' ? 'ASC' : 'DESC' }}#category-sort-controls" 
-                 class="btn btn-sm {{ category_sort == 'authority_permission' ? 'btn-cyan' : 'btn-outline-cyan' }}">
+              <a href="?category_sort=authority_permission&category_order={{ category_sort == 'authority_permission' and category_order == 'DESC' ? 'ASC' : 'DESC' }}" 
+                 class="btn btn-sm {{ category_sort == 'authority_permission' ? 'btn-cyan' : 'btn-secondary' }}">
                 ⚖️ Authority & Permission
                 {% if category_sort == 'authority_permission' %}
                   <i class="fas fa-sort-{{ category_order == 'DESC' ? 'down' : 'up' }}"></i>
                 {% endif %}
               </a>
-              <a href="?category_sort=network_position&category_order={{ category_sort == 'network_position' and category_order == 'DESC' ? 'ASC' : 'DESC' }}#category-sort-controls" 
-                 class="btn btn-sm {{ category_sort == 'network_position' ? 'btn-cyan' : 'btn-outline-cyan' }}">
+              <a href="?category_sort=network_position&category_order={{ category_sort == 'network_position' and category_order == 'DESC' ? 'ASC' : 'DESC' }}" 
+                 class="btn btn-sm {{ category_sort == 'network_position' ? 'btn-cyan' : 'btn-secondary' }}">
                 🌐 Network Position
                 {% if category_sort == 'network_position' %}
                   <i class="fas fa-sort-{{ category_order == 'DESC' ? 'down' : 'up' }}"></i>
                 {% endif %}
               </a>
-              <a href="?category_sort=synthesis_application&category_order={{ category_sort == 'synthesis_application' and category_order == 'DESC' ? 'ASC' : 'DESC' }}#category-sort-controls" 
-                 class="btn btn-sm {{ category_sort == 'synthesis_application' ? 'btn-cyan' : 'btn-outline-cyan' }}">
+              <a href="?category_sort=synthesis_application&category_order={{ category_sort == 'synthesis_application' and category_order == 'DESC' ? 'ASC' : 'DESC' }}" 
+                 class="btn btn-sm {{ category_sort == 'synthesis_application' ? 'btn-cyan' : 'btn-secondary' }}">
                 🧠 Synthesis & Application
                 {% if category_sort == 'synthesis_application' %}
                   <i class="fas fa-sort-{{ category_order == 'DESC' ? 'down' : 'up' }}"></i>
                 {% endif %}
               </a>
-              <a href="?category_sort=label#category-sort-controls" 
-                 class="btn btn-sm {{ category_sort == 'label' ? 'btn-cyan' : 'btn-outline-cyan' }}">
+              <a href="?category_sort=label" 
+                 class="btn btn-sm {{ category_sort == 'label' ? 'btn-cyan' : 'btn-secondary' }}">
                 <i class="fas fa-sort-alpha-down"></i> Alphabetical
               </a>
             </div>
@@ -142,7 +142,7 @@
                       <span class="badge bg-cyan ms-2">{{ category_counts[category_key] }}</span>
                     </div>
                     {% if category.average %}
-                      <div class="d-flex gap-3 text-muted-light small">
+                      <div class="d-flex gap-3 text-white small">
                         <span title="Information Access">ℹ️ {{ category.average.information_access }}/9</span>
                         <span title="Resource Control">🔧 {{ category.average.resource_control }}/9</span>
                         <span title="Authority & Permission">⚖️ {{ category.average.authority_permission }}/9</span>
@@ -532,17 +532,30 @@
   }
 })();
 
-// Smooth scroll to category sort controls after page load
+// Save and restore scroll position on sort button clicks
 (function() {
-  if (window.location.hash === '#category-sort-controls') {
-    // Wait for page to fully render
-    setTimeout(function() {
-      const element = document.getElementById('category-sort-controls');
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
+  // Restore scroll position immediately (before page renders)
+  const savedScrollPos = sessionStorage.getItem('evaluationsScrollPos');
+  if (savedScrollPos) {
+    // Disable automatic scroll restoration
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    
+    // Restore immediately
+    window.scrollTo(0, parseInt(savedScrollPos));
+    sessionStorage.removeItem('evaluationsScrollPos');
   }
+  
+  // Save scroll position when sort buttons are clicked
+  document.addEventListener('DOMContentLoaded', function() {
+    const sortButtons = document.querySelectorAll('a[href*="category_sort"]');
+    sortButtons.forEach(function(button) {
+      button.addEventListener('click', function() {
+        sessionStorage.setItem('evaluationsScrollPos', window.scrollY);
+      });
+    });
+  });
 })();
 </script>
 

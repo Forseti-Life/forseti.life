@@ -74,6 +74,25 @@ a.link-cyan {
   }
 }
 
+// Button Styling
+.btn-cyan {
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  border: none;
+  color: #0f172a;
+  font-weight: 600;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: linear-gradient(135deg, #33dcff 0%, #00b8e6 100%);
+    color: #0f172a;
+  }
+
+  &:focus, &:active {
+    background: linear-gradient(135deg, #00b8e6 0%, #008fb3 100%);
+    color: #0f172a;
+  }
+}
+
 // Alert Styling
 .alert-emergency {
   background: rgba(244, 67, 54, 0.1);
