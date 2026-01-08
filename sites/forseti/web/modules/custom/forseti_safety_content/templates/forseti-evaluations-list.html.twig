@@ -315,7 +315,9 @@
         badge.className = 'badge bg-secondary d-flex align-items-center gap-2';
         badge.style.backgroundColor = entityColors[index].border;
         badge.innerHTML = `
-          ${entity.name}
+          <a href="/node/${entity.nid}" class="text-white text-decoration-none" style="color: inherit !important;">
+            ${entity.name}
+          </a>
           <button type="button" class="btn-close btn-close-white btn-sm" 
                   onclick="removeEntity('${entity.nid}')" 
                   style="font-size: 0.7em; padding: 0;">
