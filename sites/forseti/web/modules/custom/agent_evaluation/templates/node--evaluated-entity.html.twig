@@ -50,6 +50,140 @@
         </div>
       {% endif %}
 
+      {# Main 5 Dimensions Summary #}
+      {% if evaluation_data.dimensions %}
+        {% set dimensions_by_label = {} %}
+        {% for dimension in evaluation_data.dimensions %}
+          {% set dimensions_by_label = dimensions_by_label|merge({(dimension.label): dimension}) %}
+        {% endfor %}
+        
+        <div class="row g-2 mb-4">
+          {% if dimensions_by_label['Information Access'] is defined %}
+            {% set dim = dimensions_by_label['Information Access'] %}
+            <div class="col-md-4">
+              <div class="p-2 rounded" style="background: rgba(0, 212, 255, 0.1);">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="small text-cyan"><i class="fas fa-database me-1"></i>Info Access</span>
+                  <span class="badge bg-{% if dim.score >= 8 %}success{% elseif dim.score >= 6 %}info{% elseif dim.score >= 4 %}warning{% else %}secondary{% endif %}">
+                    {{ dim.score }}/9
+                  </span>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+          {% if dimensions_by_label['Resource Control'] is defined %}
+            {% set dim = dimensions_by_label['Resource Control'] %}
+            <div class="col-md-4">
+              <div class="p-2 rounded" style="background: rgba(76, 175, 80, 0.1);">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="small text-success"><i class="fas fa-coins me-1"></i>Resources</span>
+                  <span class="badge bg-{% if dim.score >= 8 %}success{% elseif dim.score >= 6 %}info{% elseif dim.score >= 4 %}warning{% else %}secondary{% endif %}">
+                    {{ dim.score }}/9
+                  </span>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+          {% if dimensions_by_label['Authority & Permission'] is defined %}
+            {% set dim = dimensions_by_label['Authority & Permission'] %}
+            <div class="col-md-4">
+              <div class="p-2 rounded" style="background: rgba(233, 30, 99, 0.1);">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="small text-danger"><i class="fas fa-gavel me-1"></i>Authority</span>
+                  <span class="badge bg-{% if dim.score >= 8 %}success{% elseif dim.score >= 6 %}info{% elseif dim.score >= 4 %}warning{% else %}secondary{% endif %}">
+                    {{ dim.score }}/9
+                  </span>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+          {% if dimensions_by_label['Network Position'] is defined %}
+            {% set dim = dimensions_by_label['Network Position'] %}
+            <div class="col-md-6">
+              <div class="p-2 rounded" style="background: rgba(156, 39, 176, 0.1);">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="small text-purple"><i class="fas fa-project-diagram me-1"></i>Network</span>
+                  <span class="badge bg-{% if dim.score >= 8 %}success{% elseif dim.score >= 6 %}info{% elseif dim.score >= 4 %}warning{% else %}secondary{% endif %}">
+                    {{ dim.score }}/9
+                  </span>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+          {% if dimensions_by_label['Synthesis & Application'] is defined %}
+            {% set dim = dimensions_by_label['Synthesis & Application'] %}
+            <div class="col-md-6">
+              <div class="p-2 rounded" style="background: rgba(255, 235, 59, 0.1);">
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="small text-warning"><i class="fas fa-brain me-1"></i>Synthesis</span>
+                  <span class="badge bg-{% if dim.score >= 8 %}success{% elseif dim.score >= 6 %}info{% elseif dim.score >= 4 %}warning{% else %}secondary{% endif %}">
+                    {{ dim.score }}/9
+                  </span>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {# Single nested accordion for all 30 sub-dimensions (matching US Government page) #}
+      {% if evaluation_data.dimensions %}
+        <div class="accordion accordion-forseti mt-3 mb-5" id="subdimensionsAccordion">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="subdim-heading-all">
+              <button class="accordion-button collapsed subdim-collapse" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-subdim-all" aria-expanded="false" aria-controls="collapse-subdim-all" aria-labelledby="subdim-heading-all">
+                <i class="fas fa-list-ul me-2"></i>View 30 Sub-Dimensions Breakdown
+              </button>
+            </h2>
+            <div id="collapse-subdim-all" class="accordion-collapse collapse" aria-labelledby="subdim-heading-all">
+              <div class="accordion-body">
+                
+                {% for dimension in evaluation_data.dimensions %}
+                  {# Map dimension labels to icons and colors #}
+                  {% if dimension.label == 'Information Access' %}
+                    {% set dim_icon = 'fa-database' %}
+                    {% set dim_color = 'cyan' %}
+                  {% elseif dimension.label == 'Resource Control' %}
+                    {% set dim_icon = 'fa-coins' %}
+                    {% set dim_color = 'success' %}
+                  {% elseif dimension.label == 'Authority & Permission' %}
+                    {% set dim_icon = 'fa-gavel' %}
+                    {% set dim_color = 'danger' %}
+                  {% elseif dimension.label == 'Network Position' %}
+                    {% set dim_icon = 'fa-project-diagram' %}
+                    {% set dim_color = 'purple' %}
+                  {% elseif dimension.label == 'Synthesis & Application' %}
+                    {% set dim_icon = 'fa-brain' %}
+                    {% set dim_color = 'warning' %}
+                  {% endif %}
+                  
+                  <div class="{{ loop.last ? 'mb-0' : 'mb-3' }}">
+                    <h6 class="text-{{ dim_color }} mb-2"><i class="fas {{ dim_icon }} me-2"></i>{{ dimension.label }}</h6>
+                    <div class="row g-2 small">
+                      {% for sub_dimension in dimension.sub_dimensions %}
+                        {% set sub_dimension_id = sub_dimension.label|lower|replace({' ': '-', '&': 'and', '/': '-'})|trim('-') %}
+                        <div class="col-md-4" id="subdim-{{ sub_dimension_id }}" data-subdimension="{{ sub_dimension_id }}">
+                          <div class="d-flex justify-content-between p-1">
+                            <span>{{ sub_dimension.label }}</span>
+                            {% if sub_dimension.score is not null %}
+                              <span class="badge bg-{% if sub_dimension.score >= 8 %}success{% elseif sub_dimension.score >= 6 %}info{% elseif sub_dimension.score >= 4 %}warning{% else %}secondary{% endif %} rounded-pill">{{ sub_dimension.score }}</span>
+                            {% else %}
+                              <span class="badge bg-secondary rounded-pill">—</span>
+                            {% endif %}
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  
+                {% endfor %}
+                
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
       {# Power Radar Chart #}
       {% if evaluation_data.dimensions %}
         {# Define custom order for radar chart positions #}
@@ -130,64 +264,6 @@
           </div>
         </div>
       {% endif %}
-
-      <div class="accordion mb-5" id="dimensionsAccordion">
-        {% for dimension in evaluation_data.dimensions %}
-          {% set dimension_key = dimension.label|lower|replace({' ': '_', '&': 'and'})|trim('_') %}
-          <div class="accordion-item card-forseti border-secondary mb-2" data-dimension="{{ dimension_key }}">
-            <h2 class="accordion-header" id="heading{{ loop.index }}">
-              <button class="accordion-button {{ loop.first ? '' : 'collapsed' }} card-forseti text-white d-flex align-items-center" 
-                      type="button" 
-                      data-bs-toggle="collapse" 
-                      data-bs-target="#collapse{{ loop.index }}" 
-                      aria-expanded="{{ loop.first ? 'true' : 'false' }}" 
-                      aria-controls="collapse{{ loop.index }}">
-                <div class="d-flex align-items-center w-100">
-                  <div class="flex-grow-1">
-                    <div class="fw-bold">{{ dimension.label }}</div>
-                  </div>
-                  {% if dimension.score is not null %}
-                    <div class="dimension-score-badge ms-3">
-                      <span class="badge bg-{{ dimension.level <= 2 ? 'danger' : (dimension.level <= 5 ? 'warning' : (dimension.level <= 7 ? 'info' : 'success')) }}" style="min-width: 60px; font-size: 1rem;">
-                        {{ dimension.score }}/9
-                      </span>
-                    </div>
-                  {% endif %}
-                </div>
-              </button>
-            </h2>
-            <div id="collapse{{ loop.index }}" 
-                 class="accordion-collapse collapse {{ loop.first ? 'show' : '' }}" 
-                 aria-labelledby="heading{{ loop.index }}" 
-                 data-bs-parent="#dimensionsAccordion">
-              <div class="accordion-body card-forseti">
-                
-                <div class="sub-dimensions">
-                  {% for sub_dimension in dimension.sub_dimensions %}
-                    {% set sub_dimension_id = sub_dimension.label|lower|replace({' ': '-', '&': 'and', '/': '-'})|trim('-') %}
-                    <div class="sub-dimension mb-3 pb-3 {{ loop.last ? '' : 'border-bottom border-secondary' }}" id="subdim-{{ sub_dimension_id }}" data-subdimension="{{ sub_dimension_id }}">
-                      <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="sub-dimension__label fw-bold text-cyan">{{ sub_dimension.label }}</span>
-                        {% if sub_dimension.score is not null %}
-                          <span class="badge bg-{{ sub_dimension.level <= 2 ? 'danger' : (sub_dimension.level <= 5 ? 'warning' : (sub_dimension.level <= 7 ? 'info' : 'success')) }}" style="min-width: 50px;">
-                            {{ sub_dimension.score }}/9
-                          </span>
-                        {% else %}
-                          <span class="badge bg-secondary" style="min-width: 50px;">—</span>
-                        {% endif %}
-                      </div>
-                      {% if sub_dimension.description %}
-                        <p class="sub-dimension__description mb-0">{{ sub_dimension.description }}</p>
-                      {% endif %}
-                    </div>
-                  {% endfor %}
-                </div>
-                
-              </div>
-            </div>
-          </div>
-        {% endfor %}
-      </div>
 
       {% if evaluation_data.all_empty %}
         <div class="alert alert-info-cyan mt-4 text-center">
