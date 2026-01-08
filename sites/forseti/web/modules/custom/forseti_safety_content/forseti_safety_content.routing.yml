@@ -231,6 +231,15 @@ forseti.batch_process_entity:
   options:
     no_cache: TRUE
 
+forseti.calculate_category_average:
+  path: '/api/calculate-category-average'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\BatchEvaluationController::calculateCategoryAverage'
+  requirements:
+    _permission: 'administer site configuration'
+  options:
+    no_cache: TRUE
+
 forseti.us_government_power:
   path: '/agent-power-framework/us-government'
   defaults:

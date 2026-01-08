@@ -92,6 +92,17 @@
                   </div>
                 {% endfor %}
               </div>
+              
+              {# Calculate Category Average Button #}
+              <div class="mt-4 text-center">
+                <button class="btn btn-info calculate-average-btn" 
+                        data-category="{{ category }}"
+                        onclick="calculateCategoryAverage('{{ category }}', this)">
+                  <i class="bi bi-calculator me-1"></i>
+                  Calculate Category Average
+                </button>
+                <div class="mt-2 category-average-status" data-category="{{ category }}" style="display: none;"></div>
+              </div>
             </div>
           {% endfor %}
 
@@ -172,6 +183,7 @@ async function processEntity(entityName, cardElement) {
   if (processingBadge) processingBadge.style.display = 'inline-block';
   
   try {
+    // Regular entity evaluation
     const response = await fetch(`/api/batch-evaluate-entity?entity=${encodeURIComponent(entityName)}`);
     
     const result = await response.json();
@@ -305,6 +317,33 @@ async function processAllEntities(event) {
   button.classList.add('btn-success');
   
   globalStatus.innerHTML = `<strong class="text-success">All entities processed!</strong><br>${successCount} new, ${skippedCount} existing, ${errorCount} errors`;
+  
+  // Calculate category averages for all categories that had successful processing
+  if (successCount > 0) {
+    globalStatus.innerHTML += '<br><br><i class="bi bi-hourglass-split me-1"></i> Calculating category averages...';
+    
+    // Get all unique categories from processed entities
+    const categories = new Set();
+    for (const card of allEntityCards) {
+      const category = card.dataset.category;
+      if (category) categories.add(category);
+    }
+    
+    // Calculate average for each category
+    for (const categoryClass of categories) {
+      const categoryDiv = document.querySelector(`.entity-category[data-category="${categoryClass}"]`);
+      if (categoryDiv) {
+        const calculateButton = categoryDiv.querySelector('.calculate-average-btn');
+        if (calculateButton) {
+          await calculateCategoryAverage(calculateButton.dataset.category, calculateButton);
+          // Small delay between category calculations
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+    }
+    
+    globalStatus.innerHTML = `<strong class="text-success">All done!</strong><br>${successCount} new, ${skippedCount} existing, ${errorCount} errors<br><small>Category averages calculated</small>`;
+  }
 }
 
 async function processCategory(categoryClass, event) {
@@ -369,6 +408,68 @@ async function processCategory(categoryClass, event) {
   
   if (completeBadge) {
     completeBadge.style.display = 'inline-block';
+  }
+  
+  // Automatically calculate category average after processing all entities
+  const categoryLabel = categoryDiv.querySelector('h2').textContent.trim().split('\n')[0].trim();
+  const calculateButton = categoryDiv.querySelector('.calculate-average-btn');
+  if (calculateButton && successCount > 0) {
+    // Add small delay before calculating average
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await calculateCategoryAverage(calculateButton.dataset.category, calculateButton);
+  }
+}
+
+async function calculateCategoryAverage(categoryLabel, button) {
+  const statusDiv = document.querySelector(`.category-average-status[data-category="${categoryLabel}"]`);
+  const originalHtml = button.innerHTML;
+  
+  // Disable button and show processing
+  button.disabled = true;
+  button.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Calculating...';
+  
+  if (statusDiv) {
+    statusDiv.style.display = 'block';
+    statusDiv.className = 'mt-2 category-average-status alert alert-info';
+    statusDiv.innerHTML = '<i class="bi bi-info-circle me-1"></i> Calculating average for ' + categoryLabel + '...';
+  }
+  
+  try {
+    const response = await fetch(`/api/calculate-category-average?category=${encodeURIComponent(categoryLabel)}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      button.innerHTML = '<i class="bi bi-check-circle me-1"></i> Average Calculated';
+      button.classList.remove('btn-info');
+      button.classList.add('btn-success');
+      
+      if (statusDiv) {
+        statusDiv.className = 'mt-2 category-average-status alert alert-success';
+        statusDiv.innerHTML = `
+          <i class="bi bi-check-circle me-1"></i>
+          Successfully ${result.is_new ? 'created' : 'updated'} category average for ${categoryLabel}<br>
+          <small>Averaged ${result.entities_count} entities</small>
+        `;
+      }
+    } else {
+      button.disabled = false;
+      button.innerHTML = '<i class="bi bi-x-circle me-1"></i> Failed';
+      button.classList.remove('btn-info');
+      button.classList.add('btn-danger');
+      
+      if (statusDiv) {
+        statusDiv.className = 'mt-2 category-average-status alert alert-danger';
+        statusDiv.innerHTML = '<i class="bi bi-x-circle me-1"></i> Error: ' + result.error;
+      }
+    }
+  } catch (error) {
+    button.disabled = false;
+    button.innerHTML = originalHtml;
+    
+    if (statusDiv) {
+      statusDiv.className = 'mt-2 category-average-status alert alert-danger';
+      statusDiv.innerHTML = '<i class="bi bi-x-circle me-1"></i> Error: ' + error.message;
+    }
   }
 }
 </script>
