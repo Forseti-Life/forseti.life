@@ -70,6 +70,65 @@
         </div>
       {% endif %}
 
+      {# Category Sort Controls #}
+      {% if categories is not empty %}
+        <div class="card card-forseti mb-3" id="category-sort-controls">
+          <div class="card-body">
+            <h5 class="text-cyan mb-3">
+              <i class="fas fa-sort me-2"></i>Sort Categories By:
+            </h5>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="?category_sort=total_power&category_order={{ category_sort == 'total_power' and category_order == 'DESC' ? 'ASC' : 'DESC' }}#category-sort-controls" 
+                 class="btn btn-sm {{ category_sort == 'total_power' ? 'btn-cyan' : 'btn-outline-cyan' }}">
+                ⚡ Total Power
+                {% if category_sort == 'total_power' %}
+                  <i class="fas fa-sort-{{ category_order == 'DESC' ? 'down' : 'up' }}"></i>
+                {% endif %}
+              </a>
+              <a href="?category_sort=information_access&category_order={{ category_sort == 'information_access' and category_order == 'DESC' ? 'ASC' : 'DESC' }}#category-sort-controls" 
+                 class="btn btn-sm {{ category_sort == 'information_access' ? 'btn-cyan' : 'btn-outline-cyan' }}">
+                ℹ️ Information Access
+                {% if category_sort == 'information_access' %}
+                  <i class="fas fa-sort-{{ category_order == 'DESC' ? 'down' : 'up' }}"></i>
+                {% endif %}
+              </a>
+              <a href="?category_sort=resource_control&category_order={{ category_sort == 'resource_control' and category_order == 'DESC' ? 'ASC' : 'DESC' }}#category-sort-controls" 
+                 class="btn btn-sm {{ category_sort == 'resource_control' ? 'btn-cyan' : 'btn-outline-cyan' }}">
+                🔧 Resource Control
+                {% if category_sort == 'resource_control' %}
+                  <i class="fas fa-sort-{{ category_order == 'DESC' ? 'down' : 'up' }}"></i>
+                {% endif %}
+              </a>
+              <a href="?category_sort=authority_permission&category_order={{ category_sort == 'authority_permission' and category_order == 'DESC' ? 'ASC' : 'DESC' }}#category-sort-controls" 
+                 class="btn btn-sm {{ category_sort == 'authority_permission' ? 'btn-cyan' : 'btn-outline-cyan' }}">
+                ⚖️ Authority & Permission
+                {% if category_sort == 'authority_permission' %}
+                  <i class="fas fa-sort-{{ category_order == 'DESC' ? 'down' : 'up' }}"></i>
+                {% endif %}
+              </a>
+              <a href="?category_sort=network_position&category_order={{ category_sort == 'network_position' and category_order == 'DESC' ? 'ASC' : 'DESC' }}#category-sort-controls" 
+                 class="btn btn-sm {{ category_sort == 'network_position' ? 'btn-cyan' : 'btn-outline-cyan' }}">
+                🌐 Network Position
+                {% if category_sort == 'network_position' %}
+                  <i class="fas fa-sort-{{ category_order == 'DESC' ? 'down' : 'up' }}"></i>
+                {% endif %}
+              </a>
+              <a href="?category_sort=synthesis_application&category_order={{ category_sort == 'synthesis_application' and category_order == 'DESC' ? 'ASC' : 'DESC' }}#category-sort-controls" 
+                 class="btn btn-sm {{ category_sort == 'synthesis_application' ? 'btn-cyan' : 'btn-outline-cyan' }}">
+                🧠 Synthesis & Application
+                {% if category_sort == 'synthesis_application' %}
+                  <i class="fas fa-sort-{{ category_order == 'DESC' ? 'down' : 'up' }}"></i>
+                {% endif %}
+              </a>
+              <a href="?category_sort=label#category-sort-controls" 
+                 class="btn btn-sm {{ category_sort == 'label' ? 'btn-cyan' : 'btn-outline-cyan' }}">
+                <i class="fas fa-sort-alpha-down"></i> Alphabetical
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
       {# Accordion with categories #}
       {% if categories is not empty %}
         <div class="accordion" id="categoryAccordion">
@@ -77,8 +136,22 @@
             <div class="accordion-item">
               <h2 class="accordion-header" id="heading-{{ category_key }}">
                 <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ category_key }}" aria-expanded="{{ loop.first ? 'true' : 'false' }}" aria-controls="collapse-{{ category_key }}">
-                  <strong>{{ category.label }}</strong>
-                  <span class="badge bg-cyan ms-2">{{ category_counts[category_key] }}</span>
+                  <div class="w-100 d-flex justify-content-between align-items-center pe-none">
+                    <div>
+                      <strong>{{ category.label }}</strong>
+                      <span class="badge bg-cyan ms-2">{{ category_counts[category_key] }}</span>
+                    </div>
+                    {% if category.average %}
+                      <div class="d-flex gap-3 text-muted-light small">
+                        <span title="Information Access">ℹ️ {{ category.average.information_access }}/9</span>
+                        <span title="Resource Control">🔧 {{ category.average.resource_control }}/9</span>
+                        <span title="Authority & Permission">⚖️ {{ category.average.authority_permission }}/9</span>
+                        <span title="Network Position">🌐 {{ category.average.network_position }}/9</span>
+                        <span title="Synthesis & Application">🧠 {{ category.average.synthesis_application }}/9</span>
+                        <span title="Total Power" class="fw-bold text-cyan">⚡ {{ category.average.total_power }}/9</span>
+                      </div>
+                    {% endif %}
+                  </div>
                 </button>
               </h2>
               <div id="collapse-{{ category_key }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" aria-labelledby="heading-{{ category_key }}">
@@ -456,6 +529,19 @@
     }
     
     console.log('Chart initialization complete');
+  }
+})();
+
+// Smooth scroll to category sort controls after page load
+(function() {
+  if (window.location.hash === '#category-sort-controls') {
+    // Wait for page to fully render
+    setTimeout(function() {
+      const element = document.getElementById('category-sort-controls');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   }
 })();
 </script>

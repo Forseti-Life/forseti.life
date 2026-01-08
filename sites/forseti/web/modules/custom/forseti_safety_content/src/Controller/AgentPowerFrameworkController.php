@@ -950,8 +950,13 @@ class AgentPowerFrameworkController extends ControllerBase {
     $sort_field = $request->query->get('sort', 'title');
     $sort_direction = $request->query->get('order', 'ASC');
     
+    // Get category sort parameters
+    $category_sort = $request->query->get('category_sort', 'total_power');
+    $category_order = $request->query->get('category_order', 'DESC');
+    
     // Validate sort direction
     $sort_direction = strtoupper($sort_direction) === 'DESC' ? 'DESC' : 'ASC';
+    $category_order = strtoupper($category_order) === 'DESC' ? 'DESC' : 'ASC';
     
     // Map sort field to actual field names
     $field_map = [
@@ -984,6 +989,12 @@ class AgentPowerFrameworkController extends ControllerBase {
     
     foreach ($entities as $entity) {
       $entity_title = $entity->getTitle();
+      
+      // Skip category average entities in the main list
+      if (strpos($entity_title, 'Average: ') === 0) {
+        continue;
+      }
+      
       $category_value = $entity->get('field_entity_category')->value ?? 'uncategorized';
       $category_label = $entity->get('field_entity_category')->value 
         ? $this->getFieldLabel('node', 'evaluated_entity', 'field_entity_category', $category_value)
@@ -995,6 +1006,7 @@ class AgentPowerFrameworkController extends ControllerBase {
           'label' => $category_label,
           'value' => $category_value,
           'rows' => [],
+          'average' => NULL,
         ];
         $category_counts[$category_value] = 0;
       }
@@ -1033,9 +1045,65 @@ class AgentPowerFrameworkController extends ControllerBase {
       ];
     }
     
-    // Sort categories by label
-    uasort($categories, function($a, $b) {
-      return strcmp($a['label'], $b['label']);
+    // Load category average entities
+    foreach ($categories as $category_value => &$category) {
+      $average_title = "Average: " . $category['label'];
+      $average_query = $storage->getQuery()
+        ->condition('type', 'evaluated_entity')
+        ->condition('status', 1)
+        ->condition('title', $average_title)
+        ->accessCheck(TRUE);
+      
+      $average_nids = $average_query->execute();
+      if (!empty($average_nids)) {
+        $average_entity = $storage->load(reset($average_nids));
+        if ($average_entity) {
+          $category['average'] = [
+            'nid' => $average_entity->id(),
+            'information_access' => $average_entity->get('field_information_access')->value ?? 0,
+            'resource_control' => $average_entity->get('field_resource_control')->value ?? 0,
+            'authority_permission' => $average_entity->get('field_authority_permission')->value ?? 0,
+            'network_position' => $average_entity->get('field_network_position')->value ?? 0,
+            'synthesis_application' => $average_entity->get('field_synthesis_application')->value ?? 0,
+            'total_power' => $average_entity->get('field_total_power')->value ?? 0,
+          ];
+        }
+      }
+    }
+    unset($category); // Break reference
+    
+    // Sort categories based on the selected sort field
+    uasort($categories, function($a, $b) use ($category_sort, $category_order) {
+      $a_val = 0;
+      $b_val = 0;
+      
+      if ($category_sort === 'label') {
+        // Alphabetical sort
+        $result = strcmp($a['label'], $b['label']);
+        return $result;
+      }
+      
+      // Sort by dimension averages
+      if (isset($a['average'][$category_sort])) {
+        $a_val = $a['average'][$category_sort];
+      }
+      if (isset($b['average'][$category_sort])) {
+        $b_val = $b['average'][$category_sort];
+      }
+      
+      // Apply sort direction
+      if ($category_order === 'DESC') {
+        $result = $b_val <=> $a_val;
+      } else {
+        $result = $a_val <=> $b_val;
+      }
+      
+      // If values are equal, sort by label
+      if ($result === 0) {
+        $result = strcmp($a['label'], $b['label']);
+      }
+      
+      return $result;
     });
     
     return [
@@ -1047,6 +1115,8 @@ class AgentPowerFrameworkController extends ControllerBase {
       '#entities_data' => $entities_data,
       '#sort_field' => $sort_field,
       '#sort_direction' => $sort_direction,
+      '#category_sort' => $category_sort,
+      '#category_order' => $category_order,
       '#cache' => [
         'max-age' => 300, // Cache for 5 minutes
         'contexts' => ['url.query_args'],

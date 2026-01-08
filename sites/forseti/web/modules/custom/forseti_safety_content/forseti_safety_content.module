@@ -312,6 +312,8 @@ function forseti_safety_content_theme($existing, $type, $theme, $path) {
         'entities_data' => [],
         'sort_field' => NULL,
         'sort_direction' => NULL,
+        'category_sort' => NULL,
+        'category_order' => NULL,
       ],
       'template' => 'forseti-evaluations-list',
     ],
