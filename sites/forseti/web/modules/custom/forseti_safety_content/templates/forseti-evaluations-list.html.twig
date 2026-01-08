@@ -20,6 +20,15 @@
     <div class="col-12">
       <h1 class="mb-3 text-cyan">{{ title }}</h1>
       <p class="lead mb-4">{{ intro }}</p>
+      
+      <div class="text-center mb-4">
+        <a href="/agent-power-framework" class="btn btn-outline-primary me-2">
+          <i class="fas fa-arrow-left"></i> Back to Framework
+        </a>
+        <a href="/agent-power-framework/us-government" class="btn btn-outline-success">
+          <i class="fas fa-flag-usa"></i> Example Assessment: US Military
+        </a>
+      </div>
 
       {% if entities_data is not empty %}
         {# Radar Chart Visualization #}
