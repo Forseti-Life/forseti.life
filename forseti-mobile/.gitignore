@@ -20,6 +20,12 @@ build/
 *.hprof
 .cxx/
 
+# React Native bundle files (generated at build time)
+android/app/src/main/assets/index.android.bundle
+android/app/src/main/assets/index.android.bundle.map
+ios/main.jsbundle
+ios/main.jsbundle.map
+
 # iOS
 ios/build/
 ios/DerivedData/
