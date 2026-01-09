@@ -1,0 +1,9 @@
+// Configure Gradle to use SD card for build directories
+// This saves local disk space by putting build outputs on SD card
+
+allprojects {
+    buildDir = new File("/mnt/chromeos/removable/SD Card/Android/forseti-mobile-build/${rootProject.name}/${project.name}")
+    
+    // Also redirect intermediate build files
+    project.buildDir = new File("/mnt/chromeos/removable/SD Card/Android/forseti-mobile-build/${rootProject.name}/${project.name}")
+}
