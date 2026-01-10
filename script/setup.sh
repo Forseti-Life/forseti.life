@@ -760,7 +760,47 @@ if [ "$DRUPAL_INSTALLED" = true ]; then
     fi
     
     # ------------------------------------------------------------------------------
-    # 2.8 Home Page Configuration
+    # 2.8 Block Placement Configuration
+    # ------------------------------------------------------------------------------
+    print_status "Configuring block placement..."
+    
+    # Ensure Main Navigation is enabled and in navbar_left region
+    if /usr/bin/php8.3 vendor/drush/drush/drush.php config:get block.block.forseti_main_menu 2>/dev/null | grep -q "region:"; then
+        print_status "Configuring Main Navigation block..."
+        /usr/bin/php8.3 vendor/drush/drush/drush.php php:eval "\$config = \Drupal::service('config.factory')->getEditable('block.block.forseti_main_menu'); \$config->set('status', true)->set('region', 'navbar_left')->save();" 2>/dev/null
+        print_status "✅ Main navigation enabled in navbar_left"
+    else
+        print_status "Main navigation block not found. Skipping."
+    fi
+    
+    # Ensure Forseti Footer Menu is the ONLY block in footer region
+    if /usr/bin/php8.3 vendor/drush/drush/drush.php config:get block.block.forseti_forsetifootermenu 2>/dev/null | grep -q "region:"; then
+        print_status "Configuring Forseti Footer Menu as sole footer block..."
+        # Disable forseti_footer if it exists
+        /usr/bin/php8.3 vendor/drush/drush/drush.php php:eval "\$config = \Drupal::service('config.factory')->getEditable('block.block.forseti_footer'); if (!\$config->isNew()) { \$config->set('status', false)->save(); }" 2>/dev/null
+        # Enable and configure forseti_forsetifootermenu
+        /usr/bin/php8.3 vendor/drush/drush/drush.php php:eval "\$config = \Drupal::service('config.factory')->getEditable('block.block.forseti_forsetifootermenu'); \$config->set('status', true)->set('region', 'footer')->set('theme', 'forseti')->save();" 2>/dev/null
+        print_status "✅ Forseti Footer Menu enabled as sole footer block"
+    else
+        print_status "Forseti Footer Menu block not found. Skipping."
+    fi
+    
+    # Verify Site Branding is in navbar_branding region
+    if /usr/bin/php8.3 vendor/drush/drush/drush.php config:get block.block.forseti_branding 2>/dev/null | grep -q "region:"; then
+        BRANDING_REGION=$(/usr/bin/php8.3 vendor/drush/drush/drush.php config:get block.block.forseti_branding region 2>/dev/null | grep "region:" | awk '{print $2}' | tr -d "'" | tr -d '\r\n')
+        if [ "$BRANDING_REGION" != "navbar_branding" ]; then
+            print_status "Setting Site Branding to navbar_branding region..."
+            /usr/bin/php8.3 vendor/drush/drush/drush.php php:eval "\$config = \Drupal::service('config.factory')->getEditable('block.block.forseti_branding'); \$config->set('region', 'navbar_branding')->save();" 2>/dev/null
+            print_status "✅ Site branding configured in navbar_branding"
+        else
+            print_status "Site branding already in navbar_branding region. Skipping."
+        fi
+    else
+        print_status "Site branding block not found. Skipping."
+    fi
+    
+    # ------------------------------------------------------------------------------
+    # 2.9 Home Page Configuration
     # ------------------------------------------------------------------------------
     print_status "Configuring Forseti home page..."
     if /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "professional_website_content"; then

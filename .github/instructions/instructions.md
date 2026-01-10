@@ -234,8 +234,10 @@ The development environment has a single Drupal installation:
 **DEVELOPMENT DRUSH COMMANDS**: Site-specific Drush installation:
 - Forseti: `cd /home/keithaumiller/forseti.life/sites/forseti && ./vendor/bin/drush status`
 
-**DEVELOPMENT URL**:
-- Forseti: http://localhost (port 80)
+**DEVELOPMENT URLS**:
+- **Local (Chromebook)**: http://penguin.linux.test/ (user's local development environment)
+- **AI Agent**: http://localhost (port 80) - AI agents should use localhost for testing
+- **Codespace VM**: Use the GitHub Codespaces forwarded URL for the VM environment
 
 **PRODUCTION SERVER LOG LOCATIONS**: Site-specific Apache logging for troubleshooting:
 - **forseti.life logs**:
