@@ -15,6 +15,21 @@ export PATH="/usr/bin:/usr/sbin:$PATH"
 echo "=== Forseti.Life - Complete Development Environment Setup ==="
 
 # ------------------------------------------------------------------------------
+# DETECT WORKSPACE PATH
+# ------------------------------------------------------------------------------
+# Auto-detect workspace path (supports both /workspaces and /home paths)
+if [ -d "/workspaces/forseti.life" ]; then
+    WORKSPACE_ROOT="/workspaces/forseti.life"
+elif [ -d "/home/keithaumiller/forseti.life" ]; then
+    WORKSPACE_ROOT="/home/keithaumiller/forseti.life"
+else
+    echo "ERROR: Could not find forseti.life workspace directory"
+    exit 1
+fi
+
+echo "[INFO] Using workspace root: $WORKSPACE_ROOT"
+
+# ------------------------------------------------------------------------------
 # CONFIGURATION VARIABLES
 # ------------------------------------------------------------------------------
 # Colors for output
@@ -26,7 +41,7 @@ NC='\033[0m' # No Color
 
 # Project configuration
 PROJECT_NAME="forseti"
-PROJECT_DIR="/home/keithaumiller/forseti.life/sites/forseti"
+PROJECT_DIR="$WORKSPACE_ROOT/sites/forseti"
 DB_NAME="forseti_dev"
 DB_USER="drupal_user"
 DB_PASSWORD="drupal_secure_password"
@@ -37,7 +52,7 @@ ADMIN_PASSWORD="admin_secure_password"
 ADMIN_EMAIL="admin@forseti.life"
 
 # Check if .env file exists and source it
-ENV_FILE="/home/keithaumiller/forseti.life/.env"
+ENV_FILE="$WORKSPACE_ROOT/.env"
 if [ -f "$ENV_FILE" ]; then
     echo -e "${GREEN}[INFO]${NC} Loading configuration from .env file..."
     source "$ENV_FILE"
@@ -157,26 +172,15 @@ sudo apt update
 print_status "Checking PHP 8.3 installation (REQUIRED)..."
 
 if [ ! -x "/usr/bin/php8.3" ]; then
-    print_warning "PHP 8.3 is NOT installed. Installing PHP 8.3 from Sury repository..."
+    print_warning "PHP 8.3 is NOT installed. Installing PHP 8.3 from Ubuntu repositories..."
     
-    # Install prerequisites
-    sudo apt install -y ca-certificates apt-transport-https software-properties-common lsb-release
-    
-    # Add Sury PHP repository
-    print_status "Adding Sury PHP repository..."
-    sudo curl -sSL https://packages.sury.org/php/README.txt
-    sudo curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
-    echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/php.list
-    
-    # Update package lists
-    sudo apt update
-    
-    # Install PHP 8.3 and Apache module
-    print_status "Installing PHP 8.3 and Apache module..."
+    # Install PHP 8.3 and Apache module directly from Ubuntu repositories
+    print_status "Installing PHP 8.3 and Apache module from Ubuntu repositories..."
     sudo apt install -y php8.3 php8.3-cli php8.3-fpm libapache2-mod-php8.3
     
     if [ ! -x "/usr/bin/php8.3" ]; then
         print_error "❌ FAILED to install PHP 8.3. This is a REQUIRED dependency."
+        print_error "Please ensure Ubuntu repositories are accessible."
         exit 1
     fi
     
@@ -412,10 +416,10 @@ if [ ${#MISSING_H3_PACKAGES[@]} -gt 0 ]; then
 fi
 
 # Setup H3 Python virtual environment
-H3_ENV_DIR="/home/keithaumiller/forseti.life/h3-geolocation/h3-env"
+H3_ENV_DIR="$WORKSPACE_ROOT/h3-geolocation/h3-env"
 if [ ! -d "$H3_ENV_DIR" ]; then
     print_status "Creating H3 Python virtual environment..."
-    cd /home/keithaumiller/forseti.life/h3-geolocation
+    cd $WORKSPACE_ROOT/h3-geolocation
     python3 -m venv h3-env
     
     print_status "Installing H3 Python packages..."
@@ -547,9 +551,9 @@ sudo bash -c "cat > /etc/apache2/sites-available/forseti.conf" <<EOF
         ServerName localhost
         ServerAlias forseti.local www.forseti.local penguin.linux.test
         ServerAdmin webmaster@localhost
-        DocumentRoot /home/keithaumiller/forseti.life/sites/forseti/web
+        DocumentRoot $WORKSPACE_ROOT/sites/forseti/web
 
-        <Directory /home/keithaumiller/forseti.life/sites/forseti/web>
+        <Directory $WORKSPACE_ROOT/sites/forseti/web>
                 Options Indexes FollowSymLinks
                 AllowOverride All
                 Require all granted
@@ -585,14 +589,14 @@ print_status "Enforcing PHP 8.3 for Drupal operations: $(php --version | head -n
 # 2.1 Directory Setup
 # ------------------------------------------------------------------------------
 print_status "Creating site directory structure..."
-mkdir -p /home/keithaumiller/forseti.life/sites
+mkdir -p $WORKSPACE_ROOT/sites
 
 if [ -d "$PROJECT_DIR" ]; then
     print_status "Existing Drupal directory found. Skipping fresh installation to preserve custom work."
     print_status "Using existing Drupal installation at $PROJECT_DIR"
 else
     print_status "No existing Drupal directory found. Creating new Drupal 11.2.5 project..."
-    cd /home/keithaumiller/forseti.life/sites
+    cd $WORKSPACE_ROOT/sites
     /usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:11.2.5 forseti --no-interaction
 fi
 
@@ -1327,7 +1331,7 @@ fi
 # ------------------------------------------------------------------------------
 # 5.2 H3 Python Environment Verification
 # ------------------------------------------------------------------------------
-H3_ENV_DIR="/home/keithaumiller/forseti.life/h3-geolocation/h3-env"
+H3_ENV_DIR="$WORKSPACE_ROOT/h3-geolocation/h3-env"
 if [ -f "$H3_ENV_DIR/bin/python" ]; then
     H3_TEST_RESULT=$($H3_ENV_DIR/bin/python -c "import h3; import pandas; import mysql.connector; print('H3 packages verified')" 2>/dev/null || echo "FAILED")
     if [ "$H3_TEST_RESULT" = "H3 packages verified" ]; then
@@ -1343,7 +1347,7 @@ fi
 # 5.3 Database Table Verification
 # ------------------------------------------------------------------------------
 print_status "Setting up AmISafe H3 geolocation data pipeline database..."
-AMISAFE_SETUP_SCRIPT="/home/keithaumiller/forseti.life/h3-geolocation/database/setup/setup_amisafe_complete.sh"
+AMISAFE_SETUP_SCRIPT="$WORKSPACE_ROOT/h3-geolocation/database/setup/setup_amisafe_complete.sh"
 
 if [ -f "$AMISAFE_SETUP_SCRIPT" ]; then
     print_status "Running AmISafe complete database setup..."
@@ -1354,9 +1358,9 @@ if [ -f "$AMISAFE_SETUP_SCRIPT" ]; then
         # 5.4 ETL Pipeline Status
         # ------------------------------------------------------------------------------
         print_status "Running AmISafe sample data pipeline..."
-        PIPELINE_SCRIPT="/home/keithaumiller/forseti.life/h3-geolocation/database/run_amisafe_pipeline_stlouisintegration.sh"
+        PIPELINE_SCRIPT="$WORKSPACE_ROOT/h3-geolocation/database/run_amisafe_pipeline_stlouisintegration.sh"
         if [ -f "$PIPELINE_SCRIPT" ]; then
-            cd /home/keithaumiller/forseti.life/h3-geolocation/database
+            cd $WORKSPACE_ROOT/h3-geolocation/database
             if bash "$PIPELINE_SCRIPT" sample; then
                 print_status "✅ AmISafe sample data pipeline completed"
             else
@@ -1479,7 +1483,7 @@ echo "Check coding standards: ./scripts/check-standards.sh"
 echo "Backup database: ./scripts/backup-database.sh"
 echo ""
 echo "H3 Geolocation Commands:"
-echo "Navigate to H3: cd /home/keithaumiller/forseti.life/h3-geolocation"
+echo "Navigate to H3: cd $WORKSPACE_ROOT/h3-geolocation"
 echo "Activate environment: source h3-env/bin/activate"
 echo "Run pipeline: cd database && bash run_amisafe_pipeline_stlouisintegration.sh"
 echo "Quick examples: python quick_start.py"

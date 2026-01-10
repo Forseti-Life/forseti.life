@@ -9,6 +9,16 @@
 
 set -e
 
+# Auto-detect workspace path (supports both /workspaces and /home paths)
+if [ -d "/workspaces/forseti.life" ]; then
+    WORKSPACE_ROOT="/workspaces/forseti.life"
+elif [ -d "/home/keithaumiller/forseti.life" ]; then
+    WORKSPACE_ROOT="/home/keithaumiller/forseti.life"
+else
+    echo "ERROR: Could not find forseti.life workspace directory"
+    exit 1
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -18,7 +28,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-MOBILE_DIR="/home/keithaumiller/forseti.life/forseti-mobile"
+MOBILE_DIR="$WORKSPACE_ROOT/forseti-mobile"
 NODE_VERSION_REQUIRED="16"
 JAVA_VERSION="17"
 
@@ -95,14 +105,21 @@ print_step "Checking available disk space..."
 AVAILABLE_SPACE=$(df -BG / | tail -1 | awk '{print $4}' | sed 's/G//')
 print_status "Available disk space: ${AVAILABLE_SPACE}GB"
 
-if [ "$AVAILABLE_SPACE" -lt 3 ]; then
-    print_error "Insufficient disk space. At least 3GB required for full setup."
-    print_warning "Android SDK alone requires ~1-2GB"
+# Recommended minimum is 20GB for comfortable Android development
+if [ "$AVAILABLE_SPACE" -lt 20 ]; then
+    print_error "Insufficient disk space. At least 20GB recommended for Android development."
+    print_warning "Android SDK requires ~10GB, build cache ~5GB, dependencies ~3GB, plus workspace ~2GB"
+    print_warning "Current available: ${AVAILABLE_SPACE}GB"
     read -p "Continue anyway? (y/n) " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         exit 1
     fi
+elif [ "$AVAILABLE_SPACE" -lt 30 ]; then
+    print_warning "Disk space is below comfortable level (30GB+ recommended)"
+    print_status "Current ${AVAILABLE_SPACE}GB should be sufficient but monitor usage"
+else
+    print_status "Disk space check passed: ${AVAILABLE_SPACE}GB available"
 fi
 
 # Check Node.js
@@ -264,9 +281,22 @@ if [ "$SKIP_ANDROID" = false ]; then
         print_status "Java already installed: $(java -version 2>&1 | head -1 | cut -d'"' -f2)"
     fi
     
-    # Set Java environment
-    export JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk-amd64
+    # Set Java environment - verify the path exists first
+    JAVA_HOME_PATH="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk-amd64"
+    if [ ! -d "$JAVA_HOME_PATH" ]; then
+        # Try to find the actual Java installation
+        JAVA_HOME_PATH=$(dirname $(dirname $(readlink -f $(which java))))
+        print_warning "Expected Java path not found, using detected path: $JAVA_HOME_PATH"
+    fi
+    export JAVA_HOME="$JAVA_HOME_PATH"
     print_status "JAVA_HOME: $JAVA_HOME"
+    
+    # Verify Java is working with JAVA_HOME set
+    if [ ! -f "$JAVA_HOME/bin/java" ]; then
+        print_error "Java installation incomplete. JAVA_HOME/bin/java not found."
+        exit 1
+    fi
+    print_status "Java verified: $($JAVA_HOME/bin/java -version 2>&1 | head -1)"
     
     # Android SDK setup
     ANDROID_HOME="$HOME/Android"
