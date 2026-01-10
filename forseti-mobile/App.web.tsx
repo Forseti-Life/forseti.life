@@ -153,7 +153,11 @@ const TabIcon = ({
             resizeMode="contain"
           />
         ) : (
-          <Icon name={iconName || ''} size={24} color={focused ? Colors.primary : Colors.textSecondary} />
+          <Icon
+            name={iconName || ''}
+            size={24}
+            color={focused ? Colors.primary : Colors.textSecondary}
+          />
         )}
       </View>
       <Text

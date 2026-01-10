@@ -4,7 +4,16 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  ActivityIndicator,
+  Image,
+} from 'react-native';
 import Icon from '../../components/Icon.web';
 import { Colors } from '../../utils/colors';
 
@@ -123,15 +132,16 @@ const ChatScreen: React.FC = () => {
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
-      
+
       // Add error message
       const errorMessage: Message = {
         id: `error-${Date.now()}`,
         role: 'assistant',
-        content: "I'm sorry, I'm having trouble connecting right now. Please make sure you're signed in at forseti.life and try again.",
+        content:
+          "I'm sorry, I'm having trouble connecting right now. Please make sure you're signed in at forseti.life and try again.",
         timestamp: new Date().toISOString(),
       };
-      
+
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setLoading(false);
@@ -149,7 +159,10 @@ const ChatScreen: React.FC = () => {
     const isUser = message.role === 'user';
 
     return (
-      <View key={message.id} style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}>
+      <View
+        key={message.id}
+        style={[styles.messageBubble, isUser ? styles.userBubble : styles.aiBubble]}
+      >
         {!isUser && (
           <Image
             source={require('../../../assets/images/forseti_chat.png')}

@@ -31,9 +31,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const quickActions = [
     { icon: 'map', label: 'View Map', color: Colors.primary, type: 'icon', navigateTo: 'map' },
-    { icon: require('../../../assets/images/forseti_chat.png'), label: 'AI Chat', color: '#9C27B0', type: 'image', navigateTo: 'chat' },
+    {
+      icon: require('../../../assets/images/forseti_chat.png'),
+      label: 'AI Chat',
+      color: '#9C27B0',
+      type: 'image',
+      navigateTo: 'chat',
+    },
     { icon: 'alert', label: 'Report Incident', color: '#F44336', type: 'icon', navigateTo: 'chat' },
-    { icon: require('../../../assets/images/forseti_safe.png'), label: 'Safety Tips', color: '#4CAF50', type: 'image', navigateTo: 'safety' },
+    {
+      icon: require('../../../assets/images/forseti_safe.png'),
+      label: 'Safety Tips',
+      color: '#4CAF50',
+      type: 'image',
+      navigateTo: 'safety',
+    },
   ];
 
   console.log('HomeScreen about to render, Colors:', Colors);
@@ -80,11 +92,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             >
               <View style={[styles.actionIcon, { backgroundColor: action.color + '20' }]}>
                 {action.type === 'image' ? (
-                  <Image 
-                    source={action.icon}
-                    style={styles.actionIconImage}
-                    resizeMode="contain"
-                  />
+                  <Image source={action.icon} style={styles.actionIconImage} resizeMode="contain" />
                 ) : (
                   <Icon name={action.icon} size={24} color={action.color} />
                 )}

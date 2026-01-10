@@ -472,6 +472,207 @@ Streamlined repository to focus on single Drupal site:
 
 Next phase: Setting up forseti.life on production server at `/var/www/html/forseti`
 
+## **Forseti Mobile App - React Native Android Development** (January 2026)
+Established complete Android development environment for forseti-mobile React Native application:
+
+### **React Native Environment**
+- ✅ **React Native Version**: 0.72.6 (stable LTS release)
+- ✅ **Node.js**: 18.20.8 with npm 10.8.2
+- ✅ **Dependencies**: 1,612 packages installed with legacy-peer-deps configuration
+- ✅ **Package Management**: .npmrc configured for compatibility with React Native 0.72
+
+### **Android Build Environment**
+- ✅ **Java Development Kit**: OpenJDK 17.0.17 (required for Android Gradle Plugin 8.x)
+- ✅ **JAVA_HOME**: /usr/lib/jvm/java-17-openjdk-amd64
+- ✅ **Android SDK**: Installed at ~/Android with command-line tools
+- ✅ **Android SDK Components**:
+  - platform-tools (latest)
+  - platforms;android-35 (API Level 35)
+  - build-tools;34.0.0
+  - NDK 25.1.8937393 (required for React Native 0.72)
+- ✅ **Android SDK Path**: ~/Android (ANDROID_HOME configured)
+
+### **Android Build Configuration**
+- ✅ **Android Gradle Plugin (AGP)**: 8.0.2
+- ✅ **Gradle Version**: 8.0.1
+- ✅ **Kotlin Version**: 1.8.22
+- ✅ **compileSdk**: 35 (required for androidx.core 1.13.1+)
+- ✅ **targetSdk**: 34
+- ✅ **buildTools**: 34.0.0
+- ✅ **androidXCoreVersion**: 1.13.1 (avoids AGP 8.6+ requirement)
+
+### **Version Compatibility Resolution**
+Resolved complex version incompatibilities between React Native 0.72 and Android build tools:
+
+**Critical Constraints**:
+- React Native 0.72 Gradle plugin compiled with Kotlin 1.7.x
+- AGP 8.6+ requires androidx.core 1.16.0+ which needs compileSdk 35
+- Gradle 8.3+ includes Kotlin stdlib 1.9.x (incompatible with React Native plugin)
+- AGP version must be compatible with both Gradle version and compileSdk level
+
+**Solution Configuration** (verified working):
+- **AGP 8.0.2**: Last stable version compatible with Kotlin 1.8.x and compileSdk 35
+- **Gradle 8.0.1**: Compatible with AGP 8.0.2 and includes Kotlin stdlib ≤1.8.x
+- **Kotlin 1.8.22**: Bridge version compatible with both React Native 0.72 and Gradle 8.0.1
+- **compileSdk 35**: Required for androidx.core 1.13.1
+- **androidXCoreVersion 1.13.1**: Last version before AGP 8.6+ requirement
+
+### **React Native Library Compatibility Fixes**
+Implemented namespace declarations for Android Gradle Plugin 8+ compatibility:
+
+**Libraries Requiring Namespace Patches** (8 total):
+1. **react-native-geolocation-service** (5.3.1) - Added namespace: com.agontuk.RNFusedLocation
+2. **react-native-gesture-handler** (2.8.0) - Added namespace + buildConfig: com.swmansion.gesturehandler
+3. **react-native-push-notification** (8.1.1) - Added namespace: com.dieam.reactnativepushnotification
+4. **react-native-safe-area-context** (4.4.1) - Added namespace + buildConfig: com.th3rdwave.safeareacontext
+5. **react-native-screens** (3.18.2) - Added namespace + buildConfig: com.swmansion.rnscreens
+6. **react-native-svg** (13.14.0) - Added namespace + buildConfig: com.horcrux.svg
+7. **react-native-vector-icons** (9.2.0) - Added namespace: com.oblador.vectoricons
+8. **react-native-maps** - Updated from 1.7.1 to 1.26.20 (latest version compatible with RN 0.72)
+
+**Patch Management**:
+- ✅ **patch-package**: Installed as dev dependency for persisting node_modules modifications
+- ✅ **postinstall-postinstall**: Ensures patches applied after npm install
+- ✅ **Patch Files**: 7 patch files created in `/patches/` directory
+- ✅ **Automated Application**: postinstall script in package.json applies patches automatically
+
+### **Development Workflow Best Practices**
+**Namespace Requirements (AGP 8+)**:
+- All React Native libraries must declare namespace in build.gradle
+- Some libraries also require `buildFeatures { buildConfig true }`
+- Use patch-package to persist fixes across npm installs
+- Never modify node_modules directly without creating patches
+
+**Version Compatibility Testing**:
+- Test AGP and Gradle version combinations thoroughly
+- Check Kotlin stdlib version compatibility with React Native plugins
+- Verify androidx library version requirements against AGP minimums
+- Document all version constraints in setup scripts
+
+**Build Environment Setup**:
+- Use automated setup script: `/script/setup-forseti-mobile-dev.sh`
+- Script handles Java installation, Android SDK setup, and all compatibility fixes
+- All fixes documented and reproducible for clean environment setup
+
+### **Android Build Commands**
+**Development Build** (Debug APK):
+```bash
+cd /home/keithaumiller/forseti.life/forseti-mobile/android
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export ANDROID_HOME=/home/keithaumiller/Android
+./gradlew clean assembleDebug
+```
+
+**Build Output Location**:
+- Debug APK: `forseti-mobile/android/app/build/outputs/apk/debug/app-debug.apk`
+- Release APK: `forseti-mobile/android/app/build/outputs/apk/release/app-release.apk`
+
+**Build Validation**:
+```bash
+# Verify Gradle wrapper version
+cat forseti-mobile/android/gradle/wrapper/gradle-wrapper.properties | grep distributionUrl
+
+# Check build configuration
+cat forseti-mobile/android/build.gradle | grep -E "gradle:|kotlinVersion|compileSdk"
+
+# List installed patches
+ls -lh forseti-mobile/patches/
+```
+
+### **Automated Setup Script**
+**Location**: `/script/setup-forseti-mobile-dev.sh`
+
+**Automated Tasks**:
+1. Node.js and npm version verification
+2. Java 17 installation (OpenJDK)
+3. Android SDK installation with required components
+4. npm dependencies installation with legacy-peer-deps
+5. patch-package installation and configuration
+6. Android build configuration updates (AGP, Gradle, Kotlin versions)
+7. react-native-maps version update
+8. Build environment validation
+
+**Usage**:
+```bash
+# Full setup (includes Android SDK installation)
+bash /home/keithaumiller/forseti.life/script/setup-forseti-mobile-dev.sh
+
+# Skip Android SDK installation
+bash /home/keithaumiller/forseti.life/script/setup-forseti-mobile-dev.sh --skip-android
+```
+
+### **Known Version Compatibility Issues**
+**Tested Configurations** (with results):
+
+❌ **AGP 8.6.1 + Gradle 8.7**:
+- Issue: Gradle 8.7 includes Kotlin stdlib 1.9.22
+- React Native Gradle plugin compiled with Kotlin 1.7.1
+- Error: Binary metadata version incompatibility
+
+❌ **AGP 8.3.2 + Gradle 8.3**:
+- Issue: Same Kotlin version incompatibility as above
+- Gradle 8.3 includes Kotlin stdlib 1.9.x
+
+✅ **AGP 8.0.2 + Gradle 8.0.1 + Kotlin 1.8.22** (WORKING):
+- Compatible Kotlin versions across all components
+- Supports compileSdk 35 for androidx.core 1.13.1
+- Stable configuration for React Native 0.72.6
+
+### **Mobile Development File Structure**
+```
+forseti-mobile/
+├── android/                    # Android native project
+│   ├── app/                    # Main Android application
+│   ├── build.gradle           # Root build configuration (AGP 8.0.2, Kotlin 1.8.22)
+│   ├── gradle.properties      # Gradle build properties
+│   ├── local.properties       # Android SDK path (sdk.dir=/home/keithaumiller/Android)
+│   └── gradle/wrapper/        # Gradle wrapper (8.0.1)
+├── patches/                   # patch-package modifications
+│   ├── react-native-geolocation-service+5.3.1.patch
+│   ├── react-native-gesture-handler+2.8.0.patch
+│   ├── react-native-push-notification+8.1.1.patch
+│   ├── react-native-safe-area-context+4.4.1.patch
+│   ├── react-native-screens+3.18.2.patch
+│   ├── react-native-svg+13.14.0.patch
+│   └── react-native-vector-icons+9.2.0.patch
+├── src/                       # React Native application source
+├── package.json               # npm dependencies + postinstall script
+├── .npmrc                     # npm configuration (legacy-peer-deps=true)
+└── README.md                  # Mobile app documentation
+```
+
+### **Troubleshooting Android Build Issues**
+
+**Kotlin Version Mismatch**:
+```bash
+# Symptoms: "Class 'kotlin.text.StringsKt' was compiled with incompatible version"
+# Solution: Verify Kotlin version in build.gradle matches Gradle version compatibility
+grep "kotlinVersion" forseti-mobile/android/build.gradle
+```
+
+**Missing Namespace Declarations**:
+```bash
+# Symptoms: "Namespace not specified" errors during build
+# Solution: Create patch file for the library
+cd forseti-mobile
+npx patch-package [package-name]
+```
+
+**Gradle Daemon Issues**:
+```bash
+# Stop all Gradle daemons for clean state
+cd forseti-mobile/android
+./gradlew --stop
+```
+
+**Build Cache Cleanup**:
+```bash
+# Clean build artifacts and Gradle cache
+cd forseti-mobile/android
+./gradlew clean
+rm -rf .gradle build
+```
+
 ---
 
 ## Code Generation Preferences

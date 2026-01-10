@@ -64,6 +64,7 @@ npm run web
 ### Production Build
 
 #### Android Debug APK
+
 ```bash
 npm run android:clean
 npm run android:build:debug
@@ -77,6 +78,7 @@ npm run android:build:debug
 ```
 
 #### Android Release APK (Production)
+
 ```bash
 npm run android:clean
 npm run android:build
@@ -86,6 +88,7 @@ npm run android:build
 ```
 
 #### Android App Bundle (for Google Play)
+
 ```bash
 npm run android:bundle
 
@@ -99,24 +102,28 @@ npm run android:bundle
 **Keystore Location**: `forseti-mobile/android/app/forseti-release.keystore`
 
 **Credentials**:
+
 - **Store Password**: `forseti2024`
 - **Key Alias**: `forseti-key`
 - **Key Password**: `forseti2024`
 - **Validity**: 10,000 days (expires ~2052)
 
 **Certificate Details**:
+
 - **Organization**: St Louis Integration
 - **Unit**: Mobile
 - **Location**: Philadelphia, PA, USA
 - **Common Name**: Forseti
 
-**⚠️ BACKUP WARNING**: 
+**⚠️ BACKUP WARNING**:
+
 - Store the keystore file in multiple secure locations (cloud storage, external drive, password manager)
 - If you lose this keystore, you **CANNOT update the app** on Google Play
 - You would need to publish a completely new app with a different package name
 - All existing users, reviews, and downloads would be lost
 
 **Configured in**: `android/gradle.properties`
+
 ```properties
 FORSETI_RELEASE_STORE_FILE=forseti-release.keystore
 FORSETI_RELEASE_STORE_PASSWORD=forseti2024
@@ -949,8 +956,10 @@ npm run android:build:debug
 ```
 
 # iOS
+
 # Open Xcode, select your device, click Run
-```
+
+````
 
 ### Debugging
 
@@ -967,7 +976,7 @@ adb logcat | grep ReactNativeJS
 
 # iOS
 react-native log-ios
-```
+````
 
 **Network Debugging**:
 

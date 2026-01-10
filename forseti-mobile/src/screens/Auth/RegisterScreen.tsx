@@ -69,16 +69,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
       const result = await authService.register(username, email, password);
 
       if (result.success) {
-        Alert.alert(
-          'Success!',
-          'Your account has been created. Please sign in.',
-          [
-            {
-              text: 'Sign In',
-              onPress: () => navigation.navigate('Login'),
-            },
-          ]
-        );
+        Alert.alert('Success!', 'Your account has been created. Please sign in.', [
+          {
+            text: 'Sign In',
+            onPress: () => navigation.navigate('Login'),
+          },
+        ]);
       } else {
         Alert.alert('Registration Failed', result.message || 'Unable to create account');
       }
@@ -102,8 +98,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <View style={styles.logoWrapper}>
-            <Image 
-              source={Platform.OS === 'web' ? { uri: '/forseti-logo.png' } : require('../../../assets/images/forseti_logo_final.png')}
+            <Image
+              source={
+                Platform.OS === 'web'
+                  ? { uri: '/forseti-logo.png' }
+                  : require('../../../assets/images/forseti_logo_final.png')
+              }
               style={styles.logoImage}
               resizeMode="contain"
             />
@@ -201,11 +201,17 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               By creating an account, you agree to our{'\n'}
-              <Text style={styles.linkText} onPress={() => Linking.openURL('https://forseti.life/terms-of-service')}>
+              <Text
+                style={styles.linkText}
+                onPress={() => Linking.openURL('https://forseti.life/terms-of-service')}
+              >
                 Terms of Service
               </Text>{' '}
               and{' '}
-              <Text style={styles.linkText} onPress={() => Linking.openURL('https://forseti.life/privacy-policy')}>
+              <Text
+                style={styles.linkText}
+                onPress={() => Linking.openURL('https://forseti.life/privacy-policy')}
+              >
                 Privacy Policy
               </Text>
             </Text>

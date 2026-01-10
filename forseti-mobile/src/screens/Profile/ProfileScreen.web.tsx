@@ -32,14 +32,14 @@ const ProfileScreen: React.FC = () => {
       // Get user data from auth service
       const authService = DrupalAuthService.getInstance();
       const currentUser = authService.getCurrentUser();
-      
+
       if (currentUser) {
         setUser(currentUser);
       } else {
         // Fallback to storage
         const username = await storageService.getItem('username');
         const userId = await storageService.getItem('userId');
-        
+
         if (username) {
           setUser({
             name: username,
@@ -71,7 +71,7 @@ const ProfileScreen: React.FC = () => {
       await storageService.removeItem('userToken');
       await storageService.removeItem('userId');
       await storageService.removeItem('username');
-      
+
       // Reload page to go back to login
       if (Platform.OS === 'web') {
         window.location.reload();
@@ -139,10 +139,8 @@ const ProfileScreen: React.FC = () => {
         </View>
         <Text style={styles.username}>{user?.name || user?.username || 'User'}</Text>
         <Text style={styles.email}>{user?.mail || 'user@forseti.life'}</Text>
-        {user?.uid && (
-          <Text style={styles.userId}>User ID: {user.uid}</Text>
-        )}
-        
+        {user?.uid && <Text style={styles.userId}>User ID: {user.uid}</Text>}
+
         <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
           <Icon name="pencil" size={16} color={Colors.primary} />
           <Text style={styles.editButtonText}>Edit Profile on forseti.life</Text>
@@ -170,11 +168,7 @@ const ProfileScreen: React.FC = () => {
       {/* Menu Items */}
       <View style={styles.menuContainer}>
         {menuItems.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.menuItem}
-            onPress={item.onPress}
-          >
+          <TouchableOpacity key={index} style={styles.menuItem} onPress={item.onPress}>
             <View style={[styles.menuIcon, { backgroundColor: item.color + '20' }]}>
               <Icon name={item.icon} size={24} color={item.color} />
             </View>
@@ -196,9 +190,7 @@ const ProfileScreen: React.FC = () => {
       {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>Forseti Mobile v1.0.0</Text>
-        <Text style={styles.footerText}>
-          Powered by H3 Geospatial Intelligence
-        </Text>
+        <Text style={styles.footerText}>Powered by H3 Geospatial Intelligence</Text>
       </View>
     </ScrollView>
   );

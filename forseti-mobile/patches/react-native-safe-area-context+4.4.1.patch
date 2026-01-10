@@ -1,0 +1,15 @@
+diff --git a/node_modules/react-native-safe-area-context/android/build.gradle b/node_modules/react-native-safe-area-context/android/build.gradle
+index 7b5b358..c291713 100644
+--- a/node_modules/react-native-safe-area-context/android/build.gradle
++++ b/node_modules/react-native-safe-area-context/android/build.gradle
+@@ -32,6 +32,10 @@ if (isNewArchitectureEnabled()) {
+ }
+ 
+ android {
++    namespace "com.th3rdwave.safeareacontext"
++    buildFeatures {
++        buildConfig true
++    }
+     compileSdkVersion getExtOrDefault('compileSdkVersion', 30)
+ 
+     // Used to override the NDK path/version on internal CI or by allowing

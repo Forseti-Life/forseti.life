@@ -31,7 +31,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
 
   const handleLogin = async () => {
     console.log('Login attempt:', { username, password: '***' });
-    
+
     if (!username || !password) {
       if (Platform.OS === 'web') {
         window.alert('Please enter both username and password');
@@ -43,11 +43,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
 
     setLoading(true);
     console.log('Starting login process...');
-    
+
     try {
       const authService = DrupalAuthService.getInstance();
       console.log('Auth service:', authService);
-      
+
       const result = await authService.login(username, password);
       console.log('Login result:', result);
 
@@ -112,7 +112,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           <View style={styles.logoWrapper}>
-            <Image 
+            <Image
               source={{ uri: '/forseti-logo.png' }}
               style={styles.logoImage}
               resizeMode="contain"
@@ -189,11 +189,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               By signing in, you agree to our{' '}
-              <Text style={styles.linkText} onPress={() => Linking.openURL('https://forseti.life/terms-of-service')}>
+              <Text
+                style={styles.linkText}
+                onPress={() => Linking.openURL('https://forseti.life/terms-of-service')}
+              >
                 Terms of Service
               </Text>{' '}
               and{' '}
-              <Text style={styles.linkText} onPress={() => Linking.openURL('https://forseti.life/privacy-policy')}>
+              <Text
+                style={styles.linkText}
+                onPress={() => Linking.openURL('https://forseti.life/privacy-policy')}
+              >
                 Privacy Policy
               </Text>
             </Text>

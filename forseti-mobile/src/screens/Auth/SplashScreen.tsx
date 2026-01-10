@@ -57,19 +57,18 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
       >
         <View style={styles.logoWrapper}>
           {Platform.OS === 'web' ? (
-            <Image 
+            <Image
               source={{ uri: '/forseti-logo.png' }}
               style={styles.logoImage}
               resizeMode="contain"
             />
           ) : (
-            <Image 
+            <Image
               source={require('../../../assets/images/forseti_logo_final.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />
           )}
-
         </View>
         <Text style={styles.title}>Forseti</Text>
         <Text style={styles.subtitle}>Stay Informed, Stay Safe</Text>

@@ -144,20 +144,34 @@ print_status "Working directory: $(pwd)"
 # Step 3: Install Core Dependencies
 print_header "Step 3: Installing React Native Dependencies"
 
+# Ensure .npmrc exists for consistent dependency resolution
+if [ ! -f ".npmrc" ]; then
+    print_step "Creating .npmrc with legacy-peer-deps..."
+    echo "legacy-peer-deps=true" > .npmrc
+    print_status ".npmrc created"
+fi
+
 print_step "Installing npm packages (this may take 3-5 minutes)..."
 if [ -d "node_modules" ] && [ "$QUICK_MODE" = false ]; then
     print_warning "node_modules exists. Cleaning for fresh install..."
     rm -rf node_modules package-lock.json
 fi
 
-npm install --legacy-peer-deps
+npm install
 print_status "Core dependencies installed"
+
+# Apply patches for React Native libraries (Android Gradle Plugin 8+ compatibility)
+if [ -d "patches" ]; then
+    print_step "Applying React Native library patches for Android..."
+    npm run postinstall 2>/dev/null || npx patch-package
+    print_status "Library patches applied (namespace + buildConfig fixes)"
+fi
 
 # Step 4: Install Development Tools
 print_header "Step 4: Setting Up Development Tools"
 
 print_step "Installing ESLint, Prettier, and TypeScript..."
-npm install --save-dev --legacy-peer-deps \
+npm install --save-dev \
     eslint@^8.57.0 \
     prettier \
     eslint-config-prettier \
@@ -174,7 +188,7 @@ print_status "Code quality tools installed"
 
 # Step 5: Install Testing Framework
 print_step "Installing Jest and React Native Testing Library..."
-npm install --save-dev --legacy-peer-deps \
+npm install --save-dev \
     jest \
     @testing-library/react-native \
     @testing-library/jest-native \
@@ -183,9 +197,14 @@ npm install --save-dev --legacy-peer-deps \
 
 print_status "Testing framework installed"
 
+# Step 6: Install patch-package for maintaining library fixes
+print_step "Installing patch-package..."
+npm install --save-dev patch-package postinstall-postinstall 2>&1 | grep -v "deprecated" || true
+print_status "patch-package installed (maintains Android Gradle Plugin 8 compatibility fixes)"
+
 # Step 6: Install Environment Variable Management
 print_step "Installing react-native-dotenv..."
-npm install --save --legacy-peer-deps react-native-dotenv
+npm install --save react-native-dotenv
 
 print_status "Environment variable management ready"
 
@@ -283,7 +302,7 @@ if [ "$SKIP_ANDROID" = false ]; then
             
             # Install SDK components
             print_step "Installing SDK components (this may take 5-10 minutes)..."
-            sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.0"
+            sdkmanager "platform-tools" "platforms;android-35" "build-tools;34.0.0"
             
             print_status "Android SDK components installed"
             
@@ -322,6 +341,111 @@ EOF
         export ANDROID_HOME="$HOME/Android"
         export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
     fi
+    
+    # Fix Android build configuration for React Native 0.72 compatibility
+    print_step "Updating Android build configuration..."
+    
+    # Update build.gradle for AGP 8.0.2, compileSdk 35, Kotlin 1.8.22, and androidx.core 1.13.1
+    # Note: AGP 8.0.2 is used instead of newer versions due to Kotlin compatibility
+    # React Native 0.72 uses Kotlin 1.7.x, and newer Gradle versions require Kotlin 1.9+
+    if [ -f "android/build.gradle" ]; then
+        sed -i 's/com.android.tools.build:gradle:8.1.4/com.android.tools.build:gradle:8.0.2/' android/build.gradle
+        sed -i 's/com.android.tools.build:gradle:8.3.2/com.android.tools.build:gradle:8.0.2/' android/build.gradle
+        sed -i 's/compileSdkVersion = 34/compileSdkVersion = 35/' android/build.gradle
+        sed -i 's/androidXCoreVersion = "1.12.0"/androidXCoreVersion = "1.13.1"/' android/build.gradle
+        sed -i 's/kotlinVersion = "1.9.22"/kotlinVersion = "1.8.22"/' android/build.gradle
+        sed -i 's/kotlinVersion = "1.9.24"/kotlinVersion = "1.8.22"/' android/build.gradle
+        print_status "Updated AGP to 8.0.2, compileSdk to 35, Kotlin to 1.8.22, androidx.core to 1.13.1"
+    fi
+    
+    # Update Gradle wrapper to 8.0.1 (compatible with Kotlin 1.8.x)
+    if [ -f "android/gradle/wrapper/gradle-wrapper.properties" ]; then
+        sed -i 's/gradle-8.3-all.zip/gradle-8.0.1-all.zip/' android/gradle/wrapper/gradle-wrapper.properties
+        sed -i 's/gradle-8.7-all.zip/gradle-8.0.1-all.zip/' android/gradle/wrapper/gradle-wrapper.properties
+        print_status "Updated Gradle wrapper to 8.0.1"
+    fi
+    
+    # Update react-native libraries for React Native 0.72 + AGP 8 compatibility
+    print_step "Updating React Native libraries for compatibility..."
+    npm install react-native-maps@latest 2>&1 | grep -v "EBADENGINE" || true
+    # Downgrade gesture-handler to 2.18.1 (2.30.0 has Kotlin compilation issues with RN 0.72)
+    npm install react-native-gesture-handler@2.18.1 --legacy-peer-deps 2>&1 | grep -v "EBADENGINE" || true
+    # Downgrade screens to 3.29.0 (3.37.0 has Kotlin compilation issues with RN 0.72)
+    npm install react-native-screens@3.29.0 --legacy-peer-deps 2>&1 | grep -v "EBADENGINE" || true
+    
+    # Remove old patches if they exist
+    rm -f patches/react-native-maps*.patch
+    
+    # Add androidx.core version constraint to build.gradle to avoid AGP 8.6+ requirement
+    if [ -f "android/build.gradle" ]; then
+        if ! grep -q "force \"androidx.core:core:1.13.1\"" android/build.gradle; then
+            print_step "Adding androidx.core version constraint to build.gradle..."
+            # Add resolutionStrategy block to subprojects closure
+            sed -i '/subprojects {/,/^}/ {
+                /^}/i\    \
+    // Force androidx.core version to avoid AGP 8.6+ requirement\
+    configurations.all {\
+        resolutionStrategy {\
+            force "androidx.core:core:1.13.1"\
+            force "androidx.core:core-ktx:1.13.1"\
+        }\
+    }
+            }' android/build.gradle
+            print_status "Added androidx.core version constraints"
+        fi
+    fi
+    
+    # Create gradle.properties with all required React Native and AndroidX settings
+    print_step "Creating android/gradle.properties with React Native configuration..."
+    cat > android/gradle.properties << 'EOF'
+# Gradle build optimization for SD card usage
+org.gradle.daemon=true
+org.gradle.parallel=true
+org.gradle.configureondemand=true
+org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m
+
+# Use Gradle build cache (AGP 7.0+ uses Gradle cache, not Android-specific cache)
+org.gradle.caching=true
+
+# Flipper debug tool version (React Native default)
+FLIPPER_VERSION=0.125.0
+
+# React Native configuration
+hermesEnabled=true
+newArchEnabled=false
+
+# AndroidX migration (required for React Native 0.72+)
+android.useAndroidX=true
+android.enableJetifier=true
+EOF
+    print_status "Created gradle.properties with React Native and AndroidX settings"
+    
+    # Configure SD card usage for Gradle (if SD card is available)
+    if [ -d "/mnt/chromeos/removable/SD Card" ]; then
+        print_step "Configuring Gradle to use SD card for build cache..."
+        mkdir -p "/mnt/chromeos/removable/SD Card/Android/.gradle"
+        
+        # Create symlink for .gradle directory if not already a symlink
+        if [ -d "$HOME/.gradle" ] && [ ! -L "$HOME/.gradle" ]; then
+            print_warning "Moving existing .gradle to SD card (this saves ~9GB of disk space)..."
+            if [ -d "/mnt/chromeos/removable/SD Card/Android/.gradle" ]; then
+                rsync -a "$HOME/.gradle/" "/mnt/chromeos/removable/SD Card/Android/.gradle/" 2>/dev/null || true
+            fi
+            rm -rf "$HOME/.gradle"
+        fi
+        
+        if [ ! -L "$HOME/.gradle" ]; then
+            ln -s "/mnt/chromeos/removable/SD Card/Android/.gradle" "$HOME/.gradle"
+            print_status "Gradle configured to use SD card (~9GB saved on local disk)"
+        else
+            print_status "Gradle already configured to use SD card"
+        fi
+    else
+        print_warning "SD card not found at /mnt/chromeos/removable/SD Card"
+        print_warning "Gradle will use local disk (~9GB required)"
+    fi
+    
+    print_status "Android build configuration updated for React Native 0.72 compatibility"
 else
     print_warning "Android SDK setup skipped (--skip-android flag)"
 fi
@@ -335,7 +459,7 @@ if [ "$SKIP_WEB" = false ]; then
     # Check if webpack is installed
     if [ ! -d "node_modules/webpack" ]; then
         print_warning "Webpack not found. Installing..."
-        npm install --save-dev --legacy-peer-deps \
+        npm install --save-dev \
             webpack@5 \
             webpack-cli \
             webpack-dev-server \
@@ -395,7 +519,9 @@ print_status "Jest testing framework ready"
 print_status "Environment variables configured"
 
 if [ "$SKIP_ANDROID" = false ] && [ -d "$HOME/Android/cmdline-tools/latest" ]; then
-    print_status "Android SDK installed at $HOME/Android"
+    print_status "Android SDK installed at $HOME/Android (API 35, AGP 8.0.2, Gradle 8.0.1)"
+    print_status "React Native library patches applied (Android Gradle Plugin 8+ compatibility)"
+    print_status "Kotlin 1.8.22 (compatible with React Native 0.72 Gradle plugin)"
 else
     print_warning "Android SDK not installed"
 fi

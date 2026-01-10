@@ -142,29 +142,17 @@ const TabNavigator = ({ navigation }: { navigation: any }) => {
         })}
       >
         {/* Home is first in navigation but hidden from tab bar */}
-        <Tab.Screen 
-          name="Home" 
-          component={HomeScreen} 
-          options={{ 
+        <Tab.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{
             tabBarButton: () => null, // Hide from tab bar
             tabBarStyle: { display: 'none' },
-          }} 
+          }}
         />
-        <Tab.Screen
-          name="Map"
-          component={CrimeMapScreen}
-          options={{ title: 'Map' }}
-        />
-        <Tab.Screen
-          name="Chat"
-          component={ChatScreen}
-          options={{ title: 'AI' }}
-        />
-        <Tab.Screen
-          name="Safety"
-          component={SafetyScreen}
-          options={{ title: 'Safety' }}
-        />
+        <Tab.Screen name="Map" component={CrimeMapScreen} options={{ title: 'Map' }} />
+        <Tab.Screen name="Chat" component={ChatScreen} options={{ title: 'AI' }} />
+        <Tab.Screen name="Safety" component={SafetyScreen} options={{ title: 'Safety' }} />
         <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
       </Tab.Navigator>
     </>
@@ -238,7 +226,9 @@ const App: React.FC = () => {
               // Don't throw - location is optional for viewing app
             }
           } else {
-            console.warn('⚠️ [INIT STEP 4] Location permission denied - continuing without location');
+            console.warn(
+              '⚠️ [INIT STEP 4] Location permission denied - continuing without location'
+            );
           }
         } catch (error) {
           console.error('❌ [INIT STEP 4] Permission request failed:', error);
@@ -333,7 +323,7 @@ const App: React.FC = () => {
             }}
           >
             <Stack.Screen name="Login">
-              {(props) => <LoginScreen {...props} onLoginSuccess={handleLoginSuccess} />}
+              {props => <LoginScreen {...props} onLoginSuccess={handleLoginSuccess} />}
             </Stack.Screen>
             <Stack.Screen name="Register" component={RegisterScreen} />
           </Stack.Navigator>
@@ -355,9 +345,7 @@ const App: React.FC = () => {
             headerShown: false,
           }}
         >
-          <Stack.Screen name="MainTabs">
-            {(props) => <TabNavigator {...props} />}
-          </Stack.Screen>
+          <Stack.Screen name="MainTabs">{props => <TabNavigator {...props} />}</Stack.Screen>
           <Stack.Screen
             name="ConversationList"
             component={ConversationListScreen}

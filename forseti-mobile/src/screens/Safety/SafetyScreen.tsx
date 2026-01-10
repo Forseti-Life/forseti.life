@@ -1,12 +1,12 @@
 /**
  * Safety Factors Screen - Native Version
- * 
+ *
  * Displays the 7 dimensions of safety from forseti.life/safety-factors
- * 
+ *
  * TODO: Future Enhancement - Replace with API integration
  * TODO: Create Drupal endpoint: /api/safety-factors
  * TODO: Fetch content dynamically instead of hardcoding
- * 
+ *
  * Content sourced from: https://forseti.life/safety-factors
  * Last updated: December 22, 2025
  */
@@ -35,7 +35,8 @@ const SafetyScreen: React.FC = () => {
       id: 'safe',
       title: 'Safe (Security)',
       subtitle: 'The Foundation of Predictability',
-      description: 'The reliable absence of immediate threat. It represents a state where the nervous system can shift from defense (fight/flight) to maintenance (rest/digest). It is characterized by physical protection, financial stability, and a predictable environment where one can sleep without fear.',
+      description:
+        'The reliable absence of immediate threat. It represents a state where the nervous system can shift from defense (fight/flight) to maintenance (rest/digest). It is characterized by physical protection, financial stability, and a predictable environment where one can sleep without fear.',
       icon: require('../../../assets/images/forseti_safe.png'),
       isActive: true,
       planned: false,
@@ -56,7 +57,8 @@ const SafetyScreen: React.FC = () => {
       id: 'energized',
       title: 'Energized (Vitality)',
       subtitle: 'The Biological Fuel',
-      description: 'The move beyond mere survival to physiological optimization. This level focuses on accumulating the resources required to live, not just exist. It encompasses housing stability, food security, and financial well-being—the fundamental resources that provide the surplus "fuel" needed for higher pursuits.',
+      description:
+        'The move beyond mere survival to physiological optimization. This level focuses on accumulating the resources required to live, not just exist. It encompasses housing stability, food security, and financial well-being—the fundamental resources that provide the surplus "fuel" needed for higher pursuits.',
       icon: require('../../../assets/images/forseti_energized.png'),
       isActive: false,
       planned: true,
@@ -73,7 +75,8 @@ const SafetyScreen: React.FC = () => {
       id: 'connected',
       title: 'Connected (Community)',
       subtitle: 'The Alignment of Shared Values',
-      description: 'The establishment of a Tribe. This goes beyond simple social safety; it defines the deep satisfaction of being interconnected with people who share your specific interests, values, and mission. It is the move from "fitting in" to "belonging."',
+      description:
+        'The establishment of a Tribe. This goes beyond simple social safety; it defines the deep satisfaction of being interconnected with people who share your specific interests, values, and mission. It is the move from "fitting in" to "belonging."',
       icon: require('../../../assets/images/forseti_connected.png'),
       isActive: false,
       planned: true,
@@ -91,7 +94,8 @@ const SafetyScreen: React.FC = () => {
       id: 'free',
       title: 'Free (Autonomy)',
       subtitle: 'The Power of Self-Determination',
-      description: 'The liberation from coercion and the assertion of the self. This is the ability to set boundaries, make independent choices, and direct one\'s own path without being controlled by the expectations, debts, or demands of others.',
+      description:
+        "The liberation from coercion and the assertion of the self. This is the ability to set boundaries, make independent choices, and direct one's own path without being controlled by the expectations, debts, or demands of others.",
       icon: require('../../../assets/images/forseti_free.png'),
       isActive: false,
       planned: true,
@@ -108,7 +112,8 @@ const SafetyScreen: React.FC = () => {
       id: 'capable',
       title: 'Capable (Mastery)',
       subtitle: 'The Development of Expertise',
-      description: 'The pursuit of excellence and competence in valued skills. This dimension focuses on the ability to develop expertise, gain recognition for your abilities, and continuously improve through deliberate practice and challenge.',
+      description:
+        'The pursuit of excellence and competence in valued skills. This dimension focuses on the ability to develop expertise, gain recognition for your abilities, and continuously improve through deliberate practice and challenge.',
       icon: require('../../../assets/images/forseti_capable.png'),
       isActive: false,
       planned: true,
@@ -125,7 +130,8 @@ const SafetyScreen: React.FC = () => {
       id: 'useful',
       title: 'Useful (Purpose)',
       subtitle: 'Contributing to Something Greater',
-      description: 'The drive to make meaningful contributions beyond oneself. This dimension captures the human need to feel that one\'s existence matters, that your work serves others, and that you\'re part of something larger than individual success.',
+      description:
+        "The drive to make meaningful contributions beyond oneself. This dimension captures the human need to feel that one's existence matters, that your work serves others, and that you're part of something larger than individual success.",
       icon: require('../../../assets/images/forseti_useful.png'),
       isActive: false,
       planned: true,
@@ -142,7 +148,8 @@ const SafetyScreen: React.FC = () => {
       id: 'whole',
       title: 'Whole (Holistic Health)',
       subtitle: 'Integration of All Dimensions',
-      description: 'The synthesis of all safety dimensions into a cohesive whole. This represents the highest level where physical security, vitality, community, autonomy, mastery, and purpose work together to create complete well-being.',
+      description:
+        'The synthesis of all safety dimensions into a cohesive whole. This represents the highest level where physical security, vitality, community, autonomy, mastery, and purpose work together to create complete well-being.',
       icon: require('../../../assets/images/forseti_whole.png'),
       isActive: false,
       planned: true,

@@ -87,13 +87,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
         <View style={styles.header}>
           <View style={styles.logoWrapper}>
             {Platform.OS === 'web' ? (
-              <Image 
+              <Image
                 source={{ uri: '/forseti-logo.png' }}
                 style={styles.logoImage}
                 resizeMode="contain"
               />
             ) : (
-              <Image 
+              <Image
                 source={require('../../../assets/images/forseti_logo_final.png')}
                 style={styles.logoImage}
                 resizeMode="contain"
@@ -171,11 +171,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               By signing in, you agree to our{' '}
-              <Text style={styles.linkText} onPress={() => Linking.openURL('https://forseti.life/terms-of-service')}>
+              <Text
+                style={styles.linkText}
+                onPress={() => Linking.openURL('https://forseti.life/terms-of-service')}
+              >
                 Terms of Service
               </Text>{' '}
               and{' '}
-              <Text style={styles.linkText} onPress={() => Linking.openURL('https://forseti.life/privacy-policy')}>
+              <Text
+                style={styles.linkText}
+                onPress={() => Linking.openURL('https://forseti.life/privacy-policy')}
+              >
                 Privacy Policy
               </Text>
             </Text>
