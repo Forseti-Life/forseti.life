@@ -272,13 +272,20 @@ if [ "$SKIP_ANDROID" = false ]; then
     
     # Check for Java
     print_step "Checking Java installation..."
-    if ! command -v java &> /dev/null; then
-        print_warning "Java not found. Installing OpenJDK $JAVA_VERSION..."
+    
+    # Check Java version
+    CURRENT_JAVA_VERSION=""
+    if command -v java &> /dev/null; then
+        CURRENT_JAVA_VERSION=$(java -version 2>&1 | head -1 | cut -d'"' -f2 | cut -d'.' -f1)
+        print_status "Java already installed: $(java -version 2>&1 | head -1 | cut -d'"' -f2)"
+    fi
+    
+    # AGP 8.0.2+ requires Java 17
+    if [ -z "$CURRENT_JAVA_VERSION" ] || [ "$CURRENT_JAVA_VERSION" -lt 17 ]; then
+        print_warning "Java $JAVA_VERSION required for Android Gradle Plugin 8.0.2+. Installing..."
         sudo apt-get update -qq
         sudo apt-get install -y openjdk-${JAVA_VERSION}-jdk
-        print_status "Java installed"
-    else
-        print_status "Java already installed: $(java -version 2>&1 | head -1 | cut -d'"' -f2)"
+        print_status "Java $JAVA_VERSION installed"
     fi
     
     # Set Java environment - verify the path exists first
@@ -345,23 +352,23 @@ EOF
                 print_status "android/local.properties created"
             fi
             
-            # Create environment script
-            cat > android-env.sh << 'EOF'
+            # Create environment script with detected JAVA_HOME
+            cat > android-env.sh << EOF
 #!/bin/bash
 # Android build environment variables
 # Source this file before building: source android-env.sh
 
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-export ANDROID_HOME="$HOME/Android"
-export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
+export JAVA_HOME=$JAVA_HOME
+export ANDROID_HOME="\$HOME/Android"
+export PATH="\$PATH:\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/platform-tools"
 
 echo "Android build environment configured:"
-echo "  JAVA_HOME=$JAVA_HOME"
-echo "  ANDROID_HOME=$ANDROID_HOME"
+echo "  JAVA_HOME=\$JAVA_HOME"
+echo "  ANDROID_HOME=\$ANDROID_HOME"
 echo "  PATH includes SDK tools"
 EOF
             chmod +x android-env.sh
-            print_status "android-env.sh created for future builds"
+            print_status "android-env.sh created with JAVA_HOME=$JAVA_HOME"
         else
             print_warning "Skipping Android SDK installation"
             SKIP_ANDROID=true
@@ -370,6 +377,25 @@ EOF
         print_status "Android SDK already installed at $ANDROID_HOME"
         export ANDROID_HOME="$HOME/Android"
         export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
+        
+        # Create/update environment script with detected JAVA_HOME
+        cd "$MOBILE_DIR"
+        cat > android-env.sh << EOF
+#!/bin/bash
+# Android build environment variables
+# Source this file before building: source android-env.sh
+
+export JAVA_HOME=$JAVA_HOME
+export ANDROID_HOME="\$HOME/Android"
+export PATH="\$PATH:\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/platform-tools"
+
+echo "Android build environment configured:"
+echo "  JAVA_HOME=\$JAVA_HOME"
+echo "  ANDROID_HOME=\$ANDROID_HOME"
+echo "  PATH includes SDK tools"
+EOF
+        chmod +x android-env.sh
+        print_status "android-env.sh updated with JAVA_HOME=$JAVA_HOME"
     fi
     
     # Fix Android build configuration for React Native 0.72 compatibility
