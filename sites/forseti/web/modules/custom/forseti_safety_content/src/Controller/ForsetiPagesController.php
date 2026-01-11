@@ -340,7 +340,7 @@ class ForsetiPagesController extends ControllerBase {
         'description' => $this->t('The Forseti Mobile App is now available for beta testing on Android devices. Help us improve by testing the app and providing feedback!'),
         'download_url' => '/sites/default/files/forseti/mobile/Forseti-latest.apk',
         'button_text' => '<i class="fas fa-download"></i> ' . $this->t('Download Beta (Android)'),
-        'version_info' => '<strong>' . $this->t('Version 1.0.0') . '</strong> | ' . $this->t('Android 5.0+') . ' | 18MB',
+        'version_info' => '<strong>' . $this->t('Version 1.0.0-1') . '</strong> | ' . $this->t('Android 6.0+') . ' | 51MB',
         'availability' => $this->t('iOS version coming soon | Full launch: Q1 2026'),
       ],
       '#cache' => [
