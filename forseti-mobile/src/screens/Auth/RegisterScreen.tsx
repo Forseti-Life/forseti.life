@@ -69,12 +69,20 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
       const result = await authService.register(username, email, password);
 
       if (result.success) {
-        Alert.alert('Success!', 'Your account has been created. Please sign in.', [
-          {
-            text: 'Sign In',
-            onPress: () => navigation.navigate('Login'),
-          },
-        ]);
+        const message = result.demo 
+          ? 'Account created in demo mode. You can log in, but this account is not saved to the server.'
+          : 'Your account has been created. Please sign in.';
+        
+        Alert.alert(
+          result.demo ? '⚠️ Demo Mode' : 'Success!',
+          message,
+          [
+            {
+              text: 'Sign In',
+              onPress: () => navigation.navigate('Login'),
+            },
+          ]
+        );
       } else {
         Alert.alert('Registration Failed', result.message || 'Unable to create account');
       }
@@ -267,11 +275,11 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   input: {
-    backgroundColor: Colors.surface,
+    backgroundColor: '#2a2a3e',
     borderRadius: 8,
     padding: 12,
     fontSize: 14,
-    color: '#000000',
+    color: '#FFFFFF',
     borderWidth: 1,
     borderColor: Colors.border,
   },

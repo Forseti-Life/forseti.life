@@ -49,7 +49,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
         if (onLoginSuccess) {
           onLoginSuccess();
         } else {
-          Alert.alert('Success', 'Welcome to Forseti!', [
+          const welcomeMessage = result.demo 
+            ? 'Welcome to Forseti! (Demo Mode - using local authentication)'
+            : 'Welcome to Forseti!';
+          
+          Alert.alert('Success', welcomeMessage, [
             {
               text: 'OK',
               onPress: () => navigation.replace('Home'),
@@ -243,11 +247,11 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#2a2a3e',
     borderColor: Colors.border,
     borderRadius: 12,
     borderWidth: 1,
-    color: '#000000',
+    color: '#FFFFFF',
     fontSize: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,

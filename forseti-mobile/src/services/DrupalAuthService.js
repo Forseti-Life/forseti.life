@@ -124,6 +124,7 @@ class DrupalAuthService {
         return {
           success: true,
           user: this.currentUser,
+          token: this.sessionToken || `session_${Date.now()}`,
           sessionToken: this.sessionToken,
         };
       }
@@ -155,18 +156,29 @@ class DrupalAuthService {
           loginMethod: 'demo',
         };
 
-        await AsyncStorage.setItem('forseti_user', JSON.stringify(this.currentUser));
+        // Generate a demo token
+        const demoToken = `demo_token_${Date.now()}`;
+
+        await AsyncStorage.multiSet([
+          ['forseti_user', JSON.stringify(this.currentUser)],
+          ['forseti_session', demoToken],
+        ]);
 
         return {
           success: true,
           user: this.currentUser,
+          token: demoToken,
           demo: true,
         };
       }
 
       throw new Error('Invalid credentials');
     } catch (error) {
-      throw new Error('Login failed. Please check your credentials.');
+      console.error('❌ Demo login error:', error.message);
+      return {
+        success: false,
+        message: 'Login failed. Please check your credentials.',
+      };
     }
   }
 
@@ -254,11 +266,12 @@ class DrupalAuthService {
       console.error('❌ Registration failed:', error.response?.data || error.message);
 
       // Demo registration as fallback
-      console.log('🔄 Using demo registration mode...');
+      console.log('🔄 Using demo registration mode - user NOT created in database');
       return {
         success: true,
-        message: 'Registration successful! Please log in with your credentials. (Demo mode)',
+        message: 'Registration recorded locally. Note: This is demo mode - account not created on server. You can still log in with these credentials.',
         demo: true,
+        warning: 'Demo mode - user not created in production database',
       };
     }
   }
