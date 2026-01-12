@@ -69,69 +69,49 @@ class DrupalAuthService {
    */
   async login(username, password) {
     try {
-      console.log('🔐 Attempting Drupal session login for:', username);
+      console.log('🔐 Attempting Drupal API login for:', username);
 
-      // Step 1: Get CSRF token
-      if (!this.csrfToken) {
-        this.csrfToken = await this.getCsrfToken();
-      }
-
-      // Step 2: Attempt login with session token approach
-      const loginData = new URLSearchParams();
-      loginData.append('name', username);
-      loginData.append('pass', password);
-      loginData.append('form_id', 'user_login_form');
-
-      const response = await axios.post(`${this.baseUrl}/user/login`, loginData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'X-CSRF-Token': this.csrfToken || '',
-        },
-        withCredentials: true,
-        maxRedirects: 0,
-        validateStatus: function (status) {
-          return status >= 200 && status < 400; // Allow redirects
-        },
-        timeout: 15000,
-      });
-
-      // Check if login was successful (Drupal redirects on success)
-      if (response.status === 302 || response.status === 200) {
-        console.log('✅ Session login successful for:', username);
-
-        // Extract session cookies
-        const cookies = response.headers['set-cookie'];
-        if (cookies) {
-          this.sessionToken = cookies.join('; ');
-        }
-
-        // Create user object
-        this.currentUser = {
-          uid: 1, // We'll get the real UID later
+      // Use the new REST API endpoint
+      const response = await axios.post(
+        `${this.baseUrl}/api/amisafe/user/login`,
+        {
           name: username,
-          mail: `${username}@example.com`,
-          roles: ['authenticated'],
-          loginMethod: 'session',
-        };
+          pass: password,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 15000,
+        }
+      );
+
+      if (response.data.success) {
+        console.log('✅ Login successful for:', username);
+
+        this.currentUser = response.data.user;
+        this.sessionToken = response.data.token || response.data.sessionToken;
 
         // Store authentication data
         await AsyncStorage.multiSet([
           ['forseti_session', this.sessionToken || ''],
-          ['forseti_csrf', this.csrfToken || ''],
           ['forseti_user', JSON.stringify(this.currentUser)],
         ]);
 
         return {
           success: true,
           user: this.currentUser,
-          token: this.sessionToken || `session_${Date.now()}`,
+          token: this.sessionToken,
           sessionToken: this.sessionToken,
         };
       }
 
-      throw new Error('Login failed');
+      return {
+        success: false,
+        message: response.data.message || 'Login failed',
+      };
     } catch (error) {
-      console.error('❌ Session login failed:', error.response?.data || error.message);
+      console.error('❌ API login failed:', error.response?.data || error.message);
 
       // Try demo login as fallback
       return await this.demoLogin(username, password);
@@ -218,52 +198,50 @@ class DrupalAuthService {
   }
 
   /**
-   * Register new user via Drupal registration form
+   * Register new user via Drupal REST API
    */
-  async register(userData) {
+  async register(username, email, password) {
     try {
-      console.log('📝 Attempting user registration for:', userData.username);
+      console.log('📝 Attempting user registration for:', username);
 
-      // Get CSRF token first
-      if (!this.csrfToken) {
-        this.csrfToken = await this.getCsrfToken();
-      }
-
-      // Use form data approach for registration
-      const formData = new URLSearchParams();
-      formData.append('name', userData.username);
-      formData.append('mail', userData.email);
-      formData.append('pass[pass1]', userData.password);
-      formData.append('pass[pass2]', userData.password);
-      formData.append('form_id', 'user_register_form');
-
-      const response = await axios.post(`${this.baseUrl}/user/register`, formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'X-CSRF-Token': this.csrfToken || '',
+      // Use the new REST API endpoint
+      const response = await axios.post(
+        `${this.baseUrl}/api/amisafe/user/register`,
+        {
+          name: username,
+          mail: email,
+          pass: password,
         },
-        maxRedirects: 0,
-        validateStatus: function (status) {
-          return status >= 200 && status < 400; // Allow redirects
-        },
-        timeout: 15000,
-      });
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          timeout: 15000,
+        }
+      );
 
-      if (response.status === 302 || response.status === 200) {
-        console.log('✅ Registration successful for:', userData.username);
+      if (response.data.success) {
+        console.log('✅ Registration successful for:', username);
         return {
           success: true,
-          message: 'Registration successful! Please log in with your credentials.',
-          user: {
-            name: userData.username,
-            mail: userData.email,
-          },
+          message: response.data.message || 'Registration successful! Please log in with your credentials.',
+          user: response.data.user,
         };
-      } else {
-        throw new Error('Registration failed');
       }
+
+      return {
+        success: false,
+        message: response.data.message || 'Registration failed',
+      };
     } catch (error) {
       console.error('❌ Registration failed:', error.response?.data || error.message);
+
+      if (error.response?.data?.message) {
+        return {
+          success: false,
+          message: error.response.data.message,
+        };
+      }
 
       // Demo registration as fallback
       console.log('🔄 Using demo registration mode - user NOT created in database');

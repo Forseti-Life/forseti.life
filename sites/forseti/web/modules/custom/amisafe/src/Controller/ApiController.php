@@ -1084,4 +1084,135 @@ class ApiController extends ControllerBase {
     return $precision_data[$resolution] ?? ['level' => 'Unknown', 'area' => 'Unknown', 'description' => 'Unsupported resolution'];
   }
 
+  /**
+   * User registration API endpoint for mobile app.
+   */
+  public function userRegister(Request $request) {
+    try {
+      $data = json_decode($request->getContent(), TRUE);
+      
+      if (empty($data['name']) || empty($data['mail']) || empty($data['pass'])) {
+        return new JsonResponse([
+          'success' => FALSE,
+          'message' => 'Username, email, and password are required',
+        ], 400);
+      }
+
+      // Check if username already exists
+      $existing_user = user_load_by_name($data['name']);
+      if ($existing_user) {
+        return new JsonResponse([
+          'success' => FALSE,
+          'message' => 'Username already exists',
+        ], 409);
+      }
+
+      // Check if email already exists
+      $existing_email = user_load_by_mail($data['mail']);
+      if ($existing_email) {
+        return new JsonResponse([
+          'success' => FALSE,
+          'message' => 'Email already registered',
+        ], 409);
+      }
+
+      // Create new user
+      $user = \Drupal\user\Entity\User::create();
+      $user->setUsername($data['name']);
+      $user->setEmail($data['mail']);
+      $user->setPassword($data['pass']);
+      $user->activate();
+      $user->save();
+
+      \Drupal::logger('amisafe')->info('Mobile user registered: @name', ['@name' => $data['name']]);
+
+      return new JsonResponse([
+        'success' => TRUE,
+        'message' => 'Registration successful! Please log in with your credentials.',
+        'user' => [
+          'uid' => $user->id(),
+          'name' => $user->getAccountName(),
+          'mail' => $user->getEmail(),
+        ],
+      ]);
+    } catch (\Exception $e) {
+      \Drupal::logger('amisafe')->error('Registration error: @message', ['@message' => $e->getMessage()]);
+      
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Registration failed: ' . $e->getMessage(),
+      ], 500);
+    }
+  }
+
+  /**
+   * User login API endpoint for mobile app.
+   */
+  public function userLogin(Request $request) {
+    try {
+      $data = json_decode($request->getContent(), TRUE);
+      
+      if (empty($data['name']) || empty($data['pass'])) {
+        return new JsonResponse([
+          'success' => FALSE,
+          'message' => 'Username and password are required',
+        ], 400);
+      }
+
+      // Load user by username
+      $user = user_load_by_name($data['name']);
+      if (!$user) {
+        return new JsonResponse([
+          'success' => FALSE,
+          'message' => 'Invalid username or password',
+        ], 401);
+      }
+
+      // Verify password
+      $password_hasher = \Drupal::service('password');
+      if (!$password_hasher->check($data['pass'], $user->getPassword())) {
+        return new JsonResponse([
+          'success' => FALSE,
+          'message' => 'Invalid username or password',
+        ], 401);
+      }
+
+      // Check if user is active
+      if ($user->isBlocked()) {
+        return new JsonResponse([
+          'success' => FALSE,
+          'message' => 'Account is blocked',
+        ], 403);
+      }
+
+      // Log the user in and create a session
+      user_login_finalize($user);
+      
+      // Get session token
+      $session_token = \Drupal::service('session')->getId();
+
+      \Drupal::logger('amisafe')->info('Mobile user logged in: @name', ['@name' => $data['name']]);
+
+      return new JsonResponse([
+        'success' => TRUE,
+        'message' => 'Login successful',
+        'user' => [
+          'uid' => $user->id(),
+          'name' => $user->getAccountName(),
+          'mail' => $user->getEmail(),
+          'roles' => $user->getRoles(),
+        ],
+        'token' => $session_token,
+        'sessionToken' => $session_token,
+      ]);
+    } catch (\Exception $e) {
+      \Drupal::logger('amisafe')->error('Login error: @message', ['@message' => $e->getMessage()]);
+      
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Login failed: ' . $e->getMessage(),
+      ], 500);
+    }
+  }
+
 }
