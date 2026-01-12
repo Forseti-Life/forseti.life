@@ -112,9 +112,43 @@ class DrupalAuthService {
       };
     } catch (error) {
       console.error('❌ API login failed:', error.response?.data || error.message);
+      console.error('Full error:', JSON.stringify(error, null, 2));
 
-      // Try demo login as fallback
-      return await this.demoLogin(username, password);
+      // If we got a response from the server with an error message, return it
+      if (error.response?.data?.message) {
+        return {
+          success: false,
+          message: error.response.data.message,
+        };
+      }
+
+      // If we got a response but authentication failed
+      if (error.response?.status === 401) {
+        return {
+          success: false,
+          message: 'Invalid username or password',
+        };
+      }
+
+      // If we got another server error
+      if (error.response?.status) {
+        return {
+          success: false,
+          message: `Server error (${error.response.status}): ${error.response.statusText || 'Login failed'}`,
+        };
+      }
+
+      // Only use demo mode if it's a network connectivity issue
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('Network Error')) {
+        console.log('🔄 Network error - using demo login mode');
+        return await this.demoLogin(username, password);
+      }
+
+      // For all other errors, fail properly
+      return {
+        success: false,
+        message: `Login failed: ${error.message || 'Please check your credentials'}`,
+      };
     }
   }
 
@@ -235,7 +269,9 @@ class DrupalAuthService {
       };
     } catch (error) {
       console.error('❌ Registration failed:', error.response?.data || error.message);
+      console.error('Full error:', JSON.stringify(error, null, 2));
 
+      // If we got a response from the server with an error message, return it
       if (error.response?.data?.message) {
         return {
           success: false,
@@ -243,13 +279,29 @@ class DrupalAuthService {
         };
       }
 
-      // Demo registration as fallback
-      console.log('🔄 Using demo registration mode - user NOT created in database');
+      // If we got a response but it's not in the expected format
+      if (error.response?.status) {
+        return {
+          success: false,
+          message: `Server error (${error.response.status}): ${error.response.statusText || 'Unknown error'}`,
+        };
+      }
+
+      // Only use demo mode if it's a network connectivity issue
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('Network Error')) {
+        console.log('🔄 Network error - using demo registration mode');
+        return {
+          success: true,
+          message: '⚠️ Server unreachable. Registration saved locally only (demo mode). You can log in, but account not saved to server.',
+          demo: true,
+          warning: 'Demo mode - user not created in production database',
+        };
+      }
+
+      // For all other errors, fail properly
       return {
-        success: true,
-        message: 'Registration recorded locally. Note: This is demo mode - account not created on server. You can still log in with these credentials.',
-        demo: true,
-        warning: 'Demo mode - user not created in production database',
+        success: false,
+        message: `Registration failed: ${error.message || 'Unknown error'}. Please try again.`,
       };
     }
   }
