@@ -1,11 +1,11 @@
 <div class="amisafe-mobile-download">
   <div class="download-header">
-    <div class="app-icon"><img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="AmISafe" class="app-logo"></div>
-    <h1>Download AmISafe Mobile App</h1>
+    <div class="app-icon"><img src="/themes/custom/forseti/images/logos/originals/forseti_safe.png" alt="Forseti Mobile" class="app-logo"></div>
+    <h1>Download Forseti Mobile App</h1>
     <p class="tagline">Stay Informed, Stay Safe</p>
-    <div class="development-notice" style="background: #e3f2fd; color: #1565c0; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
-      <strong>📱 Mobile App Downloads</strong><br>
-      Choose between production (stable) or development (latest features) builds. Development versions include additional logging for troubleshooting.
+    <div class="development-notice" style="background: #4caf50; color: #ffffff; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+      <strong>✅ Beta Version Available Now!</strong><br>
+      Version 1.0.2 - Beta testing with production authentication and real-time safety alerts
     </div>
   </div>
 
@@ -13,41 +13,31 @@
     <div class="platform-card android">
       <div class="platform-icon"><img src="/themes/custom/forseti/images/logos/originals/forseti_energized.png" alt="Android" class="platform-logo"></div>
       <h2>Android</h2>
-      <p>Latest stable version</p>
-      {% if apk_url %}
-        <a href="{{ apk_url }}" class="download-button android-button" download>
-          <span class="button-icon">⬇</span>
-          Download APK (Production)
-          <span class="file-size">({{ apk_size }})</span>
-        </a>
-      {% else %}
-        <div class="unavailable">
-          <p>Production version coming soon</p>
-        </div>
-      {% endif %}
+      <p>Beta v1.0.2 - Production Ready</p>
+      <a href="https://forseti.life/sites/default/files/forseti/mobile/Forseti-latest.apk" class="download-button android-button" download>
+        <span class="button-icon">⬇</span>
+        Download APK
+        <span class="file-size">(~26 MB)</span>
+      </a>
       
-      {% if apk_dev_url %}
-        <a href="{{ apk_dev_url }}" class="download-button android-button-dev" download style="margin-top: 10px; background-color: #fdd835; color: #000;">
-          <span class="button-icon">🔧</span>
-          Download APK (Development)
-          <span class="file-size">({{ apk_dev_size }})</span>
-        </a>
-        <div class="development-notice" style="background: #ffe082; color: #000; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 0.9em;">
-          <strong>Development Build:</strong> Includes debug logging and latest features. May be unstable.
+      <div class="install-instructions">
+        <h3>Installation Steps:</h3>
+        <ol>
+          <li>Download the APK file</li>
+          <li>Open the downloaded file</li>
+          <li>Allow "Install from Unknown Sources" if prompted</li>
+          <li>Follow the installation wizard</li>
+          <li>Create an account to access all features</li>
+        </ol>
+        
+        <div class="production-notice" style="background: #e8f5e9; color: #2e7d32; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 0.9em;">
+          <strong>✨ What's New:</strong><br>
+          • Production authentication with user accounts<br>
+          • Enhanced error handling and feedback<br>
+          • Real-time safety alerts<br>
+          • Location-based crime data
         </div>
-      {% endif %}
-      
-      {% if apk_url or apk_dev_url %}
-        <div class="install-instructions">
-          <h3>Installation Steps:</h3>
-          <ol>
-            <li>Download the APK file</li>
-            <li>Open the downloaded file</li>
-            <li>Allow "Install from Unknown Sources" if prompted</li>
-            <li>Follow the installation wizard</li>
-          </ol>
-        </div>
-      {% endif %}
+      </div>
     </div>
 
     <div class="platform-card ios">
@@ -79,8 +69,13 @@
   </div>
 
   <div class="features-section">
-    <h2>Features</h2>
+    <h2>Current Features</h2>
     <div class="features-grid">
+      <div class="feature">
+        <span class="feature-icon">👤</span>
+        <h3>User Accounts</h3>
+        <p>Create your account and login with production authentication</p>
+      </div>
       <div class="feature">
         <span class="feature-icon">📍</span>
         <h3>Real-Time Location Tracking</h3>
@@ -101,6 +96,11 @@
         <h3>Crime Analytics</h3>
         <p>View statistics and trends for your area</p>
       </div>
+      <div class="feature">
+        <span class="feature-icon">🔒</span>
+        <h3>Privacy First</h3>
+        <p>Secure authentication and encrypted data</p>
+      </div>
     </div>
   </div>
 
@@ -111,15 +111,27 @@
         <strong>Android:</strong> 7.0 (API 24) or higher
       </div>
       <div class="requirement">
-        <strong>iOS:</strong> 12.0 or higher
+        <strong>iOS:</strong> Coming soon
       </div>
       <div class="requirement">
-        <strong>Storage:</strong> ~50 MB free space
+        <strong>Storage:</strong> ~30 MB free space
       </div>
       <div class="requirement">
         <strong>Internet:</strong> Required for real-time data
       </div>
     </div>
+  </div>
+
+  <div class="beta-info" style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="margin-top: 0; color: #e65100;">Beta Testing Information</h3>
+    <p>This is a beta version. Please report any issues or feedback to help us improve the app.</p>
+    <ul>
+      <li><strong>Version:</strong> 1.0.2 Beta</li>
+      <li><strong>Release Date:</strong> January 2025</li>
+      <li><strong>File Size:</strong> ~26 MB</li>
+      <li><strong>Status:</strong> Beta testing with production authentication</li>
+    </ul>
+    <p>Note: You must create an account to use all features. Demo mode is no longer the default behavior.</p>
   </div>
 
   <div class="support-section">
