@@ -1,0 +1,88 @@
+/**
+ * Safety Calculator Module Styles
+ */
+
+// Dimension cards on assessment landing
+.card-forseti.dimension-card {
+  padding: 0.75rem !important;
+  
+  img {
+    height: 32px !important;
+    width: 32px !important;
+  }
+  
+  h6 {
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem !important;
+  }
+  
+  small {
+    font-size: 0.8rem;
+  }
+  
+  ul {
+    margin-bottom: 0 !important;
+    padding-left: 1rem !important;
+    
+    li {
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+  }
+}
+
+// Questionnaire dimension icon
+.questionnaire-dimension-icon {
+  height: 48px;
+  width: 48px;
+  object-fit: contain;
+}
+
+// Horizontal radio buttons for ratings
+// Target the container div that holds all radio buttons
+.form-radios:has(.rating-radios),
+.form-radios {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+// Style individual radio button wrappers
+.form-radios:has(.rating-radios) .js-form-item,
+.form-radios:has(.rating-radios) .form-item,
+.form-radios:has(.rating-radios) .form-check,
+.form-radios:has(.rating-radios) .form-type-radio {
+  flex: 0 0 auto;
+  margin-bottom: 0 !important;
+  margin-right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.form-radios:has(.rating-radios) input[type="radio"] {
+  margin-top: 0.25rem;
+  margin-right: 0;
+  order: 2;
+}
+
+.form-radios:has(.rating-radios) label {
+  cursor: pointer;
+  margin-bottom: 0;
+  padding-left: 0;
+  white-space: nowrap;
+  order: 1;
+  font-size: 0.875rem;
+}
+
+// Questionnaire fieldset styling
+.safety-questionnaire-fieldset {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 0.5rem;
+  background: rgba(0, 212, 255, 0.05);
+}

@@ -1,0 +1,42 @@
+safety_calculator.landing:
+  path: '/safety-calculator'
+  defaults:
+    _controller: '\Drupal\safety_calculator\Controller\LandingPageController::page'
+    _title: 'Safety Calculator'
+  requirements:
+    _permission: 'access content'
+
+safety_calculator.questionnaire:
+  path: '/safety-calculator/assessment'
+  defaults:
+    _controller: '\Drupal\safety_calculator\Controller\QuestionnaireController::landing'
+    _title: 'Personal Safety Assessment'
+  requirements:
+    _permission: 'access content'
+
+safety_calculator.questionnaire_step:
+  path: '/safety-calculator/assessment/{step}'
+  defaults:
+    _form: '\Drupal\safety_calculator\Form\QuestionnaireStepForm'
+    _title: 'Safety Assessment'
+  requirements:
+    _permission: 'access content'
+    step: 'safe|energized|connected|free|capable|useful|whole|review'
+
+safety_calculator.settings:
+  path: '/admin/config/forseti/safety-calculator'
+  defaults:
+    _form: '\Drupal\safety_calculator\Form\SafetyCalculatorSettingsForm'
+    _title: 'Safety Calculator Settings'
+  requirements:
+    _permission: 'administer site configuration'
+
+safety_calculator.calculate:
+  path: '/api/safety/calculate'
+  defaults:
+    _controller: '\Drupal\safety_calculator\Controller\SafetyCalculatorController::calculate'
+  requirements:
+    _permission: 'access content'
+  methods: [GET, POST]
+  options:
+    _format: 'json'

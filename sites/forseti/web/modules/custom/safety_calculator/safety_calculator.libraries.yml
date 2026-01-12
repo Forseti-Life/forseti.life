@@ -1,0 +1,18 @@
+landing_page:
+  version: 1.0
+  js:
+    js/landing-page.js: {}
+  dependencies:
+    - forseti/style
+    - core/drupal
+    - core/jquery
+
+individual_check:
+  version: 1.0
+  js:
+    js/individual-check.js: {}
+  dependencies:
+    - forseti/style
+    - core/drupal
+    - core/jquery
+    - core/drupal.ajax

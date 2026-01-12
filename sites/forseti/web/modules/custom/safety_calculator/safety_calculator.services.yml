@@ -1,0 +1,8 @@
+services:
+  safety_calculator.calculator:
+    class: Drupal\safety_calculator\SafetyCalculatorService
+    arguments: ['@database', '@logger.factory']
+    
+  safety_calculator.risk_analyzer:
+    class: Drupal\safety_calculator\RiskAnalyzerService
+    arguments: ['@database', '@safety_calculator.calculator']

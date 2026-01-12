@@ -1,0 +1,12 @@
+name: forseti_institutional
+type: module
+description: 'Institutional Management system for Forseti platform'
+package: Forseti
+core_version_requirement: ^11
+dependencies:
+  - drupal:node
+  - drupal:user
+  - drupal:field
+  - group:group
+  - flexible_permissions:flexible_permissions
+  - entity:entity

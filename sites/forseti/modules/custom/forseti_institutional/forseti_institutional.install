@@ -1,0 +1,355 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for forseti_institutional module.
+ */
+
+use Drupal\group\Entity\GroupType;
+use Drupal\group\Entity\GroupRole;
+
+/**
+ * Implements hook_install().
+ */
+function forseti_institutional_install() {
+  // Create all institution group types
+  _forseti_institutional_create_group_types();
+  
+  // Create roles for each group type
+  _forseti_institutional_create_group_roles();
+  
+  \Drupal::messenger()->addStatus(t('Institutional Management system installed successfully. Created 38 institution types with 5 roles each.'));
+}
+
+/**
+ * Create all 38 institution group types.
+ */
+function _forseti_institutional_create_group_types() {
+  $institution_types = _forseti_institutional_get_institution_types();
+  
+  foreach ($institution_types as $id => $info) {
+    // Check if group type already exists
+    $group_type = GroupType::load($id);
+    if (!$group_type) {
+      $group_type = GroupType::create([
+        'id' => $id,
+        'label' => $info['label'],
+        'description' => $info['description'],
+        'creator_membership' => TRUE,
+        'creator_wizard' => FALSE,
+        'creator_roles' => [$id . '-owner'],
+      ]);
+      $group_type->save();
+      
+      \Drupal::logger('forseti_institutional')->info('Created group type: @type', ['@type' => $info['label']]);
+    }
+  }
+}
+
+/**
+ * Create 5 standard roles for each group type.
+ */
+function _forseti_institutional_create_group_roles() {
+  $institution_types = _forseti_institutional_get_institution_types();
+  $role_definitions = _forseti_institutional_get_role_definitions();
+  
+  foreach ($institution_types as $type_id => $type_info) {
+    foreach ($role_definitions as $role_id => $role_info) {
+      $group_role_id = $type_id . '-' . $role_id;
+      
+      // Check if role already exists
+      $group_role = GroupRole::load($group_role_id);
+      if (!$group_role) {
+        $group_role = GroupRole::create([
+          'id' => $group_role_id,
+          'label' => $role_info['label'],
+          'weight' => $role_info['weight'],
+          'internal' => FALSE,
+          'audience' => 'member',
+          'group_type' => $type_id,
+          'permissions' => $role_info['permissions'],
+        ]);
+        $group_role->save();
+        
+        \Drupal::logger('forseti_institutional')->info('Created role @role for @type', [
+          '@role' => $role_info['label'],
+          '@type' => $type_info['label']
+        ]);
+      }
+    }
+  }
+}
+
+/**
+ * Get all institution types configuration.
+ *
+ * @return array
+ *   Array of institution types keyed by machine name.
+ */
+function _forseti_institutional_get_institution_types() {
+  return [
+    // Educational (6 types)
+    'educational_k12' => [
+      'label' => 'Private K-12 School',
+      'description' => 'Private elementary, middle, and high schools providing K-12 education',
+      'category' => 'Educational',
+    ],
+    'educational_preschool' => [
+      'label' => 'Preschool & Pre-K Program',
+      'description' => 'Preschool and pre-kindergarten educational programs for ages 3-5',
+      'category' => 'Educational',
+    ],
+    'educational_tutoring' => [
+      'label' => 'Tutoring & Learning Center',
+      'description' => 'Supplemental tutoring and academic support centers',
+      'category' => 'Educational',
+    ],
+    'educational_vocational' => [
+      'label' => 'Vocational & Trade School',
+      'description' => 'Career training and vocational education institutions',
+      'category' => 'Educational',
+    ],
+    'educational_adult' => [
+      'label' => 'Adult Education Center',
+      'description' => 'Adult education, GED, and continuing education programs',
+      'category' => 'Educational',
+    ],
+    'educational_specialty' => [
+      'label' => 'Specialty School',
+      'description' => 'Art, music, dance, sports, and other specialty education programs',
+      'category' => 'Educational',
+    ],
+    
+    // Healthcare (6 types)
+    'healthcare_clinic' => [
+      'label' => 'Outpatient Clinic',
+      'description' => 'Medical clinics providing outpatient healthcare services',
+      'category' => 'Healthcare',
+    ],
+    'healthcare_physical_therapy' => [
+      'label' => 'Physical Therapy Center',
+      'description' => 'Physical therapy and rehabilitation services',
+      'category' => 'Healthcare',
+    ],
+    'healthcare_mental_health' => [
+      'label' => 'Mental Health & Counseling Center',
+      'description' => 'Mental health counseling and therapy services',
+      'category' => 'Healthcare',
+    ],
+    'healthcare_rehabilitation' => [
+      'label' => 'Rehabilitation Center',
+      'description' => 'Medical rehabilitation for injury or surgery recovery',
+      'category' => 'Healthcare',
+    ],
+    'healthcare_dialysis' => [
+      'label' => 'Dialysis Center',
+      'description' => 'Dialysis treatment for kidney disease patients',
+      'category' => 'Healthcare',
+    ],
+    'healthcare_dental' => [
+      'label' => 'Dental & Orthodontic Practice',
+      'description' => 'Dental care and orthodontic services',
+      'category' => 'Healthcare',
+    ],
+    
+    // Child Care (4 types)
+    'childcare_infant_toddler' => [
+      'label' => 'Infant & Toddler Center',
+      'description' => 'Child care for infants and toddlers ages 6 weeks to 3 years',
+      'category' => 'Child Care',
+    ],
+    'childcare_full_day' => [
+      'label' => 'Full-Day Child Care Center',
+      'description' => 'Full-day child care for ages 6 weeks to 5 years',
+      'category' => 'Child Care',
+    ],
+    'childcare_afterschool' => [
+      'label' => 'After-School Program',
+      'description' => 'Before and after school care for school-age children',
+      'category' => 'Child Care',
+    ],
+    'childcare_drop_in' => [
+      'label' => 'Drop-In Child Care',
+      'description' => 'Flexible drop-in child care services',
+      'category' => 'Child Care',
+    ],
+    
+    // Residential (5 types)
+    'residential_group_home' => [
+      'label' => 'Group Home (Children & Youth)',
+      'description' => 'Residential group homes for children and youth',
+      'category' => 'Residential',
+    ],
+    'residential_assisted_living' => [
+      'label' => 'Assisted Living Facility',
+      'description' => 'Assisted living for seniors needing daily living support',
+      'category' => 'Residential',
+    ],
+    'residential_sober_living' => [
+      'label' => 'Sober Living Home',
+      'description' => 'Sober living homes for adults in recovery',
+      'category' => 'Residential',
+    ],
+    'residential_transitional' => [
+      'label' => 'Transitional Housing',
+      'description' => 'Transitional housing for youth aging out of foster care',
+      'category' => 'Residential',
+    ],
+    'residential_memory_care' => [
+      'label' => 'Memory Care Facility',
+      'description' => 'Specialized care for seniors with dementia and Alzheimer\'s',
+      'category' => 'Residential',
+    ],
+    
+    // Correctional (4 types)
+    'correctional_juvenile_detention' => [
+      'label' => 'Juvenile Detention Center',
+      'description' => 'Detention facilities for court-involved youth',
+      'category' => 'Correctional',
+    ],
+    'correctional_halfway_house' => [
+      'label' => 'Halfway House',
+      'description' => 'Reentry housing for adults transitioning from prison',
+      'category' => 'Correctional',
+    ],
+    'correctional_electronic_monitoring' => [
+      'label' => 'Electronic Monitoring Program',
+      'description' => 'Electronic monitoring and home detention programs',
+      'category' => 'Correctional',
+    ],
+    'correctional_day_reporting' => [
+      'label' => 'Day Reporting Center',
+      'description' => 'Day reporting for individuals on probation or parole',
+      'category' => 'Correctional',
+    ],
+    
+    // Adult Day (4 types)
+    'adult_day_senior' => [
+      'label' => 'Senior Day Center',
+      'description' => 'Daytime programs for seniors needing supervision',
+      'category' => 'Adult Day',
+    ],
+    'adult_day_disability' => [
+      'label' => 'Disability Day Services',
+      'description' => 'Day programs for adults with intellectual or developmental disabilities',
+      'category' => 'Adult Day',
+    ],
+    'adult_day_healthcare' => [
+      'label' => 'Adult Day Health Care',
+      'description' => 'Medical day care for adults with health needs',
+      'category' => 'Adult Day',
+    ],
+    'adult_day_vocational' => [
+      'label' => 'Vocational Day Program',
+      'description' => 'Vocational training for adults with disabilities',
+      'category' => 'Adult Day',
+    ],
+    
+    // Treatment (5 types)
+    'treatment_substance_abuse_residential' => [
+      'label' => 'Substance Abuse Treatment (Residential)',
+      'description' => 'Residential substance abuse treatment programs',
+      'category' => 'Treatment',
+    ],
+    'treatment_substance_abuse_outpatient' => [
+      'label' => 'Substance Abuse Treatment (Outpatient/IOP)',
+      'description' => 'Outpatient and intensive outpatient substance abuse treatment',
+      'category' => 'Treatment',
+    ],
+    'treatment_eating_disorder' => [
+      'label' => 'Eating Disorder Treatment Center',
+      'description' => 'Specialized treatment for eating disorders',
+      'category' => 'Treatment',
+    ],
+    'treatment_behavioral_health' => [
+      'label' => 'Behavioral Health Day Treatment',
+      'description' => 'Intensive behavioral health day treatment programs',
+      'category' => 'Treatment',
+    ],
+    'treatment_autism_aba' => [
+      'label' => 'Autism Treatment Center (ABA)',
+      'description' => 'Applied Behavior Analysis therapy for autism',
+      'category' => 'Treatment',
+    ],
+    
+    // Recreation (4 types)
+    'recreation_youth' => [
+      'label' => 'Youth Recreation Center',
+      'description' => 'Recreation and activity programs for youth',
+      'category' => 'Recreation',
+    ],
+    'recreation_senior' => [
+      'label' => 'Senior Center',
+      'description' => 'Recreation and social programs for seniors',
+      'category' => 'Recreation',
+    ],
+    'recreation_community' => [
+      'label' => 'Community Center',
+      'description' => 'General community recreation and programs',
+      'category' => 'Recreation',
+    ],
+    'recreation_sports_training' => [
+      'label' => 'Sports & Fitness Training Facility',
+      'description' => 'Sports training and fitness programs',
+      'category' => 'Recreation',
+    ],
+  ];
+}
+
+/**
+ * Get role definitions for all groups.
+ *
+ * @return array
+ *   Array of role definitions.
+ */
+function _forseti_institutional_get_role_definitions() {
+  return [
+    'owner' => [
+      'label' => 'Institution Owner',
+      'weight' => -10,
+      'permissions' => [
+        'view group',
+        'update group',
+        'delete group',
+        'administer members',
+      ],
+    ],
+    'administrator' => [
+      'label' => 'Institution Administrator',
+      'weight' => -8,
+      'permissions' => [
+        'view group',
+        'update group',
+        'administer members',
+      ],
+    ],
+    'department_manager' => [
+      'label' => 'Department Manager',
+      'weight' => -5,
+      'permissions' => [
+        'view group',
+      ],
+    ],
+    'staff_member' => [
+      'label' => 'Staff Member',
+      'weight' => 0,
+      'permissions' => [
+        'view group',
+      ],
+    ],
+    'billing_contact' => [
+      'label' => 'Billing Contact',
+      'weight' => 5,
+      'permissions' => [
+        'view group',
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function forseti_institutional_uninstall() {
+  \Drupal::messenger()->addStatus(t('Institutional Management system uninstalled.'));
+}

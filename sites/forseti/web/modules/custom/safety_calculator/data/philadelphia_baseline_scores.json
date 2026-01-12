@@ -1,0 +1,116 @@
+{
+  "city": "Philadelphia",
+  "state": "Pennsylvania",
+  "assessment_date": "2026-01-12",
+  "assessment_version": "1.0",
+  "overall_score": 6.4,
+  "dimension": "safe",
+  "dimension_name": "Safe - Security & Protection",
+  "scores": {
+    "police": {
+      "score": 5,
+      "service": "Police / Law Enforcement",
+      "notes": "4th largest department in US with 6,000+ officers. Challenges with response times and crime rates. Community relations vary significantly by neighborhood."
+    },
+    "fire": {
+      "score": 7,
+      "service": "Fire Department / Fire Rescue",
+      "notes": "Largest in Pennsylvania, 63 stations citywide. Well-equipped with specialized divisions. Good coverage across the city."
+    },
+    "ems": {
+      "score": 6,
+      "service": "Emergency Medical Services (EMS/Ambulance)",
+      "notes": "One of busiest EMS divisions in country. Part of Fire Department, integrated response. High call volume can affect response times."
+    },
+    "dispatch": {
+      "score": 6,
+      "service": "Emergency Dispatch / 911 Services",
+      "notes": "Handles high volume of calls. Generally functional but can experience delays during peak times."
+    },
+    "emergency_management": {
+      "score": 7,
+      "service": "Emergency Management / Disaster Response",
+      "notes": "Coordinated city-wide response system. Recent pandemic response demonstrated capabilities."
+    },
+    "public_health": {
+      "score": 7,
+      "service": "Public Health Emergency Response",
+      "notes": "Philadelphia Department of Public Health is well-established. Good disease surveillance and outbreak response."
+    },
+    "poison_control": {
+      "score": 8,
+      "service": "Poison Control Centers",
+      "notes": "Access to Mid-Atlantic regional center. 24/7 availability and professional service."
+    },
+    "mental_health_crisis": {
+      "score": 5,
+      "service": "Mental Health Crisis Teams",
+      "notes": "Developing Crisis Response Teams (CRT). Limited coverage compared to need."
+    },
+    "road_services": {
+      "score": 6,
+      "service": "Emergency Road / Highway Services",
+      "notes": "Streets Department responds to emergencies. Infrastructure aging in some areas."
+    },
+    "public_works": {
+      "score": 6,
+      "service": "Public Works Emergency Response",
+      "notes": "Water Department and other utilities have emergency protocols. Variable response based on neighborhood."
+    },
+    "utilities": {
+      "score": 7,
+      "service": "Utility Emergency Services",
+      "notes": "PECO (electric/gas) and Water Department have emergency response. Generally reliable restoration times."
+    },
+    "search_rescue": {
+      "score": 7,
+      "service": "Search and Rescue (SAR)",
+      "notes": "Marine Unit and specialized rescue teams. Good coordination with regional resources."
+    },
+    "hazmat": {
+      "score": 8,
+      "service": "Hazardous Materials (HAZMAT) Response",
+      "notes": "Specialized Fire Department HAZMAT unit. Well-trained for industrial city environment."
+    },
+    "bomb_squad": {
+      "score": 7,
+      "service": "Bomb Squad / Explosive Ordnance Disposal",
+      "notes": "Philadelphia Police Bomb Squad is well-equipped. Handles numerous suspicious package calls."
+    },
+    "coast_guard": {
+      "score": 6,
+      "service": "Coast Guard / Maritime Emergency Services",
+      "notes": "US Coast Guard Station Philadelphia on Delaware River. Limited compared to coastal cities."
+    },
+    "emergency_shelters": {
+      "score": 5,
+      "service": "Emergency Shelters",
+      "notes": "Office of Emergency Management coordinates shelters. Capacity challenges during major events."
+    },
+    "food_water_distribution": {
+      "score": 6,
+      "service": "Emergency Food / Water Distribution",
+      "notes": "Multiple agencies can mobilize resources. Distribution can be uneven across neighborhoods."
+    },
+    "emergency_housing": {
+      "score": 5,
+      "service": "Emergency Housing Assistance",
+      "notes": "Office of Homeless Services provides emergency housing. High demand exceeds available resources."
+    },
+    "crisis_counseling": {
+      "score": 6,
+      "service": "Crisis Counseling Services",
+      "notes": "Community Behavioral Health provides services. Access varies by insurance and neighborhood."
+    }
+  },
+  "metadata": {
+    "total_services": 19,
+    "data_sources": [
+      "City of Philadelphia official websites",
+      "Philadelphia Police Department",
+      "Philadelphia Fire Department",
+      "Public health department data"
+    ],
+    "scoring_methodology": "Qualitative assessment based on department size, coverage, response times, public reporting, and regional comparisons"
+  }
+}
