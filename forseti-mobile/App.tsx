@@ -30,8 +30,9 @@ import CrimeMapScreen from './src/screens/CrimeMapScreen';
 import CommunityScreen from './src/screens/Community/CommunityScreen';
 import SafetyScreen from './src/screens/Safety/SafetyScreen';
 import ProfileScreen from './src/screens/Profile/ProfileScreen';
-import ChatScreen from './src/screens/Chat/ChatScreen';
-import ConversationListScreen from './src/screens/Chat/ConversationListScreen';
+// TEMPORARILY DISABLED - AI Chat functionality
+// import ChatScreen from './src/screens/Chat/ChatScreen';
+// import ConversationListScreen from './src/screens/Chat/ConversationListScreen';
 import { AboutScreen } from './src/screens/About';
 import { HowItWorksScreen } from './src/screens/HowItWorks';
 import { PrivacyScreen } from './src/screens/Privacy';
@@ -151,7 +152,8 @@ const TabNavigator = ({ navigation }: { navigation: any }) => {
           }}
         />
         <Tab.Screen name="Map" component={CrimeMapScreen} options={{ title: 'Map' }} />
-        <Tab.Screen name="Chat" component={ChatScreen} options={{ title: 'AI' }} />
+        {/* TEMPORARILY DISABLED - AI Chat functionality */}
+        {/* <Tab.Screen name="Chat" component={ChatScreen} options={{ title: 'AI' }} /> */}
         <Tab.Screen name="Safety" component={SafetyScreen} options={{ title: 'Safety' }} />
         <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
       </Tab.Navigator>

@@ -254,7 +254,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               <Icon name="map" size={32} color={Colors.primary} />
               <Text style={styles.actionText}>View Map</Text>
             </TouchableOpacity>
-            <TouchableOpacity
+            {/* TEMPORARILY DISABLED - AI Chat functionality */}
+            {/* <TouchableOpacity
               style={styles.actionButton}
               onPress={() => navigation?.navigate('Chat')}
             >
@@ -264,14 +265,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 resizeMode="contain"
               />
               <Text style={styles.actionText}>AI Chat</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </TouchableOpacity> */}
+            {/* TEMPORARILY DISABLED - AI Chat functionality */}
+            {/* <TouchableOpacity
               style={styles.actionButton}
               onPress={() => navigation?.navigate('Chat')}
             >
               <Icon name="alert" size={32} color={Colors.danger} />
               <Text style={styles.actionText}>Report Incident</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => navigation?.navigate('Safety')}
