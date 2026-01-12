@@ -14,7 +14,7 @@ let nextMessageId = 1;
 class AIConversationService {
   constructor() {
     this.baseUrl = 'https://forseti.life';
-    this.authService = new DrupalAuthService();
+    this.authService = DrupalAuthService.getInstance();
   }
 
   /**

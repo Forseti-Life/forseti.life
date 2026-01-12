@@ -9,9 +9,18 @@ import axios from 'axios';
 import DrupalAuthService from './DrupalAuthService';
 
 class AIConversationService {
+  static instance = null;
+
+  static getInstance() {
+    if (!AIConversationService.instance) {
+      AIConversationService.instance = new AIConversationService();
+    }
+    return AIConversationService.instance;
+  }
+
   constructor() {
     this.baseUrl = 'https://forseti.life'; // Main Forseti site
-    this.authService = new DrupalAuthService();
+    this.authService = DrupalAuthService.getInstance();
   }
 
   /**
@@ -202,5 +211,8 @@ class AIConversationService {
   }
 }
 
-// Export singleton instance
-export default new AIConversationService();
+// Export singleton - but use lazy initialization via getInstance()
+const aiConversationService = AIConversationService.getInstance();
+
+export default aiConversationService;
+export { AIConversationService, aiConversationService };
