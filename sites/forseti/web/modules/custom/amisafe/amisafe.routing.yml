@@ -152,6 +152,7 @@ amisafe.api.user_register:
     _controller: '\Drupal\amisafe\Controller\ApiController::userRegister'
     _format: 'json'
   requirements:
+    _access: 'TRUE'
     _method: 'POST'
   options:
     no_cache: 'TRUE'
@@ -162,6 +163,7 @@ amisafe.api.user_login:
     _controller: '\Drupal\amisafe\Controller\ApiController::userLogin'
     _format: 'json'
   requirements:
+    _access: 'TRUE'
     _method: 'POST'
   options:
     no_cache: 'TRUE'
