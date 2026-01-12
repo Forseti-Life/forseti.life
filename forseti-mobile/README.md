@@ -1,9 +1,9 @@
 # Forseti Mobile Application - Complete Documentation
 
-**Version**: 1.0.2  
+**Version**: 1.0.0  
 **Status**: 🟢 Active Development  
-**Platform**: React Native 0.76.9 (iOS & Android)  
-**Last Updated**: December 18, 2025
+**Platform**: React Native 0.72.6 (iOS & Android)  
+**Last Updated**: January 11, 2026
 
 A cross-platform mobile application for hyperlocal crime safety awareness built with React Native. Integrates with the Forseti API (forseti.life) for real-time crime data visualization, z-score risk assessment, and continuous background monitoring with proactive alerts.
 
@@ -33,13 +33,19 @@ A cross-platform mobile application for hyperlocal crime safety awareness built 
 - React Native CLI
 - Android Studio (for Android builds)
 - Xcode (for iOS builds, Mac only)
-- Java JDK 11 (for Android)
+- Java JDK 17 (for Android - required for AGP 8.0.2+)
+- Android SDK Platform 34 (recommended for compatibility)
 
 ### Installation
 
 ```bash
+# Automated setup (recommended)
+cd script
+./setup-forseti-mobile-dev.sh
+
+# Manual setup
 cd forseti-mobile
-npm install --legacy-peer-deps
+npm install
 
 # iOS only
 cd ios && pod install && cd ..
@@ -66,15 +72,19 @@ npm run web
 #### Android Debug APK
 
 ```bash
-npm run android:clean
-npm run android:build:debug
+# Load Android environment
+source android-env.sh
+
+# Build debug APK
+cd android
+./gradlew clean assembleDebug --no-daemon
 
 # Output: android/app/build/outputs/apk/debug/
 # Files:
-#   - forseti-debug-1.0.0-1-arm64-v8a.apk (49MB) - Modern ARM 64-bit devices
-#   - forseti-debug-1.0.0-1-armeabi-v7a.apk (36MB) - Older ARM 32-bit devices
-#   - forseti-debug-1.0.0-1-x86_64.apk (51MB) - 64-bit emulators
-#   - forseti-debug-1.0.0-1-x86.apk (52MB) - 32-bit emulators
+#   - forseti-debug-1.0.0-1-arm64-v8a.apk (51MB) - Modern ARM 64-bit devices
+#   - forseti-debug-1.0.0-1-armeabi-v7a.apk (38MB) - Older ARM 32-bit devices
+#   - forseti-debug-1.0.0-1-x86_64.apk (53MB) - 64-bit emulators
+#   - forseti-debug-1.0.0-1-x86.apk (54MB) - 32-bit emulators
 ```
 
 #### Android Release APK (Production)
@@ -160,7 +170,7 @@ The Forseti mobile application operates on a three-tier architecture:
 - **React**: 18.2.0
 - **React Navigation**: 6.x (Stack + Bottom Tabs)
 - **H3-js**: 4.1.0 (Uber's H3 geospatial indexing library)
-- **react-native-maps**: 1.7.1 (Google Maps integration)
+- **react-native-maps**: 1.7.1 (Google Maps integration - patched for AGP 8.0+)
 - **AsyncStorage**: 1.19.5 (local persistence)
 - **Hermes**: Enabled (optimized JavaScript engine)
 - **react-native-geolocation-service**: 5.3.1 (GPS tracking)
@@ -169,12 +179,12 @@ The Forseti mobile application operates on a three-tier architecture:
 
 **Build Tools & Configuration**:
 
-- **Gradle**: 8.x (Android build system)
-- **Gradle Plugin**: 7.4.2
-- **Android SDK**: 33 (targetSdk), 21 (minSdk)
-- **NDK Version**: 23.1.7779620
-- **Kotlin**: 1.8.0
-- **Java**: 11 (JVM target)
+- **Gradle**: 8.0.1 (Android build system)
+- **Android Gradle Plugin**: 8.0.2 (AGP)
+- **Android SDK**: 34 (compileSdk/targetSdk), 23 (minSdk)
+- **NDK Version**: 25.1.8937393
+- **Kotlin**: 1.8.22 (compatible with React Native 0.72)
+- **Java**: 17 (required for AGP 8.0.2+)
 - **Metro Bundler**: Built-in React Native bundler
 - **Flipper**: 0.182.0 (debugging - debug builds only)
 - **ProGuard/R8**: Enabled for release builds (code minification)
@@ -366,8 +376,13 @@ GPS Update → H3 Calculation → Index Comparison → Risk Query → Notificati
 **Prerequisites**:
 
 ```bash
+# Load environment variables (created by setup script)
+source android-env.sh
+
+# Or manually set:
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-export ANDROID_HOME=~/Android
+export ANDROID_HOME=$HOME/Android
+export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
 ```
 
 **Clean Build**:
@@ -388,11 +403,12 @@ Architecture: ARM64-v8a
 
 **Build Configuration**:
 
-- Min SDK: Android 5.0 (API 21)
-- Target SDK: Android 13 (API 33)
+- Min SDK: Android 6.0 (API 23)
+- Compile/Target SDK: Android 14 (API 34)
 - Package: com.stlouisintegration.forseti
 - Hermes: Enabled (optimized)
-- ProGuard: Disabled (for now)
+- ProGuard/R8: Enabled for release builds
+- Architecture: arm64-v8a, armeabi-v7a, x86_64, x86
 
 ### iOS Build Process
 
@@ -782,31 +798,39 @@ POST /user/login
 
 ## Known Issues & Troubleshooting
 
+### Android Build Configuration
+
+**✅ Resolved Issues**:
+
+**1. React Native Maps Compatibility**
+- **Issue**: react-native-maps 1.26.20 failed to compile with AGP 8.0.2
+- **Solution**: Downgraded to version 1.7.1 for compatibility with React Native 0.72.6
+- **Patch Applied**: Added namespace declaration for AGP 8.0+ (`com.rnmaps.maps`)
+- **Status**: Fixed with patch file `patches/react-native-maps+1.7.1.patch`
+
+**2. Android SDK API Level**
+- **Issue**: API 35 android.jar corrupted/incompatible with AGP 8.0.2 aapt2
+- **Solution**: Changed compileSdkVersion from 35 to 34
+- **Status**: Fixed - builds successfully with API 34
+
+**3. Kotlin Version Compatibility**
+- **Issue**: React Native 0.72 uses Kotlin 1.7.x, newer AGP versions require 1.9+
+- **Solution**: Using AGP 8.0.2 with Kotlin 1.8.22
+- **Status**: Stable configuration
+
+**4. Patch Package Conflicts**
+- **Issue**: Failed patches for react-native-gesture-handler, react-native-safe-area-context, react-native-screens
+- **Reason**: Package versions upgraded (2.8.0→2.30.0, 4.4.1→4.14.1, 3.18.2→3.37.0)
+- **Status**: Warnings only, build succeeds
+
 ### Current Issues
 
-**1. App Crashes on Launch** ⚠️
-
-- **Status**: Under investigation
-- **Symptoms**: "Forseti keeps stopping" message
-- **Possible Causes**:
-  - LocationService.initialize() failing
-  - StorageService.initialize() failing
-  - Missing permissions
-  - Uncaught promise rejection
-
-**2. NotificationService Disabled** ⚠️
+**1. NotificationService Disabled** ⚠️
 
 - **Status**: Temporarily commented out
 - **Reason**: `react-native-push-notification` package not installed
 - **Solution**: Install package and rebuild
 - **Code**: Complete but inactive
-
-**3. Old App.js Conflict** ✅ FIXED
-
-- **Issue**: Both App.js and App.tsx existed
-- **Impact**: Metro bundled old AmISafe code instead of new Forseti code
-- **Resolution**: Renamed App.js to App.js.old
-- **Version**: Fixed in v1.0.2
 
 ### Troubleshooting Guide
 
@@ -814,13 +838,40 @@ POST /user/login
 
 ```bash
 # Clean everything
+cd forseti-mobile
+source android-env.sh
 cd android
 ./gradlew clean
 cd ..
 rm -rf node_modules
-rm -rf android/.gradle
 npm install
-cd android && ./gradlew assembleRelease
+cd android && ./gradlew assembleDebug --no-daemon
+```
+
+**Android SDK Issues**:
+
+```bash
+# Reinstall Android Platform 34
+cd $ANDROID_HOME
+cmdline-tools/latest/bin/sdkmanager --uninstall "platforms;android-34"
+cmdline-tools/latest/bin/sdkmanager "platforms;android-34"
+
+# Verify installation
+ls -lh $ANDROID_HOME/platforms/android-34/android.jar
+```
+
+**Java Version Problems**:
+
+```bash
+# Check Java version (must be 17+)
+java -version
+
+# Install Java 17 if needed
+sudo apt-get update
+sudo apt-get install openjdk-17-jdk
+
+# Set JAVA_HOME
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ```
 
 **Metro Bundler Issues**:
@@ -858,6 +909,18 @@ adb uninstall com.stlouisintegration.forseti
 adb install app-release.apk
 ```
 
+### Build Environment Details
+
+**Working Configuration**:
+- Java 17 (JDK 17.0.17)
+- Android SDK Platform 34
+- Build Tools 34.0.0
+- Gradle 8.0.1
+- Android Gradle Plugin 8.0.2
+- Kotlin 1.8.22
+- React Native 0.72.6
+- react-native-maps 1.7.1 (with namespace patch)
+
 ---
 
 ## Development Workflow
@@ -869,15 +932,35 @@ adb install app-release.apk
 - Node.js 18+ (LTS recommended)
 - npm package manager
 - React Native CLI (`npm install -g react-native-cli`)
-- Android Studio with SDK 33
-- Java JDK 11 (for Android builds)
-- Android NDK 23.1.7779620
+- Android Studio with SDK Platform 34
+- Java JDK 17 (for Android builds - required for AGP 8.0.2+)
+- Android NDK 25.1.8937393
+- Android Build Tools 34.0.0
 
 **IDE Recommendations**:
 
 - VS Code with React Native Tools extension
 - Android Studio for Android-specific debugging
 - Xcode for iOS (Mac only)
+
+### Quick Setup
+
+**Automated Setup (Recommended)**:
+
+```bash
+cd forseti.life/script
+./setup-forseti-mobile-dev.sh
+```
+
+This script will:
+- Install npm dependencies
+- Set up Android SDK (Platform 34, Build Tools 34.0.0)
+- Install Java 17 if needed
+- Create `android-env.sh` with correct environment variables
+- Update build configuration for compatibility
+- Install react-native-maps 1.7.1
+- Apply patches for AGP 8.0+ compatibility
+- Create `android/local.properties`
 
 ### Running in Development
 
