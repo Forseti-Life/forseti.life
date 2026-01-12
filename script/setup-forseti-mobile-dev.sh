@@ -272,13 +272,20 @@ if [ "$SKIP_ANDROID" = false ]; then
     
     # Check for Java
     print_step "Checking Java installation..."
-    if ! command -v java &> /dev/null; then
-        print_warning "Java not found. Installing OpenJDK $JAVA_VERSION..."
+    
+    # Check Java version
+    CURRENT_JAVA_VERSION=""
+    if command -v java &> /dev/null; then
+        CURRENT_JAVA_VERSION=$(java -version 2>&1 | head -1 | cut -d'"' -f2 | cut -d'.' -f1)
+        print_status "Java already installed: $(java -version 2>&1 | head -1 | cut -d'"' -f2)"
+    fi
+    
+    # AGP 8.0.2+ requires Java 17
+    if [ -z "$CURRENT_JAVA_VERSION" ] || [ "$CURRENT_JAVA_VERSION" -lt 17 ]; then
+        print_warning "Java $JAVA_VERSION required for Android Gradle Plugin 8.0.2+. Installing..."
         sudo apt-get update -qq
         sudo apt-get install -y openjdk-${JAVA_VERSION}-jdk
-        print_status "Java installed"
-    else
-        print_status "Java already installed: $(java -version 2>&1 | head -1 | cut -d'"' -f2)"
+        print_status "Java $JAVA_VERSION installed"
     fi
     
     # Set Java environment - verify the path exists first
@@ -332,7 +339,7 @@ if [ "$SKIP_ANDROID" = false ]; then
             
             # Install SDK components
             print_step "Installing SDK components (this may take 5-10 minutes)..."
-            sdkmanager "platform-tools" "platforms;android-35" "build-tools;34.0.0"
+            sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
             
             print_status "Android SDK components installed"
             
@@ -345,23 +352,23 @@ EOF
                 print_status "android/local.properties created"
             fi
             
-            # Create environment script
-            cat > android-env.sh << 'EOF'
+            # Create environment script with detected JAVA_HOME
+            cat > android-env.sh << EOF
 #!/bin/bash
 # Android build environment variables
 # Source this file before building: source android-env.sh
 
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-export ANDROID_HOME="$HOME/Android"
-export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
+export JAVA_HOME=$JAVA_HOME
+export ANDROID_HOME="\$HOME/Android"
+export PATH="\$PATH:\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/platform-tools"
 
 echo "Android build environment configured:"
-echo "  JAVA_HOME=$JAVA_HOME"
-echo "  ANDROID_HOME=$ANDROID_HOME"
+echo "  JAVA_HOME=\$JAVA_HOME"
+echo "  ANDROID_HOME=\$ANDROID_HOME"
 echo "  PATH includes SDK tools"
 EOF
             chmod +x android-env.sh
-            print_status "android-env.sh created for future builds"
+            print_status "android-env.sh created with JAVA_HOME=$JAVA_HOME"
         else
             print_warning "Skipping Android SDK installation"
             SKIP_ANDROID=true
@@ -370,22 +377,43 @@ EOF
         print_status "Android SDK already installed at $ANDROID_HOME"
         export ANDROID_HOME="$HOME/Android"
         export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
+        
+        # Create/update environment script with detected JAVA_HOME
+        cd "$MOBILE_DIR"
+        cat > android-env.sh << EOF
+#!/bin/bash
+# Android build environment variables
+# Source this file before building: source android-env.sh
+
+export JAVA_HOME=$JAVA_HOME
+export ANDROID_HOME="\$HOME/Android"
+export PATH="\$PATH:\$ANDROID_HOME/cmdline-tools/latest/bin:\$ANDROID_HOME/platform-tools"
+
+echo "Android build environment configured:"
+echo "  JAVA_HOME=\$JAVA_HOME"
+echo "  ANDROID_HOME=\$ANDROID_HOME"
+echo "  PATH includes SDK tools"
+EOF
+        chmod +x android-env.sh
+        print_status "android-env.sh updated with JAVA_HOME=$JAVA_HOME"
     fi
     
     # Fix Android build configuration for React Native 0.72 compatibility
     print_step "Updating Android build configuration..."
     
-    # Update build.gradle for AGP 8.0.2, compileSdk 35, Kotlin 1.8.22, and androidx.core 1.13.1
+    # Update build.gradle for AGP 8.0.2, compileSdk 34, Kotlin 1.8.22, and androidx.core 1.13.1
     # Note: AGP 8.0.2 is used instead of newer versions due to Kotlin compatibility
     # React Native 0.72 uses Kotlin 1.7.x, and newer Gradle versions require Kotlin 1.9+
+    # API 34 is used instead of 35 due to aapt2 compatibility issues with AGP 8.0.2
     if [ -f "android/build.gradle" ]; then
         sed -i 's/com.android.tools.build:gradle:8.1.4/com.android.tools.build:gradle:8.0.2/' android/build.gradle
         sed -i 's/com.android.tools.build:gradle:8.3.2/com.android.tools.build:gradle:8.0.2/' android/build.gradle
-        sed -i 's/compileSdkVersion = 34/compileSdkVersion = 35/' android/build.gradle
+        sed -i 's/compileSdkVersion = 35/compileSdkVersion = 34/' android/build.gradle
+        sed -i 's/compileSdkVersion = 33/compileSdkVersion = 34/' android/build.gradle
         sed -i 's/androidXCoreVersion = "1.12.0"/androidXCoreVersion = "1.13.1"/' android/build.gradle
         sed -i 's/kotlinVersion = "1.9.22"/kotlinVersion = "1.8.22"/' android/build.gradle
         sed -i 's/kotlinVersion = "1.9.24"/kotlinVersion = "1.8.22"/' android/build.gradle
-        print_status "Updated AGP to 8.0.2, compileSdk to 35, Kotlin to 1.8.22, androidx.core to 1.13.1"
+        print_status "Updated AGP to 8.0.2, compileSdk to 34, Kotlin to 1.8.22, androidx.core to 1.13.1"
     fi
     
     # Update Gradle wrapper to 8.0.1 (compatible with Kotlin 1.8.x)
@@ -397,14 +425,12 @@ EOF
     
     # Update react-native libraries for React Native 0.72 + AGP 8 compatibility
     print_step "Updating React Native libraries for compatibility..."
-    npm install react-native-maps@latest 2>&1 | grep -v "EBADENGINE" || true
+    # Use react-native-maps 1.7.1 for stability with RN 0.72 + AGP 8.0.2
+    npm install react-native-maps@1.7.1 2>&1 | grep -v "EBADENGINE" || true
     # Downgrade gesture-handler to 2.18.1 (2.30.0 has Kotlin compilation issues with RN 0.72)
     npm install react-native-gesture-handler@2.18.1 --legacy-peer-deps 2>&1 | grep -v "EBADENGINE" || true
     # Downgrade screens to 3.29.0 (3.37.0 has Kotlin compilation issues with RN 0.72)
     npm install react-native-screens@3.29.0 --legacy-peer-deps 2>&1 | grep -v "EBADENGINE" || true
-    
-    # Remove old patches if they exist
-    rm -f patches/react-native-maps*.patch
     
     # Add androidx.core version constraint to build.gradle to avoid AGP 8.6+ requirement
     if [ -f "android/build.gradle" ]; then
