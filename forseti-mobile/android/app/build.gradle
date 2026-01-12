@@ -130,10 +130,10 @@ android {
             signingConfig project.hasProperty('FORSETI_RELEASE_STORE_FILE') 
                 ? signingConfigs.release 
                 : signingConfigs.debug
-            minifyEnabled enableProguardInReleaseBuilds
-            shrinkResources enableProguardInReleaseBuilds
+            minifyEnabled false  // Disabled for easier debugging
+            shrinkResources false  // Disabled for easier debugging
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
-            debuggable false
+            debuggable true  // Enabled for production debugging/testing
         }
     }
 
