@@ -14,7 +14,7 @@ import {
   Linking,
 } from 'react-native';
 import { DrupalAuthService } from '../../services/DrupalAuthService';
-import { StorageService } from '../../services/storage/StorageService';
+import StorageService from '../../services/storage/StorageService';
 import { Theme } from '../../utils/theme';
 
 const { Colors, Spacing, Typography } = Theme;
