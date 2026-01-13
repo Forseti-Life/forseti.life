@@ -1,0 +1,131 @@
+{#
+/**
+ * @file
+ * Template for Individual Metrics Profile page.
+ *
+ * Available variables:
+ * - user: The user entity.
+ * - assessment: The assessment data (id, status, scores, etc).
+ * - dimensions: Array of dimension data with categories and metrics.
+ * - has_responses: Boolean indicating if user has any responses.
+ */
+#}
+
+<div class="individual-metrics-profile">
+  <div class="metrics-header">
+    <h1>{{ 'Individual Metrics for @name'|t({'@name': user.getDisplayName()}) }}</h1>
+    
+    {% if assessment %}
+      <div class="assessment-info">
+        <p class="assessment-status">
+          <strong>{{ 'Status:'|t }}</strong> 
+          <span class="status-{{ assessment.status }}">{{ assessment.status|capitalize }}</span>
+        </p>
+        {% if assessment.completed_at %}
+          <p class="assessment-date">
+            <strong>{{ 'Completed:'|t }}</strong> 
+            {{ assessment.completed_at|format_date('medium') }}
+          </p>
+        {% endif %}
+        {% if assessment.overall_score %}
+          <p class="overall-score">
+            <strong>{{ 'Overall Score:'|t }}</strong> 
+            <span class="score-value">{{ assessment.overall_score }}</span>
+          </p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  {% if not has_responses %}
+    <div class="empty-state">
+      <p>{{ 'You have not completed any individual metrics assessment yet.'|t }}</p>
+      <a href="{{ path('safety_calculator.questionnaire') }}" class="button button--primary">
+        {{ 'Start Assessment'|t }}
+      </a>
+    </div>
+  {% else %}
+    <div class="metrics-dimensions">
+      {% for dimension_key, dimension in dimensions %}
+        <div class="dimension-section" data-dimension="{{ dimension_key }}">
+          <div class="dimension-header">
+            <h2 class="dimension-title">
+              <button class="dimension-toggle" aria-expanded="false" aria-controls="dimension-{{ dimension_key }}">
+                <span class="toggle-icon">▶</span>
+                {{ dimension.name }}
+                <span class="response-count">({{ dimension.response_count }} {{ 'metrics'|t }})</span>
+              </button>
+            </h2>
+            <a href="{{ path('safety_calculator.individual_metrics_edit', {'user': user.id(), 'dimension': dimension_key}) }}" 
+               class="button button--small edit-dimension">
+              {{ 'Edit'|t }}
+            </a>
+          </div>
+
+          <div class="dimension-content" id="dimension-{{ dimension_key }}" hidden>
+            {% if dimension.categories %}
+              {% for category in dimension.categories %}
+                <div class="category-section">
+                  <h3 class="category-title">{{ category.name }}</h3>
+                  
+                  <div class="metrics-table-wrapper">
+                    <table class="metrics-table">
+                      <thead>
+                        <tr>
+                          <th>{{ 'Question #'|t }}</th>
+                          <th>{{ 'Metric'|t }}</th>
+                          <th>{{ 'Description'|t }}</th>
+                          <th>{{ 'Your Response'|t }}</th>
+                          <th>{{ 'Z-Score'|t }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for metric in category.metrics %}
+                          <tr class="metric-row">
+                            <td class="question-id">{{ metric.question_id }}</td>
+                            <td class="metric-name">{{ metric.metric_name }}</td>
+                            <td class="metric-description">{{ metric.metric_description }}</td>
+                            <td class="response-value">
+                              {{ metric.response_value }}
+                            </td>
+                            <td class="z-score">
+                              {% if metric.z_score is not null %}
+                                <span class="z-score-value {{ metric.z_score < 0 ? 'negative' : (metric.z_score > 0 ? 'positive' : 'neutral') }}">
+                                  {{ metric.z_score|number_format(2) }}
+                                </span>
+                                {% if metric.z_score_calculated_at %}
+                                  <span class="z-score-date" title="{{ metric.z_score_calculated_at|format_date('long') }}">
+                                    <small>({{ metric.z_score_calculated_at|format_date('short') }})</small>
+                                  </span>
+                                {% endif %}
+                              {% else %}
+                                <span class="z-score-pending">{{ 'Pending'|t }}</span>
+                              {% endif %}
+                            </td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <p class="no-metrics">{{ 'No metrics recorded for this dimension.'|t }}</p>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="z-score-legend">
+      <h3>{{ 'Understanding Z-Scores'|t }}</h3>
+      <p>{{ 'Z-scores show how your responses compare to the population average:'|t }}</p>
+      <ul>
+        <li><strong class="positive">{{ 'Positive'|t }}</strong>: {{ 'Above average'|t }}</li>
+        <li><strong class="neutral">{{ '0'|t }}</strong>: {{ 'Average'|t }}</li>
+        <li><strong class="negative">{{ 'Negative'|t }}</strong>: {{ 'Below average'|t }}</li>
+      </ul>
+      <p><small>{{ 'Z-scores are automatically calculated and cannot be edited.'|t }}</small></p>
+    </div>
+  {% endif %}
+</div>

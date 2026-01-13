@@ -1,0 +1,338 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Safety Calculator module.
+ */
+
+use Drupal\Core\Database\Database;
+
+/**
+ * Implements hook_schema().
+ */
+function safety_calculator_schema() {
+  $schema = [];
+
+  // Table 1: Master metrics definition table (1,200 metrics)
+  $schema['individual_metrics_master'] = [
+    'description' => 'Stores definitions for all 1,200 individual metrics across 240 questions',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique metric ID',
+      ],
+      'question_id' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Question number (1-240)',
+      ],
+      'metric_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Machine name of the metric',
+      ],
+      'metric_description' => [
+        'type' => 'text',
+        'not null' => TRUE,
+        'description' => 'Human-readable description of what the metric measures',
+      ],
+      'category' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'description' => 'Category name (1 of 28 categories)',
+      ],
+      'dimension' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => TRUE,
+        'description' => 'Dimension: SAFE, ENERGIZED, CONNECTED, FREE, CAPABLE, USEFUL, WHOLE, DEMOGRAPHIC',
+      ],
+      'parent_node' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+        'description' => 'Parent gateway question for conditional logic',
+      ],
+      'data_type' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+        'default' => 'text',
+        'description' => 'Data type: numeric, text, boolean, select, scale',
+      ],
+      'validation_rules' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON validation rules (min, max, allowed values)',
+      ],
+      'reference_url' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'not null' => FALSE,
+        'description' => 'URL to research paper or authoritative source',
+      ],
+      'population_definition' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'not null' => FALSE,
+        'description' => 'Definition of the population for which statistics apply',
+      ],
+      'population_mean' => [
+        'type' => 'numeric',
+        'precision' => 15,
+        'scale' => 4,
+        'not null' => FALSE,
+        'description' => 'Population mean value for the metric',
+      ],
+      'population_stddev' => [
+        'type' => 'numeric',
+        'precision' => 15,
+        'scale' => 4,
+        'not null' => FALSE,
+        'description' => 'Population standard deviation for the metric',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when metric was created',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'question_id' => ['question_id'],
+      'dimension' => ['dimension'],
+      'category' => ['category'],
+      'metric_name' => ['metric_name'],
+    ],
+    'unique keys' => [
+      'question_metric' => ['question_id', 'metric_name'],
+    ],
+  ];
+
+  // Table 2: User responses with z-scores
+  $schema['individual_metric_responses'] = [
+    'description' => 'Stores user responses to individual metrics with calculated z-scores',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique response ID',
+      ],
+      'user_id' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Foreign Key: User ID from users table',
+      ],
+      'assessment_id' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Foreign Key: Assessment session ID',
+      ],
+      'metric_id' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Foreign Key: Metric ID from individual_metrics_master',
+      ],
+      'response_value' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'The user response value (flexible for any data type)',
+      ],
+      'z_score' => [
+        'type' => 'numeric',
+        'precision' => 10,
+        'scale' => 4,
+        'not null' => FALSE,
+        'description' => 'Calculated z-score (system only, read-only for users)',
+      ],
+      'z_score_calculated_at' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when z-score was last calculated',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when response was created',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when response was last updated',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'user_id' => ['user_id'],
+      'assessment_id' => ['assessment_id'],
+      'metric_id' => ['metric_id'],
+      'user_metric' => ['user_id', 'metric_id'],
+      'z_score' => ['z_score'],
+    ],
+    'unique keys' => [
+      'user_assessment_metric' => ['user_id', 'assessment_id', 'metric_id'],
+    ],
+  ];
+
+  // Table 3: Assessment sessions
+  $schema['individual_assessments'] = [
+    'description' => 'Tracks individual metric assessment sessions',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique assessment ID',
+      ],
+      'user_id' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Foreign Key: User ID from users table',
+      ],
+      'started_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Unix timestamp when assessment started',
+      ],
+      'completed_at' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when assessment completed',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => TRUE,
+        'default' => 'in_progress',
+        'description' => 'Status: in_progress, completed',
+      ],
+      'dimension_scores' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON: Calculated scores per dimension (0-100)',
+      ],
+      'overall_score' => [
+        'type' => 'numeric',
+        'precision' => 5,
+        'scale' => 2,
+        'not null' => FALSE,
+        'description' => 'Overall calculated score (0-100)',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when record was created',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when record was last updated',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'user_id' => ['user_id'],
+      'status' => ['status'],
+      'completed_at' => ['completed_at'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Install individual metrics custom tables.
+ */
+function safety_calculator_update_10001() {
+  $schema = safety_calculator_schema();
+  $database = Database::getConnection();
+  
+  // Create individual_metrics_master table
+  if (!$database->schema()->tableExists('individual_metrics_master')) {
+    $database->schema()->createTable('individual_metrics_master', $schema['individual_metrics_master']);
+  }
+  
+  // Create individual_metric_responses table
+  if (!$database->schema()->tableExists('individual_metric_responses')) {
+    $database->schema()->createTable('individual_metric_responses', $schema['individual_metric_responses']);
+  }
+  
+  // Create individual_assessments table
+  if (!$database->schema()->tableExists('individual_assessments')) {
+    $database->schema()->createTable('individual_assessments', $schema['individual_assessments']);
+  }
+  
+  return t('Individual metrics custom tables created successfully.');
+}
+
+/**
+ * Add reference columns to individual_metrics_master table.
+ */
+function safety_calculator_update_10002() {
+  $schema = Database::getConnection()->schema();
+  $messages = [];
+  
+  // Add reference_url field
+  if (!$schema->fieldExists('individual_metrics_master', 'reference_url')) {
+    $schema->addField('individual_metrics_master', 'reference_url', [
+      'type' => 'varchar',
+      'length' => 512,
+      'not null' => FALSE,
+      'description' => 'URL to research paper or authoritative source',
+    ]);
+    $messages[] = 'Added reference_url field.';
+  }
+  
+  // Add population_definition field
+  if (!$schema->fieldExists('individual_metrics_master', 'population_definition')) {
+    $schema->addField('individual_metrics_master', 'population_definition', [
+      'type' => 'varchar',
+      'length' => 512,
+      'not null' => FALSE,
+      'description' => 'Definition of the population for which statistics apply',
+    ]);
+    $messages[] = 'Added population_definition field.';
+  }
+  
+  // Add population_mean field
+  if (!$schema->fieldExists('individual_metrics_master', 'population_mean')) {
+    $schema->addField('individual_metrics_master', 'population_mean', [
+      'type' => 'numeric',
+      'precision' => 15,
+      'scale' => 4,
+      'not null' => FALSE,
+      'description' => 'Population mean value for the metric',
+    ]);
+    $messages[] = 'Added population_mean field.';
+  }
+  
+  // Add population_stddev field
+  if (!$schema->fieldExists('individual_metrics_master', 'population_stddev')) {
+    $schema->addField('individual_metrics_master', 'population_stddev', [
+      'type' => 'numeric',
+      'precision' => 15,
+      'scale' => 4,
+      'not null' => FALSE,
+      'description' => 'Population standard deviation for the metric',
+    ]);
+    $messages[] = 'Added population_stddev field.';
+  }
+  
+  return !empty($messages) ? implode(' ', $messages) : t('Reference columns already exist.');
+}
+
+/**
+ * Create safety_assessment entity tables (legacy).
+ */
+function safety_calculator_update_9001() {
+  \Drupal::entityDefinitionUpdateManager()->installEntityType(
+    \Drupal::entityTypeManager()->getDefinition('safety_assessment')
+  );
+}

@@ -26,3 +26,21 @@ function safety_calculator_help($route_name, RouteMatchInterface $route_match) {
       return $output;
   }
 }
+
+/**
+ * Implements hook_theme().
+ */
+function safety_calculator_theme($existing, $type, $theme, $path) {
+  return [
+    'individual_metrics_profile' => [
+      'variables' => [
+        'user' => NULL,
+        'assessment' => NULL,
+        'dimensions' => [],
+        'has_responses' => FALSE,
+      ],
+      'template' => 'individual-metrics-profile',
+    ],
+  ];
+}
+

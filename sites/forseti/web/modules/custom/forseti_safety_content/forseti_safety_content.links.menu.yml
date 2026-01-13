@@ -60,10 +60,18 @@ forseti.example_entities:
   parent: forseti.how_it_works
   weight: -22
 
+forseti.safety:
+  title: 'Safety'
+  route_name: forseti.safety_map
+  menu_name: main
+  weight: -20
+  expanded: true
+
 forseti.safety_map:
   title: 'Safety Map'
   route_name: forseti.safety_map
   menu_name: main
+  parent: forseti.safety
   weight: -20
 
 forseti.community:

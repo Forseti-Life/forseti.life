@@ -100,17 +100,17 @@ class QuestionnaireController extends ControllerBase {
             <div class="col-md-3">
               <div class="display-4 text-primary mb-3">2</div>
               <h5>' . $this->t('Rate Your Experience') . '</h5>
-              <p class="text-muted">' . $this->t('Rate factors from 1-10 based on your perception') . '</p>
+              <p class="text-muted">' . $this->t('Rate factors from 0-100 based on your perception') . '</p>
             </div>
             <div class="col-md-3">
               <div class="display-4 text-primary mb-3">3</div>
-              <h5>' . $this->t('Combined Analysis') . '</h5>
-              <p class="text-muted">' . $this->t('We combine your responses with objective crime data') . '</p>
+              <h5>' . $this->t('Review & Submit') . '</h5>
+              <p class="text-muted">' . $this->t('Review your assessment and submit for comprehensive analysis') . '</p>
             </div>
             <div class="col-md-3">
               <div class="display-4 text-primary mb-3">4</div>
               <h5>' . $this->t('Get Your Score') . '</h5>
-              <p class="text-muted">' . $this->t('Receive a comprehensive safety score and recommendations') . '</p>
+              <p class="text-muted">' . $this->t('Receive a comprehensive safety score and insights') . '</p>
             </div>
           </div>',
       ],
@@ -123,10 +123,10 @@ class QuestionnaireController extends ControllerBase {
       'content' => [
         '#markup' => '
           <h2 class="mb-4">' . $this->t('Ready to Begin?') . '</h2>
-          <p class="lead mb-4">' . $this->t('Total time: Approximately 15-20 minutes') . '</p>
+          <p class="lead mb-4">' . $this->t('Total: 210 questions across 7 dimensions • Approximately 45-60 minutes') . '</p>
           <a href="' . Url::fromRoute('safety_calculator.questionnaire_step', ['step' => 'safe'])->toString() . '" class="btn btn-primary btn-lg">' . $this->t('Start Assessment') . '</a>
           <div class="mt-3">
-            <small class="text-muted">' . $this->t('You can save your progress and return later') . '</small>
+            <small class="text-muted">' . $this->t('Philadelphia baseline data is pre-loaded for reference') . '</small>
           </div>',
       ],
     ];
@@ -144,56 +144,56 @@ class QuestionnaireController extends ControllerBase {
         'name' => $this->t('Safe'),
         'subtitle' => $this->t('Security & Protection'),
         'icon' => '/themes/custom/forseti/images/logos/originals/forseti_safe.png',
-        'question_count' => 19,
-        'estimated_minutes' => 5,
+        'question_count' => 30,
+        'estimated_minutes' => 8,
       ],
       [
         'id' => 'energized',
         'name' => $this->t('Energized'),
         'subtitle' => $this->t('Vitality & Basic Needs'),
         'icon' => '/themes/custom/forseti/images/logos/originals/forseti_energized.png',
-        'question_count' => 6,
-        'estimated_minutes' => 2,
+        'question_count' => 30,
+        'estimated_minutes' => 8,
       ],
       [
         'id' => 'connected',
         'name' => $this->t('Connected'),
         'subtitle' => $this->t('Community & Belonging'),
         'icon' => '/themes/custom/forseti/images/logos/originals/forseti_connected.png',
-        'question_count' => 7,
-        'estimated_minutes' => 2,
+        'question_count' => 30,
+        'estimated_minutes' => 8,
       ],
       [
         'id' => 'free',
         'name' => $this->t('Free'),
         'subtitle' => $this->t('Autonomy & Rights'),
         'icon' => '/themes/custom/forseti/images/logos/originals/forseti_free.png',
-        'question_count' => 6,
-        'estimated_minutes' => 2,
+        'question_count' => 30,
+        'estimated_minutes' => 8,
       ],
       [
         'id' => 'capable',
         'name' => $this->t('Capable'),
         'subtitle' => $this->t('Mastery & Development'),
         'icon' => '/themes/custom/forseti/images/logos/originals/forseti_capable.png',
-        'question_count' => 6,
-        'estimated_minutes' => 2,
+        'question_count' => 30,
+        'estimated_minutes' => 8,
       ],
       [
         'id' => 'useful',
         'name' => $this->t('Useful'),
         'subtitle' => $this->t('Purpose & Contribution'),
         'icon' => '/themes/custom/forseti/images/logos/originals/forseti_useful.png',
-        'question_count' => 6,
-        'estimated_minutes' => 2,
+        'question_count' => 30,
+        'estimated_minutes' => 8,
       ],
       [
         'id' => 'whole',
         'name' => $this->t('Whole'),
         'subtitle' => $this->t('Holistic Health & Identity'),
         'icon' => '/themes/custom/forseti/images/logos/originals/forseti_whole.png',
-        'question_count' => 8,
-        'estimated_minutes' => 3,
+        'question_count' => 30,
+        'estimated_minutes' => 8,
       ],
     ];
   }

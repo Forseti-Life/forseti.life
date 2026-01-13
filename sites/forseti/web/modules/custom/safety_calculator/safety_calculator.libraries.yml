@@ -16,3 +16,30 @@ individual_check:
     - core/drupal
     - core/jquery
     - core/drupal.ajax
+
+slider-update:
+  version: 1.0
+  js:
+    js/slider-update.js: {}
+  dependencies:
+    - core/drupal
+
+individual-metrics-profile:
+  version: 1.0
+  css:
+    theme:
+      css/individual-metrics-profile.css: {}
+  js:
+    js/individual-metrics-profile.js: {}
+  dependencies:
+    - core/drupal
+
+individual-metrics-edit:
+  version: 1.0
+  css:
+    theme:
+      css/individual-metrics-edit.css: {}
+  js:
+    js/individual-metrics-edit.js: {}
+  dependencies:
+    - core/drupal

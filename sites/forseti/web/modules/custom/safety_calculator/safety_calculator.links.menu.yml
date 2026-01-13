@@ -1,0 +1,6 @@
+safety_calculator.assessment:
+  title: 'Safety Assessment'
+  route_name: safety_calculator.landing
+  menu_name: main
+  parent: forseti.safety
+  weight: -19
