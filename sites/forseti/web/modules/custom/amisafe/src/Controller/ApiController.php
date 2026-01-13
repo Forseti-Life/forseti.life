@@ -35,6 +35,17 @@ class ApiController extends ControllerBase {
   }
 
   /**
+   * Add CORS headers to response for mobile app compatibility.
+   */
+  private function addCorsHeaders(JsonResponse $response) {
+    $response->headers->set('Access-Control-Allow-Origin', '*');
+    $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    $response->headers->set('Access-Control-Max-Age', '86400');
+    return $response;
+  }
+
+  /**
    * Returns filtered incident data.
    */
   public function incidents(Request $request) {
@@ -1092,28 +1103,31 @@ class ApiController extends ControllerBase {
       $data = json_decode($request->getContent(), TRUE);
       
       if (empty($data['name']) || empty($data['mail']) || empty($data['pass'])) {
-        return new JsonResponse([
+        $response = new JsonResponse([
           'success' => FALSE,
           'message' => 'Username, email, and password are required',
         ], 400);
+        return $this->addCorsHeaders($response);
       }
 
       // Check if username already exists
       $existing_user = user_load_by_name($data['name']);
       if ($existing_user) {
-        return new JsonResponse([
+        $response = new JsonResponse([
           'success' => FALSE,
           'message' => 'Username already exists',
         ], 409);
+        return $this->addCorsHeaders($response);
       }
 
       // Check if email already exists
       $existing_email = user_load_by_mail($data['mail']);
       if ($existing_email) {
-        return new JsonResponse([
+        $response = new JsonResponse([
           'success' => FALSE,
           'message' => 'Email already registered',
         ], 409);
+        return $this->addCorsHeaders($response);
       }
 
       // Create new user
@@ -1126,7 +1140,7 @@ class ApiController extends ControllerBase {
 
       \Drupal::logger('amisafe')->info('Mobile user registered: @name', ['@name' => $data['name']]);
 
-      return new JsonResponse([
+      $response = new JsonResponse([
         'success' => TRUE,
         'message' => 'Registration successful! Please log in with your credentials.',
         'user' => [
@@ -1135,13 +1149,15 @@ class ApiController extends ControllerBase {
           'mail' => $user->getEmail(),
         ],
       ]);
+      return $this->addCorsHeaders($response);
     } catch (\Exception $e) {
       \Drupal::logger('amisafe')->error('Registration error: @message', ['@message' => $e->getMessage()]);
       
-      return new JsonResponse([
+      $response = new JsonResponse([
         'success' => FALSE,
         'message' => 'Registration failed: ' . $e->getMessage(),
       ], 500);
+      return $this->addCorsHeaders($response);
     }
   }
 
@@ -1153,36 +1169,40 @@ class ApiController extends ControllerBase {
       $data = json_decode($request->getContent(), TRUE);
       
       if (empty($data['name']) || empty($data['pass'])) {
-        return new JsonResponse([
+        $response = new JsonResponse([
           'success' => FALSE,
           'message' => 'Username and password are required',
         ], 400);
+        return $this->addCorsHeaders($response);
       }
 
       // Load user by username
       $user = user_load_by_name($data['name']);
       if (!$user) {
-        return new JsonResponse([
+        $response = new JsonResponse([
           'success' => FALSE,
           'message' => 'Invalid username or password',
         ], 401);
+        return $this->addCorsHeaders($response);
       }
 
       // Verify password
       $password_hasher = \Drupal::service('password');
       if (!$password_hasher->check($data['pass'], $user->getPassword())) {
-        return new JsonResponse([
+        $response = new JsonResponse([
           'success' => FALSE,
           'message' => 'Invalid username or password',
         ], 401);
+        return $this->addCorsHeaders($response);
       }
 
       // Check if user is active
       if ($user->isBlocked()) {
-        return new JsonResponse([
+        $response = new JsonResponse([
           'success' => FALSE,
           'message' => 'Account is blocked',
         ], 403);
+        return $this->addCorsHeaders($response);
       }
 
       // Log the user in and create a session
@@ -1193,7 +1213,7 @@ class ApiController extends ControllerBase {
 
       \Drupal::logger('amisafe')->info('Mobile user logged in: @name', ['@name' => $data['name']]);
 
-      return new JsonResponse([
+      $response = new JsonResponse([
         'success' => TRUE,
         'message' => 'Login successful',
         'user' => [
@@ -1205,13 +1225,15 @@ class ApiController extends ControllerBase {
         'token' => $session_token,
         'sessionToken' => $session_token,
       ]);
+      return $this->addCorsHeaders($response);
     } catch (\Exception $e) {
       \Drupal::logger('amisafe')->error('Login error: @message', ['@message' => $e->getMessage()]);
       
-      return new JsonResponse([
+      $response = new JsonResponse([
         'success' => FALSE,
         'message' => 'Login failed: ' . $e->getMessage(),
       ], 500);
+      return $this->addCorsHeaders($response);
     }
   }
 
