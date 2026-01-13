@@ -75,6 +75,32 @@ const ForsetiNavigationTheme = {
 
 // Main Tab Navigator with custom header
 const TabNavigator = ({ navigation }: { navigation: any }) => {
+  const handleLogout = async () => {
+    Alert.alert('Logout', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            // Clear stored credentials
+            await StorageService.setItem('userToken', '');
+            await StorageService.setItem('userId', '');
+            await StorageService.setItem('username', '');
+            
+            // Navigate back to login (handled by MainApp component)
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
+          } catch (error) {
+            console.error('Logout error:', error);
+          }
+        },
+      },
+    ]);
+  };
+
   return (
     <>
       {/* Custom Header Bar with Forseti Logo */}
@@ -86,6 +112,9 @@ const TabNavigator = ({ navigation }: { navigation: any }) => {
             resizeMode="contain"
           />
           <Text style={styles.logoText}>Forseti</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+          <Icon name="logout" size={24} color={Colors?.danger || '#F44336'} />
         </TouchableOpacity>
       </View>
 
@@ -414,6 +443,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     flexDirection: 'row',
     height: 60,
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
   },
   logo: {
@@ -429,6 +459,9 @@ const styles = StyleSheet.create({
     color: Colors?.text || '#ffffff',
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  logoutButton: {
+    padding: 8,
   },
   tabBar: {
     backgroundColor: Colors?.card || '#16213e',

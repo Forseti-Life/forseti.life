@@ -63,11 +63,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       await loadSafetyData(location);
     } catch (error) {
       console.error('Error initializing home screen:', error);
-      Alert.alert(
-        'Location Error',
-        'Unable to get your current location. Please check your location settings.',
-        [{ text: 'OK' }]
-      );
+      // Don't show alert - just leave currentLocation as null
+      // The UI will show "Unable to get location" message
     } finally {
       setIsLoading(false);
     }

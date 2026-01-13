@@ -76,6 +76,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
             );
             if (granted === PermissionsAndroid.RESULTS.GRANTED) {
               console.log('✅ Location permission granted');
+              // Initialize location service after permission granted
+              const LocationService = require('../../services/location/LocationService').default;
+              try {
+                await LocationService.initialize();
+                console.log('✅ Location service initialized');
+              } catch (locErr) {
+                console.warn('⚠️ Location service initialization failed:', locErr);
+              }
             } else {
               console.log('⚠️ Location permission denied');
             }
