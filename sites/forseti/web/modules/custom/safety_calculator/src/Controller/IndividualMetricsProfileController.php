@@ -80,14 +80,8 @@ class IndividualMetricsProfileController extends ControllerBase {
     $assessment = $this->repository->getLatestAssessment($userId);
     
     if (!$assessment) {
-      // No assessment yet - show empty state.
-      return [
-        '#theme' => 'individual_metrics_profile',
-        '#user' => $user,
-        '#assessment' => NULL,
-        '#dimensions' => [],
-        '#has_responses' => FALSE,
-      ];
+      // No assessment yet - show empty state with Bootstrap styling.
+      return $this->buildEmptyState($user);
     }
     
     $assessmentId = (int) $assessment['id'];
@@ -123,6 +117,10 @@ class IndividualMetricsProfileController extends ControllerBase {
           'response_value' => $response['response_value'],
           'z_score' => $response['z_score'],
           'z_score_calculated_at' => $response['z_score_calculated_at'],
+          'reference_url' => $response['reference_url'] ?? NULL,
+          'population_definition' => $response['population_definition'] ?? NULL,
+          'population_mean' => $response['population_mean'] ?? NULL,
+          'population_stddev' => $response['population_stddev'] ?? NULL,
         ];
       }
       
@@ -142,6 +140,56 @@ class IndividualMetricsProfileController extends ControllerBase {
       '#attached' => [
         'library' => [
           'safety_calculator/individual-metrics-profile',
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Build empty state when user has no assessment.
+   */
+  protected function buildEmptyState(UserInterface $user): array {
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['container', 'my-5']],
+      'hero' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['bg-light', 'text-center', 'py-5', 'rounded', 'mb-4']],
+        'icon' => [
+          '#type' => 'html_tag',
+          '#tag' => 'div',
+          '#value' => '📊',
+          '#attributes' => ['class' => ['fs-1', 'mb-3']],
+        ],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h1',
+          '#value' => $this->t('Individual Metrics Profile'),
+          '#attributes' => ['class' => ['display-5', 'fw-bold', 'mb-3']],
+        ],
+        'subtitle' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Track your personal safety metrics and compare to population averages'),
+          '#attributes' => ['class' => ['lead', 'text-muted']],
+        ],
+      ],
+      'empty' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['text-center', 'py-5']],
+        'message' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('You have not completed any individual metrics assessment yet.'),
+          '#attributes' => ['class' => ['lead', 'mb-4']],
+        ],
+        'cta' => [
+          '#type' => 'link',
+          '#title' => $this->t('Start Your Assessment'),
+          '#url' => \Drupal\Core\Url::fromRoute('safety_calculator.questionnaire'),
+          '#attributes' => [
+            'class' => ['btn', 'btn-primary', 'btn-lg'],
+          ],
         ],
       ],
     ];

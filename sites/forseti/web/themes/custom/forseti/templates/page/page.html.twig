@@ -151,6 +151,13 @@
           </header>
         {% endif %}
 
+        {# Tabs (Local Tasks) #}
+        {% if page.tabs %}
+          <nav class="tabs-nav" role="navigation" aria-label="Tabs">
+            {{ page.tabs }}
+          </nav>
+        {% endif %}
+
         {# Main Page Content #}
         <div class="page-content">
           {{ page.content }}

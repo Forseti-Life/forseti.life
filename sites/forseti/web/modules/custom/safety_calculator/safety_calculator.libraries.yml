@@ -43,3 +43,17 @@ individual-metrics-edit:
     js/individual-metrics-edit.js: {}
   dependencies:
     - core/drupal
+
+population-benchmarks:
+  version: 1.0
+  css:
+    theme:
+      css/population-benchmarks.css: {}
+  js:
+    js/population-benchmarks.js: {}
+    https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js: { type: external, minified: true }
+    https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js: { type: external, minified: true }
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once

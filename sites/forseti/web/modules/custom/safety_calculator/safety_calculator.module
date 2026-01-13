@@ -41,6 +41,13 @@ function safety_calculator_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'individual-metrics-profile',
     ],
+    'population_benchmarks' => [
+      'variables' => [
+        'dimensions' => [],
+        'dimension_scores' => [],
+      ],
+      'template' => 'population-benchmarks',
+    ],
   ];
 }
 

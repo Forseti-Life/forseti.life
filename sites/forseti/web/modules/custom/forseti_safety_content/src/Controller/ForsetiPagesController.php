@@ -733,12 +733,17 @@ class ForsetiPagesController extends ControllerBase {
           'content' => $this->t('Forseti is NOT a replacement for 911 or emergency services. In case of emergency, always call 911 immediately.'),
         ],
         [
+          'icon' => '🤖',
+          'title' => $this->t('AI-Generated & Research Content'),
+          'content' => $this->t('Much of the content, data, and analysis on this platform has been researched, consolidated, and generated using Generative AI (GenAI) technologies. While we strive for accuracy, this content is a <strong>work in progress</strong> and may contain errors, inconsistencies, or outdated information. References are provided where available to support the information presented.'),
+        ],
+        [
           'icon' => '📊',
           'title' => $this->t('Informational Purposes Only'),
           'content' => $this->t('All data and predictions are provided for informational purposes only. Safety ratings are estimates based on historical data and may not reflect current conditions.'),
         ],
         [
-          'icon' => '🤖',
+          'icon' => '🔍',
           'title' => $this->t('AI Limitations'),
           'content' => $this->t('Our AI models make predictions based on patterns in historical data. No predictive system is 100% accurate. Always exercise personal judgment and caution.'),
         ],
@@ -753,8 +758,8 @@ class ForsetiPagesController extends ControllerBase {
         'content' => $this->t('We do not guarantee the accuracy, completeness, or timeliness of any information. Use Forseti as one tool among many for situational awareness, not as your sole source of safety information.'),
       ],
       '#user_responsibility' => [
-        'title' => $this->t('User Responsibility'),
-        'content' => $this->t('You are responsible for your own safety. Forseti provides information to help you make informed decisions, but cannot and does not ensure your safety. Always be aware of your surroundings and trust your instincts.'),
+        'title' => $this->t('User Responsibility & Reporting Issues'),
+        'content' => $this->t('You are responsible for your own safety. Forseti provides information to help you make informed decisions, but cannot and does not ensure your safety. Always be aware of your surroundings and trust your instincts. <strong>If you encounter any errors, concerns, or issues with our content or data, please <a href="/talk-with-forseti" class="alert-link">Talk with Forseti</a> to report them.</strong> We are committed to making corrections and improvements based on user feedback.'),
       ],
       '#liability_limitation' => [
         'title' => $this->t('Limitation of Liability'),

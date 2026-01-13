@@ -113,9 +113,9 @@ function safety_calculator_schema() {
     ],
   ];
 
-  // Table 2: User responses with z-scores
+  // Table 2: User responses with z-scores (sparse storage - only explicit responses)
   $schema['individual_metric_responses'] = [
-    'description' => 'Stores user responses to individual metrics with calculated z-scores',
+    'description' => 'Stores user responses to individual metrics with calculated z-scores. Uses sparse storage - only stores explicitly answered metrics.',
     'fields' => [
       'id' => [
         'type' => 'serial',
@@ -137,10 +137,22 @@ function safety_calculator_schema() {
         'not null' => TRUE,
         'description' => 'Foreign Key: Metric ID from individual_metrics_master',
       ],
+      'question_id' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Question number for quick lookups (denormalized from master)',
+      ],
       'response_value' => [
         'type' => 'text',
-        'not null' => FALSE,
+        'not null' => TRUE,
         'description' => 'The user response value (flexible for any data type)',
+      ],
+      'is_explicit' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+        'description' => 'Boolean: 1 = user explicitly answered, 0 = calculated/defaulted',
       ],
       'z_score' => [
         'type' => 'numeric',
@@ -172,11 +184,13 @@ function safety_calculator_schema() {
       'user_id' => ['user_id'],
       'assessment_id' => ['assessment_id'],
       'metric_id' => ['metric_id'],
+      'question_id' => ['question_id'],
       'user_metric' => ['user_id', 'metric_id'],
+      'is_explicit' => ['is_explicit'],
       'z_score' => ['z_score'],
     ],
     'unique keys' => [
-      'user_assessment_metric' => ['user_id', 'assessment_id', 'metric_id'],
+      'assessment_metric' => ['assessment_id', 'metric_id'],
     ],
   ];
 
@@ -209,7 +223,7 @@ function safety_calculator_schema() {
         'length' => 20,
         'not null' => TRUE,
         'default' => 'in_progress',
-        'description' => 'Status: in_progress, completed',
+        'description' => 'Status: in_progress, completed, archived',
       ],
       'dimension_scores' => [
         'type' => 'text',
@@ -222,6 +236,11 @@ function safety_calculator_schema() {
         'scale' => 2,
         'not null' => FALSE,
         'description' => 'Overall calculated score (0-100)',
+      ],
+      'metadata' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON: Additional assessment metadata (device, location, etc)',
       ],
       'created' => [
         'type' => 'int',
@@ -241,6 +260,71 @@ function safety_calculator_schema() {
       'user_id' => ['user_id'],
       'status' => ['status'],
       'completed_at' => ['completed_at'],
+      'user_completed' => ['user_id', 'completed_at'],
+    ],
+  ];
+
+  // Table 4: Dimension aggregations (for performance)
+  $schema['individual_dimension_scores'] = [
+    'description' => 'Cached dimension-level scores for quick retrieval',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique dimension score ID',
+      ],
+      'assessment_id' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Foreign Key: Assessment session ID',
+      ],
+      'user_id' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Foreign Key: User ID from users table',
+      ],
+      'dimension' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+        'description' => 'Dimension: SAFE, ENERGIZED, CONNECTED, FREE, CAPABLE, USEFUL, WHOLE, DEMOGRAPHIC',
+      ],
+      'score' => [
+        'type' => 'numeric',
+        'precision' => 5,
+        'scale' => 2,
+        'not null' => FALSE,
+        'description' => 'Calculated dimension score (0-100)',
+      ],
+      'response_count' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Number of explicit responses for this dimension',
+      ],
+      'avg_z_score' => [
+        'type' => 'numeric',
+        'precision' => 10,
+        'scale' => 4,
+        'not null' => FALSE,
+        'description' => 'Average z-score for this dimension',
+      ],
+      'calculated_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when scores were calculated',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'assessment_id' => ['assessment_id'],
+      'user_id' => ['user_id'],
+      'dimension' => ['dimension'],
+      'user_dimension' => ['user_id', 'dimension'],
+    ],
+    'unique keys' => [
+      'assessment_dimension' => ['assessment_id', 'dimension'],
     ],
   ];
 
@@ -336,6 +420,166 @@ function safety_calculator_update_10002() {
   }
   
   return !empty($messages) ? implode(' ', $messages) : t('Reference columns already exist.');
+}
+
+/**
+ * Update schema for sparse storage and add dimension scores table.
+ */
+function safety_calculator_update_10003() {
+  $database = Database::getConnection();
+  $schema_service = $database->schema();
+  $messages = [];
+  
+  // 1. Add question_id to individual_metric_responses for quick lookups
+  if (!$schema_service->fieldExists('individual_metric_responses', 'question_id')) {
+    $schema_service->addField('individual_metric_responses', 'question_id', [
+      'type' => 'int',
+      'not null' => FALSE,
+      'description' => 'Question number for quick lookups (denormalized from master)',
+    ]);
+    $messages[] = 'Added question_id field.';
+  }
+  
+  // 2. Add is_explicit flag for sparse storage
+  if (!$schema_service->fieldExists('individual_metric_responses', 'is_explicit')) {
+    $schema_service->addField('individual_metric_responses', 'is_explicit', [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 1,
+      'description' => 'Boolean: 1 = user explicitly answered, 0 = calculated/defaulted',
+    ]);
+    $messages[] = 'Added is_explicit field.';
+  }
+  
+  // 3. Add metadata field to individual_assessments
+  if (!$schema_service->fieldExists('individual_assessments', 'metadata')) {
+    $schema_service->addField('individual_assessments', 'metadata', [
+      'type' => 'text',
+      'not null' => FALSE,
+      'description' => 'JSON: Additional assessment metadata (device, location, etc)',
+    ]);
+    $messages[] = 'Added metadata field.';
+  }
+  
+  // 4. Create individual_dimension_scores table
+  if (!$schema_service->tableExists('individual_dimension_scores')) {
+    $full_schema = safety_calculator_schema();
+    $schema_service->createTable('individual_dimension_scores', $full_schema['individual_dimension_scores']);
+    $messages[] = 'Created individual_dimension_scores table.';
+  }
+  
+  return !empty($messages) ? implode(' ', $messages) : t('Sparse storage schema already up to date.');
+}
+
+/**
+ * Add normalization fields and calculate z-score standardized values.
+ */
+function safety_calculator_update_10004() {
+  $database = Database::getConnection();
+  $schema_service = $database->schema();
+  $messages = [];
+  
+  // 1. Add normalized_mean field (z-score converted to 0-100 scale)
+  if (!$schema_service->fieldExists('individual_metrics_master', 'normalized_mean')) {
+    $schema_service->addField('individual_metrics_master', 'normalized_mean', [
+      'type' => 'numeric',
+      'precision' => 6,
+      'scale' => 2,
+      'not null' => FALSE,
+      'description' => 'Z-score normalized to 0-100 scale (50 = mean, ±3 std dev = 0-100)',
+    ]);
+    $messages[] = 'Added normalized_mean field.';
+  }
+  
+  // 2. Add scale_direction field
+  if (!$schema_service->fieldExists('individual_metrics_master', 'scale_direction')) {
+    $schema_service->addField('individual_metrics_master', 'scale_direction', [
+      'type' => 'varchar',
+      'length' => 20,
+      'not null' => TRUE,
+      'default' => 'higher_better',
+      'description' => 'Scoring direction: higher_better or lower_better',
+    ]);
+    $messages[] = 'Added scale_direction field.';
+  }
+  
+  // 3. Calculate normalized values for non-demographic metrics
+  // Z-score mapping: z = (value - mean) / stddev
+  // Convert to 0-100: normalized = 50 + (z * 16.67)
+  // This maps z=-3 to 0, z=0 to 50, z=+3 to 100
+  
+  $database->query("
+    UPDATE {individual_metrics_master}
+    SET normalized_mean = LEAST(100, GREATEST(0, 50))
+    WHERE dimension != 'DEMOGRAPHIC' 
+      AND population_mean IS NOT NULL
+      AND population_stddev IS NOT NULL
+      AND population_stddev > 0
+  ");
+  
+  $count = $database->query("
+    SELECT COUNT(*) 
+    FROM {individual_metrics_master} 
+    WHERE dimension != 'DEMOGRAPHIC'
+      AND normalized_mean IS NOT NULL
+  ")->fetchField();
+  
+  $messages[] = "Calculated normalized values for {$count} non-demographic metrics.";
+  
+  // 4. Set default scale_direction to higher_better for all non-demographic
+  $database->query("
+    UPDATE {individual_metrics_master}
+    SET scale_direction = 'higher_better'
+    WHERE dimension != 'DEMOGRAPHIC'
+  ");
+  
+  return !empty($messages) ? implode(' ', $messages) : t('Normalization schema already up to date.');
+}
+
+/**
+ * Add distribution fields for categorical and boolean demographics.
+ */
+function safety_calculator_update_10005() {
+  $database = Database::getConnection();
+  $schema_service = $database->schema();
+  $messages = [];
+  
+  // 1. Add distribution_data field (JSON for category percentages)
+  if (!$schema_service->fieldExists('individual_metrics_master', 'distribution_data')) {
+    $schema_service->addField('individual_metrics_master', 'distribution_data', [
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+      'description' => 'JSON: Distribution of responses, e.g., {"yes": 0.42, "no": 0.58}',
+    ]);
+    $messages[] = 'Added distribution_data field.';
+  }
+  
+  // 2. Add most_common_value field
+  if (!$schema_service->fieldExists('individual_metrics_master', 'most_common_value')) {
+    $schema_service->addField('individual_metrics_master', 'most_common_value', [
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => FALSE,
+      'description' => 'The modal (most common) response value',
+    ]);
+    $messages[] = 'Added most_common_value field.';
+  }
+  
+  // 3. Add most_common_percentage field
+  if (!$schema_service->fieldExists('individual_metrics_master', 'most_common_percentage')) {
+    $schema_service->addField('individual_metrics_master', 'most_common_percentage', [
+      'type' => 'numeric',
+      'precision' => 5,
+      'scale' => 2,
+      'not null' => FALSE,
+      'description' => 'Percentage of population with most common value (0-100)',
+    ]);
+    $messages[] = 'Added most_common_percentage field.';
+  }
+  
+  return !empty($messages) ? implode(' ', $messages) : t('Distribution fields already up to date.');
 }
 
 /**

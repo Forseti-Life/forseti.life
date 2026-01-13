@@ -19,6 +19,7 @@ regions:
   navbar_right: Navbar right
   header: Header
   breadcrumb: Breadcrumb
+  tabs: Tabs
   content: Content
   page_bottom: Page bottom
   footer: Footer

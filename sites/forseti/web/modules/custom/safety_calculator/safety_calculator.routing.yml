@@ -39,6 +39,14 @@ safety_calculator.settings:
   requirements:
     _permission: 'administer site configuration'
 
+safety_calculator.population_benchmarks:
+  path: '/safety-calculator/population-benchmarks'
+  defaults:
+    _controller: '\Drupal\safety_calculator\Controller\PopulationBenchmarksController::page'
+    _title: 'Philadelphia Population Benchmarks'
+  requirements:
+    _permission: 'access content'
+
 safety_calculator.calculate:
   path: '/api/safety/calculate'
   defaults:
