@@ -113,38 +113,49 @@ class DrupalAuthService {
     } catch (error) {
       console.error('❌ API login failed:', error.response?.data || error.message);
       console.error('Full error:', JSON.stringify(error, null, 2));
+      console.error('Error code:', error.code);
+      console.error('Error type:', error.constructor.name);
+      console.error('Has response:', !!error.response);
 
-      // If we got a response from the server with an error message, return it
-      if (error.response?.data?.message) {
-        return {
-          success: false,
-          message: error.response.data.message,
-        };
-      }
-
-      // If we got a response but authentication failed
-      if (error.response?.status === 401) {
-        return {
-          success: false,
-          message: 'Invalid username or password',
-        };
-      }
-
-      // If we got another server error
-      if (error.response?.status) {
+      // IMPORTANT: If we got ANY response from server, it means CORS is working and we shouldn't use demo mode
+      if (error.response) {
+        // If server returned error message
+        if (error.response.data?.message) {
+          return {
+            success: false,
+            message: error.response.data.message,
+          };
+        }
+        // If authentication failed
+        if (error.response.status === 401) {
+          return {
+            success: false,
+            message: 'Invalid username or password',
+          };
+        }
+        // Other server errors
         return {
           success: false,
           message: `Server error (${error.response.status}): ${error.response.statusText || 'Login failed'}`,
         };
       }
 
-      // Only use demo mode if it's a network connectivity issue
-      if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('Network Error')) {
-        console.log('🔄 Network error - using demo login mode');
+      // Check for specific network connectivity errors (no response at all)
+      const isRealNetworkError = (
+        error.code === 'ECONNABORTED' || 
+        error.code === 'ENOTFOUND' ||
+        error.code === 'ETIMEDOUT' ||
+        error.message.includes('timeout')
+      );
+
+      // Only use demo mode if we truly can't reach the server at all
+      if (isRealNetworkError) {
+        console.log('🔄 Cannot reach server - using demo login mode');
         return await this.demoLogin(username, password);
       }
 
       // For all other errors, fail properly
+      console.error('Failing login - error:', error.message);
       return {
         success: false,
         message: `Login failed: ${error.message || 'Please check your credentials'}`,
@@ -270,35 +281,47 @@ class DrupalAuthService {
     } catch (error) {
       console.error('❌ Registration failed:', error.response?.data || error.message);
       console.error('Full error:', JSON.stringify(error, null, 2));
+      console.error('Error code:', error.code);
+      console.error('Error type:', error.constructor.name);
+      console.error('Has response:', !!error.response);
 
-      // If we got a response from the server with an error message, return it
-      if (error.response?.data?.message) {
-        return {
-          success: false,
-          message: error.response.data.message,
-        };
-      }
-
-      // If we got a response but it's not in the expected format
-      if (error.response?.status) {
+      // IMPORTANT: If we got ANY response from server, it means CORS is working and we shouldn't use demo mode
+      if (error.response) {
+        // If server returned error data
+        if (error.response.data?.message) {
+          return {
+            success: false,
+            message: error.response.data.message,
+          };
+        }
+        // If server returned error status
         return {
           success: false,
           message: `Server error (${error.response.status}): ${error.response.statusText || 'Unknown error'}`,
         };
       }
 
-      // Only use demo mode if it's a network connectivity issue
-      if (error.code === 'ECONNABORTED' || error.message.includes('timeout') || error.message.includes('Network Error')) {
-        console.log('🔄 Network error - using demo registration mode');
+      // Check for specific network connectivity errors (no response at all)
+      const isRealNetworkError = (
+        error.code === 'ECONNABORTED' || 
+        error.code === 'ENOTFOUND' ||
+        error.code === 'ETIMEDOUT' ||
+        error.message.includes('timeout')
+      );
+
+      // Only use demo mode if we truly can't reach the server at all
+      if (isRealNetworkError) {
+        console.log('🔄 Cannot reach server - using demo registration mode');
         return {
           success: true,
-          message: '⚠️ Server unreachable. Registration saved locally only (demo mode). You can log in, but account not saved to server.',
+          message: '⚠️ Server unreachable. Registration saved locally only (demo mode). Account NOT created in production.',
           demo: true,
           warning: 'Demo mode - user not created in production database',
         };
       }
 
-      // For all other errors, fail properly
+      // For all other errors (including Network Error which might be CORS), fail properly
+      console.error('Failing registration - error:', error.message);
       return {
         success: false,
         message: `Registration failed: ${error.message || 'Unknown error'}. Please try again.`,
