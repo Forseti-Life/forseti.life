@@ -91,7 +91,9 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
    * Navigate to conversation history
    */
   const goToConversations = () => {
-    navigation.navigate('ConversationList');
+    // TEMPORARILY DISABLED - AI Chat functionality
+    // navigation.navigate('ConversationList');
+    Alert.alert('Feature Unavailable', 'AI Chat conversations are temporarily disabled.');
   };
 
   if (loading) {
@@ -166,6 +168,7 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
 
       {/* Menu Options */}
       <View style={styles.menu}>
+        {/* TEMPORARILY DISABLED - AI Chat functionality
         <TouchableOpacity style={styles.menuItem} onPress={goToConversations}>
           <Icon name="chat-processing" size={24} color={Colors.cyan} />
           <View style={styles.menuItemContent}>
@@ -174,6 +177,7 @@ const ProfileScreen: React.FC = ({ navigation }: any) => {
           </View>
           <Icon name="chevron-right" size={24} color={Colors.textSecondary} />
         </TouchableOpacity>
+        */}
 
         <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Settings')}>
           <Icon name="cog" size={24} color={Colors.cyan} />

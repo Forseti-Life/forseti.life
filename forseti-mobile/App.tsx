@@ -348,6 +348,7 @@ const App: React.FC = () => {
           }}
         >
           <Stack.Screen name="MainTabs">{props => <TabNavigator {...props} />}</Stack.Screen>
+          {/* Disabled Chat functionality
           <Stack.Screen
             name="ConversationList"
             component={ConversationListScreen}
@@ -358,6 +359,7 @@ const App: React.FC = () => {
               headerTitle: 'Conversations',
             }}
           />
+          */}
           <Stack.Screen
             name="About"
             component={AboutScreen}
