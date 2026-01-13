@@ -1208,10 +1208,21 @@ class ApiController extends ControllerBase {
       // Log the user in and create a session
       user_login_finalize($user);
       
-      // Get session token
+      // Get session token - need to force session start and get the actual ID
+      $session_manager = \Drupal::service('session_manager');
+      $session_manager->start();
       $session_token = \Drupal::service('session')->getId();
+      
+      // If still empty, generate a session
+      if (empty($session_token)) {
+        $session_manager->regenerate();
+        $session_token = \Drupal::service('session')->getId();
+      }
 
-      \Drupal::logger('amisafe')->info('Mobile user logged in: @name', ['@name' => $data['name']]);
+      \Drupal::logger('amisafe')->info('Mobile user logged in: @name (session: @session)', [
+        '@name' => $data['name'],
+        '@session' => $session_token ? 'created' : 'empty'
+      ]);
 
       $response = new JsonResponse([
         'success' => TRUE,
