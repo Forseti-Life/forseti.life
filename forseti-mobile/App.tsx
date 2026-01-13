@@ -74,7 +74,7 @@ const ForsetiNavigationTheme = {
 };
 
 // Main Tab Navigator with custom header
-const TabNavigator = ({ navigation }: { navigation: any }) => {
+const TabNavigator = ({ navigation, onLogout }: { navigation: any; onLogout: () => void }) => {
   const handleLogout = async () => {
     Alert.alert('Logout', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
@@ -88,11 +88,8 @@ const TabNavigator = ({ navigation }: { navigation: any }) => {
             await StorageService.setItem('userId', '');
             await StorageService.setItem('username', '');
             
-            // Navigate back to login (handled by MainApp component)
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
+            // Call logout callback to update app state
+            onLogout();
           } catch (error) {
             console.error('Logout error:', error);
           }
@@ -291,6 +288,10 @@ const App: React.FC = () => {
     initializeApp();
   };
 
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+  };
+
   // Show splash screen first
   if (showSplash) {
     return <SplashScreen onFinish={handleSplashFinish} />;
@@ -376,7 +377,9 @@ const App: React.FC = () => {
             headerShown: false,
           }}
         >
-          <Stack.Screen name="MainTabs">{props => <TabNavigator {...props} />}</Stack.Screen>
+          <Stack.Screen name="MainTabs">
+            {props => <TabNavigator {...props} onLogout={handleLogout} />}
+          </Stack.Screen>
           {/* Disabled Chat functionality
           <Stack.Screen
             name="ConversationList"
