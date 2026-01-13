@@ -60,6 +60,30 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
 
         console.log('Session stored successfully');
 
+        // Request location permissions after successful login
+        if (Platform.OS === 'android') {
+          try {
+            const PermissionsAndroid = require('react-native').PermissionsAndroid;
+            const granted = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+              {
+                title: 'Forseti Location Permission',
+                message: 'Forseti needs access to your location to show safety information for your area.',
+                buttonNeutral: 'Ask Me Later',
+                buttonNegative: 'Cancel',
+                buttonPositive: 'OK',
+              }
+            );
+            if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+              console.log('✅ Location permission granted');
+            } else {
+              console.log('⚠️ Location permission denied');
+            }
+          } catch (err) {
+            console.warn('❌ Location permission request failed:', err);
+          }
+        }
+
         if (onLoginSuccess) {
           onLoginSuccess();
         } else {
