@@ -40,11 +40,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
       const authService = DrupalAuthService.getInstance();
       const result = await authService.login(username, password);
 
+      console.log('Login result:', result);
+
       if (result.success) {
-        // Store user session
-        await StorageService.setItem('userToken', result.token);
-        await StorageService.setItem('userId', result.user.uid.toString());
-        await StorageService.setItem('username', result.user.name);
+        console.log('Login successful, storing session...');
+        console.log('User data:', result.user);
+        console.log('Token:', result.token);
+        
+        // Store user session - handle both string and number UIDs
+        const userId = result.user?.uid ? String(result.user.uid) : '';
+        const userName = result.user?.name || username;
+        const userToken = result.token || result.sessionToken || '';
+        
+        console.log('Storing - userId:', userId, 'userName:', userName, 'token length:', userToken.length);
+        
+        await StorageService.setItem('userToken', userToken);
+        await StorageService.setItem('userId', userId);
+        await StorageService.setItem('username', userName);
+
+        console.log('Session stored successfully');
 
         if (onLoginSuccess) {
           onLoginSuccess();
@@ -61,11 +75,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
           ]);
         }
       } else {
+        console.error('Login failed:', result.message);
         Alert.alert('Login Failed', result.message || 'Invalid credentials');
       }
     } catch (error) {
-      console.error('Login error:', error);
-      Alert.alert('Error', 'An error occurred during login. Please try again.');
+      console.error('Login error caught:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      Alert.alert('Error', `An error occurred during login: ${error.message || 'Unknown error'}. Please try again.`);
     } finally {
       setLoading(false);
     }
