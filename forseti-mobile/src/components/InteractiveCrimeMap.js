@@ -262,28 +262,33 @@ const InteractiveCrimeMap = ({
   const h3ToPolygonCoords = h3Index => {
     try {
       if (!h3Index) {
+        console.log('❌ No h3Index provided');
         return null;
       }
 
       if (!h3 || typeof h3.cellToBoundary !== 'function') {
-        console.warn('H3 library not available');
+        console.warn('❌ H3 library not available');
         return null;
       }
 
-      // Get H3 boundary coordinates in GeoJSON format [lat, lng]
+      // Get H3 boundary coordinates
+      // When geoJson=true, h3-js returns [longitude, latitude] format
       const boundary = h3.cellToBoundary(h3Index, true);
+      console.log(`✅ H3 ${h3Index.substring(0, 10)}... boundary:`, boundary ? boundary.length + ' points' : 'null');
 
       if (!boundary || !Array.isArray(boundary)) {
         return null;
       }
 
-      // GeoJSON format is [lat, lng], MapView needs {latitude, longitude}
-      return boundary.map(coord => ({
-        latitude: coord[0],
-        longitude: coord[1],
+      // GeoJSON format is [lng, lat], MapView needs {latitude, longitude}
+      const coords = boundary.map(coord => ({
+        latitude: coord[1],
+        longitude: coord[0],
       }));
+      console.log(`✅ Converted to ${coords.length} coordinates, first:`, coords[0]);
+      return coords;
     } catch (error) {
-      console.warn('Failed to convert H3 to polygon:', error.message);
+      console.warn('❌ Failed to convert H3 to polygon:', error.message);
       return null;
     }
   };

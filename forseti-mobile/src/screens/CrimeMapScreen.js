@@ -18,6 +18,7 @@ import {
   StatusBar,
 } from 'react-native';
 import InteractiveCrimeMap from '../components/InteractiveCrimeMap';
+import DebugConsole from '../components/DebugConsole';
 import { h3LocationService } from '../services/H3LocationService';
 import { gpsLocationService } from '../services/GPSLocationService';
 import drupalCrimeService from '../services/DrupalCrimeService';
@@ -313,6 +314,9 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
       />
 
       {/* Map Action Buttons - Removed non-functional buttons */}
+
+      {/* Debug Console */}
+      <DebugConsole />
 
       {/* Filter Modal */}
       {renderFilterModal()}
