@@ -10,11 +10,15 @@ import { cellToBoundary } from 'h3-js';
 import axios from 'axios';
 import LocationService from '../../services/location/LocationService';
 import { Colors } from '../../utils/colors';
+import DebugConsole, { DebugLogger } from '../../components/DebugConsole';
 
 interface HexagonData {
   h3_index: string;
   incident_count: number;
-  latest_date?: string;
+  center?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 const MapScreen: React.FC = () => {
@@ -33,9 +37,11 @@ const MapScreen: React.FC = () => {
 
   const initializeMap = async () => {
     try {
+      DebugLogger.info('🗺️ Initializing map...');
       // Try to get current location
       const location = await LocationService.getCurrentLocation();
       if (location) {
+        DebugLogger.info(`📍 Got location: ${location.latitude}, ${location.longitude}`);
         setRegion({
           latitude: location.latitude,
           longitude: location.longitude,
@@ -44,6 +50,7 @@ const MapScreen: React.FC = () => {
         });
       }
     } catch (error) {
+      DebugLogger.warn('⚠️ Using default Philadelphia location');
       console.log('Using default Philadelphia location');
     }
 
@@ -53,23 +60,37 @@ const MapScreen: React.FC = () => {
   const loadHexagonData = async () => {
     try {
       setLoading(true);
+      DebugLogger.info('📡 Fetching hexagon data from API...');
+      
       const response = await axios.get('https://forseti.life/api/amisafe/aggregated', {
         params: {
-          resolution: 9, // Good balance of detail and performance
-          limit: 1000,
+          resolution: 9,
+          limit: 500,
         },
         timeout: 15000,
       });
 
+      DebugLogger.info(`✅ API Response received`);
+      
       if (response.data && response.data.hexagons) {
-        setHexagons(response.data.hexagons);
-        console.log(`Loaded ${response.data.hexagons.length} hexagons`);
+        const hexData = response.data.hexagons;
+        DebugLogger.info(`✅ Loaded ${hexData.length} hexagons`);
+        DebugLogger.info(`📊 Sample hex: ${hexData[0]?.h3_index}, count: ${hexData[0]?.incident_count}`);
+        setHexagons(hexData);
+      } else {
+        DebugLogger.error('❌ No hexagons in API response');
+        DebugLogger.error(`Response structure: ${JSON.stringify(Object.keys(response.data || {}))}`);
       }
-    } catch (error) {
+    } catch (error: any) {
+      DebugLogger.error(`❌ API Error: ${error.message}`);
+      if (error.response) {
+        DebugLogger.error(`Response status: ${error.response.status}`);
+      }
       console.error('Error loading hexagon data:', error);
       Alert.alert('Error', 'Failed to load map data. Please try again later.');
     } finally {
       setLoading(false);
+      DebugLogger.info('✅ Map loading complete');
     }
   };
 
@@ -82,16 +103,32 @@ const MapScreen: React.FC = () => {
   };
 
   const renderHexagons = () => {
-    return hexagons.map((hex) => {
+    DebugLogger.info(`🎨 Rendering ${hexagons.length} hexagons`);
+    let successCount = 0;
+    let errorCount = 0;
+
+    const polygons = hexagons.map((hex, index) => {
       try {
         // Convert H3 index to boundary coordinates
         const boundary = cellToBoundary(hex.h3_index, true); // true = GeoJSON format [lat, lng]
+        
+        if (!boundary || boundary.length === 0) {
+          DebugLogger.error(`❌ Empty boundary for hex: ${hex.h3_index}`);
+          errorCount++;
+          return null;
+        }
+
         const coordinates = boundary.map(([lat, lng]) => ({
           latitude: lat,
           longitude: lng,
         }));
 
         const color = getHexagonColor(hex.incident_count);
+        successCount++;
+
+        if (index === 0) {
+          DebugLogger.info(`✅ First hex rendered: ${hex.h3_index}, coords: ${coordinates.length}, color: ${color}`);
+        }
 
         return (
           <Polygon
@@ -102,11 +139,18 @@ const MapScreen: React.FC = () => {
             strokeWidth={1}
           />
         );
-      } catch (error) {
+      } catch (error: any) {
+        errorCount++;
+        if (errorCount <= 3) {
+          DebugLogger.error(`❌ Error rendering hex ${hex.h3_index}: ${error.message}`);
+        }
         console.error('Error rendering hexagon:', hex.h3_index, error);
         return null;
       }
     });
+
+    DebugLogger.info(`✅ Rendered ${successCount} hexagons, ${errorCount} errors`);
+    return polygons;
   };
 
   return (
@@ -149,6 +193,8 @@ const MapScreen: React.FC = () => {
           <Text style={styles.legendText}>Very High (30+)</Text>
         </View>
       </View>
+
+      <DebugConsole />
     </View>
   );
 };
