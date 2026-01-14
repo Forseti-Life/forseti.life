@@ -147,17 +147,31 @@ const SettingsScreen = ({ navigation }: any) => {
           </View>
           <Switch
             value={isMonitoring}
-            onValueChange={async () => {
+            onValueChange={() => {
+              // Wrap in immediate try-catch to catch synchronous errors
               try {
-                DebugLogger.info('🎛️ [Settings] Switch toggled');
-                await toggleMonitoring();
-              } catch (error) {
-                DebugLogger.error('❌ [Settings] Switch toggle failed:', error);
-                DebugLogger.error('Toggle error type:', typeof error);
-                DebugLogger.error('Toggle error message:', error instanceof Error ? error.message : String(error));
+                DebugLogger.info('🎛️ [Settings] Switch clicked - calling toggleMonitoring');
+                console.log('🎛️ [Settings] Switch onValueChange fired');
+                
+                // Call toggle but don't await - let it run async with its own error handling
+                toggleMonitoring().catch((error) => {
+                  console.error('❌ [Settings] toggleMonitoring promise rejected:', error);
+                  DebugLogger.error('❌ [Settings] toggleMonitoring promise rejected:', error);
+                  DebugLogger.error('Rejected error type:', typeof error);
+                  DebugLogger.error('Rejected error message:', error instanceof Error ? error.message : String(error));
+                  DebugLogger.error('Rejected error stack:', error instanceof Error ? error.stack : 'No stack');
+                });
+                
+                DebugLogger.info('✅ [Settings] toggleMonitoring called (running async)');
+              } catch (syncError) {
+                console.error('❌ [Settings] SYNCHRONOUS error in onValueChange:', syncError);
+                DebugLogger.error('❌ [Settings] SYNCHRONOUS error in Switch handler:', syncError);
+                DebugLogger.error('Sync error type:', typeof syncError);
+                DebugLogger.error('Sync error message:', syncError instanceof Error ? syncError.message : String(syncError));
+                DebugLogger.error('Sync error stack:', syncError instanceof Error ? syncError.stack : 'No stack');
                 Alert.alert(
-                  'Toggle Failed',
-                  `Could not toggle monitoring.\n\nError: ${error instanceof Error ? error.message : String(error)}`,
+                  'Switch Error',
+                  `Synchronous error in toggle.\n\nError: ${syncError instanceof Error ? syncError.message : String(syncError)}`,
                   [{ text: 'OK' }]
                 );
               }

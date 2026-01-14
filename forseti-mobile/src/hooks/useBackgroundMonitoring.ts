@@ -9,6 +9,7 @@ import { Alert, Platform } from 'react-native';
 import BackgroundLocationService from '../services/location/BackgroundLocationService';
 import StorageService from '../services/storage/StorageService';
 import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import { DebugLogger } from '../components/DebugConsole';
 
 export const useBackgroundMonitoring = () => {
   const [isMonitoring, setIsMonitoring] = useState(false);
@@ -83,9 +84,6 @@ export const useBackgroundMonitoring = () => {
   const startMonitoring = async () => {
     try {
       console.log('🚀 [useBackgroundMonitoring] Starting background monitoring...');
-      
-      // Import DebugLogger
-      const { DebugLogger } = await import('../components/DebugConsole');
       DebugLogger.info('🚀 startMonitoring called');
       
       // Check/request permissions first
@@ -131,7 +129,6 @@ export const useBackgroundMonitoring = () => {
       
       // Log comprehensive error details
       try {
-        const { DebugLogger } = await import('../components/DebugConsole');
         DebugLogger.error('❌ CRITICAL: startMonitoring failed');
         DebugLogger.error('Error object:', error);
         DebugLogger.error('Error type:', typeof error);
@@ -180,13 +177,11 @@ export const useBackgroundMonitoring = () => {
    * Toggle monitoring on/off
    */
   const toggleMonitoring = async () => {
+    // Log immediately (synchronously) before any async operations
+    console.log(`🔄 [useBackgroundMonitoring] Toggle monitoring (current: ${isMonitoring})`);
+    DebugLogger.info(`🔄 Toggle monitoring called (current: ${isMonitoring})`);
+    
     try {
-      console.log(`🔄 [useBackgroundMonitoring] Toggle monitoring (current: ${isMonitoring})`);
-      
-      // Import DebugLogger dynamically to avoid circular deps
-      const { DebugLogger } = await import('../components/DebugConsole');
-      DebugLogger.info(`🔄 Toggle monitoring called (current: ${isMonitoring})`);
-      
       if (isMonitoring) {
         DebugLogger.info('🛑 Stopping monitoring...');
         await stopMonitoring();
@@ -202,7 +197,6 @@ export const useBackgroundMonitoring = () => {
       
       // Log to DebugConsole
       try {
-        const { DebugLogger } = await import('../components/DebugConsole');
         DebugLogger.error('❌ Toggle monitoring failed:', error);
         DebugLogger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack');
         DebugLogger.error('Error type:', typeof error);
