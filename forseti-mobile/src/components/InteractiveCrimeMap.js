@@ -1,5 +1,5 @@
 /**
- * Interactive Crime Map Component for Forseti Mobile
+ * Interactive Safety Map Component for Forseti Mobile
  *
  * React Native implementation based on the web crime-map.js functionality
  * Features: H3 hexagon visualization, zoom-based resolution switching, crime incidents

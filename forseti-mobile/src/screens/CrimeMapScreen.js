@@ -1,7 +1,7 @@
 /**
- * Crime Map Screen for Forseti Mobile App
+ * Safety Map Screen for Forseti Mobile App
  *
- * Full-screen crime map interface with controls and filtering
+ * Full-screen safety map interface with controls and filtering
  */
 
 import React, { useState, useEffect } from 'react';
@@ -71,7 +71,7 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
    * Apply current filters
    */
   const applyFilters = () => {
-    console.log('🔄 Applying crime map filters:', filters);
+    console.log('🔄 Applying safety map filters:', filters);
     setShowFilters(false);
     // Filters will be automatically applied via the filters prop
   };
@@ -152,7 +152,7 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
     <Modal visible={showFilters} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Crime Map Filters</Text>
+          <Text style={styles.modalTitle}>Safety Map Filters</Text>
           <TouchableOpacity style={styles.closeButton} onPress={() => setShowFilters(false)}>
             <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
@@ -301,11 +301,11 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
             <Text style={styles.backButtonText}>← Back</Text>
           </TouchableOpacity>
         )}
-        <Text style={[styles.headerTitle, !onBack && styles.headerTitleCentered]}>Crime Map</Text>
+        <Text style={[styles.headerTitle, !onBack && styles.headerTitleCentered]}>Safety Map</Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      {/* Interactive Crime Map */}
+      {/* Interactive Safety Map */}
       <InteractiveCrimeMap
         initialLocation={currentLocation}
         onLocationChange={handleLocationChange}

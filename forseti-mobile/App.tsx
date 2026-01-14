@@ -171,15 +171,7 @@ const TabNavigator = ({ navigation, onLogout }: { navigation: any; onLogout: () 
           headerShown: false, // Hide default header, we use custom header
         })}
       >
-        {/* Home is first in navigation but hidden from tab bar */}
-        <Tab.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{
-            tabBarButton: () => null, // Hide from tab bar
-            tabBarStyle: { display: 'none' },
-          }}
-        />
+        <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
         <Tab.Screen name="Map" component={CrimeMapScreen} options={{ title: 'Map' }} />
         {/* TEMPORARILY DISABLED - AI Chat functionality */}
         {/* <Tab.Screen name="Chat" component={ChatScreen} options={{ title: 'AI' }} /> */}
