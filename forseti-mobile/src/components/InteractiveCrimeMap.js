@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, Polygon, Circle, Marker } from 'react-native-maps';
 import Svg, { Polygon as SvgPolygon } from 'react-native-svg';
-import { h3 } from 'h3-js';
+import * as h3 from 'h3-js';
 import FilterPanel from './FilterPanel';
 import { DebugLogger } from './DebugConsole';
 
