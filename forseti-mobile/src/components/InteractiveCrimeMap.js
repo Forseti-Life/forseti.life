@@ -270,17 +270,17 @@ const InteractiveCrimeMap = ({
         return null;
       }
 
-      // Get H3 boundary coordinates
+      // Get H3 boundary coordinates in GeoJSON format [lat, lng]
       const boundary = h3.cellToBoundary(h3Index, true);
 
       if (!boundary || !Array.isArray(boundary)) {
         return null;
       }
 
-      // Convert from H3 [lng, lat] to React Native MapView format
+      // GeoJSON format is [lat, lng], MapView needs {latitude, longitude}
       return boundary.map(coord => ({
-        latitude: coord[1],
-        longitude: coord[0],
+        latitude: coord[0],
+        longitude: coord[1],
       }));
     } catch (error) {
       console.warn('Failed to convert H3 to polygon:', error.message);
@@ -734,9 +734,6 @@ const InteractiveCrimeMap = ({
       <View style={styles.mapControls}>
         <Text style={styles.zoomIndicator}>
           Zoom: {currentZoom} | H3: {getOptimalResolution(currentZoom)}
-        </Text>
-        <Text style={styles.resolutionDescription}>
-          {getResolutionDescription(getOptimalResolution(currentZoom))}
         </Text>
         <Text style={styles.hexagonCount}>
           {hexagons.length} hexagons | {getActiveSectorCount()} active

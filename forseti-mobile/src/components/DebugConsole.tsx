@@ -73,7 +73,7 @@ const DebugConsole: React.FC = () => {
         style={styles.toggleButton}
         onPress={() => setIsVisible(true)}
       >
-        <Icon name="console" size={24} color={Colors.primary} />
+        <Icon name="bug" size={24} color={Colors.primary} />
       </TouchableOpacity>
     );
   }

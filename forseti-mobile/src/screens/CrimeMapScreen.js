@@ -312,16 +312,7 @@ const CrimeMapScreen = ({ onBack, initialLocation }) => {
         drupalCrimeService={drupalCrimeService}
       />
 
-      {/* Map Action Buttons */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => setShowFilters(true)}>
-          <Text style={styles.actionButtonText}>🔧 Filters</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionButton} onPress={() => setShowStats(true)}>
-          <Text style={styles.actionButtonText}>📊 Stats</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Map Action Buttons - Removed non-functional buttons */}
 
       {/* Filter Modal */}
       {renderFilterModal()}
