@@ -21,6 +21,7 @@ import MapView, { PROVIDER_GOOGLE, Polygon, Circle, Marker } from 'react-native-
 import Svg, { Polygon as SvgPolygon } from 'react-native-svg';
 import { h3 } from 'h3-js';
 import FilterPanel from './FilterPanel';
+import { DebugLogger } from './DebugConsole';
 
 const { width, height } = Dimensions.get('window');
 
@@ -262,19 +263,19 @@ const InteractiveCrimeMap = ({
   const h3ToPolygonCoords = h3Index => {
     try {
       if (!h3Index) {
-        console.log('❌ No h3Index provided');
+        DebugLogger.error('❌ No h3Index provided');
         return null;
       }
 
       if (!h3 || typeof h3.cellToBoundary !== 'function') {
-        console.warn('❌ H3 library not available');
+        DebugLogger.error('❌ H3 library not available');
         return null;
       }
 
       // Get H3 boundary coordinates
       // When geoJson=true, h3-js returns [longitude, latitude] format
       const boundary = h3.cellToBoundary(h3Index, true);
-      console.log(`✅ H3 ${h3Index.substring(0, 10)}... boundary:`, boundary ? boundary.length + ' points' : 'null');
+      DebugLogger.info(`✅ H3 ${h3Index.substring(0, 10)}... boundary: ${boundary ? boundary.length + ' points' : 'null'}`);
 
       if (!boundary || !Array.isArray(boundary)) {
         return null;
@@ -285,10 +286,10 @@ const InteractiveCrimeMap = ({
         latitude: coord[1],
         longitude: coord[0],
       }));
-      console.log(`✅ Converted to ${coords.length} coordinates, first:`, coords[0]);
+      DebugLogger.info(`✅ Converted to ${coords.length} coordinates, first: lat=${coords[0].latitude.toFixed(4)}, lng=${coords[0].longitude.toFixed(4)}`);
       return coords;
     } catch (error) {
-      console.warn('❌ Failed to convert H3 to polygon:', error.message);
+      DebugLogger.error(`❌ Failed to convert H3 to polygon: ${error.message}`);
       return null;
     }
   };
@@ -693,12 +694,20 @@ const InteractiveCrimeMap = ({
         showsScale={true}
       >
         {/* Render H3 Hexagons */}
+        {hexagons.length > 0 && DebugLogger.info(`🎨 Rendering ${hexagons.length} hexagons on map...`)}
         {hexagons.map((hexagon, index) => {
           const coords = h3ToPolygonCoords(hexagon.h3_index);
-          if (!coords) return null;
+          if (!coords) {
+            if (index === 0) DebugLogger.error(`❌ Failed to get coords for first hexagon: ${hexagon.h3_index}`);
+            return null;
+          }
 
           // Pass full hexagon object for z-score styling
           const style = calculateHexagonStyle(hexagon);
+
+          if (index === 0) {
+            DebugLogger.info(`🎨 First polygon: ${coords.length} coords, fill: ${style.fillColor}, stroke: ${style.strokeColor}`);
+          }
 
           return (
             <Polygon
