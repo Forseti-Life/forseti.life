@@ -7,7 +7,7 @@
 
 import Geolocation from 'react-native-geolocation-service';
 import { Platform, AppState, AppStateStatus, NativeModules } from 'react-native';
-import { h3 } from 'h3-js';
+import * as h3 from 'h3-js';
 // import NotificationService from '../notifications/NotificationService'; // Temporarily disabled
 import StorageService from '../storage/StorageService';
 import axios from 'axios';
@@ -396,10 +396,22 @@ class BackgroundLocationService {
    * Restore monitoring state on app restart
    */
   public async restoreMonitoringState(): Promise<void> {
-    const wasEnabled = await StorageService.getItem('background_monitoring_enabled');
-    if (wasEnabled === true) {
-      console.log('📱 Restoring background monitoring from previous session');
-      await this.startMonitoring();
+    try {
+      console.log('🔄 [BackgroundLocationService] Checking monitoring state...');
+      const wasEnabled = await StorageService.getItem('background_monitoring_enabled');
+      console.log(`📊 [BackgroundLocationService] Previous state: ${wasEnabled}`);
+      
+      // Temporarily disable auto-restore to prevent crashes
+      // User must manually enable monitoring in Settings
+      if (wasEnabled === true) {
+        console.log('ℹ️ [BackgroundLocationService] Monitoring was enabled but auto-restore is disabled');
+        console.log('ℹ️ [BackgroundLocationService] User must manually enable in Settings');
+        // Don't auto-start to prevent crashes
+        // await this.startMonitoring();
+      }
+    } catch (error) {
+      console.error('❌ [BackgroundLocationService] Error in restoreMonitoringState:', error);
+      // Don't throw - just log and continue
     }
   }
 }

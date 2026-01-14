@@ -55,7 +55,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
   };
 
   const handleSkip = async () => {
-    await StorageService.saveData('onboarding_completed', true);
+    await StorageService.setItem('onboarding_completed', true);
     onComplete();
   };
 
@@ -63,12 +63,12 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
     setIsEnabling(true);
     try {
       await startMonitoring();
-      await StorageService.saveData('onboarding_completed', true);
+      await StorageService.setItem('onboarding_completed', true);
       onComplete();
     } catch (error) {
       console.error('Failed to enable monitoring during onboarding:', error);
       // Still complete onboarding even if monitoring fails
-      await StorageService.saveData('onboarding_completed', true);
+      await StorageService.setItem('onboarding_completed', true);
       onComplete();
     } finally {
       setIsEnabling(false);

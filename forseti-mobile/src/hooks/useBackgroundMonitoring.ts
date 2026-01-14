@@ -54,7 +54,7 @@ export const useBackgroundMonitoring = () => {
           );
           return false;
         }
-      } else if (Platform.Version >= 29) {
+      } else if (Platform.OS === 'android' && Number(Platform.Version) >= 29) {
         // Android 10+ requires separate background permission
         const backgroundPermission = PERMISSIONS.ANDROID.ACCESS_BACKGROUND_LOCATION;
         result = await request(backgroundPermission);
@@ -169,9 +169,9 @@ export const useBackgroundMonitoring = () => {
       try {
         console.log('🔄 [useBackgroundMonitoring] Restoring monitoring state...');
         
-        // Restore monitoring if it was enabled before
+        // Restore monitoring if it was enabled before (currently disabled in service)
         await BackgroundLocationService.restoreMonitoringState();
-        console.log('✅ [useBackgroundMonitoring] Monitoring state restored');
+        console.log('✅ [useBackgroundMonitoring] Monitoring state check complete');
 
         // Update UI state
         const active = BackgroundLocationService.isActive();
@@ -180,8 +180,12 @@ export const useBackgroundMonitoring = () => {
 
         // Update current H3 index periodically
         const interval = setInterval(() => {
-          const h3Index = BackgroundLocationService.getCurrentH3Index();
-          setCurrentH3Index(h3Index);
+          try {
+            const h3Index = BackgroundLocationService.getCurrentH3Index();
+            setCurrentH3Index(h3Index);
+          } catch (error) {
+            // Ignore errors in interval
+          }
         }, 5000);
 
         return () => clearInterval(interval);
@@ -194,7 +198,12 @@ export const useBackgroundMonitoring = () => {
       }
     };
 
-    restoreState();
+    // Run restore in a way that won't crash the app
+    restoreState().catch(error => {
+      console.error('❌ [useBackgroundMonitoring] Fatal error in restoreState:', error);
+      setIsMonitoring(false);
+      setCurrentH3Index(null);
+    });
   }, []);
 
   return {
