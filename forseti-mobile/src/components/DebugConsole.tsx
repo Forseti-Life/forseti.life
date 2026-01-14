@@ -3,13 +3,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ErrorUtils } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../utils/colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface LogEntry {
   id: number;
-  timestamp: Date;
+  timestamp: string; // Changed to string for JSON serialization
   level: 'info' | 'warn' | 'error';
   message: string;
 }
@@ -18,27 +19,55 @@ let logId = 0;
 const logs: LogEntry[] = [];
 let listeners: ((logs: LogEntry[]) => void)[] = [];
 
+// Load logs from storage on startup
+AsyncStorage.getItem('debug_logs').then(stored => {
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      logs.push(...parsed);
+      logId = logs.length > 0 ? Math.max(...logs.map(l => l.id)) + 1 : 0;
+      listeners.forEach(listener => listener([...logs]));
+    } catch (e) {
+      console.error('Failed to load debug logs:', e);
+    }
+  }
+}).catch(() => {});
+
+// Persist logs immediately to storage
+const persistLogs = () => {
+  AsyncStorage.setItem('debug_logs', JSON.stringify(logs.slice(-100))).catch(e => 
+    console.error('Failed to persist logs:', e)
+  );
+};
+
 export const DebugLogger = {
   info: (message: string) => {
-    const entry: LogEntry = { id: logId++, timestamp: new Date(), level: 'info', message };
+    const entry: LogEntry = { id: logId++, timestamp: new Date().toISOString(), level: 'info', message };
     logs.push(entry);
     if (logs.length > 100) logs.shift();
     listeners.forEach(listener => listener([...logs]));
     console.log('[DEBUG]', message);
+    persistLogs(); // Persist immediately
   },
   warn: (message: string) => {
-    const entry: LogEntry = { id: logId++, timestamp: new Date(), level: 'warn', message };
+    const entry: LogEntry = { id: logId++, timestamp: new Date().toISOString(), level: 'warn', message };
     logs.push(entry);
     if (logs.length > 100) logs.shift();
     listeners.forEach(listener => listener([...logs]));
     console.warn('[DEBUG]', message);
+    persistLogs(); // Persist immediately
   },
-  error: (message: string) => {
-    const entry: LogEntry = { id: logId++, timestamp: new Date(), level: 'error', message };
+  error: (message: string, error?: any) => {
+    let fullMessage = message;
+    if (error) {
+      fullMessage += ` ${typeof error === 'object' ? JSON.stringify(error) : String(error)}`;
+    }
+    const entry: LogEntry = { id: logId++, timestamp: new Date().toISOString(), level: 'error', message: fullMessage };
     logs.push(entry);
     if (logs.length > 100) logs.shift();
     listeners.forEach(listener => listener([...logs]));
-    console.error('[DEBUG]', message);
+    console.error('[DEBUG]', fullMessage);
+    persistLogs(); // Persist immediately
   },
   subscribe: (listener: (logs: LogEntry[]) => void) => {
     listeners.push(listener);
@@ -47,7 +76,27 @@ export const DebugLogger = {
       listeners = listeners.filter(l => l !== listener);
     };
   },
+  clear: () => {
+    logs.length = 0;
+    logId = 0;
+    listeners.forEach(listener => listener([...logs]));
+    AsyncStorage.removeItem('debug_logs').catch(() => {});
+  },
 };
+
+// Global error handler
+const originalHandler = ErrorUtils.getGlobalHandler();
+ErrorUtils.setGlobalHandler((error, isFatal) => {
+  DebugLogger.error('❌ GLOBAL ERROR (FATAL=' + isFatal + '):', error);
+  DebugLogger.error('Error name: ' + (error?.name || 'Unknown'));
+  DebugLogger.error('Error message: ' + (error?.message || String(error)));
+  DebugLogger.error('Error stack: ' + (error?.stack || 'No stack'));
+  
+  // Call original handler
+  if (originalHandler) {
+    originalHandler(error, isFatal);
+  }
+});
 
 const DebugConsole: React.FC = () => {
   const [isVisible, setIsVisible] = useState(true); // Start visible by default
@@ -82,15 +131,20 @@ const DebugConsole: React.FC = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Debug Console ({entries.length})</Text>
-        <TouchableOpacity onPress={() => setIsVisible(false)}>
-          <Icon name="close" size={24} color={Colors.text} />
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity onPress={() => DebugLogger.clear()} style={{ marginRight: 12 }}>
+            <Icon name="delete" size={20} color={Colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setIsVisible(false)}>
+            <Icon name="close" size={24} color={Colors.text} />
+          </TouchableOpacity>
+        </View>
       </View>
       <ScrollView style={styles.logContainer}>
         {entries.map((entry) => (
           <View key={entry.id} style={styles.logEntry}>
             <Text style={[styles.timestamp, { color: getColor(entry.level) }]}>
-              {entry.timestamp.toLocaleTimeString()}
+              {new Date(entry.timestamp).toLocaleTimeString()}
             </Text>
             <Text style={[styles.level, { color: getColor(entry.level) }]}>
               [{entry.level.toUpperCase()}]
@@ -121,6 +175,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 12,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   level: {
     fontSize: 10,

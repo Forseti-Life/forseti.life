@@ -23,7 +23,58 @@ import DebugConsole, { DebugLogger } from '../../components/DebugConsole';
 
 const { Colors, Spacing, Typography, Shadows } = Theme;
 
-const SettingsScreen = ({ navigation }: any) => {
+// Error Boundary Component
+class SettingsErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: any }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    DebugLogger.error('🚨 ERROR BOUNDARY CAUGHT ERROR');
+    DebugLogger.error('Error type: ' + typeof error);
+    DebugLogger.error('Error message: ' + (error?.message || String(error)));
+    DebugLogger.error('Error stack: ' + (error?.stack || 'No stack'));
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    DebugLogger.error('🚨 componentDidCatch called');
+    DebugLogger.error('Error: ' + JSON.stringify(error));
+    DebugLogger.error('ErrorInfo: ' + JSON.stringify(errorInfo));
+    console.error('Settings screen error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Icon name="alert-circle" size={48} color={Colors.danger} />
+          <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 16, color: Colors.text }}>
+            Settings Error
+          </Text>
+          <Text style={{ marginTop: 8, textAlign: 'center', color: Colors.text }}>
+            {this.state.error?.message || 'An error occurred'}
+          </Text>
+          <TouchableOpacity
+            style={{ marginTop: 20, backgroundColor: Colors.primary, padding: 12, borderRadius: 8 }}
+            onPress={() => this.setState({ hasError: false, error: null })}
+          >
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>Try Again</Text>
+          </TouchableOpacity>
+          <DebugConsole />
+        </View>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+const SettingsScreenContent = ({ navigation }: any) => {
   DebugLogger.info('⚙️ Settings screen mounted');
   
   // Safe hook usage with fallback
@@ -468,5 +519,27 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
 });
+
+// Catch-all error wrapper
+const SettingsScreen = (props: any) => {
+  try {
+    DebugLogger.info('🔧 SettingsScreen wrapper called');
+    return (
+      <SettingsErrorBoundary>
+        <SettingsScreenContent {...props} />
+      </SettingsErrorBoundary>
+    );
+  } catch (error) {
+    DebugLogger.error('🚨 CRITICAL: SettingsScreen wrapper crashed', error);
+    DebugLogger.error('Wrapper error type: ' + typeof error);
+    DebugLogger.error('Wrapper error: ' + (error instanceof Error ? error.message : String(error)));
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Critical Error - Check Debug Console</Text>
+        <DebugConsole />
+      </View>
+    );
+  }
+};
 
 export default SettingsScreen;
