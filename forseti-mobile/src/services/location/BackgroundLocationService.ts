@@ -72,35 +72,53 @@ class BackgroundLocationService {
    * Start background location monitoring
    */
   public async startMonitoring(): Promise<void> {
+    console.log('🚀 [BackgroundLocationService] startMonitoring called');
+    
     if (this.isMonitoring) {
-      console.log('⚠️ Background monitoring already active');
+      console.log('⚠️ [BackgroundLocationService] Background monitoring already active');
       return;
     }
 
     try {
       // Load user settings from storage
+      console.log('⚙️ [BackgroundLocationService] Loading user settings...');
       await this.loadUserSettings();
+      console.log('✅ [BackgroundLocationService] User settings loaded');
 
       // Start Android foreground service if available
-      if (Platform.OS === 'android' && LocationServiceModule) {
-        try {
-          await LocationServiceModule.startLocationService();
-          console.log('✅ Android foreground service started');
-        } catch (error) {
-          console.error('Failed to start Android foreground service:', error);
-          throw new Error('Failed to start location service. Please try again.');
+      if (Platform.OS === 'android') {
+        console.log('🤖 [BackgroundLocationService] Android detected, starting foreground service...');
+        
+        if (!LocationServiceModule) {
+          console.error('❌ [BackgroundLocationService] LocationServiceModule is null/undefined!');
+          throw new Error('LocationServiceModule not available. The native module may not be properly registered.');
         }
+        
+        try {
+          console.log('📞 [BackgroundLocationService] Calling LocationServiceModule.startLocationService()...');
+          await LocationServiceModule.startLocationService();
+          console.log('✅ [BackgroundLocationService] Android foreground service started successfully');
+        } catch (error) {
+          console.error('❌ [BackgroundLocationService] Failed to start Android foreground service:', error);
+          console.error('Stack:', error instanceof Error ? error.stack : 'No stack');
+          throw new Error(`Failed to start location service: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      } else {
+        console.log('🍎 [BackgroundLocationService] iOS detected, skipping foreground service');
       }
 
       // Initialize notification service
       // await NotificationService.initialize(); // Temporarily disabled
 
       // Save monitoring state
+      console.log('💾 [BackgroundLocationService] Saving monitoring state...');
       await StorageService.setItem('background_monitoring_enabled', true);
+      console.log('✅ [BackgroundLocationService] Monitoring state saved');
 
       this.isMonitoring = true;
 
       // Start watching location
+      console.log('📍 [BackgroundLocationService] Starting location watch...');
       this.watchId = Geolocation.watchPosition(
         position => this.handleLocationUpdate(position.coords),
         error => this.handleLocationError(error),
@@ -117,7 +135,8 @@ class BackgroundLocationService {
         }
       );
 
-      console.log('✅ Background location monitoring started');
+      console.log('✅ [BackgroundLocationService] Background location monitoring started successfully');
+
       console.log(
         `📍 Monitoring H3 Resolution ${this.H3_RESOLUTION} with z-score threshold >= ${this.zScoreThreshold}`
       );

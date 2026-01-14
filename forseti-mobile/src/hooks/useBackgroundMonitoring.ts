@@ -82,14 +82,22 @@ export const useBackgroundMonitoring = () => {
    */
   const startMonitoring = async () => {
     try {
+      console.log('🚀 [useBackgroundMonitoring] Starting background monitoring...');
+      
       // Check/request permissions first
+      console.log('🔐 [useBackgroundMonitoring] Requesting permissions...');
       const hasPermissions = await requestLocationPermissions();
       if (!hasPermissions) {
+        console.log('⚠️ [useBackgroundMonitoring] Permissions denied');
         return;
       }
+      console.log('✅ [useBackgroundMonitoring] Permissions granted');
 
       // Start the background service
+      console.log('⚙️ [useBackgroundMonitoring] Starting BackgroundLocationService...');
       await BackgroundLocationService.startMonitoring();
+      console.log('✅ [useBackgroundMonitoring] BackgroundLocationService started');
+      
       setIsMonitoring(true);
 
       Alert.alert(
@@ -98,10 +106,12 @@ export const useBackgroundMonitoring = () => {
         [{ text: 'OK' }]
       );
     } catch (error) {
-      console.error('Error starting monitoring:', error);
-      Alert.alert('Error', 'Failed to start background monitoring. Please try again.', [
+      console.error('❌ [useBackgroundMonitoring] Error starting monitoring:', error);
+      console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace');
+      Alert.alert('Error', `Failed to start background monitoring. ${error instanceof Error ? error.message : 'Please try again.'}`, [
         { text: 'OK' },
       ]);
+      setIsMonitoring(false);
     }
   };
 
@@ -110,14 +120,18 @@ export const useBackgroundMonitoring = () => {
    */
   const stopMonitoring = async () => {
     try {
+      console.log('🛑 [useBackgroundMonitoring] Stopping background monitoring...');
       await BackgroundLocationService.stopMonitoring();
+      console.log('✅ [useBackgroundMonitoring] Background monitoring stopped');
       setIsMonitoring(false);
 
       Alert.alert('Protection Disabled', 'Background monitoring has been stopped.', [
         { text: 'OK' },
       ]);
     } catch (error) {
-      console.error('Error stopping monitoring:', error);
+      console.error('❌ [useBackgroundMonitoring] Error stopping monitoring:', error);
+      console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace');
+      setIsMonitoring(false);
     }
   };
 
@@ -126,13 +140,15 @@ export const useBackgroundMonitoring = () => {
    */
   const toggleMonitoring = async () => {
     try {
+      console.log(`🔄 [useBackgroundMonitoring] Toggle monitoring (current: ${isMonitoring})`);
       if (isMonitoring) {
         await stopMonitoring();
       } else {
         await startMonitoring();
       }
     } catch (error) {
-      console.error('Error toggling monitoring:', error);
+      console.error('❌ [useBackgroundMonitoring] Error toggling monitoring:', error);
+      console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace');
       Alert.alert(
         'Error',
         `Failed to ${isMonitoring ? 'stop' : 'start'} background monitoring. ${error instanceof Error ? error.message : 'Please try again.'}`,
@@ -140,6 +156,7 @@ export const useBackgroundMonitoring = () => {
       );
       // Restore state if toggle failed
       const active = BackgroundLocationService.isActive();
+      console.log(`📊 [useBackgroundMonitoring] Restoring state to: ${active}`);
       setIsMonitoring(active);
     }
   };
@@ -150,11 +167,15 @@ export const useBackgroundMonitoring = () => {
   useEffect(() => {
     const restoreState = async () => {
       try {
+        console.log('🔄 [useBackgroundMonitoring] Restoring monitoring state...');
+        
         // Restore monitoring if it was enabled before
         await BackgroundLocationService.restoreMonitoringState();
+        console.log('✅ [useBackgroundMonitoring] Monitoring state restored');
 
         // Update UI state
         const active = BackgroundLocationService.isActive();
+        console.log(`📊 [useBackgroundMonitoring] Monitoring active: ${active}`);
         setIsMonitoring(active);
 
         // Update current H3 index periodically
@@ -165,7 +186,11 @@ export const useBackgroundMonitoring = () => {
 
         return () => clearInterval(interval);
       } catch (error) {
-        console.error('Error restoring monitoring state:', error);
+        console.error('❌ [useBackgroundMonitoring] Error restoring monitoring state:', error);
+        console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace');
+        // Don't crash - just set to inactive state
+        setIsMonitoring(false);
+        setCurrentH3Index(null);
       }
     };
 

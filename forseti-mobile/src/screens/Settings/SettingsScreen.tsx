@@ -19,27 +19,52 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useBackgroundMonitoring } from '../../hooks/useBackgroundMonitoring';
 import StorageService from '../../services/storage/StorageService';
 import { Theme } from '../../utils/theme';
+import { DebugConsole, DebugLogger } from '../../components/DebugConsole';
 
 const { Colors, Spacing, Typography, Shadows } = Theme;
 
 const SettingsScreen = ({ navigation }: any) => {
-  const { isMonitoring, currentH3Index, toggleMonitoring } = useBackgroundMonitoring();
+  DebugLogger.info('⚙️ Settings screen mounted');
+  
+  // Safe hook usage with fallback
+  let hookData;
+  try {
+    hookData = useBackgroundMonitoring();
+    DebugLogger.info('✅ useBackgroundMonitoring hook loaded successfully');
+  } catch (error) {
+    DebugLogger.error('❌ useBackgroundMonitoring hook failed:', error);
+    hookData = {
+      isMonitoring: false,
+      currentH3Index: null,
+      toggleMonitoring: async () => {
+        DebugLogger.error('Toggle called but hook is broken');
+        Alert.alert('Error', 'Background monitoring is unavailable. Please restart the app.');
+      },
+    };
+  }
+  
+  const { isMonitoring, currentH3Index, toggleMonitoring } = hookData;
 
   const [zScoreThreshold, setZScoreThreshold] = useState(2.0);
   const [notificationCooldown, setNotificationCooldown] = useState(5);
 
   useEffect(() => {
+    DebugLogger.info('📥 Loading settings...');
     loadSettings();
   }, []);
 
   const loadSettings = async () => {
     try {
+      DebugLogger.info('🔍 Fetching settings from storage...');
       const threshold = await StorageService.getItem('z_score_threshold');
       const cooldown = await StorageService.getItem('notification_cooldown');
 
+      DebugLogger.info(`📊 Loaded threshold: ${threshold}, cooldown: ${cooldown}`);
       if (threshold !== null) setZScoreThreshold(threshold);
       if (cooldown !== null) setNotificationCooldown(cooldown);
+      DebugLogger.info('✅ Settings loaded successfully');
     } catch (error) {
+      DebugLogger.error('❌ Error loading settings:', error);
       console.error('Error loading settings:', error);
     }
   };
@@ -266,6 +291,9 @@ const SettingsScreen = ({ navigation }: any) => {
           All location data is stored locally on your device and is never shared with third parties.
         </Text>
       </View>
+      
+      {/* Debug Console */}
+      <DebugConsole />
     </ScrollView>
   );
 };
