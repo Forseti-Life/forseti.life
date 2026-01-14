@@ -160,83 +160,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         <Text style={styles.subtitleText}>AI-Powered Safety Monitoring for Philadelphia</Text>
       </View>
 
-      {/* Current Location Card */}
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Icon name="map-marker" size={24} color={Colors.primary} />
-          <Text style={styles.cardTitle}>Current Location</Text>
-        </View>
-        <View style={styles.cardContent}>
-          {currentLocation ? (
-            <>
-              <Text style={styles.locationText}>
-                {currentLocation.latitude.toFixed(4)}, {currentLocation.longitude.toFixed(4)}
-              </Text>
-              <Text style={styles.accuracyText}>
-                Accuracy: {currentLocation.accuracy?.toFixed(0)}m
-              </Text>
-            </>
-          ) : (
-            <Text style={styles.errorText}>Unable to get location</Text>
-          )}
-        </View>
-      </View>
-
-      {/* Safety Score Card */}
-      {safetyScore && (
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Icon name="shield-check" size={24} color={getSafetyColor(safetyScore.level)} />
-            <Text style={styles.cardTitle}>Safety Score</Text>
-          </View>
-          <View style={styles.cardContent}>
-            <View style={styles.safetyScoreContainer}>
-              <Text
-                style={[styles.safetyScoreNumber, { color: getSafetyColor(safetyScore.level) }]}
-              >
-                {safetyScore.score}
-              </Text>
-              <View style={styles.safetyScoreDetails}>
-                <Text style={[styles.safetyLevel, { color: getSafetyColor(safetyScore.level) }]}>
-                  {safetyScore.level}
-                </Text>
-                <Text style={styles.safetyDescription}>{safetyScore.description}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
-
-      {/* Quick Stats Card */}
-      {quickStats && (
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Icon name="chart-line" size={24} color={Colors.primary} />
-            <Text style={styles.cardTitle}>Area Statistics</Text>
-          </View>
-          <View style={styles.cardContent}>
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{quickStats.totalIncidents.toLocaleString()}</Text>
-                <Text style={styles.statLabel}>Total Incidents</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{quickStats.recentIncidents}</Text>
-                <Text style={styles.statLabel}>Last 30 Days</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Icon
-                  name={getTrendIcon(quickStats.safetyTrend)}
-                  size={24}
-                  color={getTrendColor(quickStats.safetyTrend)}
-                />
-                <Text style={styles.statLabel}>Trend</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
-
       {/* Quick Actions */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
@@ -269,7 +192,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => navigation?.navigate('Community')}
+              onPress={() => Linking.openURL('https://forseti.life')}
             >
               <Image
                 source={require('../../../assets/images/forseti_whole.png')}
@@ -280,7 +203,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => Alert.alert('Report Incident', 'Incident reporting will be available in a future update.')}
+              onPress={() => Linking.openURL('https://forseti.life/talk-with-forseti')}
             >
               <Image
                 source={require('../../../assets/images/forseti_capable.png')}
