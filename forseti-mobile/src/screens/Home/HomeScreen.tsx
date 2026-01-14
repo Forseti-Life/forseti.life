@@ -181,14 +181,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => navigation?.navigate('Safety')}
+              onPress={() => navigation?.navigate('Settings')}
             >
               <Image
                 source={require('../../../assets/images/forseti_safe.png')}
                 style={styles.actionIcon}
                 resizeMode="contain"
               />
-              <Text style={styles.actionText}>Safety Tips</Text>
+              <Text style={styles.actionText}>Settings</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}

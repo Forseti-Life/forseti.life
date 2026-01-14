@@ -46,5 +46,18 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
       </activity>
+      
+      <!-- Background Location Tracking Service -->
+      <service
+        android:name=".LocationTrackingService"
+        android:enabled="true"
+        android:exported="false"
+        android:foregroundServiceType="location" />
+      
+      <!-- Headless JS Task Service -->
+      <service
+        android:name=".LocationHeadlessTaskService"
+        android:enabled="true"
+        android:exported="false" />
     </application>
 </manifest>
