@@ -19,7 +19,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useBackgroundMonitoring } from '../../hooks/useBackgroundMonitoring';
 import StorageService from '../../services/storage/StorageService';
 import { Theme } from '../../utils/theme';
-import { DebugConsole, DebugLogger } from '../../components/DebugConsole';
+import DebugConsole, { DebugLogger } from '../../components/DebugConsole';
 
 const { Colors, Spacing, Typography, Shadows } = Theme;
 
