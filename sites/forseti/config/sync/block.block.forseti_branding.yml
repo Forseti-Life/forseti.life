@@ -1,4 +1,4 @@
-uuid: 5f8a7d2c-4b3e-4f1a-9e8c-2d5a6f8b3c1e
+uuid: 29a2b9c5-d949-45eb-ad75-9f55a0316c8a
 langcode: en
 status: true
 dependencies:
@@ -6,10 +6,12 @@ dependencies:
     - system
   theme:
     - forseti
+_core:
+  default_config_hash: ZDOkb7vnnJePSKWwgU2vtHTF9-4W2VPirPhOsT6KmbA
 id: forseti_branding
 theme: forseti
 region: navbar_branding
-weight: -10
+weight: -1
 provider: null
 plugin: system_branding_block
 settings:

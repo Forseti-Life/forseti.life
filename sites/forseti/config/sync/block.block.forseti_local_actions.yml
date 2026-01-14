@@ -1,0 +1,20 @@
+uuid: 1dbdd2c0-c22c-40c5-a87c-087febc12723
+langcode: en
+status: true
+dependencies:
+  theme:
+    - forseti
+_core:
+  default_config_hash: aIuwTMJmU-r-7TtKdq49PMH6PH2Eu0mMFppCqg4FL1w
+id: forseti_local_actions
+theme: forseti
+region: header
+weight: -4
+provider: null
+plugin: local_actions_block
+settings:
+  id: local_actions_block
+  label: 'Primary admin actions'
+  label_display: '0'
+  provider: core
+visibility: {  }

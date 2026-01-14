@@ -1,7 +1,0 @@
-id: weekly_backup
-label: 'Weekly Full Site Backup'
-enabled: true
-keep: 20
-period: 604800
-source_id: entire_site
-destination_id: weekly_local_backup

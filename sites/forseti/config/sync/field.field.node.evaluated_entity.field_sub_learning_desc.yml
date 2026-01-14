@@ -1,0 +1,22 @@
+uuid: 00e0836b-5f7a-4450-bf95-d791fdf3f784
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_sub_learning_desc
+    - node.type.evaluated_entity
+  module:
+    - text
+id: node.evaluated_entity.field_sub_learning_desc
+field_name: field_sub_learning_desc
+entity_type: node
+bundle: evaluated_entity
+label: 'Learning Description'
+description: 'AI-provided description for Learning sub-dimension'
+required: false
+translatable: true
+default_value: null
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

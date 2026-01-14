@@ -48,6 +48,16 @@ function safety_calculator_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'population-benchmarks',
     ],
+    'data_sources' => [
+      'variables' => [
+        'grouped_data' => [],
+        'dimension_names' => [],
+        'unique_references' => [],
+        'total_metrics' => 0,
+        'metrics_by_dimension' => [],
+      ],
+      'template' => 'data-sources',
+    ],
   ];
 }
 

@@ -1,12 +1,13 @@
-uuid: aada372b-f5b9-4e6b-9924-c0f905cc4a76
+uuid: 87a9a9a5-70e8-4a53-bc1a-9dfc2c0b01a5
 langcode: en
 status: true
 dependencies:
   config:
     - filter.format.basic_html
     - node.type.ai_conversation
+    - node.type.evaluated_entity
   module:
-    - ai_conversation
+    - agent_evaluation
     - comment
     - contact
     - file
@@ -27,9 +28,12 @@ permissions:
   - 'access shortcuts'
   - 'access site-wide contact form'
   - 'create ai_conversation content'
+  - 'create evaluated_entity content'
   - 'delete own ai_conversation content'
+  - 'delete own evaluated_entity content'
   - 'delete own files'
   - 'edit own ai_conversation content'
+  - 'edit own evaluated_entity content'
   - 'post comments'
   - 'search content'
   - 'skip comment approval'

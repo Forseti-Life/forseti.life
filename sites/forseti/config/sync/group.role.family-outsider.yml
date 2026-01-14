@@ -1,0 +1,15 @@
+uuid: 90ddefb0-6bd7-4d7a-aaf4-90b1f89c6e54
+langcode: en
+status: true
+dependencies:
+  config:
+    - group.type.family
+    - user.role.authenticated
+id: family-outsider
+label: Outsider
+weight: -101
+admin: false
+scope: outsider
+global_role: authenticated
+group_type: family
+permissions: {  }

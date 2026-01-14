@@ -1,0 +1,19 @@
+uuid: 1cd7c15f-f250-4470-98ce-b145b27e8c9b
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - text
+id: node.field_sub_budget_auth_desc
+field_name: field_sub_budget_auth_desc
+entity_type: node
+type: text_long
+settings: {  }
+module: text
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

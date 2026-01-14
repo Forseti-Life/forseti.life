@@ -82,55 +82,6 @@ class QuestionnaireController extends ControllerBase {
       ];
     }
 
-    // How It Works
-    $build['how_it_works'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['container', 'my-5', 'py-5', 'bg-light', 'rounded']],
-      'title' => [
-        '#markup' => '<h2 class="text-center mb-4">' . $this->t('How It Works') . '</h2>',
-      ],
-      'steps' => [
-        '#markup' => '
-          <div class="row text-center g-4">
-            <div class="col-md-3">
-              <div class="display-4 text-primary mb-3">1</div>
-              <h5>' . $this->t('Answer Questions') . '</h5>
-              <p class="text-muted">' . $this->t('Answer questions about each dimension at your own pace') . '</p>
-            </div>
-            <div class="col-md-3">
-              <div class="display-4 text-primary mb-3">2</div>
-              <h5>' . $this->t('Rate Your Experience') . '</h5>
-              <p class="text-muted">' . $this->t('Rate factors from 0-100 based on your perception') . '</p>
-            </div>
-            <div class="col-md-3">
-              <div class="display-4 text-primary mb-3">3</div>
-              <h5>' . $this->t('Review & Submit') . '</h5>
-              <p class="text-muted">' . $this->t('Review your assessment and submit for comprehensive analysis') . '</p>
-            </div>
-            <div class="col-md-3">
-              <div class="display-4 text-primary mb-3">4</div>
-              <h5>' . $this->t('Get Your Score') . '</h5>
-              <p class="text-muted">' . $this->t('Receive a comprehensive safety score and insights') . '</p>
-            </div>
-          </div>',
-      ],
-    ];
-
-    // CTA
-    $build['cta'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['container', 'text-center', 'my-5', 'py-5']],
-      'content' => [
-        '#markup' => '
-          <h2 class="mb-4">' . $this->t('Ready to Begin?') . '</h2>
-          <p class="lead mb-4">' . $this->t('Total: 210 questions across 7 dimensions • Approximately 45-60 minutes') . '</p>
-          <a href="' . Url::fromRoute('safety_calculator.questionnaire_step', ['step' => 'safe'])->toString() . '" class="btn btn-primary btn-lg">' . $this->t('Start Assessment') . '</a>
-          <div class="mt-3">
-            <small class="text-muted">' . $this->t('Philadelphia baseline data is pre-loaded for reference') . '</small>
-          </div>',
-      ],
-    ];
-
     return $build;
   }
 

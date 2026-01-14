@@ -110,6 +110,52 @@ Named after the Norse god of justice and peaceful resolution, Forseti represents
 --status-danger: #f44336;      /* Danger/alert status */
 ```
 
+#### Maslow Hierarchy Dimension Colors
+The 7 safety dimensions based on Maslow's Hierarchy of Needs, each with a distinct color as shown in their icons:
+
+```css
+/* Dimension Icon Colors - Canonical brand colors from icon files */
+--dimension-safe: #3fe5e1;        /* SAFE - Cyan/Turquoise rgb(63, 229, 225) */
+--dimension-energized: #ffa500;   /* ENERGIZED - Orange rgb(255, 165, 0) */
+--dimension-connected: #28a745;   /* CONNECTED - Green rgb(40, 167, 69) */
+--dimension-free: #17a2b8;        /* FREE - Cyan/Teal rgb(23, 162, 184) */
+--dimension-capable: #6f42c1;     /* CAPABLE - Purple rgb(111, 66, 193) */
+--dimension-useful: #e83e8c;      /* USEFUL - Pink/Magenta rgb(232, 62, 140) */
+--dimension-whole: #ffc107;       /* WHOLE - Yellow/Gold rgb(255, 193, 7) */
+```
+
+**Dimension Icon Files** (407×462px PNG, RGBA):
+```
+/themes/custom/forseti/images/logos/originals/
+├── forseti_safe.png        # SAFE dimension icon - Cyan/Turquoise
+├── forseti_energized.png   # ENERGIZED dimension icon - Orange
+├── forseti_connected.png   # CONNECTED dimension icon - Green
+├── forseti_free.png        # FREE dimension icon - Cyan/Teal
+├── forseti_capable.png     # CAPABLE dimension icon - Purple
+├── forseti_useful.png      # USEFUL dimension icon - Pink/Magenta
+├── forseti_whole.png       # WHOLE dimension icon - Yellow/Gold
+└── forseti_demographic.png # DEMOGRAPHIC dimension icon - Main site logo
+```
+
+**Usage**: These colors and icons appear in:
+- `/safety-factors` page dimension icons
+- Population benchmarks pyramid chart (`/population-benchmarks`)
+- Individual assessment visualizations
+- Dimension score badges and indicators
+- Questionnaire progress screens
+
+**Icon Implementation**:
+- Service: `SafetyDimensionsService.php` provides icon paths
+- Template: `forseti-page-safety-factors.html.twig` displays icons
+- Controllers: `QuestionnaireController.php`, `PopulationBenchmarksController.php`
+
+**Color Analysis**: 
+- Colors extracted from actual icon files using PIL image analysis
+- Each icon has a dominant color (29,355 pixels) with cyan accents (~1,389 pixels)
+- The cyan accent color (#3fe5e1) appears in all icons as a secondary element
+
+**Visualization Colors**: Note that the pyramid chart visualization may use different colors optimized for data visualization contrast and hierarchical representation. The colors listed above are the canonical brand colors from the actual icon files.
+
 ### Typography
 
 #### Font Stack

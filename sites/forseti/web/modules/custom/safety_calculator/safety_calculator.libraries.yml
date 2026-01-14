@@ -50,10 +50,21 @@ population-benchmarks:
     theme:
       css/population-benchmarks.css: {}
   js:
-    js/population-benchmarks.js: {}
     https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js: { type: external, minified: true }
     https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js: { type: external, minified: true }
+    https://cdn.jsdelivr.net/npm/chartjs-chart-funnel@4.2.5/build/index.umd.min.js: { type: external, minified: true }
+    js/population-benchmarks.js: {}
   dependencies:
     - core/drupal
     - core/jquery
     - core/once
+
+data-sources:
+  version: 1.0
+  css:
+    theme:
+      css/data-sources.css: {}
+  dependencies:
+    - core/drupal
+    - forseti/style
+

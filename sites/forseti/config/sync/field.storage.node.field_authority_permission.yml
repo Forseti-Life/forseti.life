@@ -1,0 +1,20 @@
+uuid: 0901a852-e3ea-4f7a-89f1-5219c764d311
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_authority_permission
+field_name: field_authority_permission
+entity_type: node
+type: integer
+settings:
+  unsigned: false
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

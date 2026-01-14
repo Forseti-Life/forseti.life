@@ -1,4 +1,4 @@
-uuid: 87900225-c54b-49cd-90a0-26bfa2a5d63b
+uuid: d86793d8-319b-4c18-ba39-987ca528edc5
 langcode: en
 status: true
 dependencies: {  }
@@ -8,4 +8,4 @@ description: 'A conversation with an AI model'
 help: null
 new_revision: true
 preview_mode: 1
-display_submitted: false
+display_submitted: true

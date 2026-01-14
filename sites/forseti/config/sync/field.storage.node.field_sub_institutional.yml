@@ -1,0 +1,20 @@
+uuid: 02b5457a-1a7a-4f81-a4b6-dcb098b6b91f
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_sub_institutional
+field_name: field_sub_institutional
+entity_type: node
+type: integer
+settings:
+  unsigned: false
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

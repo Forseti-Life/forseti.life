@@ -1,13 +1,11 @@
 _core:
   default_config_hash: ijfbzDTN4CbE7Sr-6ubWzy_t1vH4OtU1doNCLssVz-4
 langcode: en
-uuid: 1784132f-76e6-4c93-b737-8167a73bcdf2
-name: 'St. Louis Integration'
+uuid: 67545b7f-6e41-4f00-8f82-73b094c34779
+name: Forseti
 mail: admin@example.com
 slogan: ''
 page:
-  403: ''
-  404: ''
   front: /home
 admin_compact_mode: false
 weight_select_max: 100

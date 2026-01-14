@@ -9,7 +9,7 @@ safety_calculator.landing:
 safety_calculator.questionnaire:
   path: '/safety-calculator/assessment'
   defaults:
-    _controller: '\Drupal\safety_calculator\Controller\QuestionnaireController::landing'
+    _controller: '\Drupal\safety_calculator\Controller\PopulationBenchmarksController::page'
     _title: 'Personal Safety Assessment'
   requirements:
     _permission: 'access content'
@@ -43,7 +43,7 @@ safety_calculator.population_benchmarks:
   path: '/safety-calculator/population-benchmarks'
   defaults:
     _controller: '\Drupal\safety_calculator\Controller\PopulationBenchmarksController::page'
-    _title: 'Philadelphia Population Benchmarks'
+    _title: 'Personal Safety Assessment'
   requirements:
     _permission: 'access content'
 
@@ -75,3 +75,11 @@ safety_calculator.individual_metrics_edit:
     _custom_access: '\Drupal\safety_calculator\Controller\IndividualMetricsProfileController::access'
     user: \d+
     dimension: 'SAFE|ENERGIZED|CONNECTED|FREE|CAPABLE|USEFUL|WHOLE|DEMOGRAPHIC'
+
+safety_calculator.data_sources:
+  path: '/safety-calculator/data-sources'
+  defaults:
+    _controller: '\Drupal\safety_calculator\Controller\DataSourcesController::page'
+    _title: 'Data Sources & Research References'
+  requirements:
+    _permission: 'access content'

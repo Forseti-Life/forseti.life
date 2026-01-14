@@ -1,0 +1,19 @@
+uuid: 62ebcc77-af01-49b5-ba45-2c5cff8c1961
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - text
+id: node.field_sub_coalition_desc
+field_name: field_sub_coalition_desc
+entity_type: node
+type: text_long
+settings: {  }
+module: text
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

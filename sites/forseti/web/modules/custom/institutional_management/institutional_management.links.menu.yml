@@ -1,0 +1,7 @@
+# Menu links for user account menu.
+
+institutional_management.my_groups:
+  title: 'My Groups'
+  route_name: institutional_management.my_groups
+  menu_name: account
+  weight: 5

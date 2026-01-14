@@ -2,258 +2,115 @@ _core:
   default_config_hash: 6CZIzFifRq3qbdq3n3nDpEOO4hWIQtKOAQNPvGNGKeM
 langcode: en
 cancel_confirm:
-  subject: 'Account Cancellation Request - [site:name]'
+  subject: 'Account cancellation request for [user:display-name] at [site:name]'
   body: |-
-    Hello [user:display-name],
+    [user:display-name]
 
-    We've received a request to cancel your Forseti account. We're sorry to see you go.
+    A request to cancel your account has been made at [site:name].
 
-    To confirm this cancellation, click the link below:
+    You may now cancel your account on [site:url-brief] by clicking this link or copying and pasting it into your browser:
 
     [user:cancel-url]
 
-    ⚠️ IMPORTANT: This action is permanent and cannot be undone. All your data, preferences, and safety alerts will be removed.
+    NOTE: The cancellation of your account is not reversible.
 
-    This link expires in 24 hours. If you didn't request this, simply ignore this email and your account will remain active.
+    This link expires in one day and nothing will happen if it is not used.
 
-    Stay safe,
-    The Forseti Team
-    
-    ---
-    Forseti.life - AI Looking Out For Us
-    Building safer communities through intelligent monitoring
+    --  [site:name] team
 password_reset:
-  subject: 'Password Reset Request - [site:name]'
+  subject: 'Replacement login information for [user:display-name] at [site:name]'
   body: |-
-    Hello [user:display-name],
+    [user:display-name],
 
-    We received a request to reset your password for your Forseti account.
+    A request to reset the password for your account has been made at [site:name].
 
-    Click the secure link below to set a new password:
+    You may now log in by clicking this link or copying and pasting it into your browser:
 
     [user:one-time-login-url]
 
-    🔒 Security Notice:
-    - This link works only once
-    - It expires in 24 hours
-    - You'll be prompted to create a new password
+    This link can only be used once to log in and will lead you to a page where you can set your password. It expires after one day and nothing will happen if it's not used.
 
-    If you didn't request this reset, please ignore this email. Your current password will remain unchanged.
-
-    Stay vigilant,
-    The Forseti Team
-
-    ---
-    Forseti.life - AI Looking Out For Us
-    Questions? Visit forseti.life/privacy-security
+    --  [site:name] team
 register_admin_created:
-  subject: 'Welcome to Forseti - Your Account is Ready'
+  subject: 'An administrator created an account for you at [site:name]'
   body: |-
-    Hello [user:display-name],
+    [user:display-name],
 
-    Welcome to Forseti! A community safety administrator has created an account for you.
-
-    🔑 Complete your account setup:
+    A site administrator at [site:name] has created an account for you. You may now log in by clicking this link or copying and pasting it into your browser:
 
     [user:one-time-login-url]
 
-    Click the link above to set your password and access your safety dashboard.
+    This link can only be used once to log in and will lead you to a page where you can set your password.
 
-    📱 What you can do with Forseti:
-    • View real-time crime maps for Philadelphia
-    • Get AI-powered safety scores for any location
-    • Receive alerts about incidents in your area
-    • Access the AmISafe mobile app
-    • Chat with Forseti AI for safety insights
+    After setting your password, you will be able to log in at [site:login-url] in the future using:
 
-    Your Login Credentials:
-    Username: [user:name]
-    Password: Set via the link above
+    username: [user:name]
+    password: Your password
 
-    After setting your password, log in anytime at:
-    [site:login-url]
-
-    Stay safe,
-    The Forseti Team
-
-    ---
-    Forseti.life - AI Looking Out For Us
-    Vigilance • Transparency • Justice • Community
+    --  [site:name] team
 register_no_approval_required:
-  subject: 'Welcome to Forseti - Let''s Get Started'
+  subject: 'Account details for [user:display-name] at [site:name]'
   body: |-
-    Hello [user:display-name],
+    [user:display-name],
 
-    Welcome to Forseti! We're excited to have you join our community safety network.
-
-    🚀 Activate your account now:
+    Thank you for registering at [site:name]. You may now log in by clicking this link or copying and pasting it into your browser:
 
     [user:one-time-login-url]
 
-    Click the link above to set your password and start exploring.
+    This link can only be used once to log in and will lead you to a page where you can set your password.
 
-    🛡️ Your Safety Tools Await:
-    • Live Crime Mapping - Real-time incident tracking across Philadelphia
-    • AI Safety Scores - Get instant risk assessments for any location
-    • H3 Geospatial Analysis - Precise neighborhood-level data
-    • Mobile App Access - AmISafe for iOS & Android
-    • Intelligent Alerts - Stay informed about your area
-    • Chat with Forseti - AI-powered safety assistant
+    After setting your password, you will be able to log in at [site:login-url] in the future using:
 
-    Your Account Details:
-    Username: [user:name]
-    Set your password via the secure link above
+    username: [user:name]
+    password: Your password
 
-    Future logins: [site:login-url]
-
-    💡 New to Forseti?
-    • Visit forseti.life/how-it-works to learn about our technology
-    • Check out forseti.life/safety-map to explore Philadelphia crime data
-    • Read our commitment to privacy at forseti.life/privacy-security
-
-    Together, we're building safer communities through intelligent monitoring and transparency.
-
-    Stay vigilant,
-    The Forseti Team
-
-    ---
-    Forseti.life - AI Looking Out For Us
-    Named after the Norse god of justice and peaceful resolution
+    --  [site:name] team
 register_pending_approval:
-  subject: 'Forseti Account Pending - Review in Progress'
+  subject: 'Account details for [user:display-name] at [site:name] (pending admin approval)'
   body: |-
-    Hello [user:display-name],
+    [user:display-name],
 
-    Thank you for registering with Forseti! Your application has been received.
+    Thank you for registering at [site:name]. Your application for an account is currently pending approval. Once it has been approved, you will receive another email containing information about how to log in, set your password, and other details.
 
-    ⏳ Your account is currently under review by our safety team. This helps us maintain a secure and trusted community.
-
-    What happens next:
-    • Our team will review your registration
-    • You'll receive an email once approved (usually within 24 hours)
-    • That email will contain your login credentials and next steps
-
-    While you wait:
-    • Explore forseti.life/safety-map (no login required)
-    • Learn about our AI technology at forseti.life/how-it-works
-    • Review our mission at forseti.life/about
-
-    Questions? Contact us at forseti.life/contact
-
-    Stay safe,
-    The Forseti Team
-
-    ---
-    Forseti.life - AI Looking Out For Us
-    Building safer communities through vigilance and transparency
+    --  [site:name] team
 register_pending_approval_admin:
-  subject: '[ACTION REQUIRED] New User Registration - [user:display-name]'
+  subject: 'Account details for [user:display-name] at [site:name] (pending admin approval)'
   body: |-
-    🔔 New Forseti Account Registration
+    [user:display-name] has applied for an account.
 
-    User Details:
-    Name: [user:display-name]
-    Username: [user:name]
-    Registration Time: [site:current-date]
-
-    Review and approve this account:
     [user:edit-url]
-
-    As a Forseti administrator, please review this registration to ensure our community maintains the highest standards of safety and trust.
-
-    ---
-    Forseti Admin Team
-    [site:name]
 status_activated:
-  subject: '✓ Your Forseti Account is Active'
+  subject: 'Account details for [user:display-name] at [site:name] (approved)'
   body: |-
-    Hello [user:display-name],
+    [user:display-name],
 
-    Great news! Your Forseti account has been approved and activated.
+    Your account at [site:name] has been activated.
 
-    🎉 You're now part of our community safety network!
-
-    🔑 Set your password and log in:
+    You may now log in by clicking this link or copying and pasting it into your browser:
 
     [user:one-time-login-url]
 
-    Click the secure link above to complete your setup.
+    This link can only be used once to log in and will lead you to a page where you can set your password.
 
-    🛡️ What's Available Now:
-    • Real-time crime mapping for Philadelphia
-    • AI-powered safety assessments
-    • Location-based alerts and notifications
-    • Mobile app access (AmISafe)
-    • Direct chat with Forseti AI
-    • Personalized safety dashboard
+    After setting your password, you will be able to log in at [site:login-url] in the future using:
 
-    Your Login Information:
-    Username: [user:account-name]
-    Password: Set via the link above
+    username: [user:account-name]
+    password: Your password
 
-    Future logins: [site:login-url]
-
-    📱 Download the AmISafe mobile app:
-    • Available for iOS and Android
-    • Get safety scores on the go
-    • Real-time alerts wherever you are
-
-    Welcome to safer, smarter community protection.
-
-    Stay vigilant,
-    The Forseti Team
-
-    ---
-    Forseti.life - AI Looking Out For Us
-    Vigilance • Transparency • Justice • Community
+    --  [site:name] team
 status_blocked:
-  subject: 'Forseti Account Status Update'
+  subject: 'Account details for [user:display-name] at [site:name] (blocked)'
   body: |-
-    Hello [user:display-name],
+    [user:display-name],
 
-    We're writing to inform you that your Forseti account has been temporarily blocked.
+    Your account on [site:name] has been blocked.
 
-    🔒 Account Status: Blocked
-
-    This action was taken to protect the integrity and security of our community safety platform.
-
-    If you believe this is an error or would like to discuss your account status, please contact our support team:
-    • Visit: forseti.life/contact
-    • Email: support@forseti.life
-
-    We take community safety seriously and are committed to fair resolution of all account matters.
-
-    The Forseti Team
-
-    ---
-    Forseti.life - AI Looking Out For Us
-    Committed to justice and transparency
+    --  [site:name] team
 status_canceled:
-  subject: 'Your Forseti Account Has Been Canceled'
+  subject: 'Account details for [user:display-name] at [site:name] (canceled)'
   body: |-
-    Hello [user:display-name],
+    [user:display-name],
 
-    Your Forseti account has been successfully canceled.
+    Your account on [site:name] has been canceled.
 
-    ✓ Account Status: Canceled
-    ✓ All personal data has been removed
-    ✓ You will no longer receive alerts or notifications
-
-    We're sorry to see you go. Your commitment to community safety matters to us.
-
-    📝 What's Been Removed:
-    • Login credentials
-    • Saved locations and preferences
-    • Alert subscriptions
-    • Conversation history
-
-    If you change your mind, you can always create a new account at:
-    forseti.life/user/register
-
-    Thank you for being part of our community. Stay safe out there.
-
-    The Forseti Team
-
-    ---
-    Forseti.life - AI Looking Out For Us
-    Building safer communities through intelligent monitoring
+    --  [site:name] team

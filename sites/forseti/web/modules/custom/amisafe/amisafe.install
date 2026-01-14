@@ -1,0 +1,100 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the AmISafe module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function amisafe_schema() {
+  $schema = [];
+
+  // User location tracking table for mobile app
+  $schema['user_location_tracking'] = [
+    'description' => 'Stores user location data from mobile app',
+    'fields' => [
+      'id' => [
+        'description' => 'Primary Key: Unique location tracking ID',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'description' => 'User ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'latitude' => [
+        'description' => 'Latitude coordinate',
+        'type' => 'float',
+        'size' => 'big',
+        'not null' => TRUE,
+      ],
+      'longitude' => [
+        'description' => 'Longitude coordinate',
+        'type' => 'float',
+        'size' => 'big',
+        'not null' => TRUE,
+      ],
+      'h3_index' => [
+        'description' => 'H3 hexagon index for spatial indexing',
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+      ],
+      'accuracy' => [
+        'description' => 'GPS accuracy in meters',
+        'type' => 'float',
+        'not null' => FALSE,
+      ],
+      'altitude' => [
+        'description' => 'Altitude in meters',
+        'type' => 'float',
+        'not null' => FALSE,
+      ],
+      'heading' => [
+        'description' => 'Heading/bearing in degrees',
+        'type' => 'float',
+        'not null' => FALSE,
+      ],
+      'speed' => [
+        'description' => 'Speed in meters per second',
+        'type' => 'float',
+        'not null' => FALSE,
+      ],
+      'timestamp' => [
+        'description' => 'Unix timestamp of location capture',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'created' => [
+        'description' => 'Unix timestamp when record was created',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'device_info' => [
+        'description' => 'Device information (JSON)',
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid' => ['uid'],
+      'timestamp' => ['timestamp'],
+      'h3_index' => ['h3_index'],
+      'uid_timestamp' => ['uid', 'timestamp'],
+      'created' => ['created'],
+    ],
+  ];
+
+  return $schema;
+}

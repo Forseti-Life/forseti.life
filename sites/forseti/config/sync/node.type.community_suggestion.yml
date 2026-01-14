@@ -1,0 +1,11 @@
+uuid: 79566001-c361-4d42-bbdc-0f71817c486c
+langcode: en
+status: true
+dependencies: {  }
+name: 'Community Suggestion'
+type: community_suggestion
+description: 'A suggestion submitted by a community member through Forseti AI'
+help: null
+new_revision: true
+preview_mode: 1
+display_submitted: true

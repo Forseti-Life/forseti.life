@@ -1,0 +1,22 @@
+uuid: 6c9c4a6d-59be-4b69-a854-7ed833ff5e75
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_sub_human_desc
+    - node.type.evaluated_entity
+  module:
+    - text
+id: node.evaluated_entity.field_sub_human_desc
+field_name: field_sub_human_desc
+entity_type: node
+bundle: evaluated_entity
+label: 'Human Resources Description'
+description: 'AI-provided description for Human Resources sub-dimension'
+required: false
+translatable: true
+default_value: null
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

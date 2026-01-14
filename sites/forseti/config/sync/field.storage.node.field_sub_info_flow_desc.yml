@@ -1,0 +1,19 @@
+uuid: 1c7fac75-b59f-4c2b-8339-856c4c8c11da
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - text
+id: node.field_sub_info_flow_desc
+field_name: field_sub_info_flow_desc
+entity_type: node
+type: text_long
+settings: {  }
+module: text
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

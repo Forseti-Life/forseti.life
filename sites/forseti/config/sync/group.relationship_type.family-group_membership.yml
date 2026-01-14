@@ -1,0 +1,15 @@
+uuid: 69954f45-da02-4615-9d97-f0eb04e97bae
+langcode: en
+status: true
+dependencies:
+  config:
+    - group.type.family
+  module:
+    - user
+id: family-group_membership
+group_type: family
+content_plugin: group_membership
+plugin_config:
+  group_cardinality: 0
+  entity_cardinality: 1
+  use_creation_wizard: false

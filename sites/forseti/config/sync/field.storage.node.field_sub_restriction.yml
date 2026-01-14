@@ -1,0 +1,20 @@
+uuid: 86cadea8-7073-4a8b-8487-5c800232c21a
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_sub_restriction
+field_name: field_sub_restriction
+entity_type: node
+type: integer
+settings:
+  unsigned: false
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

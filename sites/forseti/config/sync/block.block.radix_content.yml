@@ -1,4 +1,4 @@
-uuid: 012d06ee-b348-4941-bbef-e566d20c161d
+uuid: 9ed469d2-a5d8-4d32-a942-97cf9ccc8144
 langcode: en
 status: true
 dependencies:
@@ -7,11 +7,11 @@ dependencies:
   theme:
     - radix
 _core:
-  default_config_hash: erQSEZF2XUjNmgTl0uNRBzmg18ZGXwUcw2FhApoeuHk
+  default_config_hash: QzYjHu1Jk7_zQnmCuGpPrwyv1QnMFR_mxxogWSDjgU4
 id: radix_content
 theme: radix
 region: content
-weight: 0
+weight: -5
 provider: null
 plugin: system_main_block
 settings:

@@ -101,6 +101,24 @@ class PopulationBenchmarksController extends ControllerBase {
     // Calculate dimension-level averages (Philadelphia scores)
     $dimensionScores = $this->calculateDimensionScores($orderedMetricsData);
     
+    // Prepare metrics data for JavaScript recalculation
+    $metricsForJS = [];
+    foreach ($orderedMetricsData as $dimension_key => $dimension) {
+      foreach ($dimension['categories'] as $category) {
+        foreach ($category['metrics'] as $metric) {
+          if (in_array($metric['data_type'], ['numeric', 'scale']) && isset($metric['normalized_mean'])) {
+            $metricsForJS[] = [
+              'dimension' => $dimension_key,
+              'metric_name' => $metric['metric_name'],
+              'normalized_mean' => $metric['normalized_mean'],
+              'population_mean' => $metric['population_mean'] ?? null,
+              'population_stddev' => $metric['population_stddev'] ?? null,
+            ];
+          }
+        }
+      }
+    }
+    
     return [
       '#theme' => 'population_benchmarks',
       '#dimensions' => $orderedMetricsData,
@@ -109,6 +127,11 @@ class PopulationBenchmarksController extends ControllerBase {
         'library' => [
           'safety_calculator/population-benchmarks',
         ],
+        'drupalSettings' => [
+          'populationBenchmarks' => [
+            'metrics' => $metricsForJS,
+          ],
+        ],
       ],
     ];
   }
@@ -116,6 +139,8 @@ class PopulationBenchmarksController extends ControllerBase {
   /**
    * Calculate overall scores for each dimension using z-score normalization.
    * 
+   * Only includes numeric and scale metrics in scoring.
+   * Boolean and select metrics are excluded pending additional modeling research.
    * Excludes DEMOGRAPHIC dimension from scoring.
    */
   protected function calculateDimensionScores(array $metricsData): array {
@@ -133,6 +158,11 @@ class PopulationBenchmarksController extends ControllerBase {
       
       foreach ($data['categories'] as $category) {
         foreach ($category['metrics'] as $metric) {
+          // Only include numeric and scale metrics in scoring
+          if (!in_array($metric['data_type'], ['numeric', 'scale'])) {
+            continue;
+          }
+          
           // Use normalized mean if available, otherwise calculate z-score
           if (isset($metric['normalized_mean']) && $metric['normalized_mean'] !== null) {
             $totalMetrics++;

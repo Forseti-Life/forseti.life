@@ -71,9 +71,17 @@ forseti.community:
   route_name: forseti.community
   menu_name: main
   weight: -10
+  expanded: true
 
 forseti.mobile_app:
   title: 'Mobile App'
   route_name: forseti.mobile_app
   menu_name: main
   weight: 0
+
+forseti.institutional:
+  title: 'Family & Institutions'
+  route_name: institutional_management.landing
+  menu_name: main
+  parent: forseti.community
+  weight: 5

@@ -75,7 +75,7 @@ parameters:
     #
     # Enabling Twig debugging is not recommended in production environments.
     # @default false
-    debug: true
+    debug: false
     # Twig auto-reload:
     #
     # Automatically recompile Twig templates whenever the source code changes.
@@ -200,19 +200,19 @@ parameters:
   # Configure Cross-Site HTTP requests (CORS).
   # Read https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
   # for more information about the topic in general.
-  # Note: CORS enabled for AmISafe mobile app authentication
+  # Note: By default the configuration is disabled.
   cors.config:
-    enabled: true
+    enabled: false
     # Specifies allowed headers and sets the Access-Control-Allow-Headers
     # header. For example, ['X-Custom-Header']. See
     # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers
-    allowedHeaders: ['*']
+    allowedHeaders: []
     # Specifies allowed request methods and sets the
     # Access-Control-Allow-Methods header. For example, ['POST', 'GET',
     # 'OPTIONS'] or ['*'] to allow all. Note the wildcard is not yet implemented
     # in all browsers. See
     # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods
-    allowedMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+    allowedMethods: []
     # Configure requests allowed from specific origins and sets the
     # Access-Control-Allow-Origin header. For example,
     # ['https://www.drupal.org'] or ['*'] to allow any origin to access your
@@ -227,16 +227,16 @@ parameters:
     # ['*'] to expose all headers. Setting exposedHeaders: ['*'] will result in
     # a Access-Control-Expose-Headers: * response header. See
     # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
-    exposedHeaders: ['Content-Type', 'X-Drupal-Cache', 'X-Drupal-Dynamic-Cache']
+    exposedHeaders: false
     # Setting Access-Control-Max-Age header value to '0' or false will omit this
     # from the response. However, setting it to '-1' will explicitly disable
     # caching. For example, setting the value to 600 will cache results of a
     # preflight request for 10 minutes. See
     # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age
-    maxAge: 600
+    maxAge: false
     # Sets the Access-Control-Allow-Credentials header if set to true. See
     # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials
-    supportsCredentials: true
+    supportsCredentials: false
 
   # The maximum number of entities stored in memory. Lowering this number can
   # reduce the amount of memory used in long-running processes like migrations,

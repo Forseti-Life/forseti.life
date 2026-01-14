@@ -1,6 +1,6 @@
-uuid: 1d0f009d-7e08-4103-9e22-6be5dd5e13f7
+uuid: 3cf9c5d9-51d6-46e2-b616-9f97f8cd1e03
 langcode: en
-status: true
+status: false
 dependencies:
   config:
     - system.menu.main
@@ -8,12 +8,10 @@ dependencies:
     - system
   theme:
     - radix
-_core:
-  default_config_hash: KWAiziL39uEzmOJEql_wbUP2RtqGceL3WM2CfxhMelE
 id: radix_main_menu
 theme: radix
 region: navbar_branding
-weight: 0
+weight: -10
 provider: null
 plugin: 'system_menu_block:main'
 settings:
@@ -22,6 +20,6 @@ settings:
   label_display: '0'
   provider: system
   level: 1
-  depth: 2
-  expand_all_items: true
+  depth: 0
+  expand_all_items: false
 visibility: {  }

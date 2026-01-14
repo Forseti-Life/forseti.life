@@ -1,0 +1,20 @@
+uuid: d85604eb-cc92-492c-8719-b4e52cff218f
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.field_sub_legal
+field_name: field_sub_legal
+entity_type: node
+type: integer
+settings:
+  unsigned: false
+  size: normal
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

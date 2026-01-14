@@ -1,0 +1,22 @@
+uuid: c367cdcc-270d-4066-abce-e102bd5ff14e
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_sub_granularity_desc
+    - node.type.evaluated_entity
+  module:
+    - text
+id: node.evaluated_entity.field_sub_granularity_desc
+field_name: field_sub_granularity_desc
+entity_type: node
+bundle: evaluated_entity
+label: 'Granularity Description'
+description: 'AI-provided description for Granularity sub-dimension'
+required: false
+translatable: true
+default_value: null
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

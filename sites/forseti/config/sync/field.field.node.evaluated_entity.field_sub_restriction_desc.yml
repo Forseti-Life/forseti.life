@@ -1,0 +1,22 @@
+uuid: 5596b460-617c-4b20-b917-7423805498d4
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_sub_restriction_desc
+    - node.type.evaluated_entity
+  module:
+    - text
+id: node.evaluated_entity.field_sub_restriction_desc
+field_name: field_sub_restriction_desc
+entity_type: node
+bundle: evaluated_entity
+label: 'Restriction Description'
+description: 'AI-provided description for Restriction sub-dimension'
+required: false
+translatable: true
+default_value: null
+default_value_callback: ''
+settings:
+  allowed_formats: {  }
+field_type: text_long

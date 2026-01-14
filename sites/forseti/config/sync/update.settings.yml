@@ -9,5 +9,5 @@ fetch:
   timeout: 30
 notification:
   emails:
-    - admin@forseti.com
+    - admin@forseti.life
   threshold: all

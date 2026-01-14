@@ -99,6 +99,25 @@ amisafe.api.date_range:
     _permission: 'access content'
     _method: 'GET|POST'
 
+# User location tracking endpoints
+amisafe.api.location.update:
+  path: '/api/amisafe/location/update'
+  defaults:
+    _controller: '\Drupal\amisafe\Controller\ApiController::locationUpdate'
+    _format: 'json'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    _method: 'POST'
+
+amisafe.api.location.history:
+  path: '/api/amisafe/location/history'
+  defaults:
+    _controller: '\Drupal\amisafe\Controller\ApiController::locationHistory'
+    _format: 'json'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    _method: 'GET'
+
 amisafe.api.citywide_stats:
   path: '/api/amisafe/citywide-stats'
   defaults:

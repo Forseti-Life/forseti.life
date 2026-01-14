@@ -1246,4 +1246,165 @@ class ApiController extends ControllerBase {
     }
   }
 
+  /**
+   * Update user location from mobile app.
+   * 
+   * POST /api/amisafe/location/update
+   */
+  public function locationUpdate(Request $request) {
+    try {
+      // Check authentication
+      $current_user = \Drupal::currentUser();
+      if ($current_user->isAnonymous()) {
+        $response = new JsonResponse([
+          'success' => FALSE,
+          'message' => 'Authentication required',
+        ], 401);
+        return $this->addCorsHeaders($response);
+      }
+
+      $data = json_decode($request->getContent(), TRUE);
+      
+      if (!isset($data['latitude']) || !isset($data['longitude'])) {
+        $response = new JsonResponse([
+          'success' => FALSE,
+          'message' => 'Missing required fields: latitude, longitude',
+        ], 400);
+        return $this->addCorsHeaders($response);
+      }
+
+      // Validate coordinates
+      $latitude = floatval($data['latitude']);
+      $longitude = floatval($data['longitude']);
+      
+      if ($latitude < -90 || $latitude > 90 || $longitude < -180 || $longitude > 180) {
+        $response = new JsonResponse([
+          'success' => FALSE,
+          'message' => 'Invalid coordinates',
+        ], 400);
+        return $this->addCorsHeaders($response);
+      }
+
+      // Insert location record into institutional_management table
+      $location_data = [
+        'uid' => $current_user->id(),
+        'latitude' => $latitude,
+        'longitude' => $longitude,
+        'h3_index' => $data['h3_index'] ?? NULL,
+        'accuracy' => isset($data['accuracy']) ? floatval($data['accuracy']) : NULL,
+        'altitude' => isset($data['altitude']) ? floatval($data['altitude']) : NULL,
+        'heading' => isset($data['heading']) ? floatval($data['heading']) : NULL,
+        'speed' => isset($data['speed']) ? floatval($data['speed']) : NULL,
+        'timestamp' => isset($data['timestamp']) ? intval($data['timestamp']) : time(),
+        'created' => time(),
+        'device_info' => isset($data['device_info']) ? json_encode($data['device_info']) : NULL,
+      ];
+
+      $connection = Database::getConnection();
+      $connection->insert('user_location_tracking')
+        ->fields($location_data)
+        ->execute();
+
+      \Drupal::logger('amisafe')->info(
+        'Location updated for user @uid: [@lat, @lon]',
+        [
+          '@uid' => $current_user->id(),
+          '@lat' => $latitude,
+          '@lon' => $longitude,
+        ]
+      );
+
+      $response = new JsonResponse([
+        'success' => TRUE,
+        'message' => 'Location updated successfully',
+        'data' => [
+          'latitude' => $latitude,
+          'longitude' => $longitude,
+          'timestamp' => $location_data['timestamp'],
+        ],
+      ]);
+      return $this->addCorsHeaders($response);
+    } catch (\Exception $e) {
+      \Drupal::logger('amisafe')->error(
+        'Failed to store location: @error',
+        ['@error' => $e->getMessage()]
+      );
+
+      $response = new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Failed to store location data',
+      ], 500);
+      return $this->addCorsHeaders($response);
+    }
+  }
+
+  /**
+   * Get user's location history.
+   * 
+   * GET /api/amisafe/location/history
+   */
+  public function locationHistory(Request $request) {
+    try {
+      $current_user = \Drupal::currentUser();
+      if ($current_user->isAnonymous()) {
+        $response = new JsonResponse([
+          'success' => FALSE,
+          'message' => 'Authentication required',
+        ], 401);
+        return $this->addCorsHeaders($response);
+      }
+
+      $limit = min($request->query->get('limit', 50), 500);
+      $offset = $request->query->get('offset', 0);
+      $since = $request->query->get('since', NULL);
+
+      $connection = Database::getConnection();
+      $query = $connection->select('user_location_tracking', 'ult')
+        ->fields('ult')
+        ->condition('uid', $current_user->id())
+        ->orderBy('timestamp', 'DESC')
+        ->range($offset, $limit);
+
+      if ($since) {
+        $query->condition('timestamp', intval($since), '>=');
+      }
+
+      $results = $query->execute()->fetchAll();
+
+      $locations = [];
+      foreach ($results as $row) {
+        $locations[] = [
+          'latitude' => floatval($row->latitude),
+          'longitude' => floatval($row->longitude),
+          'h3_index' => $row->h3_index,
+          'accuracy' => $row->accuracy ? floatval($row->accuracy) : NULL,
+          'altitude' => $row->altitude ? floatval($row->altitude) : NULL,
+          'heading' => $row->heading ? floatval($row->heading) : NULL,
+          'speed' => $row->speed ? floatval($row->speed) : NULL,
+          'timestamp' => intval($row->timestamp),
+        ];
+      }
+
+      $response = new JsonResponse([
+        'success' => TRUE,
+        'data' => [
+          'locations' => $locations,
+          'count' => count($locations),
+        ],
+      ]);
+      return $this->addCorsHeaders($response);
+    } catch (\Exception $e) {
+      \Drupal::logger('amisafe')->error(
+        'Failed to retrieve location history: @error',
+        ['@error' => $e->getMessage()]
+      );
+
+      $response = new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Failed to retrieve location history',
+      ], 500);
+      return $this->addCorsHeaders($response);
+    }
+  }
+
 }

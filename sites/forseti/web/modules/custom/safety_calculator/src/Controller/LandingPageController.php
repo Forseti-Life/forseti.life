@@ -132,65 +132,6 @@ class LandingPageController extends ControllerBase {
       ],
     ];
 
-    // How it works
-    $build['how_it_works'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['container', 'my-5']],
-      'title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h2',
-        '#value' => $this->t('How It Works'),
-        '#attributes' => ['class' => ['text-center', 'mb-4']],
-      ],
-      'steps' => [
-        '#theme' => 'item_list',
-        '#list_type' => 'ol',
-        '#items' => [
-          [
-            'title' => [
-              '#type' => 'html_tag',
-              '#tag' => 'strong',
-              '#value' => $this->t('Enter Location'),
-            ],
-            'description' => [
-              '#markup' => $this->t('Provide an address or use your current location'),
-            ],
-          ],
-          [
-            'title' => [
-              '#type' => 'html_tag',
-              '#tag' => 'strong',
-              '#value' => $this->t('Instant Analysis'),
-            ],
-            'description' => [
-              '#markup' => $this->t('Our system analyzes historical crime data and patterns'),
-            ],
-          ],
-          [
-            'title' => [
-              '#type' => 'html_tag',
-              '#tag' => 'strong',
-              '#value' => $this->t('Get Your Score'),
-            ],
-            'description' => [
-              '#markup' => $this->t('Receive a clear safety score (0-100) and risk level'),
-            ],
-          ],
-          [
-            'title' => [
-              '#type' => 'html_tag',
-              '#tag' => 'strong',
-              '#value' => $this->t('Make Informed Decisions'),
-            ],
-            'description' => [
-              '#markup' => $this->t('Use the insights to plan your activities safely'),
-            ],
-          ],
-        ],
-        '#attributes' => ['class' => ['list-group', 'mx-auto'], 'style' => 'max-width: 600px;'],
-      ],
-    ];
-
     // CTA section - Bootstrap primary button
     $build['cta'] = [
       '#type' => 'container',

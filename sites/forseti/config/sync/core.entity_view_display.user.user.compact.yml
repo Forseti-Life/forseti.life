@@ -1,33 +1,9 @@
-uuid: ae7bfbf1-788d-49f3-a968-36179239fab5
+uuid: 28a82f4e-0c77-49e7-9a1c-010b7cbfa592
 langcode: en
 status: true
 dependencies:
   config:
     - core.entity_view_mode.user.compact
-    - field.field.user.user.field_ai_analysis_data
-    - field.field.user.user.field_available_start_date
-    - field.field.user.user.field_certifications
-    - field.field.user.user.field_cover_letter_template
-    - field.field.user.user.field_education_level
-    - field.field.user.user.field_experience_years
-    - field.field.user.user.field_github_url
-    - field.field.user.user.field_keywords_interested
-    - field.field.user.user.field_last_profile_update
-    - field.field.user.user.field_linkedin_url
-    - field.field.user.user.field_notification_preferences
-    - field.field.user.user.field_portfolio_url
-    - field.field.user.user.field_professional_summary
-    - field.field.user.user.field_profile_completeness
-    - field.field.user.user.field_references_available
-    - field.field.user.user.field_relocation_willing
-    - field.field.user.user.field_remote_preference
-    - field.field.user.user.field_resume_file
-    - field.field.user.user.field_salary_expectation_max
-    - field.field.user.user.field_salary_expectation_min
-    - field.field.user.user.field_skills_summary
-    - field.field.user.user.field_target_companies
-    - field.field.user.user.field_target_job_titles
-    - field.field.user.user.field_work_authorization
     - field.field.user.user.user_picture
     - image.style.thumbnail
   module:
@@ -44,36 +20,12 @@ content:
     type: image
     label: hidden
     settings:
-      image_link: content
       image_style: thumbnail
+      image_link: content
       image_loading:
         attribute: lazy
     third_party_settings: {  }
     weight: 0
     region: content
 hidden:
-  field_ai_analysis_data: true
-  field_available_start_date: true
-  field_certifications: true
-  field_cover_letter_template: true
-  field_education_level: true
-  field_experience_years: true
-  field_github_url: true
-  field_keywords_interested: true
-  field_last_profile_update: true
-  field_linkedin_url: true
-  field_notification_preferences: true
-  field_portfolio_url: true
-  field_professional_summary: true
-  field_profile_completeness: true
-  field_references_available: true
-  field_relocation_willing: true
-  field_remote_preference: true
-  field_resume_file: true
-  field_salary_expectation_max: true
-  field_salary_expectation_min: true
-  field_skills_summary: true
-  field_target_companies: true
-  field_target_job_titles: true
-  field_work_authorization: true
   member_for: true
