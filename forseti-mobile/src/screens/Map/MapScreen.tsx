@@ -24,6 +24,7 @@ interface HexagonData {
 const MapScreen: React.FC = () => {
   const [hexagons, setHexagons] = useState<HexagonData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusText, setStatusText] = useState('Initializing...');
   const [region, setRegion] = useState({
     latitude: 39.9526,
     longitude: -75.1652,
@@ -60,6 +61,7 @@ const MapScreen: React.FC = () => {
   const loadHexagonData = async () => {
     try {
       setLoading(true);
+      setStatusText('Fetching hexagon data...');
       DebugLogger.info('📡 Fetching hexagon data from API...');
       
       const response = await axios.get('https://forseti.life/api/amisafe/aggregated', {
@@ -70,18 +72,22 @@ const MapScreen: React.FC = () => {
         timeout: 15000,
       });
 
+      setStatusText('Processing API response...');
       DebugLogger.info(`✅ API Response received`);
       
       if (response.data && response.data.hexagons) {
         const hexData = response.data.hexagons;
+        setStatusText(`Loaded ${hexData.length} hexagons`);
         DebugLogger.info(`✅ Loaded ${hexData.length} hexagons`);
         DebugLogger.info(`📊 Sample hex: ${hexData[0]?.h3_index}, count: ${hexData[0]?.incident_count}`);
         setHexagons(hexData);
       } else {
+        setStatusText('ERROR: No hexagons in response');
         DebugLogger.error('❌ No hexagons in API response');
         DebugLogger.error(`Response structure: ${JSON.stringify(Object.keys(response.data || {}))}`);
       }
     } catch (error: any) {
+      setStatusText(`ERROR: ${error.message}`);
       DebugLogger.error(`❌ API Error: ${error.message}`);
       if (error.response) {
         DebugLogger.error(`Response status: ${error.response.status}`);
@@ -90,6 +96,7 @@ const MapScreen: React.FC = () => {
       Alert.alert('Error', 'Failed to load map data. Please try again later.');
     } finally {
       setLoading(false);
+      setStatusText(prev => prev.includes('ERROR') ? prev : `Ready: ${hexagons.length} hexagons`);
       DebugLogger.info('✅ Map loading complete');
     }
   };
@@ -166,6 +173,12 @@ const MapScreen: React.FC = () => {
       >
         {!loading && renderHexagons()}
       </MapView>
+
+      {/* Status Text Overlay */}
+      <View style={styles.statusOverlay}>
+        <Text style={styles.statusText}>{statusText}</Text>
+        <Text style={styles.statusSubtext}>Hexagons: {hexagons.length}</Text>
+      </View>
 
       {loading && (
         <View style={styles.loadingOverlay}>
@@ -249,6 +262,25 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  statusOverlay: {
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 8,
+    padding: 12,
+    position: 'absolute',
+    right: 20,
+    top: 20,
+    zIndex: 1000,
+  },
+  statusSubtext: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  statusText: {
+    color: Colors.primary,
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 

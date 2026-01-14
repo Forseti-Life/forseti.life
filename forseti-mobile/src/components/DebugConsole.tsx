@@ -50,7 +50,7 @@ export const DebugLogger = {
 };
 
 const DebugConsole: React.FC = () => {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true); // Start visible by default
   const [entries, setEntries] = useState<LogEntry[]>([]);
 
   useEffect(() => {
