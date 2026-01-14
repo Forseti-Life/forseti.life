@@ -17,7 +17,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import MapView, { PROVIDER_GOOGLE, Polygon, Circle, Marker } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE, Polygon, Circle } from 'react-native-maps';
 import Svg, { Polygon as SvgPolygon } from 'react-native-svg';
 import * as h3 from 'h3-js';
 import FilterPanel from './FilterPanel';
@@ -232,29 +232,6 @@ const InteractiveCrimeMap = ({
     }
 
     return 'Other';
-  };
-
-  /**
-   * Get incident marker color based on crime type
-   */
-  const getIncidentColor = incidentType => {
-    const colors = {
-      violent: '#ff4444', // Red for violent crimes
-      property: '#ff8800', // Orange for property crimes
-      drug: '#8844ff', // Purple for drug crimes
-      traffic: '#44ff44', // Green for traffic incidents
-      other: '#44ffff', // Cyan for other incidents
-    };
-
-    if (!incidentType) return colors.other;
-
-    const code = incidentType.toString();
-    if (code.startsWith('1') || code.startsWith('2')) return colors.violent;
-    if (code.startsWith('3') || code.startsWith('5')) return colors.property;
-    if (code.startsWith('4')) return colors.drug;
-    if (code.startsWith('7')) return colors.traffic;
-
-    return colors.other;
   };
 
   /**
@@ -720,20 +697,6 @@ const InteractiveCrimeMap = ({
             />
           );
         })}
-
-        {/* Render Individual Incidents */}
-        {incidents.map((incident, index) => (
-          <Marker
-            key={`incident-${index}`}
-            coordinate={{
-              latitude: incident.lat,
-              longitude: incident.lng,
-            }}
-            pinColor={getIncidentColor(incident.incident_type)}
-            title={`Crime: ${incident.incident_type}`}
-            description={`${incident.incident_date} - ${incident.location_block}`}
-          />
-        ))}
       </MapView>
 
       {/* Loading Indicator */}
@@ -753,7 +716,7 @@ const InteractiveCrimeMap = ({
           {hexagons.length} hexagons | {getActiveSectorCount()} active
         </Text>
         <Text style={styles.incidentCount}>
-          {getCurrentIncidentCount().toLocaleString()} incidents | {incidents.length} points
+          {getCurrentIncidentCount().toLocaleString()} incidents
         </Text>
 
         {/* Action Buttons - Moved to Bottom */}

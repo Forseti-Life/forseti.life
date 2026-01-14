@@ -6,11 +6,13 @@
  */
 
 import Geolocation from 'react-native-geolocation-service';
-import { Platform, AppState, AppStateStatus } from 'react-native';
+import { Platform, AppState, AppStateStatus, NativeModules } from 'react-native';
 import { h3 } from 'h3-js';
 // import NotificationService from '../notifications/NotificationService'; // Temporarily disabled
 import StorageService from '../storage/StorageService';
 import axios from 'axios';
+
+const { LocationServiceModule } = NativeModules;
 
 interface LocationCoords {
   latitude: number;
@@ -78,6 +80,17 @@ class BackgroundLocationService {
     try {
       // Load user settings from storage
       await this.loadUserSettings();
+
+      // Start Android foreground service if available
+      if (Platform.OS === 'android' && LocationServiceModule) {
+        try {
+          await LocationServiceModule.startLocationService();
+          console.log('✅ Android foreground service started');
+        } catch (error) {
+          console.error('Failed to start Android foreground service:', error);
+          throw new Error('Failed to start location service. Please try again.');
+        }
+      }
 
       // Initialize notification service
       // await NotificationService.initialize(); // Temporarily disabled
@@ -150,6 +163,16 @@ class BackgroundLocationService {
     if (this.watchId !== null) {
       Geolocation.clearWatch(this.watchId);
       this.watchId = null;
+    }
+
+    // Stop Android foreground service if available
+    if (Platform.OS === 'android' && LocationServiceModule) {
+      try {
+        await LocationServiceModule.stopLocationService();
+        console.log('✅ Android foreground service stopped');
+      } catch (error) {
+        console.error('Failed to stop Android foreground service:', error);
+      }
     }
 
     this.isMonitoring = false;
