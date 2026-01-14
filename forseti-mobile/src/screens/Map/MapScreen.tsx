@@ -1,55 +1,152 @@
 /**
- * Map Screen - Link to Forseti Safety Map
- * Opens the interactive crime map on the Forseti website
+ * Map Screen - Interactive Safety Map with H3 Hexagons
+ * Displays real-time crime data on a map with H3 hexagonal grid
  */
 
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert } from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import MapView, { Polygon, PROVIDER_GOOGLE } from 'react-native-maps';
+import { cellToBoundary } from 'h3-js';
+import axios from 'axios';
+import LocationService from '../../services/location/LocationService';
 import { Colors } from '../../utils/colors';
 
+interface HexagonData {
+  h3_index: string;
+  incident_count: number;
+  latest_date?: string;
+}
+
 const MapScreen: React.FC = () => {
-  const handleOpenSafetyMap = async () => {
-    const url = 'https://forseti.life/safety-map';
+  const [hexagons, setHexagons] = useState<HexagonData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [region, setRegion] = useState({
+    latitude: 39.9526,
+    longitude: -75.1652,
+    latitudeDelta: 0.1,
+    longitudeDelta: 0.1,
+  });
 
+  useEffect(() => {
+    initializeMap();
+  }, []);
+
+  const initializeMap = async () => {
     try {
-      const supported = await Linking.canOpenURL(url);
-
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert(
-          'Cannot Open Link',
-          'Unable to open the safety map. Please check your internet connection.',
-          [{ text: 'OK' }]
-        );
+      // Try to get current location
+      const location = await LocationService.getCurrentLocation();
+      if (location) {
+        setRegion({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        });
       }
     } catch (error) {
-      console.error('Error opening safety map:', error);
-      Alert.alert('Error', 'An error occurred while opening the safety map.', [{ text: 'OK' }]);
+      console.log('Using default Philadelphia location');
     }
+
+    await loadHexagonData();
+  };
+
+  const loadHexagonData = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('https://forseti.life/api/amisafe/aggregated', {
+        params: {
+          resolution: 9, // Good balance of detail and performance
+          limit: 1000,
+        },
+        timeout: 15000,
+      });
+
+      if (response.data && response.data.hexagons) {
+        setHexagons(response.data.hexagons);
+        console.log(`Loaded ${response.data.hexagons.length} hexagons`);
+      }
+    } catch (error) {
+      console.error('Error loading hexagon data:', error);
+      Alert.alert('Error', 'Failed to load map data. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getHexagonColor = (count: number): string => {
+    if (count === 0) return 'rgba(0, 212, 255, 0.1)'; // Very light cyan
+    if (count < 5) return 'rgba(255, 235, 59, 0.4)'; // Yellow
+    if (count < 15) return 'rgba(255, 152, 0, 0.5)'; // Orange
+    if (count < 30) return 'rgba(255, 87, 34, 0.6)'; // Deep orange
+    return 'rgba(244, 67, 54, 0.7)'; // Red
+  };
+
+  const renderHexagons = () => {
+    return hexagons.map((hex) => {
+      try {
+        // Convert H3 index to boundary coordinates
+        const boundary = cellToBoundary(hex.h3_index, true); // true = GeoJSON format [lat, lng]
+        const coordinates = boundary.map(([lat, lng]) => ({
+          latitude: lat,
+          longitude: lng,
+        }));
+
+        const color = getHexagonColor(hex.incident_count);
+
+        return (
+          <Polygon
+            key={hex.h3_index}
+            coordinates={coordinates}
+            fillColor={color}
+            strokeColor="rgba(0, 212, 255, 0.3)"
+            strokeWidth={1}
+          />
+        );
+      } catch (error) {
+        console.error('Error rendering hexagon:', hex.h3_index, error);
+        return null;
+      }
+    });
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
-        <Icon name="map-marker-radius" size={80} color={Colors.primary} />
+      <MapView
+        style={styles.map}
+        provider={PROVIDER_GOOGLE}
+        initialRegion={region}
+        region={region}
+        onRegionChangeComplete={setRegion}
+        showsUserLocation
+        showsMyLocationButton
+      >
+        {!loading && renderHexagons()}
+      </MapView>
 
-        <Text style={styles.title}>Philadelphia Safety Map</Text>
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading crime data...</Text>
+        </View>
+      )}
 
-        <Text style={styles.description}>
-          View the interactive safety map on the Forseti website to see real-time crime data, safety
-          scores, and detailed area information.
-        </Text>
-
-        <TouchableOpacity style={styles.button} onPress={handleOpenSafetyMap}>
-          <Icon name="web" size={24} color={Colors.white} style={styles.buttonIcon} />
-          <Text style={styles.buttonText}>Open Safety Map</Text>
-        </TouchableOpacity>
-
-        <View style={styles.infoBox}>
-          <Icon name="information" size={20} color={Colors.info} />
-          <Text style={styles.infoText}>The map will open in your web browser</Text>
+      <View style={styles.legend}>
+        <Text style={styles.legendTitle}>Crime Incidents</Text>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: 'rgba(255, 235, 59, 0.6)' }]} />
+          <Text style={styles.legendText}>Low (1-4)</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: 'rgba(255, 152, 0, 0.6)' }]} />
+          <Text style={styles.legendText}>Medium (5-14)</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: 'rgba(255, 87, 34, 0.6)' }]} />
+          <Text style={styles.legendText}>High (15-29)</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: 'rgba(244, 67, 54, 0.7)' }]} />
+          <Text style={styles.legendText}>Very High (30+)</Text>
         </View>
       </View>
     </View>
@@ -57,66 +154,55 @@ const MapScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  button: {
-    alignItems: 'center',
-    backgroundColor: Colors.primary,
-    borderRadius: 8,
-    elevation: 3,
-    flexDirection: 'row',
-    marginBottom: 24,
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  buttonIcon: {
-    marginRight: 8,
-  },
-  buttonText: {
-    color: Colors.white,
-    fontSize: 18,
-    fontWeight: '600',
-  },
   container: {
-    backgroundColor: Colors.background,
     flex: 1,
   },
-  content: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  description: {
-    color: Colors.textSecondary,
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 32,
-    paddingHorizontal: 16,
-    textAlign: 'center',
-  },
-  infoBox: {
-    alignItems: 'center',
-    backgroundColor: Colors.lightGray,
+  legend: {
+    backgroundColor: 'rgba(26, 26, 46, 0.9)',
     borderRadius: 8,
-    flexDirection: 'row',
-    marginTop: 8,
+    bottom: 20,
+    left: 20,
     padding: 12,
+    position: 'absolute',
   },
-  infoText: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-    marginLeft: 8,
+  legendColor: {
+    borderRadius: 3,
+    height: 20,
+    marginRight: 8,
+    width: 20,
   },
-  title: {
+  legendItem: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginVertical: 4,
+  },
+  legendText: {
     color: Colors.text,
-    fontSize: 28,
+    fontSize: 12,
+  },
+  legendTitle: {
+    color: Colors.primary,
+    fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 16,
-    marginTop: 24,
-    textAlign: 'center',
+    marginBottom: 8,
+  },
+  loadingOverlay: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(26, 26, 46, 0.8)',
+    bottom: 0,
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  loadingText: {
+    color: Colors.text,
+    fontSize: 16,
+    marginTop: 16,
+  },
+  map: {
+    flex: 1,
   },
 });
 
