@@ -84,21 +84,41 @@ export const useBackgroundMonitoring = () => {
     try {
       console.log('🚀 [useBackgroundMonitoring] Starting background monitoring...');
       
+      // Import DebugLogger
+      const { DebugLogger } = await import('../components/DebugConsole');
+      DebugLogger.info('🚀 startMonitoring called');
+      
       // Check/request permissions first
       console.log('🔐 [useBackgroundMonitoring] Requesting permissions...');
+      DebugLogger.info('🔐 Requesting location permissions...');
+      
       const hasPermissions = await requestLocationPermissions();
       if (!hasPermissions) {
         console.log('⚠️ [useBackgroundMonitoring] Permissions denied');
+        DebugLogger.warn('⚠️ Permissions denied by user');
         return;
       }
       console.log('✅ [useBackgroundMonitoring] Permissions granted');
+      DebugLogger.info('✅ Permissions granted');
 
       // Start the background service
       console.log('⚙️ [useBackgroundMonitoring] Starting BackgroundLocationService...');
-      await BackgroundLocationService.startMonitoring();
-      console.log('✅ [useBackgroundMonitoring] BackgroundLocationService started');
+      DebugLogger.info('⚙️ Starting BackgroundLocationService...');
+      
+      try {
+        await BackgroundLocationService.startMonitoring();
+        console.log('✅ [useBackgroundMonitoring] BackgroundLocationService started');
+        DebugLogger.info('✅ BackgroundLocationService started successfully');
+      } catch (serviceError) {
+        DebugLogger.error('❌ BackgroundLocationService.startMonitoring failed:', serviceError);
+        DebugLogger.error('Service error type:', typeof serviceError);
+        DebugLogger.error('Service error message:', serviceError instanceof Error ? serviceError.message : String(serviceError));
+        DebugLogger.error('Service error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack');
+        throw serviceError;
+      }
       
       setIsMonitoring(true);
+      DebugLogger.info('✅ Monitoring state set to true');
 
       Alert.alert(
         '🛡️ Protection Enabled',
@@ -108,10 +128,31 @@ export const useBackgroundMonitoring = () => {
     } catch (error) {
       console.error('❌ [useBackgroundMonitoring] Error starting monitoring:', error);
       console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace');
-      Alert.alert('Error', `Failed to start background monitoring. ${error instanceof Error ? error.message : 'Please try again.'}`, [
-        { text: 'OK' },
-      ]);
+      
+      // Log comprehensive error details
+      try {
+        const { DebugLogger } = await import('../components/DebugConsole');
+        DebugLogger.error('❌ CRITICAL: startMonitoring failed');
+        DebugLogger.error('Error object:', error);
+        DebugLogger.error('Error type:', typeof error);
+        DebugLogger.error('Error name:', error instanceof Error ? error.name : 'Not an Error object');
+        DebugLogger.error('Error message:', error instanceof Error ? error.message : String(error));
+        DebugLogger.error('Error stack:', error instanceof Error ? error.stack : 'No stack available');
+        if (error && typeof error === 'object') {
+          DebugLogger.error('Error keys:', Object.keys(error).join(', '));
+          DebugLogger.error('Error JSON:', JSON.stringify(error, null, 2));
+        }
+      } catch (logError) {
+        console.error('Failed to log error to DebugConsole:', logError);
+      }
+      
+      Alert.alert(
+        'Error',
+        `Failed to start background monitoring.\n\nError: ${error instanceof Error ? error.message : String(error)}\n\nCheck the debug console (bug icon) for full details.`,
+        [{ text: 'OK' }]
+      );
       setIsMonitoring(false);
+      throw error; // Re-throw so toggleMonitoring can catch it
     }
   };
 
@@ -141,23 +182,50 @@ export const useBackgroundMonitoring = () => {
   const toggleMonitoring = async () => {
     try {
       console.log(`🔄 [useBackgroundMonitoring] Toggle monitoring (current: ${isMonitoring})`);
+      
+      // Import DebugLogger dynamically to avoid circular deps
+      const { DebugLogger } = await import('../components/DebugConsole');
+      DebugLogger.info(`🔄 Toggle monitoring called (current: ${isMonitoring})`);
+      
       if (isMonitoring) {
+        DebugLogger.info('🛑 Stopping monitoring...');
         await stopMonitoring();
+        DebugLogger.info('✅ Monitoring stopped successfully');
       } else {
+        DebugLogger.info('🚀 Starting monitoring...');
         await startMonitoring();
+        DebugLogger.info('✅ Monitoring started successfully');
       }
     } catch (error) {
       console.error('❌ [useBackgroundMonitoring] Error toggling monitoring:', error);
       console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace');
+      
+      // Log to DebugConsole
+      try {
+        const { DebugLogger } = await import('../components/DebugConsole');
+        DebugLogger.error('❌ Toggle monitoring failed:', error);
+        DebugLogger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack');
+        DebugLogger.error('Error type:', typeof error);
+        DebugLogger.error('Error keys:', error ? Object.keys(error).join(', ') : 'null');
+      } catch (logError) {
+        console.error('Failed to log to DebugConsole:', logError);
+      }
+      
       Alert.alert(
         'Error',
-        `Failed to ${isMonitoring ? 'stop' : 'start'} background monitoring. ${error instanceof Error ? error.message : 'Please try again.'}`,
+        `Failed to ${isMonitoring ? 'stop' : 'start'} background monitoring.\n\nError: ${error instanceof Error ? error.message : String(error)}\n\nCheck debug console for details.`,
         [{ text: 'OK' }]
       );
+      
       // Restore state if toggle failed
-      const active = BackgroundLocationService.isActive();
-      console.log(`📊 [useBackgroundMonitoring] Restoring state to: ${active}`);
-      setIsMonitoring(active);
+      try {
+        const active = BackgroundLocationService.isActive();
+        console.log(`📊 [useBackgroundMonitoring] Restoring state to: ${active}`);
+        setIsMonitoring(active);
+      } catch (restoreError) {
+        console.error('Failed to restore state:', restoreError);
+        setIsMonitoring(false);
+      }
     }
   };
 

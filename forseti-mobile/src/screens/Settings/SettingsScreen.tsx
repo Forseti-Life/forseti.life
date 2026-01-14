@@ -147,7 +147,21 @@ const SettingsScreen = ({ navigation }: any) => {
           </View>
           <Switch
             value={isMonitoring}
-            onValueChange={toggleMonitoring}
+            onValueChange={async () => {
+              try {
+                DebugLogger.info('🎛️ [Settings] Switch toggled');
+                await toggleMonitoring();
+              } catch (error) {
+                DebugLogger.error('❌ [Settings] Switch toggle failed:', error);
+                DebugLogger.error('Toggle error type:', typeof error);
+                DebugLogger.error('Toggle error message:', error instanceof Error ? error.message : String(error));
+                Alert.alert(
+                  'Toggle Failed',
+                  `Could not toggle monitoring.\n\nError: ${error instanceof Error ? error.message : String(error)}`,
+                  [{ text: 'OK' }]
+                );
+              }
+            }}
             trackColor={{ false: Colors.gray, true: Colors.success }}
             thumbColor={isMonitoring ? Colors.white : Colors.lightGray}
           />
