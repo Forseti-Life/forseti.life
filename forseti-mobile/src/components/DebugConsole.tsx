@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ErrorUtils } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../utils/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -84,19 +84,19 @@ export const DebugLogger = {
   },
 };
 
-// Global error handler
-const originalHandler = ErrorUtils.getGlobalHandler();
-ErrorUtils.setGlobalHandler((error, isFatal) => {
-  DebugLogger.error('❌ GLOBAL ERROR (FATAL=' + isFatal + '):', error);
-  DebugLogger.error('Error name: ' + (error?.name || 'Unknown'));
-  DebugLogger.error('Error message: ' + (error?.message || String(error)));
-  DebugLogger.error('Error stack: ' + (error?.stack || 'No stack'));
-  
-  // Call original handler
-  if (originalHandler) {
-    originalHandler(error, isFatal);
+// Override console.error to catch all errors
+const originalConsoleError = console.error;
+console.error = (...args: any[]) => {
+  try {
+    const message = args.map(arg => 
+      typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+    ).join(' ');
+    DebugLogger.error('Console Error: ' + message);
+  } catch (e) {
+    // Ignore errors in error logging
   }
-});
+  originalConsoleError(...args);
+};
 
 const DebugConsole: React.FC = () => {
   const [isVisible, setIsVisible] = useState(true); // Start visible by default
