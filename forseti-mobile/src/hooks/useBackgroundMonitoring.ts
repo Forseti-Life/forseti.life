@@ -125,10 +125,22 @@ export const useBackgroundMonitoring = () => {
    * Toggle monitoring on/off
    */
   const toggleMonitoring = async () => {
-    if (isMonitoring) {
-      await stopMonitoring();
-    } else {
-      await startMonitoring();
+    try {
+      if (isMonitoring) {
+        await stopMonitoring();
+      } else {
+        await startMonitoring();
+      }
+    } catch (error) {
+      console.error('Error toggling monitoring:', error);
+      Alert.alert(
+        'Error',
+        `Failed to ${isMonitoring ? 'stop' : 'start'} background monitoring. ${error instanceof Error ? error.message : 'Please try again.'}`,
+        [{ text: 'OK' }]
+      );
+      // Restore state if toggle failed
+      const active = BackgroundLocationService.isActive();
+      setIsMonitoring(active);
     }
   };
 

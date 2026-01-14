@@ -96,7 +96,7 @@ class BackgroundLocationService {
       // await NotificationService.initialize(); // Temporarily disabled
 
       // Save monitoring state
-      await StorageService.saveData('background_monitoring_enabled', true);
+      await StorageService.setItem('background_monitoring_enabled', true);
 
       this.isMonitoring = true;
 
@@ -133,8 +133,8 @@ class BackgroundLocationService {
    */
   private async loadUserSettings(): Promise<void> {
     try {
-      const threshold = await StorageService.getData('z_score_threshold');
-      const cooldown = await StorageService.getData('notification_cooldown');
+      const threshold = await StorageService.getItem('z_score_threshold');
+      const cooldown = await StorageService.getItem('notification_cooldown');
 
       if (threshold !== null) {
         this.zScoreThreshold = threshold;
@@ -179,7 +179,7 @@ class BackgroundLocationService {
     this.currentH3Index = null;
 
     // Save monitoring state
-    await StorageService.saveData('background_monitoring_enabled', false);
+    await StorageService.setItem('background_monitoring_enabled', false);
 
     console.log('🛑 Background location monitoring stopped');
   }
@@ -340,7 +340,7 @@ class BackgroundLocationService {
     zScore: number
   ): Promise<void> {
     try {
-      const history = (await StorageService.getData('location_history')) || [];
+      const history = (await StorageService.getItem('location_history')) || [];
 
       history.push({
         h3_index: h3Index,
@@ -353,7 +353,7 @@ class BackgroundLocationService {
 
       // Keep only last 100 locations
       const trimmedHistory = history.slice(-100);
-      await StorageService.saveData('location_history', trimmedHistory);
+      await StorageService.setItem('location_history', trimmedHistory);
     } catch (error) {
       console.error('Error saving location history:', error);
     }
@@ -377,7 +377,7 @@ class BackgroundLocationService {
    * Restore monitoring state on app restart
    */
   public async restoreMonitoringState(): Promise<void> {
-    const wasEnabled = await StorageService.getData('background_monitoring_enabled');
+    const wasEnabled = await StorageService.getItem('background_monitoring_enabled');
     if (wasEnabled === true) {
       console.log('📱 Restoring background monitoring from previous session');
       await this.startMonitoring();

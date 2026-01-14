@@ -34,8 +34,8 @@ const SettingsScreen = ({ navigation }: any) => {
 
   const loadSettings = async () => {
     try {
-      const threshold = await StorageService.getData('z_score_threshold');
-      const cooldown = await StorageService.getData('notification_cooldown');
+      const threshold = await StorageService.getItem('z_score_threshold');
+      const cooldown = await StorageService.getItem('notification_cooldown');
 
       if (threshold !== null) setZScoreThreshold(threshold);
       if (cooldown !== null) setNotificationCooldown(cooldown);
@@ -46,8 +46,8 @@ const SettingsScreen = ({ navigation }: any) => {
 
   const saveSettings = async () => {
     try {
-      await StorageService.saveData('z_score_threshold', zScoreThreshold);
-      await StorageService.saveData('notification_cooldown', notificationCooldown);
+      await StorageService.setItem('z_score_threshold', zScoreThreshold);
+      await StorageService.setItem('notification_cooldown', notificationCooldown);
 
       Alert.alert('Settings Saved', 'Your preferences have been updated.', [{ text: 'OK' }]);
     } catch (error) {
@@ -58,16 +58,29 @@ const SettingsScreen = ({ navigation }: any) => {
 
   const viewLocationHistory = async () => {
     try {
-      const history = await StorageService.getData('location_history');
+      const history = await StorageService.getItem('location_history');
       const count = history ? history.length : 0;
+
+      if (count === 0) {
+        Alert.alert(
+          'Location History',
+          'No location history yet. Background monitoring will track your location once enabled.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const latest = history[history.length - 1];
+      const latestTime = new Date(latest.timestamp).toLocaleString();
 
       Alert.alert(
         'Location History',
-        `You have ${count} location records stored.\n\nThis data is used to improve your safety alerts and is stored locally on your device.`,
+        `You have ${count} location records stored.\n\nLatest: ${latestTime}\nH3 Index: ${latest.h3_index}\nZ-Score: ${latest.z_score?.toFixed(2) || 'N/A'}\n\nThis data is used to improve your safety alerts and is stored locally on your device.`,
         [{ text: 'OK' }]
       );
     } catch (error) {
       console.error('Error viewing location history:', error);
+      Alert.alert('Error', 'Failed to load location history.', [{ text: 'OK' }]);
     }
   };
 
@@ -82,12 +95,13 @@ const SettingsScreen = ({ navigation }: any) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await StorageService.saveData('location_history', []);
-              Alert.alert('History Cleared', 'Your location history has been deleted.', [
+              await StorageService.setItem('location_history', []);
+              Alert.alert('✅ History Cleared', 'Your location history has been deleted successfully.', [
                 { text: 'OK' },
               ]);
             } catch (error) {
               console.error('Error clearing history:', error);
+              Alert.alert('Error', 'Failed to clear location history.', [{ text: 'OK' }]);
             }
           },
         },
