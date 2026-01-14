@@ -108,7 +108,10 @@ const TabNavigator = ({ navigation, onLogout }: { navigation: any; onLogout: () 
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={styles.logoText}>Forseti</Text>
+          <View>
+            <Text style={styles.logoText}>Forseti</Text>
+            <Text style={styles.versionText}>v1.0.3 (2026-01-14)</Text>
+          </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
           <Icon name="logout" size={24} color={Colors?.danger || '#F44336'} />
@@ -465,6 +468,11 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     padding: 8,
+  },
+  versionText: {
+    color: Colors?.textSecondary || '#9CA3AF',
+    fontSize: 10,
+    marginTop: -2,
   },
   tabBar: {
     backgroundColor: Colors?.card || '#16213e',

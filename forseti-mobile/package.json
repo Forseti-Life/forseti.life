@@ -1,6 +1,6 @@
 {
   "name": "forseti-mobile",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "Forseti Mobile - AI-Powered Safety Monitoring for Philadelphia",
   "main": "index.js",
   "scripts": {
