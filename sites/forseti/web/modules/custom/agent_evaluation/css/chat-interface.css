@@ -367,6 +367,7 @@
   
   .input-group textarea {
     width: 100%;
+    box-sizing: border-box;
     margin-bottom: 0;
     min-height: 60px;
     font-size: 16px; /* Prevent zoom on iOS */
