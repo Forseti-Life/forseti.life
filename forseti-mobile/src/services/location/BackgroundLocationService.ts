@@ -327,7 +327,7 @@ class BackgroundLocationService {
           h3_index: hexagon.h3_index,
           incident_count: hexagon.incident_count || 0,
           incident_z_score: hexagon.incident_z_score || 0,
-          risk_level: hexagon.risk_level || 'LOW',
+          risk_level: hexagon.risk_level || hexagon.risk_category || 'LOW',
           resolution: this.h3Resolution,
         };
       }
