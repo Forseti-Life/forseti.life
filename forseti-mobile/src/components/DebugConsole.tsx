@@ -121,45 +121,6 @@ console.error = (...args: any[]) => {
   originalConsoleError(...args);
 };
 
-// Catch unhandled promise rejections
-const promiseRejectionHandler = (event: PromiseRejectionEvent) => {
-  const error = event.reason;
-  DebugLogger.error('UNHANDLED PROMISE REJECTION:');
-  if (error instanceof Error) {
-    DebugLogger.error(`Name: ${error.name}`);
-    DebugLogger.error(`Message: ${error.message}`);
-    DebugLogger.error(`Stack: ${error.stack || 'No stack'}`);
-  } else {
-    DebugLogger.error(`Value: ${String(error)}`);
-    DebugLogger.error(`Type: ${typeof error}`);
-    if (error && typeof error === 'object') {
-      try {
-        DebugLogger.error(`JSON: ${JSON.stringify(error, null, 2)}`);
-      } catch {}
-    }
-  }
-};
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('unhandledrejection', promiseRejectionHandler as any);
-}
-
-// Catch global errors
-const errorHandler = (event: ErrorEvent) => {
-  DebugLogger.error('GLOBAL ERROR EVENT:');
-  DebugLogger.error(`Message: ${event.message}`);
-  DebugLogger.error(`Filename: ${event.filename}`);
-  DebugLogger.error(`Line: ${event.lineno}:${event.colno}`);
-  if (event.error) {
-    DebugLogger.error(`Error: ${event.error.toString()}`);
-    DebugLogger.error(`Stack: ${event.error.stack || 'No stack'}`);
-  }
-};
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('error', errorHandler as any);
-}
-
 const DebugConsole: React.FC = () => {
   const [isVisible, setIsVisible] = useState(true); // Start visible by default
   const [entries, setEntries] = useState<LogEntry[]>([]);
