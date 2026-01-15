@@ -39,9 +39,9 @@ class BackgroundLocationService {
   private lastNotificationTime: number = 0;
   private notificationCooldown: number = 300000; // 5 minutes in milliseconds (default)
   private zScoreThreshold: number = 2.0; // Default threshold
+  private h3Resolution: number = 11; // Default resolution - configurable
 
   // Configuration
-  private readonly H3_RESOLUTION = 11; // ~700m hexagons for notifications
   private readonly API_BASE_URL = 'https://forseti.life';
   private readonly UPDATE_INTERVAL = 60000; // Check location every 60 seconds
   private readonly DISTANCE_FILTER = 50; // meters - minimum movement before update
@@ -169,7 +169,7 @@ class BackgroundLocationService {
       console.log('✅ [BackgroundLocationService] Background location monitoring started successfully');
 
       console.log(
-        `📍 Monitoring H3 Resolution ${this.H3_RESOLUTION} with z-score threshold >= ${this.zScoreThreshold}`
+        `📍 Monitoring H3 Resolution ${this.h3Resolution} with z-score threshold >= ${this.zScoreThreshold}`
       );
     } catch (error) {
       console.error('❌ Failed to start background monitoring:', error);
@@ -247,11 +247,11 @@ class BackgroundLocationService {
       };
 
       // Convert to H3 index
-      const h3Index = h3.latLngToCell(location.latitude, location.longitude, this.H3_RESOLUTION);
+      const h3Index = h3.latLngToCell(location.latitude, location.longitude, this.h3Resolution);
 
       // Check if we've moved to a new hexagon
       if (h3Index !== this.currentH3Index) {
-        console.log(`📍 Moved to new H3:${this.H3_RESOLUTION} hexagon: ${h3Index}`);
+        console.log(`📍 Moved to new H3:${this.h3Resolution} hexagon: ${h3Index}`);
 
         const previousH3 = this.currentH3Index;
         this.currentH3Index = h3Index;
@@ -314,7 +314,7 @@ class BackgroundLocationService {
     try {
       const response = await axios.get(`${this.API_BASE_URL}/api/amisafe/aggregated`, {
         params: {
-          resolution: this.H3_RESOLUTION,
+          resolution: this.h3Resolution,
           h3_index: h3Index,
           format: 'json',
         },
@@ -328,7 +328,7 @@ class BackgroundLocationService {
           incident_count: hexagon.incident_count || 0,
           incident_z_score: hexagon.incident_z_score || 0,
           risk_level: hexagon.risk_level || 'LOW',
-          resolution: this.H3_RESOLUTION,
+          resolution: this.h3Resolution,
         };
       }
 
@@ -398,7 +398,7 @@ class BackgroundLocationService {
         longitude: location.longitude,
         z_score: zScore,
         timestamp: location.timestamp,
-        resolution: this.H3_RESOLUTION,
+        resolution: this.h3Resolution,
       });
 
       // Keep only last 100 locations

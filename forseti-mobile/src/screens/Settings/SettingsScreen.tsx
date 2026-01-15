@@ -98,6 +98,7 @@ const SettingsScreenContent = ({ navigation }: any) => {
 
   const [zScoreThreshold, setZScoreThreshold] = useState(2.0);
   const [notificationCooldown, setNotificationCooldown] = useState(5);
+  const [h3Resolution, setH3Resolution] = useState(11);
 
   useEffect(() => {
     DebugLogger.info('📥 Loading settings...');
@@ -109,10 +110,12 @@ const SettingsScreenContent = ({ navigation }: any) => {
       DebugLogger.info('🔍 Fetching settings from storage...');
       const threshold = await StorageService.getItem('z_score_threshold');
       const cooldown = await StorageService.getItem('notification_cooldown');
+      const resolution = await StorageService.getItem('h3_resolution');
 
-      DebugLogger.info(`📊 Loaded threshold: ${threshold}, cooldown: ${cooldown}`);
+      DebugLogger.info(`📊 Loaded threshold: ${threshold}, cooldown: ${cooldown}, resolution: ${resolution}`);
       if (threshold !== null) setZScoreThreshold(threshold);
       if (cooldown !== null) setNotificationCooldown(cooldown);
+      if (resolution !== null) setH3Resolution(resolution);
       DebugLogger.info('✅ Settings loaded successfully');
     } catch (error) {
       DebugLogger.error('❌ Error loading settings:', error);
@@ -120,12 +123,24 @@ const SettingsScreenContent = ({ navigation }: any) => {
     }
   };
 
+  const getResolutionDescription = (resolution: number): string => {
+    const descriptions: { [key: number]: string } = {
+      9: '~325m (Street blocks)',
+      10: '~122m (Building groups)',
+      11: '~46m (Buildings)',
+      12: '~17m (Rooms/apartments)',
+      13: '~6.6m (Ultra-precision)',
+    };
+    return descriptions[resolution] || `Resolution ${resolution}`;
+  };
+
   const saveSettings = async () => {
     try {
       await StorageService.setItem('z_score_threshold', zScoreThreshold);
       await StorageService.setItem('notification_cooldown', notificationCooldown);
+      await StorageService.setItem('h3_resolution', h3Resolution);
 
-      Alert.alert('Settings Saved', 'Your preferences have been updated.', [{ text: 'OK' }]);
+      Alert.alert('Settings Saved', 'Your preferences have been updated. Restart monitoring for changes to take effect.', [{ text: 'OK' }]);
     } catch (error) {
       console.error('Error saving settings:', error);
       Alert.alert('Error', 'Failed to save settings. Please try again.', [{ text: 'OK' }]);
@@ -236,9 +251,54 @@ const SettingsScreenContent = ({ navigation }: any) => {
           <View style={styles.statusBox}>
             <Text style={styles.statusLabel}>Current Location</Text>
             <Text style={styles.statusValue}>H3: {currentH3Index}</Text>
-            <Text style={styles.statusDescription}>Monitoring at ~700m resolution</Text>
+            <Text style={styles.statusDescription}>Monitoring at {getResolutionDescription(h3Resolution)}</Text>
           </View>
         )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>📐 Monitoring Resolution</Text>
+        <Text style={styles.sectionDescription}>H3 hexagon size for location monitoring</Text>
+
+        <View style={styles.settingRow}>
+          <View style={styles.settingInfo}>
+            <Text style={styles.settingLabel}>H3 Resolution Level</Text>
+            <Text style={styles.settingDescription}>
+              Currently: {getResolutionDescription(h3Resolution)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.thresholdButtons}>
+          {[9, 10, 11, 12, 13].map(value => (
+            <TouchableOpacity
+              key={value}
+              style={[
+                styles.resolutionButton,
+                h3Resolution === value && styles.thresholdButtonActive,
+              ]}
+              onPress={() => setH3Resolution(value)}
+            >
+              <Text
+                style={[
+                  styles.resolutionButtonText,
+                  h3Resolution === value && styles.thresholdButtonTextActive,
+                ]}
+              >
+                {value}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.resolutionInfo}>
+          <Text style={styles.resolutionInfoText}>ℹ️ Resolution Guide:</Text>
+          <Text style={styles.resolutionInfoDetail}>• 9: ~325m - Street blocks (less battery)</Text>
+          <Text style={styles.resolutionInfoDetail}>• 10: ~122m - Building groups (balanced)</Text>
+          <Text style={styles.resolutionInfoDetail}>• 11: ~46m - Individual buildings (recommended)</Text>
+          <Text style={styles.resolutionInfoDetail}>• 12: ~17m - Rooms/apartments (higher battery)</Text>
+          <Text style={styles.resolutionInfoDetail}>• 13: ~6.6m - Ultra-precision (most battery)</Text>
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -375,7 +435,8 @@ const SettingsScreenContent = ({ navigation }: any) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>ℹ️ About</Text>
         <Text style={styles.aboutText}>
-          Forseti uses H3 geospatial hexagons at resolution 11 (~700m) to monitor your location.
+          Forseti uses H3 geospatial hexagons to monitor your location.
+          You can configure the monitoring resolution from street blocks (~325m) to ultra-precision (~6.6m).
           Safety alerts are based on crime statistics and z-scores calculated from historical
           incident data.
         </Text>
@@ -393,6 +454,41 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 20,
     marginBottom: Spacing.md,
+  },
+  resolutionButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+    borderRadius: Spacing.borderRadius.sm,
+    borderWidth: 1,
+    flex: 1,
+    marginHorizontal: 4,
+    paddingVertical: Spacing.sm,
+  },
+  resolutionButtonText: {
+    ...Typography.body,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  resolutionInfo: {
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+    borderRadius: Spacing.borderRadius.md,
+    borderWidth: 1,
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+  },
+  resolutionInfoText: {
+    ...Typography.bodySmall,
+    color: Colors.text,
+    fontWeight: 'bold',
+    marginBottom: Spacing.xs,
+  },
+  resolutionInfoDetail: {
+    ...Typography.bodySmall,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: 2,
   },
   actionButton: {
     alignItems: 'center',
