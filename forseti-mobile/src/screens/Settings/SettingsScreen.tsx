@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   Alert,
   Linking,
+  TextInput,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useBackgroundMonitoring } from '../../hooks/useBackgroundMonitoring';
@@ -99,6 +100,7 @@ const SettingsScreenContent = ({ navigation }: any) => {
   const [zScoreThreshold, setZScoreThreshold] = useState(2.0);
   const [notificationCooldown, setNotificationCooldown] = useState(5);
   const [h3Resolution, setH3Resolution] = useState(11);
+  const [testH3Index, setTestH3Index] = useState('');
 
   useEffect(() => {
     DebugLogger.info('📥 Loading settings...');
@@ -430,6 +432,68 @@ const SettingsScreenContent = ({ navigation }: any) => {
           <Icon name="bug" size={20} color={Colors.warning} style={styles.linkIcon} />
           <Text style={styles.linkButtonText}>Debug Console</Text>
         </TouchableOpacity>
+
+        <View style={{ marginTop: Spacing.md }}>
+          <Text style={styles.settingLabel}>📍 Set Test Location</Text>
+          <Text style={styles.settingDescription}>Enter H3 index for testing (e.g., 8b2aacb2e577fff)</Text>
+          <TextInput
+            style={styles.testLocationInput}
+            value={testH3Index}
+            onChangeText={setTestH3Index}
+            placeholder="Enter H3 index..."
+            placeholderTextColor={Colors.textSecondary}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: Colors.primary, marginTop: Spacing.sm }]} 
+            onPress={async () => {
+              if (!testH3Index || testH3Index.length < 10) {
+                Alert.alert('Invalid H3 Index', 'Please enter a valid H3 index (minimum 10 characters)');
+                return;
+              }
+              DebugLogger.info(`📍 [DEBUG] Setting test location: ${testH3Index}`);
+              await StorageService.setItem('test_h3_location', testH3Index);
+              Alert.alert(
+                '✅ Test Location Set', 
+                `H3 Index: ${testH3Index}\n\nThis will be used for testing. Restart monitoring to activate.`,
+                [{ text: 'OK' }]
+              );
+              DebugLogger.info('✅ [DEBUG] Test location saved to storage');
+            }}
+          >
+            <Text style={styles.actionButtonText}>🎯 Set Test Location</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: Colors.gray, marginTop: Spacing.xs }]} 
+            onPress={async () => {
+              await StorageService.removeItem('test_h3_location');
+              setTestH3Index('');
+              Alert.alert('✅ Cleared', 'Test location cleared. Using real GPS location.');
+              DebugLogger.info('🧹 [DEBUG] Test location cleared');
+            }}
+          >
+            <Text style={styles.actionButtonText}>🧹 Clear Test Location</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity 
+          style={[styles.actionButton, { backgroundColor: Colors.warning, marginTop: Spacing.md }]} 
+          onPress={() => {
+            DebugLogger.info('🧪 [DEBUG] Simulating danger alert...');
+            Alert.alert(
+              '⚠️ DANGER ALERT (SIMULATED)',
+              'This is a test alert.\n\nZ-Score: 3.5\nIncident Count: 125\nRisk Level: EXTREME\n\nThis area has significantly higher crime than average.',
+              [
+                { text: 'Acknowledge', style: 'default' },
+                { text: 'Dismiss', style: 'cancel' }
+              ]
+            );
+            DebugLogger.info('✅ [DEBUG] Simulated alert displayed');
+          }}
+        >
+          <Text style={styles.actionButtonText}>🚨 Simulate Danger Alert</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
@@ -595,9 +659,21 @@ const styles = StyleSheet.create({
   },
   statusValue: {
     ...Typography.bodySmall,
+    color: Colors.text,
     fontFamily: 'monospace',
     fontWeight: Typography.fontWeight.bold,
     marginBottom: Spacing.xs,
+  },
+  testLocationInput: {
+    backgroundColor: Colors.white,
+    borderColor: Colors.border,
+    borderRadius: Spacing.borderRadius.md,
+    borderWidth: 1,
+    color: Colors.text,
+    fontFamily: 'monospace',
+    fontSize: 14,
+    marginTop: Spacing.xs,
+    padding: Spacing.md,
   },
   thresholdButton: {
     alignItems: 'center',

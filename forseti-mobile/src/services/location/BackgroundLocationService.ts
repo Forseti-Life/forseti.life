@@ -246,8 +246,18 @@ class BackgroundLocationService {
         timestamp: Date.now(),
       };
 
-      // Convert to H3 index
-      const h3Index = h3.latLngToCell(location.latitude, location.longitude, this.h3Resolution);
+      // Check for test location override
+      const testH3Location = await StorageService.getItem('test_h3_location');
+      let h3Index: string;
+
+      if (testH3Location && typeof testH3Location === 'string' && testH3Location.length >= 10) {
+        h3Index = testH3Location;
+        DebugLogger.info(`🧪 [TEST MODE] Using test H3 location: ${h3Index}`);
+        console.log(`🧪 TEST MODE: Using override H3 index: ${h3Index}`);
+      } else {
+        // Convert real GPS to H3 index
+        h3Index = h3.latLngToCell(location.latitude, location.longitude, this.h3Resolution);
+      }
 
       // Check if we've moved to a new hexagon
       if (h3Index !== this.currentH3Index) {
@@ -312,28 +322,45 @@ class BackgroundLocationService {
    */
   private async fetchHexagonData(h3Index: string): Promise<H3HexagonData | null> {
     try {
-      const response = await axios.get(`${this.API_BASE_URL}/api/amisafe/aggregated`, {
-        params: {
-          resolution: this.h3Resolution,
-          h3_index: h3Index,
-          format: 'json',
-        },
+      const apiUrl = `${this.API_BASE_URL}/api/amisafe/aggregated`;
+      const params = {
+        resolution: this.h3Resolution,
+        h3_index: h3Index,
+        format: 'json',
+      };
+
+      // Log API call
+      DebugLogger.info(`🌐 [API CALL] ${apiUrl}`);
+      DebugLogger.info(`📋 [API PARAMS] resolution: ${params.resolution}, h3_index: ${params.h3_index}`);
+      console.log(`🌐 API Call: ${apiUrl}?resolution=${params.resolution}&h3_index=${params.h3_index}`);
+
+      const response = await axios.get(apiUrl, {
+        params,
         timeout: 10000,
       });
 
       if (response.data && response.data.hexagons && response.data.hexagons.length > 0) {
         const hexagon = response.data.hexagons[0];
-        return {
+        const result = {
           h3_index: hexagon.h3_index,
           incident_count: hexagon.incident_count || 0,
           incident_z_score: hexagon.incident_z_score || 0,
           risk_level: hexagon.risk_level || hexagon.risk_category || 'LOW',
           resolution: this.h3Resolution,
         };
+
+        // Log API response
+        DebugLogger.info(`✅ [API RESPONSE] Z-Score: ${result.incident_z_score.toFixed(2)}, Incidents: ${result.incident_count}, Risk: ${result.risk_level}`);
+        console.log(`✅ API Response: H3=${result.h3_index}, Z-Score=${result.incident_z_score.toFixed(2)}, Count=${result.incident_count}, Risk=${result.risk_level}`);
+
+        return result;
       }
 
+      DebugLogger.warning('⚠️ [API RESPONSE] No hexagon data returned');
+      console.log('⚠️ API Response: No hexagon data');
       return null;
     } catch (error) {
+      DebugLogger.error('❌ [API ERROR] Failed to fetch hexagon data:', error);
       console.error('Error fetching hexagon data:', error);
       return null;
     }
