@@ -37,6 +37,7 @@ import { AboutScreen } from './src/screens/About';
 import { HowItWorksScreen } from './src/screens/HowItWorks';
 import { PrivacyScreen } from './src/screens/Privacy';
 import SettingsScreen from './src/screens/Settings/SettingsScreen';
+import DebugConsoleScreen from './src/screens/DebugConsole/DebugConsoleScreen';
 import { SplashScreen } from './src/screens/Auth/SplashScreen';
 import { LoginScreen } from './src/screens/Auth/LoginScreen';
 import { RegisterScreen } from './src/screens/Auth/RegisterScreen';
@@ -425,6 +426,13 @@ const App: React.FC = () => {
               headerStyle: { backgroundColor: Colors?.primary || '#00d4ff' },
               headerTintColor: Colors?.white || '#ffffff',
               headerTitle: 'Settings',
+            }}
+          />
+          <Stack.Screen
+            name="DebugConsole"
+            component={DebugConsoleScreen}
+            options={{
+              headerShown: false,
             }}
           />
         </Stack.Navigator>

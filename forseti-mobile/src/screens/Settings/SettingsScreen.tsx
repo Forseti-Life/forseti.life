@@ -360,6 +360,19 @@ const SettingsScreenContent = ({ navigation }: any) => {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🐛 Developer Tools</Text>
+        <Text style={styles.sectionDescription}>Debug and troubleshooting tools</Text>
+
+        <TouchableOpacity 
+          style={styles.linkButton} 
+          onPress={() => navigation.navigate('DebugConsole')}
+        >
+          <Icon name="bug" size={20} color={Colors.warning} style={styles.linkIcon} />
+          <Text style={styles.linkButtonText}>Debug Console</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>ℹ️ About</Text>
         <Text style={styles.aboutText}>
           Forseti uses H3 geospatial hexagons at resolution 11 (~700m) to monitor your location.
@@ -370,9 +383,6 @@ const SettingsScreenContent = ({ navigation }: any) => {
           All location data is stored locally on your device and is never shared with third parties.
         </Text>
       </View>
-      
-      {/* Debug Console */}
-      <DebugConsole />
     </ScrollView>
   );
 };
