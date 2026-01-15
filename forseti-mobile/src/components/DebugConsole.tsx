@@ -33,11 +33,18 @@ AsyncStorage.getItem('debug_logs').then(stored => {
   }
 }).catch(() => {});
 
+// Save original console methods before override
+const originalConsoleLog = console.log;
+const originalConsoleWarn = console.warn;
+const originalConsoleError = console.error;
+
 // Persist logs immediately to storage
-const persistLogs = () => {
-  AsyncStorage.setItem('debug_logs', JSON.stringify(logs.slice(-100))).catch(e => 
-    console.error('Failed to persist logs:', e)
-  );
+const persistLogs = async () => {
+  try {
+    await AsyncStorage.setItem('debug_logs', JSON.stringify(logs.slice(-100)));
+  } catch (e) {
+    originalConsoleError('[DebugConsole] Failed to persist logs:', e);
+  }
 };
 
 export const DebugLogger = {
@@ -49,8 +56,7 @@ export const DebugLogger = {
     logs.push(entry);
     if (logs.length > 100) logs.shift();
     listeners.forEach(listener => listener([...logs]));
-    console.log('[DEBUG]', message);
-    persistLogs(); // Persist immediately
+    persistLogs(); // Fire and forget - async errors caught internally
   },
   warn: (...args: any[]) => {
     const message = args.map(arg => 
@@ -60,8 +66,7 @@ export const DebugLogger = {
     logs.push(entry);
     if (logs.length > 100) logs.shift();
     listeners.forEach(listener => listener([...logs]));
-    console.warn('[DEBUG]', message);
-    persistLogs(); // Persist immediately
+    persistLogs(); // Fire and forget - async errors caught internally
   },
   error: (...args: any[]) => {
     const message = args.map(arg => {
@@ -80,8 +85,7 @@ export const DebugLogger = {
     logs.push(entry);
     if (logs.length > 100) logs.shift();
     listeners.forEach(listener => listener([...logs]));
-    console.error('[DEBUG]', message);
-    persistLogs(); // Persist immediately
+    persistLogs(); // Fire and forget - async errors caught internally
   },
   subscribe: (listener: (logs: LogEntry[]) => void) => {
     listeners.push(listener);
@@ -98,28 +102,8 @@ export const DebugLogger = {
   },
 };
 
-// Global error handlers
-const originalConsoleError = console.error;
-console.error = (...args: any[]) => {
-  try {
-    const messages = args.map(arg => {
-      if (arg instanceof Error) {
-        return `ERROR: ${arg.name}: ${arg.message}\nStack: ${arg.stack}`;
-      } else if (typeof arg === 'object') {
-        try {
-          return JSON.stringify(arg, null, 2);
-        } catch {
-          return String(arg);
-        }
-      }
-      return String(arg);
-    });
-    DebugLogger.error('CONSOLE.ERROR: ' + messages.join(' | '));
-  } catch (e) {
-    // Ignore errors in error logging
-  }
-  originalConsoleError(...args);
-};
+// Console override removed - ErrorHandler manages global error interception
+// DebugLogger methods can be called directly for in-app logging
 
 const DebugConsole: React.FC = () => {
   const [isVisible, setIsVisible] = useState(true); // Start visible by default

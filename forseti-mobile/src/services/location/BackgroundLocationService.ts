@@ -99,49 +99,42 @@ class BackgroundLocationService {
 
       // Start Android foreground service if available
       if (Platform.OS === 'android') {
-        console.log('🤖 [BackgroundLocationService] Android detected, starting foreground service...');
-        DebugLogger.info('🤖 [Service] Android detected');
-        DebugLogger.info(`📊 [Service] Platform.Version: ${Platform.Version}`);
+        logInfo('BackgroundLocationService', 'Android detected, starting foreground service', {
+          platformVersion: Platform.Version,
+        });
         
-        DebugLogger.info(`📊 [Service] LocationServiceModule type: ${typeof LocationServiceModule}`);
-        DebugLogger.info(`📊 [Service] LocationServiceModule null?: ${LocationServiceModule === null}`);
-        DebugLogger.info(`📊 [Service] LocationServiceModule undefined?: ${LocationServiceModule === undefined}`);
+        logInfo('BackgroundLocationService', 'Checking LocationServiceModule', {
+          type: typeof LocationServiceModule,
+          isNull: LocationServiceModule === null,
+          isUndefined: LocationServiceModule === undefined,
+        });
         
         if (!LocationServiceModule) {
-          const error = 'LocationServiceModule is null/undefined! Native module not registered.';
-          console.error('❌ [BackgroundLocationService]', error);
-          DebugLogger.error('❌ [Service] CRITICAL:', error);
-          DebugLogger.error('NativeModules keys:', Object.keys(NativeModules).join(', '));
-          throw new Error(error);
+          const availableModules = Object.keys(NativeModules).join(', ');
+          logError('BackgroundLocationService', new Error('LocationServiceModule not registered'), {
+            availableModules,
+            solution: 'Check MainApplication.java for LocationServicePackage registration',
+          });
+          throw new Error('LocationServiceModule is null/undefined! Native module not registered.');
         }
         
-        DebugLogger.info('✅ [Service] LocationServiceModule exists');
-        DebugLogger.info('📊 [Service] Module methods:', Object.keys(LocationServiceModule).join(', '));
+        logInfo('BackgroundLocationService', 'LocationServiceModule verified', {
+          methods: Object.keys(LocationServiceModule).join(', '),
+        });
         
         try {
-          console.log('📞 [BackgroundLocationService] Calling LocationServiceModule.startLocationService()...');
-          DebugLogger.info('📞 [Service] Calling startLocationService()...');
-          
+          logInfo('BackgroundLocationService', 'Calling startLocationService()...');
           const result = await LocationServiceModule.startLocationService();
-          
-          console.log('✅ [BackgroundLocationService] Android foreground service started successfully');
-          DebugLogger.info('✅ [Service] Android foreground service started');
-          DebugLogger.info(`📊 [Service] Start result: ${JSON.stringify(result)}`);
+          logInfo('BackgroundLocationService', 'Android foreground service started', { result });
         } catch (error) {
-          console.error('❌ [BackgroundLocationService] Failed to start Android foreground service:', error);
-          console.error('Stack:', error instanceof Error ? error.stack : 'No stack');
-          
-          DebugLogger.error('❌ [Service] CRITICAL: Failed to start foreground service');
-          DebugLogger.error('Error type:', typeof error);
-          DebugLogger.error('Error message:', error instanceof Error ? error.message : String(error));
-          DebugLogger.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
-          DebugLogger.error('Error keys:', error && typeof error === 'object' ? Object.keys(error).join(', ') : 'N/A');
-          
+          logError('BackgroundLocationService:startForegroundService', error, {
+            platform: 'android',
+            platformVersion: Platform.Version,
+          });
           throw new Error(`Failed to start location service: ${error instanceof Error ? error.message : String(error)}`);
         }
       } else {
-        console.log('🍎 [BackgroundLocationService] iOS detected, skipping foreground service');
-        DebugLogger.info('🍎 [Service] iOS detected, skipping foreground service');
+        logInfo('BackgroundLocationService', 'iOS detected, skipping foreground service');
       }
 
       // Initialize notification service

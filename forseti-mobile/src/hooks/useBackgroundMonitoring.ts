@@ -10,6 +10,7 @@ import BackgroundLocationService from '../services/location/BackgroundLocationSe
 import StorageService from '../services/storage/StorageService';
 import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { DebugLogger } from '../components/DebugConsole';
+import { logError, logInfo, logWarning } from '../utils/ErrorHandler';
 
 export const useBackgroundMonitoring = () => {
   const [isMonitoring, setIsMonitoring] = useState(false);
@@ -73,7 +74,7 @@ export const useBackgroundMonitoring = () => {
       setPermissionsGranted(true);
       return true;
     } catch (error) {
-      console.error('Error requesting permissions:', error);
+      logError('useBackgroundMonitoring:requestPermissions', error);
       return false;
     }
   };
@@ -83,40 +84,35 @@ export const useBackgroundMonitoring = () => {
    */
   const startMonitoring = async () => {
     try {
-      console.log('🚀 [useBackgroundMonitoring] Starting background monitoring...');
-      DebugLogger.info('🚀 startMonitoring called');
+      logInfo('useBackgroundMonitoring', 'Starting background monitoring...');
       
       // Check/request permissions first
-      console.log('🔐 [useBackgroundMonitoring] Requesting permissions...');
-      DebugLogger.info('🔐 Requesting location permissions...');
+      logInfo('useBackgroundMonitoring', 'Requesting permissions...');
       
       const hasPermissions = await requestLocationPermissions();
       if (!hasPermissions) {
-        console.log('⚠️ [useBackgroundMonitoring] Permissions denied');
-        DebugLogger.warn('⚠️ Permissions denied by user');
+        logWarning('useBackgroundMonitoring', 'Permissions denied by user');
         return;
       }
-      console.log('✅ [useBackgroundMonitoring] Permissions granted');
-      DebugLogger.info('✅ Permissions granted');
+      logInfo('useBackgroundMonitoring', 'Permissions granted');
 
       // Start the background service
-      console.log('⚙️ [useBackgroundMonitoring] Starting BackgroundLocationService...');
-      DebugLogger.info('⚙️ Starting BackgroundLocationService...');
+      // Start the background service
+      logInfo('useBackgroundMonitoring', 'Starting BackgroundLocationService...');
       
       try {
         await BackgroundLocationService.startMonitoring();
-        console.log('✅ [useBackgroundMonitoring] BackgroundLocationService started');
-        DebugLogger.info('✅ BackgroundLocationService started successfully');
+        logInfo('useBackgroundMonitoring', 'BackgroundLocationService started successfully');
       } catch (serviceError) {
-        DebugLogger.error('❌ BackgroundLocationService.startMonitoring failed:', serviceError);
-        DebugLogger.error('Service error type:', typeof serviceError);
-        DebugLogger.error('Service error message:', serviceError instanceof Error ? serviceError.message : String(serviceError));
-        DebugLogger.error('Service error stack:', serviceError instanceof Error ? serviceError.stack : 'No stack');
+        logError('useBackgroundMonitoring:serviceError', serviceError, {
+          errorType: typeof serviceError,
+          step: 'BackgroundLocationService.startMonitoring()',
+        });
         throw serviceError;
       }
       
       setIsMonitoring(true);
-      DebugLogger.info('✅ Monitoring state set to true');
+      logInfo('useBackgroundMonitoring', 'Monitoring state set to true');
 
       Alert.alert(
         '🛡️ Protection Enabled',
@@ -124,24 +120,10 @@ export const useBackgroundMonitoring = () => {
         [{ text: 'OK' }]
       );
     } catch (error) {
-      console.error('❌ [useBackgroundMonitoring] Error starting monitoring:', error);
-      console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace');
-      
-      // Log comprehensive error details
-      try {
-        DebugLogger.error('❌ CRITICAL: startMonitoring failed');
-        DebugLogger.error('Error object:', error);
-        DebugLogger.error('Error type:', typeof error);
-        DebugLogger.error('Error name:', error instanceof Error ? error.name : 'Not an Error object');
-        DebugLogger.error('Error message:', error instanceof Error ? error.message : String(error));
-        DebugLogger.error('Error stack:', error instanceof Error ? error.stack : 'No stack available');
-        if (error && typeof error === 'object') {
-          DebugLogger.error('Error keys:', Object.keys(error).join(', '));
-          DebugLogger.error('Error JSON:', JSON.stringify(error, null, 2));
-        }
-      } catch (logError) {
-        console.error('Failed to log error to DebugConsole:', logError);
-      }
+      logError('useBackgroundMonitoring:startMonitoring', error, {
+        step: 'Start monitoring failed',
+        isMonitoring: isMonitoring,
+      });
       
       Alert.alert(
         'Error',
@@ -217,7 +199,7 @@ export const useBackgroundMonitoring = () => {
         console.log(`📊 [useBackgroundMonitoring] Restoring state to: ${active}`);
         setIsMonitoring(active);
       } catch (restoreError) {
-        console.error('Failed to restore state:', restoreError);
+        logError('useBackgroundMonitoring:restoreState', restoreError);
         setIsMonitoring(false);
       }
     }
@@ -229,15 +211,15 @@ export const useBackgroundMonitoring = () => {
   useEffect(() => {
     const restoreState = async () => {
       try {
-        console.log('🔄 [useBackgroundMonitoring] Restoring monitoring state...');
+        logInfo('useBackgroundMonitoring', 'Restoring monitoring state...');
         
         // Restore monitoring if it was enabled before (currently disabled in service)
         await BackgroundLocationService.restoreMonitoringState();
-        console.log('✅ [useBackgroundMonitoring] Monitoring state check complete');
+        logInfo('useBackgroundMonitoring', 'Monitoring state check complete');
 
         // Update UI state
         const active = BackgroundLocationService.isActive();
-        console.log(`📊 [useBackgroundMonitoring] Monitoring active: ${active}`);
+        logInfo('useBackgroundMonitoring', `Monitoring active: ${active}`);
         setIsMonitoring(active);
 
         // Update current H3 index periodically
@@ -252,8 +234,7 @@ export const useBackgroundMonitoring = () => {
 
         return () => clearInterval(interval);
       } catch (error) {
-        console.error('❌ [useBackgroundMonitoring] Error restoring monitoring state:', error);
-        console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace');
+        logError('useBackgroundMonitoring:restoreMonitoringState', error);
         // Don't crash - just set to inactive state
         setIsMonitoring(false);
         setCurrentH3Index(null);
@@ -262,7 +243,7 @@ export const useBackgroundMonitoring = () => {
 
     // Run restore in a way that won't crash the app
     restoreState().catch(error => {
-      console.error('❌ [useBackgroundMonitoring] Fatal error in restoreState:', error);
+      logError('useBackgroundMonitoring:fatalRestore', error);
       setIsMonitoring(false);
       setCurrentH3Index(null);
     });
