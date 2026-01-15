@@ -41,9 +41,9 @@ sed -i "/defaultConfig {/,/}/ s/versionCode $CURRENT_VERSION_CODE/versionCode $N
 # Update versionName in build.gradle to match package.json
 sed -i "s/versionName \".*\"/versionName \"$CURRENT_VERSION\"/" "$BUILD_GRADLE"
 
-# Update App.tsx with new version display
+# Update App.tsx with new version display (includes build code)
 echo -e "${YELLOW}Updating App.tsx version display...${NC}"
-VERSION_DISPLAY="v${CURRENT_VERSION}($BUILD_DATE)"
+VERSION_DISPLAY="v${CURRENT_VERSION}-${NEW_VERSION_CODE} ($BUILD_DATE)"
 sed -i "s|<Text style={styles.versionText}>v.*</Text>|<Text style={styles.versionText}>$VERSION_DISPLAY</Text>|" "$APP_TSX"
 
 echo -e "\n${GREEN}✅ Build version updated successfully!${NC}"

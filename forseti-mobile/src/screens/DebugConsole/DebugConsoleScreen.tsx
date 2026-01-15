@@ -95,6 +95,9 @@ const DebugConsoleScreen = ({ navigation }: any) => {
           Warn: {entries.filter(e => e.level === 'warn').length} | 
           Error: {entries.filter(e => e.level === 'error').length}
         </Text>
+        <Text style={styles.statsHint}>
+          📜 Reading order: Top (oldest) → Bottom (newest) | Auto-scroll: {autoScroll ? 'ON' : 'OFF'}
+        </Text>
       </View>
 
       {entries.length === 0 ? (
@@ -109,9 +112,10 @@ const DebugConsoleScreen = ({ navigation }: any) => {
           style={styles.logContainer}
           contentContainerStyle={styles.logContent}
         >
-          {entries.map((entry) => (
+          {entries.map((entry, index) => (
             <View key={entry.id} style={[styles.logEntry, { borderLeftColor: getColor(entry.level) }]}>
               <View style={styles.logHeader}>
+                <Text style={styles.logNumber}>#{index + 1}</Text>
                 <Icon name={getIcon(entry.level)} size={16} color={getColor(entry.level)} />
                 <Text style={[styles.timestamp, { color: getColor(entry.level) }]}>
                   {new Date(entry.timestamp).toLocaleTimeString()}
@@ -169,6 +173,14 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: '#CCCCCC', // Light gray stats text
     textAlign: 'center',
+    marginBottom: 4,
+  },
+  statsHint: {
+    ...Typography.caption,
+    fontSize: 11,
+    color: '#888888', // Dimmer gray for hint
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   emptyState: {
     flex: 1,
@@ -203,6 +215,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.3,
     shadowRadius: 2,
+  logNumber: {
+    ...Typography.caption,
+    fontSize: 10,
+    color: '#666666',
+    fontWeight: Typography.fontWeight.bold,
+    minWidth: 30,
+  },
     elevation: 2,
   },
   logHeader: {

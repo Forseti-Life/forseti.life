@@ -12,6 +12,7 @@ import * as h3 from 'h3-js';
 import StorageService from '../storage/StorageService';
 import axios from 'axios';
 import { DebugLogger } from '../../components/DebugConsole';
+import { logError, logInfo, logWarning } from '../../utils/ErrorHandler';
 
 const { LocationServiceModule } = NativeModules;
 
