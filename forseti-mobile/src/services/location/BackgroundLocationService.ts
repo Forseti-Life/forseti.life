@@ -157,8 +157,8 @@ class BackgroundLocationService {
           distanceFilter: this.DISTANCE_FILTER,
           interval: this.UPDATE_INTERVAL,
           fastestInterval: this.UPDATE_INTERVAL / 2,
-          showLocationDialog: true,
-          forceRequestLocation: true,
+          showLocationDialog: false,   // Don't block service with location dialog
+          forceRequestLocation: false, // Use standard permission flow
           forceLocationManager: false,
           showsBackgroundLocationIndicator: true, // iOS
           pausesLocationUpdatesAutomatically: false, // iOS

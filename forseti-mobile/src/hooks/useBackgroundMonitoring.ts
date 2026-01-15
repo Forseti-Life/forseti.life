@@ -7,10 +7,11 @@
 import { useEffect, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import BackgroundLocationService from '../services/location/BackgroundLocationService';
-import StorageService from '../services/storage/StorageService';
+import StorageService from '../storage/StorageService';
 import { request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { DebugLogger } from '../components/DebugConsole';
 import { logError, logInfo, logWarning } from '../utils/ErrorHandler';
+import { requestNotificationPermission } from '../utils/permissions';
 
 export const useBackgroundMonitoring = () => {
   const [isMonitoring, setIsMonitoring] = useState(false);
@@ -95,6 +96,22 @@ export const useBackgroundMonitoring = () => {
         return;
       }
       logInfo('useBackgroundMonitoring', 'Permissions granted');
+
+      // Request notification permission (Android 13+ / iOS)
+      if (Platform.OS === 'android' && Platform.Version >= 33) {
+        logInfo('useBackgroundMonitoring', 'Requesting notification permission (Android 13+)...');
+        const notifPermission = await requestNotificationPermission();
+        if (!notifPermission) {
+          logWarning('useBackgroundMonitoring', 'Notification permission denied');
+          Alert.alert(
+            'Permission Required',
+            'Notifications are required for safety alerts and background monitoring on Android 13+.',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+        logInfo('useBackgroundMonitoring', 'Notification permission granted');
+      }
 
       // Start the background service
       // Start the background service
