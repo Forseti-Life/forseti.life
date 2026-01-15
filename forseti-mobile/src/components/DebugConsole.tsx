@@ -49,9 +49,20 @@ const persistLogs = async () => {
 
 export const DebugLogger = {
   info: (...args: any[]) => {
-    const message = args.map(arg => 
-      typeof arg === 'object' ? (arg instanceof Error ? `${arg.name}: ${arg.message}` : JSON.stringify(arg)) : String(arg)
-    ).join(' ');
+    const message = args.map(arg => {
+      if (typeof arg === 'string') {
+        return arg;
+      } else if (arg instanceof Error) {
+        return `${arg.name}: ${arg.message}`;
+      } else if (typeof arg === 'object' && arg !== null) {
+        try {
+          return JSON.stringify(arg);
+        } catch {
+          return String(arg);
+        }
+      }
+      return String(arg);
+    }).join(' ');
     const entry: LogEntry = { id: logId++, timestamp: new Date().toISOString(), level: 'info', message };
     logs.push(entry);
     if (logs.length > 100) logs.shift();
@@ -59,9 +70,20 @@ export const DebugLogger = {
     persistLogs(); // Fire and forget - async errors caught internally
   },
   warn: (...args: any[]) => {
-    const message = args.map(arg => 
-      typeof arg === 'object' ? (arg instanceof Error ? `${arg.name}: ${arg.message}` : JSON.stringify(arg)) : String(arg)
-    ).join(' ');
+    const message = args.map(arg => {
+      if (typeof arg === 'string') {
+        return arg;
+      } else if (arg instanceof Error) {
+        return `${arg.name}: ${arg.message}`;
+      } else if (typeof arg === 'object' && arg !== null) {
+        try {
+          return JSON.stringify(arg);
+        } catch {
+          return String(arg);
+        }
+      }
+      return String(arg);
+    }).join(' ');
     const entry: LogEntry = { id: logId++, timestamp: new Date().toISOString(), level: 'warn', message };
     logs.push(entry);
     if (logs.length > 100) logs.shift();
@@ -70,7 +92,9 @@ export const DebugLogger = {
   },
   error: (...args: any[]) => {
     const message = args.map(arg => {
-      if (arg instanceof Error) {
+      if (typeof arg === 'string') {
+        return arg;
+      } else if (arg instanceof Error) {
         return `${arg.name}: ${arg.message}\nStack: ${arg.stack || 'No stack'}`;
       } else if (typeof arg === 'object' && arg !== null) {
         try {

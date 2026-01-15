@@ -196,12 +196,16 @@ export const useBackgroundMonitoring = () => {
       
       // Log to DebugConsole
       try {
-        DebugLogger.error('❌ Toggle monitoring failed:', error);
-        DebugLogger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack');
-        DebugLogger.error('Error type:', typeof error);
-        DebugLogger.error('Error keys:', error ? Object.keys(error).join(', ') : 'null');
-      } catch (logError) {
-        console.error('Failed to log to DebugConsole:', logError);
+        DebugLogger.error('❌ Toggle monitoring failed', String(error));
+        if (error instanceof Error && error.stack) {
+          DebugLogger.error('Stack trace', error.stack);
+        }
+        DebugLogger.error('Error type', typeof error);
+        if (error && typeof error === 'object') {
+          DebugLogger.error('Error keys', Object.keys(error).join(', '));
+        }
+      } catch (debugLogError) {
+        console.error('Failed to log to DebugConsole:', debugLogError);
       }
       
       Alert.alert(

@@ -44,10 +44,10 @@ const DebugConsoleScreen = ({ navigation }: any) => {
 
   const getColor = (level: string) => {
     switch (level) {
-      case 'info': return Colors.primary;
-      case 'warn': return '#FFA500';
-      case 'error': return Colors.danger;
-      default: return Colors.text;
+      case 'info': return '#00D4FF'; // Bright cyan for info (high contrast)
+      case 'warn': return '#FFB800'; // Bright orange for warnings (high contrast)
+      case 'error': return '#FF4444'; // Bright red for errors (high contrast)
+      default: return '#FFFFFF'; // White default
     }
   };
 
@@ -132,16 +132,16 @@ const DebugConsoleScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#000000', // Pure black background
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: Spacing.md,
-    backgroundColor: Colors.white,
+    backgroundColor: '#1a1a1a', // Dark gray header
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: '#333333',
   },
   backButton: {
     padding: Spacing.xs,
@@ -150,6 +150,7 @@ const styles = StyleSheet.create({
     ...Typography.heading2,
     flex: 1,
     marginLeft: Spacing.md,
+    color: '#FFFFFF', // White header text
   },
   headerActions: {
     flexDirection: 'row',
@@ -159,14 +160,14 @@ const styles = StyleSheet.create({
     padding: Spacing.xs,
   },
   statsBar: {
-    backgroundColor: Colors.lightGray,
+    backgroundColor: '#1a1a1a', // Dark stats bar
     padding: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: '#333333',
   },
   statsText: {
     ...Typography.caption,
-    color: Colors.textSecondary,
+    color: '#CCCCCC', // Light gray stats text
     textAlign: 'center',
   },
   emptyState: {
@@ -177,29 +178,30 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     ...Typography.heading3,
-    color: Colors.textSecondary,
+    color: '#FFFFFF', // White empty text
     marginTop: Spacing.md,
   },
   emptySubtext: {
     ...Typography.body,
-    color: Colors.textSecondary,
+    color: '#CCCCCC', // Light gray subtext
     marginTop: Spacing.xs,
   },
   logContainer: {
     flex: 1,
+    backgroundColor: '#000000', // Black log container
   },
   logContent: {
     padding: Spacing.sm,
   },
   logEntry: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#1a1a1a', // Dark gray log entries
     borderRadius: Spacing.borderRadius.md,
     borderLeftWidth: 4,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 2,
     elevation: 2,
   },
@@ -212,16 +214,19 @@ const styles = StyleSheet.create({
   timestamp: {
     ...Typography.caption,
     fontWeight: Typography.fontWeight.semibold,
+    color: '#FFFFFF', // White timestamp (will be overridden by level color)
   },
   level: {
     ...Typography.caption,
     fontWeight: Typography.fontWeight.bold,
+    color: '#FFFFFF', // White level (will be overridden by level color)
   },
   message: {
     ...Typography.body,
-    color: Colors.text,
+    color: '#FFFFFF', // Pure white message text for maximum contrast
     lineHeight: 20,
     fontFamily: 'monospace',
+    fontSize: 13,
   },
 });
 
