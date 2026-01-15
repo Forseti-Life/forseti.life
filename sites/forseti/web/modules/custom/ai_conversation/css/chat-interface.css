@@ -305,27 +305,127 @@
 /* Responsive design */
 @media (max-width: 768px) {
   .ai-conversation-chat {
-    margin: 0 10px;
+    margin: 0;
+    max-width: 100%;
+  }
+  
+  .ai-conversation-stats {
+    margin: 0 10px 15px 10px;
+    padding: 10px;
   }
   
   .stats-grid {
     grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .stat-item {
+    padding: 6px;
+    font-size: 0.875rem;
+  }
+  
+  .chat-header {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .chat-header h2 {
+    font-size: 1.25rem;
+  }
+  
+  .chat-messages {
+    min-height: 300px;
+    max-height: 50vh;
+    padding: 10px;
+    margin: 0 10px 15px 10px;
+  }
+  
+  .message {
+    margin-bottom: 12px;
+    padding: 8px;
+    font-size: 0.9rem;
   }
   
   .message--user {
-    margin-left: 10%;
+    margin-left: 5%;
+    margin-right: 0;
   }
   
   .message--assistant {
-    margin-right: 10%;
+    margin-right: 5%;
+    margin-left: 0;
+  }
+  
+  .chat-input-container {
+    padding: 10px;
   }
   
   .input-group {
     flex-direction: column;
+    gap: 8px;
   }
   
   .input-group textarea {
-    margin-bottom: 10px;
+    margin-bottom: 0;
+    min-height: 60px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  .btn {
+    width: 100%;
+    padding: 12px;
+  }
+  
+  .chat-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .chat-controls .btn-sm {
+    width: 100%;
+    padding: 8px;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .ai-conversation-stats h3 {
+    font-size: 1rem;
+  }
+  
+  .chat-messages {
+    min-height: 250px;
+    max-height: 45vh;
+    padding: 8px;
+  }
+  
+  .message {
+    padding: 6px 8px;
+    font-size: 0.85rem;
+  }
+  
+  .message-timestamp {
+    font-size: 0.7em;
+  }
+  
+  .input-group textarea {
+    min-height: 50px;
+  }
+  
+  .context-info {
+    font-size: 0.8em;
+    padding: 6px;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .chat-messages {
+    max-height: 35vh;
+  }
+  
+  .ai-conversation-stats {
+    display: none; /* Hide stats in landscape to save space */
   }
 }
 
