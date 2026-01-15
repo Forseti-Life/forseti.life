@@ -349,9 +349,10 @@ class BackgroundLocationService {
           resolution: this.h3Resolution,
         };
 
-        // Log API response
-        DebugLogger.info(`✅ [API RESPONSE] Z-Score: ${result.incident_z_score.toFixed(2)}, Incidents: ${result.incident_count}, Risk: ${result.risk_level}`);
-        console.log(`✅ API Response: H3=${result.h3_index}, Z-Score=${result.incident_z_score.toFixed(2)}, Count=${result.incident_count}, Risk=${result.risk_level}`);
+        // Log API response with safety checks
+        const zScoreValue = typeof result.incident_z_score === 'number' ? result.incident_z_score.toFixed(2) : '0.00';
+        DebugLogger.info(`✅ [API RESPONSE] Z-Score: ${zScoreValue}, Incidents: ${result.incident_count}, Risk: ${result.risk_level}`);
+        console.log(`✅ API Response: H3=${result.h3_index}, Z-Score=${zScoreValue}, Count=${result.incident_count}, Risk=${result.risk_level}`);
 
         return result;
       }
