@@ -41,7 +41,10 @@ const persistLogs = () => {
 };
 
 export const DebugLogger = {
-  info: (message: string) => {
+  info: (...args: any[]) => {
+    const message = args.map(arg => 
+      typeof arg === 'object' ? (arg instanceof Error ? `${arg.name}: ${arg.message}` : JSON.stringify(arg)) : String(arg)
+    ).join(' ');
     const entry: LogEntry = { id: logId++, timestamp: new Date().toISOString(), level: 'info', message };
     logs.push(entry);
     if (logs.length > 100) logs.shift();
@@ -49,7 +52,10 @@ export const DebugLogger = {
     console.log('[DEBUG]', message);
     persistLogs(); // Persist immediately
   },
-  warn: (message: string) => {
+  warn: (...args: any[]) => {
+    const message = args.map(arg => 
+      typeof arg === 'object' ? (arg instanceof Error ? `${arg.name}: ${arg.message}` : JSON.stringify(arg)) : String(arg)
+    ).join(' ');
     const entry: LogEntry = { id: logId++, timestamp: new Date().toISOString(), level: 'warn', message };
     logs.push(entry);
     if (logs.length > 100) logs.shift();
@@ -57,16 +63,24 @@ export const DebugLogger = {
     console.warn('[DEBUG]', message);
     persistLogs(); // Persist immediately
   },
-  error: (message: string, error?: any) => {
-    let fullMessage = message;
-    if (error) {
-      fullMessage += ` ${typeof error === 'object' ? JSON.stringify(error) : String(error)}`;
-    }
-    const entry: LogEntry = { id: logId++, timestamp: new Date().toISOString(), level: 'error', message: fullMessage };
+  error: (...args: any[]) => {
+    const message = args.map(arg => {
+      if (arg instanceof Error) {
+        return `${arg.name}: ${arg.message}\nStack: ${arg.stack || 'No stack'}`;
+      } else if (typeof arg === 'object' && arg !== null) {
+        try {
+          return JSON.stringify(arg, null, 2);
+        } catch {
+          return String(arg);
+        }
+      }
+      return String(arg);
+    }).join(' ');
+    const entry: LogEntry = { id: logId++, timestamp: new Date().toISOString(), level: 'error', message };
     logs.push(entry);
     if (logs.length > 100) logs.shift();
     listeners.forEach(listener => listener([...logs]));
-    console.error('[DEBUG]', fullMessage);
+    console.error('[DEBUG]', message);
     persistLogs(); // Persist immediately
   },
   subscribe: (listener: (logs: LogEntry[]) => void) => {
@@ -84,19 +98,67 @@ export const DebugLogger = {
   },
 };
 
-// Override console.error to catch all errors
+// Global error handlers
 const originalConsoleError = console.error;
 console.error = (...args: any[]) => {
   try {
-    const message = args.map(arg => 
-      typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-    ).join(' ');
-    DebugLogger.error('Console Error: ' + message);
+    const messages = args.map(arg => {
+      if (arg instanceof Error) {
+        return `ERROR: ${arg.name}: ${arg.message}\nStack: ${arg.stack}`;
+      } else if (typeof arg === 'object') {
+        try {
+          return JSON.stringify(arg, null, 2);
+        } catch {
+          return String(arg);
+        }
+      }
+      return String(arg);
+    });
+    DebugLogger.error('CONSOLE.ERROR: ' + messages.join(' | '));
   } catch (e) {
     // Ignore errors in error logging
   }
   originalConsoleError(...args);
 };
+
+// Catch unhandled promise rejections
+const promiseRejectionHandler = (event: PromiseRejectionEvent) => {
+  const error = event.reason;
+  DebugLogger.error('UNHANDLED PROMISE REJECTION:');
+  if (error instanceof Error) {
+    DebugLogger.error(`Name: ${error.name}`);
+    DebugLogger.error(`Message: ${error.message}`);
+    DebugLogger.error(`Stack: ${error.stack || 'No stack'}`);
+  } else {
+    DebugLogger.error(`Value: ${String(error)}`);
+    DebugLogger.error(`Type: ${typeof error}`);
+    if (error && typeof error === 'object') {
+      try {
+        DebugLogger.error(`JSON: ${JSON.stringify(error, null, 2)}`);
+      } catch {}
+    }
+  }
+};
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', promiseRejectionHandler as any);
+}
+
+// Catch global errors
+const errorHandler = (event: ErrorEvent) => {
+  DebugLogger.error('GLOBAL ERROR EVENT:');
+  DebugLogger.error(`Message: ${event.message}`);
+  DebugLogger.error(`Filename: ${event.filename}`);
+  DebugLogger.error(`Line: ${event.lineno}:${event.colno}`);
+  if (event.error) {
+    DebugLogger.error(`Error: ${event.error.toString()}`);
+    DebugLogger.error(`Stack: ${event.error.stack || 'No stack'}`);
+  }
+};
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', errorHandler as any);
+}
 
 const DebugConsole: React.FC = () => {
   const [isVisible, setIsVisible] = useState(true); // Start visible by default
