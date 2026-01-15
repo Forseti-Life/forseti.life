@@ -1,9 +1,10 @@
 # Forseti Mobile Application - Complete Documentation
 
-**Version**: 1.0.0  
-**Status**: 🟢 Active Development  
+**Version**: 1.0.3  
+**Build Code**: Auto-incremented on each build (versionCode in build.gradle)  
+**Status**: 🟢 Beta Testing (Production Authentication Enabled)  
 **Platform**: React Native 0.72.6 (iOS & Android)  
-**Last Updated**: January 11, 2026
+**Last Updated**: January 15, 2026
 
 A cross-platform mobile application for hyperlocal crime safety awareness built with React Native. Integrates with the Forseti API (forseti.life) for real-time crime data visualization, z-score risk assessment, and continuous background monitoring with proactive alerts.
 
@@ -87,7 +88,36 @@ cd android
 #   - forseti-debug-1.0.0-1-x86.apk (54MB) - 32-bit emulators
 ```
 
-#### Android Release APK (Production)
+#### Android Release APK (Production) - AUTOMATED WORKFLOW
+
+**⭐ Recommended: Complete Build & Deploy (One Command)**
+
+```bash
+npm run android:deploy
+# OR
+./build-and-deploy.sh
+```
+
+**What this does automatically:**
+1. ✅ Increments versionCode in build.gradle
+2. ✅ Updates version display in App.tsx (v1.0.3(YYYY-MM-DD))
+3. ✅ Builds release APK (./gradlew clean assembleRelease)
+4. ✅ Copies APK to deployment location: `sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk`
+5. ✅ Shows git status ready for commit
+
+**Output:**
+```
+android/app/build/outputs/apk/release/
+├── forseti-release-1.0.3-4-arm64-v8a.apk (26 MB) ← Primary
+├── forseti-release-1.0.3-4-armeabi-v7a.apk (22 MB)
+├── forseti-release-1.0.3-4-x86.apk (28 MB)
+└── forseti-release-1.0.3-4-x86_64.apk (28 MB)
+
+sites/forseti/web/sites/default/files/forseti/mobile/
+└── Forseti-latest.apk (26 MB) ← Auto-copied for deployment
+```
+
+**Manual Build (if needed):**
 
 ```bash
 npm run android:clean
@@ -95,6 +125,14 @@ npm run android:build
 
 # Output: android/app/build/outputs/apk/release/
 # Files will be signed with release keystore
+```
+
+**Version Increment Only:**
+
+```bash
+npm run version:increment
+# OR
+./increment-build.sh
 ```
 
 #### Android App Bundle (for Google Play)
@@ -363,17 +401,31 @@ GPS Update → H3 Calculation → Index Comparison → Risk Query → Notificati
 
 ### Current Build Status
 
-**Latest Build**: v1.0.2
+**Latest Build**: v1.0.3
 
-- **Date**: December 18, 2025
-- **Size**: 24MB (up from 23MB v1.0.1)
-- **Hash**: 2d55c0cb3dc5799d9f794d4075cced01
+- **Date**: January 15, 2026
+- **Build Code**: Auto-incremented on each build (versionCode 4)
+- **Size**: 26MB arm64-v8a APK
 - **Engine**: Hermes JavaScript bytecode v94
-- **Status**: Fixed App.js/App.tsx conflict
+- **Status**: Automated build & deploy workflow
 
-### Android Build Process
+### Android Build Process (Automated)
 
-**Prerequisites**:
+**Complete Build & Deploy Workflow:**
+
+```bash
+# One command to build and deploy
+npm run android:deploy
+
+# Then commit and push
+git add -A
+git commit -m "Build and deploy Forseti Mobile v1.0.3-4"
+git push origin main
+
+# GitHub Actions will deploy to production automatically
+```
+
+**Manual Build (Legacy):**
 
 ```bash
 # Load environment variables (created by setup script)
@@ -383,22 +435,14 @@ source android-env.sh
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 export ANDROID_HOME=$HOME/Android
 export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
-```
 
-**Clean Build**:
-
-```bash
+# Build
 cd forseti-mobile/android
 ./gradlew clean assembleRelease
-```
 
-**Output**:
-
-```
-APK: android/app/build/outputs/apk/release/app-release.apk
-Size: ~24MB
-Target: Android 5.0+ (API 21)
-Architecture: ARM64-v8a
+# Manual copy to deployment location
+cp app/build/outputs/apk/release/forseti-release-1.0.3-4-arm64-v8a.apk \
+   ../../sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk
 ```
 
 **Build Configuration**:
