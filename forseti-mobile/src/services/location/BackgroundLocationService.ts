@@ -44,7 +44,7 @@ class BackgroundLocationService {
   // Configuration
   private readonly API_BASE_URL = 'https://forseti.life';
   private readonly UPDATE_INTERVAL = 60000; // Check location every 60 seconds
-  private readonly DISTANCE_FILTER = 50; // meters - minimum movement before update
+  private readonly DISTANCE_FILTER = 0; // meters - set to 0 for time-based updates without movement requirement
 
   private constructor() {
     this.setupAppStateListener();
@@ -159,8 +159,8 @@ class BackgroundLocationService {
           interval: this.UPDATE_INTERVAL,
           fastestInterval: this.UPDATE_INTERVAL / 2,
           showLocationDialog: false,   // Don't block service with location dialog
-          forceRequestLocation: false, // Use standard permission flow
-          forceLocationManager: false,
+          forceRequestLocation: true,  // Force location updates
+          forceLocationManager: true,  // Use LocationManager for consistent updates
           showsBackgroundLocationIndicator: true, // iOS
           pausesLocationUpdatesAutomatically: false, // iOS
         }

@@ -480,16 +480,26 @@ const SettingsScreenContent = ({ navigation }: any) => {
         <TouchableOpacity 
           style={[styles.actionButton, { backgroundColor: Colors.warning, marginTop: Spacing.md }]} 
           onPress={() => {
-            DebugLogger.info('🧪 [DEBUG] Simulating danger alert...');
-            Alert.alert(
-              '⚠️ DANGER ALERT (SIMULATED)',
-              'This is a test alert.\n\nZ-Score: 3.5\nIncident Count: 125\nRisk Level: EXTREME\n\nThis area has significantly higher crime than average.',
-              [
-                { text: 'Acknowledge', style: 'default' },
-                { text: 'Dismiss', style: 'cancel' }
-              ]
-            );
-            DebugLogger.info('✅ [DEBUG] Simulated alert displayed');
+            DebugLogger.info('🧪 [DEBUG] Simulating danger alert notification...');
+            
+            // Import NotificationService at the top if not already imported
+            const NotificationService = require('../../services/notifications/NotificationService').default;
+            
+            // Send real notification
+            NotificationService.sendSafetyAlert({
+              id: `test-alert-${Date.now()}`,
+              title: '⚠️ DANGER ALERT (TEST)',
+              message: 'This is a test alert.\n\nZ-Score: 3.5\nIncident Count: 125\nRisk Level: EXTREME\n\nThis area has significantly higher crime than average.',
+              type: 'danger',
+              priority: 'high',
+              location: {
+                latitude: 39.9526,
+                longitude: -75.1652,
+              },
+            });
+            
+            DebugLogger.info('✅ [DEBUG] Test notification sent to system');
+            Alert.alert('Test Notification Sent', 'Check your notification tray at the top of the screen.');
           }}
         >
           <Text style={styles.actionButtonText}>🚨 Simulate Danger Alert</Text>
@@ -669,7 +679,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: Spacing.borderRadius.md,
     borderWidth: 1,
-    color: Colors.text,
+    color: Colors.black,  // Black text on white background for contrast
     fontFamily: 'monospace',
     fontSize: 14,
     marginTop: Spacing.xs,
