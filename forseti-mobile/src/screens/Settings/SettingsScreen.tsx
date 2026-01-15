@@ -19,6 +19,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useBackgroundMonitoring } from '../../hooks/useBackgroundMonitoring';
 import StorageService from '../../services/storage/StorageService';
+import NotificationService from '../../services/notifications/NotificationService';
 import { Theme } from '../../utils/theme';
 import DebugConsole, { DebugLogger } from '../../components/DebugConsole';
 
@@ -482,16 +483,14 @@ const SettingsScreenContent = ({ navigation }: any) => {
           onPress={() => {
             DebugLogger.info('🧪 [DEBUG] Simulating danger alert notification...');
             
-            // Import NotificationService at the top if not already imported
-            const NotificationService = require('../../services/notifications/NotificationService').default;
-            
-            // Send real notification
+            // Send real notification (NotificationService is already the singleton instance)
             NotificationService.sendSafetyAlert({
               id: `test-alert-${Date.now()}`,
               title: '⚠️ DANGER ALERT (TEST)',
               message: 'This is a test alert.\n\nZ-Score: 3.5\nIncident Count: 125\nRisk Level: EXTREME\n\nThis area has significantly higher crime than average.',
-              type: 'danger',
+              type: 'high_crime_area',
               priority: 'high',
+              timestamp: Date.now(),
               location: {
                 latitude: 39.9526,
                 longitude: -75.1652,
