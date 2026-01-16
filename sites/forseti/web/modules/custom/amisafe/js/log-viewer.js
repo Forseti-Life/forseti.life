@@ -9,60 +9,95 @@
   Drupal.behaviors.amisafeLogManagement = {
     attach: function (context, settings) {
       // View log button handler
-      $('.view-log-btn', context).once('log-view').on('click', function() {
-        var logId = $(this).data('log-id');
-        loadAndDisplayLog(logId);
+      $('.view-log-btn', context).each(function() {
+        if (!$(this).data('log-view-attached')) {
+          $(this).data('log-view-attached', true);
+          $(this).on('click', function() {
+            var logId = $(this).data('log-id');
+            loadAndDisplayLog(logId);
+          });
+        }
       });
 
       // Delete log button handler
-      $('.delete-log-btn', context).once('log-delete').on('click', function() {
-        var logId = $(this).data('log-id');
-        if (confirm(Drupal.t('Are you sure you want to delete this log?'))) {
-          deleteLog(logId);
+      $('.delete-log-btn', context).each(function() {
+        if (!$(this).data('log-delete-attached')) {
+          $(this).data('log-delete-attached', true);
+          $(this).on('click', function() {
+            var logId = $(this).data('log-id');
+            if (confirm(Drupal.t('Are you sure you want to delete this log?'))) {
+              deleteLog(logId);
+            }
+          });
         }
       });
 
       // Show device info button handler
-      $('.show-device-info', context).once('device-info').on('click', function() {
-        var deviceInfo = $(this).data('device-info');
-        showDeviceInfo(deviceInfo);
+      $('.show-device-info', context).each(function() {
+        if (!$(this).data('device-info-attached')) {
+          $(this).data('device-info-attached', true);
+          $(this).on('click', function() {
+            var deviceInfo = $(this).data('device-info');
+            showDeviceInfo(deviceInfo);
+          });
+        }
       });
 
       // Close modal handlers
-      $('.close-modal', context).once('modal-close').on('click', function() {
-        $(this).closest('.log-modal').hide();
+      $('.close-modal', context).each(function() {
+        if (!$(this).data('modal-close-attached')) {
+          $(this).data('modal-close-attached', true);
+          $(this).on('click', function() {
+            $(this).closest('.log-modal').hide();
+          });
+        }
       });
 
       // Copy log button
-      $('#copy-log-btn', context).once('copy-log').on('click', function() {
-        var logContent = $('#log-content-display').text();
-        navigator.clipboard.writeText(logContent).then(function() {
-          alert(Drupal.t('Log copied to clipboard!'));
-        }).catch(function(err) {
-          console.error('Failed to copy:', err);
-        });
+      $('#copy-log-btn', context).each(function() {
+        if (!$(this).data('copy-log-attached')) {
+          $(this).data('copy-log-attached', true);
+          $(this).on('click', function() {
+            var logContent = $('#log-content-display').text();
+            navigator.clipboard.writeText(logContent).then(function() {
+              alert(Drupal.t('Log copied to clipboard!'));
+            }).catch(function(err) {
+              console.error('Failed to copy:', err);
+            });
+          });
+        }
       });
 
       // Download log button
-      $('#download-log-btn', context).once('download-log').on('click', function() {
-        var logContent = $('#log-content-display').text();
-        var userId = $('#log-user-id').text();
-        var timestamp = $('#log-uploaded-at').text();
-        var filename = 'console-log-' + userId + '-' + timestamp.replace(/[: ]/g, '-') + '.txt';
-        
-        var blob = new Blob([logContent], { type: 'text/plain' });
-        var url = window.URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        window.URL.revokeObjectURL(url);
+      $('#download-log-btn', context).each(function() {
+        if (!$(this).data('download-log-attached')) {
+          $(this).data('download-log-attached', true);
+          $(this).on('click', function() {
+            var logContent = $('#log-content-display').text();
+            var userId = $('#log-user-id').text();
+            var timestamp = $('#log-uploaded-at').text();
+            var filename = 'console-log-' + userId + '-' + timestamp.replace(/[: ]/g, '-') + '.txt';
+            
+            var blob = new Blob([logContent], { type: 'text/plain' });
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+          });
+        }
       });
 
       // Click outside modal to close
-      $('.log-modal', context).once('modal-outside').on('click', function(e) {
-        if ($(e.target).hasClass('log-modal')) {
-          $(this).hide();
+      $('.log-modal', context).each(function() {
+        if (!$(this).data('modal-outside-attached')) {
+          $(this).data('modal-outside-attached', true);
+          $(this).on('click', function(e) {
+            if ($(e.target).hasClass('log-modal')) {
+              $(this).hide();
+            }
+          });
         }
       });
     }
