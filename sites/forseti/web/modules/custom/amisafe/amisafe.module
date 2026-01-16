@@ -47,5 +47,11 @@ function amisafe_theme() {
       ],
       'template' => 'amisafe-mobile-download',
     ],
+    'amisafe_log_management' => [
+      'variables' => [
+        'logs' => [],
+      ],
+      'template' => 'amisafe-log-management',
+    ],
   ];
 }

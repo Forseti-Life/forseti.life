@@ -39,3 +39,16 @@ mobile-download:
   version: 1.0
   dependencies:
     - core/drupal
+
+# Log viewer interface
+log-viewer:
+  version: 1.0
+  css:
+    theme:
+      css/log-viewer.css: {}
+  js:
+    js/log-viewer.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/drupalSettings

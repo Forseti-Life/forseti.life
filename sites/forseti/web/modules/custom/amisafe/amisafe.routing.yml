@@ -195,3 +195,41 @@ amisafe.admin_form:
     _title: 'AmISafe Configuration'
   requirements:
     _permission: 'administer site configuration'
+
+# Log Management Routes
+amisafe.log_management:
+  path: '/admin/amisafe/logs'
+  defaults:
+    _controller: '\Drupal\amisafe\Controller\LogManagementController::logManagementPage'
+    _title: 'User Console Logs'
+  requirements:
+    _permission: 'administer site configuration'
+
+amisafe.api.log_upload:
+  path: '/api/amisafe/log/upload'
+  defaults:
+    _controller: '\Drupal\amisafe\Controller\LogManagementController::uploadLog'
+    _format: 'json'
+  requirements:
+    _access: 'TRUE'
+    _method: 'POST'
+  options:
+    no_cache: 'TRUE'
+
+amisafe.api.log_get:
+  path: '/api/amisafe/log/{log_id}'
+  defaults:
+    _controller: '\Drupal\amisafe\Controller\LogManagementController::getLog'
+    _format: 'json'
+  requirements:
+    _permission: 'administer site configuration'
+    _method: 'GET'
+
+amisafe.api.log_delete:
+  path: '/api/amisafe/log/{log_id}/delete'
+  defaults:
+    _controller: '\Drupal\amisafe\Controller\LogManagementController::deleteLog'
+    _format: 'json'
+  requirements:
+    _permission: 'administer site configuration'
+    _method: 'POST'
