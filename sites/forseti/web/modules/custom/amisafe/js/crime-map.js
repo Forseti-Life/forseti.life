@@ -201,12 +201,12 @@
         attributionControl: false
       });
 
-      // Add dark tile layer
-      const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      // Add light tile layer
+      const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '',
         subdomains: 'abcd',
         maxZoom: 20,
-        className: 'dark-tiles'
+        className: 'light-tiles'
       });
       
       tileLayer.on('tileerror', function(error) {
