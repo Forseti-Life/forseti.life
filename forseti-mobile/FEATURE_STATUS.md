@@ -20,7 +20,8 @@
 
 ### ✅ Navigation & Architecture
 
-- ✅ Bottom tab navigation (6 screens)
+- ✅ Bottom tab navigation (4 active screens: Home, Map, Safety, Profile)
+- ⚠️ Chat tab disabled (commented out in App.tsx)
 - ✅ Stack navigation for auxiliary screens
 - ✅ TypeScript support throughout codebase
 - ✅ Theme system with Forseti branding
@@ -108,22 +109,23 @@
 
 ## NOTIFICATIONS & ALERTS
 
-### ⚠️ Notification System (Temporarily Disabled)
+### ⚠️ Notification System (Ready for Enablement)
 
-- ⚠️ NotificationService code complete (401 lines)
-- ⚠️ Package missing: react-native-push-notification
-- ⚠️ Will be re-enabled after package install
-- ⚠️ Local notifications ready
-- ⚠️ Deep linking configured
-- ⚠️ Triggers notification if z-score exceeds user threshold
-- ⚠️ Notification cooldown to prevent spam
-- ⚠️ Tapping notification opens safety map at location
+- ✅ NotificationService code complete (398 lines)
+- ✅ Package installed: react-native-push-notification (v8.1.1)
+- ⚠️ Service imports commented out in BackgroundLocationService.ts
+- ⚠️ Needs uncommenting and testing
+- ✅ Local notifications ready
+- ✅ Deep linking configured
+- ✅ Triggers notification if z-score exceeds user threshold
+- ✅ Notification cooldown to prevent spam
+- ✅ Tapping notification opens safety map at location
 
 **To Re-enable**:
 
 ```bash
-npm install react-native-push-notification
-# Uncomment imports in App.tsx and BackgroundLocationService.ts
+# Uncomment imports in BackgroundLocationService.ts (lines 11, 142, 381)
+# Test notification delivery on Android 13+ device
 # Rebuild APK
 ```
 
@@ -171,7 +173,7 @@ npm install react-native-push-notification
 - ✅ Filter panel
 - ✅ Statistics display
 
-### ✅ Chat Screen
+### ⚠️ Chat Screen (Implemented but Disabled)
 
 **File**: `src/screens/Chat/ChatScreen.js`
 
@@ -180,6 +182,8 @@ npm install react-native-push-notification
 - ✅ Connects to Drupal AI backend
 - ✅ Save conversations (authenticated users)
 - ✅ API endpoint: `/api/amisafe/chat`
+- ⚠️ **Currently disabled:** Tab commented out in App.tsx due to API errors
+- ⚠️ **Priority:** Low - not currently being worked on
 
 ### ✅ Community Screen
 
