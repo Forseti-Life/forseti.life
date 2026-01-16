@@ -374,9 +374,9 @@ class BackgroundLocationService {
     hexagonData: H3HexagonData,
     location: LocationCoords
   ): Promise<void> {
-    const zScore = hexagonData.incident_z_score.toFixed(1);
-    const incidentCount = hexagonData.incident_count;
-    const riskLevel = hexagonData.risk_level;
+    const zScore = (hexagonData.incident_z_score || 0).toFixed(1);
+    const incidentCount = hexagonData.incident_count || 0;
+    const riskLevel = hexagonData.risk_level || 'LOW';
 
     // await NotificationService.scheduleNotification({ // Temporarily disabled
     console.log('⚠️ Would send danger notification:', {
@@ -387,7 +387,7 @@ class BackgroundLocationService {
       data: {
         type: 'danger_alert',
         h3_index: hexagonData.h3_index,
-        z_score: hexagonData.incident_z_score,
+        z_score: hexagonData.incident_z_score || 0,
         latitude: location.latitude,
         longitude: location.longitude,
         url: `https://forseti.life/safety-map?lat=${location.latitude}&lng=${location.longitude}`,
