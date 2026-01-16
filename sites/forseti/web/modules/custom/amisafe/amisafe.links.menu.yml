@@ -2,7 +2,6 @@ forseti.admin:
   title: 'Forseti'
   parent: system.admin
   description: 'Forseti website management and administration'
-  route_name: system.admin_structure
   weight: -5
 
 amisafe.config:
