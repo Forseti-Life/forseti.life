@@ -1,0 +1,20 @@
+amisafe.admin:
+  title: 'AmISafe'
+  parent: system.admin
+  description: 'Manage AmISafe crime monitoring and analytics system'
+  route_name: system.admin_structure
+  weight: -5
+
+amisafe.config:
+  title: 'AmISafe Configuration'
+  parent: amisafe.admin
+  description: 'Configure AmISafe settings and parameters'
+  route_name: amisafe.config
+  weight: 0
+
+amisafe.log_management:
+  title: 'User Console Logs'
+  parent: amisafe.admin
+  description: 'Review and manage console logs from mobile devices'
+  route_name: amisafe.log_management
+  weight: 10
