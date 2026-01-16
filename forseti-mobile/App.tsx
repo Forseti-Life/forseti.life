@@ -111,7 +111,7 @@ const TabNavigator = ({ navigation, onLogout }: { navigation: any; onLogout: () 
           />
           <View>
             <Text style={styles.logoText}>Forseti</Text>
-            <Text style={styles.versionText}>v1.0.3-14 (2026-01-15)</Text>
+            <Text style={styles.versionText}>v1.0.3-15 (2026-01-16)</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>

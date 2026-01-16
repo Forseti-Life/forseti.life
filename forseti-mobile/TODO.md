@@ -64,6 +64,13 @@
 - [x] Install react-native-push-notification package
 - [x] Update documentation to reflect current accurate status
 - [x] Fix version number display (v1.0.3-14)
+- [x] **Implement console log capture and upload system**
+  - [x] Create ConsoleLogService for automatic console log capture
+  - [x] Add useConsoleLogs React hook for UI integration
+  - [x] Integrate with Debug Console screen (upload/clear buttons)
+  - [x] Add console log management to Settings screen
+  - [x] Automatic upload on app background/close
+  - [x] Integration with existing Drupal API endpoint `/api/amisafe/log/upload`
 
 ---
 
