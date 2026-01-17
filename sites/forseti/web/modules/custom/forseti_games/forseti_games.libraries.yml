@@ -1,0 +1,19 @@
+game-home:
+  version: 1.x
+  css:
+    theme:
+      css/game-home.css: {}
+  dependencies:
+    - core/drupal
+
+block-matcher:
+  version: 1.x
+  js:
+    js/block-matcher.js: {}
+  css:
+    theme:
+      css/block-matcher.css: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/once
