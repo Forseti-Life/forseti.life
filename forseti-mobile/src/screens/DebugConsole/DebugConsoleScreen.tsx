@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { DebugLogger } from '../../components/DebugConsole';
+import { useConsoleLogs } from '../../hooks/useConsoleLogs';
 import { Theme } from '../../utils/theme';
 
 const { Colors, Spacing, Typography } = Theme;
@@ -30,6 +31,9 @@ const DebugConsoleScreen = ({ navigation }: any) => {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollViewRef = React.useRef<ScrollView>(null);
+  
+  // Console log upload functionality
+  const { logCount, isUploading, uploadLogs, clearLogs: clearConsoleLogs, uploadError } = useConsoleLogs();
 
   useEffect(() => {
     const unsubscribe = DebugLogger.subscribe(setEntries);
@@ -64,6 +68,20 @@ const DebugConsoleScreen = ({ navigation }: any) => {
     DebugLogger.clear();
   };
 
+  const handleUploadLogs = async () => {
+    const success = await uploadLogs();
+    if (success) {
+      DebugLogger.info('Debug logs uploaded successfully to server');
+    } else {
+      DebugLogger.error(`Failed to upload debug logs: ${uploadError || 'Unknown error'}`);
+    }
+  };
+
+  const handleClearConsoleLogs = async () => {
+    await clearConsoleLogs();
+    DebugLogger.info('Debug log storage cleared');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -72,6 +90,23 @@ const DebugConsoleScreen = ({ navigation }: any) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Debug Console</Text>
         <View style={styles.headerActions}>
+          <TouchableOpacity 
+            onPress={handleUploadLogs}
+            style={[styles.headerButton, isUploading && styles.disabledButton]}
+            disabled={isUploading}
+          >
+            <Icon 
+              name={isUploading ? "loading" : "cloud-upload"} 
+              size={20} 
+              color={isUploading ? Colors.textSecondary : Colors.primary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={handleClearConsoleLogs}
+            style={styles.headerButton}
+          >
+            <Icon name="broom" size={20} color={Colors.warning} />
+          </TouchableOpacity>
           <TouchableOpacity 
             onPress={() => setAutoScroll(!autoScroll)} 
             style={styles.headerButton}
@@ -90,13 +125,10 @@ const DebugConsoleScreen = ({ navigation }: any) => {
 
       <View style={styles.statsBar}>
         <Text style={styles.statsText}>
-          Total: {entries.length} | 
-          Info: {entries.filter(e => e.level === 'info').length} | 
-          Warn: {entries.filter(e => e.level === 'warn').length} | 
-          Error: {entries.filter(e => e.level === 'error').length}
+          Debug: {entries.length} (Info: {entries.filter(e => e.level === 'info').length}, Warn: {entries.filter(e => e.level === 'warn').length}, Error: {entries.filter(e => e.level === 'error').length}) | Storage: {logCount} entries
         </Text>
         <Text style={styles.statsHint}>
-          📜 Reading order: Top (oldest) → Bottom (newest) | Auto-scroll: {autoScroll ? 'ON' : 'OFF'}
+          📤 Upload debug logs to server | 🧹 Clear debug storage | 📜 Auto-scroll: {autoScroll ? 'ON' : 'OFF'}
         </Text>
       </View>
 
@@ -162,6 +194,9 @@ const styles = StyleSheet.create({
   },
   headerButton: {
     padding: Spacing.xs,
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
   statsBar: {
     backgroundColor: '#1a1a1a', // Dark stats bar

@@ -334,18 +334,32 @@ class BackgroundLocationService {
       DebugLogger.info(`📋 [API PARAMS] resolution: ${params.resolution}, h3_index: ${params.h3_index}`);
       console.log(`🌐 API Call: ${apiUrl}?resolution=${params.resolution}&h3_index=${params.h3_index}`);
 
-      const response = await axios.get(apiUrl, {
-        params,
-        timeout: 10000,
-      });
+      // Make the API request with better error handling
+      let response;
+      try {
+        response = await axios.get(apiUrl, {
+          params,
+          timeout: 10000,
+        });
+      } catch (axiosError) {
+        DebugLogger.error('❌ [AXIOS ERROR] HTTP request failed:', axiosError);
+        throw axiosError;
+      }
 
+      // Process the response
       if (response.data && response.data.hexagons && response.data.hexagons.length > 0) {
         const hexagon = response.data.hexagons[0];
+        
+        // Safely extract values with explicit null checks
+        const safeIncidentCount = hexagon.incident_count || 0;
+        const safeIncidentZScore = hexagon.incident_z_score || 0;
+        const safeRiskLevel = hexagon.risk_level || hexagon.risk_category || 'LOW';
+        
         const result = {
           h3_index: hexagon.h3_index,
-          incident_count: hexagon.incident_count || 0,
-          incident_z_score: hexagon.incident_z_score || 0,
-          risk_level: hexagon.risk_level || hexagon.risk_category || 'LOW',
+          incident_count: safeIncidentCount,
+          incident_z_score: safeIncidentZScore,
+          risk_level: safeRiskLevel,
           resolution: this.h3Resolution,
         };
 
@@ -363,6 +377,7 @@ class BackgroundLocationService {
     } catch (error) {
       DebugLogger.error('❌ [API ERROR] Failed to fetch hexagon data:', error);
       console.error('Error fetching hexagon data:', error);
+      console.error('Error stack:', error.stack);
       return null;
     }
   }
@@ -374,9 +389,9 @@ class BackgroundLocationService {
     hexagonData: H3HexagonData,
     location: LocationCoords
   ): Promise<void> {
-    const zScore = hexagonData.incident_z_score.toFixed(1);
-    const incidentCount = hexagonData.incident_count;
-    const riskLevel = hexagonData.risk_level;
+    const zScore = (hexagonData.incident_z_score || 0).toFixed(1);
+    const incidentCount = hexagonData.incident_count || 0;
+    const riskLevel = hexagonData.risk_level || 'LOW';
 
     // await NotificationService.scheduleNotification({ // Temporarily disabled
     console.log('⚠️ Would send danger notification:', {
@@ -387,7 +402,7 @@ class BackgroundLocationService {
       data: {
         type: 'danger_alert',
         h3_index: hexagonData.h3_index,
-        z_score: hexagonData.incident_z_score,
+        z_score: hexagonData.incident_z_score || 0,
         latitude: location.latitude,
         longitude: location.longitude,
         url: `https://forseti.life/safety-map?lat=${location.latitude}&lng=${location.longitude}`,

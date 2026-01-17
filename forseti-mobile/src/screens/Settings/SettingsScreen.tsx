@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useBackgroundMonitoring } from '../../hooks/useBackgroundMonitoring';
+import { useConsoleLogs } from '../../hooks/useConsoleLogs';
 import StorageService from '../../services/storage/StorageService';
 import NotificationService from '../../services/notifications/NotificationService';
 import { Theme } from '../../utils/theme';
@@ -97,6 +98,9 @@ const SettingsScreenContent = ({ navigation }: any) => {
   }
   
   const { isMonitoring, currentH3Index, toggleMonitoring } = hookData;
+  
+  // Console log functionality
+  const { logCount, isUploading, uploadLogs, clearLogs: clearConsoleLogs, uploadError } = useConsoleLogs();
 
   const [zScoreThreshold, setZScoreThreshold] = useState(2.0);
   const [notificationCooldown, setNotificationCooldown] = useState(5);
@@ -433,6 +437,50 @@ const SettingsScreenContent = ({ navigation }: any) => {
           <Icon name="bug" size={20} color={Colors.warning} style={styles.linkIcon} />
           <Text style={styles.linkButtonText}>Debug Console</Text>
         </TouchableOpacity>
+
+        <View style={{ marginTop: Spacing.md }}>
+          <Text style={styles.settingLabel}>📋 Debug Log Management</Text>
+          <Text style={styles.settingDescription}>Upload app debug logs to server for troubleshooting ({logCount} entries)</Text>
+          
+          <TouchableOpacity 
+            style={[styles.actionButton, { 
+              backgroundColor: isUploading ? Colors.gray : Colors.primary, 
+              marginTop: Spacing.sm 
+            }]} 
+            onPress={async () => {
+              const success = await uploadLogs();
+              if (success) {
+                Alert.alert('✅ Success', 'Debug logs uploaded successfully!');
+              } else {
+                Alert.alert('❌ Upload Failed', uploadError || 'Unknown error occurred');
+              }
+            }}
+            disabled={isUploading}
+          >
+            <Text style={styles.actionButtonText}>
+              {isUploading ? '📤 Uploading...' : '📤 Upload Debug Logs'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.actionButton, { backgroundColor: Colors.gray, marginTop: Spacing.xs }]} 
+            onPress={() => {
+              Alert.alert(
+                'Clear Debug Logs?',
+                `This will clear ${logCount} log entries from the app. This action cannot be undone.`,
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Clear', style: 'destructive', onPress: async () => {
+                    await clearConsoleLogs();
+                    Alert.alert('✅ Cleared', 'Debug logs have been cleared.');
+                  }}
+                ]
+              );
+            }}
+          >
+            <Text style={styles.actionButtonText}>🧹 Clear Debug Logs</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={{ marginTop: Spacing.md }}>
           <Text style={styles.settingLabel}>📍 Set Test Location</Text>
