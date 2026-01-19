@@ -41,7 +41,7 @@ class GameController extends ControllerBase {
   public function blockMatcher() {
     $game_data = [
       'grid_size' => 8,
-      'block_types' => 6,
+      'block_types' => 7,
       'min_match' => 3,
     ];
 

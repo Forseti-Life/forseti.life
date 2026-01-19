@@ -1,10 +1,14 @@
 /**
  * @file
  * 3D Block Matcher game logic using Three.js.
+ * @version 2.1.1
+ * @updated 2026-01-19
  */
 
 (function ($, Drupal, once) {
   'use strict';
+  
+  console.log('Block Matcher 3D v2.1.1 - Loaded');
 
   Drupal.behaviors.blockMatcher3D = {
     attach: function (context, settings) {
@@ -62,17 +66,17 @@
     
     // Special blocks: 100-114 (with some numbers removed)
     this.specialBlocks = {
-      100: { name: 'Bomb', emoji: '💣', color: 0xff0000, rarity: 30 },
-      101: { name: 'Lightning', emoji: '⚡', color: 0xffff00, rarity: 30 },
-      105: { name: 'Shuffler', emoji: '🔄', color: 0x9900ff, rarity: 60 },
-      106: { name: 'Laser', emoji: '🎯', color: 0xff0066, rarity: 60 },
-      107: { name: 'Freeze', emoji: '⏸️', color: 0x66ccff, rarity: 30 },
-      108: { name: 'Multiplier', emoji: '💎', color: 0xffd700, rarity: 30 },
-      109: { name: 'Jackpot', emoji: '🎰', color: 0x00ff00, rarity: 30 },
-      110: { name: 'Combo Extender', emoji: '⭐', color: 0xc0c0c0, rarity: 9 },
-      112: { name: 'Teleporter', emoji: '🔮', color: 0xff66cc, rarity: 9 },
-      113: { name: 'Color Changer', emoji: '🎨', color: 0x6699ff, rarity: 9 },
-      114: { name: 'Shield', emoji: '🛡️', color: 0x0099ff, rarity: 1 }
+      100: { name: 'Bomb', emoji: '💣', color: 0xff0000, rarity: 30, unlockLevel: 1 },
+      101: { name: 'Lightning', emoji: '⚡', color: 0xffff00, rarity: 30, unlockLevel: 2 },
+      109: { name: 'Jackpot', emoji: '🎰', color: 0x00ff00, rarity: 30, unlockLevel: 3 },
+      108: { name: 'Multiplier', emoji: '💎', color: 0xffd700, rarity: 30, unlockLevel: 4 },
+      107: { name: 'Freeze', emoji: '⏸️', color: 0x66ccff, rarity: 30, unlockLevel: 5 },
+      106: { name: 'Laser', emoji: '🎯', color: 0xff0066, rarity: 60, unlockLevel: 6 },
+      105: { name: 'Shuffler', emoji: '🔄', color: 0x9900ff, rarity: 60, unlockLevel: 7 },
+      113: { name: 'Color Changer', emoji: '🎨', color: 0x6699ff, rarity: 9, unlockLevel: 8 },
+      112: { name: 'Teleporter', emoji: '🔮', color: 0xff66cc, rarity: 9, unlockLevel: 9 },
+      110: { name: 'Combo Extender', emoji: '⭐', color: 0xc0c0c0, rarity: 9, unlockLevel: 10 },
+      114: { name: 'Shield', emoji: '🛡️', color: 0x0099ff, rarity: 1, unlockLevel: 11 }
     };
     
     // Audio
@@ -131,6 +135,38 @@
       this.startTimer();
       this.bindEvents();
       this.startCenterBlockShimmer();
+      this.startSpawnBlockThrob();
+    },
+    
+    startSpawnBlockThrob: function() {
+      var self = this;
+      var throbTime = 0;
+      
+      function throb() {
+        throbTime += 0.05;
+        var intensity = 0.5 + Math.sin(throbTime) * 0.3; // Pulse between 0.2 and 0.8
+        
+        // Update all blocks at spawn edges
+        Object.keys(self.blockMeshes).forEach(function(key) {
+          var mesh = self.blockMeshes[key];
+          if (mesh && mesh.userData && mesh.userData.isSpawnEdge) {
+            // Throb the emissive intensity
+            if (Array.isArray(mesh.material)) {
+              mesh.material.forEach(function(mat) {
+                mat.emissiveIntensity = intensity;
+              });
+            } else if (mesh.material) {
+              mesh.material.emissiveIntensity = intensity;
+            }
+          }
+        });
+        
+        if (!self.gameEnded) {
+          requestAnimationFrame(throb);
+        }
+      }
+      
+      throb();
     },
 
     initAudio: function() {
@@ -505,35 +541,57 @@
     },
 
     randomBlockType: function() {
-      // 10% chance for special block
-      if (Math.random() < 0.1) {
+      // Don't spawn special blocks if combo is over 500
+      if (this.comboMatchCount > 500) {
+        return Math.floor(Math.random() * this.blockTypes);
+      }
+      
+      // 5% chance for special block
+      if (Math.random() < 0.05) {
         return this.getRandomSpecialBlock();
       }
       return Math.floor(Math.random() * this.blockTypes);
     },
 
     getRandomSpecialBlock: function() {
-      // Calculate total rarity weight
-      var totalRarity = 0;
+      // Only include special blocks unlocked at current level or below
+      var availableBlocks = {};
       var self = this;
+      
       Object.keys(this.specialBlocks).forEach(function(key) {
-        totalRarity += self.specialBlocks[key].rarity;
+        var block = self.specialBlocks[key];
+        if (block.unlockLevel <= self.level) {
+          availableBlocks[key] = block;
+        }
+      });
+      
+      // If no blocks available (shouldn't happen), return Bomb
+      if (Object.keys(availableBlocks).length === 0) {
+        return 100;
+      }
+      
+      // Calculate total rarity weight from available blocks
+      var totalRarity = 0;
+      Object.keys(availableBlocks).forEach(function(key) {
+        totalRarity += availableBlocks[key].rarity;
       });
       
       // Pick based on rarity
       var roll = Math.random() * totalRarity;
       var currentWeight = 0;
       
-      for (var key in this.specialBlocks) {
-        currentWeight += this.specialBlocks[key].rarity;
+      for (var key in availableBlocks) {
+        currentWeight += availableBlocks[key].rarity;
         if (roll <= currentWeight) {
-          this.logDebug('Generated special block: ' + key + ' ' + this.specialBlocks[key].name);
+          this.logDebug('Generated special block: ' + key + ' ' + availableBlocks[key].name + ' (level ' + this.level + ')');
           return parseInt(key);
         }
       }
       
-      this.logDebug('Using fallback special block: Bomb');
-      return 100; // Bomb as fallback
+      // Fallback to first available block
+      var firstKey = Object.keys(availableBlocks)[0];
+      this.logDebug('Using fallback special block: ' + firstKey);
+      return parseInt(firstKey);
     },
 
     isSpecialBlock: function(type) {
@@ -618,8 +676,9 @@
     },
 
     getBlockColor: function(type) {
-      // Define base colors: Red, Blue, Green, Yellow, Purple, Pink (6 colors)
-      var colors = [0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12, 0x9b59b6, 0xe91e63];
+      // Define base colors: maximally spaced on color wheel for distinction
+      // Red, Orange, Yellow, Green, Cyan, Blue, Magenta (7 colors evenly distributed)
+      var colors = [0xFF0000, 0xFF8000, 0xFFFF00, 0x00FF00, 0x00FFFF, 0x0000FF, 0xFF00FF];
       
       if (this.isSpecialBlock(type)) {
         // Special blocks use the color they will match with
@@ -630,23 +689,38 @@
       return colors[type] || 0xcccccc;
     },
 
-    createEmojiTexture: function(emoji) {
+    createEmojiTexture: function(emoji, blockColor) {
       var canvas = document.createElement('canvas');
       canvas.width = 128;
       canvas.height = 128;
       var ctx = canvas.getContext('2d');
       
-      // Draw white circle background
+      // Draw solid colored background (block color)
+      ctx.fillStyle = '#' + blockColor.toString(16).padStart(6, '0');
+      ctx.fillRect(0, 0, 128, 128);
+      
+      // Draw large white circle background for emoji (nearly full size)
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(64, 64, 60, 0, Math.PI * 2);
+      ctx.arc(64, 64, 58, 0, Math.PI * 2);
       ctx.fill();
       
-      // Draw emoji
-      ctx.font = 'bold 70px Arial';
+      // Add thick dark border around white circle for definition
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 6;
+      ctx.stroke();
+      
+      // Draw emoji on top - larger and with strong black outline
+      ctx.font = 'bold 80px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#000000';
+      
+      // Draw black outline for the emoji (make it stand out)
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 8;
+      ctx.strokeText(emoji, 64, 64);
+      
+      // Draw the emoji itself
       ctx.fillText(emoji, 64, 64);
       
       var texture = new THREE.CanvasTexture(canvas);
@@ -666,7 +740,7 @@
       this.blockMeshes = {};
       
       // Create block meshes
-      var geometry = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+      var geometry = new THREE.BoxGeometry(0.95, 0.95, 0.95);
       
       for (var x = 0; x < this.gridSize; x++) {
         for (var y = 0; y < this.gridSize; y++) {
@@ -694,9 +768,20 @@
               material.emissiveIntensity = 0.8;
             }
             
+            // Check if block is at spawn edge (game over risk position)
+            var isSpawnEdge = (x === 0 || x === self.gridSize - 1 || 
+                              y === 0 || y === self.gridSize - 1 || 
+                              z === 0 || z === self.gridSize - 1);
+            
+            // Highlight spawn edge blocks with warning color
+            if (isSpawnEdge && blockType !== -2) {
+              material.emissive.setHex(0xff0000); // Red warning
+              material.emissiveIntensity = 0.6; // Will be animated by throb
+            }
+            
             var mesh = new THREE.Mesh(geometry, material);
             mesh.position.set(x - offset, y - offset, z - offset);
-            mesh.userData = { x: x, y: y, z: z };
+            mesh.userData = { x: x, y: y, z: z, isSpawnEdge: isSpawnEdge };
             
             // Highlight center block in black AFTER mesh is created
             if (x === centerPos && y === centerPos && z === centerPos) {
@@ -711,21 +796,26 @@
             
             this.scene.add(mesh);
             
-            // Add emoji sprite for special blocks
+            // Add emoji texture to all faces for special blocks
             if (isSpecial) {
               var special = this.getSpecialBlockData(blockType);
               if (special) {
-                this.logDebug('Creating sprite for special block: ' + blockType + ' ' + special.name + ' ' + special.emoji);
-                var spriteMap = this.createEmojiTexture(special.emoji);
-                var spriteMaterial = new THREE.SpriteMaterial({ 
-                  map: spriteMap,
-                  transparent: false,
-                  depthTest: true,
-                  depthWrite: true
-                });
-                var sprite = new THREE.Sprite(spriteMaterial);
-                sprite.scale.set(0.9, 0.9, 0.9);
-                mesh.add(sprite);
+                this.logDebug('Creating texture for special block: ' + blockType + ' ' + special.name + ' ' + special.emoji);
+                var emojiTexture = this.createEmojiTexture(special.emoji, color);
+                
+                // Create materials array - 6 faces with emoji texture on all
+                var materials = [];
+                for (var i = 0; i < 6; i++) {
+                  materials.push(new THREE.MeshStandardMaterial({
+                    color: color,
+                    emissive: color,
+                    emissiveIntensity: 0.3,
+                    metalness: 0.2,
+                    roughness: 0.6,
+                    map: emojiTexture
+                  }));
+                }
+                mesh.material = materials;
               }
             }
             
@@ -799,53 +889,52 @@
 
     dropRandomBlocks: function(count) {
       var self = this;
-      // Number of blocks to drop equals current level (1-9)
-      var blocksToPlace = this.level;
+      var blocksToPlace = count || this.level;
+      
+      // Calculate playable area boundaries
+      var centerPos = Math.floor(this.gridSize / 2);
+      var halfSize = Math.floor(this.playableSize / 2);
+      var minIndex = centerPos - halfSize;
+      var maxIndex = centerPos + halfSize;
+      
+      // Spawn blocks at the grid edges (same as regenerateBlocks) using FULL grid range
+      var spawnMin = 0;
+      var spawnMax = this.gridSize - 1;
+      
+      var faces = [
+        { name: 'top', axis: 'y', value: spawnMax, range: [0, this.gridSize - 1] },
+        { name: 'bottom', axis: 'y', value: spawnMin, range: [0, this.gridSize - 1] },
+        { name: 'left', axis: 'x', value: spawnMin, range: [0, this.gridSize - 1] },
+        { name: 'right', axis: 'x', value: spawnMax, range: [0, this.gridSize - 1] },
+        { name: 'front', axis: 'z', value: spawnMax, range: [0, this.gridSize - 1] },
+        { name: 'back', axis: 'z', value: spawnMin, range: [0, this.gridSize - 1] }
+      ];
+      
       var blocksPlaced = 0;
-      var maxAttempts = blocksToPlace * 10; // Allow multiple attempts to find empty spots
+      var maxAttempts = blocksToPlace * 10;
       var attempts = 0;
       
       // Try to place all requested blocks
       while (blocksPlaced < blocksToPlace && attempts < maxAttempts) {
-        // Pick a random edge position
-        var face = Math.floor(Math.random() * 6);
+        var face = faces[Math.floor(Math.random() * faces.length)];
         var targetX, targetY, targetZ;
         
-        // Random position within grid bounds for target
-        var randVal1 = Math.floor(Math.random() * this.gridSize);
-        var randVal2 = Math.floor(Math.random() * this.gridSize);
+        // Generate position based on face
+        var randVal1 = Math.floor(Math.random() * (face.range[1] - face.range[0] + 1)) + face.range[0];
+        var randVal2 = Math.floor(Math.random() * (face.range[1] - face.range[0] + 1)) + face.range[0];
         
-        switch(face) {
-          case 0: // Top
-            targetX = randVal1;
-            targetY = this.gridSize - 1;
-            targetZ = randVal2;
-            break;
-          case 1: // Bottom
-            targetX = randVal1;
-            targetY = 0;
-            targetZ = randVal2;
-            break;
-          case 2: // Left
-            targetX = 0;
-            targetY = randVal1;
-            targetZ = randVal2;
-            break;
-          case 3: // Right
-            targetX = this.gridSize - 1;
-            targetY = randVal1;
-            targetZ = randVal2;
-            break;
-          case 4: // Front
-            targetX = randVal1;
-            targetY = randVal2;
-            targetZ = this.gridSize - 1;
-            break;
-          case 5: // Back
-            targetX = randVal1;
-            targetY = randVal2;
-            targetZ = 0;
-            break;
+        if (face.axis === 'x') {
+          targetX = face.value;
+          targetY = randVal1;
+          targetZ = randVal2;
+        } else if (face.axis === 'y') {
+          targetX = randVal1;
+          targetY = face.value;
+          targetZ = randVal2;
+        } else { // z
+          targetX = randVal1;
+          targetY = randVal2;
+          targetZ = face.value;
         }
         
         // If position is empty, place the block
@@ -995,13 +1084,91 @@
         self.updateCameraPosition();
         self.renderer.render(self.scene, self.camera);
       });
+      
+      // Touch support for mobile devices
+      var touchStartPos = { x: 0, y: 0 };
+      var touchStartTime = 0;
+      var isTouchRotating = false;
+      
+      canvas.addEventListener('touchstart', function(event) {
+        if (event.touches.length === 1) {
+          event.preventDefault();
+          var touch = event.touches[0];
+          touchStartPos = { x: touch.clientX, y: touch.clientY };
+          previousMousePosition = { x: touch.clientX, y: touch.clientY };
+          touchStartTime = Date.now();
+          isTouchRotating = false;
+        }
+      });
+      
+      canvas.addEventListener('touchmove', function(event) {
+        if (event.touches.length === 1) {
+          event.preventDefault();
+          var touch = event.touches[0];
+          var deltaX = touch.clientX - previousMousePosition.x;
+          var deltaY = touch.clientY - previousMousePosition.y;
+          var totalMove = Math.sqrt(
+            Math.pow(touch.clientX - touchStartPos.x, 2) + 
+            Math.pow(touch.clientY - touchStartPos.y, 2)
+          );
+          
+          // If moved more than 10 pixels, it's camera rotation
+          if (totalMove > 10) {
+            if (!isTouchRotating) {
+              self.playWhooshSound();
+              self.clearDropZones();
+            }
+            isTouchRotating = true;
+            
+            self.cameraAngle.theta += deltaX * 0.01;
+            self.cameraAngle.phi += deltaY * 0.01;
+            self.cameraAngle.phi = Math.max(0.1, Math.min(Math.PI - 0.1, self.cameraAngle.phi));
+            
+            self.updateCameraPosition();
+            self.renderer.render(self.scene, self.camera);
+          }
+          
+          previousMousePosition = { x: touch.clientX, y: touch.clientY };
+        }
+      });
+      
+      canvas.addEventListener('touchend', function(event) {
+        if (!isTouchRotating && event.changedTouches.length === 1) {
+          var touch = event.changedTouches[0];
+          // Simulate a click event for block selection
+          var fakeEvent = {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+          };
+          self.handleCanvasClick(fakeEvent);
+        }
+        isTouchRotating = false;
+      });
 
       $('#new-game-btn').on('click', function() {
         self.newGame();
       });
 
       $('#drop-blocks-btn').on('click', function() {
-        self.dropRandomBlocks(1);
+        // Prevent multiple clicks while settling
+        if (self.isSettling) {
+          return;
+        }
+        
+        var count = parseInt($('#drop-blocks-count').val()) || 100;
+        count = Math.max(1, Math.min(200, count)); // Clamp between 1 and 200
+        
+        // Lock interaction
+        self.isSettling = true;
+        $(this).prop('disabled', true);
+        
+        self.dropRandomBlocks(count);
+        
+        // Unlock after a delay
+        setTimeout(function() {
+          self.isSettling = false;
+          $('#drop-blocks-btn').prop('disabled', false);
+        }, 1000);
       });
 
       $('#settle-blocks-btn').on('click', function() {
@@ -1016,8 +1183,48 @@
         $('#game-over-modal').hide();
       });
       
-      // Remove orientation controls for 3D (camera controls instead)
-      $('.orientation-controls').hide();
+      // Rotation control buttons (especially useful for mobile)
+      $('#rotate-left-btn').on('click', function() {
+        self.cameraAngle.theta -= Math.PI / 4; // 45 degrees
+        self.updateCameraPosition();
+        self.renderer.render(self.scene, self.camera);
+        self.playWhooshSound();
+      });
+      
+      $('#rotate-right-btn').on('click', function() {
+        self.cameraAngle.theta += Math.PI / 4; // 45 degrees
+        self.updateCameraPosition();
+        self.renderer.render(self.scene, self.camera);
+        self.playWhooshSound();
+      });
+      
+      $('#flip-vertical-btn').on('click', function() {
+        self.cameraAngle.phi -= Math.PI / 6; // 30 degrees
+        self.cameraAngle.phi = Math.max(0.1, Math.min(Math.PI - 0.1, self.cameraAngle.phi));
+        self.updateCameraPosition();
+        self.renderer.render(self.scene, self.camera);
+        self.playWhooshSound();
+      });
+      
+      $('#flip-horizontal-btn').on('click', function() {
+        self.cameraAngle.phi += Math.PI / 6; // 30 degrees
+        self.cameraAngle.phi = Math.max(0.1, Math.min(Math.PI - 0.1, self.cameraAngle.phi));
+        self.updateCameraPosition();
+        self.renderer.render(self.scene, self.camera);
+        self.playWhooshSound();
+      });
+      
+      $('#reset-orientation-btn').on('click', function() {
+        self.cameraAngle.theta = Math.PI / 4;
+        self.cameraAngle.phi = Math.PI / 3;
+        self.cameraDistance = self.playableSize * 3.5;
+        self.updateCameraPosition();
+        self.renderer.render(self.scene, self.camera);
+        self.playWhooshSound();
+      });
+      
+      // Show orientation controls (useful for mobile devices)
+      $('.orientation-controls').show();
     },
 
     advanceLevel: function() {
@@ -1048,8 +1255,86 @@
       }, 2000);
     },
 
+    cleanupOrphanedMeshes: function() {
+      var self = this;
+      var offset = this.gridSize / 2;
+      
+      // Build a set of valid block positions from the grid
+      var validPositions = new Set();
+      for (var x = 0; x < this.gridSize; x++) {
+        for (var y = 0; y < this.gridSize; y++) {
+          for (var z = 0; z < this.gridSize; z++) {
+            if (this.grid[x][y][z] >= 0) {
+              validPositions.add(x + '_' + y + '_' + z);
+            }
+          }
+        }
+      }
+      
+      // Remove orphaned meshes from blockMeshes tracking object
+      var keysToDelete = [];
+      Object.keys(this.blockMeshes).forEach(function(key) {
+        if (!validPositions.has(key)) {
+          var mesh = self.blockMeshes[key];
+          if (mesh) {
+            self.scene.remove(mesh);
+            if (mesh.geometry) mesh.geometry.dispose();
+            if (mesh.material) {
+              if (Array.isArray(mesh.material)) {
+                mesh.material.forEach(function(mat) {
+                  mat.dispose();
+                });
+              } else {
+                mesh.material.dispose();
+              }
+            }
+          }
+          keysToDelete.push(key);
+        }
+      });
+      
+      keysToDelete.forEach(function(key) {
+        delete self.blockMeshes[key];
+      });
+      
+      // Remove orphaned meshes from scene.children
+      var meshesToRemove = [];
+      this.scene.children.forEach(function(child) {
+        if (child.geometry && child.geometry.type === 'BoxGeometry') {
+          // Convert world position back to grid position
+          var gridX = Math.round(child.position.x + offset);
+          var gridY = Math.round(child.position.y + offset);
+          var gridZ = Math.round(child.position.z + offset);
+          var key = gridX + '_' + gridY + '_' + gridZ;
+          
+          if (!validPositions.has(key)) {
+            meshesToRemove.push(child);
+          }
+        }
+      });
+      
+      meshesToRemove.forEach(function(mesh) {
+        self.scene.remove(mesh);
+        if (mesh.geometry) mesh.geometry.dispose();
+        if (mesh.material) {
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(function(mat) {
+              mat.dispose();
+            });
+          } else {
+            mesh.material.dispose();
+          }
+        }
+      });
+      
+      if (keysToDelete.length > 0 || meshesToRemove.length > 0) {
+        this.logDebug('Cleaned up ' + keysToDelete.length + ' orphaned blockMeshes and ' + meshesToRemove.length + ' orphaned scene meshes');
+      }
+    },
+
     completeTurn: function() {
       this.logDebug('Turn complete, unlocking (isSettling = false)');
+      this.cleanupOrphanedMeshes();
       this.isSettling = false;
     },
 
@@ -1331,12 +1616,20 @@
       var self = this;
       var toRemove = [];
       
+      self.logInfo('💣 BOMB activated at (' + x + ',' + y + ',' + z + ')');
+      
+      // Destroy all blocks in 3x3x3 cube around bomb position (excluding the bomb itself)
       for (var dx = -1; dx <= 1; dx++) {
         for (var dy = -1; dy <= 1; dy++) {
           for (var dz = -1; dz <= 1; dz++) {
+            // Skip the bomb itself - it will be removed by removeMatches
+            if (dx === 0 && dy === 0 && dz === 0) continue;
+            
             var nx = x + dx, ny = y + dy, nz = z + dz;
             if (nx >= 0 && nx < this.gridSize && ny >= 0 && ny < this.gridSize && nz >= 0 && nz < this.gridSize) {
-              if (this.grid[nx][ny][nz] >= 0) {
+              var blockType = this.grid[nx][ny][nz];
+              if (blockType >= 0) {
+                self.logDebug('  Destroying block at (' + nx + ',' + ny + ',' + nz + ') type=' + blockType);
                 toRemove.push({x: nx, y: ny, z: nz});
               }
             }
@@ -1344,12 +1637,53 @@
         }
       }
       
+      self.logInfo('💣 BOMB destroying ' + toRemove.length + ' additional blocks');
+      
+      // Add these blocks to be removed along with the normal matches
       if (toRemove.length > 0) {
-        this.removeMatches(toRemove, false, function() {
-          self.completeTurn();
+        // Remove the blocks immediately from grid and scene
+        var offset = this.gridSize / 2;
+        toRemove.forEach(function(pos) {
+          self.grid[pos.x][pos.y][pos.z] = -1;
+          
+          // Remove mesh
+          var key = pos.x + '_' + pos.y + '_' + pos.z;
+          var mesh = self.blockMeshes[key];
+          if (mesh) {
+            self.scene.remove(mesh);
+            if (mesh.geometry) mesh.geometry.dispose();
+            if (mesh.material) {
+              if (Array.isArray(mesh.material)) {
+                mesh.material.forEach(function(mat) { mat.dispose(); });
+              } else {
+                mesh.material.dispose();
+              }
+            }
+            delete self.blockMeshes[key];
+          }
+          
+          // Also remove from scene.children
+          var worldX = pos.x - offset;
+          var worldY = pos.y - offset;
+          var worldZ = pos.z - offset;
+          var orphaned = self.scene.children.find(function(child) {
+            return child.position.x === worldX && 
+                   child.position.y === worldY && 
+                   child.position.z === worldZ &&
+                   child.geometry && child.geometry.type === 'BoxGeometry';
+          });
+          if (orphaned) {
+            self.scene.remove(orphaned);
+            if (orphaned.geometry) orphaned.geometry.dispose();
+            if (orphaned.material) {
+              if (Array.isArray(orphaned.material)) {
+                orphaned.material.forEach(function(mat) { mat.dispose(); });
+              } else {
+                orphaned.material.dispose();
+              }
+            }
+          }
         });
-      } else {
-        this.completeTurn();
       }
     },
 
@@ -1433,7 +1767,7 @@
       }
       
       if (toRemove.length > 0) {
-        this.removeMatches(toRemove, false, function() {
+        this.removeMatchesWithDisintegration(toRemove, false, function() {
           self.completeTurn();
         });
       } else {
@@ -1688,7 +2022,7 @@
     checkMatchAt: function(x, y, z) {
       var centerPos = Math.floor(this.gridSize / 2);
       
-      // Never match the center block
+      // Never match the center block of the grid
       if (x === centerPos && y === centerPos && z === centerPos) {
         return [];
       }
@@ -1696,45 +2030,55 @@
       if (this.grid[x][y][z] === -1 || this.grid[x][y][z] === -2) return [];
       
       var color = this.getBlockMatchColor(this.grid[x][y][z]);
-      var matches = [{x: x, y: y, z: z}];
       
-      // Check X axis
-      var left = x - 1;
-      while (left >= 0 && this.getBlockMatchColor(this.grid[left][y][z]) === color) {
-        matches.push({x: left, y: y, z: z});
-        left--;
-      }
-      var right = x + 1;
-      while (right < this.gridSize && this.getBlockMatchColor(this.grid[right][y][z]) === color) {
-        matches.push({x: right, y: y, z: z});
-        right++;
+      // Use flood-fill to find all connected blocks of the same color
+      var visited = {};
+      var toCheck = [{x: x, y: y, z: z}];
+      var matches = [];
+      
+      while (toCheck.length > 0) {
+        var current = toCheck.pop();
+        var key = current.x + ',' + current.y + ',' + current.z;
+        
+        // Skip if already visited
+        if (visited[key]) continue;
+        visited[key] = true;
+        
+        // Skip if out of bounds
+        if (current.x < 0 || current.x >= this.gridSize ||
+            current.y < 0 || current.y >= this.gridSize ||
+            current.z < 0 || current.z >= this.gridSize) {
+          continue;
+        }
+        
+        // Skip if wrong color or empty
+        var blockType = this.grid[current.x][current.y][current.z];
+        if (blockType === -1 || blockType === -2) continue;
+        if (this.getBlockMatchColor(blockType) !== color) continue;
+        
+        // Skip the center block of the entire grid (not the starting position)
+        if (current.x === centerPos && current.y === centerPos && current.z === centerPos) {
+          continue;
+        }
+        
+        // This block matches - add it (including the starting block at x,y,z)
+        matches.push({x: current.x, y: current.y, z: current.z});
+        
+        // Check all 6 adjacent positions (up, down, left, right, forward, back)
+        toCheck.push({x: current.x - 1, y: current.y, z: current.z});
+        toCheck.push({x: current.x + 1, y: current.y, z: current.z});
+        toCheck.push({x: current.x, y: current.y - 1, z: current.z});
+        toCheck.push({x: current.x, y: current.y + 1, z: current.z});
+        toCheck.push({x: current.x, y: current.y, z: current.z - 1});
+        toCheck.push({x: current.x, y: current.y, z: current.z + 1});
       }
       
-      // Check Y axis
-      var down = y - 1;
-      while (down >= 0 && this.getBlockMatchColor(this.grid[x][down][z]) === color) {
-        matches.push({x: x, y: down, z: z});
-        down--;
-      }
-      var up = y + 1;
-      while (up < this.gridSize && this.getBlockMatchColor(this.grid[x][up][z]) === color) {
-        matches.push({x: x, y: up, z: z});
-        up++;
+      // Only return if we have enough blocks
+      if (matches.length >= this.minMatch) {
+        return matches;
       }
       
-      // Check Z axis
-      var back = z - 1;
-      while (back >= 0 && this.getBlockMatchColor(this.grid[x][y][back]) === color) {
-        matches.push({x: x, y: y, z: back});
-        back--;
-      }
-      var forward = z + 1;
-      while (forward < this.gridSize && this.getBlockMatchColor(this.grid[x][y][forward]) === color) {
-        matches.push({x: x, y: y, z: forward});
-        forward++;
-      }
-      
-      return matches;
+      return [];
     },
 
     processMatches: function() {
@@ -1815,6 +2159,28 @@
       
       self.logDebug('>>> STEP 3: Explosion - ' + eliminatedCount + ' blocks (skipDrop=' + skipDrop + ')');
       
+      // Check for special blocks in the matches and trigger their effects
+      var specialBlocksToTrigger = [];
+      matches.forEach(function(match) {
+        var blockType = self.grid[match.x][match.y][match.z];
+        if (blockType >= 100) { // Special block
+          specialBlocksToTrigger.push({
+            type: blockType,
+            x: match.x,
+            y: match.y,
+            z: match.z
+          });
+        }
+      });
+      
+      // Trigger special block effects
+      if (specialBlocksToTrigger.length > 0) {
+        self.logDebug('Triggering ' + specialBlocksToTrigger.length + ' special block(s)');
+        specialBlocksToTrigger.forEach(function(special) {
+          self.handleSpecialBlock(special.type, special.x, special.y, special.z);
+        });
+      }
+      
       // Play explosion sound
       this.playExplosionSound(eliminatedCount);
       
@@ -1837,7 +2203,10 @@
           var endScale = 4;
           var steps = 8;
           var currentStep = 0;
-          var originalColor = mesh.material.color.getHex();
+          
+          // Handle both single material and material array (for special blocks)
+          var material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+          var originalColor = material.color.getHex();
           
           var explode = function() {
             currentStep++;
@@ -1850,12 +2219,21 @@
             mesh.rotation.y += 0.3;
             mesh.rotation.z += 0.1;
             
-            // Brighten then fade
+            // Brighten then fade - handle both material types
             var brightness = progress < 0.3 ? 1 + progress * 3 : 1 + (1 - progress) * 2;
-            mesh.material.emissive.setHex(originalColor);
-            mesh.material.emissiveIntensity = brightness;
-            mesh.material.opacity = 1 - progress;
-            mesh.material.transparent = true;
+            if (Array.isArray(mesh.material)) {
+              mesh.material.forEach(function(mat) {
+                mat.emissive.setHex(originalColor);
+                mat.emissiveIntensity = brightness;
+                mat.opacity = 1 - progress;
+                mat.transparent = true;
+              });
+            } else {
+              mesh.material.emissive.setHex(originalColor);
+              mesh.material.emissiveIntensity = brightness;
+              mesh.material.opacity = 1 - progress;
+              mesh.material.transparent = true;
+            }
             
             if (currentStep < steps) {
               setTimeout(explode, 30);
@@ -1870,14 +2248,51 @@
         matches.forEach(function(match) {
           self.grid[match.x][match.y][match.z] = -1;
           
-          // Remove the specific mesh for this block
+          var worldX = match.x - offset;
+          var worldY = match.y - offset;
+          var worldZ = match.z - offset;
+          
+          // Remove the specific mesh for this block from blockMeshes
           var key = match.x + '_' + match.y + '_' + match.z;
           var mesh = self.blockMeshes[key];
           if (mesh) {
             self.scene.remove(mesh);
             if (mesh.geometry) mesh.geometry.dispose();
-            if (mesh.material) mesh.material.dispose();
+            
+            // Handle both single material and material array
+            if (mesh.material) {
+              if (Array.isArray(mesh.material)) {
+                mesh.material.forEach(function(mat) {
+                  mat.dispose();
+                });
+              } else {
+                mesh.material.dispose();
+              }
+            }
+            
             delete self.blockMeshes[key];
+          }
+          
+          // Also search scene.children for any mesh at this position (in case it wasn't in blockMeshes)
+          var orphanedMesh = self.scene.children.find(function(child) {
+            return child.position.x === worldX && 
+                   child.position.y === worldY && 
+                   child.position.z === worldZ &&
+                   child.geometry && child.geometry.type === 'BoxGeometry';
+          });
+          
+          if (orphanedMesh) {
+            self.scene.remove(orphanedMesh);
+            if (orphanedMesh.geometry) orphanedMesh.geometry.dispose();
+            if (orphanedMesh.material) {
+              if (Array.isArray(orphanedMesh.material)) {
+                orphanedMesh.material.forEach(function(mat) {
+                  mat.dispose();
+                });
+              } else {
+                orphanedMesh.material.dispose();
+              }
+            }
           }
         });
         // DO NOT call render3D() here - it would recreate all meshes at their current positions
@@ -1904,7 +2319,131 @@
             self.processMatchesWithoutDrop(callback);
           }, 300);
         }
-      }, 300);
+      }, Math.max(100 / Math.pow(2, this.comboMatchCount > 0 ? Math.floor(this.comboMatchCount / 3) : 0), 10));
+    },
+    
+    removeMatchesWithDisintegration: function(toRemove, eliminatedCount, callback, skipDrop) {
+      var self = this;
+      this.logDebug('Removing ' + toRemove.length + ' blocks with disintegration animation');
+      
+      // Prevent center block interactions during animation
+      this.isExploding = true;
+      
+      // Create particle system for each block
+      var animationSteps = 12; // More steps for smoother dissolve
+      var stepDuration = 25; // ms per step
+      var currentStep = 0;
+      
+      // Store original properties
+      toRemove.forEach(function(block) {
+        if (block && block.mesh) {
+          block.originalScale = block.mesh.scale.clone();
+          block.originalOpacity = block.mesh.material.opacity;
+          
+          // Create particle effect - break block into smaller pieces
+          var particleCount = 8;
+          block.particles = [];
+          
+          for (var i = 0; i < particleCount; i++) {
+            var particleGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+            var particleMaterial = new THREE.MeshLambertMaterial({
+              color: block.mesh.material.color,
+              transparent: true,
+              opacity: 1
+            });
+            var particle = new THREE.Mesh(particleGeometry, particleMaterial);
+            
+            // Position particles around the block
+            particle.position.copy(block.mesh.position);
+            particle.position.x += (Math.random() - 0.5) * 0.3;
+            particle.position.y += (Math.random() - 0.5) * 0.3;
+            particle.position.z += (Math.random() - 0.5) * 0.3;
+            
+            // Random velocity for each particle
+            particle.velocity = new THREE.Vector3(
+              (Math.random() - 0.5) * 0.02,
+              (Math.random() - 0.5) * 0.02,
+              (Math.random() - 0.5) * 0.02
+            );
+            
+            self.scene.add(particle);
+            block.particles.push(particle);
+          }
+        }
+      });
+      
+      // Animate disintegration
+      var animateStep = function() {
+        currentStep++;
+        var progress = currentStep / animationSteps;
+        
+        toRemove.forEach(function(block) {
+          if (block && block.mesh) {
+            // Main block fades and shrinks
+            block.mesh.scale.multiplyScalar(0.92);
+            block.mesh.material.opacity = block.originalOpacity * (1 - progress);
+            
+            // Particles spread out and fade
+            if (block.particles) {
+              block.particles.forEach(function(particle) {
+                particle.position.add(particle.velocity);
+                particle.velocity.multiplyScalar(1.1); // Accelerate outward
+                particle.material.opacity = 1 - progress;
+                particle.scale.multiplyScalar(0.95);
+              });
+            }
+          }
+        });
+        
+        if (currentStep < animationSteps) {
+          setTimeout(animateStep, stepDuration);
+        } else {
+          // Animation complete - clean up
+          toRemove.forEach(function(block) {
+            if (block && block.mesh) {
+              self.scene.remove(block.mesh);
+              block.mesh.geometry.dispose();
+              block.mesh.material.dispose();
+              
+              // Remove particles
+              if (block.particles) {
+                block.particles.forEach(function(particle) {
+                  self.scene.remove(particle);
+                  particle.geometry.dispose();
+                  particle.material.dispose();
+                });
+              }
+              
+              // Clear grid position
+              var pos = block.gridPosition;
+              if (pos && self.grid[pos.x] && self.grid[pos.x][pos.y]) {
+                self.grid[pos.x][pos.y][pos.z] = null;
+              }
+            }
+          });
+          
+          self.isExploding = false;
+          
+          // Continue with drop/match logic
+          if (!skipDrop) {
+            self.dropBlocks(function() {
+              self.processMatchesWithoutDrop(function() {
+                self.logDebug('>>> STEP 4b: Final Settle Before Regeneration');
+                self.dropBlocks(function() {
+                  self.regenerateBlocks(eliminatedCount);
+                });
+              });
+            });
+          } else {
+            setTimeout(function() {
+              self.processMatchesWithoutDrop(callback);
+            }, 300);
+          }
+        }
+      };
+      
+      // Start animation
+      setTimeout(animateStep, Math.max(100 / Math.pow(2, this.comboMatchCount > 0 ? Math.floor(this.comboMatchCount / 3) : 0), 10));
     },
 
     dropBlocks: function(callback) {
@@ -2290,51 +2829,55 @@
       
       self.logDebug('>>> REGEN: Playable area is from ' + minIndex + ' to ' + maxIndex + ' (center=' + centerPos + ', playableSize=' + this.playableSize + ')');
       self.logDebug('>>> REGEN: Spawn positions will be at grid edges: ' + spawnMin + ' and ' + spawnMax);
+      self.logDebug('>>> REGEN: Using FULL grid range for spawn coordinates: 0 to ' + (this.gridSize - 1));
       
       var faces = [
-        { name: 'top', axis: 'y', value: spawnMax, range: [minIndex, maxIndex] },
-        { name: 'bottom', axis: 'y', value: spawnMin, range: [minIndex, maxIndex] },
-        { name: 'left', axis: 'x', value: spawnMin, range: [minIndex, maxIndex] },
-        { name: 'right', axis: 'x', value: spawnMax, range: [minIndex, maxIndex] },
-        { name: 'front', axis: 'z', value: spawnMax, range: [minIndex, maxIndex] },
-        { name: 'back', axis: 'z', value: spawnMin, range: [minIndex, maxIndex] }
+        { name: 'top', axis: 'y', value: spawnMax, range: [0, this.gridSize - 1] },
+        { name: 'bottom', axis: 'y', value: spawnMin, range: [0, this.gridSize - 1] },
+        { name: 'left', axis: 'x', value: spawnMin, range: [0, this.gridSize - 1] },
+        { name: 'right', axis: 'x', value: spawnMax, range: [0, this.gridSize - 1] },
+        { name: 'front', axis: 'z', value: spawnMax, range: [0, this.gridSize - 1] },
+        { name: 'back', axis: 'z', value: spawnMin, range: [0, this.gridSize - 1] }
       ];
       
       // Place blocks directly at grid edges
       var blocksPlaced = [];
       for (var i = 0; i < newBlockCount; i++) {
         var face = faces[Math.floor(Math.random() * faces.length)];
-        var placed = false;
-        var attempts = 0;
+        var x, y, z;
         
-        while (!placed && attempts < 50) {
-          var x, y, z;
-          
-          // Place block at edge position (outside playable area)
-          // Other coordinates stay within playable area range
-          if (face.axis === 'x') {
-            x = face.value;  // Outside edge
-            y = face.range[0] + Math.floor(Math.random() * (face.range[1] - face.range[0] + 1));
-            z = face.range[0] + Math.floor(Math.random() * (face.range[1] - face.range[0] + 1));
-          } else if (face.axis === 'y') {
-            x = face.range[0] + Math.floor(Math.random() * (face.range[1] - face.range[0] + 1));
-            y = face.value;  // Outside edge
-            z = face.range[0] + Math.floor(Math.random() * (face.range[1] - face.range[0] + 1));
-          } else {
-            x = face.range[0] + Math.floor(Math.random() * (face.range[1] - face.range[0] + 1));
-            y = face.range[0] + Math.floor(Math.random() * (face.range[1] - face.range[0] + 1));
-            z = face.value;  // Outside edge
-          }
-          
-          // Place if empty
-          if (this.grid[x][y][z] === -1) {
-            var blockType = this.randomBlockType();
-            this.grid[x][y][z] = blockType;
-            blocksPlaced.push({x: x, y: y, z: z, type: blockType});
-            placed = true;
-          }
-          attempts++;
+        // Place block at edge position
+        if (face.axis === 'x') {
+          x = face.value;  // Edge
+          y = face.range[0] + Math.floor(Math.random() * (face.range[1] - face.range[0] + 1));
+          z = face.range[0] + Math.floor(Math.random() * (face.range[1] - face.range[0] + 1));
+        } else if (face.axis === 'y') {
+          x = face.range[0] + Math.floor(Math.random() * (face.range[1] - face.range[0] + 1));
+          y = face.value;  // Edge
+          z = face.range[0] + Math.floor(Math.random() * (face.range[1] - face.range[0] + 1));
+        } else {
+          x = face.range[0] + Math.floor(Math.random() * (face.range[1] - face.range[0] + 1));
+          y = face.range[0] + Math.floor(Math.random() * (face.range[1] - face.range[0] + 1));
+          z = face.value;  // Edge
         }
+        
+        self.logInfo('>>> REGEN: Attempting to spawn block ' + (i+1) + '/' + newBlockCount + ' at (' + x + ',' + y + ',' + z + ')');
+        self.logInfo('>>> REGEN: Position status: ' + (this.grid[x][y][z] === -1 ? 'EMPTY' : 'OCCUPIED (value: ' + this.grid[x][y][z] + ')'));
+        
+        // If spawn position is occupied - GAME OVER (no retries)
+        if (this.grid[x][y][z] !== -1) {
+          self.logError('>>> REGEN: SPAWN BLOCKED! Position (' + x + ',' + y + ',' + z + ') is occupied with block type ' + this.grid[x][y][z]);
+          self.logError('>>> REGEN: Triggering GAME OVER');
+          this.gameEnded = true;
+          self.gameOver(false, 'Spawn area blocked!');
+          return;
+        }
+        
+        // Place block in empty position
+        var blockType = this.randomBlockType();
+        this.grid[x][y][z] = blockType;
+        blocksPlaced.push({x: x, y: y, z: z, type: blockType});
+        self.logInfo('>>> REGEN: Successfully placed block type ' + blockType + ' at (' + x + ',' + y + ',' + z + ')');
       }
       self.logDebug('>>> REGEN: Placed blocks at positions:', blocksPlaced);
       
@@ -2353,8 +2896,8 @@
         var worldY = (block.y - center) * blockSize;
         var worldZ = (block.z - center) * blockSize;
         
-        // Create mesh for this new block (0.9 to match render3D spacing)
-        var geometry = new THREE.BoxGeometry(blockSize * 0.9, blockSize * 0.9, blockSize * 0.9);
+        // Create mesh for this new block (0.95 to match render3D spacing)
+        var geometry = new THREE.BoxGeometry(blockSize * 0.95, blockSize * 0.95, blockSize * 0.95);
         var color = self.getBlockColor(block.type);
         var material = new THREE.MeshPhongMaterial({ color: color });
         var mesh = new THREE.Mesh(geometry, material);
@@ -2364,21 +2907,22 @@
         self.scene.add(mesh);
         self.blockMeshes[key] = mesh;
         
-        // Add emoji sprite for special blocks
+        // Add emoji texture to all faces for special blocks
         if (self.isSpecialBlock(block.type)) {
           var special = self.getSpecialBlockData(block.type);
           if (special) {
-            self.logDebug('>>> REGEN: Adding sprite for special block:', block.type, special.name, special.emoji);
-            var spriteMap = self.createEmojiTexture(special.emoji);
-            var spriteMaterial = new THREE.SpriteMaterial({ 
-              map: spriteMap,
-              transparent: false,
-              depthTest: true,
-              depthWrite: true
-            });
-            var sprite = new THREE.Sprite(spriteMaterial);
-            sprite.scale.set(0.9, 0.9, 0.9);
-            mesh.add(sprite);
+            self.logDebug('>>> REGEN: Adding texture for special block:', block.type, special.name, special.emoji);
+            var emojiTexture = self.createEmojiTexture(special.emoji, color);
+            
+            // Create materials array - 6 faces with emoji texture on all
+            var materials = [];
+            for (var i = 0; i < 6; i++) {
+              materials.push(new THREE.MeshPhongMaterial({
+                color: color,
+                map: emojiTexture
+              }));
+            }
+            mesh.material = materials;
           }
         }
         
@@ -2445,7 +2989,7 @@
       var self = this;
       
       // Create temporary meshes for incoming blocks
-      var geometry = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+      var geometry = new THREE.BoxGeometry(0.95, 0.95, 0.95);
       var tempMeshes = [];
       
       newBlocks.forEach(function(block) {
