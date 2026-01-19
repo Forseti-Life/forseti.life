@@ -1,14 +1,14 @@
 /**
  * @file
  * 3D Block Matcher game logic using Three.js.
- * @version 2.1.2
+ * @version 2.1.3
  * @updated 2026-01-19
  */
 
 (function ($, Drupal, once) {
   'use strict';
   
-  console.log('Block Matcher 3D v2.1.2 - Loaded');
+  console.log('Block Matcher 3D v2.1.3 - Loaded');
 
   Drupal.behaviors.blockMatcher3D = {
     attach: function (context, settings) {
@@ -525,9 +525,9 @@
             if (x >= startIdx && x < endIdx && 
                 y >= startIdx && y < endIdx && 
                 z >= startIdx && z < endIdx) {
-              // Center block always gets special type -2 (will render black)
+              // Center block always gets special type -3 (protected, never removed)
               if (x === centerPos && y === centerPos && z === centerPos) {
-                this.grid[x][y][z] = -2; // Special center block marker
+                this.grid[x][y][z] = -3; // Special center block marker (protected)
               } else {
                 this.grid[x][y][z] = this.randomBlockType();
               }
@@ -745,17 +745,17 @@
       for (var x = 0; x < this.gridSize; x++) {
         for (var y = 0; y < this.gridSize; y++) {
           for (var z = 0; z < this.gridSize; z++) {
-            if (this.grid[x][y][z] === -1) continue;
+            if (this.grid[x][y][z] === -1) continue; // Skip empty
             
             var blockType = this.grid[x][y][z];
-            var color = blockType === -2 ? 0x000000 : this.getBlockColor(blockType);
+            var color = (blockType === -2 || blockType === -3) ? 0x000000 : this.getBlockColor(blockType);
             
             // Special blocks: more opaque with brighter glow to show color clearly
             var isSpecial = this.isSpecialBlock(blockType);
             var material = new THREE.MeshStandardMaterial({
               color: color,
-              emissive: blockType === -2 ? 0xffaa00 : color,
-              emissiveIntensity: blockType === -2 ? 0.5 : (isSpecial ? 0.3 : 0.15),
+              emissive: (blockType === -2 || blockType === -3) ? 0xffaa00 : color,
+              emissiveIntensity: (blockType === -2 || blockType === -3) ? 0.5 : (isSpecial ? 0.3 : 0.15),
               metalness: 0.2,
               roughness: 0.6,
               transparent: isSpecial,
@@ -773,8 +773,8 @@
                               y === 0 || y === self.gridSize - 1 || 
                               z === 0 || z === self.gridSize - 1);
             
-            // Highlight spawn edge blocks with warning color
-            if (isSpawnEdge && blockType !== -2) {
+            // Highlight spawn edge blocks with warning color (but not center block)
+            if (isSpawnEdge && blockType !== -2 && blockType !== -3) {
               material.emissive.setHex(0xff0000); // Red warning
               material.emissiveIntensity = 0.6; // Will be animated by throb
             }
@@ -1332,8 +1332,53 @@
       }
     },
 
+    ensureCenterBlock: function() {
+      var centerPos = Math.floor(this.gridSize / 2);
+      
+      // Check if center block exists and has correct value
+      if (this.grid[centerPos][centerPos][centerPos] !== -3) {
+        this.logInfo('CRITICAL: Center block corrupted (value=' + this.grid[centerPos][centerPos][centerPos] + '), restoring it');
+        
+        // Restore center block with special marker (-3)
+        this.grid[centerPos][centerPos][centerPos] = -3; // -3 = center block marker (protected)
+        
+        // Check if mesh exists
+        var key = centerPos + '_' + centerPos + '_' + centerPos;
+        if (!this.blockMeshes[key]) {
+          this.logInfo('Center block mesh missing, recreating it now');
+          
+          // Recreate just the center block immediately
+          var offset = this.gridSize / 2;
+          var geometry = new THREE.BoxGeometry(0.95, 0.95, 0.95);
+          var material = new THREE.MeshStandardMaterial({
+            color: 0x000000,
+            emissive: 0xffaa00,
+            emissiveIntensity: 0.5,
+            metalness: 0.3,
+            roughness: 0.7,
+            transparent: false
+          });
+          
+          var mesh = new THREE.Mesh(geometry, material);
+          mesh.position.set(
+            centerPos - offset,
+            centerPos - offset,
+            centerPos - offset
+          );
+          mesh.userData = { x: centerPos, y: centerPos, z: centerPos, isCenter: true };
+          
+          this.scene.add(mesh);
+          this.blockMeshes[key] = mesh;
+          this.centerBlockMesh = mesh;
+          
+          this.logInfo('Center block mesh restored');
+        }
+      }
+    },
+
     completeTurn: function() {
       this.logDebug('Turn complete, unlocking (isSettling = false)');
+      this.ensureCenterBlock(); // Ensure center block exists
       this.cleanupOrphanedMeshes();
       this.isSettling = false;
     },
@@ -2043,7 +2088,7 @@
         return [];
       }
       
-      if (this.grid[x][y][z] === -1 || this.grid[x][y][z] === -2) return [];
+      if (this.grid[x][y][z] === -1 || this.grid[x][y][z] === -2 || this.grid[x][y][z] === -3) return [];
       
       var color = this.getBlockMatchColor(this.grid[x][y][z]);
       
@@ -2069,7 +2114,7 @@
         
         // Skip if wrong color or empty
         var blockType = this.grid[current.x][current.y][current.z];
-        if (blockType === -1 || blockType === -2) continue;
+        if (blockType === -1 || blockType === -2 || blockType === -3) continue;
         if (this.getBlockMatchColor(blockType) !== color) continue;
         
         // Skip the center block of the entire grid (not the starting position)
