@@ -2,17 +2,23 @@
 
 ## Overview
 
-Block Matcher 3D is a Three.js-based 3D puzzle game where players click blocks in an 18×18×18 grid to create matches and chain reactions. The game features a progressive difficulty system (9 levels), special blocks with unique effects, and complex asynchronous processing for smooth gameplay.
+Block Matcher 3D is a Three.js-based 3D puzzle game where players swap blocks in a 13×13×13 grid to create matches and chain reactions. The game features a progressive difficulty system (levels 1-999 with playable area capping at 9×9×9), special blocks with unique effects, flood-fill match detection, and complex asynchronous processing for smooth gameplay.
+
+**Version**: 2.1.1  
+**Last Updated**: January 19, 2026
 
 ## Table of Contents
 
 1. [Core Architecture](#core-architecture)
 2. [Nested Loop Process Flow](#nested-loop-process-flow)
 3. [State Management](#state-management)
-4. [Special Block System](#special-block-system)
-5. [Performance Optimizations](#performance-optimizations)
-6. [Settlement Algorithm](#settlement-algorithm)
-7. [Chain Reaction System](#chain-reaction-system)
+4. [Match Detection System](#match-detection-system)
+5. [Special Block System](#special-block-system)
+6. [Spawn System](#spawn-system)
+7. [Visual Rendering](#visual-rendering)
+8. [Performance Optimizations](#performance-optimizations)
+9. [Settlement Algorithm](#settlement-algorithm)
+10. [Chain Reaction System](#chain-reaction-system)
 
 ---
 
@@ -22,11 +28,14 @@ Block Matcher 3D is a Three.js-based 3D puzzle game where players click blocks i
 
 ```javascript
 BlockMatcher3DGame {
-  gridSize: 18           // Full 18×18×18 cube
-  level: 1-9            // Progressive difficulty
-  playableSize: 3-18    // Active region based on level
+  gridSize: 13           // Full 13×13×13 cube (2,197 blocks)
+  level: 1-999          // Progressive difficulty (no effective cap)
+  playableSize: 3-9     // Active region based on level (caps at level 3+)
+  blockTypes: 7         // Number of color variations (0-6)
+  minMatch: 3           // Minimum blocks needed to match
   isSettling: boolean   // Global lock flag
-  grid[x][y][z]        // 3D array: -2 (outside), -1 (empty), 0-4 (colors), 100-114 (special)
+  comboMatchCount: int  // Current combo counter (disables specials at 500+)
+  grid[x][y][z]        // 3D array: -2 (outside), -1 (empty), 0-6 (colors), 100-114 (special)
   blockMeshes{}        // Three.js mesh registry by "x_y_z" key
 }
 ```
@@ -34,10 +43,13 @@ BlockMatcher3DGame {
 ### Key Design Patterns
 
 1. **Single Lock Point**: `isSettling = true` at turn start
-2. **Single Unlock Point**: `completeTurn()` called after all processing
+2. **Single Unlock Point**: `completeTurn()` called after all processing with automatic cleanup
 3. **Callback Chain**: All async operations use callbacks to maintain sequence
 4. **In-Place Updates**: Mesh positions updated during animation, no recreation
 5. **Recursive Chain Reactions**: Matches trigger settlements trigger matches
+6. **Match-Activated Specials**: Special blocks trigger effects when matched (not clicked)
+7. **Flood-Fill Matching**: Any connected configuration of same-color blocks triggers match
+8. **Edge Spawning**: New blocks only spawn at grid edges with game-over on blocked spawn
 
 ---
 
@@ -49,15 +61,16 @@ BlockMatcher3DGame {
 init()
 │
 ├─► updateLevel()
-│   └─► playableSize = 1 + (level × 2)  // Level 1=3×3×3, Level 9=18×18×18
+│   └─► playableSize = Math.min(1 + (level × 2), 9)  // Level 1=3×3×3, Level 3+=9×9×9 (caps)
 │
 ├─► createGrid()
-│   └─► FOR x in 0..17
-│       └─► FOR y in 0..17
-│           └─► FOR z in 0..17
+│   └─► FOR x in 0..12
+│       └─► FOR y in 0..12
+│           └─► FOR z in 0..12
 │               ├─► IF inside playableSize:
-│               │   ├─► 95% chance: Random color (0-4)
-│               │   └─► 5% chance: Random special block (100-114)
+│               │   ├─► IF comboMatchCount > 500: Only regular colors
+│               │   ├─► ELSE 95% chance: Random color (0-6)
+│               │   └─► ELSE 5% chance: Random special block (100-114)
 │               └─► ELSE: Mark as outside (-2)
 │
 ├─► initThreeJS()
@@ -68,8 +81,10 @@ init()
 ├─► render3D()
 │   └─► FOR each block in grid (where value ≠ -1)
 │       ├─► Create BoxGeometry mesh
-│       ├─► Apply material (color, emissive, transparency)
-│       ├─► IF special block: Add emoji sprite texture
+│       ├─► Apply material (color, emissive, solid)
+│       ├─► IF special block: Apply emoji texture to all 6 faces
+│       │   └─► createEmojiTexture(): White circle bg + black border + emoji with outline
+│       ├─► IF at spawn edge: Mark with isSpawnEdge flag
 │       └─► Store in blockMeshes[x_y_z]
 │
 ├─► startTimer() - setInterval(1000ms)

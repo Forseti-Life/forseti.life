@@ -1,14 +1,14 @@
 /**
  * @file
  * 3D Block Matcher game logic using Three.js.
- * @version 2.1.1
+ * @version 2.1.2
  * @updated 2026-01-19
  */
 
 (function ($, Drupal, once) {
   'use strict';
   
-  console.log('Block Matcher 3D v2.1.1 - Loaded');
+  console.log('Block Matcher 3D v2.1.2 - Loaded');
 
   Drupal.behaviors.blockMatcher3D = {
     attach: function (context, settings) {
@@ -1615,6 +1615,7 @@
     effectBomb: function(x, y, z) {
       var self = this;
       var toRemove = [];
+      var centerPos = Math.floor(this.gridSize / 2);
       
       self.logInfo('💣 BOMB activated at (' + x + ',' + y + ',' + z + ')');
       
@@ -1626,6 +1627,10 @@
             if (dx === 0 && dy === 0 && dz === 0) continue;
             
             var nx = x + dx, ny = y + dy, nz = z + dz;
+            
+            // CRITICAL: Never destroy the center block
+            if (nx === centerPos && ny === centerPos && nz === centerPos) continue;
+            
             if (nx >= 0 && nx < this.gridSize && ny >= 0 && ny < this.gridSize && nz >= 0 && nz < this.gridSize) {
               var blockType = this.grid[nx][ny][nz];
               if (blockType >= 0) {
@@ -1691,6 +1696,7 @@
     effectLightning: function(x, y, z) {
       var self = this;
       var toRemove = [];
+      var centerPos = Math.floor(this.gridSize / 2);
       
       // Pick a random regular color
       var targetColor = Math.floor(Math.random() * this.blockTypes);
@@ -1698,6 +1704,9 @@
       for (var ix = 0; ix < this.gridSize; ix++) {
         for (var iy = 0; iy < this.gridSize; iy++) {
           for (var iz = 0; iz < this.gridSize; iz++) {
+            // CRITICAL: Never destroy the center block
+            if (ix === centerPos && iy === centerPos && iz === centerPos) continue;
+            
             if (this.grid[ix][iy][iz] === targetColor) {
               toRemove.push({x: ix, y: iy, z: iz});
             }
@@ -1748,20 +1757,27 @@
     effectLaser: function(x, y, z) {
       var self = this;
       var toRemove = [];
+      var centerPos = Math.floor(this.gridSize / 2);
       
       // Pick random axis
       var axis = Math.floor(Math.random() * 3);
       
       if (axis === 0) { // X axis
         for (var ix = 0; ix < this.gridSize; ix++) {
+          // CRITICAL: Never destroy the center block
+          if (ix === centerPos && y === centerPos && z === centerPos) continue;
           if (this.grid[ix][y][z] >= 0) toRemove.push({x: ix, y: y, z: z});
         }
       } else if (axis === 1) { // Y axis
         for (var iy = 0; iy < this.gridSize; iy++) {
+          // CRITICAL: Never destroy the center block
+          if (x === centerPos && iy === centerPos && z === centerPos) continue;
           if (this.grid[x][iy][z] >= 0) toRemove.push({x: x, y: iy, z: z});
         }
       } else { // Z axis
         for (var iz = 0; iz < this.gridSize; iz++) {
+          // CRITICAL: Never destroy the center block
+          if (x === centerPos && y === centerPos && iz === centerPos) continue;
           if (this.grid[x][y][iz] >= 0) toRemove.push({x: x, y: y, z: iz});
         }
       }
