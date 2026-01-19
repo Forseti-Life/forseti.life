@@ -2345,7 +2345,9 @@
           if (match.x === centerPos && match.y === centerPos && match.z === centerPos) {
             self.logInfo('!!! CRITICAL ERROR: About to clear CENTER BLOCK in removeMatches!');
             self.logInfo('!!! Stack trace: ' + new Error().stack);
-          }\n          \n          self.grid[match.x][match.y][match.z] = -1;
+          }
+          
+          self.grid[match.x][match.y][match.z] = -1;
           
           var worldX = match.x - offset;
           var worldY = match.y - offset;
