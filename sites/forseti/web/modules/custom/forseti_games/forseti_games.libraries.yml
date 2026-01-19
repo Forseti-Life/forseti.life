@@ -8,11 +8,12 @@ game-home:
 
 block-matcher:
   version: 1.x
-  js:
-    js/block-matcher.js: {}
   css:
     theme:
       css/block-matcher.css: {}
+  js:
+    https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js: { type: external, minified: true }
+    js/block-matcher-3d.js: {}
   dependencies:
     - core/jquery
     - core/drupal

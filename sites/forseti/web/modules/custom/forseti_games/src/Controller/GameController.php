@@ -41,13 +41,25 @@ class GameController extends ControllerBase {
   public function blockMatcher() {
     $game_data = [
       'grid_size' => 8,
-      'block_types' => 5,
+      'block_types' => 6,
       'min_match' => 3,
     ];
+
+    // Get high scores
+    $connection = \Drupal::database();
+    $query = $connection->select('forseti_games_high_scores', 'h')
+      ->fields('h', ['score', 'level', 'time', 'player_name', 'created'])
+      ->condition('game_id', 'block-matcher')
+      ->orderBy('score', 'DESC')
+      ->orderBy('created', 'ASC')
+      ->range(0, 10);
+    
+    $high_scores = $query->execute()->fetchAll();
 
     return [
       '#theme' => 'game_block_matcher',
       '#game_data' => $game_data,
+      '#high_scores' => $high_scores,
       '#attached' => [
         'library' => [
           'forseti_games/block-matcher',

@@ -76,15 +76,27 @@
 
     render: function() {
       var self = this;
+      var centerPos = Math.floor(this.gridSize / 2);
       this.$board.empty();
       
       for (var i = 0; i < this.gridSize; i++) {
         for (var j = 0; j < this.gridSize; j++) {
           var $block = $('<div>')
             .addClass('block')
-            .addClass('color-' + this.grid[i][j])
             .attr('data-row', i)
             .attr('data-col', j);
+          
+          if (this.grid[i][j] === -1) {
+            $block.addClass('empty');
+          } else {
+            $block.addClass('color-' + this.grid[i][j]);
+          }
+          
+          // Highlight center block
+          if (i === centerPos && j === centerPos) {
+            $block.addClass('center-block');
+          }
+          
           this.$board.append($block);
         }
       }
@@ -132,6 +144,10 @@
     },
 
     handleBlockClick: function($block) {
+      if ($block.hasClass('empty')) {
+        return;
+      }
+      
       var row = parseInt($block.attr('data-row'));
       var col = parseInt($block.attr('data-col'));
 
@@ -272,82 +288,80 @@
         // Check for new matches after animation completes
         setTimeout(function() {
           self.processMatches();
+          
+          // Check win condition after matches processed
+          setTimeout(function() {
+            self.checkWinCondition();
+          }, 100);
         }, 600);
       }, 600);
     },
 
     dropBlocks: function() {
-      var movements = []; // Track which blocks moved and how far
-      var newBlocks = []; // Track newly generated blocks
+      var self = this;
+      var centerPos = Math.floor(this.gridSize / 2);
+      var movements = [];
+      var moved = true;
       
-      for (var col = 0; col < this.gridSize; col++) {
-        var emptyRow = this.gridSize - 1;
-        for (var row = this.gridSize - 1; row >= 0; row--) {
-          if (this.grid[row][col] !== -1) {
-            if (emptyRow !== row) {
-              // Track the movement
-              movements.push({
-                color: this.grid[row][col],
-                fromRow: row,
-                toRow: emptyRow,
-                col: col,
-                distance: emptyRow - row
-              });
+      // Keep moving blocks toward center until no more moves possible
+      while (moved) {
+        moved = false;
+        
+        for (var row = 0; row < this.gridSize; row++) {
+          for (var col = 0; col < this.gridSize; col++) {
+            if (this.grid[row][col] === -1) continue;
+            
+            // Calculate direction toward center
+            var rowDir = row < centerPos ? 1 : (row > centerPos ? -1 : 0);
+            var colDir = col < centerPos ? 1 : (col > centerPos ? -1 : 0);
+            
+            // Try to move toward center (row first, then col)
+            if (rowDir !== 0) {
+              var newRow = row + rowDir;
+              if (this.grid[newRow][col] === -1) {
+                movements.push({
+                  fromRow: row,
+                  fromCol: col,
+                  toRow: newRow,
+                  toCol: col
+                });
+                this.grid[newRow][col] = this.grid[row][col];
+                this.grid[row][col] = -1;
+                moved = true;
+                continue;
+              }
             }
-            this.grid[emptyRow][col] = this.grid[row][col];
-            if (emptyRow !== row) {
-              this.grid[row][col] = -1;
+            
+            if (colDir !== 0) {
+              var newCol = col + colDir;
+              if (this.grid[row][newCol] === -1) {
+                movements.push({
+                  fromRow: row,
+                  fromCol: col,
+                  toRow: row,
+                  toCol: newCol
+                });
+                this.grid[row][newCol] = this.grid[row][col];
+                this.grid[row][col] = -1;
+                moved = true;
+              }
             }
-            emptyRow--;
           }
-        }
-        // Fill empty spaces at top and track them
-        var emptyCount = emptyRow + 1;
-        while (emptyRow >= 0) {
-          this.grid[emptyRow][col] = this.randomBlockType();
-          newBlocks.push({
-            row: emptyRow,
-            col: col,
-            distance: emptyCount
-          });
-          emptyRow--;
         }
       }
       
       // Re-render
       this.render();
       
-      // Apply animations with appropriate delays
-      setTimeout(function() {
-        // Animate moved blocks
-        movements.forEach(function(move) {
-          var $block = $('.block[data-row="' + move.toRow + '"][data-col="' + move.col + '"]');
-          $block.css('--drop-distance', move.distance);
-          $block.attr('data-drop-distance', move.distance);
-          $block.addClass('dropping');
-        });
-        
-        // Animate new blocks from top
-        newBlocks.forEach(function(newBlock) {
-          var $block = $('.block[data-row="' + newBlock.row + '"][data-col="' + newBlock.col + '"]');
-          $block.css('--drop-distance', newBlock.distance);
-          $block.attr('data-drop-distance', newBlock.distance);
-          $block.addClass('dropping');
-        });
-        
-        // Clean up animation classes and attributes after longest animation
-        var maxDistance = Math.max(
-          movements.length > 0 ? Math.max.apply(null, movements.map(m => m.distance)) : 0,
-          newBlocks.length > 0 ? Math.max.apply(null, newBlocks.map(n => n.distance)) : 0
-        );
-        var animationDuration = 300 + maxDistance * 80;
-        
+      // Apply animations
+      if (movements.length > 0) {
         setTimeout(function() {
-          $('.block').removeClass('dropping');
-          $('.block').removeAttr('data-drop-distance');
-          $('.block').css('--drop-distance', '');
-        }, animationDuration);
-      }, 50);
+          $('.block:not(.empty)').addClass('dropping');
+          setTimeout(function() {
+            $('.block').removeClass('dropping');
+          }, 400);
+        }, 50);
+      }
     },
 
     showHint: function() {
@@ -396,6 +410,95 @@
       this.render();
       this.startTimer();
     }
+  };
+
+  /**
+   * Check if game is won.
+   */
+  BlockMatcherGame.prototype.checkWinCondition = function() {
+    var blockCount = 0;
+    
+    for (var i = 0; i < this.gridSize; i++) {
+      for (var j = 0; j < this.gridSize; j++) {
+        if (this.grid[i][j] !== -1) {
+          blockCount++;
+        }
+      }
+    }
+    
+    // Win if only 1 block left
+    if (blockCount === 1) {
+      this.gameOver(true, 'You Win! Only one block remains!');
+      return;
+    }
+    
+    // Check if any moves are possible
+    if (!this.hasValidMoves()) {
+      this.gameOver(false, 'No more moves! Game Over.');
+    }
+  };
+
+  /**
+   * Check if any valid moves exist.
+   */
+  BlockMatcherGame.prototype.hasValidMoves = function() {
+    for (var i = 0; i < this.gridSize; i++) {
+      for (var j = 0; j < this.gridSize; j++) {
+        if (this.grid[i][j] === -1) continue;
+        
+        // Check adjacent positions
+        var adjacents = [
+          [i-1, j], [i+1, j], [i, j-1], [i, j+1]
+        ];
+        
+        for (var k = 0; k < adjacents.length; k++) {
+          var nr = adjacents[k][0];
+          var nc = adjacents[k][1];
+          
+          if (nr >= 0 && nr < this.gridSize && nc >= 0 && nc < this.gridSize && this.grid[nr][nc] !== -1) {
+            // Simulate swap
+            var temp = this.grid[i][j];
+            this.grid[i][j] = this.grid[nr][nc];
+            this.grid[nr][nc] = temp;
+            
+            // Check for matches
+            var hasMatch = this.checkMatchAt(i, j).length >= this.minMatch ||
+                          this.checkMatchAt(nr, nc).length >= this.minMatch;
+            
+            // Swap back
+            this.grid[nr][nc] = this.grid[i][j];
+            this.grid[i][j] = temp;
+            
+            if (hasMatch) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  /**
+   * Handle game over.
+   */
+  BlockMatcherGame.prototype.gameOver = function(won, message) {
+    clearInterval(this.timerInterval);
+    
+    $('#final-score').text(this.score);
+    $('#final-moves').text(this.moves);
+    $('#final-time').text($('#timer').text());
+    
+    // Update modal title
+    $('#game-over-modal h2').text(won ? 'Congratulations!' : 'Game Over');
+    
+    // Show custom message if provided
+    if (message) {
+      var $message = $('<p>').addClass('game-message').text(message);
+      $('#game-over-modal .modal-content').prepend($message);
+    }
+    
+    $('#game-over-modal').show();
   };
 
   /**

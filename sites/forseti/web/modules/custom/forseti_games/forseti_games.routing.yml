@@ -13,3 +13,27 @@ forseti_games.block_matcher:
     _title: 'Block Matcher'
   requirements:
     _permission: 'access content'
+
+forseti_games.api.high_scores:
+  path: '/api/games/high-scores/{game_id}'
+  defaults:
+    _controller: '\Drupal\forseti_games\Controller\HighScoreController::getHighScores'
+  requirements:
+    _permission: 'access content'
+  methods: [GET]
+
+forseti_games.api.submit_score:
+  path: '/api/games/submit-score'
+  defaults:
+    _controller: '\Drupal\forseti_games\Controller\HighScoreController::submitScore'
+  requirements:
+    _permission: 'access content'
+  methods: [POST]
+
+forseti_games.api.check_score:
+  path: '/api/games/check-score'
+  defaults:
+    _controller: '\Drupal\forseti_games\Controller\HighScoreController::checkScore'
+  requirements:
+    _permission: 'access content'
+  methods: [POST]
