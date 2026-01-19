@@ -34,7 +34,7 @@
     this.level = 1; // Current level (starts at 1)
     this.maxLevel = 999; // No effective level cap (playable size caps at level 7)
     this.playableSize = 3; // Will be calculated based on level
-    this.blockTypes = parseInt($board.data('block-types')) || 4;
+    this.blockTypes = parseInt($board.data('block-types')) || 5;
     this.minMatch = parseInt($board.data('min-match')) || 3;
     this.grid = []; // 3D array [x][y][z]
     this.selectedBlock = null;
@@ -318,18 +318,25 @@
     showGameMessage: function(text) {
       var self = this;
       
-      // Create text sprite
+      // Create text sprite with dynamic width
       var canvas = document.createElement('canvas');
-      canvas.width = 1024;
-      canvas.height = 256;
       var ctx = canvas.getContext('2d');
       
-      // Draw background
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+      // Measure text first to determine canvas size
+      ctx.font = 'bold 64px Arial';
+      var metrics = ctx.measureText(text);
+      var textWidth = metrics.width;
+      
+      // Set canvas size with padding
+      canvas.width = Math.max(2048, textWidth + 200);
+      canvas.height = 256;
+      
+      // Redraw with proper size
+      ctx.font = 'bold 64px Arial';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
       // Draw text
-      ctx.font = 'bold 72px Arial';
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -339,12 +346,14 @@
       var spriteMaterial = new THREE.SpriteMaterial({ 
         map: texture,
         transparent: true,
-        depthTest: false
+        depthTest: false,
+        opacity: 1
       });
       var sprite = new THREE.Sprite(spriteMaterial);
       
-      // Position in front of camera
-      sprite.scale.set(10, 2.5, 1);
+      // Position in front of camera with aspect ratio based on text length
+      var aspectRatio = canvas.width / canvas.height;
+      sprite.scale.set(10 * aspectRatio / 4, 2.5, 1);
       sprite.position.set(0, 0, 0);
       sprite.renderOrder = 9999;
       
@@ -360,7 +369,7 @@
         
         if (progress < 1) {
           var scale = 10 + progress * 5; // Expand from 10 to 15
-          sprite.scale.set(scale, scale * 0.25, 1);
+          sprite.scale.set(scale * aspectRatio / 4, scale * 0.25, 1);
           sprite.material.opacity = 1 - progress;
           self.renderer.render(self.scene, self.camera);
           requestAnimationFrame(animate);
@@ -609,8 +618,8 @@
     },
 
     getBlockColor: function(type) {
-      // Define base colors: Red, Blue, Green, Yellow (4 colors)
-      var colors = [0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12, 0x9b59b6, 0xe91e63];
+      // Define base colors: Red, Blue, Green, Yellow, Purple (5 colors)
+      var colors = [0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12, 0x9b59b6];
       
       if (this.isSpecialBlock(type)) {
         // Special blocks use the color they will match with
@@ -1014,6 +1023,9 @@
     advanceLevel: function() {
       var self = this;
       
+      // Reset explosion flag
+      this.isExploding = false;
+      
       if (this.level >= this.maxLevel) {
         // Beat final level!
         setTimeout(function() {
@@ -1032,6 +1044,7 @@
         self.render3D();
         self.moves = 0;
         $('#moves').text(self.moves);
+        self.isSettling = false; // Unlock interactions for new level
       }, 2000);
     },
 
@@ -1084,6 +1097,12 @@
       
       // Check if center block was clicked
       if (x === centerPos && y === centerPos && z === centerPos) {
+        // Prevent multiple clicks during explosion
+        if (this.isExploding) {
+          return;
+        }
+        this.isExploding = true;
+        this.isSettling = true; // Lock all interactions
         this.playSuccessSound();
         this.explodeAllBlocks();
         return;
@@ -1539,6 +1558,82 @@
       $('#combo-stats').text(display);
     },
 
+    showComboCongrats: function() {
+      var combo = this.comboMatchCount;
+      
+      // Only show for combos > 60
+      if (combo <= 60) {
+        return;
+      }
+      
+      var message = '';
+      var emoji = '';
+      
+      if (combo >= 1000) {
+        message = 'LEGENDARY COMBO!';
+        emoji = '🌟✨💫🔥';
+      } else if (combo >= 950) {
+        message = 'GODLIKE!';
+        emoji = '👑🌟💫';
+      } else if (combo >= 900) {
+        message = 'TRANSCENDENT!';
+        emoji = '🚀🌟💫';
+      } else if (combo >= 850) {
+        message = 'UNSTOPPABLE!';
+        emoji = '⚡🔥💥';
+      } else if (combo >= 800) {
+        message = 'PHENOMENAL!';
+        emoji = '💎✨';
+      } else if (combo >= 750) {
+        message = 'SPECTACULAR!';
+        emoji = '🎆🌟';
+      } else if (combo >= 700) {
+        message = 'MAGNIFICENT!';
+        emoji = '🏆✨';
+      } else if (combo >= 650) {
+        message = 'INCREDIBLE!';
+        emoji = '🌟💥';
+      } else if (combo >= 600) {
+        message = 'OUTSTANDING!';
+        emoji = '⭐🔥';
+      } else if (combo >= 550) {
+        message = 'MARVELOUS!';
+        emoji = '✨💫';
+      } else if (combo >= 500) {
+        message = 'AMAZING!';
+        emoji = '🎉💥';
+      } else if (combo >= 450) {
+        message = 'FANTASTIC!';
+        emoji = '🔥⚡';
+      } else if (combo >= 400) {
+        message = 'SUPER!';
+        emoji = '💫⭐';
+      } else if (combo >= 350) {
+        message = 'EXCELLENT!';
+        emoji = '✨🌟';
+      } else if (combo >= 300) {
+        message = 'TERRIFIC!';
+        emoji = '🎊💥';
+      } else if (combo >= 250) {
+        message = 'WONDERFUL!';
+        emoji = '🌈✨';
+      } else if (combo >= 200) {
+        message = 'AWESOME!';
+        emoji = '🎯🔥';
+      } else if (combo >= 150) {
+        message = 'GREAT!';
+        emoji = '⭐💫';
+      } else if (combo >= 100) {
+        message = 'NICE!';
+        emoji = '🎉';
+      } else if (combo > 60) {
+        message = 'COMBO!';
+        emoji = '🔥';
+      }
+      
+      this.showGameMessage(emoji + ' ' + message + ' ' + combo + 'x COMBO! ' + emoji);
+    },
+
     swapBlocks: function(x1, y1, z1, x2, y2, z2, isUndo) {
       this.logDebug('>>> STEP 1: Player Swap - (' + x1 + ',' + y1 + ',' + z1 + ') <-> (' + x2 + ',' + y2 + ',' + z2 + ')');
       
@@ -1686,6 +1781,7 @@
       if (allMatches.length > 0) {
         this.comboMatchCount += allMatches.length;
         this.updateComboDisplay();
+        this.showComboCongrats();
         this.removeMatches(allMatches, true, callback);
         var points = allMatches.length * 10 * this.pointMultiplier;
         this.score += points;
@@ -1805,8 +1901,8 @@
     },
 
     dropBlocks: function(callback) {
-      self.logDebug('>>> STEP 4: Drop & Settle Starting');
       var self = this;
+      self.logDebug('>>> STEP 4: Drop & Settle Starting');
       this.movingBlocks = {};
       
       // No render needed - grid hasn't changed yet, settlement will animate moves
@@ -1814,8 +1910,8 @@
     },
 
     settleAllBlocks: function(callback) {
-      self.logDebug('  >> Settle: Beginning settlement');
       var self = this;
+      self.logDebug('  >> Settle: Beginning settlement');
       var centerPos = Math.floor(this.gridSize / 2);
       
       // Lock interaction during settlement
@@ -1971,10 +2067,12 @@
     },
 
     animateBlockMovement: function(moveMap, callback) {
-      self.logDebug('  >> ANIMATE: Starting animation for ' + Object.keys(moveMap).length + ' blocks');
       var self = this;
+      self.logDebug('  >> ANIMATE: Starting animation for ' + Object.keys(moveMap).length + ' blocks');
       var startTime = performance.now();
-      var duration = 100; // Fast, smooth animation
+      // Speed up by 2x for each 3 combos (100ms base → 50ms → 25ms → 12.5ms at 9 combos = 8x faster)
+      var duration = 100 / Math.pow(2, this.comboMatchCount > 0 ? Math.floor(this.comboMatchCount / 3) : 0);
+      duration = Math.max(duration, 10); // Cap at minimum 10ms for smoothness
       var offset = this.gridSize / 2;
       
       function animate(currentTime) {
@@ -2055,8 +2153,8 @@
     },
 
     settleAllBlocksWithCount: function(callback) {
-      self.logDebug('  >> Settle: Beginning settlement with move tracking');
       var self = this;
+      self.logDebug('  >> Settle: Beginning settlement with move tracking');
       var centerPos = Math.floor(this.gridSize / 2);
       var totalMoves = 0;
       
@@ -2599,6 +2697,9 @@
     advanceLevel: function() {
       var self = this;
       
+      // Reset explosion flag
+      this.isExploding = false;
+      
       if (this.level >= this.maxLevel) {
         // Beat final level!
         setTimeout(function() {
@@ -2617,6 +2718,7 @@
         self.render3D();
         self.moves = 0;
         $('#moves').text(self.moves);
+        self.isSettling = false; // Unlock interactions for new level
       }, 2000);
     },
 
