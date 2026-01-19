@@ -17,7 +17,7 @@ class GameController extends ControllerBase {
       [
         'title' => 'Block Matcher',
         'description' => 'Match colored blocks to clear the board. A classic puzzle game!',
-        'image' => '/modules/custom/forseti_games/images/block-matcher-thumb.png',
+        'image' => '/modules/custom/forseti_games/images/block-matcher-3d.png',
         'url' => '/games/block-matcher',
         'difficulty' => 'Easy',
         'plays' => 0,
@@ -41,7 +41,7 @@ class GameController extends ControllerBase {
   public function blockMatcher() {
     $game_data = [
       'grid_size' => 8,
-      'block_types' => 5,
+      'block_types' => 6,
       'min_match' => 3,
     ];
 

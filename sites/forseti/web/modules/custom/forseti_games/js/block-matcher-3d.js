@@ -30,11 +30,11 @@
    */
   function BlockMatcher3DGame($board) {
     this.$board = $board;
-    this.gridSize = 18; // Full grid size (18x18x18)
+    this.gridSize = 13; // Full grid size (13x13x13)
     this.level = 1; // Current level (starts at 1)
-    this.maxLevel = 999; // No effective level cap (playable size caps at level 7)
+    this.maxLevel = 999; // No effective level cap (playable size caps at level 3)
     this.playableSize = 3; // Will be calculated based on level
-    this.blockTypes = parseInt($board.data('block-types')) || 5;
+    this.blockTypes = parseInt($board.data('block-types')) || 6;
     this.minMatch = parseInt($board.data('min-match')) || 3;
     this.grid = []; // 3D array [x][y][z]
     this.selectedBlock = null;
@@ -465,16 +465,16 @@
     },
 
     updateLevel: function() {
-      // Calculate playable size based on level: Level 1 = 5x5x5, Level 2 = 7x7x7, etc.
-      // Cap playable size at level 6 (15x15x15), but level can continue to increase
-      var targetSize = 2 * Math.min(this.level + 1, 7) + 1;
+      // Calculate playable size based on level: Level 1 = 5x5x5, Level 2 = 7x7x7, Level 3+ = 9x9x9
+      // Cap playable size at level 3 (9x9x9 = 728 blocks), but level can continue to increase
+      var targetSize = 2 * Math.min(this.level + 1, 4) + 1;
       this.playableSize = Math.min(targetSize, this.gridSize);
       $('#level').text(this.level);
     },
 
     createGrid: function() {
       this.grid = [];
-      var centerPos = Math.floor(this.gridSize / 2); // Always 9 for 18x18x18
+      var centerPos = Math.floor(this.gridSize / 2); // Center at 6 for 13x13x13
       var halfSize = Math.floor(this.playableSize / 2); // How many blocks on each side of center
       var startIdx = centerPos - halfSize;
       var endIdx = centerPos + halfSize + 1; // +1 because center block itself
@@ -618,8 +618,8 @@
     },
 
     getBlockColor: function(type) {
-      // Define base colors: Red, Blue, Green, Yellow, Purple (5 colors)
-      var colors = [0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12, 0x9b59b6];
+      // Define base colors: Red, Blue, Green, Yellow, Purple, Pink (6 colors)
+      var colors = [0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12, 0x9b59b6, 0xe91e63];
       
       if (this.isSpecialBlock(type)) {
         // Special blocks use the color they will match with
@@ -1212,6 +1212,13 @@
     },
 
     isValidDropZone: function(fromX, fromY, fromZ, toX, toY, toZ) {
+      // Check bounds first
+      if (toX < 0 || toX >= this.gridSize || 
+          toY < 0 || toY >= this.gridSize || 
+          toZ < 0 || toZ >= this.gridSize) {
+        return false;
+      }
+      
       // Must be adjacent
       if (!this.isAdjacent3D(fromX, fromY, fromZ, toX, toY, toZ)) {
         return false;
