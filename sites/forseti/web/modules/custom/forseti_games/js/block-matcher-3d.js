@@ -1264,7 +1264,8 @@
       for (var x = 0; x < this.gridSize; x++) {
         for (var y = 0; y < this.gridSize; y++) {
           for (var z = 0; z < this.gridSize; z++) {
-            if (this.grid[x][y][z] >= 0) {
+            // Include regular blocks (>=0) AND center block (-3) AND boundary blocks (-2)
+            if (this.grid[x][y][z] >= 0 || this.grid[x][y][z] === -3 || this.grid[x][y][z] === -2) {
               validPositions.add(x + '_' + y + '_' + z);
             }
           }
