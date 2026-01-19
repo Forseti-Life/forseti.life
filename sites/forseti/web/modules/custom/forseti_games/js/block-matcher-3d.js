@@ -43,9 +43,9 @@
     this.grid = []; // 3D array [x][y][z]
     this.selectedBlock = null;
     
-    // Logging configuration - only critical errors enabled
-    this.logLevel = 'ERROR'; // DEBUG, INFO, WARN, ERROR
-    this.enableLogging = false; // Set to true to enable debug logging
+    // Logging configuration - DEBUG MODE ENABLED
+    this.logLevel = 'DEBUG'; // DEBUG, INFO, WARN, ERROR
+    this.enableLogging = true; // Set to true to enable debug logging
     this.score = 0;
     this.moves = 0;
     this.startTime = null;
@@ -1334,10 +1334,13 @@
 
     ensureCenterBlock: function() {
       var centerPos = Math.floor(this.gridSize / 2);
+      var currentValue = this.grid[centerPos][centerPos][centerPos];
+      
+      this.logDebug('ensureCenterBlock check: grid[' + centerPos + '][' + centerPos + '][' + centerPos + '] = ' + currentValue);
       
       // Check if center block exists and has correct value
-      if (this.grid[centerPos][centerPos][centerPos] !== -3) {
-        this.logInfo('CRITICAL: Center block corrupted (value=' + this.grid[centerPos][centerPos][centerPos] + '), restoring it');
+      if (currentValue !== -3) {
+        this.logInfo('!!! CRITICAL: Center block corrupted (value=' + currentValue + '), restoring it');\n        this.logInfo('!!! Stack trace when detected: ' + new Error().stack);
         
         // Restore center block with special marker (-3)
         this.grid[centerPos][centerPos][centerPos] = -3; // -3 = center block marker (protected)
@@ -1663,6 +1666,7 @@
       var centerPos = Math.floor(this.gridSize / 2);
       
       self.logInfo('💣 BOMB activated at (' + x + ',' + y + ',' + z + ')');
+      self.logInfo('effectBomb called from: ' + (new Error().stack.split('\n')[2] || 'unknown'));
       
       // Destroy all blocks in 3x3x3 cube around bomb position (excluding the bomb itself)
       for (var dx = -1; dx <= 1; dx++) {
@@ -1674,7 +1678,10 @@
             var nx = x + dx, ny = y + dy, nz = z + dz;
             
             // CRITICAL: Never destroy the center block
-            if (nx === centerPos && ny === centerPos && nz === centerPos) continue;
+            if (nx === centerPos && ny === centerPos && nz === centerPos) {
+              self.logInfo('💣 Bomb: Skipping center block at (' + nx + ',' + ny + ',' + nz + ')');
+              continue;
+            }
             
             if (nx >= 0 && nx < this.gridSize && ny >= 0 && ny < this.gridSize && nz >= 0 && nz < this.gridSize) {
               var blockType = this.grid[nx][ny][nz];
@@ -1694,6 +1701,7 @@
         // Remove the blocks immediately from grid and scene
         var offset = this.gridSize / 2;
         toRemove.forEach(function(pos) {
+          self.logDebug('  💣 Bomb removing block at (' + pos.x + ',' + pos.y + ',' + pos.z + ')');
           self.grid[pos.x][pos.y][pos.z] = -1;
           
           // Remove mesh
@@ -1743,6 +1751,9 @@
       var toRemove = [];
       var centerPos = Math.floor(this.gridSize / 2);
       
+      self.logInfo('⚡ LIGHTNING activated at (' + x + ',' + y + ',' + z + ')');
+      self.logInfo('effectLightning called from: ' + (new Error().stack.split('\n')[2] || 'unknown'));
+      
       // Pick a random regular color
       var targetColor = Math.floor(Math.random() * this.blockTypes);
       
@@ -1750,7 +1761,10 @@
         for (var iy = 0; iy < this.gridSize; iy++) {
           for (var iz = 0; iz < this.gridSize; iz++) {
             // CRITICAL: Never destroy the center block
-            if (ix === centerPos && iy === centerPos && iz === centerPos) continue;
+            if (ix === centerPos && iy === centerPos && iz === centerPos) {
+              self.logInfo('⚡ Lightning: Skipping center block at (' + ix + ',' + iy + ',' + iz + ')');
+              continue;
+            }
             
             if (this.grid[ix][iy][iz] === targetColor) {
               toRemove.push({x: ix, y: iy, z: iz});
@@ -1803,6 +1817,9 @@
       var self = this;
       var toRemove = [];
       var centerPos = Math.floor(this.gridSize / 2);
+      
+      self.logInfo('🎯 LASER activated at (' + x + ',' + y + ',' + z + ')');
+      self.logInfo('effectLaser called from: ' + (new Error().stack.split('\n')[2] || 'unknown'));
       
       // Pick random axis
       var axis = Math.floor(Math.random() * 3);
@@ -2217,8 +2234,22 @@
       var self = this;
       var eliminatedCount = matches.length;
       var offset = this.gridSize / 2;
+      var centerPos = Math.floor(this.gridSize / 2);
       
-      self.logDebug('>>> STEP 3: Explosion - ' + eliminatedCount + ' blocks (skipDrop=' + skipDrop + ')');
+      self.logInfo('>>> STEP 3: Explosion - ' + eliminatedCount + ' blocks (skipDrop=' + skipDrop + ')');
+      self.logInfo('removeMatches called from: ' + (new Error().stack.split('\n')[2] || 'unknown'));
+      
+      // Log each block being removed
+      matches.forEach(function(match) {
+        var blockType = self.grid[match.x][match.y][match.z];
+        self.logInfo('  Removing block at (' + match.x + ',' + match.y + ',' + match.z + ') type=' + blockType);
+        
+        // CRITICAL CHECK: Verify we're not removing center block
+        if (match.x === centerPos && match.y === centerPos && match.z === centerPos) {
+          self.logInfo('!!! ERROR: Attempt to remove CENTER BLOCK at (' + match.x + ',' + match.y + ',' + match.z + ')');
+          self.logInfo('!!! Call stack: ' + new Error().stack);
+        }
+      });
       
       // Check for special blocks in the matches and trigger their effects
       var specialBlocksToTrigger = [];
@@ -2307,7 +2338,11 @@
       setTimeout(function() {
         // Remove matched blocks from grid and their meshes
         matches.forEach(function(match) {
-          self.grid[match.x][match.y][match.z] = -1;
+          self.logDebug('  Setting grid[' + match.x + '][' + match.y + '][' + match.z + '] = -1 (was ' + self.grid[match.x][match.y][match.z] + ')');
+          
+          // CRITICAL CHECK before clearing
+          if (match.x === centerPos && match.y === centerPos && match.z === centerPos) {
+            self.logInfo('!!! CRITICAL ERROR: About to clear CENTER BLOCK in removeMatches!');\n            self.logInfo('!!! Stack trace: ' + new Error().stack);\n          }\n          \n          self.grid[match.x][match.y][match.z] = -1;
           
           var worldX = match.x - offset;
           var worldY = match.y - offset;
