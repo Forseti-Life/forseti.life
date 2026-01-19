@@ -1340,7 +1340,8 @@
       
       // Check if center block exists and has correct value
       if (currentValue !== -3) {
-        this.logInfo('!!! CRITICAL: Center block corrupted (value=' + currentValue + '), restoring it');\n        this.logInfo('!!! Stack trace when detected: ' + new Error().stack);
+        this.logInfo('!!! CRITICAL: Center block corrupted (value=' + currentValue + '), restoring it');
+        this.logInfo('!!! Stack trace when detected: ' + new Error().stack);
         
         // Restore center block with special marker (-3)
         this.grid[centerPos][centerPos][centerPos] = -3; // -3 = center block marker (protected)
@@ -2342,7 +2343,9 @@
           
           // CRITICAL CHECK before clearing
           if (match.x === centerPos && match.y === centerPos && match.z === centerPos) {
-            self.logInfo('!!! CRITICAL ERROR: About to clear CENTER BLOCK in removeMatches!');\n            self.logInfo('!!! Stack trace: ' + new Error().stack);\n          }\n          \n          self.grid[match.x][match.y][match.z] = -1;
+            self.logInfo('!!! CRITICAL ERROR: About to clear CENTER BLOCK in removeMatches!');
+            self.logInfo('!!! Stack trace: ' + new Error().stack);
+          }\n          \n          self.grid[match.x][match.y][match.z] = -1;
           
           var worldX = match.x - offset;
           var worldY = match.y - offset;
