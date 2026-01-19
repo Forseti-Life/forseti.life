@@ -43,9 +43,9 @@
     this.grid = []; // 3D array [x][y][z]
     this.selectedBlock = null;
     
-    // Logging configuration - DEBUG MODE ENABLED
-    this.logLevel = 'DEBUG'; // DEBUG, INFO, WARN, ERROR
-    this.enableLogging = true; // Set to true to enable debug logging
+    // Logging configuration - DEBUG MODE DISABLED
+    this.logLevel = 'ERROR'; // DEBUG, INFO, WARN, ERROR
+    this.enableLogging = false; // Set to true to enable debug logging
     this.score = 0;
     this.moves = 0;
     this.startTime = null;
@@ -206,9 +206,15 @@
     playExplosionSound: function(count) {
       if (!this.audioContext) return;
       
+      // Throttle sound - minimum 100ms between explosions (±150ms randomization)
+      if (!this.lastSoundTime) this.lastSoundTime = 0;
+      var now = this.audioContext.currentTime;
+      var throttleTime = 0.1 + (Math.random() - 0.5) * 0.3; // 100ms ± 150ms
+      if (now - this.lastSoundTime < throttleTime) return; // Skip if too soon
+      this.lastSoundTime = now;
+      
       // Create a noise-based explosion sound
       var duration = 0.3;
-      var now = this.audioContext.currentTime;
       
       // Low frequency rumble
       var rumble = this.audioContext.createOscillator();
@@ -421,26 +427,46 @@
     playSuccessSound: function() {
       if (!this.audioContext) return;
       
-      // Create an uplifting success jingle
+      // Trumpet fanfare: "Da da da da!" (short-short-short-long)
       var now = this.audioContext.currentTime;
-      var notes = [523.25, 659.25, 783.99]; // C5, E5, G5 chord
       
-      notes.forEach(function(freq, index) {
+      // Classic fanfare rhythm with trumpet-like tones
+      var fanfare = [
+        { note: 523.25, time: 0, duration: 0.15 },      // C5 - "Da"
+        { note: 523.25, time: 0.18, duration: 0.15 },   // C5 - "da"
+        { note: 659.25, time: 0.36, duration: 0.15 },   // E5 - "da"
+        { note: 783.99, time: 0.54, duration: 0.4 }     // G5 - "DAAA!"
+      ];
+      
+      fanfare.forEach(function(note) {
+        // Use sawtooth wave for brass-like trumpet sound
         var osc = this.audioContext.createOscillator();
         var gain = this.audioContext.createGain();
+        var filter = this.audioContext.createBiquadFilter();
         
-        osc.connect(gain);
+        osc.connect(filter);
+        filter.connect(gain);
         gain.connect(this.audioContext.destination);
         
-        osc.frequency.value = freq;
-        osc.type = 'sine';
+        osc.frequency.value = note.note;
+        osc.type = 'sawtooth'; // Brass-like timbre
         
-        var delay = index * 0.08;
-        gain.gain.setValueAtTime(0.15, now + delay);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + delay + 0.5);
+        // Bandpass filter for trumpet character
+        filter.type = 'bandpass';
+        filter.frequency.value = note.note * 2;
+        filter.Q.value = 1.5;
         
-        osc.start(now + delay);
-        osc.stop(now + delay + 0.5);
+        var startTime = now + note.time;
+        var endTime = startTime + note.duration;
+        
+        // Attack and decay envelope for trumpet articulation
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.25, startTime + 0.02); // Quick attack
+        gain.gain.linearRampToValueAtTime(0.2, startTime + note.duration * 0.3); // Sustain
+        gain.gain.exponentialRampToValueAtTime(0.01, endTime); // Decay
+        
+        osc.start(startTime);
+        osc.stop(endTime);
       }.bind(this));
     },
 
@@ -1383,8 +1409,41 @@
 
     completeTurn: function() {
       this.logDebug('Turn complete, unlocking (isSettling = false)');
-      this.ensureCenterBlock(); // Ensure center block exists
-      this.cleanupOrphanedMeshes();
+      
+      // FULL CLEANUP: Remove ALL meshes from scene to prevent explosion remnants
+      var self = this;
+      var meshesToRemove = [];
+      
+      // Collect all meshes that should be removed (everything except camera and lights)
+      this.scene.children.forEach(function(child) {
+        if (child.type === 'Mesh' || child.geometry) {
+          meshesToRemove.push(child);
+        }
+      });
+      
+      // Remove and dispose all meshes
+      meshesToRemove.forEach(function(mesh) {
+        self.scene.remove(mesh);
+        if (mesh.geometry) mesh.geometry.dispose();
+        if (mesh.material) {
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach(function(mat) { mat.dispose(); });
+          } else {
+            mesh.material.dispose();
+          }
+        }
+      });
+      
+      // Clear mesh tracking
+      this.blockMeshes = {};
+      
+      // Ensure center block exists in grid
+      this.ensureCenterBlock();
+      
+      // Rebuild entire scene from grid state
+      this.render3D();
+      
+      // Unlock for next turn
       this.isSettling = false;
     },
 
@@ -1615,6 +1674,13 @@
     moveBlockToEmpty: function(x1, y1, z1, x2, y2, z2) {
       this.logDebug('>>> MOVE: Block from (' + x1 + ',' + y1 + ',' + z1 + ') to empty (' + x2 + ',' + y2 + ',' + z2 + ')');
       var self = this;
+      var centerPos = Math.floor(this.gridSize / 2);
+      
+      // NEVER allow moving to center block position
+      if (x2 === centerPos && y2 === centerPos && z2 === centerPos) {
+        this.logInfo('!!! BLOCKED: Attempted to move block to CENTER position (' + x2 + ',' + y2 + ',' + z2 + ')');
+        return;
+      }
       
       // Move the block to the empty space
       this.grid[x2][y2][z2] = this.grid[x1][y1][z1];
@@ -2227,7 +2293,7 @@
       } else {
         // No more matches, trigger callback if provided
         if (callback) {
-          setTimeout(callback, 100);
+          setTimeout(callback, 100 + Math.floor((Math.random() - 0.5) * 300)); // 100ms ± 150ms
         }
       }
     },
@@ -2279,7 +2345,16 @@
       this.playExplosionSound(eliminatedCount);
       
       // Animate explosion before removing
+      // Scale animation timing based on chain size
+      var animStepDelay = 160; // Base delay per frame (doubled)
+      if (eliminatedCount > 100) animStepDelay = 240;
+      if (eliminatedCount > 500) animStepDelay = 360;
+      if (eliminatedCount > 1000) animStepDelay = 480;
+      
       matches.forEach(function(match) {
+        // Add ±150ms randomization per block for organic cascading effect
+        var randomizedDelay = animStepDelay + Math.floor((Math.random() - 0.5) * 300);
+        
         var worldX = match.x - offset;
         var worldY = match.y - offset;
         var worldZ = match.z - offset;
@@ -2295,7 +2370,7 @@
           // Explosion animation: scale up, rotate, brighten and fade out
           var startScale = 1;
           var endScale = 4;
-          var steps = 8;
+          var steps = 16; // Increased to 16 for very smooth animations
           var currentStep = 0;
           
           // Handle both single material and material array (for special blocks)
@@ -2330,22 +2405,27 @@
             }
             
             if (currentStep < steps) {
-              setTimeout(explode, 30);
+              setTimeout(explode, randomizedDelay);
             }
           };
           explode();
         }
       });
       
+      // Calculate removal delay based on animation timing
+      // 16 steps * base delay + max randomization (+150ms) + 5ms buffer = total animation time
+      var removalDelay = (animStepDelay * 16) + 150 + 5;
+      
       setTimeout(function() {
         // Remove matched blocks from grid and their meshes
         matches.forEach(function(match) {
           self.logDebug('  Setting grid[' + match.x + '][' + match.y + '][' + match.z + '] = -1 (was ' + self.grid[match.x][match.y][match.z] + ')');
           
-          // CRITICAL CHECK before clearing
+          // CRITICAL CHECK before clearing - SKIP center block instead of removing it
           if (match.x === centerPos && match.y === centerPos && match.z === centerPos) {
-            self.logInfo('!!! CRITICAL ERROR: About to clear CENTER BLOCK in removeMatches!');
+            self.logInfo('!!! CRITICAL ERROR: CENTER BLOCK in matches array - SKIPPING removal!');
             self.logInfo('!!! Stack trace: ' + new Error().stack);
+            return; // Skip this block - don't remove it
           }
           
           self.grid[match.x][match.y][match.z] = -1;
@@ -2433,7 +2513,7 @@
       
       // Create particle system for each block
       var animationSteps = 12; // More steps for smoother dissolve
-      var stepDuration = 25; // ms per step
+      var stepDuration = 200; // ms per step (8x original for very slow animations)
       var currentStep = 0;
       
       // Store original properties
@@ -2498,8 +2578,10 @@
         });
         
         if (currentStep < animationSteps) {
-          setTimeout(animateStep, stepDuration);
+          setTimeout(animateStep, stepDuration + Math.floor((Math.random() - 0.5) * 300)); // ± 150ms
         } else {
+          // Animation complete - wait 5ms before cleanup
+          setTimeout(function() {
           // Animation complete - clean up
           toRemove.forEach(function(block) {
             if (block && block.mesh) {
@@ -2541,11 +2623,13 @@
               self.processMatchesWithoutDrop(callback);
             }, 300);
           }
+          }, 5); // 5ms delay after animation
         }
       };
       
       // Start animation
-      setTimeout(animateStep, Math.max(100 / Math.pow(2, this.comboMatchCount > 0 ? Math.floor(this.comboMatchCount / 3) : 0), 10));
+      var baseDelay = Math.max(100 / Math.pow(2, this.comboMatchCount > 0 ? Math.floor(this.comboMatchCount / 3) : 0), 10);
+      setTimeout(animateStep, baseDelay + Math.floor((Math.random() - 0.5) * 300)); // ± 150ms
     },
 
     dropBlocks: function(callback) {
@@ -2617,7 +2701,7 @@
           if (xDist >= yDist && xDist >= zDist && xDir !== 0 && !blockMoved) {
             var newX = x + xDir;
             self.logDebug('    >> Try X: (' + x + ',' + y + ',' + z + ') -> (' + newX + ',' + y + ',' + z + ') - distances[x=' + xDist + ',y=' + yDist + ',z=' + zDist + '] target=' + (self.grid[newX] && self.grid[newX][y] ? self.grid[newX][y][z] : 'OOB'));
-            if (newX >= 0 && newX < self.gridSize && self.grid[newX][y][z] === -1) {
+            if (newX >= 0 && newX < self.gridSize && self.grid[newX][y][z] === -1 && !(newX === centerPos && y === centerPos && z === centerPos)) {
               self.logDebug('  >> Settle: Moving block from (' + x + ',' + y + ',' + z + ') to (' + newX + ',' + y + ',' + z + ')');
               var newKey = newX + '_' + y + '_' + z;
               moveMap[oldKey] = { newX: newX, newY: y, newZ: z, oldX: x, oldY: y, oldZ: z };
@@ -2632,7 +2716,7 @@
           if (yDist >= xDist && yDist >= zDist && yDir !== 0 && !blockMoved) {
             var newY = y + yDir;
             self.logDebug('    >> Try Y: (' + x + ',' + y + ',' + z + ') -> (' + x + ',' + newY + ',' + z + ') - distances[x=' + xDist + ',y=' + yDist + ',z=' + zDist + '] target=' + (self.grid[x] && self.grid[x][newY] ? self.grid[x][newY][z] : 'OOB'));
-            if (newY >= 0 && newY < self.gridSize && self.grid[x][newY][z] === -1) {
+            if (newY >= 0 && newY < self.gridSize && self.grid[x][newY][z] === -1 && !(x === centerPos && newY === centerPos && z === centerPos)) {
               self.logDebug('  >> Settle: Moving block from (' + x + ',' + y + ',' + z + ') to (' + x + ',' + newY + ',' + z + ')');
               var newKey = x + '_' + newY + '_' + z;
               moveMap[oldKey] = { newX: x, newY: newY, newZ: z, oldX: x, oldY: y, oldZ: z };
@@ -2647,7 +2731,7 @@
           if (zDist >= xDist && zDist >= yDist && zDir !== 0 && !blockMoved) {
             var newZ = z + zDir;
             self.logDebug('    >> Try Z: (' + x + ',' + y + ',' + z + ') -> (' + x + ',' + y + ',' + newZ + ') - distances[x=' + xDist + ',y=' + yDist + ',z=' + zDist + '] target=' + (self.grid[x] && self.grid[x][y] ? self.grid[x][y][newZ] : 'OOB'));
-            if (newZ >= 0 && newZ < self.gridSize && self.grid[x][y][newZ] === -1) {
+            if (newZ >= 0 && newZ < self.gridSize && self.grid[x][y][newZ] === -1 && !(x === centerPos && y === centerPos && newZ === centerPos)) {
               self.logDebug('  >> Settle: Moving block from (' + x + ',' + y + ',' + z + ') to (' + x + ',' + y + ',' + newZ + ')');
               var newKey = x + '_' + y + '_' + newZ;
               moveMap[oldKey] = { newX: x, newY: y, newZ: newZ, oldX: x, oldY: y, oldZ: z };
@@ -2670,7 +2754,7 @@
           self.logDebug('  >> Settle: Calling animateBlockMovement() with ' + moveCount + ' blocks');
           self.animateBlockMovement(moveMap, function() {
             self.logDebug('  >> Settle: Animation callback - iteration complete, blocks moved');
-            setTimeout(settleStep, 25); // Fast iterations for fluid movement
+            setTimeout(settleStep, 25 + Math.floor((Math.random() - 0.5) * 300)); // 25ms ± 150ms
           });
         } else {
           self.logDebug('  >> Settle: No blocks to move, settlement complete');
@@ -2718,9 +2802,9 @@
       var self = this;
       self.logDebug('  >> ANIMATE: Starting animation for ' + Object.keys(moveMap).length + ' blocks');
       var startTime = performance.now();
-      // Speed up by 2x for each 3 combos (100ms base → 50ms → 25ms → 12.5ms at 9 combos = 8x faster)
-      var duration = 100 / Math.pow(2, this.comboMatchCount > 0 ? Math.floor(this.comboMatchCount / 3) : 0);
-      duration = Math.max(duration, 10); // Cap at minimum 10ms for smoothness
+      // Speed up by 2x for each 3 combos (200ms base → 100ms → 50ms → 25ms at 9 combos = 8x faster)
+      var duration = 200 / Math.pow(2, this.comboMatchCount > 0 ? Math.floor(this.comboMatchCount / 3) : 0);
+      duration = Math.max(duration, 25); // Cap at minimum 25ms for smoothness
       var offset = this.gridSize / 2;
       
       function animate(currentTime) {
@@ -2792,7 +2876,9 @@
           
           // Callback to continue settlement
           self.logDebug('  >> ANIMATE: Calling callback to continue settlement');
-          if (callback) callback();
+          setTimeout(function() {
+            if (callback) callback();
+          }, 5); // 5ms delay after animation
         }
       }
       
@@ -2892,7 +2978,7 @@
         if (moved) {
           self.render3D();
           self.logDebug('  >> Settle: Iteration complete - ' + movesThisIteration + ' blocks moved (total: ' + totalMoves + ')');
-          setTimeout(settleStep, 250);
+          setTimeout(settleStep, 1500 + Math.floor((Math.random() - 0.5) * 300)); // 1500ms ± 150ms (6x original)
         } else {
           // All blocks fully settled
           self.render3D();

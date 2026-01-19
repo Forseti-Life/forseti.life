@@ -7,7 +7,7 @@ game-home:
     - core/drupal
 
 block-matcher:
-  version: 2.1.3
+  version: 2.2.0
   css:
     theme:
       css/block-matcher.css: {}
