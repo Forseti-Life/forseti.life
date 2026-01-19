@@ -105,13 +105,13 @@
     // Centralized logging methods
     logDebug: function(message) {
       if (this.enableLogging && (this.logLevel === 'DEBUG')) {
-        self.logDebug('[DEBUG] ' + message);
+        console.log('[DEBUG] ' + message);
       }
     },
     
     logInfo: function(message) {
       if (this.enableLogging && (this.logLevel === 'DEBUG' || this.logLevel === 'INFO')) {
-        self.logDebug('[INFO] ' + message);
+        console.log('[INFO] ' + message);
       }
     },
     
