@@ -34,10 +34,14 @@
     this.level = 1; // Current level (starts at 1)
     this.maxLevel = 999; // No effective level cap (playable size caps at level 7)
     this.playableSize = 3; // Will be calculated based on level
-    this.blockTypes = parseInt($board.data('block-types')) || 5;
+    this.blockTypes = parseInt($board.data('block-types')) || 4;
     this.minMatch = parseInt($board.data('min-match')) || 3;
     this.grid = []; // 3D array [x][y][z]
     this.selectedBlock = null;
+    
+    // Logging configuration - only critical errors enabled
+    this.logLevel = 'ERROR'; // DEBUG, INFO, WARN, ERROR
+    this.enableLogging = false; // Set to true to enable debug logging
     this.score = 0;
     this.moves = 0;
     this.startTime = null;
@@ -94,6 +98,30 @@
   }
 
   BlockMatcher3DGame.prototype = {
+    // Centralized logging methods
+    logDebug: function(message) {
+      if (this.enableLogging && (this.logLevel === 'DEBUG')) {
+        self.logDebug('[DEBUG] ' + message);
+      }
+    },
+    
+    logInfo: function(message) {
+      if (this.enableLogging && (this.logLevel === 'DEBUG' || this.logLevel === 'INFO')) {
+        self.logDebug('[INFO] ' + message);
+      }
+    },
+    
+    logWarn: function(message) {
+      if (this.enableLogging && (this.logLevel === 'DEBUG' || this.logLevel === 'INFO' || this.logLevel === 'WARN')) {
+        console.warn('[WARN] ' + message);
+      }
+    },
+    
+    logError: function(message) {
+      // Critical errors always logged
+      console.error('[ERROR] ' + message);
+    },
+    
     init: function() {
       this.updateLevel();
       this.precalculateDistances(); // Cache distances for settlement optimization
@@ -109,7 +137,7 @@
       try {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
       } catch(e) {
-        console.log('Web Audio API not supported');
+        this.logWarn('Web Audio API not supported');
       }
     },
 
@@ -248,7 +276,7 @@
     precalculateDistances: function() {
       // Pre-calculate all distances from center for settlement optimization
       // This eliminates ~58,000-116,000 distance calculations per turn
-      console.log('Precalculating block distances for settlement optimization...');
+      this.logDebug('Precalculating block distances for settlement optimization...');
       
       var centerPos = Math.floor(this.gridSize / 2);
       this.blockDistances = {};  // Cache of distance info by position key
@@ -284,7 +312,7 @@
         return b.dist - a.dist; // Sort descending (furthest first)
       });
       
-      console.log('Distance cache initialized: ' + this.blocksByDistance.length + ' positions pre-calculated and sorted');
+      this.logDebug('Distance cache initialized: ' + this.blocksByDistance.length + ' positions pre-calculated and sorted');
     },
 
     showGameMessage: function(text) {
@@ -490,12 +518,12 @@
       for (var key in this.specialBlocks) {
         currentWeight += this.specialBlocks[key].rarity;
         if (roll <= currentWeight) {
-          console.log('Generated special block:', key, this.specialBlocks[key].name);
+          this.logDebug('Generated special block: ' + key + ' ' + this.specialBlocks[key].name);
           return parseInt(key);
         }
       }
       
-      console.log('Using fallback special block: Bomb');
+      this.logDebug('Using fallback special block: Bomb');
       return 100; // Bomb as fallback
     },
 
@@ -581,7 +609,7 @@
     },
 
     getBlockColor: function(type) {
-      // Define base colors: Red, Blue, Green, Yellow, Purple, Pink
+      // Define base colors: Red, Blue, Green, Yellow (4 colors)
       var colors = [0xe74c3c, 0x3498db, 0x2ecc71, 0xf39c12, 0x9b59b6, 0xe91e63];
       
       if (this.isSpecialBlock(type)) {
@@ -678,7 +706,7 @@
             if (isSpecial) {
               var special = this.getSpecialBlockData(blockType);
               if (special) {
-                console.log('Creating sprite for special block:', blockType, special.name, special.emoji);
+                this.logDebug('Creating sprite for special block: ' + blockType + ' ' + special.name + ' ' + special.emoji);
                 var spriteMap = this.createEmojiTexture(special.emoji);
                 var spriteMaterial = new THREE.SpriteMaterial({ 
                   map: spriteMap,
@@ -824,7 +852,7 @@
       if (blocksPlaced < count && attempts >= maxAttempts) {
         // Check if shield is active
         if (this.hasShield) {
-          console.log('SHIELD ACTIVATED: Removing 50% of blocks');
+          this.logInfo('SHIELD ACTIVATED: Removing 50% of blocks');
           this.hasShield = false; // Consume shield
           this.showGameMessage('🛡️ Shield saved you! Removing half the blocks.');
           
@@ -853,7 +881,7 @@
           return;
         }
         
-        console.log('GAME OVER: Could not place blocks (grid too full)');
+        this.logError('GAME OVER: Could not place blocks (grid too full)');
         this.gameOver(false, 'Game Over! No space for new blocks.');
         return;
       }
@@ -968,9 +996,9 @@
       });
 
       $('#settle-blocks-btn').on('click', function() {
-        console.log('=== MANUAL SETTLE TRIGGERED ===');
+        self.logDebug('=== MANUAL SETTLE TRIGGERED ===');
         self.settleAllBlocksWithCount(function(moveCount) {
-          console.log('=== MANUAL SETTLE COMPLETE - Total moves: ' + moveCount + ' ===');
+          self.logDebug('=== MANUAL SETTLE COMPLETE - Total moves: ' + moveCount + ' ===');
         });
       });
 
@@ -1008,7 +1036,7 @@
     },
 
     completeTurn: function() {
-      console.log('Turn complete, unlocking (isSettling = false)');
+      this.logDebug('Turn complete, unlocking (isSettling = false)');
       this.isSettling = false;
     },
 
@@ -1034,7 +1062,7 @@
     handleBlockClick: function(x, y, z) {
       // Block interaction during settlement
       if (this.isSettling) {
-        console.log('Click blocked: isSettling is true');
+        this.logDebug('Click blocked: isSettling is true');
         return;
       }
       
@@ -1065,7 +1093,7 @@
       var self = this;
       
       // Lock interaction immediately
-      console.log('Setting isSettling = true');
+      this.logDebug('Setting isSettling = true');
       this.isSettling = true;
       
       /* DISABLED: Special blocks now match by color instead of triggering on click
@@ -1224,7 +1252,7 @@
     },
 
     moveBlockToEmpty: function(x1, y1, z1, x2, y2, z2) {
-      console.log('>>> MOVE: Block from (' + x1 + ',' + y1 + ',' + z1 + ') to empty (' + x2 + ',' + y2 + ',' + z2 + ')');
+      this.logDebug('>>> MOVE: Block from (' + x1 + ',' + y1 + ',' + z1 + ') to empty (' + x2 + ',' + y2 + ',' + z2 + ')');
       var self = this;
       
       // Move the block to the empty space
@@ -1254,7 +1282,7 @@
       
       var special = this.getSpecialBlockData(blockType);
       if (special) {
-        console.log('Activated: ' + special.name + ' ' + special.emoji);
+        this.logInfo('Activated: ' + special.name + ' ' + special.emoji);
       }
       
       switch(blockType) {
@@ -1512,7 +1540,7 @@
     },
 
     swapBlocks: function(x1, y1, z1, x2, y2, z2, isUndo) {
-      console.log('>>> STEP 1: Player Swap - (' + x1 + ',' + y1 + ',' + z1 + ') <-> (' + x2 + ',' + y2 + ',' + z2 + ')');
+      this.logDebug('>>> STEP 1: Player Swap - (' + x1 + ',' + y1 + ',' + z1 + ') <-> (' + x2 + ',' + y2 + ',' + z2 + ')');
       
       // Lock interaction during swap processing (only on initial swap, not undo)
       if (!isUndo) {
@@ -1608,7 +1636,7 @@
     },
 
     processMatches: function() {
-      console.log('>>> STEP 2: Check Initial Matches');
+      this.logDebug('>>> STEP 2: Check Initial Matches');
       var allMatches = [];
       
       for (var x = 0; x < this.gridSize; x++) {
@@ -1640,7 +1668,7 @@
     },
 
     processMatchesWithoutDrop: function(callback) {
-      console.log('>>> STEP 5: Check Chain Matches');
+      this.logDebug('>>> STEP 5: Check Chain Matches');
       var self = this;
       var allMatches = [];
       
@@ -1682,7 +1710,7 @@
       var eliminatedCount = matches.length;
       var offset = this.gridSize / 2;
       
-      console.log('>>> STEP 3: Explosion - ' + eliminatedCount + ' blocks (skipDrop=' + skipDrop + ')');
+      self.logDebug('>>> STEP 3: Explosion - ' + eliminatedCount + ' blocks (skipDrop=' + skipDrop + ')');
       
       // Play explosion sound
       this.playExplosionSound(eliminatedCount);
@@ -1760,7 +1788,7 @@
             // After settling, check for chain matches without dropping
             self.processMatchesWithoutDrop(function() {
               // After all chain matches cleared, settle again before regenerating
-              console.log('>>> STEP 4b: Final Settle Before Regeneration');
+              self.logDebug('>>> STEP 4b: Final Settle Before Regeneration');
               self.dropBlocks(function() {
                 // Now regenerate blocks (handles its own completion via completeTurn)
                 self.regenerateBlocks(eliminatedCount);
@@ -1777,7 +1805,7 @@
     },
 
     dropBlocks: function(callback) {
-      console.log('>>> STEP 4: Drop & Settle Starting');
+      self.logDebug('>>> STEP 4: Drop & Settle Starting');
       var self = this;
       this.movingBlocks = {};
       
@@ -1786,16 +1814,16 @@
     },
 
     settleAllBlocks: function(callback) {
-      console.log('  >> Settle: Beginning settlement');
+      self.logDebug('  >> Settle: Beginning settlement');
       var self = this;
       var centerPos = Math.floor(this.gridSize / 2);
       
       // Lock interaction during settlement
       this.isSettling = true;
-      console.log('  >> Settle: isSettling set to TRUE');
+      self.logDebug('  >> Settle: isSettling set to TRUE');
       
       function settleStep() {
-        console.log('  >> Settle: settleStep() iteration starting');
+        self.logDebug('  >> Settle: settleStep() iteration starting');
         // Use pre-calculated, pre-sorted distance cache (no calculations or sorting needed!)
         // This eliminates ~58,000-116,000 operations per turn
         var moveMap = {}; // Track old position -> new position
@@ -1823,7 +1851,7 @@
           
           // Log blocks we're checking
           if (blocksChecked <= 5 || self.grid[x][y][z] >= 100) {
-            console.log('  >> Settle: Checking block at (' + x + ',' + y + ',' + z + ') type=' + self.grid[x][y][z]);
+            self.logDebug('  >> Settle: Checking block at (' + x + ',' + y + ',' + z + ') type=' + self.grid[x][y][z]);
           }
           
           // Skip center block - it never moves
@@ -1844,9 +1872,9 @@
           
           if (xDist >= yDist && xDist >= zDist && xDir !== 0 && !blockMoved) {
             var newX = x + xDir;
-            console.log('    >> Try X: (' + x + ',' + y + ',' + z + ') -> (' + newX + ',' + y + ',' + z + ') - distances[x=' + xDist + ',y=' + yDist + ',z=' + zDist + '] target=' + (self.grid[newX] && self.grid[newX][y] ? self.grid[newX][y][z] : 'OOB'));
+            self.logDebug('    >> Try X: (' + x + ',' + y + ',' + z + ') -> (' + newX + ',' + y + ',' + z + ') - distances[x=' + xDist + ',y=' + yDist + ',z=' + zDist + '] target=' + (self.grid[newX] && self.grid[newX][y] ? self.grid[newX][y][z] : 'OOB'));
             if (newX >= 0 && newX < self.gridSize && self.grid[newX][y][z] === -1) {
-              console.log('  >> Settle: Moving block from (' + x + ',' + y + ',' + z + ') to (' + newX + ',' + y + ',' + z + ')');
+              self.logDebug('  >> Settle: Moving block from (' + x + ',' + y + ',' + z + ') to (' + newX + ',' + y + ',' + z + ')');
               var newKey = newX + '_' + y + '_' + z;
               moveMap[oldKey] = { newX: newX, newY: y, newZ: z, oldX: x, oldY: y, oldZ: z };
               movedThisIteration[newKey] = true;  // Mark destination as occupied by a moved block
@@ -1859,9 +1887,9 @@
           
           if (yDist >= xDist && yDist >= zDist && yDir !== 0 && !blockMoved) {
             var newY = y + yDir;
-            console.log('    >> Try Y: (' + x + ',' + y + ',' + z + ') -> (' + x + ',' + newY + ',' + z + ') - distances[x=' + xDist + ',y=' + yDist + ',z=' + zDist + '] target=' + (self.grid[x] && self.grid[x][newY] ? self.grid[x][newY][z] : 'OOB'));
+            self.logDebug('    >> Try Y: (' + x + ',' + y + ',' + z + ') -> (' + x + ',' + newY + ',' + z + ') - distances[x=' + xDist + ',y=' + yDist + ',z=' + zDist + '] target=' + (self.grid[x] && self.grid[x][newY] ? self.grid[x][newY][z] : 'OOB'));
             if (newY >= 0 && newY < self.gridSize && self.grid[x][newY][z] === -1) {
-              console.log('  >> Settle: Moving block from (' + x + ',' + y + ',' + z + ') to (' + x + ',' + newY + ',' + z + ')');
+              self.logDebug('  >> Settle: Moving block from (' + x + ',' + y + ',' + z + ') to (' + x + ',' + newY + ',' + z + ')');
               var newKey = x + '_' + newY + '_' + z;
               moveMap[oldKey] = { newX: x, newY: newY, newZ: z, oldX: x, oldY: y, oldZ: z };
               movedThisIteration[newKey] = true;  // Mark destination as occupied by a moved block
@@ -1874,9 +1902,9 @@
           
           if (zDist >= xDist && zDist >= yDist && zDir !== 0 && !blockMoved) {
             var newZ = z + zDir;
-            console.log('    >> Try Z: (' + x + ',' + y + ',' + z + ') -> (' + x + ',' + y + ',' + newZ + ') - distances[x=' + xDist + ',y=' + yDist + ',z=' + zDist + '] target=' + (self.grid[x] && self.grid[x][y] ? self.grid[x][y][newZ] : 'OOB'));
+            self.logDebug('    >> Try Z: (' + x + ',' + y + ',' + z + ') -> (' + x + ',' + y + ',' + newZ + ') - distances[x=' + xDist + ',y=' + yDist + ',z=' + zDist + '] target=' + (self.grid[x] && self.grid[x][y] ? self.grid[x][y][newZ] : 'OOB'));
             if (newZ >= 0 && newZ < self.gridSize && self.grid[x][y][newZ] === -1) {
-              console.log('  >> Settle: Moving block from (' + x + ',' + y + ',' + z + ') to (' + x + ',' + y + ',' + newZ + ')');
+              self.logDebug('  >> Settle: Moving block from (' + x + ',' + y + ',' + z + ') to (' + x + ',' + y + ',' + newZ + ')');
               var newKey = x + '_' + y + '_' + newZ;
               moveMap[oldKey] = { newX: x, newY: y, newZ: newZ, oldX: x, oldY: y, oldZ: z };
               movedThisIteration[newKey] = true;  // Mark destination as occupied by a moved block
@@ -1888,24 +1916,24 @@
           }
         }
         
-        console.log('  >> Settle: Checked ' + blocksChecked + ' blocks, moved ' + blocksMoved + ' blocks');
+        self.logDebug('  >> Settle: Checked ' + blocksChecked + ' blocks, moved ' + blocksMoved + ' blocks');
         
         var moveCount = Object.keys(moveMap).length;
-        console.log('  >> Settle: moveMap contains ' + moveCount + ' moves');
+        self.logDebug('  >> Settle: moveMap contains ' + moveCount + ' moves');
         
         if (moveCount > 0) {
           // Animate blocks to new positions smoothly
-          console.log('  >> Settle: Calling animateBlockMovement() with ' + moveCount + ' blocks');
+          self.logDebug('  >> Settle: Calling animateBlockMovement() with ' + moveCount + ' blocks');
           self.animateBlockMovement(moveMap, function() {
-            console.log('  >> Settle: Animation callback - iteration complete, blocks moved');
+            self.logDebug('  >> Settle: Animation callback - iteration complete, blocks moved');
             setTimeout(settleStep, 25); // Fast iterations for fluid movement
           });
         } else {
-          console.log('  >> Settle: No blocks to move, settlement complete');
+          self.logDebug('  >> Settle: No blocks to move, settlement complete');
           // All blocks fully settled - always check for new matches
           // No render3D() needed - meshes already in correct positions from animation
-          console.log('  >> Settle: Complete - all blocks stable');
-          console.log('  >> Settle: Checking for new matches after settlement');
+          self.logDebug('  >> Settle: Complete - all blocks stable');
+          self.logDebug('  >> Settle: Checking for new matches after settlement');
           
           // Always check for matches after settling
           var hadMatches = false;
@@ -1925,15 +1953,15 @@
           
           if (hadMatches) {
             // Found matches after settling, process them then settle again
-            console.log('  >> Settle: Matches found after settlement, processing...');
+            self.logDebug('  >> Settle: Matches found after settlement, processing...');
             self.processMatchesWithoutDrop(function() {
               // After chain reactions, settle again to fill gaps
-              console.log('  >> Settle: Re-settling after matches...');
+              self.logDebug('  >> Settle: Re-settling after matches...');
               self.settleAllBlocks(callback);
             });
           } else {
             // No matches, proceed with callback (don't unlock yet - let callback chain finish)
-            console.log('  >> Settle: Complete, calling callback');
+            self.logDebug('  >> Settle: Complete, calling callback');
             if (callback) callback();
           }
         }
@@ -1943,7 +1971,7 @@
     },
 
     animateBlockMovement: function(moveMap, callback) {
-      console.log('  >> ANIMATE: Starting animation for ' + Object.keys(moveMap).length + ' blocks');
+      self.logDebug('  >> ANIMATE: Starting animation for ' + Object.keys(moveMap).length + ' blocks');
       var self = this;
       var startTime = performance.now();
       var duration = 100; // Fast, smooth animation
@@ -1952,7 +1980,7 @@
       function animate(currentTime) {
         var elapsed = currentTime - startTime;
         var progress = Math.min(elapsed / duration, 1);
-        console.log('  >> ANIMATE: Frame - elapsed=' + elapsed.toFixed(0) + 'ms, progress=' + (progress * 100).toFixed(1) + '%');
+        self.logDebug('  >> ANIMATE: Frame - elapsed=' + elapsed.toFixed(0) + 'ms, progress=' + (progress * 100).toFixed(1) + '%');
         
         // Ease-out cubic for smooth deceleration
         var eased = 1 - Math.pow(1 - progress, 3);
@@ -1980,26 +2008,26 @@
             var newPos = mesh.position.x.toFixed(2) + ',' + mesh.position.y.toFixed(2) + ',' + mesh.position.z.toFixed(2);
             
             if (progress === 0 || progress === 1) {
-              console.log('    >> MESH UPDATE: ' + oldKey + ' mesh position ' + oldPos + ' -> ' + newPos + ' (eased=' + eased.toFixed(2) + ')');
+              self.logDebug('    >> MESH UPDATE: ' + oldKey + ' mesh position ' + oldPos + ' -> ' + newPos + ' (eased=' + eased.toFixed(2) + ')');
             }
             meshesUpdated++;
           } else {
             meshesMissing++;
             if (progress === 0) {
-              console.log('    >> MESH MISSING: No mesh found for key ' + oldKey + ' (grid has type ' + self.grid[move.oldX][move.oldY][move.oldZ] + ')');
+              self.logDebug('    >> MESH MISSING: No mesh found for key ' + oldKey + ' (grid has type ' + self.grid[move.oldX][move.oldY][move.oldZ] + ')');
             }
           }
         });
         
         if (progress === 0 || progress === 1) {
-          console.log('    >> RENDER: Updated ' + meshesUpdated + ' meshes, missing ' + meshesMissing + ', rendering scene');
+          self.logDebug('    >> RENDER: Updated ' + meshesUpdated + ' meshes, missing ' + meshesMissing + ', rendering scene');
         }
         self.renderer.render(self.scene, self.camera);
         
         if (progress < 1) {
           requestAnimationFrame(animate);
         } else {
-          console.log('  >> ANIMATE: Animation complete for ' + Object.keys(moveMap).length + ' blocks');
+          self.logDebug('  >> ANIMATE: Animation complete for ' + Object.keys(moveMap).length + ' blocks');
           // Animation complete - play click sound based on number of blocks moved
           var blockCount = Object.keys(moveMap).length;
           self.playClickSound(blockCount);
@@ -2017,17 +2045,17 @@
           });
           
           // Callback to continue settlement
-          console.log('  >> ANIMATE: Calling callback to continue settlement');
+          self.logDebug('  >> ANIMATE: Calling callback to continue settlement');
           if (callback) callback();
         }
       }
       
-      console.log('  >> ANIMATE: Starting requestAnimationFrame loop');
+      self.logDebug('  >> ANIMATE: Starting requestAnimationFrame loop');
       requestAnimationFrame(animate);
     },
 
     settleAllBlocksWithCount: function(callback) {
-      console.log('  >> Settle: Beginning settlement with move tracking');
+      self.logDebug('  >> Settle: Beginning settlement with move tracking');
       var self = this;
       var centerPos = Math.floor(this.gridSize / 2);
       var totalMoves = 0;
@@ -2117,12 +2145,12 @@
         
         if (moved) {
           self.render3D();
-          console.log('  >> Settle: Iteration complete - ' + movesThisIteration + ' blocks moved (total: ' + totalMoves + ')');
+          self.logDebug('  >> Settle: Iteration complete - ' + movesThisIteration + ' blocks moved (total: ' + totalMoves + ')');
           setTimeout(settleStep, 250);
         } else {
           // All blocks fully settled
           self.render3D();
-          console.log('  >> Settle: Complete - all blocks stable');
+          self.logDebug('  >> Settle: Complete - all blocks stable');
           if (callback) callback(totalMoves);
         }
       }
@@ -2136,11 +2164,11 @@
       // Only regenerate if blocks were actually eliminated
       var newBlockCount = eliminatedCount > 0 ? this.level : 0;
       
-      console.log('>>> STEP 6: Regenerate Blocks - adding ' + newBlockCount + ' blocks (level ' + this.level + ') (eliminated: ' + eliminatedCount + ')');
+      self.logDebug('>>> STEP 6: Regenerate Blocks - adding ' + newBlockCount + ' blocks (level ' + this.level + ') (eliminated: ' + eliminatedCount + ')');
       
       // If no blocks to add, complete turn immediately
       if (newBlockCount === 0) {
-        console.log('>>> STEP 6: No blocks to regenerate, completing turn');
+        self.logDebug('>>> STEP 6: No blocks to regenerate, completing turn');
         self.completeTurn();
         return;
       }
@@ -2155,8 +2183,8 @@
       var spawnMin = 0;  // Far edge of grid
       var spawnMax = this.gridSize - 1;  // Far edge of grid
       
-      console.log('>>> REGEN: Playable area is from ' + minIndex + ' to ' + maxIndex + ' (center=' + centerPos + ', playableSize=' + this.playableSize + ')');
-      console.log('>>> REGEN: Spawn positions will be at grid edges: ' + spawnMin + ' and ' + spawnMax);
+      self.logDebug('>>> REGEN: Playable area is from ' + minIndex + ' to ' + maxIndex + ' (center=' + centerPos + ', playableSize=' + this.playableSize + ')');
+      self.logDebug('>>> REGEN: Spawn positions will be at grid edges: ' + spawnMin + ' and ' + spawnMax);
       
       var faces = [
         { name: 'top', axis: 'y', value: spawnMax, range: [minIndex, maxIndex] },
@@ -2203,15 +2231,15 @@
           attempts++;
         }
       }
-      console.log('>>> REGEN: Placed blocks at positions:', blocksPlaced);
+      self.logDebug('>>> REGEN: Placed blocks at positions:', blocksPlaced);
       
       // Log each placed block for debugging
       blocksPlaced.forEach(function(block) {
-        console.log('>>> REGEN: Block placed at (' + block.x + ',' + block.y + ',' + block.z + ') type=' + block.type);
+        self.logDebug('>>> REGEN: Block placed at (' + block.x + ',' + block.y + ',' + block.z + ') type=' + block.type);
       });
       
       // Create meshes ONLY for new blocks (don't rebuild existing ones)
-      console.log('>>> REGEN: Creating meshes for ' + blocksPlaced.length + ' new blocks');
+      self.logDebug('>>> REGEN: Creating meshes for ' + blocksPlaced.length + ' new blocks');
       blocksPlaced.forEach(function(block) {
         var key = block.x + '_' + block.y + '_' + block.z;
         var blockSize = 1;  // Must match render3D() scale: 1 world unit = 1 grid unit
@@ -2235,7 +2263,7 @@
         if (self.isSpecialBlock(block.type)) {
           var special = self.getSpecialBlockData(block.type);
           if (special) {
-            console.log('>>> REGEN: Adding sprite for special block:', block.type, special.name, special.emoji);
+            self.logDebug('>>> REGEN: Adding sprite for special block:', block.type, special.name, special.emoji);
             var spriteMap = self.createEmojiTexture(special.emoji);
             var spriteMaterial = new THREE.SpriteMaterial({ 
               map: spriteMap,
@@ -2249,14 +2277,14 @@
           }
         }
         
-        console.log('>>> REGEN: Created mesh at key=' + key + ' worldPos=(' + worldX + ',' + worldY + ',' + worldZ + ')');
+        self.logDebug('>>> REGEN: Created mesh at key=' + key + ' worldPos=(' + worldX + ',' + worldY + ',' + worldZ + ')');
       });
-      console.log('>>> REGEN: Mesh creation complete, calling dropBlocks() immediately');
+      self.logDebug('>>> REGEN: Mesh creation complete, calling dropBlocks() immediately');
       self.dropBlocks(function() {
         // Check for matches after settling
         self.processMatchesWithoutDrop(function() {
           // If there were chain reactions, settle again
-          console.log('>>> STEP 4c: Final Settle After Regeneration Chains');
+          self.logDebug('>>> STEP 4c: Final Settle After Regeneration Chains');
           self.dropBlocks(function() {
             self.completeTurn();
           });
