@@ -2790,6 +2790,8 @@
           } else {
             // No matches, proceed with callback (don't unlock yet - let callback chain finish)
             self.logDebug('  >> Settle: Complete, calling callback');
+            // Check if player has won (only 1 block remaining)
+            self.checkWinCondition();
             if (callback) callback();
           }
         }
@@ -3323,6 +3325,9 @@
         url: '/api/games/check-score',
         method: 'POST',
         contentType: 'application/json',
+        headers: {
+          'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+        },
         data: JSON.stringify({
           game_id: 'block-matcher',
           score: score
@@ -3376,6 +3381,9 @@
         url: '/api/games/submit-score',
         method: 'POST',
         contentType: 'application/json',
+        headers: {
+          'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+        },
         data: JSON.stringify({
           game_id: 'block-matcher',
           score: score,

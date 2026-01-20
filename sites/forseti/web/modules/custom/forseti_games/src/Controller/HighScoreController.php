@@ -69,7 +69,42 @@ class HighScoreController extends ControllerBase {
     $time = (int) ($data['time'] ?? 0);
     $player_name = substr($data['player_name'] ?? 'Anonymous', 0, 20);
     
+    // Validate score is within reasonable bounds
+    if ($score < 0 || $score > 1000000) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Invalid score value'], 400);
+    }
+    
+    // Validate level is within reasonable bounds
+    if ($level < 1 || $level > 100) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Invalid level value'], 400);
+    }
+    
+    // Validate time is reasonable (max 24 hours in seconds)
+    if ($time < 0 || $time > 86400) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Invalid time value'], 400);
+    }
+    
+    // Sanitize player name more strictly
+    $player_name = preg_replace('/[^a-zA-Z0-9 _-]/', '', $player_name);
+    if (empty($player_name)) {
+      $player_name = 'Anonymous';
+    }
+    
     $connection = \Drupal::database();
+    
+    // Rate limiting: Check for recent submissions from this IP
+    $ip_address = $request->getClientIp();
+    $recent_submissions = $connection->select('forseti_games_high_scores', 'h')
+      ->fields('h', ['id'])
+      ->condition('player_name', $player_name)
+      ->condition('created', time() - 3600, '>') // Within last hour
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+    
+    if ($recent_submissions >= 5) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Rate limit exceeded. Please try again later.'], 429);
+    }
     
     // Check if this score qualifies for top 10
     $query = $connection->select('forseti_games_high_scores', 'h')
