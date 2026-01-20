@@ -357,18 +357,20 @@ class BackgroundLocationService {
         DebugLogger.info(
           `📦 [RAW RESPONSE] Type: ${typeof response.data}, Keys: ${response.data ? Object.keys(response.data).join(', ') : 'none'}`
         );
-        if (response.data && response.data.hexagons) {
+        if (response.data && response.data.hexagons && Array.isArray(response.data.hexagons)) {
           DebugLogger.info(
             `📦 [HEXAGONS] Count: ${response.data.hexagons.length}, First hexagon type: ${response.data.hexagons.length > 0 ? typeof response.data.hexagons[0] : 'none'}`
           );
+        } else {
+          DebugLogger.warning('⚠️ [API RESPONSE] Hexagons data is not an array or is missing');
         }
       } catch (axiosError) {
         DebugLogger.error('❌ [AXIOS ERROR] HTTP request failed:', axiosError);
         throw axiosError;
       }
 
-      // Process the response
-      if (response.data && response.data.hexagons && response.data.hexagons.length > 0) {
+      // Process the response - ensure hexagons is an array
+      if (response.data && response.data.hexagons && Array.isArray(response.data.hexagons) && response.data.hexagons.length > 0) {
         const hexagon = response.data.hexagons[0];
 
         // Extract values from the actual API structure
@@ -404,10 +406,10 @@ class BackgroundLocationService {
       return null;
     } catch (error) {
       DebugLogger.error('❌ [API ERROR] Failed to fetch hexagon data:', error);
-      DebugLogger.error('📱 [VERSION INFO] App: v1.0.3-19 (2026-01-16)');
+      DebugLogger.error('📱 [VERSION INFO] App: v1.0.3-23 (2026-01-20)');
       console.error('Error fetching hexagon data:', error);
       console.error('Error stack:', error.stack);
-      console.error('📱 Version: v1.0.3-19 (2026-01-16)');
+      console.error('📱 Version: v1.0.3-23 (2026-01-20)');
       return null;
     }
   }

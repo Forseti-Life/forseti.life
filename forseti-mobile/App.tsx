@@ -219,47 +219,57 @@ const App: React.FC = () => {
         throw error;
       }
 
+      // Initialize notification service
+      try {
+        console.log('🚀 [INIT STEP 3] Initializing notification service...');
+        await NotificationService.initialize();
+        console.log('✅ [INIT STEP 3] Notification service initialized');
+      } catch (error) {
+        console.error('❌ [INIT STEP 3] Notification service initialization failed:', error);
+        // Don't throw - notifications are optional
+      }
+
       // Check if user is already logged in
       try {
-        console.log('🚀 [INIT STEP 3] Checking authentication status...');
+        console.log('🚀 [INIT STEP 4] Checking authentication status...');
         const userToken = await StorageService.getItem('userToken');
         if (userToken) {
-          console.log('✅ [INIT STEP 3] User token found - auto-login');
+          console.log('✅ [INIT STEP 4] User token found - auto-login');
           setIsAuthenticated(true);
         } else {
-          console.log('ℹ️ [INIT STEP 3] No user token found - need login');
+          console.log('ℹ️ [INIT STEP 4] No user token found - need login');
           setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('❌ [INIT STEP 3] Auth check failed:', error);
+        console.error('❌ [INIT STEP 4] Auth check failed:', error);
         setIsAuthenticated(false);
       }
 
       // Request location permissions (only if authenticated)
       if (isAuthenticated) {
         try {
-          console.log('🚀 [INIT STEP 4] Requesting location permissions...');
+          console.log('🚀 [INIT STEP 5] Requesting location permissions...');
           const locationGranted = await requestLocationPermission();
           setHasLocationPermission(locationGranted);
-          console.log(`✅ [INIT STEP 4] Location permission: ${locationGranted}`);
+          console.log(`✅ [INIT STEP 5] Location permission: ${locationGranted}`);
 
           if (locationGranted) {
             // Initialize location service
             try {
-              console.log('🚀 [INIT STEP 5] Initializing location service...');
+              console.log('🚀 [INIT STEP 6] Initializing location service...');
               await LocationService.initialize();
-              console.log('✅ [INIT STEP 5] Location service initialized');
+              console.log('✅ [INIT STEP 6] Location service initialized');
             } catch (error) {
-              console.error('❌ [INIT STEP 5] Location service initialization failed:', error);
+              console.error('❌ [INIT STEP 6] Location service initialization failed:', error);
               // Don't throw - location is optional for viewing app
             }
           } else {
             console.warn(
-              '⚠️ [INIT STEP 4] Location permission denied - continuing without location'
+              '⚠️ [INIT STEP 5] Location permission denied - continuing without location'
             );
           }
         } catch (error) {
-          console.error('❌ [INIT STEP 4] Permission request failed:', error);
+          console.error('❌ [INIT STEP 5] Permission request failed:', error);
           // Don't throw - permissions can be requested later
         }
       }
