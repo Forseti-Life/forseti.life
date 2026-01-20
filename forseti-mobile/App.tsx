@@ -50,6 +50,7 @@ import StorageService from './src/services/storage/StorageService';
 // Utils
 import { Colors } from './src/utils/colors';
 import { requestLocationPermission } from './src/utils/permissions';
+import APP_VERSION from './src/config/AppVersion';
 
 // Debug: Log Colors on module load
 console.log('🎨 [DEBUG] Colors object loaded:', Colors);
