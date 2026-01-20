@@ -1,7 +1,8 @@
 # Forseti Mobile TODO List
 
 **Priority Tasks for Current Development Cycle**
-**Current Build**: v1.0.3-19 (2026-01-16)
+**Current Build**: v1.0.3-24 (auto-managed)
+**Version Config**: `src/config/AppVersion.ts`
 
 ## 🔴 HIGH PRIORITY
 

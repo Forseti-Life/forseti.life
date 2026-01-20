@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_GRADLE="$SCRIPT_DIR/android/app/build.gradle"
 APP_TSX="$SCRIPT_DIR/App.tsx"
 PACKAGE_JSON="$SCRIPT_DIR/package.json"
+APP_VERSION_TS="$SCRIPT_DIR/src/config/AppVersion.ts"
 
 # Colors
 GREEN='\033[0;32m'
@@ -45,6 +46,12 @@ sed -i "s/versionName \".*\"/versionName \"$CURRENT_VERSION\"/" "$BUILD_GRADLE"
 echo -e "${YELLOW}Updating App.tsx version display...${NC}"
 VERSION_DISPLAY="v${CURRENT_VERSION}-${NEW_VERSION_CODE} ($BUILD_DATE)"
 sed -i "s|<Text style={styles.versionText}>v.*</Text>|<Text style={styles.versionText}>$VERSION_DISPLAY</Text>|" "$APP_TSX"
+
+# Update AppVersion.ts with new version info
+echo -e "${YELLOW}Updating AppVersion.ts...${NC}"
+sed -i "s/BUILD_CODE: [0-9]*/BUILD_CODE: $NEW_VERSION_CODE/" "$APP_VERSION_TS"
+sed -i "s/BUILD_DATE: '[0-9-]*'/BUILD_DATE: '$BUILD_DATE'/" "$APP_VERSION_TS"
+sed -i "s/VERSION: '[^']*'/VERSION: '$CURRENT_VERSION'/" "$APP_VERSION_TS"
 
 echo -e "\n${GREEN}✅ Build version updated successfully!${NC}"
 echo "================================================"

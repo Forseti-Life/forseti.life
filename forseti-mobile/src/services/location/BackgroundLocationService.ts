@@ -13,6 +13,7 @@ import StorageService from '../storage/StorageService';
 import axios from 'axios';
 import { DebugLogger } from '../../components/DebugConsole';
 import { logError, logInfo, logWarning } from '../../utils/ErrorHandler';
+import APP_VERSION from '../../config/AppVersion';
 
 const { LocationServiceModule } = NativeModules;
 
@@ -406,10 +407,10 @@ class BackgroundLocationService {
       return null;
     } catch (error) {
       DebugLogger.error('❌ [API ERROR] Failed to fetch hexagon data:', error);
-      DebugLogger.error('📱 [VERSION INFO] App: v1.0.3-23 (2026-01-20)');
+      DebugLogger.error('📱 [VERSION INFO] App:', APP_VERSION.DISPLAY_VERSION);
       console.error('Error fetching hexagon data:', error);
       console.error('Error stack:', error.stack);
-      console.error('📱 Version: v1.0.3-23 (2026-01-20)');
+      console.error('📱 Version:', APP_VERSION.DISPLAY_VERSION);
       return null;
     }
   }

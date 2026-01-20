@@ -2,7 +2,7 @@
 
 **Last Updated**: January 20, 2026  
 **Current Version**: v1.0.3  
-**Current Build**: 19  
+**Current Build**: 24 (auto-managed by `src/config/AppVersion.ts`)  
 **Status**: 🟢 Beta Testing
 
 ---

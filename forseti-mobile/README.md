@@ -1,10 +1,12 @@
 # Forseti Mobile Application - Complete Documentation
 
 **Version**: 1.0.3  
-**Build Code**: 23 (versionCode in build.gradle)  
+**Build Code**: 24 (auto-incremented by build script)  
 **Status**: 🟢 Beta Testing (Production Authentication Enabled)  
 **Platform**: React Native 0.76.9 (iOS & Android)  
 **Last Updated**: January 20, 2026
+
+**Note**: Version information is centrally managed in `src/config/AppVersion.ts`. All other version references are automatically updated by the build script.
 
 A cross-platform mobile application for hyperlocal crime safety awareness built with React Native. Integrates with the Forseti API (forseti.life) for real-time crime data visualization, z-score risk assessment, and continuous background monitoring with proactive alerts.
 
@@ -410,10 +412,11 @@ GPS Update → H3 Calculation → Index Comparison → Risk Query → Notificati
 
 ### Current Build Status
 
-**Latest Build**: v1.0.3-23
+**Latest Build**: v1.0.3-24
 
 - **Date**: January 20, 2026
-- **Build Code**: Auto-incremented on each build (versionCode 23)
+- **Build Code**: Auto-incremented on each build (versionCode 24)
+- **Version Management**: Centralized in `src/config/AppVersion.ts`
 - **Size**: 26MB arm64-v8a APK
 - **Engine**: Hermes JavaScript bytecode v94
 - **Status**: Automated build & deploy workflow with verification step

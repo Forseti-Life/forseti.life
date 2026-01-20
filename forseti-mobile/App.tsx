@@ -111,7 +111,7 @@ const TabNavigator = ({ navigation, onLogout }: { navigation: any; onLogout: () 
           />
           <View>
             <Text style={styles.logoText}>Forseti</Text>
-            <Text style={styles.versionText}>v1.0.3-24 (2026-01-20)</Text>
+            <Text style={styles.versionText}>{APP_VERSION.DISPLAY_VERSION}</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
@@ -198,9 +198,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     console.log('🚀 Forseti Mobile App Starting');
-    console.log('📱 Version: v1.0.3-23 (2026-01-20)');
+    console.log('📱 Version:', APP_VERSION.DISPLAY_VERSION);
     console.log('🔧 Platform:', Platform.OS, Platform.Version);
-    console.log('⚡ Build Date:', '2026-01-20');
+    console.log('⚡ Build Date:', APP_VERSION.BUILD_DATE);
     initializeApp();
   }, []);
 

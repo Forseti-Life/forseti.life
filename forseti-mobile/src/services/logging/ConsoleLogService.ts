@@ -5,6 +5,7 @@
 
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import APP_VERSION from '../../config/AppVersion';
 
 // Import device info with fallback if package not available
 let DeviceInfo: any;
@@ -190,11 +191,11 @@ class ConsoleLogService {
 
       const userId = await this.getUserId();
       const deviceInfo = await this.getDeviceInfo();
-      const appVersion = DeviceInfo ? await DeviceInfo.getVersion() : 'v1.0.3-19';
+      const appVersion = DeviceInfo ? await DeviceInfo.getVersion() : APP_VERSION.SHORT_VERSION;
       
       console.log('📤 Uploading console logs:', {
         version: appVersion,
-        buildDate: '2026-01-16',
+        buildDate: APP_VERSION.BUILD_DATE,
         userId: userId,
         logLength: logContent.length
       });
