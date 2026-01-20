@@ -198,9 +198,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     console.log('🚀 Forseti Mobile App Starting');
-    console.log('📱 Version: v1.0.3-19 (2026-01-16)');
+    console.log('📱 Version: v1.0.3-23 (2026-01-20)');
     console.log('🔧 Platform:', Platform.OS, Platform.Version);
-    console.log('⚡ Build Date:', '2026-01-16');
+    console.log('⚡ Build Date:', '2026-01-20');
     initializeApp();
   }, []);
 
