@@ -309,6 +309,12 @@ class BackgroundLocationService {
       // Check if z-score meets threshold for notification
       const zScore = hexagonData.incident_z_score || 0;
 
+      // Ensure zScore is a valid number before using toFixed
+      if (typeof zScore !== 'number' || !Number.isFinite(zScore)) {
+        DebugLogger.warning(`⚠️ [INVALID Z-SCORE] Expected number, got: ${typeof zScore}, value: ${zScore}`);
+        return;
+      }
+
       if (zScore >= this.zScoreThreshold) {
         await this.sendDangerNotification(hexagonData, location);
         this.lastNotificationTime = now;
@@ -318,10 +324,14 @@ class BackgroundLocationService {
         );
       }
 
-      // Save location history
+      // Save location history with validated zScore
       await this.saveLocationHistory(h3Index, location, zScore);
     } catch (error) {
       console.error('Error checking hexagon safety:', error);
+      DebugLogger.error('❌ [HEXAGON SAFETY ERROR] Detailed error info:', error);
+      if (error instanceof Error) {
+        DebugLogger.error('❌ [ERROR STACK]', error.stack);
+      }
     }
   }
 
@@ -374,6 +384,9 @@ class BackgroundLocationService {
       if (response.data && response.data.hexagons && Array.isArray(response.data.hexagons) && response.data.hexagons.length > 0) {
         const hexagon = response.data.hexagons[0];
 
+        // Log the raw hexagon structure for debugging
+        DebugLogger.info(`🔍 [HEXAGON STRUCTURE] ${JSON.stringify(hexagon, null, 2)}`);
+
         // Extract values from the actual API structure
         // API returns: { h3_index, incident_count, analytics: { z_scores: { incident }, risk_level } }
         const safeIncidentCount = Number(hexagon.incident_count) || 0;
@@ -422,7 +435,11 @@ class BackgroundLocationService {
     hexagonData: H3HexagonData,
     location: LocationCoords
   ): Promise<void> {
-    const zScore = (hexagonData.incident_z_score || 0).toFixed(1);
+    // Ensure we have valid numeric values before using toFixed
+    const zScoreValue = Number.isFinite(hexagonData.incident_z_score) 
+      ? hexagonData.incident_z_score 
+      : 0;
+    const zScore = zScoreValue.toFixed(1);
     const incidentCount = hexagonData.incident_count || 0;
     const riskLevel = hexagonData.risk_level || 'LOW';
 
@@ -466,7 +483,9 @@ class BackgroundLocationService {
     zScore: number
   ): Promise<void> {
     try {
-      const history = (await StorageService.getItem('location_history')) || [];
+      // Ensure we get a proper array, handling corrupted data
+      const storedHistory = await StorageService.getItem('location_history');
+      const history = Array.isArray(storedHistory) ? storedHistory : [];
 
       history.push({
         h3_index: h3Index,
