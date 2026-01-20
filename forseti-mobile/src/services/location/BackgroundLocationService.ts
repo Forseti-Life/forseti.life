@@ -341,6 +341,12 @@ class BackgroundLocationService {
           params,
           timeout: 10000,
         });
+        
+        // Log raw response for debugging
+        DebugLogger.info(`📦 [RAW RESPONSE] Type: ${typeof response.data}, Keys: ${response.data ? Object.keys(response.data).join(', ') : 'none'}`);
+        if (response.data && response.data.hexagons) {
+          DebugLogger.info(`📦 [HEXAGONS] Count: ${response.data.hexagons.length}, First hexagon type: ${response.data.hexagons.length > 0 ? typeof response.data.hexagons[0] : 'none'}`);
+        }
       } catch (axiosError) {
         DebugLogger.error('❌ [AXIOS ERROR] HTTP request failed:', axiosError);
         throw axiosError;
@@ -350,21 +356,22 @@ class BackgroundLocationService {
       if (response.data && response.data.hexagons && response.data.hexagons.length > 0) {
         const hexagon = response.data.hexagons[0];
         
-        // Safely extract values with explicit null checks
-        const safeIncidentCount = hexagon.incident_count || 0;
-        const safeIncidentZScore = hexagon.incident_z_score || 0;
-        const safeRiskLevel = hexagon.risk_level || hexagon.risk_category || 'LOW';
+        // Extract values from the actual API structure
+        // API returns: { h3_index, incident_count, analytics: { z_scores: { incident }, risk_level } }
+        const safeIncidentCount = Number(hexagon.incident_count) || 0;
+        const safeIncidentZScore = Number(hexagon.analytics?.z_scores?.incident) || 0;
+        const safeRiskLevel = String(hexagon.analytics?.risk_level || 'LOW');
         
         const result = {
-          h3_index: hexagon.h3_index,
+          h3_index: String(hexagon.h3_index || ''),
           incident_count: safeIncidentCount,
           incident_z_score: safeIncidentZScore,
           risk_level: safeRiskLevel,
           resolution: this.h3Resolution,
         };
 
-        // Log API response with safety checks
-        const zScoreValue = typeof result.incident_z_score === 'number' ? result.incident_z_score.toFixed(2) : '0.00';
+        // Log API response with guaranteed number type
+        const zScoreValue = Number.isFinite(result.incident_z_score) ? result.incident_z_score.toFixed(2) : '0.00';
         DebugLogger.info(`✅ [API RESPONSE] Z-Score: ${zScoreValue}, Incidents: ${result.incident_count}, Risk: ${result.risk_level}`);
         console.log(`✅ API Response: H3=${result.h3_index}, Z-Score=${zScoreValue}, Count=${result.incident_count}, Risk=${result.risk_level}`);
 
