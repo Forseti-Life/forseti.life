@@ -13,12 +13,12 @@ import ErrorHandler from './utils/ErrorHandler';
 
 // Configure error handling
 ErrorHandler.configure({
-  enabled: true,                    // Master switch
-  logToConsole: true,              // Log to native console
-  logToDebugConsole: true,         // Log to in-app debug console
-  captureGlobalErrors: true,       // Catch uncaught JS errors
-  capturePromiseRejections: true,  // Catch unhandled promises
-  verboseLogging: true,            // Include stack traces
+  enabled: true, // Master switch
+  logToConsole: true, // Log to native console
+  logToDebugConsole: true, // Log to in-app debug console
+  captureGlobalErrors: true, // Catch uncaught JS errors
+  capturePromiseRejections: true, // Catch unhandled promises
+  verboseLogging: true, // Include stack traces
 });
 ```
 
@@ -31,9 +31,9 @@ import { logError, logWarning, logInfo } from './utils/ErrorHandler';
 try {
   await someAsyncOperation();
 } catch (error) {
-  logError('MyComponent', error, { 
+  logError('MyComponent', error, {
     userId: 123,
-    operation: 'someAsyncOperation' 
+    operation: 'someAsyncOperation',
   });
 }
 
@@ -64,6 +64,7 @@ Error handlers are automatically initialized in `index.js`:
 2. **Unhandled Promise Rejections**: Catches promises that reject without `.catch()`
 
 All errors are:
+
 - Logged to native console (if enabled)
 - Logged to in-app Debug Console (if enabled)
 - Include full stack traces in verbose mode
@@ -72,11 +73,13 @@ All errors are:
 #### Debug Console Integration
 
 The ErrorHandler works alongside DebugConsole.tsx to provide:
+
 - Persistent logging across app crashes
 - In-app log viewer with filtering
 - AsyncStorage persistence for crash analysis
 
 To view logs:
+
 1. Open Settings screen
 2. Navigate to Developer Tools
 3. View Debug Console
@@ -84,6 +87,7 @@ To view logs:
 #### Best Practices
 
 1. **Use logError for exceptions**:
+
    ```typescript
    catch (error) {
      logError('ComponentName', error, { context: 'info' });
@@ -91,6 +95,7 @@ To view logs:
    ```
 
 2. **Use logWarning for non-critical issues**:
+
    ```typescript
    if (!optionalFeature) {
      logWarning('ComponentName', 'Optional feature unavailable');
@@ -98,11 +103,13 @@ To view logs:
    ```
 
 3. **Use logInfo for important events**:
+
    ```typescript
    logInfo('ComponentName', 'User logged in', { userId: user.id });
    ```
 
 4. **Always include context**:
+
    ```typescript
    logError('BackgroundService', error, {
      step: 'startMonitoring',
@@ -118,15 +125,18 @@ To view logs:
 #### Troubleshooting
 
 **Q: Not seeing errors in Debug Console?**
+
 - Check `ErrorHandlerConfig.logToDebugConsole` is `true`
 - Verify `ErrorHandlerConfig.enabled` is `true`
 - Check if error occurred before ErrorHandler initialization
 
 **Q: Too much logging?**
+
 - Set `ErrorHandlerConfig.verboseLogging = false` to reduce stack traces
 - Set `ErrorHandlerConfig.logToConsole = false` to only use in-app console
 
 **Q: Need to debug ErrorHandler itself?**
+
 - Check native console for initialization messages
 - Look for `[ErrorHandler]` prefixed messages
 - Verify `index.js` imports ErrorHandler and calls `initialize()`

@@ -88,7 +88,7 @@ const TabNavigator = ({ navigation, onLogout }: { navigation: any; onLogout: () 
             await StorageService.setItem('userToken', '');
             await StorageService.setItem('userId', '');
             await StorageService.setItem('username', '');
-            
+
             // Call logout callback to update app state
             onLogout();
           } catch (error) {
@@ -111,7 +111,7 @@ const TabNavigator = ({ navigation, onLogout }: { navigation: any; onLogout: () 
           />
           <View>
             <Text style={styles.logoText}>Forseti</Text>
-            <Text style={styles.versionText}>v1.0.3-19 (2026-01-16)</Text>
+            <Text style={styles.versionText}>v1.0.3-22 (2026-01-20)</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>

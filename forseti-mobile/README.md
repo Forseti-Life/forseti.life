@@ -99,6 +99,7 @@ npm run android:deploy
 ```
 
 **What this does automatically:**
+
 1. ✅ Increments versionCode in build.gradle
 2. ✅ Updates version display in App.tsx (v1.0.3(YYYY-MM-DD))
 3. ✅ Builds release APK (./gradlew clean assembleRelease)
@@ -106,6 +107,7 @@ npm run android:deploy
 5. ✅ Shows git status ready for commit
 
 **Output:**
+
 ```
 android/app/build/outputs/apk/release/
 ├── forseti-release-1.0.3-4-arm64-v8a.apk (26 MB) ← Primary
@@ -854,22 +856,26 @@ POST /user/login
 **✅ Resolved Issues**:
 
 **1. React Native Maps Compatibility**
+
 - **Issue**: react-native-maps 1.26.20 failed to compile with AGP 8.0.2
 - **Solution**: Downgraded to version 1.7.1 for compatibility with React Native 0.72.6
 - **Patch Applied**: Added namespace declaration for AGP 8.0+ (`com.rnmaps.maps`)
 - **Status**: Fixed with patch file `patches/react-native-maps+1.7.1.patch`
 
 **2. Android SDK API Level**
+
 - **Issue**: API 35 android.jar corrupted/incompatible with AGP 8.0.2 aapt2
 - **Solution**: Changed compileSdkVersion from 35 to 34
 - **Status**: Fixed - builds successfully with API 34
 
 **3. Kotlin Version Compatibility**
+
 - **Issue**: React Native 0.72 uses Kotlin 1.7.x, newer AGP versions require 1.9+
 - **Solution**: Using AGP 8.0.2 with Kotlin 1.8.22
 - **Status**: Stable configuration
 
 **4. Patch Package Conflicts**
+
 - **Issue**: Failed patches for react-native-gesture-handler, react-native-safe-area-context, react-native-screens
 - **Reason**: Package versions upgraded (2.8.0→2.30.0, 4.4.1→4.14.1, 3.18.2→3.37.0)
 - **Status**: Warnings only, build succeeds
@@ -970,6 +976,7 @@ adb install app-release.apk
 ### Build Environment Details
 
 **Working Configuration**:
+
 - Java 17 (JDK 17.0.17)
 - Android SDK Platform 34
 - Build Tools 34.0.0
@@ -1011,6 +1018,7 @@ cd forseti.life/script
 ```
 
 This script will:
+
 - Install npm dependencies
 - Set up Android SDK (Platform 34, Build Tools 34.0.0)
 - Install Java 17 if needed

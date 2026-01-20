@@ -11,6 +11,7 @@ npm run version:increment
 ```
 
 **Actions:**
+
 - Reads current `versionCode` from `android/app/build.gradle`
 - Increments `versionCode` by 1 (e.g., 2 → 3)
 - Updates `versionName` to match `package.json` version
@@ -27,6 +28,7 @@ cd android
 ```
 
 **Step 2.1: Gradle Wrapper Initialization**
+
 - Executes `./gradlew` wrapper script
 - Verifies Gradle 8.0.1 installation
 - Sets up JVM with parameters from `gradle.properties`:
@@ -37,6 +39,7 @@ cd android
   - Build caching enabled
 
 **Step 2.2: Settings Configuration (`settings.gradle`)**
+
 ```gradle
 pluginManagement {
     repositories {
@@ -53,6 +56,7 @@ includeBuild('../node_modules/@react-native/gradle-plugin')
 ```
 
 **Actions:**
+
 - Configures plugin repositories (Maven Central, Gradle Portal, Google Maven)
 - Sets root project name to "Forseti"
 - Discovers and includes React Native native modules (auto-linking)
@@ -84,6 +88,7 @@ buildscript {
 ```
 
 **Actions:**
+
 - Defines build variables (SDK versions, Kotlin version, NDK version)
 - Downloads Android Gradle Plugin 7.4.2
 - Downloads React Native Gradle Plugin
@@ -105,6 +110,7 @@ apply plugin: "com.facebook.react"
 ```
 
 **Actions:**
+
 - Applies Android Application plugin (AGP 7.4.2)
 - Applies React Native plugin (configures JS bundling, Hermes, native modules)
 
@@ -121,6 +127,7 @@ react {
 ```
 
 **Actions:**
+
 - Configures React Native bundler (Metro)
 - Enables Hermes bytecode compilation
 - Sets JavaScript entry point to `index.js`
@@ -131,7 +138,7 @@ react {
 android {
     compileSdkVersion 34
     namespace "com.stlouisintegration.forseti"
-    
+
     defaultConfig {
         applicationId "com.stlouisintegration.forseti"
         minSdkVersion 23
@@ -139,14 +146,14 @@ android {
         versionCode 3
         versionName "1.0.3"
     }
-    
+
     signingConfigs {
         release {
             // Uses release.keystore if FORSETI_RELEASE_STORE_FILE defined
             // Otherwise falls back to debug.keystore
         }
     }
-    
+
     buildTypes {
         release {
             signingConfig = release or debug
@@ -155,7 +162,7 @@ android {
             debuggable true          // Enabled for testing
         }
     }
-    
+
     splits {
         abi {
             enable true
@@ -167,6 +174,7 @@ android {
 ```
 
 **Actions:**
+
 - Sets compilation target to Android 14 (SDK 34)
 - Configures app namespace and application ID
 - Sets min SDK to Android 6.0 (API 23)
@@ -180,7 +188,7 @@ android {
 dependencies {
     implementation("com.facebook.react:react-android")
     implementation("com.facebook.react:hermes-android")
-    
+
     // Auto-linked native modules from node_modules:
     // - react-native-vector-icons
     // - react-native-geolocation-service
@@ -192,6 +200,7 @@ dependencies {
 ```
 
 **Actions:**
+
 - Downloads React Native Android library
 - Downloads Hermes Android runtime
 - Auto-discovers and links all native modules via `applyNativeModulesAppBuildGradle()`
@@ -217,6 +226,7 @@ npx react-native bundle \
 ```
 
 **Actions:**
+
 - Starts Metro bundler
 - Resolves all JavaScript imports starting from `index.js`
 - Bundles all TypeScript/JavaScript files:
@@ -237,6 +247,7 @@ hermesc -O -output-source-map \
 ```
 
 **Actions:**
+
 - Takes JavaScript bundle as input
 - Compiles to Hermes bytecode (.hbc format)
 - Optimizes bytecode (-O flag)
@@ -257,6 +268,7 @@ compileReleaseKotlin
 ```
 
 **Actions:**
+
 - Compiles Java source files:
   - `MainActivity.java`
   - `MainApplication.java`
@@ -276,6 +288,7 @@ ndkBuild or CMake compilation would happen here
 ```
 
 **Actions (for React Native native modules):**
+
 - Extracts pre-built `.so` files from AAR dependencies
 - Organizes per architecture:
   - `lib/armeabi-v7a/` (32-bit ARM)
@@ -301,6 +314,7 @@ generateReleaseResources
 ```
 
 **Actions:**
+
 - Processes XML resources:
   - `AndroidManifest.xml` → merged with library manifests
   - `res/values/strings.xml`
@@ -325,6 +339,7 @@ generateReleaseResources
 ```
 
 **Final merged manifest includes:**
+
 - Package name: `com.stlouisintegration.forseti`
 - Min/Target SDK versions
 - Permissions:
@@ -355,6 +370,7 @@ mergeDexRelease
 ```
 
 **Actions:**
+
 - Converts all `.class` files to Dalvik bytecode (`.dex`)
 - Merges DEX files from:
   - App classes
@@ -373,6 +389,7 @@ shrinkResources false
 ```
 
 **If enabled, R8 would:**
+
 - Remove unused code (tree shaking)
 - Obfuscate class/method names
 - Optimize bytecode
@@ -394,6 +411,7 @@ packageRelease
 For each ABI (arm64-v8a, armeabi-v7a, x86, x86_64):
 
 1. **Create APK structure:**
+
    ```
    forseti-release-1.0.3-3-arm64-v8a.apk
    ├── AndroidManifest.xml (compiled)
@@ -439,12 +457,13 @@ For each ABI (arm64-v8a, armeabi-v7a, x86, x86_64):
 **Step 10.1: Keystore Selection**
 
 ```gradle
-signingConfig = project.hasProperty('FORSETI_RELEASE_STORE_FILE') 
-    ? signingConfigs.release 
+signingConfig = project.hasProperty('FORSETI_RELEASE_STORE_FILE')
+    ? signingConfigs.release
     : signingConfigs.debug
 ```
 
 **Actions:**
+
 - Checks for `FORSETI_RELEASE_STORE_FILE` in `gradle.properties`
 - If found: Uses production `release.keystore`
 - If not found: Falls back to `debug.keystore`
@@ -464,11 +483,13 @@ apksigner sign \
 ```
 
 **Signing Schemes:**
+
 - **V1 (JAR signing)**: Legacy, AndroidManifest signatures
 - **V2 (APK signing)**: Faster verification, whole-file hashing
 - **V3 (APK signing)**: Supports key rotation, introduced in Android 9
 
 **Actions:**
+
 - Generates SHA-256 hash of APK contents
 - Signs hash with keystore private key
 - Embeds signature in `META-INF/` directory:
@@ -489,6 +510,7 @@ zipalign -v 4 input.apk output.apk
 ```
 
 **Actions:**
+
 - Aligns uncompressed data on 4-byte boundaries
 - Enables memory-mapped file access (faster resource loading)
 - Reduces RAM usage when app is running
@@ -501,6 +523,7 @@ zipalign -v 4 input.apk output.apk
 **Step 12.1: APK Analyzer**
 
 Gradle automatically verifies:
+
 - APK is properly signed
 - Manifest is valid
 - Resources are accessible
@@ -550,22 +573,23 @@ android/app/build/outputs/apk/release/
 
 ### APK Contents (arm64-v8a example, 26 MB):
 
-| Component | Size | Description |
-|-----------|------|-------------|
-| `lib/arm64-v8a/*.so` | 12 MB | Native libraries (Hermes, JSI, React Native, native modules) |
-| `assets/index.android.bundle` | 1.8 MB | Hermes bytecode (JavaScript app code) |
-| `classes.dex` + `classes2.dex` | 5 MB | Dalvik bytecode (Java/Kotlin code) |
-| `resources.arsc` | 2 MB | Compiled XML resources |
-| `res/` drawables/mipmaps | 3 MB | Images and app icons |
-| `META-INF/` | 1 MB | Signing certificates and metadata |
-| `AndroidManifest.xml` | 10 KB | Compiled manifest |
-| **Total** | **~26 MB** | |
+| Component                      | Size       | Description                                                  |
+| ------------------------------ | ---------- | ------------------------------------------------------------ |
+| `lib/arm64-v8a/*.so`           | 12 MB      | Native libraries (Hermes, JSI, React Native, native modules) |
+| `assets/index.android.bundle`  | 1.8 MB     | Hermes bytecode (JavaScript app code)                        |
+| `classes.dex` + `classes2.dex` | 5 MB       | Dalvik bytecode (Java/Kotlin code)                           |
+| `resources.arsc`               | 2 MB       | Compiled XML resources                                       |
+| `res/` drawables/mipmaps       | 3 MB       | Images and app icons                                         |
+| `META-INF/`                    | 1 MB       | Signing certificates and metadata                            |
+| `AndroidManifest.xml`          | 10 KB      | Compiled manifest                                            |
+| **Total**                      | **~26 MB** |                                                              |
 
 ---
 
 ## Gradle Build Cache
 
 **Cached Between Builds:**
+
 - Unchanged compiled Java/Kotlin classes
 - Unchanged DEX files
 - Unchanged resources
@@ -573,6 +597,7 @@ android/app/build/outputs/apk/release/
 - Unchanged JavaScript bundle (if no code changes)
 
 **Cache Location:**
+
 ```
 ~/.gradle/caches/
 android/build/intermediates/
@@ -580,6 +605,7 @@ android/app/build/intermediates/
 ```
 
 **Cache Benefits:**
+
 - First build: ~2 minutes
 - Incremental build (code change only): ~30 seconds
 - Clean build (./gradlew clean): ~2 minutes
@@ -589,6 +615,7 @@ android/app/build/intermediates/
 ## Build Performance Optimization
 
 **Current Settings (`gradle.properties`):**
+
 ```properties
 org.gradle.daemon=true              # Keep Gradle daemon running
 org.gradle.parallel=true            # Parallel module compilation
@@ -598,6 +625,7 @@ org.gradle.caching=true             # Enable build cache
 ```
 
 **Typical Build Times:**
+
 - **Clean build**: 2-3 minutes
 - **Incremental build**: 20-40 seconds
 - **No-op build**: 5-10 seconds
@@ -646,6 +674,7 @@ Output: android/app/build/outputs/apk/release/
 ## Key Build Artifacts
 
 **Input Files:**
+
 - `package.json` (version)
 - `android/app/build.gradle` (versionCode, versionName)
 - `App.tsx` (version display)
@@ -657,6 +686,7 @@ Output: android/app/build/outputs/apk/release/
 - `debug.keystore` or `release.keystore`
 
 **Output Files:**
+
 - `forseti-release-1.0.3-3-arm64-v8a.apk` (production ARM 64-bit)
 - `forseti-release-1.0.3-3-armeabi-v7a.apk` (legacy ARM 32-bit)
 - `forseti-release-1.0.3-3-x86.apk` (emulator 32-bit)
@@ -664,6 +694,7 @@ Output: android/app/build/outputs/apk/release/
 - `output-metadata.json` (build metadata)
 
 **Intermediate Files (cached):**
+
 - `build/intermediates/javac/release/classes/`
 - `build/intermediates/dex/release/`
 - `build/generated/assets/react/release/`

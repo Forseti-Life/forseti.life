@@ -252,7 +252,9 @@ const InteractiveCrimeMap = ({
       // Get H3 boundary coordinates
       // When geoJson=true, h3-js returns [longitude, latitude] format
       const boundary = h3.cellToBoundary(h3Index, true);
-      DebugLogger.info(`✅ H3 ${h3Index.substring(0, 10)}... boundary: ${boundary ? boundary.length + ' points' : 'null'}`);
+      DebugLogger.info(
+        `✅ H3 ${h3Index.substring(0, 10)}... boundary: ${boundary ? boundary.length + ' points' : 'null'}`
+      );
 
       if (!boundary || !Array.isArray(boundary)) {
         return null;
@@ -263,7 +265,9 @@ const InteractiveCrimeMap = ({
         latitude: coord[1],
         longitude: coord[0],
       }));
-      DebugLogger.info(`✅ Converted to ${coords.length} coordinates, first: lat=${coords[0].latitude.toFixed(4)}, lng=${coords[0].longitude.toFixed(4)}`);
+      DebugLogger.info(
+        `✅ Converted to ${coords.length} coordinates, first: lat=${coords[0].latitude.toFixed(4)}, lng=${coords[0].longitude.toFixed(4)}`
+      );
       return coords;
     } catch (error) {
       DebugLogger.error(`❌ Failed to convert H3 to polygon: ${error.message}`);
@@ -671,11 +675,13 @@ const InteractiveCrimeMap = ({
         showsScale={true}
       >
         {/* Render H3 Hexagons */}
-        {hexagons.length > 0 && DebugLogger.info(`🎨 Rendering ${hexagons.length} hexagons on map...`)}
+        {hexagons.length > 0 &&
+          DebugLogger.info(`🎨 Rendering ${hexagons.length} hexagons on map...`)}
         {hexagons.map((hexagon, index) => {
           const coords = h3ToPolygonCoords(hexagon.h3_index);
           if (!coords) {
-            if (index === 0) DebugLogger.error(`❌ Failed to get coords for first hexagon: ${hexagon.h3_index}`);
+            if (index === 0)
+              DebugLogger.error(`❌ Failed to get coords for first hexagon: ${hexagon.h3_index}`);
             return null;
           }
 
@@ -683,7 +689,9 @@ const InteractiveCrimeMap = ({
           const style = calculateHexagonStyle(hexagon);
 
           if (index === 0) {
-            DebugLogger.info(`🎨 First polygon: ${coords.length} coords, fill: ${style.fillColor}, stroke: ${style.strokeColor}`);
+            DebugLogger.info(
+              `🎨 First polygon: ${coords.length} coords, fill: ${style.fillColor}, stroke: ${style.strokeColor}`
+            );
           }
 
           return (
