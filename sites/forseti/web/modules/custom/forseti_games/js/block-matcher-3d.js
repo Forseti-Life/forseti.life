@@ -99,6 +99,10 @@
     this.draggedBlock = null;
     this.validDropZones = [];
     this.dropZoneMeshes = [];
+    
+    // Get user authentication state from meta tags
+    this.isAuthenticated = $('meta[name="user-authenticated"]').attr('content') === '1';
+    this.userName = $('meta[name="user-name"]').attr('content') || '';
   }
 
   BlockMatcher3DGame.prototype = {
@@ -3309,15 +3313,34 @@
       
       // Check if score qualifies for high score table
       var timeInSeconds = Math.floor((Date.now() - this.startTime) / 1000);
-      this.checkHighScore(this.score, this.level, timeInSeconds, function(qualifies) {
-        if (qualifies) {
-          // Show high score modal instead
-          self.showHighScoreModal(self.score, self.level, timeInSeconds);
-        } else {
-          // Show regular game over modal
-          $('#game-over-modal').show();
+      
+      // Only check high score if user is authenticated
+      if (this.isAuthenticated) {
+        this.checkHighScore(this.score, this.level, timeInSeconds, function(qualifies) {
+          if (qualifies) {
+            // Show high score modal with user's name pre-filled
+            self.showHighScoreModal(self.score, self.level, timeInSeconds);
+          } else {
+            // Show regular game over modal
+            $('#game-over-modal').show();
+          }
+        });
+      } else {
+        // Show game over modal with login prompt if score is good
+        $('#game-over-modal').show();
+        
+        // Add login prompt for good scores
+        if (this.score > 100) {
+          var $loginPrompt = $('<div>').addClass('login-prompt').html(
+            '<p style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 5px;">'
+            + '<strong>🏆 Great score!</strong><br>'
+            + '<a href="/user/login?destination=/games/block-matcher">Log in</a> or '
+            + '<a href="/user/register?destination=/games/block-matcher">create an account</a> to save your high scores!'
+            + '</p>'
+          );
+          $('#game-over-modal .modal-content').append($loginPrompt);
         }
-      });
+      }
     },
 
     checkHighScore: function(score, level, time, callback) {
@@ -3349,7 +3372,9 @@
       $('#hs-score').text(score);
       $('#hs-level').text(level);
       $('#hs-time').text(minutes + ':' + (seconds < 10 ? '0' : '') + seconds);
-      $('#player-name-input').val('');
+      
+      // Pre-fill with authenticated user's name
+      $('#player-name-input').val(this.userName || '');
       
       $('#high-score-modal').show();
       $('#player-name-input').focus();

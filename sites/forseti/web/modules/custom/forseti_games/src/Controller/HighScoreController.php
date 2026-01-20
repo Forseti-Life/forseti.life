@@ -67,7 +67,15 @@ class HighScoreController extends ControllerBase {
     $score = (int) $data['score'];
     $level = (int) ($data['level'] ?? 1);
     $time = (int) ($data['time'] ?? 0);
-    $player_name = substr($data['player_name'] ?? 'Anonymous', 0, 20);
+    
+    // Use authenticated user's name, fallback to submitted name
+    $current_user = \Drupal::currentUser();
+    $player_name = $current_user->getAccountName();
+    
+    // If somehow an anonymous user got through, reject
+    if ($current_user->isAnonymous()) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Authentication required'], 403);
+    }
     
     // Validate score is within reasonable bounds
     if ($score < 0 || $score > 1000000) {
@@ -162,6 +170,12 @@ class HighScoreController extends ControllerBase {
    */
   public function checkScore(Request $request) {
     $data = json_decode($request->getContent(), TRUE);
+    
+    // Check authentication
+    $current_user = \Drupal::currentUser();
+    if ($current_user->isAnonymous()) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Authentication required'], 403);
+    }
     
     if (empty($data['game_id']) || !isset($data['score'])) {
       return new JsonResponse(['success' => FALSE, 'error' => 'Missing required fields'], 400);

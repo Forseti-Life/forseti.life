@@ -56,10 +56,19 @@ class GameController extends ControllerBase {
     
     $high_scores = $query->execute()->fetchAll();
 
+    // Get current user information
+    $current_user = \Drupal::currentUser();
+    $user_data = [
+      'is_authenticated' => $current_user->isAuthenticated(),
+      'uid' => $current_user->id(),
+      'name' => $current_user->getAccountName(),
+    ];
+
     return [
       '#theme' => 'game_block_matcher',
       '#game_data' => $game_data,
       '#high_scores' => $high_scores,
+      '#user_data' => $user_data,
       '#attached' => [
         'library' => [
           'forseti_games/block-matcher',

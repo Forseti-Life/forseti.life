@@ -27,7 +27,7 @@ forseti_games.api.submit_score:
   defaults:
     _controller: '\Drupal\forseti_games\Controller\HighScoreController::submitScore'
   requirements:
-    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
   methods: [POST]
 
@@ -36,6 +36,6 @@ forseti_games.api.check_score:
   defaults:
     _controller: '\Drupal\forseti_games\Controller\HighScoreController::checkScore'
   requirements:
-    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
   methods: [POST]
