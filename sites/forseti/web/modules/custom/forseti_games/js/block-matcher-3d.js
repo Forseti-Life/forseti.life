@@ -131,6 +131,21 @@
     },
     
     init: function() {
+      var self = this;
+      
+      // Fetch CSRF token from Drupal
+      $.ajax({
+        url: '/session/token',
+        method: 'GET',
+        success: function(token) {
+          self.csrfToken = token;
+        },
+        error: function() {
+          console.warn('Failed to fetch CSRF token');
+          self.csrfToken = '';
+        }
+      });
+      
       this.updateLevel();
       this.precalculateDistances(); // Cache distances for settlement optimization
       this.createGrid();
@@ -3349,7 +3364,7 @@
         method: 'POST',
         contentType: 'application/json',
         headers: {
-          'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+          'X-CSRF-Token': this.csrfToken || ''
         },
         data: JSON.stringify({
           game_id: 'block-matcher',
@@ -3407,7 +3422,7 @@
         method: 'POST',
         contentType: 'application/json',
         headers: {
-          'X-CSRF-Token': $('meta[name="csrf-token"]').attr('content')
+          'X-CSRF-Token': this.csrfToken || ''
         },
         data: JSON.stringify({
           game_id: 'block-matcher',
