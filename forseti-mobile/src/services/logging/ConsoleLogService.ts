@@ -124,21 +124,53 @@ class ConsoleLogService {
    */
   private async getUserId(): Promise<string> {
     try {
-      // Try to get user email from storage
-      const userEmail = await AsyncStorage.getItem('userEmail');
-      if (userEmail) {
-        return userEmail;
+      // Debug: Log what auth data is available
+      console.log('🔍 Checking user authentication data...');
+      
+      // Try to get user from Drupal auth system first
+      const forsetiUser = await AsyncStorage.getItem('forseti_user');
+      if (forsetiUser) {
+        const user = JSON.parse(forsetiUser);
+        console.log('✅ Found forseti_user:', { mail: user.mail, name: user.name, uid: user.uid });
+        if (user.mail) {
+          return user.mail; // Use email as user ID
+        }
+        if (user.name) {
+          return user.name; // Use username as fallback
+        }
+        if (user.uid) {
+          return `user_${user.uid}`; // Use UID as fallback
+        }
       }
+
+      // Try to get from general login system
+      const username = await AsyncStorage.getItem('username');
+      if (username) {
+        console.log('✅ Found username:', username);
+        return username;
+      }
+
+      const userId = await AsyncStorage.getItem('userId');
+      if (userId) {
+        console.log('✅ Found userId:', userId);
+        return `user_${userId}`;
+      }
+
+      console.log('⚠️ No user authentication data found');
 
       // Try to get device ID if DeviceInfo is available
       if (DeviceInfo) {
         const deviceId = await DeviceInfo.getDeviceId();
+        console.log('📱 Using device ID:', deviceId);
         return `device_${deviceId}`;
       }
 
       // Fallback to timestamp-based ID
-      return `anonymous_${Date.now()}`;
+      const fallbackId = `anonymous_${Date.now()}`;
+      console.log('🔄 Using fallback ID:', fallbackId);
+      return fallbackId;
     } catch (error) {
+      console.error('❌ Error getting user ID:', error);
       // Ultimate fallback to timestamp-based ID
       return `fallback_${Date.now()}`;
     }
@@ -157,7 +189,14 @@ class ConsoleLogService {
 
       const userId = await this.getUserId();
       const deviceInfo = await this.getDeviceInfo();
-      const appVersion = DeviceInfo ? await DeviceInfo.getVersion() : 'unknown';
+      const appVersion = DeviceInfo ? await DeviceInfo.getVersion() : 'v1.0.3-19';
+      
+      console.log('📤 Uploading console logs:', {
+        version: appVersion,
+        buildDate: '2026-01-16',
+        userId: userId,
+        logLength: logContent.length
+      });
 
       const requestData: UploadLogRequest = {
         user_id: userId,

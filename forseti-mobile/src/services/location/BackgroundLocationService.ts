@@ -376,8 +376,10 @@ class BackgroundLocationService {
       return null;
     } catch (error) {
       DebugLogger.error('❌ [API ERROR] Failed to fetch hexagon data:', error);
+      DebugLogger.error('📱 [VERSION INFO] App: v1.0.3-19 (2026-01-16)');
       console.error('Error fetching hexagon data:', error);
       console.error('Error stack:', error.stack);
+      console.error('📱 Version: v1.0.3-19 (2026-01-16)');
       return null;
     }
   }
