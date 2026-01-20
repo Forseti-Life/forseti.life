@@ -9,6 +9,7 @@ applyTo: '**'
 3. Solution designed and validated
 4. Changes tested before deployment
 5. Documentation updated as needed
+6. This is not a guessing game.  Look up the integration point and protocols, don't assume when the answer is available for lookup.
 
 **PROCESS OVER SPEED**: Take time to understand the system, investigate thoroughly, and implement sustainable solutions that won't create technical debt.
 

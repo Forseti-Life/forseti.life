@@ -69,20 +69,16 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) =>
       const result = await authService.register(username, email, password);
 
       if (result.success) {
-        const message = result.demo 
+        const message = result.demo
           ? 'Account created in demo mode. You can log in, but this account is not saved to the server.'
           : 'Your account has been created. Please sign in.';
-        
-        Alert.alert(
-          result.demo ? '⚠️ Demo Mode' : 'Success!',
-          message,
-          [
-            {
-              text: 'Sign In',
-              onPress: () => navigation.navigate('Login'),
-            },
-          ]
-        );
+
+        Alert.alert(result.demo ? '⚠️ Demo Mode' : 'Success!', message, [
+          {
+            text: 'Sign In',
+            onPress: () => navigation.navigate('Login'),
+          },
+        ]);
       } else {
         Alert.alert('Registration Failed', result.message || 'Unable to create account');
       }

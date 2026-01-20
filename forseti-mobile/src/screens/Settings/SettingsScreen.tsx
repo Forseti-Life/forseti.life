@@ -79,7 +79,7 @@ class SettingsErrorBoundary extends React.Component<
 
 const SettingsScreenContent = ({ navigation }: any) => {
   DebugLogger.info('⚙️ Settings screen mounted');
-  
+
   // Safe hook usage with fallback
   let hookData;
   try {
@@ -96,11 +96,17 @@ const SettingsScreenContent = ({ navigation }: any) => {
       },
     };
   }
-  
+
   const { isMonitoring, currentH3Index, toggleMonitoring } = hookData;
-  
+
   // Console log functionality
-  const { logCount, isUploading, uploadLogs, clearLogs: clearConsoleLogs, uploadError } = useConsoleLogs();
+  const {
+    logCount,
+    isUploading,
+    uploadLogs,
+    clearLogs: clearConsoleLogs,
+    uploadError,
+  } = useConsoleLogs();
 
   const [zScoreThreshold, setZScoreThreshold] = useState(2.0);
   const [notificationCooldown, setNotificationCooldown] = useState(5);
@@ -119,7 +125,9 @@ const SettingsScreenContent = ({ navigation }: any) => {
       const cooldown = await StorageService.getItem('notification_cooldown');
       const resolution = await StorageService.getItem('h3_resolution');
 
-      DebugLogger.info(`📊 Loaded threshold: ${threshold}, cooldown: ${cooldown}, resolution: ${resolution}`);
+      DebugLogger.info(
+        `📊 Loaded threshold: ${threshold}, cooldown: ${cooldown}, resolution: ${resolution}`
+      );
       if (threshold !== null) setZScoreThreshold(threshold);
       if (cooldown !== null) setNotificationCooldown(cooldown);
       if (resolution !== null) setH3Resolution(resolution);
@@ -147,7 +155,11 @@ const SettingsScreenContent = ({ navigation }: any) => {
       await StorageService.setItem('notification_cooldown', notificationCooldown);
       await StorageService.setItem('h3_resolution', h3Resolution);
 
-      Alert.alert('Settings Saved', 'Your preferences have been updated. Restart monitoring for changes to take effect.', [{ text: 'OK' }]);
+      Alert.alert(
+        'Settings Saved',
+        'Your preferences have been updated. Restart monitoring for changes to take effect.',
+        [{ text: 'OK' }]
+      );
     } catch (error) {
       console.error('Error saving settings:', error);
       Alert.alert('Error', 'Failed to save settings. Please try again.', [{ text: 'OK' }]);
@@ -194,9 +206,11 @@ const SettingsScreenContent = ({ navigation }: any) => {
           onPress: async () => {
             try {
               await StorageService.setItem('location_history', []);
-              Alert.alert('✅ History Cleared', 'Your location history has been deleted successfully.', [
-                { text: 'OK' },
-              ]);
+              Alert.alert(
+                '✅ History Cleared',
+                'Your location history has been deleted successfully.',
+                [{ text: 'OK' }]
+              );
             } catch (error) {
               console.error('Error clearing history:', error);
               Alert.alert('Error', 'Failed to clear location history.', [{ text: 'OK' }]);
@@ -225,23 +239,35 @@ const SettingsScreenContent = ({ navigation }: any) => {
               try {
                 DebugLogger.info('🎛️ [Settings] Switch clicked - calling toggleMonitoring');
                 console.log('🎛️ [Settings] Switch onValueChange fired');
-                
+
                 // Call toggle but don't await - let it run async with its own error handling
-                toggleMonitoring().catch((error) => {
+                toggleMonitoring().catch(error => {
                   console.error('❌ [Settings] toggleMonitoring promise rejected:', error);
                   DebugLogger.error('❌ [Settings] toggleMonitoring promise rejected:', error);
                   DebugLogger.error('Rejected error type:', typeof error);
-                  DebugLogger.error('Rejected error message:', error instanceof Error ? error.message : String(error));
-                  DebugLogger.error('Rejected error stack:', error instanceof Error ? error.stack : 'No stack');
+                  DebugLogger.error(
+                    'Rejected error message:',
+                    error instanceof Error ? error.message : String(error)
+                  );
+                  DebugLogger.error(
+                    'Rejected error stack:',
+                    error instanceof Error ? error.stack : 'No stack'
+                  );
                 });
-                
+
                 DebugLogger.info('✅ [Settings] toggleMonitoring called (running async)');
               } catch (syncError) {
                 console.error('❌ [Settings] SYNCHRONOUS error in onValueChange:', syncError);
                 DebugLogger.error('❌ [Settings] SYNCHRONOUS error in Switch handler:', syncError);
                 DebugLogger.error('Sync error type:', typeof syncError);
-                DebugLogger.error('Sync error message:', syncError instanceof Error ? syncError.message : String(syncError));
-                DebugLogger.error('Sync error stack:', syncError instanceof Error ? syncError.stack : 'No stack');
+                DebugLogger.error(
+                  'Sync error message:',
+                  syncError instanceof Error ? syncError.message : String(syncError)
+                );
+                DebugLogger.error(
+                  'Sync error stack:',
+                  syncError instanceof Error ? syncError.stack : 'No stack'
+                );
                 Alert.alert(
                   'Switch Error',
                   `Synchronous error in toggle.\n\nError: ${syncError instanceof Error ? syncError.message : String(syncError)}`,
@@ -258,7 +284,9 @@ const SettingsScreenContent = ({ navigation }: any) => {
           <View style={styles.statusBox}>
             <Text style={styles.statusLabel}>Current Location</Text>
             <Text style={styles.statusValue}>H3: {currentH3Index}</Text>
-            <Text style={styles.statusDescription}>Monitoring at {getResolutionDescription(h3Resolution)}</Text>
+            <Text style={styles.statusDescription}>
+              Monitoring at {getResolutionDescription(h3Resolution)}
+            </Text>
           </View>
         )}
       </View>
@@ -302,9 +330,15 @@ const SettingsScreenContent = ({ navigation }: any) => {
           <Text style={styles.resolutionInfoText}>ℹ️ Resolution Guide:</Text>
           <Text style={styles.resolutionInfoDetail}>• 9: ~325m - Street blocks (less battery)</Text>
           <Text style={styles.resolutionInfoDetail}>• 10: ~122m - Building groups (balanced)</Text>
-          <Text style={styles.resolutionInfoDetail}>• 11: ~46m - Individual buildings (recommended)</Text>
-          <Text style={styles.resolutionInfoDetail}>• 12: ~17m - Rooms/apartments (higher battery)</Text>
-          <Text style={styles.resolutionInfoDetail}>• 13: ~6.6m - Ultra-precision (most battery)</Text>
+          <Text style={styles.resolutionInfoDetail}>
+            • 11: ~46m - Individual buildings (recommended)
+          </Text>
+          <Text style={styles.resolutionInfoDetail}>
+            • 12: ~17m - Rooms/apartments (higher battery)
+          </Text>
+          <Text style={styles.resolutionInfoDetail}>
+            • 13: ~6.6m - Ultra-precision (most battery)
+          </Text>
         </View>
       </View>
 
@@ -430,8 +464,8 @@ const SettingsScreenContent = ({ navigation }: any) => {
         <Text style={styles.sectionTitle}>🐛 Developer Tools</Text>
         <Text style={styles.sectionDescription}>Debug and troubleshooting tools</Text>
 
-        <TouchableOpacity 
-          style={styles.linkButton} 
+        <TouchableOpacity
+          style={styles.linkButton}
           onPress={() => navigation.navigate('DebugConsole')}
         >
           <Icon name="bug" size={20} color={Colors.warning} style={styles.linkIcon} />
@@ -440,13 +474,18 @@ const SettingsScreenContent = ({ navigation }: any) => {
 
         <View style={{ marginTop: Spacing.md }}>
           <Text style={styles.settingLabel}>📋 Debug Log Management</Text>
-          <Text style={styles.settingDescription}>Upload app debug logs to server for troubleshooting ({logCount} entries)</Text>
-          
-          <TouchableOpacity 
-            style={[styles.actionButton, { 
-              backgroundColor: isUploading ? Colors.gray : Colors.primary, 
-              marginTop: Spacing.sm 
-            }]} 
+          <Text style={styles.settingDescription}>
+            Upload app debug logs to server for troubleshooting ({logCount} entries)
+          </Text>
+
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              {
+                backgroundColor: isUploading ? Colors.gray : Colors.primary,
+                marginTop: Spacing.sm,
+              },
+            ]}
             onPress={async () => {
               const success = await uploadLogs();
               if (success) {
@@ -462,18 +501,22 @@ const SettingsScreenContent = ({ navigation }: any) => {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: Colors.gray, marginTop: Spacing.xs }]} 
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: Colors.gray, marginTop: Spacing.xs }]}
             onPress={() => {
               Alert.alert(
                 'Clear Debug Logs?',
                 `This will clear ${logCount} log entries from the app. This action cannot be undone.`,
                 [
                   { text: 'Cancel', style: 'cancel' },
-                  { text: 'Clear', style: 'destructive', onPress: async () => {
-                    await clearConsoleLogs();
-                    Alert.alert('✅ Cleared', 'Debug logs have been cleared.');
-                  }}
+                  {
+                    text: 'Clear',
+                    style: 'destructive',
+                    onPress: async () => {
+                      await clearConsoleLogs();
+                      Alert.alert('✅ Cleared', 'Debug logs have been cleared.');
+                    },
+                  },
                 ]
               );
             }}
@@ -484,7 +527,9 @@ const SettingsScreenContent = ({ navigation }: any) => {
 
         <View style={{ marginTop: Spacing.md }}>
           <Text style={styles.settingLabel}>📍 Set Test Location</Text>
-          <Text style={styles.settingDescription}>Enter H3 index for testing (e.g., 8b2aacb2e577fff)</Text>
+          <Text style={styles.settingDescription}>
+            Enter H3 index for testing (e.g., 8b2aacb2e577fff)
+          </Text>
           <TextInput
             style={styles.testLocationInput}
             value={testH3Index}
@@ -494,17 +539,23 @@ const SettingsScreenContent = ({ navigation }: any) => {
             autoCapitalize="none"
             autoCorrect={false}
           />
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: Colors.primary, marginTop: Spacing.sm }]} 
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              { backgroundColor: Colors.primary, marginTop: Spacing.sm },
+            ]}
             onPress={async () => {
               if (!testH3Index || testH3Index.length < 10) {
-                Alert.alert('Invalid H3 Index', 'Please enter a valid H3 index (minimum 10 characters)');
+                Alert.alert(
+                  'Invalid H3 Index',
+                  'Please enter a valid H3 index (minimum 10 characters)'
+                );
                 return;
               }
               DebugLogger.info(`📍 [DEBUG] Setting test location: ${testH3Index}`);
               await StorageService.setItem('test_h3_location', testH3Index);
               Alert.alert(
-                '✅ Test Location Set', 
+                '✅ Test Location Set',
                 `H3 Index: ${testH3Index}\n\nThis will be used for testing. Restart monitoring to activate.`,
                 [{ text: 'OK' }]
               );
@@ -513,8 +564,8 @@ const SettingsScreenContent = ({ navigation }: any) => {
           >
             <Text style={styles.actionButtonText}>🎯 Set Test Location</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionButton, { backgroundColor: Colors.gray, marginTop: Spacing.xs }]} 
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: Colors.gray, marginTop: Spacing.xs }]}
             onPress={async () => {
               await StorageService.removeItem('test_h3_location');
               setTestH3Index('');
@@ -526,16 +577,17 @@ const SettingsScreenContent = ({ navigation }: any) => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
-          style={[styles.actionButton, { backgroundColor: Colors.warning, marginTop: Spacing.md }]} 
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: Colors.warning, marginTop: Spacing.md }]}
           onPress={() => {
             DebugLogger.info('🧪 [DEBUG] Simulating danger alert notification...');
-            
+
             // Send real notification (NotificationService is already the singleton instance)
             NotificationService.sendSafetyAlert({
               id: `test-alert-${Date.now()}`,
               title: '⚠️ DANGER ALERT (TEST)',
-              message: 'This is a test alert.\n\nZ-Score: 3.5\nIncident Count: 125\nRisk Level: EXTREME\n\nThis area has significantly higher crime than average.',
+              message:
+                'This is a test alert.\n\nZ-Score: 3.5\nIncident Count: 125\nRisk Level: EXTREME\n\nThis area has significantly higher crime than average.',
               type: 'high_crime_area',
               priority: 'high',
               timestamp: Date.now(),
@@ -544,9 +596,12 @@ const SettingsScreenContent = ({ navigation }: any) => {
                 longitude: -75.1652,
               },
             });
-            
+
             DebugLogger.info('✅ [DEBUG] Test notification sent to system');
-            Alert.alert('Test Notification Sent', 'Check your notification tray at the top of the screen.');
+            Alert.alert(
+              'Test Notification Sent',
+              'Check your notification tray at the top of the screen.'
+            );
           }}
         >
           <Text style={styles.actionButtonText}>🚨 Simulate Danger Alert</Text>
@@ -556,10 +611,9 @@ const SettingsScreenContent = ({ navigation }: any) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>ℹ️ About</Text>
         <Text style={styles.aboutText}>
-          Forseti uses H3 geospatial hexagons to monitor your location.
-          You can configure the monitoring resolution from street blocks (~325m) to ultra-precision (~6.6m).
-          Safety alerts are based on crime statistics and z-scores calculated from historical
-          incident data.
+          Forseti uses H3 geospatial hexagons to monitor your location. You can configure the
+          monitoring resolution from street blocks (~325m) to ultra-precision (~6.6m). Safety alerts
+          are based on crime statistics and z-scores calculated from historical incident data.
         </Text>
         <Text style={styles.aboutText}>
           All location data is stored locally on your device and is never shared with third parties.
@@ -726,7 +780,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: Spacing.borderRadius.md,
     borderWidth: 1,
-    color: Colors.black,  // Black text on white background for contrast
+    color: Colors.black, // Black text on white background for contrast
     fontFamily: 'monospace',
     fontSize: 14,
     marginTop: Spacing.xs,

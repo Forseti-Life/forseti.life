@@ -63,7 +63,7 @@ const MapScreen: React.FC = () => {
       setLoading(true);
       setStatusText('Fetching hexagon data...');
       DebugLogger.info('📡 Fetching hexagon data from API...');
-      
+
       const response = await axios.get('https://forseti.life/api/amisafe/aggregated', {
         params: {
           resolution: 9,
@@ -74,17 +74,21 @@ const MapScreen: React.FC = () => {
 
       setStatusText('Processing API response...');
       DebugLogger.info(`✅ API Response received`);
-      
+
       if (response.data && response.data.hexagons) {
         const hexData = response.data.hexagons;
         setStatusText(`Loaded ${hexData.length} hexagons`);
         DebugLogger.info(`✅ Loaded ${hexData.length} hexagons`);
-        DebugLogger.info(`📊 Sample hex: ${hexData[0]?.h3_index}, count: ${hexData[0]?.incident_count}`);
+        DebugLogger.info(
+          `📊 Sample hex: ${hexData[0]?.h3_index}, count: ${hexData[0]?.incident_count}`
+        );
         setHexagons(hexData);
       } else {
         setStatusText('ERROR: No hexagons in response');
         DebugLogger.error('❌ No hexagons in API response');
-        DebugLogger.error(`Response structure: ${JSON.stringify(Object.keys(response.data || {}))}`);
+        DebugLogger.error(
+          `Response structure: ${JSON.stringify(Object.keys(response.data || {}))}`
+        );
       }
     } catch (error: any) {
       setStatusText(`ERROR: ${error.message}`);
@@ -96,7 +100,7 @@ const MapScreen: React.FC = () => {
       Alert.alert('Error', 'Failed to load map data. Please try again later.');
     } finally {
       setLoading(false);
-      setStatusText(prev => prev.includes('ERROR') ? prev : `Ready: ${hexagons.length} hexagons`);
+      setStatusText(prev => (prev.includes('ERROR') ? prev : `Ready: ${hexagons.length} hexagons`));
       DebugLogger.info('✅ Map loading complete');
     }
   };
@@ -118,7 +122,7 @@ const MapScreen: React.FC = () => {
       try {
         // Convert H3 index to boundary coordinates
         const boundary = cellToBoundary(hex.h3_index, true); // true = GeoJSON format [lat, lng]
-        
+
         if (!boundary || boundary.length === 0) {
           DebugLogger.error(`❌ Empty boundary for hex: ${hex.h3_index}`);
           errorCount++;
@@ -134,7 +138,9 @@ const MapScreen: React.FC = () => {
         successCount++;
 
         if (index === 0) {
-          DebugLogger.info(`✅ First hex rendered: ${hex.h3_index}, coords: ${coordinates.length}, color: ${color}`);
+          DebugLogger.info(
+            `✅ First hex rendered: ${hex.h3_index}, coords: ${coordinates.length}, color: ${color}`
+          );
         }
 
         return (

@@ -1,18 +1,11 @@
 /**
  * Debug Console Screen
- * 
+ *
  * Full-screen view of all debug logs with scrolling
  */
 
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-} from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { DebugLogger } from '../../components/DebugConsole';
 import { useConsoleLogs } from '../../hooks/useConsoleLogs';
@@ -31,9 +24,15 @@ const DebugConsoleScreen = ({ navigation }: any) => {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollViewRef = React.useRef<ScrollView>(null);
-  
+
   // Console log upload functionality
-  const { logCount, isUploading, uploadLogs, clearLogs: clearConsoleLogs, uploadError } = useConsoleLogs();
+  const {
+    logCount,
+    isUploading,
+    uploadLogs,
+    clearLogs: clearConsoleLogs,
+    uploadError,
+  } = useConsoleLogs();
 
   useEffect(() => {
     const unsubscribe = DebugLogger.subscribe(setEntries);
@@ -48,19 +47,27 @@ const DebugConsoleScreen = ({ navigation }: any) => {
 
   const getColor = (level: string) => {
     switch (level) {
-      case 'info': return '#00D4FF'; // Bright cyan for info (high contrast)
-      case 'warn': return '#FFB800'; // Bright orange for warnings (high contrast)
-      case 'error': return '#FF4444'; // Bright red for errors (high contrast)
-      default: return '#FFFFFF'; // White default
+      case 'info':
+        return '#00D4FF'; // Bright cyan for info (high contrast)
+      case 'warn':
+        return '#FFB800'; // Bright orange for warnings (high contrast)
+      case 'error':
+        return '#FF4444'; // Bright red for errors (high contrast)
+      default:
+        return '#FFFFFF'; // White default
     }
   };
 
   const getIcon = (level: string) => {
     switch (level) {
-      case 'info': return 'information';
-      case 'warn': return 'alert';
-      case 'error': return 'alert-circle';
-      default: return 'message';
+      case 'info':
+        return 'information';
+      case 'warn':
+        return 'alert';
+      case 'error':
+        return 'alert-circle';
+      default:
+        return 'message';
     }
   };
 
@@ -90,31 +97,25 @@ const DebugConsoleScreen = ({ navigation }: any) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Debug Console</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={handleUploadLogs}
             style={[styles.headerButton, isUploading && styles.disabledButton]}
             disabled={isUploading}
           >
-            <Icon 
-              name={isUploading ? "loading" : "cloud-upload"} 
-              size={20} 
-              color={isUploading ? Colors.textSecondary : Colors.primary} 
+            <Icon
+              name={isUploading ? 'loading' : 'cloud-upload'}
+              size={20}
+              color={isUploading ? Colors.textSecondary : Colors.primary}
             />
           </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={handleClearConsoleLogs}
-            style={styles.headerButton}
-          >
+          <TouchableOpacity onPress={handleClearConsoleLogs} style={styles.headerButton}>
             <Icon name="broom" size={20} color={Colors.warning} />
           </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={() => setAutoScroll(!autoScroll)} 
-            style={styles.headerButton}
-          >
-            <Icon 
-              name={autoScroll ? "pause" : "play"} 
-              size={20} 
-              color={autoScroll ? Colors.success : Colors.textSecondary} 
+          <TouchableOpacity onPress={() => setAutoScroll(!autoScroll)} style={styles.headerButton}>
+            <Icon
+              name={autoScroll ? 'pause' : 'play'}
+              size={20}
+              color={autoScroll ? Colors.success : Colors.textSecondary}
             />
           </TouchableOpacity>
           <TouchableOpacity onPress={clearLogs} style={styles.headerButton}>
@@ -125,10 +126,13 @@ const DebugConsoleScreen = ({ navigation }: any) => {
 
       <View style={styles.statsBar}>
         <Text style={styles.statsText}>
-          Debug: {entries.length} (Info: {entries.filter(e => e.level === 'info').length}, Warn: {entries.filter(e => e.level === 'warn').length}, Error: {entries.filter(e => e.level === 'error').length}) | Storage: {logCount} entries
+          Debug: {entries.length} (Info: {entries.filter(e => e.level === 'info').length}, Warn:{' '}
+          {entries.filter(e => e.level === 'warn').length}, Error:{' '}
+          {entries.filter(e => e.level === 'error').length}) | Storage: {logCount} entries
         </Text>
         <Text style={styles.statsHint}>
-          📤 Upload debug logs to server | 🧹 Clear debug storage | 📜 Auto-scroll: {autoScroll ? 'ON' : 'OFF'}
+          📤 Upload debug logs to server | 🧹 Clear debug storage | 📜 Auto-scroll:{' '}
+          {autoScroll ? 'ON' : 'OFF'}
         </Text>
       </View>
 
@@ -139,13 +143,16 @@ const DebugConsoleScreen = ({ navigation }: any) => {
           <Text style={styles.emptySubtext}>Debug logs will appear here</Text>
         </View>
       ) : (
-        <ScrollView 
+        <ScrollView
           ref={scrollViewRef}
           style={styles.logContainer}
           contentContainerStyle={styles.logContent}
         >
           {entries.map((entry, index) => (
-            <View key={entry.id} style={[styles.logEntry, { borderLeftColor: getColor(entry.level) }]}>
+            <View
+              key={entry.id}
+              style={[styles.logEntry, { borderLeftColor: getColor(entry.level) }]}
+            >
               <View style={styles.logHeader}>
                 <Text style={styles.logNumber}>#{index + 1}</Text>
                 <Icon name={getIcon(entry.level)} size={16} color={getColor(entry.level)} />
@@ -250,13 +257,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.3,
     shadowRadius: 2,
-  logNumber: {
-    ...Typography.caption,
-    fontSize: 10,
-    color: '#666666',
-    fontWeight: Typography.fontWeight.bold,
-    minWidth: 30,
-  },
+    logNumber: {
+      ...Typography.caption,
+      fontSize: 10,
+      color: '#666666',
+      fontWeight: Typography.fontWeight.bold,
+      minWidth: 30,
+    },
     elevation: 2,
   },
   logHeader: {

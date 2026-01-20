@@ -1,7 +1,8 @@
 # Forseti/AmISafe Complete Feature List & Development Status
 
-**Last Updated**: December 18, 2025  
-**Current Version**: v1.0.2  
+**Last Updated**: January 20, 2026  
+**Current Version**: v1.0.3  
+**Current Build**: 19  
 **Status**: 🟢 Beta Testing
 
 ---

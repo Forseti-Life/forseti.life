@@ -141,12 +141,11 @@ class DrupalAuthService {
       }
 
       // Check for specific network connectivity errors (no response at all)
-      const isRealNetworkError = (
-        error.code === 'ECONNABORTED' || 
+      const isRealNetworkError =
+        error.code === 'ECONNABORTED' ||
         error.code === 'ENOTFOUND' ||
         error.code === 'ETIMEDOUT' ||
-        error.message.includes('timeout')
-      );
+        error.message.includes('timeout');
 
       // Only use demo mode if we truly can't reach the server at all
       if (isRealNetworkError) {
@@ -269,7 +268,9 @@ class DrupalAuthService {
         console.log('✅ Registration successful for:', username);
         return {
           success: true,
-          message: response.data.message || 'Registration successful! Please log in with your credentials.',
+          message:
+            response.data.message ||
+            'Registration successful! Please log in with your credentials.',
           user: response.data.user,
         };
       }
@@ -302,19 +303,19 @@ class DrupalAuthService {
       }
 
       // Check for specific network connectivity errors (no response at all)
-      const isRealNetworkError = (
-        error.code === 'ECONNABORTED' || 
+      const isRealNetworkError =
+        error.code === 'ECONNABORTED' ||
         error.code === 'ENOTFOUND' ||
         error.code === 'ETIMEDOUT' ||
-        error.message.includes('timeout')
-      );
+        error.message.includes('timeout');
 
       // Only use demo mode if we truly can't reach the server at all
       if (isRealNetworkError) {
         console.log('🔄 Cannot reach server - using demo registration mode');
         return {
           success: true,
-          message: '⚠️ Server unreachable. Registration saved locally only (demo mode). Account NOT created in production.',
+          message:
+            '⚠️ Server unreachable. Registration saved locally only (demo mode). Account NOT created in production.',
           demo: true,
           warning: 'Demo mode - user not created in production database',
         };

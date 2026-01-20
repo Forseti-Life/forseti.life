@@ -20,18 +20,20 @@ const logs: LogEntry[] = [];
 let listeners: ((logs: LogEntry[]) => void)[] = [];
 
 // Load logs from storage on startup
-AsyncStorage.getItem('debug_logs').then(stored => {
-  if (stored) {
-    try {
-      const parsed = JSON.parse(stored);
-      logs.push(...parsed);
-      logId = logs.length > 0 ? Math.max(...logs.map(l => l.id)) + 1 : 0;
-      listeners.forEach(listener => listener([...logs]));
-    } catch (e) {
-      console.error('Failed to load debug logs:', e);
+AsyncStorage.getItem('debug_logs')
+  .then(stored => {
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        logs.push(...parsed);
+        logId = logs.length > 0 ? Math.max(...logs.map(l => l.id)) + 1 : 0;
+        listeners.forEach(listener => listener([...logs]));
+      } catch (e) {
+        console.error('Failed to load debug logs:', e);
+      }
     }
-  }
-}).catch(() => {});
+  })
+  .catch(() => {});
 
 // Save original console methods before override
 const originalConsoleLog = console.log;
@@ -49,63 +51,84 @@ const persistLogs = async () => {
 
 export const DebugLogger = {
   info: (...args: any[]) => {
-    const message = args.map(arg => {
-      if (typeof arg === 'string') {
-        return arg;
-      } else if (arg instanceof Error) {
-        return `${arg.name}: ${arg.message}`;
-      } else if (typeof arg === 'object' && arg !== null) {
-        try {
-          return JSON.stringify(arg);
-        } catch {
-          return String(arg);
+    const message = args
+      .map(arg => {
+        if (typeof arg === 'string') {
+          return arg;
+        } else if (arg instanceof Error) {
+          return `${arg.name}: ${arg.message}`;
+        } else if (typeof arg === 'object' && arg !== null) {
+          try {
+            return JSON.stringify(arg);
+          } catch {
+            return String(arg);
+          }
         }
-      }
-      return String(arg);
-    }).join(' ');
-    const entry: LogEntry = { id: logId++, timestamp: new Date().toISOString(), level: 'info', message };
+        return String(arg);
+      })
+      .join(' ');
+    const entry: LogEntry = {
+      id: logId++,
+      timestamp: new Date().toISOString(),
+      level: 'info',
+      message,
+    };
     logs.push(entry);
     if (logs.length > 100) logs.shift();
     listeners.forEach(listener => listener([...logs]));
     persistLogs(); // Fire and forget - async errors caught internally
   },
   warn: (...args: any[]) => {
-    const message = args.map(arg => {
-      if (typeof arg === 'string') {
-        return arg;
-      } else if (arg instanceof Error) {
-        return `${arg.name}: ${arg.message}`;
-      } else if (typeof arg === 'object' && arg !== null) {
-        try {
-          return JSON.stringify(arg);
-        } catch {
-          return String(arg);
+    const message = args
+      .map(arg => {
+        if (typeof arg === 'string') {
+          return arg;
+        } else if (arg instanceof Error) {
+          return `${arg.name}: ${arg.message}`;
+        } else if (typeof arg === 'object' && arg !== null) {
+          try {
+            return JSON.stringify(arg);
+          } catch {
+            return String(arg);
+          }
         }
-      }
-      return String(arg);
-    }).join(' ');
-    const entry: LogEntry = { id: logId++, timestamp: new Date().toISOString(), level: 'warn', message };
+        return String(arg);
+      })
+      .join(' ');
+    const entry: LogEntry = {
+      id: logId++,
+      timestamp: new Date().toISOString(),
+      level: 'warn',
+      message,
+    };
     logs.push(entry);
     if (logs.length > 100) logs.shift();
     listeners.forEach(listener => listener([...logs]));
     persistLogs(); // Fire and forget - async errors caught internally
   },
   error: (...args: any[]) => {
-    const message = args.map(arg => {
-      if (typeof arg === 'string') {
-        return arg;
-      } else if (arg instanceof Error) {
-        return `${arg.name}: ${arg.message}\nStack: ${arg.stack || 'No stack'}`;
-      } else if (typeof arg === 'object' && arg !== null) {
-        try {
-          return JSON.stringify(arg, null, 2);
-        } catch {
-          return String(arg);
+    const message = args
+      .map(arg => {
+        if (typeof arg === 'string') {
+          return arg;
+        } else if (arg instanceof Error) {
+          return `${arg.name}: ${arg.message}\nStack: ${arg.stack || 'No stack'}`;
+        } else if (typeof arg === 'object' && arg !== null) {
+          try {
+            return JSON.stringify(arg, null, 2);
+          } catch {
+            return String(arg);
+          }
         }
-      }
-      return String(arg);
-    }).join(' ');
-    const entry: LogEntry = { id: logId++, timestamp: new Date().toISOString(), level: 'error', message };
+        return String(arg);
+      })
+      .join(' ');
+    const entry: LogEntry = {
+      id: logId++,
+      timestamp: new Date().toISOString(),
+      level: 'error',
+      message,
+    };
     logs.push(entry);
     if (logs.length > 100) logs.shift();
     listeners.forEach(listener => listener([...logs]));
@@ -140,19 +163,20 @@ const DebugConsole: React.FC = () => {
 
   const getColor = (level: string) => {
     switch (level) {
-      case 'info': return Colors.primary;
-      case 'warn': return '#FFA500';
-      case 'error': return Colors.danger;
-      default: return Colors.text;
+      case 'info':
+        return Colors.primary;
+      case 'warn':
+        return '#FFA500';
+      case 'error':
+        return Colors.danger;
+      default:
+        return Colors.text;
     }
   };
 
   if (!isVisible) {
     return (
-      <TouchableOpacity
-        style={styles.toggleButton}
-        onPress={() => setIsVisible(true)}
-      >
+      <TouchableOpacity style={styles.toggleButton} onPress={() => setIsVisible(true)}>
         <Icon name="bug" size={24} color={Colors.primary} />
       </TouchableOpacity>
     );
@@ -172,7 +196,7 @@ const DebugConsole: React.FC = () => {
         </View>
       </View>
       <ScrollView style={styles.logContainer}>
-        {entries.map((entry) => (
+        {entries.map(entry => (
           <View key={entry.id} style={styles.logEntry}>
             <Text style={[styles.timestamp, { color: getColor(entry.level) }]}>
               {new Date(entry.timestamp).toLocaleTimeString()}

@@ -18,6 +18,7 @@
 ## Mobile App → API Request Flow
 
 ### 1. Request Origination
+
 **File:** `forseti-mobile/src/services/location/BackgroundLocationService.ts`
 
 ```typescript
@@ -35,11 +36,13 @@ private async fetchHexagonData(h3Index: string): Promise<H3HexagonData | null> {
 ```
 
 **Request Parameters:**
+
 - `resolution`: Integer (9-13) - User-configurable monitoring precision
 - `h3_index`: String - Specific H3 hexagon index (e.g., "892aacb2e57ffff")
 - `format`: "json" - Response format
 
 **Example Request:**
+
 ```
 GET https://forseti.life/api/amisafe/aggregated?resolution=11&h3_index=892aacb2e57ffff&format=json
 ```
@@ -49,6 +52,7 @@ GET https://forseti.life/api/amisafe/aggregated?resolution=11&h3_index=892aacb2e
 ## API Processing Pipeline
 
 ### 2. Routing Layer
+
 **File:** `sites/forseti/web/modules/custom/amisafe/amisafe.routing.yml`
 
 ```yaml
@@ -68,18 +72,20 @@ amisafe.api.aggregated:
 ---
 
 ### 3. Controller Layer
+
 **File:** `sites/forseti/web/modules/custom/amisafe/src/Controller/ApiController.php`
 
 #### Resolution Validation (Lines 1053-1077)
+
 ```php
 private function validateResolution($resolution) {
   $config = $this->config('amisafe.settings');
   $max_resolution = $config->get('max_resolution') ?? 13;
   $min_resolution = $config->get('min_resolution') ?? 4;
-  
+
   // Ensure resolution is within our gold layer supported range (4-13)
   $resolution = max($min_resolution, min($max_resolution, intval($resolution)));
-  
+
   return $resolution;
 }
 ```
@@ -88,27 +94,28 @@ private function validateResolution($resolution) {
 ✅ **Default:** 9 (matches mobile fallback)
 
 #### Aggregated Endpoint (Lines 92-139)
+
 ```php
 public function aggregated(Request $request) {
   $filters = $this->parseFilters($request);  // Includes h3_index filter
   $resolution = $this->validateResolution($request->query->get('resolution', 9));
   $bounds = $this->parseBounds($request);
   $limit = min($request->query->get('limit', 1000), 10000);
-  
+
   // Add bounds to filters if provided
   if ($bounds) {
     $filters['bounds'] = $bounds;
   }
-  
+
   try {
     // Use the new gold layer H3 aggregations method
     $aggregated_data = $this->crimeDataService->getH3Aggregations(
-      $resolution, 
+      $resolution,
       $filters,    // Contains h3_index filter from parseFilters()
       0,           // page
       $limit
     );
-    
+
     return new JsonResponse([
       'hexagons' => $aggregated_data,
       'meta' => [
@@ -123,15 +130,16 @@ public function aggregated(Request $request) {
 ```
 
 #### Filter Parsing (Lines 465-470)
+
 ```php
 private function parseFilters(Request $request) {
   $filters = [];
-  
+
   // H3 index filter (for specific hexagon lookup)
   if ($request->query->has('h3_index')) {
     $filters['h3_index'] = $request->query->get('h3_index');
   }
-  
+
   return $filters;
 }
 ```
@@ -141,44 +149,47 @@ private function parseFilters(Request $request) {
 ---
 
 ### 4. Service Layer - Database Query
+
 **File:** `sites/forseti/web/modules/custom/amisafe/src/Service/CrimeDataService.php`
 
 #### H3 Aggregations Method (Lines 50-107)
+
 ```php
 public function getH3Aggregations($resolution = 9, $filters = [], $page = 0, $limit = 1000) {
   // Validate resolution parameter (now supports Resolution 4-13)
   if (empty($resolution) || !is_numeric($resolution) || $resolution < 4 || $resolution > 13) {
     $resolution = 9; // Default fallback
   }
-  
+
   try {
     // Use Gold layer (amisafe_h3_aggregated) with ultra-precision analytics
     $database = $this->getDatabase();
     $query = $database->select('amisafe_h3_aggregated', 'h3a')
       ->fields('h3a', [
-        'h3_index', 'h3_resolution', 'incident_count', 
+        'h3_index', 'h3_resolution', 'incident_count',
         'center_latitude', 'center_longitude',
         'incident_z_score',  // CRITICAL: Z-score for risk assessment
         'risk_category',
         // ... 40+ analytics columns
       ]);
-    
+
     // Apply H3 filters first
     $this->applyH3Filters($query, $filters);
-    
+
     // Only apply resolution filter if no specific h3_index is requested
     if (empty($filters['h3_index'])) {
       $query->condition('h3_resolution', $resolution);
     }
-    
+
     $results = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
-    
+
     return $processed_results;  // Mapped to frontend format
   }
 }
 ```
 
 #### H3 Filter Application (Lines 916-923)
+
 ```php
 /**
  * Now supports h3_index filtering for Resolution 5 citywide hexagon lookup.
@@ -197,6 +208,7 @@ private function applyH3Filters($query, $filters) {
 ---
 
 ### 5. Database Schema
+
 **Table:** `amisafe_h3_aggregated` (Gold Layer)
 
 ```sql
@@ -210,7 +222,7 @@ CREATE TABLE amisafe_h3_aggregated (
   center_latitude DECIMAL(10,7),
   center_longitude DECIMAL(10,7),
   -- ... 40+ analytics columns
-  
+
   INDEX idx_h3_index (h3_index),           -- Fast single hexagon lookup
   INDEX idx_resolution (h3_resolution),    -- Resolution filtering
   INDEX idx_composite (h3_resolution, h3_index)  -- Combined lookup
@@ -218,6 +230,7 @@ CREATE TABLE amisafe_h3_aggregated (
 ```
 
 **Data Coverage:**
+
 - Resolution 4: 2 hexagons (metro-wide)
 - Resolution 5: 5 hexagons (districts)
 - Resolution 6: 22 hexagons (city areas)
@@ -236,6 +249,7 @@ CREATE TABLE amisafe_h3_aggregated (
 ## API Response Format
 
 ### Expected Response Structure
+
 ```json
 {
   "hexagons": [
@@ -273,11 +287,12 @@ CREATE TABLE amisafe_h3_aggregated (
 ```
 
 ### Mobile App Consumption
+
 **File:** `BackgroundLocationService.ts` Lines 325-333
 
 ```typescript
 if (response.data && response.data.hexagons && response.data.hexagons.length > 0) {
-  const hexagon = response.data.hexagons[0];  // Takes first result
+  const hexagon = response.data.hexagons[0]; // Takes first result
   return {
     h3_index: hexagon.h3_index,
     incident_count: hexagon.incident_count || 0,
@@ -295,24 +310,26 @@ if (response.data && response.data.hexagons && response.data.hexagons.length > 0
 
 ## Protocol Compatibility Matrix
 
-| Feature | Mobile App | API Support | Status |
-|---------|-----------|-------------|--------|
-| **Resolution Range** | 9-13 | 4-13 | ✅ Fully Compatible |
-| **h3_index Lookup** | Single hexagon | Supported via filter | ✅ Working |
-| **Response Format** | JSON | JSON | ✅ Match |
-| **Z-Score Field** | incident_z_score | incident_z_score | ✅ Available |
-| **Risk Level** | risk_level | risk_category | ⚠️ Field name mismatch |
-| **Timeout** | 10 seconds | No hard limit | ✅ Acceptable |
-| **Authentication** | None | Public endpoint | ✅ Match |
+| Feature              | Mobile App       | API Support          | Status                 |
+| -------------------- | ---------------- | -------------------- | ---------------------- |
+| **Resolution Range** | 9-13             | 4-13                 | ✅ Fully Compatible    |
+| **h3_index Lookup**  | Single hexagon   | Supported via filter | ✅ Working             |
+| **Response Format**  | JSON             | JSON                 | ✅ Match               |
+| **Z-Score Field**    | incident_z_score | incident_z_score     | ✅ Available           |
+| **Risk Level**       | risk_level       | risk_category        | ⚠️ Field name mismatch |
+| **Timeout**          | 10 seconds       | No hard limit        | ✅ Acceptable          |
+| **Authentication**   | None             | Public endpoint      | ✅ Match               |
 
 ---
 
 ## Identified Issues & Recommendations
 
 ### ⚠️ Issue 1: Field Name Mismatch
+
 **Problem:** Mobile expects `risk_level`, API returns `risk_category`
 
 **API Response:**
+
 ```json
 {
   "risk_category": "HIGH",
@@ -322,13 +339,15 @@ if (response.data && response.data.hexagons && response.data.hexagons.length > 0
 ```
 
 **Mobile Expectation:**
+
 ```typescript
-risk_level: hexagon.risk_level || 'LOW'
+risk_level: hexagon.risk_level || 'LOW';
 ```
 
 **Impact:** Low - Fallback to 'LOW' works, but loses risk information
 
 **Recommendation:**
+
 ```typescript
 // BackgroundLocationService.ts - Line 330
 risk_level: hexagon.risk_level || hexagon.risk_category || 'LOW',
@@ -337,9 +356,11 @@ risk_level: hexagon.risk_level || hexagon.risk_category || 'LOW',
 ---
 
 ### ⚠️ Issue 2: API Returns Array, Mobile Needs Single
+
 **Problem:** API returns `hexagons[]` array even for single h3_index queries
 
 **Current Behavior:**
+
 - Mobile sends: `h3_index=892aacb2e57ffff`
 - API returns: `{ hexagons: [{ ... }], meta: { count: 1 } }`
 - Mobile extracts: `hexagons[0]`
@@ -351,9 +372,11 @@ risk_level: hexagon.risk_level || hexagon.risk_category || 'LOW',
 ---
 
 ### ✅ Issue 3: Resolution Parameter Always Sent
+
 **Problem:** API behavior differs based on h3_index presence
 
 **API Logic (CrimeDataService.php Line 104):**
+
 ```php
 // Only apply resolution filter if no specific h3_index is requested
 if (empty($filters['h3_index'])) {
@@ -362,17 +385,20 @@ if (empty($filters['h3_index'])) {
 ```
 
 **Current Mobile Behavior:**
+
 - Sends: `resolution=11&h3_index=892aacb2e57ffff`
 - API uses: h3_index (ignores resolution parameter)
 - Result: Returns hexagon at its actual resolution (may differ from requested)
 
 **Implication:** If hexagon exists at resolution 9 but mobile requests 11, it won't match
 
-**Recommendation:** 
+**Recommendation:**
+
 1. Either: Add resolution to h3_index filter condition
 2. Or: Use h3 library to convert requested h3_index to target resolution
 
 **Code Fix (Option 1 - API Side):**
+
 ```php
 if (!empty($filters['h3_index'])) {
   $query->condition('h3_index', $filters['h3_index'])
@@ -381,6 +407,7 @@ if (!empty($filters['h3_index'])) {
 ```
 
 **Code Fix (Option 2 - Mobile Side):**
+
 ```typescript
 // Convert h3Index to target resolution before API call
 const targetH3Index = h3.cellToParent(h3Index, this.h3Resolution);
@@ -398,6 +425,7 @@ const response = await axios.get(`${this.API_BASE_URL}/api/amisafe/aggregated`, 
 ## Resolution Translation Guide
 
 ### H3 Resolution Hierarchy
+
 Each resolution level is ~7x more granular than the previous:
 
 ```
@@ -415,9 +443,11 @@ Resolution 13: 8d2aacb2e57735f  (~6.6m hexagon)
 ```
 
 ### Resolution Conversion Needs
+
 Mobile generates h3 index at user's selected resolution (9-13), but API may have data aggregated at different resolution.
 
 **Scenarios:**
+
 1. **User Resolution = Database Resolution** → Direct match ✅
 2. **User Resolution > Database Resolution** → Need to convert user's h3 to parent at DB resolution
 3. **User Resolution < Database Resolution** → Need to get all children hexagons
@@ -429,12 +459,14 @@ Mobile generates h3 index at user's selected resolution (9-13), but API may have
 ## Performance Analysis
 
 ### Current API Performance
+
 - **Query Type:** Single hexagon lookup with h3_index filter
 - **Index Coverage:** `idx_h3_index` provides O(1) lookup
 - **Response Time:** <100ms (cached), <500ms (uncached)
 - **Response Size:** ~2KB per hexagon
 
 ### Mobile Usage Pattern
+
 - **Frequency:** Every 60 seconds (location update)
 - **Distance Filter:** 50m minimum movement
 - **Typical Rate:** 1-5 API calls per hour (user walking)
@@ -447,6 +479,7 @@ Mobile generates h3 index at user's selected resolution (9-13), but API may have
 ## Testing Checklist
 
 ### API Endpoint Testing
+
 ```bash
 # Test Resolution 9 (Default)
 curl "https://forseti.life/api/amisafe/aggregated?resolution=9&h3_index=892aacb2e57ffff&format=json"
@@ -462,6 +495,7 @@ curl "https://forseti.life/api/amisafe/aggregated?resolution=11&limit=10&format=
 ```
 
 ### Expected Responses
+
 ✅ Single hexagon: `{ hexagons: [ {...} ], meta: { count: 1 } }`  
 ✅ Multiple hexagons: `{ hexagons: [ {...}, {...}, ... ], meta: { count: N } }`  
 ✅ No match: `{ hexagons: [], meta: { count: 0 } }`
@@ -473,6 +507,7 @@ curl "https://forseti.life/api/amisafe/aggregated?resolution=11&limit=10&format=
 ### Integration Status: ✅ PRODUCTION READY
 
 **Strengths:**
+
 1. ✅ API fully supports mobile's resolution range (9-13 ⊂ 4-13)
 2. ✅ Single hexagon lookup via h3_index parameter works correctly
 3. ✅ Z-score and incident data properly available
@@ -480,16 +515,19 @@ curl "https://forseti.life/api/amisafe/aggregated?resolution=11&limit=10&format=
 5. ✅ No authentication required (public safety data)
 
 **Minor Issues:**
+
 1. ⚠️ Field name: `risk_category` vs `risk_level` (easy fix)
 2. ⚠️ Resolution parameter may be ignored when h3_index present (edge case)
 
 **Recommendations:**
+
 1. Add `risk_category` fallback to mobile risk_level extraction
 2. Document API behavior: h3_index lookups ignore resolution parameter
 3. Consider implementing h3 parent/child resolution translation
 4. Add integration tests for all 5 mobile resolutions (9-13)
 
 ### Next Steps:
+
 1. ✅ Mobile app updated with resolution dropdown (v1.0.3-8)
 2. 🔄 Add field name compatibility fix
 3. 🔄 Test with real Philadelphia data across all resolutions

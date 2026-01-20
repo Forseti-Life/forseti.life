@@ -30,10 +30,7 @@ export const logError = (
   const errorName = error instanceof Error ? error.name : typeof error;
 
   // Format error details
-  const details: string[] = [
-    `[${context}]`,
-    `Error: ${errorMessage}`,
-  ];
+  const details: string[] = [`[${context}]`, `Error: ${errorMessage}`];
 
   if (ErrorHandlerConfig.verboseLogging) {
     details.push(`Type: ${errorName}`);
@@ -113,11 +110,7 @@ export const initializeErrorHandlers = (): void => {
     const originalHandler = global.ErrorUtils.getGlobalHandler?.();
 
     global.ErrorUtils.setGlobalHandler((error: Error, isFatal?: boolean) => {
-      logError(
-        'GLOBAL_JS_ERROR',
-        error,
-        { isFatal: !!isFatal }
-      );
+      logError('GLOBAL_JS_ERROR', error, { isFatal: !!isFatal });
 
       // Call original handler to preserve default behavior
       if (originalHandler) {
@@ -131,15 +124,11 @@ export const initializeErrorHandlers = (): void => {
   // Unhandled promise rejection handler
   if (ErrorHandlerConfig.capturePromiseRejections) {
     const tracking = require('promise/setimmediate/rejection-tracking');
-    
+
     tracking.enable({
       allRejections: true,
       onUnhandled: (id: number, error: Error) => {
-        logError(
-          'UNHANDLED_PROMISE_REJECTION',
-          error,
-          { rejectionId: id }
-        );
+        logError('UNHANDLED_PROMISE_REJECTION', error, { rejectionId: id });
       },
       onHandled: (id: number) => {
         if (ErrorHandlerConfig.verboseLogging) {
@@ -173,9 +162,7 @@ export const enableErrorHandling = (): void => {
 /**
  * Configure error handling
  */
-export const configureErrorHandling = (
-  config: Partial<typeof ErrorHandlerConfig>
-): void => {
+export const configureErrorHandling = (config: Partial<typeof ErrorHandlerConfig>): void => {
   Object.assign(ErrorHandlerConfig, config);
   console.log('[ErrorHandler] Configuration updated:', ErrorHandlerConfig);
 };

@@ -29,8 +29,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
   const steps = [
     {
       title: 'Welcome to Forseti',
-      description:
-        'Your personal safety companion that monitors crime patterns in real-time.',
+      description: 'Your personal safety companion that monitors crime patterns in real-time.',
       icon: '🛡️',
     },
     {
@@ -90,18 +89,11 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
         {currentStepData.action && (
           <View style={styles.permissionInfo}>
             <Text style={styles.permissionTitle}>Why we need this permission:</Text>
-            <Text style={styles.permissionText}>
-              • Detect when you enter high-crime areas
-            </Text>
-            <Text style={styles.permissionText}>
-              • Send safety alerts even when app is closed
-            </Text>
-            <Text style={styles.permissionText}>
-              • Track your safety journey over time
-            </Text>
+            <Text style={styles.permissionText}>• Detect when you enter high-crime areas</Text>
+            <Text style={styles.permissionText}>• Send safety alerts even when app is closed</Text>
+            <Text style={styles.permissionText}>• Track your safety journey over time</Text>
             <Text style={styles.privacyNote}>
-              Your location data is only stored locally on your device and is never sold or
-              shared.
+              Your location data is only stored locally on your device and is never sold or shared.
             </Text>
           </View>
         )}
@@ -109,10 +101,7 @@ const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }) => {
         {/* Progress Dots */}
         <View style={styles.dotsContainer}>
           {steps.map((_, index) => (
-            <View
-              key={index}
-              style={[styles.dot, index === currentStep && styles.activeDot]}
-            />
+            <View key={index} style={[styles.dot, index === currentStep && styles.activeDot]} />
           ))}
         </View>
       </ScrollView>

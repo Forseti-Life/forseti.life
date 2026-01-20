@@ -46,14 +46,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
         console.log('Login successful, storing session...');
         console.log('User data:', result.user);
         console.log('Token:', result.token);
-        
+
         // Store user session - handle both string and number UIDs
         const userId = result.user?.uid ? String(result.user.uid) : '';
         const userName = result.user?.name || username;
         const userToken = result.token || result.sessionToken || '';
-        
-        console.log('Storing - userId:', userId, 'userName:', userName, 'token length:', userToken.length);
-        
+
+        console.log(
+          'Storing - userId:',
+          userId,
+          'userName:',
+          userName,
+          'token length:',
+          userToken.length
+        );
+
         await StorageService.setItem('userToken', userToken);
         await StorageService.setItem('userId', userId);
         await StorageService.setItem('username', userName);
@@ -68,7 +75,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
               PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
               {
                 title: 'Forseti Location Permission',
-                message: 'Forseti needs access to your location to show safety information for your area.',
+                message:
+                  'Forseti needs access to your location to show safety information for your area.',
                 buttonNeutral: 'Ask Me Later',
                 buttonNegative: 'Cancel',
                 buttonPositive: 'OK',
@@ -95,10 +103,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
         if (onLoginSuccess) {
           onLoginSuccess();
         } else {
-          const welcomeMessage = result.demo 
+          const welcomeMessage = result.demo
             ? 'Welcome to Forseti! (Demo Mode - using local authentication)'
             : 'Welcome to Forseti!';
-          
+
           Alert.alert('Success', welcomeMessage, [
             {
               text: 'OK',
@@ -113,7 +121,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation, onLoginSuc
     } catch (error) {
       console.error('Login error caught:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
-      Alert.alert('Error', `An error occurred during login: ${error.message || 'Unknown error'}. Please try again.`);
+      Alert.alert(
+        'Error',
+        `An error occurred during login: ${error.message || 'Unknown error'}. Please try again.`
+      );
     } finally {
       setLoading(false);
     }

@@ -66,11 +66,12 @@ class ConsoleLogService {
       }
 
       // Format logs similar to how DebugLogger displays them
-      return logs.map((log: any) => {
-        const timestamp = new Date(log.timestamp).toISOString();
-        return `[${log.level.toUpperCase()}] ${timestamp} - ${log.message}`;
-      }).join('\n');
-
+      return logs
+        .map((log: any) => {
+          const timestamp = new Date(log.timestamp).toISOString();
+          return `[${log.level.toUpperCase()}] ${timestamp} - ${log.message}`;
+        })
+        .join('\n');
     } catch (error) {
       console.error('Failed to load debug logs:', error);
       return '';
@@ -110,8 +111,8 @@ class ConsoleLogService {
 
       return JSON.stringify(deviceInfo);
     } catch (error) {
-      return JSON.stringify({ 
-        error: 'Failed to get device info', 
+      return JSON.stringify({
+        error: 'Failed to get device info',
         platform: Platform.OS,
         platformVersion: Platform.Version,
         timestamp: new Date().toISOString(),
@@ -222,7 +223,6 @@ class ConsoleLogService {
         console.error('Failed to upload debug logs:', result.error);
         return false;
       }
-
     } catch (error) {
       console.error('Error uploading debug logs:', error);
       return false;

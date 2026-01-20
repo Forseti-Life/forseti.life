@@ -76,7 +76,7 @@ class BackgroundLocationService {
   public async startMonitoring(): Promise<void> {
     console.log('🚀 [BackgroundLocationService] startMonitoring called');
     DebugLogger.info('🚀 [Service] startMonitoring called');
-    
+
     if (this.isMonitoring) {
       console.log('⚠️ [BackgroundLocationService] Background monitoring already active');
       DebugLogger.warn('⚠️ [Service] Already monitoring, skipping');
@@ -87,14 +87,17 @@ class BackgroundLocationService {
       // Load user settings from storage
       console.log('⚙️ [BackgroundLocationService] Loading user settings...');
       DebugLogger.info('⚙️ [Service] Loading user settings...');
-      
+
       try {
         await this.loadUserSettings();
         console.log('✅ [BackgroundLocationService] User settings loaded');
         DebugLogger.info('✅ [Service] User settings loaded');
       } catch (settingsError) {
         DebugLogger.error('❌ [Service] Failed to load settings:', settingsError);
-        DebugLogger.error('Settings error:', settingsError instanceof Error ? settingsError.message : String(settingsError));
+        DebugLogger.error(
+          'Settings error:',
+          settingsError instanceof Error ? settingsError.message : String(settingsError)
+        );
         throw settingsError;
       }
 
@@ -103,13 +106,13 @@ class BackgroundLocationService {
         logInfo('BackgroundLocationService', 'Android detected, starting foreground service', {
           platformVersion: Platform.Version,
         });
-        
+
         logInfo('BackgroundLocationService', 'Checking LocationServiceModule', {
           type: typeof LocationServiceModule,
           isNull: LocationServiceModule === null,
           isUndefined: LocationServiceModule === undefined,
         });
-        
+
         if (!LocationServiceModule) {
           const availableModules = Object.keys(NativeModules).join(', ');
           logError('BackgroundLocationService', new Error('LocationServiceModule not registered'), {
@@ -118,11 +121,11 @@ class BackgroundLocationService {
           });
           throw new Error('LocationServiceModule is null/undefined! Native module not registered.');
         }
-        
+
         logInfo('BackgroundLocationService', 'LocationServiceModule verified', {
           methods: Object.keys(LocationServiceModule).join(', '),
         });
-        
+
         try {
           logInfo('BackgroundLocationService', 'Calling startLocationService()...');
           const result = await LocationServiceModule.startLocationService();
@@ -132,7 +135,9 @@ class BackgroundLocationService {
             platform: 'android',
             platformVersion: Platform.Version,
           });
-          throw new Error(`Failed to start location service: ${error instanceof Error ? error.message : String(error)}`);
+          throw new Error(
+            `Failed to start location service: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
       } else {
         logInfo('BackgroundLocationService', 'iOS detected, skipping foreground service');
@@ -158,15 +163,17 @@ class BackgroundLocationService {
           distanceFilter: this.DISTANCE_FILTER,
           interval: this.UPDATE_INTERVAL,
           fastestInterval: this.UPDATE_INTERVAL / 2,
-          showLocationDialog: false,   // Don't block service with location dialog
-          forceRequestLocation: true,  // Force location updates
-          forceLocationManager: true,  // Use LocationManager for consistent updates
+          showLocationDialog: false, // Don't block service with location dialog
+          forceRequestLocation: true, // Force location updates
+          forceLocationManager: true, // Use LocationManager for consistent updates
           showsBackgroundLocationIndicator: true, // iOS
           pausesLocationUpdatesAutomatically: false, // iOS
         }
       );
 
-      console.log('✅ [BackgroundLocationService] Background location monitoring started successfully');
+      console.log(
+        '✅ [BackgroundLocationService] Background location monitoring started successfully'
+      );
 
       console.log(
         `📍 Monitoring H3 Resolution ${this.h3Resolution} with z-score threshold >= ${this.zScoreThreshold}`
@@ -331,8 +338,12 @@ class BackgroundLocationService {
 
       // Log API call
       DebugLogger.info(`🌐 [API CALL] ${apiUrl}`);
-      DebugLogger.info(`📋 [API PARAMS] resolution: ${params.resolution}, h3_index: ${params.h3_index}`);
-      console.log(`🌐 API Call: ${apiUrl}?resolution=${params.resolution}&h3_index=${params.h3_index}`);
+      DebugLogger.info(
+        `📋 [API PARAMS] resolution: ${params.resolution}, h3_index: ${params.h3_index}`
+      );
+      console.log(
+        `🌐 API Call: ${apiUrl}?resolution=${params.resolution}&h3_index=${params.h3_index}`
+      );
 
       // Make the API request with better error handling
       let response;
@@ -341,6 +352,16 @@ class BackgroundLocationService {
           params,
           timeout: 10000,
         });
+
+        // Log raw response for debugging
+        DebugLogger.info(
+          `📦 [RAW RESPONSE] Type: ${typeof response.data}, Keys: ${response.data ? Object.keys(response.data).join(', ') : 'none'}`
+        );
+        if (response.data && response.data.hexagons) {
+          DebugLogger.info(
+            `📦 [HEXAGONS] Count: ${response.data.hexagons.length}, First hexagon type: ${response.data.hexagons.length > 0 ? typeof response.data.hexagons[0] : 'none'}`
+          );
+        }
       } catch (axiosError) {
         DebugLogger.error('❌ [AXIOS ERROR] HTTP request failed:', axiosError);
         throw axiosError;
@@ -349,24 +370,31 @@ class BackgroundLocationService {
       // Process the response
       if (response.data && response.data.hexagons && response.data.hexagons.length > 0) {
         const hexagon = response.data.hexagons[0];
-        
-        // Safely extract values with explicit null checks
-        const safeIncidentCount = hexagon.incident_count || 0;
-        const safeIncidentZScore = hexagon.incident_z_score || 0;
-        const safeRiskLevel = hexagon.risk_level || hexagon.risk_category || 'LOW';
-        
+
+        // Extract values from the actual API structure
+        // API returns: { h3_index, incident_count, analytics: { z_scores: { incident }, risk_level } }
+        const safeIncidentCount = Number(hexagon.incident_count) || 0;
+        const safeIncidentZScore = Number(hexagon.analytics?.z_scores?.incident) || 0;
+        const safeRiskLevel = String(hexagon.analytics?.risk_level || 'LOW');
+
         const result = {
-          h3_index: hexagon.h3_index,
+          h3_index: String(hexagon.h3_index || ''),
           incident_count: safeIncidentCount,
           incident_z_score: safeIncidentZScore,
           risk_level: safeRiskLevel,
           resolution: this.h3Resolution,
         };
 
-        // Log API response with safety checks
-        const zScoreValue = typeof result.incident_z_score === 'number' ? result.incident_z_score.toFixed(2) : '0.00';
-        DebugLogger.info(`✅ [API RESPONSE] Z-Score: ${zScoreValue}, Incidents: ${result.incident_count}, Risk: ${result.risk_level}`);
-        console.log(`✅ API Response: H3=${result.h3_index}, Z-Score=${zScoreValue}, Count=${result.incident_count}, Risk=${result.risk_level}`);
+        // Log API response with guaranteed number type
+        const zScoreValue = Number.isFinite(result.incident_z_score)
+          ? result.incident_z_score.toFixed(2)
+          : '0.00';
+        DebugLogger.info(
+          `✅ [API RESPONSE] Z-Score: ${zScoreValue}, Incidents: ${result.incident_count}, Risk: ${result.risk_level}`
+        );
+        console.log(
+          `✅ API Response: H3=${result.h3_index}, Z-Score=${zScoreValue}, Count=${result.incident_count}, Risk=${result.risk_level}`
+        );
 
         return result;
       }
@@ -476,11 +504,13 @@ class BackgroundLocationService {
       console.log('🔄 [BackgroundLocationService] Checking monitoring state...');
       const wasEnabled = await StorageService.getItem('background_monitoring_enabled');
       console.log(`📊 [BackgroundLocationService] Previous state: ${wasEnabled}`);
-      
+
       // Temporarily disable auto-restore to prevent crashes
       // User must manually enable monitoring in Settings
       if (wasEnabled === true) {
-        console.log('ℹ️ [BackgroundLocationService] Monitoring was enabled but auto-restore is disabled');
+        console.log(
+          'ℹ️ [BackgroundLocationService] Monitoring was enabled but auto-restore is disabled'
+        );
         console.log('ℹ️ [BackgroundLocationService] User must manually enable in Settings');
         // Don't auto-start to prevent crashes
         // await this.startMonitoring();

@@ -86,10 +86,10 @@ export const useBackgroundMonitoring = () => {
   const startMonitoring = async () => {
     try {
       logInfo('useBackgroundMonitoring', 'Starting background monitoring...');
-      
+
       // Check/request permissions first
       logInfo('useBackgroundMonitoring', 'Requesting permissions...');
-      
+
       const hasPermissions = await requestLocationPermissions();
       if (!hasPermissions) {
         logWarning('useBackgroundMonitoring', 'Permissions denied by user');
@@ -116,7 +116,7 @@ export const useBackgroundMonitoring = () => {
       // Start the background service
       // Start the background service
       logInfo('useBackgroundMonitoring', 'Starting BackgroundLocationService...');
-      
+
       try {
         await BackgroundLocationService.startMonitoring();
         logInfo('useBackgroundMonitoring', 'BackgroundLocationService started successfully');
@@ -127,7 +127,7 @@ export const useBackgroundMonitoring = () => {
         });
         throw serviceError;
       }
-      
+
       setIsMonitoring(true);
       logInfo('useBackgroundMonitoring', 'Monitoring state set to true');
 
@@ -141,7 +141,7 @@ export const useBackgroundMonitoring = () => {
         step: 'Start monitoring failed',
         isMonitoring: isMonitoring,
       });
-      
+
       Alert.alert(
         'Error',
         `Failed to start background monitoring.\n\nError: ${error instanceof Error ? error.message : String(error)}\n\nCheck the debug console (bug icon) for full details.`,
@@ -179,7 +179,7 @@ export const useBackgroundMonitoring = () => {
     // Log immediately (synchronously) before any async operations
     console.log(`🔄 [useBackgroundMonitoring] Toggle monitoring (current: ${isMonitoring})`);
     DebugLogger.info(`🔄 Toggle monitoring called (current: ${isMonitoring})`);
-    
+
     try {
       if (isMonitoring) {
         DebugLogger.info('🛑 Stopping monitoring...');
@@ -193,7 +193,7 @@ export const useBackgroundMonitoring = () => {
     } catch (error) {
       console.error('❌ [useBackgroundMonitoring] Error toggling monitoring:', error);
       console.error('Stack:', error instanceof Error ? error.stack : 'No stack trace');
-      
+
       // Log to DebugConsole
       try {
         DebugLogger.error('❌ Toggle monitoring failed', String(error));
@@ -207,13 +207,13 @@ export const useBackgroundMonitoring = () => {
       } catch (debugLogError) {
         console.error('Failed to log to DebugConsole:', debugLogError);
       }
-      
+
       Alert.alert(
         'Error',
         `Failed to ${isMonitoring ? 'stop' : 'start'} background monitoring.\n\nError: ${error instanceof Error ? error.message : String(error)}\n\nCheck debug console for details.`,
         [{ text: 'OK' }]
       );
-      
+
       // Restore state if toggle failed
       try {
         const active = BackgroundLocationService.isActive();
@@ -233,7 +233,7 @@ export const useBackgroundMonitoring = () => {
     const restoreState = async () => {
       try {
         logInfo('useBackgroundMonitoring', 'Restoring monitoring state...');
-        
+
         // Restore monitoring if it was enabled before (currently disabled in service)
         await BackgroundLocationService.restoreMonitoringState();
         logInfo('useBackgroundMonitoring', 'Monitoring state check complete');
