@@ -1,9 +1,9 @@
 # Forseti Mobile Application - Complete Documentation
 
 **Version**: 1.0.3  
-**Build Code**: 19 (versionCode in build.gradle)  
+**Build Code**: 23 (versionCode in build.gradle)  
 **Status**: 🟢 Beta Testing (Production Authentication Enabled)  
-**Platform**: React Native 0.72.6 (iOS & Android)  
+**Platform**: React Native 0.76.9 (iOS & Android)  
 **Last Updated**: January 20, 2026
 
 A cross-platform mobile application for hyperlocal crime safety awareness built with React Native. Integrates with the Forseti API (forseti.life) for real-time crime data visualization, z-score risk assessment, and continuous background monitoring with proactive alerts.
@@ -410,13 +410,13 @@ GPS Update → H3 Calculation → Index Comparison → Risk Query → Notificati
 
 ### Current Build Status
 
-**Latest Build**: v1.0.3
+**Latest Build**: v1.0.3-23
 
-- **Date**: January 15, 2026
-- **Build Code**: Auto-incremented on each build (versionCode 14)
+- **Date**: January 20, 2026
+- **Build Code**: Auto-incremented on each build (versionCode 23)
 - **Size**: 26MB arm64-v8a APK
 - **Engine**: Hermes JavaScript bytecode v94
-- **Status**: Automated build & deploy workflow
+- **Status**: Automated build & deploy workflow with verification step
 
 ### Android Build Process (Automated)
 
@@ -426,9 +426,13 @@ GPS Update → H3 Calculation → Index Comparison → Risk Query → Notificati
 # One command to build and deploy
 npm run android:deploy
 
+# CRITICAL: Verify the deployment worked correctly
+ls -la sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk
+# Should show today's date/time and correct file size (~26MB)
+
 # Then commit and push
 git add -A
-git commit -m "Build and deploy Forseti Mobile v1.0.3-4"
+git commit -m "Build and deploy Forseti Mobile v1.0.3-<new-version>"
 git push origin main
 
 # GitHub Actions will deploy to production automatically
@@ -452,6 +456,12 @@ cd forseti-mobile/android
 # Manual copy to deployment location
 cp app/build/outputs/apk/release/forseti-release-1.0.3-4-arm64-v8a.apk \
    ../../sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk
+
+# CRITICAL: If users report getting old versions, verify the main download file:
+ls -la sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk
+# If timestamp is old, manually replace it:
+# rm sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk
+# cp <new-apk-file> sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk
 ```
 
 **Build Configuration**:

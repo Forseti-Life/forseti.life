@@ -160,6 +160,9 @@ sudo apt-get install openjdk-17-jdk
 
 # Update android-env.sh
 export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+
+# OR add to gradle.properties (recommended for persistent config):
+org.gradle.java.home=/usr/lib/jvm/java-17-openjdk-amd64
 ```
 
 ### Issue: "react-native-maps not found" after npm install
@@ -300,6 +303,22 @@ adb install android/app/build/outputs/apk/debug/forseti-debug-1.0.0-1-arm64-v8a.
 # Or use Gradle
 ./gradlew installDebug
 ```
+
+### Production Deployment
+
+**After building release APK, verify deployment file:**
+
+```bash
+# Check that the website's download file was updated correctly
+ls -la sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk
+
+# Should show current date/time and ~26MB size
+# If timestamp is old, manually replace:
+cp android/app/build/outputs/apk/release/forseti-release-1.0.3-XX-arm64-v8a.apk \
+   sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk
+```
+
+**Common Issue**: Old APK file persists even after build script runs. Always verify the timestamp and file size match the new build.
 
 ### APK Signing (Release)
 
