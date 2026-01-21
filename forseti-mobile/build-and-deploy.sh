@@ -40,38 +40,15 @@ echo ""
 echo -e "${GREEN}✅ Build successful!${NC}"
 echo ""
 
-# Step 3: Find and copy APK
+# Step 3: Copy APK using dedicated script
 echo -e "${YELLOW}Step 3: Deploying APK to website location...${NC}"
-
-# Find the arm64-v8a APK (most common architecture)
-APK_DIR="$SCRIPT_DIR/android/app/build/outputs/apk/release"
-ARM64_APK=$(find "$APK_DIR" -name "*arm64-v8a.apk" | head -1)
-
-if [ -z "$ARM64_APK" ]; then
-    echo -e "${RED}❌ Could not find arm64-v8a APK!${NC}"
-    echo "Available APKs:"
-    ls -lh "$APK_DIR"/*.apk
-    exit 1
-fi
-
-APK_FILENAME=$(basename "$ARM64_APK")
-APK_SIZE=$(du -h "$ARM64_APK" | cut -f1)
-
-echo -e "${BLUE}Found APK:${NC} $APK_FILENAME ($APK_SIZE)"
-
-# Create deployment directory if it doesn't exist
-mkdir -p "$DEPLOY_DIR"
-
-# Copy APK to deployment location
-cp "$ARM64_APK" "$DEPLOY_DIR/Forseti-latest.apk"
+cd "$SCRIPT_DIR"
+./scripts/copy-apk.sh release
 
 if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Failed to copy APK to deployment location!${NC}"
+    echo -e "${RED}❌ APK deployment failed!${NC}"
     exit 1
 fi
-
-echo -e "${GREEN}✅ APK copied to:${NC} $DEPLOY_DIR/Forseti-latest.apk"
-echo ""
 
 # Step 4: Show git status
 echo -e "${YELLOW}Step 4: Git status${NC}"
