@@ -266,57 +266,33 @@ class NotificationService {
    * Send a safety alert notification
    */
   public sendSafetyAlert(alert: SafetyAlert): void {
-    try {      console.log(`🚨 [SAFETY ALERT START] Beginning to send safety alert`);
+    try {
+      console.log(`🚨 [SAFETY ALERT START] Beginning to send safety alert`);
       console.log(`🚨 [SAFETY ALERT] Alert object:`, JSON.stringify(alert, null, 2));
-            const channelId = this.getSafetyChannelId(alert.priority);
-      console.log(`� [SAFETY ALERT] Sending safety alert with channelId: ${channelId}`);
+
+      const channelId = this.getSafetyChannelId(alert.priority);
+      console.log(`🚨 [SAFETY ALERT] Sending safety alert with channelId: ${channelId}`);
       console.log(`🚨 [SAFETY ALERT] Alert title: ${alert.title}`);
       console.log(`🚨 [SAFETY ALERT] Alert priority: ${alert.priority}`);
       console.log(`🚨 [SAFETY ALERT] Platform: ${Platform.OS}`);
       console.log(`🚨 [SAFETY ALERT] Alert ID: ${alert.id}`);
 
+      // Use the same simple payload structure as sendBasicTestNotification (which works)
       const notificationPayload = {
-        id: alert.id,
         title: alert.title,
         message: alert.message,
-        playSound: alert.priority === 'critical' || alert.priority === 'high',
-        soundName: alert.priority === 'critical' ? 'emergency.mp3' : 'default',
-        vibrate: alert.priority !== 'low',
-        channelId: Platform.OS === 'android' ? (channelId || 'default') : undefined,
-        smallIcon: 'ic_notification',
-        largeIcon: '',
-        userInfo: {
-          alertId: alert.id,
-          alertType: alert.type,
-          priority: alert.priority,
-          location: alert.location,
-        },
-        actions: ['View Details', 'Dismiss'],
+        channelId: channelId,
+        playSound: false, // Keep simple like the working method
+        vibrate: false,   // Keep simple like the working method
       };
       
-      console.log(`🚨 [SAFETY ALERT] Full payload:`, JSON.stringify(notificationPayload, null, 2));
-      
-      // Check if PushNotification is available
-      if (typeof PushNotification === 'undefined') {
-        console.error('❌ [SAFETY ALERT] PushNotification is undefined!');
-        throw new Error('PushNotification library not available');
-      }
-      
-      if (typeof PushNotification.localNotification !== 'function') {
-        console.error('❌ [SAFETY ALERT] PushNotification.localNotification is not a function!');
-        throw new Error('PushNotification.localNotification not available');
-      }
+      console.log(`🚨 [SAFETY ALERT] Simplified payload:`, JSON.stringify(notificationPayload, null, 2));
       
       console.log(`🚨 [SAFETY ALERT] About to call PushNotification.localNotification...`);
       PushNotification.localNotification(notificationPayload);
       console.log(`🚨 [SAFETY ALERT] PushNotification.localNotification call completed`);
 
       console.log(`✅ [SAFETY ALERT] PushNotification.localNotification called successfully`);
-      
-      // Try to verify the notification was scheduled
-      setTimeout(() => {
-        console.log(`🔍 [SAFETY ALERT] Checking if notification appeared (this is just a log message)`);
-      }, 1000);
     } catch (error) {
       console.error('❌ [SAFETY ALERT ERROR] Failed to send safety alert:', error);
       console.error('❌ [SAFETY ALERT ERROR] Error type:', typeof error);
