@@ -98,14 +98,18 @@ class NotificationService {
 
         popInitialNotification: true,
         requestPermissions: Platform.OS === 'ios',
-        
-        // Disable Firebase to prevent crashes
-        senderID: false,
       });
+      
+      console.log('✅ PushNotification configured successfully');
 
       // Create notification channels for Android
       if (Platform.OS === 'android') {
         this.createNotificationChannels();
+        
+        // Disable automatic channel testing for now to avoid interference
+        // setTimeout(() => {
+        //   this.testNotificationChannels();
+        // }, 1000);
       }
 
       this.initialized = true;
@@ -120,6 +124,8 @@ class NotificationService {
    * Create notification channels for Android
    */
   private createNotificationChannels(): void {
+    console.log('📢 [CHANNELS] Creating Android notification channels...');
+    
     PushNotification.createChannel(
       {
         channelId: 'forseti-safety-alerts',
@@ -128,7 +134,12 @@ class NotificationService {
         importance: 4, // HIGH
         vibrate: true,
       },
-      created => console.log(`Safety alerts channel created: ${created}`)
+      created => {
+        console.log(`📢 [CHANNELS] Safety alerts channel created: ${created}`);
+        if (!created) {
+          console.error('❌ [CHANNELS] Failed to create safety alerts channel');
+        }
+      }
     );
 
     PushNotification.createChannel(
@@ -139,7 +150,12 @@ class NotificationService {
         importance: 3, // DEFAULT
         vibrate: false,
       },
-      created => console.log(`General channel created: ${created}`)
+      created => {
+        console.log(`📢 [CHANNELS] General channel created: ${created}`);
+        if (!created) {
+          console.error('❌ [CHANNELS] Failed to create general channel');
+        }
+      }
     );
 
     PushNotification.createChannel(
@@ -151,50 +167,122 @@ class NotificationService {
         vibrate: true,
         playSound: true,
       },
-      created => console.log(`Emergency channel created: ${created}`)
+      created => {
+        console.log(`📢 [CHANNELS] Emergency channel created: ${created}`);
+        if (!created) {
+          console.error('❌ [CHANNELS] Failed to create emergency channel');
+        }
+      }
     );
+    
+    console.log('✅ [CHANNELS] Notification channels setup completed');
+  }
+
+  /**
+   * Test notification channels by sending a test notification to each channel
+   */
+  private testNotificationChannels(): void {
+    console.log('🧪 [CHANNELS] Testing notification channels...');
+    
+    try {
+      // Test general channel with a minimal notification
+      PushNotification.localNotification({
+        title: 'Channel Test',
+        message: 'Testing notification channels',
+        channelId: 'forseti-general',
+        playSound: false,
+        vibrate: false,
+        smallIcon: 'ic_notification',
+        largeIcon: '',
+        ongoing: false,
+        id: 99999, // Use a test ID that won't interfere
+        userInfo: { test: true }
+      });
+      
+      console.log('✅ [CHANNELS] Test notification sent to forseti-general channel');
+      
+      // Cancel the test notification after a brief moment
+      setTimeout(() => {
+        PushNotification.cancelLocalNotifications({ id: '99999' });
+        console.log('🧹 [CHANNELS] Test notification cleaned up');
+      }, 2000);
+      
+    } catch (error) {
+      console.error('❌ [CHANNELS] Channel test failed:', error);
+    }
+  }
+
+  /**
+   * Public method to test notification channels from debug screen
+   */
+  public testChannels(): void {
+    console.log('🧪 [DEBUG] Manually testing notification channels...');
+    this.testNotificationChannels();
   }
 
   /**
    * Send a local notification
    */
   public sendLocalNotification(config: NotificationConfig): void {
-    const channelId = this.getChannelId(config.title);
+    try {
+      const channelId = this.getChannelId(config.title);
+      console.log(`📨 [NOTIFICATION DEBUG] Sending local notification:`);
+      console.log(`📨 [NOTIFICATION DEBUG] - Title: ${config.title}`);
+      console.log(`📨 [NOTIFICATION DEBUG] - Message: ${config.message}`);
+      console.log(`📨 [NOTIFICATION DEBUG] - Channel ID: ${channelId}`);
+      console.log(`📨 [NOTIFICATION DEBUG] - Platform: ${Platform.OS}`);
 
-    PushNotification.localNotification({
-      title: config.title,
-      message: config.message,
-      playSound: config.playSound ?? true,
-      soundName: config.soundName ?? 'default',
-      vibrate: config.vibrate ?? true,
-      channelId,
-      userInfo: {
-        ...config.userInfo,
-        url: config.url, // Include URL for deep linking
-      },
-      actions: config.actions,
-    });
+      const notificationPayload = {
+        title: config.title,
+        message: config.message,
+        playSound: config.playSound ?? true,
+        soundName: config.soundName ?? 'default',
+        vibrate: config.vibrate ?? true,
+        channelId: Platform.OS === 'android' ? (channelId || 'default') : undefined,
+        smallIcon: 'ic_notification',
+        largeIcon: '',
+        userInfo: {
+          ...config.userInfo,
+          url: config.url, // Include URL for deep linking
+        },
+        actions: config.actions,
+      };
+
+      console.log(`📨 [NOTIFICATION DEBUG] Full payload:`, JSON.stringify(notificationPayload, null, 2));
+      
+      PushNotification.localNotification(notificationPayload);
+      
+      console.log(`✅ [NOTIFICATION DEBUG] PushNotification.localNotification called successfully`);
+    } catch (error) {
+      console.error('❌ [NOTIFICATION ERROR] Failed to send local notification:', error);
+      console.error('❌ [NOTIFICATION ERROR] Error type:', typeof error);
+      console.error('❌ [NOTIFICATION ERROR] Error message:', error instanceof Error ? error.message : String(error));
+    }
   }
 
   /**
    * Send a safety alert notification
    */
   public sendSafetyAlert(alert: SafetyAlert): void {
-    try {
-      const channelId = this.getSafetyChannelId(alert.priority);
-      console.log(`📨 [NOTIFICATION DEBUG] Sending safety alert with channelId: ${channelId}`);
-      console.log(`📨 [NOTIFICATION DEBUG] Alert title: ${alert.title}`);
-      console.log(`📨 [NOTIFICATION DEBUG] Alert priority: ${alert.priority}`);
-      console.log(`📨 [NOTIFICATION DEBUG] Platform: ${Platform.OS}`);
+    try {      console.log(`🚨 [SAFETY ALERT START] Beginning to send safety alert`);
+      console.log(`🚨 [SAFETY ALERT] Alert object:`, JSON.stringify(alert, null, 2));
+            const channelId = this.getSafetyChannelId(alert.priority);
+      console.log(`� [SAFETY ALERT] Sending safety alert with channelId: ${channelId}`);
+      console.log(`🚨 [SAFETY ALERT] Alert title: ${alert.title}`);
+      console.log(`🚨 [SAFETY ALERT] Alert priority: ${alert.priority}`);
+      console.log(`🚨 [SAFETY ALERT] Platform: ${Platform.OS}`);
+      console.log(`🚨 [SAFETY ALERT] Alert ID: ${alert.id}`);
 
-      PushNotification.localNotification({
+      const notificationPayload = {
         id: alert.id,
         title: alert.title,
         message: alert.message,
         playSound: alert.priority === 'critical' || alert.priority === 'high',
         soundName: alert.priority === 'critical' ? 'emergency.mp3' : 'default',
         vibrate: alert.priority !== 'low',
-        channelId,
+        channelId: Platform.OS === 'android' ? (channelId || 'default') : undefined,
+        smallIcon: 'ic_notification',
+        largeIcon: '',
         userInfo: {
           alertId: alert.id,
           alertType: alert.type,
@@ -202,11 +290,60 @@ class NotificationService {
           location: alert.location,
         },
         actions: ['View Details', 'Dismiss'],
-      });
+      };
+      
+      console.log(`🚨 [SAFETY ALERT] Full payload:`, JSON.stringify(notificationPayload, null, 2));
+      
+      // Check if PushNotification is available
+      if (typeof PushNotification === 'undefined') {
+        console.error('❌ [SAFETY ALERT] PushNotification is undefined!');
+        throw new Error('PushNotification library not available');
+      }
+      
+      if (typeof PushNotification.localNotification !== 'function') {
+        console.error('❌ [SAFETY ALERT] PushNotification.localNotification is not a function!');
+        throw new Error('PushNotification.localNotification not available');
+      }
+      
+      console.log(`🚨 [SAFETY ALERT] About to call PushNotification.localNotification...`);
+      PushNotification.localNotification(notificationPayload);
+      console.log(`🚨 [SAFETY ALERT] PushNotification.localNotification call completed`);
 
-      console.log(`✅ [NOTIFICATION DEBUG] PushNotification.localNotification called successfully`);
+      console.log(`✅ [SAFETY ALERT] PushNotification.localNotification called successfully`);
+      
+      // Try to verify the notification was scheduled
+      setTimeout(() => {
+        console.log(`🔍 [SAFETY ALERT] Checking if notification appeared (this is just a log message)`);
+      }, 1000);
     } catch (error) {
-      console.error('❌ [NOTIFICATION ERROR] Failed to send safety alert:', error);
+      console.error('❌ [SAFETY ALERT ERROR] Failed to send safety alert:', error);
+      console.error('❌ [SAFETY ALERT ERROR] Error type:', typeof error);
+      console.error('❌ [SAFETY ALERT ERROR] Error message:', error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  /**
+   * Send a minimal test notification to verify the system is working
+   */
+  public sendBasicTestNotification(): void {
+    console.log('🧪 [BASIC TEST] Starting basic notification test...');
+    
+    try {
+      // Use the most basic notification possible - no channels, no extras
+      const basicPayload = {
+        title: 'Test Notification',
+        message: 'This is a basic test from Forseti',
+        playSound: false,
+        vibrate: false,
+      };
+      
+      console.log('🧪 [BASIC TEST] Payload:', JSON.stringify(basicPayload));
+      
+      PushNotification.localNotification(basicPayload);
+      
+      console.log('🧪 [BASIC TEST] Basic notification sent successfully');
+    } catch (error) {
+      console.error('❌ [BASIC TEST] Failed:', error);
     }
   }
 

@@ -10,7 +10,7 @@ export const APP_VERSION = {
   VERSION: '1.0.3',
   
   // Build code (automatically incremented by build script)
-  BUILD_CODE: 41,
+  BUILD_CODE: 42,
   
   // Build date (automatically updated by build script)
   BUILD_DATE: '2026-01-21',

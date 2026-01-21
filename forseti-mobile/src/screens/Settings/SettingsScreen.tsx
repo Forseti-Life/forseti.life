@@ -18,7 +18,6 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useBackgroundMonitoring } from '../../hooks/useBackgroundMonitoring';
-import { useConsoleLogs } from '../../hooks/useConsoleLogs';
 import StorageService from '../../services/storage/StorageService';
 import NotificationService, { NotificationDiagnostics } from '../../services/notifications/NotificationService';
 import { Theme } from '../../utils/theme';
@@ -99,19 +98,9 @@ const SettingsScreenContent = ({ navigation }: any) => {
 
   const { isMonitoring, currentH3Index, toggleMonitoring } = hookData;
 
-  // Console log functionality
-  const {
-    logCount,
-    isUploading,
-    uploadLogs,
-    clearLogs: clearConsoleLogs,
-    uploadError,
-  } = useConsoleLogs();
-
   const [zScoreThreshold, setZScoreThreshold] = useState(2.0);
   const [notificationCooldown, setNotificationCooldown] = useState(5);
   const [h3Resolution, setH3Resolution] = useState(11);
-  const [testH3Index, setTestH3Index] = useState('');
   const [diagnostics, setDiagnostics] = useState<NotificationDiagnostics | null>(null);
   const [isDiagnosticsLoading, setIsDiagnosticsLoading] = useState(false);
 
@@ -576,248 +565,15 @@ const SettingsScreenContent = ({ navigation }: any) => {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🐛 Developer Tools</Text>
-        <Text style={styles.sectionDescription}>Debug and troubleshooting tools</Text>
+        <Text style={styles.sectionTitle}>� Debug Tools</Text>
+        <Text style={styles.sectionDescription}>Access debugging and diagnostic tools</Text>
 
         <TouchableOpacity
           style={styles.linkButton}
-          onPress={() => navigation.navigate('DebugConsole')}
+          onPress={() => navigation.navigate('Debug')}
         >
           <Icon name="bug" size={20} color={Colors.warning} style={styles.linkIcon} />
-          <Text style={styles.linkButtonText}>Debug Console</Text>
-        </TouchableOpacity>
-
-        <View style={{ marginTop: Spacing.md }}>
-          <Text style={styles.settingLabel}>📋 Debug Log Management</Text>
-          <Text style={styles.settingDescription}>
-            Upload app debug logs to server for troubleshooting ({logCount} entries)
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              {
-                backgroundColor: isUploading ? Colors.gray : Colors.primary,
-                marginTop: Spacing.sm,
-              },
-            ]}
-            onPress={async () => {
-              const success = await uploadLogs();
-              if (success) {
-                Alert.alert('✅ Success', 'Debug logs uploaded successfully!');
-              } else {
-                Alert.alert('❌ Upload Failed', uploadError || 'Unknown error occurred');
-              }
-            }}
-            disabled={isUploading}
-          >
-            <Text style={styles.actionButtonText}>
-              {isUploading ? '📤 Uploading...' : '📤 Upload Debug Logs'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: Colors.gray, marginTop: Spacing.xs }]}
-            onPress={() => {
-              Alert.alert(
-                'Clear Debug Logs?',
-                `This will clear ${logCount} log entries from the app. This action cannot be undone.`,
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Clear',
-                    style: 'destructive',
-                    onPress: async () => {
-                      await clearConsoleLogs();
-                      Alert.alert('✅ Cleared', 'Debug logs have been cleared.');
-                    },
-                  },
-                ]
-              );
-            }}
-          >
-            <Text style={styles.actionButtonText}>🧹 Clear Debug Logs</Text>
-          </TouchableOpacity>
-
-          {/* Notification Diagnostics Section - Now managed from top section */}
-
-          {diagnostics && (
-            <View style={[styles.diagnosticsContainer, { marginTop: Spacing.sm }]}>
-              <Text style={styles.diagnosticsTitle}>📊 Notification Diagnostics</Text>
-              
-              <View style={styles.diagnosticItem}>
-                <Text style={styles.diagnosticLabel}>App Notifications:</Text>
-                <Text style={[styles.diagnosticValue, { 
-                  color: diagnostics.notificationsEnabled ? Colors.success : Colors.danger 
-                }]}>
-                  {diagnostics.notificationsEnabled ? '✅ Enabled' : '❌ Disabled'}
-                </Text>
-              </View>
-
-              <View style={styles.diagnosticItem}>
-                <Text style={styles.diagnosticLabel}>Battery Optimized:</Text>
-                <Text style={[styles.diagnosticValue, { 
-                  color: diagnostics.batteryOptimized ? Colors.danger : Colors.success 
-                }]}>
-                  {diagnostics.batteryOptimized ? '❌ Yes (Bad)' : '✅ No (Good)'}
-                </Text>
-              </View>
-
-              <View style={styles.diagnosticItem}>
-                <Text style={styles.diagnosticLabel}>Do Not Disturb:</Text>
-                <Text style={[styles.diagnosticValue, { 
-                  color: diagnostics.doNotDisturbActive ? Colors.warning : Colors.success 
-                }]}>
-                  {diagnostics.doNotDisturbActive ? '⚠️ Active' : '✅ Inactive'}
-                </Text>
-              </View>
-
-              <View style={styles.diagnosticItem}>
-                <Text style={styles.diagnosticLabel}>Notification Channels:</Text>
-                <Text style={[styles.diagnosticValue, { 
-                  color: diagnostics.channelsEnabled ? Colors.success : Colors.danger 
-                }]}>
-                  {diagnostics.channelsEnabled ? '✅ Enabled' : '❌ Disabled'}
-                </Text>
-              </View>
-
-              <View style={styles.diagnosticItem}>
-                <Text style={styles.diagnosticLabel}>Permission Status:</Text>
-                <Text style={[styles.diagnosticValue, { 
-                  color: diagnostics.permissionStatus === 'granted' ? Colors.success : Colors.danger 
-                }]}>
-                  {diagnostics.permissionStatus.toUpperCase()}
-                </Text>
-              </View>
-
-              {diagnostics.lastError && (
-                <View style={styles.diagnosticItem}>
-                  <Text style={styles.diagnosticLabel}>Last Error:</Text>
-                  <Text style={[styles.diagnosticValue, { color: Colors.danger, fontSize: 12 }]}>
-                    {diagnostics.lastError}
-                  </Text>
-                </View>
-              )}
-
-              <TouchableOpacity
-                style={[styles.actionButton, { 
-                  backgroundColor: Colors.primary, 
-                  marginTop: Spacing.sm,
-                  paddingVertical: 8
-                }]}
-                onPress={() => NotificationService.openNotificationSettings()}
-              >
-                <Text style={[styles.actionButtonText, { fontSize: 14 }]}>
-                  ⚙️ Open Notification Settings
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-        <View style={{ marginTop: Spacing.md }}>
-          <Text style={styles.settingLabel}>📍 Set Test Location</Text>
-          <Text style={styles.settingDescription}>
-            Enter H3 index for testing (e.g., 8b2a134f6cb5fff)
-          </Text>
-          <TextInput
-            style={styles.testLocationInput}
-            value={testH3Index}
-            onChangeText={setTestH3Index}
-            placeholder="8b2a134f6cb5fff"
-            placeholderTextColor={Colors.textSecondary}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              { backgroundColor: Colors.primary, marginTop: Spacing.sm },
-            ]}
-            onPress={async () => {
-              if (!testH3Index || testH3Index.length < 10) {
-                Alert.alert(
-                  'Invalid H3 Index',
-                  'Please enter a valid H3 index (minimum 10 characters)'
-                );
-                return;
-              }
-              DebugLogger.info(`📍 [DEBUG] Setting test location: ${testH3Index}`);
-              await StorageService.setItem('test_h3_location', testH3Index);
-              Alert.alert(
-                '✅ Test Location Set',
-                `H3 Index: ${testH3Index}\n\nThis will be used for testing. Restart monitoring to activate.`,
-                [{ text: 'OK' }]
-              );
-              DebugLogger.info('✅ [DEBUG] Test location saved to storage');
-            }}
-          >
-            <Text style={styles.actionButtonText}>🎯 Set Test Location</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: Colors.gray, marginTop: Spacing.xs }]}
-            onPress={async () => {
-              await StorageService.removeItem('test_h3_location');
-              setTestH3Index('');
-              Alert.alert('✅ Cleared', 'Test location cleared. Using real GPS location.');
-              DebugLogger.info('🧹 [DEBUG] Test location cleared');
-            }}
-          >
-            <Text style={styles.actionButtonText}>🧹 Clear Test Location</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: Colors.warning, marginTop: Spacing.md }]}
-          onPress={() => {
-            DebugLogger.info('🧪 [DEBUG] Simulating danger alert notification...');
-
-            // Send real notification (NotificationService is already the singleton instance)
-            NotificationService.sendSafetyAlert({
-              id: `test-alert-${Date.now()}`,
-              title: '⚠️ DANGER ALERT (TEST)',
-              message:
-                'This is a test alert.\n\nZ-Score: 3.5\nIncident Count: 125\nRisk Level: EXTREME\n\nThis area has significantly higher crime than average.',
-              type: 'high_crime_area',
-              priority: 'high',
-              timestamp: Date.now(),
-              location: {
-                latitude: 39.9526,
-                longitude: -75.1652,
-              },
-            });
-
-            DebugLogger.info('✅ [DEBUG] Test notification sent to system');
-            Alert.alert(
-              'Test Notification Sent',
-              'Check your notification tray at the top of the screen.'
-            );
-          }}
-        >
-          <Text style={styles.actionButtonText}>🚨 Simulate Danger Alert</Text>
-        </TouchableOpacity>
-
-        {/* Simple test notification button */}
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: Colors.info, marginTop: Spacing.sm }]}
-          onPress={() => {
-            DebugLogger.info('🧪 [DEBUG] Sending simple test notification...');
-
-            // Use NotificationService for simple test
-            NotificationService.sendSafetyAlert({
-              id: `simple-test-${Date.now()}`,
-              title: '🔔 Simple Test',
-              message: 'This is a basic notification test from Forseti',
-              type: 'safety_tip',
-              priority: 'medium',
-              timestamp: Date.now(),
-            });
-
-            DebugLogger.info('✅ [DEBUG] Simple notification sent');
-            Alert.alert('Simple Test Sent', 'Check notification tray');
-          }}
-        >
-          <Text style={styles.actionButtonText}>🔔 Simple Notification Test</Text>
+          <Text style={styles.linkButtonText}>Open Debug Tools</Text>
         </TouchableOpacity>
       </View>
 
@@ -1069,6 +825,24 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: Typography.fontWeight.bold,
+  },
+  linkButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+    borderRadius: Spacing.borderRadius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+  },
+  linkIcon: {
+    marginRight: Spacing.sm,
+  },
+  linkButtonText: {
+    ...Typography.body,
+    color: Colors.text,
+    fontWeight: Typography.fontWeight.medium,
   },
 });
 
