@@ -167,24 +167,34 @@ class NotificationService {
    * Send a safety alert notification
    */
   public sendSafetyAlert(alert: SafetyAlert): void {
-    const channelId = this.getSafetyChannelId(alert.priority);
+    try {
+      const channelId = this.getSafetyChannelId(alert.priority);
+      console.log(`📨 [NOTIFICATION DEBUG] Sending safety alert with channelId: ${channelId}`);
+      console.log(`📨 [NOTIFICATION DEBUG] Alert title: ${alert.title}`);
+      console.log(`📨 [NOTIFICATION DEBUG] Alert priority: ${alert.priority}`);
+      console.log(`📨 [NOTIFICATION DEBUG] Platform: ${Platform.OS}`);
 
-    PushNotification.localNotification({
-      id: alert.id,
-      title: alert.title,
-      message: alert.message,
-      playSound: alert.priority === 'critical' || alert.priority === 'high',
-      soundName: alert.priority === 'critical' ? 'emergency.mp3' : 'default',
-      vibrate: alert.priority !== 'low',
-      channelId,
-      userInfo: {
-        alertId: alert.id,
-        alertType: alert.type,
-        priority: alert.priority,
-        location: alert.location,
-      },
-      actions: ['View Details', 'Dismiss'],
-    });
+      PushNotification.localNotification({
+        id: alert.id,
+        title: alert.title,
+        message: alert.message,
+        playSound: alert.priority === 'critical' || alert.priority === 'high',
+        soundName: alert.priority === 'critical' ? 'emergency.mp3' : 'default',
+        vibrate: alert.priority !== 'low',
+        channelId,
+        userInfo: {
+          alertId: alert.id,
+          alertType: alert.type,
+          priority: alert.priority,
+          location: alert.location,
+        },
+        actions: ['View Details', 'Dismiss'],
+      });
+
+      console.log(`✅ [NOTIFICATION DEBUG] PushNotification.localNotification called successfully`);
+    } catch (error) {
+      console.error('❌ [NOTIFICATION ERROR] Failed to send safety alert:', error);
+    }
   }
 
   /**

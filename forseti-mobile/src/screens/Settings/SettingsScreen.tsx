@@ -606,6 +606,31 @@ const SettingsScreenContent = ({ navigation }: any) => {
         >
           <Text style={styles.actionButtonText}>🚨 Simulate Danger Alert</Text>
         </TouchableOpacity>
+
+        {/* Simple test notification button */}
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: Colors.info, marginTop: Spacing.sm }]}
+          onPress={() => {
+            DebugLogger.info('🧪 [DEBUG] Sending simple test notification...');
+
+            // Import PushNotification directly for simple test
+            const PushNotification = require('react-native-push-notification').default;
+            
+            PushNotification.localNotification({
+              id: Math.floor(Math.random() * 1000).toString(),
+              title: 'Simple Test',
+              message: 'This is a basic notification test',
+              playSound: true,
+              soundName: 'default',
+              vibrate: true,
+            });
+
+            DebugLogger.info('✅ [DEBUG] Simple notification sent');
+            Alert.alert('Simple Test Sent', 'Check notification tray');
+          }}
+        >
+          <Text style={styles.actionButtonText}>🔔 Simple Notification Test</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
