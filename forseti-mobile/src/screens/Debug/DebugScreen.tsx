@@ -379,6 +379,24 @@ const DebugScreen = ({ navigation }: any) => {
         >
           <Text style={styles.actionButtonText}>🔔 Simple Notification Test</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: Colors.primary, marginTop: Spacing.sm }]}
+          onPress={async () => {
+            DebugLogger.info('🧪 [DEBUG] Sending native Android test notification...');
+            
+            try {
+              await NotificationService.sendNativeTestNotification();
+              DebugLogger.info('✅ [DEBUG] Native test notification sent');
+              Alert.alert('Native Test Sent', 'Native Android notification sent - check notification tray!');
+            } catch (error) {
+              DebugLogger.error('❌ [DEBUG] Native test failed:', error);
+              Alert.alert('Native Test Failed', `Error: ${error?.message || error}`);
+            }
+          }}
+        >
+          <Text style={styles.actionButtonText}>🤖 Native Android Test</Text>
+        </TouchableOpacity>
       </View>
 
       <DebugConsole />

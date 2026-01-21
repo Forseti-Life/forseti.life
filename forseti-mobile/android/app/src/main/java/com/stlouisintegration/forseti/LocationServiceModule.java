@@ -1,9 +1,15 @@
 package com.stlouisintegration.forseti;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
+
+import androidx.core.app.NotificationCompat;
 
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -66,5 +72,56 @@ public class LocationServiceModule extends ReactContextBaseJavaModule {
     public void isServiceRunning(Promise promise) {
         // Simple check - service should be running if monitoring is enabled
         promise.resolve(true);
+    }
+
+    @ReactMethod
+    public void sendNativeTestNotification(String title, String message, Promise promise) {
+        try {
+            Context context = getReactApplicationContext();
+            NotificationManager notificationManager = 
+                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            
+            String channelId = "forseti_test_native";
+            
+            // Create notification channel for Android 8.0+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel channel = new NotificationChannel(
+                    channelId,
+                    "Forseti Native Test",
+                    NotificationManager.IMPORTANCE_DEFAULT
+                );
+                channel.setDescription("Native notification test channel");
+                notificationManager.createNotificationChannel(channel);
+                Log.d(TAG, "Created native test notification channel");
+            }
+
+            // Create notification intent
+            Intent notificationIntent = new Intent(context, MainActivity.class);
+            PendingIntent pendingIntent = PendingIntent.getActivity(
+                context,
+                0,
+                notificationIntent,
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? 
+                    PendingIntent.FLAG_IMMUTABLE : 0
+            );
+
+            // Build notification
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentIntent(pendingIntent)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true);
+
+            Notification notification = builder.build();
+            notificationManager.notify(12345, notification);
+            
+            Log.d(TAG, "Native test notification sent: " + title);
+            promise.resolve("Native notification sent successfully");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to send native notification", e);
+            promise.reject("NATIVE_NOTIFICATION_FAILED", e.getMessage());
+        }
     }
 }

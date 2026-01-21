@@ -6,6 +6,8 @@
 import { Platform, Alert, Linking, NativeModules, PermissionsAndroid } from 'react-native';
 import PushNotification from 'react-native-push-notification';
 
+const { LocationServiceModule } = NativeModules;
+
 export interface NotificationConfig {
   title: string;
   message: string;
@@ -329,21 +331,73 @@ class NotificationService {
     console.log('🧪 [BASIC TEST] Starting basic notification test...');
     
     try {
-      // Use the most basic notification possible - no channels, no extras
-      const basicPayload = {
-        title: 'Test Notification',
-        message: 'This is a basic test from Forseti',
-        playSound: false,
-        vibrate: false,
-      };
+      // Test different channel configurations
+      const testPayloads = [
+        // Test 1: No channel specified
+        {
+          title: 'Test 1: Default',
+          message: 'Default channel test from Forseti',
+          playSound: false,
+          vibrate: false,
+        },
+        // Test 2: Use our safety channel
+        {
+          title: 'Test 2: Safety Channel',
+          message: 'Safety channel test from Forseti',
+          channelId: 'forseti-safety-alerts',
+          playSound: false,
+          vibrate: false,
+        },
+        // Test 3: Use general channel
+        {
+          title: 'Test 3: General Channel',
+          message: 'General channel test from Forseti',
+          channelId: 'forseti-general',
+          playSound: false,
+          vibrate: false,
+        }
+      ];
       
-      console.log('🧪 [BASIC TEST] Payload:', JSON.stringify(basicPayload));
+      testPayloads.forEach((payload, index) => {
+        console.log(`🧪 [BASIC TEST] Payload ${index + 1}:`, JSON.stringify(payload));
+        
+        setTimeout(() => {
+          PushNotification.localNotification(payload);
+          console.log(`🧪 [BASIC TEST] Test ${index + 1} notification sent`);
+        }, index * 2000); // Stagger by 2 seconds each
+      });
       
-      PushNotification.localNotification(basicPayload);
-      
-      console.log('🧪 [BASIC TEST] Basic notification sent successfully');
+      console.log('🧪 [BASIC TEST] All test notifications scheduled');
     } catch (error) {
       console.error('❌ [BASIC TEST] Failed:', error);
+    }
+  }
+
+  /**
+   * Send a native Android test notification using the same method as LocationTrackingService
+   */
+  public async sendNativeTestNotification(): Promise<void> {
+    console.log('🧪 [NATIVE TEST] Starting native Android notification test...');
+    
+    try {
+      if (Platform.OS !== 'android') {
+        console.warn('⚠️  [NATIVE TEST] Native test only available on Android');
+        return;
+      }
+
+      if (!LocationServiceModule) {
+        console.error('❌ [NATIVE TEST] LocationServiceModule not available');
+        return;
+      }
+
+      const result = await LocationServiceModule.sendNativeTestNotification(
+        'Native Test Notification',
+        'This notification was created using native Android code - same as LocationTrackingService'
+      );
+      
+      console.log('✅ [NATIVE TEST] Success:', result);
+    } catch (error) {
+      console.error('❌ [NATIVE TEST] Failed:', error);
     }
   }
 
