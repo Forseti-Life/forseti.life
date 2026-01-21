@@ -118,6 +118,8 @@ const SettingsScreenContent = ({ navigation }: any) => {
   useEffect(() => {
     DebugLogger.info('📥 Loading settings...');
     loadSettings();
+    // Check notification status on load
+    runNotificationDiagnostics();
   }, []);
 
   const loadSettings = async () => {
@@ -333,6 +335,75 @@ const SettingsScreenContent = ({ navigation }: any) => {
             </Text>
           </View>
         )}
+
+        {/* Notification Status Check */}
+        <View style={styles.settingRow}>
+          <View style={styles.settingInfo}>
+            <Text style={styles.settingLabel}>Notification Status</Text>
+            <Text style={[
+              styles.settingDescription, 
+              { color: (!isMonitoring || !diagnostics?.notificationsEnabled) ? Colors.danger : Colors.success }
+            ]}>
+              {!isMonitoring ? 'Location monitoring disabled' : 
+               diagnostics?.notificationsEnabled ? 'Notifications enabled' : 'Notifications disabled'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.miniActionButton,
+              { backgroundColor: (!isMonitoring || !diagnostics?.notificationsEnabled) ? Colors.danger : Colors.success }
+            ]}
+            onPress={async () => {
+              if (!isMonitoring) {
+                Alert.alert(
+                  'Enable Location Monitoring First',
+                  'Notifications require background location monitoring to be enabled.',
+                  [{ text: 'OK' }]
+                );
+                return;
+              }
+              
+              // Run diagnostics first
+              await runNotificationDiagnostics();
+              
+              // If notifications still disabled after diagnostics, offer to enable
+              if (!diagnostics?.notificationsEnabled) {
+                Alert.alert(
+                  'Enable Notifications?',
+                  'Notifications are currently disabled. Would you like to enable them or open settings?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { 
+                      text: 'Enable', 
+                      onPress: async () => {
+                        try {
+                          const granted = await NotificationService.requestPermissions();
+                          if (granted) {
+                            await runNotificationDiagnostics(); // Refresh diagnostics
+                            Alert.alert('Success', 'Notifications enabled successfully!');
+                          } else {
+                            Alert.alert('Failed', 'Failed to enable notifications. Check app settings.');
+                          }
+                        } catch (error) {
+                          Alert.alert('Error', 'Failed to enable notifications: ' + error.message);
+                        }
+                      }
+                    },
+                    { 
+                      text: 'Settings', 
+                      onPress: () => NotificationService.openNotificationSettings() 
+                    }
+                  ]
+                );
+              }
+            }}
+            disabled={isDiagnosticsLoading}
+          >
+            <Text style={styles.miniActionButtonText}>
+              {isDiagnosticsLoading ? '...' : (!isMonitoring || !diagnostics?.notificationsEnabled) ? '❌' : '✅'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -568,16 +639,7 @@ const SettingsScreenContent = ({ navigation }: any) => {
             <Text style={styles.actionButtonText}>🧹 Clear Debug Logs</Text>
           </TouchableOpacity>
 
-          {/* Notification Diagnostics Section */}
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: Colors.info, marginTop: Spacing.sm }]}
-            onPress={runNotificationDiagnostics}
-            disabled={isDiagnosticsLoading}
-          >
-            <Text style={styles.actionButtonText}>
-              {isDiagnosticsLoading ? '🔬 Running Diagnostics...' : '🔬 Check Notification Status'}
-            </Text>
-          </TouchableOpacity>
+          {/* Notification Diagnostics Section - Now managed from top section */}
 
           {diagnostics && (
             <View style={[styles.diagnosticsContainer, { marginTop: Spacing.sm }]}>
@@ -993,6 +1055,20 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     textAlign: 'right',
     flex: 1,
+  },
+  miniActionButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    marginLeft: Spacing.sm,
+  },
+  miniActionButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: Typography.fontWeight.bold,
   },
 });
 
