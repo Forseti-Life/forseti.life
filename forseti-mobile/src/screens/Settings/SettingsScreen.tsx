@@ -395,6 +395,102 @@ const SettingsScreenContent = ({ navigation }: any) => {
         </View>
       </View>
 
+      {/* Full Notification Diagnostics Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>📊 Notification Diagnostics</Text>
+        <Text style={styles.sectionDescription}>Check notification system status and permissions</Text>
+
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: Colors.info, marginTop: Spacing.sm }]}
+          onPress={runNotificationDiagnostics}
+          disabled={isDiagnosticsLoading}
+        >
+          <Text style={styles.actionButtonText}>
+            {isDiagnosticsLoading ? '🔬 Running Diagnostics...' : '🔬 Check Notification Status'}
+          </Text>
+        </TouchableOpacity>
+
+        {diagnostics && (
+          <View style={[styles.diagnosticsContainer, { marginTop: Spacing.sm }]}>
+            <View style={styles.diagnosticItem}>
+              <Text style={styles.diagnosticLabel}>App Notifications:</Text>
+              <Text style={[styles.diagnosticValue, { 
+                color: diagnostics.notificationsEnabled ? Colors.success : Colors.danger 
+              }]}>
+                {diagnostics.notificationsEnabled ? '✅ Enabled' : '❌ Disabled'}
+              </Text>
+            </View>
+
+            <View style={styles.diagnosticItem}>
+              <Text style={styles.diagnosticLabel}>Battery Optimized:</Text>
+              <Text style={[styles.diagnosticValue, { 
+                color: diagnostics.batteryOptimized ? Colors.danger : Colors.success 
+              }]}>
+                {diagnostics.batteryOptimized ? '❌ Yes (Bad)' : '✅ No (Good)'}
+              </Text>
+            </View>
+
+            <View style={styles.diagnosticItem}>
+              <Text style={styles.diagnosticLabel}>Do Not Disturb:</Text>
+              <Text style={[styles.diagnosticValue, { 
+                color: diagnostics.doNotDisturbActive ? Colors.warning : Colors.success 
+              }]}>
+                {diagnostics.doNotDisturbActive ? '⚠️ Active' : '✅ Inactive'}
+              </Text>
+            </View>
+
+            <View style={styles.diagnosticItem}>
+              <Text style={styles.diagnosticLabel}>Notification Channels:</Text>
+              <Text style={[styles.diagnosticValue, { 
+                color: diagnostics.channelsEnabled ? Colors.success : Colors.danger 
+              }]}>
+                {diagnostics.channelsEnabled ? '✅ Enabled' : '❌ Disabled'}
+              </Text>
+            </View>
+
+            <View style={styles.diagnosticItem}>
+              <Text style={styles.diagnosticLabel}>Permission Status:</Text>
+              <Text style={[styles.diagnosticValue, { 
+                color: diagnostics.permissionStatus === 'granted' ? Colors.success : Colors.danger 
+              }]}>
+                {diagnostics.permissionStatus.toUpperCase()}
+              </Text>
+            </View>
+
+            {diagnostics.androidApiLevel && (
+              <View style={styles.diagnosticItem}>
+                <Text style={styles.diagnosticLabel}>Android API Level:</Text>
+                <Text style={styles.diagnosticValue}>
+                  {diagnostics.androidApiLevel}
+                </Text>
+              </View>
+            )}
+
+            {diagnostics.lastError && (
+              <View style={styles.diagnosticItem}>
+                <Text style={styles.diagnosticLabel}>Last Error:</Text>
+                <Text style={[styles.diagnosticValue, { color: Colors.danger, fontSize: 12 }]}>
+                  {diagnostics.lastError}
+                </Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[styles.actionButton, { 
+                backgroundColor: Colors.primary, 
+                marginTop: Spacing.sm,
+                paddingVertical: 8
+              }]}
+              onPress={() => NotificationService.openNotificationSettings()}
+            >
+              <Text style={[styles.actionButtonText, { fontSize: 14 }]}>
+                ⚙️ Open Notification Settings
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>📐 Monitoring Resolution</Text>
         <Text style={styles.sectionDescription}>H3 hexagon size for location monitoring</Text>

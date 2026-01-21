@@ -17,7 +17,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useConsoleLogs } from '../../hooks/useConsoleLogs';
 import StorageService from '../../services/storage/StorageService';
-import NotificationService, { NotificationDiagnostics } from '../../services/notifications/NotificationService';
+import NotificationService from '../../services/notifications/NotificationService';
 import { Theme } from '../../utils/theme';
 import DebugConsole, { DebugLogger } from '../../components/DebugConsole';
 
@@ -36,37 +36,10 @@ const DebugScreen = ({ navigation }: any) => {
   } = useConsoleLogs();
 
   const [testH3Index, setTestH3Index] = useState('');
-  const [diagnostics, setDiagnostics] = useState<NotificationDiagnostics | null>(null);
-  const [isDiagnosticsLoading, setIsDiagnosticsLoading] = useState(false);
 
   useEffect(() => {
     DebugLogger.info('📥 Loading debug screen...');
-    // Run notification diagnostics on load
-    runNotificationDiagnostics();
   }, []);
-
-  const runNotificationDiagnostics = async () => {
-    setIsDiagnosticsLoading(true);
-    try {
-      DebugLogger.info('🔬 Running notification diagnostics...');
-      const result = await NotificationService.getNotificationDiagnostics();
-      setDiagnostics(result);
-      DebugLogger.info('✅ Notification diagnostics completed:', result);
-    } catch (error) {
-      DebugLogger.error('❌ Notification diagnostics failed:', error);
-      setDiagnostics({
-        notificationsEnabled: false,
-        batteryOptimized: true,
-        doNotDisturbActive: false,
-        channelsEnabled: false,
-        permissionStatus: 'error',
-        androidApiLevel: undefined,
-        lastError: error.message,
-      });
-    } finally {
-      setIsDiagnosticsLoading(false);
-    }
-  };
 
   return (
     <ScrollView style={styles.container}>
@@ -146,102 +119,6 @@ const DebugScreen = ({ navigation }: any) => {
         >
           <Text style={styles.actionButtonText}>🧹 Clear Debug Logs</Text>
         </TouchableOpacity>
-      </View>
-
-      {/* Notification Diagnostics */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📊 Notification Diagnostics</Text>
-        <Text style={styles.sectionDescription}>Check notification system status and permissions</Text>
-
-        <TouchableOpacity
-          style={[styles.actionButton, { backgroundColor: Colors.info, marginTop: Spacing.sm }]}
-          onPress={runNotificationDiagnostics}
-          disabled={isDiagnosticsLoading}
-        >
-          <Text style={styles.actionButtonText}>
-            {isDiagnosticsLoading ? '🔬 Running Diagnostics...' : '🔬 Check Notification Status'}
-          </Text>
-        </TouchableOpacity>
-
-        {diagnostics && (
-          <View style={[styles.diagnosticsContainer, { marginTop: Spacing.sm }]}>
-            <View style={styles.diagnosticItem}>
-              <Text style={styles.diagnosticLabel}>App Notifications:</Text>
-              <Text style={[styles.diagnosticValue, { 
-                color: diagnostics.notificationsEnabled ? Colors.success : Colors.danger 
-              }]}>
-                {diagnostics.notificationsEnabled ? '✅ Enabled' : '❌ Disabled'}
-              </Text>
-            </View>
-
-            <View style={styles.diagnosticItem}>
-              <Text style={styles.diagnosticLabel}>Battery Optimized:</Text>
-              <Text style={[styles.diagnosticValue, { 
-                color: diagnostics.batteryOptimized ? Colors.danger : Colors.success 
-              }]}>
-                {diagnostics.batteryOptimized ? '❌ Yes (Bad)' : '✅ No (Good)'}
-              </Text>
-            </View>
-
-            <View style={styles.diagnosticItem}>
-              <Text style={styles.diagnosticLabel}>Do Not Disturb:</Text>
-              <Text style={[styles.diagnosticValue, { 
-                color: diagnostics.doNotDisturbActive ? Colors.warning : Colors.success 
-              }]}>
-                {diagnostics.doNotDisturbActive ? '⚠️ Active' : '✅ Inactive'}
-              </Text>
-            </View>
-
-            <View style={styles.diagnosticItem}>
-              <Text style={styles.diagnosticLabel}>Notification Channels:</Text>
-              <Text style={[styles.diagnosticValue, { 
-                color: diagnostics.channelsEnabled ? Colors.success : Colors.danger 
-              }]}>
-                {diagnostics.channelsEnabled ? '✅ Enabled' : '❌ Disabled'}
-              </Text>
-            </View>
-
-            <View style={styles.diagnosticItem}>
-              <Text style={styles.diagnosticLabel}>Permission Status:</Text>
-              <Text style={[styles.diagnosticValue, { 
-                color: diagnostics.permissionStatus === 'granted' ? Colors.success : Colors.danger 
-              }]}>
-                {diagnostics.permissionStatus.toUpperCase()}
-              </Text>
-            </View>
-
-            {diagnostics.androidApiLevel && (
-              <View style={styles.diagnosticItem}>
-                <Text style={styles.diagnosticLabel}>Android API Level:</Text>
-                <Text style={styles.diagnosticValue}>
-                  {diagnostics.androidApiLevel}
-                </Text>
-              </View>
-            )}
-
-            {diagnostics.lastError && (
-              <View style={styles.diagnosticItem}>
-                <Text style={styles.diagnosticLabel}>Last Error:</Text>
-                <Text style={[styles.diagnosticValue, { color: Colors.danger, fontSize: 12 }]}>
-                  {diagnostics.lastError}
-                </Text>
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={[styles.actionButton, { 
-                backgroundColor: Colors.primary, 
-                marginTop: Spacing.sm,
-                paddingVertical: 8
-              }]}
-              onPress={() => NotificationService.openNotificationSettings()}
-            >
-              <Text style={[styles.actionButtonText, { fontSize: 14 }]}>
-                ⚙️ Open Notification Settings
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
 
       {/* Test Location Setting */}
