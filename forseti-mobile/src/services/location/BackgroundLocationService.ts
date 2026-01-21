@@ -400,14 +400,33 @@ class BackgroundLocationService {
       
       DebugLogger.info(`📦 [RAW RESPONSE] Type: ${responseType}, Keys: ${responseKeys}`);
 
-      // Check hexagons array
+      // Check hexagons array with step-by-step logging
+      DebugLogger.info('🔍 [STEP 1] About to check hexagons array');
       const hexagons = response.data.hexagons;
-      if (!Array.isArray(hexagons) || hexagons.length === 0) {
-        const hexagonsLength = Array.isArray(hexagons) ? hexagons.length : 'not-array';
+      
+      DebugLogger.info('🔍 [STEP 2] Hexagons extracted from response');
+      const isArray = Array.isArray(hexagons);
+      
+      DebugLogger.info(`🔍 [STEP 3] Is array check complete: ${isArray}`);
+      if (!isArray || hexagons.length === 0) {
+        DebugLogger.info('🔍 [STEP 4] Inside null return condition');
+        
+        const hexagonsLength = isArray ? hexagons.length : 'not-array';
+        DebugLogger.info(`🔍 [STEP 5] Length calculated: ${hexagonsLength}`);
+        
         DebugLogger.info(`📦 [HEXAGONS] Count: ${hexagonsLength}, First hexagon type: none`);
+        DebugLogger.info('🔍 [STEP 6] Basic logging complete');
+        
         DebugLogger.info('🔍 [PROCESSING] Taking null return path - no valid hexagon data');
+        DebugLogger.info('🔍 [STEP 7] Processing message logged');
+        
         DebugLogger.warning('⚠️ [API RESPONSE] No hexagon data returned');
+        DebugLogger.info('🔍 [STEP 8] Warning logged');
+        
         console.log('⚠️ API Response: No hexagon data');
+        DebugLogger.info('🔍 [STEP 9] Console log complete');
+        
+        DebugLogger.info('🔍 [STEP 10] About to return null');
         return null;
       }
 
