@@ -274,11 +274,20 @@ class BackgroundLocationService {
         const previousH3 = this.currentH3Index;
         this.currentH3Index = h3Index;
 
-        // Fetch crime data for new hexagon
-        await this.checkHexagonSafety(h3Index, location, previousH3);
+        try {
+          DebugLogger.info('🔍 [LOCATION UPDATE] About to call checkHexagonSafety');
+          // Fetch crime data for new hexagon
+          await this.checkHexagonSafety(h3Index, location, previousH3);
+          DebugLogger.info('🔍 [LOCATION UPDATE] checkHexagonSafety completed successfully');
+        } catch (safetyError) {
+          DebugLogger.error('❌ [LOCATION UPDATE] Error in checkHexagonSafety:', safetyError);
+          console.error('Error in hexagon safety check:', safetyError);
+          // Don't re-throw - continue location monitoring even if safety check fails
+        }
       }
     } catch (error) {
       console.error('Error handling location update:', error);
+      DebugLogger.error('❌ [LOCATION UPDATE] General location update error:', error);
     }
   }
 
@@ -291,20 +300,28 @@ class BackgroundLocationService {
     previousH3: string | null
   ): Promise<void> {
     try {
+      DebugLogger.info('🔍 [SAFETY CHECK] Starting hexagon safety check');
+      
       // Check notification cooldown
       const now = Date.now();
       if (now - this.lastNotificationTime < this.notificationCooldown) {
         console.log('⏰ Notification cooldown active, skipping check');
+        DebugLogger.info('🔍 [SAFETY CHECK] Exiting due to cooldown');
         return;
       }
 
+      DebugLogger.info('🔍 [SAFETY CHECK] About to fetch hexagon data');
       // Fetch hexagon data from API
       const hexagonData = await this.fetchHexagonData(h3Index);
+      DebugLogger.info(`🔍 [SAFETY CHECK] Fetch completed, result: ${hexagonData ? 'DATA' : 'NULL'}`);
 
       if (!hexagonData) {
         console.log('ℹ️ No crime data available for this hexagon');
+        DebugLogger.info('🔍 [SAFETY CHECK] Exiting due to no data - SHOULD BE SAFE EXIT');
         return;
       }
+
+      DebugLogger.info('🔍 [SAFETY CHECK] Processing valid hexagon data');
 
       // Check if z-score meets threshold for notification
       const zScore = hexagonData.incident_z_score || 0;
@@ -315,20 +332,27 @@ class BackgroundLocationService {
         return;
       }
 
+      DebugLogger.info(`🔍 [SAFETY CHECK] Z-Score validation passed: ${zScore}`);
+
       if (zScore >= this.zScoreThreshold) {
+        DebugLogger.info('🔍 [SAFETY CHECK] High risk detected, sending notification');
         await this.sendDangerNotification(hexagonData, location);
         this.lastNotificationTime = now;
       } else {
         console.log(
           `✅ Safe area - z-score: ${zScore.toFixed(2)} (threshold: ${this.zScoreThreshold})`
         );
+        DebugLogger.info('🔍 [SAFETY CHECK] Safe area, no notification needed');
       }
 
+      DebugLogger.info('🔍 [SAFETY CHECK] About to save location history');
       // Save location history with validated zScore
       await this.saveLocationHistory(h3Index, location, zScore);
+      DebugLogger.info('🔍 [SAFETY CHECK] Location history saved successfully');
     } catch (error) {
       console.error('Error checking hexagon safety:', error);
       DebugLogger.error('❌ [HEXAGON SAFETY ERROR] Detailed error info:', error);
+      DebugLogger.error('❌ [HEXAGON SAFETY ERROR] Error occurred during safety check process');
       if (error instanceof Error) {
         DebugLogger.error('❌ [ERROR STACK]', error.stack);
       }
