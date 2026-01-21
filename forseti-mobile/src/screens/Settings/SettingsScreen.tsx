@@ -528,13 +528,13 @@ const SettingsScreenContent = ({ navigation }: any) => {
         <View style={{ marginTop: Spacing.md }}>
           <Text style={styles.settingLabel}>📍 Set Test Location</Text>
           <Text style={styles.settingDescription}>
-            Enter H3 index for testing (e.g., 8b2aacb2e577fff)
+            Enter H3 index for testing (e.g., 8b2a134f6cb5fff)
           </Text>
           <TextInput
             style={styles.testLocationInput}
             value={testH3Index}
             onChangeText={setTestH3Index}
-            placeholder="Enter H3 index..."
+            placeholder="8b2a134f6cb5fff"
             placeholderTextColor={Colors.textSecondary}
             autoCapitalize="none"
             autoCorrect={false}
