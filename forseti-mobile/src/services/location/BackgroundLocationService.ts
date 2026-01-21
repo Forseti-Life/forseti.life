@@ -389,15 +389,40 @@ class BackgroundLocationService {
         });
 
         // Log raw response for debugging
-        DebugLogger.info(
-          `📦 [RAW RESPONSE] Type: ${typeof response.data}, Keys: ${response.data ? Object.keys(response.data).join(', ') : 'none'}`
-        );
-        if (response.data && response.data.hexagons && Array.isArray(response.data.hexagons)) {
+        try {
+          const responseDataExists = !!response.data;
+          const responseDataType = typeof response.data;
+          let responseKeys = 'unknown';
+          
+          if (response.data && typeof response.data === 'object') {
+            try {
+              responseKeys = Object.keys(response.data).join(', ');
+            } catch (keysError) {
+              DebugLogger.error('❌ [KEYS ERROR] Error getting response data keys:', keysError);
+              responseKeys = 'error-getting-keys';
+            }
+          }
+          
           DebugLogger.info(
-            `📦 [HEXAGONS] Count: ${response.data.hexagons.length}, First hexagon type: ${response.data.hexagons.length > 0 ? typeof response.data.hexagons[0] : 'none'}`
+            `📦 [RAW RESPONSE] Type: ${responseDataType}, Keys: ${responseKeys}`
           );
-        } else {
-          DebugLogger.warning('⚠️ [API RESPONSE] Hexagons data is not an array or is missing');
+        } catch (responseLogError) {
+          DebugLogger.error('❌ [RESPONSE LOG ERROR] Error logging raw response:', responseLogError);
+        }
+
+        // Check hexagons array with enhanced safety
+        try {
+          if (response.data && response.data.hexagons && Array.isArray(response.data.hexagons)) {
+            const hexagonsLength = response.data.hexagons.length;
+            const firstHexagonType = hexagonsLength > 0 ? typeof response.data.hexagons[0] : 'none';
+            DebugLogger.info(
+              `📦 [HEXAGONS] Count: ${hexagonsLength}, First hexagon type: ${firstHexagonType}`
+            );
+          } else {
+            DebugLogger.warning('⚠️ [API RESPONSE] Hexagons data is not an array or is missing');
+          }
+        } catch (hexagonsLogError) {
+          DebugLogger.error('❌ [HEXAGONS LOG ERROR] Error logging hexagons info:', hexagonsLogError);
         }
       } catch (axiosError) {
         DebugLogger.error('❌ [AXIOS ERROR] HTTP request failed:', axiosError);
