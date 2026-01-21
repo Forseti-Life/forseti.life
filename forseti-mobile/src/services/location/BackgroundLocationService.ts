@@ -363,14 +363,14 @@ class BackgroundLocationService {
    * Fetch hexagon crime data from API
    */
   private async fetchHexagonData(h3Index: string): Promise<H3HexagonData | null> {
-    try {
-      const apiUrl = `${this.API_BASE_URL}/api/amisafe/aggregated`;
-      const params = {
-        resolution: this.h3Resolution,
-        h3_index: h3Index,
-        format: 'json',
-      };
+    const apiUrl = `${this.API_BASE_URL}/api/amisafe/aggregated`;
+    const params = {
+      resolution: this.h3Resolution,
+      h3_index: h3Index,
+      format: 'json',
+    };
 
+    try {
       // Log API call
       DebugLogger.info(`🌐 [API CALL] ${apiUrl}`);
       DebugLogger.info(
@@ -380,107 +380,80 @@ class BackgroundLocationService {
         `🌐 API Call: ${apiUrl}?resolution=${params.resolution}&h3_index=${params.h3_index}`
       );
 
-      // Make the API request with better error handling
-      let response;
-      try {
-        response = await axios.get(apiUrl, {
-          params,
-          timeout: 10000,
-        });
+      // Make the API request
+      const response = await axios.get(apiUrl, {
+        params,
+        timeout: 10000,
+      });
 
-        // Log raw response for debugging
-        try {
-          const responseDataExists = !!response.data;
-          const responseDataType = typeof response.data;
-          let responseKeys = 'unknown';
-          
-          if (response.data && typeof response.data === 'object') {
-            try {
-              responseKeys = Object.keys(response.data).join(', ');
-            } catch (keysError) {
-              DebugLogger.error('❌ [KEYS ERROR] Error getting response data keys:', keysError);
-              responseKeys = 'error-getting-keys';
-            }
-          }
-          
-          DebugLogger.info(
-            `📦 [RAW RESPONSE] Type: ${responseDataType}, Keys: ${responseKeys}`
-          );
-        } catch (responseLogError) {
-          DebugLogger.error('❌ [RESPONSE LOG ERROR] Error logging raw response:', responseLogError);
-        }
-
-        // Check hexagons array with enhanced safety
-        try {
-          if (response.data && response.data.hexagons && Array.isArray(response.data.hexagons)) {
-            const hexagonsLength = response.data.hexagons.length;
-            const firstHexagonType = hexagonsLength > 0 ? typeof response.data.hexagons[0] : 'none';
-            DebugLogger.info(
-              `📦 [HEXAGONS] Count: ${hexagonsLength}, First hexagon type: ${firstHexagonType}`
-            );
-          } else {
-            DebugLogger.warning('⚠️ [API RESPONSE] Hexagons data is not an array or is missing');
-          }
-        } catch (hexagonsLogError) {
-          DebugLogger.error('❌ [HEXAGONS LOG ERROR] Error logging hexagons info:', hexagonsLogError);
-        }
-      } catch (axiosError) {
-        DebugLogger.error('❌ [AXIOS ERROR] HTTP request failed:', axiosError);
-        throw axiosError;
+      // Basic response validation
+      if (!response?.data) {
+        DebugLogger.warning('⚠️ [API RESPONSE] No response data received');
+        return null;
       }
 
-      // Process the response - ensure hexagons is an array
-      DebugLogger.info(`🔍 [PROCESSING] About to check hexagons array. Data exists: ${!!response.data}, Hexagons exists: ${!!response.data?.hexagons}, Is Array: ${Array.isArray(response.data?.hexagons)}, Length: ${response.data?.hexagons?.length || 0}`);
+      // Log response structure safely
+      const responseType = typeof response.data;
+      const responseKeys = (response.data && typeof response.data === 'object') 
+        ? Object.keys(response.data).join(', ') 
+        : 'none';
       
-      if (response.data && response.data.hexagons && Array.isArray(response.data.hexagons) && response.data.hexagons.length > 0) {
-        const hexagon = response.data.hexagons[0];
+      DebugLogger.info(`📦 [RAW RESPONSE] Type: ${responseType}, Keys: ${responseKeys}`);
 
-        // Log the raw hexagon structure for debugging
-        try {
-          DebugLogger.info(`🔍 [HEXAGON STRUCTURE] ${JSON.stringify(hexagon, null, 2)}`);
-        } catch (stringifyError) {
-          DebugLogger.warning(`⚠️ [JSON STRINGIFY ERROR] Could not stringify hexagon: ${stringifyError}`);
-          DebugLogger.info(`🔍 [HEXAGON BASIC INFO] Type: ${typeof hexagon}, Keys: ${hexagon && typeof hexagon === 'object' ? Object.keys(hexagon).join(', ') : 'N/A'}`);
-        }
-
-        // Extract values from the actual API structure
-        // API returns: { h3_index, incident_count, analytics: { z_scores: { incident }, risk_level } }
-        const safeIncidentCount = Number(hexagon.incident_count) || 0;
-        const safeIncidentZScore = Number(hexagon.analytics?.z_scores?.incident) || 0;
-        const safeRiskLevel = String(hexagon.analytics?.risk_level || 'LOW');
-
-        const result = {
-          h3_index: String(hexagon.h3_index || ''),
-          incident_count: safeIncidentCount,
-          incident_z_score: safeIncidentZScore,
-          risk_level: safeRiskLevel,
-          resolution: this.h3Resolution,
-        };
-
-        // Log API response with guaranteed number type
-        const zScoreValue = Number.isFinite(result.incident_z_score)
-          ? result.incident_z_score.toFixed(2)
-          : '0.00';
-        DebugLogger.info(
-          `✅ [API RESPONSE] Z-Score: ${zScoreValue}, Incidents: ${result.incident_count}, Risk: ${result.risk_level}`
-        );
-        console.log(
-          `✅ API Response: H3=${result.h3_index}, Z-Score=${zScoreValue}, Count=${result.incident_count}, Risk=${result.risk_level}`
-        );
-
-        return result;
+      // Check hexagons array
+      const hexagons = response.data.hexagons;
+      if (!Array.isArray(hexagons) || hexagons.length === 0) {
+        const hexagonsLength = Array.isArray(hexagons) ? hexagons.length : 'not-array';
+        DebugLogger.info(`📦 [HEXAGONS] Count: ${hexagonsLength}, First hexagon type: none`);
+        DebugLogger.info('🔍 [PROCESSING] Taking null return path - no valid hexagon data');
+        DebugLogger.warning('⚠️ [API RESPONSE] No hexagon data returned');
+        console.log('⚠️ API Response: No hexagon data');
+        return null;
       }
 
-      DebugLogger.info('🔍 [PROCESSING] Taking null return path - no valid hexagon data');
-      DebugLogger.warning('⚠️ [API RESPONSE] No hexagon data returned');
-      console.log('⚠️ API Response: No hexagon data');
-      return null;
+      // Process first hexagon
+      const hexagon = hexagons[0];
+      DebugLogger.info(`📦 [HEXAGONS] Count: ${hexagons.length}, First hexagon type: ${typeof hexagon}`);
+
+      if (!hexagon || typeof hexagon !== 'object') {
+        DebugLogger.warning('⚠️ [API RESPONSE] Invalid hexagon data structure');
+        return null;
+      }
+
+      // Extract and validate data safely
+      const result = {
+        h3_index: String(hexagon.h3_index || ''),
+        incident_count: Number(hexagon.incident_count) || 0,
+        incident_z_score: Number(hexagon.analytics?.z_scores?.incident) || 0,
+        risk_level: String(hexagon.analytics?.risk_level || 'LOW'),
+        resolution: this.h3Resolution,
+      };
+
+      // Log successful response
+      const zScoreValue = Number.isFinite(result.incident_z_score)
+        ? result.incident_z_score.toFixed(2)
+        : '0.00';
+      
+      DebugLogger.info(
+        `✅ [API RESPONSE] Z-Score: ${zScoreValue}, Incidents: ${result.incident_count}, Risk: ${result.risk_level}`
+      );
+      console.log(
+        `✅ API Response: H3=${result.h3_index}, Z-Score=${zScoreValue}, Count=${result.incident_count}, Risk=${result.risk_level}`
+      );
+
+      return result;
+
     } catch (error) {
       DebugLogger.error('❌ [API ERROR] Failed to fetch hexagon data:', error);
       DebugLogger.error('📱 [VERSION INFO] App:', APP_VERSION.DISPLAY_VERSION);
       console.error('Error fetching hexagon data:', error);
-      console.error('Error stack:', error.stack);
+      
+      // Safely log error details
+      if (error && typeof error === 'object' && 'stack' in error) {
+        console.error('Error stack:', error.stack);
+      }
       console.error('📱 Version:', APP_VERSION.DISPLAY_VERSION);
+      
       return null;
     }
   }
