@@ -78,6 +78,13 @@ class SettingsErrorBoundary extends React.Component<
 
 const SettingsScreenContent = ({ navigation }: any) => {
   DebugLogger.info('⚙️ Settings screen mounted');
+  
+  // Debug navigation object
+  DebugLogger.info('🧭 [DEBUG] Navigation object check:', {
+    hasNavigation: !!navigation,
+    hasNavigate: !!(navigation?.navigate),
+    navigationType: typeof navigation?.navigate,
+  });
 
   // Safe hook usage with fallback
   let hookData;
@@ -570,7 +577,18 @@ const SettingsScreenContent = ({ navigation }: any) => {
 
         <TouchableOpacity
           style={styles.linkButton}
-          onPress={() => navigation.navigate('Debug')}
+          onPress={() => {
+            console.log('🐛 [DEBUG] Open Debug Tools button pressed');
+            DebugLogger.info('🐛 [DEBUG] Attempting to navigate to Debug screen');
+            try {
+              navigation.navigate('Debug');
+              DebugLogger.info('✅ [DEBUG] Navigation called successfully');
+            } catch (error) {
+              DebugLogger.error('❌ [DEBUG] Navigation failed:', error);
+              console.error('Navigation error:', error);
+              Alert.alert('Navigation Error', `Failed to open debug screen: ${error}`);
+            }
+          }}
         >
           <Icon name="bug" size={20} color={Colors.warning} style={styles.linkIcon} />
           <Text style={styles.linkButtonText}>Open Debug Tools</Text>
@@ -587,6 +605,52 @@ const SettingsScreenContent = ({ navigation }: any) => {
         <Text style={styles.aboutText}>
           All location data is stored locally on your device and is never shared with third parties.
         </Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🔔 Quick Notification Tests (Temporary)</Text>
+        <Text style={styles.sectionDescription}>Test notifications directly from Settings</Text>
+
+        <TouchableOpacity
+          style={[styles.linkButton, { backgroundColor: Colors.success, marginTop: Spacing.sm }]}
+          onPress={async () => {
+            DebugLogger.info('🧪 [QUICK TEST] Testing basic notification...');
+            try {
+              NotificationService.sendBasicTestNotification();
+              Alert.alert('Test Sent', 'Basic notification test sent - check tray');
+            } catch (error) {
+              DebugLogger.error('❌ [QUICK TEST] Basic test failed:', error);
+              Alert.alert('Test Failed', `Error: ${error}`);
+            }
+          }}
+        >
+          <Icon name="bell-outline" size={20} color={Colors.white} style={styles.linkIcon} />
+          <Text style={[styles.linkButtonText, { color: Colors.white }]}>🧪 Test Basic Notification</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.linkButton, { backgroundColor: Colors.primary, marginTop: Spacing.xs }]}
+          onPress={async () => {
+            DebugLogger.info('🤖 [QUICK TEST] Testing native notification...');
+            try {
+              await NotificationService.sendNativeTestNotification();
+              Alert.alert('Native Test Sent', 'Native Android notification sent!');
+            } catch (error) {
+              DebugLogger.error('❌ [QUICK TEST] Native test failed:', error);
+              Alert.alert('Native Test Failed', `Error: ${error}`);
+            }
+          }}
+        >
+          <Icon name="android" size={20} color={Colors.white} style={styles.linkIcon} />
+          <Text style={[styles.linkButtonText, { color: Colors.white }]}>🤖 Test Native Android</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Temporary Debug Console - Remove when navigation fixed */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🐛 Debug Console (Temporary)</Text>
+        <Text style={styles.sectionDescription}>Live debugging - will be removed once navigation is fixed</Text>
+        <DebugConsole />
       </View>
     </ScrollView>
   );
