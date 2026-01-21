@@ -3,7 +3,7 @@
  * Handles push notifications, local notifications, and safety alerts
  */
 
-import { Platform, Alert, Linking, NativeModules } from 'react-native';
+import { Platform, Alert, Linking, NativeModules, PermissionsAndroid } from 'react-native';
 import PushNotification from 'react-native-push-notification';
 
 export interface NotificationConfig {
@@ -38,6 +38,7 @@ export interface NotificationDiagnostics {
   doNotDisturbActive: boolean;
   channelsEnabled: boolean;
   permissionStatus: string;
+  androidApiLevel?: number;
   lastError?: string;
 }
 
@@ -60,7 +61,7 @@ class NotificationService {
    */
   public async initialize(): Promise<void> {
     try {
-      // Configure push notifications
+      // Configure push notifications with Firebase disabled to prevent crashes
       PushNotification.configure({
         onRegister: token => {
           console.log('📱 Push notification token:', token);
@@ -97,6 +98,9 @@ class NotificationService {
 
         popInitialNotification: true,
         requestPermissions: Platform.OS === 'ios',
+        
+        // Disable Firebase to prevent crashes
+        senderID: false,
       });
 
       // Create notification channels for Android
@@ -382,24 +386,57 @@ class NotificationService {
    * Check notification permissions
    */
   public async checkPermissions(): Promise<boolean> {
-    return new Promise(resolve => {
-      PushNotification.checkPermissions(permissions => {
-        const hasPermissions = permissions.alert && permissions.badge && permissions.sound;
-        resolve(hasPermissions);
-      });
-    });
+    try {
+      if (Platform.OS === 'android') {
+        // On Android 13+ (API 33+), check for POST_NOTIFICATIONS permission
+        if (Platform.Version >= 33) {
+          const permission = await PermissionsAndroid.check('android.permission.POST_NOTIFICATIONS');
+          return permission;
+        } else {
+          // On older Android versions, notifications are enabled by default unless explicitly disabled
+          // We can only check if the app is allowed to show notifications
+          return new Promise((resolve) => {
+            PushNotification.checkPermissions((permissions) => {
+              resolve(permissions.alert && permissions.badge && permissions.sound);
+            });
+          });
+        }
+      } else if (Platform.OS === 'ios') {
+        return new Promise((resolve) => {
+          PushNotification.checkPermissions((permissions) => {
+            resolve(permissions.alert && permissions.badge && permissions.sound);
+          });
+        });
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking permissions:', error);
+      return false;
+    }
   }
 
   /**
    * Request notification permissions
    */
   public async requestPermissions(): Promise<boolean> {
-    return new Promise(resolve => {
-      PushNotification.requestPermissions().then(permissions => {
-        const hasPermissions = permissions.alert && permissions.badge && permissions.sound;
-        resolve(hasPermissions);
-      });
-    });
+    try {
+      if (Platform.OS === 'android' && Platform.Version >= 33) {
+        // On Android 13+ (API 33+), request POST_NOTIFICATIONS permission
+        const granted = await PermissionsAndroid.request('android.permission.POST_NOTIFICATIONS');
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } else {
+        // Use PushNotification library for iOS and older Android versions
+        return new Promise(resolve => {
+          PushNotification.requestPermissions().then(permissions => {
+            const hasPermissions = permissions.alert && permissions.badge && permissions.sound;
+            resolve(hasPermissions);
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error requesting permissions:', error);
+      return false;
+    }
   }
 
   /**
@@ -413,6 +450,7 @@ class NotificationService {
         doNotDisturbActive: false,
         channelsEnabled: false,
         permissionStatus: 'unknown',
+        androidApiLevel: Platform.OS === 'android' ? Platform.Version : undefined,
       };
 
       // Check basic permissions
