@@ -3,7 +3,7 @@
  * Handles push notifications, local notifications, and safety alerts
  */
 
-import { Platform, Alert, Linking } from 'react-native';
+import { Platform, Alert, Linking, NativeModules } from 'react-native';
 import PushNotification from 'react-native-push-notification';
 
 export interface NotificationConfig {
@@ -30,6 +30,15 @@ export interface SafetyAlert {
   };
   timestamp: number;
   expiresAt?: number;
+}
+
+export interface NotificationDiagnostics {
+  notificationsEnabled: boolean;
+  batteryOptimized: boolean;
+  doNotDisturbActive: boolean;
+  channelsEnabled: boolean;
+  permissionStatus: string;
+  lastError?: string;
 }
 
 class NotificationService {
@@ -391,6 +400,100 @@ class NotificationService {
         resolve(hasPermissions);
       });
     });
+  }
+
+  /**
+   * Get comprehensive notification diagnostics
+   */
+  public async getNotificationDiagnostics(): Promise<NotificationDiagnostics> {
+    try {
+      const diagnostics: NotificationDiagnostics = {
+        notificationsEnabled: false,
+        batteryOptimized: false,
+        doNotDisturbActive: false,
+        channelsEnabled: false,
+        permissionStatus: 'unknown',
+      };
+
+      // Check basic permissions
+      const hasPermissions = await this.checkPermissions();
+      diagnostics.notificationsEnabled = hasPermissions;
+      diagnostics.permissionStatus = hasPermissions ? 'granted' : 'denied';
+
+      if (Platform.OS === 'android') {
+        try {
+          // Try to get Android-specific information
+          const powerManager = NativeModules.PowerManager;
+          if (powerManager) {
+            diagnostics.batteryOptimized = await powerManager.isIgnoringBatteryOptimizations();
+          }
+
+          // Check Do Not Disturb (requires Android API)
+          const notificationManager = NativeModules.NotificationManagerCompat;
+          if (notificationManager) {
+            diagnostics.doNotDisturbActive = await notificationManager.getCurrentInterruptionFilter() !== 1;
+          }
+
+          // Check notification channels
+          diagnostics.channelsEnabled = await this.checkNotificationChannels();
+
+        } catch (androidError) {
+          console.warn('Android-specific notification checks failed:', androidError);
+          diagnostics.lastError = `Android checks failed: ${androidError.message}`;
+        }
+      }
+
+      return diagnostics;
+    } catch (error) {
+      console.error('Failed to get notification diagnostics:', error);
+      return {
+        notificationsEnabled: false,
+        batteryOptimized: true,
+        doNotDisturbActive: false,
+        channelsEnabled: false,
+        permissionStatus: 'error',
+        lastError: error.message,
+      };
+    }
+  }
+
+  /**
+   * Check if notification channels are properly enabled
+   */
+  private async checkNotificationChannels(): Promise<boolean> {
+    try {
+      if (Platform.OS !== 'android') {
+        return true; // iOS doesn't use channels
+      }
+
+      // For now, assume channels are enabled if we can send notifications
+      // In a real implementation, you'd check each channel individually
+      return true;
+    } catch (error) {
+      console.warn('Failed to check notification channels:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Open system notification settings
+   */
+  public openNotificationSettings(): void {
+    try {
+      if (Platform.OS === 'android') {
+        // Try to open notification settings for the app
+        Linking.openSettings();
+      } else {
+        // iOS
+        Linking.openURL('app-settings:');
+      }
+    } catch (error) {
+      console.error('Failed to open notification settings:', error);
+      Alert.alert(
+        'Settings',
+        'Please go to Settings > Apps > Forseti > Notifications to enable notifications.'
+      );
+    }
   }
 
   /**
