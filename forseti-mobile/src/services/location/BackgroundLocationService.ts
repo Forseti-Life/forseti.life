@@ -381,11 +381,18 @@ class BackgroundLocationService {
       }
 
       // Process the response - ensure hexagons is an array
+      DebugLogger.info(`🔍 [PROCESSING] About to check hexagons array. Data exists: ${!!response.data}, Hexagons exists: ${!!response.data?.hexagons}, Is Array: ${Array.isArray(response.data?.hexagons)}, Length: ${response.data?.hexagons?.length || 0}`);
+      
       if (response.data && response.data.hexagons && Array.isArray(response.data.hexagons) && response.data.hexagons.length > 0) {
         const hexagon = response.data.hexagons[0];
 
         // Log the raw hexagon structure for debugging
-        DebugLogger.info(`🔍 [HEXAGON STRUCTURE] ${JSON.stringify(hexagon, null, 2)}`);
+        try {
+          DebugLogger.info(`🔍 [HEXAGON STRUCTURE] ${JSON.stringify(hexagon, null, 2)}`);
+        } catch (stringifyError) {
+          DebugLogger.warning(`⚠️ [JSON STRINGIFY ERROR] Could not stringify hexagon: ${stringifyError}`);
+          DebugLogger.info(`🔍 [HEXAGON BASIC INFO] Type: ${typeof hexagon}, Keys: ${hexagon && typeof hexagon === 'object' ? Object.keys(hexagon).join(', ') : 'N/A'}`);
+        }
 
         // Extract values from the actual API structure
         // API returns: { h3_index, incident_count, analytics: { z_scores: { incident }, risk_level } }
@@ -415,6 +422,7 @@ class BackgroundLocationService {
         return result;
       }
 
+      DebugLogger.info('🔍 [PROCESSING] Taking null return path - no valid hexagon data');
       DebugLogger.warning('⚠️ [API RESPONSE] No hexagon data returned');
       console.log('⚠️ API Response: No hexagon data');
       return null;
