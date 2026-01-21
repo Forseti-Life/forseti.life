@@ -388,7 +388,7 @@ class BackgroundLocationService {
 
       // Basic response validation
       if (!response?.data) {
-        DebugLogger.warning('⚠️ [API RESPONSE] No response data received');
+        DebugLogger.info('⚠️ [API RESPONSE] No response data received');
         return null;
       }
 
@@ -420,7 +420,7 @@ class BackgroundLocationService {
         DebugLogger.info('🔍 [PROCESSING] Taking null return path - no valid hexagon data');
         DebugLogger.info('🔍 [STEP 7] Processing message logged');
         
-        DebugLogger.warning('⚠️ [API RESPONSE] No hexagon data returned');
+        DebugLogger.info('⚠️ [API RESPONSE] No hexagon data returned');
         DebugLogger.info('🔍 [STEP 8] Warning logged');
         
         console.log('⚠️ API Response: No hexagon data');
@@ -435,7 +435,7 @@ class BackgroundLocationService {
       DebugLogger.info(`📦 [HEXAGONS] Count: ${hexagons.length}, First hexagon type: ${typeof hexagon}`);
 
       if (!hexagon || typeof hexagon !== 'object') {
-        DebugLogger.warning('⚠️ [API RESPONSE] Invalid hexagon data structure');
+        DebugLogger.info('⚠️ [API RESPONSE] Invalid hexagon data structure');
         return null;
       }
 
