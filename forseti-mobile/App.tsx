@@ -18,6 +18,7 @@ import {
   View,
   Text,
   TouchableOpacity,
+  AppState,
 } from 'react-native';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -45,7 +46,7 @@ import { RegisterScreen } from './src/screens/Auth/RegisterScreen';
 // Services
 import LocationService from './src/services/location/LocationService';
 import StorageService from './src/services/storage/StorageService';
-// import NotificationService from './src/services/notifications/NotificationService'; // Temporarily disabled
+import NotificationService from './src/services/notifications/NotificationService';
 
 // Utils
 import { Colors } from './src/utils/colors';
@@ -190,6 +191,7 @@ const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [hasLocationPermission, setHasLocationPermission] = useState(false);
+  const [hasNotificationPermission, setHasNotificationPermission] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
 
   const backgroundStyle = {
@@ -203,6 +205,21 @@ const App: React.FC = () => {
     console.log('🔧 Platform:', Platform.OS, Platform.Version);
     console.log('⚡ Build Date:', APP_VERSION.BUILD_DATE);
     initializeApp();
+
+    // Listen for app state changes to check permissions when app becomes active
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        console.log('📱 App became active - checking permissions...');
+        checkPermissionsOnActive();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    // Cleanup subscription
+    return () => {
+      subscription?.remove();
+    };
   }, []);
 
   const initializeApp = async () => {
@@ -225,6 +242,58 @@ const App: React.FC = () => {
         console.log('🚀 [INIT STEP 3] Initializing notification service...');
         await NotificationService.initialize();
         console.log('✅ [INIT STEP 3] Notification service initialized');
+
+        // Request notification permissions immediately after service init
+        console.log('🚀 [INIT STEP 3a] Checking notification permissions...');
+        const hasNotificationPermissions = await NotificationService.checkPermissions();
+        setHasNotificationPermission(hasNotificationPermissions);
+        
+        if (!hasNotificationPermissions) {
+          console.log('🔔 [INIT STEP 3a] Requesting notification permissions...');
+          
+          // Show explanation before requesting permissions
+          await new Promise<void>((resolve) => {
+            Alert.alert(
+              '🔔 Enable Notifications',
+              'Forseti needs notification permissions to alert you about safety conditions in your area. This helps keep you informed about potential risks.',
+              [
+                {
+                  text: 'Skip',
+                  style: 'cancel',
+                  onPress: () => {
+                    console.log('📝 [PERMISSIONS] User skipped notification permissions');
+                    resolve();
+                  }
+                },
+                {
+                  text: 'Enable',
+                  style: 'default',
+                  onPress: async () => {
+                    try {
+                      const granted = await NotificationService.requestPermissions();
+                      setHasNotificationPermission(granted);
+                      console.log(`✅ [INIT STEP 3a] Notification permissions: ${granted}`);
+                      if (!granted) {
+                        console.warn('⚠️ [PERMISSIONS] Notification permissions denied');
+                        // Show how to enable manually
+                        Alert.alert(
+                          'Notifications Disabled',
+                          'You can enable notifications later in Settings > Notifications or in the app debug section.',
+                          [{ text: 'OK' }]
+                        );
+                      }
+                    } catch (permError) {
+                      console.error('❌ [PERMISSIONS] Notification permission request failed:', permError);
+                    }
+                    resolve();
+                  }
+                }
+              ]
+            );
+          });
+        } else {
+          console.log('✅ [INIT STEP 3a] Notification permissions already granted');
+        }
       } catch (error) {
         console.error('❌ [INIT STEP 3] Notification service initialization failed:', error);
         // Don't throw - notifications are optional
@@ -286,6 +355,29 @@ const App: React.FC = () => {
       );
       setInitError(`App initialization failed: ${errorMessage}`);
       setIsInitialized(true); // Still show UI with error message
+    }
+  };
+
+  const checkPermissionsOnActive = async () => {
+    try {
+      // Check notification permissions without prompting
+      const hasNotifications = await NotificationService.checkPermissions();
+      const currentNotificationState = hasNotificationPermission;
+      
+      setHasNotificationPermission(hasNotifications);
+      
+      // If permissions changed, log it
+      if (hasNotifications !== currentNotificationState) {
+        console.log(`🔔 [PERMISSIONS] Notification permission changed: ${currentNotificationState} → ${hasNotifications}`);
+        
+        if (hasNotifications && !currentNotificationState) {
+          console.log('🎉 [PERMISSIONS] Notifications enabled - app now has full functionality');
+        } else if (!hasNotifications && currentNotificationState) {
+          console.log('⚠️ [PERMISSIONS] Notifications disabled - safety alerts may not work');
+        }
+      }
+    } catch (error) {
+      console.error('❌ [PERMISSIONS] Failed to check permissions on app active:', error);
     }
   };
 

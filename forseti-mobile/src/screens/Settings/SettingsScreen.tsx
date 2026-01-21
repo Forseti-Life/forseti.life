@@ -130,9 +130,29 @@ const SettingsScreenContent = ({ navigation }: any) => {
       DebugLogger.info(
         `📊 Loaded threshold: ${threshold}, cooldown: ${cooldown}, resolution: ${resolution}`
       );
-      if (threshold !== null) setZScoreThreshold(threshold);
-      if (cooldown !== null) setNotificationCooldown(cooldown);
-      if (resolution !== null) setH3Resolution(resolution);
+      
+      // Set values with proper defaults
+      if (threshold !== null) {
+        setZScoreThreshold(threshold);
+      } else {
+        setZScoreThreshold(2.0); // Default value
+        DebugLogger.info('📊 Using default Z-Score threshold: 2.0');
+      }
+      
+      if (cooldown !== null) {
+        setNotificationCooldown(cooldown);
+      } else {
+        setNotificationCooldown(5); // Default value in minutes
+        DebugLogger.info('📊 Using default notification cooldown: 5 minutes');
+      }
+      
+      if (resolution !== null) {
+        setH3Resolution(resolution);
+      } else {
+        setH3Resolution(11); // Default value
+        DebugLogger.info('📊 Using default H3 resolution: 11');
+      }
+      
       DebugLogger.info('✅ Settings loaded successfully');
     } catch (error) {
       DebugLogger.error('❌ Error loading settings:', error);
@@ -721,16 +741,14 @@ const SettingsScreenContent = ({ navigation }: any) => {
           onPress={() => {
             DebugLogger.info('🧪 [DEBUG] Sending simple test notification...');
 
-            // Import PushNotification directly for simple test
-            const PushNotification = require('react-native-push-notification').default;
-            
-            PushNotification.localNotification({
-              id: Math.floor(Math.random() * 1000).toString(),
-              title: 'Simple Test',
-              message: 'This is a basic notification test',
-              playSound: true,
-              soundName: 'default',
-              vibrate: true,
+            // Use NotificationService for simple test
+            NotificationService.sendSafetyAlert({
+              id: `simple-test-${Date.now()}`,
+              title: '🔔 Simple Test',
+              message: 'This is a basic notification test from Forseti',
+              type: 'safety_tip',
+              priority: 'medium',
+              timestamp: Date.now(),
             });
 
             DebugLogger.info('✅ [DEBUG] Simple notification sent');
