@@ -398,8 +398,6 @@ const DebugScreen = ({ navigation }: any) => {
           <Text style={styles.actionButtonText}>🤖 Native Android Test</Text>
         </TouchableOpacity>
       </View>
-
-      <DebugConsole />
     </ScrollView>
   );
 };
