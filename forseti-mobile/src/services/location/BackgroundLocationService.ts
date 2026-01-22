@@ -38,9 +38,11 @@ class BackgroundLocationService {
   private isMonitoring: boolean = false;
   private currentH3Index: string | null = null;
   private lastNotificationTime: number = 0;
-  private notificationCooldown: number = 300000; // 5 minutes in milliseconds (default)
+  private notificationCooldown: number = 300000; // 5 minutes in milliseconds (default) - general cooldown
   private zScoreThreshold: number = 2.0; // Default threshold
   private h3Resolution: number = 11; // Default resolution - configurable
+  private hexagonNotifications: Map<string, number> = new Map(); // Track per-hexagon notification times
+  private readonly PER_HEXAGON_COOLDOWN = 3600000; // 1 hour in milliseconds for same hex
 
   // Configuration
   private readonly API_BASE_URL = 'https://forseti.life';
@@ -187,6 +189,26 @@ class BackgroundLocationService {
   }
 
   /**
+   * Clean up old hexagon notification entries (cleanup entries older than 2 hours)
+   */
+  private cleanupOldHexagonNotifications(): void {
+    const now = Date.now();
+    const cleanupThreshold = this.PER_HEXAGON_COOLDOWN * 2; // 2 hours
+    let removedCount = 0;
+    
+    for (const [hexId, timestamp] of this.hexagonNotifications.entries()) {
+      if (now - timestamp > cleanupThreshold) {
+        this.hexagonNotifications.delete(hexId);
+        removedCount++;
+      }
+    }
+    
+    if (removedCount > 0) {
+      DebugLogger.info(`🧹 [CLEANUP] Removed ${removedCount} old hexagon notification entries`);
+    }
+  }
+  
+  /**
    * Load user settings from storage
    */
   private async loadUserSettings(): Promise<void> {
@@ -259,9 +281,9 @@ class BackgroundLocationService {
   }
 
   /**
-   * Handle location updates
+   * Handle location updates (made public for testing)
    */
-  private async handleLocationUpdate(coords: any): Promise<void> {
+  public async handleLocationUpdate(coords: any): Promise<void> {
     try {
       const location: LocationCoords = {
         latitude: coords.latitude,
@@ -320,21 +342,30 @@ class BackgroundLocationService {
     try {
       DebugLogger.info('🔍 [SAFETY CHECK] Starting hexagon safety check');
       
-      // Check notification cooldown
+      // Check per-hexagon notification cooldown (1 hour for same hex)
       const now = Date.now();
-      const timeSinceLastNotification = now - this.lastNotificationTime;
-      const cooldownRemaining = this.notificationCooldown - timeSinceLastNotification;
+      const lastNotificationForThisHex = this.hexagonNotifications.get(h3Index) || 0;
+      const timeSinceLastNotificationForThisHex = now - lastNotificationForThisHex;
+      const hexCooldownRemaining = this.PER_HEXAGON_COOLDOWN - timeSinceLastNotificationForThisHex;
       
-      DebugLogger.info(`⏰ [COOLDOWN] Time since last: ${Math.round(timeSinceLastNotification/1000)}s, Required: ${Math.round(this.notificationCooldown/1000)}s`);
+      DebugLogger.info(`⏰ [HEX COOLDOWN] Last notification for ${h3Index}: ${Math.round(timeSinceLastNotificationForThisHex/1000)}s ago`);
+      DebugLogger.info(`⏰ [HEX COOLDOWN] Required: ${Math.round(this.PER_HEXAGON_COOLDOWN/1000)}s (1 hour)`);
       
-      if (cooldownRemaining > 0) {
-        const remainingMinutes = Math.ceil(cooldownRemaining / 60000);
-        DebugLogger.info(`⏰ [COOLDOWN] Still in cooldown - ${remainingMinutes}min remaining`);
-        console.log(`⏰ Notification cooldown: ${remainingMinutes} minutes remaining`);
+      if (hexCooldownRemaining > 0) {
+        const remainingMinutes = Math.ceil(hexCooldownRemaining / 60000);
+        DebugLogger.info(`⏰ [HEX COOLDOWN] Already notified about this hex - ${remainingMinutes}min remaining`);
+        console.log(`🔔 Hex cooldown: Already notified about ${h3Index} - ${remainingMinutes} minutes remaining`);
+        
+        // Still save location to history even if we don't notify
+        const hexagonData = await this.fetchHexagonData(h3Index);
+        if (hexagonData) {
+          const zScore = hexagonData.incident_z_score || 0;
+          await this.saveLocationHistory(h3Index, location, zScore);
+        }
         return;
       }
       
-      DebugLogger.info('✅ [COOLDOWN] Not in cooldown - proceeding');
+      DebugLogger.info('✅ [HEX COOLDOWN] No recent notification for this hex - proceeding');
 
       DebugLogger.info('🔍 [SAFETY CHECK] About to fetch hexagon data');
       // Fetch hexagon data from API
@@ -369,8 +400,13 @@ class BackgroundLocationService {
         DebugLogger.info('� [HIGH RISK] Dangerous area detected - sending notification');
         console.log(`🚨 HIGH RISK: Z-Score ${zScore.toFixed(2)} >= threshold ${this.zScoreThreshold}`);
         await this.sendDangerNotification(hexagonData, location);
-        this.lastNotificationTime = now;
-        DebugLogger.info('✅ [NOTIFICATION] Danger notification sent successfully');
+        
+        // Track notification for this specific hexagon
+        this.hexagonNotifications.set(h3Index, now);
+        this.lastNotificationTime = now; // Keep for general tracking
+        
+        DebugLogger.info(`✅ [NOTIFICATION] Danger notification sent for ${h3Index} - 1 hour cooldown started for this hex`);
+        DebugLogger.info(`📝 [TRACKING] Now tracking ${this.hexagonNotifications.size} hexagon(s) with recent notifications`);
       } else {
         DebugLogger.info(`✅ [SAFE] Z-Score ${zScore.toFixed(2)} below threshold ${this.zScoreThreshold.toFixed(2)}`);
         console.log(
@@ -383,6 +419,11 @@ class BackgroundLocationService {
       // Save location history with validated zScore
       await this.saveLocationHistory(h3Index, location, zScore);
       DebugLogger.info('🔍 [SAFETY CHECK] Location history saved successfully');
+      
+      // Periodically clean up old hexagon notification entries (every 10th location update)
+      if (Math.random() < 0.1) { // 10% chance to run cleanup
+        this.cleanupOldHexagonNotifications();
+      }
     } catch (error) {
       console.error('Error checking hexagon safety:', error);
       DebugLogger.error('❌ [HEXAGON SAFETY ERROR] Detailed error info:', error);
@@ -630,6 +671,26 @@ class BackgroundLocationService {
    */
   public getCurrentH3Index(): string | null {
     return this.currentH3Index;
+  }
+
+  /**
+   * Get hexagon notification status for debugging
+   */
+  public getHexagonNotificationStatus(): string {
+    if (this.hexagonNotifications.size === 0) {
+      return 'No recent hex notifications';
+    }
+    
+    const now = Date.now();
+    const statusLines: string[] = [];
+    
+    for (const [hexId, timestamp] of this.hexagonNotifications.entries()) {
+      const minutesAgo = Math.round((now - timestamp) / 60000);
+      const remainingMinutes = Math.max(0, 60 - minutesAgo); // 60 minutes = 1 hour
+      statusLines.push(`• ${hexId}: ${remainingMinutes}min cooldown left`);
+    }
+    
+    return statusLines.join('\n');
   }
 
   /**

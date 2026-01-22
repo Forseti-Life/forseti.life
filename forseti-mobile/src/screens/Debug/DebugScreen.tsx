@@ -232,13 +232,17 @@ const DebugScreen = ({ navigation }: any) => {
               const isActive = service.isActive();
               const currentH3 = service.getCurrentH3Index();
               
+              // Get hexagon notification status
+              const hexNotificationStatus = service.getHexagonNotificationStatus ? service.getHexagonNotificationStatus() : 'Method not available';
+              
               DebugLogger.info(`🔧 [DEBUG STATE] Threshold: ${threshold}, Cooldown: ${cooldown}min, Resolution: ${resolution}`);
               DebugLogger.info(`🔧 [DEBUG STATE] Test Location: ${testLocation}`);
               DebugLogger.info(`🔧 [DEBUG STATE] Monitoring: ${isActive ? 'ACTIVE' : 'INACTIVE'}, Current H3: ${currentH3 || 'none'}`);
+              DebugLogger.info(`🔧 [DEBUG STATE] Hex Notifications: ${hexNotificationStatus}`);
               
               Alert.alert(
                 '🔧 Debug Status',
-                `Current Settings:\n• Z-Score Threshold: ${threshold}\n• Cooldown: ${cooldown} minutes\n• Resolution: ${resolution}\n• Test Location: ${testLocation}\n\nMonitoring Status:\n• Active: ${isActive ? 'YES' : 'NO'}\n• Current H3: ${currentH3 || 'none'}`,
+                `Current Settings:\n• Z-Score Threshold: ${threshold}\n• Cooldown: ${cooldown} minutes\n• Resolution: ${resolution}\n• Test Location: ${testLocation}\n\nMonitoring Status:\n• Active: ${isActive ? 'YES' : 'NO'}\n• Current H3: ${currentH3 || 'none'}\n\nHex Notifications:\n${hexNotificationStatus}`,
                 [{ text: 'OK' }]
               );
             } catch (error) {
@@ -248,6 +252,62 @@ const DebugScreen = ({ navigation }: any) => {
           }}
         >
           <Text style={styles.actionButtonText}>🔧 Show Debug Status</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: Colors.success, marginTop: Spacing.xs }]}
+          onPress={async () => {
+            try {
+              const testH3Location = await StorageService.getItem('test_h3_location');
+              
+              if (!testH3Location || testH3Location === 'none') {
+                Alert.alert(
+                  'No Test Location Set',
+                  'Please set a test H3 location first, then try forcing a location check.'
+                );
+                return;
+              }
+              
+              DebugLogger.info(`🔍 [FORCE CHECK] Starting forced location check for test H3: ${testH3Location}`);
+              
+              const BackgroundLocationService = (await import('../../services/location/BackgroundLocationService')).default;
+              const service = BackgroundLocationService.getInstance();
+              
+              if (!service.isActive()) {
+                Alert.alert(
+                  'Monitoring Inactive',
+                  'Background monitoring is not active. Please enable monitoring in Settings first.'
+                );
+                return;
+              }
+              
+              // Simulate a location update to trigger the safety check
+              // This will use the test H3 location and make a real API call
+              DebugLogger.info(`🔍 [FORCE CHECK] Simulating location update to trigger safety check...`);
+              
+              // Create a fake GPS location (will be overridden by test H3 location)
+              const fakeLocation = {
+                latitude: 39.9526,
+                longitude: -75.1652,
+                accuracy: 10,
+                timestamp: Date.now()
+              };
+              
+              // Trigger the real handleLocationUpdate method
+              await service.handleLocationUpdate(fakeLocation);
+              
+              DebugLogger.info(`✅ [FORCE CHECK] Location update triggered - check logs for API response and z-score`);
+              Alert.alert(
+                '🔍 Forced Location Check',
+                `Triggered safety check for test H3: ${testH3Location}\n\nCheck the debug logs to see:\n• API call and response\n• Real z-score from server\n• Whether notification was sent\n\nIf no notification appeared, the z-score might be below your threshold.`
+              );
+            } catch (error) {
+              DebugLogger.error('❌ [FORCE CHECK] Error during forced location check:', error);
+              Alert.alert('Error', `Failed to force location check: ${error.message}`);
+            }
+          }}
+        >
+          <Text style={styles.actionButtonText}>🔍 Force Real Location Check</Text>
         </TouchableOpacity>
       </View>
 
