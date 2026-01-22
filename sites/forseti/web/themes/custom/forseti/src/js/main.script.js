@@ -5,3 +5,6 @@ import './_bootstrap';
 
 // Mobile menu dropdown functionality
 import './mobile-menu';
+
+// Smooth scrolling for anchor links
+import './smooth-scroll';
