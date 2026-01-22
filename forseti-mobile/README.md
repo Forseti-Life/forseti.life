@@ -1,14 +1,22 @@
 # Forseti Mobile Application - Complete Documentation
 
 **Version**: 1.0.3  
-**Build Code**: 24 (auto-incremented by build script)  
+**Build Code**: 55 (auto-incremented by build script)  
 **Status**: 🟢 Beta Testing (Production Authentication Enabled)  
 **Platform**: React Native 0.76.9 (iOS & Android)  
-**Last Updated**: January 20, 2026
+**Last Updated**: January 22, 2026
 
 **Note**: Version information is centrally managed in `src/config/AppVersion.ts`. All other version references are automatically updated by the build script.
 
 A cross-platform mobile application for hyperlocal crime safety awareness built with React Native. Integrates with the Forseti API (forseti.life) for real-time crime data visualization, z-score risk assessment, and continuous background monitoring with proactive alerts.
+
+## 🆕 Recent Updates (Build 55 - January 22, 2026)
+
+- **🔧 Fixed NotificationService Import**: Resolved critical issue preventing safety notifications from appearing
+- **🗺️ Enhanced H3 Location System**: Improved per-hexagon notification cooldowns (1 hour per location)
+- **📊 Comprehensive Logging**: Added detailed API call and z-score debugging for H3 test locations
+- **🧪 Force Location Check**: Added manual trigger for testing real safety system in Debug Screen
+- **📱 Notification Reliability**: Fixed "Property 'NotificationService' doesn't exist" error
 
 ---
 
@@ -587,7 +595,7 @@ Provides continuous, real-time safety monitoring by tracking GPS location, calcu
 
 ### Key Components
 
-**BackgroundLocationService.ts** (369 lines):
+**BackgroundLocationService.ts** (723 lines):
 
 - Main monitoring service
 - GPS tracking wrapper
@@ -595,6 +603,8 @@ Provides continuous, real-time safety monitoring by tracking GPS location, calcu
 - API communication
 - Notification triggering
 - State management
+- Per-hexagon cooldown tracking
+- Comprehensive API logging
 
 **useBackgroundMonitoring.ts**:
 
@@ -609,6 +619,35 @@ Provides continuous, real-time safety monitoring by tracking GPS location, calcu
 - Channel management (Android)
 - Deep linking configuration
 - Priority settings
+
+### 🧪 H3 Testing System (Build 55)
+
+**Test Location**: H3 Index `8b2a134f6cb5fff` (Philadelphia high-crime area)  
+**Expected Z-Score**: ~11.21 (CRITICAL risk level)  
+**Testing Features**:
+
+- **Force Real Location Check**: Manual trigger for real safety system testing
+- **Show Debug Status**: View hexagon notification tracking and cooldowns
+- **Comprehensive Logging**: API calls, z-scores, and notification status
+- **Per-Hexagon Cooldowns**: 1-hour cooldown per H3 location (prevents spam)
+
+**Debug Screen Navigation**: Settings → Debug Screen → H3 Location Testing
+
+**Test Process**:
+1. Enable H3 test location in Debug Screen
+2. Click "Force Real Location Check" to trigger safety system
+3. Monitor debug logs for API response and z-score analysis
+4. Verify notification appears for high z-score (≥1.0 threshold)
+
+**Expected Log Output**:
+```
+🔍 [FORCE CHECK] Simulating location update...
+📍 [H3] Current H3: 8b2a134f6cb5fff (Test location enabled)
+🌐 [API] Making request to /api/amisafe/aggregated
+📊 [API] Response - Z-Score: 11.207, Risk: CRITICAL
+✅ [LOGIC] 11.207 >= 1? YES - WILL ALERT
+🔔 [NOTIFICATION] Safety alert sent successfully
+```
 
 **StorageService.ts**:
 
@@ -895,19 +934,36 @@ POST /user/login
 
 ### Current Issues
 
-**1. NotificationService Disabled** ⚠️
+**✅ Recently Resolved (Build 55)**:
 
-- **Status**: Service imports commented out in BackgroundLocationService.ts
-- **Reason**: Integration workflow needs completion
-- **Solution**: Uncomment imports and test notification delivery
-- **Code**: Complete (398 lines) with package installed
+**1. NotificationService Import Issue** ✅ FIXED
 
-**2. Chat Functionality Disabled** ⚠️
+- **Previous Issue**: NotificationService imports were commented out in BackgroundLocationService.ts
+- **Error**: "Property 'NotificationService' doesn't exist" preventing safety notifications
+- **Solution**: Uncommented import and tested notification delivery
+- **Status**: ✅ Resolved - notifications now working with H3 test location Z-Score 11.21
+
+**2. Notification Cooldown System** ✅ IMPROVED
+
+- **Previous Issue**: Global 5-minute cooldown prevented notifications for different locations
+- **Solution**: Implemented per-hexagon cooldown tracking (1 hour per H3 location)
+- **Benefit**: Allows notifications for different areas while preventing spam
+- **Status**: ✅ Enhanced with Map-based hexagon tracking
+
+**🔄 Current Active Issues**:
+
+**1. Chat Functionality Disabled** ⚠️
 
 - **Status**: Tab commented out in App.tsx navigation
 - **Reason**: API integration errors during testing
 - **Priority**: Low - not currently being worked on
 - **Code**: ChatScreen files exist but inactive
+
+**2. Gradle Version Mismatch** ⚠️
+
+- **Issue**: Using Gradle 8.0.1 with AGP 7.4.2 (compatibility concerns)
+- **Impact**: May cause build failures in some environments
+- **Priority**: Medium - monitor for issues
 
 ### Troubleshooting Guide
 

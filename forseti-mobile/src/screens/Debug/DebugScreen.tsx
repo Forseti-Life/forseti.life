@@ -228,7 +228,7 @@ const DebugScreen = ({ navigation }: any) => {
               
               // Check if monitoring is active
               const BackgroundLocationService = (await import('../../services/location/BackgroundLocationService')).default;
-              const service = BackgroundLocationService.getInstance();
+              const service = BackgroundLocationService; // Service is already the instance
               const isActive = service.isActive();
               const currentH3 = service.getCurrentH3Index();
               
@@ -271,7 +271,7 @@ const DebugScreen = ({ navigation }: any) => {
               DebugLogger.info(`🔍 [FORCE CHECK] Starting forced location check for test H3: ${testH3Location}`);
               
               const BackgroundLocationService = (await import('../../services/location/BackgroundLocationService')).default;
-              const service = BackgroundLocationService.getInstance();
+              const service = BackgroundLocationService; // Service is already the instance
               
               if (!service.isActive()) {
                 Alert.alert(
