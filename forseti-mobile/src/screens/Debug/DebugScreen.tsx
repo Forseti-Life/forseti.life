@@ -35,7 +35,7 @@ const DebugScreen = ({ navigation }: any) => {
     uploadError,
   } = useConsoleLogs();
 
-  const [testH3Index, setTestH3Index] = useState('');
+  const [testH3Index, setTestH3Index] = useState('8b2a134f6cb5fff');
 
   useEffect(() => {
     DebugLogger.info('📥 Loading debug screen...');
@@ -123,9 +123,14 @@ const DebugScreen = ({ navigation }: any) => {
 
       {/* Test Location Setting */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>📍 Test Location</Text>
+        <Text style={styles.sectionTitle}>📍 Location Override for Testing</Text>
         <Text style={styles.sectionDescription}>
-          Enter H3 index for testing (e.g., 8b2a134f6cb5fff)
+          Override your GPS location with a specific H3 hex index for testing safety alerts.
+          
+          • "Set Test Location" - Saves the H3 index and overrides GPS (restart monitoring to activate)
+          • "Clear Test Location" - Removes override and returns to real GPS location
+          
+          Default: Philadelphia high-crime area for testing
         </Text>
         <TextInput
           style={styles.testLocationInput}
@@ -165,7 +170,7 @@ const DebugScreen = ({ navigation }: any) => {
           style={[styles.actionButton, { backgroundColor: Colors.gray, marginTop: Spacing.xs }]}
           onPress={async () => {
             await StorageService.removeItem('test_h3_location');
-            setTestH3Index('');
+            setTestH3Index('8b2a134f6cb5fff'); // Reset to default instead of empty
             Alert.alert('✅ Cleared', 'Test location cleared. Using real GPS location.');
             DebugLogger.info('🧹 [DEBUG] Test location cleared');
           }}
@@ -358,8 +363,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: Spacing.borderRadius.md,
     borderWidth: 1,
-    color: Colors.text,
+    color: Colors.black, // Ensure black text for visibility
     fontSize: Typography.body.fontSize,
+    fontFamily: 'monospace',
     marginBottom: Spacing.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
