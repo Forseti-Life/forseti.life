@@ -8,7 +8,7 @@
 import Geolocation from 'react-native-geolocation-service';
 import { Platform, AppState, AppStateStatus, NativeModules } from 'react-native';
 import * as h3 from 'h3-js';
-// import NotificationService from '../notifications/NotificationService'; // Temporarily disabled
+import NotificationService from '../notifications/NotificationService'; // Re-enabled for testing
 import StorageService from '../storage/StorageService';
 import axios from 'axios';
 import { DebugLogger } from '../../components/DebugConsole';
