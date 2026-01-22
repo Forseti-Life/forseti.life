@@ -177,6 +177,78 @@ const DebugScreen = ({ navigation }: any) => {
         >
           <Text style={styles.actionButtonText}>🧹 Clear Test Location</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: Colors.warning, marginTop: Spacing.sm }]}
+          onPress={async () => {
+            if (!testH3Index || testH3Index.length < 10) {
+              Alert.alert(
+                'Invalid H3 Index',
+                'Please enter a valid H3 index first, then test notification'
+              );
+              return;
+            }
+            
+            DebugLogger.info('🧪 [H3 TEST] Sending test notification with current H3 location...');
+            DebugLogger.info(`📍 [H3 TEST] Testing H3 Index: ${testH3Index}`);
+            
+            // Simulate the notification that would be triggered by BackgroundLocationService
+            NotificationService.sendSafetyAlert({
+              id: `h3-test-alert-${Date.now()}`,
+              title: '🧪 H3 Test Location Alert',
+              message: `Test notification for H3: ${testH3Index}\n\nThis simulates what you'd see if this area had a high z-score.\n\nZ-Score: 3.2 (TEST)\nRisk Level: HIGH (TEST)`,
+              type: 'high_crime_area',
+              priority: 'high',
+              timestamp: Date.now(),
+              location: {
+                latitude: 39.9526,
+                longitude: -75.1652,
+              },
+            });
+            
+            DebugLogger.info('✅ [H3 TEST] Test notification sent');
+            Alert.alert(
+              'H3 Test Notification Sent',
+              'Check your notification tray - this simulates what you\'d see for this test location.'
+            );
+          }}
+        >
+          <Text style={styles.actionButtonText}>🚨 Send Test Notification</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: Colors.info, marginTop: Spacing.xs }]}
+          onPress={async () => {
+            try {
+              // Get current settings from storage
+              const threshold = await StorageService.getItem('z_score_threshold') || 2.0;
+              const cooldown = await StorageService.getItem('notification_cooldown') || 5;
+              const resolution = await StorageService.getItem('h3_resolution') || 11;
+              const testLocation = await StorageService.getItem('test_h3_location') || 'none';
+              
+              // Check if monitoring is active
+              const BackgroundLocationService = (await import('../../services/location/BackgroundLocationService')).default;
+              const service = BackgroundLocationService.getInstance();
+              const isActive = service.isActive();
+              const currentH3 = service.getCurrentH3Index();
+              
+              DebugLogger.info(`🔧 [DEBUG STATE] Threshold: ${threshold}, Cooldown: ${cooldown}min, Resolution: ${resolution}`);
+              DebugLogger.info(`🔧 [DEBUG STATE] Test Location: ${testLocation}`);
+              DebugLogger.info(`🔧 [DEBUG STATE] Monitoring: ${isActive ? 'ACTIVE' : 'INACTIVE'}, Current H3: ${currentH3 || 'none'}`);
+              
+              Alert.alert(
+                '🔧 Debug Status',
+                `Current Settings:\n• Z-Score Threshold: ${threshold}\n• Cooldown: ${cooldown} minutes\n• Resolution: ${resolution}\n• Test Location: ${testLocation}\n\nMonitoring Status:\n• Active: ${isActive ? 'YES' : 'NO'}\n• Current H3: ${currentH3 || 'none'}`,
+                [{ text: 'OK' }]
+              );
+            } catch (error) {
+              DebugLogger.error('❌ [DEBUG STATE] Error getting debug info:', error);
+              Alert.alert('Error', 'Could not get debug information');
+            }
+          }}
+        >
+          <Text style={styles.actionButtonText}>🔧 Show Debug Status</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Notification Testing */}

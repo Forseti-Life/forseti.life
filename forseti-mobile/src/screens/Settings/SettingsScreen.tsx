@@ -186,17 +186,47 @@ const SettingsScreenContent = ({ navigation }: any) => {
 
   const saveSettings = async () => {
     try {
+      DebugLogger.info('💾 [SETTINGS] Saving settings to storage...');
       await StorageService.setItem('z_score_threshold', zScoreThreshold);
       await StorageService.setItem('notification_cooldown', notificationCooldown);
       await StorageService.setItem('h3_resolution', h3Resolution);
+      
+      DebugLogger.info(`💾 [SETTINGS] Saved - Threshold: ${zScoreThreshold}, Cooldown: ${notificationCooldown}min, Resolution: ${h3Resolution}`);
 
-      Alert.alert(
-        'Settings Saved',
-        'Your preferences have been updated. Restart monitoring for changes to take effect.',
-        [{ text: 'OK' }]
-      );
+      // Automatically reload settings in background service if monitoring is active
+      try {
+        const BackgroundLocationService = (await import('../../services/location/BackgroundLocationService')).default;
+        const service = BackgroundLocationService.getInstance();
+        
+        if (service.isActive()) {
+          DebugLogger.info('🔄 [SETTINGS] Monitoring is active - reloading settings automatically');
+          await service.reloadSettings();
+          DebugLogger.info('✅ [SETTINGS] Background service settings updated');
+          
+          Alert.alert(
+            '✅ Settings Saved & Applied',
+            'Your preferences have been updated and applied to active monitoring immediately.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          DebugLogger.info('ℹ️ [SETTINGS] Monitoring not active - settings will apply when started');
+          Alert.alert(
+            '✅ Settings Saved',
+            'Your preferences have been saved and will be applied when monitoring starts.',
+            [{ text: 'OK' }]
+          );
+        }
+      } catch (serviceError) {
+        DebugLogger.error('⚠️ [SETTINGS] Could not update background service:', serviceError);
+        Alert.alert(
+          '✅ Settings Saved',
+          'Your preferences have been saved. Restart monitoring to apply changes.',
+          [{ text: 'OK' }]
+        );
+      }
     } catch (error) {
       console.error('Error saving settings:', error);
+      DebugLogger.error('❌ [SETTINGS] Error saving settings:', error);
       Alert.alert('Error', 'Failed to save settings. Please try again.', [{ text: 'OK' }]);
     }
   };

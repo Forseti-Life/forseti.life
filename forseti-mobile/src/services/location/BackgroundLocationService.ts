@@ -193,6 +193,7 @@ class BackgroundLocationService {
     try {
       const threshold = await StorageService.getItem('z_score_threshold');
       const cooldown = await StorageService.getItem('notification_cooldown');
+      const resolution = await StorageService.getItem('h3_resolution');
 
       if (threshold !== null) {
         this.zScoreThreshold = threshold;
@@ -201,13 +202,28 @@ class BackgroundLocationService {
       if (cooldown !== null) {
         this.notificationCooldown = cooldown * 60000; // Convert minutes to milliseconds
       }
+      
+      if (resolution !== null) {
+        this.h3Resolution = resolution;
+      }
 
       console.log(
-        `⚙️ Settings loaded - Z-Score: ${this.zScoreThreshold}, Cooldown: ${cooldown || 5}min`
+        `⚙️ Settings loaded - Z-Score: ${this.zScoreThreshold}, Cooldown: ${cooldown || 5}min, Resolution: ${this.h3Resolution}`
       );
+      DebugLogger.info(`⚙️ [SETTINGS] Loaded - Threshold: ${this.zScoreThreshold}, Cooldown: ${cooldown || 5}min, Resolution: ${this.h3Resolution}`);
     } catch (error) {
       console.warn('Could not load user settings, using defaults:', error);
+      DebugLogger.error('❌ [SETTINGS] Error loading user settings:', error);
     }
+  }
+  
+  /**
+   * Reload settings from storage (public method for settings changes)
+   */
+  public async reloadSettings(): Promise<void> {
+    DebugLogger.info('🔄 [SETTINGS] Reloading settings from storage...');
+    await this.loadUserSettings();
+    DebugLogger.info('✅ [SETTINGS] Settings reloaded successfully');
   }
 
   /**
@@ -261,7 +277,9 @@ class BackgroundLocationService {
       if (testH3Location && typeof testH3Location === 'string' && testH3Location.length >= 10) {
         h3Index = testH3Location;
         DebugLogger.info(`🧪 [TEST MODE] Using test H3 location: ${h3Index}`);
+        DebugLogger.info(`🧪 [TEST MODE] Real GPS would be: ${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`);
         console.log(`🧪 TEST MODE: Using override H3 index: ${h3Index}`);
+        console.log(`🧪 TEST MODE: Real GPS coordinates: ${coords.latitude}, ${coords.longitude}`);
       } else {
         // Convert real GPS to H3 index
         h3Index = h3.latLngToCell(location.latitude, location.longitude, this.h3Resolution);
@@ -304,11 +322,19 @@ class BackgroundLocationService {
       
       // Check notification cooldown
       const now = Date.now();
-      if (now - this.lastNotificationTime < this.notificationCooldown) {
-        console.log('⏰ Notification cooldown active, skipping check');
-        DebugLogger.info('🔍 [SAFETY CHECK] Exiting due to cooldown');
+      const timeSinceLastNotification = now - this.lastNotificationTime;
+      const cooldownRemaining = this.notificationCooldown - timeSinceLastNotification;
+      
+      DebugLogger.info(`⏰ [COOLDOWN] Time since last: ${Math.round(timeSinceLastNotification/1000)}s, Required: ${Math.round(this.notificationCooldown/1000)}s`);
+      
+      if (cooldownRemaining > 0) {
+        const remainingMinutes = Math.ceil(cooldownRemaining / 60000);
+        DebugLogger.info(`⏰ [COOLDOWN] Still in cooldown - ${remainingMinutes}min remaining`);
+        console.log(`⏰ Notification cooldown: ${remainingMinutes} minutes remaining`);
         return;
       }
+      
+      DebugLogger.info('✅ [COOLDOWN] Not in cooldown - proceeding');
 
       DebugLogger.info('🔍 [SAFETY CHECK] About to fetch hexagon data');
       // Fetch hexagon data from API
@@ -324,7 +350,12 @@ class BackgroundLocationService {
       DebugLogger.info('🔍 [SAFETY CHECK] Processing valid hexagon data');
 
       // Check if z-score meets threshold for notification
-      const zScore = hexagonData.incident_z_score || 0;
+      const rawZScore = hexagonData.incident_z_score;
+      const zScore = rawZScore || 0;
+      
+      DebugLogger.info(`🔢 [Z-SCORE] Raw from API: ${rawZScore} (${typeof rawZScore}), Processed: ${zScore}`);
+      DebugLogger.info(`🎯 [THRESHOLD] Current threshold: ${this.zScoreThreshold}`);
+      DebugLogger.info(`🎯 [COMPARISON] ${zScore} >= ${this.zScoreThreshold}? ${zScore >= this.zScoreThreshold ? 'YES - WILL ALERT' : 'NO - safe'}`);
 
       // Ensure zScore is a valid number before using toFixed
       if (typeof zScore !== 'number' || !Number.isFinite(zScore)) {
@@ -332,13 +363,16 @@ class BackgroundLocationService {
         return;
       }
 
-      DebugLogger.info(`🔍 [SAFETY CHECK] Z-Score validation passed: ${zScore}`);
+      DebugLogger.info(`✅ [Z-SCORE] Valid z-score: ${zScore.toFixed(2)}`);
 
       if (zScore >= this.zScoreThreshold) {
-        DebugLogger.info('🔍 [SAFETY CHECK] High risk detected, sending notification');
+        DebugLogger.info('� [HIGH RISK] Dangerous area detected - sending notification');
+        console.log(`🚨 HIGH RISK: Z-Score ${zScore.toFixed(2)} >= threshold ${this.zScoreThreshold}`);
         await this.sendDangerNotification(hexagonData, location);
         this.lastNotificationTime = now;
+        DebugLogger.info('✅ [NOTIFICATION] Danger notification sent successfully');
       } else {
+        DebugLogger.info(`✅ [SAFE] Z-Score ${zScore.toFixed(2)} below threshold ${this.zScoreThreshold.toFixed(2)}`);
         console.log(
           `✅ Safe area - z-score: ${zScore.toFixed(2)} (threshold: ${this.zScoreThreshold})`
         );
@@ -492,12 +526,43 @@ class BackgroundLocationService {
     const incidentCount = hexagonData.incident_count || 0;
     const riskLevel = hexagonData.risk_level || 'LOW';
 
-    // await NotificationService.scheduleNotification({ // Temporarily disabled
-    console.log('⚠️ Would send danger notification:', {
+    // Check if we're in test mode for enhanced logging
+    const testH3Location = await StorageService.getItem('test_h3_location');
+    const isTestMode = testH3Location && typeof testH3Location === 'string' && testH3Location.length >= 10;
+    
+    if (isTestMode) {
+      DebugLogger.info(`🧪 [TEST NOTIFICATION] Sending notification for test H3: ${hexagonData.h3_index}`);
+      DebugLogger.info(`🧪 [TEST NOTIFICATION] Z-Score: ${zScore}, Incidents: ${incidentCount}, Risk: ${riskLevel}`);
+    }
+    
+    // Send the actual notification (re-enabled for testing)
+    try {
+      await NotificationService.sendSafetyAlert({
+        id: `danger-alert-${Date.now()}`,
+        title: isTestMode ? '🧪 Test Mode Alert' : '⚠️ High Crime Area Alert',
+        message: isTestMode 
+          ? `TEST NOTIFICATION\n\nH3: ${hexagonData.h3_index}\nZ-Score: ${zScore}\nIncidents: ${incidentCount}\nRisk Level: ${riskLevel}\n\nThis alert was triggered by your test location.`
+          : `You are entering a potentially dangerous area. ${incidentCount} incidents reported here (Risk: ${riskLevel}, Z-Score: ${zScore})`,
+        type: 'high_crime_area',
+        priority: 'high',
+        timestamp: Date.now(),
+        location: location,
+      });
+      
+      DebugLogger.info(`✅ [NOTIFICATION SENT] Alert delivered for ${isTestMode ? 'TEST' : 'REAL'} location`);
+      console.log(`✅ Notification sent for H3: ${hexagonData.h3_index} (${isTestMode ? 'TEST MODE' : 'LIVE MODE'})`);
+    } catch (error) {
+      DebugLogger.error('❌ [NOTIFICATION ERROR] Failed to send safety alert:', error);
+      console.error('Failed to send notification:', error);
+    }
+    
+    // Legacy logging for debugging
+    console.log('⚠️ Danger notification details:', {
       id: `danger-alert-${Date.now()}`,
-      title: '⚠️ High Crime Area Alert',
-      message: `You are entering a potentially dangerous area. ${incidentCount} incidents reported here (Risk: ${riskLevel}, Z-Score: ${zScore})`,
+      title: isTestMode ? '🧪 Test Mode Alert' : '⚠️ High Crime Area Alert',
+      message: `${incidentCount} incidents, Z-Score: ${zScore}, Risk: ${riskLevel}`,
       url: `https://forseti.life/safety-map?lat=${location.latitude}&lng=${location.longitude}`,
+      testMode: isTestMode,
       data: {
         type: 'danger_alert',
         h3_index: hexagonData.h3_index,
