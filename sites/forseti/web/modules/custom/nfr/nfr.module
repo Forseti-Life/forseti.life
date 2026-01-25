@@ -1,0 +1,88 @@
+<?php
+
+/**
+ * @file
+ * Contains nfr.module.
+ *
+ * National Firefighter Registry (NFR) module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function nfr_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.nfr':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The National Firefighter Registry (NFR) is a CDC cancer surveillance and health tracking system for firefighters.') . '</p>';
+      $output .= '<p>' . t('Key features include:') . '</p>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('Cancer incidence tracking and reporting') . '</li>';
+      $output .= '<li>' . t('Linkages to state cancer registries') . '</li>';
+      $output .= '<li>' . t('Integration with USFA NERIS data') . '</li>';
+      $output .= '<li>' . t('Longitudinal health data collection') . '</li>';
+      $output .= '<li>' . t('Summary data analysis and dashboards') . '</li>';
+      $output .= '</ul>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function nfr_theme() {
+  return [
+    'nfr_dashboard' => [
+      'variables' => [
+        'data' => NULL,
+      ],
+      'template' => 'nfr-dashboard',
+    ],
+    'nfr_documentation' => [
+      'variables' => [
+        'development_docs' => [],
+        'cdc_docs' => [],
+      ],
+      'template' => 'nfr-documentation',
+    ],
+    'nfr_documentation_page' => [
+      'variables' => [
+        'title' => NULL,
+        'content' => NULL,
+        'file_info' => [],
+      ],
+      'template' => 'nfr-documentation-page',
+    ],    'nfr_public_page' => [
+      'variables' => [
+        'page_id' => '',
+        'content' => [],
+      ],
+      'template' => 'nfr-public-page',
+    ],
+    'nfr_enrollment_page' => [
+      'variables' => [
+        'page_id' => '',
+        'content' => [],
+      ],
+      'template' => 'nfr-enrollment-page',
+    ],
+    'nfr_dashboard_page' => [
+      'variables' => [
+        'page_id' => '',
+        'content' => [],
+      ],
+      'template' => 'nfr-dashboard-page',
+    ],
+    'nfr_admin_page' => [
+      'variables' => [
+        'page_id' => '',
+        'content' => [],
+      ],
+      'template' => 'nfr-admin-page',
+    ],  ];
+}

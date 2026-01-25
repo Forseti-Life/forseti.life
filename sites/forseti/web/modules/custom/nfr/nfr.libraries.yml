@@ -1,0 +1,55 @@
+dashboard:
+  version: 1.0
+  css:
+    theme:
+      css/nfr-dashboard.css: {}
+  js:
+    js/nfr-dashboard.js: {}
+  dependencies:
+    - core/drupal
+    - forseti/style
+
+documentation:
+  version: 1.0
+  css:
+    theme:
+      css/nfr-documentation.css: {}
+  dependencies:
+    - core/drupal
+    - forseti/style
+
+public:
+  version: 1.0
+  css:
+    theme:
+      css/nfr-public.css: {}
+  dependencies:
+    - core/drupal
+    - forseti/style
+
+enrollment:
+  version: 1.0
+  css:
+    theme:
+      css/nfr-enrollment.css: {}
+  dependencies:
+    - core/drupal
+    - forseti/style
+
+participant-dashboard:
+  version: 1.0
+  css:
+    theme:
+      css/nfr-participant-dashboard.css: {}
+  dependencies:
+    - core/drupal
+    - forseti/style
+
+admin:
+  version: 1.0
+  css:
+    theme:
+      css/nfr-admin.css: {}
+  dependencies:
+    - core/drupal
+    - forseti/style

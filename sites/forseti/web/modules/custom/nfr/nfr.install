@@ -1,0 +1,576 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the NFR module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function nfr_install() {
+  \Drupal::messenger()->addStatus(__FUNCTION__);
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function nfr_uninstall() {
+  \Drupal::messenger()->addStatus(__FUNCTION__);
+}
+
+/**
+ * Implements hook_schema().
+ */
+function nfr_schema() {
+  $schema = [];
+
+  // User Profile Data (5-minute form)
+  $schema['nfr_user_profile'] = [
+    'description' => 'Stores NFR user profile data from 5-minute form',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Drupal user ID',
+      ],
+      'participant_id' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => FALSE,
+        'description' => 'Unique NFR participant ID (auto-generated)',
+      ],
+      // Personal Information
+      'first_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'middle_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'last_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'other_names' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON array of other names used',
+      ],
+      'date_of_birth' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+        'description' => 'YYYY-MM-DD format',
+      ],
+      'sex' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+        'description' => 'male, female, intersex',
+      ],
+      'ssn_last_4' => [
+        'type' => 'varchar',
+        'length' => 4,
+        'not null' => FALSE,
+      ],
+      // Birth Information
+      'country_of_birth' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+      ],
+      'state_of_birth' => [
+        'type' => 'varchar',
+        'length' => 2,
+        'not null' => FALSE,
+      ],
+      'city_of_birth' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      // Contact Information
+      'address_line1' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'address_line2' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'city' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'state' => [
+        'type' => 'varchar',
+        'length' => 2,
+        'not null' => FALSE,
+      ],
+      'zip_code' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+      ],
+      'alternate_email' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'mobile_phone' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+      ],
+      'sms_opt_in' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      // Current Work Status
+      'current_work_status' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => FALSE,
+        'description' => 'active, retired, student, other',
+      ],
+      // Completion tracking
+      'profile_completed' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'profile_completed_date' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uid' => ['uid'],
+      'participant_id' => ['participant_id'],
+    ],
+    'indexes' => [
+      'state' => ['state'],
+      'profile_completed' => ['profile_completed'],
+    ],
+  ];
+
+  // Work History
+  $schema['nfr_work_history'] = [
+    'description' => 'Stores firefighter work history at departments',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'department_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'department_fdid' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => FALSE,
+        'description' => 'FDID from USFA',
+      ],
+      'department_state' => [
+        'type' => 'varchar',
+        'length' => 2,
+        'not null' => FALSE,
+      ],
+      'department_city' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'start_date' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+        'description' => 'YYYY-MM-DD',
+      ],
+      'end_date' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+        'description' => 'YYYY-MM-DD, NULL if current',
+      ],
+      'is_current' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid' => ['uid'],
+      'department_state' => ['department_state'],
+      'is_current' => ['is_current'],
+    ],
+  ];
+
+  // Job Titles/Positions
+  $schema['nfr_job_titles'] = [
+    'description' => 'Stores specific job titles held at departments',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'work_history_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Reference to nfr_work_history.id',
+      ],
+      'job_title' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'employment_type' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => FALSE,
+        'description' => 'career, volunteer, paid-on-call, etc.',
+      ],
+      'start_date' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+      ],
+      'end_date' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+      ],
+      'responded_to_incidents' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'incident_types' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON array of incident types',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'work_history_id' => ['work_history_id'],
+    ],
+  ];
+
+  // Incident Frequency Data
+  $schema['nfr_incident_frequency'] = [
+    'description' => 'Tracks frequency of incident types per job',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'job_title_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'incident_type' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+      ],
+      'frequency' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => FALSE,
+        'description' => 'never, <1/year, 1-5/year, etc.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'job_title_id' => ['job_title_id'],
+    ],
+  ];
+
+  // Consent Data
+  $schema['nfr_consent'] = [
+    'description' => 'Stores informed consent records',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'consented_to_participate' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'consented_to_registry_linkage' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'electronic_signature' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'consent_ip_address' => [
+        'type' => 'varchar',
+        'length' => 45,
+        'not null' => FALSE,
+      ],
+      'consent_timestamp' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uid' => ['uid'],
+    ],
+  ];
+
+  // Questionnaire Data (30-minute survey)
+  $schema['nfr_questionnaire'] = [
+    'description' => 'Stores comprehensive enrollment questionnaire data',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      // Demographics
+      'race_ethnicity' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON array of selected races/ethnicities',
+      ],
+      'height_inches' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'weight_pounds' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      // Military Service
+      'military_service' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'military_branch' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+      ],
+      'military_years' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      // Other Employment
+      'other_employment_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'JSON data for non-firefighting employment',
+      ],
+      // PPE Practices
+      'ppe_practices' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'JSON data for PPE usage patterns',
+      ],
+      // Decontamination Practices
+      'decon_practices' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'JSON data for decontamination practices',
+      ],
+      // Health Information
+      'cancer_diagnosis' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'cancer_details' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'JSON data for cancer diagnoses',
+      ],
+      'family_cancer_history' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'JSON data for family history',
+      ],
+      // Lifestyle Factors
+      'smoking_history' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON data for tobacco use',
+      ],
+      'alcohol_use' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => FALSE,
+      ],
+      // Completion tracking
+      'questionnaire_completed' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'questionnaire_completed_date' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uid' => ['uid'],
+    ],
+  ];
+
+  // Follow-up Surveys
+  $schema['nfr_follow_up_surveys'] = [
+    'description' => 'Stores follow-up survey responses',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'survey_type' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+        'description' => 'annual, event-triggered, ad-hoc',
+      ],
+      'survey_date' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'due_date' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'completion_date' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => FALSE,
+        'description' => 'not-started, in-progress, completed, overdue',
+      ],
+      'response_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'JSON survey responses',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid' => ['uid'],
+      'status' => ['status'],
+      'due_date' => ['due_date'],
+    ],
+  ];
+
+  return $schema;
+}

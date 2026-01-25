@@ -1,0 +1,570 @@
+/* NFR Enrollment Pages Styles */
+
+.nfr-enrollment-page {
+  padding: 2rem 0;
+}
+
+.enrollment-progress {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.enrollment-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+}
+
+.enrollment-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 0;
+}
+
+.enrollment-actions .btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+/* Consent Form Styles */
+.consent-intro {
+  background: #e3f2fd;
+  padding: 1.5rem;
+  border-left: 4px solid #2196f3;
+  margin-bottom: 2rem;
+  border-radius: 4px;
+}
+
+.consent-document,
+.confidentiality-assurance {
+  margin-bottom: 2rem;
+}
+
+.consent-content,
+.confidentiality-content {
+  padding: 1rem;
+  line-height: 1.6;
+}
+
+.consent-content h3,
+.confidentiality-content h4 {
+  color: #2c3e50;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.consent-content ul,
+.confidentiality-content ul {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.consent-content blockquote {
+  background: #f8f9fa;
+  border-left: 4px solid #6c757d;
+  padding: 1rem 1.5rem;
+  margin: 1rem 0;
+  font-style: italic;
+}
+
+.signature-section {
+  background: #fff9e6;
+  padding: 1.5rem;
+  border-radius: 4px;
+  margin-top: 2rem;
+}
+
+.signature-date,
+.signature-ip {
+  margin-top: 0.5rem;
+  color: #6c757d;
+}
+
+#edit-consent-participate,
+#edit-consent-linkage {
+  margin-right: 0.5rem;
+}
+
+.form-checkbox + label {
+  cursor: pointer;
+}
+
+/* Required field indicator */
+.form-required {
+  color: #dc3545;
+}
+
+/* Questionnaire Styles */
+.questionnaire-progress {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.questionnaire-progress .progress-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.questionnaire-progress .progress-bar {
+  background: #e9ecef;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.questionnaire-progress .progress-fill {
+  background: linear-gradient(90deg, #0056b3, #007bff);
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+#nfr-questionnaire-form .form-item {
+  margin-bottom: 1.5rem;
+}
+
+#nfr-questionnaire-form .fieldset-wrapper {
+  padding: 1rem 0;
+}
+
+#nfr-questionnaire-form details {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: #ffffff;
+}
+
+#nfr-questionnaire-form details > summary {
+  font-weight: 600;
+  color: #0056b3;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin: -1rem -1rem 1rem -1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+#nfr-questionnaire-form details[open] > summary {
+  margin-bottom: 1rem;
+}
+
+.ppe-intro {
+  background: #e3f2fd;
+  padding: 1rem;
+  border-left: 4px solid #2196f3;
+  margin-bottom: 1.5rem;
+  border-radius: 4px;
+}
+
+/* Form section titles */
+#nfr-questionnaire-form h2 {
+  color: #2c3e50;
+  border-bottom: 2px solid #0056b3;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Action buttons */
+#nfr-questionnaire-form .form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1.5rem 0;
+  border-top: 2px solid #dee2e6;
+  margin-top: 2rem;
+}
+
+#nfr-questionnaire-form .button--primary {
+  background: #0056b3;
+  color: white;
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#nfr-questionnaire-form .button--primary:hover {
+  background: #004494;
+}
+
+#nfr-questionnaire-form .button--secondary {
+  background: #6c757d;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#nfr-questionnaire-form .button--secondary:hover {
+  background: #5a6268;
+}
+
+/* Multi-column layouts for checkboxes/radios */
+.form-checkboxes,
+.form-radios {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Table-like layout for incident types */
+#nfr-questionnaire-form .form-type-select {
+  margin-bottom: 0.75rem;
+}
+
+#nfr-questionnaire-form .form-type-select label {
+  display: inline-block;
+  width: 60%;
+  margin-bottom: 0.25rem;
+}
+
+#nfr-questionnaire-form .form-type-select select {
+  display: inline-block;
+  width: 38%;
+  margin-left: 1%;
+  vertical-align: top;
+}
+
+/* Repeating field groups */
+.container > fieldset,
+.container > .fieldset {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  border: 1px solid #dee2e6;
+}
+
+/* Add button styling */
+input[type="submit"][value*="Add"] {
+  background: #28a745;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.2s;
+}
+
+input[type="submit"][value*="Add"]:hover {
+  background: #218838;
+}
+
+/* Review & Submit Page Styles */
+.review-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.review-header h1 {
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.review-header p {
+  color: #6c757d;
+  font-size: 1.1rem;
+}
+
+.review-warning {
+  background: #fff3cd;
+  border-left: 4px solid #ffc107;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border-radius: 4px;
+}
+
+.review-warning ul {
+  margin: 1rem 0 0 1.5rem;
+}
+
+#nfr-review-submit-form details {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: #ffffff;
+}
+
+#nfr-review-submit-form details > summary {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #0056b3;
+  cursor: pointer;
+  padding: 0.75rem;
+  margin: -1rem -1rem 1rem -1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  list-style: none;
+}
+
+#nfr-review-submit-form details > summary::-webkit-details-marker {
+  display: none;
+}
+
+#nfr-review-submit-form details > summary::before {
+  content: '▶ ';
+  display: inline-block;
+  margin-right: 0.5rem;
+  transition: transform 0.2s;
+}
+
+#nfr-review-submit-form details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+#nfr-review-submit-form details[open] > summary {
+  margin-bottom: 1rem;
+}
+
+.summary-content {
+  padding: 1rem;
+  line-height: 1.6;
+}
+
+.summary-content h4 {
+  color: #2c3e50;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 0.25rem;
+}
+
+.summary-content p {
+  margin-bottom: 0.75rem;
+}
+
+.summary-content p.incomplete {
+  color: #dc3545;
+  font-style: italic;
+}
+
+.summary-content strong {
+  color: #495057;
+  font-weight: 600;
+}
+
+#nfr-review-submit-form .button--secondary {
+  margin-left: 1rem;
+}
+
+#nfr-review-submit-form fieldset {
+  border: 2px solid #0056b3;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 2rem 0;
+  background: #f0f8ff;
+}
+
+#nfr-review-submit-form fieldset legend {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #0056b3;
+  padding: 0 0.5rem;
+}
+
+/* Confirmation Page Styles */
+.confirmation-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.confirmation-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  background: #28a745;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  color: white;
+  margin: 0 auto 1.5rem;
+  box-shadow: 0 4px 6px rgba(40, 167, 69, 0.3);
+}
+
+.confirmation-header h1 {
+  color: #2c3e50;
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.confirmation-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.participant-id-box {
+  background: #e3f2fd;
+  border: 2px solid #2196f3;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.participant-id-box h2 {
+  color: #0056b3;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+}
+
+.participant-id {
+  font-size: 2rem;
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+  color: #2c3e50;
+  background: white;
+  padding: 1rem 2rem;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  letter-spacing: 2px;
+}
+
+.save-note {
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+.next-steps {
+  margin: 2rem 0;
+}
+
+.next-steps h2 {
+  color: #2c3e50;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #0056b3;
+  padding-bottom: 0.5rem;
+}
+
+.next-steps ul {
+  list-style: none;
+  padding: 0;
+}
+
+.next-steps ul li {
+  padding: 0.75rem 0;
+  padding-left: 2rem;
+  position: relative;
+  line-height: 1.6;
+}
+
+.next-steps ul li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #28a745;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.confirmation-actions {
+  text-align: center;
+  margin: 2rem 0;
+}
+
+.confirmation-actions .button {
+  padding: 1rem 3rem;
+  font-size: 1.1rem;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.additional-links {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.additional-links h3 {
+  color: #2c3e50;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.additional-links ul {
+  list-style: none;
+  padding: 0;
+}
+
+.additional-links ul li {
+  margin-bottom: 0.5rem;
+}
+
+.additional-links a {
+  color: #0056b3;
+  text-decoration: none;
+}
+
+.additional-links a:hover {
+  text-decoration: underline;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  #nfr-questionnaire-form .form-actions {
+    flex-direction: column;
+  }
+  
+  #nfr-questionnaire-form .button--primary,
+  #nfr-questionnaire-form .button--secondary {
+    width: 100%;
+  }
+  
+  #nfr-questionnaire-form .form-type-select label,
+  #nfr-questionnaire-form .form-type-select select {
+    display: block;
+    width: 100%;
+    margin-left: 0;
+  }
+  
+  .confirmation-page {
+    padding: 1rem;
+  }
+  
+  .confirmation-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .participant-id {
+    font-size: 1.5rem;
+    letter-spacing: 1px;
+  }
+}

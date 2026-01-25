@@ -1,0 +1,62 @@
+{#
+/**
+ * @file
+ * NFR Documentation Index Template
+ *
+ * Available variables:
+ * - development_docs: Array of development documentation items
+ * - cdc_docs: Array of CDC official documents
+ * - additional_docs: Array of additional documentation files
+ */
+#}
+<div class="nfr-documentation-index">
+  <div class="intro">
+    <h1>{{ 'National Firefighter Registry Documentation'|t }}</h1>
+    <p class="intro-text">
+      {{ 'This page provides access to all NFR project documentation, including business requirements, technical specifications, and official CDC documents.'|t }}
+    </p>
+  </div>
+
+  {# Development Documentation Section #}
+  <details class="doc-section" open>
+    <summary>{{ 'Development Documentation'|t }}</summary>
+    <div class="section-content">
+      {% for doc in development_docs %}
+        <div class="doc-item">
+          <h3>{{ doc.link }}</h3>
+          <p class="description">{{ doc.description }}</p>
+          <div class="doc-meta">
+            <small>
+              {{ 'File:'|t }} <strong>{{ doc.file }}</strong>
+              {% if doc.file_size %}
+                ({{ doc.file_size }})
+              {% endif %}
+            </small>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </details>
+
+  {# CDC Official Documents Section #}
+  <details class="doc-section" open>
+    <summary>{{ 'CDC Official Documents'|t }}</summary>
+    <div class="section-content">
+      {% for doc in cdc_docs %}
+        <div class="doc-item cdc-doc">
+          <h3>{{ doc.link }}</h3>
+          <p class="description">{{ doc.description }}</p>
+          <div class="doc-meta">
+            <small>
+              {{ 'File:'|t }} <strong>{{ doc.file }}</strong>
+              {% if doc.file_size %}
+                ({{ doc.file_size }})
+              {% endif %}
+            </small>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </details>
+
+</div>
