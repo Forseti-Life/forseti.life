@@ -18,12 +18,19 @@ class NFRPublicController extends ControllerBase {
    *   Render array.
    */
   public function home(): array {
+    // If user is logged in, redirect to welcome page
+    if ($this->currentUser()->isAuthenticated()) {
+      return new \Symfony\Component\HttpFoundation\RedirectResponse(
+        \Drupal\Core\Url::fromRoute('nfr.welcome')->toString()
+      );
+    }
+
     return [
       '#theme' => 'nfr_public_page',
       '#page_id' => 'home',
       '#content' => [
         'hero' => [
-          '#markup' => '<div class="nfr-hero"><h1>National Firefighter Registry</h1><p>Help advance cancer research for firefighters.</p><a href="/user/register" class="btn btn-primary">Register Now</a></div>',
+          '#markup' => '<div class="nfr-hero"><h1>National Firefighter Registry</h1><p>Help advance cancer research for firefighters.</p><a href="/user/register" class="btn btn-primary">Register Now</a><a href="/user/login" class="btn btn-secondary">Log In</a></div>',
         ],
         'intro' => [
           '#markup' => '<p>The National Firefighter Registry is a research initiative to better understand cancer among firefighters.</p>',

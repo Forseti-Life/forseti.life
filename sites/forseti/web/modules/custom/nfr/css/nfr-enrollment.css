@@ -568,3 +568,345 @@ input[type="submit"][value*="Add"]:hover {
     letter-spacing: 1px;
   }
 }
+
+/* ======================================
+   WELCOME PAGE STYLES
+   ====================================== */
+
+.welcome-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.welcome-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, #2c5282 0%, #3182ce 100%);
+  color: white;
+  border-radius: 12px;
+}
+
+.welcome-header h1 {
+  font-size: 2.5rem;
+  margin: 0 0 1rem 0;
+  color: white;
+}
+
+.welcome-subtitle {
+  font-size: 1.2rem;
+  margin: 0;
+  opacity: 0.95;
+}
+
+/* Enrollment Complete Notice */
+.enrollment-complete-notice {
+  background: #c6f6d5;
+  border: 2px solid #38a169;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.enrollment-complete-notice .notice-icon {
+  width: 60px;
+  height: 60px;
+  background: #38a169;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.enrollment-complete-notice .notice-content h2 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  color: #22543d;
+}
+
+.enrollment-complete-notice .notice-content p {
+  margin-bottom: 1rem;
+  color: #276749;
+}
+
+/* Enrollment Process */
+.enrollment-process {
+  margin-bottom: 3rem;
+}
+
+.before-proceeding {
+  background: #fff7ed;
+  border-left: 4px solid #ed8936;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border-radius: 8px;
+}
+
+.before-proceeding h2 {
+  color: #7c2d12;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.before-proceeding p {
+  color: #7c2d12;
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+/* Enrollment Steps */
+.enrollment-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.enrollment-step {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 2rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  transition: all 0.3s;
+}
+
+.enrollment-step:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.enrollment-step.step-complete {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.enrollment-step.step-locked {
+  opacity: 0.6;
+  background: #f9fafb;
+}
+
+.enrollment-step .step-number {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #3182ce, #63b3ed);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.enrollment-step.step-complete .step-number {
+  background: linear-gradient(135deg, #38a169, #48bb78);
+}
+
+.enrollment-step.step-locked .step-number {
+  background: #cbd5e0;
+  color: #718096;
+}
+
+.enrollment-step .step-content {
+  flex: 1;
+}
+
+.enrollment-step .step-content h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  color: #1a365d;
+  font-size: 1.5rem;
+}
+
+.enrollment-step .step-content p {
+  color: #4a5568;
+  margin-bottom: 1.25rem;
+  line-height: 1.6;
+}
+
+.enrollment-step .button {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: #3182ce;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.enrollment-step .button:hover {
+  background: #2c5282;
+}
+
+.step-complete-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #38a169;
+  color: white;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.step-locked {
+  color: #718096;
+  font-style: italic;
+  padding: 0.5rem 0;
+}
+
+/* Progress Summary */
+.progress-summary {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.progress-bar-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.progress-bar-label {
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.progress-bar {
+  height: 24px;
+  background: #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3182ce, #63b3ed);
+  border-radius: 12px;
+  transition: width 0.5s ease;
+}
+
+.progress-text {
+  text-align: center;
+  color: #4a5568;
+  font-size: 0.875rem;
+}
+
+/* Welcome Info Boxes */
+.welcome-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.info-box {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.info-box h3 {
+  color: #1a365d;
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.info-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.info-box li {
+  margin-bottom: 0.75rem;
+}
+
+.info-box a {
+  color: #3182ce;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.info-box a:hover {
+  text-decoration: underline;
+}
+
+.info-box p {
+  color: #4a5568;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Responsive Design for Welcome Page */
+@media (max-width: 768px) {
+  .welcome-page {
+    padding: 1rem;
+  }
+
+  .welcome-header {
+    padding: 1.5rem;
+  }
+
+  .welcome-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .welcome-subtitle {
+    font-size: 1rem;
+  }
+
+  .enrollment-step {
+    flex-direction: column;
+    padding: 1.5rem;
+  }
+
+  .enrollment-step .step-number {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+
+  .enrollment-step .step-content h3 {
+    font-size: 1.25rem;
+  }
+
+  .before-proceeding h2 {
+    font-size: 1.25rem;
+  }
+
+  .before-proceeding p {
+    font-size: 1rem;
+  }
+
+  .welcome-info {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .enrollment-complete-notice {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.5rem;
+  }
+}

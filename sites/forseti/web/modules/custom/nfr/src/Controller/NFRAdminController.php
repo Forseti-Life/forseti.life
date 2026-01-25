@@ -779,7 +779,6 @@ class NFRAdminController extends ControllerBase {
       ],
     ];
   }
-  }
 
   /**
    * Data quality monitoring page.

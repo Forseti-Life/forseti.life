@@ -140,6 +140,15 @@ nfr.home:
   requirements:
     _permission: 'access content'
 
+nfr.welcome:
+  path: '/nfr/welcome'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFREnrollmentController::welcome'
+    _title: 'Welcome to NFR'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+
 nfr.public_data:
   path: '/nfr/data'
   defaults:
