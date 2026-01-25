@@ -1279,9 +1279,7 @@ class NFRQuestionnaireForm extends FormBase {
   /**
    * Check if questionnaire is complete.
    */
-  private function isQuestionnaireComplete(): bool {
-    $uid = (int) $this->currentUser->id();
-    
+  private function isQuestionnaireComplete(int $uid): bool {
     $result = $this->database->select('nfr_questionnaire', 'q')
       ->fields('q', ['questionnaire_completed'])
       ->condition('uid', $uid)
@@ -1307,9 +1305,7 @@ class NFRQuestionnaireForm extends FormBase {
   /**
    * Update last completed section.
    */
-  private function updateLastCompletedSection(int $section): void {
-    $uid = (int) $this->currentUser->id();
-    
+  private function updateLastCompletedSection(int $uid, int $section): void {
     // Only update if this section is greater than current last_section_completed
     $current_last = $this->getLastCompletedSection($uid);
     
@@ -1508,12 +1504,13 @@ class NFRQuestionnaireForm extends FormBase {
    */
   public function jumpToSection(array &$form, FormStateInterface $form_state): void {
     $current_section = $form_state->get('current_section');
+    $uid = (int) $this->currentUser->id();
     
     // Save current section data before jumping
     $this->saveCurrentSection($form_state, $current_section);
     
     // Update last completed section
-    $this->updateLastCompletedSection($current_section);
+    $this->updateLastCompletedSection($uid, $current_section);
     
     // Get target section from button
     $triggering_element = $form_state->getTriggeringElement();
@@ -1529,12 +1526,13 @@ class NFRQuestionnaireForm extends FormBase {
    */
   public function previousSubmit(array &$form, FormStateInterface $form_state): void {
     $current_section = $form_state->get('current_section');
+    $uid = (int) $this->currentUser->id();
     
     // Save current section data before going back
     $this->saveCurrentSection($form_state, $current_section);
     
     // Update last completed section if moving forward in progress
-    $this->updateLastCompletedSection($current_section);
+    $this->updateLastCompletedSection($uid, $current_section);
     
     // Move to previous section
     $form_state->set('current_section', $current_section - 1);
@@ -1546,12 +1544,13 @@ class NFRQuestionnaireForm extends FormBase {
    */
   public function nextSubmit(array &$form, FormStateInterface $form_state): void {
     $current_section = $form_state->get('current_section');
+    $uid = (int) $this->currentUser->id();
     
     // Save current section data
     $this->saveCurrentSection($form_state, $current_section);
     
     // Update last completed section
-    $this->updateLastCompletedSection($current_section);
+    $this->updateLastCompletedSection($uid, $current_section);
     
     // Move to next section
     $form_state->set('current_section', $current_section + 1);
@@ -1563,10 +1562,12 @@ class NFRQuestionnaireForm extends FormBase {
    */
   public function saveAndExit(array &$form, FormStateInterface $form_state): void {
     $current_section = $form_state->get('current_section');
-    $this->saveCurrentSection($form_state, $current_section);
-    $this->updateLastCompletedSection($current_section);
+    $uid = (int) $this->currentUser->id();
     
-    $is_complete = $this->isQuestionnaireComplete();
+    $this->saveCurrentSection($form_state, $current_section);
+    $this->updateLastCompletedSection($uid, $current_section);
+    
+    $is_complete = $this->isQuestionnaireComplete($uid);
     
     if ($is_complete) {
       $this->messenger()->addStatus($this->t('Questionnaire saved. You can return anytime to review or update your responses.'));
@@ -1590,10 +1591,12 @@ class NFRQuestionnaireForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $current_section = $form_state->get('current_section');
+    $uid = (int) $this->currentUser->id();
+    
     $this->saveCurrentSection($form_state, $current_section);
     
     // Mark questionnaire as complete
-    $this->markQuestionnaireComplete();
+    $this->markQuestionnaireComplete($uid);
     
     $this->messenger()->addStatus($this->t('Questionnaire complete! Please review your responses before final submission.'));
     $form_state->setRedirect('nfr.review');
@@ -1779,13 +1782,11 @@ class NFRQuestionnaireForm extends FormBase {
   /**
    * Mark questionnaire as complete.
    */
-  private function markQuestionnaireComplete(): void {
-    $uid = (int) $this->currentUser->id();
-    
+  private function markQuestionnaireComplete(int $uid): void {
     $this->database->update('nfr_questionnaire')
       ->fields([
         'questionnaire_completed' => 1,
-        'completed_date' => time(),
+        'questionnaire_completed_date' => time(),
         'updated' => time(),
       ])
       ->condition('uid', $uid)
