@@ -27,13 +27,26 @@ public:
     - core/drupal
     - forseti/style
 
+home:
+  version: 1.0
+  css:
+    theme:
+      css/nfr-home.css: {}
+  dependencies:
+    - core/drupal
+    - forseti/style
+
 enrollment:
   version: 1.0
   css:
     theme:
       css/nfr-enrollment.css: {}
+  js:
+    js/nfr-questionnaire.js: {}
   dependencies:
     - core/drupal
+    - core/jquery
+    - core/once
     - forseti/style
 
 participant-dashboard:
@@ -50,6 +63,35 @@ admin:
   css:
     theme:
       css/nfr-admin.css: {}
+  dependencies:
+    - core/drupal
+    - forseti/style
+
+validation:
+  version: 1.0
+  css:
+    theme:
+      css/nfr-validation.css: {}
+  js:
+    js/nfr-validation.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+    - core/drupal.ajax
+
+fill_rates:
+  version: 1.0
+  js:
+    js/nfr-fill-rates.js: {}
+  dependencies:
+    - core/drupal
+
+navigation:
+  version: 1.0
+  css:
+    theme:
+      css/nfr-navigation.css: {}
   dependencies:
     - core/drupal
     - forseti/style

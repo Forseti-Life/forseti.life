@@ -1,21 +1,25 @@
-<div class="nfr-admin-page nfr-page-{{ page_id }}">
-  <div class="nfr-container">
-    <aside class="admin-sidebar">
-      <nav class="admin-nav">
-        <h3>NFR Administration</h3>
-        <ul>
-          <li><a href="/admin/nfr">Dashboard</a></li>
-          <li><a href="/admin/nfr/participants">Participants</a></li>
-          <li><a href="/admin/nfr/linkage">Registry Linkage</a></li>
-          <li><a href="/admin/nfr/data-quality">Data Quality</a></li>
-          <li><a href="/admin/nfr/reports">Reports</a></li>
-          <li><a href="/admin/nfr/issues">Support Issues</a></li>
-          <li><a href="/admin/nfr/settings">Settings</a></li>
-        </ul>
-      </nav>
+<div class="container-fluid my-4">
+  <div class="row">
+    <aside class="col-lg-3 col-md-4 mb-4">
+      <div class="card card-forseti">
+        <div class="card-header">
+          <h5 class="mb-0">NFR Administration</h5>
+        </div>
+        <div class="card-body p-0">
+          <nav class="nav flex-column">
+            <a class="nav-link" href="/admin/nfr">Dashboard</a>
+            <a class="nav-link" href="/admin/nfr/participants">Participants</a>
+            <a class="nav-link" href="/admin/nfr/linkage">Registry Linkage</a>
+            <a class="nav-link" href="/admin/nfr/data-quality">Data Quality</a>
+            <a class="nav-link" href="/admin/nfr/reports">Reports</a>
+            <a class="nav-link" href="/admin/nfr/issues">Support Issues</a>
+            <a class="nav-link" href="/admin/nfr/settings">Settings</a>
+          </nav>
+        </div>
+      </div>
     </aside>
     
-    <main class="admin-main">
+    <main class="col-lg-9 col-md-8">
       {{ content }}
     </main>
   </div>

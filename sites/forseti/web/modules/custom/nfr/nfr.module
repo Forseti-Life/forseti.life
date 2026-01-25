@@ -64,6 +64,13 @@ function nfr_theme() {
       ],
       'template' => 'nfr-public-page',
     ],
+    'nfr_home_page' => [
+      'variables' => [
+        'authenticated' => FALSE,
+        'role_links' => [],
+      ],
+      'template' => 'nfr-home-page',
+    ],
     'nfr_enrollment_page' => [
       'variables' => [
         'page_id' => '',
@@ -84,5 +91,12 @@ function nfr_theme() {
         'content' => [],
       ],
       'template' => 'nfr-admin-page',
-    ],  ];
+    ],
+    'nfr_navigation_menu' => [
+      'variables' => [
+        'menu_items' => [],
+      ],
+      'template' => 'nfr-navigation-menu',
+    ],
+  ];
 }

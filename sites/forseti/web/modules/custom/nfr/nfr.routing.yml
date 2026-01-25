@@ -149,6 +149,132 @@ nfr.welcome:
     _permission: 'access content'
     _user_is_logged_in: 'TRUE'
 
+nfr.validation:
+  path: '/nfr/validation'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::validationDashboard'
+    _title: 'NFR Validation Dashboard'
+  requirements:
+    _permission: 'administer nfr'
+
+nfr.validation.test_route:
+  path: '/nfr/validation/test-route'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::testRoute'
+  requirements:
+    _permission: 'administer nfr'
+  options:
+    no_cache: TRUE
+
+nfr.validation.test_questionnaire:
+  path: '/nfr/validation/test-questionnaire'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::testQuestionnaireFlow'
+  requirements:
+    _permission: 'administer nfr'
+  options:
+    no_cache: TRUE
+
+nfr.validation.verify_database:
+  path: '/nfr/validation/verify-database'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::verifyQuestionnaireDatabase'
+  requirements:
+    _permission: 'administer nfr'
+  options:
+    no_cache: TRUE
+
+nfr.validation.clear_test_data:
+  path: '/nfr/validation/clear-test-data'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::clearTestData'
+  requirements:
+    _permission: 'administer nfr'
+  options:
+    no_cache: TRUE
+
+nfr.validation.test_full_enrollment:
+  path: '/nfr/validation/test-full-enrollment'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::testFullEnrollmentFlow'
+  requirements:
+    _permission: 'administer nfr'
+  options:
+    no_cache: TRUE
+
+nfr.validation.test_max_values:
+  path: '/nfr/validation/test-max-values'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::testMaxValuesFlow'
+  requirements:
+    _permission: 'administer nfr'
+  options:
+    no_cache: TRUE
+
+nfr.validation.test_min_values:
+  path: '/nfr/validation/test-min-values'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::testMinValuesFlow'
+  requirements:
+    _permission: 'administer nfr'
+  options:
+    no_cache: TRUE
+
+nfr.validation.test_yes_minimal:
+  path: '/nfr/validation/test-yes-minimal'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::testYesMinimalFlow'
+  requirements:
+    _permission: 'administer nfr'
+  options:
+    no_cache: TRUE
+
+nfr.validation.check_error_logs:
+  path: '/nfr/validation/check-error-logs'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::checkErrorLogsEndpoint'
+  requirements:
+    _permission: 'administer nfr'
+  options:
+    no_cache: TRUE
+
+nfr.validation.create_test_users:
+  path: '/nfr/validation/create-test-users'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::createTestUsers'
+  requirements:
+    _permission: 'administer nfr'
+  options:
+    no_cache: TRUE
+
+nfr.validation.delete_test_users:
+  path: '/nfr/validation/delete-test-users'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::deleteTestUsers'
+  requirements:
+    _permission: 'administer nfr'
+  options:
+    no_cache: TRUE
+
+nfr.validation.submit_all_firefighters:
+  path: '/nfr/validation/submit-all-firefighters'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::submitAllFirefighterQuestionnaires'
+  requirements:
+    _permission: 'administer nfr'
+  options:
+    no_cache: TRUE
+
+nfr.validation.fill_rates:
+  path: '/nfr/validation/fill-rates'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::getFillRates'
+    _title: 'NFR Questionnaire Fill Rates'
+  requirements:
+    _permission: 'administer nfr'
+  options:
+    no_cache: TRUE
+
 nfr.public_data:
   path: '/nfr/data'
   defaults:
@@ -184,8 +310,89 @@ nfr.user_profile:
 nfr.enrollment_questionnaire:
   path: '/nfr/questionnaire'
   defaults:
-    _form: '\Drupal\nfr\Form\NFRQuestionnaireForm'
+    _controller: '\Drupal\nfr\Controller\NFREnrollmentController::questionnaireRedirect'
     _title: 'Enrollment Questionnaire'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+
+nfr.questionnaire.section1:
+  path: '/nfr/questionnaire/section/1'
+  defaults:
+    _form: '\Drupal\nfr\Form\NFRQuestionnaireSection1Form'
+    _title: 'Section 1: Demographics'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+
+nfr.questionnaire.section2:
+  path: '/nfr/questionnaire/section/2'
+  defaults:
+    _form: '\Drupal\nfr\Form\NFRQuestionnaireSection2Form'
+    _title: 'Section 2: Work History'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+
+nfr.questionnaire.section3:
+  path: '/nfr/questionnaire/section/3'
+  defaults:
+    _form: '\Drupal\nfr\Form\NFRQuestionnaireSection3Form'
+    _title: 'Section 3: Exposure Information'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+
+nfr.questionnaire.section4:
+  path: '/nfr/questionnaire/section/4'
+  defaults:
+    _form: '\Drupal\nfr\Form\NFRQuestionnaireSection4Form'
+    _title: 'Section 4: Military Service'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+
+nfr.questionnaire.section5:
+  path: '/nfr/questionnaire/section/5'
+  defaults:
+    _form: '\Drupal\nfr\Form\NFRQuestionnaireSection5Form'
+    _title: 'Section 5: Other Employment'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+
+nfr.questionnaire.section6:
+  path: '/nfr/questionnaire/section/6'
+  defaults:
+    _form: '\Drupal\nfr\Form\NFRQuestionnaireSection6Form'
+    _title: 'Section 6: PPE Practices'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+
+nfr.questionnaire.section7:
+  path: '/nfr/questionnaire/section/7'
+  defaults:
+    _form: '\Drupal\nfr\Form\NFRQuestionnaireSection7Form'
+    _title: 'Section 7: Decontamination'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+
+nfr.questionnaire.section8:
+  path: '/nfr/questionnaire/section/8'
+  defaults:
+    _form: '\Drupal\nfr\Form\NFRQuestionnaireSection8Form'
+    _title: 'Section 8: Health Information'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+
+nfr.questionnaire.section9:
+  path: '/nfr/questionnaire/section/9'
+  defaults:
+    _form: '\Drupal\nfr\Form\NFRQuestionnaireSection9Form'
+    _title: 'Section 9: Lifestyle Factors'
   requirements:
     _permission: 'access content'
     _user_is_logged_in: 'TRUE'

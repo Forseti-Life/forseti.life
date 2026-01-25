@@ -28,6 +28,10 @@ export nfr data:
   description: 'Export registry data for analysis'
   restrict access: true
 
+view nfr reports:
+  title: 'View NFR Reports'
+  description: 'Access research reports and analytics'
+
 manage state registry linkages:
   title: 'Manage State Registry Linkages'
   description: 'Configure and manage state cancer registry integrations'

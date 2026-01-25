@@ -44,11 +44,11 @@ class NFRReviewSubmitForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $uid = $this->currentUser->id();
+    $uid = (int) $this->currentUser->id();
     
     // Load all enrollment data
     $consent_data = $this->loadConsentData($uid);
-    $profile_data = $this->loadProfileData($uid);
+    $profile_data = $this->loadProfileData($uid) ?? [];
     $questionnaire_data = $this->loadQuestionnaireData($uid);
 
     $form['#attached']['library'][] = 'nfr/enrollment';
@@ -337,27 +337,99 @@ class NFRReviewSubmitForm extends FormBase {
    * Load questionnaire data.
    */
   private function loadQuestionnaireData(int $uid): array {
-    $result = $this->database->select('nfr_questionnaire', 'q')
+    $q = $this->database->select('nfr_questionnaire', 'q')
       ->fields('q')
       ->condition('uid', $uid)
       ->execute()
       ->fetchAssoc();
 
-    if (!$result) {
+    if (!$q) {
       return [];
     }
 
+    // Load work history from normalized tables
+    $work_history = $this->loadWorkHistory($uid);
+    
     return [
-      'demographics' => json_decode($result['demographics'] ?? '{}', TRUE),
-      'work_history' => json_decode($result['work_history'] ?? '{}', TRUE),
-      'exposure' => json_decode($result['exposure'] ?? '{}', TRUE),
-      'military' => json_decode($result['military_service'] ?? '{}', TRUE),
-      'other_employment' => json_decode($result['other_employment'] ?? '{}', TRUE),
-      'ppe' => json_decode($result['ppe_practices'] ?? '{}', TRUE),
-      'decontamination' => json_decode($result['decon_practices'] ?? '{}', TRUE),
-      'health' => json_decode($result['health_information'] ?? '{}', TRUE),
-      'lifestyle' => json_decode($result['lifestyle_factors'] ?? '{}', TRUE),
+      'demographics' => [
+        'race_ethnicity' => json_decode($q['race_ethnicity'] ?? '{}', TRUE),
+        'race_other' => $q['race_other'] ?? '',
+        'education_level' => $q['education_level'] ?? '',
+        'marital_status' => $q['marital_status'] ?? '',
+        'height_inches' => $q['height_inches'] ?? '',
+        'weight_pounds' => $q['weight_pounds'] ?? '',
+      ],
+      'work_history' => $work_history,
+      'exposure' => [], // TODO: Load from exposure data when implemented
+      'military' => [
+        'served' => $q['military_service'] ? 'yes' : 'no',
+        'branch' => $q['military_branch'] ?? '',
+        'years' => $q['military_years'] ?? '',
+      ],
+      'other_employment' => json_decode($q['other_employment_data'] ?? '{}', TRUE),
+      'ppe' => json_decode($q['ppe_practices'] ?? '{}', TRUE),
+      'decontamination' => json_decode($q['decon_practices'] ?? '{}', TRUE),
+      'health' => [
+        'cancer_diagnosed' => $q['cancer_diagnosis'] ? 'yes' : 'no',
+        'cancer_details' => json_decode($q['cancer_details'] ?? '[]', TRUE),
+        'family_history' => json_decode($q['family_cancer_history'] ?? '[]', TRUE),
+      ],
+      'lifestyle' => [
+        'smoking_history' => json_decode($q['smoking_history'] ?? '{}', TRUE),
+        'alcohol_use' => $q['alcohol_use'] ?? '',
+      ],
     ];
+  }
+
+  /**
+   * Load work history from normalized tables.
+   */
+  private function loadWorkHistory(int $uid): array {
+    $work_history = [
+      'num_departments' => 0,
+      'departments' => [],
+    ];
+    
+    // Load departments
+    $departments = $this->database->select('nfr_work_history', 'wh')
+      ->fields('wh')
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchAll(\PDO::FETCH_ASSOC);
+    
+    $work_history['num_departments'] = count($departments);
+    
+    foreach ($departments as $dept) {
+      $dept_data = [
+        'department_name' => $dept['department_name'] ?? '',
+        'fdid' => $dept['department_fdid'] ?? '',
+        'state' => $dept['department_state'] ?? '',
+        'city' => $dept['department_city'] ?? '',
+        'start_date' => $dept['start_date'] ?? '',
+        'end_date' => $dept['end_date'] ?? '',
+        'currently_employed' => $dept['is_current'] ? TRUE : FALSE,
+        'jobs' => [],
+      ];
+      
+      // Load jobs for this department
+      $jobs = $this->database->select('nfr_job_titles', 'jt')
+        ->fields('jt')
+        ->condition('work_history_id', $dept['id'])
+        ->execute()
+        ->fetchAll(\PDO::FETCH_ASSOC);
+      
+      foreach ($jobs as $job) {
+        $dept_data['jobs'][] = [
+          'title' => $job['job_title'] ?? '',
+          'employment_type' => $job['employment_type'] ?? '',
+          'responded_incidents' => $job['responded_to_incidents'] ? 'yes' : 'no',
+        ];
+      }
+      
+      $work_history['departments'][] = $dept_data;
+    }
+    
+    return $work_history;
   }
 
   /**
@@ -401,7 +473,7 @@ class NFRReviewSubmitForm extends FormBase {
     $html .= '<p><strong>' . $this->t('Electronic Signature:') . '</strong> ' . 
       htmlspecialchars($data['electronic_signature']) . '</p>';
     $html .= '<p><strong>' . $this->t('Date:') . '</strong> ' . 
-      date('F j, Y', $data['consent_timestamp']) . '</p>';
+      date('F j, Y', (int) $data['consent_timestamp']) . '</p>';
     $html .= '</div>';
 
     return $html;
@@ -410,34 +482,34 @@ class NFRReviewSubmitForm extends FormBase {
   /**
    * Render profile summary.
    */
-  private function renderProfileSummary(?array $data): string {
-    if (!$data) {
+  private function renderProfileSummary(array $data): string {
+    if (empty($data)) {
       return '<p class="incomplete">' . $this->t('Not completed') . '</p>';
     }
 
     $html = '<div class="summary-content">';
     $html .= '<h4>' . $this->t('Personal Information') . '</h4>';
     $html .= '<p><strong>' . $this->t('Name:') . '</strong> ' . 
-      htmlspecialchars($data['first_name'] . ' ' . ($data['middle_name'] ?? '') . ' ' . $data['last_name']) . '</p>';
+      htmlspecialchars(($data['first_name'] ?? '') . ' ' . ($data['middle_name'] ?? '') . ' ' . ($data['last_name'] ?? '')) . '</p>';
     $html .= '<p><strong>' . $this->t('Date of Birth:') . '</strong> ' . 
-      htmlspecialchars($data['date_of_birth']) . '</p>';
+      htmlspecialchars($data['date_of_birth'] ?? '') . '</p>';
     $html .= '<p><strong>' . $this->t('Sex:') . '</strong> ' . 
-      htmlspecialchars(ucfirst($data['sex'])) . '</p>';
+      htmlspecialchars(ucfirst($data['sex'] ?? '')) . '</p>';
     
     $html .= '<h4>' . $this->t('Contact Information') . '</h4>';
     $html .= '<p><strong>' . $this->t('Address:') . '</strong> ' . 
-      htmlspecialchars($data['address_line1']) . 
+      htmlspecialchars($data['address_line1'] ?? '') . 
       (!empty($data['address_line2']) ? ', ' . htmlspecialchars($data['address_line2']) : '') . '<br>' .
-      htmlspecialchars($data['city'] . ', ' . $data['state'] . ' ' . $data['zip_code']) . '</p>';
+      htmlspecialchars(($data['city'] ?? '') . ', ' . ($data['state'] ?? '') . ' ' . ($data['zip_code'] ?? '')) . '</p>';
     $html .= '<p><strong>' . $this->t('Email:') . '</strong> ' . 
-      htmlspecialchars($data['primary_email']) . '</p>';
+      htmlspecialchars($data['primary_email'] ?? '') . '</p>';
     if (!empty($data['mobile_phone'])) {
       $html .= '<p><strong>' . $this->t('Phone:') . '</strong> ' . 
         htmlspecialchars($data['mobile_phone']) . '</p>';
     }
 
     $html .= '<h4>' . $this->t('Work Status') . '</h4>';
-    $html .= '<p>' . htmlspecialchars(ucwords(str_replace('_', ' ', $data['current_work_status']))) . '</p>';
+    $html .= '<p>' . htmlspecialchars(ucwords(str_replace('_', ' ', $data['current_work_status'] ?? ''))) . '</p>';
     
     $html .= '</div>';
 
@@ -717,13 +789,12 @@ class NFRReviewSubmitForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $uid = $this->currentUser->id();
+    $uid = (int) $this->currentUser->id();
     
     // Mark everything as complete
     $this->database->update('nfr_questionnaire')
       ->fields([
         'questionnaire_completed' => 1,
-        'completed_date' => time(),
         'updated' => time(),
       ])
       ->condition('uid', $uid)

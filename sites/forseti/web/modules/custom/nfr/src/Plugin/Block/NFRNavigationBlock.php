@@ -1,0 +1,315 @@
+<?php
+
+namespace Drupal\nfr\Plugin\Block;
+
+use Drupal\Core\Block\BlockBase;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Session\AccountInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Url;
+
+/**
+ * Provides an NFR Navigation block.
+ *
+ * @Block(
+ *   id = "nfr_navigation",
+ *   admin_label = @Translation("NFR Navigation Menu"),
+ *   category = @Translation("NFR")
+ * )
+ */
+class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInterface {
+
+  /**
+   * The current user.
+   *
+   * @var \Drupal\Core\Session\AccountInterface
+   */
+  protected AccountInterface $currentUser;
+
+  /**
+   * Constructs a new NFRNavigationBlock.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin ID for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\Session\AccountInterface $current_user
+   *   The current user.
+   */
+  public function __construct(
+    array $configuration,
+    $plugin_id,
+    $plugin_definition,
+    AccountInterface $current_user
+  ) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+    $this->currentUser = $current_user;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('current_user')
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function build(): array {
+    $is_logged_in = $this->currentUser->isAuthenticated();
+    $is_admin = $this->currentUser->hasPermission('administer nfr');
+    $can_view_reports = $this->currentUser->hasPermission('view nfr reports');
+
+    $menu_items = $this->buildMenuStructure($is_logged_in, $is_admin, $can_view_reports);
+
+    return [
+      '#theme' => 'nfr_navigation_menu',
+      '#menu_items' => $menu_items,
+      '#attached' => [
+        'library' => ['nfr/navigation'],
+      ],
+      '#cache' => [
+        'contexts' => ['user.permissions', 'user.roles'],
+      ],
+    ];
+  }
+
+  /**
+   * Build the menu structure based on user permissions.
+   *
+   * @param bool $is_logged_in
+   *   Whether user is authenticated.
+   * @param bool $is_admin
+   *   Whether user has admin permission.
+   * @param bool $can_view_reports
+   *   Whether user can view reports.
+   *
+   * @return array
+   *   Menu structure array.
+   */
+  private function buildMenuStructure(bool $is_logged_in, bool $is_admin, bool $can_view_reports): array {
+    $menu = [];
+
+    // Public Pages
+    $menu['public'] = [
+      'title' => $this->t('About NFR'),
+      'url' => Url::fromRoute('nfr.home'),
+      'weight' => 0,
+      'children' => [
+        [
+          'title' => $this->t('Home'),
+          'url' => Url::fromRoute('nfr.home'),
+          'weight' => 0,
+        ],
+        [
+          'title' => $this->t('Public Statistics'),
+          'url' => Url::fromRoute('nfr.public_data'),
+          'weight' => 1,
+        ],
+      ],
+    ];
+
+    // Enrollment Pages (authenticated users only)
+    if ($is_logged_in) {
+      $menu['enrollment'] = [
+        'title' => $this->t('Enrollment'),
+        'url' => Url::fromRoute('nfr.welcome'),
+        'weight' => 1,
+        'children' => [
+          [
+            'title' => $this->t('Welcome'),
+            'url' => Url::fromRoute('nfr.welcome'),
+            'weight' => 0,
+          ],
+          [
+            'title' => $this->t('Informed Consent'),
+            'url' => Url::fromRoute('nfr.consent'),
+            'weight' => 1,
+          ],
+          [
+            'title' => $this->t('User Profile'),
+            'url' => Url::fromRoute('nfr.user_profile'),
+            'weight' => 2,
+          ],
+          [
+            'title' => $this->t('Questionnaire'),
+            'url' => Url::fromRoute('nfr.enrollment_questionnaire'),
+            'weight' => 3,
+          ],
+          [
+            'title' => $this->t('Review & Submit'),
+            'url' => Url::fromRoute('nfr.review_submit'),
+            'weight' => 4,
+          ],
+          [
+            'title' => $this->t('Confirmation'),
+            'url' => Url::fromRoute('nfr.confirmation'),
+            'weight' => 5,
+          ],
+        ],
+      ];
+
+      // Participant Dashboard
+      $menu['participant'] = [
+        'title' => $this->t('My Dashboard'),
+        'url' => Url::fromRoute('nfr.my_dashboard'),
+        'weight' => 2,
+        'children' => [
+          [
+            'title' => $this->t('Dashboard Home'),
+            'url' => Url::fromRoute('nfr.my_dashboard'),
+            'weight' => 0,
+          ],
+          [
+            'title' => $this->t('Follow-Up Survey'),
+            'url' => Url::fromRoute('nfr.follow_up'),
+            'weight' => 1,
+          ],
+        ],
+      ];
+    }
+
+    // Documentation
+    $menu['documentation'] = [
+      'title' => $this->t('Documentation'),
+      'url' => Url::fromRoute('nfr.documentation'),
+      'weight' => 3,
+      'children' => [
+        [
+          'title' => $this->t('Documentation Home'),
+          'url' => Url::fromRoute('nfr.documentation'),
+          'weight' => 0,
+        ],
+        [
+          'title' => $this->t('Business Requirements'),
+          'url' => Url::fromRoute('nfr.documentation.business_requirements'),
+          'weight' => 1,
+        ],
+        [
+          'title' => $this->t('User Roles & Flows'),
+          'url' => Url::fromRoute('nfr.documentation.user_roles'),
+          'weight' => 2,
+        ],
+        [
+          'title' => $this->t('Page Specifications'),
+          'url' => Url::fromRoute('nfr.documentation.page_specs'),
+          'weight' => 3,
+        ],
+        [
+          'title' => $this->t('NFR Protocol (CDC)'),
+          'url' => Url::fromRoute('nfr.documentation.protocol'),
+          'weight' => 4,
+        ],
+        [
+          'title' => $this->t('User Profile Form (CDC)'),
+          'url' => Url::fromRoute('nfr.documentation.user_profile'),
+          'weight' => 5,
+        ],
+        [
+          'title' => $this->t('Questionnaire (CDC)'),
+          'url' => Url::fromRoute('nfr.documentation.questionnaire'),
+          'weight' => 6,
+        ],
+        [
+          'title' => $this->t('System Architecture'),
+          'url' => Url::fromRoute('nfr.documentation.architecture'),
+          'weight' => 7,
+        ],
+        [
+          'title' => $this->t('Installation Guide'),
+          'url' => Url::fromRoute('nfr.documentation.installation'),
+          'weight' => 8,
+        ],
+        [
+          'title' => $this->t('Drupal 11 Compliance'),
+          'url' => Url::fromRoute('nfr.documentation.compliance'),
+          'weight' => 9,
+        ],
+      ],
+    ];
+
+    // Admin Pages
+    if ($is_admin) {
+      $admin_children = [
+        [
+          'title' => $this->t('Admin Dashboard'),
+          'url' => Url::fromRoute('nfr.admin_dashboard'),
+          'weight' => 0,
+        ],
+        [
+          'title' => $this->t('Participant Management'),
+          'url' => Url::fromRoute('nfr.admin_participants'),
+          'weight' => 1,
+        ],
+        [
+          'title' => $this->t('Cancer Registry Linkage'),
+          'url' => Url::fromRoute('nfr.admin_linkage'),
+          'weight' => 2,
+        ],
+        [
+          'title' => $this->t('Data Quality Monitor'),
+          'url' => Url::fromRoute('nfr.admin_data_quality'),
+          'weight' => 3,
+        ],
+        [
+          'title' => $this->t('User Support Issues'),
+          'url' => Url::fromRoute('nfr.admin_issues'),
+          'weight' => 5,
+        ],
+        [
+          'title' => $this->t('System Settings'),
+          'url' => Url::fromRoute('nfr.admin_settings'),
+          'weight' => 6,
+        ],
+        [
+          'title' => $this->t('Validation Dashboard'),
+          'url' => Url::fromRoute('nfr.validation'),
+          'weight' => 7,
+        ],
+      ];
+
+      if ($can_view_reports || $is_admin) {
+        $admin_children[] = [
+          'title' => $this->t('Report Builder'),
+          'url' => Url::fromRoute('nfr.admin_reports'),
+          'weight' => 4,
+        ];
+      }
+
+      $menu['admin'] = [
+        'title' => $this->t('Administration'),
+        'url' => Url::fromRoute('nfr.admin_dashboard'),
+        'weight' => 4,
+        'children' => $admin_children,
+      ];
+    }
+
+    // Sort children by weight
+    foreach ($menu as &$item) {
+      if (!empty($item['children'])) {
+        usort($item['children'], fn($a, $b) => $a['weight'] <=> $b['weight']);
+      }
+    }
+
+    // Sort top level by weight
+    uasort($menu, fn($a, $b) => $a['weight'] <=> $b['weight']);
+
+    return $menu;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheMaxAge() {
+    return 0; // Don't cache to ensure permission checks are current
+  }
+
+}

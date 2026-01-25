@@ -1,0 +1,52 @@
+/**
+ * NFR Navigation Menu Styles
+ * Uses Forseti theme + Bootstrap 5 classes
+ */
+
+.nfr-navigation-menu {
+  /* Menu container styling handled by Forseti card-forseti class */
+}
+
+.nfr-navigation-menu .nav {
+  /* Bootstrap nav classes handle structure */
+}
+
+.nfr-navigation-menu .nav-link {
+  padding: 0.75rem 1rem;
+  color: inherit;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.nfr-navigation-menu .nav-link:hover {
+  background-color: rgba(0, 212, 255, 0.1);
+  border-left-color: #00d4ff;
+}
+
+.nfr-navigation-menu .nav-link.active {
+  background-color: rgba(0, 212, 255, 0.15);
+  border-left-color: #00d4ff;
+  font-weight: 600;
+}
+
+.nfr-navigation-menu .nav-item.parent > .nav-link {
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 1rem;
+}
+
+.nfr-navigation-menu .nav-children {
+  padding-left: 1.5rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.nfr-navigation-menu .nav-children .nav-link {
+  font-size: 0.95rem;
+  padding: 0.5rem 1rem;
+}
+
+.nfr-navigation-menu .nav-divider {
+  margin: 0.5rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}

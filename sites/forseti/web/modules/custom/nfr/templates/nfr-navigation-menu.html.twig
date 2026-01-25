@@ -1,0 +1,42 @@
+{#
+/**
+ * @file
+ * Theme implementation for NFR navigation menu.
+ *
+ * Available variables:
+ * - menu_items: Array of menu items with structure:
+ *   - title: Menu item title
+ *   - url: URL object for the menu link
+ *   - children: Array of child menu items
+ *   - weight: Weight for sorting
+ */
+#}
+<nav class="nfr-navigation-menu">
+  <div class="card card-forseti">
+    <div class="card-body p-0">
+      <ul class="nav flex-column">
+        {% for key, item in menu_items %}
+          <li class="nav-item {% if item.children %}parent{% endif %}">
+            <a href="{{ item.url }}" class="nav-link">
+              {{ item.title }}
+            </a>
+            {% if item.children %}
+              <ul class="nav flex-column nav-children">
+                {% for child in item.children %}
+                  <li class="nav-item">
+                    <a href="{{ child.url }}" class="nav-link">
+                      {{ child.title }}
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </li>
+          {% if not loop.last %}
+            <li class="nav-divider"></li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</nav>

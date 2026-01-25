@@ -20,6 +20,116 @@ function nfr_uninstall() {
 }
 
 /**
+ * Add missing timestamp columns to normalized work history tables.
+ */
+function nfr_update_9003() {
+  $schema = \Drupal::database()->schema();
+  
+  // Add created and updated to nfr_incident_frequency
+  if (!$schema->fieldExists('nfr_incident_frequency', 'created')) {
+    $schema->addField('nfr_incident_frequency', 'created', [
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Timestamp when record was created',
+    ]);
+  }
+  
+  if (!$schema->fieldExists('nfr_incident_frequency', 'updated')) {
+    $schema->addField('nfr_incident_frequency', 'updated', [
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Timestamp when record was last updated',
+    ]);
+  }
+  
+  // Add updated to nfr_job_titles (created already exists)
+  if (!$schema->fieldExists('nfr_job_titles', 'updated')) {
+    $schema->addField('nfr_job_titles', 'updated', [
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Timestamp when record was last updated',
+    ]);
+  }
+  
+  return t('Added timestamp columns to work history tables.');
+}
+
+/**
+ * Remove generic data JSON column now that we use normalized tables and specific JSON columns.
+ */
+function nfr_update_9004() {
+  $schema = \Drupal::database()->schema();
+  
+  // Drop the generic 'data' column from nfr_questionnaire
+  if ($schema->fieldExists('nfr_questionnaire', 'data')) {
+    $schema->dropField('nfr_questionnaire', 'data');
+  }
+  
+  return t('Removed generic data JSON column from nfr_questionnaire table.');
+}
+
+/**
+ * Add last_section_completed column to track questionnaire progress.
+ */
+function nfr_update_9002() {
+  $schema = \Drupal::database()->schema();
+  
+  if (!$schema->fieldExists('nfr_questionnaire', 'last_section_completed')) {
+    $schema->addField('nfr_questionnaire', 'last_section_completed', [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Last section number completed (0-9)',
+    ]);
+  }
+  
+  return t('Added last_section_completed column to track questionnaire progress.');
+}
+
+/**
+ * Add missing demographics columns to nfr_questionnaire table.
+ */
+function nfr_update_9001() {
+  $schema = \Drupal::database()->schema();
+  
+  // Add race_other column
+  if (!$schema->fieldExists('nfr_questionnaire', 'race_other')) {
+    $schema->addField('nfr_questionnaire', 'race_other', [
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => FALSE,
+      'description' => 'Other race/ethnicity specification',
+    ]);
+  }
+  
+  // Add education_level column
+  if (!$schema->fieldExists('nfr_questionnaire', 'education_level')) {
+    $schema->addField('nfr_questionnaire', 'education_level', [
+      'type' => 'varchar',
+      'length' => 50,
+      'not null' => FALSE,
+      'description' => 'Highest education level completed',
+    ]);
+  }
+  
+  // Add marital_status column
+  if (!$schema->fieldExists('nfr_questionnaire', 'marital_status')) {
+    $schema->addField('nfr_questionnaire', 'marital_status', [
+      'type' => 'varchar',
+      'length' => 50,
+      'not null' => FALSE,
+      'description' => 'Current marital status',
+    ]);
+  }
+  
+  return t('Added missing demographics columns to nfr_questionnaire table.');
+}
+
+/**
  * Implements hook_schema().
  */
 function nfr_schema() {
@@ -304,6 +414,11 @@ function nfr_schema() {
         'not null' => TRUE,
         'default' => 0,
       ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
     ],
     'primary key' => ['id'],
     'indexes' => [
@@ -334,6 +449,16 @@ function nfr_schema() {
         'length' => 50,
         'not null' => FALSE,
         'description' => 'never, <1/year, 1-5/year, etc.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
       ],
     ],
     'primary key' => ['id'],
@@ -412,6 +537,24 @@ function nfr_schema() {
         'not null' => FALSE,
         'description' => 'JSON array of selected races/ethnicities',
       ],
+      'race_other' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Other race/ethnicity specification',
+      ],
+      'education_level' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => FALSE,
+        'description' => 'Highest education level completed',
+      ],
+      'marital_status' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => FALSE,
+        'description' => 'Current marital status',
+      ],
       'height_inches' => [
         'type' => 'int',
         'not null' => FALSE,
@@ -488,6 +631,13 @@ function nfr_schema() {
         'not null' => FALSE,
       ],
       // Completion tracking
+      'last_section_completed' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Last section number completed (0-9)',
+      ],
       'questionnaire_completed' => [
         'type' => 'int',
         'size' => 'tiny',

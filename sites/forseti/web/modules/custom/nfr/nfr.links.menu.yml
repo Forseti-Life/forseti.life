@@ -12,9 +12,3 @@ nfr.admin_settings:
   description: 'Configure National Firefighter Registry settings'
   weight: 10
 
-nfr.documentation_menu:
-  title: 'NFR Documentation'
-  route_name: nfr.documentation
-  menu_name: main
-  description: 'NFR project documentation and resources'
-  weight: 50

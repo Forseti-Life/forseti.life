@@ -18,23 +18,61 @@ class NFRPublicController extends ControllerBase {
    *   Render array.
    */
   public function home(): array {
-    // If user is logged in, redirect to welcome page
-    if ($this->currentUser()->isAuthenticated()) {
-      return new \Symfony\Component\HttpFoundation\RedirectResponse(
-        \Drupal\Core\Url::fromRoute('nfr.welcome')->toString()
-      );
+    $current_user = $this->currentUser();
+    $user_storage = $this->entityTypeManager()->getStorage('user');
+    
+    // Build role-specific welcome links
+    $role_links = [];
+    
+    if ($current_user->isAuthenticated()) {
+      $user = $user_storage->load($current_user->id());
+      $roles = $user->getRoles(TRUE); // Exclude 'authenticated'
+      
+      // Determine primary role and redirect
+      if (in_array('nfr_administrator', $roles)) {
+        $role_links['primary'] = [
+          'title' => 'Administrator Dashboard',
+          'url' => '/admin/nfr',
+          'description' => 'Manage participants, monitor data quality, and oversee registry operations.',
+        ];
+      }
+      elseif (in_array('nfr_researcher', $roles)) {
+        $role_links['primary'] = [
+          'title' => 'Research Dashboard',
+          'url' => '/admin/nfr/reports',
+          'description' => 'Access research reports and export de-identified data.',
+        ];
+      }
+      elseif (in_array('fire_dept_admin', $roles)) {
+        $role_links['primary'] = [
+          'title' => 'Department Dashboard',
+          'url' => '/nfr/firefighters',
+          'description' => 'View your department\'s participation and enrollment status.',
+        ];
+      }
+      else {
+        // Firefighter or authenticated user
+        $role_links['primary'] = [
+          'title' => 'My Dashboard',
+          'url' => '/nfr/my-dashboard',
+          'description' => 'View your enrollment status and manage your profile.',
+        ];
+      }
+      
+      // Common links for all authenticated users
+      $role_links['enrollment'] = [
+        'title' => 'Start Enrollment',
+        'url' => '/nfr/welcome',
+        'description' => 'Begin or continue your NFR enrollment process.',
+      ];
     }
 
     return [
-      '#theme' => 'nfr_public_page',
-      '#page_id' => 'home',
-      '#content' => [
-        'hero' => [
-          '#markup' => '<div class="nfr-hero"><h1>National Firefighter Registry</h1><p>Help advance cancer research for firefighters.</p><a href="/user/register" class="btn btn-primary">Register Now</a><a href="/user/login" class="btn btn-secondary">Log In</a></div>',
-        ],
-        'intro' => [
-          '#markup' => '<p>The National Firefighter Registry is a research initiative to better understand cancer among firefighters.</p>',
-        ],
+      '#theme' => 'nfr_home_page',
+      '#authenticated' => $current_user->isAuthenticated(),
+      '#role_links' => $role_links,
+      '#attached' => [
+        'library' => ['nfr/home'],
       ],
     ];
   }

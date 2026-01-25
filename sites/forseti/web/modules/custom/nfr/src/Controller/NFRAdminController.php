@@ -138,66 +138,74 @@ class NFRAdminController extends ControllerBase {
    * Build admin dashboard HTML.
    */
   private function buildAdminDashboard(array $stats, array $recent): string {
-    $html = '<div class="admin-dashboard">';
+    $html = '<div class="container-fluid my-4">';
     
     // Header
-    $html .= '<div class="admin-header">';
-    $html .= '<h1>' . $this->t('NFR Administration Dashboard') . '</h1>';
-    $html .= '<p class="admin-subtitle">' . $this->t('National Firefighter Registry Management System') . '</p>';
-    $html .= '</div>';
+    $html .= '<div class="card card-forseti mb-4">';
+    $html .= '<div class="card-body text-center py-4">';
+    $html .= '<h1 class="display-6">' . $this->t('NFR Administration Dashboard') . '</h1>';
+    $html .= '<p class="lead text-muted-light">' . $this->t('National Firefighter Registry Management System') . '</p>';
+    $html .= '</div></div>';
 
     // Key metrics
-    $html .= '<div class="metrics-grid">';
+    $html .= '<div class="row g-4 mb-4">';
     
     // Total participants
-    $html .= '<div class="metric-card metric-card--primary">';
-    $html .= '<div class="metric-icon">👥</div>';
-    $html .= '<div class="metric-content">';
-    $html .= '<div class="metric-value">' . number_format($stats['total_participants']) . '</div>';
-    $html .= '<div class="metric-label">' . $this->t('Total Participants') . '</div>';
-    $html .= '<div class="metric-change">+' . $stats['new_today'] . ' ' . $this->t('today') . '</div>';
-    $html .= '</div></div>';
+    $html .= '<div class="col-lg-3 col-md-6">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body text-center">';
+    $html .= '<div class="display-4 mb-2">👥</div>';
+    $html .= '<div class="display-5 fw-bold text-cyan">' . number_format($stats['total_participants']) . '</div>';
+    $html .= '<div class="text-muted-light mt-2">' . $this->t('Total Participants') . '</div>';
+    $html .= '<div class="small text-success mt-2">+' . $stats['new_today'] . ' ' . $this->t('today') . '</div>';
+    $html .= '</div></div></div>';
     
     // Enrollment this month
-    $html .= '<div class="metric-card metric-card--success">';
-    $html .= '<div class="metric-icon">📈</div>';
-    $html .= '<div class="metric-content">';
-    $html .= '<div class="metric-value">' . number_format($stats['new_this_month']) . '</div>';
-    $html .= '<div class="metric-label">' . $this->t('Enrolled This Month') . '</div>';
-    $html .= '<div class="metric-change">' . $this->t('January 2026') . '</div>';
-    $html .= '</div></div>';
+    $html .= '<div class="col-lg-3 col-md-6">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body text-center">';
+    $html .= '<div class="display-4 mb-2">📈</div>';
+    $html .= '<div class="display-5 fw-bold text-success">' . number_format($stats['new_this_month']) . '</div>';
+    $html .= '<div class="text-muted-light mt-2">' . $this->t('Enrolled This Month') . '</div>';
+    $html .= '<div class="small text-muted mt-2">' . $this->t('January 2026') . '</div>';
+    $html .= '</div></div></div>';
     
     // Completion rates
-    $html .= '<div class="metric-card metric-card--info">';
-    $html .= '<div class="metric-icon">✓</div>';
-    $html .= '<div class="metric-content">';
-    $html .= '<div class="metric-value">' . $stats['questionnaire_completion_rate'] . '%</div>';
-    $html .= '<div class="metric-label">' . $this->t('Questionnaire Completion') . '</div>';
-    $html .= '<div class="metric-change">' . $this->t('Profile: @rate%', ['@rate' => $stats['profile_completion_rate']]) . '</div>';
-    $html .= '</div></div>';
+    $html .= '<div class="col-lg-3 col-md-6">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body text-center">';
+    $html .= '<div class="display-4 mb-2">✓</div>';
+    $html .= '<div class="display-5 fw-bold text-info">' . $stats['questionnaire_completion_rate'] . '%</div>';
+    $html .= '<div class="text-muted-light mt-2">' . $this->t('Questionnaire Completion') . '</div>';
+    $html .= '<div class="small text-muted mt-2">' . $this->t('Profile: @rate%', ['@rate' => $stats['profile_completion_rate']]) . '</div>';
+    $html .= '</div></div></div>';
     
     // Linkage status
-    $html .= '<div class="metric-card metric-card--warning">';
-    $html .= '<div class="metric-icon">🔗</div>';
-    $html .= '<div class="metric-content">';
-    $html .= '<div class="metric-value">' . $stats['linkage_consent_rate'] . '%</div>';
-    $html .= '<div class="metric-label">' . $this->t('Linkage Consent Rate') . '</div>';
-    $html .= '<div class="metric-change">' . number_format($stats['linkage_consents']) . ' ' . $this->t('consented') . '</div>';
-    $html .= '</div></div>';
+    $html .= '<div class="col-lg-3 col-md-6">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body text-center">';
+    $html .= '<div class="display-4 mb-2">🔗</div>';
+    $html .= '<div class="display-5 fw-bold text-warning">' . $stats['linkage_consent_rate'] . '%</div>';
+    $html .= '<div class="text-muted-light mt-2">' . $this->t('Linkage Consent Rate') . '</div>';
+    $html .= '<div class="small text-muted mt-2">' . number_format($stats['linkage_consents']) . ' ' . $this->t('consented') . '</div>';
+    $html .= '</div></div></div>';
     
-    $html .= '</div>'; // .metrics-grid
+    $html .= '</div>'; // .row
 
     // Main content area
-    $html .= '<div class="admin-content-grid">';
+    $html .= '<div class="row g-4">';
     
     // Left column
-    $html .= '<div class="admin-main-content">';
+    $html .= '<div class="col-lg-8">';
     
     // Recent participants
-    $html .= '<div class="admin-widget">';
-    $html .= '<h2>' . $this->t('Recent Registrations') . '</h2>';
-    $html .= '<div class="recent-participants-table">';
-    $html .= '<table>';
+    $html .= '<div class="card card-forseti mb-4">';
+    $html .= '<div class="card-header">';
+    $html .= '<h2 class="h5 mb-0">' . $this->t('Recent Registrations') . '</h2>';
+    $html .= '</div>';
+    $html .= '<div class="card-body p-0">';
+    $html .= '<div class="table-responsive">';
+    $html .= '<table class="table table-hover mb-0">';
     $html .= '<thead><tr>';
     $html .= '<th>' . $this->t('Participant ID') . '</th>';
     $html .= '<th>' . $this->t('Name') . '</th>';
@@ -208,52 +216,58 @@ class NFRAdminController extends ControllerBase {
     
     foreach ($recent as $participant) {
       $html .= '<tr>';
-      $html .= '<td><a href="/admin/nfr/participant/' . htmlspecialchars($participant['participant_id']) . '">' . 
+      $html .= '<td><a href="/admin/nfr/participant/' . htmlspecialchars($participant['participant_id']) . '" class="text-cyan">' . 
         htmlspecialchars($participant['participant_id']) . '</a></td>';
       $html .= '<td>' . htmlspecialchars($participant['first_name'] . ' ' . $participant['last_name']) . '</td>';
       $html .= '<td>' . htmlspecialchars($participant['state'] ?? 'N/A') . '</td>';
       $html .= '<td>' . date('M j, Y', $participant['created']) . '</td>';
-      $html .= '<td><span class="status-badge status-' . ($participant['profile_completed'] ? 'complete' : 'pending') . '">' . 
+      $html .= '<td><span class="badge ' . ($participant['profile_completed'] ? 'bg-success' : 'bg-warning') . '">' . 
         ($participant['profile_completed'] ? $this->t('Complete') : $this->t('Pending')) . '</span></td>';
       $html .= '</tr>';
     }
     
     $html .= '</tbody></table>';
-    $html .= '</div>'; // table wrapper
-    $html .= '<a href="/admin/nfr/participants" class="view-all-link">' . $this->t('View All Participants →') . '</a>';
-    $html .= '</div>'; // .admin-widget
+    $html .= '</div></div>'; // table-responsive, card-body
+    $html .= '<div class="card-footer text-center">';
+    $html .= '<a href="/admin/nfr/participants" class="btn btn-outline-primary btn-sm">' . $this->t('View All Participants →') . '</a>';
+    $html .= '</div></div>'; // card-footer, card
 
     // Quick actions
-    $html .= '<div class="admin-widget">';
-    $html .= '<h2>' . $this->t('Quick Actions') . '</h2>';
-    $html .= '<div class="admin-actions-grid">';
-    $html .= '<a href="/admin/nfr/participants" class="admin-action-button">';
-    $html .= '<div class="action-icon">📋</div>';
-    $html .= '<div class="action-text">' . $this->t('View All Participants') . '</div>';
-    $html .= '</a>';
-    $html .= '<a href="/admin/nfr/linkage" class="admin-action-button">';
-    $html .= '<div class="action-icon">🔗</div>';
-    $html .= '<div class="action-text">' . $this->t('Process Linkage') . '</div>';
-    $html .= '</a>';
-    $html .= '<a href="/admin/nfr/data-quality" class="admin-action-button">';
-    $html .= '<div class="action-icon">📊</div>';
-    $html .= '<div class="action-text">' . $this->t('Data Quality') . '</div>';
-    $html .= '</a>';
-    $html .= '<a href="/admin/nfr/reports" class="admin-action-button">';
-    $html .= '<div class="action-icon">📄</div>';
-    $html .= '<div class="action-text">' . $this->t('Generate Reports') . '</div>';
-    $html .= '</a>';
-    $html .= '</div></div>';
+    $html .= '<div class="card card-forseti">';
+    $html .= '<div class="card-header">';
+    $html .= '<h2 class="h5 mb-0">' . $this->t('Quick Actions') . '</h2>';
+    $html .= '</div>';
+    $html .= '<div class="card-body">';
+    $html .= '<div class="row g-3">';
+    $html .= '<div class="col-md-6">';
+    $html .= '<a href="/admin/nfr/participants" class="btn btn-cyan w-100 d-flex align-items-center justify-content-center py-3">';
+    $html .= '<span class="me-2">📋</span>' . $this->t('View All Participants');
+    $html .= '</a></div>';
+    $html .= '<div class="col-md-6">';
+    $html .= '<a href="/admin/nfr/linkage" class="btn btn-cyan w-100 d-flex align-items-center justify-content-center py-3">';
+    $html .= '<span class="me-2">🔗</span>' . $this->t('Process Linkage');
+    $html .= '</a></div>';
+    $html .= '<div class="col-md-6">';
+    $html .= '<a href="/admin/nfr/data-quality" class="btn btn-cyan w-100 d-flex align-items-center justify-content-center py-3">';
+    $html .= '<span class="me-2">📊</span>' . $this->t('Data Quality');
+    $html .= '</a></div>';
+    $html .= '<div class="col-md-6">';
+    $html .= '<a href="/admin/nfr/reports" class="btn btn-cyan w-100 d-flex align-items-center justify-content-center py-3">';
+    $html .= '<span class="me-2">📄</span>' . $this->t('Generate Reports');
+    $html .= '</a></div>';
+    $html .= '</div></div></div>';
     
-    $html .= '</div>'; // .admin-main-content
+    $html .= '</div>'; // col-lg-8
     
     // Right sidebar
-    $html .= '<div class="admin-sidebar">';
+    $html .= '<div class="col-lg-4">';
     
     // State distribution
-    $html .= '<div class="admin-widget">';
-    $html .= '<h3>' . $this->t('Top States') . '</h3>';
-    $html .= '<div class="state-distribution">';
+    $html .= '<div class="card card-forseti">';
+    $html .= '<div class="card-header">';
+    $html .= '<h3 class="h6 mb-0">' . $this->t('Top States') . '</h3>';
+    $html .= '</div>';
+    $html .= '<div class="card-body">';
     
     if (!empty($stats['state_distribution'])) {
       $state_counts = [];
@@ -267,55 +281,60 @@ class NFRAdminController extends ControllerBase {
       
       foreach ($top_states as $state => $count) {
         $percentage = $stats['total_participants'] > 0 ? round(($count / $stats['total_participants']) * 100, 1) : 0;
-        $html .= '<div class="state-item">';
-        $html .= '<div class="state-info">';
-        $html .= '<span class="state-name">' . htmlspecialchars($state) . '</span>';
-        $html .= '<span class="state-count">' . number_format($count) . '</span>';
+        $html .= '<div class="mb-3">';
+        $html .= '<div class="d-flex justify-content-between mb-1">';
+        $html .= '<span class="fw-bold">' . htmlspecialchars($state) . '</span>';
+        $html .= '<span class="text-muted-light">' . number_format($count) . '</span>';
         $html .= '</div>';
-        $html .= '<div class="state-bar">';
-        $html .= '<div class="state-bar-fill" style="width: ' . $percentage . '%"></div>';
-        $html .= '</div>';
-        $html .= '</div>';
+        $html .= '<div class="progress" style="height: 8px;">';
+        $html .= '<div class="progress-bar bg-cyan" style="width: ' . $percentage . '%"></div>';
+        $html .= '</div></div>';
       }
     }
     else {
-      $html .= '<p class="no-data">' . $this->t('No state data yet') . '</p>';
+      $html .= '<p class="text-muted-light">' . $this->t('No state data yet') . '</p>';
     }
     
     $html .= '</div></div>';
     
     // System status
-    $html .= '<div class="admin-widget">';
-    $html .= '<h3>' . $this->t('System Status') . '</h3>';
-    $html .= '<div class="system-status">';
-    $html .= '<div class="status-item status-item--good">';
-    $html .= '<span class="status-indicator"></span>';
-    $html .= '<span class="status-text">' . $this->t('Database: Operational') . '</span>';
+    $html .= '<div class="card card-forseti mt-4">';
+    $html .= '<div class="card-header">';
+    $html .= '<h3 class="h6 mb-0">' . $this->t('System Status') . '</h3>';
     $html .= '</div>';
-    $html .= '<div class="status-item status-item--good">';
-    $html .= '<span class="status-indicator"></span>';
-    $html .= '<span class="status-text">' . $this->t('Email Service: Active') . '</span>';
+    $html .= '<div class="card-body">';
+    $html .= '<div class="list-group list-group-flush">';
+    $html .= '<div class="list-group-item bg-transparent d-flex align-items-center">';
+    $html .= '<span class="badge bg-success rounded-circle me-2" style="width: 12px; height: 12px; padding: 0;"></span>';
+    $html .= '<span>' . $this->t('Database: Operational') . '</span>';
     $html .= '</div>';
-    $html .= '<div class="status-item status-item--good">';
-    $html .= '<span class="status-indicator"></span>';
-    $html .= '<span class="status-text">' . $this->t('Backups: Up to date') . '</span>';
+    $html .= '<div class="list-group-item bg-transparent d-flex align-items-center">';
+    $html .= '<span class="badge bg-success rounded-circle me-2" style="width: 12px; height: 12px; padding: 0;"></span>';
+    $html .= '<span>' . $this->t('Email Service: Active') . '</span>';
     $html .= '</div>';
-    $html .= '</div></div>';
+    $html .= '<div class="list-group-item bg-transparent d-flex align-items-center">';
+    $html .= '<span class="badge bg-success rounded-circle me-2" style="width: 12px; height: 12px; padding: 0;"></span>';
+    $html .= '<span>' . $this->t('Backups: Up to date') . '</span>';
+    $html .= '</div>';
+    $html .= '</div></div></div>';
     
     // Links
-    $html .= '<div class="admin-widget">';
-    $html .= '<h3>' . $this->t('Resources') . '</h3>';
-    $html .= '<ul class="admin-resource-links">';
-    $html .= '<li><a href="/admin/nfr/settings">' . $this->t('System Settings') . '</a></li>';
-    $html .= '<li><a href="/admin/nfr/issues">' . $this->t('Support Issues') . '</a></li>';
-    $html .= '<li><a href="/nfr/documentation">' . $this->t('Documentation') . '</a></li>';
-    $html .= '<li><a href="/admin/reports">' . $this->t('System Reports') . '</a></li>';
-    $html .= '</ul></div>';
+    $html .= '<div class="card card-forseti mt-4">';
+    $html .= '<div class="card-header">';
+    $html .= '<h3 class="h6 mb-0">' . $this->t('Resources') . '</h3>';
+    $html .= '</div>';
+    $html .= '<div class="card-body p-0">';
+    $html .= '<div class="list-group list-group-flush">';
+    $html .= '<a href="/admin/nfr/settings" class="list-group-item list-group-item-action bg-transparent">' . $this->t('System Settings') . '</a>';
+    $html .= '<a href="/admin/nfr/issues" class="list-group-item list-group-item-action bg-transparent">' . $this->t('Support Issues') . '</a>';
+    $html .= '<a href="/nfr/documentation" class="list-group-item list-group-item-action bg-transparent">' . $this->t('Documentation') . '</a>';
+    $html .= '<a href="/admin/reports" class="list-group-item list-group-item-action bg-transparent">' . $this->t('System Reports') . '</a>';
+    $html .= '</div></div></div>';
     
-    $html .= '</div>'; // .admin-sidebar
+    $html .= '</div>'; // col-lg-4
     
-    $html .= '</div>'; // .admin-content-grid
-    $html .= '</div>'; // .admin-dashboard
+    $html .= '</div>'; // row
+    $html .= '</div>'; // container-fluid
 
     return $html;
   }

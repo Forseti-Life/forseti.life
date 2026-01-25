@@ -1,17 +1,20 @@
-<div class="nfr-dashboard-page nfr-page-{{ page_id }}">
-  <div class="nfr-container">
-    <aside class="dashboard-sidebar">
-      <nav class="dashboard-nav">
-        <ul>
-          <li><a href="/nfr/my-dashboard">Dashboard</a></li>
-          <li><a href="/nfr/my-profile">My Profile</a></li>
-          <li><a href="/nfr/follow-up">Follow-Up Surveys</a></li>
-          <li><a href="/nfr/settings">Settings</a></li>
-        </ul>
-      </nav>
+<div class="container-fluid my-4">
+  <div class="row">
+    <aside class="col-lg-3 col-md-4 mb-4">
+      <div class="card card-forseti">
+        <div class="card-body">
+          <h5 class="card-title mb-3">Participant Dashboard</h5>
+          <nav class="nav flex-column">
+            <a class="nav-link" href="/nfr/my-dashboard">Dashboard</a>
+            <a class="nav-link" href="/nfr/my-profile">My Profile</a>
+            <a class="nav-link" href="/nfr/follow-up">Follow-Up Surveys</a>
+            <a class="nav-link" href="/nfr/settings">Settings</a>
+          </nav>
+        </div>
+      </div>
     </aside>
     
-    <main class="dashboard-main">
+    <main class="col-lg-9 col-md-8">
       {{ content }}
     </main>
   </div>

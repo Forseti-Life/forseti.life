@@ -69,9 +69,54 @@
   border-left-color: #c41230;
 }
 
-.doc-item h3,
+.doc-item .doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.doc-item h3 {
+  flex: 1;
+  margin: 0;
+}
+
 .doc-item h4 {
   margin: 0 0 12px 0;
+}
+
+.doc-item h3,
+.doc-item h4 {
+  font-weight: 600;
+}
+
+.doc-item .validation-status {
+  margin-left: 20px;
+  white-space: nowrap;
+}
+
+.doc-item .validation-status .badge {
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+}
+
+.doc-item .status-details {
+  background: rgba(0, 113, 188, 0.05);
+  border-left: 3px solid #0071bc;
+  padding: 12px 16px;
+  margin: 12px 0;
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+.doc-item .progress {
+  height: 24px;
+  margin-top: 12px;
+  background-color: #e9ecef;
+}
+
+.doc-item .progress-bar {
+  font-size: 0.875rem;
   font-weight: 600;
 }
 

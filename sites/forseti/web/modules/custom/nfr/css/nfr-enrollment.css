@@ -101,13 +101,266 @@
   color: #dc3545;
 }
 
-/* Questionnaire Styles */
-.questionnaire-progress {
-  background: #f8f9fa;
-  padding: 1.5rem;
-  border-radius: 8px;
+/* Questionnaire Process Flow Stepper */
+.nfr-process-stepper {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  padding: 2rem;
+  border-radius: 12px;
   margin-bottom: 2rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  border: 1px solid #dee2e6;
+}
+
+.stepper-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.stepper-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.stepper-progress {
+  font-size: 1rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.stepper-steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.stepper-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  flex: 1;
+  z-index: 1;
+}
+
+.step-number {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #e9ecef;
+  border: 3px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #6c757d;
+  margin-bottom: 0.75rem;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.step-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6c757d;
+  text-align: center;
+  max-width: 100px;
+  line-height: 1.2;
+  transition: color 0.3s ease;
+}
+
+.step-connector {
+  position: absolute;
+  top: 24px;
+  left: calc(50% + 24px);
+  right: calc(-50% + 24px);
+  height: 3px;
+  background: #dee2e6;
+  z-index: 0;
+  transition: background 0.3s ease;
+}
+
+/* Completed step */
+.stepper-step.completed .step-number {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  border-color: #28a745;
+  color: white;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.stepper-step.completed .step-label {
+  color: #28a745;
+  font-weight: 700;
+}
+
+.stepper-step.completed .step-connector {
+  background: linear-gradient(90deg, #28a745, #20c997);
+}
+
+.step-check {
+  width: 24px;
+  height: 24px;
+  fill: white;
+}
+
+/* Active step */
+.stepper-step.active .step-number {
+  background: linear-gradient(135deg, #007bff, #00b8ff);
+  border-color: #007bff;
+  color: white;
+  box-shadow: 0 4px 16px rgba(0, 123, 255, 0.4);
+  animation: pulse-ring 2s ease-in-out infinite;
+}
+
+.stepper-step.active .step-label {
+  color: #007bff;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+@keyframes pulse-ring {
+  0%, 100% {
+    box-shadow: 0 4px 16px rgba(0, 123, 255, 0.4), 0 0 0 0 rgba(0, 123, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(0, 123, 255, 0.4), 0 0 0 10px rgba(0, 123, 255, 0);
+  }
+}
+
+/* Upcoming step */
+.stepper-step.upcoming .step-number {
+  background: white;
+  border-color: #dee2e6;
+  color: #adb5bd;
+}
+
+.stepper-step.upcoming .step-label {
+  color: #adb5bd;
+}
+
+/* Step link wrapper for clickable steps */
+.step-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Hover effects for clickable steps */
+.stepper-step.clickable {
+  cursor: pointer;
+}
+
+.stepper-step.clickable .step-link:hover .step-number {
+  transform: scale(1.15);
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.5);
+}
+
+.stepper-step.completed.clickable .step-link:hover .step-number {
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.5);
+  transform: scale(1.15);
+}
+
+.stepper-step.clickable .step-link:hover .step-label {
+  color: #007bff;
+  font-weight: 700;
+}
+
+.stepper-step.completed.clickable .step-link:hover .step-label {
+  color: #28a745;
+}
+
+.stepper-step.active.clickable .step-link:hover .step-label {
+  color: #0056b3;
+}
+
+/* Remove old hover effects that are now redundant */
+.stepper-step.completed:hover .step-number,
+.stepper-step.active:hover .step-number {
+  cursor: pointer;
+  transform: scale(1.1);
+}
+
+.stepper-step.completed:hover .step-label,
+.stepper-step.active:hover .step-label {
+  cursor: pointer;
+}
+
+/* Hide navigation buttons (they're triggered via JavaScript) */
+.section-nav-buttons {
+  display: none;
+}
+
+/* Responsive design */
+@media (max-width: 992px) {
+  .stepper-steps {
+    flex-wrap: wrap;
+  }
+  
+  .stepper-step {
+    min-width: 80px;
+    margin-bottom: 1.5rem;
+  }
+  
+  .step-label {
+    font-size: 0.75rem;
+    max-width: 80px;
+  }
+  
+  .step-number {
+    width: 40px;
+    height: 40px;
+    font-size: 0.95rem;
+  }
+  
+  .step-connector {
+    top: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .nfr-process-stepper {
+    padding: 1.5rem 1rem;
+  }
+  
+  .stepper-title {
+    font-size: 1.25rem;
+  }
+  
+  .stepper-progress {
+    font-size: 0.875rem;
+  }
+  
+  .stepper-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem 1rem;
+  }
+  
+  .step-connector {
+    display: none;
+  }
+  
+  .step-label {
+    max-width: 100%;
+  }
+}
+
+/* Old progress bar styles - kept for backwards compatibility */
+.questionnaire-progress {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  border: 2px solid #dee2e6;
 }
 
 .questionnaire-progress .progress-text {
@@ -120,16 +373,86 @@
 
 .questionnaire-progress .progress-bar {
   background: #e9ecef;
-  height: 12px;
-  border-radius: 6px;
+  height: 28px;
+  border-radius: 14px;
   overflow: hidden;
   position: relative;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+  border: 2px solid #dee2e6;
 }
 
 .questionnaire-progress .progress-fill {
-  background: linear-gradient(90deg, #0056b3, #007bff);
+  background: linear-gradient(90deg, #0056b3, #007bff, #00b8ff);
+  background-size: 200% 100%;
   height: 100%;
-  transition: width 0.3s ease;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: shimmer 2s ease-in-out infinite;
+  box-shadow: 0 0 15px rgba(0, 123, 255, 0.5);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.questionnaire-progress .progress-fill::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: slide 2s ease-in-out infinite;
+}
+
+@keyframes slide {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 200%;
+  }
+}
+
+.questionnaire-progress .progress-label {
+  position: relative;
+  z-index: 1;
+  color: white;
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  letter-spacing: 0.5px;
+}
+
+.questionnaire-progress .progress-fill:hover {
+  animation: shimmer 1s ease-in-out infinite, pulse-grow 0.8s ease-in-out infinite;
+  box-shadow: 0 0 25px rgba(0, 123, 255, 0.8);
+}
+
+@keyframes pulse-grow {
+  0%, 100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.05);
+  }
 }
 
 #nfr-questionnaire-form .form-item {

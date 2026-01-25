@@ -88,6 +88,31 @@ class ForsetiHomeController extends ControllerBase {
     // Add the interactive safety map
     $build['safety_map'] = $this->getSafetyMapContent();
 
+    // Add NFR card
+    $build['nfr_card'] = [
+      '#type' => 'markup',
+      '#markup' => '
+        <div class="container my-5">
+          <div class="row justify-content-center">
+            <div class="col-lg-8">
+              <div class="card card-forseti">
+                <div class="card-body text-center py-5">
+                  <div class="display-4 mb-3">🚒</div>
+                  <h2 class="h3 mb-3">National Firefighter Registry</h2>
+                  <p class="lead text-muted-light mb-4">
+                    Access real-time cancer surveillance data and health statistics from the CDC National Firefighter Registry program.
+                  </p>
+                  <a href="/nfr/data" class="btn btn-cyan btn-lg">
+                    View Public Statistics
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ',
+    ];
+
     return $build;
   }
 

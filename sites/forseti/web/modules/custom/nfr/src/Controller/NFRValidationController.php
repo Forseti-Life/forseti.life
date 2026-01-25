@@ -1,0 +1,2985 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\nfr\Controller;
+
+use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Routing\RouteProviderInterface;
+use Drupal\Core\Session\AccountSwitcherInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
+use Drupal\Component\Render\FormattableMarkup;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
+
+/**
+ * Controller for NFR validation and testing.
+ */
+class NFRValidationController extends ControllerBase {
+
+  /**
+   * Constructs the controller.
+   */
+  public function __construct(
+    private readonly RouteProviderInterface $routeProvider,
+    private readonly AccountSwitcherInterface $accountSwitcher,
+    private readonly HttpKernelInterface $httpKernel,
+  ) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container): static {
+    return new static(
+      $container->get('router.route_provider'),
+      $container->get('account_switcher'),
+      $container->get('http_kernel'),
+    );
+  }
+
+  /**
+   * Validation dashboard page.
+   *
+   * @return array
+   *   Render array.
+   */
+  public function validationDashboard(): array {
+    $nfr_routes = $this->getNFRRoutes();
+    $test_users = $this->getTestUsers();
+
+    return [
+      '#markup' => new FormattableMarkup($this->buildValidationDashboard($nfr_routes, $test_users), []),
+      '#attached' => [
+        'library' => ['nfr/validation'],
+      ],
+    ];
+  }
+
+  /**
+   * Get all NFR routes.
+   */
+  private function getNFRRoutes(): array {
+    $routes = [];
+    
+    // Get all routes
+    $all_routes = $this->routeProvider->getAllRoutes();
+    
+    foreach ($all_routes as $route_name => $route) {
+      // Filter only NFR routes
+      if (str_starts_with($route_name, 'nfr.')) {
+        $path = $route->getPath();
+        $requirements = $route->getRequirements();
+        $permission = $requirements['_permission'] ?? null;
+        $logged_in = isset($requirements['_user_is_logged_in']);
+        
+        $routes[$route_name] = [
+          'name' => $route_name,
+          'path' => $path,
+          'permission' => $permission,
+          'requires_login' => $logged_in,
+          'title' => $route->getDefault('_title') ?? 'No title',
+        ];
+      }
+    }
+    
+    // Sort by path
+    usort($routes, fn($a, $b) => strcmp($a['path'], $b['path']));
+    
+    return $routes;
+  }
+
+  /**
+   * Get test users.
+   */
+  private function getTestUsers(): array {
+    return [
+      'anonymous' => [
+        'uid' => 0,
+        'name' => 'Anonymous',
+        'label' => 'Anonymous User',
+      ],
+      'firefighter_active' => [
+        'uid' => 2,
+        'name' => 'firefighter_active',
+        'label' => 'Firefighter (Active)',
+      ],
+      'firefighter_retired' => [
+        'uid' => 3,
+        'name' => 'firefighter_retired',
+        'label' => 'Firefighter (Retired)',
+      ],
+      'nfr_admin' => [
+        'uid' => 4,
+        'name' => 'nfr_admin',
+        'label' => 'NFR Administrator',
+      ],
+      'nfr_researcher' => [
+        'uid' => 5,
+        'name' => 'nfr_researcher',
+        'label' => 'NFR Researcher',
+      ],
+      'dept_admin' => [
+        'uid' => 6,
+        'name' => 'dept_admin',
+        'label' => 'Fire Dept Admin',
+      ],
+    ];
+  }
+
+  /**
+   * Build validation dashboard HTML.
+   */
+  private function buildValidationDashboard(array $routes, array $users): string {
+    $html = '<div class="validation-dashboard">';
+    
+    // Header
+    $html .= '<div class="validation-header">';
+    $html .= '<h1>' . $this->t('NFR Validation Dashboard') . '</h1>';
+    $html .= '<p class="validation-subtitle">' . 
+      $this->t('Test all NFR routes with different user permissions') . '</p>';
+    $html .= '<p><a href="/nfr/validation/fill-rates" class="btn btn-outline-info">📊 View Fill Rates Report</a></p>';
+    $html .= '</div>';
+
+    // Questionnaire Test Section
+    $html .= '<div class="questionnaire-test-section card card-forseti mb-4">';
+    $html .= '<h2>🧪 Questionnaire Data Flow Test</h2>';
+    $html .= '<p>Test the complete questionnaire flow with sample data and verify database storage.</p>';
+    $html .= '<div class="test-controls">';
+    $html .= '<button id="test-questionnaire-flow" class="btn btn-cyan btn-large">';
+    $html .= '📝 Run Questionnaire Test</button>';
+    $html .= '<button id="verify-questionnaire-data" class="btn btn-outline-primary">';
+    $html .= '✓ Verify Database</button>';
+    $html .= '<button id="clear-test-data" class="btn btn-outline-secondary">';
+    $html .= '🗑️ Clear Test Data</button>';
+    $html .= '</div>';
+    $html .= '<div id="questionnaire-test-results" class="test-results mt-3"></div>';
+    $html .= '</div>';
+
+    // Full Enrollment Flow Test Section
+    $html .= '<div class="enrollment-flow-test-section card card-forseti mb-4">';
+    $html .= '<h2>🚀 Complete Enrollment Flow Tests</h2>';
+    $html .= '<p>Test entire enrollment process (Profile + Questionnaire) with different data patterns and check for system errors.</p>';
+    $html .= '<div class="test-controls">';
+    $html .= '<button id="test-full-enrollment" class="btn btn-primary btn-large">';
+    $html .= '🎲 Run Full Enrollment Test (Random Data)</button>';
+    $html .= '<button id="test-max-values" class="btn btn-success btn-large">';
+    $html .= '⬆️ Max Values Test (Yes to All)</button>';
+    $html .= '<button id="test-min-values" class="btn btn-info btn-large">';
+    $html .= '⬇️ Min Values Test (No to All)</button>';
+    $html .= '<button id="test-yes-minimal" class="btn btn-warning btn-large">';
+    $html .= '✔️ Yes + Minimal Values Test</button>';
+    $html .= '<button id="check-error-logs" class="btn btn-outline-warning">';
+    $html .= '⚠️ Check Error Logs</button>';
+    $html .= '</div>';
+    $html .= '<div id="enrollment-flow-results" class="test-results mt-3"></div>';
+    $html .= '</div>';
+
+    // Test Users Management Section
+    $html .= '<div class="test-users-section card card-forseti mb-4">';
+    $html .= '<h2>👥 Test Users Management</h2>';
+    $html .= '<p>Create test users for different NFR roles: 5 of each role + 150 additional firefighters (170 total).</p>';
+    $html .= '<div class="test-controls">';
+    $html .= '<button id="create-test-users" class="btn btn-success btn-large">';
+    $html .= '➕ Create Test Users (170 users)</button>';
+    $html .= '<button id="submit-all-firefighters" class="btn btn-primary btn-large">';
+    $html .= '📋 Submit Questionnaires for All Firefighters</button>';
+    $html .= '<button id="view-fill-rates" class="btn btn-info btn-large">';
+    $html .= '📊 View Fill Rates</button>';
+    $html .= '<button id="delete-test-users" class="btn btn-danger">';
+    $html .= '🗑️ Delete All Test Users</button>';
+    $html .= '</div>';
+    $html .= '<div id="test-users-results" class="test-results mt-3"></div>';
+    $html .= '</div>';
+
+    // Summary stats
+    $html .= '<div class="validation-stats">';
+    $html .= '<div class="stat-box">';
+    $html .= '<div class="stat-value">' . count($routes) . '</div>';
+    $html .= '<div class="stat-label">' . $this->t('Total Routes') . '</div>';
+    $html .= '</div>';
+    $html .= '<div class="stat-box">';
+    $html .= '<div class="stat-value">' . count($users) . '</div>';
+    $html .= '<div class="stat-label">' . $this->t('Test Users') . '</div>';
+    $html .= '</div>';
+    $html .= '<div class="stat-box">';
+    $html .= '<div class="stat-value">' . (count($routes) * count($users)) . '</div>';
+    $html .= '<div class="stat-label">' . $this->t('Total Tests') . '</div>';
+    $html .= '</div>';
+    $html .= '</div>';
+
+    // Test all button
+    $html .= '<div class="validation-actions">';
+    $html .= '<button id="test-all-routes" class="btn btn-primary btn-large">' . 
+      $this->t('🧪 Run All Tests') . '</button>';
+    $html .= '<button id="clear-results" class="btn btn-secondary">' . 
+      $this->t('Clear Results') . '</button>';
+    $html .= '</div>';
+
+    // Routes table
+    $html .= '<div class="routes-table-wrapper">';
+    $html .= '<table class="validation-routes-table">';
+    $html .= '<thead><tr>';
+    $html .= '<th>' . $this->t('Route') . '</th>';
+    $html .= '<th>' . $this->t('Path') . '</th>';
+    $html .= '<th>' . $this->t('Permission') . '</th>';
+    $html .= '<th>' . $this->t('Login Required') . '</th>';
+    
+    // User columns
+    foreach ($users as $user) {
+      $html .= '<th class="user-test-column">' . htmlspecialchars($user['label']) . '</th>';
+    }
+    
+    $html .= '</tr></thead><tbody>';
+    
+    foreach ($routes as $route) {
+      $route_id = str_replace('.', '_', $route['name']);
+      
+      $html .= '<tr data-route="' . htmlspecialchars($route['name']) . '">';
+      $html .= '<td><code>' . htmlspecialchars($route['name']) . '</code></td>';
+      $html .= '<td><code>' . htmlspecialchars($route['path']) . '</code></td>';
+      $html .= '<td>' . ($route['permission'] ? '<code>' . htmlspecialchars($route['permission']) . '</code>' : '-') . '</td>';
+      $html .= '<td>' . ($route['requires_login'] ? '✓' : '-') . '</td>';
+      
+      // Test cells for each user
+      foreach ($users as $user_key => $user) {
+        $cell_id = $route_id . '_' . $user_key;
+        $html .= '<td class="test-cell" id="cell-' . $cell_id . '">';
+        $html .= '<button class="test-btn btn-mini" ';
+        $html .= 'data-route="' . htmlspecialchars($route['name']) . '" ';
+        $html .= 'data-path="' . htmlspecialchars($route['path']) . '" ';
+        $html .= 'data-uid="' . $user['uid'] . '" ';
+        $html .= 'data-user="' . htmlspecialchars($user['name']) . '">';
+        $html .= $this->t('Test') . '</button>';
+        $html .= '<div class="test-result" id="result-' . $cell_id . '"></div>';
+        $html .= '</td>';
+      }
+      
+      $html .= '</tr>';
+    }
+    
+    $html .= '</tbody></table>';
+    $html .= '</div>';
+
+    // Results summary
+    $html .= '<div id="test-summary" class="test-summary" style="display:none;">';
+    $html .= '<h3>' . $this->t('Test Results Summary') . '</h3>';
+    $html .= '<div id="summary-content"></div>';
+    $html .= '</div>';
+
+    $html .= '</div>'; // .validation-dashboard
+
+    return $html;
+  }
+
+  /**
+   * Test route access for specific user.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with test results.
+   */
+  public function testRoute(Request $request): JsonResponse {
+    $route_name = $request->query->get('route');
+    $path = $request->query->get('path');
+    $uid = (int) $request->query->get('uid');
+    
+    if (!$route_name || !$path) {
+      return new JsonResponse([
+        'success' => false,
+        'error' => 'Missing route or path parameter',
+      ], 400);
+    }
+
+    $result = $this->testRouteAccess($route_name, $path, $uid);
+    
+    return new JsonResponse($result);
+  }
+
+  /**
+   * Test route access for a specific user.
+   */
+  private function testRouteAccess(string $route_name, string $path, int $uid): array {
+    $result = [
+      'route' => $route_name,
+      'path' => $path,
+      'uid' => $uid,
+      'status_code' => null,
+      'access' => null,
+      'error' => null,
+    ];
+
+    try {
+      // Load user
+      if ($uid > 0) {
+        $user = \Drupal\user\Entity\User::load($uid);
+        if (!$user) {
+          $result['error'] = 'User not found';
+          return $result;
+        }
+      } else {
+        // Anonymous user
+        $user = \Drupal\user\Entity\User::getAnonymousUser();
+      }
+
+      // Switch to test user
+      $this->accountSwitcher->switchTo($user);
+
+      // Try to access the route
+      try {
+        $url = Url::fromRoute($route_name);
+        
+        // Check access
+        $access = $url->access($user);
+        $result['access'] = $access;
+        
+        if ($access) {
+          // Access granted - now try to actually render the route
+          try {
+            // Replace dynamic parameters with test values
+            $test_path = str_replace('{id}', '1', $path);
+            
+            // Create a subrequest to actually render the page
+            $request = Request::create($test_path, 'GET');
+            $response = $this->httpKernel->handle($request, HttpKernelInterface::SUB_REQUEST, FALSE);
+            
+            $status_code = $response->getStatusCode();
+            
+            if ($status_code === 200) {
+              $result['status_code'] = 200;
+              $result['status_text'] = 'OK - Page Rendered Successfully';
+              $result['class'] = 'success';
+            }
+            elseif ($status_code === 302 || $status_code === 303) {
+              // Redirects are valid responses (e.g., when enrollment incomplete)
+              $result['status_code'] = 200;
+              $result['status_text'] = 'OK - Redirected';
+              $result['class'] = 'success';
+            }
+            elseif ($status_code === 500) {
+              $result['status_code'] = 500;
+              $result['status_text'] = 'Error - Page Failed to Render';
+              $result['class'] = 'error';
+              $result['error'] = 'HTTP 500 - Internal Server Error';
+            }
+            else {
+              $result['status_code'] = $status_code;
+              $result['status_text'] = 'HTTP ' . $status_code;
+              $result['class'] = 'error';
+            }
+          }
+          catch (\TypeError $e) {
+            $result['status_code'] = 500;
+            $result['status_text'] = 'TypeError: ' . substr($e->getMessage(), 0, 100);
+            $result['class'] = 'error';
+            $result['error'] = 'TypeError: ' . $e->getMessage();
+          }
+          catch (\Exception $e) {
+            $result['status_code'] = 500;
+            $result['status_text'] = 'Error: ' . substr($e->getMessage(), 0, 100);
+            $result['class'] = 'error';
+            $result['error'] = $e->getMessage();
+          }
+        } else {
+          $result['status_code'] = 403;
+          $result['status_text'] = 'Forbidden - Access Denied';
+          $result['class'] = 'forbidden';
+        }
+      } catch (\Exception $e) {
+        $result['status_code'] = 500;
+        $result['status_text'] = 'Error: ' . $e->getMessage();
+        $result['class'] = 'error';
+        $result['error'] = $e->getMessage();
+      }
+
+      // Switch back to original user
+      $this->accountSwitcher->switchBack();
+
+    } catch (\Exception $e) {
+      $result['error'] = $e->getMessage();
+      $result['status_code'] = 500;
+      $result['status_text'] = 'Error: ' . $e->getMessage();
+      $result['class'] = 'error';
+    }
+
+    return $result;
+  }
+
+  /**
+   * Test questionnaire data flow.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with test results.
+   */
+  public function testQuestionnaireFlow(): JsonResponse {
+    $results = [
+      'success' => true,
+      'steps' => [],
+      'errors' => [],
+    ];
+
+    try {
+      $test_uid = 2; // firefighter_active test user
+      
+      // Step 1: Create test user if doesn't exist
+      $user = \Drupal\user\Entity\User::load($test_uid);
+      if (!$user) {
+        $results['errors'][] = "Test user (UID: $test_uid) not found";
+        $results['success'] = false;
+        return new JsonResponse($results);
+      }
+
+      $results['steps'][] = [
+        'step' => 'User Check',
+        'status' => 'success',
+        'message' => "Test user loaded: {$user->getAccountName()}",
+      ];
+
+      // Step 2: Generate and save test questionnaire data
+      $test_data = $this->generateTestQuestionnaireData($test_uid);
+      
+      $results['steps'][] = [
+        'step' => 'Data Generation',
+        'status' => 'success',
+        'message' => 'Generated test data for all 9 sections',
+        'data' => $test_data,
+      ];
+
+      // Step 3: Save to database
+      $save_result = $this->saveTestQuestionnaireData($test_uid, $test_data);
+      
+      $results['steps'][] = [
+        'step' => 'Database Insert',
+        'status' => $save_result['success'] ? 'success' : 'error',
+        'message' => $save_result['message'],
+        'record_id' => $save_result['record_id'] ?? null,
+      ];
+
+      // Step 4: Verify data
+      $verification = $this->verifyQuestionnaireData($test_uid);
+      
+      $results['steps'][] = [
+        'step' => 'Data Verification',
+        'status' => $verification['success'] ? 'success' : 'error',
+        'message' => $verification['message'],
+        'verified_fields' => $verification['fields'] ?? [],
+      ];
+
+      $results['success'] = $save_result['success'] && $verification['success'];
+
+    } catch (\Exception $e) {
+      $results['success'] = false;
+      $results['errors'][] = $e->getMessage();
+    }
+
+    return new JsonResponse($results);
+  }
+
+  /**
+   * Generate test questionnaire data.
+   */
+  private function generateTestQuestionnaireData(int $uid): array {
+    return [
+      'demographics' => [
+        'race_ethnicity' => ['white', 'hispanic'],
+        'race_other' => '',
+        'education_level' => 'bachelor',
+        'height_inches' => 72,
+        'weight_pounds' => 185,
+      ],
+      'work_history' => [
+        'departments' => [
+          [
+            'department_name' => 'Test City Fire Department',
+            'department_fdid' => '12345',
+            'department_state' => 'CA',
+            'department_city' => 'Test City',
+            'start_date' => '2010-06-01',
+            'end_date' => '',
+            'is_current' => 1,
+            'job_titles' => [
+              [
+                'job_title' => 'Firefighter',
+                'employment_type' => 'career',
+                'start_date' => '2010-06-01',
+                'end_date' => '2015-05-31',
+                'responded_to_incidents' => 1,
+              ],
+              [
+                'job_title' => 'Fire Captain',
+                'employment_type' => 'career',
+                'start_date' => '2015-06-01',
+                'end_date' => '',
+                'responded_to_incidents' => 1,
+              ],
+            ],
+          ],
+        ],
+      ],
+      'exposure' => [
+        'afff_exposure' => 1,
+        'afff_years' => 8,
+        'afff_frequency' => 'monthly',
+        'diesel_exposure' => 1,
+        'diesel_years' => 14,
+        'major_incidents' => [
+          [
+            'incident_type' => 'Hazmat',
+            'incident_date' => '2015-03-15',
+            'exposure_duration' => '6 hours',
+          ],
+        ],
+      ],
+      'military' => [
+        'military_service' => 1,
+        'military_branch' => 'Army',
+        'start_date' => '2006-01-01',
+        'end_date' => '2010-01-01',
+        'military_specialty' => 'Combat Engineer',
+        'deployment_locations' => ['Iraq', 'Afghanistan'],
+        'exposures' => ['burn_pits', 'diesel'],
+      ],
+      'other_employment' => [
+        'jobs' => [
+          [
+            'employer' => 'Construction Company',
+            'job_title' => 'Carpenter',
+            'start_date' => '2004-01-01',
+            'end_date' => '2006-01-01',
+            'exposures' => ['asbestos', 'wood_dust'],
+          ],
+        ],
+      ],
+      'ppe' => [
+        'scba_usage' => 'always',
+        'glove_usage' => 'always',
+        'hood_usage' => 'usually',
+        'turnout_cleaning' => 'after_every_fire',
+      ],
+      'decontamination' => [
+        'field_decon' => 1,
+        'station_decon' => 1,
+        'shower_after_fire' => 'always',
+        'gear_drying' => 'dedicated_area',
+      ],
+      'health' => [
+        'cancer_diagnosis' => 0,
+        'cancer_details' => [],
+        'family_history' => [
+          [
+            'relation' => 'father',
+            'cancer_type' => 'lung',
+            'diagnosis_age' => 65,
+          ],
+        ],
+      ],
+      'lifestyle' => [
+        'smoking_status' => 'never',
+        'alcohol_use' => 'occasional',
+        'exercise_frequency' => '3-5_per_week',
+      ],
+    ];
+  }
+
+  /**
+   * Save test questionnaire data to database.
+   */
+  private function saveTestQuestionnaireData(int $uid, array $data): array {
+    try {
+      $database = \Drupal::database();
+
+      // Check if record exists
+      $exists = $database->select('nfr_questionnaire', 'q')
+        ->fields('q', ['id'])
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchField();
+
+      $fields = [
+        'race_ethnicity' => json_encode($data['demographics']['race_ethnicity']),
+        'height_inches' => $data['demographics']['height_inches'],
+        'weight_pounds' => $data['demographics']['weight_pounds'],
+        'military_service' => $data['military']['military_service'],
+        'military_branch' => $data['military']['military_branch'],
+        'military_years' => 4,
+        'other_employment_data' => json_encode($data['other_employment']),
+        'ppe_practices' => json_encode($data['ppe']),
+        'decon_practices' => json_encode($data['decontamination']),
+        'cancer_diagnosis' => $data['health']['cancer_diagnosis'],
+        'cancer_details' => json_encode($data['health']['cancer_details']),
+        'family_cancer_history' => json_encode($data['health']['family_history']),
+        'smoking_history' => json_encode($data['lifestyle']),
+        'alcohol_use' => $data['lifestyle']['alcohol_use'],
+        'questionnaire_completed' => 1,
+        'questionnaire_completed_date' => time(),
+        'updated' => time(),
+      ];
+
+      if ($exists) {
+        $database->update('nfr_questionnaire')
+          ->fields($fields)
+          ->condition('uid', $uid)
+          ->execute();
+
+        return [
+          'success' => true,
+          'message' => 'Test data updated successfully',
+          'record_id' => $exists,
+        ];
+      }
+      else {
+        $fields['uid'] = $uid;
+        $fields['created'] = time();
+        
+        $record_id = $database->insert('nfr_questionnaire')
+          ->fields($fields)
+          ->execute();
+
+        return [
+          'success' => true,
+          'message' => 'Test data inserted successfully',
+          'record_id' => $record_id,
+        ];
+      }
+    }
+    catch (\Exception $e) {
+      return [
+        'success' => false,
+        'message' => 'Database error: ' . $e->getMessage(),
+      ];
+    }
+  }
+
+  /**
+   * Verify questionnaire data in database.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with verification results.
+   */
+  public function verifyQuestionnaireDatabase(): JsonResponse {
+    $test_uid = 2;
+    $results = $this->verifyQuestionnaireData($test_uid);
+    return new JsonResponse($results);
+  }
+
+  /**
+   * Verify questionnaire data for a user.
+   */
+  private function verifyQuestionnaireData(int $uid): array {
+    try {
+      $database = \Drupal::database();
+
+      $record = $database->select('nfr_questionnaire', 'q')
+        ->fields('q')
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchAssoc();
+
+      if (!$record) {
+        return [
+          'success' => false,
+          'message' => "No questionnaire data found for UID: $uid",
+        ];
+      }
+
+      $verified_fields = [];
+      
+      // Verify demographics
+      if ($record['race_ethnicity']) {
+        $race_data = json_decode($record['race_ethnicity'], TRUE);
+        $verified_fields['race_ethnicity'] = [
+          'status' => 'success',
+          'value' => $race_data,
+        ];
+      }
+
+      if ($record['height_inches']) {
+        $verified_fields['height_inches'] = [
+          'status' => 'success',
+          'value' => $record['height_inches'] . ' inches',
+        ];
+      }
+
+      if ($record['weight_pounds']) {
+        $verified_fields['weight_pounds'] = [
+          'status' => 'success',
+          'value' => $record['weight_pounds'] . ' lbs',
+        ];
+      }
+
+      // Verify military service
+      if ($record['military_service']) {
+        $verified_fields['military_service'] = [
+          'status' => 'success',
+          'value' => "Branch: {$record['military_branch']}, Years: {$record['military_years']}",
+        ];
+      }
+
+      // Verify PPE practices
+      if ($record['ppe_practices']) {
+        $ppe_data = json_decode($record['ppe_practices'], TRUE);
+        $verified_fields['ppe_practices'] = [
+          'status' => 'success',
+          'value' => count($ppe_data) . ' practices recorded',
+        ];
+      }
+
+      // Verify decontamination
+      if ($record['decon_practices']) {
+        $decon_data = json_decode($record['decon_practices'], TRUE);
+        $verified_fields['decon_practices'] = [
+          'status' => 'success',
+          'value' => count($decon_data) . ' practices recorded',
+        ];
+      }
+
+      // Verify health info
+      $verified_fields['cancer_diagnosis'] = [
+        'status' => 'success',
+        'value' => $record['cancer_diagnosis'] ? 'Yes' : 'No',
+      ];
+
+      if ($record['family_cancer_history']) {
+        $family_data = json_decode($record['family_cancer_history'], TRUE);
+        $verified_fields['family_cancer_history'] = [
+          'status' => 'success',
+          'value' => count($family_data) . ' family members recorded',
+        ];
+      }
+
+      // Verify lifestyle
+      if ($record['smoking_history']) {
+        $smoking_data = json_decode($record['smoking_history'], TRUE);
+        $verified_fields['smoking_status'] = [
+          'status' => 'success',
+          'value' => $smoking_data['smoking_status'] ?? 'Unknown',
+        ];
+      }
+
+      $verified_fields['alcohol_use'] = [
+        'status' => 'success',
+        'value' => $record['alcohol_use'] ?? 'Not specified',
+      ];
+
+      // Verify completion
+      $verified_fields['questionnaire_completed'] = [
+        'status' => $record['questionnaire_completed'] ? 'success' : 'warning',
+        'value' => $record['questionnaire_completed'] ? 'Completed' : 'Incomplete',
+      ];
+
+      return [
+        'success' => true,
+        'message' => 'Verified ' . count($verified_fields) . ' fields in database',
+        'fields' => $verified_fields,
+        'record' => $record,
+      ];
+
+    }
+    catch (\Exception $e) {
+      return [
+        'success' => false,
+        'message' => 'Verification error: ' . $e->getMessage(),
+      ];
+    }
+  }
+
+  /**
+   * Clear test questionnaire data.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with clear results.
+   */
+  public function clearTestData(): JsonResponse {
+    try {
+      $test_uid = 2;
+      $database = \Drupal::database();
+
+      $deleted = $database->delete('nfr_questionnaire')
+        ->condition('uid', $test_uid)
+        ->execute();
+
+      return new JsonResponse([
+        'success' => true,
+        'message' => "Cleared test data for UID: $test_uid",
+        'rows_deleted' => $deleted,
+      ]);
+    }
+    catch (\Exception $e) {
+      return new JsonResponse([
+        'success' => false,
+        'message' => 'Error clearing data: ' . $e->getMessage(),
+      ], 500);
+    }
+  }
+
+  /**
+   * Test full enrollment flow with random data using actual form submissions.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with test results.
+   */
+  public function testFullEnrollmentFlow(): JsonResponse {
+    $results = [
+      'success' => true,
+      'steps' => [],
+      'errors' => [],
+      'warnings' => [],
+    ];
+
+    try {
+      $test_uid = 2; // firefighter_active test user
+      
+      // Step 1: Generate random user profile data
+      $profile_data = $this->generateRandomProfileData();
+      $results['steps'][] = [
+        'step' => 'Profile Data Generation',
+        'status' => 'success',
+        'message' => 'Generated random profile data',
+        'data' => $profile_data,
+      ];
+
+      // Step 2: Submit profile through actual form
+      $profile_result = $this->submitProfileForm($test_uid, $profile_data);
+      $results['steps'][] = [
+        'step' => 'Profile Form Submission',
+        'status' => $profile_result['success'] ? 'success' : 'error',
+        'message' => $profile_result['message'],
+        'errors' => $profile_result['errors'] ?? [],
+      ];
+
+      if (!$profile_result['success']) {
+        $results['success'] = false;
+        $results['errors'][] = 'Profile form submission failed: ' . $profile_result['message'];
+      }
+
+      // Step 3: Generate random questionnaire data
+      $questionnaire_data = $this->generateRandomQuestionnaireData($test_uid);
+      $results['steps'][] = [
+        'step' => 'Questionnaire Data Generation',
+        'status' => 'success',
+        'message' => 'Generated random questionnaire data for all 9 sections',
+      ];
+
+      // Step 4: Submit all 9 questionnaire sections through actual forms
+      $section_results = $this->submitAllQuestionnaireSections($test_uid, $questionnaire_data);
+      
+      foreach ($section_results as $section_num => $section_result) {
+        $results['steps'][] = [
+          'step' => "Section {$section_num} Form Submission",
+          'status' => $section_result['success'] ? 'success' : 'error',
+          'message' => $section_result['message'],
+          'errors' => $section_result['errors'] ?? [],
+        ];
+
+        if (!$section_result['success']) {
+          $results['success'] = false;
+          $results['errors'][] = "Section {$section_num} failed: " . $section_result['message'];
+        }
+      }
+
+      // Step 5: Check for errors in dblog
+      $log_check = $this->checkErrorLogs();
+      $results['steps'][] = [
+        'step' => 'Error Log Check',
+        'status' => $log_check['has_errors'] ? 'warning' : 'success',
+        'message' => $log_check['message'],
+        'error_count' => $log_check['error_count'],
+        'recent_errors' => $log_check['recent_errors'] ?? [],
+      ];
+
+      if ($log_check['has_errors']) {
+        $results['warnings'][] = 'Found ' . $log_check['error_count'] . ' recent errors in system logs';
+      }
+
+      // Step 6: Verify both profile and questionnaire data
+      $profile_verify = $this->verifyProfileData($test_uid);
+      $questionnaire_verify = $this->verifyQuestionnaireData($test_uid);
+      
+      $results['steps'][] = [
+        'step' => 'Data Verification',
+        'status' => ($profile_verify['success'] && $questionnaire_verify['success']) ? 'success' : 'error',
+        'message' => 'Profile: ' . $profile_verify['message'] . ' | Questionnaire: ' . $questionnaire_verify['message'],
+      ];
+
+    } catch (\Exception $e) {
+      $results['success'] = false;
+      $results['errors'][] = $e->getMessage();
+    }
+
+    return new JsonResponse($results);
+  }
+
+  /**
+   * Create test users for NFR roles.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with created users.
+   */
+  public function createTestUsers(): JsonResponse {
+    $results = [
+      'success' => true,
+      'users_created' => [],
+      'errors' => [],
+    ];
+
+    try {
+      $roles = [
+        'nfr_administrator' => 'NFR Administrator',
+        'nfr_researcher' => 'NFR Researcher',
+        'firefighter' => 'Firefighter',
+        'fire_dept_admin' => 'Fire Department Admin',
+      ];
+
+      // Create 5 users for each role
+      foreach ($roles as $role_id => $role_label) {
+        for ($i = 1; $i <= 5; $i++) {
+          $username = strtolower(str_replace(' ', '_', $role_label)) . '_' . $i;
+          $user = $this->createUser($username, $role_id, $role_label);
+          $results['users_created'][] = [
+            'uid' => $user->id(),
+            'username' => $username,
+            'role' => $role_label,
+            'email' => $user->getEmail(),
+          ];
+        }
+      }
+
+      // Create 150 additional firefighters
+      for ($i = 6; $i <= 155; $i++) {
+        $username = 'firefighter_' . $i;
+        $user = $this->createUser($username, 'firefighter', 'Firefighter');
+        $results['users_created'][] = [
+          'uid' => $user->id(),
+          'username' => $username,
+          'role' => 'Firefighter',
+          'email' => $user->getEmail(),
+        ];
+      }
+
+      $results['total_created'] = count($results['users_created']);
+      $results['summary'] = [
+        'nfr_administrators' => 5,
+        'nfr_researchers' => 5,
+        'fire_dept_admins' => 5,
+        'firefighters' => 155,
+        'total' => 170,
+      ];
+
+    } catch (\Exception $e) {
+      $results['success'] = false;
+      $results['errors'][] = $e->getMessage();
+    }
+
+    return new JsonResponse($results);
+  }
+
+  /**
+   * Create a single test user.
+   */
+  private function createUser(string $username, string $role_id, string $role_label): \Drupal\user\Entity\User {
+    // Check if user already exists
+    $existing = \Drupal::entityTypeManager()
+      ->getStorage('user')
+      ->loadByProperties(['name' => $username]);
+
+    if (!empty($existing)) {
+      return reset($existing);
+    }
+
+    // Generate realistic name
+    $first_names = ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Emily', 'Robert', 'Lisa', 'James', 'Mary', 
+                    'William', 'Patricia', 'Thomas', 'Jennifer', 'Charles', 'Linda', 'Daniel', 'Elizabeth'];
+    $last_names = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 
+                   'Martinez', 'Hernandez', 'Lopez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson'];
+
+    $first_name = $first_names[array_rand($first_names)];
+    $last_name = $last_names[array_rand($last_names)];
+
+    // Create user
+    $user = \Drupal\user\Entity\User::create([
+      'name' => $username,
+      'mail' => $username . '@test-nfr.org',
+      'pass' => 'TestPassword123!',
+      'status' => 1,
+      'field_first_name' => $first_name,
+      'field_last_name' => $last_name,
+    ]);
+
+    $user->addRole($role_id);
+    $user->save();
+
+    return $user;
+  }
+
+  /**
+   * Delete all test users.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with deletion results.
+   */
+  public function deleteTestUsers(): JsonResponse {
+    $results = [
+      'success' => true,
+      'users_deleted' => 0,
+      'errors' => [],
+    ];
+
+    try {
+      // Find all users with test email domain
+      $users = \Drupal::entityTypeManager()
+        ->getStorage('user')
+        ->loadByProperties(['mail' => '%@test-nfr.org']);
+
+      // Also find by username pattern
+      $database = \Drupal::database();
+      $uids = $database->query("
+        SELECT uid FROM {users_field_data} 
+        WHERE mail LIKE '%@test-nfr.org' 
+        OR name LIKE 'firefighter_%'
+        OR name LIKE 'nfr_administrator_%'
+        OR name LIKE 'nfr_researcher_%'
+        OR name LIKE 'fire_department_admin_%'
+      ")->fetchCol();
+
+      foreach ($uids as $uid) {
+        if ($uid > 2) { // Don't delete admin or test user
+          $user = \Drupal\user\Entity\User::load($uid);
+          if ($user) {
+            $user->delete();
+            $results['users_deleted']++;
+          }
+        }
+      }
+
+    } catch (\Exception $e) {
+      $results['success'] = false;
+      $results['errors'][] = $e->getMessage();
+    }
+
+    return new JsonResponse($results);
+  }
+
+  /**
+   * Submit questionnaires for all firefighter users.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with submission results.
+   */
+  public function submitAllFirefighterQuestionnaires(): JsonResponse {
+    $results = [
+      'success' => true,
+      'total_firefighters' => 0,
+      'successful_submissions' => 0,
+      'failed_submissions' => 0,
+      'user_results' => [],
+      'errors' => [],
+    ];
+
+    try {
+      // Get all firefighter users
+      $database = \Drupal::database();
+      $firefighter_uids = $database->query("
+        SELECT DISTINCT u.uid 
+        FROM {users_field_data} u
+        JOIN {user__roles} ur ON u.uid = ur.entity_id
+        WHERE ur.roles_target_id = 'firefighter'
+        AND u.uid > 2
+        ORDER BY u.uid
+      ")->fetchCol();
+
+      $results['total_firefighters'] = count($firefighter_uids);
+
+      foreach ($firefighter_uids as $uid) {
+        $uid = (int) $uid; // Cast to integer
+        $user = \Drupal\user\Entity\User::load($uid);
+        if (!$user) {
+          continue;
+        }
+
+        $username = $user->getAccountName();
+        
+        try {
+          // Generate random profile data
+          $profile_data = $this->generateRandomProfileData();
+          
+          // Submit profile
+          $profile_result = $this->submitProfileForm($uid, $profile_data);
+          
+          if (!$profile_result['success']) {
+            $results['failed_submissions']++;
+            $results['user_results'][] = [
+              'uid' => $uid,
+              'username' => $username,
+              'success' => false,
+              'error' => 'Profile submission failed: ' . $profile_result['message'],
+            ];
+            continue;
+          }
+
+          // Generate random questionnaire data
+          $questionnaire_data = $this->generateRandomQuestionnaireData($uid);
+          
+          // Submit all sections
+          $section_results = $this->submitAllQuestionnaireSections($uid, $questionnaire_data);
+          
+          // Check if all sections succeeded
+          $all_sections_passed = true;
+          foreach ($section_results as $section_result) {
+            if (!$section_result['success']) {
+              $all_sections_passed = false;
+              break;
+            }
+          }
+
+          if ($all_sections_passed) {
+            $results['successful_submissions']++;
+            $results['user_results'][] = [
+              'uid' => $uid,
+              'username' => $username,
+              'success' => true,
+              'sections_completed' => 9,
+            ];
+          } else {
+            $results['failed_submissions']++;
+            $results['user_results'][] = [
+              'uid' => $uid,
+              'username' => $username,
+              'success' => false,
+              'error' => 'One or more sections failed validation',
+            ];
+          }
+
+        } catch (\Exception $e) {
+          $results['failed_submissions']++;
+          $results['user_results'][] = [
+            'uid' => $uid,
+            'username' => $username,
+            'success' => false,
+            'error' => $e->getMessage(),
+          ];
+        }
+      }
+
+      $results['success'] = $results['failed_submissions'] === 0;
+      $results['success_rate'] = $results['total_firefighters'] > 0 
+        ? round(($results['successful_submissions'] / $results['total_firefighters']) * 100, 2)
+        : 0;
+
+    } catch (\Exception $e) {
+      $results['success'] = false;
+      $results['errors'][] = $e->getMessage();
+    }
+
+    return new JsonResponse($results);
+  }
+
+  /**
+   * Test enrollment with maximum values.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with test results.
+   */
+  public function testMaxValuesFlow(): JsonResponse {
+    return $this->runEnrollmentFlowTest('max', 'Maximum Values Test (Yes to everything, max values)');
+  }
+
+  /**
+   * Test enrollment with minimum values.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with test results.
+   */
+  public function testMinValuesFlow(): JsonResponse {
+    return $this->runEnrollmentFlowTest('min', 'Minimum Values Test (No to everything, min values)');
+  }
+
+  /**
+   * Test enrollment with yes answers but minimal values.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with test results.
+   */
+  public function testYesMinimalFlow(): JsonResponse {
+    return $this->runEnrollmentFlowTest('yes_minimal', 'Yes + Minimal Values Test');
+  }
+
+  /**
+   * Run enrollment flow test with specific data type.
+   */
+  private function runEnrollmentFlowTest(string $dataType, string $testName): JsonResponse {
+    $results = [
+      'success' => true,
+      'test_type' => $testName,
+      'steps' => [],
+      'errors' => [],
+      'warnings' => [],
+    ];
+
+    try {
+      $test_uid = 2;
+      
+      // Generate profile data based on type
+      $profile_data = $this->generateProfileData($dataType);
+      $results['steps'][] = [
+        'step' => 'Profile Data Generation',
+        'status' => 'success',
+        'message' => "Generated {$dataType} profile data",
+        'data' => $profile_data,
+      ];
+
+      // Submit profile
+      $profile_result = $this->submitProfileForm($test_uid, $profile_data);
+      $results['steps'][] = [
+        'step' => 'Profile Form Submission',
+        'status' => $profile_result['success'] ? 'success' : 'error',
+        'message' => $profile_result['message'],
+        'errors' => $profile_result['errors'] ?? [],
+      ];
+
+      if (!$profile_result['success']) {
+        $results['success'] = false;
+        $results['errors'][] = 'Profile form submission failed: ' . $profile_result['message'];
+      }
+
+      // Generate questionnaire data
+      $questionnaire_data = $this->generateQuestionnaireData($test_uid, $dataType);
+      $results['steps'][] = [
+        'step' => 'Questionnaire Data Generation',
+        'status' => 'success',
+        'message' => "Generated {$dataType} questionnaire data for all 9 sections",
+      ];
+
+      // Submit all sections
+      $section_results = $this->submitAllQuestionnaireSections($test_uid, $questionnaire_data);
+      
+      foreach ($section_results as $section_num => $section_result) {
+        $results['steps'][] = [
+          'step' => "Section {$section_num} Form Submission",
+          'status' => $section_result['success'] ? 'success' : 'error',
+          'message' => $section_result['message'],
+          'errors' => $section_result['errors'] ?? [],
+        ];
+
+        if (!$section_result['success']) {
+          $results['success'] = false;
+          $results['errors'][] = "Section {$section_num} failed: " . $section_result['message'];
+        }
+      }
+
+      // Data verification
+      $profile_verify = $this->verifyProfileData($test_uid);
+      $questionnaire_verify = $this->verifyQuestionnaireData($test_uid);
+      
+      $results['steps'][] = [
+        'step' => 'Data Verification',
+        'status' => ($profile_verify['success'] && $questionnaire_verify['success']) ? 'success' : 'error',
+        'message' => 'Profile: ' . $profile_verify['message'] . ' | Questionnaire: ' . $questionnaire_verify['message'],
+      ];
+
+    } catch (\Exception $e) {
+      $results['success'] = false;
+      $results['errors'][] = $e->getMessage();
+    }
+
+    return new JsonResponse($results);
+  }
+
+  /**
+   * Generate profile data based on type.
+   */
+  private function generateProfileData(string $type): array {
+    $base_data = [
+      'first_name' => 'Test',
+      'middle_name' => 'T',
+      'last_name' => 'User',
+      'date_of_birth' => '1980-01-15',
+      'sex' => 'male',
+      'ssn_last_4' => '1234',
+      'country_of_birth' => 'USA',
+      'state_of_birth' => 'CA',
+      'city_of_birth' => 'TestCity',
+      'address_line1' => '123 Test St',
+      'city' => 'TestCity',
+      'state' => 'CA',
+      'zip_code' => '12345',
+      'mobile_phone' => '(555) 123-4567',
+      'current_work_status' => 'active',
+    ];
+
+    if ($type === 'max') {
+      $base_data['date_of_birth'] = '1960-01-01'; // Oldest allowed
+    }
+    elseif ($type === 'min') {
+      $base_data['date_of_birth'] = '2005-01-01'; // Youngest allowed
+      $base_data['current_work_status'] = 'retired';
+    }
+
+    return $base_data;
+  }
+
+  /**
+   * Generate questionnaire data based on type.
+   */
+  private function generateQuestionnaireData(int $uid, string $type): array {
+    if ($type === 'max') {
+      return $this->generateMaxValuesData();
+    }
+    elseif ($type === 'min') {
+      return $this->generateMinValuesData();
+    }
+    elseif ($type === 'yes_minimal') {
+      return $this->generateYesMinimalData();
+    }
+    else {
+      return $this->generateRandomQuestionnaireData($uid);
+    }
+  }
+
+  /**
+   * Generate maximum values data (yes to everything, max values).
+   */
+  private function generateMaxValuesData(): array {
+    return [
+      'demographics' => [
+        'race_ethnicity' => ['white', 'black', 'asian', 'hispanic', 'american_indian'],
+        'education_level' => 'graduate',
+        'marital_status' => 'married',
+        'height_inches' => 78,
+        'weight_pounds' => 260,
+      ],
+      'work_history' => [
+        'departments' => [
+          [
+            'department_name' => 'Maximum Test Fire Department',
+            'department_fdid' => '99999',
+            'department_state' => 'CA',
+            'department_city' => 'Los Angeles',
+            'start_date' => '1980-01-01',
+            'end_date' => '',
+            'is_current' => 1,
+            'job_titles' => [
+              [
+                'job_title' => 'Fire Chief',
+                'employment_type' => 'career',
+                'start_date' => '1980-01-01',
+                'end_date' => '',
+                'responded_to_incidents' => 1,
+              ],
+            ],
+          ],
+        ],
+      ],
+      'exposure' => [
+        'afff_used' => 'yes',
+        'afff_years' => 20,
+        'afff_frequency' => 'weekly',
+        'diesel_exhaust' => 'regularly',
+        'diesel_years' => 25,
+        'major_incidents' => 'yes',
+      ],
+      'military' => [
+        'served' => 'yes',
+        'branch' => 'marines',
+        'start_date' => '1978-01-01',
+        'end_date' => '1980-01-01',
+        'military_specialty' => 'Infantry',
+        'deployment_locations' => [],
+        'exposures' => [],
+      ],
+      'other_employment' => ['jobs' => []],
+      'ppe' => [
+        'scba_usage' => 'always',
+        'glove_usage' => 'always',
+        'hood_usage' => 'always',
+        'turnout_cleaning' => 'after_every_fire',
+      ],
+      'decontamination' => [
+        'field_decon' => 1,
+        'station_decon' => 1,
+        'shower_after_fire' => 'always',
+        'gear_drying' => 'dedicated_area',
+      ],
+      'health' => [
+        'cancer_diagnosis' => 0,
+        'cancer_details' => [],
+        'family_history' => [],
+      ],
+      'lifestyle' => [
+        'smoking_status' => 'current',
+        'alcohol_frequency' => '5_plus_per_week',
+        'physical_activity_days' => 7,
+      ],
+    ];
+  }
+
+  /**
+   * Generate minimum values data (no to everything, min values).
+   */
+  private function generateMinValuesData(): array {
+    return [
+      'demographics' => [
+        'race_ethnicity' => ['white'],
+        'education_level' => 'hs_ged',
+        'marital_status' => 'single',
+        'height_inches' => 60,
+        'weight_pounds' => 140,
+      ],
+      'work_history' => [
+        'departments' => [
+          [
+            'department_name' => 'Minimal Test Fire Department',
+            'department_fdid' => '10000',
+            'department_state' => 'CA',
+            'department_city' => 'TestCity',
+            'start_date' => '2020-01-01',
+            'end_date' => '',
+            'is_current' => 1,
+            'job_titles' => [
+              [
+                'job_title' => 'Firefighter',
+                'employment_type' => 'volunteer',
+                'start_date' => '2020-01-01',
+                'end_date' => '',
+                'responded_to_incidents' => 1,
+              ],
+            ],
+          ],
+        ],
+      ],
+      'exposure' => [
+        'afff_used' => 'no',
+        'afff_years' => 0,
+        'afff_frequency' => 'never',
+        'diesel_exhaust' => 'never',
+        'diesel_years' => 0,
+        'major_incidents' => 'no',
+      ],
+      'military' => [
+        'served' => 'no',
+        'branch' => '',
+        'start_date' => '',
+        'end_date' => '',
+        'military_specialty' => '',
+        'deployment_locations' => [],
+        'exposures' => [],
+      ],
+      'other_employment' => ['jobs' => []],
+      'ppe' => [
+        'scba_usage' => 'rarely',
+        'glove_usage' => 'sometimes',
+        'hood_usage' => 'sometimes',
+        'turnout_cleaning' => 'monthly',
+      ],
+      'decontamination' => [
+        'field_decon' => 0,
+        'station_decon' => 0,
+        'shower_after_fire' => 'sometimes',
+        'gear_drying' => 'outside',
+      ],
+      'health' => [
+        'cancer_diagnosis' => 0,
+        'cancer_details' => [],
+        'family_history' => [],
+      ],
+      'lifestyle' => [
+        'smoking_status' => 'never',
+        'alcohol_frequency' => 'never',
+        'physical_activity_days' => 0,
+      ],
+    ];
+  }
+
+  /**
+   * Generate yes + minimal values data.
+   */
+  private function generateYesMinimalData(): array {
+    return [
+      'demographics' => [
+        'race_ethnicity' => ['white'],
+        'education_level' => 'hs_ged',
+        'marital_status' => 'single',
+        'height_inches' => 60,
+        'weight_pounds' => 140,
+      ],
+      'work_history' => [
+        'departments' => [
+          [
+            'department_name' => 'Yes Minimal Fire Department',
+            'department_fdid' => '50000',
+            'department_state' => 'CA',
+            'department_city' => 'TestCity',
+            'start_date' => '2020-01-01',
+            'end_date' => '',
+            'is_current' => 1,
+            'job_titles' => [
+              [
+                'job_title' => 'Firefighter',
+                'employment_type' => 'career',
+                'start_date' => '2020-01-01',
+                'end_date' => '',
+                'responded_to_incidents' => 1,
+              ],
+            ],
+          ],
+        ],
+      ],
+      'exposure' => [
+        'afff_used' => 'yes',
+        'afff_years' => 1,
+        'afff_frequency' => 'rarely',
+        'diesel_exhaust' => 'rarely',
+        'diesel_years' => 1,
+        'major_incidents' => 'yes',
+      ],
+      'military' => [
+        'served' => 'yes',
+        'branch' => 'army',
+        'start_date' => '2018-01-01',
+        'end_date' => '2020-01-01',
+        'military_specialty' => 'Infantry',
+        'deployment_locations' => [],
+        'exposures' => [],
+      ],
+      'other_employment' => ['jobs' => []],
+      'ppe' => [
+        'scba_usage' => 'sometimes',
+        'glove_usage' => 'sometimes',
+        'hood_usage' => 'sometimes',
+        'turnout_cleaning' => 'weekly',
+      ],
+      'decontamination' => [
+        'field_decon' => 1,
+        'station_decon' => 1,
+        'shower_after_fire' => 'sometimes',
+        'gear_drying' => 'living_area',
+      ],
+      'health' => [
+        'cancer_diagnosis' => 0,
+        'cancer_details' => [],
+        'family_history' => [],
+      ],
+      'lifestyle' => [
+        'smoking_status' => 'former',
+        'alcohol_frequency' => 'less_than_monthly',
+        'physical_activity_days' => 1,
+      ],
+    ];
+  }
+
+  /**
+   * Generate random profile data.
+   */
+  private function generateRandomProfileData(): array {
+    $first_names = ['John', 'Michael', 'David', 'James', 'Robert', 'William', 'Sarah', 'Jennifer', 'Maria', 'Lisa'];
+    $last_names = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
+    $states = ['CA', 'TX', 'FL', 'NY', 'PA', 'IL', 'OH', 'GA', 'NC', 'MI'];
+    $cities = ['Springfield', 'Franklin', 'Clinton', 'Madison', 'Georgetown', 'Arlington', 'Salem', 'Fairview', 'Bristol', 'Riverside'];
+    
+    return [
+      'first_name' => $first_names[array_rand($first_names)],
+      'middle_name' => chr(65 + rand(0, 25)),
+      'last_name' => $last_names[array_rand($last_names)],
+      'date_of_birth' => sprintf('%04d-%02d-%02d', rand(1960, 1995), rand(1, 12), rand(1, 28)),
+      'sex' => ['male', 'female'][rand(0, 1)],
+      'ssn_last_4' => sprintf('%04d', rand(1000, 9999)),
+      'country_of_birth' => 'USA',
+      'state_of_birth' => $states[array_rand($states)],
+      'city_of_birth' => $cities[array_rand($cities)],
+      'address_line1' => rand(100, 9999) . ' Main Street',
+      'city' => $cities[array_rand($cities)],
+      'state' => $states[array_rand($states)],
+      'zip_code' => sprintf('%05d', rand(10000, 99999)),
+      'mobile_phone' => sprintf('(%03d) %03d-%04d', rand(200, 999), rand(200, 999), rand(1000, 9999)),
+      'current_work_status' => ['active', 'retired'][rand(0, 1)],
+    ];
+  }
+
+  /**
+   * Generate random questionnaire data.
+   */
+  private function generateRandomQuestionnaireData(int $uid): array {
+    $races = ['white', 'black', 'asian', 'hispanic', 'american_indian'];
+    $education = ['hs_ged', 'some_college', 'associate', 'bachelor', 'graduate'];
+    $employment_types = ['career', 'volunteer', 'paid-on-call'];
+    $branches = ['Army', 'Navy', 'Air Force', 'Marines', 'Coast Guard'];
+    
+    // Randomly select 1-3 races
+    $num_races = rand(1, 3);
+    $selected_races = [];
+    for ($i = 0; $i < $num_races; $i++) {
+      $selected_races[] = $races[array_rand($races)];
+    }
+    
+    return [
+      'demographics' => [
+        'race_ethnicity' => array_unique($selected_races),
+        'education_level' => $education[array_rand($education)],
+        'marital_status' => ['single', 'married', 'divorced', 'widowed', 'separated'][rand(0, 4)],
+        'height_inches' => rand(60, 78),
+        'weight_pounds' => rand(140, 260),
+      ],
+      'work_history' => [
+        'departments' => [
+          [
+            'department_name' => 'Test Fire Department ' . rand(1, 999),
+            'department_fdid' => sprintf('%05d', rand(10000, 99999)),
+            'department_state' => ['CA', 'TX', 'NY', 'FL'][rand(0, 3)],
+            'department_city' => 'TestCity',
+            'start_date' => sprintf('%04d-%02d-01', rand(2005, 2015), rand(1, 12)),
+            'end_date' => '',
+            'is_current' => 1,
+            'job_titles' => [
+              [
+                'job_title' => 'Firefighter',
+                'employment_type' => $employment_types[array_rand($employment_types)],
+                'start_date' => sprintf('%04d-%02d-01', rand(2005, 2015), rand(1, 12)),
+                'end_date' => '',
+                'responded_to_incidents' => 1,
+              ],
+            ],
+          ],
+        ],
+      ],
+      'exposure' => [
+        'afff_used' => ['yes', 'no'][rand(0, 1)],
+        'afff_years' => rand(0, 20),
+        'afff_frequency' => ['never', 'rarely', 'monthly', 'weekly'][rand(0, 3)],
+        'diesel_exhaust' => ['regularly', 'sometimes', 'rarely', 'never'][rand(0, 3)],
+        'diesel_years' => rand(0, 25),
+        'major_incidents' => ['yes', 'no'][rand(0, 1)],
+      ],
+      'military' => [
+        'served' => ['yes', 'no'][rand(0, 1)],
+        'branch' => ['army', 'navy', 'air_force', 'marines', 'coast_guard'][rand(0, 4)],
+        'start_date' => sprintf('%04d-01-01', rand(2000, 2010)),
+        'end_date' => sprintf('%04d-01-01', rand(2010, 2020)),
+        'military_specialty' => 'Infantry',
+        'deployment_locations' => [],
+        'exposures' => [],
+      ],
+      'other_employment' => ['jobs' => []],
+      'ppe' => [
+        'scba_usage' => ['always', 'usually', 'sometimes', 'rarely'][rand(0, 3)],
+        'glove_usage' => ['always', 'usually', 'sometimes'][rand(0, 2)],
+        'hood_usage' => ['always', 'usually', 'sometimes'][rand(0, 2)],
+        'turnout_cleaning' => ['after_every_fire', 'weekly', 'monthly'][rand(0, 2)],
+      ],
+      'decontamination' => [
+        'field_decon' => rand(0, 1),
+        'station_decon' => rand(0, 1),
+        'shower_after_fire' => ['always', 'usually', 'sometimes'][rand(0, 2)],
+        'gear_drying' => ['dedicated_area', 'living_area', 'outside'][rand(0, 2)],
+      ],
+      'health' => [
+        'cancer_diagnosis' => 0,
+        'cancer_details' => [],
+        'family_history' => [],
+      ],
+      'lifestyle' => [
+        'smoking_status' => ['never', 'former', 'current'][rand(0, 2)],
+        'alcohol_frequency' => ['never', 'less_than_monthly', '1_3_per_month', '1_2_per_week', '3_4_per_week', '5_plus_per_week'][rand(0, 5)],
+        'physical_activity_days' => rand(0, 7),
+      ],
+    ];
+  }
+
+  /**
+   * Save profile data to database.
+   */
+  private function saveProfileData(int $uid, array $data): array {
+    try {
+      $database = \Drupal::database();
+
+      // Check if record exists
+      $exists = $database->select('nfr_user_profile', 'p')
+        ->fields('p', ['id'])
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchField();
+
+      $fields = [
+        'first_name' => $data['first_name'],
+        'middle_name' => $data['middle_name'],
+        'last_name' => $data['last_name'],
+        'date_of_birth' => $data['date_of_birth'],
+        'sex' => $data['sex'],
+        'ssn_last_4' => $data['ssn_last_4'],
+        'country_of_birth' => $data['country_of_birth'],
+        'state_of_birth' => $data['state_of_birth'],
+        'city_of_birth' => $data['city_of_birth'],
+        'address_line1' => $data['address_line1'],
+        'city' => $data['city'],
+        'state' => $data['state'],
+        'zip_code' => $data['zip_code'],
+        'mobile_phone' => $data['mobile_phone'],
+        'current_work_status' => $data['current_work_status'],
+        'profile_completed' => 1,
+        'profile_completed_date' => time(),
+        'updated' => time(),
+      ];
+
+      if ($exists) {
+        $database->update('nfr_user_profile')
+          ->fields($fields)
+          ->condition('uid', $uid)
+          ->execute();
+
+        return [
+          'success' => true,
+          'message' => 'Profile data updated successfully',
+          'record_id' => $exists,
+        ];
+      }
+      else {
+        $fields['uid'] = $uid;
+        $fields['created'] = time();
+        $fields['participant_id'] = 'NFR-' . strtoupper(substr(md5(uniqid((string) $uid, true)), 0, 8));
+        
+        $record_id = $database->insert('nfr_user_profile')
+          ->fields($fields)
+          ->execute();
+
+        return [
+          'success' => true,
+          'message' => 'Profile data inserted successfully',
+          'record_id' => $record_id,
+        ];
+      }
+    }
+    catch (\Exception $e) {
+      return [
+        'success' => false,
+        'message' => 'Database error: ' . $e->getMessage(),
+      ];
+    }
+  }
+
+  /**
+   * Verify profile data in database.
+   */
+  private function verifyProfileData(int $uid): array {
+    try {
+      $database = \Drupal::database();
+
+      $record = $database->select('nfr_user_profile', 'p')
+        ->fields('p')
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchAssoc();
+
+      if (!$record) {
+        return [
+          'success' => false,
+          'message' => "No profile data found for UID: $uid",
+        ];
+      }
+
+      return [
+        'success' => true,
+        'message' => 'Profile verified in database',
+        'record' => $record,
+      ];
+
+    }
+    catch (\Exception $e) {
+      return [
+        'success' => false,
+        'message' => 'Verification error: ' . $e->getMessage(),
+      ];
+    }
+  }
+
+  /**
+   * Submit profile data through actual form validation and submission.
+   */
+  private function submitProfileForm(int $uid, array $data): array {
+    try {
+      // Load the user
+      $user = \Drupal\user\Entity\User::load($uid);
+      if (!$user) {
+        return [
+          'success' => false,
+          'message' => "User $uid not found",
+          'errors' => [],
+        ];
+      }
+
+      // Switch to the test user's context
+      $accountSwitcher = \Drupal::service('account_switcher');
+      $accountSwitcher->switchTo($user);
+
+      // Build form state with the random data
+      $form_state = new \Drupal\Core\Form\FormState();
+      $form_state->setValues([
+        'first_name' => $data['first_name'],
+        'middle_name' => $data['middle_name'],
+        'last_name' => $data['last_name'],
+        'date_of_birth' => $data['date_of_birth'],
+        'sex' => $data['sex'],
+        'ssn_last_4' => $data['ssn_last_4'],
+        'country_of_birth' => $data['country_of_birth'],
+        'state_of_birth' => $data['state_of_birth'],
+        'city_of_birth' => $data['city_of_birth'],
+        'address_line1' => $data['address_line1'],
+        'city' => $data['city'],
+        'state' => $data['state'],
+        'zip_code' => $data['zip_code'],
+        'mobile_phone' => $data['mobile_phone'],
+        'current_work_status' => $data['current_work_status'],
+        'op' => 'Save and Continue',
+      ]);
+
+      // Get the form and submit it programmatically
+      $form = \Drupal::formBuilder()->getForm('\Drupal\nfr\Form\NFRUserProfileForm');
+      \Drupal::formBuilder()->submitForm('\Drupal\nfr\Form\NFRUserProfileForm', $form_state);
+
+      // Switch back to original user
+      $accountSwitcher->switchBack();
+
+      // Check for form errors
+      $errors = $form_state->getErrors();
+      if (!empty($errors)) {
+        return [
+          'success' => false,
+          'message' => 'Form validation failed',
+          'errors' => array_map('strval', $errors),
+        ];
+      }
+
+      return [
+        'success' => true,
+        'message' => 'Profile form submitted successfully',
+        'errors' => [],
+      ];
+    }
+    catch (\Exception $e) {
+      // Make sure to switch back even on error
+      if (isset($accountSwitcher)) {
+        $accountSwitcher->switchBack();
+      }
+
+      return [
+        'success' => false,
+        'message' => 'Form submission error: ' . $e->getMessage(),
+        'errors' => [$e->getMessage()],
+      ];
+    }
+  }
+
+  /**
+   * Submit all 9 questionnaire section forms.
+   */
+  private function submitAllQuestionnaireSections(int $uid, array $data): array {
+    $section_forms = [
+      1 => '\Drupal\nfr\Form\NFRQuestionnaireSection1Form',
+      2 => '\Drupal\nfr\Form\NFRQuestionnaireSection2Form',
+      3 => '\Drupal\nfr\Form\NFRQuestionnaireSection3Form',
+      4 => '\Drupal\nfr\Form\NFRQuestionnaireSection4Form',
+      5 => '\Drupal\nfr\Form\NFRQuestionnaireSection5Form',
+      6 => '\Drupal\nfr\Form\NFRQuestionnaireSection6Form',
+      7 => '\Drupal\nfr\Form\NFRQuestionnaireSection7Form',
+      8 => '\Drupal\nfr\Form\NFRQuestionnaireSection8Form',
+      9 => '\Drupal\nfr\Form\NFRQuestionnaireSection9Form',
+    ];
+
+    $section_data_map = [
+      1 => ['demographics' => $data['demographics'] ?? []],
+      2 => [
+        'work_history' => [
+          'num_departments' => 1,
+          'departments' => [
+            [
+              'department_name' => 'Test Fire Department',
+              'state' => 'CA',
+              'city' => 'Los Angeles',
+              'start_date' => '2010-01-01',
+              'num_jobs' => 1,
+              'jobs' => [
+                [
+                  'title' => 'Firefighter',
+                  'employment_type' => 'career',
+                  'responded_incidents' => 'yes',
+                ],
+              ],
+            ],
+          ],
+        ],
+      ],
+      3 => [
+        'exposure' => [
+          'afff_used' => $data['exposure']['afff_used'] ?? 'no',
+          'diesel_exhaust' => $data['exposure']['diesel_exhaust'] ?? 'never',
+          'major_incidents' => $data['exposure']['major_incidents'] ?? 'no',
+        ],
+      ],
+      4 => [
+        'military' => [
+          'served' => $data['military']['served'] ?? 'no',
+          'branch' => $data['military']['branch'] ?? '',
+          'start_date' => $data['military']['start_date'] ?? '',
+          'end_date' => $data['military']['end_date'] ?? '',
+        ],
+      ],
+      5 => [
+        'other_employment' => [
+          'had_other_jobs' => !empty($data['other_employment']['jobs']) ? 'yes' : 'no',
+          'jobs' => $data['other_employment']['jobs'] ?? [],
+        ],
+      ],
+      6 => [
+        'ppe' => $data['ppe'] ?? [],
+      ],
+      7 => [
+        'decontamination' => array_merge(
+          $data['decontamination'] ?? [],
+          ['department_had_sops' => ['yes', 'no'][rand(0, 1)]]
+        ),
+      ],
+      8 => [
+        'health' => [
+          'cancer_diagnosed' => ($data['health']['cancer_diagnosis'] ?? 0) ? 'yes' : 'no',
+          'cancer_details' => $data['health']['cancer_details'] ?? [],
+        ],
+      ],
+      9 => [
+        'lifestyle' => [
+          'smoking_status' => $data['lifestyle']['smoking_status'] ?? 'never',
+          'alcohol_frequency' => $data['lifestyle']['alcohol_frequency'] ?? 'never',
+          'physical_activity_days' => isset($data['lifestyle']['physical_activity_days']) ? (string)$data['lifestyle']['physical_activity_days'] : '0',
+        ],
+      ],
+    ];
+
+    $results = [];
+
+    try {
+      // Load the user
+      $user = \Drupal\user\Entity\User::load($uid);
+      if (!$user) {
+        foreach (range(1, 9) as $section) {
+          $results[$section] = [
+            'success' => false,
+            'message' => "User $uid not found",
+            'errors' => [],
+          ];
+        }
+        return $results;
+      }
+
+      // Switch to the test user's context
+      $accountSwitcher = \Drupal::service('account_switcher');
+      $accountSwitcher->switchTo($user);
+
+      // Submit each section form
+      foreach ($section_forms as $section_num => $form_class) {
+        try {
+          $form_state = new \Drupal\Core\Form\FormState();
+          $form_state->setValues($section_data_map[$section_num]);
+          $form_state->setValue('op', 'Save & Continue');
+
+          \Drupal::formBuilder()->submitForm($form_class, $form_state);
+
+          $errors = $form_state->getErrors();
+          if (!empty($errors)) {
+            $results[$section_num] = [
+              'success' => false,
+              'message' => "Section {$section_num} validation failed",
+              'errors' => array_map('strval', $errors),
+            ];
+          }
+          else {
+            $results[$section_num] = [
+              'success' => true,
+              'message' => "Section {$section_num} submitted successfully",
+              'errors' => [],
+            ];
+          }
+        }
+        catch (\Exception $e) {
+          $results[$section_num] = [
+            'success' => false,
+            'message' => "Section {$section_num} error: " . $e->getMessage(),
+            'errors' => [$e->getMessage()],
+          ];
+        }
+      }
+
+      // Switch back to original user
+      $accountSwitcher->switchBack();
+
+      return $results;
+    }
+    catch (\Exception $e) {
+      // Make sure to switch back even on error
+      if (isset($accountSwitcher)) {
+        $accountSwitcher->switchBack();
+      }
+
+      foreach (range(1, 9) as $section) {
+        $results[$section] = [
+          'success' => false,
+          'message' => 'Overall error: ' . $e->getMessage(),
+          'errors' => [$e->getMessage()],
+        ];
+      }
+
+      return $results;
+    }
+  }
+
+  /**
+   * Submit questionnaire data through actual form validation and submission.
+   * @deprecated Use submitAllQuestionnaireSections() instead for new multi-page format.
+   */
+  private function submitQuestionnaireForm(int $uid, array $data): array {
+    try {
+      // Load the user
+      $user = \Drupal\user\Entity\User::load($uid);
+      if (!$user) {
+        return [
+          'success' => false,
+          'message' => "User $uid not found",
+          'errors' => [],
+        ];
+      }
+
+      // Switch to the test user's context
+      $accountSwitcher = \Drupal::service('account_switcher');
+      $accountSwitcher->switchTo($user);
+
+      // Build form state with the random data
+      $form_state = new \Drupal\Core\Form\FormState();
+      $form_state->setValues($data);
+      $form_state->setValue('op', 'Save and Continue');
+
+      // Get the form and submit it programmatically
+      $form = \Drupal::formBuilder()->getForm('\Drupal\nfr\Form\NFRQuestionnaireForm');
+      \Drupal::formBuilder()->submitForm('\Drupal\nfr\Form\NFRQuestionnaireForm', $form_state);
+
+      // Switch back to original user
+      $accountSwitcher->switchBack();
+
+      // Check for form errors
+      $errors = $form_state->getErrors();
+      if (!empty($errors)) {
+        return [
+          'success' => false,
+          'message' => 'Form validation failed',
+          'errors' => array_map('strval', $errors),
+        ];
+      }
+
+      return [
+        'success' => true,
+        'message' => 'Questionnaire form submitted successfully',
+        'errors' => [],
+      ];
+    }
+    catch (\Exception $e) {
+      // Make sure to switch back even on error
+      if (isset($accountSwitcher)) {
+        $accountSwitcher->switchBack();
+      }
+      
+      return [
+        'success' => false,
+        'message' => 'Form submission error: ' . $e->getMessage(),
+        'errors' => [$e->getMessage()],
+      ];
+    }
+  }
+
+  /**
+   * Check error logs for recent errors.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with log check results.
+   */
+  public function checkErrorLogsEndpoint(): JsonResponse {
+    $results = $this->checkErrorLogs();
+    return new JsonResponse($results);
+  }
+
+  /**
+   * Check dblog for recent errors.
+   */
+  private function checkErrorLogs(): array {
+    try {
+      $database = \Drupal::database();
+
+      // Check if dblog table exists
+      if (!$database->schema()->tableExists('watchdog')) {
+        return [
+          'success' => true,
+          'has_errors' => false,
+          'message' => 'Watchdog table not found - dblog module may not be enabled',
+          'error_count' => 0,
+        ];
+      }
+
+      // Get recent errors (last hour)
+      $one_hour_ago = time() - 3600;
+      
+      $query = $database->select('watchdog', 'w')
+        ->fields('w', ['wid', 'type', 'message', 'variables', 'severity', 'timestamp'])
+        ->condition('severity', [0, 1, 2, 3], 'IN') // EMERGENCY, ALERT, CRITICAL, ERROR
+        ->condition('timestamp', $one_hour_ago, '>')
+        ->orderBy('timestamp', 'DESC')
+        ->range(0, 10);
+
+      $errors = $query->execute()->fetchAll();
+
+      $error_count = count($errors);
+      $recent_errors = [];
+
+      foreach ($errors as $error) {
+        // Decode the variables from the watchdog entry
+        $variables = [];
+        if (!empty($error->variables)) {
+          $variables = unserialize($error->variables);
+          if (!is_array($variables)) {
+            $variables = [];
+          }
+        }
+        
+        // Replace placeholders in the message with actual values
+        $message = $error->message;
+        if (!empty($variables)) {
+          foreach ($variables as $key => $value) {
+            // Handle different placeholder types
+            if (is_string($value) || is_numeric($value)) {
+              $message = str_replace($key, (string) $value, $message);
+            }
+            elseif (is_array($value) || is_object($value)) {
+              $message = str_replace($key, print_r($value, TRUE), $message);
+            }
+          }
+        }
+        
+        $recent_errors[] = [
+          'type' => $error->type,
+          'message' => substr($message, 0, 500), // Show more of the error message
+          'severity' => $error->severity,
+          'time' => date('Y-m-d H:i:s', (int) $error->timestamp),
+        ];
+      }
+
+      return [
+        'success' => true,
+        'has_errors' => $error_count > 0,
+        'message' => $error_count > 0 
+          ? "Found $error_count error(s) in the last hour" 
+          : 'No errors found in the last hour',
+        'error_count' => $error_count,
+        'recent_errors' => $recent_errors,
+      ];
+
+    }
+    catch (\Exception $e) {
+      return [
+        'success' => false,
+        'has_errors' => false,
+        'message' => 'Error checking logs: ' . $e->getMessage(),
+        'error_count' => 0,
+      ];
+    }
+  }
+
+  /**
+   * Display fill rates for all questionnaire fields.
+   */
+  public function getFillRates() {
+    $connection = \Drupal::database();
+    
+    try {
+      // Get all profile records
+      $profile_query = $connection->select('nfr_user_profile', 'p')
+        ->fields('p')
+        ->condition('p.uid', 2, '>');
+      $profile_results = $profile_query->execute();
+      $profiles = [];
+      foreach ($profile_results as $row) {
+        $profiles[$row->uid] = $row;
+      }
+      
+      // Get all questionnaire records with ALL columns
+      $query = $connection->select('nfr_questionnaire', 'q')
+        ->fields('q')
+        ->condition('q.uid', 2, '>');
+      
+      $results = $query->execute();
+      
+      // Get all work history from normalized tables
+      $work_history_query = $connection->select('nfr_work_history', 'wh')
+        ->fields('wh')
+        ->condition('wh.uid', 2, '>');
+      $work_history_results = $work_history_query->execute();
+      
+      $user_work_history = [];
+      foreach ($work_history_results as $wh) {
+        if (!isset($user_work_history[$wh->uid])) {
+          $user_work_history[$wh->uid] = [
+            'num_departments' => 0,
+            'departments' => [],
+          ];
+        }
+        $user_work_history[$wh->uid]['num_departments']++;
+        $user_work_history[$wh->uid]['departments'][] = $wh;
+      }
+      
+      // Get all job titles from normalized tables
+      $job_titles_query = $connection->select('nfr_job_titles', 'jt')
+        ->fields('jt');
+      $job_titles_results = $job_titles_query->execute();
+      
+      $work_history_jobs = [];
+      foreach ($job_titles_results as $job) {
+        if (!isset($work_history_jobs[$job->work_history_id])) {
+          $work_history_jobs[$job->work_history_id] = [];
+        }
+        $work_history_jobs[$job->work_history_id][] = $job;
+      }
+      
+      $total_records = 0;
+      $field_counts = [];
+      $value_distributions = [];
+      
+      foreach ($results as $row) {
+        $total_records++;
+        $uid = $row->uid;
+        $profile = $profiles[$uid] ?? NULL;
+        
+        // PROFILE FIELDS
+        if ($profile) {
+          if (!empty($profile->first_name)) {
+            $field_counts['profile.first_name'] = ($field_counts['profile.first_name'] ?? 0) + 1;
+          }
+          if (!empty($profile->middle_name)) {
+            $field_counts['profile.middle_name'] = ($field_counts['profile.middle_name'] ?? 0) + 1;
+          }
+          if (!empty($profile->last_name)) {
+            $field_counts['profile.last_name'] = ($field_counts['profile.last_name'] ?? 0) + 1;
+          }
+          if (!empty($profile->date_of_birth)) {
+            $field_counts['profile.date_of_birth'] = ($field_counts['profile.date_of_birth'] ?? 0) + 1;
+          }
+          if (!empty($profile->sex)) {
+            $field_counts['profile.sex'] = ($field_counts['profile.sex'] ?? 0) + 1;
+            $value_distributions['profile.sex'][$profile->sex] = ($value_distributions['profile.sex'][$profile->sex] ?? 0) + 1;
+          }
+          if (!empty($profile->ssn_last_4)) {
+            $field_counts['profile.ssn_last_4'] = ($field_counts['profile.ssn_last_4'] ?? 0) + 1;
+          }
+          if (!empty($profile->country_of_birth)) {
+            $field_counts['profile.country_of_birth'] = ($field_counts['profile.country_of_birth'] ?? 0) + 1;
+            $value_distributions['profile.country_of_birth'][$profile->country_of_birth] = ($value_distributions['profile.country_of_birth'][$profile->country_of_birth] ?? 0) + 1;
+          }
+          if (!empty($profile->state_of_birth)) {
+            $field_counts['profile.state_of_birth'] = ($field_counts['profile.state_of_birth'] ?? 0) + 1;
+            $value_distributions['profile.state_of_birth'][$profile->state_of_birth] = ($value_distributions['profile.state_of_birth'][$profile->state_of_birth] ?? 0) + 1;
+          }
+          if (!empty($profile->city_of_birth)) {
+            $field_counts['profile.city_of_birth'] = ($field_counts['profile.city_of_birth'] ?? 0) + 1;
+          }
+          if (!empty($profile->address_line1)) {
+            $field_counts['profile.address_line1'] = ($field_counts['profile.address_line1'] ?? 0) + 1;
+          }
+          if (!empty($profile->address_line2)) {
+            $field_counts['profile.address_line2'] = ($field_counts['profile.address_line2'] ?? 0) + 1;
+          }
+          if (!empty($profile->city)) {
+            $field_counts['profile.city'] = ($field_counts['profile.city'] ?? 0) + 1;
+          }
+          if (!empty($profile->state)) {
+            $field_counts['profile.state'] = ($field_counts['profile.state'] ?? 0) + 1;
+            $value_distributions['profile.state'][$profile->state] = ($value_distributions['profile.state'][$profile->state] ?? 0) + 1;
+          }
+          if (!empty($profile->zip_code)) {
+            $field_counts['profile.zip_code'] = ($field_counts['profile.zip_code'] ?? 0) + 1;
+          }
+          if (!empty($profile->alternate_email)) {
+            $field_counts['profile.alternate_email'] = ($field_counts['profile.alternate_email'] ?? 0) + 1;
+          }
+          if (!empty($profile->mobile_phone)) {
+            $field_counts['profile.mobile_phone'] = ($field_counts['profile.mobile_phone'] ?? 0) + 1;
+          }
+          if (!empty($profile->current_work_status)) {
+            $field_counts['profile.current_work_status'] = ($field_counts['profile.current_work_status'] ?? 0) + 1;
+            $value_distributions['profile.current_work_status'][$profile->current_work_status] = ($value_distributions['profile.current_work_status'][$profile->current_work_status] ?? 0) + 1;
+          }
+        }
+        
+        // QUESTIONNAIRE DIRECT COLUMNS
+        if (!empty($row->race_other)) {
+          $field_counts['questionnaire.race_other'] = ($field_counts['questionnaire.race_other'] ?? 0) + 1;
+        }
+        if (isset($row->height_inches) && $row->height_inches > 0) {
+          $field_counts['questionnaire.height_inches'] = ($field_counts['questionnaire.height_inches'] ?? 0) + 1;
+          $val = $row->height_inches;
+          $value_distributions['questionnaire.height_inches'][$val] = ($value_distributions['questionnaire.height_inches'][$val] ?? 0) + 1;
+        }
+        if (isset($row->weight_pounds) && $row->weight_pounds > 0) {
+          $field_counts['questionnaire.weight_pounds'] = ($field_counts['questionnaire.weight_pounds'] ?? 0) + 1;
+          $val = $row->weight_pounds;
+          $value_distributions['questionnaire.weight_pounds'][$val] = ($value_distributions['questionnaire.weight_pounds'][$val] ?? 0) + 1;
+        }
+        if (isset($row->military_service) && $row->military_service !== NULL) {
+          $field_counts['questionnaire.military_service'] = ($field_counts['questionnaire.military_service'] ?? 0) + 1;
+          $val = $row->military_service ? 'yes' : 'no';
+          $value_distributions['questionnaire.military_service'][$val] = ($value_distributions['questionnaire.military_service'][$val] ?? 0) + 1;
+        }
+        if (!empty($row->military_branch)) {
+          $field_counts['questionnaire.military_branch'] = ($field_counts['questionnaire.military_branch'] ?? 0) + 1;
+          $value_distributions['questionnaire.military_branch'][$row->military_branch] = ($value_distributions['questionnaire.military_branch'][$row->military_branch] ?? 0) + 1;
+        }
+        if (isset($row->military_years) && $row->military_years > 0) {
+          $field_counts['questionnaire.military_years'] = ($field_counts['questionnaire.military_years'] ?? 0) + 1;
+          $val = $row->military_years;
+          $value_distributions['questionnaire.military_years'][$val] = ($value_distributions['questionnaire.military_years'][$val] ?? 0) + 1;
+        }
+        if (isset($row->cancer_diagnosis) && $row->cancer_diagnosis !== NULL) {
+          $field_counts['questionnaire.cancer_diagnosis'] = ($field_counts['questionnaire.cancer_diagnosis'] ?? 0) + 1;
+          $val = $row->cancer_diagnosis ? 'yes' : 'no';
+          $value_distributions['questionnaire.cancer_diagnosis'][$val] = ($value_distributions['questionnaire.cancer_diagnosis'][$val] ?? 0) + 1;
+        }
+        if (!empty($row->alcohol_use)) {
+          $field_counts['questionnaire.alcohol_use'] = ($field_counts['questionnaire.alcohol_use'] ?? 0) + 1;
+          $value_distributions['questionnaire.alcohol_use'][$row->alcohol_use] = ($value_distributions['questionnaire.alcohol_use'][$row->alcohol_use] ?? 0) + 1;
+        }
+        
+        // DEMOGRAPHICS (from direct columns)
+        if (!empty($row->education_level)) {
+          $field_counts['demographics.education_level'] = ($field_counts['demographics.education_level'] ?? 0) + 1;
+          $val = $row->education_level;
+          $value_distributions['demographics.education_level'][$val] = ($value_distributions['demographics.education_level'][$val] ?? 0) + 1;
+        }
+        if (!empty($row->marital_status)) {
+          $field_counts['demographics.marital_status'] = ($field_counts['demographics.marital_status'] ?? 0) + 1;
+          $val = $row->marital_status;
+          $value_distributions['demographics.marital_status'][$val] = ($value_distributions['demographics.marital_status'][$val] ?? 0) + 1;
+        }
+        if (!empty($row->race_ethnicity)) {
+          $race_data = json_decode($row->race_ethnicity, TRUE);
+          if (is_array($race_data)) {
+            $race_selections = [];
+            foreach ($race_data as $key => $val) {
+              if ($val !== 0 && $val !== '0' && !empty($val)) {
+                $race_selections[] = $key;
+              }
+            }
+            if (count($race_selections) > 0) {
+              $field_counts['demographics.race_ethnicity'] = ($field_counts['demographics.race_ethnicity'] ?? 0) + 1;
+              $race_str = implode(', ', $race_selections);
+              $value_distributions['demographics.race_ethnicity'][$race_str] = ($value_distributions['demographics.race_ethnicity'][$race_str] ?? 0) + 1;
+            }
+          }
+        }
+        
+        // WORK HISTORY (from normalized tables)
+        $uid_work_history = $user_work_history[$uid] ?? NULL;
+        if ($uid_work_history && $uid_work_history['num_departments'] > 0) {
+          $field_counts['work_history.num_departments'] = ($field_counts['work_history.num_departments'] ?? 0) + 1;
+          $val = $uid_work_history['num_departments'];
+          $value_distributions['work_history.num_departments'][$val] = ($value_distributions['work_history.num_departments'][$val] ?? 0) + 1;
+          
+          // Process first department for field tracking
+          $dept = $uid_work_history['departments'][0] ?? NULL;
+          if ($dept) {
+            if (!empty($dept->department_name)) {
+              $field_counts['work_history.department_name'] = ($field_counts['work_history.department_name'] ?? 0) + 1;
+            }
+            if (!empty($dept->department_state)) {
+              $field_counts['work_history.department_state'] = ($field_counts['work_history.department_state'] ?? 0) + 1;
+              $value_distributions['work_history.department_state'][$dept->department_state] = ($value_distributions['work_history.department_state'][$dept->department_state] ?? 0) + 1;
+            }
+            if (!empty($dept->department_city)) {
+              $field_counts['work_history.department_city'] = ($field_counts['work_history.department_city'] ?? 0) + 1;
+            }
+            if (!empty($dept->department_fdid)) {
+              $field_counts['work_history.department_fdid'] = ($field_counts['work_history.department_fdid'] ?? 0) + 1;
+            }
+            if (!empty($dept->start_date)) {
+              $field_counts['work_history.start_date'] = ($field_counts['work_history.start_date'] ?? 0) + 1;
+            }
+            if (!empty($dept->end_date)) {
+              $field_counts['work_history.end_date'] = ($field_counts['work_history.end_date'] ?? 0) + 1;
+            }
+            if (isset($dept->is_current)) {
+              $field_counts['work_history.is_current'] = ($field_counts['work_history.is_current'] ?? 0) + 1;
+            }
+            
+            // Get jobs for this department
+            $dept_jobs = $work_history_jobs[$dept->id] ?? [];
+            if (!empty($dept_jobs)) {
+              $job = $dept_jobs[0];
+              if (!empty($job->job_title)) {
+                $field_counts['work_history.job_title'] = ($field_counts['work_history.job_title'] ?? 0) + 1;
+                $value_distributions['work_history.job_title'][$job->job_title] = ($value_distributions['work_history.job_title'][$job->job_title] ?? 0) + 1;
+              }
+              if (!empty($job->employment_type)) {
+                $field_counts['work_history.employment_type'] = ($field_counts['work_history.employment_type'] ?? 0) + 1;
+                $value_distributions['work_history.employment_type'][$job->employment_type] = ($value_distributions['work_history.employment_type'][$job->employment_type] ?? 0) + 1;
+              }
+              if (isset($job->responded_to_incidents)) {
+                $field_counts['work_history.responded_incidents'] = ($field_counts['work_history.responded_incidents'] ?? 0) + 1;
+                $val = $job->responded_to_incidents ? 'yes' : 'no';
+                $value_distributions['work_history.responded_incidents'][$val] = ($value_distributions['work_history.responded_incidents'][$val] ?? 0) + 1;
+              }
+              if (!empty($job->incident_types)) {
+                $field_counts['work_history.incident_types'] = ($field_counts['work_history.incident_types'] ?? 0) + 1;
+              }
+            }
+          }
+        }
+        
+        // EXPOSURE (TODO: Implement when exposure_data column is added to schema)
+        // Exposure data currently not tracked in database
+        
+        // MILITARY (from direct columns)
+        // Military data tracked via direct columns: military_service, military_branch, military_years
+        
+        // OTHER EMPLOYMENT (from JSON column)
+        if (!empty($row->other_employment_data)) {
+          $other_employment = json_decode($row->other_employment_data, TRUE);
+          if (is_array($other_employment) && !empty($other_employment['had_other_jobs'])) {
+            $field_counts['other_employment.had_other_jobs'] = ($field_counts['other_employment.had_other_jobs'] ?? 0) + 1;
+            $val = $other_employment['had_other_jobs'];
+            $value_distributions['other_employment.had_other_jobs'][$val] = ($value_distributions['other_employment.had_other_jobs'][$val] ?? 0) + 1;
+          }
+          if (isset($other_employment['jobs']) && is_array($other_employment['jobs']) && count($other_employment['jobs']) > 0) {
+            $field_counts['other_employment.jobs_count'] = ($field_counts['other_employment.jobs_count'] ?? 0) + 1;
+            $job = $other_employment['jobs'][0];
+            if (!empty($job['job_title'])) {
+              $field_counts['other_employment.job_title'] = ($field_counts['other_employment.job_title'] ?? 0) + 1;
+            }
+            if (!empty($job['had_exposure'])) {
+              $field_counts['other_employment.had_exposure'] = ($field_counts['other_employment.had_exposure'] ?? 0) + 1;
+              $val = $job['had_exposure'];
+              $value_distributions['other_employment.had_exposure'][$val] = ($value_distributions['other_employment.had_exposure'][$val] ?? 0) + 1;
+            }
+          }
+        }
+        
+        // PPE (from JSON column)
+        if (!empty($row->ppe_practices)) {
+          $ppe = json_decode($row->ppe_practices, TRUE);
+          if (is_array($ppe)) {
+            $ppe_items = ['scba', 'turnout_coat', 'turnout_pants', 'gloves', 'helmet', 'boots', 'nomex_hood', 'wildland_clothing'];
+            foreach ($ppe_items as $item) {
+              if (isset($ppe[$item]['ever_used']) && $ppe[$item]['ever_used'] !== NULL) {
+                $field_counts["ppe.{$item}.ever_used"] = ($field_counts["ppe.{$item}.ever_used"] ?? 0) + 1;
+                $val = $ppe[$item]['ever_used'] ? 'yes' : 'no';
+                $value_distributions["ppe.{$item}.ever_used"][$val] = ($value_distributions["ppe.{$item}.ever_used"][$val] ?? 0) + 1;
+              }
+              if (!empty($ppe[$item]['year_started'])) {
+                $field_counts["ppe.{$item}.year_started"] = ($field_counts["ppe.{$item}.year_started"] ?? 0) + 1;
+              }
+            }
+            
+            $scba_scenarios = ['scba_interior_attack', 'scba_exterior_attack', 'scba_during_overhaul', 
+                              'scba_vehicle_fires', 'scba_vegetation_fires', 'scba_wildland', 
+                              'scba_investigation', 'scba_wui_fires'];
+            foreach ($scba_scenarios as $scenario) {
+              if (!empty($ppe[$scenario])) {
+                $field_counts["ppe.{$scenario}"] = ($field_counts["ppe.{$scenario}"] ?? 0) + 1;
+                $val = $ppe[$scenario];
+                $value_distributions["ppe.{$scenario}"][$val] = ($value_distributions["ppe.{$scenario}"][$val] ?? 0) + 1;
+              }
+            }
+          }
+        }
+        
+        // DECONTAMINATION (from JSON column)
+        if (!empty($row->decon_practices)) {
+          $decon = json_decode($row->decon_practices, TRUE);
+          if (is_array($decon)) {
+            $decon_practices = ['hood_washing', 'gear_washing', 'shower_after_fire', 'change_at_station', 'leave_gear_outside'];
+            foreach ($decon_practices as $practice) {
+              if (!empty($decon[$practice])) {
+                $field_counts["decontamination.{$practice}"] = ($field_counts["decontamination.{$practice}"] ?? 0) + 1;
+                $val = $decon[$practice];
+                $value_distributions["decontamination.{$practice}"][$val] = ($value_distributions["decontamination.{$practice}"][$val] ?? 0) + 1;
+              }
+              if (!empty($decon["{$practice}_year_started"])) {
+                $field_counts["decontamination.{$practice}_year_started"] = ($field_counts["decontamination.{$practice}_year_started"] ?? 0) + 1;
+              }
+            }
+            
+            if (!empty($decon['department_had_sops'])) {
+              $field_counts['decontamination.department_had_sops'] = ($field_counts['decontamination.department_had_sops'] ?? 0) + 1;
+              $val = $decon['department_had_sops'];
+              $value_distributions['decontamination.department_had_sops'][$val] = ($value_distributions['decontamination.department_had_sops'][$val] ?? 0) + 1;
+            }
+            if (!empty($decon['sop_year_implemented'])) {
+              $field_counts['decontamination.sop_year_implemented'] = ($field_counts['decontamination.sop_year_implemented'] ?? 0) + 1;
+            }
+          }
+        }
+        
+        // HEALTH (from JSON columns and direct column)
+        if (!empty($row->cancer_details)) {
+          $cancer_details = json_decode($row->cancer_details, TRUE);
+          if (is_array($cancer_details) && count($cancer_details) > 0) {
+            $field_counts['health.cancer_details'] = ($field_counts['health.cancer_details'] ?? 0) + 1;
+            $cancer = $cancer_details[0];
+            if (!empty($cancer['cancer_type'])) {
+              $field_counts['health.cancer_type'] = ($field_counts['health.cancer_type'] ?? 0) + 1;
+              $val = $cancer['cancer_type'];
+              $value_distributions['health.cancer_type'][$val] = ($value_distributions['health.cancer_type'][$val] ?? 0) + 1;
+            }
+            if (!empty($cancer['diagnosis_year'])) {
+              $field_counts['health.cancer_diagnosis_year'] = ($field_counts['health.cancer_diagnosis_year'] ?? 0) + 1;
+            }
+          }
+        }
+        if (!empty($row->family_cancer_history)) {
+          $family_history = json_decode($row->family_cancer_history, TRUE);
+          if (is_array($family_history) && count($family_history) > 0) {
+            $field_counts['health.family_cancer_history'] = ($field_counts['health.family_cancer_history'] ?? 0) + 1;
+          }
+        }
+        
+        // LIFESTYLE (from JSON column and direct column)
+        if (!empty($row->smoking_history)) {
+          $smoking = json_decode($row->smoking_history, TRUE);
+          if (is_array($smoking)) {
+            if (!empty($smoking['smoking_status'])) {
+              $field_counts['lifestyle.smoking_status'] = ($field_counts['lifestyle.smoking_status'] ?? 0) + 1;
+              $val = $smoking['smoking_status'];
+              $value_distributions['lifestyle.smoking_status'][$val] = ($value_distributions['lifestyle.smoking_status'][$val] ?? 0) + 1;
+            }
+            
+            $tobacco_types = ['cigarettes', 'cigars', 'pipes', 'chewing_tobacco', 'e_cigarettes'];
+            foreach ($tobacco_types as $type) {
+              if (!empty($smoking[$type]['ever_used'])) {
+                $field_counts["lifestyle.{$type}_ever_used"] = ($field_counts["lifestyle.{$type}_ever_used"] ?? 0) + 1;
+                $val = $smoking[$type]['ever_used'];
+                $value_distributions["lifestyle.{$type}_ever_used"][$val] = ($value_distributions["lifestyle.{$type}_ever_used"][$val] ?? 0) + 1;
+              }
+              if (!empty($smoking[$type]['frequency'])) {
+                $field_counts["lifestyle.{$type}_frequency"] = ($field_counts["lifestyle.{$type}_frequency"] ?? 0) + 1;
+                $val = $smoking[$type]['frequency'];
+                $value_distributions["lifestyle.{$type}_frequency"][$val] = ($value_distributions["lifestyle.{$type}_frequency"][$val] ?? 0) + 1;
+              }
+            }
+          }
+        }
+        
+        // Physical activity and sleep (TODO: Add columns to schema if needed)
+      }
+      
+      // Sort fields
+      ksort($field_counts);
+      
+      // Calculate summary statistics
+      $total_fields = count($field_counts);
+      $fields_at_100 = 0;
+      $fields_below_100 = [];
+      
+      foreach ($field_counts as $field => $count) {
+        $pct = round(($count / $total_records) * 100, 1);
+        if ($pct >= 100.0) {
+          $fields_at_100++;
+        }
+        else {
+          $fields_below_100[] = ['field' => $field, 'count' => $count, 'pct' => $pct];
+        }
+      }
+      
+      // Build HTML output with Chart.js
+      $output = '<div class="fill-rates-page">';
+      $output .= '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" />';
+      $output .= '<h1>NFR Fill Rate Dashboard</h1>';
+      $output .= '<p><strong>Total Records Analyzed:</strong> ' . $total_records . '</p>';
+      $output .= '<p style="margin-bottom: 20px; font-style: italic;">This dashboard tracks EVERY field from both the User Profile and Enrollment Questionnaire, showing completion rates and value distributions.</p>';
+      
+      // Audit Report Section
+      $output .= '<div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #ffc107;">';
+      $output .= '<h2 style="margin-top: 0;">📋 Field Coverage Audit Report</h2>';
+      $output .= '<p style="margin-bottom: 15px;">Comprehensive field-by-field comparison of requirements vs implementation vs database vs tracking.</p>';
+      
+      $output .= '<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.9em;">';
+      $output .= '<thead><tr style="background: #343a40; color: white;">';
+      $output .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Section</th>';
+      $output .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Field Name</th>';
+      $output .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Required</th>';
+      $output .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Database Storage</th>';
+      $output .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Tracked</th>';
+      $output .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Fill Rate</th>';
+      $output .= '</tr></thead><tbody>';
+      
+      // Helper function to add row
+      $add_row = function($section, $field_name, $required, $db_location, $tracking_key) use (&$output, $field_counts, $total_records) {
+        $is_tracked = isset($field_counts[$tracking_key]);
+        $fill_rate = $is_tracked ? round(($field_counts[$tracking_key] / $total_records) * 100, 1) : 0;
+        $color = $fill_rate >= 100 ? '#4CAF50' : ($fill_rate >= 75 ? '#FF9800' : ($fill_rate > 0 ? '#F44336' : '#999'));
+        
+        $output .= '<tr>';
+        $output .= '<td style="border: 1px solid #ddd; padding: 6px; background: #f8f9fa;"><strong>' . htmlspecialchars($section) . '</strong></td>';
+        $output .= '<td style="border: 1px solid #ddd; padding: 6px;">' . htmlspecialchars($field_name) . '</td>';
+        $output .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center;">' . ($required ? 'Yes' : 'No') . '</td>';
+        $output .= '<td style="border: 1px solid #ddd; padding: 6px; font-family: monospace; font-size: 0.85em;">' . htmlspecialchars($db_location) . '</td>';
+        $output .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; color: ' . ($is_tracked ? '#4CAF50' : '#F44336') . ';"><strong>' . ($is_tracked ? '✓' : '✗') . '</strong></td>';
+        $output .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; color: ' . $color . '; font-weight: bold;">' . $fill_rate . '%</td>';
+        $output .= '</tr>';
+      };
+      
+      // USER PROFILE FIELDS
+      $add_row('Profile', 'First Name', true, 'nfr_user_profile.first_name', 'profile.first_name');
+      $add_row('Profile', 'Middle Name', false, 'nfr_user_profile.middle_name', 'profile.middle_name');
+      $add_row('Profile', 'Last Name', true, 'nfr_user_profile.last_name', 'profile.last_name');
+      $add_row('Profile', 'Date of Birth', true, 'nfr_user_profile.date_of_birth', 'profile.date_of_birth');
+      $add_row('Profile', 'Sex', true, 'nfr_user_profile.sex', 'profile.sex');
+      $add_row('Profile', 'SSN Last 4', false, 'nfr_user_profile.ssn_last_4', 'profile.ssn_last_4');
+      $add_row('Profile', 'Country of Birth', true, 'nfr_user_profile.country_of_birth', 'profile.country_of_birth');
+      $add_row('Profile', 'State of Birth', false, 'nfr_user_profile.state_of_birth', 'profile.state_of_birth');
+      $add_row('Profile', 'City of Birth', false, 'nfr_user_profile.city_of_birth', 'profile.city_of_birth');
+      $add_row('Profile', 'Address Line 1', true, 'nfr_user_profile.address_line1', 'profile.address_line1');
+      $add_row('Profile', 'Address Line 2', false, 'nfr_user_profile.address_line2', 'profile.address_line2');
+      $add_row('Profile', 'City', true, 'nfr_user_profile.city', 'profile.city');
+      $add_row('Profile', 'State', true, 'nfr_user_profile.state', 'profile.state');
+      $add_row('Profile', 'ZIP Code', true, 'nfr_user_profile.zip_code', 'profile.zip_code');
+      $add_row('Profile', 'Alternate Email', false, 'nfr_user_profile.alternate_email', 'profile.alternate_email');
+      $add_row('Profile', 'Mobile Phone', false, 'nfr_user_profile.mobile_phone', 'profile.mobile_phone');
+      $add_row('Profile', 'Current Work Status', true, 'nfr_user_profile.current_work_status', 'profile.current_work_status');
+      
+      // DEMOGRAPHICS (direct columns)
+      $add_row('Demographics', 'Race/Ethnicity', true, 'nfr_questionnaire.race_ethnicity (JSON)', 'demographics.race_ethnicity');
+      $add_row('Demographics', 'Race Other Specify', false, 'nfr_questionnaire.race_other', 'questionnaire.race_other');
+      $add_row('Demographics', 'Education Level', true, 'nfr_questionnaire.education_level', 'demographics.education_level');
+      $add_row('Demographics', 'Marital Status', true, 'nfr_questionnaire.marital_status', 'demographics.marital_status');
+      $add_row('Demographics', 'Height (inches)', true, 'nfr_questionnaire.height_inches', 'questionnaire.height_inches');
+      $add_row('Demographics', 'Weight (pounds)', true, 'nfr_questionnaire.weight_pounds', 'questionnaire.weight_pounds');
+      
+      // WORK HISTORY (from normalized tables)
+      $add_row('Work History', 'Number of Departments', true, 'COUNT(DISTINCT nfr_work_history.id)', 'work_history.num_departments');
+      $add_row('Work History', 'Department Name', true, 'nfr_work_history.department_name', 'work_history.department_name');
+      $add_row('Work History', 'Department State', true, 'nfr_work_history.department_state', 'work_history.department_state');
+      $add_row('Work History', 'Department City', true, 'nfr_work_history.department_city', 'work_history.department_city');
+      $add_row('Work History', 'Department FDID', false, 'nfr_work_history.department_fdid', 'work_history.department_fdid');
+      $add_row('Work History', 'Start Date', true, 'nfr_work_history.start_date', 'work_history.start_date');
+      $add_row('Work History', 'End Date', false, 'nfr_work_history.end_date', 'work_history.end_date');
+      $add_row('Work History', 'Is Current', false, 'nfr_work_history.is_current', 'work_history.is_current');
+      $add_row('Work History', 'Job Title', true, 'nfr_job_titles.job_title', 'work_history.job_title');
+      $add_row('Work History', 'Employment Type', true, 'nfr_job_titles.employment_type', 'work_history.employment_type');
+      $add_row('Work History', 'Responded to Incidents', true, 'nfr_job_titles.responded_to_incidents', 'work_history.responded_incidents');
+      $add_row('Work History', 'Incident Types', false, 'nfr_job_titles.incident_types (JSON)', 'work_history.incident_types');
+      
+      // EXPOSURE
+      $add_row('Exposure', 'AFFF Used', true, 'data.exposure.afff_used (JSON)', 'exposure.afff_used');
+      $add_row('Exposure', 'AFFF Frequency', false, 'data.exposure.afff_frequency (JSON)', 'exposure.afff_frequency');
+      $add_row('Exposure', 'Diesel Exhaust', true, 'data.exposure.diesel_exhaust (JSON)', 'exposure.diesel_exhaust');
+      $add_row('Exposure', 'Major Incidents', true, 'data.exposure.major_incidents (JSON)', 'exposure.major_incidents');
+      $add_row('Exposure', 'Chemical Activities', false, 'data.exposure.chemical_activities (JSON)', 'exposure.chemical_activities');
+      
+      $incident_types = [
+        'Structure Fires', 'Vehicle Fires', 'Rubbish Fires', 'Live Fire Training',
+        'Fire Investigation', 'Vegetation Fires', 'Wildland Fires', 'WUI Fires',
+        'Industrial Fires', 'Aircraft Fires', 'Marine Fires', 'HAZMAT Response'
+      ];
+      foreach ($incident_types as $idx => $type) {
+        $key = ['structure_fires', 'vehicle_fires', 'rubbish_fires', 'live_fire_training',
+                'fire_investigation', 'vegetation_fires', 'wildland_fires', 'wui_fires',
+                'industrial_fires', 'aircraft_fires', 'marine_fires', 'hazmat_response'][$idx];
+        $add_row('Exposure', $type . ' Frequency', false, 'data.exposure.incident_frequencies.' . $key . ' (JSON)', 'exposure.incident_freq_' . $key);
+      }
+      
+      // MILITARY (direct columns + JSON data column)
+      $add_row('Military', 'Served in Military', true, 'nfr_questionnaire.military_service', 'questionnaire.military_service');
+      $add_row('Military', 'Military Branch', false, 'nfr_questionnaire.military_branch', 'questionnaire.military_branch');
+      $add_row('Military', 'Military Years', false, 'nfr_questionnaire.military_years', 'questionnaire.military_years');
+      $add_row('Military', 'Start Date', false, 'nfr_questionnaire.data (JSON)', 'military.start_date');
+      $add_row('Military', 'End Date', false, 'nfr_questionnaire.data (JSON)', 'military.end_date');
+      $add_row('Military', 'Currently Serving', false, 'nfr_questionnaire.data (JSON)', 'military.currently_serving');
+      $add_row('Military', 'Combat Service', false, 'nfr_questionnaire.data (JSON)', 'military.combat_service');
+      
+      // OTHER EMPLOYMENT (JSON column)
+      $add_row('Other Employment', 'Had Other Jobs', true, 'nfr_questionnaire.other_employment_data (JSON)', 'other_employment.had_other_jobs');
+      $add_row('Other Employment', 'Jobs Count', false, 'nfr_questionnaire.other_employment_data (JSON)', 'other_employment.jobs_count');
+      $add_row('Other Employment', 'Job Title', false, 'nfr_questionnaire.other_employment_data (JSON)', 'other_employment.job_title');
+      $add_row('Other Employment', 'Had Exposure', false, 'nfr_questionnaire.other_employment_data (JSON)', 'other_employment.had_exposure');
+      
+      // PPE
+      $ppe_items = [
+        'SCBA' => 'scba',
+        'Turnout Coat' => 'turnout_coat',
+        'Turnout Pants' => 'turnout_pants',
+        'Gloves' => 'gloves',
+        'Helmet' => 'helmet',
+        'Boots' => 'boots',
+        'Nomex Hood' => 'nomex_hood',
+        'Wildland Clothing' => 'wildland_clothing'
+      ];
+      foreach ($ppe_items as $label => $key) {
+        $add_row('PPE', $label . ' - Ever Used', true, 'nfr_questionnaire.ppe_practices (JSON)', 'ppe.' . $key . '.ever_used');
+        $add_row('PPE', $label . ' - Year Started', false, 'nfr_questionnaire.ppe_practices (JSON)', 'ppe.' . $key . '.year_started');
+      }
+      
+      $scba_scenarios = [
+        'Interior Attack', 'Exterior Attack', 'During Overhaul', 'Vehicle Fires',
+        'Vegetation Fires', 'Wildland', 'Investigation', 'WUI Fires'
+      ];
+      foreach ($scba_scenarios as $idx => $scenario) {
+        $key = ['scba_interior_attack', 'scba_exterior_attack', 'scba_during_overhaul',
+                'scba_vehicle_fires', 'scba_vegetation_fires', 'scba_wildland',
+                'scba_investigation', 'scba_wui_fires'][$idx];
+        $add_row('PPE', 'SCBA During ' . $scenario, true, 'nfr_questionnaire.ppe_practices (JSON)', 'ppe.' . $key);
+      }
+      
+      // DECONTAMINATION
+      $decon_practices = [
+        'Hood Washing' => 'hood_washing',
+        'Gear Washing' => 'gear_washing',
+        'Shower After Fire' => 'shower_after_fire',
+        'Change at Station' => 'change_at_station',
+        'Leave Gear Outside' => 'leave_gear_outside'
+      ];
+      foreach ($decon_practices as $label => $key) {
+        $add_row('Decontamination', $label, true, 'nfr_questionnaire.decon_practices (JSON)', 'decontamination.' . $key);
+        $add_row('Decontamination', $label . ' - Year Started', false, 'nfr_questionnaire.decon_practices (JSON)', 'decontamination.' . $key . '_year_started');
+      }
+      $add_row('Decontamination', 'Department Had SOPs', true, 'nfr_questionnaire.decon_practices (JSON)', 'decontamination.department_had_sops');
+      $add_row('Decontamination', 'SOP Year Implemented', false, 'nfr_questionnaire.decon_practices (JSON)', 'decontamination.sop_year_implemented');
+      
+      // HEALTH (direct column + JSON columns)
+      $add_row('Health', 'Cancer Diagnosed', true, 'nfr_questionnaire.cancer_diagnosis', 'questionnaire.cancer_diagnosis');
+      $add_row('Health', 'Cancer Details', false, 'nfr_questionnaire.cancer_details (JSON)', 'health.cancer_details');
+      $add_row('Health', 'Cancer Type', false, 'nfr_questionnaire.cancer_details (JSON)', 'health.cancer_type');
+      $add_row('Health', 'Cancer Diagnosis Year', false, 'nfr_questionnaire.cancer_details (JSON)', 'health.cancer_diagnosis_year');
+      $add_row('Health', 'Other Conditions', false, 'nfr_questionnaire.data (JSON)', 'health.other_conditions');
+      $add_row('Health', 'Family Cancer History', false, 'nfr_questionnaire.family_cancer_history (JSON)', 'health.family_cancer_history');
+      
+      // LIFESTYLE (direct column + JSON columns)
+      $add_row('Lifestyle', 'Smoking Status', true, 'nfr_questionnaire.smoking_history (JSON)', 'lifestyle.smoking_status');
+      
+      $tobacco_types = [
+        'Cigarettes', 'Cigars', 'Pipes', 'Chewing Tobacco', 'E-Cigarettes'
+      ];
+      foreach ($tobacco_types as $idx => $type) {
+        $key = ['cigarettes', 'cigars', 'pipes', 'chewing_tobacco', 'e_cigarettes'][$idx];
+        $add_row('Lifestyle', $type . ' - Ever Used', false, 'nfr_questionnaire.smoking_history (JSON)', 'lifestyle.' . $key . '_ever_used');
+        $add_row('Lifestyle', $type . ' - Frequency', false, 'nfr_questionnaire.smoking_history (JSON)', 'lifestyle.' . $key . '_frequency');
+      }
+      
+      $add_row('Lifestyle', 'Alcohol Frequency', true, 'nfr_questionnaire.alcohol_use', 'questionnaire.alcohol_use');
+      $add_row('Lifestyle', 'Physical Activity Days', true, 'nfr_questionnaire.data (JSON)', 'lifestyle.physical_activity_days');
+      $add_row('Lifestyle', 'Sleep Hours', false, 'nfr_questionnaire.data (JSON)', 'lifestyle.sleep_hours');
+      $add_row('Lifestyle', 'Sleep Quality', false, 'nfr_questionnaire.data (JSON)', 'lifestyle.sleep_quality');
+      
+      $output .= '</tbody></table>';
+      
+      $output .= '<div style="background: #e7f3ff; padding: 12px; border-radius: 4px; margin-top: 15px;">';
+      $output .= '<p style="margin: 0; font-size: 0.9em;"><strong>Legend:</strong></p>';
+      $output .= '<p style="margin: 5px 0; font-size: 0.9em;">✓ = Field is tracked | ✗ = Field not tracked</p>';
+      $output .= '<p style="margin: 5px 0; font-size: 0.9em;"><span style="color: #4CAF50;">Green (100%)</span> = Complete | <span style="color: #FF9800;">Orange (75-99%)</span> = Good | <span style="color: #F44336;">Red (1-74%)</span> = Incomplete | <span style="color: #999;">Gray (0%)</span> = No data</p>';
+      $output .= '<p style="margin: 5px 0 0 0; font-size: 0.9em;"><strong>Storage Strategy:</strong> Work History uses normalized tables (nfr_work_history, nfr_job_titles, nfr_incident_frequency). Demographics/Military use direct columns. PPE/Decontamination/Smoking use dedicated JSON columns. Some fields use nfr_questionnaire.data JSON for additional details.</p>';
+      $output .= '</div>';
+      $output .= '</div>';
+      
+      // Summary Table at Top
+      $output .= '<div style="background: #f0f8ff; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 2px solid #4CAF50;">';
+      $output .= '<h2 style="margin-top: 0;">📊 Summary Statistics</h2>';
+      $output .= '<table style="width: 60%; border-collapse: collapse; margin-bottom: 0; font-size: 1.1em;">';
+      $output .= '<tr><td style="border: 1px solid #ddd; padding: 12px; background: #fff;"><strong>Total Fields Tracked:</strong></td><td style="border: 1px solid #ddd; padding: 12px; background: #fff; text-align: center; font-size: 1.3em;"><strong>' . $total_fields . '</strong></td></tr>';
+      $output .= '<tr><td style="border: 1px solid #ddd; padding: 12px; background: #fff;"><strong>Fields at 100% Completion:</strong></td><td style="border: 1px solid #ddd; padding: 12px; color: #4CAF50; background: #fff; text-align: center; font-size: 1.3em;"><strong>' . $fields_at_100 . '</strong></td></tr>';
+      $output .= '<tr><td style="border: 1px solid #ddd; padding: 12px; background: #fff;"><strong>Fields Below 100%:</strong></td><td style="border: 1px solid #ddd; padding: 12px; color: ' . (count($fields_below_100) > 0 ? '#F44336' : '#4CAF50') . '; background: #fff; text-align: center; font-size: 1.3em;"><strong>' . count($fields_below_100) . '</strong></td></tr>';
+      $output .= '</table>';
+      $output .= '</div>';
+      
+      $output .= '<style>
+        .fill-rates-page { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .chart-container { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 8px; }
+        .chart-wrapper { position: relative; height: 300px; margin-top: 10px; }
+      </style>';
+      
+      $sections = [
+        'profile' => 'USER PROFILE (5-Minute Form)',
+        'questionnaire' => 'QUESTIONNAIRE DIRECT COLUMNS',
+        'demographics' => 'DEMOGRAPHICS (Section 1)',
+        'work_history' => 'WORK HISTORY (Section 2)',
+        'exposure' => 'EXPOSURE (Section 3)',
+        'military' => 'MILITARY SERVICE (Section 4)',
+        'other_employment' => 'OTHER EMPLOYMENT (Section 5)',
+        'ppe' => 'PERSONAL PROTECTIVE EQUIPMENT (Section 6)',
+        'decontamination' => 'DECONTAMINATION (Section 7)',
+        'health' => 'HEALTH CONDITIONS (Section 8)',
+        'lifestyle' => 'LIFESTYLE (Section 9)',
+      ];
+      
+      $chart_data_js = [];
+      
+      foreach ($sections as $section_key => $section_name) {
+        $output .= '<h2>' . $section_name . '</h2>';
+        
+        $section_has_fields = FALSE;
+        foreach ($field_counts as $field => $count) {
+          if (strpos($field, $section_key . '.') === 0) {
+            $section_has_fields = TRUE;
+            $pct = round(($count / $total_records) * 100, 1);
+            $color = $pct >= 100 ? '#4CAF50' : ($pct >= 90 ? '#FF9800' : '#F44336');
+            
+            // Create chart for this field
+            $chart_id = 'chart_' . str_replace('.', '_', $field);
+            $output .= '<div class="chart-container">';
+            $output .= '<h3>' . htmlspecialchars($field) . '</h3>';
+            $output .= '<p style="margin: 5px 0;"><strong>Fill Rate:</strong> <span style="color: ' . $color . ';">' . $count . ' / ' . $total_records . ' (' . $pct . '%)</span></p>';
+            
+            if (isset($value_distributions[$field])) {
+              $output .= '<div class="chart-wrapper">';
+              $output .= '<canvas id="' . $chart_id . '"></canvas>';
+              $output .= '</div>';
+              
+              // Prepare data for this chart
+              $labels = array_keys($value_distributions[$field]);
+              $values = array_values($value_distributions[$field]);
+              
+              // Limit very long labels and ensure strings
+              $labels = array_map(function($label) {
+                $label = (string)$label;
+                return strlen($label) > 30 ? substr($label, 0, 27) . '...' : $label;
+              }, $labels);
+              
+              $chart_data_js[] = [
+                'id' => $chart_id,
+                'labels' => $labels,
+                'data' => $values,
+                'field' => $field,
+              ];
+            }
+            else {
+              $output .= '<p style="font-style: italic; color: #666;">No value distribution data available</p>';
+            }
+            
+            $output .= '</div>';
+          }
+        }
+        
+        if (!$section_has_fields) {
+          $output .= '<p style="font-style: italic; color: #666;">No fields analyzed in this section</p>';
+        }
+      }
+      
+      // Fields with Incomplete Data Section
+      if (count($fields_below_100) > 0) {
+        $output .= '<h2 style="color: #F44336;">⚠️ Fields with Incomplete Data</h2>';
+        $output .= '<p style="margin-bottom: 20px;">The following fields have less than 100% completion. Charts show the distribution of actual responses.</p>';
+        
+        foreach ($fields_below_100 as $item) {
+          $field = $item['field'];
+          $count = $item['count'];
+          $pct = $item['pct'];
+          $missing = $total_records - $count;
+          $missing_pct = round(($missing / $total_records) * 100, 1);
+          $color = $pct >= 90 ? '#FF9800' : '#F44336';
+          
+          $chart_id = 'chart_' . str_replace('.', '_', $field);
+          
+          $output .= '<div class="chart-container" style="border: 2px solid ' . $color . ';">';
+          $output .= '<h3 style="color: ' . $color . ';">' . htmlspecialchars($field) . '</h3>';
+          $output .= '<div style="background: #fff; padding: 10px; margin: 10px 0; border-radius: 4px;">';
+          $output .= '<table style="width: 100%; border-collapse: collapse;">';
+          $output .= '<tr>';
+          $output .= '<td style="padding: 8px;"><strong>Completed:</strong></td>';
+          $output .= '<td style="padding: 8px; color: #4CAF50;">' . $count . ' (' . $pct . '%)</td>';
+          $output .= '<td style="padding: 8px;"><strong>Missing:</strong></td>';
+          $output .= '<td style="padding: 8px; color: #F44336;">' . $missing . ' (' . $missing_pct . '%)</td>';
+          $output .= '<td style="padding: 8px;"><strong>Total:</strong></td>';
+          $output .= '<td style="padding: 8px;">' . $total_records . '</td>';
+          $output .= '</tr>';
+          $output .= '</table>';
+          $output .= '</div>';
+          
+          if (isset($value_distributions[$field])) {
+            $output .= '<p><strong>Value Distribution (for completed responses only):</strong></p>';
+            $output .= '<div class="chart-wrapper">';
+            $output .= '<canvas id="' . $chart_id . '_incomplete"></canvas>';
+            $output .= '</div>';
+            
+            // Add chart data with "_incomplete" suffix
+            $labels = array_keys($value_distributions[$field]);
+            $values = array_values($value_distributions[$field]);
+            $labels = array_map(function($label) {
+              $label = (string)$label;
+              return strlen($label) > 30 ? substr($label, 0, 27) . '...' : $label;
+            }, $labels);
+            
+            $chart_data_js[] = [
+              'id' => $chart_id . '_incomplete',
+              'labels' => $labels,
+              'data' => $values,
+              'field' => $field,
+            ];
+            
+            // Also show a table of values
+            $output .= '<table style="width: 100%; margin-top: 15px; border-collapse: collapse; font-size: 0.9em;">';
+            $output .= '<thead><tr>';
+            $output .= '<th style="border: 1px solid #ddd; padding: 6px; background: #f9f9f9; text-align: left;">Value</th>';
+            $output .= '<th style="border: 1px solid #ddd; padding: 6px; background: #f9f9f9; text-align: center;">Count</th>';
+            $output .= '<th style="border: 1px solid #ddd; padding: 6px; background: #f9f9f9; text-align: center;">% of Completed</th>';
+            $output .= '<th style="border: 1px solid #ddd; padding: 6px; background: #f9f9f9; text-align: center;">% of Total</th>';
+            $output .= '</tr></thead><tbody>';
+            
+            foreach ($value_distributions[$field] as $val => $val_count) {
+              $pct_of_completed = round(($val_count / $count) * 100, 1);
+              $pct_of_total = round(($val_count / $total_records) * 100, 1);
+              $output .= '<tr>';
+              $output .= '<td style="border: 1px solid #ddd; padding: 6px;">' . htmlspecialchars($val) . '</td>';
+              $output .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center;">' . $val_count . '</td>';
+              $output .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center;">' . $pct_of_completed . '%</td>';
+              $output .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center;">' . $pct_of_total . '%</td>';
+              $output .= '</tr>';
+            }
+            
+            $output .= '</tbody></table>';
+          }
+          else {
+            $output .= '<p style="font-style: italic; color: #666;">No value distribution data available</p>';
+          }
+          
+          $output .= '</div>';
+        }
+      }
+      
+      $output .= '<p><a href="/nfr/validation">← Back to Validation Dashboard</a></p>';
+      $output .= '</div>';
+      
+      return [
+        '#type' => 'inline_template',
+        '#template' => $output,
+        '#attached' => [
+          'library' => [
+            'nfr/fill_rates',
+          ],
+          'html_head' => [
+            [
+              [
+                '#type' => 'html_tag',
+                '#tag' => 'script',
+                '#attributes' => ['src' => 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'],
+              ],
+              'chartjs',
+            ],
+          ],
+          'drupalSettings' => [
+            'nfr_fill_rates' => [
+              'chart_data' => $chart_data_js,
+            ],
+          ],
+        ],
+        '#cache' => [
+          'max-age' => 0,
+        ],
+      ];
+    }
+    catch (\Exception $e) {
+      return [
+        '#markup' => '<div class="error"><h1>Error</h1><p>' . htmlspecialchars($e->getMessage()) . '</p><p><a href="/nfr/validation">← Back to Validation Dashboard</a></p></div>',
+      ];
+    }
+  }
+
+}
