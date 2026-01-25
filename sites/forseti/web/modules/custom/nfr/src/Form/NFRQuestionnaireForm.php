@@ -44,7 +44,7 @@ class NFRQuestionnaireForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $uid = $this->currentUser->id();
+    $uid = (int) $this->currentUser->id();
     
     // Load existing data if available
     $existing = $this->loadQuestionnaire($uid);
@@ -52,16 +52,78 @@ class NFRQuestionnaireForm extends FormBase {
     $form['#tree'] = TRUE;
     $form['#attached']['library'][] = 'nfr/enrollment';
 
+    // Determine current section: resume from last completed + 1, or start at 1
+    $last_completed = $this->getLastCompletedSection($uid);
+    $resume_section = min($last_completed + 1, 9); // Resume at next incomplete section
+    
+    // Current section tracking (for multi-step)
+    $current_section = $form_state->get('current_section') ?? $resume_section;
+    $form_state->set('current_section', $current_section);
+    
+    // Calculate progress percentage
+    $progress_percent = ($current_section - 1) / 9 * 100;
+
     // Progress indicator
     $form['progress'] = [
       '#type' => 'markup',
-      '#markup' => '<div class="questionnaire-progress"><div class="progress-text">Enrollment Questionnaire (about 30 minutes)</div><div class="progress-bar"><div class="progress-fill" style="width: 0%"></div></div></div>',
+      '#markup' => '<div class="questionnaire-progress"><div class="progress-text">Enrollment Questionnaire - Section ' . $current_section . ' of 9 (' . round($progress_percent) . '% complete)</div><div class="progress-bar"><div class="progress-fill" style="width: ' . $progress_percent . '%"></div></div></div>',
       '#weight' => -100,
     ];
-
-    // Current section tracking (for multi-step)
-    $current_section = $form_state->get('current_section') ?? 1;
-    $form_state->set('current_section', $current_section);
+    
+    // Section navigation menu (if user has started the questionnaire)
+    if ($last_completed > 0 || $current_section > 1) {
+      $form['section_nav'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Jump to Section'),
+        '#open' => FALSE,
+        '#weight' => -99,
+      ];
+      
+      $section_names = [
+        1 => 'Demographics',
+        2 => 'Work History',
+        3 => 'Exposure Information',
+        4 => 'Military Service',
+        5 => 'Other Employment',
+        6 => 'PPE Practices',
+        7 => 'Decontamination',
+        8 => 'Health Information',
+        9 => 'Lifestyle Factors',
+      ];
+      
+      $form['section_nav']['current_note'] = [
+        '#type' => 'markup',
+        '#markup' => '<p>' . $this->t('Click any section to jump to it. Your current section data will be saved automatically.') . '</p>',
+      ];
+      
+      foreach ($section_names as $section_num => $section_name) {
+        $status = '';
+        if ($section_num <= $last_completed) {
+          $status = ' ✓'; // Completed
+        }
+        if ($section_num == $current_section) {
+          $status .= ' (current)';
+        }
+        
+        $form['section_nav']['jump_' . $section_num] = [
+          '#type' => 'submit',
+          '#value' => $this->t('Section @num: @name@status', [
+            '@num' => $section_num,
+            '@name' => $section_name,
+            '@status' => $status,
+          ]),
+          '#submit' => ['::jumpToSection'],
+          '#section_number' => $section_num,
+          '#limit_validation_errors' => [],
+          '#attributes' => [
+            'class' => [
+              $section_num == $current_section ? 'section-nav-current' : 'section-nav-link',
+              $section_num <= $last_completed ? 'section-nav-completed' : '',
+            ],
+          ],
+        ];
+      }
+    }
 
     // Section 1: Demographics
     if ($current_section == 1) {
@@ -1215,6 +1277,54 @@ class NFRQuestionnaireForm extends FormBase {
   }
 
   /**
+   * Check if questionnaire is complete.
+   */
+  private function isQuestionnaireComplete(): bool {
+    $uid = (int) $this->currentUser->id();
+    
+    $result = $this->database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['questionnaire_completed'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchField();
+    
+    return (bool) $result;
+  }
+
+  /**
+   * Get last completed section for user.
+   */
+  private function getLastCompletedSection(int $uid): int {
+    $result = $this->database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['last_section_completed'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchField();
+    
+    return $result !== FALSE ? (int) $result : 0;
+  }
+
+  /**
+   * Update last completed section.
+   */
+  private function updateLastCompletedSection(int $section): void {
+    $uid = (int) $this->currentUser->id();
+    
+    // Only update if this section is greater than current last_section_completed
+    $current_last = $this->getLastCompletedSection($uid);
+    
+    if ($section > $current_last) {
+      $this->database->update('nfr_questionnaire')
+        ->fields(['last_section_completed' => $section])
+        ->condition('uid', $uid)
+        ->execute();
+    }
+  }
+
+  /**
+   * Load existing questionnaire data.
+   */
+  /**
    * Load existing questionnaire data.
    */
   private function loadQuestionnaire(int $uid): ?array {
@@ -1227,17 +1337,43 @@ class NFRQuestionnaireForm extends FormBase {
       return NULL;
     }
 
-    // Decode JSON fields
+    // Map database columns to form structure
+    $smoking_history = json_decode($result['smoking_history'] ?? '{}', TRUE);
+    
     return [
-      'demographics' => json_decode($result['demographics'] ?? '{}', TRUE),
-      'work_history' => json_decode($result['work_history'] ?? '{}', TRUE),
-      'exposure' => json_decode($result['exposure'] ?? '{}', TRUE),
-      'military' => json_decode($result['military_service'] ?? '{}', TRUE),
-      'other_employment' => json_decode($result['other_employment'] ?? '{}', TRUE),
+      'demographics' => [
+        'race_ethnicity' => json_decode($result['race_ethnicity'] ?? '{}', TRUE),
+        'race_other' => $result['race_other'] ?? '',
+        'education_level' => $result['education_level'] ?? '',
+        'marital_status' => $result['marital_status'] ?? '',
+      ],
+      'work_history' => [], // Loaded from nfr_work_history table separately
+      'exposure' => json_decode($result['exposure_data'] ?? '{}', TRUE),
+      'military' => [
+        'served' => $result['military_service'] ? 'yes' : 'no',
+        'branch' => $result['military_branch'] ?? '',
+        'start_date' => '', // Would need separate date columns
+        'end_date' => '',
+        'currently_serving' => FALSE,
+        'was_firefighter' => '',
+        'firefighting_duties' => '',
+      ],
+      'other_employment' => json_decode($result['other_employment_data'] ?? '{}', TRUE),
       'ppe' => json_decode($result['ppe_practices'] ?? '{}', TRUE),
       'decontamination' => json_decode($result['decon_practices'] ?? '{}', TRUE),
-      'health' => json_decode($result['health_information'] ?? '{}', TRUE),
-      'lifestyle' => json_decode($result['lifestyle_factors'] ?? '{}', TRUE),
+      'health' => [
+        'cancer_diagnosed' => $result['cancer_diagnosis'] ? 'yes' : 'no',
+        'cancers' => json_decode($result['cancer_details'] ?? '[]', TRUE),
+        'other_conditions' => json_decode($result['family_cancer_history'] ?? '[]', TRUE),
+      ],
+      'lifestyle' => [
+        'smoking_status' => $smoking_history['status'] ?? '',
+        'smoking_age_started' => $smoking_history['age_started'] ?? '',
+        'smoking_age_stopped' => $smoking_history['age_stopped'] ?? '',
+        'cigarettes_per_day' => $smoking_history['cigarettes_per_day'] ?? '',
+        'alcohol_frequency' => $result['alcohol_use'] ?? '',
+        'physical_activity_days' => '',  // Not in current schema
+      ],
     ];
   }
 
@@ -1368,10 +1504,39 @@ class NFRQuestionnaireForm extends FormBase {
   }
 
   /**
+   * Jump to section submit handler.
+   */
+  public function jumpToSection(array &$form, FormStateInterface $form_state): void {
+    $current_section = $form_state->get('current_section');
+    
+    // Save current section data before jumping
+    $this->saveCurrentSection($form_state, $current_section);
+    
+    // Update last completed section
+    $this->updateLastCompletedSection($current_section);
+    
+    // Get target section from button
+    $triggering_element = $form_state->getTriggeringElement();
+    $target_section = $triggering_element['#section_number'];
+    
+    // Jump to target section
+    $form_state->set('current_section', $target_section);
+    $form_state->setRebuild();
+  }
+
+  /**
    * Previous button submit handler.
    */
   public function previousSubmit(array &$form, FormStateInterface $form_state): void {
     $current_section = $form_state->get('current_section');
+    
+    // Save current section data before going back
+    $this->saveCurrentSection($form_state, $current_section);
+    
+    // Update last completed section if moving forward in progress
+    $this->updateLastCompletedSection($current_section);
+    
+    // Move to previous section
     $form_state->set('current_section', $current_section - 1);
     $form_state->setRebuild();
   }
@@ -1385,6 +1550,9 @@ class NFRQuestionnaireForm extends FormBase {
     // Save current section data
     $this->saveCurrentSection($form_state, $current_section);
     
+    // Update last completed section
+    $this->updateLastCompletedSection($current_section);
+    
     // Move to next section
     $form_state->set('current_section', $current_section + 1);
     $form_state->setRebuild();
@@ -1396,8 +1564,17 @@ class NFRQuestionnaireForm extends FormBase {
   public function saveAndExit(array &$form, FormStateInterface $form_state): void {
     $current_section = $form_state->get('current_section');
     $this->saveCurrentSection($form_state, $current_section);
+    $this->updateLastCompletedSection($current_section);
     
-    $this->messenger()->addStatus($this->t('Your progress has been saved. You can continue later from your dashboard.'));
+    $is_complete = $this->isQuestionnaireComplete();
+    
+    if ($is_complete) {
+      $this->messenger()->addStatus($this->t('Questionnaire saved. You can return anytime to review or update your responses.'));
+    }
+    else {
+      $this->messenger()->addStatus($this->t('Progress saved at Section @section. You can continue later from your dashboard.', ['@section' => $current_section]));
+    }
+    
     $form_state->setRedirect('nfr.my_dashboard');
   }
 
@@ -1426,24 +1603,8 @@ class NFRQuestionnaireForm extends FormBase {
    * Save current section data.
    */
   private function saveCurrentSection(FormStateInterface $form_state, int $section): void {
-    $uid = $this->currentUser->id();
+    $uid = (int) $this->currentUser->id();
     $values = $form_state->getValues();
-
-    // Map section to field name
-    $section_map = [
-      1 => 'demographics',
-      2 => 'work_history',
-      3 => 'exposure',
-      4 => 'military',
-      5 => 'other_employment',
-      6 => 'ppe',
-      7 => 'decontamination',
-      8 => 'health',
-      9 => 'lifestyle',
-    ];
-
-    $field_name = $section_map[$section];
-    $section_data = $values[$field_name] ?? [];
 
     // Check if record exists
     $exists = $this->database->select('nfr_questionnaire', 'q')
@@ -1452,28 +1613,149 @@ class NFRQuestionnaireForm extends FormBase {
       ->execute()
       ->fetchField();
 
+    // Build field data based on section
+    $field_data = $this->prepareSectionData($section, $values);
+    
+    if (empty($field_data)) {
+      return;
+    }
+
+    $field_data['updated'] = time();
+
     if ($exists) {
       // Update existing record
       $this->database->update('nfr_questionnaire')
-        ->fields([
-          $this->getFieldColumnName($field_name) => json_encode($section_data),
-          'updated' => time(),
-        ])
+        ->fields($field_data)
         ->condition('uid', $uid)
         ->execute();
     }
     else {
       // Insert new record
+      $field_data['uid'] = $uid;
+      $field_data['questionnaire_completed'] = 0;
+      $field_data['created'] = time();
+      
       $this->database->insert('nfr_questionnaire')
-        ->fields([
-          'uid' => $uid,
-          $this->getFieldColumnName($field_name) => json_encode($section_data),
-          'questionnaire_completed' => 0,
-          'created' => time(),
-          'updated' => time(),
-        ])
+        ->fields($field_data)
         ->execute();
     }
+  }
+
+  /**
+   * Prepare section data for database storage.
+   */
+  private function prepareSectionData(int $section, array $values): array {
+    $field_data = [];
+    
+    switch ($section) {
+      case 1: // Demographics
+        if (isset($values['demographics'])) {
+          $demo = $values['demographics'];
+          if (isset($demo['race_ethnicity'])) {
+            $field_data['race_ethnicity'] = json_encode(array_filter($demo['race_ethnicity']));
+          }
+          if (isset($demo['race_other'])) {
+            $field_data['race_other'] = $demo['race_other'];
+          }
+          if (isset($demo['education_level'])) {
+            $field_data['education_level'] = $demo['education_level'];
+          }
+          if (isset($demo['marital_status'])) {
+            $field_data['marital_status'] = $demo['marital_status'];
+          }
+        }
+        break;
+
+      case 2: // Work History
+        // Work history stored in separate nfr_work_history table
+        // This section doesn't update nfr_questionnaire
+        break;
+
+      case 3: // Exposure
+        // Store exposure data as JSON for complex nested structure
+        if (isset($values['exposure'])) {
+          // Exposure section has complex nested data (AFFF, diesel, incidents)
+          // Store in JSON column when added to schema
+          // TODO: Add exposure_data column to nfr_questionnaire schema
+        }
+        break;
+
+      case 4: // Military Service
+        if (isset($values['military'])) {
+          $military = $values['military'];
+          // Check if 'served' is 'yes' (radio value)
+          if (isset($military['served'])) {
+            $field_data['military_service'] = ($military['served'] === 'yes') ? 1 : 0;
+          }
+          if (isset($military['branch']) && $military['served'] === 'yes') {
+            $field_data['military_branch'] = $military['branch'];
+          }
+          // Calculate years from dates if provided
+          if (isset($military['start_date']) && isset($military['end_date'])) {
+            $start = new \DateTime($military['start_date']);
+            $end = new \DateTime($military['end_date']);
+            $field_data['military_years'] = $end->diff($start)->y;
+          }
+        }
+        break;
+
+      case 5: // Other Employment
+        if (isset($values['other_employment'])) {
+          $field_data['other_employment_data'] = json_encode($values['other_employment']);
+        }
+        break;
+
+      case 6: // PPE Practices
+        if (isset($values['ppe'])) {
+          $field_data['ppe_practices'] = json_encode($values['ppe']);
+        }
+        break;
+
+      case 7: // Decontamination
+        if (isset($values['decontamination'])) {
+          $field_data['decon_practices'] = json_encode($values['decontamination']);
+        }
+        break;
+
+      case 8: // Health
+        if (isset($values['health'])) {
+          $health = $values['health'];
+          // Field name is 'cancer_diagnosed' in form, 'cancer_diagnosis' in DB
+          if (isset($health['cancer_diagnosed'])) {
+            $field_data['cancer_diagnosis'] = ($health['cancer_diagnosed'] === 'yes') ? 1 : 0;
+          }
+          // Cancer details from repeating 'cancers' array
+          if (isset($health['cancers'])) {
+            $field_data['cancer_details'] = json_encode($health['cancers']);
+          }
+          // Other conditions as family history
+          if (isset($health['other_conditions'])) {
+            $field_data['family_cancer_history'] = json_encode($health['other_conditions']);
+          }
+        }
+        break;
+
+      case 9: // Lifestyle
+        if (isset($values['lifestyle'])) {
+          $lifestyle = $values['lifestyle'];
+          // Build smoking history object from individual fields
+          $smoking_data = [
+            'status' => $lifestyle['smoking_status'] ?? '',
+            'age_started' => $lifestyle['smoking_age_started'] ?? null,
+            'age_stopped' => $lifestyle['smoking_age_stopped'] ?? null,
+            'cigarettes_per_day' => $lifestyle['cigarettes_per_day'] ?? '',
+          ];
+          $field_data['smoking_history'] = json_encode($smoking_data);
+          
+          // Alcohol frequency
+          if (isset($lifestyle['alcohol_frequency'])) {
+            $field_data['alcohol_use'] = $lifestyle['alcohol_frequency'];
+          }
+        }
+        break;
+    }
+    
+    return $field_data;
   }
 
   /**
@@ -1498,7 +1780,7 @@ class NFRQuestionnaireForm extends FormBase {
    * Mark questionnaire as complete.
    */
   private function markQuestionnaireComplete(): void {
-    $uid = $this->currentUser->id();
+    $uid = (int) $this->currentUser->id();
     
     $this->database->update('nfr_questionnaire')
       ->fields([
