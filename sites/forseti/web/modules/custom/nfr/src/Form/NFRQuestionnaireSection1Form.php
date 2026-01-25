@@ -35,8 +35,22 @@ class NFRQuestionnaireSection1Form extends FormBase {
 
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $uid = (int) $this->currentUser->id();
-    $existing = $this->loadData($uid);
-    $demographics = $existing['demographics'] ?? [];
+    
+    // Load demographics from database columns
+    $database = $this->getDatabase();
+    $questionnaire = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['race_ethnicity', 'race_other', 'education_level', 'marital_status'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchAssoc();
+    
+    $demographics = [];
+    if ($questionnaire) {
+      $demographics['race_ethnicity'] = $questionnaire['race_ethnicity'] ? json_decode($questionnaire['race_ethnicity'], TRUE) : [];
+      $demographics['race_other'] = $questionnaire['race_other'] ?? '';
+      $demographics['education_level'] = $questionnaire['education_level'] ?? '';
+      $demographics['marital_status'] = $questionnaire['marital_status'] ?? '';
+    }
 
     // Add navigation menu
     $form['navigation'] = $this->buildNavigationMenu(1);
@@ -122,18 +136,20 @@ class NFRQuestionnaireSection1Form extends FormBase {
     $uid = $this->getCurrentUserId();
     $demographics = $form_state->getValue('demographics');
 
-    // Load existing data
-    $existing = $this->loadData($uid);
-    $existing['demographics'] = $demographics;
-    $existing['section_completion'][1] = TRUE;
+    // Prepare race_ethnicity as JSON array (only checked values)
+    $race_values = array_filter($demographics['race_ethnicity']);
+    $race_json = !empty($race_values) ? json_encode(array_values($race_values)) : NULL;
 
-    // Save to database
-    $this->saveData($uid, $existing);
-
-    // Update progress
+    // Save demographics to specific columns
     $database = $this->getDatabase();
     $database->update('nfr_questionnaire')
-      ->fields(['last_section_completed' => 1])
+      ->fields([
+        'race_ethnicity' => $race_json,
+        'race_other' => $demographics['race_other'] ?: NULL,
+        'education_level' => $demographics['education_level'] ?: NULL,
+        'marital_status' => $demographics['marital_status'] ?: NULL,
+        'last_section_completed' => 1,
+      ])
       ->condition('uid', $uid)
       ->execute();
 

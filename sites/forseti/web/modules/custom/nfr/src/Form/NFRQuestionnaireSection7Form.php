@@ -49,8 +49,19 @@ class NFRQuestionnaireSection7Form extends FormBase {
     $form['#attached']['library'][] = 'nfr/enrollment';
 
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
-    $decon = $existing['decontamination'] ?? [];
+    
+    // Load decon data from JSON column
+    $database = $this->getDatabase();
+    $questionnaire = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['decon_practices'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchAssoc();
+    
+    $decon = [];
+    if ($questionnaire && $questionnaire['decon_practices']) {
+      $decon = json_decode($questionnaire['decon_practices'], TRUE) ?? [];
+    }
 
     // Add navigation menu
     $form['navigation'] = $this->buildNavigationMenu(7);
@@ -152,16 +163,15 @@ class NFRQuestionnaireSection7Form extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
+    $decontamination = $form_state->getValue('decontamination');
 
-    $existing['decontamination'] = $form_state->getValue('decontamination');
-    $existing['section_completion'][7] = TRUE;
-    $this->saveData($uid, $existing);
-
-    // Update progress
+    // Save decon data to JSON column
     $database = $this->getDatabase();
     $database->update('nfr_questionnaire')
-      ->fields(['last_section_completed' => 7])
+      ->fields([
+        'decon_practices' => json_encode($decontamination),
+        'last_section_completed' => 7,
+      ])
       ->condition('uid', $uid)
       ->execute();
 
@@ -180,10 +190,14 @@ class NFRQuestionnaireSection7Form extends FormBase {
    */
   public function saveAndExit(array &$form, FormStateInterface $form_state): void {
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
+    $decontamination = $form_state->getValue('decontamination');
 
-    $existing['decontamination'] = $form_state->getValue('decontamination');
-    $this->saveData($uid, $existing);
+    // Save decon data to JSON column
+    $database = $this->getDatabase();
+    $database->update('nfr_questionnaire')
+      ->fields(['decon_practices' => json_encode($decontamination)])
+      ->condition('uid', $uid)
+      ->execute();
 
     $this->messenger()->addStatus($this->t('Your progress has been saved.'));
     $form_state->setRedirect('nfr.dashboard');

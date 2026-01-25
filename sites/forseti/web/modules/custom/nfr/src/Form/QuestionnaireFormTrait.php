@@ -49,16 +49,19 @@ trait QuestionnaireFormTrait {
    */
   private function buildNavigationMenu(int $current_section): array {
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
     
-    // Get completion status for each section
-    $section_completion = $existing['section_completion'] ?? [];
+    // Get last completed section from database
+    $database = $this->getDatabase();
+    $last_completed = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['last_section_completed'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchField();
     
-    // Count completed sections
-    $completed_count = count(array_filter($section_completion));
+    $last_completed = (int) ($last_completed ?: 0);
     
-    // Calculate progress percentage
-    $progress_percent = ($completed_count / 9) * 100;
+    // Calculate progress percentage based on last completed section
+    $progress_percent = ($last_completed / 9) * 100;
     
     $sections = [
       1 => 'Demographics',
@@ -82,7 +85,7 @@ trait QuestionnaireFormTrait {
     
     foreach ($sections as $section_num => $section_name) {
       $step_class = 'stepper-step';
-      $is_completed = !empty($section_completion[$section_num]);
+      $is_completed = ($section_num <= $last_completed);
       
       if ($is_completed) {
         $step_class .= ' completed';

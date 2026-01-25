@@ -35,7 +35,33 @@ class NFRQuestionnaireSection4Form extends FormBase {
 
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $uid = (int) $this->currentUser->id();
-    $existing = $this->loadData($uid);
+    
+    // Load military data from database columns
+    $database = $this->getDatabase();
+    $questionnaire = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', [
+        'military_service',
+        'military_branch',
+        'military_start_date',
+        'military_end_date',
+        'military_currently_serving',
+        'military_was_firefighter',
+        'military_firefighting_duties',
+      ])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchAssoc();
+    
+    $military = [];
+    if ($questionnaire) {
+      $military['served'] = $questionnaire['military_service'] ? 'yes' : 'no';
+      $military['branch'] = $questionnaire['military_branch'] ?? '';
+      $military['start_date'] = $questionnaire['military_start_date'] ?? '';
+      $military['end_date'] = $questionnaire['military_end_date'] ?? '';
+      $military['currently_serving'] = (bool) $questionnaire['military_currently_serving'];
+      $military['was_firefighter'] = $questionnaire['military_was_firefighter'] ?? '';
+      $military['firefighting_duties'] = $questionnaire['military_firefighting_duties'] ?? '';
+    }
     
     $form['#tree'] = TRUE;
     
@@ -46,7 +72,6 @@ class NFRQuestionnaireSection4Form extends FormBase {
       '#markup' => '<h2>Section 4: Military Service</h2>',
     ];
 
-    $military = $existing['military'] ?? [];
 
     $form['military'] = [
       '#type' => 'fieldset',
@@ -183,24 +208,49 @@ class NFRQuestionnaireSection4Form extends FormBase {
   }
 
   public function saveAndExit(array &$form, FormStateInterface $form_state): void {
-    $this->saveSection($form_state);
+    $uid = $this->getCurrentUserId();
+    $military = $form_state->getValue('military');
+    
+    // Save military data to database columns
+    $database = $this->getDatabase();
+    $served = ($military['served'] === 'yes');
+    
+    $database->update('nfr_questionnaire')
+      ->fields([
+        'military_service' => $served ? 1 : 0,
+        'military_branch' => $served ? ($military['branch'] ?: NULL) : NULL,
+        'military_start_date' => $served ? ($military['start_date'] ?: NULL) : NULL,
+        'military_end_date' => ($served && !($military['currently_serving'] ?? FALSE)) ? ($military['end_date'] ?: NULL) : NULL,
+        'military_currently_serving' => $served ? (int) ($military['currently_serving'] ?? FALSE) : 0,
+        'military_was_firefighter' => $served ? ($military['was_firefighter'] ?: NULL) : NULL,
+        'military_firefighting_duties' => ($served && ($military['was_firefighter'] ?? '') === 'yes') ? ($military['firefighting_duties'] ?: NULL) : NULL,
+      ])
+      ->condition('uid', $uid)
+      ->execute();
+    
     $this->messenger()->addStatus($this->t('Military service information saved.'));
     $form_state->setRedirect('nfr.my_dashboard');
   }
 
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $this->saveSection($form_state);
-    
-    // Mark section as completed
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
-    $existing['section_completion'][4] = TRUE;
-    $this->saveData($uid, $existing);
+    $military = $form_state->getValue('military');
     
-    // Update progress
+    // Save military data to database columns
     $database = $this->getDatabase();
+    $served = ($military['served'] === 'yes');
+    
     $database->update('nfr_questionnaire')
-      ->fields(['last_section_completed' => 4])
+      ->fields([
+        'military_service' => $served ? 1 : 0,
+        'military_branch' => $served ? ($military['branch'] ?: NULL) : NULL,
+        'military_start_date' => $served ? ($military['start_date'] ?: NULL) : NULL,
+        'military_end_date' => ($served && !($military['currently_serving'] ?? FALSE)) ? ($military['end_date'] ?: NULL) : NULL,
+        'military_currently_serving' => $served ? (int) ($military['currently_serving'] ?? FALSE) : 0,
+        'military_was_firefighter' => $served ? ($military['was_firefighter'] ?: NULL) : NULL,
+        'military_firefighting_duties' => ($served && ($military['was_firefighter'] ?? '') === 'yes') ? ($military['firefighting_duties'] ?: NULL) : NULL,
+        'last_section_completed' => 4,
+      ])
       ->condition('uid', $uid)
       ->execute();
     
@@ -209,10 +259,7 @@ class NFRQuestionnaireSection4Form extends FormBase {
   }
 
   private function saveSection(FormStateInterface $form_state): void {
-    $uid = (int) $this->currentUser->id();
-    $existing = $this->loadData($uid);
-    $existing['military'] = $form_state->getValue('military');
-    $this->saveData($uid, $existing);
+    // Deprecated - now saves directly in submitForm and saveAndExit
   }
 
 }

@@ -35,7 +35,40 @@ class NFRQuestionnaireSection3Form extends FormBase {
 
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
+    
+    // Load exposure data from direct columns
+    $database = $this->getDatabase();
+    $questionnaire = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['afff_used', 'afff_times', 'afff_first_year', 'diesel_exhaust', 'chemical_activities', 'major_incidents'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchAssoc();
+    
+    $exposure = [];
+    if ($questionnaire) {
+      $exposure['afff_used'] = $questionnaire['afff_used'] ?? '';
+      $exposure['afff_times'] = $questionnaire['afff_times'] ?? '';
+      $exposure['afff_first_year'] = $questionnaire['afff_first_year'] ?? '';
+      $exposure['diesel_exhaust'] = $questionnaire['diesel_exhaust'] ?? '';
+      $exposure['chemical_activities'] = $questionnaire['chemical_activities'] ? json_decode($questionnaire['chemical_activities'], TRUE) : [];
+      $exposure['major_incidents'] = $questionnaire['major_incidents'] ? 'yes' : 'no';
+    }
+    
+    // Load major incidents from table
+    $incidents = $database->select('nfr_major_incidents', 'mi')
+      ->fields('mi', ['description', 'incident_date', 'duration'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchAll(\PDO::FETCH_ASSOC);
+    
+    $exposure['incidents'] = [];
+    foreach ($incidents as $incident) {
+      $exposure['incidents'][] = [
+        'description' => $incident['description'] ?? '',
+        'date' => $incident['incident_date'] ?? '',
+        'duration' => $incident['duration'] ?? '',
+      ];
+    }
     
     $form['#tree'] = TRUE;
     
@@ -46,8 +79,6 @@ class NFRQuestionnaireSection3Form extends FormBase {
       '#type' => 'markup',
       '#markup' => '<h2>Section 3: Exposure Information</h2><p>These questions help us understand your exposures to substances that may affect firefighter health.</p>',
     ];
-
-    $exposure = $existing['exposure'] ?? [];
 
     $form['exposure'] = [
       '#type' => 'fieldset',
@@ -258,20 +289,54 @@ class NFRQuestionnaireSection3Form extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $this->saveSection($form_state);
-    
-    // Mark section as completed
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
-    $existing['section_completion'][3] = TRUE;
-    $this->saveData($uid, $existing);
+    $exposure = $form_state->getValue('exposure');
     
-    // Update progress
+    // Prepare chemical activities as JSON (checkboxes)
+    $chemical_activities = array_filter($exposure['chemical_activities'] ?? []);
+    $chemical_activities_json = !empty($chemical_activities) ? json_encode(array_values($chemical_activities)) : NULL;
+    
+    // Save exposure data to direct columns
     $database = $this->getDatabase();
     $database->update('nfr_questionnaire')
-      ->fields(['last_section_completed' => 3])
+      ->fields([
+        'afff_used' => $exposure['afff_used'] ?: NULL,
+        'afff_times' => !empty($exposure['afff_times']) ? (int)$exposure['afff_times'] : NULL,
+        'afff_first_year' => !empty($exposure['afff_first_year']) ? (int)$exposure['afff_first_year'] : NULL,
+        'diesel_exhaust' => $exposure['diesel_exhaust'] ?: NULL,
+        'chemical_activities' => $chemical_activities_json,
+        'major_incidents' => ($exposure['major_incidents'] === 'yes') ? 1 : 0,
+        'last_section_completed' => 3,
+      ])
       ->condition('uid', $uid)
       ->execute();
+    
+    // Delete existing major incidents
+    $database->delete('nfr_major_incidents')
+      ->condition('uid', $uid)
+      ->execute();
+    
+    // Insert new major incidents if any
+    if (!empty($exposure['incidents_wrapper']) && $exposure['major_incidents'] === 'yes') {
+      $timestamp = time();
+      foreach ($exposure['incidents_wrapper'] as $key => $incident) {
+        // Skip the add button
+        if ($key === 'add_incident' || empty($incident['description'])) {
+          continue;
+        }
+        
+        $database->insert('nfr_major_incidents')
+          ->fields([
+            'uid' => $uid,
+            'description' => $incident['description'] ?? '',
+            'incident_date' => $incident['date'] ?? NULL,
+            'duration' => $incident['duration'] ?? NULL,
+            'created' => $timestamp,
+            'updated' => $timestamp,
+          ])
+          ->execute();
+      }
+    }
     
     $this->messenger()->addStatus($this->t('Section 3 saved.'));
     $form_state->setRedirect('nfr.questionnaire.section4');
@@ -281,10 +346,7 @@ class NFRQuestionnaireSection3Form extends FormBase {
    * Save section data.
    */
   private function saveSection(FormStateInterface $form_state): void {
-    $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
-    $existing['exposure'] = $form_state->getValue('exposure');
-    $this->saveData($uid, $existing);
+    // Deprecated - now saves directly in submitForm and saveAndExit
   }
 
 }

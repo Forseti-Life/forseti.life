@@ -49,8 +49,46 @@ class NFRQuestionnaireSection6Form extends FormBase {
     $form['#attached']['library'][] = 'nfr/enrollment';
 
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
-    $ppe = $existing['ppe'] ?? [];
+    
+    // Load PPE data from direct columns
+    $database = $this->getDatabase();
+    $questionnaire = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', [
+        'ppe_scba_ever_used',
+        'ppe_scba_year_started',
+        'ppe_turnout_coat_ever_used',
+        'ppe_turnout_coat_year_started',
+        'ppe_turnout_pants_ever_used',
+        'ppe_turnout_pants_year_started',
+        'ppe_gloves_ever_used',
+        'ppe_gloves_year_started',
+        'ppe_helmet_ever_used',
+        'ppe_helmet_year_started',
+        'ppe_boots_ever_used',
+        'ppe_boots_year_started',
+        'ppe_nomex_hood_ever_used',
+        'ppe_nomex_hood_year_started',
+        'ppe_wildland_clothing_ever_used',
+        'ppe_wildland_clothing_year_started',
+        'ppe_scba_during_suppression',
+        'ppe_scba_during_overhaul',
+      ])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchAssoc();
+    
+    $ppe = [];
+    if ($questionnaire) {
+      $ppe_types = ['scba', 'turnout_coat', 'turnout_pants', 'gloves', 'helmet', 'boots', 'nomex_hood', 'wildland_clothing'];
+      foreach ($ppe_types as $type) {
+        $ppe[$type] = [
+          'ever_used' => $questionnaire['ppe_' . $type . '_ever_used'] ?? NULL,
+          'year_started' => $questionnaire['ppe_' . $type . '_year_started'] ?? '',
+        ];
+      }
+      $ppe['scba_during_suppression'] = $questionnaire['ppe_scba_during_suppression'] ?? '';
+      $ppe['scba_during_overhaul'] = $questionnaire['ppe_scba_during_overhaul'] ?? '';
+    }
 
     // Add navigation menu
     $form['navigation'] = $this->buildNavigationMenu(6);
@@ -171,19 +209,28 @@ class NFRQuestionnaireSection6Form extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
+    $ppe = $form_state->getValue('ppe');
 
-    $existing['ppe'] = $form_state->getValue('ppe');
-    $existing['section_completion'][6] = TRUE;
-    $this->saveData($uid, $existing);
-
-    // Update progress
+    // Save PPE data to direct columns
     $database = $this->getDatabase();
+    
+    $fields = ['last_section_completed' => 6];
+    
+    $ppe_types = ['scba', 'turnout_coat', 'turnout_pants', 'gloves', 'helmet', 'boots', 'nomex_hood', 'wildland_clothing'];
+    foreach ($ppe_types as $type) {
+      $fields['ppe_' . $type . '_ever_used'] = $ppe[$type]['ever_used'] ?? NULL;
+      $fields['ppe_' . $type . '_year_started'] = !empty($ppe[$type]['year_started']) ? (int) $ppe[$type]['year_started'] : NULL;
+    }
+    
+    $fields['ppe_scba_during_suppression'] = $ppe['scba_during_suppression'] ?? NULL;
+    $fields['ppe_scba_during_overhaul'] = $ppe['scba_during_overhaul'] ?? NULL;
+    
     $database->update('nfr_questionnaire')
-      ->fields(['last_section_completed' => 6])
+      ->fields($fields)
       ->condition('uid', $uid)
       ->execute();
 
+    $this->messenger()->addStatus($this->t('Section 6 saved.'));
     $form_state->setRedirect('nfr.questionnaire.section7');
   }
 
@@ -191,6 +238,28 @@ class NFRQuestionnaireSection6Form extends FormBase {
    * Submit handler for previous button.
    */
   public function previousSection(array &$form, FormStateInterface $form_state): void {
+    $uid = $this->getCurrentUserId();
+    $ppe = $form_state->getValue('ppe');
+
+    // Save PPE data to direct columns
+    $database = $this->getDatabase();
+    
+    $fields = [];
+    
+    $ppe_types = ['scba', 'turnout_coat', 'turnout_pants', 'gloves', 'helmet', 'boots', 'nomex_hood', 'wildland_clothing'];
+    foreach ($ppe_types as $type) {
+      $fields['ppe_' . $type . '_ever_used'] = $ppe[$type]['ever_used'] ?? NULL;
+      $fields['ppe_' . $type . '_year_started'] = !empty($ppe[$type]['year_started']) ? (int) $ppe[$type]['year_started'] : NULL;
+    }
+    
+    $fields['ppe_scba_during_suppression'] = $ppe['scba_during_suppression'] ?? NULL;
+    $fields['ppe_scba_during_overhaul'] = $ppe['scba_during_overhaul'] ?? NULL;
+    
+    $database->update('nfr_questionnaire')
+      ->fields($fields)
+      ->condition('uid', $uid)
+      ->execute();
+    
     $form_state->setRedirect('nfr.questionnaire.section5');
   }
 
@@ -199,10 +268,26 @@ class NFRQuestionnaireSection6Form extends FormBase {
    */
   public function saveAndExit(array &$form, FormStateInterface $form_state): void {
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
+    $ppe = $form_state->getValue('ppe');
 
-    $existing['ppe'] = $form_state->getValue('ppe');
-    $this->saveData($uid, $existing);
+    // Save PPE data to direct columns
+    $database = $this->getDatabase();
+    
+    $fields = [];
+    
+    $ppe_types = ['scba', 'turnout_coat', 'turnout_pants', 'gloves', 'helmet', 'boots', 'nomex_hood', 'wildland_clothing'];
+    foreach ($ppe_types as $type) {
+      $fields['ppe_' . $type . '_ever_used'] = $ppe[$type]['ever_used'] ?? NULL;
+      $fields['ppe_' . $type . '_year_started'] = !empty($ppe[$type]['year_started']) ? (int) $ppe[$type]['year_started'] : NULL;
+    }
+    
+    $fields['ppe_scba_during_suppression'] = $ppe['scba_during_suppression'] ?? NULL;
+    $fields['ppe_scba_during_overhaul'] = $ppe['scba_during_overhaul'] ?? NULL;
+    
+    $database->update('nfr_questionnaire')
+      ->fields($fields)
+      ->condition('uid', $uid)
+      ->execute();
 
     $this->messenger()->addStatus($this->t('Your progress has been saved.'));
     $form_state->setRedirect('nfr.dashboard');

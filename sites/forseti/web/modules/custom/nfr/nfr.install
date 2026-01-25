@@ -72,6 +72,495 @@ function nfr_update_9004() {
 }
 
 /**
+ * Add exposure_data JSON column for Section 3 data.
+ */
+function nfr_update_9005() {
+  $schema = \Drupal::database()->schema();
+  
+  if (!$schema->fieldExists('nfr_questionnaire', 'exposure_data')) {
+    $schema->addField('nfr_questionnaire', 'exposure_data', [
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+      'description' => 'JSON data for exposure information (AFFF, diesel, etc)',
+    ]);
+  }
+  
+  return t('Added exposure_data JSON column to nfr_questionnaire table.');
+}
+
+/**
+ * Remove unused columns from nfr_job_titles table.
+ */
+function nfr_update_9006() {
+  $schema = \Drupal::database()->schema();
+  
+  // Drop start_date and end_date - job dates aren't tracked, only department dates
+  if ($schema->fieldExists('nfr_job_titles', 'start_date')) {
+    $schema->dropField('nfr_job_titles', 'start_date');
+  }
+  if ($schema->fieldExists('nfr_job_titles', 'end_date')) {
+    $schema->dropField('nfr_job_titles', 'end_date');
+  }
+  
+  // Drop incident_types JSON - data properly stored in nfr_incident_frequency table
+  if ($schema->fieldExists('nfr_job_titles', 'incident_types')) {
+    $schema->dropField('nfr_job_titles', 'incident_types');
+  }
+  
+  return t('Removed unused columns from nfr_job_titles table.');
+}
+
+/**
+ * Add Section 3 exposure columns and create nfr_major_incidents table.
+ */
+function nfr_update_9007() {
+  $schema = \Drupal::database()->schema();
+  
+  // Add exposure columns to nfr_questionnaire
+  if (!$schema->fieldExists('nfr_questionnaire', 'afff_used')) {
+    $schema->addField('nfr_questionnaire', 'afff_used', [
+      'type' => 'varchar',
+      'length' => 20,
+      'not null' => FALSE,
+      'description' => 'yes, no, unknown',
+    ]);
+  }
+  
+  if (!$schema->fieldExists('nfr_questionnaire', 'afff_times')) {
+    $schema->addField('nfr_questionnaire', 'afff_times', [
+      'type' => 'int',
+      'not null' => FALSE,
+      'description' => 'Number of times AFFF was used',
+    ]);
+  }
+  
+  if (!$schema->fieldExists('nfr_questionnaire', 'afff_first_year')) {
+    $schema->addField('nfr_questionnaire', 'afff_first_year', [
+      'type' => 'int',
+      'not null' => FALSE,
+      'description' => 'Year first used AFFF',
+    ]);
+  }
+  
+  if (!$schema->fieldExists('nfr_questionnaire', 'diesel_exhaust')) {
+    $schema->addField('nfr_questionnaire', 'diesel_exhaust', [
+      'type' => 'varchar',
+      'length' => 20,
+      'not null' => FALSE,
+      'description' => 'regularly, sometimes, rarely, never',
+    ]);
+  }
+  
+  if (!$schema->fieldExists('nfr_questionnaire', 'chemical_activities')) {
+    $schema->addField('nfr_questionnaire', 'chemical_activities', [
+      'type' => 'text',
+      'not null' => FALSE,
+      'description' => 'JSON array of chemical exposure activities',
+    ]);
+  }
+  
+  if (!$schema->fieldExists('nfr_questionnaire', 'major_incidents')) {
+    $schema->addField('nfr_questionnaire', 'major_incidents', [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Whether involved in major incidents with prolonged exposure',
+    ]);
+  }
+  
+  // Create nfr_major_incidents table
+  if (!$schema->tableExists('nfr_major_incidents')) {
+    $schema->createTable('nfr_major_incidents', [
+      'description' => 'Stores major incidents with prolonged/intense exposure',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'uid' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'description' => [
+          'type' => 'text',
+          'not null' => FALSE,
+          'description' => 'Event description',
+        ],
+        'incident_date' => [
+          'type' => 'varchar',
+          'length' => 10,
+          'not null' => FALSE,
+          'description' => 'YYYY-MM-DD',
+        ],
+        'duration' => [
+          'type' => 'varchar',
+          'length' => 20,
+          'not null' => FALSE,
+          'description' => 'hours, days, weeks, months',
+        ],
+        'created' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+        'updated' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'uid' => ['uid'],
+      ],
+    ]);
+  }
+  
+  // Create nfr_other_employment table if it doesn't exist
+  if (!$schema->tableExists('nfr_other_employment')) {
+    $schema->createTable('nfr_other_employment', [
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'uid' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'description' => 'User ID',
+        ],
+        'occupation' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => FALSE,
+        ],
+        'industry' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => FALSE,
+        ],
+        'start_year' => [
+          'type' => 'int',
+          'not null' => FALSE,
+        ],
+        'end_year' => [
+          'type' => 'int',
+          'not null' => FALSE,
+        ],
+        'exposures' => [
+          'type' => 'text',
+          'not null' => FALSE,
+          'description' => 'JSON array of exposure types',
+        ],
+        'exposures_other' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => FALSE,
+        ],
+        'created' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+        'updated' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'uid' => ['uid'],
+      ],
+    ]);
+  }
+  
+  return t('Added Section 3 exposure columns and created nfr_major_incidents table.');
+}
+
+/**
+ * Add direct PPE columns and migrate from JSON.
+ */
+function nfr_update_9010() {
+  $schema = \Drupal::database()->schema();
+  $database = \Drupal::database();
+  
+  $ppe_fields = [
+    'scba', 'turnout_coat', 'turnout_pants', 'gloves',
+    'helmet', 'boots', 'nomex_hood', 'wildland_clothing',
+  ];
+  
+  // Add ever_used and year_started columns for each equipment type
+  foreach ($ppe_fields as $field) {
+    $ever_used_col = 'ppe_' . $field . '_ever_used';
+    $year_started_col = 'ppe_' . $field . '_year_started';
+    
+    if (!$schema->fieldExists('nfr_questionnaire', $ever_used_col)) {
+      $schema->addField('nfr_questionnaire', $ever_used_col, [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+      ]);
+    }
+    
+    if (!$schema->fieldExists('nfr_questionnaire', $year_started_col)) {
+      $schema->addField('nfr_questionnaire', $year_started_col, [
+        'type' => 'int',
+        'not null' => FALSE,
+      ]);
+    }
+  }
+  
+  // Add SCBA frequency columns
+  if (!$schema->fieldExists('nfr_questionnaire', 'ppe_scba_during_suppression')) {
+    $schema->addField('nfr_questionnaire', 'ppe_scba_during_suppression', [
+      'type' => 'varchar',
+      'length' => 20,
+      'not null' => FALSE,
+    ]);
+  }
+  
+  if (!$schema->fieldExists('nfr_questionnaire', 'ppe_scba_during_overhaul')) {
+    $schema->addField('nfr_questionnaire', 'ppe_scba_during_overhaul', [
+      'type' => 'varchar',
+      'length' => 20,
+      'not null' => FALSE,
+    ]);
+  }
+  
+  // Migrate data from ppe_practices JSON to new columns
+  if ($schema->fieldExists('nfr_questionnaire', 'ppe_practices')) {
+    $results = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['uid', 'ppe_practices'])
+      ->condition('ppe_practices', '', '<>')
+      ->isNotNull('ppe_practices')
+      ->execute();
+    
+    foreach ($results as $row) {
+      $data = json_decode($row->ppe_practices, TRUE);
+      if (!empty($data)) {
+        $update_fields = [];
+        
+        // Migrate equipment data
+        foreach ($ppe_fields as $field) {
+          if (isset($data[$field]['ever_used'])) {
+            $update_fields['ppe_' . $field . '_ever_used'] = $data[$field]['ever_used'];
+          }
+          if (!empty($data[$field]['year_started'])) {
+            $update_fields['ppe_' . $field . '_year_started'] = (int) $data[$field]['year_started'];
+          }
+        }
+        
+        // Migrate SCBA frequency data
+        if (!empty($data['scba_during_suppression'])) {
+          $update_fields['ppe_scba_during_suppression'] = $data['scba_during_suppression'];
+        }
+        if (!empty($data['scba_during_overhaul'])) {
+          $update_fields['ppe_scba_during_overhaul'] = $data['scba_during_overhaul'];
+        }
+        
+        if (!empty($update_fields)) {
+          $database->update('nfr_questionnaire')
+            ->fields($update_fields)
+            ->condition('uid', $row->uid)
+            ->execute();
+        }
+      }
+    }
+    
+    // Drop the old JSON column
+    $schema->dropField('nfr_questionnaire', 'ppe_practices');
+  }
+  
+  return t('Added direct PPE columns and migrated data from JSON.');
+}
+
+/**
+ * Create nfr_other_employment table and migrate from JSON.
+ */
+function nfr_update_9009() {
+  $schema = \Drupal::database()->schema();
+  $database = \Drupal::database();
+  
+  // Create nfr_other_employment table
+  if (!$schema->tableExists('nfr_other_employment')) {
+    $schema->createTable('nfr_other_employment', [
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'uid' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'description' => 'User ID',
+        ],
+        'occupation' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => FALSE,
+        ],
+        'industry' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => FALSE,
+        ],
+        'start_year' => [
+          'type' => 'int',
+          'not null' => FALSE,
+        ],
+        'end_year' => [
+          'type' => 'int',
+          'not null' => FALSE,
+        ],
+        'exposures' => [
+          'type' => 'text',
+          'not null' => FALSE,
+          'description' => 'JSON array of exposure types',
+        ],
+        'exposures_other' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => FALSE,
+        ],
+        'created' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+        'updated' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'uid' => ['uid'],
+      ],
+    ]);
+  }
+  
+  // Add had_other_jobs column
+  if (!$schema->fieldExists('nfr_questionnaire', 'had_other_jobs')) {
+    $schema->addField('nfr_questionnaire', 'had_other_jobs', [
+      'type' => 'varchar',
+      'length' => 10,
+      'not null' => FALSE,
+    ]);
+  }
+  
+  // Migrate data from other_employment_data JSON to new table
+  if ($schema->fieldExists('nfr_questionnaire', 'other_employment_data')) {
+    $results = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['uid', 'other_employment_data'])
+      ->condition('other_employment_data', '', '<>')
+      ->isNotNull('other_employment_data')
+      ->execute();
+    
+    $time = \Drupal::time()->getRequestTime();
+    foreach ($results as $row) {
+      $data = json_decode($row->other_employment_data, TRUE);
+      if (!empty($data)) {
+        // Update had_other_jobs
+        if (isset($data['had_other_jobs'])) {
+          $database->update('nfr_questionnaire')
+            ->fields(['had_other_jobs' => $data['had_other_jobs']])
+            ->condition('uid', $row->uid)
+            ->execute();
+        }
+        
+        // Migrate jobs to new table
+        if (!empty($data['jobs']) && is_array($data['jobs'])) {
+          foreach ($data['jobs'] as $job) {
+            $database->insert('nfr_other_employment')
+              ->fields([
+                'uid' => $row->uid,
+                'occupation' => $job['occupation'] ?? '',
+                'industry' => $job['industry'] ?? '',
+                'start_year' => $job['start_year'] ?? NULL,
+                'end_year' => $job['end_year'] ?? NULL,
+                'exposures' => !empty($job['exposures']) ? json_encode(array_filter($job['exposures'])) : NULL,
+                'exposures_other' => $job['exposures_other'] ?? '',
+                'created' => $time,
+                'updated' => $time,
+              ])
+              ->execute();
+          }
+        }
+      }
+    }
+    
+    // Drop the old JSON column
+    $schema->dropField('nfr_questionnaire', 'other_employment_data');
+  }
+  
+  return t('Created nfr_other_employment table and migrated data from JSON.');
+}
+
+/**
+ * Add missing military service columns.
+ */
+function nfr_update_9008() {
+  $schema = \Drupal::database()->schema();
+  
+  // Add military_start_date
+  if (!$schema->fieldExists('nfr_questionnaire', 'military_start_date')) {
+    $schema->addField('nfr_questionnaire', 'military_start_date', [
+      'type' => 'varchar',
+      'mysql_type' => 'date',
+      'not null' => FALSE,
+    ]);
+  }
+  
+  // Add military_end_date
+  if (!$schema->fieldExists('nfr_questionnaire', 'military_end_date')) {
+    $schema->addField('nfr_questionnaire', 'military_end_date', [
+      'type' => 'varchar',
+      'mysql_type' => 'date',
+      'not null' => FALSE,
+    ]);
+  }
+  
+  // Add military_currently_serving
+  if (!$schema->fieldExists('nfr_questionnaire', 'military_currently_serving')) {
+    $schema->addField('nfr_questionnaire', 'military_currently_serving', [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 0,
+    ]);
+  }
+  
+  // Add military_was_firefighter
+  if (!$schema->fieldExists('nfr_questionnaire', 'military_was_firefighter')) {
+    $schema->addField('nfr_questionnaire', 'military_was_firefighter', [
+      'type' => 'varchar',
+      'length' => 10,
+      'not null' => FALSE,
+    ]);
+  }
+  
+  // Add military_firefighting_duties
+  if (!$schema->fieldExists('nfr_questionnaire', 'military_firefighting_duties')) {
+    $schema->addField('nfr_questionnaire', 'military_firefighting_duties', [
+      'type' => 'text',
+      'not null' => FALSE,
+    ]);
+  }
+  
+  // Drop unused military_years column
+  if ($schema->fieldExists('nfr_questionnaire', 'military_years')) {
+    $schema->dropField('nfr_questionnaire', 'military_years');
+  }
+  
+  return t('Added missing military service columns and removed unused military_years column.');
+}
+
+/**
  * Add last_section_completed column to track questionnaire progress.
  */
 function nfr_update_9002() {
@@ -388,26 +877,11 @@ function nfr_schema() {
         'not null' => FALSE,
         'description' => 'career, volunteer, paid-on-call, etc.',
       ],
-      'start_date' => [
-        'type' => 'varchar',
-        'length' => 10,
-        'not null' => FALSE,
-      ],
-      'end_date' => [
-        'type' => 'varchar',
-        'length' => 10,
-        'not null' => FALSE,
-      ],
       'responded_to_incidents' => [
         'type' => 'int',
         'size' => 'tiny',
         'not null' => TRUE,
         'default' => 0,
-      ],
-      'incident_types' => [
-        'type' => 'text',
-        'not null' => FALSE,
-        'description' => 'JSON array of incident types',
       ],
       'created' => [
         'type' => 'int',
@@ -464,6 +938,53 @@ function nfr_schema() {
     'primary key' => ['id'],
     'indexes' => [
       'job_title_id' => ['job_title_id'],
+    ],
+  ];
+
+  // Major Incidents (Section 3)
+  $schema['nfr_major_incidents'] = [
+    'description' => 'Stores major incidents with prolonged/intense exposure',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'description' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Event description',
+      ],
+      'incident_date' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+        'description' => 'YYYY-MM-DD',
+      ],
+      'duration' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+        'description' => 'hours, days, weeks, months',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid' => ['uid'],
     ],
   ];
 
@@ -575,23 +1096,163 @@ function nfr_schema() {
         'length' => 100,
         'not null' => FALSE,
       ],
-      'military_years' => [
+      'military_start_date' => [
+        'type' => 'varchar',
+        'mysql_type' => 'date',
+        'not null' => FALSE,
+      ],
+      'military_end_date' => [
+        'type' => 'varchar',
+        'mysql_type' => 'date',
+        'not null' => FALSE,
+      ],
+      'military_currently_serving' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'military_was_firefighter' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+        'description' => 'yes, no',
+      ],
+      'military_firefighting_duties' => [
+        'type' => 'text',
+        'not null' => FALSE,
+      ],
+      // Exposure Information (Section 3)
+      'afff_used' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+        'description' => 'yes, no, unknown',
+      ],
+      'afff_times' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Number of times AFFF was used',
+      ],
+      'afff_first_year' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Year first used AFFF',
+      ],
+      'diesel_exhaust' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+        'description' => 'regularly, sometimes, rarely, never',
+      ],
+      'chemical_activities' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON array of chemical exposure activities',
+      ],
+      'major_incidents' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Whether involved in major incidents with prolonged exposure',
+      ],
+      // Exposure Information - DEPRECATED
+      'exposure_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'DEPRECATED - Use specific columns and nfr_major_incidents table',
+      ],
+      // Other Employment
+      'had_other_jobs' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+        'description' => 'yes, no',
+      ],
+      // PPE Practices - Individual Equipment
+      'ppe_scba_ever_used' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+      ],
+      'ppe_scba_year_started' => [
         'type' => 'int',
         'not null' => FALSE,
       ],
-      // Other Employment
-      'other_employment_data' => [
-        'type' => 'text',
-        'size' => 'big',
+      'ppe_turnout_coat_ever_used' => [
+        'type' => 'varchar',
+        'length' => 10,
         'not null' => FALSE,
-        'description' => 'JSON data for non-firefighting employment',
       ],
-      // PPE Practices
-      'ppe_practices' => [
-        'type' => 'text',
-        'size' => 'big',
+      'ppe_turnout_coat_year_started' => [
+        'type' => 'int',
         'not null' => FALSE,
-        'description' => 'JSON data for PPE usage patterns',
+      ],
+      'ppe_turnout_pants_ever_used' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+      ],
+      'ppe_turnout_pants_year_started' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'ppe_gloves_ever_used' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+      ],
+      'ppe_gloves_year_started' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'ppe_helmet_ever_used' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+      ],
+      'ppe_helmet_year_started' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'ppe_boots_ever_used' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+      ],
+      'ppe_boots_year_started' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'ppe_nomex_hood_ever_used' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+      ],
+      'ppe_nomex_hood_year_started' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'ppe_wildland_clothing_ever_used' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+      ],
+      'ppe_wildland_clothing_year_started' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'ppe_scba_during_suppression' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+      ],
+      'ppe_scba_during_overhaul' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
       ],
       // Decontamination Practices
       'decon_practices' => [

@@ -49,8 +49,22 @@ class NFRQuestionnaireSection8Form extends FormBase {
     $form['#attached']['library'][] = 'nfr/enrollment';
 
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
-    $health = $existing['health'] ?? [];
+    
+    // Load health data from database columns
+    $database = $this->getDatabase();
+    $questionnaire = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['cancer_diagnosis', 'cancer_details', 'family_cancer_history'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchAssoc();
+    
+    $health = [];
+    if ($questionnaire) {
+      $health['cancer_diagnosed'] = $questionnaire['cancer_diagnosis'] ? 'yes' : 'no';
+      $cancer_details = $questionnaire['cancer_details'] ? json_decode($questionnaire['cancer_details'], TRUE) : [];
+      $health['cancers'] = $cancer_details['cancers'] ?? [];
+      $health['other_conditions'] = $cancer_details['other_conditions'] ?? [];
+    }
 
     // Add navigation menu
     $form['navigation'] = $this->buildNavigationMenu(8);
@@ -204,16 +218,22 @@ class NFRQuestionnaireSection8Form extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
+    $health = $form_state->getValue('health');
 
-    $existing['health'] = $form_state->getValue('health');
-    $existing['section_completion'][8] = TRUE;
-    $this->saveData($uid, $existing);
+    // Prepare cancer details as JSON
+    $cancer_details = [
+      'cancers' => $health['cancers'] ?? [],
+      'other_conditions' => array_filter($health['other_conditions'] ?? []),
+    ];
 
-    // Update progress
+    // Save health data to database columns
     $database = $this->getDatabase();
     $database->update('nfr_questionnaire')
-      ->fields(['last_section_completed' => 8])
+      ->fields([
+        'cancer_diagnosis' => ($health['cancer_diagnosed'] === 'yes') ? 1 : 0,
+        'cancer_details' => json_encode($cancer_details),
+        'last_section_completed' => 8,
+      ])
       ->condition('uid', $uid)
       ->execute();
 
@@ -232,10 +252,23 @@ class NFRQuestionnaireSection8Form extends FormBase {
    */
   public function saveAndExit(array &$form, FormStateInterface $form_state): void {
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
+    $health = $form_state->getValue('health');
 
-    $existing['health'] = $form_state->getValue('health');
-    $this->saveData($uid, $existing);
+    // Prepare cancer details as JSON
+    $cancer_details = [
+      'cancers' => $health['cancers'] ?? [],
+      'other_conditions' => array_filter($health['other_conditions'] ?? []),
+    ];
+
+    // Save health data to database columns
+    $database = $this->getDatabase();
+    $database->update('nfr_questionnaire')
+      ->fields([
+        'cancer_diagnosis' => ($health['cancer_diagnosed'] === 'yes') ? 1 : 0,
+        'cancer_details' => json_encode($cancer_details),
+      ])
+      ->condition('uid', $uid)
+      ->execute();
 
     $this->messenger()->addStatus($this->t('Your progress has been saved.'));
     $form_state->setRedirect('nfr.dashboard');

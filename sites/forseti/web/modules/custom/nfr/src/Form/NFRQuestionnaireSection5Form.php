@@ -49,8 +49,36 @@ class NFRQuestionnaireSection5Form extends FormBase {
     $form['#attached']['library'][] = 'nfr/enrollment';
 
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
-    $other_employment = $existing['other_employment'] ?? [];
+    
+    // Load other employment from database
+    $database = $this->getDatabase();
+    $questionnaire = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['had_other_jobs'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchAssoc();
+    
+    $other_employment = [];
+    $other_employment['had_other_jobs'] = $questionnaire['had_other_jobs'] ?? NULL;
+    
+    // Load jobs from nfr_other_employment table
+    $jobs = $database->select('nfr_other_employment', 'oe')
+      ->fields('oe')
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchAll();
+    
+    $other_employment['jobs'] = [];
+    foreach ($jobs as $job) {
+      $other_employment['jobs'][] = [
+        'occupation' => $job->occupation,
+        'industry' => $job->industry,
+        'start_year' => $job->start_year,
+        'end_year' => $job->end_year,
+        'exposures' => $job->exposures ? json_decode($job->exposures, TRUE) : [],
+        'exposures_other' => $job->exposures_other,
+      ];
+    }
 
     // Add navigation menu
     $form['navigation'] = $this->buildNavigationMenu(5);
@@ -215,19 +243,51 @@ class NFRQuestionnaireSection5Form extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
+    $other_employment = $form_state->getValue('other_employment');
 
-    $existing['other_employment'] = $form_state->getValue('other_employment');
-    $existing['section_completion'][5] = TRUE;
-    $this->saveData($uid, $existing);
-
-    // Update progress
+    // Save to database
     $database = $this->getDatabase();
+    
+    // Update had_other_jobs
     $database->update('nfr_questionnaire')
-      ->fields(['last_section_completed' => 5])
+      ->fields([
+        'had_other_jobs' => $other_employment['had_other_jobs'] ?? 'no',
+        'last_section_completed' => 5,
+      ])
       ->condition('uid', $uid)
       ->execute();
+    
+    // Delete existing jobs
+    $database->delete('nfr_other_employment')
+      ->condition('uid', $uid)
+      ->execute();
+    
+    // Insert new jobs if they had other jobs
+    if (($other_employment['had_other_jobs'] ?? 'no') === 'yes' && !empty($other_employment['jobs'])) {
+      $time = \Drupal::time()->getRequestTime();
+      
+      foreach ($other_employment['jobs'] as $job) {
+        if (empty($job['occupation']) && empty($job['industry'])) {
+          continue; // Skip empty jobs
+        }
+        
+        $database->insert('nfr_other_employment')
+          ->fields([
+            'uid' => $uid,
+            'occupation' => $job['occupation'] ?? '',
+            'industry' => $job['industry'] ?? '',
+            'start_year' => !empty($job['start_year']) ? (int) $job['start_year'] : NULL,
+            'end_year' => !empty($job['end_year']) ? (int) $job['end_year'] : NULL,
+            'exposures' => !empty($job['exposures']) ? json_encode(array_filter($job['exposures'])) : NULL,
+            'exposures_other' => $job['exposures_other'] ?? '',
+            'created' => $time,
+            'updated' => $time,
+          ])
+          ->execute();
+      }
+    }
 
+    $this->messenger()->addStatus($this->t('Section 5 saved.'));
     $form_state->setRedirect('nfr.questionnaire.section6');
   }
 
@@ -235,6 +295,48 @@ class NFRQuestionnaireSection5Form extends FormBase {
    * Submit handler for previous button.
    */
   public function previousSection(array &$form, FormStateInterface $form_state): void {
+    $uid = $this->getCurrentUserId();
+    $other_employment = $form_state->getValue('other_employment');
+
+    // Save to database
+    $database = $this->getDatabase();
+    
+    // Update had_other_jobs
+    $database->update('nfr_questionnaire')
+      ->fields(['had_other_jobs' => $other_employment['had_other_jobs'] ?? 'no'])
+      ->condition('uid', $uid)
+      ->execute();
+    
+    // Delete existing jobs
+    $database->delete('nfr_other_employment')
+      ->condition('uid', $uid)
+      ->execute();
+    
+    // Insert new jobs if they had other jobs
+    if (($other_employment['had_other_jobs'] ?? 'no') === 'yes' && !empty($other_employment['jobs'])) {
+      $time = \Drupal::time()->getRequestTime();
+      
+      foreach ($other_employment['jobs'] as $job) {
+        if (empty($job['occupation']) && empty($job['industry'])) {
+          continue; // Skip empty jobs
+        }
+        
+        $database->insert('nfr_other_employment')
+          ->fields([
+            'uid' => $uid,
+            'occupation' => $job['occupation'] ?? '',
+            'industry' => $job['industry'] ?? '',
+            'start_year' => !empty($job['start_year']) ? (int) $job['start_year'] : NULL,
+            'end_year' => !empty($job['end_year']) ? (int) $job['end_year'] : NULL,
+            'exposures' => !empty($job['exposures']) ? json_encode(array_filter($job['exposures'])) : NULL,
+            'exposures_other' => $job['exposures_other'] ?? '',
+            'created' => $time,
+            'updated' => $time,
+          ])
+          ->execute();
+      }
+    }
+    
     $form_state->setRedirect('nfr.questionnaire.section4');
   }
 
@@ -243,10 +345,46 @@ class NFRQuestionnaireSection5Form extends FormBase {
    */
   public function saveAndExit(array &$form, FormStateInterface $form_state): void {
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
+    $other_employment = $form_state->getValue('other_employment');
 
-    $existing['other_employment'] = $form_state->getValue('other_employment');
-    $this->saveData($uid, $existing);
+    // Save to database
+    $database = $this->getDatabase();
+    
+    // Update had_other_jobs
+    $database->update('nfr_questionnaire')
+      ->fields(['had_other_jobs' => $other_employment['had_other_jobs'] ?? 'no'])
+      ->condition('uid', $uid)
+      ->execute();
+    
+    // Delete existing jobs
+    $database->delete('nfr_other_employment')
+      ->condition('uid', $uid)
+      ->execute();
+    
+    // Insert new jobs if they had other jobs
+    if (($other_employment['had_other_jobs'] ?? 'no') === 'yes' && !empty($other_employment['jobs'])) {
+      $time = \Drupal::time()->getRequestTime();
+      
+      foreach ($other_employment['jobs'] as $job) {
+        if (empty($job['occupation']) && empty($job['industry'])) {
+          continue; // Skip empty jobs
+        }
+        
+        $database->insert('nfr_other_employment')
+          ->fields([
+            'uid' => $uid,
+            'occupation' => $job['occupation'] ?? '',
+            'industry' => $job['industry'] ?? '',
+            'start_year' => !empty($job['start_year']) ? (int) $job['start_year'] : NULL,
+            'end_year' => !empty($job['end_year']) ? (int) $job['end_year'] : NULL,
+            'exposures' => !empty($job['exposures']) ? json_encode(array_filter($job['exposures'])) : NULL,
+            'exposures_other' => $job['exposures_other'] ?? '',
+            'created' => $time,
+            'updated' => $time,
+          ])
+          ->execute();
+      }
+    }
 
     $this->messenger()->addStatus($this->t('Your progress has been saved.'));
     $form_state->setRedirect('nfr.dashboard');

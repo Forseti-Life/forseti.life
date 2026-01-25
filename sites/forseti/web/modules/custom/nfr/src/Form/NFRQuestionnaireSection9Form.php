@@ -49,8 +49,23 @@ class NFRQuestionnaireSection9Form extends FormBase {
     $form['#attached']['library'][] = 'nfr/enrollment';
 
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
-    $lifestyle = $existing['lifestyle'] ?? [];
+    
+    // Load lifestyle data from database columns
+    $database = $this->getDatabase();
+    $questionnaire = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['smoking_history', 'alcohol_use'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchAssoc();
+    
+    $lifestyle = [];
+    if ($questionnaire) {
+      if ($questionnaire['smoking_history']) {
+        $smoking = json_decode($questionnaire['smoking_history'], TRUE) ?? [];
+        $lifestyle = array_merge($lifestyle, $smoking);
+      }
+      $lifestyle['alcohol_frequency'] = $questionnaire['alcohol_use'] ?? '';
+    }
 
     // Add navigation menu
     $form['navigation'] = $this->buildNavigationMenu(9);
@@ -182,16 +197,22 @@ class NFRQuestionnaireSection9Form extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
+    $lifestyle = $form_state->getValue('lifestyle');
 
-    $existing['lifestyle'] = $form_state->getValue('lifestyle');
-    $existing['section_completion'][9] = TRUE;
-    $this->saveData($uid, $existing);
+    // Separate smoking data from alcohol data
+    $smoking_data = [
+      'smoking_status' => $lifestyle['smoking_status'] ?? '',
+      'smoking_age_started' => $lifestyle['smoking_age_started'] ?? '',
+      'smoking_age_stopped' => $lifestyle['smoking_age_stopped'] ?? '',
+      'cigarettes_per_day' => $lifestyle['cigarettes_per_day'] ?? '',
+    ];
 
-    // Mark questionnaire as completed
+    // Save lifestyle data to database columns
     $database = $this->getDatabase();
     $database->update('nfr_questionnaire')
       ->fields([
+        'smoking_history' => json_encode($smoking_data),
+        'alcohol_use' => $lifestyle['alcohol_frequency'] ?? NULL,
         'last_section_completed' => 9,
         'questionnaire_completed' => 1,
       ])
@@ -214,10 +235,25 @@ class NFRQuestionnaireSection9Form extends FormBase {
    */
   public function saveAndExit(array &$form, FormStateInterface $form_state): void {
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
+    $lifestyle = $form_state->getValue('lifestyle');
 
-    $existing['lifestyle'] = $form_state->getValue('lifestyle');
-    $this->saveData($uid, $existing);
+    // Separate smoking data from alcohol data
+    $smoking_data = [
+      'smoking_status' => $lifestyle['smoking_status'] ?? '',
+      'smoking_age_started' => $lifestyle['smoking_age_started'] ?? '',
+      'smoking_age_stopped' => $lifestyle['smoking_age_stopped'] ?? '',
+      'cigarettes_per_day' => $lifestyle['cigarettes_per_day'] ?? '',
+    ];
+
+    // Save lifestyle data to database columns
+    $database = $this->getDatabase();
+    $database->update('nfr_questionnaire')
+      ->fields([
+        'smoking_history' => json_encode($smoking_data),
+        'alcohol_use' => $lifestyle['alcohol_frequency'] ?? NULL,
+      ])
+      ->condition('uid', $uid)
+      ->execute();
 
     $this->messenger()->addStatus($this->t('Your progress has been saved.'));
     $form_state->setRedirect('nfr.dashboard');

@@ -38,7 +38,7 @@ class NFRQuestionnaireSection2Form extends FormBase {
 
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
+    $database = $this->getDatabase();
     
     $form['#tree'] = TRUE;
     
@@ -50,7 +50,8 @@ class NFRQuestionnaireSection2Form extends FormBase {
       '#markup' => '<h2>Section 2: Work History</h2><p>Please tell us about your entire firefighting career, including all departments where you worked.</p>',
     ];
 
-    $work_history = $existing['work_history'] ?? [];
+    // Load work history from database
+    $work_history = $this->loadWorkHistory($uid);
     
     // Merge current form values with saved data to preserve user input during AJAX
     if ($form_state->hasValue('work_history')) {
@@ -381,13 +382,8 @@ class NFRQuestionnaireSection2Form extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $this->saveSection($form_state);
     
-    // Mark section as completed
-    $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
-    $existing['section_completion'][2] = TRUE;
-    $this->saveData($uid, $existing);
-    
     // Update progress
+    $uid = $this->getCurrentUserId();
     $database = $this->getDatabase();
     $database->update('nfr_questionnaire')
       ->fields(['last_section_completed' => 2])
@@ -399,13 +395,159 @@ class NFRQuestionnaireSection2Form extends FormBase {
   }
 
   /**
+   * Load work history from database.
+   */
+  private function loadWorkHistory(int $uid): array {
+    $database = $this->getDatabase();
+    $work_history = [];
+    
+    // Load all work history for this user
+    $histories = $database->select('nfr_work_history', 'wh')
+      ->fields('wh')
+      ->condition('uid', $uid)
+      ->orderBy('start_date', 'DESC')
+      ->execute()
+      ->fetchAll();
+    
+    if (empty($histories)) {
+      return ['num_departments' => 1, 'departments' => []];
+    }
+    
+    $work_history['num_departments'] = count($histories);
+    $work_history['departments'] = [];
+    
+    foreach ($histories as $idx => $history) {
+      $dept = [
+        'department_name' => $history->department_name,
+        'state' => $history->department_state,
+        'city' => $history->department_city,
+        'fdid' => $history->department_fdid,
+        'start_date' => $history->start_date,
+        'end_date' => $history->end_date,
+        'currently_employed' => (bool) $history->is_current,
+      ];
+      
+      // Load job titles for this work history
+      $jobs = $database->select('nfr_job_titles', 'jt')
+        ->fields('jt')
+        ->condition('work_history_id', $history->id)
+        ->execute()
+        ->fetchAll();
+      
+      $dept['num_jobs'] = count($jobs) > 0 ? count($jobs) : 1;
+      $dept['jobs'] = [];
+      
+      foreach ($jobs as $jdx => $job) {
+        $job_data = [
+          'title' => $job->job_title,
+          'employment_type' => $job->employment_type,
+          'responded_incidents' => $job->responded_to_incidents,
+        ];
+        
+        // Load incident frequencies for this job
+        $incidents = $database->select('nfr_incident_frequency', 'if')
+          ->fields('if')
+          ->condition('job_title_id', $job->id)
+          ->execute()
+          ->fetchAll();
+        
+        $job_data['incident_types'] = [];
+        foreach ($incidents as $incident) {
+          $job_data['incident_types'][$incident->incident_type] = $incident->frequency;
+        }
+        
+        $dept['jobs'][$jdx] = $job_data;
+      }
+      
+      $work_history['departments'][$idx] = $dept;
+    }
+    
+    return $work_history;
+  }
+
+  /**
    * Save section data.
    */
   private function saveSection(FormStateInterface $form_state): void {
     $uid = $this->getCurrentUserId();
-    $existing = $this->loadData($uid);
-    $existing['work_history'] = $form_state->getValue('work_history');
-    $this->saveData($uid, $existing);
+    $database = $this->getDatabase();
+    $work_history = $form_state->getValue('work_history');
+    
+    // Delete existing work history for this user (cascade will handle jobs and incident frequencies)
+    $database->delete('nfr_work_history')
+      ->condition('uid', $uid)
+      ->execute();
+    
+    // Insert new work history
+    $num_departments = $work_history['num_departments'] ?? 1;
+    $departments = $work_history['departments'] ?? [];
+    
+    for ($i = 0; $i < $num_departments; $i++) {
+      $dept = $departments[$i] ?? [];
+      
+      if (empty($dept['department_name'])) {
+        continue; // Skip incomplete departments
+      }
+      
+      // Insert work history record
+      $work_history_id = $database->insert('nfr_work_history')
+        ->fields([
+          'uid' => $uid,
+          'department_name' => $dept['department_name'] ?? '',
+          'department_fdid' => $dept['fdid'] ?? '',
+          'department_state' => $dept['state'] ?? '',
+          'department_city' => $dept['city'] ?? '',
+          'start_date' => $dept['start_date'] ?? NULL,
+          'end_date' => ($dept['currently_employed'] ?? FALSE) ? NULL : ($dept['end_date'] ?? NULL),
+          'is_current' => (int) ($dept['currently_employed'] ?? FALSE),
+          'created' => \Drupal::time()->getRequestTime(),
+          'updated' => \Drupal::time()->getRequestTime(),
+        ])
+        ->execute();
+      
+      // Insert job titles for this department
+      $num_jobs = $dept['num_jobs'] ?? 1;
+      $jobs = $dept['jobs'] ?? [];
+      
+      for ($j = 0; $j < $num_jobs; $j++) {
+        $job = $jobs[$j] ?? [];
+        
+        if (empty($job['title'])) {
+          continue; // Skip incomplete jobs
+        }
+        
+        // Insert job title record
+        $job_title_id = $database->insert('nfr_job_titles')
+          ->fields([
+            'work_history_id' => $work_history_id,
+            'job_title' => $job['title'] ?? '',
+            'employment_type' => $job['employment_type'] ?? '',
+            'responded_to_incidents' => $job['responded_incidents'] ?? 'no',
+            'created' => \Drupal::time()->getRequestTime(),
+            'updated' => \Drupal::time()->getRequestTime(),
+          ])
+          ->execute();
+        
+        // Insert incident frequencies if they responded to incidents
+        if (($job['responded_incidents'] ?? 'no') === 'yes') {
+          $incident_types = $job['incident_types'] ?? [];
+          
+          foreach ($incident_types as $type => $frequency) {
+            if (!empty($frequency)) {
+              $database->insert('nfr_incident_frequency')
+                ->fields([
+                  'job_title_id' => $job_title_id,
+                  'incident_type' => $type,
+                  'frequency' => $frequency,
+                  'created' => \Drupal::time()->getRequestTime(),
+                  'updated' => \Drupal::time()->getRequestTime(),
+                ])
+                ->execute();
+            }
+          }
+        }
+      }
+    }
   }
 
 }
