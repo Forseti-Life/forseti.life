@@ -25,9 +25,13 @@
             if ($submitBtn.length) {
               e.preventDefault();
               $submitBtn.trigger('click');
+            } else {
+              // On review page, navigate to the link URL
+              const $link = $step.find('a.step-link');
+              if ($link.length && $link.attr('href')) {
+                window.location.href = $link.attr('href');
+              }
             }
-            // Otherwise (on review page), let the link work normally
-            // Don't prevent default - let the <a> tag navigate
           });
         }
       });
