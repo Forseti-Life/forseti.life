@@ -521,7 +521,7 @@ class NFRReviewSubmitForm extends FormBase {
     $html .= '<p><strong>' . $this->t('Date of Birth:') . '</strong> ' . 
       htmlspecialchars($data['date_of_birth'] ?? '') . '</p>';
     $html .= '<p><strong>' . $this->t('Sex:') . '</strong> ' . 
-      htmlspecialchars(ucfirst($data['sex'] ?? '')) . '</p>';
+      htmlspecialchars(ucfirst((string) ($data['sex'] ?? ''))) . '</p>';
     
     $html .= '<h4>' . $this->t('Contact Information') . '</h4>';
     $html .= '<p><strong>' . $this->t('Address:') . '</strong> ' . 
@@ -536,7 +536,7 @@ class NFRReviewSubmitForm extends FormBase {
     }
 
     $html .= '<h4>' . $this->t('Work Status') . '</h4>';
-    $html .= '<p>' . htmlspecialchars(ucwords(str_replace('_', ' ', $data['current_work_status'] ?? ''))) . '</p>';
+    $html .= '<p>' . htmlspecialchars(ucwords(str_replace('_', ' ', (string) ($data['current_work_status'] ?? '')))) . '</p>';
     
     $html .= '</div>';
 
@@ -558,19 +558,19 @@ class NFRReviewSubmitForm extends FormBase {
       if (!empty($races)) {
         $html .= '<p><strong>' . $this->t('Race/Ethnicity:') . '</strong> ' . 
           implode(', ', array_map('ucwords', array_map(function($r) {
-            return str_replace('_', ' ', $r);
-          }, array_keys($races)))) . '</p>';
+            return str_replace('_', ' ', (string) $r);
+          }, $races))) . '</p>';
       }
     }
 
     if (!empty($data['education_level'])) {
       $html .= '<p><strong>' . $this->t('Education:') . '</strong> ' . 
-        htmlspecialchars(ucwords(str_replace('_', ' ', $data['education_level']))) . '</p>';
+        htmlspecialchars(ucwords(str_replace('_', ' ', (string) $data['education_level']))) . '</p>';
     }
 
     if (!empty($data['marital_status'])) {
       $html .= '<p><strong>' . $this->t('Marital Status:') . '</strong> ' . 
-        htmlspecialchars(ucfirst($data['marital_status'])) . '</p>';
+        htmlspecialchars(ucfirst((string) $data['marital_status'])) . '</p>';
     }
 
     $html .= '</div>';
@@ -621,7 +621,7 @@ class NFRReviewSubmitForm extends FormBase {
     
     if (!empty($data['afff_used'])) {
       $html .= '<p><strong>' . $this->t('AFFF Usage:') . '</strong> ' . 
-        ucfirst($data['afff_used']) . '</p>';
+        ucfirst((string) $data['afff_used']) . '</p>';
       if ($data['afff_used'] === 'yes' && !empty($data['afff_times'])) {
         $html .= '<p>' . $this->t('Used approximately @count times', ['@count' => $data['afff_times']]) . '</p>';
       }
@@ -629,7 +629,7 @@ class NFRReviewSubmitForm extends FormBase {
 
     if (!empty($data['diesel_exhaust'])) {
       $html .= '<p><strong>' . $this->t('Diesel Exhaust Exposure:') . '</strong> ' . 
-        ucfirst(str_replace('_', ' ', $data['diesel_exhaust'])) . '</p>';
+        ucfirst(str_replace('_', ' ', (string) $data['diesel_exhaust'])) . '</p>';
     }
 
     if (!empty($data['major_incidents']) && $data['major_incidents'] === 'yes') {
@@ -653,16 +653,16 @@ class NFRReviewSubmitForm extends FormBase {
     
     if (!empty($data['served'])) {
       $html .= '<p><strong>' . $this->t('Military Service:') . '</strong> ' . 
-        ucfirst($data['served']) . '</p>';
+        ucfirst((string) $data['served']) . '</p>';
       
       if ($data['served'] === 'yes') {
         if (!empty($data['branch'])) {
           $html .= '<p><strong>' . $this->t('Branch:') . '</strong> ' . 
-            ucwords(str_replace('_', ' ', $data['branch'])) . '</p>';
+            ucwords(str_replace('_', ' ', (string) $data['branch'])) . '</p>';
         }
         if (!empty($data['was_firefighter'])) {
           $html .= '<p><strong>' . $this->t('Military Firefighter:') . '</strong> ' . 
-            ucfirst($data['was_firefighter']) . '</p>';
+            ucfirst((string) $data['was_firefighter']) . '</p>';
         }
       }
     }
@@ -684,7 +684,7 @@ class NFRReviewSubmitForm extends FormBase {
     
     if (!empty($data['had_other_jobs'])) {
       $html .= '<p><strong>' . $this->t('Other Jobs:') . '</strong> ' . 
-        ucfirst($data['had_other_jobs']) . '</p>';
+        ucfirst((string) $data['had_other_jobs']) . '</p>';
       
       if ($data['had_other_jobs'] === 'yes' && !empty($data['jobs'])) {
         $html .= '<p>' . count($data['jobs']) . ' ' . $this->t('other jobs reported') . '</p>';
@@ -708,12 +708,12 @@ class NFRReviewSubmitForm extends FormBase {
     
     if (!empty($data['scba_during_suppression'])) {
       $html .= '<p><strong>' . $this->t('SCBA During Suppression:') . '</strong> ' . 
-        ucwords(str_replace('_', ' ', $data['scba_during_suppression'])) . '</p>';
+        ucwords(str_replace('_', ' ', (string) $data['scba_during_suppression'])) . '</p>';
     }
 
     if (!empty($data['scba_during_overhaul'])) {
       $html .= '<p><strong>' . $this->t('SCBA During Overhaul:') . '</strong> ' . 
-        ucwords(str_replace('_', ' ', $data['scba_during_overhaul'])) . '</p>';
+        ucwords(str_replace('_', ' ', (string) $data['scba_during_overhaul'])) . '</p>';
     }
 
     $html .= '</div>';
@@ -733,7 +733,7 @@ class NFRReviewSubmitForm extends FormBase {
     
     if (!empty($data['department_had_sops'])) {
       $html .= '<p><strong>' . $this->t('Department Had SOPs:') . '</strong> ' . 
-        ucfirst($data['department_had_sops']) . '</p>';
+        ucfirst((string) $data['department_had_sops']) . '</p>';
     }
 
     $html .= '<p>' . $this->t('Decontamination practices recorded') . '</p>';
@@ -755,7 +755,7 @@ class NFRReviewSubmitForm extends FormBase {
     
     if (!empty($data['cancer_diagnosed'])) {
       $html .= '<p><strong>' . $this->t('Cancer Diagnosis:') . '</strong> ' . 
-        ucfirst($data['cancer_diagnosed']) . '</p>';
+        ucfirst((string) $data['cancer_diagnosed']) . '</p>';
       
       if ($data['cancer_diagnosed'] === 'yes' && !empty($data['cancers'])) {
         $html .= '<p>' . count($data['cancers']) . ' ' . $this->t('cancer diagnoses reported') . '</p>';
@@ -779,12 +779,12 @@ class NFRReviewSubmitForm extends FormBase {
     
     if (!empty($data['smoking_status'])) {
       $html .= '<p><strong>' . $this->t('Smoking Status:') . '</strong> ' . 
-        ucwords($data['smoking_status']) . '</p>';
+        ucwords((string) $data['smoking_status']) . '</p>';
     }
 
     if (!empty($data['alcohol_frequency'])) {
       $html .= '<p><strong>' . $this->t('Alcohol Use:') . '</strong> ' . 
-        ucwords(str_replace('_', ' ', $data['alcohol_frequency'])) . '</p>';
+        ucwords(str_replace('_', ' ', (string) $data['alcohol_frequency'])) . '</p>';
     }
 
     if (isset($data['physical_activity_days'])) {
