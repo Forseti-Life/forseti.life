@@ -84,6 +84,11 @@ function _nfr_create_validation_users() {
       if (!$existing->hasRole($user_data['role'])) {
         $existing->addRole($user_data['role']);
         $existing->save();
+        \Drupal::logger('nfr')->info('Updated user @username (UID: @uid) to add role: @role', [
+          '@username' => $user_data['username'],
+          '@uid' => $uid,
+          '@role' => $user_data['role'],
+        ]);
       }
       continue;
     }
@@ -94,29 +99,38 @@ function _nfr_create_validation_users() {
       ->loadByProperties(['name' => $user_data['username']]);
     
     if (!empty($existing_by_name)) {
+      $user = reset($existing_by_name);
+      if (!$user->hasRole($user_data['role'])) {
+        $user->addRole($user_data['role']);
+        $user->save();
+        \Drupal::logger('nfr')->info('Updated user @username by name to add role: @role', [
+          '@username' => $user_data['username'],
+          '@role' => $user_data['role'],
+        ]);
+      }
       continue;
     }
     
     try {
-      // Insert into users table first to reserve the UID
-      $database = \Drupal::database();
-      $database->insert('users')
-        ->fields(['uid' => $uid])
-        ->execute();
-      
-      // Create the user entity
+      // Create the user entity - let Drupal handle all fields including UUID
       $user = \Drupal\user\Entity\User::create([
-        'uid' => $uid,
         'name' => $user_data['username'],
         'mail' => $user_data['username'] . '@test-nfr.org',
         'pass' => 'TestPassword123!',
         'status' => 1,
         'field_first_name' => $user_data['first'],
         'field_last_name' => $user_data['last'],
+        'roles' => [$user_data['role']], // Add role during creation
       ]);
       
-      $user->addRole($user_data['role']);
       $user->save();
+      
+      // Log the created user
+      \Drupal::logger('nfr')->info('Created validation user @username (UID: @uid) with role: @role', [
+        '@username' => $user_data['username'],
+        '@uid' => $user->id(),
+        '@role' => $user_data['role'],
+      ]);
       
     } catch (\Exception $e) {
       \Drupal::logger('nfr')->error('Failed to create validation user @username: @message', [
@@ -1835,6 +1849,55 @@ function nfr_schema() {
     ],
   ];
 
+  // Section Completion Tracking
+  $schema['nfr_section_completion'] = [
+    'description' => 'Tracks individual section completion status for questionnaire.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'User ID',
+      ],
+      'section_number' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'description' => 'Section number (1-9)',
+      ],
+      'completed' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Whether section is completed (0 or 1)',
+      ],
+      'completed_at' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Timestamp when section was completed',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Timestamp when record was last updated',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uid_section' => ['uid', 'section_number'],
+    ],
+    'indexes' => [
+      'uid' => ['uid'],
+      'section_number' => ['section_number'],
+    ],
+  ];
+
   // Follow-up Surveys
   $schema['nfr_follow_up_surveys'] = [
     'description' => 'Stores follow-up survey responses',
@@ -1906,4 +1969,34 @@ function nfr_update_9015() {
   _nfr_create_validation_users();
   
   return t('Created validation test users and assigned role permissions.');
+}
+
+/**
+ * Fix validation user roles - ensure all validation users have correct roles assigned.
+ */
+function nfr_update_9016() {
+  $validation_users = [
+    2 => ['username' => 'firefighter_active', 'role' => 'firefighter'],
+    3 => ['username' => 'firefighter_retired', 'role' => 'firefighter'],
+    4 => ['username' => 'nfr_admin', 'role' => 'nfr_administrator'],
+    5 => ['username' => 'nfr_researcher', 'role' => 'nfr_researcher'],
+    6 => ['username' => 'dept_admin', 'role' => 'fire_dept_admin'],
+  ];
+  
+  $fixed = 0;
+  foreach ($validation_users as $uid => $user_data) {
+    $user = \Drupal\user\Entity\User::load($uid);
+    if ($user && !$user->hasRole($user_data['role'])) {
+      $user->addRole($user_data['role']);
+      $user->save();
+      $fixed++;
+      \Drupal::logger('nfr')->info('Fixed role for user @username (UID: @uid) - added @role', [
+        '@username' => $user->getAccountName(),
+        '@uid' => $uid,
+        '@role' => $user_data['role'],
+      ]);
+    }
+  }
+  
+  return t('Fixed roles for @count validation users.', ['@count' => $fixed]);
 }
