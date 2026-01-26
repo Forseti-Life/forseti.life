@@ -1372,18 +1372,33 @@ class NFRValidationController extends ControllerBase {
           ->execute();
         $results['questionnaires_deleted'] += $questionnaire_deleted;
         
-        // Delete work history
+        // Delete work history (and cascade to job_titles and incident_frequency via their foreign keys)
+        $work_history_ids = $database->query(
+          "SELECT id FROM {nfr_work_history} WHERE uid = :uid",
+          [':uid' => $uid]
+        )->fetchCol();
+        
+        foreach ($work_history_ids as $work_history_id) {
+          // Delete job titles for this work history
+          $database->delete('nfr_job_titles')
+            ->condition('work_history_id', $work_history_id)
+            ->execute();
+          
+          // Delete incident frequencies for job titles under this work history
+          $job_title_ids = $database->query(
+            "SELECT id FROM {nfr_job_titles} WHERE work_history_id = :work_history_id",
+            [':work_history_id' => $work_history_id]
+          )->fetchCol();
+          
+          foreach ($job_title_ids as $job_title_id) {
+            $database->delete('nfr_incident_frequency')
+              ->condition('job_title_id', $job_title_id)
+              ->execute();
+          }
+        }
+        
+        // Now delete work history itself
         $database->delete('nfr_work_history')
-          ->condition('uid', $uid)
-          ->execute();
-        
-        // Delete job titles
-        $database->delete('nfr_job_titles')
-          ->condition('uid', $uid)
-          ->execute();
-        
-        // Delete incident frequency
-        $database->delete('nfr_incident_frequency')
           ->condition('uid', $uid)
           ->execute();
         
