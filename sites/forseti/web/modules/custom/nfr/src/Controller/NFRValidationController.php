@@ -3021,7 +3021,7 @@ class NFRValidationController extends ControllerBase {
       $output .= '</tbody></table>';
       $output .= '</div>'; // table-responsive
       
-      $output .= '<div class="alert alert-info mt-3">';
+      $output .= '<div class="alert alert-info mt-3" style="color: #212529;">';
       $output .= '<p class="mb-2"><strong>Legend:</strong></p>';
       $output .= '<p class="mb-2 small">✓ = Field is tracked | ✗ = Field not tracked</p>';
       $output .= '<p class="mb-2 small"><span class="badge bg-success">100%</span> Complete | <span class="badge bg-warning text-dark">75-99%</span> Good | <span class="badge bg-danger">1-74%</span> Incomplete | <span class="badge bg-secondary">0%</span> No data</p>';
