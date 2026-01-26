@@ -308,10 +308,10 @@ class NFRPublicController extends ControllerBase {
     // Get registered firefighter counts by state
     $state_counts = [];
     try {
-      $query = $connection->select('nfr_user_profile', 'p');
-      $query->addField('p', 'primary_fire_department_state', 'state');
-      $query->addExpression('COUNT(*)', 'count');
-      $query->groupBy('p.primary_fire_department_state');
+      $query = $connection->select('nfr_work_history', 'wh');
+      $query->addField('wh', 'department_state', 'state');
+      $query->addExpression('COUNT(DISTINCT wh.uid)', 'count');
+      $query->groupBy('wh.department_state');
       $results = $query->execute()->fetchAllKeyed();
       
       foreach ($results as $state => $count) {
@@ -370,19 +370,19 @@ class NFRPublicController extends ControllerBase {
         ->fetchField();
       
       // Total states represented
-      $stats['total_states'] = (int) $connection->select('nfr_user_profile', 'p')
-        ->fields('p', ['primary_fire_department_state'])
+      $stats['total_states'] = (int) $connection->select('nfr_work_history', 'wh')
+        ->fields('wh', ['department_state'])
         ->distinct()
-        ->condition('primary_fire_department_state', '', '!=')
+        ->condition('department_state', '', '!=')
         ->countQuery()
         ->execute()
         ->fetchField();
       
       // Total departments
-      $stats['total_departments'] = (int) $connection->select('nfr_user_profile', 'p')
-        ->fields('p', ['primary_fire_department_name'])
+      $stats['total_departments'] = (int) $connection->select('nfr_work_history', 'wh')
+        ->fields('wh', ['department_name'])
         ->distinct()
-        ->condition('primary_fire_department_name', '', '!=')
+        ->condition('department_name', '', '!=')
         ->countQuery()
         ->execute()
         ->fetchField();
