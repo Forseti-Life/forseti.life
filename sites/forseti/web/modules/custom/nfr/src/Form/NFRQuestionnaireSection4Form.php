@@ -255,10 +255,12 @@ class NFRQuestionnaireSection4Form extends FormBase {
         'military_currently_serving' => $served ? (int) ($military['currently_serving'] ?? FALSE) : 0,
         'military_was_firefighter' => $served ? ($military['was_firefighter'] ?: NULL) : NULL,
         'military_firefighting_duties' => ($served && ($military['was_firefighter'] ?? '') === 'yes') ? ($military['firefighting_duties'] ?: NULL) : NULL,
-        'last_section_completed' => 4,
       ])
       ->condition('uid', $uid)
       ->execute();
+    
+    // Mark section 4 as complete
+    $this->markSectionComplete($uid, 4, $database);
     
     $this->messenger()->addStatus($this->t('Section 4 saved.'));
     $form_state->setRedirect('nfr.questionnaire.section5');

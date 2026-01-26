@@ -50,18 +50,12 @@ trait QuestionnaireFormTrait {
   private function buildNavigationMenu(int $current_section): array {
     $uid = $this->getCurrentUserId();
     
-    // Get last completed section from database
+    // Get completed sections from database
     $database = $this->getDatabase();
-    $last_completed = $database->select('nfr_questionnaire', 'q')
-      ->fields('q', ['last_section_completed'])
-      ->condition('uid', $uid)
-      ->execute()
-      ->fetchField();
+    $completed_sections = $this->getCompletedSections($uid, $database);
     
-    $last_completed = (int) ($last_completed ?: 0);
-    
-    // Calculate progress percentage based on last completed section
-    $progress_percent = ($last_completed / 9) * 100;
+    // Calculate progress percentage based on completed sections
+    $progress_percent = (count($completed_sections) / 9) * 100;
     
     $sections = [
       1 => 'Demographics',
@@ -85,7 +79,7 @@ trait QuestionnaireFormTrait {
     
     foreach ($sections as $section_num => $section_name) {
       $step_class = 'stepper-step';
-      $is_completed = ($section_num <= $last_completed);
+      $is_completed = in_array($section_num, $completed_sections);
       
       if ($is_completed) {
         $step_class .= ' completed';
@@ -182,6 +176,81 @@ trait QuestionnaireFormTrait {
         ])
         ->execute();
     }
+  }
+
+  /**
+   * Mark a specific section as completed.
+   *
+   * @param int $uid
+   *   The user ID.
+   * @param int $section_number
+   *   The section number (1-9).
+   * @param \Drupal\Core\Database\Connection $database
+   *   The database connection.
+   */
+  protected function markSectionComplete(int $uid, int $section_number, $database): void {
+    $database->merge('nfr_section_completion')
+      ->keys([
+        'uid' => $uid,
+        'section_number' => $section_number,
+      ])
+      ->fields([
+        'completed' => 1,
+        'completed_at' => time(),
+        'updated' => time(),
+      ])
+      ->execute();
+    
+    // Also update last_section_completed to highest completed section for backward compatibility
+    $this->updateLastSectionCompleted($uid, $database);
+  }
+
+  /**
+   * Update last_section_completed to the highest completed section.
+   *
+   * @param int $uid
+   *   The user ID.
+   * @param \Drupal\Core\Database\Connection $database
+   *   The database connection.
+   */
+  protected function updateLastSectionCompleted(int $uid, $database): void {
+    $highest = $database->select('nfr_section_completion', 'sc')
+      ->fields('sc', ['section_number'])
+      ->condition('uid', $uid)
+      ->condition('completed', 1)
+      ->orderBy('section_number', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+    
+    if ($highest) {
+      $database->update('nfr_questionnaire')
+        ->fields(['last_section_completed' => $highest])
+        ->condition('uid', $uid)
+        ->execute();
+    }
+  }
+
+  /**
+   * Get completed section numbers for a user.
+   *
+   * @param int $uid
+   *   The user ID.
+   * @param \Drupal\Core\Database\Connection $database
+   *   The database connection.
+   *
+   * @return array
+   *   Array of completed section numbers.
+   */
+  protected function getCompletedSections(int $uid, $database): array {
+    $completed = $database->select('nfr_section_completion', 'sc')
+      ->fields('sc', ['section_number'])
+      ->condition('uid', $uid)
+      ->condition('completed', 1)
+      ->execute()
+      ->fetchCol();
+    
+    return $completed ? array_map('intval', $completed) : [];
   }
 
 }

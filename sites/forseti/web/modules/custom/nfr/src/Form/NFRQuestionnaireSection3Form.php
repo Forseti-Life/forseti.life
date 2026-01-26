@@ -310,10 +310,12 @@ class NFRQuestionnaireSection3Form extends FormBase {
         'diesel_exhaust' => $exposure['diesel_exhaust'] ?: NULL,
         'chemical_activities' => $chemical_activities_json,
         'major_incidents' => ($exposure['major_incidents'] === 'yes') ? 1 : 0,
-        'last_section_completed' => 3,
       ])
       ->condition('uid', $uid)
       ->execute();
+    
+    // Mark section 3 as complete
+    $this->markSectionComplete($uid, 3, $database);
     
     // Delete existing major incidents
     $database->delete('nfr_major_incidents')

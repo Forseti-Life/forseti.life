@@ -439,6 +439,111 @@ function nfr_update_9012() {
 }
 
 /**
+ * Create nfr_section_completion table for individual section tracking.
+ */
+function nfr_update_9013() {
+  $schema = \Drupal::database()->schema();
+  
+  // Create the section completion tracking table
+  if (!$schema->tableExists('nfr_section_completion')) {
+    $table = [
+      'description' => 'Tracks individual section completion status for questionnaire.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+          'description' => 'Primary key',
+        ],
+        'uid' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'description' => 'User ID',
+        ],
+        'section_number' => [
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => TRUE,
+          'description' => 'Section number (1-9)',
+        ],
+        'completed' => [
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Whether section is completed (0 or 1)',
+        ],
+        'completed_at' => [
+          'type' => 'int',
+          'not null' => FALSE,
+          'description' => 'Timestamp when section was completed',
+        ],
+        'updated' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Timestamp when record was last updated',
+        ],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => [
+        'uid_section' => ['uid', 'section_number'],
+      ],
+      'indexes' => [
+        'uid' => ['uid'],
+        'section_number' => ['section_number'],
+      ],
+    ];
+    
+    $schema->createTable('nfr_section_completion', $table);
+  }
+  
+  // Migrate existing progress from last_section_completed
+  $database = \Drupal::database();
+  $questionnaires = $database->select('nfr_questionnaire', 'q')
+    ->fields('q', ['uid', 'last_section_completed'])
+    ->execute();
+  
+  foreach ($questionnaires as $row) {
+    if ($row->last_section_completed > 0) {
+      // Mark all sections up to last_section_completed as complete
+      for ($section = 1; $section <= $row->last_section_completed; $section++) {
+        $database->merge('nfr_section_completion')
+          ->keys([
+            'uid' => $row->uid,
+            'section_number' => $section,
+          ])
+          ->fields([
+            'completed' => 1,
+            'completed_at' => time(),
+            'updated' => time(),
+          ])
+          ->execute();
+      }
+    }
+  }
+  
+  return t('Created nfr_section_completion table and migrated existing progress.');
+}
+
+/**
+ * Add physical_activity_days column to nfr_questionnaire table.
+ */
+function nfr_update_9014() {
+  $schema = \Drupal::database()->schema();
+  
+  if (!$schema->fieldExists('nfr_questionnaire', 'physical_activity_days')) {
+    $schema->addField('nfr_questionnaire', 'physical_activity_days', [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => FALSE,
+      'description' => 'Days per week of physical activity (0-7)',
+    ]);
+  }
+  
+  return t('Added physical_activity_days column to nfr_questionnaire table.');
+}
+
+/**
  * Add direct decontamination columns and migrate from JSON.
  */
 function nfr_update_9011() {
@@ -1573,6 +1678,12 @@ function nfr_schema() {
         'type' => 'varchar',
         'length' => 50,
         'not null' => FALSE,
+      ],
+      'physical_activity_days' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => FALSE,
+        'description' => 'Days per week of physical activity (0-7)',
       ],
       // Completion tracking
       'last_section_completed' => [

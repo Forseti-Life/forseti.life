@@ -118,7 +118,7 @@
       once('nfr-view-fill-rates', '#view-fill-rates', context).forEach(function (element) {
         $(element).on('click', function (e) {
           e.preventDefault();
-          window.location.href = '/nfr/validation/fill-rates';
+          window.location.href = '/admin/nfr/validation/fill-rates';
         });
       });
 
@@ -145,7 +145,7 @@
     
     // Make AJAX request
     $.ajax({
-      url: '/nfr/validation/test-route',
+      url: '/admin/nfr/validation/test-route',
       method: 'GET',
       data: {
         route: route,
@@ -169,22 +169,36 @@
     let html = '';
     let icon = '';
     let className = '';
+    const expected = $btn.data('expected'); // 'allow' or 'deny'
+    let matchesExpected = false;
     
     if (response.status_code === 200) {
       icon = '✅';
       className = 'test-result-success';
+      matchesExpected = (expected === 'allow');
     } else if (response.status_code === 403) {
       icon = '🚫';
       className = 'test-result-forbidden';
+      matchesExpected = (expected === 'deny');
     } else {
       icon = '❌';
       className = 'test-result-error';
+      matchesExpected = false;
+    }
+    
+    // Add indicator if result doesn't match expected
+    if (!matchesExpected && (response.status_code === 200 || response.status_code === 403)) {
+      className += ' unexpected-result';
+      icon += ' ⚠️';
     }
     
     html += '<div class="test-result-display ' + className + '">';
     html += '<div class="result-icon">' + icon + '</div>';
     html += '<div class="result-code">' + response.status_code + '</div>';
     html += '<div class="result-text">' + response.status_text + '</div>';
+    if (!matchesExpected && (response.status_code === 200 || response.status_code === 403)) {
+      html += '<div class="result-unexpected">⚠️ Unexpected result!</div>';
+    }
     if (response.error) {
       html += '<div class="result-error">' + response.error + '</div>';
     }
@@ -292,7 +306,7 @@
     $results.html('<div class="alert alert-info">⏳ Running questionnaire test...</div>');
     
     $.ajax({
-      url: '/nfr/validation/test-questionnaire',
+      url: '/admin/nfr/validation/test-questionnaire',
       method: 'GET',
       dataType: 'json',
       success: function (response) {
@@ -380,7 +394,7 @@
     $results.html('<div class="alert alert-info">🔍 Checking database...</div>');
     
     $.ajax({
-      url: '/nfr/validation/verify-database',
+      url: '/admin/nfr/validation/verify-database',
       method: 'GET',
       dataType: 'json',
       success: function (response) {
@@ -448,7 +462,7 @@
     $btn.prop('disabled', true).text('⏳ Clearing...');
     
     $.ajax({
-      url: '/nfr/validation/clear-test-data',
+      url: '/admin/nfr/validation/clear-test-data',
       method: 'GET',
       dataType: 'json',
       success: function (response) {
@@ -477,7 +491,7 @@
     $results.html('<div class="alert alert-info">⏳ Running complete enrollment flow with random data...</div>');
     
     $.ajax({
-      url: '/nfr/validation/test-full-enrollment',
+      url: '/admin/nfr/validation/test-full-enrollment',
       method: 'GET',
       dataType: 'json',
       success: function (response) {
@@ -578,7 +592,7 @@
     $results.html('<div class="alert alert-info">⏳ Running enrollment flow with maximum values (Yes to everything)...</div>');
     
     $.ajax({
-      url: '/nfr/validation/test-max-values',
+      url: '/admin/nfr/validation/test-max-values',
       method: 'GET',
       dataType: 'json',
       success: function (response) {
@@ -603,7 +617,7 @@
     $results.html('<div class="alert alert-info">⏳ Running enrollment flow with minimum values (No to everything)...</div>');
     
     $.ajax({
-      url: '/nfr/validation/test-min-values',
+      url: '/admin/nfr/validation/test-min-values',
       method: 'GET',
       dataType: 'json',
       success: function (response) {
@@ -628,7 +642,7 @@
     $results.html('<div class="alert alert-info">⏳ Running enrollment flow with yes answers and minimal values...</div>');
     
     $.ajax({
-      url: '/nfr/validation/test-yes-minimal',
+      url: '/admin/nfr/validation/test-yes-minimal',
       method: 'GET',
       dataType: 'json',
       success: function (response) {
@@ -653,7 +667,7 @@
     $results.html('<div class="alert alert-info">🔍 Checking error logs...</div>');
     
     $.ajax({
-      url: '/nfr/validation/check-error-logs',
+      url: '/admin/nfr/validation/check-error-logs',
       method: 'GET',
       dataType: 'json',
       success: function (response) {
@@ -717,7 +731,7 @@
     $results.html('<div class="alert alert-info">⏳ Creating 170 test users (5 each of 4 roles + 150 firefighters)...</div>');
     
     $.ajax({
-      url: '/nfr/validation/create-test-users',
+      url: '/admin/nfr/validation/create-test-users',
       method: 'GET',
       dataType: 'json',
       success: function (response) {
@@ -742,7 +756,7 @@
     $results.html('<div class="alert alert-info">⏳ Deleting all test users...</div>');
     
     $.ajax({
-      url: '/nfr/validation/delete-test-users',
+      url: '/admin/nfr/validation/delete-test-users',
       method: 'GET',
       dataType: 'json',
       success: function (response) {
@@ -767,7 +781,7 @@
     $results.html('<div class="alert alert-info">⏳ Submitting questionnaires for all firefighter users... This may take a few minutes.</div>');
     
     $.ajax({
-      url: '/nfr/validation/submit-all-firefighters',
+      url: '/admin/nfr/validation/submit-all-firefighters',
       method: 'GET',
       dataType: 'json',
       timeout: 600000, // 10 minute timeout
@@ -793,7 +807,7 @@
     $results.html('<div class="alert alert-info">⏳ Deleting all test users...</div>');
     
     $.ajax({
-      url: '/nfr/validation/delete-test-users',
+      url: '/admin/nfr/validation/delete-test-users',
       method: 'GET',
       dataType: 'json',
       success: function (response) {

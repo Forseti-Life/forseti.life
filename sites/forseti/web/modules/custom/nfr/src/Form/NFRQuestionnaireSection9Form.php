@@ -53,7 +53,7 @@ class NFRQuestionnaireSection9Form extends FormBase {
     // Load lifestyle data from database columns
     $database = $this->getDatabase();
     $questionnaire = $database->select('nfr_questionnaire', 'q')
-      ->fields('q', ['smoking_history', 'alcohol_use'])
+      ->fields('q', ['smoking_history', 'alcohol_use', 'physical_activity_days'])
       ->condition('uid', $uid)
       ->execute()
       ->fetchAssoc();
@@ -65,6 +65,7 @@ class NFRQuestionnaireSection9Form extends FormBase {
         $lifestyle = array_merge($lifestyle, $smoking);
       }
       $lifestyle['alcohol_frequency'] = $questionnaire['alcohol_use'] ?? '';
+      $lifestyle['physical_activity_days'] = $questionnaire['physical_activity_days'] ?? '';
     }
 
     // Add navigation menu
@@ -217,11 +218,14 @@ class NFRQuestionnaireSection9Form extends FormBase {
       ->fields([
         'smoking_history' => json_encode($smoking_data),
         'alcohol_use' => $lifestyle['alcohol_frequency'] ?? NULL,
-        'last_section_completed' => 9,
+        'physical_activity_days' => !empty($lifestyle['physical_activity_days']) ? (int)$lifestyle['physical_activity_days'] : NULL,
         'questionnaire_completed' => 1,
       ])
       ->condition('uid', $uid)
       ->execute();
+
+    // Mark section 9 as complete
+    $this->markSectionComplete($uid, 9, $database);
 
     $this->messenger()->addStatus($this->t('Congratulations! You have completed the questionnaire.'));
     $form_state->setRedirect('nfr.review_submit');

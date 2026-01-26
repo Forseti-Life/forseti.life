@@ -214,7 +214,7 @@ class NFRQuestionnaireSection6Form extends FormBase {
     // Save PPE data to direct columns
     $database = $this->getDatabase();
     
-    $fields = ['last_section_completed' => 6];
+    $fields = [];
     
     $ppe_types = ['scba', 'turnout_coat', 'turnout_pants', 'gloves', 'helmet', 'boots', 'nomex_hood', 'wildland_clothing'];
     foreach ($ppe_types as $type) {
@@ -232,6 +232,9 @@ class NFRQuestionnaireSection6Form extends FormBase {
       ->fields($fields)
       ->condition('uid', $uid)
       ->execute();
+
+    // Mark section 6 as complete
+    $this->markSectionComplete($uid, 6, $database);
 
     $this->messenger()->addStatus($this->t('Section 6 saved.'));
     $form_state->setRedirect('nfr.questionnaire.section7');

@@ -63,7 +63,16 @@ class NFRConsentForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $uid = $this->currentUser->id();
+    // Check if uid parameter is provided (for admin viewing other users)
+    $request = \Drupal::request();
+    $requested_uid = $request->query->get('uid');
+    
+    // If no uid parameter or user is not admin, use current user
+    if ($requested_uid && $this->currentUser->hasPermission('administer nfr')) {
+      $uid = (int) $requested_uid;
+    } else {
+      $uid = $this->currentUser->id();
+    }
 
     // Check if consent already exists.
     $existing_consent = $this->database->select('nfr_consent', 'nc')
@@ -71,6 +80,9 @@ class NFRConsentForm extends FormBase {
       ->condition('uid', $uid)
       ->execute()
       ->fetchAssoc();
+
+    // Store uid in form state for submit handler
+    $form_state->set('consent_uid', $uid);
 
     $form['#attached']['library'][] = 'nfr/enrollment';
 
@@ -173,7 +185,8 @@ class NFRConsentForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $uid = $this->currentUser->id();
+    // Use the stored uid from buildForm (may be different from current user if admin is viewing)
+    $uid = $form_state->get('consent_uid') ?? $this->currentUser->id();
     $values = $form_state->getValues();
 
     $fields = [

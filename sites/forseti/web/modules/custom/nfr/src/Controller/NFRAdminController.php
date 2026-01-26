@@ -111,13 +111,13 @@ class NFRAdminController extends ControllerBase {
       ->fetchAllKeyed(0, 0);
 
     return [
-      'total_participants' => $total_participants,
-      'new_today' => $new_today,
-      'new_this_month' => $new_this_month,
-      'profile_completion_rate' => $profile_completion_rate,
-      'questionnaire_completion_rate' => $questionnaire_completion_rate,
-      'linkage_consent_rate' => $linkage_consent_rate,
-      'linkage_consents' => $linkage_consents,
+      'total_participants' => (int) $total_participants,
+      'new_today' => (int) $new_today,
+      'new_this_month' => (int) $new_this_month,
+      'profile_completion_rate' => (int) $profile_completion_rate,
+      'questionnaire_completion_rate' => (int) $questionnaire_completion_rate,
+      'linkage_consent_rate' => (int) $linkage_consent_rate,
+      'linkage_consents' => (int) $linkage_consents,
       'state_distribution' => $state_distribution,
     ];
   }
@@ -126,12 +126,13 @@ class NFRAdminController extends ControllerBase {
    * Get recent participants.
    */
   private function getRecentParticipants(int $limit = 10): array {
-    return $this->database->select('nfr_user_profile', 'p')
-      ->fields('p', ['participant_id', 'first_name', 'last_name', 'primary_email', 'state', 'created', 'profile_completed'])
-      ->orderBy('created', 'DESC')
-      ->range(0, $limit)
-      ->execute()
-      ->fetchAll(\PDO::FETCH_ASSOC);
+    $query = $this->database->select('nfr_user_profile', 'p');
+    $query->leftJoin('users_field_data', 'u', 'p.uid = u.uid');
+    $query->fields('p', ['participant_id', 'first_name', 'last_name', 'state', 'created', 'profile_completed']);
+    $query->addField('u', 'mail', 'primary_email');
+    $query->orderBy('p.created', 'DESC');
+    $query->range(0, $limit);
+    return $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
   }
 
   /**
@@ -220,7 +221,7 @@ class NFRAdminController extends ControllerBase {
         htmlspecialchars($participant['participant_id']) . '</a></td>';
       $html .= '<td>' . htmlspecialchars($participant['first_name'] . ' ' . $participant['last_name']) . '</td>';
       $html .= '<td>' . htmlspecialchars($participant['state'] ?? 'N/A') . '</td>';
-      $html .= '<td>' . date('M j, Y', $participant['created']) . '</td>';
+      $html .= '<td>' . date('M j, Y', (int) $participant['created']) . '</td>';
       $html .= '<td><span class="badge ' . ($participant['profile_completed'] ? 'bg-success' : 'bg-warning') . '">' . 
         ($participant['profile_completed'] ? $this->t('Complete') : $this->t('Pending')) . '</span></td>';
       $html .= '</tr>';
@@ -248,7 +249,7 @@ class NFRAdminController extends ControllerBase {
     $html .= '<span class="me-2">🔗</span>' . $this->t('Process Linkage');
     $html .= '</a></div>';
     $html .= '<div class="col-md-6">';
-    $html .= '<a href="/admin/nfr/data-quality" class="btn btn-cyan w-100 d-flex align-items-center justify-content-center py-3">';
+    $html .= '<a href="/admin/nfr/validation/fill-rates" class="btn btn-cyan w-100 d-flex align-items-center justify-content-center py-3">';
     $html .= '<span class="me-2">📊</span>' . $this->t('Data Quality');
     $html .= '</a></div>';
     $html .= '<div class="col-md-6">';
@@ -367,7 +368,7 @@ class NFRAdminController extends ControllerBase {
   private function getAllParticipants(): array {
     $query = $this->database->select('nfr_user_profile', 'p')
       ->fields('p')
-      ->orderBy('created', 'DESC');
+      ->orderBy('p.created', 'DESC');
     
     // Join with questionnaire to get completion status
     $query->leftJoin('nfr_questionnaire', 'q', 'p.uid = q.uid');
@@ -376,6 +377,10 @@ class NFRAdminController extends ControllerBase {
     // Join with consent to get linkage status
     $query->leftJoin('nfr_consent', 'c', 'p.uid = c.uid');
     $query->addField('c', 'consented_to_registry_linkage');
+    
+    // Join with users to get email
+    $query->leftJoin('users_field_data', 'u', 'p.uid = u.uid');
+    $query->addField('u', 'mail', 'primary_email');
     
     return $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
   }
@@ -448,7 +453,7 @@ class NFRAdminController extends ControllerBase {
       $html .= '<td>' . htmlspecialchars(($participant['first_name'] ?? '') . ' ' . ($participant['last_name'] ?? '')) . '</td>';
       $html .= '<td>' . htmlspecialchars($participant['primary_email'] ?? 'N/A') . '</td>';
       $html .= '<td>' . htmlspecialchars($participant['state'] ?? 'N/A') . '</td>';
-      $html .= '<td>' . date('M j, Y', $participant['created'] ?? time()) . '</td>';
+      $html .= '<td>' . date('M j, Y', (int) ($participant['created'] ?? time())) . '</td>';
       
       $q_status = ($participant['questionnaire_completed'] ?? false) ? 'complete' : 'incomplete';
       $html .= '<td><span class="status-badge status-' . $q_status . '">' . 
@@ -587,8 +592,17 @@ class NFRAdminController extends ControllerBase {
     // Profile information
     $html .= '<div class="detail-section">';
     $html .= '<h2>' . $this->t('Profile Information') . '</h2>';
+    $html .= '<div class="mb-3"><a href="/nfr/my-profile?uid=' . $profile['uid'] . '" class="btn btn-sm btn-primary">' . $this->t('View Profile Form') . '</a></div>';
     $html .= '<div class="info-grid">';
-    $html .= '<div class="info-item"><strong>' . $this->t('Email:') . '</strong> ' . htmlspecialchars($profile['primary_email'] ?? 'N/A') . '</div>';
+    // Get email from Drupal user account
+    $user_email = 'N/A';
+    if (!empty($profile['uid'])) {
+      $user = \Drupal\user\Entity\User::load($profile['uid']);
+      if ($user) {
+        $user_email = $user->getEmail();
+      }
+    }
+    $html .= '<div class="info-item"><strong>' . $this->t('Email:') . '</strong> ' . htmlspecialchars($user_email) . '</div>';
     $html .= '<div class="info-item"><strong>' . $this->t('Phone:') . '</strong> ' . htmlspecialchars($profile['phone_number'] ?? 'N/A') . '</div>';
     $html .= '<div class="info-item"><strong>' . $this->t('Date of Birth:') . '</strong> ' . htmlspecialchars($profile['date_of_birth'] ?? 'N/A') . '</div>';
     $html .= '<div class="info-item"><strong>' . $this->t('Address:') . '</strong> ' . 
@@ -614,9 +628,10 @@ class NFRAdminController extends ControllerBase {
     if ($consent) {
       $html .= '<div class="detail-section">';
       $html .= '<h2>' . $this->t('Consent Information') . '</h2>';
+      $html .= '<div class="mb-3"><a href="/nfr/consent?uid=' . $profile['uid'] . '" class="btn btn-sm btn-primary">' . $this->t('View Consent Form') . '</a></div>';
       $html .= '<div class="info-grid">';
       $html .= '<div class="info-item"><strong>' . $this->t('Consent Date:') . '</strong> ' . 
-        ($consent['consent_timestamp'] ? date('M j, Y', $consent['consent_timestamp']) : 'N/A') . '</div>';
+        ($consent['consent_timestamp'] ? date('M j, Y', (int) $consent['consent_timestamp']) : 'N/A') . '</div>';
       $html .= '<div class="info-item"><strong>' . $this->t('Registry Linkage:') . '</strong> ' . 
         (($consent['consented_to_registry_linkage'] ?? false) ? $this->t('Yes') : $this->t('No')) . '</div>';
       $html .= '<div class="info-item"><strong>' . $this->t('Signature:') . '</strong> ' . htmlspecialchars($consent['participant_signature'] ?? 'N/A') . '</div>';
@@ -628,11 +643,12 @@ class NFRAdminController extends ControllerBase {
     if ($questionnaire) {
       $html .= '<div class="detail-section">';
       $html .= '<h2>' . $this->t('Questionnaire') . '</h2>';
+      $html .= '<div class="mb-3"><a href="/nfr/review?uid=' . $profile['uid'] . '" class="btn btn-sm btn-primary">' . $this->t('View Full Questionnaire') . '</a></div>';
       $html .= '<div class="info-grid">';
       $html .= '<div class="info-item"><strong>' . $this->t('Status:') . '</strong> ' . 
         (($questionnaire['questionnaire_completed'] ?? false) ? $this->t('Complete') : $this->t('In Progress')) . '</div>';
       $html .= '<div class="info-item"><strong>' . $this->t('Last Updated:') . '</strong> ' . 
-        ($questionnaire['updated'] ? date('M j, Y g:i A', $questionnaire['updated']) : 'N/A') . '</div>';
+        ($questionnaire['updated'] ? date('M j, Y g:i A', (int) $questionnaire['updated']) : 'N/A') . '</div>';
       $html .= '<div class="info-item"><strong>' . $this->t('Current Section:') . '</strong> ' . htmlspecialchars($questionnaire['current_section'] ?? 'N/A') . '</div>';
       $html .= '</div>';
       $html .= '</div>';
@@ -683,10 +699,10 @@ class NFRAdminController extends ControllerBase {
       ->fetchField();
 
     return [
-      'total_consented' => $total_consented,
-      'total_participants' => $total_participants,
+      'total_consented' => (int) $total_consented,
+      'total_participants' => (int) $total_participants,
       'consent_rate' => $total_participants > 0 ? round(($total_consented / $total_participants) * 100, 1) : 0,
-      'pending_export' => $total_consented, // In real implementation, track exported status
+      'pending_export' => (int) $total_consented, // In real implementation, track exported status
     ];
   }
 
@@ -768,10 +784,16 @@ class NFRAdminController extends ControllerBase {
     $html .= '<div class="linkage-resources">';
     $html .= '<h2>' . $this->t('Resources') . '</h2>';
     $html .= '<ul>';
-    $html .= '<li><a href="#">' . $this->t('Linkage Protocol Documentation') . '</a></li>';
-    $html .= '<li><a href="#">' . $this->t('State Registry Contact List') . '</a></li>';
-    $html .= '<li><a href="#">' . $this->t('Data Security Guidelines') . '</a></li>';
-    $html .= '<li><a href="/admin/nfr">' . $this->t('← Back to Dashboard') . '</a></li>';
+    $html .= '<li><strong>' . $this->t('State Cancer Registry Contacts:') . '</strong></li>';
+    $html .= '<li style="margin-left: 20px;"><a href="https://www.cdc.gov/cancer/npcr/contact.htm" target="_blank">' . $this->t('CDC NPCR Contact Map (46 States)') . '</a></li>';
+    $html .= '<li style="margin-left: 20px;"><a href="https://www.naaccr.org/registry-contact-information/" target="_blank">' . $this->t('NAACCR Registry Directory (All 50 States)') . '</a></li>';
+    $html .= '<li style="margin-left: 20px;"><a href="https://seer.cancer.gov/registries/" target="_blank">' . $this->t('NCI SEER Registries') . '</a></li>';
+    $html .= '<li style="margin-top: 10px;"><a href="https://apps.usfa.fema.gov/registry/" target="_blank">' . $this->t('USFA Fire Department Registry (All 50 States)') . '</a></li>';
+    $html .= '<li style="margin-top: 10px;"><strong>' . $this->t('NFR Federal Contacts:') . '</strong></li>';
+    $html .= '<li style="margin-left: 20px;">' . $this->t('Email: <a href="mailto:NFRegistry@cdc.gov">NFRegistry@cdc.gov</a>') . '</li>';
+    $html .= '<li style="margin-left: 20px;">' . $this->t('Help Desk: <a href="tel:833-489-1298">833-489-1298</a>') . '</li>';
+    $html .= '<li style="margin-left: 20px;">' . $this->t('Mailing: 1090 Tusculum Avenue, MS: C-48, Cincinnati, OH 45226') . '</li>';
+    $html .= '<li style="margin-top: 10px;"><a href="/admin/nfr">' . $this->t('← Back to Dashboard') . '</a></li>';
     $html .= '</ul>';
     $html .= '</div>';
     
@@ -813,6 +835,16 @@ class NFRAdminController extends ControllerBase {
         '#markup' => '<h2>Data Quality Monitor</h2><p>Placeholder for data quality reports and validation.</p>',
       ],
     ];
+  }
+
+  /**
+   * Redirect from old data-quality path to fill-rates.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   Redirect response.
+   */
+  public function dataQualityRedirect() {
+    return $this->redirect('nfr.validation.fill_rates');
   }
 
   /**

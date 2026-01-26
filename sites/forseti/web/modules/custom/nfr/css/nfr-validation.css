@@ -164,7 +164,18 @@
 /* Test Cell */
 .test-cell {
   text-align: center;
-  min-width: 120px;
+  min-width: 140px;
+  position: relative;
+}
+
+/* Expected result indicator */
+.expected-result {
+  display: inline-block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #718096;
+  margin-right: 0.25rem;
+  vertical-align: middle;
 }
 
 .test-btn, .btn-mini {
@@ -225,6 +236,18 @@
   background: #feebc8;
   border: 1px solid #dd6b20;
   color: #7c2d12;
+}
+
+.test-result-display.unexpected-result {
+  border: 2px solid #f59e0b;
+  background: #fef3c7;
+}
+
+.result-unexpected {
+  margin-top: 0.25rem;
+  font-weight: 600;
+  color: #92400e;
+  font-size: 0.7rem;
 }
 
 .result-icon {

@@ -194,10 +194,12 @@ class NFRQuestionnaireSection7Form extends FormBase {
         'decon_used_wet_wipes' => $decontamination['used_wet_wipes'] ?? NULL,
         'decon_department_had_sops' => $decontamination['department_had_sops'] ?? NULL,
         'decon_sops_year_implemented' => !empty($decontamination['sops_year_implemented']) ? (int) $decontamination['sops_year_implemented'] : NULL,
-        'last_section_completed' => 7,
       ])
       ->condition('uid', $uid)
       ->execute();
+
+    // Mark section 7 as complete
+    $this->markSectionComplete($uid, 7, $database);
 
     $this->messenger()->addStatus($this->t('Section 7 saved.'));
     $form_state->setRedirect('nfr.questionnaire.section8');

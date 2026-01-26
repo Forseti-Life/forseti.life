@@ -255,10 +255,12 @@ class NFRQuestionnaireSection5Form extends FormBase {
     $database->update('nfr_questionnaire')
       ->fields([
         'had_other_jobs' => $other_employment['had_other_jobs'] ?? 'no',
-        'last_section_completed' => 5,
       ])
       ->condition('uid', $uid)
       ->execute();
+    
+    // Mark section 5 as complete
+    $this->markSectionComplete($uid, 5, $database);
     
     // Delete existing jobs
     $database->delete('nfr_other_employment')

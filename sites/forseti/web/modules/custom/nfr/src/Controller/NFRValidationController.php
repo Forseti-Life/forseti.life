@@ -51,9 +51,13 @@ class NFRValidationController extends ControllerBase {
     $test_users = $this->getTestUsers();
 
     return [
-      '#markup' => new FormattableMarkup($this->buildValidationDashboard($nfr_routes, $test_users), []),
+      '#theme' => 'nfr_admin_page',
+      '#page_id' => 'validation-dashboard',
+      '#content' => [
+        '#markup' => new FormattableMarkup($this->buildValidationDashboard($nfr_routes, $test_users), []),
+      ],
       '#attached' => [
-        'library' => ['nfr/validation'],
+        'library' => ['nfr/admin', 'nfr/validation'],
       ],
     ];
   }
@@ -67,9 +71,28 @@ class NFRValidationController extends ControllerBase {
     // Get all routes
     $all_routes = $this->routeProvider->getAllRoutes();
     
+    // Routes to exclude from testing (validation/testing routes themselves)
+    $exclude_routes = [
+      'nfr.validation',
+      'nfr.validation.test_route',
+      'nfr.validation.test_questionnaire',
+      'nfr.validation.verify_database',
+      'nfr.validation.clear_test_data',
+      'nfr.validation.test_full_enrollment',
+      'nfr.validation.test_max_values',
+      'nfr.validation.test_min_values',
+      'nfr.validation.test_yes_minimal',
+      'nfr.validation.check_error_logs',
+      'nfr.validation.create_test_users',
+      'nfr.validation.delete_test_users',
+      'nfr.validation.submit_all_firefighters',
+      'nfr.validation.fill_rates',
+      'nfr.validation.fill_rates_redirect',
+    ];
+    
     foreach ($all_routes as $route_name => $route) {
-      // Filter only NFR routes
-      if (str_starts_with($route_name, 'nfr.')) {
+      // Filter only NFR routes, excluding validation routes
+      if (str_starts_with($route_name, 'nfr.') && !in_array($route_name, $exclude_routes)) {
         $path = $route->getPath();
         $requirements = $route->getRequirements();
         $permission = $requirements['_permission'] ?? null;
@@ -92,7 +115,21 @@ class NFRValidationController extends ControllerBase {
   }
 
   /**
-   * Get test users.
+   * Get test users with their expected access levels.
+   * 
+   * Permission Matrix:
+   * - access content: All authenticated users (default Drupal permission)
+   * - access nfr dashboard: Firefighters, Dept Admins, NFR Admins, Researchers
+   * - administer nfr: NFR Administrators only (full system control)
+   * - view nfr reports: NFR Researchers and NFR Administrators
+   * 
+   * Expected Access by Role:
+   * - Anonymous (uid=0): Public pages only (/nfr, /nfr/faq, /nfr/contact, /nfr/documentation)
+   * - Firefighter Active (uid=2): Enrollment pages, My Dashboard, public pages
+   * - Firefighter Retired (uid=3): Enrollment pages, My Dashboard, public pages
+   * - NFR Administrator (uid=4): ALL pages including /admin/nfr/* (complete system access)
+   * - NFR Researcher (uid=5): Public pages, reports, data quality/validation (read-only admin), participant list, linkage status
+   * - Fire Dept Admin (uid=6): SAME as firefighters - enrollment, dashboard, public pages (NO admin access)
    */
   private function getTestUsers(): array {
     return [
@@ -100,33 +137,144 @@ class NFRValidationController extends ControllerBase {
         'uid' => 0,
         'name' => 'Anonymous',
         'label' => 'Anonymous User',
+        'expected_access' => [
+          'public_pages' => true,
+          'enrollment' => false,
+          'dashboard' => false,
+          'admin' => false,
+        ],
       ],
       'firefighter_active' => [
         'uid' => 2,
         'name' => 'firefighter_active',
         'label' => 'Firefighter (Active)',
+        'expected_access' => [
+          'public_pages' => true,
+          'enrollment' => true,
+          'dashboard' => true,
+          'admin' => false,
+        ],
       ],
       'firefighter_retired' => [
         'uid' => 3,
         'name' => 'firefighter_retired',
         'label' => 'Firefighter (Retired)',
+        'expected_access' => [
+          'public_pages' => true,
+          'enrollment' => true,
+          'dashboard' => true,
+          'admin' => false,
+        ],
       ],
       'nfr_admin' => [
         'uid' => 4,
         'name' => 'nfr_admin',
         'label' => 'NFR Administrator',
+        'expected_access' => [
+          'public_pages' => true,
+          'enrollment' => true,
+          'dashboard' => true,
+          'admin' => true,
+        ],
       ],
       'nfr_researcher' => [
         'uid' => 5,
         'name' => 'nfr_researcher',
         'label' => 'NFR Researcher',
+        'expected_access' => [
+          'public_pages' => true,
+          'enrollment' => false,
+          'dashboard' => true,
+          'admin' => false,
+          'reports' => true,
+        ],
       ],
       'dept_admin' => [
         'uid' => 6,
         'name' => 'dept_admin',
         'label' => 'Fire Dept Admin',
+        'expected_access' => [
+          'public_pages' => true,
+          'enrollment' => false,
+          'dashboard' => true,
+          'admin' => false,
+        ],
       ],
     ];
+  }
+
+  /**
+   * Determine if a user should have access to a route based on permission.
+   * 
+   * @param string|null $permission
+   *   The required permission for the route.
+   * @param bool $requires_login
+   *   Whether the route requires login.
+   * @param string $user_key
+   *   The user key (anonymous, firefighter_active, etc.).
+   * @param string $route_name
+   *   The route name to check for special cases.
+   * 
+   * @return bool
+   *   TRUE if access should be granted, FALSE otherwise.
+   */
+  private function shouldHaveAccess(?string $permission, bool $requires_login, string $user_key, string $route_name = ''): bool {
+    // Anonymous user
+    if ($user_key === 'anonymous') {
+      // Can only access routes that don't require login and have 'access content' or no permission
+      return !$requires_login && ($permission === 'access content' || $permission === null);
+    }
+
+    // If route requires login and user is not anonymous, check permission
+    if ($requires_login && $user_key === 'anonymous') {
+      return FALSE;
+    }
+
+    // All authenticated users have 'access content' by default
+    if ($permission === 'access content' || $permission === null) {
+      return TRUE;
+    }
+
+    // Check specific permissions by role
+    switch ($user_key) {
+      case 'nfr_admin':
+        // NFR Admin has all permissions - full system access
+        return TRUE;
+
+      case 'nfr_researcher':
+        // Researcher has: view nfr reports, access nfr dashboard
+        // Plus special access to data quality/validation pages for research purposes
+        if (in_array($permission, ['view nfr reports', 'access nfr dashboard'])) {
+          return TRUE;
+        }
+        // Grant access to admin pages that are read-only/reporting focused
+        if ($permission === 'administer nfr') {
+          // Check route name for data quality, validation, and reporting routes
+          $researcher_routes = [
+            'nfr.admin_data_quality',
+            'nfr.admin_reports',
+            'nfr.admin_linkage', // View linkage status
+            'nfr.admin_participants', // View participant list (read-only)
+          ];
+          if (in_array($route_name, $researcher_routes)) {
+            return TRUE;
+          }
+        }
+        return FALSE;
+
+      case 'firefighter_active':
+      case 'firefighter_retired':
+        // Firefighters have: access nfr dashboard
+        return $permission === 'access nfr dashboard';
+
+      case 'dept_admin':
+        // Fire Dept Admin has SAME access as firefighters
+        // access nfr dashboard only - no admin pages
+        return $permission === 'access nfr dashboard';
+
+      default:
+        return FALSE;
+    }
   }
 
   /**
@@ -140,7 +288,7 @@ class NFRValidationController extends ControllerBase {
     $html .= '<h1>' . $this->t('NFR Validation Dashboard') . '</h1>';
     $html .= '<p class="validation-subtitle">' . 
       $this->t('Test all NFR routes with different user permissions') . '</p>';
-    $html .= '<p><a href="/nfr/validation/fill-rates" class="btn btn-outline-info">📊 View Fill Rates Report</a></p>';
+    $html .= '<p><a href="/admin/nfr/validation/fill-rates" class="btn btn-outline-info">📊 View Fill Rates Report</a></p>';
     $html .= '</div>';
 
     // Questionnaire Test Section
@@ -246,12 +394,18 @@ class NFRValidationController extends ControllerBase {
       // Test cells for each user
       foreach ($users as $user_key => $user) {
         $cell_id = $route_id . '_' . $user_key;
-        $html .= '<td class="test-cell" id="cell-' . $cell_id . '">';
+        $should_have_access = $this->shouldHaveAccess($route['permission'], $route['requires_login'], $user_key, $route['name']);
+        $expected_icon = $should_have_access ? '✓' : '✗';
+        $expected_label = $should_have_access ? 'Expected: 200 OK' : 'Expected: 403 Forbidden';
+        
+        $html .= '<td class="test-cell" id="cell-' . $cell_id . '" title="' . $expected_label . '">';
+        $html .= '<span class="expected-result">' . $expected_icon . '</span> ';
         $html .= '<button class="test-btn btn-mini" ';
         $html .= 'data-route="' . htmlspecialchars($route['name']) . '" ';
         $html .= 'data-path="' . htmlspecialchars($route['path']) . '" ';
         $html .= 'data-uid="' . $user['uid'] . '" ';
-        $html .= 'data-user="' . htmlspecialchars($user['name']) . '">';
+        $html .= 'data-user="' . htmlspecialchars($user['name']) . '" ';
+        $html .= 'data-expected="' . ($should_have_access ? 'allow' : 'deny') . '">';
         $html .= $this->t('Test') . '</button>';
         $html .= '<div class="test-result" id="result-' . $cell_id . '"></div>';
         $html .= '</td>';
@@ -2190,6 +2344,16 @@ class NFRValidationController extends ControllerBase {
   }
 
   /**
+   * Redirect from old fill-rates path to new admin location.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   Redirect response.
+   */
+  public function fillRatesRedirect() {
+    return $this->redirect('nfr.validation.fill_rates');
+  }
+
+  /**
    * Display fill rates for all questionnaire fields.
    */
   public function getFillRates() {
@@ -2591,40 +2755,45 @@ class NFRValidationController extends ControllerBase {
       }
       
       // Build HTML output with Chart.js
-      $output = '<div class="fill-rates-page">';
-      $output .= '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" />';
-      $output .= '<h1>NFR Fill Rate Dashboard</h1>';
-      $output .= '<p><strong>Total Records Analyzed:</strong> ' . $total_records . '</p>';
-      $output .= '<p style="margin-bottom: 20px; font-style: italic;">This dashboard tracks EVERY field from both the User Profile and Enrollment Questionnaire, showing completion rates and value distributions.</p>';
+      $output = '<div class="container-fluid">';
+      $output .= '<div class="card card-forseti mb-4">';
+      $output .= '<div class="card-body">';
+      $output .= '<h1 class="mb-3">NFR Fill Rate Dashboard</h1>';
+      $output .= '<p class="lead"><strong>Total Records Analyzed:</strong> ' . $total_records . '</p>';
+      $output .= '<p class="text-muted">This dashboard tracks EVERY field from both the User Profile and Enrollment Questionnaire, showing completion rates and value distributions.</p>';
+      $output .= '</div></div>';
       
       // Audit Report Section
-      $output .= '<div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #ffc107;">';
-      $output .= '<h2 style="margin-top: 0;">📋 Field Coverage Audit Report</h2>';
-      $output .= '<p style="margin-bottom: 15px;">Comprehensive field-by-field comparison of requirements vs implementation vs database vs tracking.</p>';
+      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #ffc107;">';
+      $output .= '<div class="card-body">';
+      $output .= '<h2 class="h4 mb-3">📋 Field Coverage Audit Report</h2>';
+      $output .= '<p class="mb-3">Comprehensive field-by-field comparison of requirements vs implementation vs database vs tracking.</p>';
       
-      $output .= '<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.9em;">';
-      $output .= '<thead><tr style="background: #343a40; color: white;">';
-      $output .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Section</th>';
-      $output .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Field Name</th>';
-      $output .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Required</th>';
-      $output .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Database Storage</th>';
-      $output .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Tracked</th>';
-      $output .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: center;">Fill Rate</th>';
+      $output .= '<div class="table-responsive">';
+      $output .= '<table class="table table-sm table-bordered">';
+      $output .= '<thead class="table-dark">';
+      $output .= '<tr>';
+      $output .= '<th>Section</th>';
+      $output .= '<th>Field Name</th>';
+      $output .= '<th class="text-center">Required</th>';
+      $output .= '<th>Database Storage</th>';
+      $output .= '<th class="text-center">Tracked</th>';
+      $output .= '<th class="text-center">Fill Rate</th>';
       $output .= '</tr></thead><tbody>';
       
       // Helper function to add row
       $add_row = function($section, $field_name, $required, $db_location, $tracking_key) use (&$output, $field_counts, $total_records) {
         $is_tracked = isset($field_counts[$tracking_key]);
         $fill_rate = $is_tracked ? round(($field_counts[$tracking_key] / $total_records) * 100, 1) : 0;
-        $color = $fill_rate >= 100 ? '#4CAF50' : ($fill_rate >= 75 ? '#FF9800' : ($fill_rate > 0 ? '#F44336' : '#999'));
+        $badge_class = $fill_rate >= 100 ? 'success' : ($fill_rate >= 75 ? 'warning' : ($fill_rate > 0 ? 'danger' : 'secondary'));
         
         $output .= '<tr>';
-        $output .= '<td style="border: 1px solid #ddd; padding: 6px; background: #f8f9fa;"><strong>' . htmlspecialchars($section) . '</strong></td>';
-        $output .= '<td style="border: 1px solid #ddd; padding: 6px;">' . htmlspecialchars($field_name) . '</td>';
-        $output .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center;">' . ($required ? 'Yes' : 'No') . '</td>';
-        $output .= '<td style="border: 1px solid #ddd; padding: 6px; font-family: monospace; font-size: 0.85em;">' . htmlspecialchars($db_location) . '</td>';
-        $output .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; color: ' . ($is_tracked ? '#4CAF50' : '#F44336') . ';"><strong>' . ($is_tracked ? '✓' : '✗') . '</strong></td>';
-        $output .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center; color: ' . $color . '; font-weight: bold;">' . $fill_rate . '%</td>';
+        $output .= '<td class="table-light"><strong>' . htmlspecialchars($section) . '</strong></td>';
+        $output .= '<td>' . htmlspecialchars($field_name) . '</td>';
+        $output .= '<td class="text-center">' . ($required ? '<span class="badge bg-info">Yes</span>' : 'No') . '</td>';
+        $output .= '<td style="font-family: monospace; font-size: 0.85em;">' . htmlspecialchars($db_location) . '</td>';
+        $output .= '<td class="text-center">' . ($is_tracked ? '<span class="text-success">✓</span>' : '<span class="text-danger">✗</span>') . '</td>';
+        $output .= '<td class="text-center"><span class="badge bg-' . $badge_class . '">' . $fill_rate . '%</span></td>';
         $output .= '</tr>';
       };
       
@@ -2771,30 +2940,35 @@ class NFRValidationController extends ControllerBase {
       $add_row('Lifestyle', 'Sleep Quality', false, 'nfr_questionnaire.data (JSON)', 'lifestyle.sleep_quality');
       
       $output .= '</tbody></table>';
+      $output .= '</div>'; // table-responsive
       
-      $output .= '<div style="background: #e7f3ff; padding: 12px; border-radius: 4px; margin-top: 15px;">';
-      $output .= '<p style="margin: 0; font-size: 0.9em;"><strong>Legend:</strong></p>';
-      $output .= '<p style="margin: 5px 0; font-size: 0.9em;">✓ = Field is tracked | ✗ = Field not tracked</p>';
-      $output .= '<p style="margin: 5px 0; font-size: 0.9em;"><span style="color: #4CAF50;">Green (100%)</span> = Complete | <span style="color: #FF9800;">Orange (75-99%)</span> = Good | <span style="color: #F44336;">Red (1-74%)</span> = Incomplete | <span style="color: #999;">Gray (0%)</span> = No data</p>';
-      $output .= '<p style="margin: 5px 0 0 0; font-size: 0.9em;"><strong>Storage Strategy:</strong> Work History uses normalized tables (nfr_work_history, nfr_job_titles, nfr_incident_frequency). Demographics/Military use direct columns. PPE/Decontamination/Smoking use dedicated JSON columns. Some fields use nfr_questionnaire.data JSON for additional details.</p>';
+      $output .= '<div class="alert alert-info mt-3">';
+      $output .= '<p class="mb-2"><strong>Legend:</strong></p>';
+      $output .= '<p class="mb-2 small">✓ = Field is tracked | ✗ = Field not tracked</p>';
+      $output .= '<p class="mb-2 small"><span class="badge bg-success">100%</span> Complete | <span class="badge bg-warning text-dark">75-99%</span> Good | <span class="badge bg-danger">1-74%</span> Incomplete | <span class="badge bg-secondary">0%</span> No data</p>';
+      $output .= '<p class="mb-0 small"><strong>Storage Strategy:</strong> Work History uses normalized tables (nfr_work_history, nfr_job_titles, nfr_incident_frequency). Demographics/Military use direct columns. PPE/Decontamination/Smoking use dedicated JSON columns. Some fields use nfr_questionnaire.data JSON for additional details.</p>';
       $output .= '</div>';
-      $output .= '</div>';
+      $output .= '</div></div>'; // card-body, card
       
-      // Summary Table at Top
-      $output .= '<div style="background: #f0f8ff; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 2px solid #4CAF50;">';
-      $output .= '<h2 style="margin-top: 0;">📊 Summary Statistics</h2>';
-      $output .= '<table style="width: 60%; border-collapse: collapse; margin-bottom: 0; font-size: 1.1em;">';
-      $output .= '<tr><td style="border: 1px solid #ddd; padding: 12px; background: #fff;"><strong>Total Fields Tracked:</strong></td><td style="border: 1px solid #ddd; padding: 12px; background: #fff; text-align: center; font-size: 1.3em;"><strong>' . $total_fields . '</strong></td></tr>';
-      $output .= '<tr><td style="border: 1px solid #ddd; padding: 12px; background: #fff;"><strong>Fields at 100% Completion:</strong></td><td style="border: 1px solid #ddd; padding: 12px; color: #4CAF50; background: #fff; text-align: center; font-size: 1.3em;"><strong>' . $fields_at_100 . '</strong></td></tr>';
-      $output .= '<tr><td style="border: 1px solid #ddd; padding: 12px; background: #fff;"><strong>Fields Below 100%:</strong></td><td style="border: 1px solid #ddd; padding: 12px; color: ' . (count($fields_below_100) > 0 ? '#F44336' : '#4CAF50') . '; background: #fff; text-align: center; font-size: 1.3em;"><strong>' . count($fields_below_100) . '</strong></td></tr>';
-      $output .= '</table>';
-      $output .= '</div>';
-      
-      $output .= '<style>
-        .fill-rates-page { max-width: 1400px; margin: 0 auto; padding: 20px; }
-        .chart-container { margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 8px; }
-        .chart-wrapper { position: relative; height: 300px; margin-top: 10px; }
-      </style>';
+      // Summary Statistics
+      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #4CAF50;">';
+      $output .= '<div class="card-body">';
+      $output .= '<h2 class="h4 mb-4">📊 Summary Statistics</h2>';
+      $output .= '<div class="row g-3">';
+      $output .= '<div class="col-md-4"><div class="card bg-light h-100"><div class="card-body text-center">';
+      $output .= '<h3 class="h5 text-muted mb-2">Total Fields Tracked</h3>';
+      $output .= '<div class="display-6 text-primary">' . $total_fields . '</div>';
+      $output .= '</div></div></div>';
+      $output .= '<div class="col-md-4"><div class="card bg-light h-100"><div class="card-body text-center">';
+      $output .= '<h3 class="h5 text-muted mb-2">Fields at 100%</h3>';
+      $output .= '<div class="display-6 text-success">' . $fields_at_100 . '</div>';
+      $output .= '</div></div></div>';
+      $output .= '<div class="col-md-4"><div class="card bg-light h-100"><div class="card-body text-center">';
+      $output .= '<h3 class="h5 text-muted mb-2">Fields Below 100%</h3>';
+      $output .= '<div class="display-6 ' . (count($fields_below_100) > 0 ? 'text-danger' : 'text-success') . '">' . count($fields_below_100) . '</div>';
+      $output .= '</div></div></div>';
+      $output .= '</div>'; // row
+      $output .= '</div></div>'; // card-body, card
       
       $sections = [
         'profile' => 'USER PROFILE (5-Minute Form)',
@@ -2813,23 +2987,27 @@ class NFRValidationController extends ControllerBase {
       $chart_data_js = [];
       
       foreach ($sections as $section_key => $section_name) {
-        $output .= '<h2>' . $section_name . '</h2>';
+        $output .= '<div class="card card-forseti mb-4">';
+        $output .= '<div class="card-header">';
+        $output .= '<h2 class="h5 mb-0">' . $section_name . '</h2>';
+        $output .= '</div>';
+        $output .= '<div class="card-body">';
         
         $section_has_fields = FALSE;
         foreach ($field_counts as $field => $count) {
           if (strpos($field, $section_key . '.') === 0) {
             $section_has_fields = TRUE;
             $pct = round(($count / $total_records) * 100, 1);
-            $color = $pct >= 100 ? '#4CAF50' : ($pct >= 90 ? '#FF9800' : '#F44336');
+            $badge_class = $pct >= 100 ? 'success' : ($pct >= 90 ? 'warning' : 'danger');
             
             // Create chart for this field
             $chart_id = 'chart_' . str_replace('.', '_', $field);
-            $output .= '<div class="chart-container">';
-            $output .= '<h3>' . htmlspecialchars($field) . '</h3>';
-            $output .= '<p style="margin: 5px 0;"><strong>Fill Rate:</strong> <span style="color: ' . $color . ';">' . $count . ' / ' . $total_records . ' (' . $pct . '%)</span></p>';
+            $output .= '<div class="mb-4">';
+            $output .= '<h3 class="h6">' . htmlspecialchars($field) . '</h3>';
+            $output .= '<p class="mb-2"><strong>Fill Rate:</strong> <span class="badge bg-' . $badge_class . '">' . $count . ' / ' . $total_records . ' (' . $pct . '%)</span></p>';
             
             if (isset($value_distributions[$field])) {
-              $output .= '<div class="chart-wrapper">';
+              $output .= '<div style="position: relative; height: 300px; margin-top: 10px;">';
               $output .= '<canvas id="' . $chart_id . '"></canvas>';
               $output .= '</div>';
               
@@ -2851,7 +3029,7 @@ class NFRValidationController extends ControllerBase {
               ];
             }
             else {
-              $output .= '<p style="font-style: italic; color: #666;">No value distribution data available</p>';
+              $output .= '<p class="text-muted fst-italic">No value distribution data available</p>';
             }
             
             $output .= '</div>';
@@ -2859,14 +3037,18 @@ class NFRValidationController extends ControllerBase {
         }
         
         if (!$section_has_fields) {
-          $output .= '<p style="font-style: italic; color: #666;">No fields analyzed in this section</p>';
+          $output .= '<p class="text-muted fst-italic">No fields analyzed in this section</p>';
         }
+        
+        $output .= '</div></div>'; // card-body, card
       }
       
       // Fields with Incomplete Data Section
       if (count($fields_below_100) > 0) {
-        $output .= '<h2 style="color: #F44336;">⚠️ Fields with Incomplete Data</h2>';
-        $output .= '<p style="margin-bottom: 20px;">The following fields have less than 100% completion. Charts show the distribution of actual responses.</p>';
+        $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #F44336;">';
+        $output .= '<div class="card-body">';
+        $output .= '<h2 class="h4 text-danger mb-3">⚠️ Fields with Incomplete Data</h2>';
+        $output .= '<p class="mb-3">The following fields have less than 100% completion. Charts show the distribution of actual responses.</p>';
         
         foreach ($fields_below_100 as $item) {
           $field = $item['field'];
@@ -2915,43 +3097,52 @@ class NFRValidationController extends ControllerBase {
             ];
             
             // Also show a table of values
-            $output .= '<table style="width: 100%; margin-top: 15px; border-collapse: collapse; font-size: 0.9em;">';
-            $output .= '<thead><tr>';
-            $output .= '<th style="border: 1px solid #ddd; padding: 6px; background: #f9f9f9; text-align: left;">Value</th>';
-            $output .= '<th style="border: 1px solid #ddd; padding: 6px; background: #f9f9f9; text-align: center;">Count</th>';
-            $output .= '<th style="border: 1px solid #ddd; padding: 6px; background: #f9f9f9; text-align: center;">% of Completed</th>';
-            $output .= '<th style="border: 1px solid #ddd; padding: 6px; background: #f9f9f9; text-align: center;">% of Total</th>';
+            $output .= '<div class="table-responsive mt-3">';
+            $output .= '<table class="table table-sm table-bordered">';
+            $output .= '<thead class="table-light">';
+            $output .= '<tr>';
+            $output .= '<th>Value</th>';
+            $output .= '<th class="text-center">Count</th>';
+            $output .= '<th class="text-center">% of Completed</th>';
+            $output .= '<th class="text-center">% of Total</th>';
             $output .= '</tr></thead><tbody>';
             
             foreach ($value_distributions[$field] as $val => $val_count) {
               $pct_of_completed = round(($val_count / $count) * 100, 1);
               $pct_of_total = round(($val_count / $total_records) * 100, 1);
               $output .= '<tr>';
-              $output .= '<td style="border: 1px solid #ddd; padding: 6px;">' . htmlspecialchars($val) . '</td>';
-              $output .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center;">' . $val_count . '</td>';
-              $output .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center;">' . $pct_of_completed . '%</td>';
-              $output .= '<td style="border: 1px solid #ddd; padding: 6px; text-align: center;">' . $pct_of_total . '%</td>';
+              $output .= '<td>' . htmlspecialchars($val) . '</td>';
+              $output .= '<td class="text-center">' . $val_count . '</td>';
+              $output .= '<td class="text-center">' . $pct_of_completed . '%</td>';
+              $output .= '<td class="text-center">' . $pct_of_total . '%</td>';
               $output .= '</tr>';
             }
             
             $output .= '</tbody></table>';
+            $output .= '</div>';
           }
           else {
-            $output .= '<p style="font-style: italic; color: #666;">No value distribution data available</p>';
+            $output .= '<p class="text-muted fst-italic">No value distribution data available</p>';
           }
           
           $output .= '</div>';
         }
+        $output .= '</div></div>'; // card-body, card
       }
       
-      $output .= '<p><a href="/nfr/validation">← Back to Validation Dashboard</a></p>';
-      $output .= '</div>';
+      $output .= '<p class="mt-3"><a href="/admin/nfr/validation" class="btn btn-secondary">← Back to Validation Dashboard</a></p>';
+      $output .= '</div>'; // container-fluid
       
       return [
-        '#type' => 'inline_template',
-        '#template' => $output,
+        '#theme' => 'nfr_admin_page',
+        '#page_id' => 'fill-rates',
+        '#content' => [
+          '#type' => 'inline_template',
+          '#template' => $output,
+        ],
         '#attached' => [
           'library' => [
+            'nfr/admin',
             'nfr/fill_rates',
           ],
           'html_head' => [
@@ -2977,7 +3168,14 @@ class NFRValidationController extends ControllerBase {
     }
     catch (\Exception $e) {
       return [
-        '#markup' => '<div class="error"><h1>Error</h1><p>' . htmlspecialchars($e->getMessage()) . '</p><p><a href="/nfr/validation">← Back to Validation Dashboard</a></p></div>',
+        '#theme' => 'nfr_admin_page',
+        '#page_id' => 'fill-rates-error',
+        '#content' => [
+          '#markup' => '<div class="error"><h1>Error</h1><p>' . htmlspecialchars($e->getMessage()) . '</p><p><a href="/admin/nfr/validation">← Back to Validation Dashboard</a></p></div>',
+        ],
+        '#attached' => [
+          'library' => ['nfr/admin'],
+        ],
       ];
     }
   }

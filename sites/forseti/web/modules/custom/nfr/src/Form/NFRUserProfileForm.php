@@ -58,7 +58,14 @@ class NFRUserProfileForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $uid = $this->currentUser->id();
+    // Check if uid parameter is provided (for admin viewing other users)
+    $request = \Drupal::request();
+    $uid = $request->query->get('uid');
+    
+    // If no uid parameter or user is not admin, use current user
+    if (!$uid || !$this->currentUser->hasPermission('administer nfr')) {
+      $uid = $this->currentUser->id();
+    }
 
     // Load existing profile data.
     $profile = $this->database->select('nfr_user_profile', 'p')
@@ -66,6 +73,9 @@ class NFRUserProfileForm extends FormBase {
       ->condition('uid', $uid)
       ->execute()
       ->fetchAssoc();
+
+    // Store uid in form state for submit handler
+    $form_state->set('profile_uid', $uid);
 
     $form['#attached']['library'][] = 'nfr/enrollment';
 
@@ -324,7 +334,8 @@ class NFRUserProfileForm extends FormBase {
    * Save profile data to database.
    */
   protected function saveProfile(FormStateInterface $form_state, bool $completed): void {
-    $uid = $this->currentUser->id();
+    // Use the stored uid from buildForm (may be different from current user if admin is viewing)
+    $uid = $form_state->get('profile_uid') ?? $this->currentUser->id();
     $values = $form_state->getValues();
 
     $fields = [

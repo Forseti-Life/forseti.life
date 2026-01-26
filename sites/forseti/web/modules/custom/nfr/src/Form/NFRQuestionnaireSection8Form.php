@@ -264,10 +264,12 @@ class NFRQuestionnaireSection8Form extends FormBase {
     $database->update('nfr_questionnaire')
       ->fields(array_merge([
         'cancer_diagnosis' => $has_cancer ? 1 : 0,
-        'last_section_completed' => 8,
       ], $condition_fields))
       ->condition('uid', $uid)
       ->execute();
+    
+    // Mark section 8 as complete
+    $this->markSectionComplete($uid, 8, $database);
     
     // Delete existing cancer diagnoses
     $database->delete('nfr_cancer_diagnoses')

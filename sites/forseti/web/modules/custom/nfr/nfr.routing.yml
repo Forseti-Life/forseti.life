@@ -132,6 +132,22 @@ nfr.documentation.compliance:
 # Use Path module to set URL aliases like /nfr/about
 # Only custom functionality pages need custom routes below:
 
+nfr.faq:
+  path: '/nfr/faq'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRPublicController::faq'
+    _title: 'Frequently Asked Questions'
+  requirements:
+    _permission: 'access content'
+
+nfr.contact:
+  path: '/nfr/contact'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRPublicController::contact'
+    _title: 'Contact Us'
+  requirements:
+    _permission: 'access content'
+
 nfr.home:
   path: '/nfr'
   defaults:
@@ -150,7 +166,7 @@ nfr.welcome:
     _user_is_logged_in: 'TRUE'
 
 nfr.validation:
-  path: '/nfr/validation'
+  path: '/admin/nfr/validation'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRValidationController::validationDashboard'
     _title: 'NFR Validation Dashboard'
@@ -158,7 +174,7 @@ nfr.validation:
     _permission: 'administer nfr'
 
 nfr.validation.test_route:
-  path: '/nfr/validation/test-route'
+  path: '/admin/nfr/validation/test-route'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRValidationController::testRoute'
   requirements:
@@ -167,7 +183,7 @@ nfr.validation.test_route:
     no_cache: TRUE
 
 nfr.validation.test_questionnaire:
-  path: '/nfr/validation/test-questionnaire'
+  path: '/admin/nfr/validation/test-questionnaire'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRValidationController::testQuestionnaireFlow'
   requirements:
@@ -176,7 +192,7 @@ nfr.validation.test_questionnaire:
     no_cache: TRUE
 
 nfr.validation.verify_database:
-  path: '/nfr/validation/verify-database'
+  path: '/admin/nfr/validation/verify-database'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRValidationController::verifyQuestionnaireDatabase'
   requirements:
@@ -185,7 +201,7 @@ nfr.validation.verify_database:
     no_cache: TRUE
 
 nfr.validation.clear_test_data:
-  path: '/nfr/validation/clear-test-data'
+  path: '/admin/nfr/validation/clear-test-data'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRValidationController::clearTestData'
   requirements:
@@ -194,7 +210,7 @@ nfr.validation.clear_test_data:
     no_cache: TRUE
 
 nfr.validation.test_full_enrollment:
-  path: '/nfr/validation/test-full-enrollment'
+  path: '/admin/nfr/validation/test-full-enrollment'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRValidationController::testFullEnrollmentFlow'
   requirements:
@@ -203,7 +219,7 @@ nfr.validation.test_full_enrollment:
     no_cache: TRUE
 
 nfr.validation.test_max_values:
-  path: '/nfr/validation/test-max-values'
+  path: '/admin/nfr/validation/test-max-values'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRValidationController::testMaxValuesFlow'
   requirements:
@@ -212,7 +228,7 @@ nfr.validation.test_max_values:
     no_cache: TRUE
 
 nfr.validation.test_min_values:
-  path: '/nfr/validation/test-min-values'
+  path: '/admin/nfr/validation/test-min-values'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRValidationController::testMinValuesFlow'
   requirements:
@@ -221,7 +237,7 @@ nfr.validation.test_min_values:
     no_cache: TRUE
 
 nfr.validation.test_yes_minimal:
-  path: '/nfr/validation/test-yes-minimal'
+  path: '/admin/nfr/validation/test-yes-minimal'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRValidationController::testYesMinimalFlow'
   requirements:
@@ -230,7 +246,7 @@ nfr.validation.test_yes_minimal:
     no_cache: TRUE
 
 nfr.validation.check_error_logs:
-  path: '/nfr/validation/check-error-logs'
+  path: '/admin/nfr/validation/check-error-logs'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRValidationController::checkErrorLogsEndpoint'
   requirements:
@@ -239,7 +255,7 @@ nfr.validation.check_error_logs:
     no_cache: TRUE
 
 nfr.validation.create_test_users:
-  path: '/nfr/validation/create-test-users'
+  path: '/admin/nfr/validation/create-test-users'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRValidationController::createTestUsers'
   requirements:
@@ -248,7 +264,7 @@ nfr.validation.create_test_users:
     no_cache: TRUE
 
 nfr.validation.delete_test_users:
-  path: '/nfr/validation/delete-test-users'
+  path: '/admin/nfr/validation/delete-test-users'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRValidationController::deleteTestUsers'
   requirements:
@@ -257,7 +273,7 @@ nfr.validation.delete_test_users:
     no_cache: TRUE
 
 nfr.validation.submit_all_firefighters:
-  path: '/nfr/validation/submit-all-firefighters'
+  path: '/admin/nfr/validation/submit-all-firefighters'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRValidationController::submitAllFirefighterQuestionnaires'
   requirements:
@@ -266,7 +282,7 @@ nfr.validation.submit_all_firefighters:
     no_cache: TRUE
 
 nfr.validation.fill_rates:
-  path: '/nfr/validation/fill-rates'
+  path: '/admin/nfr/validation/fill-rates'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRValidationController::getFillRates'
     _title: 'NFR Questionnaire Fill Rates'
@@ -274,6 +290,15 @@ nfr.validation.fill_rates:
     _permission: 'administer nfr'
   options:
     no_cache: TRUE
+
+# Redirect old path to new admin location
+nfr.validation.fill_rates_redirect:
+  path: '/nfr/validation/fill-rates'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::fillRatesRedirect'
+    _title: 'NFR Questionnaire Fill Rates'
+  requirements:
+    _permission: 'administer nfr'
 
 nfr.public_data:
   path: '/nfr/data'
@@ -303,6 +328,24 @@ nfr.user_profile:
   defaults:
     _form: '\Drupal\nfr\Form\NFRUserProfileForm'
     _title: 'User Profile'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+
+nfr.my_profile:
+  path: '/nfr/my-profile'
+  defaults:
+    _form: '\Drupal\nfr\Form\NFRUserProfileForm'
+    _title: 'My Profile'
+  requirements:
+    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
+
+nfr.user_settings:
+  path: '/nfr/settings'
+  defaults:
+    _form: '\Drupal\nfr\Form\NFRUserSettingsForm'
+    _title: 'Account Settings'
   requirements:
     _permission: 'access content'
     _user_is_logged_in: 'TRUE'
@@ -479,7 +522,7 @@ nfr.admin_linkage:
 nfr.admin_data_quality:
   path: '/admin/nfr/data-quality'
   defaults:
-    _controller: '\Drupal\nfr\Controller\NFRAdminController::dataQuality'
+    _controller: '\Drupal\nfr\Controller\NFRAdminController::dataQualityRedirect'
     _title: 'Data Quality Monitor'
   requirements:
     _permission: 'administer nfr'

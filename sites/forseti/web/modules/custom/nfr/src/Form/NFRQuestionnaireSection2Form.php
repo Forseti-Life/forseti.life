@@ -37,7 +37,20 @@ class NFRQuestionnaireSection2Form extends FormBase {
   }
 
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $uid = $this->getCurrentUserId();
+    // Check if uid parameter is provided (for admin viewing other users)
+    $request = \Drupal::request();
+    $requested_uid = $request->query->get('uid');
+    
+    // If no uid parameter or user is not admin, use current user
+    if ($requested_uid && \Drupal::currentUser()->hasPermission('administer nfr')) {
+      $uid = (int) $requested_uid;
+    } else {
+      $uid = $this->getCurrentUserId();
+    }
+    
+    // Store uid in form state for submit handler
+    $form_state->set('questionnaire_uid', $uid);
+    
     $database = $this->getDatabase();
     
     $form['#tree'] = TRUE;
@@ -382,17 +395,11 @@ class NFRQuestionnaireSection2Form extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $this->saveSection($form_state);
     
-    // Update progress
-    $uid = $this->getCurrentUserId();
+    // Mark section 2 as complete
+    // Use the stored uid from buildForm (may be different from current user if admin is viewing)
+    $uid = $form_state->get('questionnaire_uid') ?? $this->getCurrentUserId();
     $database = $this->getDatabase();
-    
-    // Ensure record exists before updating
-    $this->ensureQuestionnaireRecordExists($uid, $database);
-    
-    $database->update('nfr_questionnaire')
-      ->fields(['last_section_completed' => 2])
-      ->condition('uid', $uid)
-      ->execute();
+    $this->markSectionComplete($uid, 2, $database);
     
     $this->messenger()->addStatus($this->t('Section 2 saved.'));
     $form_state->setRedirect('nfr.questionnaire.section3');
@@ -473,7 +480,8 @@ class NFRQuestionnaireSection2Form extends FormBase {
    * Save section data.
    */
   private function saveSection(FormStateInterface $form_state): void {
-    $uid = $this->getCurrentUserId();
+    // Use the stored uid from buildForm (may be different from current user if admin is viewing)
+    $uid = $form_state->get('questionnaire_uid') ?? $this->getCurrentUserId();
     $database = $this->getDatabase();
     $work_history = $form_state->getValue('work_history');
     
