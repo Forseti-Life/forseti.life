@@ -368,7 +368,29 @@ class NFRValidationController extends ControllerBase {
     $html .= '<div class="test-users-section card card-forseti mb-4">';
     $html .= '<h2 class="text-white">👥 Test Users Management</h2>';
     $html .= '<p>Create test users for different NFR roles: 5 of each role + 150 additional firefighters (170 total).</p>';
-    $html .= '<div class="test-controls">';
+    
+    // Display current user counts by role
+    $role_counts = $this->getUserCountsByRole();
+    $html .= '<div class="current-users-summary">';
+    $html .= '<h4 class="text-white mb-3">Current Users by Role:</h4>';
+    $html .= '<div class="role-counts-grid">';
+    
+    foreach ($role_counts as $role_info) {
+      $html .= '<div class="role-count-item">';
+      $html .= '<span class="role-label">' . htmlspecialchars($role_info['label']) . ':</span> ';
+      $html .= '<span class="role-count">' . number_format($role_info['count']) . '</span>';
+      $html .= '</div>';
+    }
+    
+    $total_role_users = array_sum(array_column($role_counts, 'count'));
+    $html .= '<div class="role-count-item total">';
+    $html .= '<span class="role-label"><strong>Total:</strong></span> ';
+    $html .= '<span class="role-count"><strong>' . number_format($total_role_users) . '</strong></span>';
+    $html .= '</div>';
+    
+    $html .= '</div></div>';
+    
+    $html .= '<div class="test-controls mt-3">';
     $html .= '<button id="create-test-users" class="btn btn-success btn-large">';
     $html .= '➕ Create Test Users (170 users)</button>';
     $html .= '<button id="submit-all-firefighters" class="btn btn-primary btn-large">';
@@ -1128,18 +1150,14 @@ class NFRValidationController extends ControllerBase {
         'fire_dept_admin' => 'Fire Department Admin',
       ];
 
-      // Create 5 users for each role (skip if validation user exists)
+      // Create 5 users for each role (always create new users with unique names)
       foreach ($roles as $role_id => $role_label) {
         for ($i = 1; $i <= 5; $i++) {
-          $username = strtolower(str_replace(' ', '_', $role_label)) . '_' . $i;
-          // Skip if this matches a validation user
-          if (in_array($username, array_column($validation_users, 'username'))) {
-            continue;
-          }
-          $user = $this->createUser($username, $role_id, $role_label);
+          $base_username = strtolower(str_replace(' ', '_', $role_label));
+          $user = $this->createUser($base_username, $role_id, $role_label);
           $results['users_created'][] = [
             'uid' => $user->id(),
-            'username' => $username,
+            'username' => $user->getAccountName(),
             'role' => $role_label,
             'email' => $user->getEmail(),
             'purpose' => 'bulk_test',
@@ -1148,12 +1166,11 @@ class NFRValidationController extends ControllerBase {
       }
 
       // Create 150 additional firefighters
-      for ($i = 7; $i <= 155; $i++) {
-        $username = 'firefighter_' . $i;
-        $user = $this->createUser($username, 'firefighter', 'Firefighter');
+      for ($i = 1; $i <= 150; $i++) {
+        $user = $this->createUser('firefighter', 'firefighter', 'Firefighter');
         $results['users_created'][] = [
           'uid' => $user->id(),
-          'username' => $username,
+          'username' => $user->getAccountName(),
           'role' => 'Firefighter',
           'email' => $user->getEmail(),
           'purpose' => 'bulk_test',
@@ -1166,7 +1183,7 @@ class NFRValidationController extends ControllerBase {
         'nfr_administrators' => 5,
         'nfr_researchers' => 5,
         'fire_dept_admins' => 5,
-        'firefighters' => 149,
+        'firefighters' => 150,
         'total' => count($results['users_created']),
       ];
 
@@ -1225,16 +1242,30 @@ class NFRValidationController extends ControllerBase {
   }
 
   /**
-   * Create a single test user.
+   * Create a single test user with unique username.
    */
-  private function createUser(string $username, string $role_id, string $role_label): \Drupal\user\Entity\User {
-    // Check if user already exists
-    $existing = \Drupal::entityTypeManager()
-      ->getStorage('user')
-      ->loadByProperties(['name' => $username]);
-
-    if (!empty($existing)) {
-      return reset($existing);
+  private function createUser(string $base_username, string $role_id, string $role_label): \Drupal\user\Entity\User {
+    // Find next available username by checking for existing users
+    $username = $base_username;
+    $counter = 1;
+    
+    while (TRUE) {
+      $existing = \Drupal::entityTypeManager()
+        ->getStorage('user')
+        ->loadByProperties(['name' => $username]);
+      
+      if (empty($existing)) {
+        break; // Username is available
+      }
+      
+      // Try next number
+      $counter++;
+      $username = $base_username . '_' . $counter;
+      
+      // Safety limit to prevent infinite loop
+      if ($counter > 10000) {
+        throw new \Exception("Could not find available username for $base_username");
+      }
     }
 
     // Generate realistic name
@@ -4134,6 +4165,39 @@ class NFRValidationController extends ControllerBase {
       ->condition('u.status', 1)
       ->condition('u.mail', '%@stlouisintegration.com', 'LIKE');
     return (int) $query->countQuery()->execute()->fetchField();
+  }
+
+  /**
+   * Get user counts grouped by role.
+   */
+  private function getUserCountsByRole(): array {
+    $database = \Drupal::database();
+    
+    $roles = [
+      'nfr_administrator' => 'NFR Administrators',
+      'nfr_researcher' => 'NFR Researchers',
+      'fire_dept_admin' => 'Fire Department Admins',
+      'firefighter' => 'Firefighters',
+    ];
+    
+    $counts = [];
+    
+    foreach ($roles as $role_id => $role_label) {
+      $query = $database->select('user__roles', 'ur')
+        ->fields('ur', ['entity_id'])
+        ->condition('ur.roles_target_id', $role_id)
+        ->condition('ur.deleted', 0);
+      
+      $count = (int) $query->countQuery()->execute()->fetchField();
+      
+      $counts[] = [
+        'role_id' => $role_id,
+        'label' => $role_label,
+        'count' => $count,
+      ];
+    }
+    
+    return $counts;
   }
 
 }
