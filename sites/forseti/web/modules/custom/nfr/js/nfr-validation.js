@@ -513,6 +513,16 @@
   function displayEnrollmentFlowResults(response, $results) {
     let html = '';
     
+    // Display test user info if available
+    if (response.test_user) {
+      html += '<div class="alert alert-info" style="background: rgba(23, 162, 184, 0.15); border-color: #17a2b8;">';
+      html += '<strong>👤 Testing with User:</strong> ';
+      html += '<code>' + response.test_user.username + '</code> ';
+      html += '<span class="badge bg-secondary">UID: ' + response.test_user.uid + '</span> ';
+      html += '<span class="badge bg-info">' + response.test_user.status + '</span>';
+      html += '</div>';
+    }
+    
     if (response.success) {
       html += '<div class="alert alert-success">';
       html += '<h4>✅ Enrollment Flow Test Successful</h4>';

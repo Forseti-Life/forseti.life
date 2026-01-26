@@ -397,7 +397,13 @@ class NFRValidationController extends ControllerBase {
     $html .= '<div class="enrollment-flow-test-section card card-forseti mb-4">';
     $html .= '<h2 class="text-white">🚀 Complete Enrollment Flow Tests</h2>';
     $html .= '<p><strong>Tests entire enrollment process (Profile + Questionnaire).</strong> Full end-to-end validation from profile creation through all 9 questionnaire sections.</p>';
+    $html .= '<div class="alert alert-info mb-3" style="background: rgba(23, 162, 184, 0.1); border: 1px solid rgba(23, 162, 184, 0.3); color: #fff;">';
+    $html .= '<strong>ℹ️ Smart Test User Selection:</strong> Tests automatically find a firefighter test user with <strong>incomplete data</strong>. ';
+    $html .= 'Priority: 1) Users with no profile, 2) Partially complete users, 3) Complete users (will overwrite). ';
+    $html .= 'The selected user and their status is shown in the test results.';
+    $html .= '</div>';
     $html .= '<ul class="text-muted small mb-3">';
+    $html .= '<li>Automatically selects test user with incomplete profile/questionnaire</li>';
     $html .= '<li>Creates/updates user profile data</li>';
     $html .= '<li>Submits all 9 questionnaire sections</li>';
     $html .= '<li>Checks system error logs for issues</li>';
@@ -1093,15 +1099,23 @@ class NFRValidationController extends ControllerBase {
     ];
 
     try {
-      $test_uid = $this->getTestUserByRole('firefighter', 'active');
-      if (!$test_uid) {
+      // Find an incomplete test user (or least complete user)
+      $test_user = $this->getIncompleteTestUser('firefighter');
+      if (!$test_user) {
         return new JsonResponse([
           'success' => false,
-          'message' => 'No active firefighter test user found. Create test users first.',
+          'message' => 'No firefighter test user found. Create test users first.',
           'steps' => [],
           'errors' => ['No test user available'],
         ]);
       }
+      
+      $test_uid = $test_user['uid'];
+      $results['test_user'] = [
+        'uid' => $test_uid,
+        'username' => $test_user['username'],
+        'status' => $test_user['status'],
+      ];
       
       // Step 1: Generate random user profile data
       $profile_data = $this->generateRandomProfileData();
@@ -1680,16 +1694,24 @@ class NFRValidationController extends ControllerBase {
     ];
 
     try {
-      $test_uid = $this->getTestUserByRole('firefighter', 'active');
-      if (!$test_uid) {
+      // Find an incomplete test user (or least complete user)
+      $test_user = $this->getIncompleteTestUser('firefighter');
+      if (!$test_user) {
         return new JsonResponse([
           'success' => false,
-          'message' => 'No active firefighter test user found. Create test users first.',
+          'message' => 'No firefighter test user found. Create test users first.',
           'test_type' => $testName,
           'steps' => [],
           'errors' => ['No test user available'],
         ]);
       }
+      
+      $test_uid = $test_user['uid'];
+      $results['test_user'] = [
+        'uid' => $test_uid,
+        'username' => $test_user['username'],
+        'status' => $test_user['status'],
+      ];
       
       // Generate profile data based on type
       $profile_data = $this->generateProfileData($dataType);
@@ -4476,6 +4498,101 @@ class NFRValidationController extends ControllerBase {
     $result = $query->execute()->fetchField();
     
     return $result ? (int)$result : NULL;
+  }
+
+  /**
+   * Get a test user with incomplete profile/questionnaire.
+   * 
+   * Finds a firefighter test user who has NOT completed all sections.
+   * Prioritizes users with no data, then partially complete users.
+   * 
+   * @param string $role
+   *   Role machine name (firefighter, nfr_administrator, etc.)
+   * 
+   * @return array|null
+   *   Array with 'uid' and 'username', or NULL if not found
+   */
+  private function getIncompleteTestUser(string $role = 'firefighter'): ?array {
+    $connection = \Drupal::database();
+    
+    // First try to find a test user with NO profile at all
+    $query = $connection->select('users_field_data', 'u');
+    $query->fields('u', ['uid', 'name']);
+    $query->condition('u.status', 1);
+    $query->condition('u.mail', '%@stlouisintegration.com', 'LIKE');
+    
+    // Join with user roles
+    $query->leftJoin('user__roles', 'ur', 'u.uid = ur.entity_id');
+    $query->condition('ur.roles_target_id', $role);
+    
+    // Exclude users who have a profile
+    $query->leftJoin('nfr_user_profile', 'p', 'u.uid = p.uid');
+    $query->isNull('p.uid');
+    
+    // Username pattern
+    $or_group = $query->orConditionGroup();
+    $or_group->condition('u.name', 'firefighter%', 'LIKE');
+    $or_group->condition('u.name', '%test%', 'LIKE');
+    $query->condition($or_group);
+    
+    $query->range(0, 1);
+    $result = $query->execute()->fetchAssoc();
+    
+    if ($result) {
+      return [
+        'uid' => (int)$result['uid'],
+        'username' => $result['name'],
+        'status' => 'No profile - fresh user',
+      ];
+    }
+    
+    // If all have profiles, find one with incomplete sections (< 9 completed)
+    $query = $connection->select('users_field_data', 'u');
+    $query->fields('u', ['uid', 'name']);
+    $query->condition('u.status', 1);
+    $query->condition('u.mail', '%@stlouisintegration.com', 'LIKE');
+    
+    // Join with user roles
+    $query->leftJoin('user__roles', 'ur', 'u.uid = ur.entity_id');
+    $query->condition('ur.roles_target_id', $role);
+    
+    // Join with section completion - count completed sections
+    $query->leftJoin('nfr_section_completion', 'sc', 'u.uid = sc.uid AND sc.completed = 1');
+    $query->addExpression('COUNT(sc.id)', 'completed_count');
+    $query->groupBy('u.uid');
+    $query->groupBy('u.name');
+    $query->having('COUNT(sc.id) < 9');
+    
+    // Username pattern
+    $or_group = $query->orConditionGroup();
+    $or_group->condition('u.name', 'firefighter%', 'LIKE');
+    $or_group->condition('u.name', '%test%', 'LIKE');
+    $query->condition($or_group);
+    
+    $query->range(0, 1);
+    $result = $query->execute()->fetchAssoc();
+    
+    if ($result) {
+      $completed = (int)($result['completed_count'] ?? 0);
+      return [
+        'uid' => (int)$result['uid'],
+        'username' => $result['name'],
+        'status' => "Incomplete - {$completed}/9 sections done",
+      ];
+    }
+    
+    // If all test users are complete, just return the first one
+    $test_uid = $this->getTestUserByRole($role);
+    if ($test_uid) {
+      $user = \Drupal\user\Entity\User::load($test_uid);
+      return [
+        'uid' => $test_uid,
+        'username' => $user->getAccountName(),
+        'status' => 'Complete - will overwrite',
+      ];
+    }
+    
+    return NULL;
   }
 
 }
