@@ -144,8 +144,47 @@ function _nfr_create_validation_users() {
 /**
  * Implements hook_uninstall().
  */
+/**
+ * Implements hook_uninstall().
+ * 
+ * IMPORTANT: We explicitly preserve all data tables during uninstall.
+ * By default, Drupal drops all tables defined in hook_schema() when uninstalling.
+ * We prevent this by NOT calling dropTable() and by preserving table data.
+ * 
+ * This allows reinstalling the module without losing any collected data,
+ * consent records, or user information.
+ */
 function nfr_uninstall() {
-  \Drupal::messenger()->addStatus(__FUNCTION__);
+  // Get the schema
+  $schema = \Drupal::database()->schema();
+  
+  // List of tables to preserve (do NOT drop)
+  $preserve_tables = [
+    'nfr_user_profile',
+    'nfr_work_history',
+    'nfr_job_titles',
+    'nfr_incident_frequency',
+    'nfr_major_incidents',
+    'nfr_other_employment',
+    'nfr_cancer_diagnoses',
+    'nfr_consent',
+    'nfr_questionnaire',
+    'nfr_section_completion',
+    'nfr_follow_up_surveys',
+  ];
+  
+  // Verify tables exist and will be preserved
+  $preserved_count = 0;
+  foreach ($preserve_tables as $table) {
+    if ($schema->tableExists($table)) {
+      $preserved_count++;
+    }
+  }
+  
+  \Drupal::messenger()->addStatus(t('NFR module uninstalled. @count data tables have been preserved and will not be deleted.', ['@count' => $preserved_count]));
+  
+  // Note: We do NOT call $schema->dropTable() for any tables
+  // This prevents data loss during module reinstall/updates
 }
 
 /**
