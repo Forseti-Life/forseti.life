@@ -1,23 +1,7 @@
 <div class="container-fluid my-4">
   <div class="row">
     <aside class="col-lg-3 col-md-4 mb-4">
-      <div class="card card-forseti">
-        <div class="card-header">
-          <h5 class="mb-0">NFR Administration</h5>
-        </div>
-        <div class="card-body p-0">
-          <nav class="nav flex-column">
-            <a class="nav-link" href="/admin/nfr">Dashboard</a>
-            <a class="nav-link" href="/admin/nfr/participants">Participants</a>
-            <a class="nav-link" href="/admin/nfr/linkage">Registry Linkage</a>
-            <a class="nav-link" href="/admin/nfr/validation/fill-rates">Data Quality</a>
-            <a class="nav-link" href="/admin/nfr/reports">Reports</a>
-            <a class="nav-link" href="/admin/nfr/issues">Support Issues</a>
-            <a class="nav-link" href="/admin/nfr/validation">Validation</a>
-            <a class="nav-link" href="/admin/nfr/settings">Settings</a>
-          </nav>
-        </div>
-      </div>
+      {{ drupal_block('nfr_navigation_block') }}
     </aside>
     
     <main class="col-lg-9 col-md-8">

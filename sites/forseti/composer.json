@@ -38,6 +38,7 @@
         "drupal/restui": "^1.22",
         "drupal/simple_oauth": "^6.0",
         "drupal/social_auth_google": "^4.0",
+        "drupal/twig_tweak": "^3.4",
         "drupal/users_metrics": "^1.0",
         "drupal/webform": "^6.3@beta",
         "drush/drush": "^13.6"
