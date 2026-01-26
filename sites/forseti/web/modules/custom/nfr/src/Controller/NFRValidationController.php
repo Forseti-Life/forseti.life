@@ -1156,27 +1156,22 @@ class NFRValidationController extends ControllerBase {
   }
 
   /**
-   * Create a specific validation test user with exact UID.
+   * Create or update a validation test user (Drupal best practice - no forced UIDs).
    */
   private function createValidationUser(int $target_uid, string $username, string $role_id, string $role_label): \Drupal\user\Entity\User {
-    // Check if user already exists
-    $existing = \Drupal\user\Entity\User::load($target_uid);
-    if ($existing) {
-      // Update existing user with correct role
-      if (!$existing->hasRole($role_id)) {
-        $existing->addRole($role_id);
-        $existing->save();
-      }
-      return $existing;
-    }
-
-    // Check by username
+    // Check if user already exists by username (proper Drupal practice)
     $existing_by_name = \Drupal::entityTypeManager()
       ->getStorage('user')
       ->loadByProperties(['name' => $username]);
 
     if (!empty($existing_by_name)) {
-      return reset($existing_by_name);
+      $user = reset($existing_by_name);
+      // Update role if needed
+      if (!$user->hasRole($role_id)) {
+        $user->addRole($role_id);
+        $user->save();
+      }
+      return $user;
     }
 
     // Generate name parts
@@ -1190,17 +1185,8 @@ class NFRValidationController extends ControllerBase {
 
     $names = $name_map[$username] ?? ['Test', 'User'];
 
-    // Create user directly in database to control UID
-    $database = \Drupal::database();
-    
-    // Insert into users table
-    $database->insert('users')
-      ->fields(['uid' => $target_uid])
-      ->execute();
-
-    // Now create the user entity
+    // Create user using Drupal entity system (let Drupal assign UID)
     $user = \Drupal\user\Entity\User::create([
-      'uid' => $target_uid,
       'name' => $username,
       'mail' => $username . '@test-nfr.org',
       'pass' => 'TestPassword123!',

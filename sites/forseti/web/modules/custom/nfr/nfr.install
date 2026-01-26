@@ -128,44 +128,39 @@ function _nfr_assign_role_permissions() {
 /**
  * Create validation test users with specific UIDs.
  */
+/**
+ * Create or update validation test users.
+ * 
+ * Following Drupal best practices:
+ * - Checks for existing users by username
+ * - Let Drupal assign UIDs automatically
+ * - Updates existing users instead of overwriting
+ * - Uses proper entity API
+ */
 function _nfr_create_validation_users() {
   $validation_users = [
-    2 => ['username' => 'firefighter_active', 'role' => 'firefighter', 'first' => 'John', 'last' => 'Smith'],
-    3 => ['username' => 'firefighter_retired', 'role' => 'firefighter', 'first' => 'Jane', 'last' => 'Doe'],
-    4 => ['username' => 'nfr_admin', 'role' => 'nfr_administrator', 'first' => 'Admin', 'last' => 'User'],
-    5 => ['username' => 'nfr_researcher', 'role' => 'nfr_researcher', 'first' => 'Research', 'last' => 'Analyst'],
-    6 => ['username' => 'dept_admin', 'role' => 'fire_dept_admin', 'first' => 'Fire', 'last' => 'Chief'],
+    ['username' => 'firefighter_active', 'role' => 'firefighter', 'first' => 'John', 'last' => 'Smith'],
+    ['username' => 'firefighter_retired', 'role' => 'firefighter', 'first' => 'Jane', 'last' => 'Doe'],
+    ['username' => 'nfr_admin', 'role' => 'nfr_administrator', 'first' => 'Admin', 'last' => 'User'],
+    ['username' => 'nfr_researcher', 'role' => 'nfr_researcher', 'first' => 'Research', 'last' => 'Analyst'],
+    ['username' => 'dept_admin', 'role' => 'fire_dept_admin', 'first' => 'Fire', 'last' => 'Chief'],
   ];
   
-  foreach ($validation_users as $uid => $user_data) {
-    // Check if user already exists
-    $existing = \Drupal\user\Entity\User::load($uid);
-    if ($existing) {
-      // Update role if needed
-      if (!$existing->hasRole($user_data['role'])) {
-        $existing->addRole($user_data['role']);
-        $existing->save();
-        \Drupal::logger('nfr')->info('Updated user @username (UID: @uid) to add role: @role', [
-          '@username' => $user_data['username'],
-          '@uid' => $uid,
-          '@role' => $user_data['role'],
-        ]);
-      }
-      continue;
-    }
-    
-    // Check by username
+  foreach ($validation_users as $user_data) {
+    // Check if user already exists by username (proper Drupal practice)
     $existing_by_name = \Drupal::entityTypeManager()
       ->getStorage('user')
       ->loadByProperties(['name' => $user_data['username']]);
     
     if (!empty($existing_by_name)) {
       $user = reset($existing_by_name);
+      // Update role if needed
       if (!$user->hasRole($user_data['role'])) {
         $user->addRole($user_data['role']);
         $user->save();
-        \Drupal::logger('nfr')->info('Updated user @username by name to add role: @role', [
+        \Drupal::logger('nfr')->info('Updated user @username (UID: @uid) to add role: @role', [
           '@username' => $user_data['username'],
+          '@uid' => $user->id(),
           '@role' => $user_data['role'],
         ]);
       }
@@ -173,7 +168,7 @@ function _nfr_create_validation_users() {
     }
     
     try {
-      // Create the user entity - let Drupal handle all fields including UUID
+      // Create user using Drupal entity system (let Drupal assign UID)
       $user = \Drupal\user\Entity\User::create([
         'name' => $user_data['username'],
         'mail' => $user_data['username'] . '@test-nfr.org',
