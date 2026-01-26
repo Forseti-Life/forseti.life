@@ -1247,3 +1247,11 @@ function nfr_update_9016() {
   
   return t('Fixed roles for @count validation users.', ['@count' => $fixed]);
 }
+
+/**
+ * Recreate validation test users if they don't exist.
+ */
+function nfr_update_9017() {
+  _nfr_create_validation_users();
+  return t('Validation test users created/updated.');
+}
