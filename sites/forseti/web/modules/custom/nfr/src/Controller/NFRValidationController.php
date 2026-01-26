@@ -3797,6 +3797,36 @@ class NFRValidationController extends ControllerBase {
       $output .= '</div>'; // table-responsive
       $output .= '</div></div>'; // card-body, card
       
+      // Legend Card - positioned before Audit Report
+      $output .= '<div class="card card-forseti mb-3" style="border-left: 4px solid #17a2b8;">';
+      $output .= '<div class="card-body">';
+      $output .= '<h3 class="h5 mb-3">📖 Legend</h3>';
+      $output .= '<div class="row g-3">';
+      $output .= '<div class="col-md-6">';
+      $output .= '<p class="mb-2"><strong>Field Tracking:</strong></p>';
+      $output .= '<p class="mb-0 small">✓ = Field is tracked | ✗ = Field not tracked</p>';
+      $output .= '</div>';
+      $output .= '<div class="col-md-6">';
+      $output .= '<p class="mb-2"><strong>Fill Rate Badges:</strong></p>';
+      $output .= '<p class="mb-0 small"><span class="badge bg-success">100%</span> Complete | <span class="badge bg-warning text-dark">75-99%</span> Good | <span class="badge bg-danger">1-74%</span> Incomplete | <span class="badge bg-secondary">0%</span> No data</p>';
+      $output .= '</div>';
+      $output .= '</div>'; // row
+      $output .= '<hr class="my-3">';
+      $output .= '<p class="mb-2 small"><strong>Storage Strategy:</strong> The NFR system uses multiple storage strategies for data organization:</p>';
+      $output .= '<ul class="small mb-0">';
+      $output .= '<li><strong>Profile Data:</strong> Direct columns in <code>nfr_user_profile</code> table (26 fields)</li>';
+      $output .= '<li><strong>Questionnaire Data:</strong> Mix of direct columns and JSON fields in <code>nfr_questionnaire</code> table</li>';
+      $output .= '<li><strong>Work History (Section 2):</strong> Normalized tables (<code>nfr_work_history</code> → <code>nfr_job_titles</code> → <code>nfr_incident_frequency</code>)</li>';
+      $output .= '<li><strong>Exposure (Section 3):</strong> JSON data column + <code>nfr_major_incidents</code> table for detailed incident tracking</li>';
+      $output .= '<li><strong>Other Employment (Section 5):</strong> JSON column + <code>nfr_other_employment</code> normalized table</li>';
+      $output .= '<li><strong>PPE/Decontamination/Smoking:</strong> Dedicated JSON columns (<code>ppe_practices</code>, <code>decon_practices</code>, <code>smoking_history</code>)</li>';
+      $output .= '<li><strong>Cancer Diagnoses:</strong> JSON column + <code>nfr_cancer_diagnoses</code> table for multiple diagnoses per user</li>';
+      $output .= '<li><strong>Consent:</strong> <code>nfr_consent</code> table with signature tracking</li>';
+      $output .= '<li><strong>Progress:</strong> <code>nfr_section_completion</code> table tracking completion by section</li>';
+      $output .= '<li><strong>Additional Details:</strong> <code>data</code> JSON column for exposure, military, health, and lifestyle extended fields</li>';
+      $output .= '</ul>';
+      $output .= '</div></div>'; // card-body, card
+      
       // Audit Report Section
       $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #ffc107;">';
       $output .= '<div class="card-body">';
@@ -3997,25 +4027,6 @@ class NFRValidationController extends ControllerBase {
       
       $output .= '</tbody></table>';
       $output .= '</div>'; // table-responsive
-      
-      $output .= '<div class="alert alert-info mt-3" style="color: #212529;">';
-      $output .= '<p class="mb-2"><strong>Legend:</strong></p>';
-      $output .= '<p class="mb-2 small">✓ = Field is tracked | ✗ = Field not tracked</p>';
-      $output .= '<p class="mb-2 small"><span class="badge bg-success">100%</span> Complete | <span class="badge bg-warning text-dark">75-99%</span> Good | <span class="badge bg-danger">1-74%</span> Incomplete | <span class="badge bg-secondary">0%</span> No data</p>';
-      $output .= '<p class="mb-0 small"><strong>Storage Strategy:</strong> The NFR system uses multiple storage strategies for data organization:</p>';
-      $output .= '<ul class="small mb-0">';
-      $output .= '<li><strong>Profile Data:</strong> Direct columns in <code>nfr_user_profile</code> table (26 fields)</li>';
-      $output .= '<li><strong>Questionnaire Data:</strong> Mix of direct columns and JSON fields in <code>nfr_questionnaire</code> table</li>';
-      $output .= '<li><strong>Work History (Section 2):</strong> Normalized tables (<code>nfr_work_history</code> → <code>nfr_job_titles</code> → <code>nfr_incident_frequency</code>)</li>';
-      $output .= '<li><strong>Exposure (Section 3):</strong> JSON data column + <code>nfr_major_incidents</code> table for detailed incident tracking</li>';
-      $output .= '<li><strong>Other Employment (Section 5):</strong> JSON column + <code>nfr_other_employment</code> normalized table</li>';
-      $output .= '<li><strong>PPE/Decontamination/Smoking:</strong> Dedicated JSON columns (<code>ppe_practices</code>, <code>decon_practices</code>, <code>smoking_history</code>)</li>';
-      $output .= '<li><strong>Cancer Diagnoses:</strong> JSON column + <code>nfr_cancer_diagnoses</code> table for multiple diagnoses per user</li>';
-      $output .= '<li><strong>Consent:</strong> <code>nfr_consent</code> table with signature tracking</li>';
-      $output .= '<li><strong>Progress:</strong> <code>nfr_section_completion</code> table tracking completion by section</li>';
-      $output .= '<li><strong>Additional Details:</strong> <code>data</code> JSON column for exposure, military, health, and lifestyle extended fields</li>';
-      $output .= '</ul>';
-      $output .= '</div>';
       $output .= '</div></div>'; // card-body, card
       
       // Summary Statistics
