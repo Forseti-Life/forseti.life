@@ -3113,6 +3113,189 @@ class NFRValidationController extends ControllerBase {
         }
       }
       
+      // =============================================================================
+      // CALCULATE TABLE-LEVEL STATISTICS
+      // =============================================================================
+      $table_stats = [];
+      
+      // Profile table
+      $profile_field_count = 0;
+      $profile_complete_fields = 0;
+      foreach ($field_counts as $field => $count) {
+        if (strpos($field, 'profile.') === 0) {
+          $profile_field_count++;
+          if ($count >= $total_records) {
+            $profile_complete_fields++;
+          }
+        }
+      }
+      $table_stats['nfr_user_profile'] = [
+        'record_count' => count($profiles),
+        'field_count' => 26,
+        'tracked_fields' => $profile_field_count,
+        'complete_fields' => $profile_complete_fields,
+        'completeness_pct' => $profile_field_count > 0 ? round(($profile_complete_fields / $profile_field_count) * 100, 1) : 0,
+      ];
+      
+      // Questionnaire direct columns
+      $quest_direct_count = 0;
+      $quest_direct_complete = 0;
+      foreach ($field_counts as $field => $count) {
+        if (strpos($field, 'questionnaire.') === 0) {
+          $quest_direct_count++;
+          if ($count >= $total_records) {
+            $quest_direct_complete++;
+          }
+        }
+      }
+      $table_stats['nfr_questionnaire_direct'] = [
+        'record_count' => $total_records,
+        'field_count' => 9,
+        'tracked_fields' => $quest_direct_count,
+        'complete_fields' => $quest_direct_complete,
+        'completeness_pct' => $quest_direct_count > 0 ? round(($quest_direct_complete / $quest_direct_count) * 100, 1) : 0,
+      ];
+      
+      // Work history tables
+      $wh_records = count($user_work_history);
+      $table_stats['nfr_work_history'] = [
+        'record_count' => $wh_records,
+        'field_count' => 11,
+        'tracked_fields' => 9,
+        'complete_fields' => 0,
+        'completeness_pct' => 0,
+      ];
+      
+      // Other tables
+      $table_stats['nfr_major_incidents'] = [
+        'record_count' => count($user_major_incidents),
+        'field_count' => 7,
+        'tracked_fields' => 4,
+      ];
+      
+      $table_stats['nfr_other_employment'] = [
+        'record_count' => count($user_other_employment),
+        'field_count' => 9,
+        'tracked_fields' => 7,
+      ];
+      
+      $table_stats['nfr_cancer_diagnoses'] = [
+        'record_count' => count($user_cancer_diagnoses),
+        'field_count' => 6,
+        'tracked_fields' => 3,
+      ];
+      
+      $table_stats['nfr_consent'] = [
+        'record_count' => count($user_consents),
+        'field_count' => 7,
+        'tracked_fields' => 5,
+      ];
+      
+      $table_stats['nfr_section_completion'] = [
+        'record_count' => count($user_section_completion),
+        'field_count' => 5,
+        'tracked_fields' => 20,
+      ];
+      
+      // =============================================================================
+      // CALCULATE PROFILE DATASET SUMMARY
+      // =============================================================================
+      $profile_summary = [
+        'total_profiles' => count($profiles),
+        'sex_distribution' => [],
+        'state_distribution' => [],
+        'country_distribution' => [],
+        'work_status_distribution' => [],
+        'age_groups' => [],
+      ];
+      
+      foreach ($profiles as $profile) {
+        // Sex distribution
+        if (!empty($profile->sex)) {
+          $profile_summary['sex_distribution'][$profile->sex] = ($profile_summary['sex_distribution'][$profile->sex] ?? 0) + 1;
+        }
+        
+        // State distribution
+        if (!empty($profile->state)) {
+          $profile_summary['state_distribution'][$profile->state] = ($profile_summary['state_distribution'][$profile->state] ?? 0) + 1;
+        }
+        
+        // Country distribution
+        if (!empty($profile->country_of_birth)) {
+          $profile_summary['country_distribution'][$profile->country_of_birth] = ($profile_summary['country_distribution'][$profile->country_of_birth] ?? 0) + 1;
+        }
+        
+        // Work status
+        if (!empty($profile->current_work_status)) {
+          $profile_summary['work_status_distribution'][$profile->current_work_status] = ($profile_summary['work_status_distribution'][$profile->current_work_status] ?? 0) + 1;
+        }
+        
+        // Age groups (calculate from DOB if available)
+        if (!empty($profile->date_of_birth)) {
+          $dob = strtotime($profile->date_of_birth);
+          if ($dob) {
+            $age = floor((time() - $dob) / (365.25 * 24 * 60 * 60));
+            if ($age < 30) {
+              $age_group = 'Under 30';
+            } elseif ($age < 40) {
+              $age_group = '30-39';
+            } elseif ($age < 50) {
+              $age_group = '40-49';
+            } elseif ($age < 60) {
+              $age_group = '50-59';
+            } elseif ($age < 70) {
+              $age_group = '60-69';
+            } else {
+              $age_group = '70+';
+            }
+            $profile_summary['age_groups'][$age_group] = ($profile_summary['age_groups'][$age_group] ?? 0) + 1;
+          }
+        }
+      }
+      
+      // =============================================================================
+      // CALCULATE SECTION DATASET SUMMARIES
+      // =============================================================================
+      $section_summaries = [
+        'demographics' => ['fields' => 0, 'complete' => 0, 'users_started' => 0, 'users_completed' => 0],
+        'work_history' => ['fields' => 0, 'complete' => 0, 'users_started' => 0, 'users_completed' => 0],
+        'exposure' => ['fields' => 0, 'complete' => 0, 'users_started' => 0, 'users_completed' => 0],
+        'military' => ['fields' => 0, 'complete' => 0, 'users_started' => 0, 'users_completed' => 0],
+        'other_employment' => ['fields' => 0, 'complete' => 0, 'users_started' => 0, 'users_completed' => 0],
+        'ppe' => ['fields' => 0, 'complete' => 0, 'users_started' => 0, 'users_completed' => 0],
+        'decontamination' => ['fields' => 0, 'complete' => 0, 'users_started' => 0, 'users_completed' => 0],
+        'health' => ['fields' => 0, 'complete' => 0, 'users_started' => 0, 'users_completed' => 0],
+        'lifestyle' => ['fields' => 0, 'complete' => 0, 'users_started' => 0, 'users_completed' => 0],
+      ];
+      
+      foreach ($field_counts as $field => $count) {
+        foreach ($section_summaries as $section => &$summary) {
+          if (strpos($field, $section . '.') === 0) {
+            $summary['fields']++;
+            if ($count >= $total_records) {
+              $summary['complete']++;
+            }
+            if ($count > 0) {
+              $summary['users_started'] = max($summary['users_started'], $count);
+            }
+          }
+        }
+      }
+      
+      // Calculate section completion from nfr_section_completion table
+      for ($i = 1; $i <= 9; $i++) {
+        $completed_count = 0;
+        foreach ($user_section_completion as $uid => $sections) {
+          if (isset($sections[$i]) && $sections[$i]->completed) {
+            $completed_count++;
+          }
+        }
+        $section_keys = ['demographics', 'work_history', 'exposure', 'military', 'other_employment', 'ppe', 'decontamination', 'health', 'lifestyle'];
+        if (isset($section_keys[$i - 1])) {
+          $section_summaries[$section_keys[$i - 1]]['users_completed'] = $completed_count;
+        }
+      }
+      
       // Build HTML output with Chart.js
       $output = '<div class="container-fluid">';
       $output .= '<div class="card card-forseti mb-4">';
@@ -3121,6 +3304,204 @@ class NFRValidationController extends ControllerBase {
       $output .= '<p class="lead"><strong>Total Records Analyzed:</strong> ' . $total_records . '</p>';
       $output .= '<p class="text-muted">This dashboard tracks EVERY field from both the User Profile and Enrollment Questionnaire, showing completion rates and value distributions.</p>';
       $output .= '</div></div>';
+      
+      // =============================================================================
+      // TABLE STATISTICS SECTION
+      // =============================================================================
+      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #2196F3;">';
+      $output .= '<div class="card-body">';
+      $output .= '<h2 class="h4 mb-4">📊 Database Table Statistics</h2>';
+      $output .= '<p class="mb-3">Summary statistics for all NFR database tables showing record counts and field tracking coverage.</p>';
+      
+      $output .= '<div class="table-responsive">';
+      $output .= '<table class="table table-striped table-hover">';
+      $output .= '<thead class="table-dark">';
+      $output .= '<tr>';
+      $output .= '<th>Table Name</th>';
+      $output .= '<th class="text-center">Records</th>';
+      $output .= '<th class="text-center">Total Fields</th>';
+      $output .= '<th class="text-center">Tracked Fields</th>';
+      $output .= '<th class="text-center">Complete Fields</th>';
+      $output .= '<th class="text-center">Completeness</th>';
+      $output .= '</tr></thead><tbody>';
+      
+      foreach ($table_stats as $table_name => $stats) {
+        $completeness_badge = 'secondary';
+        if (isset($stats['completeness_pct'])) {
+          $completeness_badge = $stats['completeness_pct'] >= 90 ? 'success' : ($stats['completeness_pct'] >= 75 ? 'warning' : 'danger');
+        }
+        
+        $output .= '<tr>';
+        $output .= '<td><code>' . htmlspecialchars($table_name) . '</code></td>';
+        $output .= '<td class="text-center">' . number_format($stats['record_count']) . '</td>';
+        $output .= '<td class="text-center">' . $stats['field_count'] . '</td>';
+        $output .= '<td class="text-center">' . $stats['tracked_fields'] . '</td>';
+        $output .= '<td class="text-center">' . ($stats['complete_fields'] ?? 'N/A') . '</td>';
+        $output .= '<td class="text-center">';
+        if (isset($stats['completeness_pct'])) {
+          $output .= '<span class="badge bg-' . $completeness_badge . '">' . $stats['completeness_pct'] . '%</span>';
+        } else {
+          $output .= '<span class="text-muted">-</span>';
+        }
+        $output .= '</td>';
+        $output .= '</tr>';
+      }
+      
+      $output .= '</tbody></table>';
+      $output .= '</div>'; // table-responsive
+      $output .= '</div></div>'; // card-body, card
+      
+      // =============================================================================
+      // PROFILE DATASET SUMMARY
+      // =============================================================================
+      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #9C27B0;">';
+      $output .= '<div class="card-body">';
+      $output .= '<h2 class="h4 mb-4">👥 Profile Dataset Summary</h2>';
+      $output .= '<p class="mb-4"><strong>Total Profiles:</strong> ' . number_format($profile_summary['total_profiles']) . '</p>';
+      
+      $output .= '<div class="row g-4">';
+      
+      // Sex Distribution
+      if (!empty($profile_summary['sex_distribution'])) {
+        $output .= '<div class="col-md-6">';
+        $output .= '<div class="card bg-light h-100">';
+        $output .= '<div class="card-body">';
+        $output .= '<h3 class="h6 mb-3">Sex Distribution</h3>';
+        $output .= '<table class="table table-sm table-borderless mb-0">';
+        arsort($profile_summary['sex_distribution']);
+        foreach ($profile_summary['sex_distribution'] as $sex => $count) {
+          $pct = round(($count / $profile_summary['total_profiles']) * 100, 1);
+          $output .= '<tr>';
+          $output .= '<td>' . htmlspecialchars(ucfirst($sex)) . '</td>';
+          $output .= '<td class="text-end"><strong>' . number_format($count) . '</strong></td>';
+          $output .= '<td class="text-end text-muted">(' . $pct . '%)</td>';
+          $output .= '</tr>';
+        }
+        $output .= '</table>';
+        $output .= '</div></div></div>';
+      }
+      
+      // Age Groups
+      if (!empty($profile_summary['age_groups'])) {
+        $output .= '<div class="col-md-6">';
+        $output .= '<div class="card bg-light h-100">';
+        $output .= '<div class="card-body">';
+        $output .= '<h3 class="h6 mb-3">Age Distribution</h3>';
+        $output .= '<table class="table table-sm table-borderless mb-0">';
+        $age_order = ['Under 30', '30-39', '40-49', '50-59', '60-69', '70+'];
+        foreach ($age_order as $age_group) {
+          if (isset($profile_summary['age_groups'][$age_group])) {
+            $count = $profile_summary['age_groups'][$age_group];
+            $pct = round(($count / $profile_summary['total_profiles']) * 100, 1);
+            $output .= '<tr>';
+            $output .= '<td>' . htmlspecialchars($age_group) . '</td>';
+            $output .= '<td class="text-end"><strong>' . number_format($count) . '</strong></td>';
+            $output .= '<td class="text-end text-muted">(' . $pct . '%)</td>';
+            $output .= '</tr>';
+          }
+        }
+        $output .= '</table>';
+        $output .= '</div></div></div>';
+      }
+      
+      // State Distribution (Top 10)
+      if (!empty($profile_summary['state_distribution'])) {
+        $output .= '<div class="col-md-6">';
+        $output .= '<div class="card bg-light h-100">';
+        $output .= '<div class="card-body">';
+        $output .= '<h3 class="h6 mb-3">State Distribution (Top 10)</h3>';
+        $output .= '<table class="table table-sm table-borderless mb-0">';
+        arsort($profile_summary['state_distribution']);
+        $top_states = array_slice($profile_summary['state_distribution'], 0, 10, TRUE);
+        foreach ($top_states as $state => $count) {
+          $pct = round(($count / $profile_summary['total_profiles']) * 100, 1);
+          $output .= '<tr>';
+          $output .= '<td>' . htmlspecialchars($state) . '</td>';
+          $output .= '<td class="text-end"><strong>' . number_format($count) . '</strong></td>';
+          $output .= '<td class="text-end text-muted">(' . $pct . '%)</td>';
+          $output .= '</tr>';
+        }
+        $output .= '</table>';
+        $output .= '</div></div></div>';
+      }
+      
+      // Work Status Distribution
+      if (!empty($profile_summary['work_status_distribution'])) {
+        $output .= '<div class="col-md-6">';
+        $output .= '<div class="card bg-light h-100">';
+        $output .= '<div class="card-body">';
+        $output .= '<h3 class="h6 mb-3">Work Status Distribution</h3>';
+        $output .= '<table class="table table-sm table-borderless mb-0">';
+        arsort($profile_summary['work_status_distribution']);
+        foreach ($profile_summary['work_status_distribution'] as $status => $count) {
+          $pct = round(($count / $profile_summary['total_profiles']) * 100, 1);
+          $output .= '<tr>';
+          $output .= '<td>' . htmlspecialchars(ucwords(str_replace('_', ' ', $status))) . '</td>';
+          $output .= '<td class="text-end"><strong>' . number_format($count) . '</strong></td>';
+          $output .= '<td class="text-end text-muted">(' . $pct . '%)</td>';
+          $output .= '</tr>';
+        }
+        $output .= '</table>';
+        $output .= '</div></div></div>';
+      }
+      
+      $output .= '</div>'; // row
+      $output .= '</div></div>'; // card-body, card
+      
+      // =============================================================================
+      // SECTION DATASET SUMMARIES
+      // =============================================================================
+      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #FF5722;">';
+      $output .= '<div class="card-body">';
+      $output .= '<h2 class="h4 mb-4">📋 Questionnaire Section Summaries</h2>';
+      $output .= '<p class="mb-3">Completion statistics for each questionnaire section showing field coverage and user progress.</p>';
+      
+      $output .= '<div class="table-responsive">';
+      $output .= '<table class="table table-striped table-hover">';
+      $output .= '<thead class="table-dark">';
+      $output .= '<tr>';
+      $output .= '<th>Section</th>';
+      $output .= '<th class="text-center">Tracked Fields</th>';
+      $output .= '<th class="text-center">Complete Fields</th>';
+      $output .= '<th class="text-center">Field Completeness</th>';
+      $output .= '<th class="text-center">Users Started</th>';
+      $output .= '<th class="text-center">Users Completed</th>';
+      $output .= '<th class="text-center">Completion Rate</th>';
+      $output .= '</tr></thead><tbody>';
+      
+      $section_labels = [
+        'demographics' => 'Section 1: Demographics',
+        'work_history' => 'Section 2: Work History',
+        'exposure' => 'Section 3: Exposure',
+        'military' => 'Section 4: Military Service',
+        'other_employment' => 'Section 5: Other Employment',
+        'ppe' => 'Section 6: PPE',
+        'decontamination' => 'Section 7: Decontamination',
+        'health' => 'Section 8: Health',
+        'lifestyle' => 'Section 9: Lifestyle',
+      ];
+      
+      foreach ($section_summaries as $section => $summary) {
+        $field_completeness = $summary['fields'] > 0 ? round(($summary['complete'] / $summary['fields']) * 100, 1) : 0;
+        $user_completion_rate = $summary['users_started'] > 0 ? round(($summary['users_completed'] / $summary['users_started']) * 100, 1) : 0;
+        
+        $field_badge = $field_completeness >= 90 ? 'success' : ($field_completeness >= 75 ? 'warning' : 'danger');
+        $user_badge = $user_completion_rate >= 90 ? 'success' : ($user_completion_rate >= 75 ? 'warning' : 'danger');
+        
+        $output .= '<tr>';
+        $output .= '<td><strong>' . htmlspecialchars($section_labels[$section] ?? ucwords(str_replace('_', ' ', $section))) . '</strong></td>';
+        $output .= '<td class="text-center">' . $summary['fields'] . '</td>';
+        $output .= '<td class="text-center">' . $summary['complete'] . '</td>';
+        $output .= '<td class="text-center"><span class="badge bg-' . $field_badge . '">' . $field_completeness . '%</span></td>';
+        $output .= '<td class="text-center">' . number_format($summary['users_started']) . '</td>';
+        $output .= '<td class="text-center">' . number_format($summary['users_completed']) . '</td>';
+        $output .= '<td class="text-center"><span class="badge bg-' . $user_badge . '">' . $user_completion_rate . '%</span></td>';
+        $output .= '</tr>';
+      }
+      
+      $output .= '</tbody></table>';
+      $output .= '</div>'; // table-responsive
+      $output .= '</div></div>'; // card-body, card
       
       // Audit Report Section
       $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #ffc107;">';
