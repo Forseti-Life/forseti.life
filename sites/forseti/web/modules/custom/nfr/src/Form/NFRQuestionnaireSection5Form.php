@@ -248,6 +248,9 @@ class NFRQuestionnaireSection5Form extends FormBase {
     // Save to database
     $database = $this->getDatabase();
     
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
     // Update had_other_jobs
     $database->update('nfr_questionnaire')
       ->fields([
@@ -301,6 +304,9 @@ class NFRQuestionnaireSection5Form extends FormBase {
     // Save to database
     $database = $this->getDatabase();
     
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
     // Update had_other_jobs
     $database->update('nfr_questionnaire')
       ->fields(['had_other_jobs' => $other_employment['had_other_jobs'] ?? 'no'])
@@ -349,6 +355,9 @@ class NFRQuestionnaireSection5Form extends FormBase {
 
     // Save to database
     $database = $this->getDatabase();
+    
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
     
     // Update had_other_jobs
     $database->update('nfr_questionnaire')

@@ -155,4 +155,33 @@ trait QuestionnaireFormTrait {
     }
   }
 
+  /**
+   * Ensure a questionnaire record exists for the user.
+   * Creates initial record with INSERT if it doesn't exist.
+   * This prevents UPDATE operations from silently failing.
+   *
+   * @param int $uid
+   *   The user ID.
+   * @param \Drupal\Core\Database\Connection $database
+   *   The database connection.
+   */
+  protected function ensureQuestionnaireRecordExists(int $uid, $database): void {
+    // Check if record exists
+    $exists = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['uid'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchField();
+    
+    // Create initial record if it doesn't exist
+    if (!$exists) {
+      $database->insert('nfr_questionnaire')
+        ->fields([
+          'uid' => $uid,
+          'created' => time(),
+        ])
+        ->execute();
+    }
+  }
+
 }

@@ -50,17 +50,31 @@ class NFRQuestionnaireSection7Form extends FormBase {
 
     $uid = $this->getCurrentUserId();
     
-    // Load decon data from JSON column
+    // Load decon data from direct columns
     $database = $this->getDatabase();
     $questionnaire = $database->select('nfr_questionnaire', 'q')
-      ->fields('q', ['decon_practices'])
+      ->fields('q', [
+        'decon_washed_hands_face',
+        'decon_changed_gear_at_scene',
+        'decon_showered_at_station',
+        'decon_laundered_gear',
+        'decon_used_wet_wipes',
+        'decon_department_had_sops',
+        'decon_sops_year_implemented',
+      ])
       ->condition('uid', $uid)
       ->execute()
       ->fetchAssoc();
     
     $decon = [];
-    if ($questionnaire && $questionnaire['decon_practices']) {
-      $decon = json_decode($questionnaire['decon_practices'], TRUE) ?? [];
+    if ($questionnaire) {
+      $decon['washed_hands_face'] = $questionnaire['decon_washed_hands_face'] ?? '';
+      $decon['changed_gear_at_scene'] = $questionnaire['decon_changed_gear_at_scene'] ?? '';
+      $decon['showered_at_station'] = $questionnaire['decon_showered_at_station'] ?? '';
+      $decon['laundered_gear'] = $questionnaire['decon_laundered_gear'] ?? '';
+      $decon['used_wet_wipes'] = $questionnaire['decon_used_wet_wipes'] ?? '';
+      $decon['department_had_sops'] = $questionnaire['decon_department_had_sops'] ?? NULL;
+      $decon['sops_year_implemented'] = $questionnaire['decon_sops_year_implemented'] ?? '';
     }
 
     // Add navigation menu
@@ -165,16 +179,27 @@ class NFRQuestionnaireSection7Form extends FormBase {
     $uid = $this->getCurrentUserId();
     $decontamination = $form_state->getValue('decontamination');
 
-    // Save decon data to JSON column
+    // Save decon data to direct columns
     $database = $this->getDatabase();
+    
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
     $database->update('nfr_questionnaire')
       ->fields([
-        'decon_practices' => json_encode($decontamination),
+        'decon_washed_hands_face' => $decontamination['washed_hands_face'] ?? NULL,
+        'decon_changed_gear_at_scene' => $decontamination['changed_gear_at_scene'] ?? NULL,
+        'decon_showered_at_station' => $decontamination['showered_at_station'] ?? NULL,
+        'decon_laundered_gear' => $decontamination['laundered_gear'] ?? NULL,
+        'decon_used_wet_wipes' => $decontamination['used_wet_wipes'] ?? NULL,
+        'decon_department_had_sops' => $decontamination['department_had_sops'] ?? NULL,
+        'decon_sops_year_implemented' => !empty($decontamination['sops_year_implemented']) ? (int) $decontamination['sops_year_implemented'] : NULL,
         'last_section_completed' => 7,
       ])
       ->condition('uid', $uid)
       ->execute();
 
+    $this->messenger()->addStatus($this->t('Section 7 saved.'));
     $form_state->setRedirect('nfr.questionnaire.section8');
   }
 
@@ -182,6 +207,28 @@ class NFRQuestionnaireSection7Form extends FormBase {
    * Submit handler for previous button.
    */
   public function previousSection(array &$form, FormStateInterface $form_state): void {
+    $uid = $this->getCurrentUserId();
+    $decontamination = $form_state->getValue('decontamination');
+
+    // Save decon data to direct columns
+    $database = $this->getDatabase();
+    
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
+    $database->update('nfr_questionnaire')
+      ->fields([
+        'decon_washed_hands_face' => $decontamination['washed_hands_face'] ?? NULL,
+        'decon_changed_gear_at_scene' => $decontamination['changed_gear_at_scene'] ?? NULL,
+        'decon_showered_at_station' => $decontamination['showered_at_station'] ?? NULL,
+        'decon_laundered_gear' => $decontamination['laundered_gear'] ?? NULL,
+        'decon_used_wet_wipes' => $decontamination['used_wet_wipes'] ?? NULL,
+        'decon_department_had_sops' => $decontamination['department_had_sops'] ?? NULL,
+        'decon_sops_year_implemented' => !empty($decontamination['sops_year_implemented']) ? (int) $decontamination['sops_year_implemented'] : NULL,
+      ])
+      ->condition('uid', $uid)
+      ->execute();
+    
     $form_state->setRedirect('nfr.questionnaire.section6');
   }
 
@@ -192,10 +239,22 @@ class NFRQuestionnaireSection7Form extends FormBase {
     $uid = $this->getCurrentUserId();
     $decontamination = $form_state->getValue('decontamination');
 
-    // Save decon data to JSON column
+    // Save decon data to direct columns
     $database = $this->getDatabase();
+    
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
     $database->update('nfr_questionnaire')
-      ->fields(['decon_practices' => json_encode($decontamination)])
+      ->fields([
+        'decon_washed_hands_face' => $decontamination['washed_hands_face'] ?? NULL,
+        'decon_changed_gear_at_scene' => $decontamination['changed_gear_at_scene'] ?? NULL,
+        'decon_showered_at_station' => $decontamination['showered_at_station'] ?? NULL,
+        'decon_laundered_gear' => $decontamination['laundered_gear'] ?? NULL,
+        'decon_used_wet_wipes' => $decontamination['used_wet_wipes'] ?? NULL,
+        'decon_department_had_sops' => $decontamination['department_had_sops'] ?? NULL,
+        'decon_sops_year_implemented' => !empty($decontamination['sops_year_implemented']) ? (int) $decontamination['sops_year_implemented'] : NULL,
+      ])
       ->condition('uid', $uid)
       ->execute();
 

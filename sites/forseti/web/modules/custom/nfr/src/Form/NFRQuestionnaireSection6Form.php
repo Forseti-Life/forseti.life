@@ -225,6 +225,9 @@ class NFRQuestionnaireSection6Form extends FormBase {
     $fields['ppe_scba_during_suppression'] = $ppe['scba_during_suppression'] ?? NULL;
     $fields['ppe_scba_during_overhaul'] = $ppe['scba_during_overhaul'] ?? NULL;
     
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
     $database->update('nfr_questionnaire')
       ->fields($fields)
       ->condition('uid', $uid)
@@ -255,6 +258,9 @@ class NFRQuestionnaireSection6Form extends FormBase {
     $fields['ppe_scba_during_suppression'] = $ppe['scba_during_suppression'] ?? NULL;
     $fields['ppe_scba_during_overhaul'] = $ppe['scba_during_overhaul'] ?? NULL;
     
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
     $database->update('nfr_questionnaire')
       ->fields($fields)
       ->condition('uid', $uid)
@@ -283,6 +289,9 @@ class NFRQuestionnaireSection6Form extends FormBase {
     
     $fields['ppe_scba_during_suppression'] = $ppe['scba_during_suppression'] ?? NULL;
     $fields['ppe_scba_during_overhaul'] = $ppe['scba_during_overhaul'] ?? NULL;
+    
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
     
     $database->update('nfr_questionnaire')
       ->fields($fields)

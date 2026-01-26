@@ -209,6 +209,10 @@ class NFRQuestionnaireSection9Form extends FormBase {
 
     // Save lifestyle data to database columns
     $database = $this->getDatabase();
+    
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
     $database->update('nfr_questionnaire')
       ->fields([
         'smoking_history' => json_encode($smoking_data),
@@ -247,6 +251,10 @@ class NFRQuestionnaireSection9Form extends FormBase {
 
     // Save lifestyle data to database columns
     $database = $this->getDatabase();
+    
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
     $database->update('nfr_questionnaire')
       ->fields([
         'smoking_history' => json_encode($smoking_data),

@@ -298,6 +298,10 @@ class NFRQuestionnaireSection3Form extends FormBase {
     
     // Save exposure data to direct columns
     $database = $this->getDatabase();
+    
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
     $database->update('nfr_questionnaire')
       ->fields([
         'afff_used' => $exposure['afff_used'] ?: NULL,

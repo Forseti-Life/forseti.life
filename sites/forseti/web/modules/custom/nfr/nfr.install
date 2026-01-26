@@ -278,7 +278,244 @@ function nfr_update_9007() {
     ]);
   }
   
+  // Create nfr_cancer_diagnoses table if it doesn't exist
+  if (!$schema->tableExists('nfr_cancer_diagnoses')) {
+    $schema->createTable('nfr_cancer_diagnoses', [
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'uid' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'description' => 'User ID',
+        ],
+        'cancer_type' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => FALSE,
+        ],
+        'year_diagnosed' => [
+          'type' => 'int',
+          'not null' => FALSE,
+        ],
+        'created' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+        'updated' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'uid' => ['uid'],
+      ],
+    ]);
+  }
+  
   return t('Added Section 3 exposure columns and created nfr_major_incidents table.');
+}
+
+/**
+ * Create nfr_cancer_diagnoses table and add health condition columns.
+ */
+function nfr_update_9012() {
+  $schema = \Drupal::database()->schema();
+  $database = \Drupal::database();
+  
+  // Create nfr_cancer_diagnoses table
+  if (!$schema->tableExists('nfr_cancer_diagnoses')) {
+    $schema->createTable('nfr_cancer_diagnoses', [
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'uid' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'description' => 'User ID',
+        ],
+        'cancer_type' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => FALSE,
+        ],
+        'year_diagnosed' => [
+          'type' => 'int',
+          'not null' => FALSE,
+        ],
+        'created' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+        'updated' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'uid' => ['uid'],
+      ],
+    ]);
+  }
+  
+  // Add health condition columns
+  $conditions = ['heart_disease', 'copd', 'asthma', 'diabetes'];
+  foreach ($conditions as $condition) {
+    $col_name = 'health_' . $condition;
+    if (!$schema->fieldExists('nfr_questionnaire', $col_name)) {
+      $schema->addField('nfr_questionnaire', $col_name, [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ]);
+    }
+  }
+  
+  // Migrate data from cancer_details JSON to new structures
+  if ($schema->fieldExists('nfr_questionnaire', 'cancer_details')) {
+    $results = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['uid', 'cancer_details'])
+      ->condition('cancer_details', '', '<>')
+      ->isNotNull('cancer_details')
+      ->execute();
+    
+    $time = \Drupal::time()->getRequestTime();
+    
+    foreach ($results as $row) {
+      $data = json_decode($row->cancer_details, TRUE);
+      if (!empty($data)) {
+        // Migrate cancer diagnoses to new table
+        if (!empty($data['cancers']) && is_array($data['cancers'])) {
+          foreach ($data['cancers'] as $cancer) {
+            if (!empty($cancer['type'])) {
+              $database->insert('nfr_cancer_diagnoses')
+                ->fields([
+                  'uid' => $row->uid,
+                  'cancer_type' => $cancer['type'],
+                  'year_diagnosed' => !empty($cancer['year_diagnosed']) ? (int) $cancer['year_diagnosed'] : NULL,
+                  'created' => $time,
+                  'updated' => $time,
+                ])
+                ->execute();
+            }
+          }
+        }
+        
+        // Migrate other conditions to boolean columns
+        if (!empty($data['other_conditions']) && is_array($data['other_conditions'])) {
+          $update_fields = [];
+          foreach ($conditions as $condition) {
+            if (in_array($condition, $data['other_conditions'])) {
+              $update_fields['health_' . $condition] = 1;
+            }
+          }
+          
+          if (!empty($update_fields)) {
+            $database->update('nfr_questionnaire')
+              ->fields($update_fields)
+              ->condition('uid', $row->uid)
+              ->execute();
+          }
+        }
+      }
+    }
+    
+    // Drop the old JSON column
+    $schema->dropField('nfr_questionnaire', 'cancer_details');
+  }
+  
+  return t('Created nfr_cancer_diagnoses table and added health condition columns.');
+}
+
+/**
+ * Add direct decontamination columns and migrate from JSON.
+ */
+function nfr_update_9011() {
+  $schema = \Drupal::database()->schema();
+  $database = \Drupal::database();
+  
+  $decon_fields = [
+    'washed_hands_face' => 'varchar',
+    'changed_gear_at_scene' => 'varchar',
+    'showered_at_station' => 'varchar',
+    'laundered_gear' => 'varchar',
+    'used_wet_wipes' => 'varchar',
+    'department_had_sops' => 'varchar',
+  ];
+  
+  // Add decontamination practice columns
+  foreach ($decon_fields as $field => $type) {
+    $col_name = 'decon_' . $field;
+    if (!$schema->fieldExists('nfr_questionnaire', $col_name)) {
+      $spec = [
+        'type' => $type,
+        'not null' => FALSE,
+      ];
+      if ($type === 'varchar') {
+        $spec['length'] = ($field === 'department_had_sops') ? 10 : 20;
+      }
+      $schema->addField('nfr_questionnaire', $col_name, $spec);
+    }
+  }
+  
+  // Add sops_year_implemented column
+  if (!$schema->fieldExists('nfr_questionnaire', 'decon_sops_year_implemented')) {
+    $schema->addField('nfr_questionnaire', 'decon_sops_year_implemented', [
+      'type' => 'int',
+      'not null' => FALSE,
+    ]);
+  }
+  
+  // Migrate data from decon_practices JSON to new columns
+  if ($schema->fieldExists('nfr_questionnaire', 'decon_practices')) {
+    $results = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['uid', 'decon_practices'])
+      ->condition('decon_practices', '', '<>')
+      ->isNotNull('decon_practices')
+      ->execute();
+    
+    foreach ($results as $row) {
+      $data = json_decode($row->decon_practices, TRUE);
+      if (!empty($data)) {
+        $update_fields = [];
+        
+        // Migrate practice frequencies
+        foreach ($decon_fields as $field => $type) {
+          if (!empty($data[$field])) {
+            $update_fields['decon_' . $field] = $data[$field];
+          }
+        }
+        
+        // Migrate sops year
+        if (!empty($data['sops_year_implemented'])) {
+          $update_fields['decon_sops_year_implemented'] = (int) $data['sops_year_implemented'];
+        }
+        
+        if (!empty($update_fields)) {
+          $database->update('nfr_questionnaire')
+            ->fields($update_fields)
+            ->condition('uid', $row->uid)
+            ->execute();
+        }
+      }
+    }
+    
+    // Drop the old JSON column
+    $schema->dropField('nfr_questionnaire', 'decon_practices');
+  }
+  
+  return t('Added direct decontamination columns and migrated data from JSON.');
 }
 
 /**
@@ -1255,11 +1492,39 @@ function nfr_schema() {
         'not null' => FALSE,
       ],
       // Decontamination Practices
-      'decon_practices' => [
-        'type' => 'text',
-        'size' => 'big',
+      'decon_washed_hands_face' => [
+        'type' => 'varchar',
+        'length' => 20,
         'not null' => FALSE,
-        'description' => 'JSON data for decontamination practices',
+      ],
+      'decon_changed_gear_at_scene' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+      ],
+      'decon_showered_at_station' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+      ],
+      'decon_laundered_gear' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+      ],
+      'decon_used_wet_wipes' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+      ],
+      'decon_department_had_sops' => [
+        'type' => 'varchar',
+        'length' => 10,
+        'not null' => FALSE,
+      ],
+      'decon_sops_year_implemented' => [
+        'type' => 'int',
+        'not null' => FALSE,
       ],
       // Health Information
       'cancer_diagnosis' => [
@@ -1268,11 +1533,29 @@ function nfr_schema() {
         'not null' => TRUE,
         'default' => 0,
       ],
-      'cancer_details' => [
-        'type' => 'text',
-        'size' => 'big',
-        'not null' => FALSE,
-        'description' => 'JSON data for cancer diagnoses',
+      'health_heart_disease' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'health_copd' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'health_asthma' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'health_diabetes' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
       ],
       'family_cancer_history' => [
         'type' => 'text',

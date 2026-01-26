@@ -385,6 +385,10 @@ class NFRQuestionnaireSection2Form extends FormBase {
     // Update progress
     $uid = $this->getCurrentUserId();
     $database = $this->getDatabase();
+    
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
     $database->update('nfr_questionnaire')
       ->fields(['last_section_completed' => 2])
       ->condition('uid', $uid)
@@ -441,7 +445,7 @@ class NFRQuestionnaireSection2Form extends FormBase {
         $job_data = [
           'title' => $job->job_title,
           'employment_type' => $job->employment_type,
-          'responded_incidents' => $job->responded_to_incidents,
+          'responded_incidents' => $job->responded_to_incidents ? 'yes' : 'no',
         ];
         
         // Load incident frequencies for this job
@@ -522,7 +526,7 @@ class NFRQuestionnaireSection2Form extends FormBase {
             'work_history_id' => $work_history_id,
             'job_title' => $job['title'] ?? '',
             'employment_type' => $job['employment_type'] ?? '',
-            'responded_to_incidents' => $job['responded_incidents'] ?? 'no',
+            'responded_to_incidents' => ($job['responded_incidents'] ?? 'no') === 'yes' ? 1 : 0,
             'created' => \Drupal::time()->getRequestTime(),
             'updated' => \Drupal::time()->getRequestTime(),
           ])

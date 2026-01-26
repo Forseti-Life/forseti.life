@@ -53,6 +53,13 @@ class NFRReviewSubmitForm extends FormBase {
 
     $form['#attached']['library'][] = 'nfr/enrollment';
 
+    // Add process flow diagram
+    $form['process_flow'] = [
+      '#type' => 'markup',
+      '#markup' => $this->buildProcessFlowDiagram(),
+      '#weight' => -110,
+    ];
+
     // Header
     $form['header'] = [
       '#type' => 'markup',
@@ -63,11 +70,19 @@ class NFRReviewSubmitForm extends FormBase {
     // Completeness check
     $incomplete_sections = $this->checkCompleteness($consent_data, $profile_data, $questionnaire_data);
     if (!empty($incomplete_sections)) {
+      $incomplete_html = '<div class="review-warning">' . 
+        $this->t('Some sections are incomplete. You can still submit, but complete data helps our research.') . 
+        '<ul>';
+      
+      foreach ($incomplete_sections as $section_info) {
+        $incomplete_html .= '<li><a href="' . $section_info['url'] . '">' . $section_info['title'] . '</a></li>';
+      }
+      
+      $incomplete_html .= '</ul></div>';
+      
       $form['warning'] = [
         '#type' => 'markup',
-        '#markup' => '<div class="review-warning">' . 
-          $this->t('Some sections are incomplete. You can still submit, but complete data helps our research.') . 
-          '<ul><li>' . implode('</li><li>', $incomplete_sections) . '</li></ul></div>',
+        '#markup' => $incomplete_html,
         '#weight' => -90,
       ];
     }
@@ -123,7 +138,7 @@ class NFRReviewSubmitForm extends FormBase {
     $form['demographics_section']['edit'] = [
       '#type' => 'link',
       '#title' => $this->t('Edit Demographics'),
-      '#url' => \Drupal\Core\Url::fromRoute('nfr.enrollment_questionnaire'),
+      '#url' => \Drupal\Core\Url::fromRoute('nfr.questionnaire.section1'),
       '#attributes' => ['class' => ['button', 'button--secondary']],
     ];
 
@@ -142,7 +157,7 @@ class NFRReviewSubmitForm extends FormBase {
     $form['work_history_section']['edit'] = [
       '#type' => 'link',
       '#title' => $this->t('Edit Work History'),
-      '#url' => \Drupal\Core\Url::fromRoute('nfr.enrollment_questionnaire'),
+      '#url' => \Drupal\Core\Url::fromRoute('nfr.questionnaire.section2'),
       '#attributes' => ['class' => ['button', 'button--secondary']],
     ];
 
@@ -161,7 +176,7 @@ class NFRReviewSubmitForm extends FormBase {
     $form['exposure_section']['edit'] = [
       '#type' => 'link',
       '#title' => $this->t('Edit Exposure Information'),
-      '#url' => \Drupal\Core\Url::fromRoute('nfr.enrollment_questionnaire'),
+      '#url' => \Drupal\Core\Url::fromRoute('nfr.questionnaire.section3'),
       '#attributes' => ['class' => ['button', 'button--secondary']],
     ];
 
@@ -180,7 +195,7 @@ class NFRReviewSubmitForm extends FormBase {
     $form['military_section']['edit'] = [
       '#type' => 'link',
       '#title' => $this->t('Edit Military Service'),
-      '#url' => \Drupal\Core\Url::fromRoute('nfr.enrollment_questionnaire'),
+      '#url' => \Drupal\Core\Url::fromRoute('nfr.questionnaire.section4'),
       '#attributes' => ['class' => ['button', 'button--secondary']],
     ];
 
@@ -199,7 +214,7 @@ class NFRReviewSubmitForm extends FormBase {
     $form['other_employment_section']['edit'] = [
       '#type' => 'link',
       '#title' => $this->t('Edit Other Employment'),
-      '#url' => \Drupal\Core\Url::fromRoute('nfr.enrollment_questionnaire'),
+      '#url' => \Drupal\Core\Url::fromRoute('nfr.questionnaire.section5'),
       '#attributes' => ['class' => ['button', 'button--secondary']],
     ];
 
@@ -218,7 +233,7 @@ class NFRReviewSubmitForm extends FormBase {
     $form['ppe_section']['edit'] = [
       '#type' => 'link',
       '#title' => $this->t('Edit PPE Practices'),
-      '#url' => \Drupal\Core\Url::fromRoute('nfr.enrollment_questionnaire'),
+      '#url' => \Drupal\Core\Url::fromRoute('nfr.questionnaire.section6'),
       '#attributes' => ['class' => ['button', 'button--secondary']],
     ];
 
@@ -237,7 +252,7 @@ class NFRReviewSubmitForm extends FormBase {
     $form['decon_section']['edit'] = [
       '#type' => 'link',
       '#title' => $this->t('Edit Decontamination Practices'),
-      '#url' => \Drupal\Core\Url::fromRoute('nfr.enrollment_questionnaire'),
+      '#url' => \Drupal\Core\Url::fromRoute('nfr.questionnaire.section7'),
       '#attributes' => ['class' => ['button', 'button--secondary']],
     ];
 
@@ -256,7 +271,7 @@ class NFRReviewSubmitForm extends FormBase {
     $form['health_section']['edit'] = [
       '#type' => 'link',
       '#title' => $this->t('Edit Health Information'),
-      '#url' => \Drupal\Core\Url::fromRoute('nfr.enrollment_questionnaire'),
+      '#url' => \Drupal\Core\Url::fromRoute('nfr.questionnaire.section8'),
       '#attributes' => ['class' => ['button', 'button--secondary']],
     ];
 
@@ -275,7 +290,7 @@ class NFRReviewSubmitForm extends FormBase {
     $form['lifestyle_section']['edit'] = [
       '#type' => 'link',
       '#title' => $this->t('Edit Lifestyle Factors'),
-      '#url' => \Drupal\Core\Url::fromRoute('nfr.enrollment_questionnaire'),
+      '#url' => \Drupal\Core\Url::fromRoute('nfr.questionnaire.section9'),
       '#attributes' => ['class' => ['button', 'button--secondary']],
     ];
 
@@ -439,19 +454,31 @@ class NFRReviewSubmitForm extends FormBase {
     $incomplete = [];
 
     if (!$consent || empty($consent['consented_to_participate'])) {
-      $incomplete[] = $this->t('Informed Consent');
+      $incomplete[] = [
+        'title' => $this->t('Informed Consent'),
+        'url' => '/nfr/consent',
+      ];
     }
 
     if (!$profile || empty($profile['profile_completed'])) {
-      $incomplete[] = $this->t('User Profile');
+      $incomplete[] = [
+        'title' => $this->t('User Profile'),
+        'url' => '/nfr/user-profile',
+      ];
     }
 
     if (empty($questionnaire['demographics'])) {
-      $incomplete[] = $this->t('Demographics');
+      $incomplete[] = [
+        'title' => $this->t('Demographics'),
+        'url' => '/nfr/questionnaire/section/1',
+      ];
     }
 
     if (empty($questionnaire['work_history'])) {
-      $incomplete[] = $this->t('Work History');
+      $incomplete[] = [
+        'title' => $this->t('Work History'),
+        'url' => '/nfr/questionnaire/section/2',
+      ];
     }
 
     return $incomplete;
@@ -767,6 +794,77 @@ class NFRReviewSubmitForm extends FormBase {
 
     $html .= '</div>';
 
+    return $html;
+  }
+
+  /**
+   * Build process flow diagram for review page.
+   */
+  private function buildProcessFlowDiagram(): string {
+    $uid = (int) $this->currentUser->id();
+    
+    // Get last completed section from database
+    $last_completed = $this->database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['last_section_completed'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchField();
+    
+    $last_completed = (int) ($last_completed ?: 0);
+    
+    // Calculate progress percentage
+    $progress_percent = ($last_completed / 9) * 100;
+    
+    $sections = [
+      1 => 'Demographics',
+      2 => 'Work History',
+      3 => 'Exposure Info',
+      4 => 'Military Service',
+      5 => 'Other Employment',
+      6 => 'PPE Practices',
+      7 => 'Decontamination',
+      8 => 'Health Info',
+      9 => 'Lifestyle',
+    ];
+
+    // Build process flow stepper
+    $html = '<div class="nfr-process-stepper">';
+    $html .= '<div class="stepper-header">';
+    $html .= '<div class="stepper-title">Review & Submit</div>';
+    $html .= '<div class="stepper-progress">' . round($progress_percent) . '% Complete</div>';
+    $html .= '</div>';
+    $html .= '<div class="stepper-steps">';
+    
+    foreach ($sections as $section_num => $section_name) {
+      $step_class = 'stepper-step';
+      $is_completed = ($section_num <= $last_completed);
+      
+      if ($is_completed) {
+        $step_class .= ' completed clickable';
+      }
+      else {
+        $step_class .= ' upcoming clickable';
+      }
+      
+      $html .= '<div class="' . $step_class . '" data-section="' . $section_num . '">';
+      $html .= '<a href="/nfr/questionnaire/section/' . $section_num . '" class="step-link">';
+      $html .= '<div class="step-number">';
+      
+      if ($is_completed) {
+        $html .= '<svg class="step-check" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+      }
+      else {
+        $html .= $section_num;
+      }
+      
+      $html .= '</div>';
+      $html .= '<div class="step-label">' . $section_name . '</div>';
+      $html .= '</a>';
+      $html .= '</div>';
+    }
+    
+    $html .= '</div></div>';
+    
     return $html;
   }
 

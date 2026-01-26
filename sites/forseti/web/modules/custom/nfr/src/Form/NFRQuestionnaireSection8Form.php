@@ -53,7 +53,13 @@ class NFRQuestionnaireSection8Form extends FormBase {
     // Load health data from database columns
     $database = $this->getDatabase();
     $questionnaire = $database->select('nfr_questionnaire', 'q')
-      ->fields('q', ['cancer_diagnosis', 'cancer_details', 'family_cancer_history'])
+      ->fields('q', [
+        'cancer_diagnosis',
+        'health_heart_disease',
+        'health_copd',
+        'health_asthma',
+        'health_diabetes',
+      ])
       ->condition('uid', $uid)
       ->execute()
       ->fetchAssoc();
@@ -61,9 +67,28 @@ class NFRQuestionnaireSection8Form extends FormBase {
     $health = [];
     if ($questionnaire) {
       $health['cancer_diagnosed'] = $questionnaire['cancer_diagnosis'] ? 'yes' : 'no';
-      $cancer_details = $questionnaire['cancer_details'] ? json_decode($questionnaire['cancer_details'], TRUE) : [];
-      $health['cancers'] = $cancer_details['cancers'] ?? [];
-      $health['other_conditions'] = $cancer_details['other_conditions'] ?? [];
+      
+      // Load other conditions from boolean columns
+      $health['other_conditions'] = [];
+      if ($questionnaire['health_heart_disease']) $health['other_conditions'][] = 'heart_disease';
+      if ($questionnaire['health_copd']) $health['other_conditions'][] = 'copd';
+      if ($questionnaire['health_asthma']) $health['other_conditions'][] = 'asthma';
+      if ($questionnaire['health_diabetes']) $health['other_conditions'][] = 'diabetes';
+    }
+    
+    // Load cancer diagnoses from nfr_cancer_diagnoses table
+    $cancers = $database->select('nfr_cancer_diagnoses', 'cd')
+      ->fields('cd')
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchAll();
+    
+    $health['cancers'] = [];
+    foreach ($cancers as $cancer) {
+      $health['cancers'][] = [
+        'type' => $cancer->cancer_type,
+        'year_diagnosed' => $cancer->year_diagnosed,
+      ];
     }
 
     // Add navigation menu
@@ -220,23 +245,55 @@ class NFRQuestionnaireSection8Form extends FormBase {
     $uid = $this->getCurrentUserId();
     $health = $form_state->getValue('health');
 
-    // Prepare cancer details as JSON
-    $cancer_details = [
-      'cancers' => $health['cancers'] ?? [],
-      'other_conditions' => array_filter($health['other_conditions'] ?? []),
-    ];
-
-    // Save health data to database columns
     $database = $this->getDatabase();
+    $has_cancer = ($health['cancer_diagnosed'] === 'yes');
+    
+    // Prepare condition fields
+    $other_conditions = array_filter($health['other_conditions'] ?? []);
+    $condition_fields = [
+      'health_heart_disease' => in_array('heart_disease', $other_conditions) ? 1 : 0,
+      'health_copd' => in_array('copd', $other_conditions) ? 1 : 0,
+      'health_asthma' => in_array('asthma', $other_conditions) ? 1 : 0,
+      'health_diabetes' => in_array('diabetes', $other_conditions) ? 1 : 0,
+    ];
+    
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
+    // Save health data to database columns
     $database->update('nfr_questionnaire')
-      ->fields([
-        'cancer_diagnosis' => ($health['cancer_diagnosed'] === 'yes') ? 1 : 0,
-        'cancer_details' => json_encode($cancer_details),
+      ->fields(array_merge([
+        'cancer_diagnosis' => $has_cancer ? 1 : 0,
         'last_section_completed' => 8,
-      ])
+      ], $condition_fields))
       ->condition('uid', $uid)
       ->execute();
+    
+    // Delete existing cancer diagnoses
+    $database->delete('nfr_cancer_diagnoses')
+      ->condition('uid', $uid)
+      ->execute();
+    
+    // Insert cancer diagnoses if they have cancer
+    if ($has_cancer && !empty($health['cancers'])) {
+      $time = \Drupal::time()->getRequestTime();
+      
+      foreach ($health['cancers'] as $cancer) {
+        if (!empty($cancer['type'])) {
+          $database->insert('nfr_cancer_diagnoses')
+            ->fields([
+              'uid' => $uid,
+              'cancer_type' => $cancer['type'],
+              'year_diagnosed' => !empty($cancer['year_diagnosed']) ? (int) $cancer['year_diagnosed'] : NULL,
+              'created' => $time,
+              'updated' => $time,
+            ])
+            ->execute();
+        }
+      }
+    }
 
+    $this->messenger()->addStatus($this->t('Section 8 saved.'));
     $form_state->setRedirect('nfr.questionnaire.section9');
   }
 
@@ -244,6 +301,56 @@ class NFRQuestionnaireSection8Form extends FormBase {
    * Submit handler for previous button.
    */
   public function previousSection(array &$form, FormStateInterface $form_state): void {
+    $uid = $this->getCurrentUserId();
+    $health = $form_state->getValue('health');
+
+    $database = $this->getDatabase();
+    $has_cancer = ($health['cancer_diagnosed'] === 'yes');
+    
+    // Prepare condition fields
+    $other_conditions = array_filter($health['other_conditions'] ?? []);
+    $condition_fields = [
+      'health_heart_disease' => in_array('heart_disease', $other_conditions) ? 1 : 0,
+      'health_copd' => in_array('copd', $other_conditions) ? 1 : 0,
+      'health_asthma' => in_array('asthma', $other_conditions) ? 1 : 0,
+      'health_diabetes' => in_array('diabetes', $other_conditions) ? 1 : 0,
+    ];
+    
+    // Save health data to database columns
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
+    $database->update('nfr_questionnaire')
+      ->fields(array_merge([
+        'cancer_diagnosis' => $has_cancer ? 1 : 0,
+      ], $condition_fields))
+      ->condition('uid', $uid)
+      ->execute();
+    
+    // Delete existing cancer diagnoses
+    $database->delete('nfr_cancer_diagnoses')
+      ->condition('uid', $uid)
+      ->execute();
+    
+    // Insert cancer diagnoses if they have cancer
+    if ($has_cancer && !empty($health['cancers'])) {
+      $time = \Drupal::time()->getRequestTime();
+      
+      foreach ($health['cancers'] as $cancer) {
+        if (!empty($cancer['type'])) {
+          $database->insert('nfr_cancer_diagnoses')
+            ->fields([
+              'uid' => $uid,
+              'cancer_type' => $cancer['type'],
+              'year_diagnosed' => !empty($cancer['year_diagnosed']) ? (int) $cancer['year_diagnosed'] : NULL,
+              'created' => $time,
+              'updated' => $time,
+            ])
+            ->execute();
+        }
+      }
+    }
+    
     $form_state->setRedirect('nfr.questionnaire.section7');
   }
 
@@ -254,21 +361,52 @@ class NFRQuestionnaireSection8Form extends FormBase {
     $uid = $this->getCurrentUserId();
     $health = $form_state->getValue('health');
 
-    // Prepare cancer details as JSON
-    $cancer_details = [
-      'cancers' => $health['cancers'] ?? [],
-      'other_conditions' => array_filter($health['other_conditions'] ?? []),
-    ];
-
-    // Save health data to database columns
     $database = $this->getDatabase();
+    $has_cancer = ($health['cancer_diagnosed'] === 'yes');
+    
+    // Prepare condition fields
+    $other_conditions = array_filter($health['other_conditions'] ?? []);
+    $condition_fields = [
+      'health_heart_disease' => in_array('heart_disease', $other_conditions) ? 1 : 0,
+      'health_copd' => in_array('copd', $other_conditions) ? 1 : 0,
+      'health_asthma' => in_array('asthma', $other_conditions) ? 1 : 0,
+      'health_diabetes' => in_array('diabetes', $other_conditions) ? 1 : 0,
+    ];
+    
+    // Save health data to database columns
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
     $database->update('nfr_questionnaire')
-      ->fields([
-        'cancer_diagnosis' => ($health['cancer_diagnosed'] === 'yes') ? 1 : 0,
-        'cancer_details' => json_encode($cancer_details),
-      ])
+      ->fields(array_merge([
+        'cancer_diagnosis' => $has_cancer ? 1 : 0,
+      ], $condition_fields))
       ->condition('uid', $uid)
       ->execute();
+    
+    // Delete existing cancer diagnoses
+    $database->delete('nfr_cancer_diagnoses')
+      ->condition('uid', $uid)
+      ->execute();
+    
+    // Insert cancer diagnoses if they have cancer
+    if ($has_cancer && !empty($health['cancers'])) {
+      $time = \Drupal::time()->getRequestTime();
+      
+      foreach ($health['cancers'] as $cancer) {
+        if (!empty($cancer['type'])) {
+          $database->insert('nfr_cancer_diagnoses')
+            ->fields([
+              'uid' => $uid,
+              'cancer_type' => $cancer['type'],
+              'year_diagnosed' => !empty($cancer['year_diagnosed']) ? (int) $cancer['year_diagnosed'] : NULL,
+              'created' => $time,
+              'updated' => $time,
+            ])
+            ->execute();
+        }
+      }
+    }
 
     $this->messenger()->addStatus($this->t('Your progress has been saved.'));
     $form_state->setRedirect('nfr.dashboard');

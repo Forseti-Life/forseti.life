@@ -215,6 +215,9 @@ class NFRQuestionnaireSection4Form extends FormBase {
     $database = $this->getDatabase();
     $served = ($military['served'] === 'yes');
     
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
+    
     $database->update('nfr_questionnaire')
       ->fields([
         'military_service' => $served ? 1 : 0,
@@ -239,6 +242,9 @@ class NFRQuestionnaireSection4Form extends FormBase {
     // Save military data to database columns
     $database = $this->getDatabase();
     $served = ($military['served'] === 'yes');
+    
+    // Ensure record exists before updating
+    $this->ensureQuestionnaireRecordExists($uid, $database);
     
     $database->update('nfr_questionnaire')
       ->fields([

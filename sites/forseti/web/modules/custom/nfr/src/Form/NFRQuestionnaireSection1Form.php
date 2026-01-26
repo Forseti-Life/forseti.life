@@ -142,16 +142,37 @@ class NFRQuestionnaireSection1Form extends FormBase {
 
     // Save demographics to specific columns
     $database = $this->getDatabase();
-    $database->update('nfr_questionnaire')
-      ->fields([
-        'race_ethnicity' => $race_json,
-        'race_other' => $demographics['race_other'] ?: NULL,
-        'education_level' => $demographics['education_level'] ?: NULL,
-        'marital_status' => $demographics['marital_status'] ?: NULL,
-        'last_section_completed' => 1,
-      ])
+    
+    // Check if record exists
+    $exists = $database->select('nfr_questionnaire', 'q')
+      ->fields('q', ['uid'])
       ->condition('uid', $uid)
-      ->execute();
+      ->execute()
+      ->fetchField();
+    
+    $fields = [
+      'race_ethnicity' => $race_json,
+      'race_other' => $demographics['race_other'] ?: NULL,
+      'education_level' => $demographics['education_level'] ?: NULL,
+      'marital_status' => $demographics['marital_status'] ?: NULL,
+      'last_section_completed' => 1,
+    ];
+    
+    if ($exists) {
+      // Update existing record
+      $database->update('nfr_questionnaire')
+        ->fields($fields)
+        ->condition('uid', $uid)
+        ->execute();
+    }
+    else {
+      // Insert new record
+      $fields['uid'] = $uid;
+      $fields['created'] = time();
+      $database->insert('nfr_questionnaire')
+        ->fields($fields)
+        ->execute();
+    }
 
     $this->messenger()->addStatus($this->t('Section 1 saved successfully.'));
     $form_state->setRedirect('nfr.questionnaire.section2');
