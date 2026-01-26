@@ -1459,6 +1459,103 @@ function nfr_schema() {
     ],
   ];
 
+  // Other Employment
+  $schema['nfr_other_employment'] = [
+    'description' => 'Stores other employment history outside of firefighting',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'User ID',
+      ],
+      'occupation' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'industry' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'start_year' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'end_year' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'exposures' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON array of exposure types',
+      ],
+      'exposures_other' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid' => ['uid'],
+    ],
+  ];
+
+  // Cancer Diagnoses
+  $schema['nfr_cancer_diagnoses'] = [
+    'description' => 'Stores cancer diagnosis records',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'User ID',
+      ],
+      'cancer_type' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'year_diagnosed' => [
+        'type' => 'int',
+        'not null' => FALSE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid' => ['uid'],
+    ],
+  ];
+
   // Consent Data
   $schema['nfr_consent'] = [
     'description' => 'Stores informed consent records',
