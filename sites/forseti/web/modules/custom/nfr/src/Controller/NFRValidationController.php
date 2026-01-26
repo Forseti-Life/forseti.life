@@ -997,7 +997,7 @@ class NFRValidationController extends ControllerBase {
       }
 
       // Verify PPE practices and always_used checkboxes
-      if ($record['ppe_practices']) {
+      if (!empty($record['ppe_practices'])) {
         $ppe_data = json_decode($record['ppe_practices'], TRUE);
         $verified_fields['ppe_practices'] = [
           'status' => 'success',
@@ -1029,7 +1029,7 @@ class NFRValidationController extends ControllerBase {
       }
 
       // Verify decontamination
-      if ($record['decon_practices']) {
+      if (!empty($record['decon_practices'])) {
         $decon_data = json_decode($record['decon_practices'], TRUE);
         $verified_fields['decon_practices'] = [
           'status' => 'success',
