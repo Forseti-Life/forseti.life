@@ -39,28 +39,6 @@
         });
       });
 
-      // Questionnaire test buttons
-      once('nfr-test-questionnaire', '#test-questionnaire-flow', context).forEach(function (element) {
-        $(element).on('click', function (e) {
-          e.preventDefault();
-          testQuestionnaireFlow();
-        });
-      });
-
-      once('nfr-verify-database', '#verify-questionnaire-data', context).forEach(function (element) {
-        $(element).on('click', function (e) {
-          e.preventDefault();
-          verifyQuestionnaireDatabase();
-        });
-      });
-
-      once('nfr-clear-test-data', '#clear-test-data', context).forEach(function (element) {
-        $(element).on('click', function (e) {
-          e.preventDefault();
-          clearTestData();
-        });
-      });
-
       // Full enrollment flow test
       once('nfr-test-full-enrollment', '#test-full-enrollment', context).forEach(function (element) {
         $(element).on('click', function (e) {
@@ -298,191 +276,6 @@
   }
 
   /**
-   * Test questionnaire data flow.
-   */
-  function testQuestionnaireFlow() {
-    const $btn = $('#test-questionnaire-flow');
-    const $results = $('#questionnaire-test-results');
-    
-    $btn.prop('disabled', true).text('🧪 Running Test...');
-    $results.html('<div class="alert alert-info">⏳ Running questionnaire test...</div>');
-    
-    $.ajax({
-      url: '/admin/nfr/validation/test-questionnaire',
-      method: 'GET',
-      dataType: 'json',
-      success: function (response) {
-        displayQuestionnaireResults(response, $results);
-        $btn.prop('disabled', false).text('📝 Run Questionnaire Test');
-      },
-      error: function (xhr, status, error) {
-        $results.html('<div class="alert alert-danger">❌ Error: ' + error + '</div>');
-        $btn.prop('disabled', false).text('📝 Run Questionnaire Test');
-      }
-    });
-  }
-
-  /**
-   * Display questionnaire test results.
-   */
-  function displayQuestionnaireResults(response, $results) {
-    let html = '';
-    
-    if (response.success) {
-      html += '<div class="alert alert-success">';
-      html += '<h4>✅ Questionnaire Test Successful</h4>';
-      html += '</div>';
-    } else {
-      html += '<div class="alert alert-danger">';
-      html += '<h4>❌ Questionnaire Test Failed</h4>';
-      html += '</div>';
-    }
-    
-    // Display steps
-    html += '<div class="test-steps">';
-    html += '<h4>Test Steps:</h4>';
-    response.steps.forEach(function (step, index) {
-      const icon = step.status === 'success' ? '✅' : '❌';
-      const className = step.status === 'success' ? 'step-success' : 'step-error';
-      
-      html += '<div class="test-step ' + className + '">';
-      html += '<div class="step-header">';
-      html += '<span class="step-icon">' + icon + '</span>';
-      html += '<span class="step-number">Step ' + (index + 1) + ':</span> ';
-      html += '<strong>' + step.step + '</strong>';
-      html += '</div>';
-      html += '<div class="step-message">' + step.message + '</div>';
-      
-      // Show verified fields for verification step
-      if (step.verified_fields && Object.keys(step.verified_fields).length > 0) {
-        html += '<div class="verified-fields">';
-        html += '<h5>Verified Fields:</h5>';
-        html += '<ul>';
-        Object.keys(step.verified_fields).forEach(function (field) {
-          const fieldData = step.verified_fields[field];
-          html += '<li><code>' + field + '</code>: ' + fieldData.value + '</li>';
-        });
-        html += '</ul>';
-        html += '</div>';
-      }
-      
-      html += '</div>';
-    });
-    html += '</div>';
-    
-    // Display errors if any
-    if (response.errors && response.errors.length > 0) {
-      html += '<div class="test-errors">';
-      html += '<h4>Errors:</h4>';
-      html += '<ul>';
-      response.errors.forEach(function (error) {
-        html += '<li class="text-danger">' + error + '</li>';
-      });
-      html += '</ul>';
-      html += '</div>';
-    }
-    
-    $results.html(html);
-  }
-
-  /**
-   * Verify questionnaire database.
-   */
-  function verifyQuestionnaireDatabase() {
-    const $btn = $('#verify-questionnaire-data');
-    const $results = $('#questionnaire-test-results');
-    
-    $btn.prop('disabled', true).text('⏳ Verifying...');
-    $results.html('<div class="alert alert-info">🔍 Checking database...</div>');
-    
-    $.ajax({
-      url: '/admin/nfr/validation/verify-database',
-      method: 'GET',
-      dataType: 'json',
-      success: function (response) {
-        displayVerificationResults(response, $results);
-        $btn.prop('disabled', false).text('✓ Verify Database');
-      },
-      error: function (xhr, status, error) {
-        $results.html('<div class="alert alert-danger">❌ Error: ' + error + '</div>');
-        $btn.prop('disabled', false).text('✓ Verify Database');
-      }
-    });
-  }
-
-  /**
-   * Display verification results.
-   */
-  function displayVerificationResults(response, $results) {
-    let html = '';
-    
-    if (response.success) {
-      html += '<div class="alert alert-success">';
-      html += '<h4>✅ ' + response.message + '</h4>';
-      html += '</div>';
-      
-      if (response.fields && Object.keys(response.fields).length > 0) {
-        html += '<div class="verified-fields-table">';
-        html += '<table class="table table-sm">';
-        html += '<thead><tr><th>Field</th><th>Status</th><th>Value</th></tr></thead>';
-        html += '<tbody>';
-        
-        Object.keys(response.fields).forEach(function (field) {
-          const fieldData = response.fields[field];
-          const icon = fieldData.status === 'success' ? '✅' : '⚠️';
-          
-          html += '<tr>';
-          html += '<td><code>' + field + '</code></td>';
-          html += '<td>' + icon + '</td>';
-          html += '<td>' + fieldData.value + '</td>';
-          html += '</tr>';
-        });
-        
-        html += '</tbody></table>';
-        html += '</div>';
-      }
-    } else {
-      html += '<div class="alert alert-warning">';
-      html += '<h4>⚠️ ' + response.message + '</h4>';
-      html += '</div>';
-    }
-    
-    $results.html(html);
-  }
-
-  /**
-   * Clear test data.
-   */
-  function clearTestData() {
-    if (!confirm('Are you sure you want to clear test questionnaire data?')) {
-      return;
-    }
-    
-    const $btn = $('#clear-test-data');
-    const $results = $('#questionnaire-test-results');
-    
-    $btn.prop('disabled', true).text('⏳ Clearing...');
-    
-    $.ajax({
-      url: '/admin/nfr/validation/clear-test-data',
-      method: 'GET',
-      dataType: 'json',
-      success: function (response) {
-        if (response.success) {
-          $results.html('<div class="alert alert-success">🗑️ ' + response.message + '</div>');
-        } else {
-          $results.html('<div class="alert alert-danger">❌ ' + response.message + '</div>');
-        }
-        $btn.prop('disabled', false).text('🗑️ Clear Test Data');
-      },
-      error: function (xhr, status, error) {
-        $results.html('<div class="alert alert-danger">❌ Error: ' + error + '</div>');
-        $btn.prop('disabled', false).text('🗑️ Clear Test Data');
-      }
-    });
-  }
-
-  /**
    * Test full enrollment flow with random data.
    */
   function testFullEnrollmentFlow() {
@@ -516,7 +309,7 @@
     // Display test user info if available
     if (response.test_user) {
       html += '<div class="alert alert-info" style="background: rgba(23, 162, 184, 0.15); border-color: #17a2b8;">';
-      html += '<strong>👤 Testing with User:</strong> ';
+      html += '<strong style="color: white;">👤 Testing with User:</strong> ';
       html += '<code>' + response.test_user.username + '</code> ';
       html += '<span class="badge bg-secondary">UID: ' + response.test_user.uid + '</span> ';
       html += '<span class="badge bg-info">' + response.test_user.status + '</span>';
@@ -738,21 +531,40 @@
   function createTestUsers() {
     const $btn = $('#create-test-users');
     const $results = $('#test-users-results');
+    const role = $('#user-role-select').val();
+    const count = parseInt($('#user-count-input').val());
     
-    $btn.prop('disabled', true).text('➕ Creating Users...');
-    $results.html('<div class="alert alert-info">⏳ Creating 170 test users (5 each of 4 roles + 150 firefighters)...</div>');
+    // Validate input
+    if (!count || count < 1 || count > 500) {
+      $results.html('<div class="alert alert-danger">❌ Please enter a valid number between 1 and 500</div>');
+      return;
+    }
+    
+    const roleLabels = {
+      'firefighter': 'Firefighter',
+      'nfr_administrator': 'NFR Administrator',
+      'nfr_researcher': 'NFR Researcher',
+      'fire_dept_admin': 'Fire Department Admin'
+    };
+    
+    $btn.prop('disabled', true).text('➕ Creating...');
+    $results.html('<div class="alert alert-info">⏳ Creating ' + count + ' ' + roleLabels[role] + ' user(s)...</div>');
     
     $.ajax({
       url: '/admin/nfr/validation/create-test-users',
       method: 'GET',
+      data: {
+        role: role,
+        count: count
+      },
       dataType: 'json',
       success: function (response) {
         displayTestUsersResults(response, $results, 'create');
-        $btn.prop('disabled', false).text('➕ Create Test Users (170 users)');
+        $btn.prop('disabled', false).text('➕ Create Users');
       },
       error: function (xhr, status, error) {
         $results.html('<div class="alert alert-danger">❌ Error: ' + error + '</div>');
-        $btn.prop('disabled', false).text('➕ Create Test Users (170 users)');
+        $btn.prop('disabled', false).text('➕ Create Users');
       }
     });
   }
@@ -788,22 +600,32 @@
   function submitAllFirefighterQuestionnaires() {
     const $btn = $('#submit-all-firefighters');
     const $results = $('#test-users-results');
+    const count = parseInt($('#questionnaire-count-input').val());
+    
+    // Validate input
+    if (!count || count < 1 || count > 500) {
+      $results.html('<div class="alert alert-danger">❌ Please enter a valid number between 1 and 500</div>');
+      return;
+    }
     
     $btn.prop('disabled', true).text('📋 Submitting...');
-    $results.html('<div class="alert alert-info">⏳ Submitting questionnaires for all firefighter users... This may take a few minutes.</div>');
+    $results.html('<div class="alert alert-info">⏳ Processing up to ' + count + ' incomplete firefighter(s)... This may take a few minutes.</div>');
     
     $.ajax({
       url: '/admin/nfr/validation/submit-all-firefighters',
       method: 'GET',
+      data: {
+        count: count
+      },
       dataType: 'json',
       timeout: 600000, // 10 minute timeout
       success: function (response) {
         displayFirefighterSubmissionResults(response, $results);
-        $btn.prop('disabled', false).text('📋 Submit Questionnaires for All Firefighters');
+        $btn.prop('disabled', false).text('📋 Submit Questionnaires');
       },
       error: function (xhr, status, error) {
         $results.html('<div class="alert alert-danger">❌ Error: ' + error + '</div>');
-        $btn.prop('disabled', false).text('📋 Submit Questionnaires for All Firefighters');
+        $btn.prop('disabled', false).text('📋 Submit Questionnaires');
       }
     });
   }
@@ -847,13 +669,11 @@
         
         if (response.summary) {
           html += '<div class="user-summary">';
-          html += '<h5>Summary by Role:</h5>';
+          html += '<h5>Summary:</h5>';
           html += '<ul>';
-          html += '<li>NFR Administrators: ' + response.summary.nfr_administrators + '</li>';
-          html += '<li>NFR Researchers: ' + response.summary.nfr_researchers + '</li>';
-          html += '<li>Fire Department Admins: ' + response.summary.fire_dept_admins + '</li>';
-          html += '<li>Firefighters: ' + response.summary.firefighters + '</li>';
-          html += '<li><strong>Total: ' + response.summary.total + '</strong></li>';
+          html += '<li><strong>Role:</strong> ' + response.summary.role + '</li>';
+          html += '<li><strong>Created:</strong> ' + response.summary.count + '</li>';
+          html += '<li><strong>Total:</strong> ' + response.summary.total + '</li>';
           html += '</ul>';
           html += '</div>';
         }
@@ -866,7 +686,8 @@
           html += '<thead><tr><th>UID</th><th>Username</th><th>Role</th><th>Email</th></tr></thead>';
           html += '<tbody>';
           
-          response.users_created.slice(0, 10).forEach(function (user) {
+          const displayCount = Math.min(10, response.users_created.length);
+          response.users_created.slice(0, displayCount).forEach(function (user) {
             html += '<tr>';
             html += '<td>' + user.uid + '</td>';
             html += '<td><code>' + user.username + '</code></td>';
@@ -876,7 +697,9 @@
           });
           
           html += '</tbody></table>';
-          html += '<p class="text-muted">...and ' + (response.users_created.length - 10) + ' more users</p>';
+          if (response.users_created.length > 10) {
+            html += '<p class="text-muted">...and ' + (response.users_created.length - 10) + ' more users</p>';
+          }
           html += '</div>';
         }
       } else if (action === 'delete') {
@@ -921,9 +744,13 @@
     html += '<h5>Summary:</h5>';
     html += '<ul>';
     html += '<li>Total Firefighters: ' + response.total_firefighters + '</li>';
+    html += '<li>Incomplete Found: ' + response.incomplete_found + '</li>';
+    html += '<li>Processed: ' + response.processed + '</li>';
     html += '<li>✅ Successful: ' + response.successful_submissions + '</li>';
     html += '<li>❌ Failed: ' + response.failed_submissions + '</li>';
-    html += '<li>Success Rate: ' + response.success_rate + '%</li>';
+    if (response.success_rate) {
+      html += '<li>Success Rate: ' + response.success_rate + '%</li>';
+    }
     html += '</ul>';
     html += '</div>';
     

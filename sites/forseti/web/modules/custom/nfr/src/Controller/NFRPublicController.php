@@ -389,7 +389,7 @@ class NFRPublicController extends ControllerBase {
       
       // Consented participants
       $stats['consented_participants'] = (int) $connection->select('nfr_consent', 'c')
-        ->condition('consent_given', 1)
+        ->condition('consented_to_participate', 1)
         ->countQuery()
         ->execute()
         ->fetchField();

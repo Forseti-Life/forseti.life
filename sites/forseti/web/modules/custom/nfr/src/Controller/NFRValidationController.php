@@ -341,56 +341,71 @@ class NFRValidationController extends ControllerBase {
   private function buildValidationDashboard(array $routes, array $users): string {
     $html = '<div class="validation-dashboard">';
     
-    // Header
-    $html .= '<div class="validation-header">';
-    $html .= '<h1>' . $this->t('NFR Validation Dashboard') . '</h1>';
-    $html .= '<p class="validation-subtitle">' . 
-      $this->t('Test all NFR routes with different user permissions') . '</p>';
-    $html .= '<p><a href="/admin/nfr/validation/fill-rates" class="btn btn-outline-info">📊 View Fill Rates Report</a></p>';
-    
-    // User statistics bar
-    $total_users = $this->getTotalUsers();
-    $test_users = $this->getTestUsersCount();
-    $production_users = $total_users - $test_users;
-    
-    $html .= '<div class="user-stats-bar">';
-    $html .= '<div class="stat-item">';
-    $html .= '<span class="stat-label">Total Users:</span> ';
-    $html .= '<span class="stat-value">' . number_format($total_users) . '</span>';
-    $html .= '</div>';
-    $html .= '<div class="stat-divider">|</div>';
-    $html .= '<div class="stat-item">';
-    $html .= '<span class="stat-label">Production Users:</span> ';
-    $html .= '<span class="stat-value text-success">' . number_format($production_users) . '</span>';
-    $html .= '</div>';
-    $html .= '<div class="stat-divider">|</div>';
-    $html .= '<div class="stat-item">';
-    $html .= '<span class="stat-label">Test Users:</span> ';
-    $html .= '<span class="stat-value text-warning">' . number_format($test_users) . '</span>';
-    $html .= '</div>';
-    $html .= '</div>';
-    
-    $html .= '</div>';
+    $html .= '';
 
-    // Questionnaire Test Section
-    $html .= '<div class="questionnaire-test-section card card-forseti mb-4">';
-    $html .= '<h2 class="text-white">🧪 Questionnaire Data Flow Test</h2>';
-    $html .= '<p><strong>Tests questionnaire only (9 sections).</strong> Assumes profile is already complete. Submits data through Section 1-9 forms and verifies database storage.</p>';
-    $html .= '<ul class="text-muted small mb-3">';
-    $html .= '<li>Uses existing test user (firefighter_active)</li>';
-    $html .= '<li>Generates sample data for all sections</li>';
-    $html .= '<li>Submits through actual form workflow</li>';
-    $html .= '<li>Verifies questionnaire data in database</li>';
-    $html .= '</ul>';
-    $html .= '<div class="test-controls">';
-    $html .= '<button id="test-questionnaire-flow" class="btn btn-cyan btn-large">';
-    $html .= '📝 Run Questionnaire Test</button>';
-    $html .= '<button id="verify-questionnaire-data" class="btn btn-outline-primary">';
-    $html .= '✓ Verify Database</button>';
-    $html .= '<button id="clear-test-data" class="btn btn-outline-secondary">';
-    $html .= '🗑️ Clear Test Data</button>';
+    // Test Users Management Section
+    $html .= '<div class="test-users-section card card-forseti mb-4">';
+    $html .= '<h2 class="text-white">👥 Test Users Management</h2>';
+    $html .= '<p>Create test users for different NFR roles. Select a role and specify the number of users to create (1-500).</p>';
+    
+    // Display current user counts by role
+    $role_counts = $this->getUserCountsByRole();
+    $html .= '<div class="current-users-summary">';
+    $html .= '<h4 class="text-white mb-3">Current Users by Role:</h4>';
+    $html .= '<div class="role-counts-grid">';
+    
+    foreach ($role_counts as $role_info) {
+      $html .= '<div class="role-count-item">';
+      $html .= '<span class="role-label">' . htmlspecialchars($role_info['label']) . ':</span> ';
+      $html .= '<span class="role-count">' . number_format($role_info['count']) . '</span>';
+      $html .= '</div>';
+    }
+    
+    $total_role_users = array_sum(array_column($role_counts, 'count'));
+    $html .= '<div class="role-count-item total">';
+    $html .= '<span class="role-label"><strong>Total:</strong></span> ';
+    $html .= '<span class="role-count"><strong>' . number_format($total_role_users) . '</strong></span>';
     $html .= '</div>';
-    $html .= '<div id="questionnaire-test-results" class="test-results mt-3"></div>';
+    
+    $html .= '</div></div>';
+    
+    // Create Users Form
+    $html .= '<div class="create-users-form card bg-dark border-success p-3 mb-3">';
+    $html .= '<h4 class="text-white mb-3">➕ Create New Test Users</h4>';
+    $html .= '<div class="row g-3 align-items-end">';
+    
+    // Role selector
+    $html .= '<div class="col-md-5">';
+    $html .= '<label for="user-role-select" class="form-label text-white">Select Role:</label>';
+    $html .= '<select id="user-role-select" class="form-select">';
+    $html .= '<option value="firefighter">Firefighter</option>';
+    $html .= '<option value="nfr_administrator">NFR Administrator</option>';
+    $html .= '<option value="nfr_researcher">NFR Researcher</option>';
+    $html .= '<option value="fire_dept_admin">Fire Department Admin</option>';
+    $html .= '</select>';
+    $html .= '</div>';
+    
+    // Number input
+    $html .= '<div class="col-md-4">';
+    $html .= '<label for="user-count-input" class="form-label text-white">Number of Users:</label>';
+    $html .= '<input type="number" id="user-count-input" class="form-control" min="1" max="500" value="5" placeholder="1-500">';
+    $html .= '</div>';
+    
+    // Create button
+    $html .= '<div class="col-md-3">';
+    $html .= '<button id="create-test-users" class="btn btn-success w-100">';
+    $html .= '➕ Create Users</button>';
+    $html .= '</div>';
+    
+    $html .= '</div></div>';
+    
+    $html .= '<div class="test-controls mt-3">';
+    $html .= '<button id="view-fill-rates" class="btn btn-info btn-large">';
+    $html .= '📊 View Fill Rates</button>';
+    $html .= '<button id="delete-test-users" class="btn btn-danger">';
+    $html .= '🗑️ Delete All Test Users</button>';
+    $html .= '</div>';
+    $html .= '<div id="test-users-results" class="test-results mt-3"></div>';
     $html .= '</div>';
 
     // Full Enrollment Flow Test Section
@@ -421,47 +436,38 @@ class NFRValidationController extends ControllerBase {
     $html .= '✔️ Yes + Minimal Values Test</button>';
     $html .= '<button id="check-error-logs" class="btn btn-outline-warning">';
     $html .= '⚠️ Check Error Logs</button>';
+    $html .= '<a href="/admin/nfr/validation/fill-rates" class="btn btn-outline-info">📊 Data Quality Monitoring Dashboard</a>';
     $html .= '</div>';
     $html .= '<div id="enrollment-flow-results" class="test-results mt-3"></div>';
     $html .= '</div>';
 
-    // Test Users Management Section
-    $html .= '<div class="test-users-section card card-forseti mb-4">';
-    $html .= '<h2 class="text-white">👥 Test Users Management</h2>';
-    $html .= '<p>Create test users for different NFR roles: 5 of each role + 150 additional firefighters (170 total).</p>';
+    // Submit Questionnaires Section
+    $html .= '<div class="submit-questionnaires-section card card-forseti mb-4">';
     
-    // Display current user counts by role
-    $role_counts = $this->getUserCountsByRole();
-    $html .= '<div class="current-users-summary">';
-    $html .= '<h4 class="text-white mb-3">Current Users by Role:</h4>';
-    $html .= '<div class="role-counts-grid">';
-    
-    foreach ($role_counts as $role_info) {
-      $html .= '<div class="role-count-item">';
-      $html .= '<span class="role-label">' . htmlspecialchars($role_info['label']) . ':</span> ';
-      $html .= '<span class="role-count">' . number_format($role_info['count']) . '</span>';
-      $html .= '</div>';
-    }
-    
-    $total_role_users = array_sum(array_column($role_counts, 'count'));
-    $html .= '<div class="role-count-item total">';
-    $html .= '<span class="role-label"><strong>Total:</strong></span> ';
-    $html .= '<span class="role-count"><strong>' . number_format($total_role_users) . '</strong></span>';
+    // Validation header
+    $html .= '<div class="validation-header">';
+    $html .= '<h1>' . $this->t('NFR Validation Dashboard') . '</h1>';
     $html .= '</div>';
     
-    $html .= '</div></div>';
+    $html .= '<h2 class="text-white">📋 Submit Questionnaires for Firefighters</h2>';
+    $html .= '<p>Batch submit questionnaires for multiple firefighter users. Prioritizes incomplete users.</p>';
+    $html .= '<div class="row g-3 align-items-end">';
     
-    $html .= '<div class="test-controls mt-3">';
-    $html .= '<button id="create-test-users" class="btn btn-success btn-large">';
-    $html .= '➕ Create Test Users (170 users)</button>';
-    $html .= '<button id="submit-all-firefighters" class="btn btn-primary btn-large">';
-    $html .= '📋 Submit Questionnaires for All Firefighters</button>';
-    $html .= '<button id="view-fill-rates" class="btn btn-info btn-large">';
-    $html .= '📊 View Fill Rates</button>';
-    $html .= '<button id="delete-test-users" class="btn btn-danger">';
-    $html .= '🗑️ Delete All Test Users</button>';
+    // Number input
+    $html .= '<div class="col-md-6">';
+    $html .= '<label for="questionnaire-count-input" class="form-label text-white">Number of Firefighters to Process:</label>';
+    $html .= '<small class="d-block mb-2">Will submit questionnaires for incomplete firefighters (or fewer if not enough available)</small>';
+    $html .= '<input type="number" id="questionnaire-count-input" class="form-control" min="1" max="500" value="10" placeholder="1-500">';
     $html .= '</div>';
-    $html .= '<div id="test-users-results" class="test-results mt-3"></div>';
+    
+    // Submit button
+    $html .= '<div class="col-md-3">';
+    $html .= '<button id="submit-all-firefighters" class="btn btn-primary w-100">';
+    $html .= '📋 Submit Questionnaires</button>';
+    $html .= '</div>';
+    
+    $html .= '</div>';
+    $html .= '<div id="questionnaire-submit-results" class="test-results mt-3"></div>';
     $html .= '</div>';
 
     // Summary stats
@@ -472,7 +478,7 @@ class NFRValidationController extends ControllerBase {
     $html .= '</div>';
     $html .= '<div class="stat-box">';
     $html .= '<div class="stat-value">' . count($users) . '</div>';
-    $html .= '<div class="stat-label">' . $this->t('Test Users') . '</div>';
+    $html .= '<div class="stat-label">' . $this->t('User Roles Tested') . '</div>';
     $html .= '</div>';
     $html .= '<div class="stat-box">';
     $html .= '<div class="stat-value">' . (count($routes) * count($users)) . '</div>';
@@ -729,25 +735,28 @@ class NFRValidationController extends ControllerBase {
     ];
 
     try {
-      // Load test user by username (more reliable than hardcoded UID)
-      $username = 'firefighter_active';
-      $users = \Drupal::entityTypeManager()
-        ->getStorage('user')
-        ->loadByProperties(['name' => $username]);
+      // Get incomplete test user with priority selection
+      $test_user = $this->getIncompleteTestUser('firefighter');
       
-      if (empty($users)) {
-        $results['errors'][] = "Test user '$username' not found. Run 'drush updatedb' to create validation users.";
+      if (!$test_user) {
+        $results['errors'][] = "No firefighter test user found. Create test users first.";
         $results['success'] = false;
         return new JsonResponse($results);
       }
       
-      $user = reset($users);
-      $test_uid = (int) $user->id();
+      $test_uid = $test_user['uid'];
+      
+      // Add test user info to results
+      $results['test_user'] = [
+        'uid' => $test_user['uid'],
+        'username' => $test_user['username'],
+        'status' => $test_user['status'],
+      ];
 
       $results['steps'][] = [
         'step' => 'User Check',
         'status' => 'success',
-        'message' => "Test user loaded: {$user->getAccountName()}",
+        'message' => "Test user loaded: {$test_user['username']}",
       ];
 
       // Step 2: Generate test questionnaire data
@@ -1117,7 +1126,28 @@ class NFRValidationController extends ControllerBase {
         'status' => $test_user['status'],
       ];
       
-      // Step 1: Generate random user profile data
+      // Step 1: Generate and submit consent
+      $consent_data = $this->generateConsentData();
+      $results['steps'][] = [
+        'step' => 'Consent Data Generation',
+        'status' => 'success',
+        'message' => 'Generated consent data',
+      ];
+      
+      $consent_result = $this->submitConsentForm($test_uid, $consent_data);
+      $results['steps'][] = [
+        'step' => 'Consent Form Submission',
+        'status' => $consent_result['success'] ? 'success' : 'error',
+        'message' => $consent_result['message'],
+        'errors' => $consent_result['errors'] ?? [],
+      ];
+      
+      if (!$consent_result['success']) {
+        $results['success'] = false;
+        $results['errors'][] = 'Consent form submission failed: ' . $consent_result['message'];
+      }
+      
+      // Step 2: Generate random user profile data
       $profile_data = $this->generateRandomProfileData();
       $results['steps'][] = [
         'step' => 'Profile Data Generation',
@@ -1126,7 +1156,7 @@ class NFRValidationController extends ControllerBase {
         'data' => $profile_data,
       ];
 
-      // Step 2: Submit profile through actual form
+      // Step 3: Submit profile through actual form
       $profile_result = $this->submitProfileForm($test_uid, $profile_data);
       $results['steps'][] = [
         'step' => 'Profile Form Submission',
@@ -1140,7 +1170,7 @@ class NFRValidationController extends ControllerBase {
         $results['errors'][] = 'Profile form submission failed: ' . $profile_result['message'];
       }
 
-      // Step 3: Generate random questionnaire data
+      // Step 4: Generate random questionnaire data
       $questionnaire_data = $this->generateRandomQuestionnaireData($test_uid);
       $results['steps'][] = [
         'step' => 'Questionnaire Data Generation',
@@ -1148,7 +1178,7 @@ class NFRValidationController extends ControllerBase {
         'message' => 'Generated random questionnaire data for all 9 sections',
       ];
 
-      // Step 4: Submit all 9 questionnaire sections through actual forms
+      // Step 5: Submit all 9 questionnaire sections through actual forms
       $section_results = $this->submitAllQuestionnaireSections($test_uid, $questionnaire_data);
       
       foreach ($section_results as $section_num => $section_result) {
@@ -1165,7 +1195,7 @@ class NFRValidationController extends ControllerBase {
         }
       }
 
-      // Step 5: Check for errors in dblog
+      // Step 6: Check for errors in dblog
       $log_check = $this->checkErrorLogs();
       $results['steps'][] = [
         'step' => 'Error Log Check',
@@ -1211,68 +1241,49 @@ class NFRValidationController extends ControllerBase {
     ];
 
     try {
-      // First create the specific validation test users with exact UIDs
-      $validation_users = [
-        2 => ['username' => 'firefighter_active', 'role' => 'firefighter', 'label' => 'Firefighter (Active)'],
-        3 => ['username' => 'firefighter_retired', 'role' => 'firefighter', 'label' => 'Firefighter (Retired)'],
-        4 => ['username' => 'nfr_admin', 'role' => 'nfr_administrator', 'label' => 'NFR Administrator'],
-        5 => ['username' => 'nfr_researcher', 'role' => 'nfr_researcher', 'label' => 'NFR Researcher'],
-        6 => ['username' => 'dept_admin', 'role' => 'fire_dept_admin', 'label' => 'Fire Dept Admin'],
-      ];
-
-      foreach ($validation_users as $uid => $user_data) {
-        $user = $this->createValidationUser($uid, $user_data['username'], $user_data['role'], $user_data['label']);
-        $results['users_created'][] = [
-          'uid' => $user->id(),
-          'username' => $user_data['username'],
-          'role' => $user_data['label'],
-          'email' => $user->getEmail(),
-          'purpose' => 'validation_test',
-        ];
-      }
-
-      // Then create additional users for bulk testing
-      $roles = [
+      // Get parameters from request
+      $request = \Drupal::request();
+      $role_id = $request->query->get('role', 'firefighter');
+      $count = (int) $request->query->get('count', 5);
+      
+      // Validate parameters
+      $valid_roles = [
+        'firefighter' => 'Firefighter',
         'nfr_administrator' => 'NFR Administrator',
         'nfr_researcher' => 'NFR Researcher',
-        'firefighter' => 'Firefighter',
         'fire_dept_admin' => 'Fire Department Admin',
       ];
-
-      // Create 5 users for each role (always create new users with unique names)
-      foreach ($roles as $role_id => $role_label) {
-        for ($i = 1; $i <= 5; $i++) {
-          $base_username = strtolower(str_replace(' ', '_', $role_label));
-          $user = $this->createUser($base_username, $role_id, $role_label);
-          $results['users_created'][] = [
-            'uid' => $user->id(),
-            'username' => $user->getAccountName(),
-            'role' => $role_label,
-            'email' => $user->getEmail(),
-            'purpose' => 'bulk_test',
-          ];
-        }
+      
+      if (!isset($valid_roles[$role_id])) {
+        $results['success'] = false;
+        $results['errors'][] = "Invalid role: {$role_id}";
+        return new JsonResponse($results);
       }
-
-      // Create 150 additional firefighters
-      for ($i = 1; $i <= 150; $i++) {
-        $user = $this->createUser('firefighter', 'firefighter', 'Firefighter');
+      
+      if ($count < 1 || $count > 500) {
+        $results['success'] = false;
+        $results['errors'][] = "Invalid count: {$count}. Must be between 1 and 500.";
+        return new JsonResponse($results);
+      }
+      
+      $role_label = $valid_roles[$role_id];
+      $base_username = strtolower(str_replace(' ', '_', $role_label));
+      
+      // Create the specified number of users
+      for ($i = 1; $i <= $count; $i++) {
+        $user = $this->createUser($base_username, $role_id, $role_label);
         $results['users_created'][] = [
           'uid' => $user->id(),
           'username' => $user->getAccountName(),
-          'role' => 'Firefighter',
+          'role' => $role_label,
           'email' => $user->getEmail(),
-          'purpose' => 'bulk_test',
         ];
       }
 
       $results['total_created'] = count($results['users_created']);
       $results['summary'] = [
-        'validation_users' => 5,
-        'nfr_administrators' => 5,
-        'nfr_researchers' => 5,
-        'fire_dept_admins' => 5,
-        'firefighters' => 150,
+        'role' => $role_label,
+        'count' => $count,
         'total' => count($results['users_created']),
       ];
 
@@ -1546,6 +1557,8 @@ class NFRValidationController extends ControllerBase {
     $results = [
       'success' => true,
       'total_firefighters' => 0,
+      'incomplete_found' => 0,
+      'processed' => 0,
       'successful_submissions' => 0,
       'failed_submissions' => 0,
       'user_results' => [],
@@ -1553,7 +1566,18 @@ class NFRValidationController extends ControllerBase {
     ];
 
     try {
-      // Get all firefighter users (test users only)
+      // Get count parameter from request
+      $request = \Drupal::request();
+      $requested_count = (int) $request->query->get('count', 10);
+      
+      // Validate count
+      if ($requested_count < 1 || $requested_count > 500) {
+        $results['success'] = false;
+        $results['errors'][] = "Invalid count: {$requested_count}. Must be between 1 and 500.";
+        return new JsonResponse($results);
+      }
+      
+      // Get all firefighter test users
       $database = \Drupal::database();
       $firefighter_uids = $database->query("
         SELECT DISTINCT u.uid 
@@ -1566,9 +1590,32 @@ class NFRValidationController extends ControllerBase {
       ")->fetchCol();
 
       $results['total_firefighters'] = count($firefighter_uids);
-
+      
+      // Find incomplete firefighters (those with <9 completed sections)
+      $incomplete_uids = [];
       foreach ($firefighter_uids as $uid) {
-        $uid = (int) $uid; // Cast to integer
+        $uid = (int) $uid;
+        
+        // Check if user has fewer than 9 completed sections
+        $completed_sections = $database->query("
+          SELECT COUNT(*) 
+          FROM {nfr_section_completion}
+          WHERE uid = :uid AND completed = 1
+        ", [':uid' => $uid])->fetchField();
+        
+        if ($completed_sections < 9) {
+          $incomplete_uids[] = $uid;
+          if (count($incomplete_uids) >= $requested_count) {
+            break; // Stop when we have enough
+          }
+        }
+      }
+      
+      $results['incomplete_found'] = count($incomplete_uids);
+      $results['processed'] = count($incomplete_uids);
+      
+      // Process only the incomplete users (up to requested count)
+      foreach ($incomplete_uids as $uid) {
         $user = \Drupal\user\Entity\User::load($uid);
         if (!$user) {
           continue;
@@ -1577,6 +1624,21 @@ class NFRValidationController extends ControllerBase {
         $username = $user->getAccountName();
         
         try {
+          // Generate and submit consent
+          $consent_data = $this->generateConsentData();
+          $consent_result = $this->submitConsentForm($uid, $consent_data);
+          
+          if (!$consent_result['success']) {
+            $results['failed_submissions']++;
+            $results['user_results'][] = [
+              'uid' => $uid,
+              'username' => $username,
+              'success' => false,
+              'error' => 'Consent submission failed: ' . $consent_result['message'],
+            ];
+            continue;
+          }
+          
           // Generate random profile data
           $profile_data = $this->generateRandomProfileData();
           
@@ -2106,6 +2168,20 @@ class NFRValidationController extends ControllerBase {
   }
 
   /**
+   * Generate consent data.
+   */
+  private function generateConsentData(): array {
+    $first_names = ['John', 'Michael', 'David', 'James', 'Robert', 'William', 'Sarah', 'Jennifer', 'Maria', 'Lisa'];
+    $last_names = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
+    
+    return [
+      'consented_to_participate' => 1,
+      'consented_to_registry_linkage' => rand(0, 1),
+      'electronic_signature' => $first_names[array_rand($first_names)] . ' ' . $last_names[array_rand($last_names)],
+    ];
+  }
+
+  /**
    * Generate random profile data.
    */
   private function generateRandomProfileData(): array {
@@ -2271,7 +2347,7 @@ class NFRValidationController extends ControllerBase {
       // First incident
       $major_incidents_data[] = [
         'description' => $incident_types[array_rand($incident_types)] . ' - Major incident',
-        'incident_date' => sprintf('%04d-%02d-%02d', rand(2000, 2020), rand(1, 12), rand(1, 28)),
+        'date' => sprintf('%04d-%02d-%02d', rand(2000, 2020), rand(1, 12), rand(1, 28)),
         'duration' => $durations[array_rand($durations)],
       ];
       
@@ -2279,7 +2355,7 @@ class NFRValidationController extends ControllerBase {
       if (rand(1, 100) <= 30) {
         $major_incidents_data[] = [
           'description' => $incident_types[array_rand($incident_types)] . ' - Second major incident',
-          'incident_date' => sprintf('%04d-%02d-%02d', rand(2000, 2020), rand(1, 12), rand(1, 28)),
+          'date' => sprintf('%04d-%02d-%02d', rand(2000, 2020), rand(1, 12), rand(1, 28)),
           'duration' => $durations[array_rand($durations)],
         ];
       }
@@ -2292,15 +2368,15 @@ class NFRValidationController extends ControllerBase {
       
       // First diagnosis
       $cancer_details[] = [
-        'cancer_type' => $cancer_types[array_rand($cancer_types)],
-        'diagnosis_year' => rand(2010, 2023),
+        'type' => $cancer_types[array_rand($cancer_types)],
+        'year_diagnosed' => rand(2010, 2023),
       ];
       
       // 30% chance of second diagnosis
       if (rand(1, 100) <= 30) {
         $cancer_details[] = [
-          'cancer_type' => $cancer_types[array_rand($cancer_types)],
-          'diagnosis_year' => rand(2010, 2023),
+          'type' => $cancer_types[array_rand($cancer_types)],
+          'year_diagnosed' => rand(2010, 2023),
         ];
       }
     }
@@ -2491,6 +2567,70 @@ class NFRValidationController extends ControllerBase {
   }
 
   /**
+   * Submit consent form through actual form validation and submission.
+   */
+  private function submitConsentForm(int $uid, array $data): array {
+    try {
+      // Load the user
+      $user = \Drupal\user\Entity\User::load($uid);
+      if (!$user) {
+        return [
+          'success' => false,
+          'message' => "User $uid not found",
+          'errors' => [],
+        ];
+      }
+
+      // Switch to the test user's context
+      $accountSwitcher = \Drupal::service('account_switcher');
+      $accountSwitcher->switchTo($user);
+
+      // Build form state with the consent data
+      $form_state = new \Drupal\Core\Form\FormState();
+      $form_state->setValues([
+        'consent_participate' => $data['consented_to_participate'],
+        'consent_linkage' => $data['consented_to_registry_linkage'],
+        'signature' => $data['electronic_signature'],
+        'op' => 'Submit Consent',
+      ]);
+
+      // Get the form and submit it programmatically
+      \Drupal::formBuilder()->submitForm('\Drupal\nfr\Form\NFRConsentForm', $form_state);
+
+      // Switch back to original user
+      $accountSwitcher->switchBack();
+
+      // Check for form errors
+      $errors = $form_state->getErrors();
+      if (!empty($errors)) {
+        return [
+          'success' => false,
+          'message' => 'Consent form validation failed',
+          'errors' => array_map('strval', $errors),
+        ];
+      }
+
+      return [
+        'success' => true,
+        'message' => 'Consent form submitted successfully',
+        'errors' => [],
+      ];
+    }
+    catch (\Exception $e) {
+      // Make sure to switch back even on error
+      if (isset($accountSwitcher)) {
+        $accountSwitcher->switchBack();
+      }
+
+      return [
+        'success' => false,
+        'message' => 'Consent form submission error: ' . $e->getMessage(),
+        'errors' => [$e->getMessage()],
+      ];
+    }
+  }
+
+  /**
    * Submit profile data through actual form validation and submission.
    */
   private function submitProfileForm(int $uid, array $data): array {
@@ -2610,7 +2750,10 @@ class NFRValidationController extends ControllerBase {
         'exposure' => [
           'afff_used' => $data['exposure']['afff_used'] ?? 'no',
           'diesel_exhaust' => $data['exposure']['diesel_exhaust'] ?? 'never',
-          'major_incidents' => !empty($data['exposure']['major_incidents']) && is_array($data['exposure']['major_incidents']) ? 'yes' : ($data['exposure']['major_incidents'] ?? 'no'),
+          'major_incidents' => !empty($data['exposure']['major_incidents_data']) ? 'yes' : 'no',
+          'incidents_wrapper' => [
+            'incidents' => $data['exposure']['major_incidents_data'] ?? [],
+          ],
         ],
       ],
       4 => [
@@ -2638,8 +2781,8 @@ class NFRValidationController extends ControllerBase {
       ],
       8 => [
         'health' => [
-          'cancer_diagnosed' => ($data['health']['cancer_diagnosis'] ?? 0) ? 'yes' : 'no',
-          'cancer_details' => $data['health']['cancer_details'] ?? [],
+          'cancer_diagnosed' => !empty($data['health']['cancer_details']) ? 'yes' : 'no',
+          'cancers' => $data['health']['cancer_details'] ?? [],
         ],
       ],
       9 => [
@@ -3590,6 +3733,49 @@ class NFRValidationController extends ControllerBase {
         'tracked_fields' => 20,
       ];
       
+      // Add remaining NFR tables with counts from database
+      $table_stats['nfr_questionnaire'] = [
+        'record_count' => (int) $connection->query("SELECT COUNT(*) FROM {nfr_questionnaire}")->fetchField(),
+        'field_count' => 9,
+        'tracked_fields' => 0,
+      ];
+      
+      $table_stats['nfr_job_titles'] = [
+        'record_count' => (int) $connection->query("SELECT COUNT(*) FROM {nfr_job_titles}")->fetchField(),
+        'field_count' => 9,
+        'tracked_fields' => 0,
+      ];
+      
+      $table_stats['nfr_incident_frequency'] = [
+        'record_count' => (int) $connection->query("SELECT COUNT(*) FROM {nfr_incident_frequency}")->fetchField(),
+        'field_count' => 8,
+        'tracked_fields' => 0,
+      ];
+      
+      $table_stats['nfr_follow_up_surveys'] = [
+        'record_count' => (int) $connection->query("SELECT COUNT(*) FROM {nfr_follow_up_surveys}")->fetchField(),
+        'field_count' => 6,
+        'tracked_fields' => 0,
+      ];
+      
+      $table_stats['nfr_firefighters'] = [
+        'record_count' => (int) $connection->query("SELECT COUNT(*) FROM {nfr_firefighters}")->fetchField(),
+        'field_count' => 8,
+        'tracked_fields' => 0,
+      ];
+      
+      $table_stats['nfr_cancer_data'] = [
+        'record_count' => (int) $connection->query("SELECT COUNT(*) FROM {nfr_cancer_data}")->fetchField(),
+        'field_count' => 10,
+        'tracked_fields' => 0,
+      ];
+      
+      $table_stats['nfr_longitudinal_data'] = [
+        'record_count' => (int) $connection->query("SELECT COUNT(*) FROM {nfr_longitudinal_data}")->fetchField(),
+        'field_count' => 12,
+        'tracked_fields' => 0,
+      ];
+      
       // =============================================================================
       // CALCULATE PROFILE DATASET SUMMARY
       // =============================================================================
@@ -3701,7 +3887,7 @@ class NFRValidationController extends ControllerBase {
       $output = '<div class="container-fluid">';
       $output .= '<div class="card card-forseti mb-4">';
       $output .= '<div class="card-body">';
-      $output .= '<h1 class="mb-3">NFR Fill Rate Dashboard</h1>';
+      $output .= '<h1 class="mb-3">Data Quality Monitor</h1>';
       $output .= '<p class="lead"><strong>Total Records Analyzed:</strong> ' . $total_records . '</p>';
       $output .= '<p class="text-muted">This dashboard tracks EVERY field from both the User Profile and Enrollment Questionnaire, showing completion rates and value distributions.</p>';
       $output .= '</div></div>';
