@@ -1,5 +1,41 @@
 # National Firefighter Registry (NFR) Module
 
+## ⚠️ CRITICAL: Data Preservation Warning
+
+**DO NOT UNINSTALL THIS MODULE** without backing up the database first. Drupal automatically drops all tables defined in hook_schema() when a module is uninstalled, which will **permanently delete all collected data**, including:
+- Participant consent records
+- Questionnaire responses
+- Cancer diagnoses
+- Work history
+- All user data
+
+### Safe Update Procedures
+
+**For module updates:**
+```bash
+# Pull latest code
+git pull origin main
+
+# Run database updates (NOT uninstall/reinstall)
+drush updb -y
+drush cr
+```
+
+**If you must reinstall the module:**
+```bash
+# 1. Back up database FIRST
+drush sql:dump > nfr-backup-$(date +%Y%m%d).sql
+
+# 2. Then uninstall if needed
+drush pmu nfr -y
+
+# 3. Reinstall
+drush en nfr -y
+
+# 4. If tables were dropped, restore from backup
+drush sqlc < nfr-backup-YYYYMMDD.sql
+```
+
 ## Overview
 
 The National Firefighter Registry (NFR) module is a CDC cancer surveillance and health tracking system for firefighters. This module supports the collection, management, and analysis of cancer incidence data among firefighters nationwide.

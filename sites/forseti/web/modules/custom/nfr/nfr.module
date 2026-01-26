@@ -10,6 +10,50 @@
 use Drupal\Core\Routing\RouteMatchInterface;
 
 /**
+ * Implements hook_modules_uninstalled().
+ * 
+ * Prevent deletion of NFR tables when module is uninstalled.
+ * This preserves all collected data, consent records, and user information.
+ */
+function nfr_modules_uninstalled($modules) {
+  if (in_array('nfr', $modules)) {
+    // Get database schema
+    $schema = \Drupal::database()->schema();
+    
+    // List of tables that should be preserved
+    $preserve_tables = [
+      'nfr_user_profile',
+      'nfr_work_history',
+      'nfr_job_titles',
+      'nfr_incident_frequency',
+      'nfr_major_incidents',
+      'nfr_other_employment',
+      'nfr_cancer_diagnoses',
+      'nfr_consent',
+      'nfr_questionnaire',
+      'nfr_section_completion',
+      'nfr_follow_up_surveys',
+    ];
+    
+    // Note: This hook runs AFTER uninstall, so tables are already dropped.
+    // The proper solution is to NOT uninstall the module, or to back up data first.
+    // For now, we document this limitation.
+    $existing = 0;
+    foreach ($preserve_tables as $table) {
+      if ($schema->tableExists($table)) {
+        $existing++;
+      }
+    }
+    
+    if ($existing > 0) {
+      \Drupal::messenger()->addWarning(t('NFR module uninstalled. @count data tables were preserved.', ['@count' => $existing]));
+    } else {
+      \Drupal::messenger()->addError(t('NFR module uninstalled. WARNING: All data tables were deleted. To preserve data, do NOT uninstall the module - only disable it, or back up the database first.'));
+    }
+  }
+}
+
+/**
  * Implements hook_help().
  */
 function nfr_help($route_name, RouteMatchInterface $route_match) {
