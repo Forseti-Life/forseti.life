@@ -1,5 +1,5 @@
 /**
- * NFR Public Data Dashboard - US Map Visualization
+ * NFR Public Data Dashboard - US Heat Map Visualization
  */
 
 (function ($, Drupal, drupalSettings) {
@@ -32,73 +32,96 @@
         'PR': 'Puerto Rico', 'GU': 'Guam', 'VI': 'Virgin Islands'
       };
 
-      // Simplified US map - we'll use a table-based approach for better reliability
-      // Create a simple choropleth map using HTML table
-      renderSimpleMap();
+      loadSVGMap();
 
-      function renderSimpleMap() {
+      function loadSVGMap() {
         const container = document.getElementById('us-map-container');
-        container.innerHTML = '';
         
-        const mapDiv = document.createElement('div');
-        mapDiv.className = 'simple-us-map';
-        
-        // Group states by region for layout
-        const regions = {
-          'Northeast': ['ME', 'NH', 'VT', 'MA', 'RI', 'CT', 'NY', 'PA', 'NJ', 'DE', 'MD', 'DC'],
-          'Southeast': ['VA', 'WV', 'KY', 'TN', 'NC', 'SC', 'GA', 'FL', 'AL', 'MS', 'LA', 'AR'],
-          'Midwest': ['OH', 'IN', 'IL', 'MI', 'WI', 'MN', 'IA', 'MO', 'ND', 'SD', 'NE', 'KS'],
-          'Southwest': ['TX', 'OK', 'NM', 'AZ'],
-          'West': ['CA', 'NV', 'OR', 'WA', 'ID', 'MT', 'WY', 'UT', 'CO'],
-          'Pacific': ['HI', 'AK'],
-          'Territories': ['PR', 'GU', 'VI']
-        };
-
-        let html = '<div class="us-map-grid">';
-        
-        for (const [region, states] of Object.entries(regions)) {
-          html += `<div class="map-region">`;
-          html += `<h4 class="region-title text-white mb-3">${region}</h4>`;
-          html += `<div class="state-grid">`;
+        // Load the SVG map
+        $.get('/modules/custom/nfr/images/us-map.svg', function(svgDoc) {
+          const $svg = $(svgDoc).find('svg');
           
-          states.forEach(stateCode => {
+          // Set responsive attributes
+          $svg.attr('width', '100%');
+          $svg.attr('height', 'auto');
+          $svg.attr('id', 'heat-map-svg');
+          
+          // Style all state paths
+          $svg.find('path[data-id]').each(function() {
+            const $path = $(this);
+            const stateCode = $path.attr('data-id');
             const count = stateData[stateCode] || 0;
-            const colorClass = getColorClass(count);
-            const stateName = stateNames[stateCode] || stateCode;
+            const fillColor = getHeatColor(count);
             
-            html += `<div class="state-box ${colorClass}" data-state="${stateCode}" data-count="${count}">`;
-            html += `<div class="state-code">${stateCode}</div>`;
-            html += `<div class="state-name">${stateName}</div>`;
-            html += `<div class="state-count">${count} ${count === 1 ? 'firefighter' : 'firefighters'}</div>`;
-            html += `</div>`;
+            $path.css({
+              'fill': fillColor,
+              'stroke': 'rgba(255, 255, 255, 0.4)',
+              'stroke-width': '1',
+              'cursor': 'pointer',
+              'transition': 'all 0.3s ease'
+            });
+            
+            $path.attr('data-count', count);
+            $path.attr('data-state-name', stateNames[stateCode] || stateCode);
           });
           
-          html += `</div></div>`;
-        }
-        
-        html += '</div>';
-        
-        mapDiv.innerHTML = html;
-        container.appendChild(mapDiv);
-        
-        // Add hover effects
-        $('.state-box').hover(
-          function() {
-            $(this).addClass('hover');
-          },
-          function() {
-            $(this).removeClass('hover');
-          }
-        );
+          // Clear container and append SVG
+          container.innerHTML = '';
+          container.appendChild($svg[0]);
+          
+          // Add tooltip
+          const tooltip = $('<div class="map-tooltip"></div>').appendTo('body');
+          
+          // Add hover interactions
+          $svg.find('path[data-id]').hover(
+            function() {
+              const $this = $(this);
+              const stateName = $this.attr('data-state-name');
+              const count = $this.attr('data-count');
+              
+              $this.css({
+                'stroke': '#00d4ff',
+                'stroke-width': '2',
+                'filter': 'brightness(1.2)'
+              });
+              
+              tooltip.html(`
+                <strong>${stateName}</strong><br>
+                ${count} ${count == 1 ? 'firefighter' : 'firefighters'}
+              `).show();
+            },
+            function() {
+              $(this).css({
+                'stroke': 'rgba(255, 255, 255, 0.4)',
+                'stroke-width': '1',
+                'filter': 'none'
+              });
+              tooltip.hide();
+            }
+          );
+          
+          // Tooltip follows mouse
+          $svg.on('mousemove', function(e) {
+            tooltip.css({
+              left: e.pageX + 15 + 'px',
+              top: e.pageY + 15 + 'px'
+            });
+          });
+          
+        }).fail(function() {
+          // Fallback: show error message
+          container.innerHTML = '<div class="alert alert-warning">Unable to load heat map. Please refresh the page.</div>';
+        });
       }
 
-      function getColorClass(count) {
-        if (count === 0) return 'state-level-0';
-        if (count <= 10) return 'state-level-1';
-        if (count <= 50) return 'state-level-2';
-        if (count <= 100) return 'state-level-3';
-        if (count <= 250) return 'state-level-4';
-        return 'state-level-5';
+      function getHeatColor(count) {
+        // Return color based on count (heat map gradient from light to dark)
+        if (count === 0) return 'rgba(100, 100, 100, 0.3)'; // Gray for no data
+        if (count <= 10) return 'rgba(153, 213, 255, 0.5)'; // Light blue
+        if (count <= 50) return 'rgba(82, 183, 255, 0.7)'; // Medium blue
+        if (count <= 100) return 'rgba(0, 153, 255, 0.8)'; // Bright blue
+        if (count <= 250) return 'rgba(0, 102, 204, 0.9)'; // Dark blue
+        return 'rgba(0, 51, 153, 1)'; // Deepest blue for 250+
       }
     }
   };

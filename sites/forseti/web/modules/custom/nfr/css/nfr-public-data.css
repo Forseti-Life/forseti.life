@@ -9,12 +9,41 @@
 /* Map Container */
 #us-map-container {
   position: relative;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 8px;
-  padding: 1rem;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* Simple US Map Grid */
+#heat-map-svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Map Tooltip */
+.map-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-size: 14px;
+  pointer-events: none;
+  display: none;
+  z-index: 9999;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(0, 212, 255, 0.5);
+}
+
+.map-tooltip strong {
+  color: #00d4ff;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Fallback styles for grid-based map (if SVG fails to load) */
 .simple-us-map {
   width: 100%;
 }
