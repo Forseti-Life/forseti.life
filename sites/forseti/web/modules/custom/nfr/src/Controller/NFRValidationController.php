@@ -1309,13 +1309,22 @@ class NFRValidationController extends ControllerBase {
     ];
 
     try {
-      // SAFETY CHECK: Only delete users with @stlouisintegration.com email domain
+      // SAFETY CHECK: Only delete users with @stlouisintegration.com email domain AND "test" in username
       $database = \Drupal::database();
       $uids = $database->query("
         SELECT uid FROM {users_field_data} 
         WHERE uid > 1
         AND status = 1
         AND mail LIKE '%@stlouisintegration.com'
+        AND (
+          name LIKE '%test%'
+          OR name LIKE 'firefighter_%'
+          OR name LIKE 'nfr_administrator_%'
+          OR name LIKE 'nfr_researcher_%'
+          OR name LIKE 'fire_department_admin_%'
+          OR name LIKE 'dept_admin%'
+          OR name LIKE 'nfr_admin%'
+        )
       ")->fetchCol();
 
       foreach ($uids as $uid) {
@@ -1326,10 +1335,28 @@ class NFRValidationController extends ControllerBase {
           continue;
         }
         
-        // Double-check email domain for safety
+        // Double-check email domain AND username for safety
         $email = $user->getEmail();
+        $username = strtolower($user->getAccountName());
+        
         if (!str_ends_with($email, '@stlouisintegration.com')) {
           $results['errors'][] = "Skipped user {$user->getAccountName()} - email doesn't match test domain";
+          continue;
+        }
+        
+        // Additional safety: must have test-like username
+        $is_test_user = (
+          str_contains($username, 'test') ||
+          str_starts_with($username, 'firefighter_') ||
+          str_starts_with($username, 'nfr_administrator_') ||
+          str_starts_with($username, 'nfr_researcher_') ||
+          str_starts_with($username, 'fire_department_admin_') ||
+          str_starts_with($username, 'dept_admin') ||
+          str_starts_with($username, 'nfr_admin')
+        );
+        
+        if (!$is_test_user) {
+          $results['errors'][] = "Skipped user {$user->getAccountName()} - username doesn't match test pattern";
           continue;
         }
         
