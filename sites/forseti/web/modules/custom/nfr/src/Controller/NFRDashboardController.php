@@ -179,8 +179,8 @@ class NFRDashboardController extends ControllerBase {
     // Welcome section
     $html .= '<div class="card card-forseti mb-4">';
     $html .= '<div class="card-body">';
-    $html .= '<h2 class="h3">' . $this->t('Welcome back, @name!', ['@name' => $first_name]) . '</h2>';
-    $html .= '<p class="lead">' . $this->t('Thank you for being part of the National Firefighter Registry.') . '</p>';
+    $html .= '<h2 class="h3 text-white">' . $this->t('Welcome back, @name!', ['@name' => $first_name]) . '</h2>';
+    $html .= '<p class="lead text-white">' . $this->t('Thank you for being part of the National Firefighter Registry.') . '</p>';
     $html .= '<p class="badge bg-primary fs-6">' . $this->t('Participant ID: @id', ['@id' => $participant_id]) . '</p>';
     $html .= '</div></div>';
 
@@ -193,7 +193,7 @@ class NFRDashboardController extends ControllerBase {
     $html .= '<div class="card-body">';
     $html .= '<div class="d-flex align-items-center mb-3">';
     $html .= '<span class="fs-2 me-3">👤</span>';
-    $html .= '<h5 class="mb-0">' . $this->t('Profile Status') . '</h5>';
+    $html .= '<h5 class="mb-0 text-white">' . $this->t('Profile Status') . '</h5>';
     $html .= '</div>';
     $html .= '<p class="text-success fw-bold">' . $this->t('Profile Complete') . '</p>';
     $html .= '<p class="small text-muted-light">' . $this->t('Last updated: @date', ['@date' => $profile_updated]) . '</p>';
@@ -206,7 +206,7 @@ class NFRDashboardController extends ControllerBase {
     $html .= '<div class="card-body">';
     $html .= '<div class="d-flex align-items-center mb-3">';
     $html .= '<span class="fs-2 me-3">📋</span>';
-    $html .= '<h5 class="mb-0">' . $this->t('Enrollment Questionnaire') . '</h5>';
+    $html .= '<h5 class="mb-0 text-white">' . $this->t('Enrollment Questionnaire') . '</h5>';
     $html .= '</div>';
     if ($questionnaire_completed) {
       $html .= '<p class="text-success fw-bold">' . $this->t('Questionnaire Complete') . '</p>';
@@ -224,7 +224,7 @@ class NFRDashboardController extends ControllerBase {
     // Quick Actions
     $html .= '<div class="card card-forseti mb-4">';
     $html .= '<div class="card-body">';
-    $html .= '<h5 class="card-title">' . $this->t('Quick Actions') . '</h5>';
+    $html .= '<h5 class="card-title text-white">' . $this->t('Quick Actions') . '</h5>';
     $html .= '<div class="d-grid gap-2 d-md-flex">';
     $html .= '<a href="/nfr/profile" class="btn btn-cyan">' . $this->t('Update My Profile') . '</a>';
     $html .= '<a href="/nfr/contact" class="btn btn-outline-primary">' . $this->t('Report a Cancer Diagnosis') . '</a>';
@@ -235,7 +235,7 @@ class NFRDashboardController extends ControllerBase {
     // Recent activity
     $html .= '<div class="card card-forseti">';
     $html .= '<div class="card-body">';
-    $html .= '<h5 class="card-title">' . $this->t('Recent Activity') . '</h5>';
+    $html .= '<h5 class="card-title text-white">' . $this->t('Recent Activity') . '</h5>';
     $html .= '<div class="list-group list-group-flush">';
     
     if ($questionnaire_completed) {
@@ -243,7 +243,7 @@ class NFRDashboardController extends ControllerBase {
       $html .= '<div class="d-flex align-items-start">';
       $html .= '<span class="text-success me-3 fs-5">✓</span>';
       $html .= '<div>';
-      $html .= '<h6 class="mb-1">' . $this->t('Enrollment Questionnaire Completed') . '</h6>';
+      $html .= '<h6 class="mb-1 text-white">' . $this->t('Enrollment Questionnaire Completed') . '</h6>';
       $html .= '<small class="text-muted-light">' . $questionnaire_date . '</small>';
       $html .= '</div></div></div>';
     }

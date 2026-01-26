@@ -67,8 +67,10 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
     $is_logged_in = $this->currentUser->isAuthenticated();
     $is_admin = $this->currentUser->hasPermission('administer nfr');
     $can_view_reports = $this->currentUser->hasPermission('view nfr reports');
+    $is_participant = $this->currentUser->hasPermission('access nfr participant');
+    $is_researcher = $this->currentUser->hasPermission('view nfr research data');
 
-    $menu_items = $this->buildMenuStructure($is_logged_in, $is_admin, $can_view_reports);
+    $menu_items = $this->buildMenuStructure($is_logged_in, $is_admin, $can_view_reports, $is_participant, $is_researcher);
 
     return [
       '#theme' => 'nfr_navigation_menu',
@@ -79,6 +81,10 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
       '#cache' => [
         'contexts' => ['user.permissions', 'user.roles'],
       ],
+      '#configuration' => $this->getConfiguration(),
+      '#plugin_id' => $this->getPluginId(),
+      '#base_plugin_id' => $this->getBaseId(),
+      '#derivative_plugin_id' => $this->getDerivativeId(),
     ];
   }
 
@@ -91,14 +97,18 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
    *   Whether user has admin permission.
    * @param bool $can_view_reports
    *   Whether user can view reports.
+   * @param bool $is_participant
+   *   Whether user has participant access.
+   * @param bool $is_researcher
+   *   Whether user has researcher access.
    *
    * @return array
    *   Menu structure array.
    */
-  private function buildMenuStructure(bool $is_logged_in, bool $is_admin, bool $can_view_reports): array {
+  private function buildMenuStructure(bool $is_logged_in, bool $is_admin, bool $can_view_reports, bool $is_participant, bool $is_researcher): array {
     $menu = [];
 
-    // Public Pages
+    // Public Pages (always visible)
     $menu['public'] = [
       'title' => $this->t('About NFR'),
       'url' => Url::fromRoute('nfr.home'),
@@ -118,7 +128,7 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
     ];
 
     // Enrollment Pages (authenticated users only)
-    if ($is_logged_in) {
+    if ($is_logged_in && ($is_participant || $is_admin)) {
       $menu['enrollment'] = [
         'title' => $this->t('Enrollment'),
         'url' => Url::fromRoute('nfr.welcome'),
@@ -177,17 +187,18 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
       ];
     }
 
-    // Documentation
-    $menu['documentation'] = [
-      'title' => $this->t('Documentation'),
-      'url' => Url::fromRoute('nfr.documentation'),
-      'weight' => 3,
-      'children' => [
-        [
-          'title' => $this->t('Documentation Home'),
-          'url' => Url::fromRoute('nfr.documentation'),
-          'weight' => 0,
-        ],
+    // Documentation (visible to logged in users and public)
+    $doc_children = [
+      [
+        'title' => $this->t('Documentation Home'),
+        'url' => Url::fromRoute('nfr.documentation'),
+        'weight' => 0,
+      ],
+    ];
+
+    // Add detailed docs for authenticated users
+    if ($is_logged_in || $is_admin || $is_researcher) {
+      $doc_children = array_merge($doc_children, [
         [
           'title' => $this->t('Business Requirements'),
           'url' => Url::fromRoute('nfr.documentation.business_requirements'),
@@ -218,6 +229,12 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
           'url' => Url::fromRoute('nfr.documentation.questionnaire'),
           'weight' => 6,
         ],
+      ]);
+    }
+
+    // Add technical docs for admins only
+    if ($is_admin) {
+      $doc_children = array_merge($doc_children, [
         [
           'title' => $this->t('System Architecture'),
           'url' => Url::fromRoute('nfr.documentation.architecture'),
@@ -233,10 +250,17 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
           'url' => Url::fromRoute('nfr.documentation.compliance'),
           'weight' => 9,
         ],
-      ],
+      ]);
+    }
+
+    $menu['documentation'] = [
+      'title' => $this->t('Documentation'),
+      'url' => Url::fromRoute('nfr.documentation'),
+      'weight' => 3,
+      'children' => $doc_children,
     ];
 
-    // Admin Pages
+    // Admin Pages (admin permission required)
     if ($is_admin) {
       $admin_children = [
         [
@@ -276,6 +300,7 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
         ],
       ];
 
+      // Add reports if user has permission
       if ($can_view_reports || $is_admin) {
         $admin_children[] = [
           'title' => $this->t('Report Builder'),
