@@ -1585,6 +1585,11 @@ class NFRValidationController extends ControllerBase {
           ->condition('uid', $uid)
           ->execute();
         
+        // Delete family cancer history
+        $database->delete('nfr_family_cancer_history')
+          ->condition('uid', $uid)
+          ->execute();
+        
         // Delete consent records
         $database->delete('nfr_consent')
           ->condition('uid', $uid)
@@ -3994,6 +3999,18 @@ class NFRValidationController extends ControllerBase {
         'tracked_fields' => 2,
         'completeness_pct' => $calculate_user_coverage('nfr_cancer_diagnoses', $total_records),
         'record_completeness_pct' => $cancer_diagnoses_record_stats['record_completeness_pct'],
+      ];
+      
+      $family_cancer_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_family_cancer_history}")->fetchField();
+      $family_cancer_tracked_cols = ['relationship', 'cancer_type', 'age_at_diagnosis'];
+      $family_cancer_record_stats = $calculate_record_completeness('nfr_family_cancer_history', $family_cancer_tracked_cols, $family_cancer_count);
+      
+      $table_stats['nfr_family_cancer_history'] = [
+        'record_count' => $family_cancer_count,
+        'field_count' => 7,
+        'tracked_fields' => 3,
+        'completeness_pct' => $calculate_user_coverage('nfr_family_cancer_history', $total_records),
+        'record_completeness_pct' => $family_cancer_record_stats['record_completeness_pct'],
       ];
       
       $consent_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_consent}")->fetchField();
