@@ -143,7 +143,56 @@ class NFRQuestionnaireSection9Form extends FormBase {
           [':input[name="lifestyle[smoking_status]"]' => ['value' => 'current']],
         ],
       ],
-    ];\n\n    // Other tobacco types\n    $tobacco_types = [\n      'cigars' => 'Cigars',\n      'pipes' => 'Pipes',\n      'ecigs' => 'E-cigarettes/vaping',\n      'smokeless' => 'Smokeless tobacco (chew, snuff)',\n    ];\n\n    foreach ($tobacco_types as $type_key => $type_label) {\n      $form['lifestyle'][$type_key . '_ever_used'] = [\n        '#type' => 'radios',\n        '#title' => $this->t('Have you ever used @type?', ['@type' => strtolower($type_label)]),\n        '#options' => [\n          'never' => $this->t('Never'),\n          'former' => $this->t('Former user'),\n          'current' => $this->t('Current user'),\n        ],\n        '#default_value' => $lifestyle[$type_key . '_ever_used'] ?? 'never',\n      ];\n\n      $form['lifestyle'][$type_key . '_age_started'] = [\n        '#type' => 'number',\n        '#title' => $this->t('Age started using @type', ['@type' => strtolower($type_label)]),\n        '#min' => 1,\n        '#max' => 100,\n        '#default_value' => $lifestyle[$type_key . '_age_started'] ?? '',\n        '#states' => [\n          'visible' => [\n            [':input[name=\"lifestyle[' . $type_key . '_ever_used]\"]' => ['value' => 'former']],\n            'or',\n            [':input[name=\"lifestyle[' . $type_key . '_ever_used]\"]' => ['value' => 'current']],\n          ],\n        ],\n      ];\n\n      $form['lifestyle'][$type_key . '_age_stopped'] = [\n        '#type' => 'number',\n        '#title' => $this->t('Age stopped using @type', ['@type' => strtolower($type_label)]),\n        '#min' => 1,\n        '#max' => 100,\n        '#default_value' => $lifestyle[$type_key . '_age_stopped'] ?? '',\n        '#states' => [\n          'visible' => [\n            ':input[name=\"lifestyle[' . $type_key . '_ever_used]\"]' => ['value' => 'former'],\n          ],\n        ],\n      ];\n    }
+    ];
+
+    // Other tobacco types
+    $tobacco_types = [
+      'cigars' => 'Cigars',
+      'pipes' => 'Pipes',
+      'ecigs' => 'E-cigarettes/vaping',
+      'smokeless' => 'Smokeless tobacco (chew, snuff)',
+    ];
+
+    foreach ($tobacco_types as $type_key => $type_label) {
+      $form['lifestyle'][$type_key . '_ever_used'] = [
+        '#type' => 'radios',
+        '#title' => $this->t('Have you ever used @type?', ['@type' => strtolower($type_label)]),
+        '#options' => [
+          'never' => $this->t('Never'),
+          'former' => $this->t('Former user'),
+          'current' => $this->t('Current user'),
+        ],
+        '#default_value' => $lifestyle[$type_key . '_ever_used'] ?? 'never',
+      ];
+
+      $form['lifestyle'][$type_key . '_age_started'] = [
+        '#type' => 'number',
+        '#title' => $this->t('Age started using @type', ['@type' => strtolower($type_label)]),
+        '#min' => 1,
+        '#max' => 100,
+        '#default_value' => $lifestyle[$type_key . '_age_started'] ?? '',
+        '#states' => [
+          'visible' => [
+            [':input[name="lifestyle[' . $type_key . '_ever_used]"]' => ['value' => 'former']],
+            'or',
+            [':input[name="lifestyle[' . $type_key . '_ever_used]"]' => ['value' => 'current']],
+          ],
+        ],
+      ];
+
+      $form['lifestyle'][$type_key . '_age_stopped'] = [
+        '#type' => 'number',
+        '#title' => $this->t('Age stopped using @type', ['@type' => strtolower($type_label)]),
+        '#min' => 1,
+        '#max' => 100,
+        '#default_value' => $lifestyle[$type_key . '_age_stopped'] ?? '',
+        '#states' => [
+          'visible' => [
+            ':input[name="lifestyle[' . $type_key . '_ever_used]"]' => ['value' => 'former'],
+          ],
+        ],
+      ];
+    }
 
     $form['lifestyle']['alcohol_frequency'] = [
       '#type' => 'select',
