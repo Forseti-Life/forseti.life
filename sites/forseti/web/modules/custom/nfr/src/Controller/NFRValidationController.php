@@ -296,7 +296,7 @@ class NFRValidationController extends ControllerBase {
 
     // Questionnaire Test Section
     $html .= '<div class="questionnaire-test-section card card-forseti mb-4">';
-    $html .= '<h2>🧪 Questionnaire Data Flow Test</h2>';
+    $html .= '<h2 class="text-white">🧪 Questionnaire Data Flow Test</h2>';
     $html .= '<p><strong>Tests questionnaire only (9 sections).</strong> Assumes profile is already complete. Submits data through Section 1-9 forms and verifies database storage.</p>';
     $html .= '<ul class="text-muted small mb-3">';
     $html .= '<li>Uses existing test user (firefighter_active)</li>';
@@ -317,7 +317,7 @@ class NFRValidationController extends ControllerBase {
 
     // Full Enrollment Flow Test Section
     $html .= '<div class="enrollment-flow-test-section card card-forseti mb-4">';
-    $html .= '<h2>🚀 Complete Enrollment Flow Tests</h2>';
+    $html .= '<h2 class="text-white">🚀 Complete Enrollment Flow Tests</h2>';
     $html .= '<p><strong>Tests entire enrollment process (Profile + Questionnaire).</strong> Full end-to-end validation from profile creation through all 9 questionnaire sections.</p>';
     $html .= '<ul class="text-muted small mb-3">';
     $html .= '<li>Creates/updates user profile data</li>';
@@ -343,7 +343,7 @@ class NFRValidationController extends ControllerBase {
 
     // Test Users Management Section
     $html .= '<div class="test-users-section card card-forseti mb-4">';
-    $html .= '<h2>👥 Test Users Management</h2>';
+    $html .= '<h2 class="text-white">👥 Test Users Management</h2>';
     $html .= '<p>Create test users for different NFR roles: 5 of each role + 150 additional firefighters (170 total).</p>';
     $html .= '<div class="test-controls">';
     $html .= '<button id="create-test-users" class="btn btn-success btn-large">';
