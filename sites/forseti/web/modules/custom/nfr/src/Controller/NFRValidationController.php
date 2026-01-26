@@ -1532,22 +1532,23 @@ class NFRValidationController extends ControllerBase {
         )->fetchCol();
         
         foreach ($work_history_ids as $work_history_id) {
-          // Delete job titles for this work history
-          $database->delete('nfr_job_titles')
-            ->condition('work_history_id', $work_history_id)
-            ->execute();
-          
-          // Delete incident frequencies for job titles under this work history
+          // First, get job title IDs BEFORE deleting them
           $job_title_ids = $database->query(
             "SELECT id FROM {nfr_job_titles} WHERE work_history_id = :work_history_id",
             [':work_history_id' => $work_history_id]
           )->fetchCol();
           
+          // Delete incident frequencies for job titles under this work history
           foreach ($job_title_ids as $job_title_id) {
             $database->delete('nfr_incident_frequency')
               ->condition('job_title_id', $job_title_id)
               ->execute();
           }
+          
+          // Now delete job titles for this work history
+          $database->delete('nfr_job_titles')
+            ->condition('work_history_id', $work_history_id)
+            ->execute();
         }
         
         // Now delete work history itself
@@ -1595,7 +1596,24 @@ class NFRValidationController extends ControllerBase {
         $results['users_deleted']++;
       }
       
-      $results['message'] = "Deleted {$results['users_deleted']} test users, {$results['profiles_deleted']} profiles, and {$results['questionnaires_deleted']} questionnaires.";
+      // Clean up any orphaned records (job_titles without work_history, incident_frequency without job_titles)
+      $orphaned_incident_freq = $database->query("
+        DELETE freq FROM {nfr_incident_frequency} freq 
+        LEFT JOIN {nfr_job_titles} jt ON freq.job_title_id = jt.id 
+        WHERE jt.id IS NULL
+      ")->rowCount();
+      
+      $orphaned_job_titles = $database->query("
+        DELETE jt FROM {nfr_job_titles} jt 
+        LEFT JOIN {nfr_work_history} wh ON jt.work_history_id = wh.id 
+        WHERE wh.id IS NULL
+      ")->rowCount();
+      
+      if ($orphaned_job_titles > 0 || $orphaned_incident_freq > 0) {
+        $results['message'] = "Deleted {$results['users_deleted']} test users, {$results['profiles_deleted']} profiles, {$results['questionnaires_deleted']} questionnaires. Cleaned up {$orphaned_job_titles} orphaned job titles and {$orphaned_incident_freq} orphaned incident frequencies.";
+      } else {
+        $results['message'] = "Deleted {$results['users_deleted']} test users, {$results['profiles_deleted']} profiles, and {$results['questionnaires_deleted']} questionnaires.";
+      }
 
     } catch (\Exception $e) {
       $results['success'] = false;
