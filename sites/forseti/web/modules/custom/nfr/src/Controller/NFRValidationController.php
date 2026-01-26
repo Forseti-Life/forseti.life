@@ -2818,8 +2818,9 @@ class NFRValidationController extends ControllerBase {
           'diesel_exhaust' => $data['exposure']['diesel_exhaust'] ?? 'never',
           'chemical_activities' => $data['exposure']['chemical_activities'] ?? [],
           'major_incidents' => !empty($data['exposure']['major_incidents_data']) ? 'yes' : 'no',
+          'incidents' => $data['exposure']['major_incidents_data'] ?? [],  // For form builder to count
           'incidents_wrapper' => [
-            'incidents' => $data['exposure']['major_incidents_data'] ?? [],
+            'incidents' => $data['exposure']['major_incidents_data'] ?? [],  // For submit handler
           ],
         ],
       ],
@@ -3118,8 +3119,7 @@ class NFRValidationController extends ControllerBase {
     try {
       // Get all profile records
       $profile_query = $connection->select('nfr_user_profile', 'p')
-        ->fields('p')
-        ->condition('p.uid', 1, '>');
+        ->fields('p');
       $profile_results = $profile_query->execute();
       $profiles = [];
       foreach ($profile_results as $row) {
@@ -3128,15 +3128,13 @@ class NFRValidationController extends ControllerBase {
       
       // Get all questionnaire records with ALL columns
       $query = $connection->select('nfr_questionnaire', 'q')
-        ->fields('q')
-        ->condition('q.uid', 1, '>');
+        ->fields('q');
       
       $results = $query->execute();
       
       // Get all work history from normalized tables
       $work_history_query = $connection->select('nfr_work_history', 'wh')
-        ->fields('wh')
-        ->condition('wh.uid', 1, '>');
+        ->fields('wh');
       $work_history_results = $work_history_query->execute();
       
       $user_work_history = [];
@@ -3359,6 +3357,14 @@ class NFRValidationController extends ControllerBase {
               $value_distributions['demographics.race_ethnicity'][$race_str] = ($value_distributions['demographics.race_ethnicity'][$race_str] ?? 0) + 1;
             }
           }
+        }
+        if (isset($row->height_inches) && $row->height_inches > 0) {
+          $field_counts['demographics.height_inches'] = ($field_counts['demographics.height_inches'] ?? 0) + 1;
+          $value_distributions['demographics.height_inches'][$row->height_inches] = ($value_distributions['demographics.height_inches'][$row->height_inches] ?? 0) + 1;
+        }
+        if (isset($row->weight_pounds) && $row->weight_pounds > 0) {
+          $field_counts['demographics.weight_pounds'] = ($field_counts['demographics.weight_pounds'] ?? 0) + 1;
+          $value_distributions['demographics.weight_pounds'][$row->weight_pounds] = ($value_distributions['demographics.weight_pounds'][$row->weight_pounds] ?? 0) + 1;
         }
         
         // WORK HISTORY (from normalized tables)
@@ -3724,6 +3730,42 @@ class NFRValidationController extends ControllerBase {
       // =============================================================================
       $table_stats = [];
       
+      // Helper function to calculate record completeness
+      $calculate_record_completeness = function($table_name, $tracked_columns, $total_records_count) use ($connection) {
+        if ($total_records_count == 0 || empty($tracked_columns)) {
+          return ['complete_records' => 0, 'record_completeness_pct' => 0];
+        }
+        
+        // Build WHERE clause to check all tracked columns are NOT NULL
+        $where_conditions = [];
+        foreach ($tracked_columns as $col) {
+          $where_conditions[] = "$col IS NOT NULL AND $col != ''";
+        }
+        $where_clause = implode(' AND ', $where_conditions);
+        
+        $complete_records = (int) $connection->query(
+          "SELECT COUNT(*) FROM {{$table_name}} WHERE " . $where_clause
+        )->fetchField();
+        
+        $record_completeness_pct = round(($complete_records / $total_records_count) * 100, 1);
+        
+        return [
+          'complete_records' => $complete_records,
+          'record_completeness_pct' => $record_completeness_pct
+        ];
+      };
+      
+      // Helper function to calculate % of users who have records in a table
+      $calculate_user_coverage = function($table_name, $total_users, $uid_column = 'uid') use ($connection) {
+        if ($total_users == 0) {
+          return 0;
+        }
+        $users_with_records = (int) $connection->query(
+          "SELECT COUNT(DISTINCT {$uid_column}) FROM {{$table_name}}"
+        )->fetchField();
+        return round(($users_with_records / $total_users) * 100, 1);
+      };
+      
       // Profile table
       $profile_field_count = 0;
       $profile_complete_fields = 0;
@@ -3735,115 +3777,200 @@ class NFRValidationController extends ControllerBase {
           }
         }
       }
+      $profile_tracked_cols = ['first_name', 'last_name', 'date_of_birth', 'sex', 'address_line1', 'city', 'state', 'zip_code', 'mobile_phone'];
+      $profile_record_stats = $calculate_record_completeness('nfr_user_profile', $profile_tracked_cols, count($profiles));
+      
       $table_stats['nfr_user_profile'] = [
         'record_count' => count($profiles),
         'field_count' => 26,
         'tracked_fields' => $profile_field_count,
         'complete_fields' => $profile_complete_fields,
         'completeness_pct' => $profile_field_count > 0 ? round(($profile_complete_fields / $profile_field_count) * 100, 1) : 0,
+        'complete_records' => $profile_record_stats['complete_records'],
+        'record_completeness_pct' => $profile_record_stats['record_completeness_pct'],
       ];
       
       // Questionnaire direct columns
       $quest_direct_count = 0;
       $quest_direct_complete = 0;
       foreach ($field_counts as $field => $count) {
-        if (strpos($field, 'questionnaire.') === 0) {
+        if (strpos($field, 'questionnaire.') === 0 || strpos($field, 'demographics.') === 0) {
           $quest_direct_count++;
           if ($count >= $total_records) {
             $quest_direct_complete++;
           }
         }
       }
+      $quest_tracked_cols = ['race_ethnicity', 'smoking_history', 'alcohol_use', 'education_level', 'marital_status', 'height_inches', 'weight_pounds'];
+      $quest_record_stats = $calculate_record_completeness('nfr_questionnaire', $quest_tracked_cols, $total_records);
+      
       $table_stats['nfr_questionnaire_direct'] = [
         'record_count' => $total_records,
         'field_count' => 9,
         'tracked_fields' => $quest_direct_count,
         'complete_fields' => $quest_direct_complete,
         'completeness_pct' => $quest_direct_count > 0 ? round(($quest_direct_complete / $quest_direct_count) * 100, 1) : 0,
+        'complete_records' => $quest_record_stats['complete_records'],
+        'record_completeness_pct' => $quest_record_stats['record_completeness_pct'],
       ];
       
       // Work history tables
-      $wh_records = count($user_work_history);
+      $wh_records = (int) $connection->query("SELECT COUNT(*) FROM {nfr_work_history}")->fetchField();
+      $wh_tracked_cols = ['department_name', 'department_state', 'department_city', 'department_fdid', 'start_date', 'is_current'];
+      $wh_record_stats = $calculate_record_completeness('nfr_work_history', $wh_tracked_cols, $wh_records);
+      
       $table_stats['nfr_work_history'] = [
         'record_count' => $wh_records,
         'field_count' => 11,
-        'tracked_fields' => 9,
-        'complete_fields' => 0,
-        'completeness_pct' => 0,
+        'tracked_fields' => 6,
+        'completeness_pct' => $calculate_user_coverage('nfr_work_history', $total_records),
+        'record_completeness_pct' => $wh_record_stats['record_completeness_pct'],
       ];
       
       // Other tables
+      $major_incidents_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_major_incidents}")->fetchField();
+      $major_incidents_tracked_cols = ['description', 'incident_date', 'duration'];
+      $major_incidents_record_stats = $calculate_record_completeness('nfr_major_incidents', $major_incidents_tracked_cols, $major_incidents_count);
+      
       $table_stats['nfr_major_incidents'] = [
-        'record_count' => count($user_major_incidents),
+        'record_count' => $major_incidents_count,
         'field_count' => 7,
-        'tracked_fields' => 4,
+        'tracked_fields' => 3,
+        'completeness_pct' => $calculate_user_coverage('nfr_major_incidents', $total_records),
+        'record_completeness_pct' => $major_incidents_record_stats['record_completeness_pct'],
       ];
+      
+      $other_employment_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_other_employment}")->fetchField();
+      $other_employment_tracked_cols = ['occupation', 'industry', 'start_year', 'exposures'];
+      $other_employment_record_stats = $calculate_record_completeness('nfr_other_employment', $other_employment_tracked_cols, $other_employment_count);
       
       $table_stats['nfr_other_employment'] = [
-        'record_count' => count($user_other_employment),
+        'record_count' => $other_employment_count,
         'field_count' => 9,
-        'tracked_fields' => 7,
+        'tracked_fields' => 4,
+        'completeness_pct' => $calculate_user_coverage('nfr_other_employment', $total_records),
+        'record_completeness_pct' => $other_employment_record_stats['record_completeness_pct'],
       ];
+      
+      $cancer_diagnoses_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_cancer_diagnoses}")->fetchField();
+      $cancer_diagnoses_tracked_cols = ['cancer_type', 'year_diagnosed'];
+      $cancer_diagnoses_record_stats = $calculate_record_completeness('nfr_cancer_diagnoses', $cancer_diagnoses_tracked_cols, $cancer_diagnoses_count);
       
       $table_stats['nfr_cancer_diagnoses'] = [
-        'record_count' => count($user_cancer_diagnoses),
+        'record_count' => $cancer_diagnoses_count,
         'field_count' => 6,
-        'tracked_fields' => 3,
+        'tracked_fields' => 2,
+        'completeness_pct' => $calculate_user_coverage('nfr_cancer_diagnoses', $total_records),
+        'record_completeness_pct' => $cancer_diagnoses_record_stats['record_completeness_pct'],
       ];
+      
+      $consent_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_consent}")->fetchField();
+      $consent_tracked_cols = ['consented_to_participate', 'electronic_signature', 'consent_timestamp'];
+      $consent_record_stats = $calculate_record_completeness('nfr_consent', $consent_tracked_cols, $consent_count);
       
       $table_stats['nfr_consent'] = [
-        'record_count' => count($user_consents),
+        'record_count' => $consent_count,
         'field_count' => 7,
-        'tracked_fields' => 5,
+        'tracked_fields' => 3,
+        'completeness_pct' => $calculate_user_coverage('nfr_consent', $total_records),
+        'record_completeness_pct' => $consent_record_stats['record_completeness_pct'],
       ];
       
+      $section_completion_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_section_completion}")->fetchField();
+      $section_completion_tracked_cols = ['section_number', 'completed'];
+      $section_completion_record_stats = $calculate_record_completeness('nfr_section_completion', $section_completion_tracked_cols, $section_completion_count);
+      
       $table_stats['nfr_section_completion'] = [
-        'record_count' => count($user_section_completion),
+        'record_count' => $section_completion_count,
         'field_count' => 5,
-        'tracked_fields' => 20,
+        'tracked_fields' => 2,
+        'completeness_pct' => $calculate_user_coverage('nfr_section_completion', $total_records),
+        'record_completeness_pct' => $section_completion_record_stats['record_completeness_pct'],
       ];
       
       // Add remaining NFR tables with counts from database
+      $questionnaire_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_questionnaire}")->fetchField();
+      $questionnaire_all_tracked_cols = ['race_ethnicity', 'height_inches', 'weight_pounds', 'military_service', 'cancer_diagnosis', 'smoking_history', 'alcohol_use', 'education_level', 'marital_status', 'afff_used', 'diesel_exhaust', 'major_incidents'];
+      $questionnaire_all_record_stats = $calculate_record_completeness('nfr_questionnaire', $questionnaire_all_tracked_cols, $questionnaire_count);
+      
       $table_stats['nfr_questionnaire'] = [
-        'record_count' => (int) $connection->query("SELECT COUNT(*) FROM {nfr_questionnaire}")->fetchField(),
-        'field_count' => 9,
-        'tracked_fields' => 0,
+        'record_count' => $questionnaire_count,
+        'field_count' => 63,
+        'tracked_fields' => 12,
+        'completeness_pct' => $total_records > 0 ? round(($questionnaire_count / $total_records) * 100, 1) : 0,
+        'record_completeness_pct' => $questionnaire_all_record_stats['record_completeness_pct'],
       ];
+      
+      $job_titles_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_job_titles}")->fetchField();
+      $job_titles_tracked_cols = ['job_title', 'employment_type', 'responded_to_incidents'];
+      $job_titles_record_stats = $calculate_record_completeness('nfr_job_titles', $job_titles_tracked_cols, $job_titles_count);
       
       $table_stats['nfr_job_titles'] = [
-        'record_count' => (int) $connection->query("SELECT COUNT(*) FROM {nfr_job_titles}")->fetchField(),
-        'field_count' => 9,
-        'tracked_fields' => 0,
+        'record_count' => $job_titles_count,
+        'field_count' => 7,
+        'tracked_fields' => 3,
+        'completeness_pct' => $total_records > 0 ? round((int)$connection->query("SELECT COUNT(DISTINCT wh.uid) FROM {nfr_job_titles} jt INNER JOIN {nfr_work_history} wh ON jt.work_history_id = wh.id")->fetchField() / $total_records * 100, 1) : 0,
+        'record_completeness_pct' => $job_titles_record_stats['record_completeness_pct'],
       ];
+      
+      $incident_frequency_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_incident_frequency}")->fetchField();
+      $incident_frequency_tracked_cols = ['incident_type', 'frequency'];
+      $incident_frequency_record_stats = $calculate_record_completeness('nfr_incident_frequency', $incident_frequency_tracked_cols, $incident_frequency_count);
       
       $table_stats['nfr_incident_frequency'] = [
-        'record_count' => (int) $connection->query("SELECT COUNT(*) FROM {nfr_incident_frequency}")->fetchField(),
-        'field_count' => 8,
-        'tracked_fields' => 0,
+        'record_count' => $incident_frequency_count,
+        'field_count' => 6,
+        'tracked_fields' => 2,
+        'completeness_pct' => $total_records > 0 ? round((int)$connection->query("SELECT COUNT(DISTINCT wh.uid) FROM {nfr_incident_frequency} freq INNER JOIN {nfr_job_titles} jt ON freq.job_title_id = jt.id INNER JOIN {nfr_work_history} wh ON jt.work_history_id = wh.id")->fetchField() / $total_records * 100, 1) : 0,
+        'record_completeness_pct' => $incident_frequency_record_stats['record_completeness_pct'],
       ];
+      
+      $follow_up_surveys_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_follow_up_surveys}")->fetchField();
+      $follow_up_surveys_tracked_cols = ['survey_type', 'survey_date', 'due_date', 'completion_date', 'status', 'response_data'];
+      $follow_up_surveys_record_stats = $calculate_record_completeness('nfr_follow_up_surveys', $follow_up_surveys_tracked_cols, $follow_up_surveys_count);
       
       $table_stats['nfr_follow_up_surveys'] = [
-        'record_count' => (int) $connection->query("SELECT COUNT(*) FROM {nfr_follow_up_surveys}")->fetchField(),
-        'field_count' => 6,
-        'tracked_fields' => 0,
+        'record_count' => $follow_up_surveys_count,
+        'field_count' => 9,
+        'tracked_fields' => 6,
+        'completeness_pct' => $calculate_user_coverage('nfr_follow_up_surveys', $total_records),
+        'record_completeness_pct' => $follow_up_surveys_record_stats['record_completeness_pct'],
       ];
+      
+      $firefighters_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_firefighters}")->fetchField();
+      $firefighters_tracked_cols = ['first_name', 'last_name', 'badge_number', 'department', 'state', 'years_of_service', 'career_type', 'status', 'neris_id'];
+      $firefighters_record_stats = $calculate_record_completeness('nfr_firefighters', $firefighters_tracked_cols, $firefighters_count);
       
       $table_stats['nfr_firefighters'] = [
-        'record_count' => (int) $connection->query("SELECT COUNT(*) FROM {nfr_firefighters}")->fetchField(),
-        'field_count' => 8,
-        'tracked_fields' => 0,
+        'record_count' => $firefighters_count,
+        'field_count' => 13,
+        'tracked_fields' => 9,
+        'completeness_pct' => $calculate_user_coverage('nfr_firefighters', $total_records, 'user_id'),
+        'record_completeness_pct' => $firefighters_record_stats['record_completeness_pct'],
       ];
+      
+      $cancer_data_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_cancer_data}")->fetchField();
+      $cancer_data_tracked_cols = ['cancer_type', 'diagnosis_date', 'state_registry_linked', 'stage'];
+      $cancer_data_record_stats = $calculate_record_completeness('nfr_cancer_data', $cancer_data_tracked_cols, $cancer_data_count);
       
       $table_stats['nfr_cancer_data'] = [
-        'record_count' => (int) $connection->query("SELECT COUNT(*) FROM {nfr_cancer_data}")->fetchField(),
-        'field_count' => 10,
-        'tracked_fields' => 0,
+        'record_count' => $cancer_data_count,
+        'field_count' => 8,
+        'tracked_fields' => 4,
+        'completeness_pct' => $total_records > 0 ? round((int)$connection->query("SELECT COUNT(DISTINCT f.user_id) FROM {nfr_cancer_data} cd INNER JOIN {nfr_firefighters} f ON cd.firefighter_id = f.id")->fetchField() / $total_records * 100, 1) : 0,
+        'record_completeness_pct' => $cancer_data_record_stats['record_completeness_pct'],
       ];
       
+      $longitudinal_data_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_longitudinal_data}")->fetchField();
+      $longitudinal_data_tracked_cols = ['survey_date', 'survey_type', 'data'];
+      $longitudinal_data_record_stats = $calculate_record_completeness('nfr_longitudinal_data', $longitudinal_data_tracked_cols, $longitudinal_data_count);
+      
       $table_stats['nfr_longitudinal_data'] = [
-        'record_count' => (int) $connection->query("SELECT COUNT(*) FROM {nfr_longitudinal_data}")->fetchField(),
-        'field_count' => 12,
-        'tracked_fields' => 0,
+        'record_count' => $longitudinal_data_count,
+        'field_count' => 6,
+        'tracked_fields' => 3,
+        'completeness_pct' => $total_records > 0 ? round((int)$connection->query("SELECT COUNT(DISTINCT f.user_id) FROM {nfr_longitudinal_data} ld INNER JOIN {nfr_firefighters} f ON ld.firefighter_id = f.id")->fetchField() / $total_records * 100, 1) : 0,
+        'record_completeness_pct' => $longitudinal_data_record_stats['record_completeness_pct'],
       ];
       
       // =============================================================================
@@ -3980,10 +4107,10 @@ class NFRValidationController extends ControllerBase {
       $output .= '<dd class="col-sm-9">Total number of database columns in the table schema</dd>';
       $output .= '<dt class="col-sm-3">Tracked Fields</dt>';
       $output .= '<dd class="col-sm-9">Number of fields being monitored for data quality (excludes system fields like ID, timestamps)</dd>';
-      $output .= '<dt class="col-sm-3">Complete Fields</dt>';
-      $output .= '<dd class="col-sm-9">Number of tracked fields that meet minimum completion thresholds (non-NULL, meaningful values)</dd>';
       $output .= '<dt class="col-sm-3">Completeness</dt>';
-      $output .= '<dd class="col-sm-9 mb-0">Percentage of tracked fields that are complete (Complete Fields ÷ Tracked Fields × 100)</dd>';
+      $output .= '<dd class="col-sm-9">For base tables (profile, questionnaire): percentage of tracked fields with 100% fill rate. For child tables (incidents, employment, etc.): percentage of users who have records (records ÷ total users)</dd>';
+      $output .= '<dt class="col-sm-3">Record Completeness</dt>';
+      $output .= '<dd class="col-sm-9 mb-0">Percentage of records in the table that have all tracked fields filled (record-level completeness)</dd>';
       $output .= '</dl>';
       $output .= '</div>';
       
@@ -3995,8 +4122,8 @@ class NFRValidationController extends ControllerBase {
       $output .= '<th class="text-center">Records</th>';
       $output .= '<th class="text-center">Total Fields</th>';
       $output .= '<th class="text-center">Tracked Fields</th>';
-      $output .= '<th class="text-center">Complete Fields</th>';
       $output .= '<th class="text-center">Completeness</th>';
+      $output .= '<th class="text-center">Record Completeness</th>';
       $output .= '</tr></thead><tbody>';
       
       foreach ($table_stats as $table_name => $stats) {
@@ -4010,10 +4137,18 @@ class NFRValidationController extends ControllerBase {
         $output .= '<td class="text-center">' . number_format($stats['record_count']) . '</td>';
         $output .= '<td class="text-center">' . $stats['field_count'] . '</td>';
         $output .= '<td class="text-center">' . $stats['tracked_fields'] . '</td>';
-        $output .= '<td class="text-center">' . ($stats['complete_fields'] ?? 'N/A') . '</td>';
         $output .= '<td class="text-center">';
         if (isset($stats['completeness_pct'])) {
           $output .= '<span class="badge bg-' . $completeness_badge . '">' . $stats['completeness_pct'] . '%</span>';
+        } else {
+          $output .= '<span class="text-muted">-</span>';
+        }
+        $output .= '</td>';
+        
+        $output .= '<td class="text-center">';
+        if (isset($stats['record_completeness_pct'])) {
+          $record_badge = $stats['record_completeness_pct'] >= 90 ? 'success' : ($stats['record_completeness_pct'] >= 75 ? 'warning' : 'danger');
+          $output .= '<span class="badge bg-' . $record_badge . '">' . $stats['record_completeness_pct'] . '%</span>';
         } else {
           $output .= '<span class="text-muted">-</span>';
         }
@@ -4281,8 +4416,8 @@ class NFRValidationController extends ControllerBase {
       $add_row('Demographics', 'Race Other Specify', false, 'nfr_questionnaire.race_other', 'questionnaire.race_other');
       $add_row('Demographics', 'Education Level', true, 'nfr_questionnaire.education_level', 'demographics.education_level');
       $add_row('Demographics', 'Marital Status', true, 'nfr_questionnaire.marital_status', 'demographics.marital_status');
-      $add_row('Demographics', 'Height (inches)', true, 'nfr_questionnaire.height_inches', 'questionnaire.height_inches');
-      $add_row('Demographics', 'Weight (pounds)', true, 'nfr_questionnaire.weight_pounds', 'questionnaire.weight_pounds');
+      $add_row('Demographics', 'Height (inches)', true, 'nfr_questionnaire.height_inches', 'demographics.height_inches');
+      $add_row('Demographics', 'Weight (pounds)', true, 'nfr_questionnaire.weight_pounds', 'demographics.weight_pounds');
       
       // WORK HISTORY (from normalized tables)
       $add_row('Work History', 'Number of Departments', true, 'COUNT(DISTINCT nfr_work_history.id)', 'work_history.num_departments');

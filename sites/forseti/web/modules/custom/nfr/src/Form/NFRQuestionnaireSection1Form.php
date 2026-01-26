@@ -39,7 +39,7 @@ class NFRQuestionnaireSection1Form extends FormBase {
     // Load demographics from database columns
     $database = $this->getDatabase();
     $questionnaire = $database->select('nfr_questionnaire', 'q')
-      ->fields('q', ['race_ethnicity', 'race_other', 'education_level', 'marital_status'])
+      ->fields('q', ['race_ethnicity', 'race_other', 'education_level', 'marital_status', 'height_inches', 'weight_pounds'])
       ->condition('uid', $uid)
       ->execute()
       ->fetchAssoc();
@@ -50,6 +50,8 @@ class NFRQuestionnaireSection1Form extends FormBase {
       $demographics['race_other'] = $questionnaire['race_other'] ?? '';
       $demographics['education_level'] = $questionnaire['education_level'] ?? '';
       $demographics['marital_status'] = $questionnaire['marital_status'] ?? '';
+      $demographics['height_inches'] = $questionnaire['height_inches'] ?? '';
+      $demographics['weight_pounds'] = $questionnaire['weight_pounds'] ?? '';
     }
 
     // Add navigation menu
@@ -123,6 +125,43 @@ class NFRQuestionnaireSection1Form extends FormBase {
       '#default_value' => $demographics['marital_status'] ?? '',
     ];
 
+    $form['demographics']['height_inches'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Height (inches)'),
+      '#required' => TRUE,
+      '#min' => 48,
+      '#max' => 96,
+      '#step' => 1,
+      '#field_suffix' => $this->t('inches'),
+      '#default_value' => $demographics['height_inches'] ?? '',
+      '#description' => $this->t('Enter your height in inches (e.g., 5\'10" = 70 inches)'),
+    ];
+
+    $form['demographics']['weight_pounds'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Weight (pounds)'),
+      '#required' => TRUE,
+      '#min' => 80,
+      '#max' => 500,
+      '#step' => 1,
+      '#field_suffix' => $this->t('lbs'),
+      '#default_value' => $demographics['weight_pounds'] ?? '',
+      '#description' => $this->t('Enter your weight in pounds'),
+    ];
+
+    // Calculate and display BMI if both values are present
+    if (!empty($demographics['height_inches']) && !empty($demographics['weight_pounds'])) {
+      $height = (float) $demographics['height_inches'];
+      $weight = (float) $demographics['weight_pounds'];
+      $bmi = round(($weight / ($height * $height)) * 703, 1);
+      
+      $form['demographics']['bmi_display'] = [
+        '#type' => 'markup',
+        '#markup' => '<div class="bmi-display"><strong>Current BMI:</strong> ' . $bmi . '</div>',
+        '#weight' => 100,
+      ];
+    }
+
     $form['actions'] = ['#type' => 'actions'];
     $form['actions']['submit'] = [
       '#type' => 'submit',
@@ -153,6 +192,8 @@ class NFRQuestionnaireSection1Form extends FormBase {
         'race_other' => $demographics['race_other'] ?: NULL,
         'education_level' => $demographics['education_level'] ?: NULL,
         'marital_status' => $demographics['marital_status'] ?: NULL,
+        'height_inches' => $demographics['height_inches'] ?: NULL,
+        'weight_pounds' => $demographics['weight_pounds'] ?: NULL,
         'updated' => time(),
       ])
       ->condition('uid', $uid)

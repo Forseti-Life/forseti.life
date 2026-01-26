@@ -139,11 +139,11 @@ function _nfr_assign_role_permissions() {
  */
 function _nfr_create_validation_users() {
   $validation_users = [
-    ['username' => 'firefighter_active', 'role' => 'firefighter', 'first' => 'John', 'last' => 'Smith'],
-    ['username' => 'firefighter_retired', 'role' => 'firefighter', 'first' => 'Jane', 'last' => 'Doe'],
-    ['username' => 'nfr_admin', 'role' => 'nfr_administrator', 'first' => 'Admin', 'last' => 'User'],
-    ['username' => 'nfr_researcher', 'role' => 'nfr_researcher', 'first' => 'Research', 'last' => 'Analyst'],
-    ['username' => 'dept_admin', 'role' => 'fire_dept_admin', 'first' => 'Fire', 'last' => 'Chief'],
+    ['username' => 'firefighter_test_active', 'role' => 'firefighter', 'first' => 'John', 'last' => 'Smith'],
+    ['username' => 'firefighter_test_retired', 'role' => 'firefighter', 'first' => 'Jane', 'last' => 'Doe'],
+    ['username' => 'nfr_administrator_test', 'role' => 'nfr_administrator', 'first' => 'Admin', 'last' => 'User'],
+    ['username' => 'nfr_researcher_test', 'role' => 'nfr_researcher', 'first' => 'Research', 'last' => 'Analyst'],
+    ['username' => 'fire_department_admin_test', 'role' => 'fire_dept_admin', 'first' => 'Fire', 'last' => 'Chief'],
   ];
   
   foreach ($validation_users as $user_data) {
@@ -1304,4 +1304,43 @@ function nfr_update_9018() {
 function nfr_update_9019() {
   _nfr_create_validation_users();
   return t('Validation test users created/updated.');
+}
+
+/**
+ * Update validation users to follow test naming patterns.
+ */
+function nfr_update_9020() {
+  $old_usernames = [
+    'firefighter_active',
+    'firefighter_retired', 
+    'nfr_admin',
+    'nfr_researcher',
+    'dept_admin',
+    'firefighter',
+    'fire_department_admin',
+  ];
+  
+  $deleted = 0;
+  
+  // Delete old validation users
+  foreach ($old_usernames as $username) {
+    $users = \Drupal::entityTypeManager()
+      ->getStorage('user')
+      ->loadByProperties(['name' => $username]);
+    
+    if (!empty($users)) {
+      foreach ($users as $user) {
+        if ($user->id() > 1) { // Never delete admin
+          $user->delete();
+          $deleted++;
+          \Drupal::logger('nfr')->info('Deleted old validation user: @username', ['@username' => $username]);
+        }
+      }
+    }
+  }
+  
+  // Create new validation users with test naming pattern
+  _nfr_create_validation_users();
+  
+  return t('Deleted @count old validation users and created new test-pattern users.', ['@count' => $deleted]);
 }
