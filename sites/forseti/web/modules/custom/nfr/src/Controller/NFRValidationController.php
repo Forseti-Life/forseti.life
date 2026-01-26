@@ -297,7 +297,13 @@ class NFRValidationController extends ControllerBase {
     // Questionnaire Test Section
     $html .= '<div class="questionnaire-test-section card card-forseti mb-4">';
     $html .= '<h2>🧪 Questionnaire Data Flow Test</h2>';
-    $html .= '<p>Test the complete questionnaire flow with sample data and verify database storage.</p>';
+    $html .= '<p><strong>Tests questionnaire only (9 sections).</strong> Assumes profile is already complete. Submits data through Section 1-9 forms and verifies database storage.</p>';
+    $html .= '<ul class="text-muted small mb-3">';
+    $html .= '<li>Uses existing test user (firefighter_active)</li>';
+    $html .= '<li>Generates sample data for all sections</li>';
+    $html .= '<li>Submits through actual form workflow</li>';
+    $html .= '<li>Verifies questionnaire data in database</li>';
+    $html .= '</ul>';
     $html .= '<div class="test-controls">';
     $html .= '<button id="test-questionnaire-flow" class="btn btn-cyan btn-large">';
     $html .= '📝 Run Questionnaire Test</button>';
@@ -312,7 +318,14 @@ class NFRValidationController extends ControllerBase {
     // Full Enrollment Flow Test Section
     $html .= '<div class="enrollment-flow-test-section card card-forseti mb-4">';
     $html .= '<h2>🚀 Complete Enrollment Flow Tests</h2>';
-    $html .= '<p>Test entire enrollment process (Profile + Questionnaire) with different data patterns and check for system errors.</p>';
+    $html .= '<p><strong>Tests entire enrollment process (Profile + Questionnaire).</strong> Full end-to-end validation from profile creation through all 9 questionnaire sections.</p>';
+    $html .= '<ul class="text-muted small mb-3">';
+    $html .= '<li>Creates/updates user profile data</li>';
+    $html .= '<li>Submits all 9 questionnaire sections</li>';
+    $html .= '<li>Checks system error logs for issues</li>';
+    $html .= '<li>Verifies both profile and questionnaire in database</li>';
+    $html .= '<li>Tests with different data patterns (random, max values, min values)</li>';
+    $html .= '</ul>';
     $html .= '<div class="test-controls">';
     $html .= '<button id="test-full-enrollment" class="btn btn-primary btn-large">';
     $html .= '🎲 Run Full Enrollment Test (Random Data)</button>';
@@ -2133,7 +2146,7 @@ class NFRValidationController extends ControllerBase {
         'exposure' => [
           'afff_used' => $data['exposure']['afff_used'] ?? 'no',
           'diesel_exhaust' => $data['exposure']['diesel_exhaust'] ?? 'never',
-          'major_incidents' => $data['exposure']['major_incidents'] ?? 'no',
+          'major_incidents' => !empty($data['exposure']['major_incidents']) && is_array($data['exposure']['major_incidents']) ? 'yes' : ($data['exposure']['major_incidents'] ?? 'no'),
         ],
       ],
       4 => [
