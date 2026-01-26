@@ -1362,59 +1362,59 @@ class NFRValidationController extends ControllerBase {
         
         // Delete NFR profile data
         $profile_deleted = $database->delete('nfr_user_profile')
-          ->condition('user_id', $uid)
+          ->condition('uid', $uid)
           ->execute();
         $results['profiles_deleted'] += $profile_deleted;
         
         // Delete questionnaire data
         $questionnaire_deleted = $database->delete('nfr_questionnaire')
-          ->condition('user_id', $uid)
+          ->condition('uid', $uid)
           ->execute();
         $results['questionnaires_deleted'] += $questionnaire_deleted;
         
         // Delete work history
         $database->delete('nfr_work_history')
-          ->condition('user_id', $uid)
+          ->condition('uid', $uid)
           ->execute();
         
         // Delete job titles
         $database->delete('nfr_job_titles')
-          ->condition('user_id', $uid)
+          ->condition('uid', $uid)
           ->execute();
         
         // Delete incident frequency
         $database->delete('nfr_incident_frequency')
-          ->condition('user_id', $uid)
+          ->condition('uid', $uid)
           ->execute();
         
         // Delete major incidents
         $database->delete('nfr_major_incidents')
-          ->condition('user_id', $uid)
+          ->condition('uid', $uid)
           ->execute();
         
         // Delete other employment
         $database->delete('nfr_other_employment')
-          ->condition('user_id', $uid)
+          ->condition('uid', $uid)
           ->execute();
         
         // Delete cancer diagnoses
         $database->delete('nfr_cancer_diagnoses')
-          ->condition('user_id', $uid)
+          ->condition('uid', $uid)
           ->execute();
         
         // Delete consent records
         $database->delete('nfr_consent')
-          ->condition('user_id', $uid)
+          ->condition('uid', $uid)
           ->execute();
         
         // Delete section completion
         $database->delete('nfr_section_completion')
-          ->condition('user_id', $uid)
+          ->condition('uid', $uid)
           ->execute();
         
         // Delete follow-up surveys
         $database->delete('nfr_follow_up_surveys')
-          ->condition('user_id', $uid)
+          ->condition('uid', $uid)
           ->execute();
         
         // Finally, delete the user
