@@ -1255,3 +1255,50 @@ function nfr_update_9017() {
   _nfr_create_validation_users();
   return t('Validation test users created/updated.');
 }
+
+/**
+ * Create NFR custom roles if they don't exist.
+ */
+function nfr_update_9018() {
+  $roles = [
+    'firefighter' => [
+      'label' => 'Firefighter',
+      'weight' => 3,
+    ],
+    'fire_dept_admin' => [
+      'label' => 'Fire Department Administrator',
+      'weight' => 4,
+    ],
+    'nfr_researcher' => [
+      'label' => 'NFR Researcher',
+      'weight' => 5,
+    ],
+    'nfr_administrator' => [
+      'label' => 'NFR Administrator',
+      'weight' => 6,
+    ],
+  ];
+  
+  $created = 0;
+  foreach ($roles as $role_id => $role_info) {
+    $role = \Drupal\user\Entity\Role::load($role_id);
+    if (!$role) {
+      $role = \Drupal\user\Entity\Role::create([
+        'id' => $role_id,
+        'label' => $role_info['label'],
+        'weight' => $role_info['weight'],
+      ]);
+      $role->save();
+      $created++;
+      \Drupal::logger('nfr')->info('Created role: @label (@id)', [
+        '@label' => $role_info['label'],
+        '@id' => $role_id,
+      ]);
+    }
+  }
+  
+  // Assign permissions to roles
+  _nfr_assign_role_permissions();
+  
+  return t('Created @count NFR roles and assigned permissions.', ['@count' => $created]);
+}
