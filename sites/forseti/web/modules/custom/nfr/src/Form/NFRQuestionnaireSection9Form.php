@@ -227,7 +227,7 @@ class NFRQuestionnaireSection9Form extends FormBase {
       '#min' => 0,
       '#max' => 24,
       '#step' => 0.5,
-      '#default_value' => $lifestyle['sleep_hours_per_night'] ?? '',
+      '#default_value' => $lifestyle['sleep_hours_per_night'] ?? NULL,
       '#description' => $this->t('Include naps if applicable'),
     ];
 
