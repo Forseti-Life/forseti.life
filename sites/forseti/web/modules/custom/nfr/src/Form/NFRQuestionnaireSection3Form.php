@@ -164,9 +164,10 @@ class NFRQuestionnaireSection3Form extends FormBase {
     // Major incidents repeating fields
     $num_incidents = $form_state->get('num_major_incidents') ?? count($exposure['incidents'] ?? []) ?: 0;
     
-    $form['exposure']['incidents'] = [
+    $form['exposure']['incidents_wrapper'] = [
       '#type' => 'container',
-      '#tree' => TRUE,
+      '#prefix' => '<div id="incidents-wrapper">',
+      '#suffix' => '</div>',
       '#states' => [
         'visible' => [
           ':input[name="exposure[major_incidents]"]' => ['value' => 'yes'],
@@ -174,35 +175,29 @@ class NFRQuestionnaireSection3Form extends FormBase {
       ],
     ];
 
-    $form['exposure']['incidents_wrapper'] = [
-      '#type' => 'container',
-      '#prefix' => '<div id="incidents-wrapper">',
-      '#suffix' => '</div>',
-      '#tree' => TRUE,
-    ];
-
     for ($i = 0; $i < $num_incidents; $i++) {
       $incident_data = $exposure['incidents'][$i] ?? [];
       
-      $form['exposure']['incidents_wrapper'][$i] = [
+      $form['exposure']['incidents_wrapper']['incidents'][$i] = [
         '#type' => 'fieldset',
         '#title' => $this->t('Incident @num', ['@num' => $i + 1]),
+        '#tree' => TRUE,
       ];
 
-      $form['exposure']['incidents_wrapper'][$i]['description'] = [
+      $form['exposure']['incidents_wrapper']['incidents'][$i]['description'] = [
         '#type' => 'textarea',
         '#title' => $this->t('Event Description'),
         '#rows' => 3,
         '#default_value' => $incident_data['description'] ?? '',
       ];
 
-      $form['exposure']['incidents_wrapper'][$i]['date'] = [
+      $form['exposure']['incidents_wrapper']['incidents'][$i]['date'] = [
         '#type' => 'date',
         '#title' => $this->t('Date (approximate)'),
         '#default_value' => $incident_data['date'] ?? '',
       ];
 
-      $form['exposure']['incidents_wrapper'][$i]['duration'] = [
+      $form['exposure']['incidents_wrapper']['incidents'][$i]['duration'] = [
         '#type' => 'select',
         '#title' => $this->t('Duration of Involvement'),
         '#options' => [
@@ -323,11 +318,11 @@ class NFRQuestionnaireSection3Form extends FormBase {
       ->execute();
     
     // Insert new major incidents if any
-    if (!empty($exposure['incidents_wrapper']) && $exposure['major_incidents'] === 'yes') {
+    if (!empty($exposure['incidents_wrapper']['incidents']) && $exposure['major_incidents'] === 'yes') {
       $timestamp = time();
-      foreach ($exposure['incidents_wrapper'] as $key => $incident) {
-        // Skip the add button
-        if ($key === 'add_incident' || empty($incident['description'])) {
+      foreach ($exposure['incidents_wrapper']['incidents'] as $key => $incident) {
+        // Skip if no description
+        if (empty($incident['description'])) {
           continue;
         }
         
