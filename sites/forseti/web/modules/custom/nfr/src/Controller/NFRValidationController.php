@@ -292,6 +292,29 @@ class NFRValidationController extends ControllerBase {
     $html .= '<p class="validation-subtitle">' . 
       $this->t('Test all NFR routes with different user permissions') . '</p>';
     $html .= '<p><a href="/admin/nfr/validation/fill-rates" class="btn btn-outline-info">📊 View Fill Rates Report</a></p>';
+    
+    // User statistics bar
+    $total_users = $this->getTotalUsers();
+    $test_users = $this->getTestUsersCount();
+    $production_users = $total_users - $test_users;
+    
+    $html .= '<div class="user-stats-bar">';
+    $html .= '<div class="stat-item">';
+    $html .= '<span class="stat-label">Total Users:</span> ';
+    $html .= '<span class="stat-value">' . number_format($total_users) . '</span>';
+    $html .= '</div>';
+    $html .= '<div class="stat-divider">|</div>';
+    $html .= '<div class="stat-item">';
+    $html .= '<span class="stat-label">Production Users:</span> ';
+    $html .= '<span class="stat-value text-success">' . number_format($production_users) . '</span>';
+    $html .= '</div>';
+    $html .= '<div class="stat-divider">|</div>';
+    $html .= '<div class="stat-item">';
+    $html .= '<span class="stat-label">Test Users:</span> ';
+    $html .= '<span class="stat-value text-warning">' . number_format($test_users) . '</span>';
+    $html .= '</div>';
+    $html .= '</div>';
+    
     $html .= '</div>';
 
     // Questionnaire Test Section
@@ -1188,7 +1211,7 @@ class NFRValidationController extends ControllerBase {
     // Create user using Drupal entity system (let Drupal assign UID)
     $user = \Drupal\user\Entity\User::create([
       'name' => $username,
-      'mail' => $username . '@test-nfr.org',
+      'mail' => $username . '@stlouisintegration.com',
       'pass' => 'TestPassword123!',
       'status' => 1,
       'field_first_name' => $names[0],
@@ -1226,7 +1249,7 @@ class NFRValidationController extends ControllerBase {
     // Create user
     $user = \Drupal\user\Entity\User::create([
       'name' => $username,
-      'mail' => $username . '@test-nfr.org',
+      'mail' => $username . '@stlouisintegration.com',
       'pass' => 'TestPassword123!',
       'status' => 1,
       'field_first_name' => $first_name,
@@ -4088,6 +4111,29 @@ class NFRValidationController extends ControllerBase {
         ],
       ];
     }
+  }
+
+  /**
+   * Get total number of users in the system.
+   */
+  private function getTotalUsers(): int {
+    $database = \Drupal::database();
+    $query = $database->select('users_field_data', 'u')
+      ->condition('u.uid', 0, '>')
+      ->condition('u.status', 1);
+    return (int) $query->countQuery()->execute()->fetchField();
+  }
+
+  /**
+   * Get count of test users (users with @stlouisintegration.com email).
+   */
+  private function getTestUsersCount(): int {
+    $database = \Drupal::database();
+    $query = $database->select('users_field_data', 'u')
+      ->condition('u.uid', 0, '>')
+      ->condition('u.status', 1)
+      ->condition('u.mail', '%@stlouisintegration.com', 'LIKE');
+    return (int) $query->countQuery()->execute()->fetchField();
   }
 
 }

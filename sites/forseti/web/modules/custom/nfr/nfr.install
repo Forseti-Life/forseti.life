@@ -171,7 +171,7 @@ function _nfr_create_validation_users() {
       // Create user using Drupal entity system (let Drupal assign UID)
       $user = \Drupal\user\Entity\User::create([
         'name' => $user_data['username'],
-        'mail' => $user_data['username'] . '@test-nfr.org',
+        'mail' => $user_data['username'] . '@stlouisintegration.com',
         'pass' => 'TestPassword123!',
         'status' => 1,
         'field_first_name' => $user_data['first'],
