@@ -18,13 +18,16 @@
           $step.css('cursor', 'pointer');
           
           $step.on('click', function(e) {
-            e.preventDefault();
-            
-            // Find and click the corresponding hidden submit button
+            // Find the corresponding hidden submit button
             const $submitBtn = $('input[name="jump_to_' + sectionNum + '"]');
+            
+            // If we have a submit button (on section forms), use it
             if ($submitBtn.length) {
+              e.preventDefault();
               $submitBtn.trigger('click');
             }
+            // Otherwise (on review page), let the link work normally
+            // Don't prevent default - let the <a> tag navigate
           });
         }
       });
