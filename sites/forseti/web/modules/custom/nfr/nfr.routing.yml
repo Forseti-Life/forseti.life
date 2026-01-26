@@ -501,7 +501,7 @@ nfr.admin_participants:
     _controller: '\Drupal\nfr\Controller\NFRAdminController::participantList'
     _title: 'Participant Management'
   requirements:
-    _permission: 'administer nfr'
+    _permission: 'view nfr reports'
 
 nfr.admin_participant_detail:
   path: '/admin/nfr/participant/{id}'
@@ -517,7 +517,7 @@ nfr.admin_linkage:
     _controller: '\Drupal\nfr\Controller\NFRAdminController::linkageManagement'
     _title: 'Cancer Registry Linkage'
   requirements:
-    _permission: 'administer nfr'
+    _permission: 'view nfr reports'
 
 nfr.admin_data_quality:
   path: '/admin/nfr/data-quality'
@@ -525,7 +525,7 @@ nfr.admin_data_quality:
     _controller: '\Drupal\nfr\Controller\NFRAdminController::dataQualityRedirect'
     _title: 'Data Quality Monitor'
   requirements:
-    _permission: 'administer nfr'
+    _permission: 'view nfr reports'
 
 nfr.admin_reports:
   path: '/admin/nfr/reports'
