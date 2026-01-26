@@ -138,6 +138,7 @@
    */
   function testRoute(route, path, uid, user, cellId, $btn) {
     const $resultDiv = $('#' + cellId);
+    const expected = $btn.data('expected'); // 'allow' or 'deny'
     
     // Show loading
     $btn.prop('disabled', true).text('Testing...');
@@ -150,7 +151,8 @@
       data: {
         route: route,
         path: path,
-        uid: uid
+        uid: uid,
+        expected: expected
       },
       success: function (response) {
         displayResult(response, $resultDiv, $btn);

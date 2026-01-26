@@ -10,6 +10,7 @@ use Drupal\Core\Session\AccountSwitcherInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\Component\Render\FormattableMarkup;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,6 +28,7 @@ class NFRValidationController extends ControllerBase {
     private readonly RouteProviderInterface $routeProvider,
     private readonly AccountSwitcherInterface $accountSwitcher,
     private readonly HttpKernelInterface $httpKernel,
+    private readonly LoggerInterface $logger,
   ) {}
 
   /**
@@ -37,6 +39,7 @@ class NFRValidationController extends ControllerBase {
       $container->get('router.route_provider'),
       $container->get('account_switcher'),
       $container->get('http_kernel'),
+      $container->get('logger.factory')->get('nfr'),
     );
   }
 
@@ -441,6 +444,7 @@ class NFRValidationController extends ControllerBase {
     $route_name = $request->query->get('route');
     $path = $request->query->get('path');
     $uid = (int) $request->query->get('uid');
+    $expected = $request->query->get('expected');
     
     if (!$route_name || !$path) {
       return new JsonResponse([
@@ -449,7 +453,7 @@ class NFRValidationController extends ControllerBase {
       ], 400);
     }
 
-    $result = $this->testRouteAccess($route_name, $path, $uid);
+    $result = $this->testRouteAccess($route_name, $path, $uid, $expected);
     
     return new JsonResponse($result);
   }
@@ -457,7 +461,7 @@ class NFRValidationController extends ControllerBase {
   /**
    * Test route access for a specific user.
    */
-  private function testRouteAccess(string $route_name, string $path, int $uid): array {
+  private function testRouteAccess(string $route_name, string $path, int $uid, ?string $expected = null): array {
     $result = [
       'route' => $route_name,
       'path' => $path,
@@ -465,6 +469,7 @@ class NFRValidationController extends ControllerBase {
       'status_code' => null,
       'access' => null,
       'error' => null,
+      'expected' => $expected,
     ];
 
     try {
@@ -558,6 +563,34 @@ class NFRValidationController extends ControllerBase {
       $result['status_code'] = 500;
       $result['status_text'] = 'Error: ' . $e->getMessage();
       $result['class'] = 'error';
+    }
+
+    // Check if result matches expected outcome and log if unexpected
+    if ($expected !== null) {
+      $actual_result = ($result['status_code'] === 200) ? 'allow' : 'deny';
+      
+      if ($expected !== $actual_result) {
+        // Get user info for logging
+        $user_name = 'Unknown';
+        if ($uid > 0) {
+          $user = \Drupal\user\Entity\User::load($uid);
+          if ($user) {
+            $user_name = $user->getAccountName();
+          }
+        } else {
+          $user_name = 'Anonymous';
+        }
+        
+        // Log unexpected result
+        $this->logger->warning('Unexpected validation result: Route @route for user @user (UID: @uid). Expected @expected but got @actual (Status: @status)', [
+          '@route' => $route_name,
+          '@user' => $user_name,
+          '@uid' => $uid,
+          '@expected' => $expected,
+          '@actual' => $actual_result,
+          '@status' => $result['status_code'] ?? 'N/A',
+        ]);
+      }
     }
 
     return $result;
