@@ -846,8 +846,11 @@ class NFRReviewSubmitForm extends FormBase {
         $step_class .= ' upcoming clickable';
       }
       
+      // Generate proper Drupal URL for the section
+      $section_url = \Drupal\Core\Url::fromRoute('nfr.questionnaire.section' . $section_num)->toString();
+      
       $html .= '<div class="' . $step_class . '" data-section="' . $section_num . '">';
-      $html .= '<a href="/nfr/questionnaire/section/' . $section_num . '" class="step-link">';
+      $html .= '<a href="' . $section_url . '" class="step-link">';
       $html .= '<div class="step-number">';
       
       if ($is_completed) {
