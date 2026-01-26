@@ -95,3 +95,15 @@ navigation:
   dependencies:
     - core/drupal
     - forseti/style
+
+public-data:
+  version: 1.0
+  css:
+    theme:
+      css/nfr-public-data.css: {}
+  js:
+    js/nfr-public-data.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - forseti/style

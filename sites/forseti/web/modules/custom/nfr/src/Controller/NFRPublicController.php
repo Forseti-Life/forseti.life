@@ -303,13 +303,318 @@ class NFRPublicController extends ControllerBase {
    *   Render array.
    */
   public function publicData(): array {
+    $connection = \Drupal::database();
+    
+    // Get registered firefighter counts by state
+    $state_counts = [];
+    try {
+      $query = $connection->select('nfr_user_profile', 'p');
+      $query->addField('p', 'primary_fire_department_state', 'state');
+      $query->addExpression('COUNT(*)', 'count');
+      $query->groupBy('p.primary_fire_department_state');
+      $results = $query->execute()->fetchAllKeyed();
+      
+      foreach ($results as $state => $count) {
+        if (!empty($state)) {
+          $state_counts[$state] = (int) $count;
+        }
+      }
+    } catch (\Exception $e) {
+      \Drupal::logger('nfr')->error('Error fetching state counts: @message', ['@message' => $e->getMessage()]);
+    }
+    
+    // Get overall statistics
+    $stats = $this->getPublicStatistics($connection);
+    
+    // Build the dashboard HTML
+    $html = $this->buildPublicDataDashboard($state_counts, $stats);
+    
     return [
-      '#theme' => 'nfr_public_page',
-      '#page_id' => 'public-data',
-      '#content' => [
-        '#markup' => '<h2>Public Statistics</h2><p>Placeholder content for public data dashboard.</p>',
+      '#markup' => $html,
+      '#attached' => [
+        'library' => [
+          'nfr/public-data',
+        ],
+        'drupalSettings' => [
+          'nfr' => [
+            'stateData' => $state_counts,
+          ],
+        ],
       ],
     ];
+  }
+  
+  /**
+   * Get public statistics from database.
+   */
+  private function getPublicStatistics($connection): array {
+    $stats = [
+      'total_participants' => 0,
+      'total_states' => 0,
+      'total_departments' => 0,
+      'consented_participants' => 0,
+      'questionnaires_completed' => 0,
+      'cancer_diagnoses' => 0,
+      'avg_years_service' => 0,
+      'career_firefighters' => 0,
+      'volunteer_firefighters' => 0,
+      'male_participants' => 0,
+      'female_participants' => 0,
+    ];
+    
+    try {
+      // Total participants
+      $stats['total_participants'] = (int) $connection->select('nfr_user_profile', 'p')
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      
+      // Total states represented
+      $stats['total_states'] = (int) $connection->select('nfr_user_profile', 'p')
+        ->fields('p', ['primary_fire_department_state'])
+        ->distinct()
+        ->condition('primary_fire_department_state', '', '!=')
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      
+      // Total departments
+      $stats['total_departments'] = (int) $connection->select('nfr_user_profile', 'p')
+        ->fields('p', ['primary_fire_department_name'])
+        ->distinct()
+        ->condition('primary_fire_department_name', '', '!=')
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      
+      // Consented participants
+      $stats['consented_participants'] = (int) $connection->select('nfr_consent', 'c')
+        ->condition('consent_given', 1)
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      
+      // Completed questionnaires
+      $stats['questionnaires_completed'] = (int) $connection->select('nfr_questionnaire', 'q')
+        ->condition('completed', 1)
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      
+      // Cancer diagnoses
+      $stats['cancer_diagnoses'] = (int) $connection->select('nfr_cancer_diagnoses', 'cd')
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      
+      // Average years of service
+      $avg_result = $connection->select('nfr_user_profile', 'p')
+        ->addExpression('AVG(years_in_fire_service)', 'avg_years')
+        ->condition('years_in_fire_service', 0, '>')
+        ->execute()
+        ->fetchField();
+      $stats['avg_years_service'] = $avg_result ? round((float) $avg_result, 1) : 0;
+      
+      // Career vs Volunteer
+      $stats['career_firefighters'] = (int) $connection->select('nfr_user_profile', 'p')
+        ->condition('firefighter_type', 'career')
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      
+      $stats['volunteer_firefighters'] = (int) $connection->select('nfr_user_profile', 'p')
+        ->condition('firefighter_type', 'volunteer')
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      
+      // Gender distribution
+      $stats['male_participants'] = (int) $connection->select('nfr_user_profile', 'p')
+        ->condition('sex', 'male')
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      
+      $stats['female_participants'] = (int) $connection->select('nfr_user_profile', 'p')
+        ->condition('sex', 'female')
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      
+    } catch (\Exception $e) {
+      \Drupal::logger('nfr')->error('Error fetching public statistics: @message', ['@message' => $e->getMessage()]);
+    }
+    
+    return $stats;
+  }
+  
+  /**
+   * Build the public data dashboard HTML.
+   */
+  private function buildPublicDataDashboard(array $state_counts, array $stats): string {
+    $html = '<div class="nfr-public-data-dashboard">';
+    
+    // Header
+    $html .= '<div class="container-fluid my-4">';
+    $html .= '<div class="row mb-4">';
+    $html .= '<div class="col-12">';
+    $html .= '<h1 class="display-4 text-white">National Firefighter Registry Statistics</h1>';
+    $html .= '<p class="lead text-white">Real-time data from the CDC National Firefighter Registry program</p>';
+    $html .= '<p class="text-muted-light"><small>Data updated in real-time. All statistics are aggregated and de-identified to protect participant privacy.</small></p>';
+    $html .= '</div></div>';
+    
+    // US Map Section
+    $html .= '<div class="row mb-5">';
+    $html .= '<div class="col-12">';
+    $html .= '<div class="card card-forseti">';
+    $html .= '<div class="card-body">';
+    $html .= '<h2 class="h3 mb-3 text-white">Registered Firefighters by State</h2>';
+    $html .= '<div id="us-map-container" style="min-height: 400px;">';
+    $html .= '</div>';
+    $html .= '<div id="map-legend" class="mt-3">';
+    $html .= '<div class="legend-title text-white mb-2"><strong>Number of Registered Firefighters</strong></div>';
+    $html .= '<div class="legend-scale d-flex align-items-center flex-wrap">';
+    $html .= '<div class="legend-item me-3 mb-2"><span class="legend-color state-level-0"></span> 0</div>';
+    $html .= '<div class="legend-item me-3 mb-2"><span class="legend-color state-level-1"></span> 1-10</div>';
+    $html .= '<div class="legend-item me-3 mb-2"><span class="legend-color state-level-2"></span> 11-50</div>';
+    $html .= '<div class="legend-item me-3 mb-2"><span class="legend-color state-level-3"></span> 51-100</div>';
+    $html .= '<div class="legend-item me-3 mb-2"><span class="legend-color state-level-4"></span> 101-250</div>';
+    $html .= '<div class="legend-item mb-2"><span class="legend-color state-level-5"></span> 250+</div>';
+    $html .= '</div></div>';
+    $html .= '</div></div>';
+    $html .= '</div></div>';
+    
+    // Key Statistics Grid
+    $html .= '<div class="row g-4 mb-5">';
+    
+    // Total Participants
+    $html .= '<div class="col-md-6 col-lg-3">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body text-center">';
+    $html .= '<div class="stat-icon mb-3" style="font-size: 3rem;">👥</div>';
+    $html .= '<div class="stat-value text-cyan" style="font-size: 2.5rem; font-weight: bold;">' . number_format($stats['total_participants']) . '</div>';
+    $html .= '<div class="stat-label text-white">Total Participants</div>';
+    $html .= '</div></div></div>';
+    
+    // States Represented
+    $html .= '<div class="col-md-6 col-lg-3">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body text-center">';
+    $html .= '<div class="stat-icon mb-3" style="font-size: 3rem;">🗺️</div>';
+    $html .= '<div class="stat-value text-cyan" style="font-size: 2.5rem; font-weight: bold;">' . $stats['total_states'] . '</div>';
+    $html .= '<div class="stat-label text-white">States Represented</div>';
+    $html .= '</div></div></div>';
+    
+    // Fire Departments
+    $html .= '<div class="col-md-6 col-lg-3">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body text-center">';
+    $html .= '<div class="stat-icon mb-3" style="font-size: 3rem;">🚒</div>';
+    $html .= '<div class="stat-value text-cyan" style="font-size: 2.5rem; font-weight: bold;">' . number_format($stats['total_departments']) . '</div>';
+    $html .= '<div class="stat-label text-white">Fire Departments</div>';
+    $html .= '</div></div></div>';
+    
+    // Questionnaires Completed
+    $html .= '<div class="col-md-6 col-lg-3">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body text-center">';
+    $html .= '<div class="stat-icon mb-3" style="font-size: 3rem;">📋</div>';
+    $html .= '<div class="stat-value text-cyan" style="font-size: 2.5rem; font-weight: bold;">' . number_format($stats['questionnaires_completed']) . '</div>';
+    $html .= '<div class="stat-label text-white">Questionnaires Completed</div>';
+    $html .= '</div></div></div>';
+    
+    $html .= '</div>'; // End key stats row
+    
+    // Additional Statistics
+    $html .= '<div class="row g-4">';
+    
+    // Demographics Card
+    $html .= '<div class="col-lg-6">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body">';
+    $html .= '<h3 class="h4 mb-4 text-white"><i class="fas fa-users me-2"></i>Demographics</h3>';
+    $html .= '<div class="mb-3">';
+    $html .= '<div class="d-flex justify-content-between text-white mb-2">';
+    $html .= '<span>Male Firefighters</span>';
+    $html .= '<strong>' . number_format($stats['male_participants']) . '</strong>';
+    $html .= '</div>';
+    $html .= '<div class="progress" style="height: 25px;">';
+    $total_gender = $stats['male_participants'] + $stats['female_participants'];
+    $male_pct = $total_gender > 0 ? round(($stats['male_participants'] / $total_gender) * 100, 1) : 0;
+    $html .= '<div class="progress-bar bg-info" style="width: ' . $male_pct . '%">' . $male_pct . '%</div>';
+    $html .= '</div></div>';
+    
+    $html .= '<div class="mb-3">';
+    $html .= '<div class="d-flex justify-content-between text-white mb-2">';
+    $html .= '<span>Female Firefighters</span>';
+    $html .= '<strong>' . number_format($stats['female_participants']) . '</strong>';
+    $html .= '</div>';
+    $html .= '<div class="progress" style="height: 25px;">';
+    $female_pct = $total_gender > 0 ? round(($stats['female_participants'] / $total_gender) * 100, 1) : 0;
+    $html .= '<div class="progress-bar bg-success" style="width: ' . $female_pct . '%">' . $female_pct . '%</div>';
+    $html .= '</div></div>';
+    
+    $html .= '<div class="mt-4 pt-3 border-top border-secondary">';
+    $html .= '<div class="d-flex justify-content-between text-white">';
+    $html .= '<span><strong>Average Years of Service</strong></span>';
+    $html .= '<strong class="text-cyan">' . $stats['avg_years_service'] . ' years</strong>';
+    $html .= '</div></div>';
+    
+    $html .= '</div></div></div>';
+    
+    // Service Type Card
+    $html .= '<div class="col-lg-6">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body">';
+    $html .= '<h3 class="h4 mb-4 text-white"><i class="fas fa-briefcase me-2"></i>Service Type</h3>';
+    
+    $html .= '<div class="mb-3">';
+    $html .= '<div class="d-flex justify-content-between text-white mb-2">';
+    $html .= '<span>Career Firefighters</span>';
+    $html .= '<strong>' . number_format($stats['career_firefighters']) . '</strong>';
+    $html .= '</div>';
+    $html .= '<div class="progress" style="height: 25px;">';
+    $total_type = $stats['career_firefighters'] + $stats['volunteer_firefighters'];
+    $career_pct = $total_type > 0 ? round(($stats['career_firefighters'] / $total_type) * 100, 1) : 0;
+    $html .= '<div class="progress-bar bg-warning" style="width: ' . $career_pct . '%">' . $career_pct . '%</div>';
+    $html .= '</div></div>';
+    
+    $html .= '<div class="mb-3">';
+    $html .= '<div class="d-flex justify-content-between text-white mb-2">';
+    $html .= '<span>Volunteer Firefighters</span>';
+    $html .= '<strong>' . number_format($stats['volunteer_firefighters']) . '</strong>';
+    $html .= '</div>';
+    $html .= '<div class="progress" style="height: 25px;">';
+    $volunteer_pct = $total_type > 0 ? round(($stats['volunteer_firefighters'] / $total_type) * 100, 1) : 0;
+    $html .= '<div class="progress-bar bg-primary" style="width: ' . $volunteer_pct . '%">' . $volunteer_pct . '%</div>';
+    $html .= '</div></div>';
+    
+    $html .= '<div class="mt-4 pt-3 border-top border-secondary">';
+    $html .= '<div class="d-flex justify-content-between text-white">';
+    $html .= '<span><strong>Cancer Diagnoses Tracked</strong></span>';
+    $html .= '<strong class="text-danger">' . number_format($stats['cancer_diagnoses']) . '</strong>';
+    $html .= '</div></div>';
+    
+    $html .= '</div></div></div>';
+    
+    $html .= '</div>'; // End additional stats row
+    
+    // Call to Action
+    $html .= '<div class="row mt-5">';
+    $html .= '<div class="col-12">';
+    $html .= '<div class="card bg-gradient text-white text-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">';
+    $html .= '<div class="card-body py-5">';
+    $html .= '<h2 class="mb-3">Join the National Firefighter Registry</h2>';
+    $html .= '<p class="lead mb-4">Help protect firefighters by contributing to vital cancer research.</p>';
+    $html .= '<a href="/user/register" class="btn btn-light btn-lg me-2">Register Now</a>';
+    $html .= '<a href="/nfr/about" class="btn btn-outline-light btn-lg">Learn More</a>';
+    $html .= '</div></div>';
+    $html .= '</div></div>';
+    
+    $html .= '</div>'; // End container
+    $html .= '</div>'; // End dashboard
+    
+    return $html;
   }
 
   /**
