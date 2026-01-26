@@ -612,7 +612,7 @@ class NFRValidationController extends ControllerBase {
     try {
       $test_uid = 2; // firefighter_active test user
       
-      // Step 1: Create test user if doesn't exist
+      // Step 1: Verify test user exists
       $user = \Drupal\user\Entity\User::load($test_uid);
       if (!$user) {
         $results['errors'][] = "Test user (UID: $test_uid) not found";
@@ -626,27 +626,33 @@ class NFRValidationController extends ControllerBase {
         'message' => "Test user loaded: {$user->getAccountName()}",
       ];
 
-      // Step 2: Generate and save test questionnaire data
-      $test_data = $this->generateTestQuestionnaireData($test_uid);
+      // Step 2: Generate test questionnaire data
+      $questionnaire_data = $this->generateTestQuestionnaireData($test_uid);
       
       $results['steps'][] = [
         'step' => 'Data Generation',
         'status' => 'success',
         'message' => 'Generated test data for all 9 sections',
-        'data' => $test_data,
       ];
 
-      // Step 3: Save to database
-      $save_result = $this->saveTestQuestionnaireData($test_uid, $test_data);
+      // Step 3: Submit questionnaire data through actual forms (one for each section)
+      $section_results = $this->submitAllQuestionnaireSections($test_uid, $questionnaire_data);
       
-      $results['steps'][] = [
-        'step' => 'Database Insert',
-        'status' => $save_result['success'] ? 'success' : 'error',
-        'message' => $save_result['message'],
-        'record_id' => $save_result['record_id'] ?? null,
-      ];
+      foreach ($section_results as $section_num => $section_result) {
+        $results['steps'][] = [
+          'step' => "Section {$section_num} Form Submission",
+          'status' => $section_result['success'] ? 'success' : 'error',
+          'message' => $section_result['message'],
+          'errors' => $section_result['errors'] ?? [],
+        ];
 
-      // Step 4: Verify data
+        if (!$section_result['success']) {
+          $results['success'] = false;
+          $results['errors'][] = "Section {$section_num} failed: " . $section_result['message'];
+        }
+      }
+
+      // Step 4: Verify data was saved to database correctly
       $verification = $this->verifyQuestionnaireData($test_uid);
       
       $results['steps'][] = [
@@ -656,7 +662,9 @@ class NFRValidationController extends ControllerBase {
         'verified_fields' => $verification['fields'] ?? [],
       ];
 
-      $results['success'] = $save_result['success'] && $verification['success'];
+      if (!$verification['success']) {
+        $results['success'] = false;
+      }
 
     } catch (\Exception $e) {
       $results['success'] = false;
@@ -666,6 +674,9 @@ class NFRValidationController extends ControllerBase {
     return new JsonResponse($results);
   }
 
+  /**
+   * Submit questionnaire data through actual form workflow.
+   */
   /**
    * Generate test questionnaire data.
    */
@@ -775,72 +786,6 @@ class NFRValidationController extends ControllerBase {
   /**
    * Save test questionnaire data to database.
    */
-  private function saveTestQuestionnaireData(int $uid, array $data): array {
-    try {
-      $database = \Drupal::database();
-
-      // Check if record exists
-      $exists = $database->select('nfr_questionnaire', 'q')
-        ->fields('q', ['id'])
-        ->condition('uid', $uid)
-        ->execute()
-        ->fetchField();
-
-      $fields = [
-        'race_ethnicity' => json_encode($data['demographics']['race_ethnicity']),
-        'height_inches' => $data['demographics']['height_inches'],
-        'weight_pounds' => $data['demographics']['weight_pounds'],
-        'military_service' => $data['military']['military_service'],
-        'military_branch' => $data['military']['military_branch'],
-        'military_years' => 4,
-        'other_employment_data' => json_encode($data['other_employment']),
-        'ppe_practices' => json_encode($data['ppe']),
-        'decon_practices' => json_encode($data['decontamination']),
-        'cancer_diagnosis' => $data['health']['cancer_diagnosis'],
-        'cancer_details' => json_encode($data['health']['cancer_details']),
-        'family_cancer_history' => json_encode($data['health']['family_history']),
-        'smoking_history' => json_encode($data['lifestyle']),
-        'alcohol_use' => $data['lifestyle']['alcohol_use'],
-        'questionnaire_completed' => 1,
-        'questionnaire_completed_date' => time(),
-        'updated' => time(),
-      ];
-
-      if ($exists) {
-        $database->update('nfr_questionnaire')
-          ->fields($fields)
-          ->condition('uid', $uid)
-          ->execute();
-
-        return [
-          'success' => true,
-          'message' => 'Test data updated successfully',
-          'record_id' => $exists,
-        ];
-      }
-      else {
-        $fields['uid'] = $uid;
-        $fields['created'] = time();
-        
-        $record_id = $database->insert('nfr_questionnaire')
-          ->fields($fields)
-          ->execute();
-
-        return [
-          'success' => true,
-          'message' => 'Test data inserted successfully',
-          'record_id' => $record_id,
-        ];
-      }
-    }
-    catch (\Exception $e) {
-      return [
-        'success' => false,
-        'message' => 'Database error: ' . $e->getMessage(),
-      ];
-    }
-  }
-
   /**
    * Verify questionnaire data in database.
    *
