@@ -1413,6 +1413,9 @@ class NFRValidationController extends ControllerBase {
    * Create a single test user with unique username.
    */
   private function createUser(string $base_username, string $role_id, string $role_label): \Drupal\user\Entity\User {
+    // Add "test" to base username to identify as test user
+    $base_username = $base_username . '_test';
+    
     // Find next available username by checking for existing users
     $username = $base_username;
     $counter = 1;
@@ -1484,15 +1487,7 @@ class NFRValidationController extends ControllerBase {
         WHERE uid > 1
         AND status = 1
         AND mail LIKE '%@stlouisintegration.com'
-        AND (
-          name LIKE '%test%'
-          OR name LIKE 'firefighter_%'
-          OR name LIKE 'nfr_administrator_%'
-          OR name LIKE 'nfr_researcher_%'
-          OR name LIKE 'fire_department_admin_%'
-          OR name LIKE 'dept_admin%'
-          OR name LIKE 'nfr_admin%'
-        )
+        AND name LIKE '%test%'
       ")->fetchCol();
 
       foreach ($uids as $uid) {
@@ -1512,19 +1507,9 @@ class NFRValidationController extends ControllerBase {
           continue;
         }
         
-        // Additional safety: must have test-like username
-        $is_test_user = (
-          str_contains($username, 'test') ||
-          str_starts_with($username, 'firefighter_') ||
-          str_starts_with($username, 'nfr_administrator_') ||
-          str_starts_with($username, 'nfr_researcher_') ||
-          str_starts_with($username, 'fire_department_admin_') ||
-          str_starts_with($username, 'dept_admin') ||
-          str_starts_with($username, 'nfr_admin')
-        );
-        
-        if (!$is_test_user) {
-          $results['errors'][] = "Skipped user {$user->getAccountName()} - username doesn't match test pattern";
+        // Additional safety: must have "test" in username
+        if (!str_contains($username, 'test')) {
+          $results['errors'][] = "Skipped user {$user->getAccountName()} - username doesn't contain 'test'";
           continue;
         }
         
