@@ -8,7 +8,7 @@
 
   Drupal.behaviors.nfrQuestionnaire = {
     attach: function (context, settings) {
-      // Make stepper steps clickable
+      // Make stepper steps clickable - only attach handlers to the div, not the link
       once('stepper-click', '.stepper-step', context).forEach(function(element) {
         const $step = $(element);
         const sectionNum = $step.data('section');
@@ -17,22 +17,20 @@
         if ($step.hasClass('completed') || $step.hasClass('active')) {
           $step.css('cursor', 'pointer');
           
-          $step.on('click', function(e) {
-            // Find the corresponding hidden submit button
-            const $submitBtn = $('input[name="jump_to_' + sectionNum + '"]');
-            
-            // If we have a submit button (on section forms), use it
-            if ($submitBtn.length) {
-              e.preventDefault();
-              $submitBtn.trigger('click');
-            } else {
-              // On review page, navigate to the link URL
-              const $link = $step.find('a.step-link');
-              if ($link.length && $link.attr('href')) {
-                window.location.href = $link.attr('href');
+          // Check if we're on a section form (has submit buttons) or review page (no submit buttons)
+          const $submitBtn = $('input[name="jump_to_' + sectionNum + '"]');
+          
+          if ($submitBtn.length) {
+            // On section forms: intercept clicks on the div and trigger submit button
+            $step.on('click', function(e) {
+              // Only prevent default if clicking on something other than the link
+              if (!$(e.target).closest('a.step-link').length) {
+                e.preventDefault();
+                $submitBtn.trigger('click');
               }
-            }
-          });
+            });
+          }
+          // On review page: do nothing, let the <a> tag work naturally
         }
       });
       
