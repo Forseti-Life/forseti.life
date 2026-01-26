@@ -9,7 +9,122 @@
  * Implements hook_install().
  */
 function nfr_install() {
-  \Drupal::messenger()->addStatus(__FUNCTION__);
+  // Assign permissions to roles
+  _nfr_assign_role_permissions();
+  
+  // Create validation test users
+  _nfr_create_validation_users();
+  
+  \Drupal::messenger()->addStatus(t('NFR module installed successfully. Validation test users created.'));
+}
+
+/**
+ * Assign permissions to NFR roles.
+ */
+function _nfr_assign_role_permissions() {
+  $role_permissions = [
+    'firefighter' => [
+      'access nfr dashboard',
+      'view firefighter records',
+      'view cancer data',
+    ],
+    'fire_dept_admin' => [
+      'access nfr dashboard',
+      'view firefighter records',
+      'view cancer data',
+    ],
+    'nfr_researcher' => [
+      'access nfr dashboard',
+      'view firefighter records',
+      'view cancer data',
+      'view nfr reports',
+      'export nfr data',
+    ],
+    'nfr_administrator' => [
+      'administer nfr',
+      'access nfr dashboard',
+      'manage firefighters',
+      'view firefighter records',
+      'view cancer data',
+      'manage cancer data',
+      'export nfr data',
+      'view nfr reports',
+      'manage state registry linkages',
+    ],
+  ];
+  
+  foreach ($role_permissions as $role_id => $permissions) {
+    $role = \Drupal\user\Entity\Role::load($role_id);
+    if ($role) {
+      foreach ($permissions as $permission) {
+        $role->grantPermission($permission);
+      }
+      $role->save();
+    }
+  }
+}
+
+/**
+ * Create validation test users with specific UIDs.
+ */
+function _nfr_create_validation_users() {
+  $validation_users = [
+    2 => ['username' => 'firefighter_active', 'role' => 'firefighter', 'first' => 'John', 'last' => 'Smith'],
+    3 => ['username' => 'firefighter_retired', 'role' => 'firefighter', 'first' => 'Jane', 'last' => 'Doe'],
+    4 => ['username' => 'nfr_admin', 'role' => 'nfr_administrator', 'first' => 'Admin', 'last' => 'User'],
+    5 => ['username' => 'nfr_researcher', 'role' => 'nfr_researcher', 'first' => 'Research', 'last' => 'Analyst'],
+    6 => ['username' => 'dept_admin', 'role' => 'fire_dept_admin', 'first' => 'Fire', 'last' => 'Chief'],
+  ];
+  
+  foreach ($validation_users as $uid => $user_data) {
+    // Check if user already exists
+    $existing = \Drupal\user\Entity\User::load($uid);
+    if ($existing) {
+      // Update role if needed
+      if (!$existing->hasRole($user_data['role'])) {
+        $existing->addRole($user_data['role']);
+        $existing->save();
+      }
+      continue;
+    }
+    
+    // Check by username
+    $existing_by_name = \Drupal::entityTypeManager()
+      ->getStorage('user')
+      ->loadByProperties(['name' => $user_data['username']]);
+    
+    if (!empty($existing_by_name)) {
+      continue;
+    }
+    
+    try {
+      // Insert into users table first to reserve the UID
+      $database = \Drupal::database();
+      $database->insert('users')
+        ->fields(['uid' => $uid])
+        ->execute();
+      
+      // Create the user entity
+      $user = \Drupal\user\Entity\User::create([
+        'uid' => $uid,
+        'name' => $user_data['username'],
+        'mail' => $user_data['username'] . '@test-nfr.org',
+        'pass' => 'TestPassword123!',
+        'status' => 1,
+        'field_first_name' => $user_data['first'],
+        'field_last_name' => $user_data['last'],
+      ]);
+      
+      $user->addRole($user_data['role']);
+      $user->save();
+      
+    } catch (\Exception $e) {
+      \Drupal::logger('nfr')->error('Failed to create validation user @username: @message', [
+        '@username' => $user_data['username'],
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
 }
 
 /**
@@ -1778,4 +1893,17 @@ function nfr_schema() {
   ];
 
   return $schema;
+}
+
+/**
+ * Create validation test users and assign role permissions.
+ */
+function nfr_update_9015() {
+  // Assign permissions to roles
+  _nfr_assign_role_permissions();
+  
+  // Create validation test users
+  _nfr_create_validation_users();
+  
+  return t('Created validation test users and assigned role permissions.');
 }

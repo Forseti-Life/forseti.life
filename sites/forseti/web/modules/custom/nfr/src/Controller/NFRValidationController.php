@@ -1114,6 +1114,27 @@ class NFRValidationController extends ControllerBase {
     ];
 
     try {
+      // First create the specific validation test users with exact UIDs
+      $validation_users = [
+        2 => ['username' => 'firefighter_active', 'role' => 'firefighter', 'label' => 'Firefighter (Active)'],
+        3 => ['username' => 'firefighter_retired', 'role' => 'firefighter', 'label' => 'Firefighter (Retired)'],
+        4 => ['username' => 'nfr_admin', 'role' => 'nfr_administrator', 'label' => 'NFR Administrator'],
+        5 => ['username' => 'nfr_researcher', 'role' => 'nfr_researcher', 'label' => 'NFR Researcher'],
+        6 => ['username' => 'dept_admin', 'role' => 'fire_dept_admin', 'label' => 'Fire Dept Admin'],
+      ];
+
+      foreach ($validation_users as $uid => $user_data) {
+        $user = $this->createValidationUser($uid, $user_data['username'], $user_data['role'], $user_data['label']);
+        $results['users_created'][] = [
+          'uid' => $user->id(),
+          'username' => $user_data['username'],
+          'role' => $user_data['label'],
+          'email' => $user->getEmail(),
+          'purpose' => 'validation_test',
+        ];
+      }
+
+      // Then create additional users for bulk testing
       $roles = [
         'nfr_administrator' => 'NFR Administrator',
         'nfr_researcher' => 'NFR Researcher',
@@ -1121,22 +1142,27 @@ class NFRValidationController extends ControllerBase {
         'fire_dept_admin' => 'Fire Department Admin',
       ];
 
-      // Create 5 users for each role
+      // Create 5 users for each role (skip if validation user exists)
       foreach ($roles as $role_id => $role_label) {
         for ($i = 1; $i <= 5; $i++) {
           $username = strtolower(str_replace(' ', '_', $role_label)) . '_' . $i;
+          // Skip if this matches a validation user
+          if (in_array($username, array_column($validation_users, 'username'))) {
+            continue;
+          }
           $user = $this->createUser($username, $role_id, $role_label);
           $results['users_created'][] = [
             'uid' => $user->id(),
             'username' => $username,
             'role' => $role_label,
             'email' => $user->getEmail(),
+            'purpose' => 'bulk_test',
           ];
         }
       }
 
       // Create 150 additional firefighters
-      for ($i = 6; $i <= 155; $i++) {
+      for ($i = 7; $i <= 155; $i++) {
         $username = 'firefighter_' . $i;
         $user = $this->createUser($username, 'firefighter', 'Firefighter');
         $results['users_created'][] = [
@@ -1144,16 +1170,18 @@ class NFRValidationController extends ControllerBase {
           'username' => $username,
           'role' => 'Firefighter',
           'email' => $user->getEmail(),
+          'purpose' => 'bulk_test',
         ];
       }
 
       $results['total_created'] = count($results['users_created']);
       $results['summary'] = [
+        'validation_users' => 5,
         'nfr_administrators' => 5,
         'nfr_researchers' => 5,
         'fire_dept_admins' => 5,
-        'firefighters' => 155,
-        'total' => 170,
+        'firefighters' => 149,
+        'total' => count($results['users_created']),
       ];
 
     } catch (\Exception $e) {
@@ -1162,6 +1190,66 @@ class NFRValidationController extends ControllerBase {
     }
 
     return new JsonResponse($results);
+  }
+
+  /**
+   * Create a specific validation test user with exact UID.
+   */
+  private function createValidationUser(int $target_uid, string $username, string $role_id, string $role_label): \Drupal\user\Entity\User {
+    // Check if user already exists
+    $existing = \Drupal\user\Entity\User::load($target_uid);
+    if ($existing) {
+      // Update existing user with correct role
+      if (!$existing->hasRole($role_id)) {
+        $existing->addRole($role_id);
+        $existing->save();
+      }
+      return $existing;
+    }
+
+    // Check by username
+    $existing_by_name = \Drupal::entityTypeManager()
+      ->getStorage('user')
+      ->loadByProperties(['name' => $username]);
+
+    if (!empty($existing_by_name)) {
+      return reset($existing_by_name);
+    }
+
+    // Generate name parts
+    $name_map = [
+      'firefighter_active' => ['John', 'Smith'],
+      'firefighter_retired' => ['Jane', 'Doe'],
+      'nfr_admin' => ['Admin', 'User'],
+      'nfr_researcher' => ['Research', 'Analyst'],
+      'dept_admin' => ['Fire', 'Chief'],
+    ];
+
+    $names = $name_map[$username] ?? ['Test', 'User'];
+
+    // Create user directly in database to control UID
+    $database = \Drupal::database();
+    
+    // Insert into users table
+    $database->insert('users')
+      ->fields(['uid' => $target_uid])
+      ->execute();
+
+    // Now create the user entity
+    $user = \Drupal\user\Entity\User::create([
+      'uid' => $target_uid,
+      'name' => $username,
+      'mail' => $username . '@test-nfr.org',
+      'pass' => 'TestPassword123!',
+      'status' => 1,
+      'field_first_name' => $names[0],
+      'field_last_name' => $names[1],
+    ]);
+
+    $user->addRole($role_id);
+    $user->save();
+
+    return $user;
   }
 
   /**
