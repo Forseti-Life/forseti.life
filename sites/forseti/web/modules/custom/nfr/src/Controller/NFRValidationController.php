@@ -636,7 +636,7 @@ class NFRValidationController extends ControllerBase {
       }
       
       $user = reset($users);
-      $test_uid = $user->id();
+      $test_uid = (int) $user->id();
 
       $results['steps'][] = [
         'step' => 'User Check',
