@@ -1302,3 +1302,11 @@ function nfr_update_9018() {
   
   return t('Created @count NFR roles and assigned permissions.', ['@count' => $created]);
 }
+
+/**
+ * Recreate validation test users after roles are created.
+ */
+function nfr_update_9019() {
+  _nfr_create_validation_users();
+  return t('Validation test users created/updated.');
+}
