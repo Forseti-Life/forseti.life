@@ -2640,6 +2640,9 @@ class NFRValidationController extends ControllerBase {
         'smoking_status' => ['never', 'former', 'current'][rand(0, 2)],
         'alcohol_frequency' => ['never', 'less_than_monthly', '1_3_per_month', '1_2_per_week', '3_4_per_week', '5_plus_per_week'][rand(0, 5)],
         'physical_activity_days' => rand(0, 7),
+        'sleep_hours_per_night' => rand(40, 100) / 10, // 4.0 to 10.0 hours
+        'sleep_quality' => ['excellent', 'good', 'fair', 'poor', 'very_poor'][rand(0, 4)],
+        'sleep_disorders' => $this->getRandomSleepDisorders(),
       ],
     ];
   }
@@ -2679,6 +2682,26 @@ class NFRValidationController extends ControllerBase {
     shuffle($all_conditions);
     for ($i = 0; $i < $num_conditions && $i < count($all_conditions); $i++) {
       $selected[$all_conditions[$i]] = $all_conditions[$i];
+    }
+    
+    return $selected;
+  }
+
+  /**
+   * Generate random sleep disorders selection.
+   */
+  private function getRandomSleepDisorders(): array {
+    $all_disorders = ['insomnia', 'sleep_apnea', 'restless_leg', 'shift_work_disorder'];
+    $num_disorders = rand(0, 2); // 0-2 disorders selected
+    
+    if ($num_disorders === 0) {
+      return ['none' => 'none'];
+    }
+    
+    $selected = [];
+    shuffle($all_disorders);
+    for ($i = 0; $i < $num_disorders && $i < count($all_disorders); $i++) {
+      $selected[$all_disorders[$i]] = $all_disorders[$i];
     }
     
     return $selected;
@@ -2997,6 +3020,9 @@ class NFRValidationController extends ControllerBase {
           'smoking_status' => $data['lifestyle']['smoking_status'] ?? 'never',
           'alcohol_frequency' => $data['lifestyle']['alcohol_frequency'] ?? 'never',
           'physical_activity_days' => isset($data['lifestyle']['physical_activity_days']) ? (string)$data['lifestyle']['physical_activity_days'] : '0',
+          'sleep_hours_per_night' => $data['lifestyle']['sleep_hours_per_night'] ?? 7,
+          'sleep_quality' => $data['lifestyle']['sleep_quality'] ?? 'good',
+          'sleep_disorders' => $data['lifestyle']['sleep_disorders'] ?? [],
         ],
       ],
     ];
