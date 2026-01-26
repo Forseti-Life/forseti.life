@@ -1597,21 +1597,33 @@ class NFRValidationController extends ControllerBase {
       }
       
       // Clean up any orphaned records (job_titles without work_history, incident_frequency without job_titles)
-      $orphaned_incident_freq_stmt = $database->prepareStatement("
-        DELETE freq FROM {nfr_incident_frequency} freq 
+      // First find orphaned incident_frequency IDs
+      $orphaned_freq_ids = $database->query("
+        SELECT freq.id FROM {nfr_incident_frequency} freq 
         LEFT JOIN {nfr_job_titles} jt ON freq.job_title_id = jt.id 
         WHERE jt.id IS NULL
-      ", ['allow_row_count' => TRUE]);
-      $orphaned_incident_freq_stmt->execute();
-      $orphaned_incident_freq = $orphaned_incident_freq_stmt->rowCount();
+      ")->fetchCol();
       
-      $orphaned_job_titles_stmt = $database->prepareStatement("
-        DELETE jt FROM {nfr_job_titles} jt 
+      $orphaned_incident_freq = 0;
+      if (!empty($orphaned_freq_ids)) {
+        $orphaned_incident_freq = $database->delete('nfr_incident_frequency')
+          ->condition('id', $orphaned_freq_ids, 'IN')
+          ->execute();
+      }
+      
+      // Find orphaned job_titles IDs
+      $orphaned_jt_ids = $database->query("
+        SELECT jt.id FROM {nfr_job_titles} jt 
         LEFT JOIN {nfr_work_history} wh ON jt.work_history_id = wh.id 
         WHERE wh.id IS NULL
-      ", ['allow_row_count' => TRUE]);
-      $orphaned_job_titles_stmt->execute();
-      $orphaned_job_titles = $orphaned_job_titles_stmt->rowCount();
+      ")->fetchCol();
+      
+      $orphaned_job_titles = 0;
+      if (!empty($orphaned_jt_ids)) {
+        $orphaned_job_titles = $database->delete('nfr_job_titles')
+          ->condition('id', $orphaned_jt_ids, 'IN')
+          ->execute();
+      }
       
       if ($orphaned_job_titles > 0 || $orphaned_incident_freq > 0) {
         $results['message'] = "Deleted {$results['users_deleted']} test users, {$results['profiles_deleted']} profiles, {$results['questionnaires_deleted']} questionnaires. Cleaned up {$orphaned_job_titles} orphaned job titles and {$orphaned_incident_freq} orphaned incident frequencies.";
