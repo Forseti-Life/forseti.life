@@ -1623,7 +1623,27 @@ class NFRValidationController extends ControllerBase {
         'deployment_locations' => [],
         'exposures' => [],
       ],
-      'other_employment' => ['jobs' => []],
+      'other_employment' => [
+        'had_other_jobs' => 'yes',
+        'jobs' => [
+          [
+            'occupation' => 'Construction Worker',
+            'industry' => 'construction',
+            'start_year' => 1975,
+            'end_year' => 1980,
+            'exposures' => 'asbestos,silica,diesel',
+            'exposures_other' => 'Heavy machinery exhaust',
+          ],
+          [
+            'occupation' => 'Paramedic',
+            'industry' => 'healthcare',
+            'start_year' => 1981,
+            'end_year' => 1985,
+            'exposures' => 'chemicals,radiation',
+            'exposures_other' => '',
+          ],
+        ],
+      ],
       'ppe' => [
         'scba_usage' => 'always',
         'glove_usage' => 'always',
@@ -1700,7 +1720,19 @@ class NFRValidationController extends ControllerBase {
         'deployment_locations' => [],
         'exposures' => [],
       ],
-      'other_employment' => ['jobs' => []],
+      'other_employment' => [
+        'had_other_jobs' => 'yes',
+        'jobs' => [
+          [
+            'occupation' => 'Retail Worker',
+            'industry' => 'retail',
+            'start_year' => 2018,
+            'end_year' => 2020,
+            'exposures' => '',
+            'exposures_other' => '',
+          ],
+        ],
+      ],
       'ppe' => [
         'scba_usage' => 'rarely',
         'glove_usage' => 'sometimes',
@@ -1777,7 +1809,19 @@ class NFRValidationController extends ControllerBase {
         'deployment_locations' => [],
         'exposures' => [],
       ],
-      'other_employment' => ['jobs' => []],
+      'other_employment' => [
+        'had_other_jobs' => 'yes',
+        'jobs' => [
+          [
+            'occupation' => 'Military',
+            'industry' => 'military',
+            'start_year' => 2016,
+            'end_year' => 2018,
+            'exposures' => 'diesel,chemicals',
+            'exposures_other' => 'Jet fuel',
+          ],
+        ],
+      ],
       'ppe' => [
         'scba_usage' => 'sometimes',
         'glove_usage' => 'sometimes',
@@ -1847,6 +1891,183 @@ class NFRValidationController extends ControllerBase {
       $selected_races[] = $races[array_rand($races)];
     }
     
+    // 30% chance of having other employment, then 30% chance of second job
+    $other_jobs = [];
+    if (rand(1, 100) <= 30) {
+      $occupations = ['Construction Worker', 'Paramedic', 'Police Officer', 'Military', 'Retail Manager', 'Factory Worker', 'Mechanic', 'Electrician'];
+      $industries = ['construction', 'healthcare', 'law_enforcement', 'military', 'retail', 'manufacturing', 'automotive', 'trades'];
+      $exposures_list = ['asbestos', 'silica', 'diesel', 'chemicals', 'radiation', 'lead', 'solvents'];
+      
+      // First job (100% if we're in this block)
+      $start_year = rand(1990, 2010);
+      $end_year = rand($start_year + 1, 2020);
+      $occupation = $occupations[array_rand($occupations)];
+      $industry = $industries[array_rand($industries)];
+      
+      // 50% chance of having exposures
+      $exposures = '';
+      $exposures_other = '';
+      if (rand(0, 1)) {
+        $num_exposures = rand(1, 3);
+        $selected_exposures = [];
+        for ($j = 0; $j < $num_exposures; $j++) {
+          $selected_exposures[] = $exposures_list[array_rand($exposures_list)];
+        }
+        $exposures = implode(',', array_unique($selected_exposures));
+        if (rand(0, 1)) {
+          $exposures_other = 'Other chemical exposure';
+        }
+      }
+      
+      $other_jobs[] = [
+        'occupation' => $occupation,
+        'industry' => $industry,
+        'start_year' => $start_year,
+        'end_year' => $end_year,
+        'exposures' => $exposures,
+        'exposures_other' => $exposures_other,
+      ];
+      
+      // 30% chance of second job
+      if (rand(1, 100) <= 30) {
+        $start_year = rand(1990, 2010);
+        $end_year = rand($start_year + 1, 2020);
+        $occupation = $occupations[array_rand($occupations)];
+        $industry = $industries[array_rand($industries)];
+        
+        $exposures = '';
+        $exposures_other = '';
+        if (rand(0, 1)) {
+          $num_exposures = rand(1, 3);
+          $selected_exposures = [];
+          for ($j = 0; $j < $num_exposures; $j++) {
+            $selected_exposures[] = $exposures_list[array_rand($exposures_list)];
+          }
+          $exposures = implode(',', array_unique($selected_exposures));
+          if (rand(0, 1)) {
+            $exposures_other = 'Other exposure detail';
+          }
+        }
+        
+        $other_jobs[] = [
+          'occupation' => $occupation,
+          'industry' => $industry,
+          'start_year' => $start_year,
+          'end_year' => $end_year,
+          'exposures' => $exposures,
+          'exposures_other' => $exposures_other,
+        ];
+      }
+    }
+    
+    // Work history: First department is always added, 30% chance of second department
+    $departments = [
+      [
+        'department_name' => 'Test Fire Department ' . rand(1, 999),
+        'department_fdid' => sprintf('%05d', rand(10000, 99999)),
+        'department_state' => ['CA', 'TX', 'NY', 'FL'][rand(0, 3)],
+        'department_city' => 'TestCity',
+        'start_date' => sprintf('%04d-%02d-01', rand(2005, 2015), rand(1, 12)),
+        'end_date' => '',
+        'is_current' => 1,
+        'job_titles' => [
+          [
+            'job_title' => 'Firefighter',
+            'employment_type' => $employment_types[array_rand($employment_types)],
+            'start_date' => sprintf('%04d-%02d-01', rand(2005, 2015), rand(1, 12)),
+            'end_date' => '',
+            'responded_to_incidents' => 1,
+          ],
+        ],
+      ],
+    ];
+    
+    if (rand(1, 100) <= 30) {
+      $departments[] = [
+        'department_name' => 'Previous Fire Department ' . rand(1, 999),
+        'department_fdid' => sprintf('%05d', rand(10000, 99999)),
+        'department_state' => ['CA', 'TX', 'NY', 'FL'][rand(0, 3)],
+        'department_city' => 'OldCity',
+        'start_date' => sprintf('%04d-%02d-01', rand(1995, 2005), rand(1, 12)),
+        'end_date' => sprintf('%04d-%02d-01', rand(2005, 2010), rand(1, 12)),
+        'is_current' => 0,
+        'job_titles' => [
+          [
+            'job_title' => 'Firefighter',
+            'employment_type' => $employment_types[array_rand($employment_types)],
+            'start_date' => sprintf('%04d-%02d-01', rand(1995, 2005), rand(1, 12)),
+            'end_date' => sprintf('%04d-%02d-01', rand(2005, 2010), rand(1, 12)),
+            'responded_to_incidents' => 1,
+          ],
+        ],
+      ];
+    }
+    
+    // Major incidents: 30% chance of having incidents if afff_used is yes
+    $major_incidents_data = [];
+    $has_major_incidents = rand(0, 1);
+    if ($has_major_incidents && rand(1, 100) <= 30) {
+      $incident_types = ['Structure Fire', 'Wildland Fire', 'Chemical Spill', 'HAZMAT Response', 'Vehicle Fire'];
+      $durations = ['< 1 hour', '1-4 hours', '4-8 hours', '8-24 hours', '> 24 hours'];
+      
+      // First incident
+      $major_incidents_data[] = [
+        'description' => $incident_types[array_rand($incident_types)] . ' - Major incident',
+        'incident_date' => sprintf('%04d-%02d-%02d', rand(2000, 2020), rand(1, 12), rand(1, 28)),
+        'duration' => $durations[array_rand($durations)],
+      ];
+      
+      // 30% chance of second incident
+      if (rand(1, 100) <= 30) {
+        $major_incidents_data[] = [
+          'description' => $incident_types[array_rand($incident_types)] . ' - Second major incident',
+          'incident_date' => sprintf('%04d-%02d-%02d', rand(2000, 2020), rand(1, 12), rand(1, 28)),
+          'duration' => $durations[array_rand($durations)],
+        ];
+      }
+    }
+    
+    // Health: 10% chance of cancer diagnosis, then 30% chance of second diagnosis
+    $cancer_details = [];
+    if (rand(1, 100) <= 10) {
+      $cancer_types = ['Lung', 'Prostate', 'Colon', 'Melanoma', 'Leukemia', 'Lymphoma', 'Kidney', 'Bladder'];
+      
+      // First diagnosis
+      $cancer_details[] = [
+        'cancer_type' => $cancer_types[array_rand($cancer_types)],
+        'diagnosis_year' => rand(2010, 2023),
+      ];
+      
+      // 30% chance of second diagnosis
+      if (rand(1, 100) <= 30) {
+        $cancer_details[] = [
+          'cancer_type' => $cancer_types[array_rand($cancer_types)],
+          'diagnosis_year' => rand(2010, 2023),
+        ];
+      }
+    }
+    
+    // Family cancer history: 40% chance of family history, 30% chance of second relative
+    $family_history = [];
+    if (rand(1, 100) <= 40) {
+      $relations = ['parent', 'sibling', 'grandparent', 'child', 'aunt_uncle', 'cousin'];
+      $cancer_types = ['Lung', 'Breast', 'Prostate', 'Colon', 'Melanoma', 'Leukemia', 'Other'];
+      
+      // First relative
+      $family_history[] = [
+        'relation' => $relations[array_rand($relations)],
+        'cancer_type' => $cancer_types[array_rand($cancer_types)],
+      ];
+      
+      // 30% chance of second relative
+      if (rand(1, 100) <= 30) {
+        $family_history[] = [
+          'relation' => $relations[array_rand($relations)],
+          'cancer_type' => $cancer_types[array_rand($cancer_types)],
+        ];
+      }
+    }
+    
     return [
       'demographics' => [
         'race_ethnicity' => array_unique($selected_races),
@@ -1856,26 +2077,7 @@ class NFRValidationController extends ControllerBase {
         'weight_pounds' => rand(140, 260),
       ],
       'work_history' => [
-        'departments' => [
-          [
-            'department_name' => 'Test Fire Department ' . rand(1, 999),
-            'department_fdid' => sprintf('%05d', rand(10000, 99999)),
-            'department_state' => ['CA', 'TX', 'NY', 'FL'][rand(0, 3)],
-            'department_city' => 'TestCity',
-            'start_date' => sprintf('%04d-%02d-01', rand(2005, 2015), rand(1, 12)),
-            'end_date' => '',
-            'is_current' => 1,
-            'job_titles' => [
-              [
-                'job_title' => 'Firefighter',
-                'employment_type' => $employment_types[array_rand($employment_types)],
-                'start_date' => sprintf('%04d-%02d-01', rand(2005, 2015), rand(1, 12)),
-                'end_date' => '',
-                'responded_to_incidents' => 1,
-              ],
-            ],
-          ],
-        ],
+        'departments' => $departments,
       ],
       'exposure' => [
         'afff_used' => ['yes', 'no'][rand(0, 1)],
@@ -1883,7 +2085,8 @@ class NFRValidationController extends ControllerBase {
         'afff_frequency' => ['never', 'rarely', 'monthly', 'weekly'][rand(0, 3)],
         'diesel_exhaust' => ['regularly', 'sometimes', 'rarely', 'never'][rand(0, 3)],
         'diesel_years' => rand(0, 25),
-        'major_incidents' => ['yes', 'no'][rand(0, 1)],
+        'major_incidents' => $has_major_incidents ? 'yes' : 'no',
+        'major_incidents_data' => $major_incidents_data,
       ],
       'military' => [
         'served' => ['yes', 'no'][rand(0, 1)],
@@ -1894,7 +2097,10 @@ class NFRValidationController extends ControllerBase {
         'deployment_locations' => [],
         'exposures' => [],
       ],
-      'other_employment' => ['jobs' => []],
+      'other_employment' => [
+        'had_other_jobs' => count($other_jobs) > 0 ? 'yes' : 'no',
+        'jobs' => $other_jobs,
+      ],
       'ppe' => [
         'scba_usage' => ['always', 'usually', 'sometimes', 'rarely'][rand(0, 3)],
         'glove_usage' => ['always', 'usually', 'sometimes'][rand(0, 2)],
@@ -1908,9 +2114,9 @@ class NFRValidationController extends ControllerBase {
         'gear_drying' => ['dedicated_area', 'living_area', 'outside'][rand(0, 2)],
       ],
       'health' => [
-        'cancer_diagnosis' => 0,
-        'cancer_details' => [],
-        'family_history' => [],
+        'cancer_diagnosis' => count($cancer_details) > 0 ? 1 : 0,
+        'cancer_details' => $cancer_details,
+        'family_history' => $family_history,
       ],
       'lifestyle' => [
         'smoking_status' => ['never', 'former', 'current'][rand(0, 2)],
@@ -2741,58 +2947,30 @@ class NFRValidationController extends ControllerBase {
           }
         }
         
-        // EXPOSURE (from data JSON column + nfr_major_incidents table)
-        $data = !empty($row->data) ? json_decode($row->data, TRUE) : NULL;
-        if ($data && isset($data['exposure'])) {
-          $exposure = $data['exposure'];
-          
-          if (!empty($exposure['afff_used'])) {
-            $field_counts['exposure.afff_used'] = ($field_counts['exposure.afff_used'] ?? 0) + 1;
-            $val = $exposure['afff_used'];
-            $value_distributions['exposure.afff_used'][$val] = ($value_distributions['exposure.afff_used'][$val] ?? 0) + 1;
-          }
-          if (!empty($exposure['afff_frequency'])) {
-            $field_counts['exposure.afff_frequency'] = ($field_counts['exposure.afff_frequency'] ?? 0) + 1;
-            $val = $exposure['afff_frequency'];
-            $value_distributions['exposure.afff_frequency'][$val] = ($value_distributions['exposure.afff_frequency'][$val] ?? 0) + 1;
-          }
-          if (!empty($exposure['diesel_exhaust'])) {
-            $field_counts['exposure.diesel_exhaust'] = ($field_counts['exposure.diesel_exhaust'] ?? 0) + 1;
-            $val = $exposure['diesel_exhaust'];
-            $value_distributions['exposure.diesel_exhaust'][$val] = ($value_distributions['exposure.diesel_exhaust'][$val] ?? 0) + 1;
-          }
-          if (!empty($exposure['major_incidents'])) {
-            $field_counts['exposure.major_incidents'] = ($field_counts['exposure.major_incidents'] ?? 0) + 1;
-            $val = $exposure['major_incidents'];
-            $value_distributions['exposure.major_incidents'][$val] = ($value_distributions['exposure.major_incidents'][$val] ?? 0) + 1;
-          }
-          if (!empty($exposure['chemical_activities']) && is_array($exposure['chemical_activities'])) {
-            $has_activity = FALSE;
-            foreach ($exposure['chemical_activities'] as $activity => $value) {
-              if ($value === 1 || $value === '1' || $value === TRUE) {
-                $has_activity = TRUE;
-                break;
-              }
-            }
-            if ($has_activity) {
-              $field_counts['exposure.chemical_activities'] = ($field_counts['exposure.chemical_activities'] ?? 0) + 1;
-            }
-          }
-          
-          // Incident frequencies
-          if (!empty($exposure['incident_frequencies']) && is_array($exposure['incident_frequencies'])) {
-            $incident_types = [
-              'structure_fires', 'vehicle_fires', 'rubbish_fires', 'live_fire_training',
-              'fire_investigation', 'vegetation_fires', 'wildland_fires', 'wui_fires',
-              'industrial_fires', 'aircraft_fires', 'marine_fires', 'hazmat_response'
-            ];
-            foreach ($incident_types as $type) {
-              if (!empty($exposure['incident_frequencies'][$type])) {
-                $field_counts["exposure.incident_freq_{$type}"] = ($field_counts["exposure.incident_freq_{$type}"] ?? 0) + 1;
-                $val = $exposure['incident_frequencies'][$type];
-                $value_distributions["exposure.incident_freq_{$type}"][$val] = ($value_distributions["exposure.incident_freq_{$type}"][$val] ?? 0) + 1;
-              }
-            }
+        // EXPOSURE (from direct columns + nfr_major_incidents table)
+        if (!empty($row->afff_used)) {
+          $field_counts['exposure.afff_used'] = ($field_counts['exposure.afff_used'] ?? 0) + 1;
+          $value_distributions['exposure.afff_used'][$row->afff_used] = ($value_distributions['exposure.afff_used'][$row->afff_used] ?? 0) + 1;
+        }
+        if (isset($row->afff_times) && $row->afff_times > 0) {
+          $field_counts['exposure.afff_times'] = ($field_counts['exposure.afff_times'] ?? 0) + 1;
+        }
+        if (isset($row->afff_first_year) && $row->afff_first_year > 0) {
+          $field_counts['exposure.afff_first_year'] = ($field_counts['exposure.afff_first_year'] ?? 0) + 1;
+        }
+        if (!empty($row->diesel_exhaust)) {
+          $field_counts['exposure.diesel_exhaust'] = ($field_counts['exposure.diesel_exhaust'] ?? 0) + 1;
+          $value_distributions['exposure.diesel_exhaust'][$row->diesel_exhaust] = ($value_distributions['exposure.diesel_exhaust'][$row->diesel_exhaust] ?? 0) + 1;
+        }
+        if (isset($row->major_incidents)) {
+          $field_counts['exposure.major_incidents'] = ($field_counts['exposure.major_incidents'] ?? 0) + 1;
+          $val = $row->major_incidents ? 'yes' : 'no';
+          $value_distributions['exposure.major_incidents'][$val] = ($value_distributions['exposure.major_incidents'][$val] ?? 0) + 1;
+        }
+        if (!empty($row->chemical_activities)) {
+          $chem = json_decode($row->chemical_activities, TRUE);
+          if (is_array($chem) && count($chem) > 0) {
+            $field_counts['exposure.chemical_activities'] = ($field_counts['exposure.chemical_activities'] ?? 0) + 1;
           }
         }
         
@@ -2816,26 +2994,21 @@ class NFRValidationController extends ControllerBase {
           }
         }
         
-        // MILITARY (from direct columns + data JSON)
-        if ($data && isset($data['military'])) {
-          $military = $data['military'];
-          
-          if (!empty($military['start_date'])) {
-            $field_counts['military.start_date'] = ($field_counts['military.start_date'] ?? 0) + 1;
-          }
-          if (!empty($military['end_date'])) {
-            $field_counts['military.end_date'] = ($field_counts['military.end_date'] ?? 0) + 1;
-          }
-          if (isset($military['currently_serving'])) {
-            $field_counts['military.currently_serving'] = ($field_counts['military.currently_serving'] ?? 0) + 1;
-            $val = $military['currently_serving'] ? 'yes' : 'no';
-            $value_distributions['military.currently_serving'][$val] = ($value_distributions['military.currently_serving'][$val] ?? 0) + 1;
-          }
-          if (isset($military['combat_service'])) {
-            $field_counts['military.combat_service'] = ($field_counts['military.combat_service'] ?? 0) + 1;
-            $val = $military['combat_service'] ? 'yes' : 'no';
-            $value_distributions['military.combat_service'][$val] = ($value_distributions['military.combat_service'][$val] ?? 0) + 1;
-          }
+        // MILITARY (from direct columns)
+        if (!empty($row->military_start_date)) {
+          $field_counts['military.start_date'] = ($field_counts['military.start_date'] ?? 0) + 1;
+        }
+        if (!empty($row->military_end_date)) {
+          $field_counts['military.end_date'] = ($field_counts['military.end_date'] ?? 0) + 1;
+        }
+        if (isset($row->military_currently_serving)) {
+          $field_counts['military.currently_serving'] = ($field_counts['military.currently_serving'] ?? 0) + 1;
+          $val = $row->military_currently_serving ? 'yes' : 'no';
+          $value_distributions['military.currently_serving'][$val] = ($value_distributions['military.currently_serving'][$val] ?? 0) + 1;
+        }
+        if (!empty($row->military_was_firefighter)) {
+          $field_counts['military.was_firefighter'] = ($field_counts['military.was_firefighter'] ?? 0) + 1;
+          $value_distributions['military.was_firefighter'][$row->military_was_firefighter] = ($value_distributions['military.was_firefighter'][$row->military_was_firefighter] ?? 0) + 1;
         }
         
         // OTHER EMPLOYMENT (from nfr_other_employment table + JSON column)
@@ -2891,76 +3064,79 @@ class NFRValidationController extends ControllerBase {
           }
         }
         
-        // PPE (from JSON column)
-        if (!empty($row->ppe_practices)) {
-          $ppe = json_decode($row->ppe_practices, TRUE);
-          if (is_array($ppe)) {
-            $ppe_items = ['scba', 'turnout_coat', 'turnout_pants', 'gloves', 'helmet', 'boots', 'nomex_hood', 'wildland_clothing'];
-            foreach ($ppe_items as $item) {
-              if (isset($ppe[$item]['ever_used']) && $ppe[$item]['ever_used'] !== NULL) {
-                $field_counts["ppe.{$item}.ever_used"] = ($field_counts["ppe.{$item}.ever_used"] ?? 0) + 1;
-                $val = $ppe[$item]['ever_used'] ? 'yes' : 'no';
-                $value_distributions["ppe.{$item}.ever_used"][$val] = ($value_distributions["ppe.{$item}.ever_used"][$val] ?? 0) + 1;
-              }
-              if (!empty($ppe[$item]['year_started'])) {
-                $field_counts["ppe.{$item}.year_started"] = ($field_counts["ppe.{$item}.year_started"] ?? 0) + 1;
-              }
-            }
-            
-            $scba_scenarios = ['scba_interior_attack', 'scba_exterior_attack', 'scba_during_overhaul', 
-                              'scba_vehicle_fires', 'scba_vegetation_fires', 'scba_wildland', 
-                              'scba_investigation', 'scba_wui_fires'];
-            foreach ($scba_scenarios as $scenario) {
-              if (!empty($ppe[$scenario])) {
-                $field_counts["ppe.{$scenario}"] = ($field_counts["ppe.{$scenario}"] ?? 0) + 1;
-                $val = $ppe[$scenario];
-                $value_distributions["ppe.{$scenario}"][$val] = ($value_distributions["ppe.{$scenario}"][$val] ?? 0) + 1;
-              }
-            }
+        // PPE (from direct columns)
+        $ppe_items = [
+          'scba' => 'ppe_scba',
+          'turnout_coat' => 'ppe_turnout_coat',
+          'turnout_pants' => 'ppe_turnout_pants',
+          'gloves' => 'ppe_gloves',
+          'helmet' => 'ppe_helmet',
+          'boots' => 'ppe_boots',
+          'nomex_hood' => 'ppe_nomex_hood',
+          'wildland_clothing' => 'ppe_wildland_clothing',
+        ];
+        
+        foreach ($ppe_items as $item_key => $column_prefix) {
+          $ever_used_col = $column_prefix . '_ever_used';
+          $year_col = $column_prefix . '_year_started';
+          
+          if (isset($row->$ever_used_col) && $row->$ever_used_col !== NULL) {
+            $field_counts["ppe.{$item_key}.ever_used"] = ($field_counts["ppe.{$item_key}.ever_used"] ?? 0) + 1;
+            $value_distributions["ppe.{$item_key}.ever_used"][$row->$ever_used_col] = ($value_distributions["ppe.{$item_key}.ever_used"][$row->$ever_used_col] ?? 0) + 1;
+          }
+          if (isset($row->$year_col) && $row->$year_col > 0) {
+            $field_counts["ppe.{$item_key}.year_started"] = ($field_counts["ppe.{$item_key}.year_started"] ?? 0) + 1;
           }
         }
         
-        // DECONTAMINATION (from JSON column)
-        if (!empty($row->decon_practices)) {
-          $decon = json_decode($row->decon_practices, TRUE);
-          if (is_array($decon)) {
-            $decon_practices = ['hood_washing', 'gear_washing', 'shower_after_fire', 'change_at_station', 'leave_gear_outside'];
-            foreach ($decon_practices as $practice) {
-              if (!empty($decon[$practice])) {
-                $field_counts["decontamination.{$practice}"] = ($field_counts["decontamination.{$practice}"] ?? 0) + 1;
-                $val = $decon[$practice];
-                $value_distributions["decontamination.{$practice}"][$val] = ($value_distributions["decontamination.{$practice}"][$val] ?? 0) + 1;
-              }
-              if (!empty($decon["{$practice}_year_started"])) {
-                $field_counts["decontamination.{$practice}_year_started"] = ($field_counts["decontamination.{$practice}_year_started"] ?? 0) + 1;
-              }
-            }
-            
-            if (!empty($decon['department_had_sops'])) {
-              $field_counts['decontamination.department_had_sops'] = ($field_counts['decontamination.department_had_sops'] ?? 0) + 1;
-              $val = $decon['department_had_sops'];
-              $value_distributions['decontamination.department_had_sops'][$val] = ($value_distributions['decontamination.department_had_sops'][$val] ?? 0) + 1;
-            }
-            if (!empty($decon['sop_year_implemented'])) {
-              $field_counts['decontamination.sop_year_implemented'] = ($field_counts['decontamination.sop_year_implemented'] ?? 0) + 1;
-            }
+        // SCBA scenarios
+        if (isset($row->ppe_scba_during_suppression) && $row->ppe_scba_during_suppression !== NULL) {
+          $field_counts["ppe.scba_during_suppression"] = ($field_counts["ppe.scba_during_suppression"] ?? 0) + 1;
+          $value_distributions["ppe.scba_during_suppression"][$row->ppe_scba_during_suppression] = ($value_distributions["ppe.scba_during_suppression"][$row->ppe_scba_during_suppression] ?? 0) + 1;
+        }
+        if (isset($row->ppe_scba_during_overhaul) && $row->ppe_scba_during_overhaul !== NULL) {
+          $field_counts["ppe.scba_during_overhaul"] = ($field_counts["ppe.scba_during_overhaul"] ?? 0) + 1;
+          $value_distributions["ppe.scba_during_overhaul"][$row->ppe_scba_during_overhaul] = ($value_distributions["ppe.scba_during_overhaul"][$row->ppe_scba_during_overhaul] ?? 0) + 1;
+        }
+        
+        // DECONTAMINATION (from direct columns)
+        $decon_fields = [
+          'washed_hands_face' => 'decon_washed_hands_face',
+          'changed_gear_at_scene' => 'decon_changed_gear_at_scene',
+          'showered_at_station' => 'decon_showered_at_station',
+          'laundered_gear' => 'decon_laundered_gear',
+          'used_wet_wipes' => 'decon_used_wet_wipes',
+        ];
+        
+        foreach ($decon_fields as $key => $column) {
+          if (isset($row->$column) && $row->$column !== NULL) {
+            $field_counts["decontamination.{$key}"] = ($field_counts["decontamination.{$key}"] ?? 0) + 1;
+            $value_distributions["decontamination.{$key}"][$row->$column] = ($value_distributions["decontamination.{$key}"][$row->$column] ?? 0) + 1;
           }
         }
         
-        // HEALTH (from JSON columns and direct column + nfr_cancer_diagnoses table)
-        if (!empty($row->cancer_details)) {
-          $cancer_details = json_decode($row->cancer_details, TRUE);
-          if (is_array($cancer_details) && count($cancer_details) > 0) {
-            $field_counts['health.cancer_details'] = ($field_counts['health.cancer_details'] ?? 0) + 1;
-            $cancer = $cancer_details[0];
-            if (!empty($cancer['cancer_type'])) {
-              $field_counts['health.cancer_type'] = ($field_counts['health.cancer_type'] ?? 0) + 1;
-              $val = $cancer['cancer_type'];
-              $value_distributions['health.cancer_type'][$val] = ($value_distributions['health.cancer_type'][$val] ?? 0) + 1;
-            }
-            if (!empty($cancer['diagnosis_year'])) {
-              $field_counts['health.cancer_diagnosis_year'] = ($field_counts['health.cancer_diagnosis_year'] ?? 0) + 1;
-            }
+        if (isset($row->decon_department_had_sops) && $row->decon_department_had_sops !== NULL) {
+          $field_counts['decontamination.department_had_sops'] = ($field_counts['decontamination.department_had_sops'] ?? 0) + 1;
+          $value_distributions['decontamination.department_had_sops'][$row->decon_department_had_sops] = ($value_distributions['decontamination.department_had_sops'][$row->decon_department_had_sops] ?? 0) + 1;
+        }
+        if (isset($row->decon_sops_year_implemented) && $row->decon_sops_year_implemented > 0) {
+          $field_counts['decontamination.sop_year_implemented'] = ($field_counts['decontamination.sop_year_implemented'] ?? 0) + 1;
+        }
+        
+        // HEALTH (from direct columns + nfr_cancer_diagnoses table)
+        $health_conditions = ['heart_disease', 'copd', 'asthma', 'diabetes'];
+        foreach ($health_conditions as $condition) {
+          $column = "health_{$condition}";
+          if (isset($row->$column) && $row->$column !== NULL) {
+            $field_counts["health.{$condition}"] = ($field_counts["health.{$condition}"] ?? 0) + 1;
+            $value_distributions["health.{$condition}"][$row->$column ? 'yes' : 'no'] = ($value_distributions["health.{$condition}"][$row->$column ? 'yes' : 'no'] ?? 0) + 1;
+          }
+        }
+        
+        if (!empty($row->family_cancer_history)) {
+          $family_history = json_decode($row->family_cancer_history, TRUE);
+          if (is_array($family_history) && count($family_history) > 0) {
+            $field_counts['health.family_cancer_history'] = ($field_counts['health.family_cancer_history'] ?? 0) + 1;
           }
         }
         
@@ -2978,30 +3154,6 @@ class NFRValidationController extends ControllerBase {
           }
           if (!empty($diagnosis->year_diagnosed)) {
             $field_counts['health.year_diagnosed_table'] = ($field_counts['health.year_diagnosed_table'] ?? 0) + 1;
-          }
-        }
-        
-        if (!empty($row->family_cancer_history)) {
-          $family_history = json_decode($row->family_cancer_history, TRUE);
-          if (is_array($family_history) && count($family_history) > 0) {
-            $field_counts['health.family_cancer_history'] = ($field_counts['health.family_cancer_history'] ?? 0) + 1;
-          }
-        }
-        
-        // OTHER HEALTH CONDITIONS (from data JSON)
-        if ($data && isset($data['health'])) {
-          $health = $data['health'];
-          if (!empty($health['other_conditions']) && is_array($health['other_conditions'])) {
-            $has_condition = FALSE;
-            foreach ($health['other_conditions'] as $condition => $value) {
-              if ($value === 1 || $value === '1' || $value === TRUE) {
-                $has_condition = TRUE;
-                break;
-              }
-            }
-            if ($has_condition) {
-              $field_counts['health.other_conditions'] = ($field_counts['health.other_conditions'] ?? 0) + 1;
-            }
           }
         }
         
@@ -3045,7 +3197,7 @@ class NFRValidationController extends ControllerBase {
           }
         }
         
-        // LIFESTYLE (from JSON column and direct column + data JSON)
+        // LIFESTYLE (from direct columns and smoking_history JSON)
         if (!empty($row->smoking_history)) {
           $smoking = json_decode($row->smoking_history, TRUE);
           if (is_array($smoking)) {
@@ -3071,28 +3223,11 @@ class NFRValidationController extends ControllerBase {
           }
         }
         
-        // LIFESTYLE (from data JSON - physical activity and sleep)
-        if ($data && isset($data['lifestyle'])) {
-          $lifestyle = $data['lifestyle'];
-          
-          if (isset($lifestyle['physical_activity_days'])) {
-            $field_counts['lifestyle.physical_activity_days'] = ($field_counts['lifestyle.physical_activity_days'] ?? 0) + 1;
-            $val = $lifestyle['physical_activity_days'];
-            $value_distributions['lifestyle.physical_activity_days'][$val] = ($value_distributions['lifestyle.physical_activity_days'][$val] ?? 0) + 1;
-          }
-          if (isset($lifestyle['sleep_hours'])) {
-            $field_counts['lifestyle.sleep_hours'] = ($field_counts['lifestyle.sleep_hours'] ?? 0) + 1;
-            $val = $lifestyle['sleep_hours'];
-            $value_distributions['lifestyle.sleep_hours'][$val] = ($value_distributions['lifestyle.sleep_hours'][$val] ?? 0) + 1;
-          }
-          if (!empty($lifestyle['sleep_quality'])) {
-            $field_counts['lifestyle.sleep_quality'] = ($field_counts['lifestyle.sleep_quality'] ?? 0) + 1;
-            $val = $lifestyle['sleep_quality'];
-            $value_distributions['lifestyle.sleep_quality'][$val] = ($value_distributions['lifestyle.sleep_quality'][$val] ?? 0) + 1;
-          }
+        // Physical activity from direct column
+        if (isset($row->physical_activity_days)) {
+          $field_counts['lifestyle.physical_activity_days'] = ($field_counts['lifestyle.physical_activity_days'] ?? 0) + 1;
+          $value_distributions['lifestyle.physical_activity_days'][$row->physical_activity_days] = ($value_distributions['lifestyle.physical_activity_days'][$row->physical_activity_days] ?? 0) + 1;
         }
-        
-        // Physical activity and sleep (TODO: Add columns to schema if needed)
       }
       
       // Sort fields
@@ -3282,17 +3417,25 @@ class NFRValidationController extends ControllerBase {
         }
       }
       
-      // Calculate section completion from nfr_section_completion table
+      // Calculate section started and completed from nfr_section_completion table
       for ($i = 1; $i <= 9; $i++) {
+        $started_count = 0;
         $completed_count = 0;
         foreach ($user_section_completion as $uid => $sections) {
-          if (isset($sections[$i]) && $sections[$i]->completed) {
-            $completed_count++;
+          if (isset($sections[$i])) {
+            $started_count++;
+            if ($sections[$i]->completed) {
+              $completed_count++;
+            }
           }
         }
         $section_keys = ['demographics', 'work_history', 'exposure', 'military', 'other_employment', 'ppe', 'decontamination', 'health', 'lifestyle'];
         if (isset($section_keys[$i - 1])) {
-          $section_summaries[$section_keys[$i - 1]]['users_completed'] = $completed_count;
+          // Use section_completion data if available, otherwise use field tracking data
+          if ($started_count > 0) {
+            $section_summaries[$section_keys[$i - 1]]['users_started'] = $started_count;
+            $section_summaries[$section_keys[$i - 1]]['users_completed'] = $completed_count;
+          }
         }
       }
       
@@ -3578,24 +3721,13 @@ class NFRValidationController extends ControllerBase {
       $add_row('Work History', 'Responded to Incidents', true, 'nfr_job_titles.responded_to_incidents', 'work_history.responded_incidents');
       $add_row('Work History', 'Incident Types', false, 'nfr_job_titles.incident_types (JSON)', 'work_history.incident_types');
       
-      // EXPOSURE (from data JSON + nfr_major_incidents table)
-      $add_row('Exposure', 'AFFF Used', true, 'nfr_questionnaire.data.exposure.afff_used (JSON)', 'exposure.afff_used');
-      $add_row('Exposure', 'AFFF Frequency', false, 'nfr_questionnaire.data.exposure.afff_frequency (JSON)', 'exposure.afff_frequency');
-      $add_row('Exposure', 'Diesel Exhaust', true, 'nfr_questionnaire.data.exposure.diesel_exhaust (JSON)', 'exposure.diesel_exhaust');
-      $add_row('Exposure', 'Major Incidents Yes/No', true, 'nfr_questionnaire.data.exposure.major_incidents (JSON)', 'exposure.major_incidents');
-      $add_row('Exposure', 'Chemical Activities', false, 'nfr_questionnaire.data.exposure.chemical_activities (JSON)', 'exposure.chemical_activities');
-      
-      $incident_types = [
-        'Structure Fires', 'Vehicle Fires', 'Rubbish Fires', 'Live Fire Training',
-        'Fire Investigation', 'Vegetation Fires', 'Wildland Fires', 'WUI Fires',
-        'Industrial Fires', 'Aircraft Fires', 'Marine Fires', 'HAZMAT Response'
-      ];
-      foreach ($incident_types as $idx => $type) {
-        $key = ['structure_fires', 'vehicle_fires', 'rubbish_fires', 'live_fire_training',
-                'fire_investigation', 'vegetation_fires', 'wildland_fires', 'wui_fires',
-                'industrial_fires', 'aircraft_fires', 'marine_fires', 'hazmat_response'][$idx];
-        $add_row('Exposure', $type . ' Frequency', false, 'nfr_questionnaire.data.exposure.incident_frequencies.' . $key . ' (JSON)', 'exposure.incident_freq_' . $key);
-      }
+      // EXPOSURE (from direct columns + nfr_major_incidents table)
+      $add_row('Exposure', 'AFFF Used', true, 'nfr_questionnaire.afff_used', 'exposure.afff_used');
+      $add_row('Exposure', 'AFFF Times Used', false, 'nfr_questionnaire.afff_times', 'exposure.afff_times');
+      $add_row('Exposure', 'AFFF First Year', false, 'nfr_questionnaire.afff_first_year', 'exposure.afff_first_year');
+      $add_row('Exposure', 'Diesel Exhaust', true, 'nfr_questionnaire.diesel_exhaust', 'exposure.diesel_exhaust');
+      $add_row('Exposure', 'Major Incidents Yes/No', true, 'nfr_questionnaire.major_incidents', 'exposure.major_incidents');
+      $add_row('Exposure', 'Chemical Activities', false, 'nfr_questionnaire.chemical_activities (JSON)', 'exposure.chemical_activities');
       
       // MAJOR INCIDENTS (normalized table)
       $add_row('Exposure', 'Major Incidents Count', false, 'COUNT(nfr_major_incidents)', 'exposure.major_incidents_count');
@@ -3603,14 +3735,14 @@ class NFRValidationController extends ControllerBase {
       $add_row('Exposure', 'Incident Date', false, 'nfr_major_incidents.incident_date', 'exposure.major_incident_date');
       $add_row('Exposure', 'Incident Duration', false, 'nfr_major_incidents.duration', 'exposure.major_incident_duration');
       
-      // MILITARY (direct columns + JSON data column)
+      // MILITARY (direct columns)
       $add_row('Military', 'Served in Military', true, 'nfr_questionnaire.military_service', 'questionnaire.military_service');
       $add_row('Military', 'Military Branch', false, 'nfr_questionnaire.military_branch', 'questionnaire.military_branch');
       $add_row('Military', 'Military Years', false, 'nfr_questionnaire.military_years', 'questionnaire.military_years');
-      $add_row('Military', 'Start Date', false, 'nfr_questionnaire.data.military.start_date (JSON)', 'military.start_date');
-      $add_row('Military', 'End Date', false, 'nfr_questionnaire.data.military.end_date (JSON)', 'military.end_date');
-      $add_row('Military', 'Currently Serving', false, 'nfr_questionnaire.data.military.currently_serving (JSON)', 'military.currently_serving');
-      $add_row('Military', 'Combat Service', false, 'nfr_questionnaire.data.military.combat_service (JSON)', 'military.combat_service');
+      $add_row('Military', 'Start Date', false, 'nfr_questionnaire.military_start_date', 'military.start_date');
+      $add_row('Military', 'End Date', false, 'nfr_questionnaire.military_end_date', 'military.end_date');
+      $add_row('Military', 'Currently Serving', false, 'nfr_questionnaire.military_currently_serving', 'military.currently_serving');
+      $add_row('Military', 'Was Firefighter', false, 'nfr_questionnaire.military_was_firefighter', 'military.was_firefighter');
       
       // OTHER EMPLOYMENT (JSON column + normalized table)
       $add_row('Other Employment', 'Had Other Jobs', true, 'nfr_questionnaire.other_employment_data.had_other_jobs (JSON)', 'other_employment.had_other_jobs');
@@ -3627,7 +3759,7 @@ class NFRValidationController extends ControllerBase {
       $add_row('Other Employment', 'Exposures', false, 'nfr_other_employment.exposures', 'other_employment.exposures');
       $add_row('Other Employment', 'Exposures Other', false, 'nfr_other_employment.exposures_other', 'other_employment.exposures_other');
       
-      // PPE
+      // PPE (from direct columns: ppe_*_ever_used, ppe_*_year_started)
       $ppe_items = [
         'SCBA' => 'scba',
         'Turnout Coat' => 'turnout_coat',
@@ -3639,42 +3771,43 @@ class NFRValidationController extends ControllerBase {
         'Wildland Clothing' => 'wildland_clothing'
       ];
       foreach ($ppe_items as $label => $key) {
-        $add_row('PPE', $label . ' - Ever Used', true, 'nfr_questionnaire.ppe_practices (JSON)', 'ppe.' . $key . '.ever_used');
-        $add_row('PPE', $label . ' - Year Started', false, 'nfr_questionnaire.ppe_practices (JSON)', 'ppe.' . $key . '.year_started');
+        $add_row('PPE', $label . ' - Ever Used', true, 'nfr_questionnaire.ppe_' . $key . '_ever_used', 'ppe.' . $key . '.ever_used');
+        $add_row('PPE', $label . ' - Year Started', false, 'nfr_questionnaire.ppe_' . $key . '_year_started', 'ppe.' . $key . '.year_started');
       }
       
       $scba_scenarios = [
-        'Interior Attack', 'Exterior Attack', 'During Overhaul', 'Vehicle Fires',
-        'Vegetation Fires', 'Wildland', 'Investigation', 'WUI Fires'
+        'During Suppression', 'During Overhaul'
       ];
       foreach ($scba_scenarios as $idx => $scenario) {
-        $key = ['scba_interior_attack', 'scba_exterior_attack', 'scba_during_overhaul',
-                'scba_vehicle_fires', 'scba_vegetation_fires', 'scba_wildland',
-                'scba_investigation', 'scba_wui_fires'][$idx];
-        $add_row('PPE', 'SCBA During ' . $scenario, true, 'nfr_questionnaire.ppe_practices (JSON)', 'ppe.' . $key);
+        $key = ['during_suppression', 'during_overhaul'][$idx];
+        $add_row('PPE', 'SCBA ' . $scenario, true, 'nfr_questionnaire.ppe_scba_' . $key, 'ppe.scba_' . $key);
       }
       
-      // DECONTAMINATION
+      // DECONTAMINATION (from direct columns: decon_*)
       $decon_practices = [
-        'Hood Washing' => 'hood_washing',
-        'Gear Washing' => 'gear_washing',
-        'Shower After Fire' => 'shower_after_fire',
-        'Change at Station' => 'change_at_station',
-        'Leave Gear Outside' => 'leave_gear_outside'
+        'Washed Hands/Face' => 'washed_hands_face',
+        'Changed Gear at Scene' => 'changed_gear_at_scene',
+        'Showered at Station' => 'showered_at_station',
+        'Laundered Gear' => 'laundered_gear',
+        'Used Wet Wipes' => 'used_wet_wipes'
       ];
       foreach ($decon_practices as $label => $key) {
-        $add_row('Decontamination', $label, true, 'nfr_questionnaire.decon_practices (JSON)', 'decontamination.' . $key);
-        $add_row('Decontamination', $label . ' - Year Started', false, 'nfr_questionnaire.decon_practices (JSON)', 'decontamination.' . $key . '_year_started');
+        $add_row('Decontamination', $label, true, 'nfr_questionnaire.decon_' . $key, 'decontamination.' . $key);
       }
-      $add_row('Decontamination', 'Department Had SOPs', true, 'nfr_questionnaire.decon_practices (JSON)', 'decontamination.department_had_sops');
-      $add_row('Decontamination', 'SOP Year Implemented', false, 'nfr_questionnaire.decon_practices (JSON)', 'decontamination.sop_year_implemented');
+      $add_row('Decontamination', 'Department Had SOPs', true, 'nfr_questionnaire.decon_department_had_sops', 'decontamination.department_had_sops');
+      $add_row('Decontamination', 'SOP Year Implemented', false, 'nfr_questionnaire.decon_sops_year_implemented', 'decontamination.sop_year_implemented');
       
-      // HEALTH (direct column + JSON columns + normalized table)
+      // HEALTH (direct columns + normalized table)
+      $health_conditions = [
+        'Heart Disease' => 'heart_disease',
+        'COPD' => 'copd',
+        'Asthma' => 'asthma',
+        'Diabetes' => 'diabetes'
+      ];
+      foreach ($health_conditions as $label => $key) {
+        $add_row('Health', $label, true, 'nfr_questionnaire.health_' . $key, 'health.' . $key);
+      }
       $add_row('Health', 'Cancer Diagnosed', true, 'nfr_questionnaire.cancer_diagnosis', 'questionnaire.cancer_diagnosis');
-      $add_row('Health', 'Cancer Details (JSON)', false, 'nfr_questionnaire.cancer_details (JSON)', 'health.cancer_details');
-      $add_row('Health', 'Cancer Type (JSON)', false, 'nfr_questionnaire.cancer_details[].cancer_type (JSON)', 'health.cancer_type');
-      $add_row('Health', 'Cancer Diagnosis Year (JSON)', false, 'nfr_questionnaire.cancer_details[].diagnosis_year (JSON)', 'health.cancer_diagnosis_year');
-      $add_row('Health', 'Other Conditions', false, 'nfr_questionnaire.data.health.other_conditions (JSON)', 'health.other_conditions');
       $add_row('Health', 'Family Cancer History', false, 'nfr_questionnaire.family_cancer_history (JSON)', 'health.family_cancer_history');
       
       // CANCER DIAGNOSES (normalized table)
@@ -3695,9 +3828,7 @@ class NFRValidationController extends ControllerBase {
       }
       
       $add_row('Lifestyle', 'Alcohol Frequency', true, 'nfr_questionnaire.alcohol_use', 'questionnaire.alcohol_use');
-      $add_row('Lifestyle', 'Physical Activity Days', true, 'nfr_questionnaire.data.lifestyle.physical_activity_days (JSON)', 'lifestyle.physical_activity_days');
-      $add_row('Lifestyle', 'Sleep Hours', false, 'nfr_questionnaire.data.lifestyle.sleep_hours (JSON)', 'lifestyle.sleep_hours');
-      $add_row('Lifestyle', 'Sleep Quality', false, 'nfr_questionnaire.data.lifestyle.sleep_quality (JSON)', 'lifestyle.sleep_quality');
+      $add_row('Lifestyle', 'Physical Activity Days', true, 'nfr_questionnaire.physical_activity_days', 'lifestyle.physical_activity_days');
       
       // CONSENT (from nfr_consent table)
       $add_row('Consent', 'Consented to Participate', true, 'nfr_consent.consented_to_participate', 'consent.participate');
@@ -3899,7 +4030,7 @@ class NFRValidationController extends ControllerBase {
               $pct_of_completed = round(($val_count / $count) * 100, 1);
               $pct_of_total = round(($val_count / $total_records) * 100, 1);
               $output .= '<tr>';
-              $output .= '<td>' . htmlspecialchars($val) . '</td>';
+              $output .= '<td>' . htmlspecialchars((string)$val) . '</td>';
               $output .= '<td class="text-center">' . $val_count . '</td>';
               $output .= '<td class="text-center">' . $pct_of_completed . '%</td>';
               $output .= '<td class="text-center">' . $pct_of_total . '%</td>';
