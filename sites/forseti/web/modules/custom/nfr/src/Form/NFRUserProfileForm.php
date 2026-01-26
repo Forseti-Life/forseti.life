@@ -379,9 +379,28 @@ class NFRUserProfileForm extends FormBase {
     else {
       $fields['created'] = time();
       $fields['participant_id'] = $this->generateParticipantId();
-      $this->database->insert('nfr_user_profile')
-        ->fields($fields)
-        ->execute();
+      
+      try {
+        $this->database->insert('nfr_user_profile')
+          ->fields($fields)
+          ->execute();
+      }
+      catch (\Exception $e) {
+        // If insert fails (e.g., duplicate key), try update instead
+        // This handles race conditions where profile was created between check and insert
+        if (strpos($e->getMessage(), 'Duplicate entry') !== FALSE || strpos($e->getMessage(), 'participant_id') !== FALSE) {
+          unset($fields['created']);
+          unset($fields['participant_id']);
+          $this->database->update('nfr_user_profile')
+            ->fields($fields)
+            ->condition('uid', $uid)
+            ->execute();
+        }
+        else {
+          // Re-throw if it's a different error
+          throw $e;
+        }
+      }
     }
   }
 
@@ -392,15 +411,33 @@ class NFRUserProfileForm extends FormBase {
     // Format: NFR-YYYYMMDD-XXXX (e.g., NFR-20260125-0001)
     $date_part = date('Ymd');
     
-    // Get count of profiles created today.
-    $count = $this->database->select('nfr_user_profile', 'p')
-      ->condition('created', strtotime('today'), '>=')
-      ->countQuery()
-      ->execute()
-      ->fetchField();
+    // Try up to 100 times to find a unique ID (handles race conditions)
+    $max_attempts = 100;
+    for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
+      // Get count of profiles created today
+      $count = $this->database->select('nfr_user_profile', 'p')
+        ->condition('created', strtotime('today'), '>=')
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      
+      $sequence = str_pad((string) ($count + $attempt), 4, '0', STR_PAD_LEFT);
+      $participant_id = "NFR-{$date_part}-{$sequence}";
+      
+      // Check if this ID already exists
+      $exists = $this->database->select('nfr_user_profile', 'p')
+        ->fields('p', ['id'])
+        ->condition('participant_id', $participant_id)
+        ->execute()
+        ->fetchField();
+      
+      if (!$exists) {
+        return $participant_id;
+      }
+    }
     
-    $sequence = str_pad((string) ($count + 1), 4, '0', STR_PAD_LEFT);
-    
+    // Fallback: use microtime for uniqueness
+    $sequence = str_pad((string) ($count + $max_attempts + (int)(microtime(true) * 1000) % 1000), 4, '0', STR_PAD_LEFT);
     return "NFR-{$date_part}-{$sequence}";
   }
 

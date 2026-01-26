@@ -599,7 +599,7 @@
    */
   function submitAllFirefighterQuestionnaires() {
     const $btn = $('#submit-all-firefighters');
-    const $results = $('#test-users-results');
+    const $results = $('#questionnaire-submit-results');
     const count = parseInt($('#questionnaire-count-input').val());
     
     // Validate input

@@ -147,44 +147,37 @@ class NFRValidationController extends ControllerBase {
           'admin' => false,
         ],
       ],
+      'drupal_admin' => [
+        'uid' => 1,
+        'name' => 'admin',
+        'label' => 'Drupal Admin (UID 1)',
+        'expected_access' => [
+          'public_pages' => true,
+          'enrollment' => true,
+          'dashboard' => true,
+          'admin' => true,
+        ],
+      ],
     ];
 
     // Query database for actual test users
     $connection = \Drupal::database();
     
-    // Get firefighter_active users
+    // Get a firefighter user
     $query = $connection->select('users_field_data', 'u')
       ->fields('u', ['uid', 'name'])
-      ->condition('u.name', 'firefighter_active%', 'LIKE')
       ->condition('u.status', 1)
-      ->range(0, 1);
+      ->condition('u.uid', 1, '>')
+      ->condition('u.mail', '%@stlouisintegration.com', 'LIKE');
+    $query->join('user__roles', 'ur', 'u.uid = ur.entity_id');
+    $query->condition('ur.roles_target_id', 'firefighter');
+    $query->range(0, 1);
     $result = $query->execute()->fetchAssoc();
     if ($result) {
-      $test_users['firefighter_active'] = [
+      $test_users['firefighter'] = [
         'uid' => (int)$result['uid'],
         'name' => $result['name'],
-        'label' => 'Firefighter (Active)',
-        'expected_access' => [
-          'public_pages' => true,
-          'enrollment' => true,
-          'dashboard' => true,
-          'admin' => false,
-        ],
-      ];
-    }
-
-    // Get firefighter_retired users
-    $query = $connection->select('users_field_data', 'u')
-      ->fields('u', ['uid', 'name'])
-      ->condition('u.name', 'firefighter_retired%', 'LIKE')
-      ->condition('u.status', 1)
-      ->range(0, 1);
-    $result = $query->execute()->fetchAssoc();
-    if ($result) {
-      $test_users['firefighter_retired'] = [
-        'uid' => (int)$result['uid'],
-        'name' => $result['name'],
-        'label' => 'Firefighter (Retired)',
+        'label' => 'Firefighter',
         'expected_access' => [
           'public_pages' => true,
           'enrollment' => true,
@@ -197,9 +190,12 @@ class NFRValidationController extends ControllerBase {
     // Get NFR administrator
     $query = $connection->select('users_field_data', 'u')
       ->fields('u', ['uid', 'name'])
-      ->condition('u.name', 'nfr_administrator%', 'LIKE')
       ->condition('u.status', 1)
-      ->range(0, 1);
+      ->condition('u.uid', 1, '>')
+      ->condition('u.mail', '%@stlouisintegration.com', 'LIKE');
+    $query->join('user__roles', 'ur', 'u.uid = ur.entity_id');
+    $query->condition('ur.roles_target_id', 'nfr_administrator');
+    $query->range(0, 1);
     $result = $query->execute()->fetchAssoc();
     if ($result) {
       $test_users['nfr_admin'] = [
@@ -218,9 +214,12 @@ class NFRValidationController extends ControllerBase {
     // Get NFR researcher
     $query = $connection->select('users_field_data', 'u')
       ->fields('u', ['uid', 'name'])
-      ->condition('u.name', 'nfr_researcher%', 'LIKE')
       ->condition('u.status', 1)
-      ->range(0, 1);
+      ->condition('u.uid', 1, '>')
+      ->condition('u.mail', '%@stlouisintegration.com', 'LIKE');
+    $query->join('user__roles', 'ur', 'u.uid = ur.entity_id');
+    $query->condition('ur.roles_target_id', 'nfr_researcher');
+    $query->range(0, 1);
     $result = $query->execute()->fetchAssoc();
     if ($result) {
       $test_users['nfr_researcher'] = [
@@ -240,9 +239,12 @@ class NFRValidationController extends ControllerBase {
     // Get department admin
     $query = $connection->select('users_field_data', 'u')
       ->fields('u', ['uid', 'name'])
-      ->condition('u.name', 'fire_dept_admin%', 'LIKE')
       ->condition('u.status', 1)
-      ->range(0, 1);
+      ->condition('u.uid', 1, '>')
+      ->condition('u.mail', '%@stlouisintegration.com', 'LIKE');
+    $query->join('user__roles', 'ur', 'u.uid = ur.entity_id');
+    $query->condition('ur.roles_target_id', 'fire_dept_admin');
+    $query->range(0, 1);
     $result = $query->execute()->fetchAssoc();
     if ($result) {
       $test_users['dept_admin'] = [
@@ -269,7 +271,7 @@ class NFRValidationController extends ControllerBase {
    * @param bool $requires_login
    *   Whether the route requires login.
    * @param string $user_key
-   *   The user key (anonymous, firefighter_active, etc.).
+   *   The user key (anonymous, drupal_admin, firefighter, etc.).
    * @param string $route_name
    *   The route name to check for special cases.
    * 
@@ -295,8 +297,12 @@ class NFRValidationController extends ControllerBase {
 
     // Check specific permissions by role
     switch ($user_key) {
+      case 'drupal_admin':
+        // Drupal admin (UID 1) has all permissions
+        return TRUE;
+
       case 'nfr_admin':
-        // NFR Admin has all permissions - full system access
+        // NFR Admin has all NFR permissions - full system access
         return TRUE;
 
       case 'nfr_researcher':
@@ -320,8 +326,7 @@ class NFRValidationController extends ControllerBase {
         }
         return FALSE;
 
-      case 'firefighter_active':
-      case 'firefighter_retired':
+      case 'firefighter':
         // Firefighters have: access nfr dashboard
         return $permission === 'access nfr dashboard';
 
@@ -346,7 +351,7 @@ class NFRValidationController extends ControllerBase {
     // Test Users Management Section
     $html .= '<div class="test-users-section card card-forseti mb-4">';
     $html .= '<h2 class="text-white">👥 Test Users Management</h2>';
-    $html .= '<p>Create test users for different NFR roles. Select a role and specify the number of users to create (1-500).</p>';
+    $html .= '<p>Create test users for different NFR roles. Select a role and specify the number of users to create (1-200).</p>';
     
     // Display current user counts by role
     $role_counts = $this->getUserCountsByRole();
@@ -388,7 +393,7 @@ class NFRValidationController extends ControllerBase {
     // Number input
     $html .= '<div class="col-md-4">';
     $html .= '<label for="user-count-input" class="form-label text-white">Number of Users:</label>';
-    $html .= '<input type="number" id="user-count-input" class="form-control" min="1" max="500" value="5" placeholder="1-500">';
+    $html .= '<input type="number" id="user-count-input" class="form-control" min="1" max="200" value="5" placeholder="1-200">';
     $html .= '</div>';
     
     // Create button
@@ -400,8 +405,6 @@ class NFRValidationController extends ControllerBase {
     $html .= '</div></div>';
     
     $html .= '<div class="test-controls mt-3">';
-    $html .= '<button id="view-fill-rates" class="btn btn-info btn-large">';
-    $html .= '📊 View Fill Rates</button>';
     $html .= '<button id="delete-test-users" class="btn btn-danger">';
     $html .= '🗑️ Delete All Test Users</button>';
     $html .= '</div>';
@@ -435,7 +438,7 @@ class NFRValidationController extends ControllerBase {
     $html .= '<button id="test-yes-minimal" class="btn btn-warning btn-large">';
     $html .= '✔️ Yes + Minimal Values Test</button>';
     $html .= '<button id="check-error-logs" class="btn btn-outline-warning">';
-    $html .= '⚠️ Check Error Logs</button>';
+    $html .= '⚠️ Check Error Logs (Last 10 Minutes)</button>';
     $html .= '<a href="/admin/nfr/validation/fill-rates" class="btn btn-outline-info">📊 Data Quality Monitoring Dashboard</a>';
     $html .= '</div>';
     $html .= '<div id="enrollment-flow-results" class="test-results mt-3"></div>';
@@ -470,6 +473,11 @@ class NFRValidationController extends ControllerBase {
     $html .= '<div id="questionnaire-submit-results" class="test-results mt-3"></div>';
     $html .= '</div>';
 
+    // Role Permission Access Validation Section
+    $html .= '<div class="role-permission-validation-section card card-forseti mb-4">';
+    $html .= '<h2 class="text-white">🔐 Role Permission Access Validation</h2>';
+    $html .= '<p>Test all NFR routes with different user permission levels to ensure proper access control.</p>';
+
     // Summary stats
     $html .= '<div class="validation-stats">';
     $html .= '<div class="stat-box">';
@@ -498,10 +506,8 @@ class NFRValidationController extends ControllerBase {
     $html .= '<div class="routes-table-wrapper">';
     $html .= '<table class="validation-routes-table">';
     $html .= '<thead><tr>';
-    $html .= '<th>' . $this->t('Route') . '</th>';
     $html .= '<th>' . $this->t('Path') . '</th>';
     $html .= '<th>' . $this->t('Permission') . '</th>';
-    $html .= '<th>' . $this->t('Login Required') . '</th>';
     
     // User columns
     foreach ($users as $user) {
@@ -514,10 +520,8 @@ class NFRValidationController extends ControllerBase {
       $route_id = str_replace('.', '_', $route['name']);
       
       $html .= '<tr data-route="' . htmlspecialchars($route['name']) . '">';
-      $html .= '<td><code>' . htmlspecialchars($route['name']) . '</code></td>';
       $html .= '<td><code>' . htmlspecialchars($route['path']) . '</code></td>';
       $html .= '<td>' . ($route['permission'] ? '<code>' . htmlspecialchars($route['permission']) . '</code>' : '-') . '</td>';
-      $html .= '<td>' . ($route['requires_login'] ? '✓' : '-') . '</td>';
       
       // Test cells for each user
       foreach ($users as $user_key => $user) {
@@ -550,6 +554,8 @@ class NFRValidationController extends ControllerBase {
     $html .= '<h3>' . $this->t('Test Results Summary') . '</h3>';
     $html .= '<div id="summary-content"></div>';
     $html .= '</div>';
+
+    $html .= '</div>'; // .role-permission-validation-section
 
     $html .= '</div>'; // .validation-dashboard
 
@@ -1100,6 +1106,7 @@ class NFRValidationController extends ControllerBase {
    *   JSON response with test results.
    */
   public function testFullEnrollmentFlow(): JsonResponse {
+    $test_start_time = time();
     $results = [
       'success' => true,
       'steps' => [],
@@ -1195,8 +1202,8 @@ class NFRValidationController extends ControllerBase {
         }
       }
 
-      // Step 6: Check for errors in dblog
-      $log_check = $this->checkErrorLogs();
+      // Step 6: Check for errors in dblog since test started
+      $log_check = $this->checkErrorLogs($test_start_time);
       $results['steps'][] = [
         'step' => 'Error Log Check',
         'status' => $log_check['has_errors'] ? 'warning' : 'success',
@@ -1260,9 +1267,9 @@ class NFRValidationController extends ControllerBase {
         return new JsonResponse($results);
       }
       
-      if ($count < 1 || $count > 500) {
+      if ($count < 1 || $count > 200) {
         $results['success'] = false;
-        $results['errors'][] = "Invalid count: {$count}. Must be between 1 and 500.";
+        $results['errors'][] = "Invalid count: {$count}. Must be between 1 and 200.";
         return new JsonResponse($results);
       }
       
@@ -1701,8 +1708,8 @@ class NFRValidationController extends ControllerBase {
       }
 
       $results['success'] = $results['failed_submissions'] === 0;
-      $results['success_rate'] = $results['total_firefighters'] > 0 
-        ? round(($results['successful_submissions'] / $results['total_firefighters']) * 100, 2)
+      $results['success_rate'] = $results['processed'] > 0 
+        ? round(($results['successful_submissions'] / $results['processed']) * 100, 2)
         : 0;
 
     } catch (\Exception $e) {
@@ -2168,6 +2175,32 @@ class NFRValidationController extends ControllerBase {
   }
 
   /**
+   * Get all US states for random selection.
+   */
+  private function getAllStates(): array {
+    return [
+      'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+      'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+      'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+      'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+      'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
+    ];
+  }
+
+  /**
+   * Get all US states for random selection.
+   */
+  private function getAllStates(): array {
+    return [
+      'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+      'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+      'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+      'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+      'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
+    ];
+  }
+
+  /**
    * Generate consent data.
    */
   private function generateConsentData(): array {
@@ -2185,10 +2218,16 @@ class NFRValidationController extends ControllerBase {
    * Generate random profile data.
    */
   private function generateRandomProfileData(): array {
-    $first_names = ['John', 'Michael', 'David', 'James', 'Robert', 'William', 'Sarah', 'Jennifer', 'Maria', 'Lisa'];
-    $last_names = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
-    $states = ['CA', 'TX', 'FL', 'NY', 'PA', 'IL', 'OH', 'GA', 'NC', 'MI'];
-    $cities = ['Springfield', 'Franklin', 'Clinton', 'Madison', 'Georgetown', 'Arlington', 'Salem', 'Fairview', 'Bristol', 'Riverside'];
+    $first_names = ['John', 'Michael', 'David', 'James', 'Robert', 'William', 'Richard', 'Joseph', 'Thomas', 'Christopher',
+                    'Sarah', 'Jennifer', 'Maria', 'Lisa', 'Nancy', 'Karen', 'Betty', 'Helen', 'Sandra', 'Donna'];
+    $last_names = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez',
+                   'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin'];
+    $states = $this->getAllStates();
+    $cities = ['Springfield', 'Franklin', 'Clinton', 'Madison', 'Georgetown', 'Arlington', 'Salem', 'Fairview', 'Bristol', 'Riverside',
+               'Oakland', 'Manchester', 'Newport', 'Greenville', 'Ashland', 'Burlington', 'Dover', 'Jackson', 'Columbia', 'Lakewood'];
+    $street_names = ['Main', 'Oak', 'Pine', 'Maple', 'Cedar', 'Elm', 'Washington', 'Lake', 'Hill', 'Park',
+                     'First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth', 'Ninth', 'Tenth'];
+    $street_types = ['Street', 'Avenue', 'Road', 'Drive', 'Lane', 'Court', 'Circle', 'Boulevard', 'Way', 'Place'];
     
     return [
       'first_name' => $first_names[array_rand($first_names)],
@@ -2200,7 +2239,7 @@ class NFRValidationController extends ControllerBase {
       'country_of_birth' => 'USA',
       'state_of_birth' => $states[array_rand($states)],
       'city_of_birth' => $cities[array_rand($cities)],
-      'address_line1' => rand(100, 9999) . ' Main Street',
+      'address_line1' => rand(100, 9999) . ' ' . $street_names[array_rand($street_names)] . ' ' . $street_types[array_rand($street_types)],
       'city' => $cities[array_rand($cities)],
       'state' => $states[array_rand($states)],
       'zip_code' => sprintf('%05d', rand(10000, 99999)),
@@ -2228,9 +2267,13 @@ class NFRValidationController extends ControllerBase {
     // 30% chance of having other employment, then 30% chance of second job
     $other_jobs = [];
     if (rand(1, 100) <= 30) {
-      $occupations = ['Construction Worker', 'Paramedic', 'Police Officer', 'Military', 'Retail Manager', 'Factory Worker', 'Mechanic', 'Electrician'];
-      $industries = ['construction', 'healthcare', 'law_enforcement', 'military', 'retail', 'manufacturing', 'automotive', 'trades'];
-      $exposures_list = ['asbestos', 'silica', 'diesel', 'chemicals', 'radiation', 'lead', 'solvents'];
+      $occupations = ['Construction Worker', 'Paramedic', 'Police Officer', 'Military', 'Retail Manager', 'Factory Worker', 'Mechanic', 'Electrician',
+                      'Plumber', 'Carpenter', 'Welder', 'Painter', 'HVAC Technician', 'Security Guard', 'Truck Driver', 'EMT',
+                      'Warehouse Worker', 'Equipment Operator', 'Auto Body Technician', 'Machinist', 'Refinery Worker', 'Chemical Plant Worker'];
+      $industries = ['construction', 'healthcare', 'law_enforcement', 'military', 'retail', 'manufacturing', 'automotive', 'trades',
+                     'transportation', 'oil_gas', 'chemical', 'utilities', 'agriculture', 'mining', 'shipyard', 'railroad'];
+      $exposures_list = ['asbestos', 'silica', 'diesel', 'chemicals', 'radiation', 'lead', 'solvents', 'benzene', 'formaldehyde',
+                         'welding_fumes', 'pesticides', 'heavy_metals', 'coal_dust', 'wood_dust', 'fiberglass'];
       
       // First job (100% if we're in this block)
       $start_year = rand(1990, 2010);
@@ -2295,22 +2338,28 @@ class NFRValidationController extends ControllerBase {
     }
     
     // Work history: First department is always added, 30% chance of second department
+    $states = $this->getAllStates();
+    $cities = ['Springfield', 'Franklin', 'Clinton', 'Madison', 'Georgetown', 'Arlington', 'Salem', 'Fairview', 'Bristol', 'Riverside',
+               'Oakland', 'Manchester', 'Newport', 'Greenville', 'Ashland', 'Burlington', 'Dover', 'Jackson', 'Columbia', 'Lakewood'];
+    $job_titles = ['Firefighter', 'Firefighter/Paramedic', 'Firefighter/EMT', 'Engineer', 'Driver/Engineer', 'Apparatus Engineer',
+                   'Lieutenant', 'Captain', 'Battalion Chief', 'Division Chief', 'Inspector', 'Fire Marshal',
+                   'Training Officer', 'Safety Officer', 'Wildland Firefighter', 'Airport Firefighter'];
+    
     $departments = [
       [
         'department_name' => 'Test Fire Department ' . rand(1, 999),
-        'department_fdid' => sprintf('%05d', rand(10000, 99999)),
-        'department_state' => ['CA', 'TX', 'NY', 'FL'][rand(0, 3)],
-        'department_city' => 'TestCity',
-        'start_date' => sprintf('%04d-%02d-01', rand(2005, 2015), rand(1, 12)),
+        'fdid' => sprintf('%05d', rand(10000, 99999)),
+        'state' => $states[array_rand($states)],
+        'city' => $cities[array_rand($cities)],
+        'start_date' => sprintf('%04d-%02d-%02d', rand(2005, 2020), rand(1, 12), rand(1, 28)),
+        'currently_employed' => TRUE,
         'end_date' => '',
-        'is_current' => 1,
-        'job_titles' => [
+        'num_jobs' => 1,
+        'jobs' => [
           [
-            'job_title' => 'Firefighter',
+            'title' => $job_titles[array_rand($job_titles)],
             'employment_type' => $employment_types[array_rand($employment_types)],
-            'start_date' => sprintf('%04d-%02d-01', rand(2005, 2015), rand(1, 12)),
-            'end_date' => '',
-            'responded_to_incidents' => 1,
+            'responded_incidents' => 'yes',
           ],
         ],
       ],
@@ -2319,30 +2368,31 @@ class NFRValidationController extends ControllerBase {
     if (rand(1, 100) <= 30) {
       $departments[] = [
         'department_name' => 'Previous Fire Department ' . rand(1, 999),
-        'department_fdid' => sprintf('%05d', rand(10000, 99999)),
-        'department_state' => ['CA', 'TX', 'NY', 'FL'][rand(0, 3)],
-        'department_city' => 'OldCity',
-        'start_date' => sprintf('%04d-%02d-01', rand(1995, 2005), rand(1, 12)),
-        'end_date' => sprintf('%04d-%02d-01', rand(2005, 2010), rand(1, 12)),
-        'is_current' => 0,
-        'job_titles' => [
+        'fdid' => sprintf('%05d', rand(10000, 99999)),
+        'state' => $states[array_rand($states)],
+        'city' => $cities[array_rand($cities)],
+        'start_date' => sprintf('%04d-%02d-%02d', rand(1990, 2005), rand(1, 12), rand(1, 28)),
+        'currently_employed' => FALSE,
+        'end_date' => sprintf('%04d-%02d-%02d', rand(2005, 2015), rand(1, 12), rand(1, 28)),
+        'num_jobs' => 1,
+        'jobs' => [
           [
-            'job_title' => 'Firefighter',
+            'title' => $job_titles[array_rand($job_titles)],
             'employment_type' => $employment_types[array_rand($employment_types)],
-            'start_date' => sprintf('%04d-%02d-01', rand(1995, 2005), rand(1, 12)),
-            'end_date' => sprintf('%04d-%02d-01', rand(2005, 2010), rand(1, 12)),
-            'responded_to_incidents' => 1,
+            'responded_incidents' => 'yes',
           ],
         ],
       ];
     }
     
-    // Major incidents: 30% chance of having incidents if afff_used is yes
+    // Major incidents: 30% chance of having incidents
     $major_incidents_data = [];
-    $has_major_incidents = rand(0, 1);
-    if ($has_major_incidents && rand(1, 100) <= 30) {
-      $incident_types = ['Structure Fire', 'Wildland Fire', 'Chemical Spill', 'HAZMAT Response', 'Vehicle Fire'];
-      $durations = ['< 1 hour', '1-4 hours', '4-8 hours', '8-24 hours', '> 24 hours'];
+    if (rand(1, 100) <= 30) {
+      $incident_types = ['Structure Fire', 'Wildland Fire', 'Chemical Spill', 'HAZMAT Response', 'Vehicle Fire',
+                         'Industrial Fire', 'High-rise Fire', 'Multi-alarm Fire', 'Oil Refinery Fire', 'Chemical Plant Fire',
+                         'Warehouse Fire', 'Airport Crash Fire', 'Marine/Ship Fire', 'Tire Fire', 'Plastics Fire',
+                         'Terrorist Attack Response', 'Natural Disaster Response', 'Extended Overhaul Operations'];
+      $durations = ['< 1 hour', '1-4 hours', '4-8 hours', '8-24 hours', '> 24 hours', '2-3 days', '> 3 days'];
       
       // First incident
       $major_incidents_data[] = [
@@ -2364,7 +2414,10 @@ class NFRValidationController extends ControllerBase {
     // Health: 10% chance of cancer diagnosis, then 30% chance of second diagnosis
     $cancer_details = [];
     if (rand(1, 100) <= 10) {
-      $cancer_types = ['Lung', 'Prostate', 'Colon', 'Melanoma', 'Leukemia', 'Lymphoma', 'Kidney', 'Bladder'];
+      $cancer_types = ['Lung', 'Prostate', 'Colon', 'Melanoma', 'Leukemia', 'Lymphoma', 'Kidney', 'Bladder',
+                       'Testicular', 'Brain', 'Thyroid', 'Mesothelioma', 'Esophageal', 'Stomach', 'Liver', 'Pancreatic',
+                       'Non-Hodgkin Lymphoma', 'Multiple Myeloma', 'Oral Cavity', 'Laryngeal', 'Skin (Non-Melanoma)',
+                       'Rectal', 'Colorectal', 'Renal Cell Carcinoma'];
       
       // First diagnosis
       $cancer_details[] = [
@@ -2384,8 +2437,9 @@ class NFRValidationController extends ControllerBase {
     // Family cancer history: 40% chance of family history, 30% chance of second relative
     $family_history = [];
     if (rand(1, 100) <= 40) {
-      $relations = ['parent', 'sibling', 'grandparent', 'child', 'aunt_uncle', 'cousin'];
-      $cancer_types = ['Lung', 'Breast', 'Prostate', 'Colon', 'Melanoma', 'Leukemia', 'Other'];
+      $relations = ['parent', 'sibling', 'grandparent', 'child', 'aunt_uncle', 'cousin', 'mother', 'father', 'brother', 'sister'];
+      $cancer_types = ['Lung', 'Breast', 'Prostate', 'Colon', 'Melanoma', 'Leukemia', 'Lymphoma', 'Pancreatic', 'Ovarian',
+                       'Brain', 'Liver', 'Kidney', 'Bladder', 'Thyroid', 'Stomach', 'Esophageal', 'Multiple Myeloma', 'Other'];
       
       // First relative
       $family_history[] = [
@@ -2411,25 +2465,26 @@ class NFRValidationController extends ControllerBase {
         'weight_pounds' => rand(140, 260),
       ],
       'work_history' => [
+        'num_departments' => count($departments),
         'departments' => $departments,
       ],
       'exposure' => [
-        'afff_used' => ['yes', 'no'][rand(0, 1)],
-        'afff_years' => rand(0, 20),
-        'afff_frequency' => ['never', 'rarely', 'monthly', 'weekly'][rand(0, 3)],
+        'afff_used' => ['yes', 'no', 'unknown'][rand(0, 2)],
+        'afff_times' => rand(1, 100),
+        'afff_first_year' => rand(1990, 2020),
         'diesel_exhaust' => ['regularly', 'sometimes', 'rarely', 'never'][rand(0, 3)],
-        'diesel_years' => rand(0, 25),
-        'major_incidents' => $has_major_incidents ? 'yes' : 'no',
+        'chemical_activities' => $this->getRandomChemicalActivities(),
+        'major_incidents' => count($major_incidents_data) > 0 ? 'yes' : 'no',
         'major_incidents_data' => $major_incidents_data,
       ],
       'military' => [
         'served' => ['yes', 'no'][rand(0, 1)],
-        'branch' => ['army', 'navy', 'air_force', 'marines', 'coast_guard'][rand(0, 4)],
-        'start_date' => sprintf('%04d-01-01', rand(2000, 2010)),
-        'end_date' => sprintf('%04d-01-01', rand(2010, 2020)),
-        'military_specialty' => 'Infantry',
-        'deployment_locations' => [],
-        'exposures' => [],
+        'branch' => ['army', 'navy', 'air_force', 'marines', 'coast_guard', 'national_guard', 'reserves'][rand(0, 6)],
+        'start_date' => sprintf('%04d-%02d-%02d', rand(1990, 2010), rand(1, 12), rand(1, 28)),
+        'currently_serving' => rand(0, 1) ? TRUE : FALSE,
+        'end_date' => sprintf('%04d-%02d-%02d', rand(2010, 2023), rand(1, 12), rand(1, 28)),
+        'was_firefighter' => ['yes', 'no'][rand(0, 1)],
+        'firefighting_duties' => 'Structural firefighting, crash rescue, and fire prevention duties',
       ],
       'other_employment' => [
         'had_other_jobs' => count($other_jobs) > 0 ? 'yes' : 'no',
@@ -2446,11 +2501,13 @@ class NFRValidationController extends ControllerBase {
         'station_decon' => rand(0, 1),
         'shower_after_fire' => ['always', 'usually', 'sometimes'][rand(0, 2)],
         'gear_drying' => ['dedicated_area', 'living_area', 'outside'][rand(0, 2)],
+        'department_had_sops' => ['yes', 'no'][rand(0, 1)],
       ],
       'health' => [
         'cancer_diagnosis' => count($cancer_details) > 0 ? 1 : 0,
         'cancer_details' => $cancer_details,
         'family_history' => $family_history,
+        'other_conditions' => $this->getRandomHealthConditions(),
       ],
       'lifestyle' => [
         'smoking_status' => ['never', 'former', 'current'][rand(0, 2)],
@@ -2458,6 +2515,46 @@ class NFRValidationController extends ControllerBase {
         'physical_activity_days' => rand(0, 7),
       ],
     ];
+  }
+
+  /**
+   * Generate random chemical activities selection.
+   */
+  private function getRandomChemicalActivities(): array {
+    $all_activities = ['fire_investigation', 'overhaul', 'salvage', 'vehicle_maintenance', 'station_maintenance'];
+    $num_activities = rand(0, 3); // 0-3 activities selected
+    
+    if ($num_activities === 0) {
+      return ['none' => 'none'];
+    }
+    
+    $selected = [];
+    shuffle($all_activities);
+    for ($i = 0; $i < $num_activities && $i < count($all_activities); $i++) {
+      $selected[$all_activities[$i]] = $all_activities[$i];
+    }
+    
+    return $selected;
+  }
+
+  /**
+   * Generate random health conditions selection.
+   */
+  private function getRandomHealthConditions(): array {
+    $all_conditions = ['heart_disease', 'copd', 'asthma', 'diabetes'];
+    $num_conditions = rand(0, 2); // 0-2 conditions selected
+    
+    if ($num_conditions === 0) {
+      return ['none' => 'none'];
+    }
+    
+    $selected = [];
+    shuffle($all_conditions);
+    for ($i = 0; $i < $num_conditions && $i < count($all_conditions); $i++) {
+      $selected[$all_conditions[$i]] = $all_conditions[$i];
+    }
+    
+    return $selected;
   }
 
   /**
@@ -2725,31 +2822,14 @@ class NFRValidationController extends ControllerBase {
 
     $section_data_map = [
       1 => ['demographics' => $data['demographics'] ?? []],
-      2 => [
-        'work_history' => [
-          'num_departments' => 1,
-          'departments' => [
-            [
-              'department_name' => 'Test Fire Department',
-              'state' => 'CA',
-              'city' => 'Los Angeles',
-              'start_date' => '2010-01-01',
-              'num_jobs' => 1,
-              'jobs' => [
-                [
-                  'title' => 'Firefighter',
-                  'employment_type' => 'career',
-                  'responded_incidents' => 'yes',
-                ],
-              ],
-            ],
-          ],
-        ],
-      ],
+      2 => ['work_history' => $data['work_history'] ?? []],
       3 => [
         'exposure' => [
           'afff_used' => $data['exposure']['afff_used'] ?? 'no',
+          'afff_times' => $data['exposure']['afff_times'] ?? 0,
+          'afff_first_year' => $data['exposure']['afff_first_year'] ?? '',
           'diesel_exhaust' => $data['exposure']['diesel_exhaust'] ?? 'never',
+          'chemical_activities' => $data['exposure']['chemical_activities'] ?? [],
           'major_incidents' => !empty($data['exposure']['major_incidents_data']) ? 'yes' : 'no',
           'incidents_wrapper' => [
             'incidents' => $data['exposure']['major_incidents_data'] ?? [],
@@ -2761,7 +2841,10 @@ class NFRValidationController extends ControllerBase {
           'served' => $data['military']['served'] ?? 'no',
           'branch' => $data['military']['branch'] ?? '',
           'start_date' => $data['military']['start_date'] ?? '',
+          'currently_serving' => $data['military']['currently_serving'] ?? FALSE,
           'end_date' => $data['military']['end_date'] ?? '',
+          'was_firefighter' => $data['military']['was_firefighter'] ?? 'no',
+          'firefighting_duties' => $data['military']['firefighting_duties'] ?? '',
         ],
       ],
       5 => [
@@ -2773,16 +2856,12 @@ class NFRValidationController extends ControllerBase {
       6 => [
         'ppe' => $data['ppe'] ?? [],
       ],
-      7 => [
-        'decontamination' => array_merge(
-          $data['decontamination'] ?? [],
-          ['department_had_sops' => ['yes', 'no'][rand(0, 1)]]
-        ),
-      ],
+      7 => ['decontamination' => $data['decontamination'] ?? []],
       8 => [
         'health' => [
           'cancer_diagnosed' => !empty($data['health']['cancer_details']) ? 'yes' : 'no',
           'cancers' => $data['health']['cancer_details'] ?? [],
+          'other_conditions' => $data['health']['other_conditions'] ?? [],
         ],
       ],
       9 => [
@@ -2946,8 +3025,11 @@ class NFRValidationController extends ControllerBase {
 
   /**
    * Check dblog for recent errors.
+   * 
+   * @param int|null $since_timestamp
+   *   Optional timestamp to check errors since. Defaults to 10 minutes ago.
    */
-  private function checkErrorLogs(): array {
+  private function checkErrorLogs(?int $since_timestamp = NULL): array {
     try {
       $database = \Drupal::database();
 
@@ -2961,13 +3043,14 @@ class NFRValidationController extends ControllerBase {
         ];
       }
 
-      // Get recent errors (last hour)
-      $one_hour_ago = time() - 3600;
+      // Default to last 10 minutes if no timestamp provided
+      $check_since = $since_timestamp ?? (time() - 600);
+      $time_description = $since_timestamp ? 'since test started' : 'in the last 10 minutes';
       
       $query = $database->select('watchdog', 'w')
         ->fields('w', ['wid', 'type', 'message', 'variables', 'severity', 'timestamp'])
         ->condition('severity', [0, 1, 2, 3], 'IN') // EMERGENCY, ALERT, CRITICAL, ERROR
-        ->condition('timestamp', $one_hour_ago, '>')
+        ->condition('timestamp', $check_since, '>')
         ->orderBy('timestamp', 'DESC')
         ->range(0, 10);
 
@@ -3012,8 +3095,8 @@ class NFRValidationController extends ControllerBase {
         'success' => true,
         'has_errors' => $error_count > 0,
         'message' => $error_count > 0 
-          ? "Found $error_count error(s) in the last hour" 
-          : 'No errors found in the last hour',
+          ? "Found $error_count error(s) $time_description" 
+          : "No errors found $time_description",
         'error_count' => $error_count,
         'recent_errors' => $recent_errors,
       ];
@@ -3900,9 +3983,26 @@ class NFRValidationController extends ControllerBase {
       $output .= '<h2 class="h4 mb-4">📊 Database Table Statistics</h2>';
       $output .= '<p class="mb-3">Summary statistics for all NFR database tables showing record counts and field tracking coverage.</p>';
       
+      // Add column definitions
+      $output .= '<div class="alert alert-light border mb-4">';
+      $output .= '<h6 class="mb-3"><strong>Column Definitions:</strong></h6>';
+      $output .= '<dl class="row mb-0 small">';
+      $output .= '<dt class="col-sm-3">Records</dt>';
+      $output .= '<dd class="col-sm-9">Total number of records stored in the database table</dd>';
+      $output .= '<dt class="col-sm-3">Total Fields</dt>';
+      $output .= '<dd class="col-sm-9">Total number of database columns in the table schema</dd>';
+      $output .= '<dt class="col-sm-3">Tracked Fields</dt>';
+      $output .= '<dd class="col-sm-9">Number of fields being monitored for data quality (excludes system fields like ID, timestamps)</dd>';
+      $output .= '<dt class="col-sm-3">Complete Fields</dt>';
+      $output .= '<dd class="col-sm-9">Number of tracked fields that meet minimum completion thresholds (non-NULL, meaningful values)</dd>';
+      $output .= '<dt class="col-sm-3">Completeness</dt>';
+      $output .= '<dd class="col-sm-9 mb-0">Percentage of tracked fields that are complete (Complete Fields ÷ Tracked Fields × 100)</dd>';
+      $output .= '</dl>';
+      $output .= '</div>';
+      
       $output .= '<div class="table-responsive">';
-      $output .= '<table class="table table-striped table-hover">';
-      $output .= '<thead class="table-dark">';
+      $output .= '<table class="table table-striped table-hover validation-routes-table">';
+      $output .= '<thead>';
       $output .= '<tr>';
       $output .= '<th>Table Name</th>';
       $output .= '<th class="text-center">Records</th>';
@@ -3936,6 +4036,22 @@ class NFRValidationController extends ControllerBase {
       
       $output .= '</tbody></table>';
       $output .= '</div>'; // table-responsive
+      
+      // Add note about tables with 0 records
+      $output .= '<div class="alert alert-light border mt-3 mb-0">';
+      $output .= '<h6 class="mb-3"><strong>Tables with 0 Records (Expected):</strong></h6>';
+      $output .= '<dl class="row mb-0 small">';
+      $output .= '<dt class="col-sm-3"><code>nfr_firefighters</code></dt>';
+      $output .= '<dd class="col-sm-9">Deprecated table (now using Drupal user management system)</dd>';
+      $output .= '<dt class="col-sm-3"><code>nfr_follow_up_surveys</code></dt>';
+      $output .= '<dd class="col-sm-9">Only used for future longitudinal studies, not populated during initial questionnaire</dd>';
+      $output .= '<dt class="col-sm-3"><code>nfr_cancer_data</code></dt>';
+      $output .= '<dd class="col-sm-9">Deprecated table (cancer info goes into <code>nfr_cancer_diagnoses</code> instead)</dd>';
+      $output .= '<dt class="col-sm-3"><code>nfr_longitudinal_data</code></dt>';
+      $output .= '<dd class="col-sm-9 mb-0">Only for follow-up data collection, not populated during initial questionnaire</dd>';
+      $output .= '</dl>';
+      $output .= '</div>';
+      
       $output .= '</div></div>'; // card-body, card
       
       // =============================================================================
@@ -4044,8 +4160,8 @@ class NFRValidationController extends ControllerBase {
       $output .= '<p class="mb-3">Completion statistics for each questionnaire section showing field coverage and user progress.</p>';
       
       $output .= '<div class="table-responsive">';
-      $output .= '<table class="table table-striped table-hover">';
-      $output .= '<thead class="table-dark">';
+      $output .= '<table class="table table-striped table-hover validation-routes-table">';
+      $output .= '<thead>';
       $output .= '<tr>';
       $output .= '<th>Section</th>';
       $output .= '<th class="text-center">Tracked Fields</th>';
@@ -4127,8 +4243,8 @@ class NFRValidationController extends ControllerBase {
       $output .= '<p class="mb-3">Comprehensive field-by-field comparison of requirements vs implementation vs database vs tracking.</p>';
       
       $output .= '<div class="table-responsive">';
-      $output .= '<table class="table table-sm table-bordered">';
-      $output .= '<thead class="table-dark">';
+      $output .= '<table class="table table-sm table-bordered validation-routes-table">';
+      $output .= '<thead>';
       $output .= '<tr>';
       $output .= '<th>Section</th>';
       $output .= '<th>Field Name</th>';
