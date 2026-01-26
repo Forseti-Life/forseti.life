@@ -128,14 +128,14 @@ class NFRValidationController extends ControllerBase {
    * 
    * Expected Access by Role:
    * - Anonymous (uid=0): Public pages only (/nfr, /nfr/faq, /nfr/contact, /nfr/documentation)
-   * - Firefighter Active (uid=2): Enrollment pages, My Dashboard, public pages
-   * - Firefighter Retired (uid=3): Enrollment pages, My Dashboard, public pages
-   * - NFR Administrator (uid=4): ALL pages including /admin/nfr/* (complete system access)
-   * - NFR Researcher (uid=5): Public pages, reports, data quality/validation (read-only admin), participant list, linkage status
-   * - Fire Dept Admin (uid=6): SAME as firefighters - enrollment, dashboard, public pages (NO admin access)
+   * - Firefighter Active: Enrollment pages, My Dashboard, public pages
+   * - Firefighter Retired: Enrollment pages, My Dashboard, public pages
+   * - NFR Administrator: ALL pages including /admin/nfr/* (complete system access)
+   * - NFR Researcher: Public pages, reports, data quality/validation (read-only admin), participant list, linkage status
+   * - Fire Dept Admin: SAME as firefighters - enrollment, dashboard, public pages (NO admin access)
    */
   private function getTestUsers(): array {
-    return [
+    $test_users = [
       'anonymous' => [
         'uid' => 0,
         'name' => 'Anonymous',
@@ -147,9 +147,22 @@ class NFRValidationController extends ControllerBase {
           'admin' => false,
         ],
       ],
-      'firefighter_active' => [
-        'uid' => 2,
-        'name' => 'firefighter_active',
+    ];
+
+    // Query database for actual test users
+    $connection = \Drupal::database();
+    
+    // Get firefighter_active users
+    $query = $connection->select('users_field_data', 'u')
+      ->fields('u', ['uid', 'name'])
+      ->condition('u.name', 'firefighter_active%', 'LIKE')
+      ->condition('u.status', 1)
+      ->range(0, 1);
+    $result = $query->execute()->fetchAssoc();
+    if ($result) {
+      $test_users['firefighter_active'] = [
+        'uid' => (int)$result['uid'],
+        'name' => $result['name'],
         'label' => 'Firefighter (Active)',
         'expected_access' => [
           'public_pages' => true,
@@ -157,10 +170,20 @@ class NFRValidationController extends ControllerBase {
           'dashboard' => true,
           'admin' => false,
         ],
-      ],
-      'firefighter_retired' => [
-        'uid' => 3,
-        'name' => 'firefighter_retired',
+      ];
+    }
+
+    // Get firefighter_retired users
+    $query = $connection->select('users_field_data', 'u')
+      ->fields('u', ['uid', 'name'])
+      ->condition('u.name', 'firefighter_retired%', 'LIKE')
+      ->condition('u.status', 1)
+      ->range(0, 1);
+    $result = $query->execute()->fetchAssoc();
+    if ($result) {
+      $test_users['firefighter_retired'] = [
+        'uid' => (int)$result['uid'],
+        'name' => $result['name'],
         'label' => 'Firefighter (Retired)',
         'expected_access' => [
           'public_pages' => true,
@@ -168,10 +191,20 @@ class NFRValidationController extends ControllerBase {
           'dashboard' => true,
           'admin' => false,
         ],
-      ],
-      'nfr_admin' => [
-        'uid' => 4,
-        'name' => 'nfr_admin',
+      ];
+    }
+
+    // Get NFR administrator
+    $query = $connection->select('users_field_data', 'u')
+      ->fields('u', ['uid', 'name'])
+      ->condition('u.name', 'nfr_administrator%', 'LIKE')
+      ->condition('u.status', 1)
+      ->range(0, 1);
+    $result = $query->execute()->fetchAssoc();
+    if ($result) {
+      $test_users['nfr_admin'] = [
+        'uid' => (int)$result['uid'],
+        'name' => $result['name'],
         'label' => 'NFR Administrator',
         'expected_access' => [
           'public_pages' => true,
@@ -179,10 +212,20 @@ class NFRValidationController extends ControllerBase {
           'dashboard' => true,
           'admin' => true,
         ],
-      ],
-      'nfr_researcher' => [
-        'uid' => 5,
-        'name' => 'nfr_researcher',
+      ];
+    }
+
+    // Get NFR researcher
+    $query = $connection->select('users_field_data', 'u')
+      ->fields('u', ['uid', 'name'])
+      ->condition('u.name', 'nfr_researcher%', 'LIKE')
+      ->condition('u.status', 1)
+      ->range(0, 1);
+    $result = $query->execute()->fetchAssoc();
+    if ($result) {
+      $test_users['nfr_researcher'] = [
+        'uid' => (int)$result['uid'],
+        'name' => $result['name'],
         'label' => 'NFR Researcher',
         'expected_access' => [
           'public_pages' => true,
@@ -191,10 +234,20 @@ class NFRValidationController extends ControllerBase {
           'admin' => false,
           'reports' => true,
         ],
-      ],
-      'dept_admin' => [
-        'uid' => 6,
-        'name' => 'dept_admin',
+      ];
+    }
+
+    // Get department admin
+    $query = $connection->select('users_field_data', 'u')
+      ->fields('u', ['uid', 'name'])
+      ->condition('u.name', 'fire_dept_admin%', 'LIKE')
+      ->condition('u.status', 1)
+      ->range(0, 1);
+    $result = $query->execute()->fetchAssoc();
+    if ($result) {
+      $test_users['dept_admin'] = [
+        'uid' => (int)$result['uid'],
+        'name' => $result['name'],
         'label' => 'Fire Dept Admin',
         'expected_access' => [
           'public_pages' => true,
@@ -202,8 +255,10 @@ class NFRValidationController extends ControllerBase {
           'dashboard' => true,
           'admin' => false,
         ],
-      ],
-    ];
+      ];
+    }
+
+    return $test_users;
   }
 
   /**
@@ -856,7 +911,13 @@ class NFRValidationController extends ControllerBase {
    *   JSON response with verification results.
    */
   public function verifyQuestionnaireDatabase(): JsonResponse {
-    $test_uid = 2;
+    $test_uid = $this->getTestUserByRole('firefighter', 'active');
+    if (!$test_uid) {
+      return new JsonResponse([
+        'success' => false,
+        'message' => 'No active firefighter test user found. Create test users first.',
+      ], 404);
+    }
     $results = $this->verifyQuestionnaireData($test_uid);
     return new JsonResponse($results);
   }
@@ -990,7 +1051,13 @@ class NFRValidationController extends ControllerBase {
    */
   public function clearTestData(): JsonResponse {
     try {
-      $test_uid = 2;
+      $test_uid = $this->getTestUserByRole('firefighter', 'active');
+      if (!$test_uid) {
+        return new JsonResponse([
+          'success' => false,
+          'message' => 'No active firefighter test user found.',
+        ], 404);
+      }
       $database = \Drupal::database();
 
       $deleted = $database->delete('nfr_questionnaire')
@@ -1026,7 +1093,15 @@ class NFRValidationController extends ControllerBase {
     ];
 
     try {
-      $test_uid = 2; // firefighter_active test user
+      $test_uid = $this->getTestUserByRole('firefighter', 'active');
+      if (!$test_uid) {
+        return new JsonResponse([
+          'success' => false,
+          'message' => 'No active firefighter test user found. Create test users first.',
+          'steps' => [],
+          'errors' => ['No test user available'],
+        ]);
+      }
       
       // Step 1: Generate random user profile data
       $profile_data = $this->generateRandomProfileData();
@@ -1464,14 +1539,15 @@ class NFRValidationController extends ControllerBase {
     ];
 
     try {
-      // Get all firefighter users
+      // Get all firefighter users (test users only)
       $database = \Drupal::database();
       $firefighter_uids = $database->query("
         SELECT DISTINCT u.uid 
         FROM {users_field_data} u
         JOIN {user__roles} ur ON u.uid = ur.entity_id
         WHERE ur.roles_target_id = 'firefighter'
-        AND u.uid > 2
+        AND u.uid > 1
+        AND u.mail LIKE '%@stlouisintegration.com'
         ORDER BY u.uid
       ")->fetchCol();
 
@@ -1604,7 +1680,16 @@ class NFRValidationController extends ControllerBase {
     ];
 
     try {
-      $test_uid = 2;
+      $test_uid = $this->getTestUserByRole('firefighter', 'active');
+      if (!$test_uid) {
+        return new JsonResponse([
+          'success' => false,
+          'message' => 'No active firefighter test user found. Create test users first.',
+          'test_type' => $testName,
+          'steps' => [],
+          'errors' => ['No test user available'],
+        ]);
+      }
       
       // Generate profile data based on type
       $profile_data = $this->generateProfileData($dataType);
@@ -2799,7 +2884,7 @@ class NFRValidationController extends ControllerBase {
       // Get all profile records
       $profile_query = $connection->select('nfr_user_profile', 'p')
         ->fields('p')
-        ->condition('p.uid', 2, '>');
+        ->condition('p.uid', 1, '>');
       $profile_results = $profile_query->execute();
       $profiles = [];
       foreach ($profile_results as $row) {
@@ -2809,14 +2894,14 @@ class NFRValidationController extends ControllerBase {
       // Get all questionnaire records with ALL columns
       $query = $connection->select('nfr_questionnaire', 'q')
         ->fields('q')
-        ->condition('q.uid', 2, '>');
+        ->condition('q.uid', 1, '>');
       
       $results = $query->execute();
       
       // Get all work history from normalized tables
       $work_history_query = $connection->select('nfr_work_history', 'wh')
         ->fields('wh')
-        ->condition('wh.uid', 2, '>');
+        ->condition('wh.uid', 1, '>');
       $work_history_results = $work_history_query->execute();
       
       $user_work_history = [];
@@ -4315,6 +4400,82 @@ class NFRValidationController extends ControllerBase {
     }
     
     return $counts;
+  }
+
+  /**
+   * Get a test user UID by role.
+   * 
+   * Finds first active user matching criteria:
+   * - Has specified role
+   * - Email ends with @stlouisintegration.com
+   * - Username contains "test" OR matches role pattern (firefighter_, nfr_administrator_, etc.)
+   * 
+   * @param string $role
+   *   Role machine name (firefighter, nfr_administrator, nfr_researcher, fire_dept_admin)
+   * @param string $status
+   *   Optional status filter like 'active', 'retired' (for firefighter role)
+   * 
+   * @return int|null
+   *   User ID or NULL if not found
+   */
+  private function getTestUserByRole(string $role, string $status = ''): ?int {
+    $connection = \Drupal::database();
+    
+    // Build username pattern based on role and status
+    $username_patterns = [];
+    switch ($role) {
+      case 'firefighter':
+        if ($status === 'active') {
+          $username_patterns[] = 'firefighter_active%';
+        }
+        elseif ($status === 'retired') {
+          $username_patterns[] = 'firefighter_retired%';
+        }
+        else {
+          $username_patterns[] = 'firefighter%';
+        }
+        break;
+      
+      case 'nfr_administrator':
+        $username_patterns[] = 'nfr_administrator%';
+        $username_patterns[] = 'nfr_admin%';
+        break;
+      
+      case 'nfr_researcher':
+        $username_patterns[] = 'nfr_researcher%';
+        break;
+      
+      case 'fire_dept_admin':
+        $username_patterns[] = 'fire_dept_admin%';
+        $username_patterns[] = 'dept_admin%';
+        break;
+    }
+    
+    // Query for user with role and test email
+    $query = $connection->select('users_field_data', 'u');
+    $query->fields('u', ['uid']);
+    $query->condition('u.status', 1);
+    $query->condition('u.mail', '%@stlouisintegration.com', 'LIKE');
+    
+    // Join with user roles
+    $query->leftJoin('user__roles', 'ur', 'u.uid = ur.entity_id');
+    $query->condition('ur.roles_target_id', $role);
+    
+    // Add username pattern conditions
+    if (!empty($username_patterns)) {
+      $or_group = $query->orConditionGroup();
+      foreach ($username_patterns as $pattern) {
+        $or_group->condition('u.name', $pattern, 'LIKE');
+      }
+      // Also match if "test" is in username
+      $or_group->condition('u.name', '%test%', 'LIKE');
+      $query->condition($or_group);
+    }
+    
+    $query->range(0, 1);
+    $result = $query->execute()->fetchField();
+    
+    return $result ? (int)$result : NULL;
   }
 
 }

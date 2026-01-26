@@ -9,7 +9,14 @@
  * - additional_docs: Array of additional documentation files
  */
 #}
-<div class="nfr-documentation-index">
+<div class="container-fluid my-4">
+  <div class="row">
+    <aside class="col-lg-3 col-md-4 mb-4">
+      {{ drupal_block('nfr_navigation') }}
+    </aside>
+    
+    <main class="col-lg-9 col-md-8">
+      <div class="nfr-documentation-index">
   <div class="intro">
     <h1>{{ 'National Firefighter Registry Documentation'|t }}</h1>
     <p class="intro-text">
@@ -93,4 +100,7 @@
     </div>
   </details>
 
+      </div>
+    </main>
+  </div>
 </div>
