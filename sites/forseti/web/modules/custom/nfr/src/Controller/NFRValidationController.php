@@ -2241,7 +2241,7 @@ class NFRValidationController extends ControllerBase {
   private function generateRandomQuestionnaireData(int $uid): array {
     $races = ['white', 'black', 'asian', 'hispanic', 'american_indian'];
     $education = ['hs_ged', 'some_college', 'associate', 'bachelor', 'graduate'];
-    $employment_types = ['career', 'volunteer', 'paid-on-call'];
+    $employment_types = ['career', 'volunteer', 'paid_on_call', 'seasonal', 'wildland', 'military'];
     $branches = ['Army', 'Navy', 'Air Force', 'Marines', 'Coast Guard'];
     
     // Randomly select 1-3 races
