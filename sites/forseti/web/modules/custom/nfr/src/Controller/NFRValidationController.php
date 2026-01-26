@@ -2000,19 +2000,27 @@ class NFRValidationController extends ControllerBase {
         'departments' => [
           [
             'department_name' => 'Maximum Test Fire Department',
-            'department_fdid' => '99999',
-            'department_state' => 'CA',
-            'department_city' => 'Los Angeles',
+            'fdid' => '99999',
+            'state' => 'CA',
+            'city' => 'Los Angeles',
             'start_date' => '1980-01-01',
+            'currently_employed' => TRUE,
             'end_date' => '',
-            'is_current' => 1,
-            'job_titles' => [
+            'num_jobs' => 1,
+            'jobs' => [
               [
-                'job_title' => 'Fire Chief',
+                'title' => 'Fire Chief',
                 'employment_type' => 'career',
-                'start_date' => '1980-01-01',
-                'end_date' => '',
-                'responded_to_incidents' => 1,
+                'responded_incidents' => 'yes',
+                'incident_types' => [
+                  'structure_fires' => 'daily',
+                  'vehicle_fires' => 'weekly',
+                  'wildland_fires' => 'monthly',
+                  'hazmat' => 'weekly',
+                  'medical' => 'daily',
+                  'technical_rescue' => 'monthly',
+                  'rubbish_dumpster' => 'weekly',
+                ],
               ],
             ],
           ],
@@ -2128,19 +2136,21 @@ class NFRValidationController extends ControllerBase {
         'departments' => [
           [
             'department_name' => 'Minimal Test Fire Department',
-            'department_fdid' => '10000',
-            'department_state' => 'CA',
-            'department_city' => 'TestCity',
+            'fdid' => '10000',
+            'state' => 'CA',
+            'city' => 'TestCity',
             'start_date' => '2020-01-01',
+            'currently_employed' => TRUE,
             'end_date' => '',
-            'is_current' => 1,
-            'job_titles' => [
+            'num_jobs' => 1,
+            'jobs' => [
               [
-                'job_title' => 'Firefighter',
+                'title' => 'Firefighter',
                 'employment_type' => 'volunteer',
-                'start_date' => '2020-01-01',
-                'end_date' => '',
-                'responded_to_incidents' => 1,
+                'responded_incidents' => 'yes',
+                'incident_types' => [
+                  'structure_fires' => 'rarely',
+                ],
               ],
             ],
           ],
@@ -2236,19 +2246,22 @@ class NFRValidationController extends ControllerBase {
         'departments' => [
           [
             'department_name' => 'Yes Minimal Fire Department',
-            'department_fdid' => '50000',
-            'department_state' => 'CA',
-            'department_city' => 'TestCity',
+            'fdid' => '50000',
+            'state' => 'CA',
+            'city' => 'TestCity',
             'start_date' => '2020-01-01',
+            'currently_employed' => TRUE,
             'end_date' => '',
-            'is_current' => 1,
-            'job_titles' => [
+            'num_jobs' => 1,
+            'jobs' => [
               [
-                'job_title' => 'Firefighter',
+                'title' => 'Firefighter',
                 'employment_type' => 'career',
-                'start_date' => '2020-01-01',
-                'end_date' => '',
-                'responded_to_incidents' => 1,
+                'responded_incidents' => 'yes',
+                'incident_types' => [
+                  'structure_fires' => 'rarely',
+                  'medical' => 'monthly',
+                ],
               ],
             ],
           ],
