@@ -623,15 +623,20 @@ class NFRValidationController extends ControllerBase {
     ];
 
     try {
-      $test_uid = 2; // firefighter_active test user
+      // Load test user by username (more reliable than hardcoded UID)
+      $username = 'firefighter_active';
+      $users = \Drupal::entityTypeManager()
+        ->getStorage('user')
+        ->loadByProperties(['name' => $username]);
       
-      // Step 1: Verify test user exists
-      $user = \Drupal\user\Entity\User::load($test_uid);
-      if (!$user) {
-        $results['errors'][] = "Test user (UID: $test_uid) not found";
+      if (empty($users)) {
+        $results['errors'][] = "Test user '$username' not found. Run 'drush updatedb' to create validation users.";
         $results['success'] = false;
         return new JsonResponse($results);
       }
+      
+      $user = reset($users);
+      $test_uid = $user->id();
 
       $results['steps'][] = [
         'step' => 'User Check',
