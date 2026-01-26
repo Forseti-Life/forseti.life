@@ -1303,35 +1303,99 @@ class NFRValidationController extends ControllerBase {
     $results = [
       'success' => true,
       'users_deleted' => 0,
+      'profiles_deleted' => 0,
+      'questionnaires_deleted' => 0,
       'errors' => [],
     ];
 
     try {
-      // Find all users with test email domain
-      $users = \Drupal::entityTypeManager()
-        ->getStorage('user')
-        ->loadByProperties(['mail' => '%@test-nfr.org']);
-
-      // Also find by username pattern
+      // SAFETY CHECK: Only delete users with @stlouisintegration.com email domain
       $database = \Drupal::database();
       $uids = $database->query("
         SELECT uid FROM {users_field_data} 
-        WHERE mail LIKE '%@test-nfr.org' 
-        OR name LIKE 'firefighter_%'
-        OR name LIKE 'nfr_administrator_%'
-        OR name LIKE 'nfr_researcher_%'
-        OR name LIKE 'fire_department_admin_%'
+        WHERE uid > 1
+        AND status = 1
+        AND mail LIKE '%@stlouisintegration.com'
       ")->fetchCol();
 
       foreach ($uids as $uid) {
-        if ($uid > 2) { // Don't delete admin or test user
-          $user = \Drupal\user\Entity\User::load($uid);
-          if ($user) {
-            $user->delete();
-            $results['users_deleted']++;
-          }
+        $uid = (int) $uid;
+        $user = \Drupal\user\Entity\User::load($uid);
+        
+        if (!$user) {
+          continue;
         }
+        
+        // Double-check email domain for safety
+        $email = $user->getEmail();
+        if (!str_ends_with($email, '@stlouisintegration.com')) {
+          $results['errors'][] = "Skipped user {$user->getAccountName()} - email doesn't match test domain";
+          continue;
+        }
+        
+        // Delete NFR profile data
+        $profile_deleted = $database->delete('nfr_user_profile')
+          ->condition('user_id', $uid)
+          ->execute();
+        $results['profiles_deleted'] += $profile_deleted;
+        
+        // Delete questionnaire data
+        $questionnaire_deleted = $database->delete('nfr_questionnaire')
+          ->condition('user_id', $uid)
+          ->execute();
+        $results['questionnaires_deleted'] += $questionnaire_deleted;
+        
+        // Delete work history
+        $database->delete('nfr_work_history')
+          ->condition('user_id', $uid)
+          ->execute();
+        
+        // Delete job titles
+        $database->delete('nfr_job_titles')
+          ->condition('user_id', $uid)
+          ->execute();
+        
+        // Delete incident frequency
+        $database->delete('nfr_incident_frequency')
+          ->condition('user_id', $uid)
+          ->execute();
+        
+        // Delete major incidents
+        $database->delete('nfr_major_incidents')
+          ->condition('user_id', $uid)
+          ->execute();
+        
+        // Delete other employment
+        $database->delete('nfr_other_employment')
+          ->condition('user_id', $uid)
+          ->execute();
+        
+        // Delete cancer diagnoses
+        $database->delete('nfr_cancer_diagnoses')
+          ->condition('user_id', $uid)
+          ->execute();
+        
+        // Delete consent records
+        $database->delete('nfr_consent')
+          ->condition('user_id', $uid)
+          ->execute();
+        
+        // Delete section completion
+        $database->delete('nfr_section_completion')
+          ->condition('user_id', $uid)
+          ->execute();
+        
+        // Delete follow-up surveys
+        $database->delete('nfr_follow_up_surveys')
+          ->condition('user_id', $uid)
+          ->execute();
+        
+        // Finally, delete the user
+        $user->delete();
+        $results['users_deleted']++;
       }
+      
+      $results['message'] = "Deleted {$results['users_deleted']} test users, {$results['profiles_deleted']} profiles, and {$results['questionnaires_deleted']} questionnaires.";
 
     } catch (\Exception $e) {
       $results['success'] = false;
