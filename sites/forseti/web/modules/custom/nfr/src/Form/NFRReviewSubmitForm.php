@@ -413,7 +413,7 @@ class NFRReviewSubmitForm extends FormBase {
 
     if ($data['major_incidents']) {
       $incidents = $this->database->select('nfr_major_incidents', 'mi')
-        ->fields('mi', ['description', 'date', 'duration'])
+        ->fields('mi', ['description', 'incident_date', 'duration'])
         ->condition('uid', $uid)
         ->execute()
         ->fetchAll(\PDO::FETCH_ASSOC);
@@ -423,8 +423,8 @@ class NFRReviewSubmitForm extends FormBase {
         foreach ($incidents as $incident) {
           $html .= '<li>';
           $html .= htmlspecialchars($incident['description']);
-          if (!empty($incident['date'])) {
-            $html .= '<br><small>' . htmlspecialchars($incident['date']);
+          if (!empty($incident['incident_date'])) {
+            $html .= '<br><small>' . htmlspecialchars($incident['incident_date']);
             if (!empty($incident['duration'])) {
               $html .= ' (' . htmlspecialchars($incident['duration']) . ')';
             }
