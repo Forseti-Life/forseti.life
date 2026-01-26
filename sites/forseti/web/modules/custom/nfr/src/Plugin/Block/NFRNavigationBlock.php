@@ -132,7 +132,7 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
       $menu['enrollment'] = [
         'title' => $this->t('Enrollment'),
         'url' => Url::fromRoute('nfr.welcome'),
-        'weight' => 1,
+        'weight' => 2,
         'children' => [
           [
             'title' => $this->t('Welcome'),
@@ -171,7 +171,7 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
       $menu['participant'] = [
         'title' => $this->t('My Dashboard'),
         'url' => Url::fromRoute('nfr.my_dashboard'),
-        'weight' => 2,
+        'weight' => 1,
         'children' => [
           [
             'title' => $this->t('Dashboard Home'),
@@ -256,7 +256,7 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
     $menu['documentation'] = [
       'title' => $this->t('Documentation'),
       'url' => Url::fromRoute('nfr.documentation'),
-      'weight' => 3,
+      'weight' => 4,
       'children' => $doc_children,
     ];
 
@@ -312,7 +312,7 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
       $menu['admin'] = [
         'title' => $this->t('Administration'),
         'url' => Url::fromRoute('nfr.admin_dashboard'),
-        'weight' => 4,
+        'weight' => 3,
         'children' => $admin_children,
       ];
     }
