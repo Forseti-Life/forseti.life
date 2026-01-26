@@ -119,6 +119,8 @@ class NFRQuestionnaireSection8Form extends FormBase {
       '#type' => 'fieldset',
       '#title' => $this->t('Health Information'),
       '#tree' => TRUE,
+      '#prefix' => '<div id="health">',
+      '#suffix' => '</div>',
     ];
 
     $form['health']['cancer_diagnosed'] = [

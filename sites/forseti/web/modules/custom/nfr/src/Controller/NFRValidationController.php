@@ -2067,6 +2067,8 @@ class NFRValidationController extends ControllerBase {
         'station_decon' => 1,
         'shower_after_fire' => 'always',
         'gear_drying' => 'dedicated_area',
+        'department_had_sops' => 'yes',
+        'sops_year_implemented' => 2010,
       ],
       'health' => [
         'cancer_diagnosis' => 0,
@@ -2185,6 +2187,7 @@ class NFRValidationController extends ControllerBase {
         'station_decon' => 0,
         'shower_after_fire' => 'sometimes',
         'gear_drying' => 'outside',
+        'department_had_sops' => 'no',
       ],
       'health' => [
         'cancer_diagnosis' => 0,
@@ -2292,6 +2295,7 @@ class NFRValidationController extends ControllerBase {
         'station_decon' => 1,
         'shower_after_fire' => 'sometimes',
         'gear_drying' => 'living_area',
+        'department_had_sops' => 'unknown',
       ],
       'health' => [
         'cancer_diagnosis' => 0,
@@ -2988,7 +2992,12 @@ class NFRValidationController extends ControllerBase {
 
     $section_data_map = [
       1 => ['demographics' => $data['demographics'] ?? []],
-      2 => ['work_history' => $data['work_history'] ?? []],
+      2 => [
+        'work_history' => array_merge(
+          ['num_departments' => count($data['work_history']['departments'] ?? [])],
+          $data['work_history'] ?? []
+        ),
+      ],
       3 => [
         'exposure' => [
           'afff_used' => $data['exposure']['afff_used'] ?? 'no',
@@ -3023,7 +3032,12 @@ class NFRValidationController extends ControllerBase {
       6 => [
         'ppe' => $data['ppe'] ?? [],
       ],
-      7 => ['decontamination' => $data['decontamination'] ?? []],
+      7 => [
+        'decontamination' => array_merge(
+          ['department_had_sops' => $data['decontamination']['department_had_sops'] ?? 'no'],
+          $data['decontamination'] ?? []
+        ),
+      ],
       8 => [
         'health' => [
           'cancer_diagnosed' => !empty($data['health']['cancer_details']) ? 'yes' : 'no',
