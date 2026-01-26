@@ -996,12 +996,35 @@ class NFRValidationController extends ControllerBase {
         ];
       }
 
-      // Verify PPE practices
+      // Verify PPE practices and always_used checkboxes
       if ($record['ppe_practices']) {
         $ppe_data = json_decode($record['ppe_practices'], TRUE);
         $verified_fields['ppe_practices'] = [
           'status' => 'success',
           'value' => count($ppe_data) . ' practices recorded',
+        ];
+      }
+      // Check for new PPE always_used fields
+      $always_used_fields = [
+        'scba_interior_structural_attack_always_used',
+        'scba_exterior_structural_attack_always_used',
+        'scba_vehicle_fires_always_used',
+        'respirator_brush_veg_fires_always_used',
+        'respirator_wildland_suppression_always_used',
+        'respirator_fire_investigations_always_used',
+        'respirator_wui_fires_always_used',
+        'respirator_prescribed_burns_always_used',
+      ];
+      $always_used_count = 0;
+      foreach ($always_used_fields as $field) {
+        if (!empty($record[$field])) {
+          $always_used_count++;
+        }
+      }
+      if ($always_used_count > 0) {
+        $verified_fields['ppe_always_used'] = [
+          'status' => 'success',
+          'value' => $always_used_count . ' "always done this" practices checked',
         ];
       }
 
@@ -1020,20 +1043,41 @@ class NFRValidationController extends ControllerBase {
         'value' => $record['cancer_diagnosis'] ? 'Yes' : 'No',
       ];
 
-      if ($record['family_cancer_history']) {
-        $family_data = json_decode($record['family_cancer_history'], TRUE);
+      // Verify family cancer history from separate table
+      $family_cancer_query = $database->select('nfr_family_cancer_history', 'fch')
+        ->fields('fch')
+        ->condition('uid', $uid)
+        ->execute();
+      $family_cancers = $family_cancer_query->fetchAll();
+      if (!empty($family_cancers)) {
         $verified_fields['family_cancer_history'] = [
           'status' => 'success',
-          'value' => count($family_data) . ' family members recorded',
+          'value' => count($family_cancers) . ' family members in nfr_family_cancer_history table',
         ];
       }
 
       // Verify lifestyle
       if ($record['smoking_history']) {
         $smoking_data = json_decode($record['smoking_history'], TRUE);
-        $verified_fields['smoking_status'] = [
+        $tobacco_types = [];
+        if (!empty($smoking_data['smoking_status']) && $smoking_data['smoking_status'] !== 'never') {
+          $tobacco_types[] = 'cigarettes';
+        }
+        if (!empty($smoking_data['cigars_ever_used']) && $smoking_data['cigars_ever_used'] !== 'never') {
+          $tobacco_types[] = 'cigars';
+        }
+        if (!empty($smoking_data['pipes_ever_used']) && $smoking_data['pipes_ever_used'] !== 'never') {
+          $tobacco_types[] = 'pipes';
+        }
+        if (!empty($smoking_data['ecigs_ever_used']) && $smoking_data['ecigs_ever_used'] !== 'never') {
+          $tobacco_types[] = 'e-cigarettes';
+        }
+        if (!empty($smoking_data['smokeless_ever_used']) && $smoking_data['smokeless_ever_used'] !== 'never') {
+          $tobacco_types[] = 'smokeless';
+        }
+        $verified_fields['tobacco_use'] = [
           'status' => 'success',
-          'value' => $smoking_data['smoking_status'] ?? 'Unknown',
+          'value' => !empty($tobacco_types) ? implode(', ', $tobacco_types) : 'None',
         ];
       }
 
@@ -1041,6 +1085,23 @@ class NFRValidationController extends ControllerBase {
         'status' => 'success',
         'value' => $record['alcohol_use'] ?? 'Not specified',
       ];
+
+      // Verify sleep tracking
+      $verified_fields['sleep_hours_per_night'] = [
+        'status' => 'success',
+        'value' => $record['sleep_hours_per_night'] ?? 'Not specified',
+      ];
+      $verified_fields['sleep_quality'] = [
+        'status' => 'success',
+        'value' => $record['sleep_quality'] ?? 'Not specified',
+      ];
+      if ($record['sleep_disorders']) {
+        $sleep_disorders = json_decode($record['sleep_disorders'], TRUE);
+        $verified_fields['sleep_disorders'] = [
+          'status' => 'success',
+          'value' => !empty($sleep_disorders) ? implode(', ', array_filter($sleep_disorders)) : 'None',
+        ];
+      }
 
       // Verify completion
       $verified_fields['questionnaire_completed'] = [
@@ -1986,12 +2047,41 @@ class NFRValidationController extends ControllerBase {
       'health' => [
         'cancer_diagnosis' => 0,
         'cancer_details' => [],
-        'family_history' => [],
+        'family_history' => [
+          [
+            'relationship' => 'mother',
+            'cancer_type' => 'Breast Cancer',
+            'age_at_diagnosis' => 55,
+          ],
+          [
+            'relationship' => 'father',
+            'cancer_type' => 'Lung Cancer',
+            'age_at_diagnosis' => 68,
+          ],
+        ],
       ],
       'lifestyle' => [
         'smoking_status' => 'current',
+        'smoking_age_started' => 18,
+        'smoking_age_stopped' => '',
+        'cigarettes_per_day' => 20,
+        'cigars_ever_used' => 'current',
+        'cigars_age_started' => 25,
+        'cigars_age_stopped' => '',
+        'pipes_ever_used' => 'former',
+        'pipes_age_started' => 20,
+        'pipes_age_stopped' => 30,
+        'ecigs_ever_used' => 'current',
+        'ecigs_age_started' => 35,
+        'ecigs_age_stopped' => '',
+        'smokeless_ever_used' => 'former',
+        'smokeless_age_started' => 16,
+        'smokeless_age_stopped' => 22,
         'alcohol_frequency' => '5_plus_per_week',
         'physical_activity_days' => 7,
+        'sleep_hours_per_night' => 8.5,
+        'sleep_quality' => 'excellent',
+        'sleep_disorders' => ['none'],
       ],
     ];
   }
@@ -2079,8 +2169,26 @@ class NFRValidationController extends ControllerBase {
       ],
       'lifestyle' => [
         'smoking_status' => 'never',
+        'smoking_age_started' => '',
+        'smoking_age_stopped' => '',
+        'cigarettes_per_day' => '',
+        'cigars_ever_used' => 'never',
+        'cigars_age_started' => '',
+        'cigars_age_stopped' => '',
+        'pipes_ever_used' => 'never',
+        'pipes_age_started' => '',
+        'pipes_age_stopped' => '',
+        'ecigs_ever_used' => 'never',
+        'ecigs_age_started' => '',
+        'ecigs_age_stopped' => '',
+        'smokeless_ever_used' => 'never',
+        'smokeless_age_started' => '',
+        'smokeless_age_stopped' => '',
         'alcohol_frequency' => 'never',
         'physical_activity_days' => 0,
+        'sleep_hours_per_night' => 4.0,
+        'sleep_quality' => 'poor',
+        'sleep_disorders' => ['insomnia', 'sleep_apnea'],
       ],
     ];
   }
@@ -2164,12 +2272,36 @@ class NFRValidationController extends ControllerBase {
       'health' => [
         'cancer_diagnosis' => 0,
         'cancer_details' => [],
-        'family_history' => [],
+        'family_history' => [
+          [
+            'relationship' => 'brother',
+            'cancer_type' => 'Testicular Cancer',
+            'age_at_diagnosis' => 42,
+          ],
+        ],
       ],
       'lifestyle' => [
         'smoking_status' => 'former',
+        'smoking_age_started' => 18,
+        'smoking_age_stopped' => 25,
+        'cigarettes_per_day' => 5,
+        'cigars_ever_used' => 'never',
+        'cigars_age_started' => '',
+        'cigars_age_stopped' => '',
+        'pipes_ever_used' => 'never',
+        'pipes_age_started' => '',
+        'pipes_age_stopped' => '',
+        'ecigs_ever_used' => 'former',
+        'ecigs_age_started' => 30,
+        'ecigs_age_stopped' => 32,
+        'smokeless_ever_used' => 'never',
+        'smokeless_age_started' => '',
+        'smokeless_age_stopped' => '',
         'alcohol_frequency' => 'less_than_monthly',
         'physical_activity_days' => 1,
+        'sleep_hours_per_night' => 6.5,
+        'sleep_quality' => 'fair',
+        'sleep_disorders' => ['shift_work_disorder'],
       ],
     ];
   }

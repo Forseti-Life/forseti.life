@@ -1344,3 +1344,194 @@ function nfr_update_9020() {
   
   return t('Deleted @count old validation users and created new test-pattern users.', ['@count' => $deleted]);
 }
+
+/**
+ * Add missing PPE scenario fields for CDC compliance.
+ */
+function nfr_update_9021() {
+  $schema = \Drupal::database()->schema();
+  $table = 'nfr_questionnaire';
+  
+  $new_columns = [
+    'ppe_scba_interior_attack' => [
+      'description' => 'SCBA use during interior structural attack',
+      'type' => 'varchar',
+      'length' => 50,
+      'not null' => FALSE,
+    ],
+    'ppe_scba_exterior_attack' => [
+      'description' => 'SCBA use during exterior structural attack',
+      'type' => 'varchar',
+      'length' => 50,
+      'not null' => FALSE,
+    ],
+    'ppe_respirator_vehicle_fires' => [
+      'description' => 'SCBA/respirator use during vehicle fires',
+      'type' => 'varchar',
+      'length' => 50,
+      'not null' => FALSE,
+    ],
+    'ppe_respirator_brush_fires' => [
+      'description' => 'Respirator use during brush/vegetation fires',
+      'type' => 'varchar',
+      'length' => 50,
+      'not null' => FALSE,
+    ],
+    'ppe_respirator_wildland' => [
+      'description' => 'Respirator use during wildland suppression',
+      'type' => 'varchar',
+      'length' => 50,
+      'not null' => FALSE,
+    ],
+    'ppe_respirator_investigations' => [
+      'description' => 'Respirator use during fire investigations',
+      'type' => 'varchar',
+      'length' => 50,
+      'not null' => FALSE,
+    ],
+    'ppe_respirator_wui' => [
+      'description' => 'Respirator use during WUI fires',
+      'type' => 'varchar',
+      'length' => 50,
+      'not null' => FALSE,
+    ],
+  ];
+  
+  $added = 0;
+  foreach ($new_columns as $column_name => $spec) {
+    if (!$schema->fieldExists($table, $column_name)) {
+      $schema->addField($table, $column_name, $spec);
+      $added++;
+    }
+  }
+  
+  return t('Added @count PPE scenario columns to nfr_questionnaire table.', ['@count' => $added]);
+}
+
+/**
+ * Add "always done this" checkboxes for PPE equipment.
+ */
+function nfr_update_9022() {
+  $schema = \Drupal::database()->schema();
+  $table = 'nfr_questionnaire';
+  
+  $ppe_types = ['scba', 'turnout_coat', 'turnout_pants', 'gloves', 'helmet', 'boots', 'nomex_hood', 'wildland_clothing'];
+  
+  $added = 0;
+  foreach ($ppe_types as $type) {
+    $column_name = 'ppe_' . $type . '_always_used';
+    if (!$schema->fieldExists($table, $column_name)) {
+      $schema->addField($table, $column_name, [
+        'description' => 'Always used ' . $type . ' (from start of career)',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => FALSE,
+      ]);
+      $added++;
+    }
+  }
+  
+  return t('Added @count "always done this" PPE columns to nfr_questionnaire table.', ['@count' => $added]);
+}
+
+/**
+ * Create family cancer history table for CDC compliance.
+ */
+function nfr_update_9023() {
+  $schema = \Drupal::database()->schema();
+  
+  if (!$schema->tableExists('nfr_family_cancer_history')) {
+    $table_schema = [
+      'description' => 'Stores family cancer history for NFR participants',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+          'description' => 'Primary Key',
+        ],
+        'uid' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'User ID',
+        ],
+        'relationship' => [
+          'type' => 'varchar',
+          'length' => 50,
+          'not null' => TRUE,
+          'description' => 'Family relationship (mother, father, sibling, etc)',
+        ],
+        'cancer_type' => [
+          'type' => 'varchar',
+          'length' => 100,
+          'not null' => TRUE,
+          'description' => 'Type of cancer',
+        ],
+        'age_at_diagnosis' => [
+          'type' => 'int',
+          'not null' => FALSE,
+          'description' => 'Age when diagnosed (if known)',
+        ],
+        'created' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Unix timestamp when created',
+        ],
+        'updated' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Unix timestamp when updated',
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'uid' => ['uid'],
+      ],
+    ];
+    
+    $schema->createTable('nfr_family_cancer_history', $table_schema);
+    return t('Created nfr_family_cancer_history table.');
+  }
+  
+  return t('Table nfr_family_cancer_history already exists.');
+}
+
+/**
+ * Add sleep tracking fields for CDC compliance.
+ */
+function nfr_update_9024() {
+  $schema = \Drupal::database()->schema();
+  $table = 'nfr_questionnaire';
+  
+  $sleep_columns = [
+    'sleep_hours_per_night' => [
+      'description' => 'Average hours of sleep per night',
+      'type' => 'float',
+      'not null' => FALSE,
+    ],
+    'sleep_quality' => [
+      'description' => 'Sleep quality rating',
+      'type' => 'varchar',
+      'length' => 50,
+      'not null' => FALSE,
+    ],
+    'sleep_disorders' => [
+      'description' => 'Sleep disorders (JSON array)',
+      'type' => 'text',
+      'size' => 'normal',
+      'not null' => FALSE,
+    ],
+  ];
+  
+  $added = 0;
+  foreach ($sleep_columns as $column_name => $spec) {
+    if (!$schema->fieldExists($table, $column_name)) {
+      $schema->addField($table, $column_name, $spec);
+      $added++;
+    }
+  }
+  
+  return t('Added @count sleep tracking columns to nfr_questionnaire table.', ['@count' => $added]);
+}

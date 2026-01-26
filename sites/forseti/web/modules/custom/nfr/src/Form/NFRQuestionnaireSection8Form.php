@@ -91,6 +91,22 @@ class NFRQuestionnaireSection8Form extends FormBase {
       ];
     }
 
+    // Load family cancer history
+    $family_cancers = $database->select('nfr_family_cancer_history', 'fch')
+      ->fields('fch')
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchAll();
+    
+    $health['family_cancers'] = [];
+    foreach ($family_cancers as $fc) {
+      $health['family_cancers'][] = [
+        'relationship' => $fc->relationship,
+        'cancer_type' => $fc->cancer_type,
+        'age_at_diagnosis' => $fc->age_at_diagnosis,
+      ];
+    }
+
     // Add navigation menu
     $form['navigation'] = $this->buildNavigationMenu(8);
 
@@ -197,6 +213,89 @@ class NFRQuestionnaireSection8Form extends FormBase {
       '#default_value' => $health['other_conditions'] ?? [],
     ];
 
+    // Family cancer history
+    $form['health']['has_family_cancer_history'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Has anyone in your immediate family (parents, siblings, children) been diagnosed with cancer?'),
+      '#options' => [
+        'yes' => $this->t('Yes'),
+        'no' => $this->t('No'),
+      ],
+      '#default_value' => !empty($health['family_cancers']) ? 'yes' : ($form_state->getValue(['health', 'has_family_cancer_history']) ?? NULL),
+    ];
+
+    $num_family_cancers = $form_state->get('num_family_cancers') ?? count($health['family_cancers'] ?? []);
+    if ($form_state->getValue(['health', 'has_family_cancer_history']) === 'yes' && $num_family_cancers === 0) {
+      $num_family_cancers = 1;
+    }
+    $form_state->set('num_family_cancers', $num_family_cancers);
+
+    $form['health']['family_cancers_container'] = [
+      '#type' => 'container',
+      '#tree' => TRUE,
+      '#states' => [
+        'visible' => [
+          ':input[name="health[has_family_cancer_history]"]' => ['value' => 'yes'],
+        ],
+      ],
+    ];
+
+    for ($i = 0; $i < $num_family_cancers; $i++) {
+      $fc_data = $health['family_cancers'][$i] ?? [];
+      
+      $form['health']['family_cancers_container'][$i] = [
+        '#type' => 'fieldset',
+        '#title' => $this->t('Family Member @num', ['@num' => $i + 1]),
+      ];
+
+      $form['health']['family_cancers_container'][$i]['relationship'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Relationship'),
+        '#required' => TRUE,
+        '#options' => [
+          '' => $this->t('- Select -'),
+          'mother' => $this->t('Mother'),
+          'father' => $this->t('Father'),
+          'brother' => $this->t('Brother'),
+          'sister' => $this->t('Sister'),
+          'son' => $this->t('Son'),
+          'daughter' => $this->t('Daughter'),
+        ],
+        '#default_value' => $fc_data['relationship'] ?? '',
+      ];
+
+      $form['health']['family_cancers_container'][$i]['cancer_type'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Type of Cancer'),
+        '#required' => TRUE,
+        '#default_value' => $fc_data['cancer_type'] ?? '',
+      ];
+
+      $form['health']['family_cancers_container'][$i]['age_at_diagnosis'] = [
+        '#type' => 'number',
+        '#title' => $this->t('Age at Diagnosis (if known)'),
+        '#min' => 0,
+        '#max' => 120,
+        '#default_value' => $fc_data['age_at_diagnosis'] ?? '',
+      ];
+    }
+
+    $form['health']['add_family_cancer'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('+ Add Another Family Member'),
+      '#submit' => ['::addFamilyCancer'],
+      '#ajax' => [
+        'callback' => '::updateFamilyCancerFields',
+        'wrapper' => 'health',
+      ],
+      '#limit_validation_errors' => [],
+      '#states' => [
+        'visible' => [
+          ':input[name="health[has_family_cancer_history]"]' => ['value' => 'yes'],
+        ],
+      ],
+    ];
+
     $form['actions'] = [
       '#type' => 'actions',
     ];
@@ -295,6 +394,9 @@ class NFRQuestionnaireSection8Form extends FormBase {
       }
     }
 
+    // Save family cancer history
+    $this->saveFamilyCancerHistory($uid, $health, $database);
+
     $this->messenger()->addStatus($this->t('Section 8 saved.'));
     $form_state->setRedirect('nfr.questionnaire.section9');
   }
@@ -353,6 +455,9 @@ class NFRQuestionnaireSection8Form extends FormBase {
       }
     }
     
+    // Save family cancer history
+    $this->saveFamilyCancerHistory($uid, $health, $database);
+
     $form_state->setRedirect('nfr.questionnaire.section7');
   }
 
@@ -410,8 +515,58 @@ class NFRQuestionnaireSection8Form extends FormBase {
       }
     }
 
+    // Save family cancer history
+    $this->saveFamilyCancerHistory($uid, $health, $database);
+
     $this->messenger()->addStatus($this->t('Your progress has been saved.'));
     $form_state->setRedirect('nfr.dashboard');
+  }
+
+  /**
+   * AJAX callback to add family cancer field.
+   */
+  public function addFamilyCancer(array &$form, FormStateInterface $form_state): void {
+    $num = $form_state->get('num_family_cancers') ?? 0;
+    $form_state->set('num_family_cancers', $num + 1);
+    $form_state->setRebuild();
+  }
+
+  /**
+   * AJAX callback for family cancer fields.
+   */
+  public function updateFamilyCancerFields(array &$form, FormStateInterface $form_state): array {
+    return $form['health'];
+  }
+
+  /**
+   * Save family cancer history to database.
+   */
+  private function saveFamilyCancerHistory(int $uid, array $health, Connection $database): void {
+    // Delete existing family cancer history
+    $database->delete('nfr_family_cancer_history')
+      ->condition('uid', $uid)
+      ->execute();
+
+    // Insert new family cancer history if applicable
+    $has_family_cancer = ($health['has_family_cancer_history'] ?? 'no') === 'yes';
+    if ($has_family_cancer && !empty($health['family_cancers_container'])) {
+      $time = \Drupal::time()->getRequestTime();
+      
+      foreach ($health['family_cancers_container'] as $fc) {
+        if (!empty($fc['relationship']) && !empty($fc['cancer_type'])) {
+          $database->insert('nfr_family_cancer_history')
+            ->fields([
+              'uid' => $uid,
+              'relationship' => $fc['relationship'],
+              'cancer_type' => $fc['cancer_type'],
+              'age_at_diagnosis' => !empty($fc['age_at_diagnosis']) ? (int) $fc['age_at_diagnosis'] : NULL,
+              'created' => $time,
+              'updated' => $time,
+            ])
+            ->execute();
+        }
+      }
+    }
   }
 
 }

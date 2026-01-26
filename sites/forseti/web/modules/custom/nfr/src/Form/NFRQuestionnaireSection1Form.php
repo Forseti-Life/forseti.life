@@ -76,6 +76,7 @@ class NFRQuestionnaireSection1Form extends FormBase {
         'asian' => $this->t('Asian'),
         'black' => $this->t('Black or African American'),
         'hispanic' => $this->t('Hispanic or Latino'),
+        'middle_eastern' => $this->t('Middle Eastern or North African'),
         'pacific_islander' => $this->t('Native Hawaiian or Other Pacific Islander'),
         'white' => $this->t('White'),
         'other' => $this->t('Other'),

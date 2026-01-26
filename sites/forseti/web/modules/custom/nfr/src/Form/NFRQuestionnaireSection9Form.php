@@ -53,7 +53,7 @@ class NFRQuestionnaireSection9Form extends FormBase {
     // Load lifestyle data from database columns
     $database = $this->getDatabase();
     $questionnaire = $database->select('nfr_questionnaire', 'q')
-      ->fields('q', ['smoking_history', 'alcohol_use', 'physical_activity_days'])
+      ->fields('q', ['smoking_history', 'alcohol_use', 'physical_activity_days', 'sleep_hours_per_night', 'sleep_quality', 'sleep_disorders'])
       ->condition('uid', $uid)
       ->execute()
       ->fetchAssoc();
@@ -66,6 +66,9 @@ class NFRQuestionnaireSection9Form extends FormBase {
       }
       $lifestyle['alcohol_frequency'] = $questionnaire['alcohol_use'] ?? '';
       $lifestyle['physical_activity_days'] = $questionnaire['physical_activity_days'] ?? '';
+      $lifestyle['sleep_hours_per_night'] = $questionnaire['sleep_hours_per_night'] ?? '';
+      $lifestyle['sleep_quality'] = $questionnaire['sleep_quality'] ?? '';
+      $lifestyle['sleep_disorders'] = $questionnaire['sleep_disorders'] ? json_decode($questionnaire['sleep_disorders'], TRUE) : [];
     }
 
     // Add navigation menu
@@ -140,7 +143,7 @@ class NFRQuestionnaireSection9Form extends FormBase {
           [':input[name="lifestyle[smoking_status]"]' => ['value' => 'current']],
         ],
       ],
-    ];
+    ];\n\n    // Other tobacco types\n    $tobacco_types = [\n      'cigars' => 'Cigars',\n      'pipes' => 'Pipes',\n      'ecigs' => 'E-cigarettes/vaping',\n      'smokeless' => 'Smokeless tobacco (chew, snuff)',\n    ];\n\n    foreach ($tobacco_types as $type_key => $type_label) {\n      $form['lifestyle'][$type_key . '_ever_used'] = [\n        '#type' => 'radios',\n        '#title' => $this->t('Have you ever used @type?', ['@type' => strtolower($type_label)]),\n        '#options' => [\n          'never' => $this->t('Never'),\n          'former' => $this->t('Former user'),\n          'current' => $this->t('Current user'),\n        ],\n        '#default_value' => $lifestyle[$type_key . '_ever_used'] ?? 'never',\n      ];\n\n      $form['lifestyle'][$type_key . '_age_started'] = [\n        '#type' => 'number',\n        '#title' => $this->t('Age started using @type', ['@type' => strtolower($type_label)]),\n        '#min' => 1,\n        '#max' => 100,\n        '#default_value' => $lifestyle[$type_key . '_age_started'] ?? '',\n        '#states' => [\n          'visible' => [\n            [':input[name=\"lifestyle[' . $type_key . '_ever_used]\"]' => ['value' => 'former']],\n            'or',\n            [':input[name=\"lifestyle[' . $type_key . '_ever_used]\"]' => ['value' => 'current']],\n          ],\n        ],\n      ];\n\n      $form['lifestyle'][$type_key . '_age_stopped'] = [\n        '#type' => 'number',\n        '#title' => $this->t('Age stopped using @type', ['@type' => strtolower($type_label)]),\n        '#min' => 1,\n        '#max' => 100,\n        '#default_value' => $lifestyle[$type_key . '_age_stopped'] ?? '',\n        '#states' => [\n          'visible' => [\n            ':input[name=\"lifestyle[' . $type_key . '_ever_used]\"]' => ['value' => 'former'],\n          ],\n        ],\n      ];\n    }
 
     $form['lifestyle']['alcohol_frequency'] = [
       '#type' => 'select',
@@ -166,6 +169,47 @@ class NFRQuestionnaireSection9Form extends FormBase {
       '#max' => 7,
       '#default_value' => $lifestyle['physical_activity_days'] ?? '',
       '#description' => $this->t('0-7 days'),
+    ];
+
+    $form['lifestyle']['sleep_hours_per_night'] = [
+      '#type' => 'number',
+      '#title' => $this->t('On average, how many hours of sleep do you get per night?'),
+      '#required' => TRUE,
+      '#min' => 0,
+      '#max' => 24,
+      '#step' => 0.5,
+      '#default_value' => $lifestyle['sleep_hours_per_night'] ?? '',
+      '#description' => $this->t('Include naps if applicable'),
+    ];
+
+    $form['lifestyle']['sleep_quality'] = [
+      '#type' => 'select',
+      '#title' => $this->t('How would you rate your overall sleep quality?'),
+      '#required' => TRUE,
+      '#options' => [
+        '' => $this->t('- Select -'),
+        'excellent' => $this->t('Excellent'),
+        'good' => $this->t('Good'),
+        'fair' => $this->t('Fair'),
+        'poor' => $this->t('Poor'),
+        'very_poor' => $this->t('Very Poor'),
+      ],
+      '#default_value' => $lifestyle['sleep_quality'] ?? '',
+    ];
+
+    $form['lifestyle']['sleep_disorders'] = [
+      '#type' => 'checkboxes',
+      '#title' => $this->t('Have you been diagnosed with any of these sleep disorders?'),
+      '#options' => [
+        'sleep_apnea' => $this->t('Sleep apnea'),
+        'insomnia' => $this->t('Insomnia'),
+        'restless_leg' => $this->t('Restless leg syndrome'),
+        'narcolepsy' => $this->t('Narcolepsy'),
+        'shift_work_disorder' => $this->t('Shift work sleep disorder'),
+        'other' => $this->t('Other sleep disorder'),
+        'none' => $this->t('None'),
+      ],
+      '#default_value' => $lifestyle['sleep_disorders'] ?? [],
     ];
 
     $form['actions'] = [
@@ -200,12 +244,25 @@ class NFRQuestionnaireSection9Form extends FormBase {
     $uid = $this->getCurrentUserId();
     $lifestyle = $form_state->getValue('lifestyle');
 
-    // Separate smoking data from alcohol data
+    // Separate smoking data from lifestyle data
     $smoking_data = [
       'smoking_status' => $lifestyle['smoking_status'] ?? '',
       'smoking_age_started' => $lifestyle['smoking_age_started'] ?? '',
       'smoking_age_stopped' => $lifestyle['smoking_age_stopped'] ?? '',
       'cigarettes_per_day' => $lifestyle['cigarettes_per_day'] ?? '',
+      // Other tobacco types
+      'cigars_ever_used' => $lifestyle['cigars_ever_used'] ?? 'never',
+      'cigars_age_started' => $lifestyle['cigars_age_started'] ?? '',
+      'cigars_age_stopped' => $lifestyle['cigars_age_stopped'] ?? '',
+      'pipes_ever_used' => $lifestyle['pipes_ever_used'] ?? 'never',
+      'pipes_age_started' => $lifestyle['pipes_age_started'] ?? '',
+      'pipes_age_stopped' => $lifestyle['pipes_age_stopped'] ?? '',
+      'ecigs_ever_used' => $lifestyle['ecigs_ever_used'] ?? 'never',
+      'ecigs_age_started' => $lifestyle['ecigs_age_started'] ?? '',
+      'ecigs_age_stopped' => $lifestyle['ecigs_age_stopped'] ?? '',
+      'smokeless_ever_used' => $lifestyle['smokeless_ever_used'] ?? 'never',
+      'smokeless_age_started' => $lifestyle['smokeless_age_started'] ?? '',
+      'smokeless_age_stopped' => $lifestyle['smokeless_age_stopped'] ?? '',
     ];
 
     // Save lifestyle data to database columns
@@ -219,6 +276,9 @@ class NFRQuestionnaireSection9Form extends FormBase {
         'smoking_history' => json_encode($smoking_data),
         'alcohol_use' => $lifestyle['alcohol_frequency'] ?? NULL,
         'physical_activity_days' => !empty($lifestyle['physical_activity_days']) ? (int)$lifestyle['physical_activity_days'] : NULL,
+        'sleep_hours_per_night' => !empty($lifestyle['sleep_hours_per_night']) ? (float)$lifestyle['sleep_hours_per_night'] : NULL,
+        'sleep_quality' => $lifestyle['sleep_quality'] ?? NULL,
+        'sleep_disorders' => !empty($lifestyle['sleep_disorders']) ? json_encode(array_filter($lifestyle['sleep_disorders'])) : NULL,
         'questionnaire_completed' => 1,
       ])
       ->condition('uid', $uid)
@@ -245,12 +305,25 @@ class NFRQuestionnaireSection9Form extends FormBase {
     $uid = $this->getCurrentUserId();
     $lifestyle = $form_state->getValue('lifestyle');
 
-    // Separate smoking data from alcohol data
+    // Separate smoking data from lifestyle data
     $smoking_data = [
       'smoking_status' => $lifestyle['smoking_status'] ?? '',
       'smoking_age_started' => $lifestyle['smoking_age_started'] ?? '',
       'smoking_age_stopped' => $lifestyle['smoking_age_stopped'] ?? '',
       'cigarettes_per_day' => $lifestyle['cigarettes_per_day'] ?? '',
+      // Other tobacco types
+      'cigars_ever_used' => $lifestyle['cigars_ever_used'] ?? 'never',
+      'cigars_age_started' => $lifestyle['cigars_age_started'] ?? '',
+      'cigars_age_stopped' => $lifestyle['cigars_age_stopped'] ?? '',
+      'pipes_ever_used' => $lifestyle['pipes_ever_used'] ?? 'never',
+      'pipes_age_started' => $lifestyle['pipes_age_started'] ?? '',
+      'pipes_age_stopped' => $lifestyle['pipes_age_stopped'] ?? '',
+      'ecigs_ever_used' => $lifestyle['ecigs_ever_used'] ?? 'never',
+      'ecigs_age_started' => $lifestyle['ecigs_age_started'] ?? '',
+      'ecigs_age_stopped' => $lifestyle['ecigs_age_stopped'] ?? '',
+      'smokeless_ever_used' => $lifestyle['smokeless_ever_used'] ?? 'never',
+      'smokeless_age_started' => $lifestyle['smokeless_age_started'] ?? '',
+      'smokeless_age_stopped' => $lifestyle['smokeless_age_stopped'] ?? '',
     ];
 
     // Save lifestyle data to database columns
@@ -263,6 +336,10 @@ class NFRQuestionnaireSection9Form extends FormBase {
       ->fields([
         'smoking_history' => json_encode($smoking_data),
         'alcohol_use' => $lifestyle['alcohol_frequency'] ?? NULL,
+        'physical_activity_days' => !empty($lifestyle['physical_activity_days']) ? (int)$lifestyle['physical_activity_days'] : NULL,
+        'sleep_hours_per_night' => !empty($lifestyle['sleep_hours_per_night']) ? (float)$lifestyle['sleep_hours_per_night'] : NULL,
+        'sleep_quality' => $lifestyle['sleep_quality'] ?? NULL,
+        'sleep_disorders' => !empty($lifestyle['sleep_disorders']) ? json_encode(array_filter($lifestyle['sleep_disorders'])) : NULL,
       ])
       ->condition('uid', $uid)
       ->execute();

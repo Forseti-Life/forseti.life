@@ -1,7 +1,7 @@
 # Process Flow & Validation Roadmap
 
-**Version**: 1.0  
-**Last Updated**: December 13, 2024  
+**Version**: 1.2  
+**Last Updated**: January 26, 2026  
 **Status**: 🟢 Live Beta Testing  
 **Purpose**: Map system architecture to user journey for end-to-end validation
 
@@ -921,6 +921,345 @@ API reads from hexagon_stats table
 
 ---
 
+## Phase 2: NFR Questionnaire Validation (CDC Requirements)
+
+### 2.1 Section 1: Demographics
+
+**User Action**: Fills out demographic information including race/ethnicity
+
+**System Components**:
+- NFRQuestionnaireSection1Form.php
+- nfr_questionnaire table (race_ethnicity JSON column)
+
+**Data Flow**:
+```
+User selects demographics →
+Form validation →
+Save to race_ethnicity JSON →
+Store in nfr_questionnaire.race_ethnicity
+```
+
+**Validation Checkpoints**:
+- [ ] All CDC-required race options available:
+  - [ ] White
+  - [ ] Black/African American
+  - [ ] Asian
+  - [ ] American Indian/Alaska Native
+  - [ ] Native Hawaiian/Pacific Islander
+  - [ ] **Middle Eastern/North African** (added Jan 2026)
+  - [ ] Hispanic/Latino ethnicity option
+- [ ] Multiple selection allowed (checkboxes)
+- [ ] Data saves as JSON array
+- [ ] Values load correctly on form re-entry
+
+**Database Verification**:
+```sql
+SELECT uid, race_ethnicity FROM nfr_questionnaire WHERE uid = ?;
+-- Expected: JSON array like ["white","middle_eastern_north_african"]
+```
+
+---
+
+### 2.2 Section 2: Work History & Incident Types
+
+**User Action**: Records fire department employment and incident response
+
+**System Components**:
+- NFRQuestionnaireSection2Form.php
+- nfr_fire_departments table
+- nfr_exposures table (incident types)
+
+**Data Flow**:
+```
+User adds department →
+Add job titles →
+Select incident types responded to →
+Save to nfr_exposures
+```
+
+**Validation Checkpoints**:
+- [ ] All CDC-required incident types available:
+  - [ ] Structure fires
+  - [ ] Vehicle fires
+  - [ ] Wildland fires
+  - [ ] Hazmat incidents
+  - [ ] Medical/EMS calls
+  - [ ] **Rubbish/dumpster fires** (added Jan 2026)
+  - [ ] WUI fires
+  - [ ] Prescribed burns
+  - [ ] Fire investigations
+  - [ ] Training exercises
+  - [ ] Other incidents
+- [ ] Frequency tracking for each incident type
+- [ ] Multiple departments supported (repeating fields)
+- [ ] Date ranges validated (start < end)
+
+**Database Verification**:
+```sql
+SELECT incident_type, frequency FROM nfr_exposures WHERE uid = ? AND incident_type = 'rubbish_dumpster';
+```
+
+---
+
+### 2.3 Section 6: PPE & Protective Equipment
+
+**User Action**: Records PPE usage patterns across different fire scenarios
+
+**System Components**:
+- NFRQuestionnaireSection6Form.php
+- nfr_questionnaire table (multiple PPE columns)
+
+**Data Flow**:
+```
+User selects PPE usage for scenario →
+Enters year started using →
+Optionally checks "Always done this" →
+Save to scenario-specific columns
+```
+
+**Validation Checkpoints**:
+- [ ] All 8 PPE equipment types present:
+  - [ ] SCBA
+  - [ ] Gloves
+  - [ ] Hood
+  - [ ] Helmet
+  - [ ] Turnout coat
+  - [ ] Turnout pants
+  - [ ] Boots
+  - [ ] PASS device
+- [ ] All 6+ CDC-required scenarios tracked:
+  - [ ] **Interior structural attack** (added Jan 2026)
+  - [ ] **Exterior structural attack** (added Jan 2026)
+  - [ ] **Vehicle fires** (added Jan 2026)
+  - [ ] **Brush/vegetation fires** (added Jan 2026)
+  - [ ] **Wildland suppression** (added Jan 2026)
+  - [ ] **Fire investigations** (added Jan 2026)
+  - [ ] **WUI fires** (added Jan 2026)
+  - [ ] Prescribed burns
+  - [ ] Overhaul operations
+  - [ ] Training
+- [ ] "Always done this" checkbox for each equipment type (8 checkboxes)
+- [ ] Year started field (number input, 1900-current year)
+- [ ] Conditional logic: if "always done this" checked, year_started auto-fills
+
+**Database Verification**:
+```sql
+-- Check new PPE scenario columns (added via nfr_update_9021)
+SELECT 
+  scba_interior_structural_attack_year_started,
+  scba_exterior_structural_attack_year_started,
+  scba_vehicle_fires_year_started,
+  respirator_brush_veg_fires_year_started,
+  respirator_wildland_suppression_year_started,
+  respirator_fire_investigations_year_started,
+  respirator_wui_fires_year_started
+FROM nfr_questionnaire WHERE uid = ?;
+
+-- Check "always done this" checkboxes (added via nfr_update_9022)
+SELECT 
+  scba_interior_structural_attack_always_used,
+  scba_exterior_structural_attack_always_used,
+  scba_vehicle_fires_always_used,
+  respirator_brush_veg_fires_always_used,
+  respirator_wildland_suppression_always_used,
+  respirator_fire_investigations_always_used,
+  respirator_wui_fires_always_used,
+  respirator_prescribed_burns_always_used
+FROM nfr_questionnaire WHERE uid = ?;
+-- Expected: 1 or NULL for each field
+```
+
+---
+
+### 2.4 Section 8: Health Conditions & Family History
+
+**User Action**: Reports health conditions and family cancer history
+
+**System Components**:
+- NFRQuestionnaireSection8Form.php
+- nfr_questionnaire table (health fields)
+- **nfr_family_cancer_history table** (added Jan 2026)
+
+**Data Flow**:
+```
+User reports health conditions →
+If family history: Add family member (AJAX) →
+Select relationship, cancer type, age at diagnosis →
+Save to nfr_family_cancer_history table
+```
+
+**Validation Checkpoints**:
+- [ ] Personal cancer diagnosis tracking
+- [ ] Non-cancer health conditions (heart disease, diabetes, etc.)
+- [ ] **Family cancer history with repeating fields**:
+  - [ ] Relationship dropdown (mother, father, brother, sister, son, daughter)
+  - [ ] Cancer type text field
+  - [ ] Age at diagnosis (number 0-120)
+  - [ ] "Add Another Family Member" button (AJAX)
+  - [ ] Remove family member functionality
+- [ ] Data saves to separate nfr_family_cancer_history table
+- [ ] Multiple family members supported
+- [ ] Form loads existing family history on re-entry
+
+**Database Verification**:
+```sql
+-- Check family cancer history table (created via nfr_update_9023)
+SELECT 
+  relationship,
+  cancer_type,
+  age_at_diagnosis,
+  created,
+  updated
+FROM nfr_family_cancer_history 
+WHERE uid = ?
+ORDER BY created;
+
+-- Verify table structure
+DESCRIBE nfr_family_cancer_history;
+-- Expected columns: id, uid, relationship, cancer_type, age_at_diagnosis, created, updated
+```
+
+---
+
+### 2.5 Section 9: Lifestyle & Sleep Tracking
+
+**User Action**: Reports tobacco use, alcohol, physical activity, and sleep patterns
+
+**System Components**:
+- NFRQuestionnaireSection9Form.php
+- nfr_questionnaire table (smoking_history JSON, sleep columns)
+
+**Data Flow**:
+```
+User selects tobacco types used →
+Enters start/stop ages for each type →
+Reports sleep hours, quality, disorders →
+Save to smoking_history JSON + sleep columns
+```
+
+**Validation Checkpoints - Tobacco**:
+- [ ] All 5 CDC-required tobacco types tracked:
+  - [ ] Cigarettes (existing)
+  - [ ] **Cigars** (added Jan 2026)
+  - [ ] **Pipes** (added Jan 2026)
+  - [ ] **E-cigarettes/vaping** (added Jan 2026)
+  - [ ] **Smokeless tobacco** (added Jan 2026)
+- [ ] For each tobacco type:
+  - [ ] Ever used status (never/former/current)
+  - [ ] Age started (conditional field)
+  - [ ] Age stopped (conditional field, only if former)
+- [ ] Cigarettes include additional fields:
+  - [ ] Cigarettes per day
+- [ ] Conditional field visibility (#states)
+- [ ] Data stores in expanded smoking_history JSON
+
+**Validation Checkpoints - Sleep** (added Jan 2026):
+- [ ] **Sleep hours per night** (number field, 0.5 increments, 0-24 range)
+- [ ] **Sleep quality** (select: excellent/good/fair/poor/very poor)
+- [ ] **Sleep disorders** (checkboxes):
+  - [ ] Sleep apnea
+  - [ ] Insomnia
+  - [ ] Restless leg syndrome
+  - [ ] Narcolepsy
+  - [ ] Shift work sleep disorder
+  - [ ] Other
+  - [ ] None (exclusive option)
+- [ ] Data saves to dedicated columns (not JSON)
+
+**Database Verification**:
+```sql
+-- Check expanded smoking_history JSON
+SELECT smoking_history FROM nfr_questionnaire WHERE uid = ?;
+-- Expected JSON structure:
+-- {
+--   "smoking_status": "former",
+--   "smoking_age_started": 18,
+--   "smoking_age_stopped": 30,
+--   "cigarettes_per_day": 10,
+--   "cigars_ever_used": "never",
+--   "cigars_age_started": "",
+--   "cigars_age_stopped": "",
+--   "pipes_ever_used": "current",
+--   "pipes_age_started": 25,
+--   "pipes_age_stopped": "",
+--   "ecigs_ever_used": "former",
+--   "ecigs_age_started": 35,
+--   "ecigs_age_stopped": 40,
+--   "smokeless_ever_used": "never",
+--   "smokeless_age_started": "",
+--   "smokeless_age_stopped": ""
+-- }
+
+-- Check sleep tracking columns (added via nfr_update_9024)
+SELECT 
+  sleep_hours_per_night,
+  sleep_quality,
+  sleep_disorders
+FROM nfr_questionnaire WHERE uid = ?;
+-- Expected: 
+-- sleep_hours_per_night: float (e.g., 7.5)
+-- sleep_quality: varchar (e.g., 'good')
+-- sleep_disorders: JSON array (e.g., ["sleep_apnea","insomnia"])
+
+-- Verify column types
+SHOW COLUMNS FROM nfr_questionnaire LIKE 'sleep%';
+```
+
+---
+
+## Phase 3: Validation Dashboard Testing
+
+### 3.1 NFR Validation Controller
+
+**System Components**:
+- NFRValidationController.php
+- Automated test data generation
+- Field verification methods
+
+**Validation Checkpoints**:
+- [ ] Dashboard accessible at /nfr/validation
+- [ ] All test data generation methods updated:
+  - [ ] generateMaxValuesData() includes new fields
+  - [ ] generateMinValuesData() includes new fields
+  - [ ] generateYesMinimalData() includes new fields
+- [ ] Database verification checks new tables:
+  - [ ] nfr_family_cancer_history records
+  - [ ] sleep_hours_per_night, sleep_quality, sleep_disorders
+  - [ ] Expanded smoking_history JSON with 5 tobacco types
+  - [ ] PPE always_used checkboxes (8 fields)
+  - [ ] PPE scenario year_started columns (7+ fields)
+- [ ] Validation reports show:
+  - [ ] Family cancer history count
+  - [ ] Sleep tracking completeness
+  - [ ] Tobacco types used (all 5 types)
+  - [ ] PPE "always done this" practices count
+
+**Test Commands**:
+```bash
+# Run validation dashboard
+cd /home/keithaumiller/forseti.life/sites/forseti
+vendor/bin/drush cr
+
+# Access dashboard
+# Navigate to: /nfr/validation
+
+# Generate test data with max values
+# Should include:
+# - 2 family cancer history records
+# - Sleep: 8.5 hours, excellent quality, no disorders
+# - All 5 tobacco types with ages
+# - Multiple PPE always_used checkboxes
+
+# Generate test data with min values
+# Should include:
+# - 0 family cancer history records
+# - Sleep: 4.0 hours, poor quality, multiple disorders
+# - No tobacco use (all "never")
+# - No PPE always_used checkboxes
+```
+
+---
+
 ## System Health Monitoring
 
 ### Real-Time Monitoring Dashboards
@@ -986,7 +1325,16 @@ API reads from hexagon_stats table
 - [ ] Notification cooldown logic
 - [ ] Deep link URL parsing
 
-**Framework**: Jest (React Native), pytest (Python)
+**NFR Questionnaire Unit Tests** (added Jan 2026):
+- [ ] Race/ethnicity JSON array serialization
+- [ ] Family cancer history AJAX add/remove functionality
+- [ ] Tobacco type conditional field visibility (#states)
+- [ ] Sleep hours validation (0.5 increments, 0-24 range)
+- [ ] PPE "always done this" auto-fill year_started logic
+- [ ] Smoking history JSON expansion (5 tobacco types)
+- [ ] Sleep disorders array filtering (mutually exclusive options)
+
+**Framework**: Jest (React Native), pytest (Python), PHPUnit (Drupal)
 
 ---
 
@@ -999,7 +1347,16 @@ API reads from hexagon_stats table
 - [ ] Notification tap → deep link → map opens
 - [ ] Trial end → reminder → subscription → payment
 
-**Framework**: Cypress (web), Detox (React Native)
+**NFR Questionnaire Integration Tests** (added Jan 2026):
+- [ ] Section 1 form submit → race_ethnicity saves to database
+- [ ] Section 6 PPE form → multiple scenario columns updated
+- [ ] Section 8 family cancer → nfr_family_cancer_history table inserts
+- [ ] Section 9 lifestyle → smoking_history JSON + sleep columns update
+- [ ] Multi-section navigation → all data persists across sections
+- [ ] Save & Exit → partial completion data preserved
+- [ ] Final submission → questionnaire_completed flag set
+
+**Framework**: Cypress (web), Detox (React Native), Drupal Functional Tests
 
 ---
 
@@ -1009,6 +1366,14 @@ API reads from hexagon_stats table
 - [ ] Discovery → Signup → Download → Onboarding → First Alert
 - [ ] Trial user → Conversion → Subscription management
 - [ ] Power user → Referral → Review
+
+**NFR Enrollment E2E Tests** (added Jan 2026):
+- [ ] New firefighter → Complete all 9 sections → Submit questionnaire
+- [ ] Firefighter with family cancer history → Add 3 family members → Verify table records
+- [ ] Firefighter using all tobacco types → Verify smoking_history JSON structure
+- [ ] Firefighter with sleep disorders → Verify sleep tracking columns
+- [ ] NFR Admin → Validation dashboard → Verify all new fields display
+- [ ] Researcher → Data export → Verify new fields in CSV export
 
 **Framework**: Manual testing + automated scripts
 
@@ -1099,6 +1464,123 @@ API reads from hexagon_stats table
 - ❌ Multiple reports of inaccurate data (trust broken)
 - ❌ High churn rate >15% per month (product not sticky)
 - ❌ App uninstall rate >50% (critical failure)
+
+---
+
+## CDC Requirements Compliance Summary (January 2026 Update)
+
+### Database Schema Changes
+
+**New Tables Created**:
+1. `nfr_family_cancer_history` (nfr_update_9023)
+   - Tracks immediate family cancer diagnoses
+   - Fields: id, uid, relationship, cancer_type, age_at_diagnosis, created, updated
+   - Replaces JSON storage with structured table for better querying
+
+**New Columns Added**:
+1. PPE Scenarios (nfr_update_9021) - 7 columns:
+   - scba_interior_structural_attack_year_started
+   - scba_exterior_structural_attack_year_started
+   - scba_vehicle_fires_year_started
+   - respirator_brush_veg_fires_year_started
+   - respirator_wildland_suppression_year_started
+   - respirator_fire_investigations_year_started
+   - respirator_wui_fires_year_started
+
+2. PPE "Always Used" Flags (nfr_update_9022) - 8 columns:
+   - scba_interior_structural_attack_always_used
+   - scba_exterior_structural_attack_always_used
+   - scba_vehicle_fires_always_used
+   - respirator_brush_veg_fires_always_used
+   - respirator_wildland_suppression_always_used
+   - respirator_fire_investigations_always_used
+   - respirator_wui_fires_always_used
+   - respirator_prescribed_burns_always_used
+
+3. Sleep Tracking (nfr_update_9024) - 3 columns:
+   - sleep_hours_per_night (float)
+   - sleep_quality (varchar 50)
+   - sleep_disorders (text - JSON array)
+
+**JSON Field Expansions**:
+1. `smoking_history` - Expanded from 4 to 16 fields:
+   - Cigarettes (existing): smoking_status, smoking_age_started, smoking_age_stopped, cigarettes_per_day
+   - Cigars: cigars_ever_used, cigars_age_started, cigars_age_stopped
+   - Pipes: pipes_ever_used, pipes_age_started, pipes_age_stopped
+   - E-cigarettes: ecigs_ever_used, ecigs_age_started, ecigs_age_stopped
+   - Smokeless: smokeless_ever_used, smokeless_age_started, smokeless_age_stopped
+
+2. `race_ethnicity` - Added option:
+   - middle_eastern_north_african
+
+### Form Modifications
+
+**Section 1 (NFRQuestionnaireSection1Form.php)**:
+- Added "Middle Eastern or North African" to race_ethnicity checkbox options
+
+**Section 2 (NFRQuestionnaireSection2Form.php)**:
+- Added "Rubbish/dumpster fires" to incident_type options
+
+**Section 6 (NFRQuestionnaireSection6Form.php)**:
+- Added 7 PPE scenario fields (year_started for each)
+- Added 8 "Always done this" checkboxes with AJAX functionality
+- Conditional logic: auto-populate year_started when "always used" checked
+
+**Section 8 (NFRQuestionnaireSection8Form.php)**:
+- Added repeating family cancer history section
+- AJAX "Add Another Family Member" button
+- Fields: relationship (select), cancer_type (text), age_at_diagnosis (number)
+- Helper methods: saveFamilyCancerHistory(), addFamilyCancer(), updateFamilyCancerFields()
+
+**Section 9 (NFRQuestionnaireSection9Form.php)**:
+- Added 4 tobacco types × 3 fields = 12 new fields
+- Each type: ever_used (radio), age_started (number), age_stopped (number)
+- Added 3 sleep tracking fields: hours (0.5 increments), quality (select), disorders (checkboxes)
+- Conditional field visibility using #states API
+
+### Validation Controller Updates
+
+**NFRValidationController.php Changes**:
+- Database verification checks nfr_family_cancer_history table
+- Tracks all 5 tobacco types (not just cigarettes)
+- Validates sleep_hours_per_night, sleep_quality, sleep_disorders
+- Checks PPE always_used checkboxes (8 fields)
+- Test data generation includes all new fields:
+  - Max values: 2 family members, all tobacco types, 8.5 hours sleep
+  - Min values: 0 family members, no tobacco, 4 hours sleep with disorders
+  - Yes minimal: 1 family member, e-cigarettes only, fair sleep
+
+### Testing Priorities
+
+**High Priority** (User-Facing):
+1. ✅ Family cancer history: Add 3 members, verify table inserts, test delete
+2. ✅ Sleep tracking: Test 0.5 hour increments, verify all disorder options
+3. ✅ Tobacco types: Test conditional fields, verify JSON structure
+4. ✅ PPE always_used: Test auto-fill year_started, verify all 8 checkboxes
+
+**Medium Priority** (Admin):
+5. Update validation dashboard to display new field counts
+6. Test CSV export includes new columns
+7. Verify data quality reports track new fields
+
+**Low Priority** (Documentation):
+8. Update user help documentation for new sections
+9. Create training videos for complex workflows (family history AJAX)
+
+### Compliance Status
+
+**CDC NFR Requirements** (as of January 26, 2026):
+- ✅ Core demographics: 100% complete
+- ✅ Incident types: 100% complete (13+ types)
+- ✅ PPE scenarios: 100% complete (8 equipment × 10+ scenarios)
+- ✅ Family health history: 100% complete (structured table)
+- ✅ Lifestyle factors: 100% complete (5 tobacco types + sleep)
+
+**Remaining Gaps** (Infrastructure):
+- ❌ Text message notifications (planned Q2 2026)
+- ❌ Multi-factor authentication (planned Q2 2026)
+- ❌ UUID identifiers (using integer IDs)
+- ❌ External system integrations (cancer registry, NDI)
 
 ---
 

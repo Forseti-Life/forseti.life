@@ -31,8 +31,8 @@ class NFRDocumentationController extends ControllerBase {
     // Development documentation.
     $development_docs = [
       'business-requirements' => [
-        'title' => 'Business Requirements',
-        'description' => 'Comprehensive business requirements extracted from CDC NFR official documents, including legislative mandate, objectives, data collection specifications, and external integrations.',
+        'title' => 'Business Requirements Tracking',
+        'description' => 'Requirements tracking document with implementation status, complete data element mapping to database fields/forms, and gap analysis. Extracted from CDC NFR official documents including legislative mandate, data collection specifications, and external integrations.',
         'file' => 'BUSINESS_REQUIREMENTS.md',
         'status' => $validation_status['business_requirements'],
       ],
@@ -138,13 +138,13 @@ class NFRDocumentationController extends ControllerBase {
   }
 
   /**
-   * Display Business Requirements documentation.
+   * Display Business Requirements Tracking documentation.
    *
    * @return array
    *   Render array.
    */
   public function businessRequirements(): array {
-    return $this->renderMarkdownDocument('BUSINESS_REQUIREMENTS.md', 'Business Requirements');
+    return $this->renderMarkdownDocument('BUSINESS_REQUIREMENTS.md', 'Business Requirements Tracking');
   }
 
   /**
@@ -304,8 +304,11 @@ class NFRDocumentationController extends ControllerBase {
     // This is a very basic implementation.
     // For production, use a proper markdown parser like Parsedown or CommonMark.
     
+    // Convert tables first (before other processing).
+    $html = $this->convertMarkdownTables($markdown);
+    
     // Convert headers.
-    $html = preg_replace('/^#### (.+)$/m', '<h4>$1</h4>', $markdown);
+    $html = preg_replace('/^#### (.+)$/m', '<h4>$1</h4>', $html);
     $html = preg_replace('/^### (.+)$/m', '<h3>$1</h3>', $html);
     $html = preg_replace('/^## (.+)$/m', '<h2>$1</h2>', $html);
     $html = preg_replace('/^# (.+)$/m', '<h1>$1</h1>', $html);
@@ -348,6 +351,58 @@ class NFRDocumentationController extends ControllerBase {
     $html = preg_replace('/^---$/m', '<hr>', $html);
 
     return $html;
+  }
+
+  /**
+   * Convert markdown tables to HTML.
+   *
+   * @param string $markdown
+   *   Markdown content.
+   *
+   * @return string
+   *   Content with tables converted to HTML.
+   */
+  private function convertMarkdownTables(string $markdown): string {
+    // Match markdown tables
+    $pattern = '/^\|(.+)\|$/m';
+    
+    if (!preg_match_all($pattern, $markdown, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) {
+      return $markdown;
+    }
+    
+    $offset = 0;
+    foreach ($matches as $i => $match) {
+      // Skip separator rows (contains only |, -, and :)
+      if (preg_match('/^[\|\-\:\s]+$/', $match[0][0])) {
+        continue;
+      }
+      
+      // Process table rows
+      $cells = array_map('trim', explode('|', trim($match[1][0], '|')));
+      
+      // Determine if this is a header row (next row is separator)
+      $is_header = false;
+      if (isset($matches[$i + 1]) && preg_match('/^[\|\-\:\s]+$/', $matches[$i + 1][0][0])) {
+        $is_header = true;
+      }
+      
+      // Build HTML row
+      $tag = $is_header ? 'th' : 'td';
+      $row = '<tr>';
+      foreach ($cells as $cell) {
+        $row .= "<{$tag}>{$cell}</{$tag}>";
+      }
+      $row .= '</tr>';
+      
+      // Replace in markdown
+      $markdown = substr_replace($markdown, $row, $match[0][1] + $offset, strlen($match[0][0]));
+      $offset += strlen($row) - strlen($match[0][0]);
+    }
+    
+    // Wrap consecutive <tr> elements in table tags
+    $markdown = preg_replace('/(<tr>.*?<\/tr>(?:\s*<tr>.*?<\/tr>)*)/s', '<table class="requirements-table">$1</table>', $markdown);
+    
+    return $markdown;
   }
 
   /**

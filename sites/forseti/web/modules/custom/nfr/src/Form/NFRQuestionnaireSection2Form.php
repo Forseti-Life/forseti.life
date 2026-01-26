@@ -270,6 +270,7 @@ class NFRQuestionnaireSection2Form extends FormBase {
           'structure_residential' => 'Structure fires (residential)',
           'structure_commercial' => 'Structure fires (commercial/industrial)',
           'vehicle' => 'Vehicle fires',
+          'rubbish_dumpster' => 'Outside rubbish/dumpster fires',
           'wildland' => 'Wildland fires',
           'medical_ems' => 'Medical/EMS calls',
           'hazmat' => 'Hazardous materials incidents',
