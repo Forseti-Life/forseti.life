@@ -3101,9 +3101,13 @@ class NFRValidationController extends ControllerBase {
 
           $errors = $form_state->getErrors();
           if (!empty($errors)) {
+            $error_details = [];
+            foreach ($errors as $field => $error) {
+              $error_details[] = "$field: $error";
+            }
             $results[$section_num] = [
               'success' => false,
-              'message' => "Section {$section_num} validation failed",
+              'message' => "Section {$section_num} validation failed: " . implode('; ', $error_details),
               'errors' => array_map('strval', $errors),
             ];
           }
