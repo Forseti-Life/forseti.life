@@ -126,6 +126,38 @@ nfr.documentation.compliance:
   requirements:
     _permission: 'access content'
 
+nfr.documentation.module_completion:
+  path: '/nfr/documentation/module-completion'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRDocumentationController::moduleCompletion'
+    _title: 'Module Completion Summary'
+  requirements:
+    _permission: 'access content'
+
+nfr.documentation.questionnaire_implementation:
+  path: '/nfr/documentation/questionnaire-implementation'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRDocumentationController::questionnaireImplementation'
+    _title: 'Questionnaire Implementation'
+  requirements:
+    _permission: 'access content'
+
+nfr.documentation.test_credentials:
+  path: '/nfr/documentation/test-credentials'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRDocumentationController::testCredentials'
+    _title: 'Test User Credentials'
+  requirements:
+    _permission: 'access content'
+
+nfr.documentation.process_flow_relationships:
+  path: '/nfr/documentation/process-flow-relationships'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRDocumentationController::processFlowRelationships'
+    _title: 'Process Flow Relationships'
+  requirements:
+    _permission: 'access content'
+
 nfr.documentation.reporting:
   path: '/nfr/documentation/reporting'
   defaults:

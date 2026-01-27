@@ -69,6 +69,34 @@ class NFRDocumentationController extends ControllerBase {
         'root_dir' => TRUE,
         'status' => $validation_status['compliance'],
       ],
+      'module-completion' => [
+        'title' => 'Module Completion Summary',
+        'description' => 'Comprehensive implementation summary documenting all completed components, forms, routes, and functionality of the NFR module.',
+        'file' => 'NFR_MODULE_COMPLETION_SUMMARY.md',
+        'root_dir' => TRUE,
+        'status' => $validation_status['module_completion'],
+      ],
+      'questionnaire-implementation' => [
+        'title' => 'Questionnaire Implementation',
+        'description' => 'Technical implementation tracker for all 9 questionnaire sections with CDC requirement mapping and completion status.',
+        'file' => 'QUESTIONNAIRE_SECTIONS_IMPLEMENTATION.md',
+        'root_dir' => TRUE,
+        'status' => $validation_status['questionnaire_implementation'],
+      ],
+      'test-credentials' => [
+        'title' => 'Test User Credentials',
+        'description' => 'Development and testing user accounts with roles, permissions, and test scenarios for all user types.',
+        'file' => 'TEST_USER_CREDENTIALS.md',
+        'root_dir' => TRUE,
+        'status' => $validation_status['test_credentials'],
+      ],
+      'process-flow-relationships' => [
+        'title' => 'Process Flow Relationships',
+        'description' => 'Comprehensive hierarchy of all development lifecycles from business to statistical models, including high-level process flows and interdependencies.',
+        'file' => 'PROCESS_FLOW_RELATIONSHIPS.md',
+        'technical_docs' => TRUE,
+        'status' => $validation_status['process_flow_relationships'],
+      ],
     ];
 
     // Reporting documentation.
@@ -307,6 +335,46 @@ class NFRDocumentationController extends ControllerBase {
    */
   public function correlationAnalysisGuide(): array {
     return $this->renderMarkdownDocument('CORRELATION_ANALYSIS_USER_GUIDE.md', 'Correlation Analysis User Guide', FALSE, TRUE);
+  }
+
+  /**
+   * Display Module Completion Summary documentation.
+   *
+   * @return array
+   *   Render array.
+   */
+  public function moduleCompletion(): array {
+    return $this->renderMarkdownDocument('NFR_MODULE_COMPLETION_SUMMARY.md', 'Module Completion Summary', TRUE);
+  }
+
+  /**
+   * Display Questionnaire Implementation documentation.
+   *
+   * @return array
+   *   Render array.
+   */
+  public function questionnaireImplementation(): array {
+    return $this->renderMarkdownDocument('QUESTIONNAIRE_SECTIONS_IMPLEMENTATION.md', 'Questionnaire Implementation', TRUE);
+  }
+
+  /**
+   * Display Test User Credentials documentation.
+   *
+   * @return array
+   *   Render array.
+   */
+  public function testCredentials(): array {
+    return $this->renderMarkdownDocument('TEST_USER_CREDENTIALS.md', 'Test User Credentials', TRUE);
+  }
+
+  /**
+   * Display Process Flow Relationships documentation.
+   *
+   * @return array
+   *   Render array.
+   */
+  public function processFlowRelationships(): array {
+    return $this->renderMarkdownDocument('PROCESS_FLOW_RELATIONSHIPS.md', 'Process Flow Relationships', FALSE, TRUE);
   }
 
   /**
@@ -633,6 +701,30 @@ class NFRDocumentationController extends ControllerBase {
         'label' => 'Design Phase',
         'class' => 'info',
         'details' => 'User guide complete, awaiting full implementation',
+      ],
+      'module_completion' => [
+        'percent' => 100,
+        'label' => 'Complete',
+        'class' => 'success',
+        'details' => 'Implementation summary current as of Jan 25, 2026',
+      ],
+      'questionnaire_implementation' => [
+        'percent' => 100,
+        'label' => 'Complete',
+        'class' => 'success',
+        'details' => 'All 9 sections implemented and tracked',
+      ],
+      'test_credentials' => [
+        'percent' => 100,
+        'label' => 'Complete',
+        'class' => 'success',
+        'details' => 'Test users for all roles documented',
+      ],
+      'process_flow_relationships' => [
+        'percent' => 100,
+        'label' => 'Complete',
+        'class' => 'success',
+        'details' => '15 development lifecycles documented with process flows',
       ],
     ];
   }
