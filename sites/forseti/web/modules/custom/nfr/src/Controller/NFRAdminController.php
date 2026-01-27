@@ -44,7 +44,11 @@ class NFRAdminController extends ControllerBase {
       '#theme' => 'nfr_admin_page',
       '#page_id' => 'admin-dashboard',
       '#content' => [
-        '#markup' => $dashboard_content,
+        '#type' => 'inline_template',
+        '#template' => '{{ content|raw }}',
+        '#context' => [
+          'content' => $dashboard_content,
+        ],
       ],
       '#attached' => [
         'library' => ['nfr/admin'],
@@ -354,7 +358,11 @@ class NFRAdminController extends ControllerBase {
       '#theme' => 'nfr_admin_page',
       '#page_id' => 'participant-list',
       '#content' => [
-        '#markup' => $list_content,
+        '#type' => 'inline_template',
+        '#template' => '{{ content|raw }}',
+        '#context' => [
+          'content' => $list_content,
+        ],
       ],
       '#attached' => [
         'library' => ['nfr/admin'],
@@ -384,9 +392,12 @@ class NFRAdminController extends ControllerBase {
     $query->leftJoin('users_field_data', 'u', 'p.uid = u.uid');
     $query->addField('u', 'mail', 'primary_email');
     
+    $active_filters = [];
+    
     // Apply filters from query parameters
     if ($participant_id = $request->query->get('participant_id')) {
       $query->condition('p.participant_id', '%' . $this->database->escapeLike($participant_id) . '%', 'LIKE');
+      $active_filters['participant_id'] = $participant_id;
     }
     
     if ($name = $request->query->get('name')) {
@@ -394,28 +405,49 @@ class NFRAdminController extends ControllerBase {
         ->condition('p.first_name', '%' . $this->database->escapeLike($name) . '%', 'LIKE')
         ->condition('p.last_name', '%' . $this->database->escapeLike($name) . '%', 'LIKE');
       $query->condition($or);
+      $active_filters['name'] = $name;
     }
     
     if ($email = $request->query->get('email')) {
       $query->condition('u.mail', '%' . $this->database->escapeLike($email) . '%', 'LIKE');
+      $active_filters['email'] = $email;
     }
     
     if ($state = $request->query->get('state')) {
       $query->condition('p.state', $state);
+      $active_filters['state'] = $state;
     }
     
     if ($enrolled = $request->query->get('enrolled')) {
       // Filter by enrollment date range or specific value
       if ($enrolled === 'last_30_days') {
         $query->condition('p.created', strtotime('-30 days'), '>=');
+        $active_filters['enrolled'] = 'Last 30 Days';
       } elseif ($enrolled === 'last_90_days') {
         $query->condition('p.created', strtotime('-90 days'), '>=');
+        $active_filters['enrolled'] = 'Last 90 Days';
       } elseif ($enrolled === 'this_year') {
         $query->condition('p.created', strtotime('January 1'), '>=');
+        $active_filters['enrolled'] = 'This Year';
       }
     }
     
-    return $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+    // Log filter application for debugging
+    if (!empty($active_filters)) {
+      \Drupal::logger('nfr')->info('Participant filters applied: @filters', [
+        '@filters' => json_encode($active_filters),
+      ]);
+    }
+    
+    $results = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+    
+    // Log result count for debugging
+    \Drupal::logger('nfr')->info('Participant query returned @count results with filters: @filters', [
+      '@count' => count($results),
+      '@filters' => !empty($active_filters) ? json_encode($active_filters) : 'none',
+    ]);
+    
+    return $results;
   }
 
   /**
@@ -430,6 +462,10 @@ class NFRAdminController extends ControllerBase {
     $filter_email = $request->query->get('email', '');
     $filter_state = $request->query->get('state', '');
     $filter_enrolled = $request->query->get('enrolled', '');
+    
+    // Check if any filters are active
+    $has_active_filters = !empty($filter_participant_id) || !empty($filter_name) || 
+                          !empty($filter_email) || !empty($filter_state) || !empty($filter_enrolled);
     
     // Get unique states for dropdown
     $all_participants_query = $this->database->select('nfr_user_profile', 'p')
@@ -449,6 +485,28 @@ class NFRAdminController extends ControllerBase {
     $html .= '<a href="/admin/nfr" class="btn btn-primary">' . $this->t('← Back to Dashboard') . '</a>';
     $html .= '</div>';
     $html .= '</div>';
+
+    // Active filters badge
+    if ($has_active_filters) {
+      $html .= '<div class="alert alert-info mb-3">';
+      $html .= '<strong>' . $this->t('Active Filters:') . '</strong> ';
+      $filter_labels = [];
+      if ($filter_participant_id) $filter_labels[] = $this->t('ID: @id', ['@id' => $filter_participant_id]);
+      if ($filter_name) $filter_labels[] = $this->t('Name: @name', ['@name' => $filter_name]);
+      if ($filter_email) $filter_labels[] = $this->t('Email: @email', ['@email' => $filter_email]);
+      if ($filter_state) $filter_labels[] = $this->t('State: @state', ['@state' => $filter_state]);
+      if ($filter_enrolled) {
+        $enrolled_labels = [
+          'last_30_days' => $this->t('Last 30 Days'),
+          'last_90_days' => $this->t('Last 90 Days'),
+          'this_year' => $this->t('This Year'),
+        ];
+        $filter_labels[] = $this->t('Enrolled: @period', ['@period' => $enrolled_labels[$filter_enrolled] ?? $filter_enrolled]);
+      }
+      $html .= implode(' | ', $filter_labels);
+      $html .= ' <a href="/admin/nfr/participants" class="ms-2">(' . $this->t('Clear All') . ')</a>';
+      $html .= '</div>';
+    }
 
     // Filters Form
     $html .= '<form method="GET" action="/admin/nfr/participants" class="list-filters-form">';
@@ -511,7 +569,7 @@ class NFRAdminController extends ControllerBase {
     
     $html .= '<div class="list-stats">';
     $html .= '<div class="stat-item">';
-    $html .= '<span class="stat-label">' . $this->t('Total:') . '</span> ';
+    $html .= '<span class="stat-label">' . ($has_active_filters ? $this->t('Filtered Results:') : $this->t('Total:')) . '</span> ';
     $html .= '<span class="stat-value">' . number_format($total) . '</span>';
     $html .= '</div>';
     $html .= '<div class="stat-item">';
@@ -540,7 +598,12 @@ class NFRAdminController extends ControllerBase {
     
     if (empty($participants)) {
       $html .= '<tr><td colspan="8" class="text-center text-muted py-4">';
-      $html .= $this->t('No participants found matching the current filters.');
+      if ($has_active_filters) {
+        $html .= '<strong>' . $this->t('No participants found matching the current filters.') . '</strong><br>';
+        $html .= '<a href="/admin/nfr/participants" class="btn btn-sm btn-primary mt-2">' . $this->t('Clear Filters') . '</a>';
+      } else {
+        $html .= $this->t('No participants enrolled yet.');
+      }
       $html .= '</td></tr>';
     } else {
       foreach ($participants as $participant) {
@@ -597,7 +660,11 @@ class NFRAdminController extends ControllerBase {
       '#theme' => 'nfr_admin_page',
       '#page_id' => 'participant-detail',
       '#content' => [
-        '#markup' => $detail_content,
+        '#type' => 'inline_template',
+        '#template' => '{{ content|raw }}',
+        '#context' => [
+          'content' => $detail_content,
+        ],
       ],
       '#attached' => [
         'library' => ['nfr/admin'],
@@ -771,7 +838,11 @@ class NFRAdminController extends ControllerBase {
       '#theme' => 'nfr_admin_page',
       '#page_id' => 'linkage-management',
       '#content' => [
-        '#markup' => $linkage_content,
+        '#type' => 'inline_template',
+        '#template' => '{{ content|raw }}',
+        '#context' => [
+          'content' => $linkage_content,
+        ],
       ],
       '#attached' => [
         'library' => ['nfr/admin'],
@@ -1020,7 +1091,11 @@ class NFRAdminController extends ControllerBase {
       '#theme' => 'nfr_admin_page',
       '#page_id' => 'reports-landing',
       '#content' => [
-        '#markup' => $content,
+        '#type' => 'inline_template',
+        '#template' => '{{ content|raw }}',
+        '#context' => [
+          'content' => $content,
+        ],
       ],
       '#attached' => [
         'library' => ['nfr/reports-landing'],
