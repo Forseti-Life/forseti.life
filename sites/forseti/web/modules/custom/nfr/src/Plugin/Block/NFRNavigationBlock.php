@@ -69,8 +69,14 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
     $can_view_reports = $this->currentUser->hasPermission('view nfr reports');
     $is_participant = $this->currentUser->hasPermission('access nfr participant');
     $is_researcher = $this->currentUser->hasPermission('view nfr research data');
+    
+    // Check if user has any role that should see My Dashboard
+    $has_dashboard_access = $is_participant || $is_admin || $is_researcher || 
+      $this->currentUser->hasRole('fire_dept_admin') || 
+      $this->currentUser->hasRole('nfr_administrator') || 
+      $this->currentUser->hasRole('nfr_researcher');
 
-    $menu_items = $this->buildMenuStructure($is_logged_in, $is_admin, $can_view_reports, $is_participant, $is_researcher);
+    $menu_items = $this->buildMenuStructure($is_logged_in, $is_admin, $can_view_reports, $has_dashboard_access, $is_researcher);
 
     return [
       '#theme' => 'nfr_navigation_menu',
@@ -97,15 +103,15 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
    *   Whether user has admin permission.
    * @param bool $can_view_reports
    *   Whether user can view reports.
-   * @param bool $is_participant
-   *   Whether user has participant access.
+   * @param bool $has_dashboard_access
+   *   Whether user should have access to My Dashboard.
    * @param bool $is_researcher
    *   Whether user has researcher access.
    *
    * @return array
    *   Menu structure array.
    */
-  private function buildMenuStructure(bool $is_logged_in, bool $is_admin, bool $can_view_reports, bool $is_participant, bool $is_researcher): array {
+  private function buildMenuStructure(bool $is_logged_in, bool $is_admin, bool $can_view_reports, bool $has_dashboard_access, bool $is_researcher): array {
     $menu = [];
 
     // Public Pages (always visible)
@@ -128,7 +134,7 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
     ];
 
     // Enrollment Pages (authenticated users only)
-    if ($is_logged_in && ($is_participant || $is_admin)) {
+    if ($is_logged_in && ($has_dashboard_access || $is_admin)) {
       $menu['enrollment'] = [
         'title' => $this->t('Enrollment'),
         'url' => Url::fromRoute('nfr.welcome'),
