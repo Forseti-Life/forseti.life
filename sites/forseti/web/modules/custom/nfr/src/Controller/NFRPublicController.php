@@ -792,17 +792,44 @@ class NFRPublicController extends ControllerBase {
     $female_pct = $total_gender > 0 ? round(($stats['female_participants'] / $total_gender) * 100, 1) : 0;
     $other_pct = $total_gender > 0 ? round(($stats['other_participants'] / $total_gender) * 100, 1) : 0;
     
-    // Stacked progress bar with all three categories
-    $html .= '<div class="progress" style="height: 35px;">';
-    if ($male_pct > 0) {
-      $html .= '<div class="progress-bar bg-info" style="width: ' . $male_pct . '%" title="Male: ' . number_format($stats['male_participants']) . ' (' . $male_pct . '%)">Male<br>' . number_format($stats['male_participants']) . ' (' . $male_pct . '%)</div>';
+    // Gender breakdown list
+    $html .= '<div class="row g-3">';
+    
+    // Male
+    $html .= '<div class="col-md-6">';
+    $html .= '<div class="d-flex align-items-center p-3 rounded" style="background: rgba(13, 202, 240, 0.1); border-left: 4px solid #0dcaf0;">';
+    $html .= '<div class="flex-grow-1">';
+    $html .= '<div class="text-white-50 small">Male Firefighters</div>';
+    $html .= '<div class="h3 text-white mb-0">' . number_format($stats['male_participants']) . '</div>';
+    $html .= '<div class="text-info small">' . $male_pct . '%</div>';
+    $html .= '</div>';
+    $html .= '<div class="ms-3"><i class="fas fa-mars fa-2x text-info"></i></div>';
+    $html .= '</div></div>';
+    
+    // Female
+    $html .= '<div class="col-md-6">';
+    $html .= '<div class="d-flex align-items-center p-3 rounded" style="background: rgba(25, 135, 84, 0.1); border-left: 4px solid #198754;">';
+    $html .= '<div class="flex-grow-1">';
+    $html .= '<div class="text-white-50 small">Female Firefighters</div>';
+    $html .= '<div class="h3 text-white mb-0">' . number_format($stats['female_participants']) . '</div>';
+    $html .= '<div class="text-success small">' . $female_pct . '%</div>';
+    $html .= '</div>';
+    $html .= '<div class="ms-3"><i class="fas fa-venus fa-2x text-success"></i></div>';
+    $html .= '</div></div>';
+    
+    // Other (only if > 0)
+    if ($stats['other_participants'] > 0) {
+      $html .= '<div class="col-12">';
+      $html .= '<div class="d-flex align-items-center p-3 rounded" style="background: rgba(255, 193, 7, 0.1); border-left: 4px solid #ffc107;">';
+      $html .= '<div class="flex-grow-1">';
+      $html .= '<div class="text-white-50 small">Other</div>';
+      $html .= '<div class="h3 text-white mb-0">' . number_format($stats['other_participants']) . '</div>';
+      $html .= '<div class="text-warning small">' . $other_pct . '%</div>';
+      $html .= '</div>';
+      $html .= '<div class="ms-3"><i class="fas fa-user fa-2x text-warning"></i></div>';
+      $html .= '</div></div>';
     }
-    if ($female_pct > 0) {
-      $html .= '<div class="progress-bar bg-success" style="width: ' . $female_pct . '%" title="Female: ' . number_format($stats['female_participants']) . ' (' . $female_pct . '%)">Female<br>' . number_format($stats['female_participants']) . ' (' . $female_pct . '%)</div>';
-    }
-    if ($other_pct > 0) {
-      $html .= '<div class="progress-bar bg-warning" style="width: ' . $other_pct . '%" title="Other: ' . number_format($stats['other_participants']) . ' (' . $other_pct . '%)">Other<br>' . number_format($stats['other_participants']) . ' (' . $other_pct . '%)</div>';
-    }
+    
     $html .= '</div></div>';
     
     $html .= '<div class="mt-4 pt-3 border-top border-secondary">';
