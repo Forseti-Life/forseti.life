@@ -2,6 +2,33 @@
  * NFR Validation Dashboard Styles
  */
 
+/* Smooth scrolling for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Navigation menu styles */
+#nav-menu-collapse a {
+  text-decoration: none;
+  padding: 0.25rem 0;
+  display: block;
+  transition: all 0.2s ease;
+}
+
+#nav-menu-collapse a:hover {
+  transform: translateX(5px);
+  text-decoration: underline;
+}
+
+#nav-menu-collapse h6 {
+  border-bottom: 2px solid rgba(0, 212, 255, 0.3);
+  padding-bottom: 0.5rem;
+}
+
+.text-cyan {
+  color: #00d4ff !important;
+}
+
 .validation-dashboard {
   max-width: 1800px;
   margin: 0 auto;

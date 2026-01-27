@@ -4473,6 +4473,8 @@ class NFRValidationController extends ControllerBase {
       
       // Build HTML output with Chart.js
       $output = '<div class="container-fluid">';
+      
+      // Page Header
       $output .= '<div class="card card-forseti mb-4">';
       $output .= '<div class="card-body">';
       $output .= '<h1 class="mb-3">Data Quality Monitor</h1>';
@@ -4480,10 +4482,65 @@ class NFRValidationController extends ControllerBase {
       $output .= '<p class="text-muted">This dashboard tracks EVERY field from both the User Profile and Enrollment Questionnaire, showing completion rates and value distributions.</p>';
       $output .= '</div></div>';
       
+      // Navigation Menu (Collapsible)
+      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #00d4ff;">';
+      $output .= '<div class="card-header" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#nav-menu-collapse">';
+      $output .= '<h2 class="h5 mb-0 d-flex align-items-center justify-content-between">';
+      $output .= '<span><i class="fas fa-bars me-2"></i>Quick Navigation</span>';
+      $output .= '<span class="badge bg-info">Click to Expand/Collapse</span>';
+      $output .= '</h2>';
+      $output .= '</div>';
+      $output .= '<div class="collapse show" id="nav-menu-collapse">';
+      $output .= '<div class="card-body">';
+      $output .= '<div class="row g-3">';
+      
+      // Column 1: Overview & Statistics
+      $output .= '<div class="col-md-4">';
+      $output .= '<h6 class="text-white mb-2"><i class="fas fa-chart-bar me-1"></i> Overview & Statistics</h6>';
+      $output .= '<ul class="list-unstyled small">';
+      $output .= '<li><a href="#table-statistics" class="text-cyan">📊 Database Table Statistics</a></li>';
+      $output .= '<li><a href="#profile-summary" class="text-cyan">👤 User Profile Dataset Summary</a></li>';
+      $output .= '<li><a href="#section-summaries" class="text-cyan">📋 Questionnaire Section Summaries</a></li>';
+      $output .= '<li><a href="#legend" class="text-cyan">📖 Legend</a></li>';
+      $output .= '<li><a href="#field-audit" class="text-cyan">🔍 Comprehensive Field Audit</a></li>';
+      $output .= '<li><a href="#summary-stats" class="text-cyan">📊 Summary Statistics</a></li>';
+      $output .= '</ul>';
+      $output .= '</div>';
+      
+      // Column 2: Questionnaire Sections
+      $output .= '<div class="col-md-4">';
+      $output .= '<h6 class="text-white mb-2"><i class="fas fa-clipboard-list me-1"></i> Questionnaire Sections</h6>';
+      $output .= '<ul class="list-unstyled small">';
+      $output .= '<li><a href="#section-profile" class="text-cyan">USER PROFILE (5-Minute Form)</a></li>';
+      $output .= '<li><a href="#section-demographics" class="text-cyan">Section 1: Demographics</a></li>';
+      $output .= '<li><a href="#section-work_history" class="text-cyan">Section 2: Work History</a></li>';
+      $output .= '<li><a href="#section-exposure" class="text-cyan">Section 3: Exposure</a></li>';
+      $output .= '<li><a href="#section-military" class="text-cyan">Section 4: Military Service</a></li>';
+      $output .= '<li><a href="#section-other_employment" class="text-cyan">Section 5: Other Employment</a></li>';
+      $output .= '</ul>';
+      $output .= '</div>';
+      
+      // Column 3: More Sections
+      $output .= '<div class="col-md-4">';
+      $output .= '<h6 class="text-white mb-2"><i class="fas fa-list-check me-1"></i> Additional Sections</h6>';
+      $output .= '<ul class="list-unstyled small">';
+      $output .= '<li><a href="#section-ppe" class="text-cyan">Section 6: PPE</a></li>';
+      $output .= '<li><a href="#section-decontamination" class="text-cyan">Section 7: Decontamination</a></li>';
+      $output .= '<li><a href="#section-health" class="text-cyan">Section 8: Health Conditions</a></li>';
+      $output .= '<li><a href="#section-lifestyle" class="text-cyan">Section 9: Lifestyle</a></li>';
+      $output .= '<li><a href="#section-consent" class="text-cyan">Consent Tracking</a></li>';
+      $output .= '<li><a href="#section-progress" class="text-cyan">Section Completion Tracking</a></li>';
+      $output .= '<li><a href="#incomplete-fields" class="text-cyan">⚠️ Fields with Incomplete Data</a></li>';
+      $output .= '</ul>';
+      $output .= '</div>';
+      
+      $output .= '</div>'; // row
+      $output .= '</div></div></div>'; // card-body, collapse, card
+      
       // =============================================================================
       // TABLE STATISTICS SECTION
       // =============================================================================
-      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #2196F3;">';
+      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #2196F3;" id="table-statistics">';
       $output .= '<div class="card-body">';
       $output .= '<h2 class="h4 mb-4">📊 Database Table Statistics</h2>';
       $output .= '<p class="mb-3">Summary statistics for all NFR database tables showing record counts and field tracking coverage.</p>';
@@ -4569,9 +4626,9 @@ class NFRValidationController extends ControllerBase {
       // =============================================================================
       // PROFILE DATASET SUMMARY
       // =============================================================================
-      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #9C27B0;">';
+      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #9C27B0;" id="profile-summary">';
       $output .= '<div class="card-body">';
-      $output .= '<h2 class="h4 mb-4">👥 Profile Dataset Summary</h2>';
+      $output .= '<h2 class="h4 mb-4">👤 User Profile Dataset Summary</h2>';
       $output .= '<p class="mb-4"><strong>Total Profiles:</strong> ' . number_format($profile_summary['total_profiles']) . '</p>';
       
       $output .= '<div class="row g-4">';
@@ -4581,6 +4638,7 @@ class NFRValidationController extends ControllerBase {
         $output .= '<div class="col-md-6">';
         $output .= '<div class="card bg-light h-100">';
         $output .= '<div class="card-body">';
+        $output .= '<h3 class="h6 mb-3 text-white">Sex Distribution</h3>';
         $output .= '<h3 class="h6 mb-3">Sex Distribution</h3>';
         $output .= '<table class="table table-sm table-borderless mb-0">';
         arsort($profile_summary['sex_distribution']);
@@ -4601,7 +4659,7 @@ class NFRValidationController extends ControllerBase {
         $output .= '<div class="col-md-6">';
         $output .= '<div class="card bg-light h-100">';
         $output .= '<div class="card-body">';
-        $output .= '<h3 class="h6 mb-3">Age Distribution</h3>';
+        $output .= '<h3 class="h6 mb-3 text-white">Age Distribution</h3>';
         $output .= '<table class="table table-sm table-borderless mb-0">';
         $age_order = ['Under 30', '30-39', '40-49', '50-59', '60-69', '70+'];
         foreach ($age_order as $age_group) {
@@ -4624,7 +4682,7 @@ class NFRValidationController extends ControllerBase {
         $output .= '<div class="col-md-6">';
         $output .= '<div class="card bg-light h-100">';
         $output .= '<div class="card-body">';
-        $output .= '<h3 class="h6 mb-3">State Distribution (Top 10)</h3>';
+        $output .= '<h3 class="h6 mb-3 text-white">State Distribution (Top 10)</h3>';
         $output .= '<table class="table table-sm table-borderless mb-0">';
         arsort($profile_summary['state_distribution']);
         $top_states = array_slice($profile_summary['state_distribution'], 0, 10, TRUE);
@@ -4645,7 +4703,7 @@ class NFRValidationController extends ControllerBase {
         $output .= '<div class="col-md-6">';
         $output .= '<div class="card bg-light h-100">';
         $output .= '<div class="card-body">';
-        $output .= '<h3 class="h6 mb-3">Work Status Distribution</h3>';
+        $output .= '<h3 class="h6 mb-3 text-white">Work Status Distribution</h3>';
         $output .= '<table class="table table-sm table-borderless mb-0">';
         arsort($profile_summary['work_status_distribution']);
         foreach ($profile_summary['work_status_distribution'] as $status => $count) {
@@ -4666,7 +4724,7 @@ class NFRValidationController extends ControllerBase {
       // =============================================================================
       // SECTION DATASET SUMMARIES
       // =============================================================================
-      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #FF5722;">';
+      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #FF5722;" id="section-summaries">';
       $output .= '<div class="card-body">';
       $output .= '<h2 class="h4 mb-4">📋 Questionnaire Section Summaries</h2>';
       $output .= '<p class="mb-3">Completion statistics for each questionnaire section showing field coverage and user progress.</p>';
@@ -4719,7 +4777,7 @@ class NFRValidationController extends ControllerBase {
       $output .= '</div></div>'; // card-body, card
       
       // Legend Card - positioned before Audit Report
-      $output .= '<div class="card card-forseti mb-3" style="border-left: 4px solid #17a2b8;">';
+      $output .= '<div class="card card-forseti mb-3" style="border-left: 4px solid #17a2b8;" id="legend">';
       $output .= '<div class="card-body">';
       $output .= '<h3 class="h5 mb-3">📖 Legend</h3>';
       $output .= '<div class="row g-3">';
@@ -4751,9 +4809,9 @@ class NFRValidationController extends ControllerBase {
       $output .= '</div></div>'; // card-body, card
       
       // Audit Report Section
-      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #ffc107;">';
+      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #ffc107;" id="field-audit">';
       $output .= '<div class="card-body">';
-      $output .= '<h2 class="h4 mb-3">📋 Field Coverage Audit Report</h2>';
+      $output .= '<h2 class="h4 mb-3">🔍 Comprehensive Field Audit Report</h2>';
       $output .= '<p class="mb-3">Comprehensive field-by-field comparison of requirements vs implementation vs database vs tracking.</p>';
       
       $output .= '<div class="table-responsive">';
@@ -4962,7 +5020,7 @@ class NFRValidationController extends ControllerBase {
       $output .= '</div></div>'; // card-body, card
       
       // Summary Statistics
-      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #4CAF50;">';
+      $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #4CAF50;" id="summary-stats">';
       $output .= '<div class="card-body">';
       $output .= '<h2 class="h4 mb-4">📊 Summary Statistics</h2>';
       $output .= '<div class="row g-3">';
@@ -4999,7 +5057,7 @@ class NFRValidationController extends ControllerBase {
       $chart_data_js = [];
       
       foreach ($sections as $section_key => $section_name) {
-        $output .= '<div class="card card-forseti mb-4">';
+        $output .= '<div class="card card-forseti mb-4" id="section-' . $section_key . '">';
         $output .= '<div class="card-header">';
         $output .= '<h2 class="h5 mb-0">' . $section_name . '</h2>';
         $output .= '</div>';
@@ -5015,7 +5073,7 @@ class NFRValidationController extends ControllerBase {
             // Create chart for this field
             $chart_id = 'chart_' . str_replace('.', '_', $field);
             $output .= '<div class="mb-4">';
-            $output .= '<h3 class="h6">' . htmlspecialchars($field) . '</h3>';
+            $output .= '<h3 class="h6 text-white">' . htmlspecialchars($field) . '</h3>';
             $output .= '<p class="mb-2"><strong>Fill Rate:</strong> <span class="badge bg-' . $badge_class . '">' . $count . ' / ' . $total_records . ' (' . $pct . '%)</span></p>';
             
             if (isset($value_distributions[$field])) {
@@ -5057,7 +5115,7 @@ class NFRValidationController extends ControllerBase {
       
       // Fields with Incomplete Data Section
       if (count($fields_below_100) > 0) {
-        $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #F44336;">';
+        $output .= '<div class="card card-forseti mb-4" style="border-left: 4px solid #F44336;" id="incomplete-fields">';
         $output .= '<div class="card-body">';
         $output .= '<h2 class="h4 text-danger mb-3">⚠️ Fields with Incomplete Data</h2>';
         $output .= '<p class="mb-3">The following fields have less than 100% completion. Charts show the distribution of actual responses.</p>';
