@@ -945,17 +945,188 @@ class NFRAdminController extends ControllerBase {
   }
 
   /**
-   * Report builder page.
+   * Report builder landing page with analysis options.
    *
    * @return array
    *   Render array.
    */
   public function reportBuilder(): array {
+    // Get quick stats for display
+    $stats_query = $this->database->select('nfr_correlation_analysis', 'c')
+      ->fields('c', ['has_cancer_diagnosis', 'data_quality_score']);
+    $stats = $stats_query->execute()->fetchAll();
+    
+    $total_records = count($stats);
+    $cancer_cases = 0;
+    $avg_quality = 0;
+    
+    if ($total_records > 0) {
+      foreach ($stats as $record) {
+        $cancer_cases += $record->has_cancer_diagnosis;
+        $avg_quality += $record->data_quality_score;
+      }
+      $avg_quality = round($avg_quality / $total_records, 1);
+    }
+    
+    $content = '<div class="reports-landing-page">';
+    $content .= '<div class="reports-intro">';
+    $content .= '<h2>Reports & Statistical Analysis</h2>';
+    $content .= '<p>Select an analysis type below to explore relationships and patterns in the NFR dataset.</p>';
+    $content .= '<div class="dataset-overview">';
+    $content .= '<strong>Dataset:</strong> ' . number_format($total_records) . ' records | ';
+    $content .= number_format($cancer_cases) . ' cancer cases | ';
+    $content .= $avg_quality . '% avg quality';
+    $content .= '</div>';
+    $content .= '</div>';
+    
+    $content .= '<div class="analysis-cards">';
+    
+    // Correlation Analysis Card
+    $content .= '<div class="analysis-card">';
+    $content .= '<div class="card-icon">📊</div>';
+    $content .= '<h3>Correlation Analysis</h3>';
+    $content .= '<p>Examine statistical relationships between any two variables to identify risk factors and dose-response patterns.</p>';
+    $content .= '<div class="card-features">';
+    $content .= '<ul>';
+    $content .= '<li>100+ variables across 5 categories</li>';
+    $content .= '<li>Pearson & Spearman methods</li>';
+    $content .= '<li>Statistical significance testing</li>';
+    $content .= '<li>CSV export for R/SPSS/Python</li>';
+    $content .= '</ul>';
+    $content .= '</div>';
+    $content .= '<a href="/admin/nfr/reports/correlation" class="card-button">Run Correlation Analysis →</a>';
+    $content .= '</div>';
+    
+    // Cluster Analysis Card
+    $content .= '<div class="analysis-card">';
+    $content .= '<div class="card-icon">🔍</div>';
+    $content .= '<h3>Cluster Analysis</h3>';
+    $content .= '<p>Identify natural groupings and patterns in firefighter populations based on multiple characteristics.</p>';
+    $content .= '<div class="card-features">';
+    $content .= '<ul>';
+    $content .= '<li>K-means clustering algorithm</li>';
+    $content .= '<li>Multi-variable segmentation</li>';
+    $content .= '<li>Cluster characteristics analysis</li>';
+    $content .= '<li>CSV export of cluster assignments</li>';
+    $content .= '</ul>';
+    $content .= '</div>';
+    $content .= '<a href="/admin/nfr/reports/cluster" class="card-button">Run Cluster Analysis →</a>';
+    $content .= '</div>';
+    
+    $content .= '</div>'; // .analysis-cards
+    $content .= '</div>'; // .reports-landing-page
+    
     return [
       '#theme' => 'nfr_admin_page',
-      '#page_id' => 'report-builder',
+      '#page_id' => 'reports-landing',
       '#content' => [
-        '#markup' => '<h2>Report Builder</h2><p>Placeholder for custom report generation.</p>',
+        '#markup' => $content,
+      ],
+      '#attached' => [
+        'library' => ['nfr/reports-landing'],
+      ],
+    ];
+  }
+
+  /**
+   * Correlation analysis page.
+   *
+   * @return array
+   *   Render array.
+   */
+  public function correlationAnalysis(): array {
+    // Get statistics about the correlation dataset
+    $stats = $this->database->select('nfr_correlation_analysis', 'c')
+      ->fields('c')
+      ->execute()
+      ->fetchAll();
+    
+    $total_records = count($stats);
+    $cancer_cases = 0;
+    $avg_quality = 0;
+    
+    if ($total_records > 0) {
+      foreach ($stats as $record) {
+        $cancer_cases += $record->has_cancer_diagnosis;
+        $avg_quality += $record->data_quality_score;
+      }
+      $avg_quality = round($avg_quality / $total_records, 1);
+    }
+    
+    $intro = '<div class="correlation-page-intro">';
+    $intro .= '<p class="breadcrumb"><a href="/admin/nfr/reports">← Back to Reports</a></p>';
+    $intro .= '<h2>Correlation Analysis</h2>';
+    $intro .= '<p>Analyze statistical relationships between variables in the NFR dataset to identify potential risk factors and dose-response relationships.</p>';
+    $intro .= '<p><a href="/nfr/documentation/correlation-analysis-guide" style="color: #c8102e; font-weight: 600;">📖 View User Guide</a> | <a href="/nfr/documentation/correlation-analysis" style="color: #c8102e; font-weight: 600;">📊 Technical Documentation</a></p>';
+    $intro .= '<div class="dataset-stats">';
+    $intro .= '<div class="stat-box"><span class="stat-number">' . number_format($total_records) . '</span><span class="stat-label">Total Records</span></div>';
+    $intro .= '<div class="stat-box"><span class="stat-number">' . number_format($cancer_cases) . '</span><span class="stat-label">Cancer Cases</span></div>';
+    $intro .= '<div class="stat-box"><span class="stat-number">' . $avg_quality . '%</span><span class="stat-label">Avg Data Quality</span></div>';
+    $intro .= '</div>';
+    $intro .= '</div>';
+
+    $form = \Drupal::formBuilder()->getForm('Drupal\nfr\Form\CorrelationAnalysisForm');
+    
+    return [
+      '#theme' => 'nfr_admin_page',
+      '#page_id' => 'correlation-analysis',
+      '#content' => [
+        'intro' => ['#markup' => $intro],
+        'form' => $form,
+      ],
+      '#attached' => [
+        'library' => ['nfr/correlation-analysis'],
+      ],
+    ];
+  }
+
+  /**
+   * Cluster analysis page.
+   *
+   * @return array
+   *   Render array.
+   */
+  public function clusterAnalysis(): array {
+    // Get dataset statistics
+    $stats = $this->database->select('nfr_correlation_analysis', 'c')
+      ->fields('c', ['has_cancer_diagnosis', 'data_quality_score'])
+      ->execute()
+      ->fetchAll();
+    
+    $total_records = count($stats);
+    $cancer_cases = 0;
+    $avg_quality = 0;
+    
+    if ($total_records > 0) {
+      foreach ($stats as $record) {
+        $cancer_cases += $record->has_cancer_diagnosis;
+        $avg_quality += $record->data_quality_score;
+      }
+      $avg_quality = round($avg_quality / $total_records, 1);
+    }
+    
+    $intro = '<div class="cluster-page-intro">';
+    $intro .= '<p class="breadcrumb"><a href="/admin/nfr/reports">← Back to Reports</a></p>';
+    $intro .= '<h2>K-Means Cluster Analysis</h2>';
+    $intro .= '<p>Identify natural groupings in firefighter populations based on multiple characteristics. The K-means algorithm segments participants into distinct clusters by similarity.</p>';
+    $intro .= '<div class="dataset-stats">';
+    $intro .= '<div class="stat-box"><span class="stat-number">' . number_format($total_records) . '</span><span class="stat-label">Total Records</span></div>';
+    $intro .= '<div class="stat-box"><span class="stat-number">' . number_format($cancer_cases) . '</span><span class="stat-label">Cancer Cases</span></div>';
+    $intro .= '<div class="stat-box"><span class="stat-number">' . $avg_quality . '%</span><span class="stat-label">Avg Data Quality</span></div>';
+    $intro .= '</div>';
+    $intro .= '</div>';
+
+    $form = \Drupal::formBuilder()->getForm('Drupal\nfr\Form\ClusterAnalysisForm');
+    
+    return [
+      '#theme' => 'nfr_admin_page',
+      '#page_id' => 'cluster-analysis',
+      '#content' => [
+        'intro' => ['#markup' => $intro],
+        'form' => $form,
+      ],
+      '#attached' => [
+        'library' => ['nfr/cluster-analysis'],
       ],
     ];
   }

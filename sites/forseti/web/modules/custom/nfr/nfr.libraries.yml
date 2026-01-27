@@ -9,6 +9,39 @@ dashboard:
     - core/drupal
     - forseti/style
 
+reports-landing:
+  version: 1.0
+  css:
+    theme:
+      css/reports-landing.css: {}
+  dependencies:
+    - core/drupal
+    - forseti/style
+
+correlation-analysis:
+  version: 1.0
+  css:
+    theme:
+      css/correlation-analysis.css: {}
+  js:
+    js/correlation-analysis.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - forseti/style
+
+cluster-analysis:
+  version: 1.0
+  css:
+    theme:
+      css/cluster-analysis.css: {}
+  js:
+    js/cluster-analysis.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - forseti/style
+
 documentation:
   version: 1.0
   css:

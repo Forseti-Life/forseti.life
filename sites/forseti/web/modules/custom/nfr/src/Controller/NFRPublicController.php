@@ -337,7 +337,9 @@ class NFRPublicController extends ControllerBase {
       '#theme' => 'nfr_public_page',
       '#page_id' => 'public-data',
       '#content' => [
+        '#type' => 'markup',
         '#markup' => $html,
+        '#allowed_tags' => ['canvas', 'div', 'h1', 'h2', 'h3', 'p', 'a', 'span', 'strong', 'small', 'i'],
       ],
       '#attached' => [
         'library' => [
@@ -398,18 +400,14 @@ class NFRPublicController extends ControllerBase {
         ->fetchField();
       
       // Consented participants
-      $stats['consented_participants'] = (int) $connection->select('nfr_consent', 'c')
-        ->condition('consented_to_participate', 1)
-        ->countQuery()
-        ->execute()
-        ->fetchField();
+      $consent_query = $connection->select('nfr_consent', 'c');
+      $consent_query->condition('consented_to_participate', 1);
+      $stats['consented_participants'] = (int) $consent_query->countQuery()->execute()->fetchField();
       
       // Completed questionnaires
-      $stats['questionnaires_completed'] = (int) $connection->select('nfr_questionnaire', 'q')
-        ->condition('completed', 1)
-        ->countQuery()
-        ->execute()
-        ->fetchField();
+      $questionnaire_query = $connection->select('nfr_questionnaire', 'q');
+      $questionnaire_query->condition('questionnaire_completed', 1);
+      $stats['questionnaires_completed'] = (int) $questionnaire_query->countQuery()->execute()->fetchField();
       
       // Cancer diagnoses
       $stats['cancer_diagnoses'] = (int) $connection->select('nfr_cancer_diagnoses', 'cd')
@@ -417,26 +415,12 @@ class NFRPublicController extends ControllerBase {
         ->execute()
         ->fetchField();
       
-      // Average years of service
-      $avg_result = $connection->select('nfr_user_profile', 'p')
-        ->addExpression('AVG(years_in_fire_service)', 'avg_years')
-        ->condition('years_in_fire_service', 0, '>')
-        ->execute()
-        ->fetchField();
-      $stats['avg_years_service'] = $avg_result ? round((float) $avg_result, 1) : 0;
+      // Average years of service - field doesn't exist in current schema
+      $stats['avg_years_service'] = 0;
       
-      // Career vs Volunteer
-      $stats['career_firefighters'] = (int) $connection->select('nfr_user_profile', 'p')
-        ->condition('firefighter_type', 'career')
-        ->countQuery()
-        ->execute()
-        ->fetchField();
-      
-      $stats['volunteer_firefighters'] = (int) $connection->select('nfr_user_profile', 'p')
-        ->condition('firefighter_type', 'volunteer')
-        ->countQuery()
-        ->execute()
-        ->fetchField();
+      // Career vs Volunteer - field doesn't exist in current schema
+      $stats['career_firefighters'] = 0;
+      $stats['volunteer_firefighters'] = 0;
       
       // Gender distribution
       $stats['male_participants'] = (int) $connection->select('nfr_user_profile', 'p')
@@ -465,13 +449,12 @@ class NFRPublicController extends ControllerBase {
     $data = [];
     
     try {
-      // Race/Ethnicity distribution
+      // Race/Ethnicity distribution (stored as JSON array)
       $race_query = $connection->select('nfr_questionnaire', 'q');
-      $race_query->addField('q', 'race_ethnicity', 'race');
-      $race_query->addExpression('COUNT(*)', 'count');
+      $race_query->addField('q', 'race_ethnicity');
       $race_query->condition('race_ethnicity', '', '!=');
-      $race_query->groupBy('q.race_ethnicity');
-      $race_results = $race_query->execute()->fetchAllKeyed();
+      $race_query->isNotNull('race_ethnicity');
+      $race_results = $race_query->execute()->fetchCol();
       
       $race_labels = [
         'white' => 'White',
@@ -484,13 +467,26 @@ class NFRPublicController extends ControllerBase {
         'other' => 'Other',
       ];
       
+      $race_counts = [];
+      foreach ($race_results as $race_json) {
+        $races = json_decode($race_json, TRUE);
+        if (is_array($races)) {
+          foreach ($races as $race) {
+            if (!isset($race_counts[$race])) {
+              $race_counts[$race] = 0;
+            }
+            $race_counts[$race]++;
+          }
+        }
+      }
+      
       $data['race'] = [
         'labels' => [],
         'values' => [],
       ];
       
-      foreach ($race_results as $race => $count) {
-        $data['race']['labels'][] = $race_labels[$race] ?? ucfirst($race);
+      foreach ($race_counts as $race => $count) {
+        $data['race']['labels'][] = $race_labels[$race] ?? ucfirst(str_replace('_', ' ', $race));
         $data['race']['values'][] = (int) $count;
       }
       
@@ -503,9 +499,15 @@ class NFRPublicController extends ControllerBase {
       $edu_results = $edu_query->execute()->fetchAllKeyed();
       
       $edu_labels = [
+        'never_attended' => 'Never Attended/Kindergarten',
+        'elementary' => 'Elementary (Grades 1-8)',
+        'some_hs' => 'Some High School (Grades 9-11)',
+        'hs_ged' => 'High School Graduate/GED',
+        'some_college' => 'Some College/Technical School (1-3 years)',
+        'college_graduate' => 'College Graduate (4+ years)',
+        'prefer_not_answer' => 'Prefer Not to Answer',
+        // Legacy values for backwards compatibility
         'less_than_hs' => 'Less than High School',
-        'hs_ged' => 'High School/GED',
-        'some_college' => 'Some College',
         'associate' => 'Associate Degree',
         'bachelor' => 'Bachelor\'s Degree',
         'graduate' => 'Graduate Degree',
@@ -530,11 +532,15 @@ class NFRPublicController extends ControllerBase {
       $marital_results = $marital_query->execute()->fetchAllKeyed();
       
       $marital_labels = [
-        'single' => 'Single/Never Married',
         'married' => 'Married',
+        'living_with_partner' => 'Living with Partner',
+        'never_married' => 'Never Married',
         'divorced' => 'Divorced',
-        'widowed' => 'Widowed',
         'separated' => 'Separated',
+        'widowed' => 'Widowed',
+        'prefer_not_answer' => 'Prefer Not to Answer',
+        // Legacy value for backwards compatibility
+        'single' => 'Never Married',
       ];
       
       $data['marital'] = [
@@ -622,40 +628,11 @@ class NFRPublicController extends ControllerBase {
         $data['types']['values'][] = (int) $count;
       }
       
-      // Age at diagnosis ranges
-      $age_query = $connection->select('nfr_cancer_diagnoses', 'cd');
-      $age_query->addField('cd', 'age_at_diagnosis');
-      $age_query->condition('age_at_diagnosis', 0, '>');
-      $age_results = $age_query->execute()->fetchCol();
-      
-      $age_ranges = [
-        'Under 30' => 0,
-        '30-39' => 0,
-        '40-49' => 0,
-        '50-59' => 0,
-        '60-69' => 0,
-        '70+' => 0,
-      ];
-      
-      foreach ($age_results as $age) {
-        if ($age < 30) {
-          $age_ranges['Under 30']++;
-        } elseif ($age < 40) {
-          $age_ranges['30-39']++;
-        } elseif ($age < 50) {
-          $age_ranges['40-49']++;
-        } elseif ($age < 60) {
-          $age_ranges['50-59']++;
-        } elseif ($age < 70) {
-          $age_ranges['60-69']++;
-        } else {
-          $age_ranges['70+']++;
-        }
-      }
-      
+      // Age at diagnosis ranges - calculate from year_diagnosed and date_of_birth
+      // For now, skip this since we'd need to join tables
       $data['age_at_diagnosis'] = [
-        'labels' => array_keys($age_ranges),
-        'values' => array_values($age_ranges),
+        'labels' => [],
+        'values' => [],
       ];
       
       // Family history counts
@@ -800,40 +777,42 @@ class NFRPublicController extends ControllerBase {
     
     $html .= '</div></div></div>';
     
-    // Service Type Card
-    $html .= '<div class="col-lg-6">';
-    $html .= '<div class="card card-forseti h-100">';
-    $html .= '<div class="card-body">';
-    $html .= '<h3 class="h4 mb-4 text-white"><i class="fas fa-briefcase me-2"></i>Service Type</h3>';
-    
-    $html .= '<div class="mb-3">';
-    $html .= '<div class="d-flex justify-content-between text-white mb-2">';
-    $html .= '<span>Career Firefighters</span>';
-    $html .= '<strong>' . number_format($stats['career_firefighters']) . '</strong>';
-    $html .= '</div>';
-    $html .= '<div class="progress" style="height: 25px;">';
-    $total_type = $stats['career_firefighters'] + $stats['volunteer_firefighters'];
-    $career_pct = $total_type > 0 ? round(($stats['career_firefighters'] / $total_type) * 100, 1) : 0;
-    $html .= '<div class="progress-bar bg-warning" style="width: ' . $career_pct . '%">' . $career_pct . '%</div>';
-    $html .= '</div></div>';
-    
-    $html .= '<div class="mb-3">';
-    $html .= '<div class="d-flex justify-content-between text-white mb-2">';
-    $html .= '<span>Volunteer Firefighters</span>';
-    $html .= '<strong>' . number_format($stats['volunteer_firefighters']) . '</strong>';
-    $html .= '</div>';
-    $html .= '<div class="progress" style="height: 25px;">';
-    $volunteer_pct = $total_type > 0 ? round(($stats['volunteer_firefighters'] / $total_type) * 100, 1) : 0;
-    $html .= '<div class="progress-bar bg-primary" style="width: ' . $volunteer_pct . '%">' . $volunteer_pct . '%</div>';
-    $html .= '</div></div>';
-    
-    $html .= '<div class="mt-4 pt-3 border-top border-secondary">';
-    $html .= '<div class="d-flex justify-content-between text-white">';
-    $html .= '<span><strong>Cancer Diagnoses Tracked</strong></span>';
-    $html .= '<strong class="text-danger">' . number_format($stats['cancer_diagnoses']) . '</strong>';
-    $html .= '</div></div>';
-    
-    $html .= '</div></div></div>';
+    // Service Type Card - Only show if data exists
+    if ($stats['career_firefighters'] > 0 || $stats['volunteer_firefighters'] > 0) {
+      $html .= '<div class="col-lg-6">';
+      $html .= '<div class="card card-forseti h-100">';
+      $html .= '<div class="card-body">';
+      $html .= '<h3 class="h4 mb-4 text-white"><i class="fas fa-briefcase me-2"></i>Service Type</h3>';
+      
+      $html .= '<div class="mb-3">';
+      $html .= '<div class="d-flex justify-content-between text-white mb-2">';
+      $html .= '<span>Career Firefighters</span>';
+      $html .= '<strong>' . number_format($stats['career_firefighters']) . '</strong>';
+      $html .= '</div>';
+      $html .= '<div class="progress" style="height: 25px;">';
+      $total_type = $stats['career_firefighters'] + $stats['volunteer_firefighters'];
+      $career_pct = $total_type > 0 ? round(($stats['career_firefighters'] / $total_type) * 100, 1) : 0;
+      $html .= '<div class="progress-bar bg-warning" style="width: ' . $career_pct . '%">' . $career_pct . '%</div>';
+      $html .= '</div></div>';
+      
+      $html .= '<div class="mb-3">';
+      $html .= '<div class="d-flex justify-content-between text-white mb-2">';
+      $html .= '<span>Volunteer Firefighters</span>';
+      $html .= '<strong>' . number_format($stats['volunteer_firefighters']) . '</strong>';
+      $html .= '</div>';
+      $html .= '<div class="progress" style="height: 25px;">';
+      $volunteer_pct = $total_type > 0 ? round(($stats['volunteer_firefighters'] / $total_type) * 100, 1) : 0;
+      $html .= '<div class="progress-bar bg-primary" style="width: ' . $volunteer_pct . '%">' . $volunteer_pct . '%</div>';
+      $html .= '</div></div>';
+      
+      $html .= '<div class="mt-4 pt-3 border-top border-secondary">';
+      $html .= '<div class="d-flex justify-content-between text-white">';
+      $html .= '<span><strong>Cancer Diagnoses Tracked</strong></span>';
+      $html .= '<strong class="text-danger">' . number_format($stats['cancer_diagnoses']) . '</strong>';
+      $html .= '</div></div>';
+      
+      $html .= '</div></div></div>';
+    }
     
     $html .= '</div>'; // End additional stats row
     
@@ -849,7 +828,7 @@ class NFRPublicController extends ControllerBase {
     $html .= '<div class="col-lg-6">';
     $html .= '<div class="card card-forseti h-100">';
     $html .= '<div class="card-body">';
-    $html .= '<h3 class="h5 mb-3 text-white">Race & Ethnicity Distribution</h3>';
+    $html .= '<h3 class="h5 mb-3 text-white">Race &amp; Ethnicity Distribution</h3>';
     $html .= '<canvas id="race-chart" style="max-height: 300px;"></canvas>';
     $html .= '</div></div></div>';
     
@@ -901,14 +880,6 @@ class NFRPublicController extends ControllerBase {
     $html .= '<div class="card-body">';
     $html .= '<h3 class="h5 mb-3 text-white">Family Cancer History</h3>';
     $html .= '<canvas id="family-history-chart" style="max-height: 300px;"></canvas>';
-    $html .= '</div></div></div>';
-    
-    // Age at Diagnosis Bar Chart
-    $html .= '<div class="col-lg-12">';
-    $html .= '<div class="card card-forseti">';
-    $html .= '<div class="card-body">';
-    $html .= '<h3 class="h5 mb-3 text-white">Age at Cancer Diagnosis</h3>';
-    $html .= '<canvas id="age-diagnosis-chart" style="max-height: 300px;"></canvas>';
     $html .= '</div></div></div>';
     
     $html .= '</div>'; // End cancer charts row

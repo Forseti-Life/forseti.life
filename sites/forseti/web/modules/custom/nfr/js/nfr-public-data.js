@@ -147,6 +147,9 @@
       
       console.log('Demographic data:', demographicData);
       console.log('Cancer data:', cancerData);
+      console.log('Race data check:', demographicData.race);
+      console.log('Race chart element:', document.getElementById('race-chart'));
+      console.log('Education chart element:', document.getElementById('education-chart'));
       
       // Common chart options
       const chartDefaults = {
@@ -178,9 +181,10 @@
       ];
       
       // Race/Ethnicity Pie Chart
-      if (demographicData.race && $('#race-chart', context).length && !$('#race-chart', context).hasClass('chart-initialized')) {
-        console.log('Creating race chart');
-        const ctx = document.getElementById('race-chart').getContext('2d');
+      const raceCharts = once('race-chart', '#race-chart', context);
+      if (raceCharts.length && demographicData.race && demographicData.race.labels && demographicData.race.labels.length) {
+        console.log('Creating race chart with data:', demographicData.race);
+        const ctx = raceCharts[0].getContext('2d');
         new Chart(ctx, {
           type: 'pie',
           data: {
@@ -210,12 +214,15 @@
             }
           }
         });
-        $('#race-chart', context).addClass('chart-initialized');
+      } else {
+        console.log('Race chart not created - missing element or data');
       }
       
       // Education Level Pie Chart
-      if (demographicData.education && $('#education-chart', context).length && !$('#education-chart', context).hasClass('chart-initialized')) {
-        const ctx = document.getElementById('education-chart').getContext('2d');
+      const educationCharts = once('education-chart', '#education-chart', context);
+      if (educationCharts.length && demographicData.education && demographicData.education.labels && demographicData.education.labels.length) {
+        console.log('Creating education chart with data:', demographicData.education);
+        const ctx = educationCharts[0].getContext('2d');
         new Chart(ctx, {
           type: 'pie',
           data: {
@@ -245,12 +252,15 @@
             }
           }
         });
-        $('#education-chart', context).addClass('chart-initialized');
+      } else {
+        console.log('Education chart not created - missing element or data');
       }
       
       // Marital Status Pie Chart
-      if (demographicData.marital && $('#marital-chart', context).length && !$('#marital-chart', context).hasClass('chart-initialized')) {
-        const ctx = document.getElementById('marital-chart').getContext('2d');
+      const maritalCharts = once('marital-chart', '#marital-chart', context);
+      if (maritalCharts.length && demographicData.marital && demographicData.marital.labels && demographicData.marital.labels.length) {
+        console.log('Creating marital chart');
+        const ctx = maritalCharts[0].getContext('2d');
         new Chart(ctx, {
           type: 'pie',
           data: {
@@ -280,12 +290,13 @@
             }
           }
         });
-        $('#marital-chart', context).addClass('chart-initialized');
       }
       
       // BMI Distribution Bar Chart
-      if (demographicData.bmi && $('#bmi-chart', context).length && !$('#bmi-chart', context).hasClass('chart-initialized')) {
-        const ctx = document.getElementById('bmi-chart').getContext('2d');
+      const bmiCharts = once('bmi-chart', '#bmi-chart', context);
+      if (bmiCharts.length && demographicData.bmi && demographicData.bmi.labels && demographicData.bmi.labels.length) {
+        console.log('Creating BMI chart');
+        const ctx = bmiCharts[0].getContext('2d');
         new Chart(ctx, {
           type: 'bar',
           data: {
@@ -322,12 +333,13 @@
             }
           }
         });
-        $('#bmi-chart', context).addClass('chart-initialized');
       }
       
       // Cancer Types Bar Chart
-      if (cancerData.types && $('#cancer-types-chart', context).length && !$('#cancer-types-chart', context).hasClass('chart-initialized')) {
-        const ctx = document.getElementById('cancer-types-chart').getContext('2d');
+      const cancerTypesCharts = once('cancer-types-chart', '#cancer-types-chart', context);
+      if (cancerTypesCharts.length && cancerData.types && cancerData.types.labels && cancerData.types.labels.length) {
+        console.log('Creating cancer types chart');
+        const ctx = cancerTypesCharts[0].getContext('2d');
         new Chart(ctx, {
           type: 'bar',
           data: {
@@ -365,12 +377,13 @@
             }
           }
         });
-        $('#cancer-types-chart', context).addClass('chart-initialized');
       }
       
       // Family History Pie Chart
-      if (cancerData.family_history && $('#family-history-chart', context).length && !$('#family-history-chart', context).hasClass('chart-initialized')) {
-        const ctx = document.getElementById('family-history-chart').getContext('2d');
+      const familyHistoryCharts = once('family-history-chart', '#family-history-chart', context);
+      if (familyHistoryCharts.length && cancerData.family_history && cancerData.family_history.labels && cancerData.family_history.labels.length) {
+        console.log('Creating family history chart');
+        const ctx = familyHistoryCharts[0].getContext('2d');
         new Chart(ctx, {
           type: 'doughnut',
           data: {
@@ -403,49 +416,6 @@
             }
           }
         });
-        $('#family-history-chart', context).addClass('chart-initialized');
-      }
-      
-      // Age at Diagnosis Bar Chart
-      if (cancerData.age_at_diagnosis && $('#age-diagnosis-chart', context).length && !$('#age-diagnosis-chart', context).hasClass('chart-initialized')) {
-        const ctx = document.getElementById('age-diagnosis-chart').getContext('2d');
-        new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: cancerData.age_at_diagnosis.labels,
-            datasets: [{
-              label: 'Number of Diagnoses',
-              data: cancerData.age_at_diagnosis.values,
-              backgroundColor: 'rgba(124, 77, 255, 0.7)',
-              borderColor: 'rgba(124, 77, 255, 1)',
-              borderWidth: 1
-            }]
-          },
-          options: {
-            ...chartDefaults,
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  color: '#ffffff',
-                  stepSize: 1
-                },
-                grid: {
-                  color: 'rgba(255, 255, 255, 0.1)'
-                }
-              },
-              x: {
-                ticks: {
-                  color: '#ffffff'
-                },
-                grid: {
-                  color: 'rgba(255, 255, 255, 0.1)'
-                }
-              }
-            }
-          }
-        });
-        $('#age-diagnosis-chart', context).addClass('chart-initialized');
       }
     }
   };
