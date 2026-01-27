@@ -2014,7 +2014,7 @@ class NFRValidationController extends ControllerBase {
     return [
       'demographics' => [
         'race_ethnicity' => ['white', 'black', 'asian', 'hispanic', 'american_indian'],
-        'education_level' => 'graduate',
+        'education_level' => 'college_graduate',
         'marital_status' => 'married',
         'height_inches' => 78,
         'weight_pounds' => 260,
@@ -2451,7 +2451,7 @@ class NFRValidationController extends ControllerBase {
   private function generateRandomQuestionnaireData(int $uid): array {
     // Form field options - must match exactly
     $races = ['american_indian', 'asian', 'black', 'hispanic', 'middle_eastern', 'pacific_islander', 'white', 'other'];
-    $education = ['less_than_hs', 'hs_ged', 'some_college', 'associate', 'bachelor', 'graduate'];
+    $education = ['never_attended', 'elementary', 'some_hs', 'hs_ged', 'some_college', 'college_graduate', 'prefer_not_answer'];
     $employment_types = ['career', 'volunteer', 'paid_on_call', 'seasonal', 'wildland', 'military', 'other'];
     $marital_statuses = ['single', 'married', 'divorced', 'widowed', 'separated'];
     
