@@ -2152,7 +2152,7 @@ class NFRValidationController extends ControllerBase {
       'demographics' => [
         'race_ethnicity' => ['white'],
         'education_level' => 'hs_ged',
-        'marital_status' => 'single',
+        'marital_status' => 'never_married',
         'height_inches' => 60,
         'weight_pounds' => 140,
       ],
@@ -2262,7 +2262,7 @@ class NFRValidationController extends ControllerBase {
       'demographics' => [
         'race_ethnicity' => ['white'],
         'education_level' => 'hs_ged',
-        'marital_status' => 'single',
+        'marital_status' => 'never_married',
         'height_inches' => 60,
         'weight_pounds' => 140,
       ],
@@ -2453,7 +2453,7 @@ class NFRValidationController extends ControllerBase {
     $races = ['american_indian', 'asian', 'black', 'hispanic', 'middle_eastern', 'pacific_islander', 'white', 'other'];
     $education = ['never_attended', 'elementary', 'some_hs', 'hs_ged', 'some_college', 'college_graduate', 'prefer_not_answer'];
     $employment_types = ['career', 'volunteer', 'paid_on_call', 'seasonal', 'wildland', 'military', 'other'];
-    $marital_statuses = ['single', 'married', 'divorced', 'widowed', 'separated'];
+    $marital_statuses = ['married', 'living_with_partner', 'never_married', 'divorced', 'separated', 'widowed', 'prefer_not_answer'];
     
     // Randomly select 1-3 races (checkboxes format: key => key)
     $num_races = rand(1, 3);
