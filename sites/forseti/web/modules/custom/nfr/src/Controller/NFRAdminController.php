@@ -366,6 +366,8 @@ class NFRAdminController extends ControllerBase {
    * Get all participants.
    */
   private function getAllParticipants(): array {
+    $request = \Drupal::request();
+    
     $query = $this->database->select('nfr_user_profile', 'p')
       ->fields('p')
       ->orderBy('p.created', 'DESC');
@@ -382,6 +384,37 @@ class NFRAdminController extends ControllerBase {
     $query->leftJoin('users_field_data', 'u', 'p.uid = u.uid');
     $query->addField('u', 'mail', 'primary_email');
     
+    // Apply filters from query parameters
+    if ($participant_id = $request->query->get('participant_id')) {
+      $query->condition('p.participant_id', '%' . $this->database->escapeLike($participant_id) . '%', 'LIKE');
+    }
+    
+    if ($name = $request->query->get('name')) {
+      $or = $query->orConditionGroup()
+        ->condition('p.first_name', '%' . $this->database->escapeLike($name) . '%', 'LIKE')
+        ->condition('p.last_name', '%' . $this->database->escapeLike($name) . '%', 'LIKE');
+      $query->condition($or);
+    }
+    
+    if ($email = $request->query->get('email')) {
+      $query->condition('u.mail', '%' . $this->database->escapeLike($email) . '%', 'LIKE');
+    }
+    
+    if ($state = $request->query->get('state')) {
+      $query->condition('p.state', $state);
+    }
+    
+    if ($enrolled = $request->query->get('enrolled')) {
+      // Filter by enrollment date range or specific value
+      if ($enrolled === 'last_30_days') {
+        $query->condition('p.created', strtotime('-30 days'), '>=');
+      } elseif ($enrolled === 'last_90_days') {
+        $query->condition('p.created', strtotime('-90 days'), '>=');
+      } elseif ($enrolled === 'this_year') {
+        $query->condition('p.created', strtotime('January 1'), '>=');
+      }
+    }
+    
     return $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
   }
 
@@ -389,29 +422,87 @@ class NFRAdminController extends ControllerBase {
    * Build participant list HTML.
    */
   private function buildParticipantList(array $participants): string {
+    $request = \Drupal::request();
+    
+    // Get current filter values
+    $filter_participant_id = $request->query->get('participant_id', '');
+    $filter_name = $request->query->get('name', '');
+    $filter_email = $request->query->get('email', '');
+    $filter_state = $request->query->get('state', '');
+    $filter_enrolled = $request->query->get('enrolled', '');
+    
+    // Get unique states for dropdown
+    $all_participants_query = $this->database->select('nfr_user_profile', 'p')
+      ->fields('p', ['state'])
+      ->distinct()
+      ->condition('state', '', '!=')
+      ->orderBy('state', 'ASC');
+    $states = $all_participants_query->execute()->fetchCol();
+    
     $html = '<div class="participant-list-page">';
     
     // Header
     $html .= '<div class="page-header">';
     $html .= '<h1>' . $this->t('Participant Management') . '</h1>';
     $html .= '<div class="page-actions">';
-    $html .= '<button class="btn btn-secondary" onclick="window.print()">' . $this->t('Export List') . '</button>';
+    $html .= '<a href="/admin/nfr/participants" class="btn btn-secondary">' . $this->t('Clear Filters') . '</a>';
     $html .= '<a href="/admin/nfr" class="btn btn-primary">' . $this->t('← Back to Dashboard') . '</a>';
     $html .= '</div>';
     $html .= '</div>';
 
-    // Filters
-    $html .= '<div class="list-filters">';
-    $html .= '<input type="text" id="search-filter" placeholder="' . $this->t('Search by name, ID, or email...') . '" class="filter-input">';
-    $html .= '<select id="state-filter" class="filter-select">';
+    // Filters Form
+    $html .= '<form method="GET" action="/admin/nfr/participants" class="list-filters-form">';
+    $html .= '<div class="filters-container">';
+    
+    // Participant ID filter
+    $html .= '<div class="filter-group">';
+    $html .= '<label for="participant-id-filter">' . $this->t('Participant ID') . '</label>';
+    $html .= '<input type="text" id="participant-id-filter" name="participant_id" value="' . htmlspecialchars($filter_participant_id) . '" placeholder="' . $this->t('Enter ID...') . '" class="filter-input">';
+    $html .= '</div>';
+    
+    // Name filter
+    $html .= '<div class="filter-group">';
+    $html .= '<label for="name-filter">' . $this->t('Name') . '</label>';
+    $html .= '<input type="text" id="name-filter" name="name" value="' . htmlspecialchars($filter_name) . '" placeholder="' . $this->t('First or Last Name...') . '" class="filter-input">';
+    $html .= '</div>';
+    
+    // Email filter
+    $html .= '<div class="filter-group">';
+    $html .= '<label for="email-filter">' . $this->t('Email') . '</label>';
+    $html .= '<input type="email" id="email-filter" name="email" value="' . htmlspecialchars($filter_email) . '" placeholder="' . $this->t('Email address...') . '" class="filter-input">';
+    $html .= '</div>';
+    
+    // State filter
+    $html .= '<div class="filter-group">';
+    $html .= '<label for="state-filter">' . $this->t('State') . '</label>';
+    $html .= '<select id="state-filter" name="state" class="filter-select">';
     $html .= '<option value="">' . $this->t('All States') . '</option>';
-    $html .= '</select>';
-    $html .= '<select id="status-filter" class="filter-select">';
-    $html .= '<option value="">' . $this->t('All Statuses') . '</option>';
-    $html .= '<option value="complete">' . $this->t('Complete') . '</option>';
-    $html .= '<option value="incomplete">' . $this->t('Incomplete') . '</option>';
+    foreach ($states as $state) {
+      $selected = ($filter_state === $state) ? ' selected' : '';
+      $html .= '<option value="' . htmlspecialchars($state) . '"' . $selected . '>' . htmlspecialchars($state) . '</option>';
+    }
     $html .= '</select>';
     $html .= '</div>';
+    
+    // Enrolled filter
+    $html .= '<div class="filter-group">';
+    $html .= '<label for="enrolled-filter">' . $this->t('Enrolled') . '</label>';
+    $html .= '<select id="enrolled-filter" name="enrolled" class="filter-select">';
+    $html .= '<option value=""' . ($filter_enrolled === '' ? ' selected' : '') . '>' . $this->t('All Time') . '</option>';
+    $html .= '<option value="last_30_days"' . ($filter_enrolled === 'last_30_days' ? ' selected' : '') . '>' . $this->t('Last 30 Days') . '</option>';
+    $html .= '<option value="last_90_days"' . ($filter_enrolled === 'last_90_days' ? ' selected' : '') . '>' . $this->t('Last 90 Days') . '</option>';
+    $html .= '<option value="this_year"' . ($filter_enrolled === 'this_year' ? ' selected' : '') . '>' . $this->t('This Year') . '</option>';
+    $html .= '</select>';
+    $html .= '</div>';
+    
+    // Filter buttons
+    $html .= '<div class="filter-actions">';
+    $html .= '<button type="submit" class="btn btn-primary">' . $this->t('Apply Filters') . '</button>';
+    $html .= '<a href="/admin/nfr/participants" class="btn btn-link">' . $this->t('Reset') . '</a>';
+    $html .= '</div>';
+    
+    $html .= '</div>'; // filters-container
+    $html .= '</form>';
 
     // Statistics bar
     $total = count($participants);
@@ -447,25 +538,31 @@ class NFRAdminController extends ControllerBase {
     $html .= '<th>' . $this->t('Actions') . '</th>';
     $html .= '</tr></thead><tbody>';
     
-    foreach ($participants as $participant) {
-      $html .= '<tr>';
-      $html .= '<td><strong>' . htmlspecialchars($participant['participant_id'] ?? 'N/A') . '</strong></td>';
-      $html .= '<td>' . htmlspecialchars(($participant['first_name'] ?? '') . ' ' . ($participant['last_name'] ?? '')) . '</td>';
-      $html .= '<td>' . htmlspecialchars($participant['primary_email'] ?? 'N/A') . '</td>';
-      $html .= '<td>' . htmlspecialchars($participant['state'] ?? 'N/A') . '</td>';
-      $html .= '<td>' . date('M j, Y', (int) ($participant['created'] ?? time())) . '</td>';
-      
-      $q_status = ($participant['questionnaire_completed'] ?? false) ? 'complete' : 'incomplete';
-      $html .= '<td><span class="status-badge status-' . $q_status . '">' . 
-        ($q_status === 'complete' ? $this->t('Complete') : $this->t('Incomplete')) . '</span></td>';
-      
-      $l_status = ($participant['consented_to_registry_linkage'] ?? false) ? 'consented' : 'no-consent';
-      $html .= '<td><span class="status-badge status-' . $l_status . '">' . 
-        ($l_status === 'consented' ? $this->t('Yes') : $this->t('No')) . '</span></td>';
-      
-      $html .= '<td><a href="/admin/nfr/participant/' . htmlspecialchars($participant['participant_id'] ?? '') . '" class="btn-link">' . 
-        $this->t('View') . '</a></td>';
-      $html .= '</tr>';
+    if (empty($participants)) {
+      $html .= '<tr><td colspan="8" class="text-center text-muted py-4">';
+      $html .= $this->t('No participants found matching the current filters.');
+      $html .= '</td></tr>';
+    } else {
+      foreach ($participants as $participant) {
+        $html .= '<tr>';
+        $html .= '<td><strong>' . htmlspecialchars($participant['participant_id'] ?? 'N/A') . '</strong></td>';
+        $html .= '<td>' . htmlspecialchars(($participant['first_name'] ?? '') . ' ' . ($participant['last_name'] ?? '')) . '</td>';
+        $html .= '<td>' . htmlspecialchars($participant['primary_email'] ?? 'N/A') . '</td>';
+        $html .= '<td>' . htmlspecialchars($participant['state'] ?? 'N/A') . '</td>';
+        $html .= '<td>' . date('M j, Y', (int) ($participant['created'] ?? time())) . '</td>';
+        
+        $q_status = ($participant['questionnaire_completed'] ?? false) ? 'complete' : 'incomplete';
+        $html .= '<td><span class="status-badge status-' . $q_status . '">' . 
+          ($q_status === 'complete' ? $this->t('Complete') : $this->t('Incomplete')) . '</span></td>';
+        
+        $l_status = ($participant['consented_to_registry_linkage'] ?? false) ? 'consented' : 'no-consent';
+        $html .= '<td><span class="status-badge status-' . $l_status . '">' . 
+          ($l_status === 'consented' ? $this->t('Yes') : $this->t('No')) . '</span></td>';
+        
+        $html .= '<td><a href="/admin/nfr/participant/' . htmlspecialchars($participant['participant_id'] ?? '') . '" class="btn-link">' . 
+          $this->t('View') . '</a></td>';
+        $html .= '</tr>';
+      }
     }
     
     $html .= '</tbody></table>';
