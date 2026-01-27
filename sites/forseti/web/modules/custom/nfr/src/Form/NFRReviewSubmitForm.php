@@ -708,7 +708,7 @@ class NFRReviewSubmitForm extends FormBase {
 
     if ($data['cancer_diagnosis']) {
       $cancers = $this->database->select('nfr_cancer_diagnoses', 'cd')
-        ->fields('cd', ['cancer_type', 'diagnosis_year', 'age_at_diagnosis'])
+        ->fields('cd', ['cancer_type', 'year_diagnosed'])
         ->condition('uid', $uid)
         ->execute()
         ->fetchAll(\PDO::FETCH_ASSOC);
@@ -718,11 +718,8 @@ class NFRReviewSubmitForm extends FormBase {
         foreach ($cancers as $cancer) {
           $html .= '<li>';
           $html .= '<strong>' . htmlspecialchars($cancer['cancer_type']) . '</strong>';
-          if (!empty($cancer['diagnosis_year'])) {
-            $html .= ' - ' . htmlspecialchars($cancer['diagnosis_year']);
-            if (!empty($cancer['age_at_diagnosis'])) {
-              $html .= ' (age ' . htmlspecialchars($cancer['age_at_diagnosis']) . ')';
-            }
+          if (!empty($cancer['year_diagnosed'])) {
+            $html .= ' - ' . htmlspecialchars($cancer['year_diagnosed']);
           }
           $html .= '</li>';
         }
