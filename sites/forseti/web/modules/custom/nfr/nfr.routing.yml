@@ -126,6 +126,30 @@ nfr.documentation.compliance:
   requirements:
     _permission: 'access content'
 
+nfr.documentation.reporting:
+  path: '/nfr/documentation/reporting'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRDocumentationController::reporting'
+    _title: 'Reporting & Analytics'
+  requirements:
+    _permission: 'access content'
+
+nfr.documentation.correlation_analysis:
+  path: '/nfr/documentation/reporting/correlation-analysis'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRDocumentationController::correlationAnalysis'
+    _title: 'Correlation Analysis Table Design'
+  requirements:
+    _permission: 'access content'
+
+nfr.documentation.correlation_analysis_guide:
+  path: '/nfr/documentation/reporting/correlation-analysis-guide'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRDocumentationController::correlationAnalysisGuide'
+    _title: 'Correlation Analysis User Guide'
+  requirements:
+    _permission: 'access content'
+
 # Public Pages
 # Note: Most public content pages should be created as Drupal Basic Page nodes
 # and accessed via their aliases (e.g., /nfr/about, /nfr/how-it-works, etc.)
@@ -540,7 +564,23 @@ nfr.admin_reports:
   path: '/admin/nfr/reports'
   defaults:
     _controller: '\Drupal\nfr\Controller\NFRAdminController::reportBuilder'
-    _title: 'Report Builder'
+    _title: 'Reports & Analysis'
+  requirements:
+    _permission: 'view nfr reports'
+
+nfr.admin_reports_correlation:
+  path: '/admin/nfr/reports/correlation'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRAdminController::correlationAnalysis'
+    _title: 'Correlation Analysis'
+  requirements:
+    _permission: 'view nfr reports'
+
+nfr.admin_reports_cluster:
+  path: '/admin/nfr/reports/cluster'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRAdminController::clusterAnalysis'
+    _title: 'Cluster Analysis'
   requirements:
     _permission: 'view nfr reports'
 

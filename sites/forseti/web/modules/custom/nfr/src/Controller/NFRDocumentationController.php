@@ -71,13 +71,40 @@ class NFRDocumentationController extends ControllerBase {
       ],
     ];
 
+    // Reporting documentation.
+    $reporting_docs = [
+      'reporting' => [
+        'title' => 'Reporting & Analytics',
+        'description' => 'Overview of NFR reporting capabilities including correlation analysis, cluster analysis, and statistical methods for analyzing firefighter health outcomes.',
+        'is_landing' => TRUE,
+      ],
+      'correlation-analysis' => [
+        'title' => 'Correlation Analysis Table Design',
+        'description' => 'Technical design specification for nfr_correlation_analysis denormalized table with 169 fields aggregating data from 10 NFR tables. Includes cache table designs for pre-computed results.',
+        'file' => 'NFR_CORRELATION_ANALYSIS_TABLE.md',
+        'technical_docs' => TRUE,
+        'status' => $validation_status['correlation_analysis'],
+      ],
+      'correlation-analysis-guide' => [
+        'title' => 'Correlation Analysis User Guide',
+        'description' => 'User guide for running correlation and cluster analysis on NFR data. Includes variable selection, statistical interpretation, and practical examples.',
+        'file' => 'CORRELATION_ANALYSIS_USER_GUIDE.md',
+        'technical_docs' => TRUE,
+        'status' => $validation_status['correlation_analysis_guide'],
+      ],
+    ];
+
     $dev_items = [];
     foreach ($development_docs as $key => $doc) {
       $route_key = str_replace('-', '_', $key);
       $url = Url::fromRoute('nfr.documentation.' . $route_key);
       $link = Link::fromTextAndUrl($doc['title'], $url);
       
-      $file_path = isset($doc['root_dir']) && $doc['root_dir'] ? $module_path . '/' . $doc['file'] : $docs_path . '/' . $doc['file'];
+      if (isset($doc['technical_docs']) && $doc['technical_docs']) {
+        $file_path = DRUPAL_ROOT . '/../docs/technical/' . $doc['file'];
+      } else {
+        $file_path = isset($doc['root_dir']) && $doc['root_dir'] ? $module_path . '/' . $doc['file'] : $docs_path . '/' . $doc['file'];
+      }
       $file_exists = file_exists($file_path);
       $file_size = $file_exists ? number_format(filesize($file_path) / 1024, 2) . ' KB' : 'N/A';
       
@@ -125,9 +152,44 @@ class NFRDocumentationController extends ControllerBase {
       ];
     }
 
+    // Build reporting items.
+    $reporting_items = [];
+    foreach ($reporting_docs as $key => $doc) {
+      // Skip the landing page from the index listing
+      if (isset($doc['is_landing']) && $doc['is_landing']) {
+        continue;
+      }
+      
+      $route_key = str_replace('-', '_', $key);
+      $url = Url::fromRoute('nfr.documentation.' . $route_key);
+      $link = Link::fromTextAndUrl($doc['title'], $url);
+      
+      $item = [
+        'link' => $link,
+        'description' => $doc['description'],
+      ];
+      
+      if (isset($doc['technical_docs']) && $doc['technical_docs']) {
+        $file_path = DRUPAL_ROOT . '/../docs/technical/' . $doc['file'];
+      } else {
+        $file_path = isset($doc['root_dir']) && $doc['root_dir'] ? $module_path . '/' . $doc['file'] : $docs_path . '/' . $doc['file'];
+      }
+      $file_exists = file_exists($file_path);
+      $file_size = $file_exists ? number_format(filesize($file_path) / 1024, 2) . ' KB' : 'N/A';
+      
+      $item['file'] = $doc['file'];
+      $item['file_size'] = $file_size;
+      if (isset($doc['status'])) {
+        $item['status'] = $doc['status'];
+      }
+      
+      $reporting_items[] = $item;
+    }
+
     return [
       '#theme' => 'nfr_documentation',
       '#development_docs' => $dev_items,
+      '#reporting_docs' => $reporting_items,
       '#cdc_docs' => $cdc_items,
       '#attached' => [
         'library' => [
@@ -228,6 +290,71 @@ class NFRDocumentationController extends ControllerBase {
   }
 
   /**
+   * Display Correlation Analysis Table Design documentation.
+   *
+   * @return array
+   *   Render array.
+   */
+  public function correlationAnalysis(): array {
+    return $this->renderMarkdownDocument('NFR_CORRELATION_ANALYSIS_TABLE.md', 'Correlation Analysis Table Design', FALSE, TRUE);
+  }
+
+  /**
+   * Display Correlation Analysis User Guide.
+   *
+   * @return array
+   *   Render array.
+   */
+  public function correlationAnalysisGuide(): array {
+    return $this->renderMarkdownDocument('CORRELATION_ANALYSIS_USER_GUIDE.md', 'Correlation Analysis User Guide', FALSE, TRUE);
+  }
+
+  /**
+   * Reporting landing page.
+   *
+   * @return array
+   *   Render array.
+   */
+  public function reporting(): array {
+    $build = [];
+    
+    $build['intro'] = [
+      '#type' => 'markup',
+      '#markup' => '<div class="reporting-intro"><h2>NFR Reporting & Analytics</h2><p>The National Firefighter Registry provides comprehensive statistical analysis tools for investigating relationships between firefighter exposures and health outcomes. This section documents the data infrastructure, analytical methods, and user interfaces available for research.</p></div>',
+    ];
+
+    $build['sections'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['reporting-sections']],
+    ];
+
+    // Correlation Analysis section.
+    $correlation_url = Url::fromRoute('nfr.documentation.correlation_analysis');
+    $build['sections']['correlation'] = [
+      '#type' => 'markup',
+      '#markup' => '<div class="doc-item"><h3>' . Link::fromTextAndUrl('Correlation Analysis Table Design', $correlation_url)->toString() . '</h3><p class="description">Technical design specification for nfr_correlation_analysis denormalized table with 169 fields aggregating data from 10 NFR tables. Includes cache table designs for pre-computed correlation and cluster analysis results.</p><p><strong>Contents:</strong> Schema design, data sources, population strategy, statistical methods, performance optimization</p></div>',
+    ];
+
+    // User Guide section.
+    $guide_url = Url::fromRoute('nfr.documentation.correlation_analysis_guide');
+    $build['sections']['guide'] = [
+      '#type' => 'markup',
+      '#markup' => '<div class="doc-item"><h3>' . Link::fromTextAndUrl('Correlation Analysis User Guide', $guide_url)->toString() . '</h3><p class="description">User guide for running correlation and cluster analysis on NFR data through the web interface at /admin/nfr/reports.</p><p><strong>Contents:</strong> Variable selection, Pearson/Spearman correlation, K-means clustering, result interpretation, practical examples</p></div>',
+    ];
+
+    // Analysis Tools section.
+    $tools_url = Url::fromRoute('nfr.admin_reports');
+    $build['sections']['tools'] = [
+      '#type' => 'markup',
+      '#markup' => '<div class="doc-item"><h3>' . Link::fromTextAndUrl('Run Analysis Tools', $tools_url)->toString() . '</h3><p class="description">Access the live analysis interface to run correlations and cluster analysis on NFR data.</p><p><strong>Features:</strong> 100+ variables, Pearson/Spearman correlation, K-means clustering (k=2-10), CSV export, elbow curves</p></div>',
+    ];
+
+    $build['#attached']['library'][] = 'nfr/documentation';
+
+    return $build;
+  }
+
+  /**
    * Helper function to render markdown documents.
    *
    * @param string $filename
@@ -236,13 +363,19 @@ class NFRDocumentationController extends ControllerBase {
    *   The page title.
    * @param bool $root_dir
    *   Whether file is in module root instead of documents/.
+   * @param bool $technical_docs
+   *   Whether file is in /docs/technical/ instead of module.
    *
    * @return array
    *   Render array.
    */
-  private function renderMarkdownDocument(string $filename, string $title, bool $root_dir = FALSE): array {
-    $module_path = \Drupal::service('extension.list.module')->getPath('nfr');
-    $file_path = $root_dir ? $module_path . '/' . $filename : $module_path . '/documents/' . $filename;
+  private function renderMarkdownDocument(string $filename, string $title, bool $root_dir = FALSE, bool $technical_docs = FALSE): array {
+    if ($technical_docs) {
+      $file_path = DRUPAL_ROOT . '/../../../docs/technical/' . $filename;
+    } else {
+      $module_path = \Drupal::service('extension.list.module')->getPath('nfr');
+      $file_path = $root_dir ? $module_path . '/' . $filename : $module_path . '/documents/' . $filename;
+    }
 
     if (!file_exists($file_path)) {
       throw new NotFoundHttpException('Documentation file not found.');
@@ -488,6 +621,18 @@ class NFRDocumentationController extends ControllerBase {
         'label' => 'Complete',
         'class' => 'success',
         'details' => 'Typed properties, dependency injection, modern Drupal patterns',
+      ],
+      'correlation_analysis' => [
+        'percent' => 0,
+        'label' => 'Design Phase',
+        'class' => 'info',
+        'details' => 'Design document complete, implementation pending',
+      ],
+      'correlation_analysis_guide' => [
+        'percent' => 0,
+        'label' => 'Design Phase',
+        'class' => 'info',
+        'details' => 'User guide complete, awaiting full implementation',
       ],
     ];
   }

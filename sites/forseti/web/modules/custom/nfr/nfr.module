@@ -90,6 +90,7 @@ function nfr_theme() {
     'nfr_documentation' => [
       'variables' => [
         'development_docs' => [],
+        'reporting_docs' => [],
         'cdc_docs' => [],
       ],
       'template' => 'nfr-documentation',

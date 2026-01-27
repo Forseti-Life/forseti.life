@@ -196,63 +196,6 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
       ],
     ];
 
-    // Add detailed docs for authenticated users
-    if ($is_logged_in || $is_admin || $is_researcher) {
-      $doc_children = array_merge($doc_children, [
-        [
-          'title' => $this->t('Business Requirements'),
-          'url' => Url::fromRoute('nfr.documentation.business_requirements'),
-          'weight' => 1,
-        ],
-        [
-          'title' => $this->t('User Roles & Flows'),
-          'url' => Url::fromRoute('nfr.documentation.user_roles'),
-          'weight' => 2,
-        ],
-        [
-          'title' => $this->t('Page Specifications'),
-          'url' => Url::fromRoute('nfr.documentation.page_specs'),
-          'weight' => 3,
-        ],
-        [
-          'title' => $this->t('NFR Protocol (CDC)'),
-          'url' => Url::fromRoute('nfr.documentation.protocol'),
-          'weight' => 4,
-        ],
-        [
-          'title' => $this->t('User Profile Form (CDC)'),
-          'url' => Url::fromRoute('nfr.documentation.user_profile'),
-          'weight' => 5,
-        ],
-        [
-          'title' => $this->t('Questionnaire (CDC)'),
-          'url' => Url::fromRoute('nfr.documentation.questionnaire'),
-          'weight' => 6,
-        ],
-      ]);
-    }
-
-    // Add technical docs for admins only
-    if ($is_admin) {
-      $doc_children = array_merge($doc_children, [
-        [
-          'title' => $this->t('System Architecture'),
-          'url' => Url::fromRoute('nfr.documentation.architecture'),
-          'weight' => 7,
-        ],
-        [
-          'title' => $this->t('Installation Guide'),
-          'url' => Url::fromRoute('nfr.documentation.installation'),
-          'weight' => 8,
-        ],
-        [
-          'title' => $this->t('Drupal 11 Compliance'),
-          'url' => Url::fromRoute('nfr.documentation.compliance'),
-          'weight' => 9,
-        ],
-      ]);
-    }
-
     $menu['documentation'] = [
       'title' => $this->t('Documentation'),
       'url' => Url::fromRoute('nfr.documentation'),
