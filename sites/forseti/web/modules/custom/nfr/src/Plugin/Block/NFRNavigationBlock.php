@@ -72,6 +72,7 @@ class NFRNavigationBlock extends BlockBase implements ContainerFactoryPluginInte
     
     // Check if user has any role that should see My Dashboard
     $has_dashboard_access = $is_participant || $is_admin || $is_researcher || 
+      $this->currentUser->hasRole('firefighter') ||
       $this->currentUser->hasRole('fire_dept_admin') || 
       $this->currentUser->hasRole('nfr_administrator') || 
       $this->currentUser->hasRole('nfr_researcher');
