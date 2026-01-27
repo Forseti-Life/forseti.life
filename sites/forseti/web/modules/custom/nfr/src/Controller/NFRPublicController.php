@@ -415,8 +415,35 @@ class NFRPublicController extends ControllerBase {
         ->execute()
         ->fetchField();
       
-      // Average years of service - field doesn't exist in current schema
-      $stats['avg_years_service'] = 0;
+      // Calculate average years of service from work history
+      $years_query = $connection->select('nfr_work_history', 'wh')
+        ->fields('wh', ['start_date', 'end_date', 'is_current']);
+      $work_history = $years_query->execute()->fetchAll();
+      
+      $total_years = 0;
+      $firefighter_count = 0;
+      $current_year = date('Y');
+      
+      // Group by uid to calculate per firefighter
+      $firefighter_years = [];
+      foreach ($work_history as $record) {
+        if (empty($record->start_date)) {
+          continue;
+        }
+        
+        $start_year = (int) substr($record->start_date, 0, 4);
+        $end_year = $record->is_current ? $current_year : (int) substr($record->end_date, 0, 4);
+        
+        if ($end_year == 0) {
+          $end_year = $current_year;
+        }
+        
+        $years = max(0, $end_year - $start_year);
+        $total_years += $years;
+        $firefighter_count++;
+      }
+      
+      $stats['avg_years_service'] = $firefighter_count > 0 ? round($total_years / $firefighter_count, 1) : 0;
       
       // Career vs Volunteer - field doesn't exist in current schema
       $stats['career_firefighters'] = 0;
@@ -431,6 +458,15 @@ class NFRPublicController extends ControllerBase {
       
       $stats['female_participants'] = (int) $connection->select('nfr_user_profile', 'p')
         ->condition('sex', 'female')
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      
+      // Count "other" gender or any non-male/female values
+      $stats['other_participants'] = (int) $connection->select('nfr_user_profile', 'p')
+        ->condition('sex', 'male', '!=')
+        ->condition('sex', 'female', '!=')
+        ->isNotNull('sex')
         ->countQuery()
         ->execute()
         ->fetchField();
@@ -749,24 +785,24 @@ class NFRPublicController extends ControllerBase {
     $html .= '<div class="card-body">';
     $html .= '<h3 class="h4 mb-4 text-white"><i class="fas fa-users me-2"></i>Demographics</h3>';
     $html .= '<div class="mb-3">';
-    $html .= '<div class="d-flex justify-content-between text-white mb-2">';
-    $html .= '<span>Male Firefighters</span>';
-    $html .= '<strong>' . number_format($stats['male_participants']) . '</strong>';
-    $html .= '</div>';
-    $html .= '<div class="progress" style="height: 25px;">';
-    $total_gender = $stats['male_participants'] + $stats['female_participants'];
-    $male_pct = $total_gender > 0 ? round(($stats['male_participants'] / $total_gender) * 100, 1) : 0;
-    $html .= '<div class="progress-bar bg-info" style="width: ' . $male_pct . '%">' . $male_pct . '%</div>';
-    $html .= '</div></div>';
     
-    $html .= '<div class="mb-3">';
-    $html .= '<div class="d-flex justify-content-between text-white mb-2">';
-    $html .= '<span>Female Firefighters</span>';
-    $html .= '<strong>' . number_format($stats['female_participants']) . '</strong>';
-    $html .= '</div>';
-    $html .= '<div class="progress" style="height: 25px;">';
+    // Calculate percentages
+    $total_gender = $stats['male_participants'] + $stats['female_participants'] + $stats['other_participants'];
+    $male_pct = $total_gender > 0 ? round(($stats['male_participants'] / $total_gender) * 100, 1) : 0;
     $female_pct = $total_gender > 0 ? round(($stats['female_participants'] / $total_gender) * 100, 1) : 0;
-    $html .= '<div class="progress-bar bg-success" style="width: ' . $female_pct . '%">' . $female_pct . '%</div>';
+    $other_pct = $total_gender > 0 ? round(($stats['other_participants'] / $total_gender) * 100, 1) : 0;
+    
+    // Stacked progress bar with all three categories
+    $html .= '<div class="progress" style="height: 35px;">';
+    if ($male_pct > 0) {
+      $html .= '<div class="progress-bar bg-info" style="width: ' . $male_pct . '%" title="Male: ' . number_format($stats['male_participants']) . ' (' . $male_pct . '%)">Male<br>' . number_format($stats['male_participants']) . ' (' . $male_pct . '%)</div>';
+    }
+    if ($female_pct > 0) {
+      $html .= '<div class="progress-bar bg-success" style="width: ' . $female_pct . '%" title="Female: ' . number_format($stats['female_participants']) . ' (' . $female_pct . '%)">Female<br>' . number_format($stats['female_participants']) . ' (' . $female_pct . '%)</div>';
+    }
+    if ($other_pct > 0) {
+      $html .= '<div class="progress-bar bg-warning" style="width: ' . $other_pct . '%" title="Other: ' . number_format($stats['other_participants']) . ' (' . $other_pct . '%)">Other<br>' . number_format($stats['other_participants']) . ' (' . $other_pct . '%)</div>';
+    }
     $html .= '</div></div>';
     
     $html .= '<div class="mt-4 pt-3 border-top border-secondary">';
