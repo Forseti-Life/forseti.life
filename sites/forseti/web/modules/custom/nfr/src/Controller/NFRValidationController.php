@@ -520,7 +520,7 @@ class NFRValidationController extends ControllerBase {
       $route_id = str_replace('.', '_', $route['name']);
       
       $html .= '<tr data-route="' . htmlspecialchars($route['name']) . '">';
-      $html .= '<td><code>' . htmlspecialchars($route['path']) . '</code></td>';
+      $html .= '<td><a href="https://forseti.life' . htmlspecialchars($route['path']) . '" target="_blank" rel="noopener"><code>' . htmlspecialchars($route['path']) . '</code></a></td>';
       $html .= '<td>' . ($route['permission'] ? '<code>' . htmlspecialchars($route['permission']) . '</code>' : '-') . '</td>';
       
       // Test cells for each user
@@ -1756,10 +1756,11 @@ class NFRValidationController extends ControllerBase {
           
           // Check if all sections succeeded
           $all_sections_passed = true;
-          foreach ($section_results as $section_result) {
+          $failed_sections = [];
+          foreach ($section_results as $section_num => $section_result) {
             if (!$section_result['success']) {
               $all_sections_passed = false;
-              break;
+              $failed_sections[] = "Section $section_num: " . $section_result['message'];
             }
           }
 
@@ -1777,7 +1778,7 @@ class NFRValidationController extends ControllerBase {
               'uid' => $uid,
               'username' => $username,
               'success' => false,
-              'error' => 'One or more sections failed validation',
+              'error' => implode('; ', $failed_sections),
             ];
           }
 
@@ -2013,13 +2014,14 @@ class NFRValidationController extends ControllerBase {
                 'employment_type' => 'career',
                 'responded_incidents' => 'yes',
                 'incident_types' => [
-                  'structure_fires' => 'daily',
-                  'vehicle_fires' => 'weekly',
-                  'wildland_fires' => 'monthly',
-                  'hazmat' => 'weekly',
-                  'medical' => 'daily',
-                  'technical_rescue' => 'monthly',
-                  'rubbish_dumpster' => 'weekly',
+                  'structure_residential' => 'more_than_50',
+                  'structure_commercial' => 'more_than_50',
+                  'vehicle' => '21_50',
+                  'wildland' => '6_20',
+                  'hazmat' => '21_50',
+                  'medical_ems' => 'more_than_50',
+                  'technical_rescue' => '6_20',
+                  'rubbish_dumpster' => '21_50',
                 ],
               ],
             ],
@@ -2098,7 +2100,7 @@ class NFRValidationController extends ControllerBase {
         'smoking_status' => 'current',
         'smoking_age_started' => 18,
         'smoking_age_stopped' => '',
-        'cigarettes_per_day' => 20,
+        'cigarettes_per_day' => 'more_than_two_packs',
         'cigars_ever_used' => 'current',
         'cigars_age_started' => 25,
         'cigars_age_stopped' => '',
@@ -2112,10 +2114,10 @@ class NFRValidationController extends ControllerBase {
         'smokeless_age_started' => 16,
         'smokeless_age_stopped' => 22,
         'alcohol_frequency' => '5_plus_per_week',
-        'physical_activity_days' => 7,
-        'sleep_hours_per_night' => 8.5,
+        'physical_activity_days' => '7',
+        'sleep_hours_per_night' => 8,
         'sleep_quality' => 'excellent',
-        'sleep_disorders' => ['none'],
+        'sleep_disorders' => ['none' => 'none'],
       ],
     ];
   }
@@ -2149,7 +2151,7 @@ class NFRValidationController extends ControllerBase {
                 'employment_type' => 'volunteer',
                 'responded_incidents' => 'yes',
                 'incident_types' => [
-                  'structure_fires' => 'rarely',
+                  'structure_residential' => 'less_than_1',
                 ],
               ],
             ],
@@ -2222,10 +2224,10 @@ class NFRValidationController extends ControllerBase {
         'smokeless_age_started' => '',
         'smokeless_age_stopped' => '',
         'alcohol_frequency' => 'never',
-        'physical_activity_days' => 0,
-        'sleep_hours_per_night' => 4.0,
+        'physical_activity_days' => '0',
+        'sleep_hours_per_night' => 4,
         'sleep_quality' => 'poor',
-        'sleep_disorders' => ['insomnia', 'sleep_apnea'],
+        'sleep_disorders' => ['insomnia' => 'insomnia', 'sleep_apnea' => 'sleep_apnea'],
       ],
     ];
   }
@@ -2259,8 +2261,8 @@ class NFRValidationController extends ControllerBase {
                 'employment_type' => 'career',
                 'responded_incidents' => 'yes',
                 'incident_types' => [
-                  'structure_fires' => 'rarely',
-                  'medical' => 'monthly',
+                  'structure_residential' => 'less_than_1',
+                  'medical_ems' => '6_20',
                 ],
               ],
             ],
@@ -2325,7 +2327,7 @@ class NFRValidationController extends ControllerBase {
         'smoking_status' => 'former',
         'smoking_age_started' => 18,
         'smoking_age_stopped' => 25,
-        'cigarettes_per_day' => 5,
+        'cigarettes_per_day' => 'less_half_pack',
         'cigars_ever_used' => 'never',
         'cigars_age_started' => '',
         'cigars_age_stopped' => '',
@@ -2339,10 +2341,10 @@ class NFRValidationController extends ControllerBase {
         'smokeless_age_started' => '',
         'smokeless_age_stopped' => '',
         'alcohol_frequency' => 'less_than_monthly',
-        'physical_activity_days' => 1,
-        'sleep_hours_per_night' => 6.5,
+        'physical_activity_days' => '1',
+        'sleep_hours_per_night' => 6,
         'sleep_quality' => 'fair',
-        'sleep_disorders' => ['shift_work_disorder'],
+        'sleep_disorders' => ['shift_work_disorder' => 'shift_work_disorder'],
       ],
     ];
   }
@@ -2670,10 +2672,25 @@ class NFRValidationController extends ControllerBase {
         'other_conditions' => $this->getRandomHealthConditions(),
       ],
       'lifestyle' => [
-        'smoking_status' => ['never', 'former', 'current'][rand(0, 2)],
+        'smoking_status' => $smoking_status = ['never', 'former', 'current'][rand(0, 2)],
+        'smoking_age_started' => in_array($smoking_status, ['former', 'current']) ? rand(13, 25) : '',
+        'smoking_age_stopped' => $smoking_status === 'former' ? rand(25, 65) : '',
+        'cigarettes_per_day' => in_array($smoking_status, ['former', 'current']) ? ['less_half_pack', 'half_to_one_pack', 'one_to_two_packs', 'more_than_two_packs'][rand(0, 3)] : '',
+        'cigars_ever_used' => $cigars_status = ['never', 'former', 'current'][rand(0, 2)],
+        'cigars_age_started' => in_array($cigars_status, ['former', 'current']) ? rand(18, 30) : '',
+        'cigars_age_stopped' => $cigars_status === 'former' ? rand(30, 60) : '',
+        'pipes_ever_used' => $pipes_status = ['never', 'former', 'current'][rand(0, 2)],
+        'pipes_age_started' => in_array($pipes_status, ['former', 'current']) ? rand(18, 30) : '',
+        'pipes_age_stopped' => $pipes_status === 'former' ? rand(30, 60) : '',
+        'ecigs_ever_used' => $ecigs_status = ['never', 'former', 'current'][rand(0, 2)],
+        'ecigs_age_started' => in_array($ecigs_status, ['former', 'current']) ? rand(18, 35) : '',
+        'ecigs_age_stopped' => $ecigs_status === 'former' ? rand(25, 50) : '',
+        'smokeless_ever_used' => $smokeless_status = ['never', 'former', 'current'][rand(0, 2)],
+        'smokeless_age_started' => in_array($smokeless_status, ['former', 'current']) ? rand(15, 25) : '',
+        'smokeless_age_stopped' => $smokeless_status === 'former' ? rand(25, 50) : '',
         'alcohol_frequency' => ['never', 'less_than_monthly', '1_3_per_month', '1_2_per_week', '3_4_per_week', '5_plus_per_week'][rand(0, 5)],
-        'physical_activity_days' => rand(0, 7),
-        'sleep_hours_per_night' => rand(40, 100) / 10, // 4.0 to 10.0 hours
+        'physical_activity_days' => (string) rand(0, 7),
+        'sleep_hours_per_night' => rand(4, 10),
         'sleep_quality' => ['excellent', 'good', 'fair', 'poor', 'very_poor'][rand(0, 4)],
         'sleep_disorders' => $this->getRandomSleepDisorders(),
       ],
@@ -3014,8 +3031,8 @@ class NFRValidationController extends ControllerBase {
       3 => [
         'exposure' => [
           'afff_used' => $data['exposure']['afff_used'] ?? 'no',
-          'afff_times' => $data['exposure']['afff_times'] ?? 0,
-          'afff_first_year' => $data['exposure']['afff_first_year'] ?? '',
+          'afff_times' => ($data['exposure']['afff_used'] ?? 'no') === 'yes' ? ($data['exposure']['afff_times'] ?? 1) : '',
+          'afff_first_year' => ($data['exposure']['afff_used'] ?? 'no') === 'yes' ? ($data['exposure']['afff_first_year'] ?? '') : '',
           'diesel_exhaust' => $data['exposure']['diesel_exhaust'] ?? 'never',
           'chemical_activities' => $data['exposure']['chemical_activities'] ?? [],
           'major_incidents' => !empty($data['exposure']['major_incidents_data']) ? 'yes' : 'no',
@@ -3059,13 +3076,13 @@ class NFRValidationController extends ControllerBase {
         ],
       ],
       9 => [
-        'lifestyle' => [
-          'smoking_status' => $data['lifestyle']['smoking_status'] ?? 'never',
-          'alcohol_frequency' => $data['lifestyle']['alcohol_frequency'] ?? 'never',
-          'physical_activity_days' => isset($data['lifestyle']['physical_activity_days']) ? (string)$data['lifestyle']['physical_activity_days'] : '0',
-          'sleep_hours_per_night' => $data['lifestyle']['sleep_hours_per_night'] ?? 7,
-          'sleep_quality' => $data['lifestyle']['sleep_quality'] ?? 'good',
-          'sleep_disorders' => $data['lifestyle']['sleep_disorders'] ?? [],
+        'lifestyle' => $data['lifestyle'] ?? [
+          'smoking_status' => 'never',
+          'alcohol_frequency' => 'never',
+          'physical_activity_days' => '0',
+          'sleep_hours_per_night' => 7,
+          'sleep_quality' => 'good',
+          'sleep_disorders' => [],
         ],
       ],
     ];
@@ -3094,7 +3111,9 @@ class NFRValidationController extends ControllerBase {
       foreach ($section_forms as $section_num => $form_class) {
         try {
           $form_state = new \Drupal\Core\Form\FormState();
-          $form_state->setValues($section_data_map[$section_num]);
+          $values_to_set = $section_data_map[$section_num];
+          
+          $form_state->setValues($values_to_set);
           $form_state->setValue('op', 'Save & Continue');
 
           \Drupal::formBuilder()->submitForm($form_class, $form_state);
@@ -4150,54 +4169,6 @@ class NFRValidationController extends ControllerBase {
         'record_completeness_pct' => $incident_frequency_record_stats['record_completeness_pct'],
       ];
       
-      $follow_up_surveys_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_follow_up_surveys}")->fetchField();
-      $follow_up_surveys_tracked_cols = ['survey_type', 'survey_date', 'due_date', 'completion_date', 'status', 'response_data'];
-      $follow_up_surveys_record_stats = $calculate_record_completeness('nfr_follow_up_surveys', $follow_up_surveys_tracked_cols, $follow_up_surveys_count);
-      
-      $table_stats['nfr_follow_up_surveys'] = [
-        'record_count' => $follow_up_surveys_count,
-        'field_count' => 9,
-        'tracked_fields' => 6,
-        'completeness_pct' => $calculate_user_coverage('nfr_follow_up_surveys', $total_records),
-        'record_completeness_pct' => $follow_up_surveys_record_stats['record_completeness_pct'],
-      ];
-      
-      $firefighters_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_firefighters}")->fetchField();
-      $firefighters_tracked_cols = ['first_name', 'last_name', 'badge_number', 'department', 'state', 'years_of_service', 'career_type', 'status', 'neris_id'];
-      $firefighters_record_stats = $calculate_record_completeness('nfr_firefighters', $firefighters_tracked_cols, $firefighters_count);
-      
-      $table_stats['nfr_firefighters'] = [
-        'record_count' => $firefighters_count,
-        'field_count' => 13,
-        'tracked_fields' => 9,
-        'completeness_pct' => $calculate_user_coverage('nfr_firefighters', $total_records, 'user_id'),
-        'record_completeness_pct' => $firefighters_record_stats['record_completeness_pct'],
-      ];
-      
-      $cancer_data_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_cancer_data}")->fetchField();
-      $cancer_data_tracked_cols = ['cancer_type', 'diagnosis_date', 'state_registry_linked', 'stage'];
-      $cancer_data_record_stats = $calculate_record_completeness('nfr_cancer_data', $cancer_data_tracked_cols, $cancer_data_count);
-      
-      $table_stats['nfr_cancer_data'] = [
-        'record_count' => $cancer_data_count,
-        'field_count' => 8,
-        'tracked_fields' => 4,
-        'completeness_pct' => $total_records > 0 ? round((int)$connection->query("SELECT COUNT(DISTINCT f.user_id) FROM {nfr_cancer_data} cd INNER JOIN {nfr_firefighters} f ON cd.firefighter_id = f.id")->fetchField() / $total_records * 100, 1) : 0,
-        'record_completeness_pct' => $cancer_data_record_stats['record_completeness_pct'],
-      ];
-      
-      $longitudinal_data_count = (int) $connection->query("SELECT COUNT(*) FROM {nfr_longitudinal_data}")->fetchField();
-      $longitudinal_data_tracked_cols = ['survey_date', 'survey_type', 'data'];
-      $longitudinal_data_record_stats = $calculate_record_completeness('nfr_longitudinal_data', $longitudinal_data_tracked_cols, $longitudinal_data_count);
-      
-      $table_stats['nfr_longitudinal_data'] = [
-        'record_count' => $longitudinal_data_count,
-        'field_count' => 6,
-        'tracked_fields' => 3,
-        'completeness_pct' => $total_records > 0 ? round((int)$connection->query("SELECT COUNT(DISTINCT f.user_id) FROM {nfr_longitudinal_data} ld INNER JOIN {nfr_firefighters} f ON ld.firefighter_id = f.id")->fetchField() / $total_records * 100, 1) : 0,
-        'record_completeness_pct' => $longitudinal_data_record_stats['record_completeness_pct'],
-      ];
-      
       // =============================================================================
       // CALCULATE PROFILE DATASET SUMMARY
       // =============================================================================
@@ -4383,21 +4354,6 @@ class NFRValidationController extends ControllerBase {
       
       $output .= '</tbody></table>';
       $output .= '</div>'; // table-responsive
-      
-      // Add note about tables with 0 records
-      $output .= '<div class="alert alert-light border mt-3 mb-0">';
-      $output .= '<h6 class="mb-3"><strong>Tables with 0 Records (Expected):</strong></h6>';
-      $output .= '<dl class="row mb-0 small">';
-      $output .= '<dt class="col-sm-3"><code>nfr_firefighters</code></dt>';
-      $output .= '<dd class="col-sm-9">Deprecated table (now using Drupal user management system)</dd>';
-      $output .= '<dt class="col-sm-3"><code>nfr_follow_up_surveys</code></dt>';
-      $output .= '<dd class="col-sm-9">Only used for future longitudinal studies, not populated during initial questionnaire</dd>';
-      $output .= '<dt class="col-sm-3"><code>nfr_cancer_data</code></dt>';
-      $output .= '<dd class="col-sm-9">Deprecated table (cancer info goes into <code>nfr_cancer_diagnoses</code> instead)</dd>';
-      $output .= '<dt class="col-sm-3"><code>nfr_longitudinal_data</code></dt>';
-      $output .= '<dd class="col-sm-9 mb-0">Only for follow-up data collection, not populated during initial questionnaire</dd>';
-      $output .= '</dl>';
-      $output .= '</div>';
       
       $output .= '</div></div>'; // card-body, card
       
