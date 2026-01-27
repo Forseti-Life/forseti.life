@@ -329,6 +329,10 @@ class NFRPublicController extends ControllerBase {
     // Build the dashboard HTML
     $html = $this->buildPublicDataDashboard($state_counts, $stats);
     
+    // Get demographic and cancer data for charts
+    $demographic_data = $this->getDemographicData($connection);
+    $cancer_data = $this->getCancerData($connection);
+    
     return [
       '#markup' => $html,
       '#attached' => [
@@ -338,6 +342,8 @@ class NFRPublicController extends ControllerBase {
         'drupalSettings' => [
           'nfr' => [
             'stateData' => $state_counts,
+            'demographicData' => $demographic_data,
+            'cancerData' => $cancer_data,
           ],
         ],
       ],
@@ -446,6 +452,231 @@ class NFRPublicController extends ControllerBase {
     }
     
     return $stats;
+  }
+  
+  /**
+   * Get demographic data for charts.
+   */
+  private function getDemographicData($connection): array {
+    $data = [];
+    
+    try {
+      // Race/Ethnicity distribution
+      $race_query = $connection->select('nfr_questionnaire', 'q');
+      $race_query->addField('q', 'race_ethnicity', 'race');
+      $race_query->addExpression('COUNT(*)', 'count');
+      $race_query->condition('race_ethnicity', '', '!=');
+      $race_query->groupBy('q.race_ethnicity');
+      $race_results = $race_query->execute()->fetchAllKeyed();
+      
+      $race_labels = [
+        'white' => 'White',
+        'black' => 'Black/African American',
+        'hispanic' => 'Hispanic/Latino',
+        'asian' => 'Asian',
+        'american_indian' => 'American Indian/Alaska Native',
+        'pacific_islander' => 'Native Hawaiian/Pacific Islander',
+        'middle_eastern' => 'Middle Eastern/North African',
+        'other' => 'Other',
+      ];
+      
+      $data['race'] = [
+        'labels' => [],
+        'values' => [],
+      ];
+      
+      foreach ($race_results as $race => $count) {
+        $data['race']['labels'][] = $race_labels[$race] ?? ucfirst($race);
+        $data['race']['values'][] = (int) $count;
+      }
+      
+      // Education Level distribution
+      $edu_query = $connection->select('nfr_questionnaire', 'q');
+      $edu_query->addField('q', 'education_level', 'education');
+      $edu_query->addExpression('COUNT(*)', 'count');
+      $edu_query->condition('education_level', '', '!=');
+      $edu_query->groupBy('q.education_level');
+      $edu_results = $edu_query->execute()->fetchAllKeyed();
+      
+      $edu_labels = [
+        'less_than_hs' => 'Less than High School',
+        'hs_ged' => 'High School/GED',
+        'some_college' => 'Some College',
+        'associate' => 'Associate Degree',
+        'bachelor' => 'Bachelor\'s Degree',
+        'graduate' => 'Graduate Degree',
+      ];
+      
+      $data['education'] = [
+        'labels' => [],
+        'values' => [],
+      ];
+      
+      foreach ($edu_results as $edu => $count) {
+        $data['education']['labels'][] = $edu_labels[$edu] ?? ucfirst($edu);
+        $data['education']['values'][] = (int) $count;
+      }
+      
+      // Marital Status distribution
+      $marital_query = $connection->select('nfr_questionnaire', 'q');
+      $marital_query->addField('q', 'marital_status', 'status');
+      $marital_query->addExpression('COUNT(*)', 'count');
+      $marital_query->condition('marital_status', '', '!=');
+      $marital_query->groupBy('q.marital_status');
+      $marital_results = $marital_query->execute()->fetchAllKeyed();
+      
+      $marital_labels = [
+        'single' => 'Single/Never Married',
+        'married' => 'Married',
+        'divorced' => 'Divorced',
+        'widowed' => 'Widowed',
+        'separated' => 'Separated',
+      ];
+      
+      $data['marital'] = [
+        'labels' => [],
+        'values' => [],
+      ];
+      
+      foreach ($marital_results as $status => $count) {
+        $data['marital']['labels'][] = $marital_labels[$status] ?? ucfirst($status);
+        $data['marital']['values'][] = (int) $count;
+      }
+      
+      // Age distribution (from height/weight as proxy - or calculate from birth year if available)
+      // BMI distribution
+      $bmi_query = $connection->select('nfr_questionnaire', 'q');
+      $bmi_query->addField('q', 'height_inches');
+      $bmi_query->addField('q', 'weight_pounds');
+      $bmi_query->condition('height_inches', 0, '>');
+      $bmi_query->condition('weight_pounds', 0, '>');
+      $bmi_results = $bmi_query->execute()->fetchAll();
+      
+      $bmi_ranges = [
+        'Underweight (<18.5)' => 0,
+        'Normal (18.5-24.9)' => 0,
+        'Overweight (25-29.9)' => 0,
+        'Obese (30-34.9)' => 0,
+        'Severely Obese (35+)' => 0,
+      ];
+      
+      foreach ($bmi_results as $row) {
+        $height_m = $row->height_inches * 0.0254;
+        $weight_kg = $row->weight_pounds * 0.453592;
+        $bmi = $weight_kg / ($height_m * $height_m);
+        
+        if ($bmi < 18.5) {
+          $bmi_ranges['Underweight (<18.5)']++;
+        } elseif ($bmi < 25) {
+          $bmi_ranges['Normal (18.5-24.9)']++;
+        } elseif ($bmi < 30) {
+          $bmi_ranges['Overweight (25-29.9)']++;
+        } elseif ($bmi < 35) {
+          $bmi_ranges['Obese (30-34.9)']++;
+        } else {
+          $bmi_ranges['Severely Obese (35+)']++;
+        }
+      }
+      
+      $data['bmi'] = [
+        'labels' => array_keys($bmi_ranges),
+        'values' => array_values($bmi_ranges),
+      ];
+      
+    } catch (\Exception $e) {
+      \Drupal::logger('nfr')->error('Error fetching demographic data: @message', ['@message' => $e->getMessage()]);
+    }
+    
+    return $data;
+  }
+  
+  /**
+   * Get cancer data for charts.
+   */
+  private function getCancerData($connection): array {
+    $data = [];
+    
+    try {
+      // Cancer types distribution
+      $cancer_query = $connection->select('nfr_cancer_diagnoses', 'cd');
+      $cancer_query->addField('cd', 'cancer_type', 'type');
+      $cancer_query->addExpression('COUNT(*)', 'count');
+      $cancer_query->condition('cancer_type', '', '!=');
+      $cancer_query->groupBy('cd.cancer_type');
+      $cancer_query->orderBy('count', 'DESC');
+      $cancer_results = $cancer_query->execute()->fetchAllKeyed();
+      
+      $data['types'] = [
+        'labels' => [],
+        'values' => [],
+      ];
+      
+      foreach ($cancer_results as $type => $count) {
+        // Clean up the type name for display
+        $display_type = ucwords(str_replace('_', ' ', $type));
+        $data['types']['labels'][] = $display_type;
+        $data['types']['values'][] = (int) $count;
+      }
+      
+      // Age at diagnosis ranges
+      $age_query = $connection->select('nfr_cancer_diagnoses', 'cd');
+      $age_query->addField('cd', 'age_at_diagnosis');
+      $age_query->condition('age_at_diagnosis', 0, '>');
+      $age_results = $age_query->execute()->fetchCol();
+      
+      $age_ranges = [
+        'Under 30' => 0,
+        '30-39' => 0,
+        '40-49' => 0,
+        '50-59' => 0,
+        '60-69' => 0,
+        '70+' => 0,
+      ];
+      
+      foreach ($age_results as $age) {
+        if ($age < 30) {
+          $age_ranges['Under 30']++;
+        } elseif ($age < 40) {
+          $age_ranges['30-39']++;
+        } elseif ($age < 50) {
+          $age_ranges['40-49']++;
+        } elseif ($age < 60) {
+          $age_ranges['50-59']++;
+        } elseif ($age < 70) {
+          $age_ranges['60-69']++;
+        } else {
+          $age_ranges['70+']++;
+        }
+      }
+      
+      $data['age_at_diagnosis'] = [
+        'labels' => array_keys($age_ranges),
+        'values' => array_values($age_ranges),
+      ];
+      
+      // Family history counts
+      $family_query = $connection->select('nfr_family_cancer_history', 'fch');
+      $family_query->addExpression('COUNT(DISTINCT uid)', 'count');
+      $family_count = $family_query->execute()->fetchField();
+      
+      // Total participants
+      $total_query = $connection->select('nfr_user_profile', 'p');
+      $total_query->addExpression('COUNT(*)', 'count');
+      $total_participants = $total_query->execute()->fetchField();
+      
+      $data['family_history'] = [
+        'labels' => ['Family History', 'No Family History'],
+        'values' => [
+          (int) $family_count,
+          (int) ($total_participants - $family_count),
+        ],
+      ];
+      
+    } catch (\Exception $e) {
+      \Drupal::logger('nfr')->error('Error fetching cancer data: @message', ['@message' => $e->getMessage()]);
+    }
+    
+    return $data;
   }
   
   /**
@@ -598,6 +829,82 @@ class NFRPublicController extends ControllerBase {
     $html .= '</div></div></div>';
     
     $html .= '</div>'; // End additional stats row
+    
+    // Demographic Charts Section
+    $html .= '<div class="row mt-5 mb-4">';
+    $html .= '<div class="col-12">';
+    $html .= '<h2 class="h3 text-white mb-4"><i class="fas fa-chart-pie me-2"></i>Participant Demographics</h2>';
+    $html .= '</div></div>';
+    
+    $html .= '<div class="row g-4 mb-5">';
+    
+    // Race/Ethnicity Pie Chart
+    $html .= '<div class="col-lg-6">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body">';
+    $html .= '<h3 class="h5 mb-3 text-white">Race & Ethnicity Distribution</h3>';
+    $html .= '<canvas id="race-chart" style="max-height: 300px;"></canvas>';
+    $html .= '</div></div></div>';
+    
+    // Education Level Pie Chart
+    $html .= '<div class="col-lg-6">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body">';
+    $html .= '<h3 class="h5 mb-3 text-white">Education Level</h3>';
+    $html .= '<canvas id="education-chart" style="max-height: 300px;"></canvas>';
+    $html .= '</div></div></div>';
+    
+    // Marital Status Pie Chart
+    $html .= '<div class="col-lg-6">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body">';
+    $html .= '<h3 class="h5 mb-3 text-white">Marital Status</h3>';
+    $html .= '<canvas id="marital-chart" style="max-height: 300px;"></canvas>';
+    $html .= '</div></div></div>';
+    
+    // BMI Distribution Bar Chart
+    $html .= '<div class="col-lg-6">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body">';
+    $html .= '<h3 class="h5 mb-3 text-white">BMI Distribution</h3>';
+    $html .= '<canvas id="bmi-chart" style="max-height: 300px;"></canvas>';
+    $html .= '</div></div></div>';
+    
+    $html .= '</div>'; // End demographics charts row
+    
+    // Cancer Data Charts Section
+    $html .= '<div class="row mt-5 mb-4">';
+    $html .= '<div class="col-12">';
+    $html .= '<h2 class="h3 text-white mb-4"><i class="fas fa-chart-bar me-2"></i>Cancer Statistics</h2>';
+    $html .= '</div></div>';
+    
+    $html .= '<div class="row g-4 mb-5">';
+    
+    // Cancer Types Bar Chart
+    $html .= '<div class="col-lg-8">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body">';
+    $html .= '<h3 class="h5 mb-3 text-white">Cancer Types Reported</h3>';
+    $html .= '<canvas id="cancer-types-chart" style="max-height: 350px;"></canvas>';
+    $html .= '</div></div></div>';
+    
+    // Family History Pie Chart
+    $html .= '<div class="col-lg-4">';
+    $html .= '<div class="card card-forseti h-100">';
+    $html .= '<div class="card-body">';
+    $html .= '<h3 class="h5 mb-3 text-white">Family Cancer History</h3>';
+    $html .= '<canvas id="family-history-chart" style="max-height: 300px;"></canvas>';
+    $html .= '</div></div></div>';
+    
+    // Age at Diagnosis Bar Chart
+    $html .= '<div class="col-lg-12">';
+    $html .= '<div class="card card-forseti">';
+    $html .= '<div class="card-body">';
+    $html .= '<h3 class="h5 mb-3 text-white">Age at Cancer Diagnosis</h3>';
+    $html .= '<canvas id="age-diagnosis-chart" style="max-height: 300px;"></canvas>';
+    $html .= '</div></div></div>';
+    
+    $html .= '</div>'; // End cancer charts row
     
     // Call to Action
     $html .= '<div class="row mt-5">';

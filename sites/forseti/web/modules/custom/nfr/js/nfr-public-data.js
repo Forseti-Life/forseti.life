@@ -126,4 +126,318 @@
     }
   };
 
+  /**
+   * Initialize demographic and cancer charts.
+   */
+  Drupal.behaviors.nfrPublicDataCharts = {
+    attach: function (context, settings) {
+      if (typeof Chart === 'undefined') {
+        console.error('Chart.js not loaded');
+        return;
+      }
+
+      const demographicData = settings.nfr?.demographicData || {};
+      const cancerData = settings.nfr?.cancerData || {};
+      
+      // Common chart options
+      const chartDefaults = {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            labels: {
+              color: '#ffffff',
+              font: {
+                size: 12
+              }
+            }
+          }
+        }
+      };
+      
+      const colorPalette = [
+        'rgba(0, 212, 255, 0.8)',  // Cyan
+        'rgba(124, 77, 255, 0.8)',  // Purple
+        'rgba(255, 107, 107, 0.8)', // Red
+        'rgba(78, 205, 196, 0.8)',  // Teal
+        'rgba(255, 195, 0, 0.8)',   // Gold
+        'rgba(199, 0, 57, 0.8)',    // Maroon
+        'rgba(0, 184, 148, 0.8)',   // Green
+        'rgba(253, 121, 168, 0.8)', // Pink
+        'rgba(162, 155, 254, 0.8)', // Lavender
+        'rgba(255, 159, 64, 0.8)',  // Orange
+      ];
+      
+      // Race/Ethnicity Pie Chart
+      if (demographicData.race && $('#race-chart', context).length && !$('#race-chart', context).hasClass('chart-initialized')) {
+        const ctx = document.getElementById('race-chart').getContext('2d');
+        new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: demographicData.race.labels,
+            datasets: [{
+              data: demographicData.race.values,
+              backgroundColor: colorPalette,
+              borderColor: '#1a1a2e',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            ...chartDefaults,
+            plugins: {
+              ...chartDefaults.plugins,
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const label = context.label || '';
+                    const value = context.parsed || 0;
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = ((value / total) * 100).toFixed(1);
+                    return `${label}: ${value} (${percentage}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+        $('#race-chart', context).addClass('chart-initialized');
+      }
+      
+      // Education Level Pie Chart
+      if (demographicData.education && $('#education-chart', context).length && !$('#education-chart', context).hasClass('chart-initialized')) {
+        const ctx = document.getElementById('education-chart').getContext('2d');
+        new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: demographicData.education.labels,
+            datasets: [{
+              data: demographicData.education.values,
+              backgroundColor: colorPalette,
+              borderColor: '#1a1a2e',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            ...chartDefaults,
+            plugins: {
+              ...chartDefaults.plugins,
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const label = context.label || '';
+                    const value = context.parsed || 0;
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = ((value / total) * 100).toFixed(1);
+                    return `${label}: ${value} (${percentage}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+        $('#education-chart', context).addClass('chart-initialized');
+      }
+      
+      // Marital Status Pie Chart
+      if (demographicData.marital && $('#marital-chart', context).length && !$('#marital-chart', context).hasClass('chart-initialized')) {
+        const ctx = document.getElementById('marital-chart').getContext('2d');
+        new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: demographicData.marital.labels,
+            datasets: [{
+              data: demographicData.marital.values,
+              backgroundColor: colorPalette,
+              borderColor: '#1a1a2e',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            ...chartDefaults,
+            plugins: {
+              ...chartDefaults.plugins,
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const label = context.label || '';
+                    const value = context.parsed || 0;
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = ((value / total) * 100).toFixed(1);
+                    return `${label}: ${value} (${percentage}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+        $('#marital-chart', context).addClass('chart-initialized');
+      }
+      
+      // BMI Distribution Bar Chart
+      if (demographicData.bmi && $('#bmi-chart', context).length && !$('#bmi-chart', context).hasClass('chart-initialized')) {
+        const ctx = document.getElementById('bmi-chart').getContext('2d');
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: demographicData.bmi.labels,
+            datasets: [{
+              label: 'Number of Participants',
+              data: demographicData.bmi.values,
+              backgroundColor: 'rgba(0, 212, 255, 0.7)',
+              borderColor: 'rgba(0, 212, 255, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            ...chartDefaults,
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  color: '#ffffff',
+                  stepSize: 1
+                },
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              },
+              x: {
+                ticks: {
+                  color: '#ffffff'
+                },
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              }
+            }
+          }
+        });
+        $('#bmi-chart', context).addClass('chart-initialized');
+      }
+      
+      // Cancer Types Bar Chart
+      if (cancerData.types && $('#cancer-types-chart', context).length && !$('#cancer-types-chart', context).hasClass('chart-initialized')) {
+        const ctx = document.getElementById('cancer-types-chart').getContext('2d');
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: cancerData.types.labels,
+            datasets: [{
+              label: 'Number of Diagnoses',
+              data: cancerData.types.values,
+              backgroundColor: 'rgba(255, 107, 107, 0.7)',
+              borderColor: 'rgba(255, 107, 107, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            ...chartDefaults,
+            indexAxis: 'y', // Horizontal bar chart
+            scales: {
+              x: {
+                beginAtZero: true,
+                ticks: {
+                  color: '#ffffff',
+                  stepSize: 1
+                },
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              },
+              y: {
+                ticks: {
+                  color: '#ffffff'
+                },
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              }
+            }
+          }
+        });
+        $('#cancer-types-chart', context).addClass('chart-initialized');
+      }
+      
+      // Family History Pie Chart
+      if (cancerData.family_history && $('#family-history-chart', context).length && !$('#family-history-chart', context).hasClass('chart-initialized')) {
+        const ctx = document.getElementById('family-history-chart').getContext('2d');
+        new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: cancerData.family_history.labels,
+            datasets: [{
+              data: cancerData.family_history.values,
+              backgroundColor: [
+                'rgba(255, 107, 107, 0.8)',
+                'rgba(78, 205, 196, 0.8)'
+              ],
+              borderColor: '#1a1a2e',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            ...chartDefaults,
+            plugins: {
+              ...chartDefaults.plugins,
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const label = context.label || '';
+                    const value = context.parsed || 0;
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = ((value / total) * 100).toFixed(1);
+                    return `${label}: ${value} (${percentage}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+        $('#family-history-chart', context).addClass('chart-initialized');
+      }
+      
+      // Age at Diagnosis Bar Chart
+      if (cancerData.age_at_diagnosis && $('#age-diagnosis-chart', context).length && !$('#age-diagnosis-chart', context).hasClass('chart-initialized')) {
+        const ctx = document.getElementById('age-diagnosis-chart').getContext('2d');
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: cancerData.age_at_diagnosis.labels,
+            datasets: [{
+              label: 'Number of Diagnoses',
+              data: cancerData.age_at_diagnosis.values,
+              backgroundColor: 'rgba(124, 77, 255, 0.7)',
+              borderColor: 'rgba(124, 77, 255, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            ...chartDefaults,
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  color: '#ffffff',
+                  stepSize: 1
+                },
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              },
+              x: {
+                ticks: {
+                  color: '#ffffff'
+                },
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.1)'
+                }
+              }
+            }
+          }
+        });
+        $('#age-diagnosis-chart', context).addClass('chart-initialized');
+      }
+    }
+  };
+
 })(jQuery, Drupal, drupalSettings);

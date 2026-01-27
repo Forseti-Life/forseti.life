@@ -275,3 +275,25 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
+/* Chart Containers */
+canvas {
+  max-width: 100%;
+  height: auto !important;
+}
+
+.card-forseti .card-body canvas {
+  margin: 0 auto;
+  display: block;
+}
+
+/* Chart styling adjustments for dark theme */
+.card-forseti h3,
+.card-forseti h5 {
+  color: #ffffff;
+  margin-bottom: 1rem;
+}
+
+/* Ensure chart text is visible */
+.chartjs-render-monitor {
+  animation: none !important;
+}
