@@ -107,4 +107,5 @@ public-data:
   dependencies:
     - core/drupal
     - core/jquery
+    - core/once
     - forseti/style

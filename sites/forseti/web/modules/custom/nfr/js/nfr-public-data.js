@@ -2,13 +2,13 @@
  * NFR Public Data Dashboard - US Heat Map Visualization
  */
 
-(function ($, Drupal, drupalSettings) {
+(function ($, Drupal, drupalSettings, once) {
   'use strict';
 
   Drupal.behaviors.nfrPublicDataMap = {
     attach: function (context, settings) {
-      const $map = $('#us-map', context).once('nfr-map');
-      if (!$map.length) {
+      const mapContainers = once('nfr-map', '#us-map-container', context);
+      if (!mapContainers.length) {
         return;
       }
 
@@ -136,8 +136,17 @@
         return;
       }
 
-      const demographicData = settings.nfr?.demographicData || {};
-      const cancerData = settings.nfr?.cancerData || {};
+      // Check if drupalSettings.nfr exists
+      if (!settings.nfr) {
+        console.error('drupalSettings.nfr not found');
+        return;
+      }
+
+      const demographicData = settings.nfr.demographicData || {};
+      const cancerData = settings.nfr.cancerData || {};
+      
+      console.log('Demographic data:', demographicData);
+      console.log('Cancer data:', cancerData);
       
       // Common chart options
       const chartDefaults = {
@@ -170,6 +179,7 @@
       
       // Race/Ethnicity Pie Chart
       if (demographicData.race && $('#race-chart', context).length && !$('#race-chart', context).hasClass('chart-initialized')) {
+        console.log('Creating race chart');
         const ctx = document.getElementById('race-chart').getContext('2d');
         new Chart(ctx, {
           type: 'pie',
@@ -440,4 +450,4 @@
     }
   };
 
-})(jQuery, Drupal, drupalSettings);
+})(jQuery, Drupal, drupalSettings, once);

@@ -326,15 +326,19 @@ class NFRPublicController extends ControllerBase {
     // Get overall statistics
     $stats = $this->getPublicStatistics($connection);
     
-    // Build the dashboard HTML
-    $html = $this->buildPublicDataDashboard($state_counts, $stats);
-    
     // Get demographic and cancer data for charts
     $demographic_data = $this->getDemographicData($connection);
     $cancer_data = $this->getCancerData($connection);
     
+    // Build the dashboard HTML
+    $html = $this->buildPublicDataDashboard($state_counts, $stats);
+    
     return [
-      '#markup' => $html,
+      '#theme' => 'nfr_public_page',
+      '#page_id' => 'public-data',
+      '#content' => [
+        '#markup' => $html,
+      ],
       '#attached' => [
         'library' => [
           'nfr/public-data',
@@ -689,9 +693,12 @@ class NFRPublicController extends ControllerBase {
     $html .= '<div class="container-fluid my-4">';
     $html .= '<div class="row mb-4">';
     $html .= '<div class="col-12">';
-    $html .= '<h1 class="display-4 text-white">National Firefighter Registry Statistics</h1>';
-    $html .= '<p class="lead text-white">Real-time data from the CDC National Firefighter Registry program</p>';
-    $html .= '<p class="text-muted-light"><small>Data updated in real-time. All statistics are aggregated and de-identified to protect participant privacy.</small></p>';
+    $html .= '<div class="card card-forseti">';
+    $html .= '<div class="card-body">';
+    $html .= '<h1 class="display-4 text-white mb-3">National Firefighter Registry Statistics</h1>';
+    $html .= '<p class="lead text-white mb-2">Aggregated data from the CDC National Firefighter Registry program</p>';
+    $html .= '<p class="text-muted-light mb-0"><small>All statistics are aggregated and de-identified to protect participant privacy.</small></p>';
+    $html .= '</div></div>';
     $html .= '</div></div>';
     
     // US Map Section
