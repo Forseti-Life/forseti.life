@@ -25,77 +25,64 @@ class NFRDocumentationController extends ControllerBase {
     $module_path = \Drupal::service('extension.list.module')->getPath('nfr');
     $docs_path = $module_path . '/documents';
 
-    // Get implementation status
-    $validation_status = $this->getValidationStatus();
-
     // Development documentation.
     $development_docs = [
       'business-requirements' => [
         'title' => 'Business Requirements Tracking',
         'description' => 'Requirements tracking document with implementation status, complete data element mapping to database fields/forms, and gap analysis. Extracted from CDC NFR official documents including legislative mandate, data collection specifications, and external integrations.',
         'file' => 'BUSINESS_REQUIREMENTS.md',
-        'status' => $validation_status['business_requirements'],
       ],
       'user-roles' => [
         'title' => 'User Roles & Process Flows',
         'description' => 'Detailed user roles, process flows, user journey maps, and page requirements for all system users including firefighters, administrators, and researchers.',
         'file' => 'USER_ROLES_AND_PROCESS_FLOWS.md',
-        'status' => $validation_status['user_roles'],
       ],
       'page-specs' => [
         'title' => 'Page Specifications',
         'description' => 'Complete page specifications with Drupal content type mapping, field definitions, form specifications, and dashboard requirements.',
         'file' => 'PAGE_SPECIFICATIONS.md',
-        'status' => $validation_status['page_specs'],
       ],
       'architecture' => [
         'title' => 'System Architecture',
         'description' => 'System architecture, design patterns, data flow diagrams, and technical implementation details for the NFR module.',
         'file' => 'ARCHITECTURE.md',
         'root_dir' => TRUE,
-        'status' => $validation_status['architecture'],
       ],
       'installation' => [
         'title' => 'Installation Guide',
         'description' => 'Complete installation, deployment, and configuration guide including database setup, module installation, and system requirements.',
         'file' => 'INSTALLATION.md',
         'root_dir' => TRUE,
-        'status' => $validation_status['installation'],
       ],
       'compliance' => [
         'title' => 'Drupal 11 Compliance',
         'description' => 'Drupal 11 standards compliance documentation including typed properties, dependency injection, and API usage patterns.',
         'file' => 'DRUPAL11_COMPLIANCE.md',
         'root_dir' => TRUE,
-        'status' => $validation_status['compliance'],
       ],
       'module-completion' => [
         'title' => 'Module Completion Summary',
         'description' => 'Comprehensive implementation summary documenting all completed components, forms, routes, and functionality of the NFR module.',
         'file' => 'NFR_MODULE_COMPLETION_SUMMARY.md',
         'root_dir' => TRUE,
-        'status' => $validation_status['module_completion'],
       ],
       'questionnaire-implementation' => [
         'title' => 'Questionnaire Implementation',
         'description' => 'Technical implementation tracker for all 9 questionnaire sections with CDC requirement mapping and completion status.',
         'file' => 'QUESTIONNAIRE_SECTIONS_IMPLEMENTATION.md',
         'root_dir' => TRUE,
-        'status' => $validation_status['questionnaire_implementation'],
       ],
       'test-credentials' => [
         'title' => 'Test User Credentials',
         'description' => 'Development and testing user accounts with roles, permissions, and test scenarios for all user types.',
         'file' => 'TEST_USER_CREDENTIALS.md',
         'root_dir' => TRUE,
-        'status' => $validation_status['test_credentials'],
       ],
       'process-flow-relationships' => [
         'title' => 'Process Flow Relationships',
         'description' => 'Comprehensive hierarchy of all development lifecycles from business to statistical models, including high-level process flows and interdependencies.',
         'file' => 'PROCESS_FLOW_RELATIONSHIPS.md',
         'technical_docs' => TRUE,
-        'status' => $validation_status['process_flow_relationships'],
       ],
     ];
 
@@ -111,14 +98,12 @@ class NFRDocumentationController extends ControllerBase {
         'description' => 'Technical design specification for nfr_correlation_analysis denormalized table with 169 fields aggregating data from 10 NFR tables. Includes cache table designs for pre-computed results.',
         'file' => 'NFR_CORRELATION_ANALYSIS_TABLE.md',
         'technical_docs' => TRUE,
-        'status' => $validation_status['correlation_analysis'],
       ],
       'correlation-analysis-guide' => [
         'title' => 'Correlation Analysis User Guide',
         'description' => 'User guide for running correlation and cluster analysis on NFR data. Includes variable selection, statistical interpretation, and practical examples.',
         'file' => 'CORRELATION_ANALYSIS_USER_GUIDE.md',
         'technical_docs' => TRUE,
-        'status' => $validation_status['correlation_analysis_guide'],
       ],
     ];
 
@@ -141,7 +126,6 @@ class NFRDocumentationController extends ControllerBase {
         'description' => $doc['description'],
         'file' => $doc['file'],
         'file_size' => $file_size,
-        'status' => $doc['status'],
       ];
     }
 
@@ -207,9 +191,6 @@ class NFRDocumentationController extends ControllerBase {
       
       $item['file'] = $doc['file'];
       $item['file_size'] = $file_size;
-      if (isset($doc['status'])) {
-        $item['status'] = $doc['status'];
-      }
       
       $reporting_items[] = $item;
     }
@@ -604,129 +585,6 @@ class NFRDocumentationController extends ControllerBase {
     $markdown = preg_replace('/(<tr>.*?<\/tr>(?:\s*<tr>.*?<\/tr>)*)/s', '<table class="requirements-table">$1</table>', $markdown);
     
     return $markdown;
-  }
-
-  /**
-   * Get validation status for each documentation area.
-   *
-   * @return array
-   *   Status array with percentages and details.
-   */
-  private function getValidationStatus(): array {
-    $database = \Drupal::database();
-    
-    // Check routes exist
-    $route_provider = \Drupal::service('router.route_provider');
-    $total_routes = 0;
-    $working_routes = 0;
-    
-    $route_patterns = [
-      'nfr.home', 'nfr.consent', 'nfr.user_profile', 'nfr.enrollment_questionnaire',
-      'nfr.review_submit', 'nfr.confirmation', 'nfr.my_dashboard', 'nfr.welcome',
-      'nfr.follow_up', 'nfr.admin_dashboard', 'nfr.admin_participants', 
-      'nfr.admin_linkage', 'nfr.admin_data_quality', 'nfr.admin_reports',
-      'nfr.admin_issues', 'nfr.admin_settings', 'nfr.public_data', 'nfr.validation',
-    ];
-    
-    foreach ($route_patterns as $route_name) {
-      $total_routes++;
-      try {
-        $route_provider->getRouteByName($route_name);
-        $working_routes++;
-      } catch (\Exception $e) {
-        // Route doesn't exist
-      }
-    }
-    
-    // Check database tables
-    $tables_needed = ['nfr_consent', 'nfr_user_profile', 'nfr_questionnaire', 
-                      'nfr_work_history', 'nfr_job_title', 'nfr_participant', 
-                      'nfr_cancer_diagnosis'];
-    $tables_exist = 0;
-    foreach ($tables_needed as $table) {
-      if ($database->schema()->tableExists($table)) {
-        $tables_exist++;
-      }
-    }
-    
-    // Calculate statuses
-    $route_percent = $total_routes > 0 ? round(($working_routes / $total_routes) * 100) : 0;
-    $table_percent = count($tables_needed) > 0 ? round(($tables_exist / count($tables_needed)) * 100) : 0;
-    
-    return [
-      'business_requirements' => [
-        'percent' => 100,
-        'label' => 'Complete',
-        'class' => 'success',
-        'details' => 'All 4 user roles defined, enrollment flow operational',
-      ],
-      'user_roles' => [
-        'percent' => 90,
-        'label' => 'Nearly Complete',
-        'class' => 'success',
-        'details' => '4 roles active, process flows functional, minor UX enhancements pending',
-      ],
-      'page_specs' => [
-        'percent' => 75,
-        'label' => 'In Progress',
-        'class' => 'warning',
-        'details' => "{$working_routes}/{$total_routes} routes functional, core pages styled, public pages need content",
-      ],
-      'architecture' => [
-        'percent' => $table_percent,
-        'label' => $table_percent === 100 ? 'Complete' : 'In Progress',
-        'class' => $table_percent === 100 ? 'success' : 'warning',
-        'details' => "{$tables_exist}/" . count($tables_needed) . " database tables created, MVC architecture implemented",
-      ],
-      'installation' => [
-        'percent' => 100,
-        'label' => 'Complete',
-        'class' => 'success',
-        'details' => 'Module installed, dependencies met, Drupal 11 compatible',
-      ],
-      'compliance' => [
-        'percent' => 100,
-        'label' => 'Complete',
-        'class' => 'success',
-        'details' => 'Typed properties, dependency injection, modern Drupal patterns',
-      ],
-      'correlation_analysis' => [
-        'percent' => 0,
-        'label' => 'Design Phase',
-        'class' => 'info',
-        'details' => 'Design document complete, implementation pending',
-      ],
-      'correlation_analysis_guide' => [
-        'percent' => 0,
-        'label' => 'Design Phase',
-        'class' => 'info',
-        'details' => 'User guide complete, awaiting full implementation',
-      ],
-      'module_completion' => [
-        'percent' => 100,
-        'label' => 'Complete',
-        'class' => 'success',
-        'details' => 'Implementation summary current as of Jan 25, 2026',
-      ],
-      'questionnaire_implementation' => [
-        'percent' => 100,
-        'label' => 'Complete',
-        'class' => 'success',
-        'details' => 'All 9 sections implemented and tracked',
-      ],
-      'test_credentials' => [
-        'percent' => 100,
-        'label' => 'Complete',
-        'class' => 'success',
-        'details' => 'Test users for all roles documented',
-      ],
-      'process_flow_relationships' => [
-        'percent' => 100,
-        'label' => 'Complete',
-        'class' => 'success',
-        'details' => '15 development lifecycles documented with process flows',
-      ],
-    ];
   }
 
 }

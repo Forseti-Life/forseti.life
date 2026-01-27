@@ -32,13 +32,6 @@
         <div class="doc-item">
           <div class="doc-header">
             <h3>{{ doc.link }}</h3>
-            {% if doc.status %}
-              <div class="validation-status">
-                <span class="badge bg-{{ doc.status.class }}">
-                  {{ doc.status.label }} ({{ doc.status.percent }}%)
-                </span>
-              </div>
-            {% endif %}
           </div>
           <p class="description">{{ doc.description }}</p>
           {% if doc.file %}
@@ -64,20 +57,8 @@
         <div class="doc-item">
           <div class="doc-header">
             <h3>{{ doc.link }}</h3>
-            {% if doc.status %}
-              <div class="validation-status">
-                <span class="badge bg-{{ doc.status.class }}">
-                  {{ doc.status.label }} ({{ doc.status.percent }}%)
-                </span>
-              </div>
-            {% endif %}
           </div>
           <p class="description">{{ doc.description }}</p>
-          {% if doc.status and doc.status.details %}
-            <p class="status-details text-muted-light">
-              <small><strong>{{ 'Implementation Status:'|t }}</strong> {{ doc.status.details }}</small>
-            </p>
-          {% endif %}
           <div class="doc-meta">
             <small>
               {{ 'File:'|t }} <strong>{{ doc.file }}</strong>
@@ -86,15 +67,6 @@
               {% endif %}
             </small>
           </div>
-          {% if doc.status and doc.status.percent < 100 %}
-            <div class="progress mt-2" style="height: 8px;">
-              <div class="progress-bar bg-{{ doc.status.class }}" role="progressbar" 
-                   style="width: {{ doc.status.percent }}%"
-                   aria-valuenow="{{ doc.status.percent }}" 
-                   aria-valuemin="0" 
-                   aria-valuemax="100"></div>
-            </div>
-          {% endif %}
         </div>
       {% endfor %}
     </div>
