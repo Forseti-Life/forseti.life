@@ -263,6 +263,15 @@ nfr.validation.create_test_users:
   options:
     no_cache: TRUE
 
+nfr.validation.get_user_counts:
+  path: '/admin/nfr/validation/get-user-counts'
+  defaults:
+    _controller: '\Drupal\nfr\Controller\NFRValidationController::getUserCounts'
+  requirements:
+    _permission: 'administer nfr'
+  options:
+    no_cache: TRUE
+
 nfr.validation.delete_test_users:
   path: '/admin/nfr/validation/delete-test-users'
   defaults:

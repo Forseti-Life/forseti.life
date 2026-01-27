@@ -656,6 +656,48 @@
   }
 
   /**
+   * Reload user counts display.
+   */
+  function reloadUserCounts() {
+    $.ajax({
+      url: '/admin/nfr/validation/get-user-counts',
+      method: 'GET',
+      dataType: 'json',
+      success: function (response) {
+        if (response.success && response.role_counts) {
+          // Update each role count
+          const roleCounts = response.role_counts;
+          let total = 0;
+          
+          roleCounts.forEach(function(roleInfo) {
+            total += roleInfo.count;
+          });
+          
+          // Build new HTML for role counts
+          let html = '';
+          roleCounts.forEach(function(roleInfo) {
+            html += '<div class="role-count-item">';
+            html += '<span class="role-label">' + roleInfo.label + ':</span> ';
+            html += '<span class="role-count">' + roleInfo.count.toLocaleString() + '</span>';
+            html += '</div>';
+          });
+          
+          html += '<div class="role-count-item total">';
+          html += '<span class="role-label"><strong>Total:</strong></span> ';
+          html += '<span class="role-count"><strong>' + total.toLocaleString() + '</strong></span>';
+          html += '</div>';
+          
+          // Update the display
+          $('.role-counts-grid').html(html);
+        }
+      },
+      error: function (xhr, status, error) {
+        console.error('Failed to reload user counts:', error);
+      }
+    });
+  }
+
+  /**
    * Display test users results.
    */
   function displayTestUsersResults(response, $results, action) {
@@ -702,10 +744,16 @@
           }
           html += '</div>';
         }
+        
+        // Reload user counts after creation
+        reloadUserCounts();
       } else if (action === 'delete') {
         html += '<div class="alert alert-success">';
         html += '<h4>✅ Successfully Deleted ' + response.users_deleted + ' Test Users</h4>';
         html += '</div>';
+        
+        // Reload user counts after deletion
+        reloadUserCounts();
       }
     } else {
       html += '<div class="alert alert-danger">';

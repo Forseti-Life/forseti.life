@@ -128,6 +128,7 @@ trait QuestionnaireFormTrait {
     return [
       '#type' => 'markup',
       '#markup' => $stepper_html,
+      '#weight' => -100,  // Ensure it renders first
       '#attached' => [
         'library' => [
           'nfr/enrollment',
