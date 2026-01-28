@@ -44,14 +44,10 @@ class QuestionnaireStepForm extends FormBase {
     $form['#suffix'] = '</div></div>';
 
     // Dimension header
-    $safety_map_url = Url::fromRoute('forseti.safety_map')->toString();
+    // $safety_map_url = Url::fromRoute('forseti.safety_map')->toString();
     $form['header'] = [
       '#markup' => sprintf(
         '<div class="text-center mb-4">
-          <div class="alert alert-primary mb-3">
-            <strong>📍 Want to see crime data for your area?</strong> 
-            Check out our <a href="%s" class="alert-link">Interactive Safety Map</a> for localized crime information.
-          </div>
           <img src="%s" alt="%s" class="questionnaire-dimension-icon mb-3">
           <h2>%s</h2>
           <p class="lead">%s</p>
@@ -60,7 +56,6 @@ class QuestionnaireStepForm extends FormBase {
             Review the scores and they will be used in your overall safety assessment.
           </div>
         </div>',
-        $safety_map_url,
         $dimension['icon'],
         $dimension['name'],
         $dimension['name'],

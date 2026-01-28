@@ -73,6 +73,13 @@ forseti.community:
   weight: -10
   expanded: true
 
+forseti.safety_calculator:
+  title: 'Safety Calculator'
+  route_name: safety_calculator.landing
+  menu_name: main
+  parent: forseti.community
+  weight: 0
+
 forseti.mobile_app:
   title: 'Mobile App'
   route_name: forseti.mobile_app
