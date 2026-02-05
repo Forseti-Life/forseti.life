@@ -108,34 +108,6 @@ class ForsetiHomeController extends ControllerBase {
       ',
     ];
 
-    $build['membership'] = [
-      '#type' => 'markup',
-      '#markup' => '
-        <div class="container py-4">
-          <div class="row">
-            <div class="col-lg-8 mx-auto">
-              <div class="card card-forseti p-4">
-                <h2 class="text-cyan mb-4">Building AI-Powered Community Value</h2>
-                
-                <div class="mb-4">
-                  <h3 class="h4 text-cyan mb-3">
-                    <span class="me-2">👋</span>1. You Join
-                  </h3>
-                  <p class="mb-2">Membership is by invitation or application with administrative approval. We welcome members who are tolerant, embrace science and technology, and want to be part of a community that takes care of its own.</p>
-                  <p class="text-success fw-bold">It\'s free if you are approved.</p>
-                </div>
-                
-                <div class="text-center mt-4">
-                  <a href="/user/register" class="btn btn-primary">Apply for Membership</a>
-                  <a href="/contact" class="btn btn-outline-primary ms-2">Request Invitation</a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ',
-    ];
-
     return $build;
   }
 

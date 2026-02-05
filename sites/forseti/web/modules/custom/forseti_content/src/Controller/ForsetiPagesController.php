@@ -572,19 +572,6 @@ class ForsetiPagesController extends ControllerBase {
       <div class="container py-3">
         <div class="row">
           <div class="col-lg-8 mx-auto">
-            <h1 class="text-center mb-3 text-cyan">Contact Forseti</h1>
-            <p class="text-center mb-4 text-muted-light">
-              We\'re here to help make Philadelphia safer together
-            </p>
-            
-            <div class="alert alert-emergency mb-4">
-              <h4 class="text-danger-custom">🚨 Emergency?</h4>
-              <p class="mb-0">
-                For immediate emergencies, always call <strong>911</strong>. 
-                Forseti is a safety information platform, not an emergency service.
-              </p>
-            </div>
-            
             <p class="text-center mb-4 text-muted-light">
               Whether you have questions, ideas, or want to get involved, we\'d love to hear from you.
             </p>

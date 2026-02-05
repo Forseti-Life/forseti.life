@@ -1,0 +1,7 @@
+jobhunter_tester.test_page:
+  path: '/jobhunter_testing'
+  defaults:
+    _controller: '\Drupal\jobhunter_tester\Controller\JobHunterTesterController::testPage'
+    _title: 'Job Hunter Route Testing'
+  requirements:
+    _permission: 'administer site configuration'
