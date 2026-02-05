@@ -18,6 +18,16 @@ forseti.home:
   options:
     no_cache: TRUE
 
+forseti.safety_map:
+  path: '/safety-map'
+  defaults:
+    _controller: '\Drupal\forseti_safety_content\Controller\ForsetiHomeController::safetyMap'
+    _title: 'Philadelphia Safety Map - Real-Time Crime Monitoring'
+  requirements:
+    _permission: 'access content'
+  options:
+    no_cache: TRUE
+
 forseti.talk_with_forseti:
   path: '/talk-with-forseti'
   defaults:

@@ -77,8 +77,41 @@ class ForsetiHomeController extends ControllerBase {
                 </svg>
                 Talk with Forseti
               </a>
-              <a href="#safety-map" class="btn btn-light btn-lg me-2">View Safety Map</a>
+              <a href="/safety-map" class="btn btn-light btn-lg me-2">View Safety Map</a>
               <a href="/mobile-app" class="btn btn-outline-light btn-lg">Get Forseti Mobile</a>
+            </div>
+          </div>
+        </div>
+      ',
+    ];
+
+    return $build;
+  }
+
+  /**
+   * Returns the safety map page.
+   */
+  public function safetyMap() {
+    $build = [];
+
+    $build['#attached']['library'][] = 'forseti_safety_content/style';
+
+    // Add page introduction
+    $build['intro'] = [
+      '#type' => 'markup',
+      '#markup' => '
+        <div class="container py-4">
+          <div class="row">
+            <div class="col-lg-10 mx-auto text-center">
+              <h1 class="mb-3">Philadelphia Safety Map</h1>
+              <p class="lead">
+                Real-time crime monitoring using H3 geospatial indexing. 
+                View crime incidents across Philadelphia with interactive heat maps and detailed statistics.
+              </p>
+              <div class="alert alert-info">
+                <strong>AI-Powered Safety:</strong> This map uses advanced H3 geospatial technology to aggregate 
+                and visualize crime data, helping you make informed decisions about safety in your area.
+              </div>
             </div>
           </div>
         </div>
