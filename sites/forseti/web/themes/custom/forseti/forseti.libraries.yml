@@ -102,3 +102,11 @@ footer:
       src/css/footer.css: {}
   dependencies:
     - core/drupal
+
+navbar_right:
+  css:
+    theme:
+      src/css/navbar-right.css: {}
+  dependencies:
+    - core/drupal
+

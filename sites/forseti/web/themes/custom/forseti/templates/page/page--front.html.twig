@@ -53,7 +53,8 @@
 
       {% block right %}
         {% if page.navbar_right %}
-          <div class="ms-auto">
+          {{ attach_library('forseti/navbar_right') }}
+          <div class="ms-auto region-navbar-right">
             {{ page.navbar_right }}
           </div>
         {% endif %}
