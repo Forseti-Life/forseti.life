@@ -572,6 +572,91 @@ print_status "Starting services..."
 ensure_mysql_running
 sudo service apache2 restart
 
+# ------------------------------------------------------------------------------
+# 1.6 VS Code Workspace Optimization
+# ------------------------------------------------------------------------------
+print_status "Configuring VS Code workspace optimizations..."
+VSCODE_DIR="$WORKSPACE_ROOT/.vscode"
+VSCODE_SETTINGS="$VSCODE_DIR/settings.json"
+
+# Create .vscode directory if it doesn't exist
+mkdir -p "$VSCODE_DIR"
+
+# Read existing chat.agent.maxRequests value if it exists
+CHAT_MAX_REQUESTS=150
+if [ -f "$VSCODE_SETTINGS" ] && grep -q "chat.agent.maxRequests" "$VSCODE_SETTINGS"; then
+    CHAT_MAX_REQUESTS=$(grep "chat.agent.maxRequests" "$VSCODE_SETTINGS" | sed 's/[^0-9]//g')
+fi
+
+# Create VS Code settings with performance optimizations
+cat > "$VSCODE_SETTINGS" << 'VSCODE_EOF'
+{
+  // Chat configuration
+  "chat.agent.maxRequests": 150,
+
+  // File Watcher Exclusions - Reduces CPU usage significantly
+  "files.watcherExclude": {
+    "**/vendor/**": true,
+    "**/node_modules/**": true,
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/sites/*/files/**": true,
+    "**/sites/*/private/**": true,
+    "**/*.sql": true,
+    "**/*.sql.gz": true
+  },
+
+  // Search Exclusions - Faster search results
+  "search.exclude": {
+    "**/vendor/**": true,
+    "**/node_modules/**": true,
+    "**/sites/*/files/**": true,
+    "**/*.lock": true,
+    "**/composer.lock": true,
+    "**/package-lock.json": true
+  },
+
+  // File Exclusions - Hide from explorer
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true
+  },
+
+  // Performance optimizations
+  "files.autoSave": "onFocusChange",
+  "editor.minimap.enabled": false,
+  "editor.renderWhitespace": "selection",
+  "breadcrumbs.enabled": true,
+
+  // Reduce extension host load
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false,
+
+  // TypeScript/JavaScript - disable if not needed
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "javascript.validate.enable": false,
+
+  // PHP specific
+  "php.validate.enable": true,
+  "php.validate.run": "onSave",
+
+  // Git optimizations
+  "git.autorefresh": false,
+  "git.decorations.enabled": true,
+
+  // Telemetry off
+  "telemetry.telemetryLevel": "off"
+}
+VSCODE_EOF
+
+# Restore chat.agent.maxRequests if it was different
+if [ "$CHAT_MAX_REQUESTS" != "150" ]; then
+    sed -i "s/\"chat.agent.maxRequests\": 150/\"chat.agent.maxRequests\": $CHAT_MAX_REQUESTS/" "$VSCODE_SETTINGS"
+fi
+
+print_status "✅ VS Code workspace optimized (file watchers, search, performance)"
+
 print_status "✅ STEP 1 COMPLETE: Environment setup finished"
 
 
