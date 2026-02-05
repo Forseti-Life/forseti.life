@@ -222,10 +222,10 @@ class JobApplicationController extends ControllerBase {
                    <span class="status-badge not-implemented">Not Fully Implemented</span>',
     ];
     
-    // Step 1: Profile (shared)
+    // Step 1: Profile Setup (shared with Tailored Resume process)
     $build['automated_step1'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['phase-section', 'phase-profile', 'disabled']],
+      '#attributes' => ['class' => ['phase-section', 'phase-profile']],
       'content' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
@@ -233,11 +233,14 @@ class JobApplicationController extends ControllerBase {
         '#value' => '<div class="step-indicator">Step 1</div>
                      <div class="phase-info">
                        <h3>Upload Resume & Clean Up Profile</h3>
-                       <p>Same as above - your profile is shared across both workflows.</p>
+                       <p>Import your resume, parse it with AI, and refine your consolidated profile.</p>
                      </div>
                      <div class="phase-stat">
                        <div class="stat-number">' . $profile_completion . '%</div>
                        <div class="stat-label">Profile Complete</div>
+                     </div>
+                     <div class="phase-actions">
+                       <a href="' . $user_edit_url->toString() . '" class="phase-button primary">Edit Profile</a>
                      </div>',
       ],
     ];
@@ -410,9 +413,282 @@ class JobApplicationController extends ControllerBase {
     $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
     $navigation_block = $plugin_block->build();
     
+    $database = \Drupal::database();
+    
+    // Query companies from job_hunter_companies table
+    $query = $database->select('job_hunter_companies', 'c')
+      ->fields('c')
+      ->orderBy('name', 'ASC');
+    $companies = $query->execute()->fetchAll();
+    
+    // Count jobs per company
+    $job_counts = [];
+    $job_query = $database->select('job_hunter_job_requirements', 'j')
+      ->fields('j', ['company_id'])
+      ->condition('status', 'active')
+      ->groupBy('company_id');
+    $job_query->addExpression('COUNT(*)', 'job_count');
+    $job_results = $job_query->execute()->fetchAllKeyed(0, 1);
+    
     $content = [];
-    $content['content'] = [
-      '#markup' => '<h2>Manage Target Companies</h2><p>Company management interface.</p>',
+    $content['#attached']['library'][] = 'job_hunter/job-hunter-home';
+    
+    // Header with stats
+    $total_companies = count($companies);
+    $active_companies = count(array_filter($companies, fn($c) => $c->active == 1));
+    
+    $content['header'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => ['class' => ['target-companies-header']],
+      '#value' => '<h2>🎯 Target Companies</h2>
+                   <p class="subtitle">Build your list of companies you want to work for</p>
+                   <div class="stats-bar">
+                     <div class="stat"><span class="stat-number">' . $total_companies . '</span> Total Companies</div>
+                     <div class="stat"><span class="stat-number">' . $active_companies . '</span> Active</div>
+                     <div class="stat"><span class="stat-number">' . array_sum($job_results) . '</span> Jobs Found</div>
+                   </div>',
+    ];
+    
+    // Add company button
+    $content['add_button'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => ['class' => ['action-bar']],
+      '#value' => '<a href="/jobhunter/companies/add" class="btn-add-company">+ Add Company</a>
+                   <a href="/jobhunter/bulk-import-companies" class="btn-bulk-import">📋 Bulk Import</a>',
+    ];
+    
+    // Get companies from job postings (extracted via AI)
+    $job_companies = $this->getCompaniesFromJobPostings();
+    
+    // All companies section - filterable list from job postings
+    if (!empty($job_companies)) {
+      $content['all_companies_header'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['section-header']],
+        '#value' => '<h3>📋 Companies from Job Postings</h3>
+                     <p class="section-description">Companies extracted from job descriptions you\'ve added</p>',
+      ];
+      
+      $content['filter'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['filter-bar']],
+        '#value' => '<input type="text" id="company-filter" placeholder="Filter companies by name..." class="company-filter-input">
+                     <span class="filter-count">Showing <span id="visible-count">' . count($job_companies) . '</span> of ' . count($job_companies) . ' companies</span>',
+      ];
+      
+      $all_rows = '';
+      foreach ($job_companies as $company_name => $job_count) {
+        // Check if already in target companies
+        $exists = $database->select('job_hunter_companies', 'c')
+          ->condition('name', $company_name)
+          ->countQuery()
+          ->execute()
+          ->fetchField();
+        
+        $action = $exists 
+          ? '<span class="already-added">✓ Already in targets</span>'
+          : '<a href="#" class="btn-add-quick" data-company="' . htmlspecialchars($company_name) . '" onclick="addCompanyQuick(this); return false;">+ Add to Targets</a>';
+        
+        $all_rows .= '<tr class="company-row" data-company-name="' . strtolower(htmlspecialchars($company_name)) . '">
+          <td class="company-name-cell"><strong>' . htmlspecialchars($company_name) . '</strong></td>
+          <td class="job-count-cell"><span class="badge">' . $job_count . '</span></td>
+          <td class="action-cell">' . $action . '</td>
+        </tr>';
+      }
+      
+      $content['all_companies_table'] = [
+        '#type' => 'inline_template',
+        '#template' => '<table class="all-companies-table">
+          <thead>
+            <tr>
+              <th>Company Name</th>
+              <th>Job Postings</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="companies-table-body">{{ rows|raw }}</tbody>
+        </table>',
+        '#context' => ['rows' => $all_rows],
+      ];
+    }
+    
+    if (empty($companies)) {
+      $content['empty'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['empty-state']],
+        '#value' => '<div class="empty-icon">🏢</div>
+                     <h3>No Target Companies Yet</h3>
+                     <p>Start by adding companies you\'re interested in working for.</p>
+                     <a href="/jobhunter/companies/add" class="btn-primary">Add Your First Company</a>',
+      ];
+    } else {
+      // Build companies table
+      $rows = '';
+      foreach ($companies as $company) {
+        $job_count = $job_results[$company->id] ?? 0;
+        $status_class = $company->active ? 'status-active' : 'status-inactive';
+        $status_text = $company->active ? 'Active' : 'Inactive';
+        
+        $website_link = $company->website 
+          ? '<a href="' . htmlspecialchars($company->website) . '" target="_blank">🔗 Website</a>'
+          : '<span class="text-muted">No website</span>';
+        
+        $careers_link = $company->careers_page_url
+          ? '<a href="' . htmlspecialchars($company->careers_page_url) . '" target="_blank">💼 Careers</a>'
+          : '';
+        
+        $rows .= '<tr>
+          <td class="company-name">
+            <strong>' . htmlspecialchars($company->name) . '</strong>
+            ' . ($company->industry ? '<div class="company-industry">' . htmlspecialchars($company->industry) . '</div>' : '') . '
+          </td>
+          <td class="company-location">' . ($company->location ? htmlspecialchars($company->location) : '-') . '</td>
+          <td class="company-links">' . $website_link . ' ' . $careers_link . '</td>
+          <td class="company-jobs"><span class="badge">' . $job_count . '</span></td>
+          <td class="company-status"><span class="' . $status_class . '">' . $status_text . '</span></td>
+          <td class="company-actions">
+            <a href="/jobhunter/companies/' . $company->id . '/edit" class="btn-edit">Edit</a>
+            <a href="/jobhunter/companies/' . $company->id . '/delete" class="btn-delete" onclick="return confirm(\'Delete ' . htmlspecialchars($company->name) . '?\')">Delete</a>
+          </td>
+        </tr>';
+      }
+      
+      $content['table'] = [
+        '#type' => 'inline_template',
+        '#template' => '<table class="companies-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Location</th>
+              <th>Links</th>
+              <th>Jobs</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>{{ rows|raw }}</tbody>
+        </table>',
+        '#context' => ['rows' => $rows],
+      ];
+    }
+    
+    // Add CSS
+    $content['#attached']['html_head'][] = [
+      [
+        '#type' => 'html_tag',
+        '#tag' => 'style',
+        '#value' => '
+          .target-companies-header { margin-bottom: 30px; }
+          .target-companies-header h2 { margin: 0 0 10px 0; font-size: 2em; }
+          .target-companies-header .subtitle { color: #666; font-size: 1.1em; margin-bottom: 20px; }
+          .stats-bar { display: flex; gap: 30px; margin-top: 15px; }
+          .stat { background: #f8f9fa; padding: 15px 20px; border-radius: 8px; }
+          .stat-number { font-size: 1.8em; font-weight: bold; color: #2c5282; display: block; }
+          .stat-label { font-size: 0.9em; color: #666; }
+          .action-bar { margin: 20px 0; display: flex; gap: 10px; }
+          .btn-add-company, .btn-bulk-import { padding: 12px 24px; background: #48bb78; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; }
+          .btn-bulk-import { background: #4299e1; }
+          .btn-add-company:hover { background: #38a169; }
+          .btn-bulk-import:hover { background: #3182ce; }
+          .empty-state { text-align: center; padding: 60px 20px; background: #f8f9fa; border-radius: 12px; margin: 30px 0; }
+          .empty-icon { font-size: 4em; margin-bottom: 20px; }
+          .empty-state h3 { margin: 0 0 10px 0; font-size: 1.5em; }
+          .empty-state p { color: #666; margin-bottom: 20px; }
+          .btn-primary { display: inline-block; padding: 12px 30px; background: #48bb78; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; }
+          .section-header { margin: 40px 0 20px 0; padding-top: 30px; border-top: 2px solid #e2e8f0; }
+          .section-header h3 { margin: 0 0 10px 0; font-size: 1.5em; }
+          .section-description { color: #666; margin: 0; }
+          .filter-bar { margin: 20px 0; display: flex; gap: 20px; align-items: center; }
+          .company-filter-input { flex: 1; max-width: 400px; padding: 10px 15px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 1em; }
+          .company-filter-input:focus { outline: none; border-color: #4299e1; }
+          .filter-count { color: #666; font-size: 0.9em; }
+          .all-companies-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+          .all-companies-table th { background: #f8f9fa; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+          .all-companies-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+          .all-companies-table .company-row.hidden { display: none; }
+          .btn-add-quick { padding: 6px 16px; background: #48bb78; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em; display: inline-block; }
+          .btn-add-quick:hover { background: #38a169; }
+          .already-added { color: #38a169; font-weight: 600; }
+          .companies-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+          .companies-table th { background: #f8f9fa; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+          .companies-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+          .company-name strong { font-size: 1.1em; color: #2d3748; }
+          .company-industry { font-size: 0.9em; color: #718096; margin-top: 4px; }
+          .company-links a { margin-right: 10px; color: #4299e1; text-decoration: none; }
+          .company-links a:hover { text-decoration: underline; }
+          .badge { background: #e6fffa; color: #234e52; padding: 4px 12px; border-radius: 12px; font-weight: 600; }
+          .status-active { color: #38a169; font-weight: 600; }
+          .status-inactive { color: #a0aec0; }
+          .btn-edit, .btn-delete { padding: 6px 12px; margin-right: 8px; border-radius: 4px; text-decoration: none; font-size: 0.9em; }
+          .btn-edit { background: #4299e1; color: white; }
+          .btn-delete { background: #f56565; color: white; }
+          .btn-edit:hover { background: #3182ce; }
+          .btn-delete:hover { background: #e53e3e; }
+          .text-muted { color: #a0aec0; }
+        ',
+      ],
+      'target_companies_styles',
+    ];
+    
+    // Add JavaScript for filtering
+    $content['#attached']['html_head'][] = [
+      [
+        '#type' => 'html_tag',
+        '#tag' => 'script',
+        '#value' => '
+          function filterCompanies() {
+            var input = document.getElementById("company-filter");
+            var filter = input.value.toLowerCase();
+            var rows = document.querySelectorAll(".company-row");
+            var visibleCount = 0;
+            
+            rows.forEach(function(row) {
+              var companyName = row.getAttribute("data-company-name");
+              if (companyName.indexOf(filter) > -1) {
+                row.classList.remove("hidden");
+                visibleCount++;
+              } else {
+                row.classList.add("hidden");
+              }
+            });
+            
+            document.getElementById("visible-count").textContent = visibleCount;
+          }
+          
+          function addCompanyQuick(btn) {
+            var companyName = btn.getAttribute("data-company");
+            var formData = new FormData();
+            formData.append("company_name", companyName);
+            
+            fetch("/jobhunter/companies/add-quick", {
+              method: "POST",
+              body: formData
+            }).then(function(response) {
+              return response.json();
+            }).then(function(data) {
+              if (data.success) {
+                btn.outerHTML = "<span class=\"already-added\">✓ Added to targets</span>";
+                location.reload();
+              } else {
+                alert("Error adding company: " + data.message);
+              }
+            });
+          }
+          
+          document.addEventListener("DOMContentLoaded", function() {
+            var filterInput = document.getElementById("company-filter");
+            if (filterInput) {
+              filterInput.addEventListener("keyup", filterCompanies);
+            }
+          });
+        ',
+      ],
+      'target_companies_js',
     ];
     
     // Wrap with navigation
@@ -699,6 +975,64 @@ class JobApplicationController extends ControllerBase {
     ];
     
     return $build;
+  }
+
+}
+  /**
+   * Extract unique company names from job postings.
+   * 
+   * @return array
+   *   Array of company names with job counts [company_name => count].
+   */
+  private function getCompaniesFromJobPostings() {
+    $database = \Drupal::database();
+    
+    // Get all job requirements with extracted JSON
+    $query = $database->select("job_hunter_job_requirements", "j")
+      ->fields("j", ["id", "extracted_json", "company_id"])
+      ->condition("status", "active");
+    $jobs = $query->execute()->fetchAll();
+    
+    $companies = [];
+    
+    foreach ($jobs as $job) {
+      $company_name = null;
+      
+      // First, try to get company from company_id
+      if ($job->company_id) {
+        $company = $database->select("job_hunter_companies", "c")
+          ->fields("c", ["name"])
+          ->condition("id", $job->company_id)
+          ->execute()
+          ->fetchField();
+        if ($company) {
+          $company_name = $company;
+        }
+      }
+      
+      // If no company_id or not found, try to extract from JSON
+      if (!$company_name && $job->extracted_json) {
+        $extracted = json_decode($job->extracted_json, TRUE);
+        if (isset($extracted["company_name"]) && !empty($extracted["company_name"])) {
+          $company_name = $extracted["company_name"];
+        } elseif (isset($extracted["company"]) && !empty($extracted["company"])) {
+          $company_name = $extracted["company"];
+        }
+      }
+      
+      // Count this company
+      if ($company_name) {
+        if (!isset($companies[$company_name])) {
+          $companies[$company_name] = 0;
+        }
+        $companies[$company_name]++;
+      }
+    }
+    
+    // Sort by job count descending, then alphabetically
+    arsort($companies);
+    
+    return $companies;
   }
 
 }

@@ -81,53 +81,7 @@ class CompanyForm extends FormBase {
       '#required' => TRUE,
       '#default_value' => $company ? $company->name : '',
       '#maxlength' => 255,
-    ];
-
-    $form['website'] = [
-      '#type' => 'url',
-      '#title' => $this->t('Website'),
-      '#default_value' => $company ? $company->website : '',
-      '#maxlength' => 512,
-      '#description' => $this->t('Company website URL (e.g., https://example.com)'),
-    ];
-
-    $form['careers_page_url'] = [
-      '#type' => 'url',
-      '#title' => $this->t('Careers Page URL'),
-      '#default_value' => $company ? $company->careers_page_url : '',
-      '#maxlength' => 512,
-      '#description' => $this->t('Direct link to company careers/jobs page'),
-    ];
-
-    $form['industry'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Industry'),
-      '#default_value' => $company ? $company->industry : '',
-      '#maxlength' => 100,
-      '#description' => $this->t('Industry category (e.g., Technology, Healthcare, Finance)'),
-    ];
-
-    $form['location'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Location'),
-      '#default_value' => $company ? $company->location : '',
-      '#maxlength' => 255,
-      '#description' => $this->t('Company headquarters location'),
-    ];
-
-    $form['active'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Active for job discovery'),
-      '#default_value' => $company ? $company->active : 1,
-      '#description' => $this->t('Check to enable job discovery for this company'),
-    ];
-
-    $form['notes'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Admin Notes'),
-      '#default_value' => $company ? $company->notes : '',
-      '#rows' => 5,
-      '#description' => $this->t('Internal notes for scraping configuration and management'),
+      '#description' => $this->t('Enter the company name (other details can be added later)'),
     ];
 
     $form['actions'] = [
@@ -143,7 +97,7 @@ class CompanyForm extends FormBase {
     $form['actions']['cancel'] = [
       '#type' => 'link',
       '#title' => $this->t('Cancel'),
-      '#url' => \Drupal\Core\Url::fromRoute('job_hunter.companies_list'),
+      '#url' => \Drupal\Core\Url::fromRoute('job_hunter.manage_target_companies'),
       '#attributes' => ['class' => ['button']],
     ];
 
@@ -159,12 +113,7 @@ class CompanyForm extends FormBase {
 
     $fields = [
       'name' => $form_state->getValue('name'),
-      'website' => $form_state->getValue('website'),
-      'careers_page_url' => $form_state->getValue('careers_page_url'),
-      'industry' => $form_state->getValue('industry'),
-      'location' => $form_state->getValue('location'),
-      'active' => $form_state->getValue('active') ? 1 : 0,
-      'notes' => $form_state->getValue('notes'),
+      'active' => 1,
       'updated' => $timestamp,
     ];
 
@@ -192,7 +141,7 @@ class CompanyForm extends FormBase {
       ]));
     }
 
-    $form_state->setRedirect('job_hunter.companies_list');
+    $form_state->setRedirect('job_hunter.manage_target_companies');
   }
 
 }

@@ -3705,6 +3705,55 @@ JSON SCHEMA (v1.0):
       "technologies": ["tech1", "tech2"],
       "description": "Project description"
     }
+  ],
+  "publications": [
+    {
+      "title": "Publication Title",
+      "authors": ["Author1", "Author2"],
+      "publication": "Journal/Conference Name",
+      "date": "YYYY-MM",
+      "url": "https://..." or null,
+      "doi": "DOI identifier" or null,
+      "citation_count": "number if mentioned" or null,
+      "description": "Brief description if provided"
+    }
+  ],
+  "patents": [
+    {
+      "title": "Patent Title",
+      "patent_number": "US1234567",
+      "status": "granted|pending|filed",
+      "filing_date": "YYYY-MM",
+      "grant_date": "YYYY-MM" or null,
+      "inventors": ["Inventor1", "Inventor2"],
+      "assignee": "Company Name" or null,
+      "url": "https://..." or null,
+      "description": "Brief description"
+    }
+  ],
+  "certifications": [
+    {
+      "name": "Certification Name",
+      "issuing_organization": "Organization Name",
+      "credential_id": "ID number" or null,
+      "issue_date": "YYYY-MM",
+      "expiration_date": "YYYY-MM" or null,
+      "verification_url": "https://..." or null
+    }
+  ],
+  "awards_and_honors": [
+    {
+      "title": "Award Title",
+      "issuing_organization": "Organization Name",
+      "date": "YYYY-MM",
+      "description": "Brief description of the award/recognition"
+    }
+  ],
+  "languages": [
+    {
+      "language": "Language Name",
+      "proficiency": "native|fluent|professional|intermediate|basic"
+    }
   ]
 }
 
@@ -4470,22 +4519,26 @@ PROMPT;
     $is_keith = (strpos(strtolower($filename), 'keith') !== FALSE);
     
     return [
-      'personal_info' => [
+      'schema_version' => '1.0',
+      'contact_info' => [
         'full_name' => $is_keith ? 'Keith Aumiller' : 'John Doe',
         'email' => $is_keith ? 'keith@example.com' : 'john.doe@example.com',
         'phone' => '(555) 123-4567',
         'location' => $is_keith ? 'St. Louis, MO' : 'New York, NY',
-        'linkedin' => 'https://linkedin.com/in/profile',
+        'linkedin_url' => 'https://linkedin.com/in/profile',
       ],
-      'summary' => 'Experienced professional with expertise in software development, project management, and team leadership. Proven track record of delivering high-quality solutions and driving business results.',
-      'work_history' => [
+      'executive_profile' => [
+        'summary' => 'Experienced professional with expertise in software development, project management, and team leadership. Proven track record of delivering high-quality solutions and driving business results.',
+        'years_experience' => 10,
+        'specializations' => ['Software Development', 'Project Management', 'Team Leadership'],
+      ],
+      'professional_experience' => [
         [
-          'title' => 'Senior Software Engineer',
-          'company' => 'Tech Company Inc',
+          'job_title' => 'Senior Software Engineer',
+          'company_name' => 'Tech Company Inc',
           'location' => 'St. Louis, MO',
-          'start_date' => '2020-01',
-          'end_date' => 'Present',
-          'description' => 'Lead development of enterprise applications using modern web technologies. Mentor junior developers and drive technical excellence.',
+          'dates' => '2020-01 to Present',
+          'responsibilities' => 'Lead development of enterprise applications using modern web technologies. Mentor junior developers and drive technical excellence.',
           'achievements' => [
             'Reduced system downtime by 40%',
             'Implemented CI/CD pipeline',
@@ -4493,47 +4546,44 @@ PROMPT;
           ],
         ],
         [
-          'title' => 'Software Developer',
-          'company' => 'Previous Corp',
+          'job_title' => 'Software Developer',
+          'company_name' => 'Previous Corp',
           'location' => 'Chicago, IL',
-          'start_date' => '2017-06',
-          'end_date' => '2019-12',
-          'description' => 'Developed and maintained web applications using PHP, JavaScript, and MySQL.',
+          'dates' => '2017-06 to 2019-12',
+          'responsibilities' => 'Developed and maintained web applications using PHP, JavaScript, and MySQL.',
           'achievements' => [
             'Built customer portal from scratch',
             'Improved page load times by 60%',
           ],
         ],
       ],
+      'technical_expertise' => [
+        'core_technical_skills' => ['PHP', 'JavaScript', 'Python', 'Java', 'MySQL', 'PostgreSQL', 'MongoDB'],
+        'frameworks_and_libraries' => ['Drupal', 'React', 'Laravel', 'Symfony'],
+        'tools_and_platforms' => ['Git', 'Docker', 'Jenkins', 'AWS'],
+      ],
       'education' => [
         [
-          'degree' => 'Bachelor of Science',
-          'field' => 'Computer Science',
-          'school' => 'State University',
+          'degree_type' => 'Bachelor of Science',
+          'field_of_study' => 'Computer Science',
+          'institution_name' => 'State University',
           'location' => 'Springfield, IL',
-          'graduation_year' => '2017',
+          'completion_date' => '2017',
           'honors' => 'Cum Laude',
         ],
       ],
-      'skills' => [
-        'Programming Languages' => ['PHP', 'JavaScript', 'Python', 'Java'],
-        'Frameworks' => ['Drupal', 'React', 'Laravel', 'Symfony'],
-        'Databases' => ['MySQL', 'PostgreSQL', 'MongoDB'],
-        'Tools' => ['Git', 'Docker', 'Jenkins', 'AWS'],
-        'Soft Skills' => ['Team Leadership', 'Project Management', 'Communication'],
-      ],
       'certifications' => [
         [
-          'name' => 'AWS Certified Developer',
-          'issuer' => 'Amazon Web Services',
-          'date' => '2022-03',
+          'certification_name' => 'AWS Certified Developer',
+          'issuing_organization' => 'Amazon Web Services',
+          'date_obtained' => '2022-03',
         ],
       ],
-      '_metadata' => [
-        'parsed_at' => date('Y-m-d H:i:s'),
-        'mode' => 'development_mock',
-        'filename' => $filename,
-        'parser_version' => '1.0.0-dev',
+      'extraction_metadata' => [
+        'extraction_date' => date('Y-m-d H:i:s'),
+        'extraction_method' => 'development_mock',
+        'source_files' => [$filename],
+        'parser_version' => '1.0.0',
       ],
     ];
   }

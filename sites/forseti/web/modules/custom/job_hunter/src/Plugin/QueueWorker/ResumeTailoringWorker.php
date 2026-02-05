@@ -299,6 +299,11 @@ Generate a TAILORED version of the candidate's resume as a JSON object. The outp
    - `technical_expertise`: Reorder categories to prioritize job-relevant skills
    - `leadership_philosophy`: Tailor if relevant
    - `demonstration_projects`: Include if relevant
+   - `publications`: Include if candidate has publications and they're relevant to the role
+   - `patents`: Include if candidate has patents and they're relevant to the role
+   - `certifications`: Include if candidate has certifications and they're relevant to the role
+   - `awards_and_honors`: Include if relevant to demonstrate excellence in the field
+   - `languages`: Include if job requires or values language skills
 
 2. **Tailoring Guidelines:**
    - Incorporate keywords from the job posting naturally
@@ -307,6 +312,7 @@ Generate a TAILORED version of the candidate's resume as a JSON object. The outp
    - Technologies mentioned in job posting should be emphasized
    - Maintain professional tone and factual accuracy
    - DO NOT fabricate information - only reorganize and emphasize existing content
+   - For publications, patents, certifications, awards, and languages: only include if they exist in source resume AND are relevant to the position
 
 3. **Add tailoring_metadata section:**
    ```json

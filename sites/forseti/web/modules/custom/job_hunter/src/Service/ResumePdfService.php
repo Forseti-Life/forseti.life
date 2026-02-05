@@ -460,6 +460,26 @@ class ResumePdfService {
         case 'demonstration_projects':
           $this->renderDemonstrationProjects($sectionContent);
           break;
+
+        case 'publications':
+          $this->renderPublications($sectionContent);
+          break;
+
+        case 'patents':
+          $this->renderPatents($sectionContent);
+          break;
+
+        case 'certifications':
+          $this->renderCertifications($sectionContent);
+          break;
+
+        case 'awards_and_honors':
+          $this->renderAwardsAndHonors($sectionContent);
+          break;
+
+        case 'languages':
+          $this->renderLanguages($sectionContent);
+          break;
       }
     }
   }
@@ -861,6 +881,249 @@ class ResumePdfService {
         $this->pdf->Cell(0, 0, $techText, 0, 1, 'L');
       }
 
+      $this->pdf->Ln(4);
+    }
+  }
+
+  /**
+   * Render publications section.
+   *
+   * @param array $publications
+   *   The publications array.
+   */
+  protected function renderPublications(array $publications): void {
+    foreach ($publications as $publication) {
+      // Title.
+      $this->applyFontStyle('publication_title');
+      $title = $publication['title'] ?? '';
+      $this->pdf->MultiCell(0, 0, $title, 0, 'L', FALSE, 1);
+
+      // Authors.
+      if (!empty($publication['authors'])) {
+        $this->applyFontStyle('publication_authors');
+        $authors = is_array($publication['authors']) ? implode(', ', $publication['authors']) : $publication['authors'];
+        $this->pdf->MultiCell(0, 0, $authors, 0, 'L', FALSE, 1);
+      }
+
+      // Publication venue and date.
+      $details = [];
+      if (!empty($publication['publication'])) {
+        $details[] = $publication['publication'];
+      }
+      if (!empty($publication['date'])) {
+        $details[] = $publication['date'];
+      }
+      if (!empty($details)) {
+        $this->applyFontStyle('publication_details');
+        $this->pdf->Cell(0, 0, implode(', ', $details), 0, 1, 'L');
+      }
+
+      // DOI or URL.
+      if (!empty($publication['doi'])) {
+        $this->applyFontStyle('contact_link');
+        $doi = $publication['doi'];
+        $doiUrl = strpos($doi, 'http') === 0 ? $doi : 'https://doi.org/' . $doi;
+        $this->pdf->Cell(0, 0, 'DOI: ' . $doi, 0, 1, 'L', FALSE, $doiUrl);
+      }
+      elseif (!empty($publication['url'])) {
+        $this->applyFontStyle('contact_link');
+        $this->pdf->Cell(0, 0, $publication['url'], 0, 1, 'L', FALSE, $publication['url']);
+      }
+
+      // Description.
+      if (!empty($publication['description'])) {
+        $this->applyFontStyle('body_text');
+        $this->pdf->Ln(2);
+        $this->pdf->MultiCell(0, 0, $publication['description'], 0, 'L', FALSE, 1);
+      }
+
+      $this->pdf->Ln(4);
+    }
+  }
+
+  /**
+   * Render patents section.
+   *
+   * @param array $patents
+   *   The patents array.
+   */
+  protected function renderPatents(array $patents): void {
+    foreach ($patents as $patent) {
+      // Title and patent number.
+      $this->applyFontStyle('patent_title');
+      $title = $patent['title'] ?? '';
+      $this->pdf->MultiCell(0, 0, $title, 0, 'L', FALSE, 1);
+
+      // Patent number.
+      if (!empty($patent['patent_number'])) {
+        $this->applyFontStyle('patent_number');
+        $this->pdf->Cell(0, 0, $patent['patent_number'], 0, 1, 'L');
+      }
+
+      // Status and dates.
+      $statusParts = [];
+      if (!empty($patent['status'])) {
+        $statusParts[] = ucfirst($patent['status']);
+      }
+      if (!empty($patent['filing_date'])) {
+        $statusParts[] = 'Filed: ' . $patent['filing_date'];
+      }
+      if (!empty($patent['grant_date'])) {
+        $statusParts[] = 'Granted: ' . $patent['grant_date'];
+      }
+      if (!empty($statusParts)) {
+        $this->applyFontStyle('patent_details');
+        $this->pdf->Cell(0, 0, implode(' | ', $statusParts), 0, 1, 'L');
+      }
+
+      // Inventors.
+      if (!empty($patent['inventors'])) {
+        $this->applyFontStyle('body_text');
+        $inventors = is_array($patent['inventors']) ? implode(', ', $patent['inventors']) : $patent['inventors'];
+        $this->pdf->Cell(0, 0, 'Inventors: ' . $inventors, 0, 1, 'L');
+      }
+
+      // Assignee.
+      if (!empty($patent['assignee'])) {
+        $this->applyFontStyle('body_text');
+        $this->pdf->Cell(0, 0, 'Assignee: ' . $patent['assignee'], 0, 1, 'L');
+      }
+
+      // URL.
+      if (!empty($patent['url'])) {
+        $this->applyFontStyle('contact_link');
+        $this->pdf->Cell(0, 0, $patent['url'], 0, 1, 'L', FALSE, $patent['url']);
+      }
+
+      // Description.
+      if (!empty($patent['description'])) {
+        $this->applyFontStyle('body_text');
+        $this->pdf->Ln(2);
+        $this->pdf->MultiCell(0, 0, $patent['description'], 0, 'L', FALSE, 1);
+      }
+
+      $this->pdf->Ln(4);
+    }
+  }
+
+  /**
+   * Render certifications section.
+   *
+   * @param array $certifications
+   *   The certifications array.
+   */
+  protected function renderCertifications(array $certifications): void {
+    foreach ($certifications as $cert) {
+      // Certification name and date.
+      $dateText = '';
+      if (!empty($cert['issue_date'])) {
+        $dateText = $cert['issue_date'];
+        if (!empty($cert['expiration_date'])) {
+          $dateText .= ' – ' . $cert['expiration_date'];
+        }
+      }
+      
+      if (!empty($dateText)) {
+        $this->renderTwoColumnLine(
+          $cert['name'] ?? '',
+          $dateText,
+          'certification_name',
+          'certification_date'
+        );
+      }
+      else {
+        $this->applyFontStyle('certification_name');
+        $this->pdf->Cell(0, 0, $cert['name'] ?? '', 0, 1, 'L');
+      }
+
+      // Issuing organization.
+      if (!empty($cert['issuing_organization'])) {
+        $this->applyFontStyle('certification_org');
+        $this->pdf->Cell(0, 0, $cert['issuing_organization'], 0, 1, 'L');
+      }
+
+      // Credential ID.
+      if (!empty($cert['credential_id'])) {
+        $this->applyFontStyle('body_text');
+        $this->pdf->Cell(0, 0, 'Credential ID: ' . $cert['credential_id'], 0, 1, 'L');
+      }
+
+      // Verification URL.
+      if (!empty($cert['verification_url'])) {
+        $this->applyFontStyle('contact_link');
+        $url = $cert['verification_url'];
+        $this->pdf->Cell(0, 0, $url, 0, 1, 'L', FALSE, $url);
+      }
+
+      $this->pdf->Ln(4);
+    }
+  }
+
+  /**
+   * Render awards and honors section.
+   *
+   * @param array $awards
+   *   The awards array.
+   */
+  protected function renderAwardsAndHonors(array $awards): void {
+    foreach ($awards as $award) {
+      // Award title and date.
+      if (!empty($award['date'])) {
+        $this->renderTwoColumnLine(
+          $award['title'] ?? '',
+          $award['date'],
+          'award_title',
+          'award_date'
+        );
+      }
+      else {
+        $this->applyFontStyle('award_title');
+        $this->pdf->Cell(0, 0, $award['title'] ?? '', 0, 1, 'L');
+      }
+
+      // Issuing organization.
+      if (!empty($award['issuing_organization'])) {
+        $this->applyFontStyle('award_org');
+        $this->pdf->Cell(0, 0, $award['issuing_organization'], 0, 1, 'L');
+      }
+
+      // Description.
+      if (!empty($award['description'])) {
+        $this->applyFontStyle('body_text');
+        $this->pdf->Ln(2);
+        $this->pdf->MultiCell(0, 0, $award['description'], 0, 'L', FALSE, 1);
+      }
+
+      $this->pdf->Ln(4);
+    }
+  }
+
+  /**
+   * Render languages section.
+   *
+   * @param array $languages
+   *   The languages array.
+   */
+  protected function renderLanguages(array $languages): void {
+    $this->applyFontStyle('body_text');
+    
+    $languageList = [];
+    foreach ($languages as $lang) {
+      $langName = $lang['language'] ?? '';
+      $proficiency = $lang['proficiency'] ?? '';
+      
+      if (!empty($langName)) {
+        if (!empty($proficiency)) {
+          $languageList[] = $langName . ' (' . ucfirst($proficiency) . ')';
+        }
+        else {
+          $languageList[] = $langName;
+        }
+      }
+    }
+    
+    if (!empty($languageList)) {
+      $this->pdf->MultiCell(0, 0, implode(', ', $languageList), 0, 'L', FALSE, 1);
       $this->pdf->Ln(4);
     }
   }
