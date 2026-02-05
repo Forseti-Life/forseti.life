@@ -53,17 +53,14 @@ class NFRController extends ControllerBase {
       </div>',
     ];
 
-    // Get statistics
-    $total_firefighters = $this->database->select('nfr_firefighters', 'n')
+    // Get statistics from nfr_user_profile table
+    $total_firefighters = $this->database->select('nfr_user_profile', 'n')
       ->countQuery()
       ->execute()
       ->fetchField();
 
-    $active_firefighters = $this->database->select('nfr_firefighters', 'n')
-      ->condition('status', 'active')
-      ->countQuery()
-      ->execute()
-      ->fetchField();
+    // Note: nfr_user_profile doesn't have a 'status' column, so count all profiles
+    $active_firefighters = $total_firefighters;
 
     $build['stats'] = [
       '#markup' => '<div class="nfr-stats">
