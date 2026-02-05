@@ -5,7 +5,7 @@ namespace Drupal\agent_evaluation\Service;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\forseti_safety_content\Service\AgentPowerService;
+use Drupal\forseti_content\Service\AgentPowerService;
 
 /**
  * Service for managing agent evaluations.
@@ -38,7 +38,7 @@ class AgentEvaluationService {
   /**
    * The Agent Power service.
    *
-   * @var \Drupal\forseti_safety_content\Service\AgentPowerService
+   * @var \Drupal\forseti_content\Service\AgentPowerService
    */
   protected $agentPowerService;
 
@@ -49,7 +49,7 @@ class AgentEvaluationService {
    *   The entity type manager.
    * @param \Drupal\Core\Session\AccountProxyInterface $current_user
    *   The current user.
-   * @param \Drupal\forseti_safety_content\Service\AgentPowerService $agent_power_service
+   * @param \Drupal\forseti_content\Service\AgentPowerService $agent_power_service
    *   The agent power service.
    * @param \Drupal\ai_conversation\Service\AIApiService $ai_api_service
    *   The AI API service.

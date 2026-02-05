@@ -116,7 +116,7 @@ evaluated_entity (node)
 
 **Dependencies**:
 - `ai_conversation` module (required) - Provides conversation infrastructure
-- `forseti_safety_content` module (optional) - Integration with Agent Power Framework pages
+- `forseti_content` module (optional) - Integration with Agent Power Framework pages
 
 ### Data Flow
 
