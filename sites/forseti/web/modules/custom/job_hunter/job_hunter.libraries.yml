@@ -52,11 +52,8 @@ user_profile:
   js:
     js/user-profile.js: {}
   dependencies:
-    - professional_website_content/professional_theme
-    - professional_website_content/form_styling
     - core/drupal
     - core/jquery
-    - core/once
     - core/once
 
 company_profile:
