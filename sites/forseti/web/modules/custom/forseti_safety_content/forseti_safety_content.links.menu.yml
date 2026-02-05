@@ -19,12 +19,6 @@ forseti.legal:
   parent: forseti.about
   weight: -39
 
-forseti.talk_with_forseti:
-  title: 'Talk with Forseti'
-  route_name: forseti.talk_with_forseti
-  menu_name: main
-  weight: -35
-
 forseti.how_it_works:
   title: 'How It Works'
   route_name: forseti.how_it_works
@@ -32,19 +26,18 @@ forseti.how_it_works:
   weight: -30
   expanded: true
 
+forseti.talk_with_forseti:
+  title: 'Talk with Forseti'
+  route_name: forseti.talk_with_forseti
+  menu_name: main
+  weight: -25
+
 forseti.how_it_works_overview:
   title: 'How It Works'
   route_name: forseti.how_it_works
   menu_name: main
   parent: forseti.how_it_works
   weight: -30
-
-forseti.safety_factors:
-  title: 'Safety Factors'
-  route_name: forseti.safety_factors
-  menu_name: main
-  parent: forseti.how_it_works
-  weight: -25
 
 forseti.agent_hierarchy:
   title: 'Agent Power Framework'
@@ -59,12 +52,6 @@ forseti.example_entities:
   menu_name: main
   parent: forseti.how_it_works
   weight: -22
-
-forseti.safety:
-  title: 'Safety'
-  route_name: forseti.safety_map
-  menu_name: main
-  weight: -20
 
 forseti.institutional:
   title: 'Family & Institutions'

@@ -1,17 +1,3 @@
-safety_calculator.assessment:
-  title: 'Safety Assessment'
-  route_name: safety_calculator.landing
-  menu_name: main
-  parent: forseti.safety
-  weight: -19
-
-safety_calculator.population_benchmarks:
-  title: 'Population Benchmarks'
-  route_name: safety_calculator.population_benchmarks
-  menu_name: main
-  parent: forseti.safety
-  weight: -18
-
 safety_calculator.my_profile:
   title: 'My Profile'
   route_name: entity.user.canonical

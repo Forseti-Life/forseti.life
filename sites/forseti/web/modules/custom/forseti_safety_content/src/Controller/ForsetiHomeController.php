@@ -53,26 +53,6 @@ class ForsetiHomeController extends ControllerBase {
 
     $build['#attached']['library'][] = 'forseti_safety_content/style';
 
-    $build['hero'] = [
-      '#type' => 'markup',
-      '#markup' => '
-        <div class="safety-hero">
-          <div class="hero-content container text-center">
-            <div class="cta-buttons">
-              <a href="/talk-with-forseti" class="btn btn-primary btn-lg me-3">
-                <svg class="ai-icon" fill="currentColor" viewBox="0 0 24 24" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
-                  <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
-                </svg>
-                Talk with Forseti
-              </a>
-              <a href="/safety-map" class="btn btn-light btn-lg me-2">View Safety Map</a>
-              <a href="/mobile-app" class="btn btn-outline-light btn-lg">Get Forseti Mobile</a>
-            </div>
-          </div>
-        </div>
-      ',
-    ];
-
     return $build;
   }
 

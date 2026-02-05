@@ -4,7 +4,7 @@ forseti_games.home:
     _controller: '\Drupal\forseti_games\Controller\GameController::home'
     _title: 'Forseti Games'
   requirements:
-    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
 
 forseti_games.block_matcher:
   path: '/games/block-matcher'
@@ -12,7 +12,7 @@ forseti_games.block_matcher:
     _controller: '\Drupal\forseti_games\Controller\GameController::blockMatcher'
     _title: 'Block Matcher'
   requirements:
-    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
 
 forseti_games.api.high_scores:
   path: '/api/games/high-scores/{game_id}'

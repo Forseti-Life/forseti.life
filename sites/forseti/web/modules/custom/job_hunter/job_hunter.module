@@ -239,6 +239,22 @@ function job_hunter_user_login($account) {
 }
 
 /**
+ * Implements hook_form_FORM_ID_alter() for user_login_form.
+ */
+function job_hunter_form_user_login_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+  // Add custom submit handler to redirect to job hunter after login
+  $form['#submit'][] = 'job_hunter_user_login_submit';
+}
+
+/**
+ * Custom submit handler for user login form.
+ */
+function job_hunter_user_login_submit($form, \Drupal\Core\Form\FormStateInterface $form_state) {
+  // Redirect to job hunter dashboard after login
+  $form_state->setRedirect('job_hunter.dashboard');
+}
+
+/**
  * Implements hook_entity_view_alter().
  * 
  * Add profile management links to user profile pages.
