@@ -177,6 +177,7 @@ function _job_hunter_create_job_seeker_table() {
     'fields' => [
       'id' => ['type' => 'serial', 'not null' => TRUE],
       'uid' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'resume_node_id' => ['type' => 'int', 'description' => 'Reference to resume node'],
       'professional_summary' => ['type' => 'text'],
       'skills' => ['type' => 'text', 'size' => 'big'],
       'experience_years' => ['type' => 'int'],
@@ -525,4 +526,26 @@ function job_hunter_update_9010() {
   ]);
   
   return t('Added potential_duplicates_json column to job_hunter_job_requirements.');
+}
+
+/**
+ * Add resume_node_id column to jobhunter_job_seeker table.
+ */
+function job_hunter_update_9011() {
+  $schema = \Drupal::database()->schema();
+  
+  if (!$schema->tableExists('jobhunter_job_seeker')) {
+    return t('Table jobhunter_job_seeker does not exist.');
+  }
+  
+  if ($schema->fieldExists('jobhunter_job_seeker', 'resume_node_id')) {
+    return t('Column resume_node_id already exists.');
+  }
+  
+  $schema->addField('jobhunter_job_seeker', 'resume_node_id', [
+    'type' => 'int',
+    'description' => 'Reference to resume node',
+  ]);
+  
+  return t('Added resume_node_id column to jobhunter_job_seeker table.');
 }
