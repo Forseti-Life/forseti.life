@@ -66,23 +66,9 @@ forseti.safety:
   menu_name: main
   weight: -20
 
-forseti.community:
-  title: 'Community'
-  route_name: forseti.community
-  menu_name: main
-  weight: -10
-  expanded: true
-
 forseti.safety_calculator:
   title: 'Safety Calculator'
   route_name: safety_calculator.landing
-  menu_name: main
-  parent: forseti.community
-  weight: 0
-
-forseti.mobile_app:
-  title: 'Mobile App'
-  route_name: forseti.mobile_app
   menu_name: main
   weight: 0
 
@@ -90,5 +76,10 @@ forseti.institutional:
   title: 'Family & Institutions'
   route_name: institutional_management.landing
   menu_name: main
-  parent: forseti.community
   weight: 5
+
+job_hunter.main_menu:
+  title: 'Job Hunter'
+  route_name: job_hunter.dashboard
+  menu_name: main
+  weight: 10
