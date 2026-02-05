@@ -58,18 +58,6 @@ class ForsetiHomeController extends ControllerBase {
       '#markup' => '
         <div class="safety-hero">
           <div class="hero-content container text-center">
-            <div class="ai-monitoring-badge mb-4">
-              <svg class="ai-icon" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-              </svg>
-              Forseti Is Looking Out For You
-            </div>
-            
-            <p class="hero-mission">
-              Install on your family phones .... We notify you when you or one of your family members enters a "Dangerous" area.
-            </p>
-            
             <div class="cta-buttons">
               <a href="/talk-with-forseti" class="btn btn-primary btn-lg me-3">
                 <svg class="ai-icon" fill="currentColor" viewBox="0 0 24 24" style="width: 20px; height: 20px; margin-right: 8px; vertical-align: middle;">
