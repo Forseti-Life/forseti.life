@@ -37,7 +37,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'philly_focus' => [],
         'cta' => [],
       ],
-      'template' => 'forseti_content-page-about',
+      'template' => 'forseti-page-about',
     ],
     'forseti_page_how_it_works' => [
       'variables' => [
@@ -48,7 +48,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'privacy_security' => [],
         'cta_buttons' => [],
       ],
-      'template' => 'forseti_content-page-how-it-works',
+      'template' => 'forseti-page-how-it-works',
     ],
     'forseti_page_community' => [
       'variables' => [
@@ -59,9 +59,15 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'how_to_title' => NULL,
         'steps' => [],
       ],
-      'template' => 'forseti_content-page-community',
-    ],
-    'forseti_page_mobile_app' => [
+      'template' => 'forseti-page-community',
+    ],    'forseti_page_contact' => [
+      'variables' => [
+        'title' => NULL,
+        'subtitle' => NULL,
+        'webform' => NULL,
+      ],
+      'template' => 'forseti-page-contact',
+    ],    'forseti_page_mobile_app' => [
       'variables' => [
         'title' => NULL,
         'subtitle' => NULL,
@@ -72,7 +78,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'features' => [],
         'cta' => [],
       ],
-      'template' => 'forseti_content-page-mobile-app',
+      'template' => 'forseti-page-mobile-app',
     ],
     'forseti_page_mobile_app_beta' => [
       'variables' => [
@@ -80,7 +86,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'subtitle' => NULL,
         'download_section' => [],
       ],
-      'template' => 'forseti_content-page-mobile-app-beta',
+      'template' => 'forseti-page-mobile-app-beta',
     ],
     'forseti_page_privacy' => [
       'variables' => [
@@ -95,7 +101,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'contact_cta' => [],
         'last_updated' => NULL,
       ],
-      'template' => 'forseti_content-page-privacy',
+      'template' => 'forseti-page-privacy',
     ],
     'forseti_page_legal' => [
       'variables' => [
@@ -104,7 +110,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'sections' => [],
         'last_updated' => NULL,
       ],
-      'template' => 'forseti_content-page-legal',
+      'template' => 'forseti-page-legal',
     ],
     'forseti_page_terms' => [
       'variables' => [
@@ -114,7 +120,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'sections' => [],
         'contact' => NULL,
       ],
-      'template' => 'forseti_content-page-terms',
+      'template' => 'forseti-page-terms',
     ],
     'forseti_page_disclaimer' => [
       'variables' => [
@@ -124,7 +130,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'user_responsibility' => [],
         'liability_limitation' => [],
       ],
-      'template' => 'forseti_content-page-disclaimer',
+      'template' => 'forseti-page-disclaimer',
     ],
     'forseti_page_cookie_policy' => [
       'variables' => [
@@ -135,7 +141,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'managing_cookies' => [],
         'third_party' => [],
       ],
-      'template' => 'forseti_content-page-cookie-policy',
+      'template' => 'forseti-page-cookie-policy',
     ],
     'forseti_page_accessibility' => [
       'variables' => [
@@ -147,7 +153,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'feedback' => [],
         'assistive_tech' => [],
       ],
-      'template' => 'forseti_content-page-accessibility',
+      'template' => 'forseti-page-accessibility',
     ],
     'forseti_page_data_usage' => [
       'variables' => [
@@ -159,7 +165,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'data_sharing' => [],
         'your_control' => [],
       ],
-      'template' => 'forseti_content-page-data-usage',
+      'template' => 'forseti-page-data-usage',
     ],
     'forseti_page_ai_terms' => [
       'variables' => [
@@ -172,7 +178,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'intellectual_property' => [],
         'human_oversight' => [],
       ],
-      'template' => 'forseti_content-page-ai-terms',
+      'template' => 'forseti-page-ai-terms',
     ],
     'forseti_page_mobile_app_terms' => [
       'variables' => [
@@ -185,7 +191,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'updates' => [],
         'termination' => [],
       ],
-      'template' => 'forseti_content-page-mobile-app-terms',
+      'template' => 'forseti-page-mobile-app-terms',
     ],
     'forseti_page_api_terms' => [
       'variables' => [
@@ -199,7 +205,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'liability' => [],
         'termination' => [],
       ],
-      'template' => 'forseti_content-page-api-terms',
+      'template' => 'forseti-page-api-terms',
     ],
     'forseti_page_community_guidelines' => [
       'variables' => [
@@ -212,7 +218,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'consequences' => [],
         'reporting_violations' => [],
       ],
-      'template' => 'forseti_content-page-community-guidelines',
+      'template' => 'forseti-page-community-guidelines',
     ],
     'forseti_page_copyright' => [
       'variables' => [
@@ -226,7 +232,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'repeat_infringers' => [],
         'trademark' => [],
       ],
-      'template' => 'forseti_content-page-copyright',
+      'template' => 'forseti-page-copyright',
     ],
     'forseti_page_contact_thank_you' => [
       'variables' => [
@@ -235,7 +241,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'what_next' => [],
         'quick_links' => [],
       ],
-      'template' => 'forseti_content-page-contact-thank-you',
+      'template' => 'forseti-page-contact-thank-you',
     ],
     'forseti_page_safety_factors' => [
       'variables' => [
@@ -248,7 +254,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'how_forseti_uses' => [],
         'cta_buttons' => [],
       ],
-      'template' => 'forseti_content-page-safety-factors',
+      'template' => 'forseti-page-safety-factors',
     ],
     'forseti_page_agent_hierarchy' => [
       'variables' => [
@@ -259,7 +265,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'dimension_info' => [],
         'transparency_note' => NULL,
       ],
-      'template' => 'forseti_content-page-agent-hierarchy',
+      'template' => 'forseti-page-agent-hierarchy',
     ],
     'forseti_us_government_power' => [
       'variables' => [
@@ -267,7 +273,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'intro' => [],
         'branches' => [],
       ],
-      'template' => 'forseti_content-us-government-power',
+      'template' => 'forseti-us-government-power',
     ],
     'forseti_page_agent_evaluate' => [
       'variables' => [
@@ -275,7 +281,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'intro' => [],
         'entity_name' => NULL,
       ],
-      'template' => 'forseti_content-page-agent-evaluate',
+      'template' => 'forseti-page-agent-evaluate',
     ],
     'forseti_page_dimension' => [
       'variables' => [
@@ -285,14 +291,14 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'levels' => [],
         'back_link' => NULL,
       ],
-      'template' => 'forseti_content-page-dimension',
+      'template' => 'forseti-page-dimension',
     ],
     'forseti_evaluation_matrix' => [
       'variables' => [
         'dimensions' => [],
         'entities' => [],
       ],
-      'template' => 'forseti_content-evaluation-matrix',
+      'template' => 'forseti-evaluation-matrix',
     ],
     'forseti_page_all_dimensions' => [
       'variables' => [
@@ -301,7 +307,7 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'all_dimensions' => [],
         'total_count' => NULL,
       ],
-      'template' => 'forseti_content-page-all-dimensions',
+      'template' => 'forseti-page-all-dimensions',
     ],
     'forseti_evaluations_list' => [
       'variables' => [
@@ -315,13 +321,13 @@ function forseti_content_theme($existing, $type, $theme, $path) {
         'category_sort' => NULL,
         'category_order' => NULL,
       ],
-      'template' => 'forseti_content-evaluations-list',
+      'template' => 'forseti-evaluations-list',
     ],
     'forseti_example_entities' => [
       'variables' => [
         'entities' => [],
       ],
-      'template' => 'forseti_content-example-entities',
+      'template' => 'forseti-example-entities',
     ],
   ];
 }

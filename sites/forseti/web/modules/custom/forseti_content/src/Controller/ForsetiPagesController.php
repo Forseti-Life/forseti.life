@@ -514,7 +514,30 @@ class ForsetiPagesController extends ControllerBase {
    * Contact page.
    */
   public function contact() {
-    return $this->getContactContent();
+    // Get the webform entity
+    $webform = \Drupal::entityTypeManager()
+      ->getStorage('webform')
+      ->load('contact_forseti');
+    
+    if (!$webform) {
+      return [
+        '#markup' => '<div class="container py-5"><p>Contact form is currently unavailable. Please email us at <a href="mailto:administration@forseti.life">administration@forseti.life</a></p></div>',
+      ];
+    }
+    
+    // Build the webform render array
+    $webform_build = $webform->getSubmissionForm();
+    
+    return [
+      '#theme' => 'forseti_page_contact',
+      '#title' => $this->t('Contact Us'),
+      '#subtitle' => $this->t('Get in touch with the Forseti team'),
+      '#webform' => $webform_build,
+      '#cache' => [
+        'max-age' => 3600,
+        'contexts' => ['url'],
+      ],
+    ];
   }
 
   /**

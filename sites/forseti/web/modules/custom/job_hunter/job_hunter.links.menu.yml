@@ -1,3 +1,10 @@
+# Main site navigation link - visible to all users
+job_hunter.main_menu:
+  title: 'Job Hunter'
+  route_name: job_hunter.dashboard
+  menu_name: main
+  weight: 20
+
 job_hunter.admin:
   title: 'Job Hunter'
   route_name: job_hunter.dashboard

@@ -53,6 +53,89 @@ class ForsetiHomeController extends ControllerBase {
 
     $build['#attached']['library'][] = 'forseti_content/style';
 
+    $build['hero'] = [
+      '#type' => 'markup',
+      '#markup' => '
+        <div class="container py-5">
+          <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+              <h1 class="display-4 mb-4 text-cyan">Forseti: AI-Powered Community Services</h1>
+              <p class="lead mb-4">Building automated services that save time and improve outcomes for our community members.</p>
+            </div>
+          </div>
+        </div>
+      ',
+    ];
+
+    $build['services'] = [
+      '#type' => 'markup',
+      '#markup' => '
+        <div class="container py-4">
+          <div class="row">
+            <div class="col-lg-10 mx-auto">
+              <h2 class="text-center mb-4 text-cyan">Current Services</h2>
+              
+              <div class="card card-forseti mb-4 p-4">
+                <h3 class="text-cyan mb-3">
+                  <a href="/jobhunter" class="text-cyan">Job Hunter</a> - Stop AI Systems from Wasting Your Time
+                </h3>
+                <p class="lead mb-3">Avoid the AI resume screening chaos for both employers and job hunters!</p>
+                
+                <div class="row mt-3">
+                  <div class="col-md-6 mb-3">
+                    <h4 class="h5 text-cyan">For Job Hunters</h4>
+                    <p>Tailor your resume to the job description based on <strong>all of your skills</strong>... we tailor it for you!</p>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <h4 class="h5 text-cyan">For Employers</h4>
+                    <p>Don\'t waste time looking at resumes! Find skilled workers we trust. We filter and rank candidates for you.</p>
+                    <p><strong>Saving everyone time.</strong></p>
+                  </div>
+                </div>
+                
+                <div class="text-center mt-3">
+                  <a href="/jobhunter" class="btn btn-primary">Access Job Hunter</a>
+                </div>
+              </div>
+              
+              <div class="text-center mt-4">
+                <a href="/how-it-works" class="btn btn-outline-primary">Learn How It Works</a>
+                <a href="/contact" class="btn btn-outline-primary ms-2">Contact Us</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      ',
+    ];
+
+    $build['membership'] = [
+      '#type' => 'markup',
+      '#markup' => '
+        <div class="container py-4">
+          <div class="row">
+            <div class="col-lg-8 mx-auto">
+              <div class="card card-forseti p-4">
+                <h2 class="text-cyan mb-4">Building AI-Powered Community Value</h2>
+                
+                <div class="mb-4">
+                  <h3 class="h4 text-cyan mb-3">
+                    <span class="me-2">👋</span>1. You Join
+                  </h3>
+                  <p class="mb-2">Membership is by invitation or application with administrative approval. We welcome members who are tolerant, embrace science and technology, and want to be part of a community that takes care of its own.</p>
+                  <p class="text-success fw-bold">It\'s free if you are approved.</p>
+                </div>
+                
+                <div class="text-center mt-4">
+                  <a href="/user/register" class="btn btn-primary">Apply for Membership</a>
+                  <a href="/contact" class="btn btn-outline-primary ms-2">Request Invitation</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ',
+    ];
+
     return $build;
   }
 

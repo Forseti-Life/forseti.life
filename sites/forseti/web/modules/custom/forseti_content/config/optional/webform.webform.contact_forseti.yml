@@ -233,7 +233,7 @@ handlers:
     settings:
       states:
         - completed
-      to_mail: keith.aumiller@forseti_content.life
+      to_mail: administration@forseti.life
       to_options: {  }
       bcc_mail: ''
       bcc_options: {  }

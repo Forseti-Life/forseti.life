@@ -62,6 +62,14 @@ forseti_content.community:
   requirements:
     _permission: 'access content'
 
+forseti_content.contact:
+  path: '/contact'
+  defaults:
+    _controller: '\Drupal\forseti_content\Controller\ForsetiPagesController::contact'
+    _title: 'Contact Us'
+  requirements:
+    _permission: 'access content'
+
 forseti_content.mobile_app:
   path: '/mobile-app'
   defaults:
