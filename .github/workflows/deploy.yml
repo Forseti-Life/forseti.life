@@ -12,6 +12,7 @@ on:
       - 'sites/forseti/web/sites/default/files/forseti/mobile/*.apk'
       - 'forseti-mobile/index.js'
       - 'h3-geolocation/**'
+      - 'core.extension.yml'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -140,6 +141,14 @@ jobs:
             echo "✅ Composer dependencies updated"
           else
             echo "⚠️ Composer install had warnings (continuing)"
+          fi
+          
+          # Deploy core.extension.yml if exists (emergency config restore)
+          if [ -f "$TEMP_DIR/core.extension.yml" ]; then
+            echo "Deploying core.extension.yml..."
+            sudo cp "$TEMP_DIR/core.extension.yml" "$DRUPAL_ROOT/"
+            sudo chown www-data:www-data "$DRUPAL_ROOT/core.extension.yml"
+            echo "✅ core.extension.yml deployed"
           fi
           
           # Deploy H3 geolocation framework (if exists)
@@ -271,6 +280,21 @@ jobs:
           
           DRUPAL_ROOT="/var/www/html/forseti"
           cd "$DRUPAL_ROOT"
+          
+          # Import core.extension.yml if it exists (emergency restore)
+          if [ -f "$DRUPAL_ROOT/core.extension.yml" ]; then
+            echo "Importing core.extension.yml into database..."
+            sudo -u www-data ./vendor/bin/drush config:import --source="$DRUPAL_ROOT" --partial -y core.extension 2>/dev/null || {
+              echo "Standard import failed, trying direct database insertion..."
+              YAML_CONTENT=$(cat "$DRUPAL_ROOT/core.extension.yml")
+              sudo -u www-data ./vendor/bin/drush php:eval "
+                \$yaml = Drupal::service('serialization.yaml');
+                \$data = \$yaml->decode(file_get_contents('$DRUPAL_ROOT/core.extension.yml'));
+                \Drupal::service('config.factory')->getEditable('core.extension')->setData(\$data)->save();
+              " && echo "✅ core.extension imported directly"
+            }
+            sudo rm -f "$DRUPAL_ROOT/core.extension.yml"
+          fi
           
           # Import configuration (preserves content)
           echo "Importing configuration..."
