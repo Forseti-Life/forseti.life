@@ -42,6 +42,9 @@ module:
   safety_calculator: 0
   search: 0
   shortcut: 0
+  social_api: 0
+  social_auth: 0
+  social_auth_google: 0
   system: 0
   taxonomy: 0
   text: 0
@@ -50,6 +53,8 @@ module:
   update: 0
   user: 0
   views_ui: 0
+  webform: 0
+  webform_ui: 0
   views: 10
   standard: 1000
 theme:

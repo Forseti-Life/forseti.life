@@ -95,3 +95,10 @@ user_profile:
       build/css/main.style.css: {}
   dependencies:
     - core/drupal
+
+footer:
+  css:
+    theme:
+      src/css/footer.css: {}
+  dependencies:
+    - core/drupal
