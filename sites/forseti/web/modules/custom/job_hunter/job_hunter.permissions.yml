@@ -1,5 +1,11 @@
 # Job Application Automation Permissions
 
+# Basic access permission
+access job hunter:
+  title: 'Access Job Hunter'
+  description: 'Access Job Hunter dashboard and features. Restricted to authenticated users.'
+  restrict access: true
+
 # Administrative permissions
 administer job application automation:
   title: 'Administer Job Application Automation'

@@ -6,6 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\user\Entity\User;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Provides route responses for the Job Application Automation module.
@@ -31,25 +32,13 @@ class JobApplicationController extends ControllerBase {
    *   A comprehensive renderable array for the administrative dashboard.
    */
   public function dashboard() {
-    $current_user = \Drupal::currentUser();
+    $current_user = $this->currentUser();
     
-    // Check if user is authenticated
+    // If user is not authenticated, redirect to registration with message.
     if ($current_user->isAnonymous()) {
-      return [
-        '#markup' => '
-          <div class="container py-5">
-            <div class="row">
-              <div class="col-lg-8 mx-auto text-center">
-                <h1 class="display-4 mb-4 text-cyan">Job Hunter</h1>
-                <p class="lead mb-4">AI-powered job application automation</p>
-                <div class="alert alert-info">
-                  <p class="mb-3">Please <a href="/user/login?destination=/jobhunter">log in</a> or <a href="/user/register">create an account</a> to access Job Hunter.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ',
-      ];
+      $this->messenger()->addWarning($this->t('Job Hunter is reserved for community members. Please register for a free account to get started.'));
+      $url = Url::fromRoute('user.register');
+      return new RedirectResponse($url->toString());
     }
     
     // Render the navigation block
