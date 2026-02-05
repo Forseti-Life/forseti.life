@@ -66,12 +66,6 @@ forseti.safety:
   menu_name: main
   weight: -20
 
-forseti.safety_calculator:
-  title: 'Safety Calculator'
-  route_name: safety_calculator.landing
-  menu_name: main
-  weight: 0
-
 forseti.institutional:
   title: 'Family & Institutions'
   route_name: institutional_management.landing
