@@ -9,7 +9,7 @@ job_hunter.dashboard:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::dashboard'
     _title: 'Job Hunter Dashboard'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _access: 'TRUE'
 
 # Job Hunter Home (alternate entry point)
 job_hunter.home:
@@ -18,7 +18,7 @@ job_hunter.home:
     _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::home'
     _title: 'Job Hunter'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _access: 'TRUE'
 
 # Queue Management Routes (Admin only)
 job_hunter.queue_run:

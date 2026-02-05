@@ -33,6 +33,25 @@ class JobApplicationController extends ControllerBase {
   public function dashboard() {
     $current_user = \Drupal::currentUser();
     
+    // Check if user is authenticated
+    if ($current_user->isAnonymous()) {
+      return [
+        '#markup' => '
+          <div class="container py-5">
+            <div class="row">
+              <div class="col-lg-8 mx-auto text-center">
+                <h1 class="display-4 mb-4 text-cyan">Job Hunter</h1>
+                <p class="lead mb-4">AI-powered job application automation</p>
+                <div class="alert alert-info">
+                  <p class="mb-3">Please <a href="/user/login?destination=/jobhunter">log in</a> or <a href="/user/register">create an account</a> to access Job Hunter.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ',
+      ];
+    }
+    
     // Render the navigation block
     $block_manager = \Drupal::service('plugin.manager.block');
     $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
