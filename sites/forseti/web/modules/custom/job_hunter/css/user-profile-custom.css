@@ -1,136 +1,382 @@
 /**
  * @file
  * Job Application Automation specific styling overrides
- * Leverages professional_website_content theme as base
+ * Modern, clean UI with card-based design
  */
 
-/* Job Seeker Profile Specific Styles */
-.job-seeker-profile-form {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #0a0a15 0%, #1a1a2e 100%);
-  padding: 2rem 0;
+/* Main Container Styling */
+.user-profile-form.job-application-profile {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  background: #f5f7fa;
 }
 
-.job-seeker-profile-form .professional-title i {
-  color: #64b5f6;
-  margin-right: 1rem;
+/* Page Title Styling */
+.user-profile-form h1.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 3px solid #3182ce;
 }
 
-/* Section-specific icons and colors */
-.personal-section .professional-section-title i {
-  color: #64b5f6;
+/* Progress Bar Styling */
+.profile-progress {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  border-left: 4px solid #3182ce;
 }
 
-.resume-section .professional-section-title i {
-  color: #20c997;
+.profile-progress-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.75rem;
 }
 
-.experience-section .professional-section-title i {
-  color: #ffc107;
+.profile-progress-bar {
+  height: 12px;
+  background: #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
-.preferences-section .professional-section-title i {
-  color: #6f42c1;
+.profile-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3182ce 0%, #63b3ed 100%);
+  transition: width 0.5s ease;
+  border-radius: 6px;
 }
 
-.online-section .professional-section-title i {
-  color: #fd7e14;
+/* Details/Section Styling - Modern Card Design */
+.user-profile-form details {
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-/* Profile Progress Indicators */
-.profile-completeness-indicator {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: var(--primary-gradient);
-  border: 1px solid var(--border-color);
-  border-radius: 50px;
-  padding: 0.5rem 1rem;
-  color: var(--text-light);
+.user-profile-form details:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+  border-color: #cbd5e0;
+}
+
+.user-profile-form details[open] {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.user-profile-form details > summary {
+  background: linear-gradient(135deg, #ffffff 0%, #f7fafc 100%);
+  padding: 1.25rem 1.5rem;
+  cursor: pointer;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #2d3748;
+  border-bottom: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+  list-style: none;
+}
+
+.user-profile-form details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.user-profile-form details > summary::before {
+  content: '▶';
+  display: inline-block;
+  margin-right: 0.75rem;
+  transition: transform 0.2s ease;
+  color: #3182ce;
   font-size: 0.875rem;
-  z-index: 1000;
-  box-shadow: var(--card-shadow);
 }
 
-.profile-completeness-indicator i {
-  color: var(--primary-color);
-  margin-right: 0.5rem;
+.user-profile-form details[open] > summary::before {
+  transform: rotate(90deg);
 }
 
-/* Custom field styling for job application specific fields */
-.field--name-field-resume-file .file-widget {
-  background: rgba(100, 181, 246, 0.1);
-  border: 2px dashed var(--primary-color);
-  border-radius: var(--border-radius);
-  padding: 2rem;
-  text-align: center;
-  transition: var(--transition);
+.user-profile-form details > summary:hover {
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
 }
 
-.field--name-field-resume-file .file-widget:hover {
-  background: rgba(100, 181, 246, 0.2);
-  border-color: var(--border-hover);
+.user-profile-form details .details-wrapper {
+  padding: 1.5rem;
 }
 
-.field--name-field-resume-file .file-upload {
-  color: var(--text-light);
+.user-profile-form details .details-description {
+  color: #718096;
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: #f7fafc;
+  border-left: 3px solid #3182ce;
+  border-radius: 4px;
 }
 
-/* Salary range fields side by side styling */
-.salary-range-container {
+/* Form Fields Styling */
+.user-profile-form .form-item {
+  margin-bottom: 1.25rem;
+}
+
+.user-profile-form .form-item label {
+  display: block;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+  font-size: 0.9375rem;
+}
+
+.user-profile-form .form-item .description {
+  font-size: 0.8125rem;
+  color: #718096;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.user-profile-form input[type="text"],
+.user-profile-form input[type="email"],
+.user-profile-form input[type="tel"],
+.user-profile-form input[type="number"],
+.user-profile-form input[type="url"],
+.user-profile-form select,
+.user-profile-form textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #2d3748;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.user-profile-form input:focus,
+.user-profile-form select:focus,
+.user-profile-form textarea:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+}
+
+.user-profile-form textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+}
+
+/* Inline Container Styling */
+.user-profile-form .container-inline {
   display: flex;
   gap: 1rem;
-  align-items: end;
+  align-items: flex-end;
 }
 
-.salary-range-container .form-item {
+.user-profile-form .container-inline .form-item {
   flex: 1;
 }
 
-/* Target companies autocomplete styling */
-.field--name-field-target-companies .form-autocomplete {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--border-color);
-  color: var(--text-light);
+/* Button Styling */
+.user-profile-form button,
+.user-profile-form input[type="submit"],
+.user-profile-form .button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
 }
 
-/* URL field icons */
-.field--name-field-linkedin-url::before,
-.field--name-field-github-url::before,
-.field--name-field-portfolio-url::before {
-  font-family: "Font Awesome 5 Free";
-  font-weight: 900;
-  color: var(--primary-color);
+.user-profile-form .button--primary,
+.user-profile-form input[type="submit"] {
+  background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(49, 130, 206, 0.3);
+}
+
+.user-profile-form .button--primary:hover,
+.user-profile-form input[type="submit"]:hover {
+  background: linear-gradient(135deg, #2c5282 0%, #2a4365 100%);
+  box-shadow: 0 4px 8px rgba(49, 130, 206, 0.4);
+  transform: translateY(-1px);
+}
+
+.user-profile-form .button--danger {
+  background: #e53e3e;
+  color: white;
+}
+
+.user-profile-form .button--danger:hover {
+  background: #c53030;
+}
+
+/* Resume Import Section Styling */
+.resume-import-section {
+  border-left: 4px solid #48bb78 !important;
+}
+
+.resume-import-section summary {
+  background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 5%) !important;
+}
+
+/* Resume Workflow Section */
+#job-hunter-resume-workflow {
+  background: #fefefe;
+}
+
+/* Resume Status Cards */
+.user-profile-form .resume-files-container > div {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+}
+
+.user-profile-form .resume-files-container > div:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border-color: #cbd5e0;
+}
+
+/* JSON Preview Sections */
+.user-profile-form details details {
+  margin-top: 1rem;
+  border: 1px solid #e2e8f0;
+  background: #fafafa;
+}
+
+.user-profile-form details details summary {
+  background: #f7fafc !important;
+  font-size: 0.9375rem;
+  padding: 0.875rem 1rem;
+}
+
+/* Radio Buttons */
+.user-profile-form .form-radios {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.5rem 0;
+}
+
+.user-profile-form .form-radios .form-item {
+  margin-bottom: 0;
+}
+
+.user-profile-form input[type="radio"] {
+  width: auto;
   margin-right: 0.5rem;
 }
 
-.field--name-field-linkedin-url::before {
-  content: "\f08c";
+/* Checkboxes */
+.user-profile-form input[type="checkbox"] {
+  width: auto;
+  margin-right: 0.5rem;
 }
 
-.field--name-field-github-url::before {
-  content: "\f09b";
+/* File Upload Styling */
+.user-profile-form .form-managed-file {
+  padding: 1.25rem;
+  background: #f7fafc;
+  border: 2px dashed #cbd5e0;
+  border-radius: 10px;
+  text-align: center;
+  transition: all 0.2s ease;
 }
 
-.field--name-field-portfolio-url::before {
-  content: "\f0ac";
+.user-profile-form .form-managed-file:hover {
+  border-color: #3182ce;
+  background: #edf2f7;
 }
 
-/* Mobile responsiveness */
+/* Actions Container */
+.user-profile-form .form-actions {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-top: 2rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  text-align: right;
+}
+
+/* Loading States */
+.ajax-progress {
+  display: inline-block;
+  margin-left: 0.5rem;
+}
+
+.ajax-progress-throbber {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(49, 130, 206, 0.3);
+  border-top-color: #3182ce;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Messages Styling */
+.user-profile-form .messages {
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid;
+}
+
+.user-profile-form .messages--status {
+  background: #f0fff4;
+  border-left-color: #48bb78;
+  color: #22543d;
+}
+
+.user-profile-form .messages--warning {
+  background: #fffaf0;
+  border-left-color: #ed8936;
+  color: #7c2d12;
+}
+
+.user-profile-form .messages--error {
+  background: #fff5f5;
+  border-left-color: #e53e3e;
+  color: #742a2a;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
-  .job-seeker-profile-form {
-    padding: 1rem 0;
+  .user-profile-form.job-application-profile {
+    padding: 1rem 0.5rem;
   }
   
-  .profile-completeness-indicator {
-    position: static;
-    margin-bottom: 1rem;
-    display: block;
-    text-align: center;
+  .user-profile-form details > summary {
+    font-size: 1rem;
+    padding: 1rem;
   }
   
-  .salary-range-container {
+  .user-profile-form details .details-wrapper {
+    padding: 1rem;
+  }
+  
+  .user-profile-form .container-inline {
     flex-direction: column;
     gap: 0;
   }
+  
+  .user-profile-form .form-radios {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
 }
+
+/* Legacy Support - Keep some compatibility */

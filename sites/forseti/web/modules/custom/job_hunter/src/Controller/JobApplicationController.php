@@ -977,7 +977,6 @@ class JobApplicationController extends ControllerBase {
     return $build;
   }
 
-}
   /**
    * Extract unique company names from job postings.
    * 
