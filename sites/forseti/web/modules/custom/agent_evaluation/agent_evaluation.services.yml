@@ -5,7 +5,7 @@ services:
 
   agent_evaluation.service:
     class: Drupal\agent_evaluation\Service\AgentEvaluationService
-    arguments: ['@entity_type.manager', '@current_user', '@forseti_safety_content.agent_power', '@ai_conversation.api_service']
+    arguments: ['@entity_type.manager', '@current_user', '@forseti_content.agent_power', '@ai_conversation.api_service']
     tags:
       - { name: service }
 

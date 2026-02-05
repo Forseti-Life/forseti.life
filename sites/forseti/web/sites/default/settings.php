@@ -922,5 +922,13 @@ $config['system.performance']['js']['preprocess'] = FALSE;
 // Enable verbose error reporting
 $config['system.logging']['error_level'] = 'verbose';
 
+// Enable PHP error display for development
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
+// Increase memory limit for Drupal
+ini_set('memory_limit', '512M');
+
 // Disable page caching for development  
 $config['system.performance']['cache']['page']['max_age'] = 0;

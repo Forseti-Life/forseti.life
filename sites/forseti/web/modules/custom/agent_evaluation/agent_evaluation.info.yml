@@ -9,4 +9,4 @@ dependencies:
   - drupal:user
   - drupal:system
   - ai_conversation:ai_conversation
-  - forseti_safety_content:forseti_safety_content
+  - forseti_content:forseti_content
