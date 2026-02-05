@@ -149,10 +149,8 @@ class JobApplicationController extends ControllerBase {
       '#value' => '<div class="user-welcome">Welcome back, ' . $user_name . '!</div>',
     ];
     
-    // Queue Controls Section (Admin only)
-    if ($current_user->hasPermission('administer job application automation')) {
-      $build['queue_controls'] = $this->buildQueueControlsSection();
-    }
+    // Queue Controls Section (visible to all authenticated users)
+    $build['queue_controls'] = $this->buildQueueControlsSection();
     
     // ========================================
     // PROCESS FLOW 1: Tailored Resume
@@ -562,26 +560,19 @@ class JobApplicationController extends ControllerBase {
   }
 
   /**
-   * Build the queue controls section for admins.
+   * Build the queue controls section.
+   * Status visible to all users, actions only for admins.
    *
    * @return array
    *   Render array for queue controls.
    */
   private function buildQueueControlsSection() {
+    $current_user = $this->currentUser();
+    $is_admin = $current_user->hasPermission('administer job application automation');
     $queue_factory = \Drupal::service('queue');
     
     // Queue definitions
     $queues = [
-      'job_hunter_text_extraction' => [
-        'name' => 'Resume Text Extraction',
-        'description' => 'Extracts raw text from PDF/DOCX resume files',
-        'icon' => '📝',
-      ],
-      'job_hunter_profile_text_extraction' => [
-        'name' => 'Profile Text Extraction',
-        'description' => 'Extracts text from profile attachments',
-        'icon' => '👤',
-      ],
       'job_hunter_genai_parsing' => [
         'name' => 'Resume AI Parsing',
         'description' => 'Extracts structured data from uploaded resumes using Claude AI',
@@ -611,6 +602,11 @@ class JobApplicationController extends ControllerBase {
       $badge_class = $items > 0 ? 'queue-badge-pending' : 'queue-badge-empty';
       $disabled_attr = $items == 0 ? ' disabled="disabled"' : '';
       
+      // Actions column - only show buttons to admins
+      $actions_cell = $is_admin 
+        ? '<button type="button" class="btn-run-queue" data-queue="' . $queue_id . '"' . $disabled_attr . '>▶️ Run</button>'
+        : '<span class="text-muted">Admin only</span>';
+      
       $queue_rows .= '
         <tr class="queue-row" data-queue-id="' . $queue_id . '">
           <td class="queue-icon">' . $info['icon'] . '</td>
@@ -630,13 +626,31 @@ class JobApplicationController extends ControllerBase {
           <td class="queue-last-activity">
             <span class="last-activity-text" data-last-activity>-</span>
           </td>
-          <td class="queue-actions">
-            <button type="button" class="btn-run-queue" data-queue="' . $queue_id . '"' . $disabled_attr . '>▶️ Run</button>
-          </td>
+          <td class="queue-actions">' . $actions_cell . '</td>
         </tr>';
     }
     
     $run_all_disabled = $total_items == 0 ? ' disabled="disabled"' : '';
+    
+    // Global actions - conditional rendering based on admin status
+    $global_actions = $is_admin ? '
+      <div class="queue-global-actions">
+        <button type="button" id="run-all-queues" class="btn-run-all"{{ run_all_disabled|raw }}>
+          Run All Queues (<span id="total-queue-items">{{ total_items }}</span> items)
+        </button>
+        <button type="button" id="refresh-queue-status" class="btn-refresh">🔄 Refresh Status</button>
+        <label class="auto-refresh-toggle">
+          <input type="checkbox" id="auto-refresh-toggle" checked>
+          <span>Auto-refresh (<span id="auto-refresh-countdown">5</span>s)</span>
+        </label>
+      </div>' : '
+      <div class="queue-global-actions">
+        <button type="button" id="refresh-queue-status" class="btn-refresh">🔄 Refresh Status</button>
+        <label class="auto-refresh-toggle">
+          <input type="checkbox" id="auto-refresh-toggle" checked>
+          <span>Auto-refresh (<span id="auto-refresh-countdown">5</span>s)</span>
+        </label>
+      </div>';
     
     $build = [
       '#type' => 'container',
@@ -647,17 +661,8 @@ class JobApplicationController extends ControllerBase {
           <div class="queue-controls-wrapper">
             <div class="queue-controls-header">
               <h3>🎛️ Queue Processing Dashboard</h3>
-              <p class="queue-controls-subtitle">Monitor and manage background processing queues</p>
-              <div class="queue-global-actions">
-                <button type="button" id="run-all-queues" class="btn-run-all"{{ run_all_disabled|raw }}>
-                  Run All Queues (<span id="total-queue-items">{{ total_items }}</span> items)
-                </button>
-                <button type="button" id="refresh-queue-status" class="btn-refresh">🔄 Refresh Status</button>
-                <label class="auto-refresh-toggle">
-                  <input type="checkbox" id="auto-refresh-toggle" checked>
-                  <span>Auto-refresh (<span id="auto-refresh-countdown">5</span>s)</span>
-                </label>
-              </div>
+              <p class="queue-controls-subtitle">Monitor background processing queues</p>
+              {{ global_actions|raw }}
             </div>
             <div id="queue-status-message" class="queue-status-message" style="display:none;"></div>
             <table class="queue-controls-table">
@@ -685,6 +690,7 @@ class JobApplicationController extends ControllerBase {
           'total_items' => $total_items,
           'run_all_disabled' => $run_all_disabled,
           'queue_rows' => $queue_rows,
+          'global_actions' => $global_actions,
         ],
       ],
       '#attached' => [
