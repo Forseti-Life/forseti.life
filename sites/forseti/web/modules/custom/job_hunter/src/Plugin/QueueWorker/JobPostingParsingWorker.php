@@ -329,7 +329,7 @@ PROMPT;
       'contentType' => 'application/json',
       'body' => json_encode([
         'anthropic_version' => 'bedrock-2023-05-31',
-        'max_tokens' => 20000,
+        'max_tokens' => 40000,
         'messages' => [
           ['role' => 'user', 'content' => $prompt],
         ],
