@@ -64,9 +64,51 @@
   display: none;
 }
 
+.nav-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .nav-label {
   font-weight: 500;
   font-size: 0.95rem;
+}
+
+.nav-subtitle {
+  font-size: 0.75rem;
+  color: #999;
+  font-weight: normal;
+}
+
+/* Report problem button - BETA styling */
+.report-problem-beta {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 2px solid #f0f0f0;
+}
+
+.report-problem-beta .nav-link {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+  color: white;
+  font-weight: 600;
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+.report-problem-beta .nav-link:hover {
+  background: linear-gradient(135deg, #ee5a6f 0%, #ff6b6b 100%);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(238, 90, 111, 0.3);
+}
+
+.report-problem-beta .nav-subtitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 /* Active state */
@@ -135,7 +177,8 @@
   }
 
   /* Hide settings on mobile nav */
-  .nav-item--settings {
+  .nav-item--settings,
+  .report-problem-beta {
     display: none;
   }
 }
