@@ -8,6 +8,7 @@
 
   // Track processing state
   let processingQueues = {};
+  let lastActivityTimes = {}; // Store last activity timestamps by queue ID
   let autoRefreshEnabled = true;
   let autoRefreshInterval = null;
   let countdownInterval = null;
@@ -104,8 +105,12 @@
    * Update last activity timestamp.
    */
   function updateLastActivity(queueId) {
+    const timestamp = formatTime(new Date());
     const row = $('.queue-row[data-queue-id="' + queueId + '"]');
-    row.find('[data-last-activity]').text(formatTime(new Date()));
+    row.find('[data-last-activity]').text(timestamp);
+    
+    // Store in memory so it persists through refreshes
+    lastActivityTimes[queueId] = timestamp;
   }
 
   /**
@@ -423,6 +428,7 @@
             const row = $('.queue-row[data-queue-id="' + queueId + '"]');
             const badge = row.find('[data-count]');
             const runBtn = row.find('.btn-run-queue');
+            const lastActivityEl = row.find('[data-last-activity]');
             const currentCount = parseInt(badge.text()) || 0;
             
             if (currentCount !== queue.items) {
@@ -445,6 +451,11 @@
               if (!processingQueues[queueId]) {
                 runBtn.prop('disabled', false);
               }
+            }
+            
+            // Restore last activity timestamp from memory
+            if (lastActivityTimes[queueId]) {
+              lastActivityEl.text(lastActivityTimes[queueId]);
             }
           });
           
