@@ -64,9 +64,28 @@
                 }
               }, 300);
             } else {
-              buttonElement.disabled = false;
-              buttonElement.textContent = '🗑️ Delete Item';
-              showMessage(data.message || 'Failed to delete queue item', 'error');
+              // If item not found (404), remove it from display anyway since it's gone
+              if (data.message && data.message.includes('not found')) {
+                showMessage('Queue item already processed or removed', 'info');
+                itemElement.style.opacity = '0';
+                itemElement.style.transition = 'opacity 0.3s';
+                setTimeout(() => {
+                  itemElement.remove();
+                  const remainingItems = document.querySelectorAll('.queue-item');
+                  if (remainingItems.length === 0) {
+                    location.reload();
+                  } else {
+                    const countElement = document.querySelector('.list-header strong');
+                    if (countElement) {
+                      countElement.textContent = remainingItems.length;
+                    }
+                  }
+                }, 300);
+              } else {
+                buttonElement.disabled = false;
+                buttonElement.textContent = '🗑️ Delete Item';
+                showMessage(data.message || 'Failed to delete queue item', 'error');
+              }
             }
           })
           .catch(error => {

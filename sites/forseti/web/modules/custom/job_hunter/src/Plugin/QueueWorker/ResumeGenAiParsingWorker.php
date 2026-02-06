@@ -209,6 +209,16 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
   private function callBedrockAndParse($bedrock, $model, $prompt, $chunk_name, $filename = '', $username = '') {
     $logger = \Drupal::logger('job_hunter');
 
+    $context_msg = '';
+    if ($filename && $username) {
+      $context_msg = " for $filename (user $username)";
+    }
+
+    $logger->info('⏳ Queue @chunk: Sending request to GenAI API...@context', [
+      '@chunk' => $chunk_name,
+      '@context' => $context_msg,
+    ]);
+
     $result = $bedrock->invokeModel([
       'modelId' => $model,
       'contentType' => 'application/json',
@@ -224,10 +234,6 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
     $response_body = json_decode($result->get('body')->getContents(), TRUE);
     $response_text = $response_body['content'][0]['text'] ?? '';
 
-    $context_msg = '';
-    if ($filename && $username) {
-      $context_msg = " for $filename (user $username)";
-    }
     $logger->info('🔍 Queue @chunk response: @len chars@context', [
       '@chunk' => $chunk_name,
       '@len' => strlen($response_text),

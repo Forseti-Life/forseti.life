@@ -249,6 +249,56 @@ class JobHunterHomeController extends ControllerBase {
   }
 
   /**
+   * Get recent queue activity logs (AJAX endpoint).
+   */
+  public function getQueueLogsAjax(): JsonResponse {
+    // Admin only for detailed logs
+    if (!$this->currentUser()->hasPermission('administer job application automation')) {
+      return new JsonResponse(['success' => FALSE, 'message' => 'Access denied'], 403);
+    }
+
+    $database = \Drupal::database();
+    
+    // Get last 20 queue-related log entries
+    $query = $database->select('watchdog', 'w')
+      ->fields('w', ['wid', 'timestamp', 'type', 'severity', 'message', 'variables'])
+      ->condition('type', 'job_hunter')
+      ->orderBy('timestamp', 'DESC')
+      ->range(0, 20);
+    
+    $results = $query->execute()->fetchAll();
+    
+    $logs = [];
+    foreach ($results as $row) {
+      $variables = unserialize($row->variables);
+      $message = strtr($row->message, $variables);
+      
+      // Map severity to type
+      $type_map = [
+        0 => 'error',    // EMERGENCY
+        1 => 'error',    // ALERT
+        2 => 'error',    // CRITICAL
+        3 => 'error',    // ERROR
+        4 => 'warning',  // WARNING
+        5 => 'warning',  // NOTICE
+        6 => 'info',     // INFO
+        7 => 'info',     // DEBUG
+      ];
+      
+      $logs[] = [
+        'timestamp' => $row->timestamp,
+        'message' => $message,
+        'type' => $type_map[$row->severity] ?? 'info',
+      ];
+    }
+    
+    return new JsonResponse([
+      'success' => TRUE,
+      'logs' => $logs,
+    ]);
+  }
+
+  /**
    * Process items from a queue.
    *
    * @param string $queue_id
