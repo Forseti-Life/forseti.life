@@ -1,15 +1,15 @@
-uuid: 6323ae45-c444-40c2-9b3c-19fe22643835
+uuid: 215a80e9-4230-47ef-a038-3eb1fdd8b432
 langcode: en
 status: true
 dependencies:
   theme:
     - radix
 _core:
-  default_config_hash: DVbHqtQ2y9vMstEenfb16PGXE_ZPDNL8pFLO2ediO84
+  default_config_hash: 6aOgWsNTXjqrDm98TXSAjP6qd2nCijD1xw45MrnbK-Y
 id: radix_page_title
 theme: radix
-region: header
-weight: -2
+region: navbar_branding
+weight: -5
 provider: null
 plugin: page_title_block
 settings:

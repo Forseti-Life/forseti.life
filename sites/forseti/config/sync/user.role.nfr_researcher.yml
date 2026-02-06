@@ -1,0 +1,16 @@
+uuid: ecd2f4e6-f09a-46cc-b16f-67423d0f2496
+langcode: en
+status: true
+dependencies:
+  module:
+    - nfr
+id: nfr_researcher
+label: 'NFR Researcher'
+weight: 5
+is_admin: false
+permissions:
+  - 'access nfr dashboard'
+  - 'export nfr data'
+  - 'view cancer data'
+  - 'view firefighter records'
+  - 'view nfr reports'

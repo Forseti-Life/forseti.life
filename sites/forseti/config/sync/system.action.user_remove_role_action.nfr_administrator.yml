@@ -1,0 +1,14 @@
+uuid: 5476a3b4-cccd-4eb3-a33d-cc86bc822ad6
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.nfr_administrator
+  module:
+    - user
+id: user_remove_role_action.nfr_administrator
+label: 'Remove the NFR Administrator role from the selected user(s)'
+type: user
+plugin: user_remove_role_action
+configuration:
+  rid: nfr_administrator

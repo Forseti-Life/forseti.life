@@ -1,0 +1,14 @@
+uuid: f85fbdfd-c05e-4f33-8ed2-43a462715bb2
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.nfr_researcher
+  module:
+    - user
+id: user_remove_role_action.nfr_researcher
+label: 'Remove the NFR Researcher role from the selected user(s)'
+type: user
+plugin: user_remove_role_action
+configuration:
+  rid: nfr_researcher

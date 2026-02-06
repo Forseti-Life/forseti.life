@@ -1,4 +1,4 @@
-uuid: 67319be4-8057-41ae-958c-e737104e9627
+uuid: 93a267bc-4047-403a-ad1f-a893d3fc1aea
 langcode: en
 status: true
 dependencies:
@@ -6,7 +6,6 @@ dependencies:
     - filter.format.restricted_html
   module:
     - comment
-    - contact
     - filter
     - search
     - system
@@ -19,6 +18,5 @@ is_admin: false
 permissions:
   - 'access comments'
   - 'access content'
-  - 'access site-wide contact form'
   - 'search content'
   - 'use text format restricted_html'

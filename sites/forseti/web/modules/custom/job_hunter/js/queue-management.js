@@ -33,6 +33,7 @@
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'X-CSRF-Token': drupalSettings.csrf_token || ''
             },
             body: JSON.stringify({
               item_id: itemId,
@@ -119,6 +120,7 @@
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'X-CSRF-Token': drupalSettings.csrf_token || ''
             },
             body: JSON.stringify({
               file_id: fileId

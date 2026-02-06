@@ -1,0 +1,14 @@
+uuid: a0c0eafa-39ff-442a-a9cd-2a7e7c0d2457
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.fire_dept_admin
+  module:
+    - user
+id: user_add_role_action.fire_dept_admin
+label: 'Add the Fire Department Administrator role to the selected user(s)'
+type: user
+plugin: user_add_role_action
+configuration:
+  rid: fire_dept_admin
