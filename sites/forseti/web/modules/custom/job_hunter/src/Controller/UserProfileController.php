@@ -659,9 +659,6 @@ class UserProfileController extends ControllerBase {
     return $this->redirect('job_hunter.user_profile_edit');
   }
 
-    return $build;
-  }
-
   /**
    * Start job discovery page - shows company selection.
    *
