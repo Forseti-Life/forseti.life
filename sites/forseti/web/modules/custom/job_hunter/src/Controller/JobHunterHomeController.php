@@ -493,6 +493,14 @@ class JobHunterHomeController extends ControllerBase {
    * Delete a queue item (AJAX endpoint).
    */
   public function deleteQueueItem(Request $request) {
+    // Check admin permission
+    if (!$this->currentUser()->hasPermission('administer job application automation')) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Access denied',
+      ], 403);
+    }
+
     // Handle JSON request body
     $content = $request->getContent();
     if ($content) {
@@ -557,6 +565,14 @@ class JobHunterHomeController extends ControllerBase {
    * Delete a file (AJAX endpoint).
    */
   public function deleteFile(Request $request) {
+    // Check admin permission
+    if (!$this->currentUser()->hasPermission('administer job application automation')) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Access denied',
+      ], 403);
+    }
+
     // Handle JSON request body
     $content = $request->getContent();
     if ($content) {

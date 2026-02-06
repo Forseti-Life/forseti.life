@@ -6,6 +6,14 @@ ai_conversation.settings:
   requirements:
     _permission: 'administer site configuration'
 
+ai_conversation.usage_dashboard:
+  path: '/admin/reports/genai-usage'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\UsageReportController::dashboard'
+    _title: 'GenAI API Usage & Costs'
+  requirements:
+    _permission: 'administer site configuration'
+
 ai_conversation.update_prompt:
   path: '/admin/ai-conversation/update-prompt'
   defaults:

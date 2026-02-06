@@ -10,6 +10,104 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 
 /**
+ * Implements hook_schema().
+ */
+function ai_conversation_schema() {
+  $schema['ai_conversation_api_usage'] = [
+    'description' => 'Tracks all GenAI API calls across the system for cost monitoring and analysis',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique usage record ID',
+      ],
+      'timestamp' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when the API call was made',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => 0,
+        'description' => 'User ID who triggered the API call',
+      ],
+      'module' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Module that made the API call (e.g., job_hunter, ai_conversation)',
+      ],
+      'operation' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Operation type (e.g., resume_parsing, chat_message, job_posting_parsing)',
+      ],
+      'model_id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'AWS Bedrock model identifier',
+      ],
+      'input_tokens' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => 0,
+        'description' => 'Estimated input tokens sent to API',
+      ],
+      'output_tokens' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => 0,
+        'description' => 'Estimated output tokens received from API',
+      ],
+      'stop_reason' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+        'default' => '',
+        'description' => 'API stop reason (end_turn, max_tokens, etc.)',
+      ],
+      'duration_ms' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => 0,
+        'description' => 'API call duration in milliseconds',
+      ],
+      'estimated_cost' => [
+        'type' => 'numeric',
+        'precision' => 10,
+        'scale' => 6,
+        'not null' => FALSE,
+        'default' => 0,
+        'description' => 'Estimated cost in USD based on token usage',
+      ],
+      'context_data' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+        'description' => 'JSON-encoded additional context (entity_id, queue_id, etc.)',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'timestamp' => ['timestamp'],
+      'uid' => ['uid'],
+      'module' => ['module'],
+      'operation' => ['operation'],
+      'module_operation' => ['module', 'operation'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
  * Implements hook_install().
  */
 function ai_conversation_install() {
