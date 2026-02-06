@@ -96,14 +96,8 @@ class JobHunterHomeController extends ControllerBase {
     $stats = $this->getUserStatistics($user_id);
     $build['#statistics'] = $stats;
 
-    // Queue status for admin users
-    if ($current_user->hasPermission('administer job application automation')) {
-      $build['#queue_status'] = $this->getQueueStatus();
-      $build['#show_queue_controls'] = TRUE;
-    }
-    else {
-      $build['#show_queue_controls'] = FALSE;
-    }
+    // Queue status - visible to all authenticated users (read-only)
+    $build['#queue_status'] = $this->getQueueStatus();
 
     return $build;
   }
@@ -397,9 +391,11 @@ class JobHunterHomeController extends ControllerBase {
     return [
       '#theme' => 'job_hunter_queue_management',
       '#queue_items' => $queue_items,
+      '#queue_status' => $this->getQueueStatus(),
       '#attached' => [
         'library' => [
           'job_hunter/queue-management',
+          'job_hunter/queue-controls',
         ],
       ],
     ];

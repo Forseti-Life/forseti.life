@@ -146,14 +146,14 @@ job_hunter.job_seeker_edit:
     _permission: 'administer job application automation'
     job_seeker_id: \d+
 
-# Job Seeker Profile View
+# Job Seeker Profile View - Redirect to Edit
 job_hunter.user_job_seeker_view:
   path: '/jobhunter/profile'
   defaults:
-    _controller: '\Drupal\job_hunter\Controller\UserProfileController::viewJobSeekerProfile'
-    _title: 'Job Seeker Profile'
+    _controller: '\Drupal\job_hunter\Controller\UserProfileController::redirectToEdit'
+    _title: 'My Profile'
   requirements:
-    _permission: 'administer job application automation'
+    _user_is_logged_in: 'TRUE'
 
 # Job Discovery - Company Selection Page
 job_hunter.start_job_discovery:

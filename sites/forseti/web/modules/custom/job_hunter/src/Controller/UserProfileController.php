@@ -649,6 +649,16 @@ class UserProfileController extends ControllerBase {
       '#content' => $content,
     ];
 
+  /**
+   * Redirect to profile edit page.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   Redirect response to edit page.
+   */
+  public function redirectToEdit() {
+    return $this->redirect('job_hunter.user_profile_edit');
+  }
+
     return $build;
   }
 

@@ -89,6 +89,7 @@ function job_hunter_theme() {
     'job_hunter_queue_management' => [
       'variables' => [
         'queue_items' => [],
+        'queue_status' => [],
       ],
       'template' => 'job-hunter-queue-management',
     ],
