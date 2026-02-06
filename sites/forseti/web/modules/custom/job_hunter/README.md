@@ -73,6 +73,10 @@ The module provides a streamlined 4-step workflow focused on JSON storage of res
 - **Storage**: Stores parsed JSON in `jobhunter_resume_parsed_data.parsed_data` JSON field
 - **Status Update**: ✅ Text Extracted | ✅ Individual JSON Stored | ⬜ Merged to Consolidated
 
+**Response Normalization**: The parser now normalizes AI responses that return JSON as a
+string-escaped payload (e.g., literal `\n` sequences between lines). This ensures valid
+JSON is decoded even when the model returns escaped formatting.
+
 **Individual Resume JSON Structure**:
 ```json
 {

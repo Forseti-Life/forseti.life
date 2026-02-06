@@ -364,6 +364,17 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
     if (empty($response_text)) {
       return NULL;
     }
+
+    // Normalize responses that contain literal escape sequences (e.g. "\n")
+    // without actual newlines. This indicates the JSON was returned as a
+    // string-escaped payload and must be unescaped before decoding.
+    $has_literal_newlines = strpos($response_text, "\\n") !== FALSE;
+    $has_actual_newlines = strpos($response_text, "\n") !== FALSE;
+    if ($has_literal_newlines && !$has_actual_newlines) {
+      $response_text = stripcslashes($response_text);
+      $response_text = trim($response_text);
+      \Drupal::logger('job_hunter')->warning('🟡 Normalized escaped JSON response (literal \\n sequences detected)');
+    }
     
     // If the response starts with { and ends with }, try parsing it directly first
     if ($response_text[0] === '{' && $response_text[strlen($response_text) - 1] === '}') {
