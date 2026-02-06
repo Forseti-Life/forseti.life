@@ -132,6 +132,12 @@ class JobHunterNavigationBlock extends BlockBase implements ContainerFactoryPlug
 
     // Add admin links if user has permission
     if ($this->currentUser->hasPermission('administer job application automation')) {
+      $navigation['queue_management'] = [
+        'title' => $this->t('Queue Management'),
+        'url' => Url::fromRoute('job_hunter.queue_management'),
+        'icon' => 'wrench',
+        'weight' => 95,
+      ];
       $navigation['settings'] = [
         'title' => $this->t('Settings'),
         'url' => Url::fromRoute('job_hunter.settings'),

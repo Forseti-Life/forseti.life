@@ -447,12 +447,25 @@ class JobHunterHomeController extends ControllerBase {
    * Delete a queue item (AJAX endpoint).
    */
   public function deleteQueueItem(Request $request) {
-    $item_id = $request->request->get('item_id');
-    $queue_name = $request->request->get('queue_name');
+    // Handle JSON request body
+    $content = $request->getContent();
+    if ($content) {
+      $data = json_decode($content, TRUE);
+      $item_id = $data['item_id'] ?? NULL;
+      $queue_name = $data['queue_name'] ?? NULL;
+    } else {
+      $item_id = $request->request->get('item_id');
+      $queue_name = $request->request->get('queue_name');
+    }
     
     if (!$item_id || !$queue_name) {
       return new JsonResponse(['success' => false, 'message' => 'Missing parameters'], 400);
     }
+    
+    \Drupal::logger('job_hunter')->info('🔧 Queue Management: Attempting to delete queue item @item_id from queue @queue', [
+      '@item_id' => $item_id,
+      '@queue' => $queue_name,
+    ]);
     
     try {
       $database = \Drupal::database();
@@ -462,7 +475,7 @@ class JobHunterHomeController extends ControllerBase {
         ->execute();
       
       if ($deleted) {
-        \Drupal::logger('job_hunter')->notice('Admin deleted queue item @item_id from @queue', [
+        \Drupal::logger('job_hunter')->info('✅ Queue Management: Successfully deleted queue item @item_id from queue @queue', [
           '@item_id' => $item_id,
           '@queue' => $queue_name,
         ]);
@@ -472,6 +485,10 @@ class JobHunterHomeController extends ControllerBase {
           'message' => 'Queue item deleted successfully',
         ]);
       } else {
+        \Drupal::logger('job_hunter')->warning('⚠️ Queue Management: Queue item @item_id not found in queue @queue', [
+          '@item_id' => $item_id,
+          '@queue' => $queue_name,
+        ]);
         return new JsonResponse([
           'success' => false,
           'message' => 'Queue item not found',
@@ -494,22 +511,44 @@ class JobHunterHomeController extends ControllerBase {
    * Delete a file (AJAX endpoint).
    */
   public function deleteFile(Request $request) {
-    $file_id = $request->request->get('file_id');
+    // Handle JSON request body
+    $content = $request->getContent();
+    if ($content) {
+      $data = json_decode($content, TRUE);
+      $file_id = $data['file_id'] ?? NULL;
+    } else {
+      $file_id = $request->request->get('file_id');
+    }
     
     if (!$file_id) {
       return new JsonResponse(['success' => false, 'message' => 'Missing file ID'], 400);
     }
     
+    \Drupal::logger('job_hunter')->info('🔧 Queue Management: Attempting to delete file ID @fid', [
+      '@fid' => $file_id,
+    ]);
+    
     try {
       $file = \Drupal\file\Entity\File::load($file_id);
       if (!$file) {
+        \Drupal::logger('job_hunter')->warning('⚠️ Queue Management: File ID @fid not found', [
+          '@fid' => $file_id,
+        ]);
         return new JsonResponse(['success' => false, 'message' => 'File not found'], 404);
       }
       
       $filename = $file->getFilename();
+      $file_uri = $file->getFileUri();
+      
+      \Drupal::logger('job_hunter')->info('🗑️ Queue Management: Deleting file ID @fid (@filename) at @uri', [
+        '@fid' => $file_id,
+        '@filename' => $filename,
+        '@uri' => $file_uri,
+      ]);
+      
       $file->delete();
       
-      \Drupal::logger('job_hunter')->notice('Admin deleted file @fid (@filename)', [
+      \Drupal::logger('job_hunter')->info('✅ Queue Management: Successfully deleted file ID @fid (@filename)', [
         '@fid' => $file_id,
         '@filename' => $filename,
       ]);

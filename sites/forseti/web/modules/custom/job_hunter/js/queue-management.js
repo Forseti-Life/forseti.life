@@ -28,7 +28,7 @@
           this.disabled = true;
           this.textContent = '⏳ Deleting...';
           
-          fetch('/admin/jobhunter/queue/delete-item', {
+          fetch('/jobhunter/queue/delete-item', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -95,7 +95,7 @@
           const originalText = this.textContent;
           this.textContent = '⏳';
           
-          fetch('/admin/jobhunter/queue/delete-file', {
+          fetch('/jobhunter/queue/delete-file', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
