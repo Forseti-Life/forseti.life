@@ -1,5 +1,7 @@
 # National Firefighter Registry - Architecture Documentation
 
+**Last Updated:** February 6, 2026
+
 ## System Overview
 
 The National Firefighter Registry (NFR) is a Drupal-based cancer surveillance and health tracking system designed to support the CDC's research into cancer incidence among firefighters. The system facilitates participant registration, longitudinal data collection, state cancer registry linkages, and integration with external data sources.

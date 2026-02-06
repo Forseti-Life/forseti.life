@@ -1,5 +1,7 @@
 # Job Application Automation Module - Architecture Design
 
+**Last Updated:** February 6, 2026
+
 ## Overview
 This document outlines the architecture for the Job Application Automation module, designed to provide AI-powered job application automation for users of the St. Louis Integration website. The system leverages Generative AI to analyze resumes, tailor applications to specific job descriptions, and automate the submission process across multiple employer platforms.
 

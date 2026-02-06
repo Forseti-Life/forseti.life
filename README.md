@@ -1,6 +1,8 @@
 # Multi-Site Drupal Workspace
 Multiple Drupal websites in a shared development environment
 
+**Last Updated:** February 6, 2026
+
 ## Quick Start
 
 ### 🚀 After Workspace Restart (Fastest)

@@ -1,5 +1,6 @@
 # Forseti.life - AI-Powered Community Safety Platform
 
+**Last Updated:** February 6, 2026  
 **Domain:** forseti.life  
 **Created:** December 9, 2025  
 **Platform:** Drupal 10  
