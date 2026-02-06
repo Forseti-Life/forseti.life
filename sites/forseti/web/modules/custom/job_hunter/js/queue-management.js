@@ -16,6 +16,7 @@
         button.addEventListener('click', function(e) {
           e.preventDefault();
           
+          const buttonElement = this;
           const itemElement = this.closest('.queue-item');
           const itemId = itemElement.dataset.itemId;
           const queueName = itemElement.dataset.queueName;
@@ -25,8 +26,8 @@
           }
           
           // Disable button during request
-          this.disabled = true;
-          this.textContent = '⏳ Deleting...';
+          buttonElement.disabled = true;
+          buttonElement.textContent = '⏳ Deleting...';
           
           fetch('/jobhunter/queue/delete-item', {
             method: 'POST',
@@ -41,6 +42,9 @@
           .then(response => response.json())
           .then(data => {
             if (data.success) {
+              // Show success message first
+              showMessage('Queue item deleted successfully', 'success');
+              
               // Fade out and remove the item
               itemElement.style.opacity = '0';
               itemElement.style.transition = 'opacity 0.3s';
@@ -59,18 +63,15 @@
                   }
                 }
               }, 300);
-              
-              // Show success message
-              showMessage('Queue item deleted successfully', 'success');
             } else {
-              this.disabled = false;
-              this.textContent = '🗑️ Delete Item';
+              buttonElement.disabled = false;
+              buttonElement.textContent = '🗑️ Delete Item';
               showMessage(data.message || 'Failed to delete queue item', 'error');
             }
           })
           .catch(error => {
-            this.disabled = false;
-            this.textContent = '🗑️ Delete Item';
+            buttonElement.disabled = false;
+            buttonElement.textContent = '🗑️ Delete Item';
             showMessage('Error deleting queue item: ' + error.message, 'error');
           });
         });
