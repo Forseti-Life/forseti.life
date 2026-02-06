@@ -4,10 +4,12 @@ namespace Drupal\jobhunter_tester\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Routing\RouteProviderInterface;
+use Drupal\Core\Session\AccountSwitcherInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use GuzzleHttp\ClientInterface;
 use Drupal\Core\Url;
+use Drupal\user\Entity\User;
 
 /**
  * Controller for testing Job Hunter routes.
@@ -36,12 +38,20 @@ class JobHunterTesterController extends ControllerBase {
   protected $requestStack;
 
   /**
+   * The account switcher.
+   *
+   * @var \Drupal\Core\Session\AccountSwitcherInterface
+   */
+  protected $accountSwitcher;
+
+  /**
    * Constructs a JobHunterTesterController object.
    */
-  public function __construct(RouteProviderInterface $route_provider, ClientInterface $http_client, RequestStack $request_stack) {
+  public function __construct(RouteProviderInterface $route_provider, ClientInterface $http_client, RequestStack $request_stack, AccountSwitcherInterface $account_switcher) {
     $this->routeProvider = $route_provider;
     $this->httpClient = $http_client;
     $this->requestStack = $request_stack;
+    $this->accountSwitcher = $account_switcher;
   }
 
   /**
@@ -51,7 +61,8 @@ class JobHunterTesterController extends ControllerBase {
     return new static(
       $container->get('router.route_provider'),
       $container->get('http_client'),
-      $container->get('request_stack')
+      $container->get('request_stack'),
+      $container->get('account_switcher')
     );
   }
 
@@ -82,6 +93,7 @@ class JobHunterTesterController extends ControllerBase {
       if (strpos($route_name, 'job_hunter.') === 0) {
         $path = $route->getPath();
         $methods = $route->getMethods();
+        $permission_info = $this->getRoutePermissionInfo($route);
         
         // Only test GET routes (skip POST, PUT, DELETE)
         if (empty($methods) || in_array('GET', $methods)) {
@@ -89,6 +101,8 @@ class JobHunterTesterController extends ControllerBase {
             'name' => $route_name,
             'path' => $path,
             'title' => $route->getDefault('_title') ?? 'No Title',
+            'permission' => $permission_info['permission'],
+            'requires_login' => $permission_info['requires_login'],
           ];
         }
       }
@@ -118,8 +132,12 @@ class JobHunterTesterController extends ControllerBase {
         '<h2>Job Hunter Route Testing</h2>' .
         '<p>Found ' . count($job_hunter_routes) . ' GET-accessible Job Hunter routes.</p>' .
         '<p><strong>Testing URL:</strong> ' . $base_url . '</p>' .
+        '<p><strong>Testing Mode:</strong> HTTP Response + Permission Analysis</p>' .
         '</div>',
     ];
+    
+    // Get test users
+    $test_users = $this->getTestUsers();
     
     // Test each route
     $results = [];
@@ -180,6 +198,9 @@ class JobHunterTesterController extends ControllerBase {
         'status' => $status,
         'status_code' => $status_code,
         'error_message' => $error_message,
+        'permission' => $route_info['permission'] ?? 'None',
+        'requires_login' => $route_info['requires_login'] ? 'Yes' : 'No',
+        'expected_access' => $this->getExpectedAccessSummary($route_info, $test_users),
       ];
     }
     
@@ -239,6 +260,9 @@ class JobHunterTesterController extends ControllerBase {
           ['data' => $result['name']],
           ['data' => ['#markup' => $url_link]],
           ['data' => $result['title']],
+          ['data' => $result['permission']],
+          ['data' => $result['requires_login']],
+          ['data' => ['#markup' => $result['expected_access']]],
           ['data' => $result['error_message']],
         ],
       ];
@@ -252,6 +276,9 @@ class JobHunterTesterController extends ControllerBase {
         'Route Name',
         'Path',
         'Title',
+        'Permission',
+        'Login Required',
+        'Expected Access',
         'Error',
       ],
       '#rows' => $rows,
@@ -266,6 +293,138 @@ class JobHunterTesterController extends ControllerBase {
     ];
     
     return $build;
+  }
+
+  /**
+   * Get test users with expected access patterns.
+   *
+   * @return array
+   *   Array of test user configurations.
+   */
+  private function getTestUsers(): array {
+    $test_users = [
+      'anonymous' => [
+        'uid' => 0,
+        'name' => 'Anonymous',
+        'label' => 'Anonymous User',
+        'expected_permissions' => [],
+      ],
+      'admin' => [
+        'uid' => 1,
+        'name' => 'admin',
+        'label' => 'Administrator (UID 1)',
+        'expected_permissions' => ['*'], // All permissions
+      ],
+    ];
+
+    // Find an authenticated user without special roles
+    $connection = \Drupal::database();
+    $query = $connection->select('users_field_data', 'u')
+      ->fields('u', ['uid', 'name'])
+      ->condition('u.status', 1)
+      ->condition('u.uid', 1, '>')
+      ->range(0, 1);
+    $result = $query->execute()->fetchAssoc();
+    
+    if ($result) {
+      $test_users['authenticated'] = [
+        'uid' => (int)$result['uid'],
+        'name' => $result['name'],
+        'label' => 'Authenticated User',
+        'expected_permissions' => ['access job hunter', 'access content'],
+      ];
+    }
+
+    return $test_users;
+  }
+
+  /**
+   * Determine if user should have access based on route requirements.
+   *
+   * @param string|null $permission
+   *   Required permission.
+   * @param bool $requires_login
+   *   Whether login is required.
+   * @param string $user_key
+   *   User key (anonymous, authenticated, admin).
+   *
+   * @return bool
+   *   TRUE if access expected, FALSE otherwise.
+   */
+  private function shouldHaveAccess(?string $permission, bool $requires_login, string $user_key): bool {
+    // Anonymous user
+    if ($user_key === 'anonymous') {
+      return !$requires_login && ($permission === null || $permission === 'access content');
+    }
+
+    // Admin has all access
+    if ($user_key === 'admin') {
+      return TRUE;
+    }
+
+    // Authenticated user
+    if ($user_key === 'authenticated') {
+      // Basic authenticated permissions
+      if ($permission === null || $permission === 'access content' || $permission === 'access job hunter') {
+        return TRUE;
+      }
+      // No admin permissions
+      if ($permission === 'administer job application automation') {
+        return FALSE;
+      }
+      return FALSE;
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Get route permission information.
+   *
+   * @param \Symfony\Component\Routing\Route $route
+   *   The route object.
+   *
+   * @return array
+   *   Array with permission and requires_login.
+   */
+  private function getRoutePermissionInfo($route): array {
+    $requirements = $route->getRequirements();
+    $permission = $requirements['_permission'] ?? null;
+    $requires_login = isset($requirements['_user_is_logged_in']);
+    
+    return [
+      'permission' => $permission,
+      'requires_login' => $requires_login,
+    ];
+  }
+
+  /**
+   * Get expected access summary for a route.
+   *
+   * @param array $route_info
+   *   Route information.
+   * @param array $test_users
+   *   Test users array.
+   *
+   * @return string
+   *   HTML string showing expected access.
+   */
+  private function getExpectedAccessSummary(array $route_info, array $test_users): string {
+    $access_list = [];
+    
+    foreach ($test_users as $user_key => $user_info) {
+      $has_access = $this->shouldHaveAccess(
+        $route_info['permission'] ?? null,
+        $route_info['requires_login'] ?? false,
+        $user_key
+      );
+      
+      $icon = $has_access ? '✓' : '✗';
+      $color = $has_access ? 'green' : 'red';
+      $access_list[] = '<span style="color: ' . $color . ';">' . $icon . ' ' . $user_info['label'] . '</span>';
+    }
+    
+    return implode('<br>', $access_list);
   }
 
 }
