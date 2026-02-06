@@ -282,7 +282,16 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
       return NULL;
     }
     
-    // Try markdown code fence first
+    // If the response starts with { and ends with }, try parsing it directly first
+    if ($response_text[0] === '{' && $response_text[strlen($response_text) - 1] === '}') {
+      // Test if it's valid JSON by trying to decode it
+      $test_decode = json_decode($response_text, TRUE);
+      if (json_last_error() === JSON_ERROR_NONE) {
+        return $response_text; // It's already valid JSON!
+      }
+    }
+    
+    // Try markdown code fence
     if (preg_match('/```(?:json)?\s*(\{[\s\S]*?\})\s*```/s', $response_text, $matches)) {
       return trim($matches[1]);
     }
@@ -326,6 +335,14 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
         }
       }
     }
+
+    // If we got here, brace counting failed but response looks like JSON
+    // Log the final state for debugging
+    \Drupal::logger('job_hunter')->warning('🟡 Brace counting failed. Final depth: @depth, in_string: @str, last 100 chars: @end', [
+      '@depth' => $depth,
+      '@str' => $in_string ? 'YES' : 'NO',
+      '@end' => substr($response_text, -100),
+    ]);
 
     return NULL;
   }
