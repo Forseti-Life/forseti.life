@@ -43,7 +43,7 @@ job_hunter.queue_status:
     _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::getQueueStatusAjax'
   methods: [GET]
   requirements:
-    _permission: 'administer job application automation'
+    _user_is_logged_in: 'TRUE'
 
 # Module Settings
 job_hunter.settings:

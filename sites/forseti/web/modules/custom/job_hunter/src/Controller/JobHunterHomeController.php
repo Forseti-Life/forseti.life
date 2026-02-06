@@ -240,7 +240,8 @@ class JobHunterHomeController extends ControllerBase {
    *   JSON response with queue status.
    */
   public function getQueueStatusAjax(): JsonResponse {
-    if (!$this->currentUser()->hasPermission('administer job application automation')) {
+    // Allow any authenticated user to view queue status
+    if (!$this->currentUser()->isAuthenticated()) {
       return new JsonResponse([
         'success' => FALSE,
         'message' => 'Access denied',
