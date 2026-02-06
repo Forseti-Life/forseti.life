@@ -539,3 +539,48 @@ function _job_hunter_extract_doc_text($file_path, $mime_type) {
   
   return trim($text);
 }
+
+/**
+ * Implements hook_ENTITY_TYPE_delete() for file entities.
+ * 
+ * Automatically clean up queue items when a file is deleted to prevent
+ * orphaned queue items from remaining in the system.
+ */
+function job_hunter_file_delete(Drupal\file\FileInterface $file) {
+  $queue_factory = \Drupal::service('queue');
+  $database = \Drupal::database();
+  
+  // List of queues that might reference files
+  $queues_to_check = [
+    'job_hunter_genai_parsing',
+    'job_hunter_text_extraction',
+    'job_hunter_profile_text_extraction',
+  ];
+  
+  foreach ($queues_to_check as $queue_name) {
+    // Query the queue table to find items referencing this file
+    $query = $database->select('queue', 'q')
+      ->fields('q', ['item_id', 'data'])
+      ->condition('q.name', $queue_name);
+    
+    $results = $query->execute()->fetchAll();
+    
+    foreach ($results as $row) {
+      // Unserialize the data to check if it references our file
+      $item_data = unserialize($row->data);
+      
+      if (isset($item_data['fid']) && $item_data['fid'] == $file->id()) {
+        // Delete this queue item
+        $database->delete('queue')
+          ->condition('item_id', $row->item_id)
+          ->execute();
+        
+        \Drupal::logger('job_hunter')->info('Removed orphaned queue item @item_id from @queue for deleted file @fid', [
+          '@item_id' => $row->item_id,
+          '@queue' => $queue_name,
+          '@fid' => $file->id(),
+        ]);
+      }
+    }
+  }
+}

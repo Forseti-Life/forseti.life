@@ -2490,13 +2490,38 @@ class UserProfileForm extends FormBase {
       }
       
       // Delete any pending queue items for this user
-      $orphaned_queue = $connection->delete('queue')
-        ->condition('name', 'job_hunter_genai_parsing')
-        ->condition('data', '%"uid":' . $uid . '%', 'LIKE')
-        ->execute();
-      if ($orphaned_queue > 0) {
+      $queues_to_check = [
+        'job_hunter_genai_parsing',
+        'job_hunter_text_extraction',
+        'job_hunter_profile_text_extraction',
+        'job_hunter_resume_tailoring',
+        'job_hunter_job_posting_parsing',
+      ];
+      
+      $total_deleted = 0;
+      foreach ($queues_to_check as $queue_name) {
+        // Fetch all items from this queue
+        $queue_items = $connection->select('queue', 'q')
+          ->fields('q', ['item_id', 'data'])
+          ->condition('q.name', $queue_name)
+          ->execute()
+          ->fetchAll();
+        
+        foreach ($queue_items as $item) {
+          $item_data = unserialize($item->data);
+          // Check if this queue item belongs to the current user
+          if (isset($item_data['uid']) && $item_data['uid'] == $uid) {
+            $connection->delete('queue')
+              ->condition('item_id', $item->item_id)
+              ->execute();
+            $total_deleted++;
+          }
+        }
+      }
+      
+      if ($total_deleted > 0) {
         $logger->info('🗑️ Deleted @count queued items for user @uid', [
-          '@count' => $orphaned_queue,
+          '@count' => $total_deleted,
           '@uid' => $uid,
         ]);
       }
