@@ -176,13 +176,13 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
       throw new \Exception('Failed to parse core profile sections');
     }
 
-    // CALL 2: Parse professional experience
+    // CALL 2: Parse professional experience with 100k tokens for large resumes
     $logger->info('💼 Queue Call 2/2: Parsing professional experience for @filename (user @username)', [
       '@filename' => $filename,
       '@username' => $username,
     ]);
     $experience_prompt = $this->buildProfessionalExperiencePrompt($extracted_text, $filename);
-    $result = $this->callBedrockAndParse($bedrock, $model, $experience_prompt, 'experience', $filename, $username);
+    $result = $this->callBedrockAndParse($bedrock, $model, $experience_prompt, 'experience', $filename, $username, 100000);
     $experience_data = $result['parsed_data'];
     $raw_responses['experience'] = $result['raw_response'];
 
@@ -203,10 +203,13 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
   /**
    * Call Bedrock and parse JSON response.
    * 
+   * @param int $max_tokens
+   *   Maximum tokens for response (default 40000, use 100000 for large experience sections)
+   * 
    * @return array
    *   Array with 'parsed_data' and 'raw_response' keys.
    */
-  private function callBedrockAndParse($bedrock, $model, $prompt, $chunk_name, $filename = '', $username = '') {
+  private function callBedrockAndParse($bedrock, $model, $prompt, $chunk_name, $filename = '', $username = '', $max_tokens = 40000) {
     $logger = \Drupal::logger('job_hunter');
 
     $context_msg = '';
@@ -214,8 +217,9 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
       $context_msg = " for $filename (user $username)";
     }
 
-    $logger->info('⏳ Queue @chunk: Sending request to GenAI API...@context', [
+    $logger->info('⏳ Queue @chunk: Sending request to GenAI API (max_tokens: @tokens)@context', [
       '@chunk' => $chunk_name,
+      '@tokens' => $max_tokens,
       '@context' => $context_msg,
     ]);
 
@@ -224,7 +228,7 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
       'contentType' => 'application/json',
       'body' => json_encode([
         'anthropic_version' => 'bedrock-2023-05-31',
-        'max_tokens' => 40000,
+        'max_tokens' => $max_tokens,
         'messages' => [
           ['role' => 'user', 'content' => $prompt],
         ],
