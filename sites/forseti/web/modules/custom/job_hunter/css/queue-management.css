@@ -24,6 +24,124 @@
   font-size: 1.1rem;
 }
 
+/* Database Health Check */
+.database-health-section {
+  margin-bottom: 2rem;
+}
+
+.health-status {
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 2px solid;
+}
+
+.health-status.health-good {
+  background: #e8f5e9;
+  border-color: #4CAF50;
+}
+
+.health-status.health-error {
+  background: #ffebee;
+  border-color: #f44336;
+}
+
+.health-status h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+}
+
+.health-details summary {
+  cursor: pointer;
+  font-weight: 500;
+  padding: 0.5rem 0;
+  user-select: none;
+}
+
+.health-details summary:hover {
+  text-decoration: underline;
+}
+
+.health-check-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  background: white;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.health-check-table th,
+.health-check-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.health-check-table thead {
+  background: #f5f5f5;
+  font-weight: 600;
+}
+
+.health-row-good {
+  background: white;
+}
+
+.health-row-error {
+  background: #fff3e0;
+}
+
+.health-icon {
+  width: 50px;
+  text-align: center;
+}
+
+.health-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.health-badge-good {
+  background: #4CAF50;
+  color: white;
+}
+
+.health-badge-error {
+  background: #f44336;
+  color: white;
+}
+
+.table-name code {
+  background: #f5f5f5;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.9rem;
+}
+
+.error-text {
+  color: #d32f2f;
+  font-weight: 500;
+}
+
+.warning-text {
+  color: #f57c00;
+  font-weight: 500;
+}
+
+.success-text {
+  color: #388e3c;
+  font-weight: 500;
+}
+
+.health-timestamp {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+}
+
 /* Empty state */
 .empty-state {
   text-align: center;

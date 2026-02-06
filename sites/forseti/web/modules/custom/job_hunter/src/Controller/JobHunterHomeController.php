@@ -438,16 +438,79 @@ class JobHunterHomeController extends ControllerBase {
       return $b['created'] - $a['created'];
     });
     
+    // Check database table health
+    $table_health = $this->checkTableHealth();
+    
     return [
       '#theme' => 'job_hunter_queue_management',
       '#queue_items' => $queue_items,
       '#queue_status' => $this->getQueueStatus(),
+      '#table_health' => $table_health,
       '#attached' => [
         'library' => [
           'job_hunter/queue-management',
           'job_hunter/queue-controls',
         ],
       ],
+    ];
+  }
+
+  /**
+   * Check health of all job_hunter database tables.
+   *
+   * @return array
+   *   Health check results with overall status and table details.
+   */
+  private function checkTableHealth() {
+    $schema = \Drupal::database()->schema();
+    
+    // Define expected tables and their critical columns
+    $expected_tables = [
+      'jobhunter_job_seeker' => ['id', 'uid', 'created', 'changed'],
+      'jobhunter_job_history' => ['id', 'job_seeker_id', 'company', 'title'],
+      'jobhunter_education_history' => ['id', 'job_seeker_id', 'institution', 'degree'],
+      'jobhunter_resume_parsed_data' => ['id', 'uid', 'resume_file_id', 'parsed_data', 'status', 'raw_genai_response_core', 'raw_genai_response_experience'],
+      'jobhunter_job_seeker_resumes' => ['id', 'job_seeker_id', 'file_id', 'extracted_text'],
+      'jobhunter_tailored_resumes' => ['id', 'job_seeker_id', 'company', 'job_title'],
+    ];
+    
+    $results = [];
+    $all_healthy = TRUE;
+    
+    foreach ($expected_tables as $table_name => $required_columns) {
+      $table_exists = $schema->tableExists($table_name);
+      $columns_ok = TRUE;
+      $missing_columns = [];
+      
+      if ($table_exists) {
+        foreach ($required_columns as $column) {
+          if (!$schema->fieldExists($table_name, $column)) {
+            $columns_ok = FALSE;
+            $missing_columns[] = $column;
+          }
+        }
+      } else {
+        $columns_ok = FALSE;
+        $all_healthy = FALSE;
+      }
+      
+      $is_healthy = $table_exists && $columns_ok;
+      if (!$is_healthy) {
+        $all_healthy = FALSE;
+      }
+      
+      $results[$table_name] = [
+        'exists' => $table_exists,
+        'columns_ok' => $columns_ok,
+        'missing_columns' => $missing_columns,
+        'healthy' => $is_healthy,
+      ];
+    }
+    
+    return [
+      'overall_healthy' => $all_healthy,
+      'tables' => $results,
+      'checked_at' => time(),
     ];
   }
 

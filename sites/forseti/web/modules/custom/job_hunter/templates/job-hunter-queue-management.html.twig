@@ -12,6 +12,7 @@
  *   - expire: Expiration timestamp
  *   - data: Unserialized queue item data
  *   - data_preview: Human-readable preview of data
+ * - table_health: Database table health check results
  */
 #}
 <div class="queue-management-page">
@@ -19,6 +20,57 @@
     <h1>{{ 'Queue Management'|t }}</h1>
     <p class="subtitle">{{ 'Manage and process background queues'|t }}</p>
   </div>
+
+  {# Database Health Check #}
+  {% if table_health %}
+  <div class="database-health-section">
+    <div class="health-status {% if table_health.overall_healthy %}health-good{% else %}health-error{% endif %}">
+      <h3>
+        {% if table_health.overall_healthy %}
+          ✅ {{ 'Database Health: All Systems Operational'|t }}
+        {% else %}
+          ❌ {{ 'Database Health: Issues Detected'|t }}
+        {% endif %}
+      </h3>
+      <details class="health-details">
+        <summary>{{ 'View Table Status'|t }} ({{ table_health.tables|length }} {{ 'tables'|t }})</summary>
+        <table class="health-check-table">
+          <thead>
+            <tr>
+              <th>{{ 'Status'|t }}</th>
+              <th>{{ 'Table Name'|t }}</th>
+              <th>{{ 'Details'|t }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for table_name, status in table_health.tables %}
+            <tr class="{% if status.healthy %}health-row-good{% else %}health-row-error{% endif %}">
+              <td class="health-icon">
+                {% if status.healthy %}
+                  <span class="health-badge health-badge-good">✓</span>
+                {% else %}
+                  <span class="health-badge health-badge-error">✗</span>
+                {% endif %}
+              </td>
+              <td class="table-name"><code>{{ table_name }}</code></td>
+              <td class="health-message">
+                {% if not status.exists %}
+                  <span class="error-text">{{ 'Table does not exist'|t }}</span>
+                {% elseif status.missing_columns|length > 0 %}
+                  <span class="warning-text">{{ 'Missing columns'|t }}: {{ status.missing_columns|join(', ') }}</span>
+                {% else %}
+                  <span class="success-text">{{ 'OK'|t }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="health-timestamp">{{ 'Checked at'|t }}: {{ table_health.checked_at|date('Y-m-d H:i:s') }}</p>
+      </details>
+    </div>
+  </div>
+  {% endif %}
 
   {# Queue Processing Controls #}
   <div class="queue-controls-section" id="queue-controls-panel">
