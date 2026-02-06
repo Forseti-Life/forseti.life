@@ -45,6 +45,30 @@ job_hunter.queue_status:
   requirements:
     _user_is_logged_in: 'TRUE'
 
+job_hunter.queue_management:
+  path: '/admin/jobhunter/queue-management'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::queueManagement'
+    _title: 'Queue Management'
+  requirements:
+    _permission: 'administer job application automation'
+
+job_hunter.queue_delete_item:
+  path: '/admin/jobhunter/queue/delete-item'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::deleteQueueItem'
+  methods: [POST]
+  requirements:
+    _permission: 'administer job application automation'
+
+job_hunter.queue_delete_file:
+  path: '/admin/jobhunter/queue/delete-file'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::deleteFile'
+  methods: [POST]
+  requirements:
+    _permission: 'administer job application automation'
+
 # Module Settings
 job_hunter.settings:
   path: '/jobhunter/settings'

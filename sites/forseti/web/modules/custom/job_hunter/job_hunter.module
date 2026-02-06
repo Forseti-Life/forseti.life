@@ -86,6 +86,12 @@ function job_hunter_theme() {
       ],
       'template' => 'job-hunter-navigation',
     ],
+    'job_hunter_queue_management' => [
+      'variables' => [
+        'queue_items' => [],
+      ],
+      'template' => 'job-hunter-queue-management',
+    ],
     'documentation_home' => [
       'variables' => [
         'doc_links' => [],

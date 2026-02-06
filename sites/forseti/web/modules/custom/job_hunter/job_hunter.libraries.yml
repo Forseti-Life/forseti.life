@@ -99,3 +99,14 @@ queue-controls:
     - core/drupal
     - core/jquery
     - core/once
+
+queue-management:
+  css:
+    theme:
+      css/queue-management.css: {}
+  js:
+    js/queue-management.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once

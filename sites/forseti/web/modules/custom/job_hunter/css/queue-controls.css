@@ -94,6 +94,30 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+.btn-queue-management {
+  background: linear-gradient(135deg, #805AD5 0%, #6B46C1 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn-queue-management:hover {
+  background: linear-gradient(135deg, #6B46C1 0%, #553C9A 100%);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+  color: white;
+  text-decoration: none;
+}
+
 /* Auto-refresh toggle */
 .auto-refresh-toggle {
   display: flex;
