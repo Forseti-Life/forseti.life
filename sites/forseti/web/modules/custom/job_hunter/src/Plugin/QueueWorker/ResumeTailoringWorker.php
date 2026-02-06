@@ -216,9 +216,18 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
 
       if (isset($result['content'][0]['text'])) {
         $ai_response = $result['content'][0]['text'];
+        $stop_reason = $result['stop_reason'] ?? 'unknown';
+        
+        // Check if response was truncated due to max_tokens limit
+        if ($stop_reason === 'max_tokens') {
+          \Drupal::logger('job_hunter')->error('❌ Resume tailoring hit max_tokens limit! Response truncated at @len chars. Increase max_tokens to fix this.', [
+            '@len' => strlen($ai_response),
+          ]);
+        }
         
         // Debug: Log first 500 chars of response
-        \Drupal::logger('job_hunter')->info('Queue: AI response preview: @preview', [
+        \Drupal::logger('job_hunter')->info('Queue: AI response preview (stop_reason: @reason): @preview', [
+          '@reason' => $stop_reason,
           '@preview' => substr($ai_response, 0, 500),
         ]);
         
