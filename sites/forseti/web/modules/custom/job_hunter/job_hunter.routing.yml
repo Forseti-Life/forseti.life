@@ -259,7 +259,7 @@ job_hunter.user_profile_dashboard:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::dashboard'
     _title: 'Job Application Profile'
   requirements:
-    _permission: 'administer job application automation'
+    _user_is_logged_in: 'TRUE'
 
 job_hunter.user_profile_edit:
   path: '/jobhunter/profile/edit'
@@ -267,7 +267,7 @@ job_hunter.user_profile_edit:
     _form: '\Drupal\job_hunter\Form\UserProfileForm'
     _title: 'Edit Job Application Profile'
   requirements:
-    _permission: 'administer job application automation'
+    _user_is_logged_in: 'TRUE'
 
 # Download Resume File
 job_hunter.download_resume:
@@ -294,7 +294,7 @@ job_hunter.my_profile:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::myProfile'
     _title: 'My Job Application Profile'
   requirements:
-    _permission: 'administer job application automation'
+    _user_is_logged_in: 'TRUE'
 
 job_hunter.my_profile_edit:
   path: '/jobhunter/my-profile/edit'
@@ -302,7 +302,7 @@ job_hunter.my_profile_edit:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::myProfileEdit'
     _title: 'Edit My Job Application Profile'
   requirements:
-    _permission: 'administer job application automation'
+    _user_is_logged_in: 'TRUE'
 
 # Tailor Resume for Specific Job
 job_hunter.tailor_resume:
@@ -320,7 +320,7 @@ job_hunter.tailor_resume_ajax:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::tailorResumeAjax'
   requirements:
-    _permission: 'administer job application automation'
+    _user_is_logged_in: 'TRUE'
   methods: [POST]
   options:
     _csrf_token: FALSE
@@ -331,7 +331,7 @@ job_hunter.tailor_resume_status_ajax:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::tailorResumeStatusAjax'
   requirements:
-    _permission: 'administer job application automation'
+    _user_is_logged_in: 'TRUE'
   methods: [GET]
 
 # AJAX endpoint for adding skill to profile
@@ -340,7 +340,7 @@ job_hunter.add_skill_to_profile_ajax:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::addSkillToProfileAjax'
   requirements:
-    _permission: 'administer job application automation'
+    _user_is_logged_in: 'TRUE'
   methods: [POST]
   options:
     _csrf_token: FALSE
@@ -351,7 +351,7 @@ job_hunter.refresh_skills_gap_ajax:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::refreshSkillsGapAjax'
   requirements:
-    _permission: 'administer job application automation'
+    _user_is_logged_in: 'TRUE'
   methods: [POST]
   options:
     _csrf_token: FALSE
