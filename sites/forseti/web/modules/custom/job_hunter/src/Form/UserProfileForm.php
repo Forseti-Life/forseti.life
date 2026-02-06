@@ -3471,7 +3471,7 @@ class UserProfileForm extends FormBase {
       'contentType' => 'application/json',
       'body' => json_encode([
         'anthropic_version' => 'bedrock-2023-05-31',
-        'max_tokens' => 8000,
+        'max_tokens' => 20000,
         'messages' => [
           [
             'role' => 'user',

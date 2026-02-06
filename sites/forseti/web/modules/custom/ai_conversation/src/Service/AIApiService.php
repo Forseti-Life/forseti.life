@@ -234,7 +234,7 @@ class AIApiService {
       $input_tokens = $this->estimateTokens($context);
 
       // Get max tokens from config.
-      $max_tokens = $config->get('max_tokens') ?: 4000;
+      $max_tokens = $config->get('max_tokens') ?: 20000;
 
       // Get system prompt from PromptManager with optional dynamic content from node 10
       $system_prompt = $this->promptManager->getSystemPrompt(10);
@@ -470,7 +470,7 @@ class AIApiService {
         'modelId' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
         'body' => json_encode([
           'anthropic_version' => 'bedrock-2023-05-31',
-          'max_tokens' => 1000,
+          'max_tokens' => 20000,
           'messages' => [
             [
               'role' => 'user',
@@ -600,7 +600,7 @@ class AIApiService {
         'modelId' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
         'body' => json_encode([
           'anthropic_version' => 'bedrock-2023-05-31',
-          'max_tokens' => 10,
+          'max_tokens' => 20000,
           'messages' => [
             [
               'role' => 'user',
