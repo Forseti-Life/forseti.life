@@ -1,4 +1,4 @@
-name: Deploy Forseti Site to Production
+name: Deploy Forseti Site to Production (Optimized)
 
 on:
   push:
@@ -9,14 +9,10 @@ on:
       - 'sites/forseti/composer.json'
       - 'sites/forseti/composer.lock'
       - 'sites/forseti/config/sync/**'
-      - 'sites/forseti/web/sites/default/files/forseti/mobile/*.apk'
-      - 'forseti-mobile/index.js'
       - 'h3-geolocation/**'
-      - 'core.extension.yml'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
-# Ensure only one deployment runs at a time
 concurrency:
   group: production-deploy
   cancel-in-progress: false
@@ -28,32 +24,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - name: Create pre-deployment backup
-      uses: appleboy/ssh-action@v0.1.5
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        script: |
-          set -e
-          
-          echo "=== Creating Pre-deployment Backup ==="
-          
-          DRUPAL_ROOT="/var/www/html/forseti"
-          BACKUP_DIR="/var/backups/drupal-deployments/$(date +%Y%m%d_%H%M%S)"
-          
-          # Create backup directory
-          sudo mkdir -p "$BACKUP_DIR"
-          
-          # Backup current configuration
-          if [ -d "$DRUPAL_ROOT" ]; then
-            cd "$DRUPAL_ROOT"
-            echo "Backing up current configuration..."
-            sudo -u www-data ./vendor/bin/drush config:export --destination="$BACKUP_DIR/config_backup" -y 2>/dev/null || true
-            echo "✅ Configuration backup completed"
-          fi
-
-    - name: Deploy modules and themes
+    - name: Deploy to production
       uses: appleboy/ssh-action@v0.1.5
       env:
         HUBGIT_PAT: ${{ secrets.HUBGIT_PAT }}
@@ -65,12 +36,12 @@ jobs:
         script: |
           set -e
           
-          echo "=== Deploying Modules and Themes ==="
+          echo "=== FORSETI DEPLOYMENT STARTED ==="
           
           DRUPAL_ROOT="/var/www/html/forseti"
           TEMP_DIR="/tmp/deploy-$(date +%s)"
           
-          # Create temporary directory and download code
+          # Single git clone with sparse checkout
           mkdir -p "$TEMP_DIR"
           cd "$TEMP_DIR"
           
@@ -78,278 +49,85 @@ jobs:
           git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git .
           git sparse-checkout set sites/forseti h3-geolocation
           
-          # Deploy custom modules from forseti site
-          CUSTOM_MODULES_DIR="$DRUPAL_ROOT/web/modules/custom"
-          sudo mkdir -p "$CUSTOM_MODULES_DIR"
-          
+          # Deploy custom modules
           if [ -d "sites/forseti/web/modules/custom" ]; then
-            echo "Deploying custom modules from forseti site..."
-            for MODULE_DIR in sites/forseti/web/modules/custom/*; do
-              if [ -d "$MODULE_DIR" ]; then
-                MODULE_NAME=$(basename "$MODULE_DIR")
-                echo "Deploying module: $MODULE_NAME"
-                sudo rm -rf "$CUSTOM_MODULES_DIR/$MODULE_NAME"
-                sudo cp -r "$MODULE_DIR" "$CUSTOM_MODULES_DIR/"
-                sudo chown -R www-data:www-data "$CUSTOM_MODULES_DIR/$MODULE_NAME"
-                sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type f -exec chmod 644 {} \;
-                sudo find "$CUSTOM_MODULES_DIR/$MODULE_NAME" -type d -exec chmod 755 {} \;
-                echo "✅ $MODULE_NAME deployed"
-              fi
-            done
-          else
-            echo "⚠️ No custom modules directory found"
+            echo "Deploying custom modules..."
+            sudo rsync -av --delete sites/forseti/web/modules/custom/ "$DRUPAL_ROOT/web/modules/custom/"
+            echo "✅ Modules deployed"
           fi
           
-          # Deploy custom themes from forseti site
-          CUSTOM_THEMES_DIR="$DRUPAL_ROOT/web/themes/custom"
-          sudo mkdir -p "$CUSTOM_THEMES_DIR"
-          
+          # Deploy custom themes
           if [ -d "sites/forseti/web/themes/custom" ]; then
-            echo "Deploying custom themes from forseti site..."
-            for THEME_DIR in sites/forseti/web/themes/custom/*; do
-              if [ -d "$THEME_DIR" ]; then
-                THEME_NAME=$(basename "$THEME_DIR")
-                echo "Deploying theme: $THEME_NAME"
-                sudo rm -rf "$CUSTOM_THEMES_DIR/$THEME_NAME"
-                sudo cp -r "$THEME_DIR" "$CUSTOM_THEMES_DIR/"
-                sudo chown -R www-data:www-data "$CUSTOM_THEMES_DIR/$THEME_NAME"
-                sudo find "$CUSTOM_THEMES_DIR/$THEME_NAME" -type f -exec chmod 644 {} \;
-                sudo find "$CUSTOM_THEMES_DIR/$THEME_NAME" -type d -exec chmod 755 {} \;
-                echo "✅ $THEME_NAME deployed"
-              fi
-            done
-          else
-            echo "⚠️ No custom themes directory found"
+            echo "Deploying custom themes..."
+            sudo rsync -av --delete sites/forseti/web/themes/custom/ "$DRUPAL_ROOT/web/themes/custom/"
+            echo "✅ Themes deployed"
           fi
           
-          # Deploy composer files from forseti site
+          # Deploy configuration
+          if [ -d "sites/forseti/config/sync" ]; then
+            echo "Deploying configuration..."
+            sudo rsync -av --delete sites/forseti/config/sync/ "$DRUPAL_ROOT/config/sync/"
+            echo "✅ Configuration deployed"
+          fi
+          
+          # Deploy H3 geolocation (if exists)
+          if [ -d "h3-geolocation" ]; then
+            echo "Deploying H3 geolocation..."
+            sudo rsync -av --exclude='h3-env' --exclude='__pycache__' h3-geolocation/ "$DRUPAL_ROOT/h3-geolocation/"
+            echo "✅ H3 deployed"
+          fi
+          
+          # Composer update (only if files changed)
+          COMPOSER_CHANGED=false
           if [ -f "sites/forseti/composer.json" ]; then
-            sudo cp "sites/forseti/composer.json" "$DRUPAL_ROOT/"
-            sudo chown www-data:www-data "$DRUPAL_ROOT/composer.json"
-            echo "✅ composer.json deployed from forseti"
+            if ! cmp -s "sites/forseti/composer.json" "$DRUPAL_ROOT/composer.json"; then
+              echo "Composer files changed, updating..."
+              sudo cp "sites/forseti/composer.json" "$DRUPAL_ROOT/"
+              [ -f "sites/forseti/composer.lock" ] && sudo cp "sites/forseti/composer.lock" "$DRUPAL_ROOT/"
+              COMPOSER_CHANGED=true
+            fi
           fi
           
-          if [ -f "sites/forseti/composer.lock" ]; then
-            sudo cp "sites/forseti/composer.lock" "$DRUPAL_ROOT/"
-            sudo chown www-data:www-data "$DRUPAL_ROOT/composer.lock"
-            echo "✅ composer.lock deployed from forseti"
-          fi
-          
-          # Install/update composer dependencies
           cd "$DRUPAL_ROOT"
-          if sudo -u www-data composer install --no-dev --optimize-autoloader; then
-            echo "✅ Composer dependencies updated"
+          
+          if [ "$COMPOSER_CHANGED" = true ]; then
+            echo "Installing composer dependencies..."
+            sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
+            echo "✅ Composer updated"
           else
-            echo "⚠️ Composer install had warnings (continuing)"
+            echo "ℹ️ Composer files unchanged, skipping"
           fi
           
-          # Deploy core.extension.yml if exists (emergency config restore)
-          if [ -f "$TEMP_DIR/core.extension.yml" ]; then
-            echo "Deploying core.extension.yml..."
-            sudo cp "$TEMP_DIR/core.extension.yml" "$DRUPAL_ROOT/"
-            sudo chown www-data:www-data "$DRUPAL_ROOT/core.extension.yml"
-            echo "✅ core.extension.yml deployed"
-          fi
+          # Import configuration
+          echo "Importing configuration..."
+          sudo -u www-data ./vendor/bin/drush config:import -y || echo "⚠️ Config import warnings"
           
-          # Deploy H3 geolocation framework (if exists)
-          if [ -d "$TEMP_DIR/h3-geolocation" ]; then
-            echo "Deploying H3 geolocation framework..."
-            H3_DIR="$DRUPAL_ROOT/h3-geolocation"
-            sudo mkdir -p "$H3_DIR"
-            
-            # Copy Python scripts and core files
-            cd "$TEMP_DIR/h3-geolocation"
-            sudo cp -r *.py "$H3_DIR/" 2>/dev/null || true
-            sudo cp -r *.sh "$H3_DIR/" 2>/dev/null || true
-            sudo cp -r *.md "$H3_DIR/" 2>/dev/null || true
-            sudo cp -r *.json "$H3_DIR/" 2>/dev/null || true
-            
-            # Copy essential directories
-            [ -d "config" ] && sudo cp -r config "$H3_DIR/"
-            [ -d "database" ] && sudo cp -r database "$H3_DIR/"
-            [ -d "scripts" ] && sudo cp -r scripts "$H3_DIR/"
-            
-            cd "$TEMP_DIR"
-            
-            # Set permissions
-            sudo chown -R www-data:www-data "$H3_DIR"
-            sudo find "$H3_DIR" -type f -name "*.py" -exec chmod 755 {} \;
-            sudo find "$H3_DIR" -type f -name "*.sh" -exec chmod 755 {} \;
-            sudo find "$H3_DIR" -type f -name "*.md" -exec chmod 644 {} \;
-            
-            echo "✅ H3 geolocation framework deployed"
-          fi
+          # Database updates
+          echo "Checking for database updates..."
+          sudo -u www-data ./vendor/bin/drush updatedb -y || echo "ℹ️ No updates needed"
           
-          # ==================================================================================
-          # Deploy Forseti Mobile APK (MANUAL BUILD REQUIRED)
-          # ==================================================================================
-          # NOTE: The mobile app APK is NOT automatically built by this workflow.
-          # 
-          # To release a new mobile app version:
-          # 1. Build locally: cd forseti-mobile/android && ./gradlew assembleRelease
-          # 2. Copy to production location: 
-          #    cp forseti-mobile/android/app/build/outputs/apk/release/app-release.apk \
-          #       sites/forseti/web/sites/default/files/forseti/mobile/Forseti-vX.X.X.apk
-          # 3. Update download link in ForsetiPagesController.php if needed
-          # 4. Commit and push the versioned APK file
-          #
-          # This workflow will then deploy the committed APK file from the repository.
-          # ==================================================================================
-          if [ -d "$TEMP_DIR/sites/forseti/web/sites/default/files/forseti/mobile" ]; then
-            echo "Deploying Forseti Mobile APK..."
-            MOBILE_DIR="$DRUPAL_ROOT/web/sites/default/files/forseti/mobile"
-            sudo mkdir -p "$MOBILE_DIR"
-            
-            # Copy production APK file from the repository
-            if [ -f "$TEMP_DIR/sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk" ]; then
-              sudo cp "$TEMP_DIR/sites/forseti/web/sites/default/files/forseti/mobile/Forseti-latest.apk" "$MOBILE_DIR/"
-              sudo chown www-data:www-data "$MOBILE_DIR/Forseti-latest.apk"
-              sudo chmod 644 "$MOBILE_DIR/Forseti-latest.apk"
-              echo "✅ Forseti-latest.apk deployed to $MOBILE_DIR"
-            else
-              echo "⚠️ Forseti-latest.apk not found in repository"
-            fi
-            
-            # Copy debug APK file from the repository
-            if [ -f "$TEMP_DIR/sites/forseti/web/sites/default/files/forseti/mobile/Forseti-debug.apk" ]; then
-              sudo cp "$TEMP_DIR/sites/forseti/web/sites/default/files/forseti/mobile/Forseti-debug.apk" "$MOBILE_DIR/"
-              sudo chown www-data:www-data "$MOBILE_DIR/Forseti-debug.apk"
-              sudo chmod 644 "$MOBILE_DIR/Forseti-debug.apk"
-              echo "✅ Forseti-debug.apk deployed to $MOBILE_DIR"
-            else
-              echo "⚠️ Forseti-debug.apk not found in repository"
-            fi
-          else
-            echo "ℹ️ No Forseti Mobile directory found in repository"
-          fi
+          # Fix permissions (batch operation)
+          echo "Setting permissions..."
+          sudo chown -R www-data:www-data "$DRUPAL_ROOT/web/modules/custom" \
+            "$DRUPAL_ROOT/web/themes/custom" \
+            "$DRUPAL_ROOT/config" \
+            "$DRUPAL_ROOT/web/sites/default/files" 2>/dev/null || true
+          
+          sudo find "$DRUPAL_ROOT/web/modules/custom" "$DRUPAL_ROOT/web/themes/custom" \
+            -type f -exec chmod 644 {} + -o -type d -exec chmod 755 {} + 2>/dev/null || true
+          
+          # Final cache clear (once)
+          echo "Clearing all caches..."
+          sudo rm -rf "$DRUPAL_ROOT/web/sites/default/files/css" \
+            "$DRUPAL_ROOT/web/sites/default/files/js" \
+            "$DRUPAL_ROOT/web/sites/default/files/php/twig" 2>/dev/null || true
+          
+          sudo -u www-data ./vendor/bin/drush cache:rebuild
           
           # Clean up
           rm -rf "$TEMP_DIR"
+          
+          echo ""
+          echo "🎉 DEPLOYMENT COMPLETED at $(date)"
+          echo "✅ Changes live at https://forseti.life"
 
-    - name: Deploy configuration
-      uses: appleboy/ssh-action@v0.1.5
-      env:
-        HUBGIT_PAT: ${{ secrets.HUBGIT_PAT }}
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        envs: HUBGIT_PAT
-        script: |
-          set -e
-          
-          echo "=== Deploying Configuration ==="
-          
-          DRUPAL_ROOT="/var/www/html/forseti"
-          CONFIG_DIR="$DRUPAL_ROOT/config/sync"
-          TEMP_DIR="/tmp/config-deploy-$(date +%s)"
-          
-          # Download configuration
-          mkdir -p "$TEMP_DIR"
-          cd "$TEMP_DIR"
-          
-          git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git .
-          git sparse-checkout set sites/forseti/config/sync
-          
-          if [ -d "sites/forseti/config/sync" ] && [ "$(ls -A sites/forseti/config/sync)" ]; then
-            echo "✅ Configuration files downloaded"
-            
-            # Deploy configuration files
-            sudo mkdir -p "$CONFIG_DIR"
-            sudo rsync -av --delete sites/forseti/config/sync/ "$CONFIG_DIR/"
-            sudo chown -R www-data:www-data "$DRUPAL_ROOT/config"
-            sudo find "$CONFIG_DIR" -type f -exec chmod 644 {} \;
-            
-            echo "✅ Configuration deployed"
-          else
-            echo "⚠️ No configuration files found"
-          fi
-          
-          rm -rf "$TEMP_DIR"
-
-    - name: Import configuration and finalize
-      uses: appleboy/ssh-action@v0.1.5
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        script: |
-          set -e
-          
-          echo "=== Finalizing Deployment ==="
-          
-          DRUPAL_ROOT="/var/www/html/forseti"
-          cd "$DRUPAL_ROOT"
-          
-          # Import core.extension.yml if it exists (emergency restore)
-          if [ -f "$DRUPAL_ROOT/core.extension.yml" ]; then
-            echo "Importing core.extension.yml into database..."
-            sudo -u www-data ./vendor/bin/drush config:import --source="$DRUPAL_ROOT" --partial -y core.extension 2>/dev/null || {
-              echo "Standard import failed, trying direct database insertion..."
-              YAML_CONTENT=$(cat "$DRUPAL_ROOT/core.extension.yml")
-              sudo -u www-data ./vendor/bin/drush php:eval "
-                \$yaml = Drupal::service('serialization.yaml');
-                \$data = \$yaml->decode(file_get_contents('$DRUPAL_ROOT/core.extension.yml'));
-                \Drupal::service('config.factory')->getEditable('core.extension')->setData(\$data)->save();
-              " && echo "✅ core.extension imported directly"
-            }
-            sudo rm -f "$DRUPAL_ROOT/core.extension.yml"
-          fi
-          
-          # Import configuration (preserves content)
-          echo "Importing configuration..."
-          sudo -u www-data ./vendor/bin/drush config:import -y || echo "⚠️ Config import completed with warnings"
-          
-          # Apply database updates
-          echo "Applying database updates..."
-          sudo -u www-data ./vendor/bin/drush updatedb -y || echo "ℹ️ No database updates needed"
-          
-          # Generate URL aliases with Pathauto
-          echo "Generating clean URL aliases..."
-          if sudo -u www-data ./vendor/bin/drush pm:list --status=enabled --format=list | grep -q "^pathauto$"; then
-            echo "Pathauto is enabled, generating aliases..."
-            sudo -u www-data ./vendor/bin/drush pathauto:aliases-generate --all || echo "⚠️ Pathauto generation had warnings"
-            echo "✅ URL aliases generated"
-          else
-            echo "ℹ️ Pathauto not enabled, skipping URL alias generation"
-          fi
-          
-          # Clear all caches thoroughly
-          echo "Clearing all caches..."
-          sudo -u www-data ./vendor/bin/drush cache:rebuild
-          
-          # Clear CSS/JS aggregation files 
-          echo "Clearing CSS/JS aggregation..."
-          sudo rm -rf "$DRUPAL_ROOT/web/sites/default/files/css"
-          sudo rm -rf "$DRUPAL_ROOT/web/sites/default/files/js"
-          sudo -u www-data ./vendor/bin/drush cache:rebuild
-          
-          # Set proper file permissions
-          sudo chown -R www-data:www-data "$DRUPAL_ROOT/web/sites/default/files"
-          sudo find "$DRUPAL_ROOT/web/sites/default/files" -type f -exec chmod 664 {} \; 2>/dev/null || true
-          sudo find "$DRUPAL_ROOT/web/sites/default/files" -type d -exec chmod 775 {} \; 2>/dev/null || true
-          
-          # Restart Apache to clear any server-side caches
-          echo "Restarting Apache to clear server-side caches..."
-          sudo systemctl restart apache2 || sudo service apache2 restart
-          echo "✅ Apache restarted"
-          
-          echo ""
-          echo "🎉 === FORSETI DEPLOYMENT COMPLETED SUCCESSFULLY === 🎉"
-          echo "✅ Modules and themes deployed from forseti site"
-          echo "✅ H3 geolocation scripts deployed (if present)"
-          echo "✅ Mobile app APK deployed (if committed to repository)"
-          echo "✅ Configuration imported"
-          echo "✅ Database updates applied"
-          echo "✅ CSS/JS aggregation cleared and rebuilt"
-          echo "✅ All caches cleared"
-          echo "✅ Apache restarted"
-          echo "✅ File permissions set"
-          echo ""
-          echo "⚠️  NOTE: Mobile app APK must be built and committed manually"
-          echo "   See mobile app deployment section above for instructions"
-          echo ""
-          echo "Deployment completed at: $(date)"
-          echo ""
-          echo "🔧 Changes should now be visible at https://forseti.life"
-          echo "💡 If still not visible, try hard refresh (Ctrl+F5) or clear browser cache"

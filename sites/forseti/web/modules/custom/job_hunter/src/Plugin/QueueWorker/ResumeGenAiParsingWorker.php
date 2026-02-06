@@ -205,7 +205,18 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
       $parsed_data = json_decode($json_text, TRUE);
       if (json_last_error() === JSON_ERROR_NONE && is_array($parsed_data)) {
         return $parsed_data;
+      } else {
+        $logger->error('🔴 Queue @chunk JSON decode error: @error. First 500 chars: @sample', [
+          '@chunk' => $chunk_name,
+          '@error' => json_last_error_msg(),
+          '@sample' => substr($json_text, 0, 500),
+        ]);
       }
+    } else {
+      $logger->error('🔴 Queue @chunk failed to extract JSON. Response sample (first 1000 chars): @sample', [
+        '@chunk' => $chunk_name,
+        '@sample' => substr($response_text, 0, 1000),
+      ]);
     }
 
     return NULL;
