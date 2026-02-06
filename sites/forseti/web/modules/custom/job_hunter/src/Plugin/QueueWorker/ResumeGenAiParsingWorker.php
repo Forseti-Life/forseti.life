@@ -226,6 +226,17 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
    * Extract JSON from response.
    */
   private function extractJsonFromResponse($response_text) {
+    $response_text = trim($response_text);
+    
+    // If response starts with {, try parsing it directly first
+    if ($response_text[0] === '{') {
+      // Try to parse the entire response as JSON
+      $test_parse = json_decode($response_text, TRUE);
+      if (json_last_error() === JSON_ERROR_NONE) {
+        return $response_text;
+      }
+    }
+    
     // Try markdown code fence
     if (preg_match('/```(?:json)?\s*(\{[\s\S]*?\})\s*```/s', $response_text, $matches)) {
       return trim($matches[1]);
