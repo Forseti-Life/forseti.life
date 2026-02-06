@@ -61,9 +61,17 @@ class JobHunterTesterController extends ControllerBase {
   public function testPage() {
     $build = [];
     
-    // Get base URL
+    // Get base URL from query parameter or default to current
     $request = $this->requestStack->getCurrentRequest();
-    $base_url = $request->getSchemeAndHttpHost();
+    $environment = $request->query->get('env', 'current');
+    
+    $environments = [
+      'current' => $request->getSchemeAndHttpHost(),
+      'production' => 'https://forseti.life',
+      'localhost' => 'http://localhost',
+    ];
+    
+    $base_url = $environments[$environment] ?? $environments['current'];
     
     // Get all routes
     $all_routes = $this->routeProvider->getAllRoutes();
@@ -89,11 +97,27 @@ class JobHunterTesterController extends ControllerBase {
     // Sort routes by name
     ksort($job_hunter_routes);
     
+    // Environment selector
+    $current_url = Url::fromRoute('jobhunter_tester.test_page')->toString();
+    $build['environment_selector'] = [
+      '#markup' => '<div style="background: #f0f0f0; padding: 15px; margin-bottom: 20px; border-radius: 5px;">' .
+        '<form method="get" action="' . $current_url . '">' .
+        '<label for="env" style="font-weight: bold; margin-right: 10px;">Test Environment:</label>' .
+        '<select name="env" id="env" style="padding: 5px; margin-right: 10px;">' .
+        '<option value="current"' . ($environment === 'current' ? ' selected' : '') . '>Current (' . $environments['current'] . ')</option>' .
+        '<option value="production"' . ($environment === 'production' ? ' selected' : '') . '>Production (https://forseti.life)</option>' .
+        '<option value="localhost"' . ($environment === 'localhost' ? ' selected' : '') . '>Localhost (http://localhost)</option>' .
+        '</select>' .
+        '<button type="submit" style="padding: 5px 15px; background: #0073aa; color: white; border: none; border-radius: 3px; cursor: pointer;">Run Tests</button>' .
+        '</form>' .
+        '</div>',
+    ];
+    
     $build['summary'] = [
       '#markup' => '<div class="messages messages--status">' .
         '<h2>Job Hunter Route Testing</h2>' .
         '<p>Found ' . count($job_hunter_routes) . ' GET-accessible Job Hunter routes.</p>' .
-        '<p><strong>Base URL:</strong> ' . $base_url . '</p>' .
+        '<p><strong>Testing URL:</strong> ' . $base_url . '</p>' .
         '</div>',
     ];
     
