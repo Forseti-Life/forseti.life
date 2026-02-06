@@ -90,6 +90,20 @@ Technical implementation details for job scraping:
 - Duplicate detection
 - Error handling for scraping
 
+#### [Google Job Search API Integration Guide](GOOGLE_JOB_SEARCH_API_INTEGRATION.md) 🔎
+**Audience:** Developers, SEO Specialists, Content Managers
+
+Comprehensive guide for integrating with Google for Jobs:
+- Understanding Google for Jobs (not a traditional API)
+- Schema.org JobPosting structured data implementation
+- JSON-LD vs Microdata approaches
+- Required and recommended properties
+- Step-by-step implementation in Drupal
+- Testing and validation procedures
+- Best practices and common pitfalls
+- SEO optimization for job postings
+- Monitoring and maintenance guidelines
+
 #### [Installation Guide](../INSTALL.md) 🚀
 **Audience:** System Administrators, DevOps Engineers
 
@@ -119,7 +133,8 @@ Step-by-step installation instructions:
 1. [Architecture](ARCHITECTURE.md) - System design and structure
 2. [Process Flow](PROCESS_FLOW.md) - Technical flows
 3. [Job Discovery Guide](../JOB_DISCOVERY_README.md) - Scraping implementation
-4. [FAQ](FAQ.md) - Technical questions
+4. [Google Job Search API Integration](GOOGLE_JOB_SEARCH_API_INTEGRATION.md) - Google for Jobs integration
+5. [FAQ](FAQ.md) - Technical questions
 
 ### For Business Analysts / Product Managers
 1. [Module README](../README.md) - Feature overview
@@ -254,6 +269,12 @@ If you can't find what you need in the documentation:
 - `ARCHITECTURE.md` - Technical architecture documentation
 - `PROCESS_FLOW.md` - Process flows and workflows
 - `FAQ.md` - Frequently asked questions
+- `GOOGLE_JOB_SEARCH_API_INTEGRATION.md` - Google for Jobs integration guide
+- `RESUME_JSON_SCHEMA.md` - Resume data JSON schema specification
+- `JOB_REQUISITION_JSON_SCHEMA.md` - Job requisition JSON schema
+- `JOB_TAILORING_DESIGN.md` - Job tailoring design documentation
+- `RESUME_PDF_STYLE_SCHEMA.md` - Resume PDF styling schema
+- `RESUME_STYLE_MAPPING_REPORT.md` - Resume style mapping report
 
 ### Module Root Documentation
 - `../README.md` - Module overview and quick start
@@ -267,7 +288,7 @@ If you can't find what you need in the documentation:
 
 ---
 
-**Last Updated:** January 2026  
+**Last Updated:** February 6, 2026  
 **Module Version:** 1.0-dev
 
 **Happy coding! 🚀**
