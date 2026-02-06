@@ -289,6 +289,21 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
       if (json_last_error() === JSON_ERROR_NONE) {
         return $response_text; // It's already valid JSON!
       }
+      // Log why direct parsing failed
+      \Drupal::logger('job_hunter')->warning('🟡 Direct JSON parse failed: @error, Last 200 chars: @end', [
+        '@error' => json_last_error_msg(),
+        '@end' => substr($response_text, -200),
+      ]);
+    }
+    else {
+      // Log why we didn't try direct parsing
+      $first_char = isset($response_text[0]) ? $response_text[0] : 'EMPTY';
+      $last_char = strlen($response_text) > 0 ? $response_text[strlen($response_text) - 1] : 'EMPTY';
+      \Drupal::logger('job_hunter')->warning('🟡 Skipped direct parse. First: @first, Last: @last, Last 100 chars: @end', [
+        '@first' => $first_char,
+        '@last' => $last_char,
+        '@end' => substr($response_text, -100),
+      ]);
     }
     
     // Try markdown code fence
