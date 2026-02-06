@@ -62,12 +62,16 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
         ->execute();
 
       // Call GenAI parsing
-      $parsed_data = $this->parseResumeProdMode($extracted_text, $filename, $uid);
+      $result = $this->parseResumeProdMode($extracted_text, $filename, $uid);
+      $parsed_data = $result['parsed_data'];
+      $raw_responses = $result['raw_responses'];
 
-      // Store successful result
+      // Store successful result with raw responses for debugging
       $connection->update('jobhunter_resume_parsed_data')
         ->fields([
           'parsed_data' => json_encode($parsed_data),
+          'raw_genai_response_core' => $raw_responses['core'],
+          'raw_genai_response_experience' => $raw_responses['experience'],
           'status' => 'complete',
           'error_message' => NULL,
           'changed' => \Drupal::time()->getRequestTime(),
@@ -122,6 +126,9 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
 
   /**
    * Parse resume using GenAI (chunked approach).
+   * 
+   * @return array
+   *   Array with 'parsed_data' and 'raw_responses' keys.
    */
   private function parseResumeProdMode($extracted_text, $filename, $uid) {
     $logger = \Drupal::logger('job_hunter');
@@ -152,13 +159,18 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
     $user = \Drupal\user\Entity\User::load($uid);
     $username = $user ? $user->getAccountName() : "uid:$uid";
     
+    // Track raw responses for debugging
+    $raw_responses = [];
+    
     // CALL 1: Parse core profile
     $logger->info('📄 Queue Call 1/2: Parsing core profile sections for @filename (user @username)', [
       '@filename' => $filename,
       '@username' => $username,
     ]);
     $core_prompt = $this->buildCoreProfilePrompt($extracted_text, $filename);
-    $core_data = $this->callBedrockAndParse($bedrock, $model, $core_prompt, 'core', $filename, $username);
+    $result = $this->callBedrockAndParse($bedrock, $model, $core_prompt, 'core', $filename, $username);
+    $core_data = $result['parsed_data'];
+    $raw_responses['core'] = $result['raw_response'];
 
     if (!$core_data) {
       throw new \Exception('Failed to parse core profile sections');
@@ -170,7 +182,9 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
       '@username' => $username,
     ]);
     $experience_prompt = $this->buildProfessionalExperiencePrompt($extracted_text, $filename);
-    $experience_data = $this->callBedrockAndParse($bedrock, $model, $experience_prompt, 'experience', $filename, $username);
+    $result = $this->callBedrockAndParse($bedrock, $model, $experience_prompt, 'experience', $filename, $username);
+    $experience_data = $result['parsed_data'];
+    $raw_responses['experience'] = $result['raw_response'];
 
     if (!$experience_data) {
       throw new \Exception('Failed to parse professional experience');
@@ -180,11 +194,17 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
     $merged_data = $core_data;
     $merged_data['professional_experience'] = $experience_data['professional_experience'] ?? [];
 
-    return $merged_data;
+    return [
+      'parsed_data' => $merged_data,
+      'raw_responses' => $raw_responses,
+    ];
   }
 
   /**
    * Call Bedrock and parse JSON response.
+   * 
+   * @return array
+   *   Array with 'parsed_data' and 'raw_response' keys.
    */
   private function callBedrockAndParse($bedrock, $model, $prompt, $chunk_name, $filename = '', $username = '') {
     $logger = \Drupal::logger('job_hunter');
@@ -219,22 +239,37 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
     if ($json_text) {
       $parsed_data = json_decode($json_text, TRUE);
       if (json_last_error() === JSON_ERROR_NONE && is_array($parsed_data)) {
-        return $parsed_data;
+        $logger->info('✅ Queue @chunk JSON parsed successfully: @keys top-level keys', [
+          '@chunk' => $chunk_name,
+          '@keys' => count($parsed_data),
+        ]);
+        return [
+          'parsed_data' => $parsed_data,
+          'raw_response' => $response_text,
+        ];
       } else {
-        $logger->error('🔴 Queue @chunk JSON decode error: @error. First 500 chars: @sample', [
+        $logger->error('🔴 Queue @chunk JSON decode error: @error. JSON length: @len chars, First 500 chars: @sample', [
           '@chunk' => $chunk_name,
           '@error' => json_last_error_msg(),
+          '@len' => strlen($json_text),
           '@sample' => substr($json_text, 0, 500),
         ]);
       }
     } else {
-      $logger->error('🔴 Queue @chunk failed to extract JSON. Response sample (first 1000 chars): @sample', [
+      // Log why extraction failed
+      $starts_with_brace = (strpos(trim($response_text), '{') === 0) ? 'YES' : 'NO';
+      $logger->error('🔴 Queue @chunk failed to extract JSON. Response length: @len chars, Starts with brace: @brace, Sample (first 500 chars): @sample', [
         '@chunk' => $chunk_name,
-        '@sample' => substr($response_text, 0, 1000),
+        '@len' => strlen($response_text),
+        '@brace' => $starts_with_brace,
+        '@sample' => substr($response_text, 0, 500),
       ]);
     }
 
-    return NULL;
+    return [
+      'parsed_data' => NULL,
+      'raw_response' => $response_text,
+    ];
   }
 
   /**
@@ -243,21 +278,16 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
   private function extractJsonFromResponse($response_text) {
     $response_text = trim($response_text);
     
-    // If response starts with {, try parsing it directly first
-    if ($response_text[0] === '{') {
-      // Try to parse the entire response as JSON
-      $test_parse = json_decode($response_text, TRUE);
-      if (json_last_error() === JSON_ERROR_NONE) {
-        return $response_text;
-      }
+    if (empty($response_text)) {
+      return NULL;
     }
     
-    // Try markdown code fence
+    // Try markdown code fence first
     if (preg_match('/```(?:json)?\s*(\{[\s\S]*?\})\s*```/s', $response_text, $matches)) {
       return trim($matches[1]);
     }
-
-    // Find balanced JSON using brace counting
+    
+    // Find balanced JSON using brace counting (handles truncated responses)
     $start_pos = strpos($response_text, '{');
     if ($start_pos === FALSE) {
       return NULL;

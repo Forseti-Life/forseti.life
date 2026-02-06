@@ -549,3 +549,36 @@ function job_hunter_update_9011() {
   
   return t('Added resume_node_id column to jobhunter_job_seeker table.');
 }
+
+/**
+ * Add raw_genai_response fields to jobhunter_resume_parsed_data table for debugging.
+ */
+function job_hunter_update_9012() {
+  $schema = \Drupal::database()->schema();
+  
+  if (!$schema->tableExists('jobhunter_resume_parsed_data')) {
+    return t('Table jobhunter_resume_parsed_data does not exist.');
+  }
+  
+  $messages = [];
+  
+  if (!$schema->fieldExists('jobhunter_resume_parsed_data', 'raw_genai_response_core')) {
+    $schema->addField('jobhunter_resume_parsed_data', 'raw_genai_response_core', [
+      'type' => 'text',
+      'size' => 'big',
+      'description' => 'Raw response from GenAI Call 1 (core profile) for debugging',
+    ]);
+    $messages[] = 'Added raw_genai_response_core column';
+  }
+  
+  if (!$schema->fieldExists('jobhunter_resume_parsed_data', 'raw_genai_response_experience')) {
+    $schema->addField('jobhunter_resume_parsed_data', 'raw_genai_response_experience', [
+      'type' => 'text',
+      'size' => 'big',
+      'description' => 'Raw response from GenAI Call 2 (professional experience) for debugging',
+    ]);
+    $messages[] = 'Added raw_genai_response_experience column';
+  }
+  
+  return t(implode('. ', $messages) . '.');
+}
