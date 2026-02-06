@@ -649,6 +649,9 @@ class UserProfileController extends ControllerBase {
       '#content' => $content,
     ];
 
+    return $build;
+  }
+
   /**
    * Redirect to profile edit page.
    *
