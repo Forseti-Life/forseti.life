@@ -45,8 +45,19 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
     $job_data = $data['job_data'];
 
     $logger = \Drupal::logger('job_hunter');
-    $logger->info('🔄 Queue: Starting GenAI resume tailoring for user @uid, job @job_id', [
-      '@uid' => $uid,
+    
+    // Get username and job details for logging
+    $user = \Drupal\user\Entity\User::load($uid);
+    $username = $user ? $user->getAccountName() : "uid:$uid";
+    
+    $extracted = !empty($job_data['extracted_json']) ? json_decode($job_data['extracted_json'], TRUE) : [];
+    $company = $extracted['company_name'] ?? 'Unknown Company';
+    $job_title = $extracted['job_title'] ?? 'Unknown Position';
+    
+    $logger->info('🔄 Queue: Starting resume tailoring for @username → "@title" at @company (job @job_id)', [
+      '@username' => $username,
+      '@title' => $job_title,
+      '@company' => $company,
       '@job_id' => $job_id,
     ]);
 
@@ -56,8 +67,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
       // Update status to processing
       $this->updateTailoringStatus($connection, $uid, $job_id, 'processing');
 
-      // Parse job data
-      $extracted = !empty($job_data['extracted_json']) ? json_decode($job_data['extracted_json'], TRUE) : [];
+      // Parse job data (extracted already parsed above for logging)
       $skills = !empty($job_data['skills_required_json']) ? json_decode($job_data['skills_required_json'], TRUE) : [];
       $keywords = !empty($job_data['keywords_json']) ? json_decode($job_data['keywords_json'], TRUE) : [];
 
@@ -115,16 +125,19 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
           ->execute();
       }
 
-      $job_title = $extracted['position']['title'] ?? $extracted['job_title'] ?? 'Unknown Position';
-      $logger->info('✅ Queue: Successfully tailored resume for user @uid, job "@title"', [
-        '@uid' => $uid,
+      $logger->info('✅ Queue: Resume tailoring complete for @username → "@title" at @company (job @job_id)', [
+        '@username' => $username,
         '@title' => $job_title,
+        '@company' => $company,
+        '@job_id' => $job_id,
       ]);
 
     }
     catch (\Exception $e) {
-      $logger->error('❌ Queue: Failed to tailor resume for user @uid, job @job_id: @error', [
-        '@uid' => $uid,
+      $logger->error('❌ Queue: Resume tailoring failed for @username → "@title" at @company (job @job_id): @error', [
+        '@username' => $username,
+        '@title' => $job_title,
+        '@company' => $company,
         '@job_id' => $job_id,
         '@error' => $e->getMessage(),
       ]);

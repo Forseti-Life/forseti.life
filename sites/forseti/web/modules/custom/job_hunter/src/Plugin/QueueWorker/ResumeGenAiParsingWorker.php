@@ -62,7 +62,7 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
         ->execute();
 
       // Call GenAI parsing
-      $parsed_data = $this->parseResumeProdMode($extracted_text, $filename);
+      $parsed_data = $this->parseResumeProdMode($extracted_text, $filename, $uid);
 
       // Store successful result
       $connection->update('jobhunter_resume_parsed_data')
@@ -123,7 +123,7 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
   /**
    * Parse resume using GenAI (chunked approach).
    */
-  private function parseResumeProdMode($extracted_text, $filename) {
+  private function parseResumeProdMode($extracted_text, $filename, $uid) {
     $logger = \Drupal::logger('job_hunter');
 
     // Get AWS configuration
@@ -148,19 +148,29 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
     $bedrock = $sdk->createBedrockRuntime();
     $model = $config->get('aws_model') ?: 'anthropic.claude-3-5-sonnet-20240620-v1:0';
 
+    // Get username for logging
+    $user = \Drupal\user\Entity\User::load($uid);
+    $username = $user ? $user->getAccountName() : "uid:$uid";
+    
     // CALL 1: Parse core profile
-    $logger->info('📄 Queue Call 1/2: Parsing core profile sections');
+    $logger->info('📄 Queue Call 1/2: Parsing core profile sections for @filename (user @username)', [
+      '@filename' => $filename,
+      '@username' => $username,
+    ]);
     $core_prompt = $this->buildCoreProfilePrompt($extracted_text, $filename);
-    $core_data = $this->callBedrockAndParse($bedrock, $model, $core_prompt, 'core');
+    $core_data = $this->callBedrockAndParse($bedrock, $model, $core_prompt, 'core', $filename, $username);
 
     if (!$core_data) {
       throw new \Exception('Failed to parse core profile sections');
     }
 
     // CALL 2: Parse professional experience
-    $logger->info('💼 Queue Call 2/2: Parsing professional experience');
+    $logger->info('💼 Queue Call 2/2: Parsing professional experience for @filename (user @username)', [
+      '@filename' => $filename,
+      '@username' => $username,
+    ]);
     $experience_prompt = $this->buildProfessionalExperiencePrompt($extracted_text, $filename);
-    $experience_data = $this->callBedrockAndParse($bedrock, $model, $experience_prompt, 'experience');
+    $experience_data = $this->callBedrockAndParse($bedrock, $model, $experience_prompt, 'experience', $filename, $username);
 
     if (!$experience_data) {
       throw new \Exception('Failed to parse professional experience');
@@ -176,7 +186,7 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
   /**
    * Call Bedrock and parse JSON response.
    */
-  private function callBedrockAndParse($bedrock, $model, $prompt, $chunk_name) {
+  private function callBedrockAndParse($bedrock, $model, $prompt, $chunk_name, $filename = '', $username = '') {
     $logger = \Drupal::logger('job_hunter');
 
     $result = $bedrock->invokeModel([
@@ -194,9 +204,14 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
     $response_body = json_decode($result->get('body')->getContents(), TRUE);
     $response_text = $response_body['content'][0]['text'] ?? '';
 
-    $logger->info('🔍 Queue @chunk response: @len chars', [
+    $context_msg = '';
+    if ($filename && $username) {
+      $context_msg = " for $filename (user $username)";
+    }
+    $logger->info('🔍 Queue @chunk response: @len chars@context', [
       '@chunk' => $chunk_name,
       '@len' => strlen($response_text),
+      '@context' => $context_msg,
     ]);
 
     $json_text = $this->extractJsonFromResponse($response_text);

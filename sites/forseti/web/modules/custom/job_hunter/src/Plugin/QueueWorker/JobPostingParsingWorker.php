@@ -43,7 +43,15 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
     $raw_posting_text = $data['raw_posting_text'];
 
     $logger = \Drupal::logger('job_hunter');
-    $logger->info('🔄 Queue: Starting GenAI parsing for job posting @id', ['@id' => $job_id]);
+    
+    // Get job preview for logging
+    $text_preview = substr($raw_posting_text, 0, 100);
+    $text_preview = preg_replace('/\s+/', ' ', $text_preview);
+    
+    $logger->info('🔄 Queue: Starting GenAI parsing for job @id. Preview: "@preview..."', [
+      '@id' => $job_id,
+      '@preview' => $text_preview,
+    ]);
 
     $connection = \Drupal::database();
 
@@ -185,7 +193,7 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
     $model = $config->get('aws_model') ?: 'anthropic.claude-3-5-sonnet-20240620-v1:0';
 
     // CALL 1: Extract job details
-    $logger->info('📄 Queue Job: Call 1/2 - Extracting job details');
+    $logger->info('📄 Queue Job: Call 1/2 - Extracting job details for job @id', ['@id' => $job_id]);
     $details_prompt = $this->buildJobDetailsPrompt($raw_posting_text);
     $extracted_json = $this->callBedrockAndParse($bedrock, $model, $details_prompt, 'job_details');
 
@@ -194,7 +202,13 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
     }
 
     // CALL 2: Extract skills and keywords
-    $logger->info('💼 Queue Job: Call 2/2 - Extracting skills and keywords');
+    $company = $extracted_json['company_name'] ?? 'Unknown Company';
+    $job_title = $extracted_json['job_title'] ?? 'Unknown Position';
+    $logger->info('💼 Queue Job: Call 2/2 - Extracting skills for "@title" at @company (job @id)', [
+      '@title' => $job_title,
+      '@company' => $company,
+      '@id' => $job_id,
+    ]);
     $skills_prompt = $this->buildSkillsKeywordsPrompt($raw_posting_text);
     $skills_data = $this->callBedrockAndParse($bedrock, $model, $skills_prompt, 'skills_keywords');
 
