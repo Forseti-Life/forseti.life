@@ -9,6 +9,21 @@
   Drupal.behaviors.googleJobsIntegration = {
     attach: function (context, settings) {
       
+      // Get CSRF token for AJAX requests
+      let csrfToken = null;
+      
+      function getCsrfToken() {
+        if (csrfToken) {
+          return Promise.resolve(csrfToken);
+        }
+        return fetch('/session/token')
+          .then(response => response.text())
+          .then(token => {
+            csrfToken = token;
+            return token;
+          });
+      }
+      
       // Initialize once
       $('.google-jobs-integration-home', context).once('google-jobs-init').each(function () {
         
@@ -26,14 +41,18 @@
           
           $btn.prop('disabled', true);
           
-          $.ajax({
-            url: '/jobhunter/googlejobsintegration/toggle-sync',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({
-              job_id: jobId,
-              enabled: newEnabled ? 1 : 0
-            }),
+          getCsrfToken().then(token => {
+            $.ajax({
+              url: '/jobhunter/googlejobsintegration/toggle-sync',
+              method: 'POST',
+              contentType: 'application/json',
+              headers: {
+                'X-CSRF-Token': token
+              },
+              data: JSON.stringify({
+                job_id: jobId,
+                enabled: newEnabled ? 1 : 0
+              }),
             success: function (response) {
               if (response.success) {
                 showMessage('success', response.message);
@@ -64,6 +83,7 @@
             }
           });
         });
+        });
 
         // Generate structured data
         $('.btn-generate').on('click', function () {
@@ -73,10 +93,14 @@
           $btn.prop('disabled', true);
           $btn.html('<span class="loading-spinner"></span>');
           
-          $.ajax({
-            url: '/jobhunter/googlejobsintegration/generate',
-            method: 'POST',
-            contentType: 'application/json',
+          getCsrfToken().then(token => {
+            $.ajax({
+              url: '/jobhunter/googlejobsintegration/generate',
+              method: 'POST',
+              contentType: 'application/json',
+              headers: {
+                'X-CSRF-Token': token
+              },
             data: JSON.stringify({
               job_id: jobId
             }),
@@ -103,6 +127,7 @@
             }
           });
         });
+        });
 
         // Validate structured data
         $('.btn-validate').on('click', function () {
@@ -112,10 +137,14 @@
           $btn.prop('disabled', true);
           $btn.html('<span class="loading-spinner"></span>');
           
-          $.ajax({
-            url: '/jobhunter/googlejobsintegration/validate',
-            method: 'POST',
-            contentType: 'application/json',
+          getCsrfToken().then(token => {
+            $.ajax({
+              url: '/jobhunter/googlejobsintegration/validate',
+              method: 'POST',
+              contentType: 'application/json',
+              headers: {
+                'X-CSRF-Token': token
+              },
             data: JSON.stringify({
               job_id: jobId
             }),
@@ -150,6 +179,7 @@
             }
           });
         });
+        });
 
         // Validate all jobs
         $('#validate-all').on('click', function () {
@@ -174,13 +204,18 @@
           let valid = 0;
           let invalid = 0;
           
-          // Validate each job
-          jobIds.forEach(function(jobId, index) {
-            setTimeout(function() {
-              $.ajax({
-                url: '/jobhunter/googlejobsintegration/validate',
-                method: 'POST',
-                contentType: 'application/json',
+          // Get CSRF token once for all requests
+          getCsrfToken().then(token => {
+            // Validate each job
+            jobIds.forEach(function(jobId, index) {
+              setTimeout(function() {
+                $.ajax({
+                  url: '/jobhunter/googlejobsintegration/validate',
+                  method: 'POST',
+                  contentType: 'application/json',
+                  headers: {
+                    'X-CSRF-Token': token
+                  },
                 data: JSON.stringify({ job_id: jobId }),
                 success: function (response) {
                   completed++;
@@ -215,10 +250,12 @@
                       location.reload();
                     }, 2000);
                   }
+                  }
                 }
               });
             }, index * 300); // Stagger requests by 300ms
           });
+        });
         });
 
         // Helper function to show messages

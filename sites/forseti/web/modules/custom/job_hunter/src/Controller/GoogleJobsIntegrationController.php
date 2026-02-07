@@ -5,6 +5,7 @@ namespace Drupal\job_hunter\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Url;
+use Drupal\job_hunter\Service\GoogleJobsService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,13 +26,23 @@ class GoogleJobsIntegrationController extends ControllerBase {
   protected $database;
 
   /**
+   * The Google Jobs service.
+   *
+   * @var \Drupal\job_hunter\Service\GoogleJobsService
+   */
+  protected $googleJobsService;
+
+  /**
    * Constructs a GoogleJobsIntegrationController object.
    *
    * @param \Drupal\Core\Database\Connection $database
    *   The database connection.
+   * @param \Drupal\job_hunter\Service\GoogleJobsService $google_jobs_service
+   *   The Google Jobs service.
    */
-  public function __construct(Connection $database) {
+  public function __construct(Connection $database, GoogleJobsService $google_jobs_service) {
     $this->database = $database;
+    $this->googleJobsService = $google_jobs_service;
   }
 
   /**
@@ -39,7 +50,8 @@ class GoogleJobsIntegrationController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('database')
+      $container->get('database'),
+      $container->get('job_hunter.google_jobs_service')
     );
   }
 
@@ -324,11 +336,8 @@ class GoogleJobsIntegrationController extends ControllerBase {
       return new JsonResponse(['error' => 'Missing job_id'], 400);
     }
     
-    // Get Google Jobs service
-    $service = \Drupal::service('job_hunter.google_jobs_service');
-    
     try {
-      $structured_data = $service->generateJobPostingJsonLd($job_id);
+      $structured_data = $this->googleJobsService->generateJobPostingJsonLd($job_id);
       
       // Save to sync table
       $this->database->merge('job_hunter_google_jobs_sync')
@@ -373,11 +382,8 @@ class GoogleJobsIntegrationController extends ControllerBase {
       return new JsonResponse(['error' => 'Missing job_id'], 400);
     }
     
-    // Get Google Jobs service
-    $service = \Drupal::service('job_hunter.google_jobs_service');
-    
     try {
-      $validation_result = $service->validateJobPosting($job_id);
+      $validation_result = $this->googleJobsService->validateJobPosting($job_id);
       
       // Get sync ID
       $sync_id = $this->database->select('job_hunter_google_jobs_sync', 'g')

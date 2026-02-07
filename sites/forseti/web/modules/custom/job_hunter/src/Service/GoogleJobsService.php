@@ -5,6 +5,7 @@ namespace Drupal\job_hunter\Service;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\Core\Url;
 
 /**
  * Service for Google for Jobs integration via Schema.org structured data.
@@ -170,7 +171,7 @@ class GoogleJobsService {
     }
     
     // Direct application URL
-    $json_ld['url'] = \Drupal::request()->getSchemeAndHttpHost() . '/jobhunter/jobs/' . $job_id;
+    $json_ld['url'] = Url::fromRoute('job_hunter.job_view', ['job_id' => $job_id], ['absolute' => TRUE])->toString();
     
     return $json_ld;
   }
