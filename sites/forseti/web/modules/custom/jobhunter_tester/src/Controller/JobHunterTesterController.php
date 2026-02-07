@@ -427,4 +427,143 @@ class JobHunterTesterController extends ControllerBase {
     return implode('<br>', $access_list);
   }
 
+  /**
+   * Display unit tests dashboard.
+   */
+  public function unitTestsPage() {
+    $build = [];
+    
+    $build['header'] = [
+      '#markup' => '<h2>Job Hunter Unit Tests Dashboard</h2>' .
+        '<p>This page allows you to view and run PHPUnit tests for the Job Hunter module.</p>',
+    ];
+    
+    // Navigation
+    $build['navigation'] = [
+      '#markup' => '<div style="background: #f0f0f0; padding: 15px; margin: 20px 0; border-radius: 5px;">' .
+        '<a href="/jobhunter_testing">← Back to Route Testing</a> | ' .
+        '<strong>Unit Tests Dashboard</strong>' .
+        '</div>',
+    ];
+    
+    // Test categories
+    $test_categories = $this->getTestCategories();
+    
+    // Build category overview
+    $category_rows = [];
+    foreach ($test_categories as $category_key => $category_info) {
+      $status_color = $category_info['status'] === 'implemented' ? 'green' : 'orange';
+      $status_icon = $category_info['status'] === 'implemented' ? '✓' : '⚠';
+      
+      $category_rows[] = [
+        'data' => [
+          ['data' => $status_icon, 'style' => 'color: ' . $status_color . '; font-weight: bold; font-size: 20px;'],
+          $category_info['name'],
+          $category_info['test_file'],
+          $category_info['test_count'],
+          $category_info['description'],
+          ['data' => ['#markup' => '<button class="button button--primary test-run-btn" data-test-file="' . $category_info['test_file'] . '">Run Tests</button>']],
+        ],
+      ];
+    }
+    
+    $build['categories'] = [
+      '#type' => 'table',
+      '#header' => ['Status', 'Category', 'Test File', 'Test Count', 'Description', 'Actions'],
+      '#rows' => $category_rows,
+      '#attributes' => [
+        'style' => 'width: 100%; margin-top: 20px;',
+      ],
+    ];
+    
+    // Test execution section
+    $build['execution'] = [
+      '#markup' => '<div id="test-results" style="margin-top: 30px; padding: 20px; background: #f9f9f9; border-radius: 5px; display: none;">' .
+        '<h3>Test Results</h3>' .
+        '<pre id="test-output" style="background: #fff; padding: 15px; border: 1px solid #ddd; max-height: 600px; overflow: auto;"></pre>' .
+        '</div>',
+    ];
+    
+    // Add JavaScript for test execution
+    $build['#attached']['library'][] = 'jobhunter_tester/test-runner';
+    
+    return $build;
+  }
+
+  /**
+   * Run PHPUnit tests via AJAX.
+   */
+  public function runTests() {
+    $request = $this->requestStack->getCurrentRequest();
+    $test_file = $request->request->get('test_file');
+    
+    if (empty($test_file)) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse([
+        'success' => false,
+        'error' => 'No test file specified',
+      ], 400);
+    }
+    
+    $module_path = \Drupal::service('extension.list.module')->getPath('jobhunter_tester');
+    $test_path = DRUPAL_ROOT . '/' . $module_path . '/tests/src/Unit/Service/' . basename($test_file);
+    
+    if (!file_exists($test_path)) {
+      return new \Symfony\Component\HttpFoundation\JsonResponse([
+        'success' => false,
+        'error' => 'Test file not found: ' . basename($test_file),
+      ], 404);
+    }
+    
+    // Execute PHPUnit
+    $output = [];
+    $return_code = 0;
+    
+    $command = 'cd ' . DRUPAL_ROOT . ' && phpunit --colors=never ' . escapeshellarg($test_path) . ' 2>&1';
+    exec($command, $output, $return_code);
+    
+    $output_text = implode("\n", $output);
+    
+    return new \Symfony\Component\HttpFoundation\JsonResponse([
+      'success' => $return_code === 0,
+      'output' => $output_text,
+      'return_code' => $return_code,
+    ]);
+  }
+
+  /**
+   * Get test categories and their information.
+   */
+  private function getTestCategories(): array {
+    return [
+      'job_seeker_service' => [
+        'name' => 'JobSeekerService Tests',
+        'test_file' => 'JobSeekerServiceTest.php',
+        'test_count' => '14 tests',
+        'description' => 'Tests for job seeker profile CRUD operations (JSS-001 to JSS-006)',
+        'status' => 'implemented',
+      ],
+      'user_profile_service_extended' => [
+        'name' => 'UserProfileService Extended Tests',
+        'test_file' => 'UserProfileServiceExtendedTest.php',
+        'test_count' => '8 tests',
+        'description' => 'Extended tests for profile statistics and completeness (UPS-006)',
+        'status' => 'implemented',
+      ],
+      'resume_pdf_service' => [
+        'name' => 'ResumePdfService Tests',
+        'test_file' => 'ResumePdfServiceTest.php',
+        'test_count' => '0 tests',
+        'description' => 'Tests for PDF generation and styling (RPS-001 to RPS-005)',
+        'status' => 'todo',
+      ],
+      'abbvie_scraping_service' => [
+        'name' => 'AbbVieJobScrapingService Tests',
+        'test_file' => 'AbbVieJobScrapingServiceTest.php',
+        'test_count' => '0 tests',
+        'description' => 'Tests for job scraping functionality (AJSS-001 to AJSS-004)',
+        'status' => 'todo',
+      ],
+    ];
+  }
+
 }

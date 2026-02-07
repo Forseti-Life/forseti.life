@@ -5,3 +5,19 @@ jobhunter_tester.test_page:
     _title: 'Job Hunter Route Testing'
   requirements:
     _permission: 'administer site configuration'
+
+jobhunter_tester.unit_tests:
+  path: '/jobhunter_testing/unit-tests'
+  defaults:
+    _controller: '\Drupal\jobhunter_tester\Controller\JobHunterTesterController::unitTestsPage'
+    _title: 'Job Hunter Unit Tests'
+  requirements:
+    _permission: 'administer site configuration'
+
+jobhunter_tester.run_tests:
+  path: '/jobhunter_testing/run-tests'
+  defaults:
+    _controller: '\Drupal\jobhunter_tester\Controller\JobHunterTesterController::runTests'
+  methods: [POST]
+  requirements:
+    _permission: 'administer site configuration'
