@@ -124,6 +124,16 @@ JSON is decoded even when the model returns escaped formatting.
 - **Storage**: Updates `jobhunter_job_seeker.consolidated_profile_json` JSON field
 - **Status Update**: ✅ Text Extracted | ✅ Individual JSON Stored | ✅ Merged to Consolidated
 
+**Profile Pre-Fill**: `/jobhunter/profile/edit` reads `consolidated_profile_json` to
+pre-populate contact and summary fields when available.
+
+**Search Assist Section**: Job search preferences and demographic fields are shown
+at the top of the profile form under “Fill this out to assist in your search.” These
+fields are user-entered and are not derived from the resume JSON.
+
+**Salary Fields**: Salary inputs no longer render a `$` suffix in the UI. The section
+now includes a single note indicating all salary values are in USD.
+
 **Consolidated Profile JSON Structure**:
 ```json
 {

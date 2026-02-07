@@ -714,6 +714,237 @@ class UserProfileForm extends FormBase {
       ];
     }
 
+    // Load consolidated profile JSON for pre-populating fields
+    $consolidated = [];
+    if ($job_seeker_profile && !empty($job_seeker_profile->consolidated_profile_json)) {
+      $consolidated = json_decode($job_seeker_profile->consolidated_profile_json, TRUE) ?: [];
+    }
+
+    $get_profile_value = function($property, $default = '') use ($job_seeker_profile) {
+      if ($job_seeker_profile && isset($job_seeker_profile->$property) && $job_seeker_profile->$property !== '') {
+        return $job_seeker_profile->$property;
+      }
+      return $default;
+    };
+
+    // Search Assist Section (user-entered, not derived from resume)
+    $form['search_assist'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('🔎 Fill this out to assist in your search'),
+      '#description' => $this->t('These fields are not derived from your resume. Please fill them out to improve job matching.'),
+      '#attributes' => ['class' => ['search-assist-section', 'no-toggle-fieldset']],
+      '#weight' => 0,
+    ];
+
+    $form['search_assist']['field_work_authorization'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Work Authorization'),
+      '#description' => $this->t('Your legal work authorization status'),
+      '#required' => FALSE,
+      '#options' => [
+        '' => $this->t('- Select -'),
+        'us_citizen' => $this->t('US Citizen'),
+        'permanent_resident' => $this->t('Permanent Resident'),
+        'h1b' => $this->t('Work Visa (H1B)'),
+        'f1' => $this->t('Student Visa (F1)'),
+        'visa_required' => $this->t('Visa Sponsorship Required'),
+        'other' => $this->t('Other'),
+      ],
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_work_authorization'),
+    ];
+
+    $form['search_assist']['field_us_work_authorized'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Are you either a US citizen or an alien lawfully authorized to work in the US?'),
+      '#required' => FALSE,
+      '#options' => [
+        'yes' => $this->t('Yes'),
+        'no' => $this->t('No'),
+      ],
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_us_work_authorized') ?: NULL,
+    ];
+
+    $form['search_assist']['field_requires_sponsorship'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Do you now or will you at any time in the future require sponsorship?'),
+      '#required' => FALSE,
+      '#options' => [
+        'yes' => $this->t('Yes'),
+        'no' => $this->t('No'),
+      ],
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_requires_sponsorship') ?: NULL,
+    ];
+
+    $form['search_assist']['salary_range'] = [
+      '#type' => 'container',
+      '#title' => $this->t('Salary Expectations'),
+      '#title_display' => 'above',
+      '#description' => $this->t('All salary values are in USD.'),
+    ];
+
+    $salary_min = $this->getConsolidatedValue($job_seeker_profile, 'field_salary_expectation_min');
+    $salary_max = $this->getConsolidatedValue($job_seeker_profile, 'field_salary_expectation_max');
+    if (empty($salary_min) && empty($salary_max) && $job_seeker_profile && isset($job_seeker_profile->salary_expectation)) {
+      $parts = explode(' - ', $job_seeker_profile->salary_expectation);
+      $salary_min = isset($parts[0]) && $parts[0] !== '0' ? $parts[0] : '';
+      $salary_max = isset($parts[1]) && $parts[1] !== 'Open' ? $parts[1] : '';
+    }
+
+    $form['search_assist']['salary_range']['field_salary_expectation_min'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Minimum Salary Expectation'),
+      '#description' => $this->t('Annual salary'),
+      '#min' => 0,
+      '#max' => 999999,
+      '#step' => 1000,
+      '#default_value' => $salary_min,
+    ];
+
+    $form['search_assist']['salary_range']['field_salary_expectation_max'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Maximum Salary Expectation'),
+      '#description' => $this->t('Annual salary'),
+      '#min' => 0,
+      '#max' => 999999,
+      '#step' => 1000,
+      '#default_value' => $salary_max,
+    ];
+
+    $form['search_assist']['field_salary_change_minimum'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Salary Requirement to Change Organizations'),
+      '#description' => $this->t('Minimum annual salary required to switch jobs'),
+      '#min' => 0,
+      '#max' => 999999,
+      '#step' => 1000,
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_salary_change_minimum'),
+    ];
+
+    $form['search_assist']['field_available_start_date'] = [
+      '#type' => 'date',
+      '#title' => $this->t('Available Start Date'),
+      '#description' => $this->t('Earliest date you can start work'),
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_available_start_date'),
+    ];
+
+    $form['search_assist']['field_remote_preference'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Remote Work Preference'),
+      '#description' => $this->t('Your preference for remote work arrangements'),
+      '#options' => [
+        '' => $this->t('- Select -'),
+        'remote' => $this->t('Remote'),
+        'hybrid' => $this->t('Hybrid'),
+        'onsite' => $this->t('On-site'),
+        'no_preference' => $this->t('No Preference'),
+      ],
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_remote_preference'),
+    ];
+
+    $form['search_assist']['field_relocation_willing'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Willing to Relocate'),
+      '#description' => $this->t('Are you willing to relocate for the right opportunity?'),
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_relocation_willing', 0),
+    ];
+
+    $form['search_assist']['field_keywords_interested'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Job Keywords of Interest'),
+      '#description' => $this->t('Keywords and job types you are interested in (one per line)'),
+      '#rows' => 4,
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_keywords_interested'),
+    ];
+
+    $form['search_assist']['field_target_job_titles'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Target Job Titles'),
+      '#description' => $this->t('Desired job titles and roles (one per line)'),
+      '#rows' => 4,
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_target_job_titles'),
+    ];
+
+    $form['search_assist']['field_cover_letter_template'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Cover Letter Template'),
+      '#description' => $this->t('Default cover letter template for applications'),
+      '#rows' => 6,
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_cover_letter_template'),
+    ];
+
+    $form['search_assist']['field_references_available'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('References Available Upon Request'),
+      '#description' => $this->t('Check if you can provide professional references'),
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_references_available', 0),
+    ];
+
+    $form['search_assist']['demographic_info'] = [
+      '#type' => 'details',
+      '#title' => $this->t('📋 Demographic Information (Optional - For EEO Purposes)'),
+      '#description' => $this->t('This information is optional and used for Equal Employment Opportunity (EEO) reporting. Providing this information is voluntary and will not affect your job search.'),
+      '#open' => FALSE,
+    ];
+
+    $form['search_assist']['demographic_info']['field_gender'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Gender Identity'),
+      '#description' => $this->t('Optional - For EEO purposes only'),
+      '#options' => [
+        '' => $this->t('- Prefer not to answer -'),
+        'male' => $this->t('Male'),
+        'female' => $this->t('Female'),
+        'non_binary' => $this->t('Non-binary'),
+        'other' => $this->t('Other'),
+        'prefer_not_to_say' => $this->t('Prefer not to say'),
+      ],
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_gender'),
+    ];
+
+    $form['search_assist']['demographic_info']['field_race_ethnicity'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Race/Ethnicity'),
+      '#description' => $this->t('Optional - For EEO purposes only'),
+      '#options' => [
+        '' => $this->t('- Prefer not to answer -'),
+        'american_indian' => $this->t('American Indian or Alaska Native'),
+        'asian' => $this->t('Asian'),
+        'black' => $this->t('Black or African American'),
+        'hispanic' => $this->t('Hispanic or Latino'),
+        'native_hawaiian' => $this->t('Native Hawaiian or Other Pacific Islander'),
+        'white' => $this->t('White'),
+        'two_or_more' => $this->t('Two or More Races'),
+        'prefer_not_to_say' => $this->t('Prefer not to say'),
+      ],
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_race_ethnicity'),
+    ];
+
+    $form['search_assist']['demographic_info']['field_veteran_status'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Veteran Status'),
+      '#description' => $this->t('Optional - For EEO purposes only'),
+      '#options' => [
+        '' => $this->t('- Prefer not to answer -'),
+        'not_veteran' => $this->t('I am not a protected veteran'),
+        'veteran' => $this->t('I identify as one or more of the classifications of protected veteran'),
+        'prefer_not_to_say' => $this->t('Prefer not to say'),
+      ],
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_veteran_status'),
+    ];
+
+    $form['search_assist']['demographic_info']['field_disability_status'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Disability Status'),
+      '#description' => $this->t('Optional - For EEO purposes only'),
+      '#options' => [
+        '' => $this->t('- Prefer not to answer -'),
+        'no_disability' => $this->t('No, I do not have a disability'),
+        'yes_disability' => $this->t('Yes, I have a disability (or previously had a disability)'),
+        'prefer_not_to_say' => $this->t('Prefer not to say'),
+      ],
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_disability_status'),
+    ];
+
     // Core Information Section - Contact Info + Professional Summary
     $form['core_info'] = [
       '#type' => 'details',
@@ -795,147 +1026,6 @@ class UserProfileForm extends FormBase {
       '#type' => 'textarea',
       '#title' => $this->t('Current JSON Data'),
       '#default_value' => json_encode($contact_info, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
-      '#rows' => 10,
-      '#attributes' => ['readonly' => 'readonly', 'style' => 'font-family: monospace; font-size: 11px; background: #f5f5f5;'],
-      '#description' => $this->t('Read-only preview. Edit via Step 3 consolidated JSON or individual fields above.'),
-    ];
-
-    // Employment Information Section
-    $form['employment_info'] = [
-      '#type' => 'details',
-      '#title' => $this->t('💼 Employment Preferences & Status'),
-      '#open' => FALSE,
-      '#weight' => 12,
-    ];
-
-    $form['employment_info']['field_work_authorization'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Work Authorization'),
-      '#description' => $this->t('Your legal work authorization status'),
-      '#required' => FALSE,
-      '#options' => [
-        '' => $this->t('- Select -'),
-        'us_citizen' => $this->t('US Citizen'),
-        'permanent_resident' => $this->t('Permanent Resident'),
-        'h1b' => $this->t('Work Visa (H1B)'),
-        'f1' => $this->t('Student Visa (F1)'),
-        'visa_required' => $this->t('Visa Sponsorship Required'),
-        'other' => $this->t('Other'),
-      ],
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_work_authorization'),
-    ];
-
-    $form['employment_info']['field_us_work_authorized'] = [
-      '#type' => 'radios',
-      '#title' => $this->t('Are you either a US citizen or an alien lawfully authorized to work in the US?'),
-      '#required' => FALSE,
-      '#options' => [
-        'yes' => $this->t('Yes'),
-        'no' => $this->t('No'),
-      ],
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_us_work_authorized') ?: NULL,
-    ];
-
-    $form['employment_info']['field_requires_sponsorship'] = [
-      '#type' => 'radios',
-      '#title' => $this->t('Do you now or will you at any time in the future require sponsorship?'),
-      '#required' => FALSE,
-      '#options' => [
-        'yes' => $this->t('Yes'),
-        'no' => $this->t('No'),
-      ],
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_requires_sponsorship') ?: NULL,
-    ];
-
-    $form['employment_info']['salary_range'] = [
-      '#type' => 'container',
-      '#title' => $this->t('Salary Expectations'),
-      '#title_display' => 'above',
-    ];
-
-    // Get salary values from consolidated JSON or fallback to database
-    $salary_min = $this->getConsolidatedValue($job_seeker_profile, 'field_salary_expectation_min');
-    $salary_max = $this->getConsolidatedValue($job_seeker_profile, 'field_salary_expectation_max');
-    
-    // Fallback to parsing salary_expectation from database if not in JSON
-    if (empty($salary_min) && empty($salary_max) && $job_seeker_profile && isset($job_seeker_profile->salary_expectation)) {
-      $parts = explode(' - ', $job_seeker_profile->salary_expectation);
-      $salary_min = isset($parts[0]) && $parts[0] !== '0' ? $parts[0] : '';
-      $salary_max = isset($parts[1]) && $parts[1] !== 'Open' ? $parts[1] : '';
-    }
-
-    $form['employment_info']['salary_range']['field_salary_expectation_min'] = [
-      '#type' => 'number',
-      '#title' => $this->t('Minimum Salary Expectation'),
-      '#description' => $this->t('Annual salary (USD)'),
-      '#min' => 0,
-      '#max' => 999999,
-      '#step' => 1000,
-      '#field_suffix' => '$',
-      '#default_value' => $salary_min,
-    ];
-
-    $form['employment_info']['salary_range']['field_salary_expectation_max'] = [
-      '#type' => 'number',
-      '#title' => $this->t('Maximum Salary Expectation'),
-      '#description' => $this->t('Annual salary (USD)'),
-      '#min' => 0,
-      '#max' => 999999,
-      '#step' => 1000,
-      '#field_suffix' => '$',
-      '#default_value' => $salary_max,
-    ];
-
-    $form['employment_info']['field_salary_change_minimum'] = [
-      '#type' => 'number',
-      '#title' => $this->t('Salary Requirement to Change Organizations'),
-      '#description' => $this->t('Minimum annual salary (USD) required to switch jobs'),
-      '#min' => 0,
-      '#max' => 999999,
-      '#step' => 1000,
-      '#field_suffix' => '$',
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_salary_change_minimum'),
-    ];
-
-    $form['employment_info']['field_available_start_date'] = [
-      '#type' => 'date',
-      '#title' => $this->t('Available Start Date'),
-      '#description' => $this->t('Earliest date you can start work'),
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_available_start_date'),
-    ];
-
-    $form['employment_info']['field_remote_preference'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Remote Work Preference'),
-      '#description' => $this->t('Your preference for remote work arrangements'),
-      '#options' => [
-        '' => $this->t('- Select -'),
-        'remote' => $this->t('Remote'),
-        'hybrid' => $this->t('Hybrid'),
-        'onsite' => $this->t('On-site'),
-        'no_preference' => $this->t('No Preference'),
-      ],
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_remote_preference'),
-    ];
-
-    $form['employment_info']['field_relocation_willing'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Willing to Relocate'),
-      '#description' => $this->t('Are you willing to relocate for the right opportunity?'),
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_relocation_willing', 0),
-    ];
-
-    // JSON Preview for Job Search Preferences
-    $job_search_prefs = $consolidated['job_search_preferences'] ?? [];
-    $form['employment_info']['json_preview'] = [
-      '#type' => 'details',
-      '#title' => $this->t('📋 JSON Preview: job_search_preferences'),
-      '#open' => FALSE,
-    ];
-    $form['employment_info']['json_preview']['json_display'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Current JSON Data'),
-      '#default_value' => json_encode($job_search_prefs, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
       '#rows' => 10,
       '#attributes' => ['readonly' => 'readonly', 'style' => 'font-family: monospace; font-size: 11px; background: #f5f5f5;'],
       '#description' => $this->t('Read-only preview. Edit via Step 3 consolidated JSON or individual fields above.'),
@@ -1150,137 +1240,6 @@ class UserProfileForm extends FormBase {
       '#type' => 'url',
       '#title' => $this->t('GitHub'),
       '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_github_url'),
-    ];
-
-    // Job Preferences Section
-    $form['job_preferences'] = [
-      '#type' => 'details',
-      '#title' => $this->t('🎯 Job Search Preferences'),
-      '#open' => FALSE,
-      '#weight' => 13,
-    ];
-
-    $form['job_preferences']['field_keywords_interested'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Job Keywords of Interest'),
-      '#description' => $this->t('Keywords and job types you are interested in (one per line)'),
-      '#rows' => 4,
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_keywords_interested'),
-    ];
-
-    $form['job_preferences']['field_target_job_titles'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Target Job Titles'),
-      '#description' => $this->t('Desired job titles and roles (one per line)'),
-      '#rows' => 4,
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_target_job_titles'),
-    ];
-
-    $form['job_preferences']['field_cover_letter_template'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Cover Letter Template'),
-      '#description' => $this->t('Default cover letter template for applications'),
-      '#rows' => 6,
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_cover_letter_template'),
-    ];
-
-    // Additional Information Section
-    $form['additional_info'] = [
-      '#type' => 'details',
-      '#title' => $this->t('📎 Additional Information'),
-      '#open' => FALSE,
-      '#weight' => 14,
-    ];
-
-    $form['additional_info']['field_references_available'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('References Available Upon Request'),
-      '#description' => $this->t('Check if you can provide professional references'),
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_references_available', 0),
-    ];
-
-    // Demographic Information Section (EEO)
-    $form['demographic_info'] = [
-      '#type' => 'details',
-      '#title' => $this->t('📋 Demographic Information (Optional - For EEO Purposes)'),
-      '#description' => $this->t('This information is optional and used for Equal Employment Opportunity (EEO) reporting. Providing this information is voluntary and will not affect your job search.'),
-      '#open' => FALSE,
-      '#weight' => 15,
-    ];
-
-    $form['demographic_info']['field_gender'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Gender Identity'),
-      '#description' => $this->t('Optional - For EEO purposes only'),
-      '#options' => [
-        '' => $this->t('- Prefer not to answer -'),
-        'male' => $this->t('Male'),
-        'female' => $this->t('Female'),
-        'non_binary' => $this->t('Non-binary'),
-        'other' => $this->t('Other'),
-        'prefer_not_to_say' => $this->t('Prefer not to say'),
-      ],
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_gender'),
-    ];
-
-    $form['demographic_info']['field_race_ethnicity'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Race/Ethnicity'),
-      '#description' => $this->t('Optional - For EEO purposes only'),
-      '#options' => [
-        '' => $this->t('- Prefer not to answer -'),
-        'american_indian' => $this->t('American Indian or Alaska Native'),
-        'asian' => $this->t('Asian'),
-        'black' => $this->t('Black or African American'),
-        'hispanic' => $this->t('Hispanic or Latino'),
-        'native_hawaiian' => $this->t('Native Hawaiian or Other Pacific Islander'),
-        'white' => $this->t('White'),
-        'two_or_more' => $this->t('Two or More Races'),
-        'prefer_not_to_say' => $this->t('Prefer not to say'),
-      ],
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_race_ethnicity'),
-    ];
-
-    $form['demographic_info']['field_veteran_status'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Veteran Status'),
-      '#description' => $this->t('Optional - For EEO purposes only'),
-      '#options' => [
-        '' => $this->t('- Prefer not to answer -'),
-        'not_veteran' => $this->t('I am not a protected veteran'),
-        'veteran' => $this->t('I identify as one or more of the classifications of protected veteran'),
-        'prefer_not_to_say' => $this->t('Prefer not to say'),
-      ],
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_veteran_status'),
-    ];
-
-    $form['demographic_info']['field_disability_status'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Disability Status'),
-      '#description' => $this->t('Optional - For EEO purposes only'),
-      '#options' => [
-        '' => $this->t('- Prefer not to answer -'),
-        'no_disability' => $this->t('No, I do not have a disability'),
-        'yes_disability' => $this->t('Yes, I have a disability (or previously had a disability)'),
-        'prefer_not_to_say' => $this->t('Prefer not to say'),
-      ],
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_disability_status'),
-    ];
-
-    // JSON Preview for Demographics
-    $demographics = $consolidated['demographics'] ?? [];
-    $form['demographic_info']['json_preview'] = [
-      '#type' => 'details',
-      '#title' => $this->t('📋 JSON Preview: demographics'),
-      '#open' => FALSE,
-    ];
-    $form['demographic_info']['json_preview']['json_display'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Current JSON Data'),
-      '#default_value' => json_encode($demographics, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
-      '#rows' => 8,
-      '#attributes' => ['readonly' => 'readonly', 'style' => 'font-family: monospace; font-size: 11px; background: #f5f5f5;'],
-      '#description' => $this->t('Read-only preview. Edit via Step 3 consolidated JSON or individual fields above.'),
     ];
 
     // Actions

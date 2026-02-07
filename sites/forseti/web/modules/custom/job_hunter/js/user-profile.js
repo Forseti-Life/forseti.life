@@ -164,7 +164,13 @@
    */
   function initSectionToggling($form) {
     // Add expand/collapse functionality to fieldsets
-    $form.find('fieldset').each(function() {
+    const $toggleFieldsets = $form
+      .find('fieldset')
+      .not('.no-toggle-fieldset')
+      .not('.form-composite')
+      .not('.fieldgroup');
+
+    $toggleFieldsets.each(function() {
       const $fieldset = $(this);
       const $legend = $fieldset.find('legend');
       
@@ -181,7 +187,7 @@
     });
     
     // Initially collapse non-essential sections
-    $form.find('fieldset').not(':first').addClass('collapsed').find('.fieldset-wrapper').hide();
+    $toggleFieldsets.not(':first').addClass('collapsed').find('.fieldset-wrapper').hide();
   }
 
   /**
