@@ -48,3 +48,10 @@ job_hunter.issues:
   description: 'Manage system errors'
   parent: job_hunter.admin
   weight: 3
+
+job_hunter.google_jobs_integration:
+  title: 'Google Jobs Integration'
+  route_name: job_hunter.google_jobs_home
+  description: 'Manage Google for Jobs integration with Schema.org structured data'
+  parent: job_hunter.admin
+  weight: 4
