@@ -104,6 +104,19 @@ Comprehensive guide for integrating with Google for Jobs:
 - SEO optimization for job postings
 - Monitoring and maintenance guidelines
 
+#### [Google Jobs Integration Architecture](GOOGLE_JOBS_INTEGRATION_ARCHITECTURE.md) 🏗️
+**Audience:** Developers, System Architects
+
+Technical implementation architecture for the Google Jobs Integration feature:
+- Database schema (sync tracking, validation logs)
+- Component architecture (Controller, Service, Templates)
+- Client-side implementation (JavaScript, CSS)
+- Data flow and AJAX endpoints
+- Schema.org JobPosting structure generation
+- Validation rules and error handling
+- Integration with existing job_hunter data
+- Testing checklist and maintenance notes
+
 #### [Installation Guide](../INSTALL.md) 🚀
 **Audience:** System Administrators, DevOps Engineers
 
@@ -133,8 +146,9 @@ Step-by-step installation instructions:
 1. [Architecture](ARCHITECTURE.md) - System design and structure
 2. [Process Flow](PROCESS_FLOW.md) - Technical flows
 3. [Job Discovery Guide](../JOB_DISCOVERY_README.md) - Scraping implementation
-4. [Google Job Search API Integration](GOOGLE_JOB_SEARCH_API_INTEGRATION.md) - Google for Jobs integration
-5. [FAQ](FAQ.md) - Technical questions
+4. [Google Job Search API Integration](GOOGLE_JOB_SEARCH_API_INTEGRATION.md) - Google for Jobs integration guide
+5. [Google Jobs Integration Architecture](GOOGLE_JOBS_INTEGRATION_ARCHITECTURE.md) - Implementation architecture
+6. [FAQ](FAQ.md) - Technical questions
 
 ### For Business Analysts / Product Managers
 1. [Module README](../README.md) - Feature overview
@@ -270,6 +284,7 @@ If you can't find what you need in the documentation:
 - `PROCESS_FLOW.md` - Process flows and workflows
 - `FAQ.md` - Frequently asked questions
 - `GOOGLE_JOB_SEARCH_API_INTEGRATION.md` - Google for Jobs integration guide
+- `GOOGLE_JOBS_INTEGRATION_ARCHITECTURE.md` - Google Jobs feature implementation architecture
 - `RESUME_JSON_SCHEMA.md` - Resume data JSON schema specification
 - `JOB_REQUISITION_JSON_SCHEMA.md` - Job requisition JSON schema
 - `JOB_TAILORING_DESIGN.md` - Job tailoring design documentation
