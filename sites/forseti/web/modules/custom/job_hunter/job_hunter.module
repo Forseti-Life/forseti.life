@@ -150,6 +150,23 @@ function job_hunter_theme() {
       ],
       'template' => 'tailor-resume',
     ],
+    'google_jobs_integration_home' => [
+      'variables' => [
+        'stats' => [],
+        'recent_jobs' => [],
+        'documentation_url' => NULL,
+      ],
+      'template' => 'google-jobs-integration-home',
+    ],
+    'google_jobs_job_detail' => [
+      'variables' => [
+        'job' => NULL,
+        'company' => NULL,
+        'sync' => NULL,
+        'validation_log' => [],
+      ],
+      'template' => 'google-jobs-job-detail',
+    ],
   ];
 }
 

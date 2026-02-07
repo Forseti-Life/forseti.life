@@ -110,3 +110,14 @@ queue-management:
     - core/drupal
     - core/jquery
     - core/once
+
+google_jobs_integration:
+  css:
+    theme:
+      css/google-jobs-integration.css: {}
+  js:
+    js/google-jobs-integration.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once

@@ -15,6 +15,10 @@ services:
     class: Drupal\job_hunter\Service\ResumePdfService
     arguments: ['@file_system', '@logger.factory']
   
+  job_hunter.google_jobs_service:
+    class: Drupal\job_hunter\Service\GoogleJobsService
+    arguments: ['@database', '@logger.factory', '@file_url_generator']
+  
   job_hunter.commands:
     class: Drupal\job_hunter\Commands\JobApplicationAutomationCommands
     arguments: ['@entity_type.manager', '@logger.factory']

@@ -54,6 +54,8 @@ function job_hunter_install() {
     _job_hunter_create_resume_parsed_data_table();
     _job_hunter_create_job_seeker_resumes_table();
     _job_hunter_create_tailored_resumes_table();
+    _job_hunter_create_google_jobs_sync_table();
+    _job_hunter_create_google_jobs_validation_log_table();
     
     $messenger->addMessage(t('Job Hunter module installed successfully. Custom database tables created.'));
     $logger->info('Job Hunter module installation completed.');
@@ -581,4 +583,183 @@ function job_hunter_update_9012() {
   }
   
   return t(implode('. ', $messages) . '.');
+}
+
+/**
+ * Create Google Jobs integration tables.
+ */
+function job_hunter_update_9010() {
+  _job_hunter_create_google_jobs_sync_table();
+  _job_hunter_create_google_jobs_validation_log_table();
+  return t('Created Google Jobs integration tables.');
+}
+
+/**
+ * Create job_hunter_google_jobs_sync table.
+ * 
+ * Tracks the sync status of job postings to Google for Jobs.
+ */
+function _job_hunter_create_google_jobs_sync_table() {
+  $schema = \Drupal::database()->schema();
+  
+  if ($schema->tableExists('job_hunter_google_jobs_sync')) {
+    return;
+  }
+  
+  $table_schema = [
+    'description' => 'Tracks sync status of job postings for Google for Jobs integration',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key',
+      ],
+      'job_id' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Reference to job_hunter_job_requirements.id',
+      ],
+      'structured_data_json' => [
+        'type' => 'text',
+        'size' => 'big',
+        'description' => 'Generated JSON-LD structured data for this job',
+      ],
+      'is_enabled' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+        'description' => 'Whether Google Jobs integration is enabled for this job (1=enabled, 0=disabled)',
+      ],
+      'last_validated' => [
+        'type' => 'int',
+        'description' => 'Timestamp of last validation check',
+      ],
+      'validation_status' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'description' => 'Status: pending, valid, invalid, error',
+        'default' => 'pending',
+      ],
+      'validation_errors' => [
+        'type' => 'text',
+        'description' => 'JSON array of validation errors if any',
+      ],
+      'google_indexing_status' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'description' => 'Status from Google Search Console: indexed, pending, error, not_found',
+      ],
+      'google_last_crawled' => [
+        'type' => 'int',
+        'description' => 'Timestamp of last Google crawl (from Search Console API)',
+      ],
+      'impressions_count' => [
+        'type' => 'int',
+        'default' => 0,
+        'description' => 'Number of impressions in Google Search (from Search Console)',
+      ],
+      'clicks_count' => [
+        'type' => 'int',
+        'default' => 0,
+        'description' => 'Number of clicks from Google Search (from Search Console)',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Timestamp when record was created',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Timestamp when record was last updated',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'job_id' => ['job_id'],
+      'validation_status' => ['validation_status'],
+      'is_enabled' => ['is_enabled'],
+      'google_indexing_status' => ['google_indexing_status'],
+    ],
+    'unique keys' => [
+      'unique_job' => ['job_id'],
+    ],
+  ];
+  
+  $schema->createTable('job_hunter_google_jobs_sync', $table_schema);
+}
+
+/**
+ * Create job_hunter_google_jobs_validation_log table.
+ * 
+ * Stores history of validation attempts and results.
+ */
+function _job_hunter_create_google_jobs_validation_log_table() {
+  $schema = \Drupal::database()->schema();
+  
+  if ($schema->tableExists('job_hunter_google_jobs_validation_log')) {
+    return;
+  }
+  
+  $table_schema = [
+    'description' => 'Log of validation attempts for Google Jobs structured data',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key',
+      ],
+      'sync_id' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Reference to job_hunter_google_jobs_sync.id',
+      ],
+      'job_id' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Reference to job_hunter_job_requirements.id (denormalized for queries)',
+      ],
+      'validation_type' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+        'description' => 'Type of validation: schema, rich_results, search_console',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => TRUE,
+        'description' => 'Result: valid, invalid, error, warning',
+      ],
+      'errors' => [
+        'type' => 'text',
+        'description' => 'JSON array of error messages',
+      ],
+      'warnings' => [
+        'type' => 'text',
+        'description' => 'JSON array of warning messages',
+      ],
+      'response_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'description' => 'Full response from validation service',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Timestamp when validation was performed',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'sync_id' => ['sync_id'],
+      'job_id' => ['job_id'],
+      'validation_type' => ['validation_type'],
+      'status' => ['status'],
+      'created' => ['created'],
+    ],
+  ];
+  
+  $schema->createTable('job_hunter_google_jobs_validation_log', $table_schema);
 }
