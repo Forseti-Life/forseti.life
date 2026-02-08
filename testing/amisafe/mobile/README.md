@@ -1,5 +1,7 @@
 # AmISafe Mobile Testing
 
+**Last Updated:** February 6, 2026
+
 Comprehensive automated testing suite for the AmISafe React Native mobile application.
 
 ## 📋 Documentation

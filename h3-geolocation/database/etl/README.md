@@ -1,5 +1,7 @@
 # AmISafe H3 Complete ETL Pipeline
 
+**Last Updated:** February 6, 2026
+
 ## Overview
 
 Complete 4-stage ETL pipeline for processing crime data with H3 geospatial indexing:

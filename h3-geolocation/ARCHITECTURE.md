@@ -1,5 +1,7 @@
 # H3 Geolocation Framework - Architecture Documentation
 
+**Last Updated:** February 6, 2026
+
 ## System Architecture Overview
 
 The H3 Geolocation Framework implements a modern 3-layer data warehouse architecture optimized for geospatial crime data analysis.

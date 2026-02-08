@@ -1,5 +1,7 @@
 # Job Application Automation Module
 
+**Last Updated:** February 6, 2026
+
 ## Overview
 A comprehensive AI-powered Drupal module that automates the entire job application process using Generative AI. This system analyzes user resumes, scrapes job postings from employer websites, tailors applications using AI, and automatically submits applications across multiple employer platforms.
 

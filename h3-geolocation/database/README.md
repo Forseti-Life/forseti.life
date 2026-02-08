@@ -1,5 +1,7 @@
 # AmISafe Database - H3 Geospatial Analytics
 
+**Last Updated:** February 6, 2026
+
 Complete ETL pipeline and analytics system for St. Louis crime data with H3 hexagonal spatial indexing.
 
 ## Quick Start

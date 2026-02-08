@@ -1,5 +1,6 @@
 # Institutional Management Module
 
+**Last Updated:** February 6, 2026  
 **Version**: 1.0  
 **Drupal**: 10.3+ / 11  
 **Dependencies**: Group module

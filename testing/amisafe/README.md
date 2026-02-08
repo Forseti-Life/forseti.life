@@ -1,5 +1,7 @@
 # AmISafe Testing Directory
 
+**Last Updated:** February 6, 2026
+
 This directory contains comprehensive testing tools and reports for the AmISafe Crime Map filter system.
 
 ## 📁 Files Overview
