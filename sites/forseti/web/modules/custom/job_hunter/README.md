@@ -567,6 +567,7 @@ The following cron jobs are required for background queue processing on the prod
 
 ### Developer Resources
 - **Architecture Documentation** - [ARCHITECTURE.md](ARCHITECTURE.md) (Required Reading)
+- **Google Job Search API Integration** - [docs/GOOGLE_JOB_SEARCH_API_INTEGRATION.md](docs/GOOGLE_JOB_SEARCH_API_INTEGRATION.md) - Complete guide for integrating with Google for Jobs
 - **API Documentation** - Integration points and service interfaces
 - **Testing Guidelines** - Automated testing requirements and best practices
 - **Deployment Procedures** - Production deployment and configuration

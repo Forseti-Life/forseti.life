@@ -528,3 +528,69 @@ job_hunter.download_base_resume_pdf:
 #     _title: 'Job Application Automation Settings'
 #   requirements:
 #     _permission: 'administer job application automation'
+
+# Google Jobs Integration Routes
+job_hunter.google_jobs_home:
+  path: '/jobhunter/googlejobsintegration'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsIntegrationController::home'
+    _title: 'Google Jobs Integration'
+  requirements:
+    _permission: 'administer job application automation'
+
+job_hunter.google_jobs_job_detail:
+  path: '/jobhunter/googlejobsintegration/job/{job_id}'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsIntegrationController::jobDetail'
+    _title: 'Job Details - Google Jobs'
+  requirements:
+    _permission: 'administer job application automation'
+    job_id: \d+
+
+job_hunter.google_jobs_toggle_sync:
+  path: '/jobhunter/googlejobsintegration/toggle-sync'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsIntegrationController::toggleJobSync'
+  methods: [POST]
+  requirements:
+    _permission: 'administer job application automation'
+  options:
+    _csrf_request_header_mode: 'true'
+
+job_hunter.google_jobs_generate_structured_data:
+  path: '/jobhunter/googlejobsintegration/generate'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsIntegrationController::generateStructuredData'
+  methods: [POST]
+  requirements:
+    _permission: 'administer job application automation'
+  options:
+    _csrf_request_header_mode: 'true'
+
+job_hunter.google_jobs_validate:
+  path: '/jobhunter/googlejobsintegration/validate'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsIntegrationController::validateStructuredData'
+  methods: [POST]
+  requirements:
+    _permission: 'administer job application automation'
+  options:
+    _csrf_request_header_mode: 'true'
+
+job_hunter.google_jobs_list:
+  path: '/jobhunter/googlejobsintegration/jobs-list'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsIntegrationController::getJobsList'
+  methods: [GET]
+  requirements:
+    _permission: 'administer job application automation'
+
+# Documentation - Google Jobs Integration
+job_hunter.documentation.google_jobs:
+  path: '/jobhunter/documentation/google-jobs-integration'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\DocumentationController::viewDocument'
+    _title: 'Google Jobs Integration'
+    file: 'GOOGLE_JOB_SEARCH_API_INTEGRATION.md'
+  requirements:
+    _permission: 'administer job application automation'

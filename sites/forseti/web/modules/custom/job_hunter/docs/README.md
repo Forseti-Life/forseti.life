@@ -104,6 +104,33 @@ Technical implementation details for job scraping:
 - Duplicate detection
 - Error handling for scraping
 
+#### [Google Job Search API Integration Guide](GOOGLE_JOB_SEARCH_API_INTEGRATION.md) 🔎
+**Audience:** Developers, SEO Specialists, Content Managers
+
+Comprehensive guide for integrating with Google for Jobs:
+- Understanding Google for Jobs (not a traditional API)
+- Schema.org JobPosting structured data implementation
+- JSON-LD vs Microdata approaches
+- Required and recommended properties
+- Step-by-step implementation in Drupal
+- Testing and validation procedures
+- Best practices and common pitfalls
+- SEO optimization for job postings
+- Monitoring and maintenance guidelines
+
+#### [Google Jobs Integration Architecture](GOOGLE_JOBS_INTEGRATION_ARCHITECTURE.md) 🏗️
+**Audience:** Developers, System Architects
+
+Technical implementation architecture for the Google Jobs Integration feature:
+- Database schema (sync tracking, validation logs)
+- Component architecture (Controller, Service, Templates)
+- Client-side implementation (JavaScript, CSS)
+- Data flow and AJAX endpoints
+- Schema.org JobPosting structure generation
+- Validation rules and error handling
+- Integration with existing job_hunter data
+- Testing checklist and maintenance notes
+
 #### [Installation Guide](../INSTALL.md) 🚀
 **Audience:** System Administrators, DevOps Engineers
 
@@ -134,7 +161,9 @@ Step-by-step installation instructions:
 2. [Process Flow](PROCESS_FLOW.md) - Technical flows
 3. [Submission Process](SUBMISSION_PROCESS.md) - Integration points and dependencies
 4. [Job Discovery Guide](../JOB_DISCOVERY_README.md) - Scraping implementation
-5. [FAQ](FAQ.md) - Technical questions
+5. [Google Job Search API Integration](GOOGLE_JOB_SEARCH_API_INTEGRATION.md) - Google for Jobs integration guide
+6. [Google Jobs Integration Architecture](GOOGLE_JOBS_INTEGRATION_ARCHITECTURE.md) - Implementation architecture
+7. [FAQ](FAQ.md) - Technical questions
 
 ### For Business Analysts / Product Managers
 1. [Module README](../README.md) - Feature overview
@@ -277,10 +306,12 @@ If you can't find what you need in the documentation:
 - `PROCESS_FLOW.md` - Process flows and workflows
 - `SUBMISSION_PROCESS.md` - Job application submission process, dependencies, data sources, and integration points
 - `FAQ.md` - Frequently asked questions
-- `RESUME_JSON_SCHEMA.md` - Resume data JSON schema
+- `GOOGLE_JOB_SEARCH_API_INTEGRATION.md` - Google for Jobs integration guide
+- `GOOGLE_JOBS_INTEGRATION_ARCHITECTURE.md` - Google Jobs feature implementation architecture
+- `RESUME_JSON_SCHEMA.md` - Resume data JSON schema specification
 - `JOB_REQUISITION_JSON_SCHEMA.md` - Job requisition JSON schema
 - `JOB_TAILORING_DESIGN.md` - Job tailoring design documentation
-- `RESUME_PDF_STYLE_SCHEMA.md` - Resume PDF style schema
+- `RESUME_PDF_STYLE_SCHEMA.md` - Resume PDF styling schema
 - `RESUME_STYLE_MAPPING_REPORT.md` - Resume style mapping report
 
 ### Module Root Documentation
@@ -295,7 +326,7 @@ If you can't find what you need in the documentation:
 
 ---
 
-**Last Updated:** February 2026  
+**Last Updated:** February 8, 2026  
 **Module Version:** 1.0-dev
 
 **Happy coding! 🚀**
