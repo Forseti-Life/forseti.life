@@ -1,0 +1,14 @@
+uuid: 6b441a4e-3868-4b25-b490-a99df16ddb00
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.nfr_researcher
+  module:
+    - user
+id: user_add_role_action.nfr_researcher
+label: 'Add the NFR Researcher role to the selected user(s)'
+type: user
+plugin: user_add_role_action
+configuration:
+  rid: nfr_researcher

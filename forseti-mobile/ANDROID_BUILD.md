@@ -1,5 +1,7 @@
 # Android Build Guide - Forseti Mobile
 
+**Last Updated:** February 6, 2026
+
 ## Quick Reference
 
 ### Environment Setup

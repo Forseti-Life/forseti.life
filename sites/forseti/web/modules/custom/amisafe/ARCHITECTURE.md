@@ -1,5 +1,7 @@
 # AmISafe Module Architecture
 
+**Last Updated:** February 6, 2026
+
 ## Overview
 The AmISafe module is a comprehensive crime monitoring and analysis system for Philadelphia 2085, built on Drupal with H3 geospatial indexing, MySQL database storage, and interactive JavaScript frontend components.
 

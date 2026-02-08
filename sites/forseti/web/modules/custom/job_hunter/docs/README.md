@@ -22,6 +22,7 @@ Comprehensive technical architecture covering:
 - Technology stack and dependencies
 - Module structure and organization
 - Data model and entity relationships
+- Hybrid storage strategy (nodes + operational tables)
 - Service layer architecture
 - Security architecture
 - Integration points (AWS Bedrock, Drupal Core)
@@ -42,6 +43,19 @@ Detailed process flows and workflows including:
 - Integration points and performance considerations
 
 **When to read:** Understanding how the system works, designing new features, debugging workflows, or writing documentation.
+
+#### [Submission Process Documentation](SUBMISSION_PROCESS.md) 📤
+**Audience:** Developers, Product Managers, Business Analysts, Integration Engineers
+
+Comprehensive guide to the job application submission process including:
+- Step-by-step process flows for all 6 stages (Upload Resume → Analytics)
+- Dependencies (PHP libraries, external services, infrastructure)
+- Data sources (database tables, external APIs, file storage)
+- Integration points (AWS Bedrock, company portals, email systems)
+- Current implementation status (implemented, partial, planned)
+- Security and performance considerations
+
+**When to read:** Planning integrations, understanding submission workflows, or implementing new submission features.
 
 #### [Frequently Asked Questions](FAQ.md) ❓
 **Audience:** End Users, Administrators, Developers, Support Staff
@@ -145,15 +159,17 @@ Step-by-step installation instructions:
 ### For Developers
 1. [Architecture](ARCHITECTURE.md) - System design and structure
 2. [Process Flow](PROCESS_FLOW.md) - Technical flows
-3. [Job Discovery Guide](../JOB_DISCOVERY_README.md) - Scraping implementation
-4. [Google Job Search API Integration](GOOGLE_JOB_SEARCH_API_INTEGRATION.md) - Google for Jobs integration guide
-5. [Google Jobs Integration Architecture](GOOGLE_JOBS_INTEGRATION_ARCHITECTURE.md) - Implementation architecture
-6. [FAQ](FAQ.md) - Technical questions
+3. [Submission Process](SUBMISSION_PROCESS.md) - Integration points and dependencies
+4. [Job Discovery Guide](../JOB_DISCOVERY_README.md) - Scraping implementation
+5. [Google Job Search API Integration](GOOGLE_JOB_SEARCH_API_INTEGRATION.md) - Google for Jobs integration guide
+6. [Google Jobs Integration Architecture](GOOGLE_JOBS_INTEGRATION_ARCHITECTURE.md) - Implementation architecture
+7. [FAQ](FAQ.md) - Technical questions
 
 ### For Business Analysts / Product Managers
 1. [Module README](../README.md) - Feature overview
-2. [Process Flow](PROCESS_FLOW.md) - User and business workflows
-3. [FAQ](FAQ.md) - General questions about capabilities
+2. [Submission Process](SUBMISSION_PROCESS.md) - End-to-end workflow documentation
+3. [Process Flow](PROCESS_FLOW.md) - User and business workflows
+4. [FAQ](FAQ.md) - General questions about capabilities
 
 ---
 
@@ -274,6 +290,12 @@ If you can't find what you need in the documentation:
 - Established documentation standards
 - Added this README index
 
+### Version 1.1 (February 2026)
+- Added comprehensive Submission Process documentation
+- Documented all 6 stages of job application workflow
+- Detailed dependencies, data sources, and integration points
+- Included implementation status for each feature
+
 ---
 
 ## 📂 Complete File List
@@ -282,6 +304,7 @@ If you can't find what you need in the documentation:
 - `README.md` (this file) - Documentation index
 - `ARCHITECTURE.md` - Technical architecture documentation
 - `PROCESS_FLOW.md` - Process flows and workflows
+- `SUBMISSION_PROCESS.md` - Job application submission process, dependencies, data sources, and integration points
 - `FAQ.md` - Frequently asked questions
 - `GOOGLE_JOB_SEARCH_API_INTEGRATION.md` - Google for Jobs integration guide
 - `GOOGLE_JOBS_INTEGRATION_ARCHITECTURE.md` - Google Jobs feature implementation architecture
@@ -303,7 +326,7 @@ If you can't find what you need in the documentation:
 
 ---
 
-**Last Updated:** February 6, 2026  
+**Last Updated:** February 8, 2026  
 **Module Version:** 1.0-dev
 
 **Happy coding! 🚀**

@@ -234,7 +234,7 @@ class AIApiService {
       $input_tokens = $this->estimateTokens($context);
 
       // Get max tokens from config.
-      $max_tokens = $config->get('max_tokens') ?: 4000;
+      $max_tokens = $config->get('max_tokens') ?: 20000;
 
       // Get system prompt from PromptManager with optional dynamic content from node 10
       $system_prompt = $this->promptManager->getSystemPrompt(10);
@@ -265,19 +265,39 @@ class AIApiService {
         $this->logInfo('No system prompt found in configuration');
       }
 
+      $start_time = microtime(true);
+
       $response = $bedrock->invokeModel([
         'modelId' => $model,
         'body' => json_encode($request_body)
       ]);
 
+      $duration_ms = (int)((microtime(true) - $start_time) * 1000);
+
       $result = json_decode($response['body']->getContents(), true);
       
       if (isset($result['content'][0]['text'])) {
         $ai_response = $result['content'][0]['text'];
+        $stop_reason = $result['stop_reason'] ?? 'unknown';
         
         // Estimate output tokens and update total.
         $output_tokens = $this->estimateTokens($ai_response);
         $this->updateTokenCount($conversation, $input_tokens + $output_tokens);
+        
+        // Track API usage
+        $this->trackApiUsage([
+          'module' => 'ai_conversation',
+          'operation' => 'chat_message',
+          'model_id' => $model,
+          'input_tokens' => $input_tokens,
+          'output_tokens' => $output_tokens,
+          'stop_reason' => $stop_reason,
+          'duration_ms' => $duration_ms,
+          'context_data' => [
+            'conversation_id' => $conversation->id(),
+            'conversation_title' => $conversation->getTitle(),
+          ],
+        ]);
         
         return $ai_response;
       }
@@ -306,6 +326,58 @@ class AIApiService {
       '@tokens' => $tokens,
       '@total' => $new_total,
     ]);
+  }
+
+  /**
+   * Track API usage to database for cost monitoring.
+   * 
+   * @param array $params
+   *   Array with keys:
+   *   - module: Module making the call (e.g., 'ai_conversation', 'job_hunter')
+   *   - operation: Operation type (e.g., 'chat_message', 'resume_parsing')
+   *   - model_id: AWS Bedrock model identifier
+   *   - input_tokens: Estimated input tokens
+   *   - output_tokens: Estimated output tokens
+   *   - stop_reason: API stop reason (end_turn, max_tokens, etc.)
+   *   - duration_ms: Duration in milliseconds
+   *   - context_data: Additional context (entity_id, queue_id, etc.)
+   */
+  public function trackApiUsage(array $params) {
+    try {
+      $connection = \Drupal::database();
+      
+      // Calculate estimated cost based on Claude 3.5 Sonnet pricing
+      // Input: $0.003 per 1K tokens, Output: $0.015 per 1K tokens
+      $input_cost = ($params['input_tokens'] ?? 0) * 0.003 / 1000;
+      $output_cost = ($params['output_tokens'] ?? 0) * 0.015 / 1000;
+      $estimated_cost = $input_cost + $output_cost;
+      
+      $connection->insert('ai_conversation_api_usage')
+        ->fields([
+          'timestamp' => \Drupal::time()->getRequestTime(),
+          'uid' => \Drupal::currentUser()->id(),
+          'module' => $params['module'] ?? 'unknown',
+          'operation' => $params['operation'] ?? 'unknown',
+          'model_id' => $params['model_id'] ?? '',
+          'input_tokens' => $params['input_tokens'] ?? 0,
+          'output_tokens' => $params['output_tokens'] ?? 0,
+          'stop_reason' => $params['stop_reason'] ?? '',
+          'duration_ms' => $params['duration_ms'] ?? 0,
+          'estimated_cost' => $estimated_cost,
+          'context_data' => isset($params['context_data']) ? json_encode($params['context_data']) : NULL,
+        ])
+        ->execute();
+        
+      $this->logInfo('📊 API usage tracked: @module/@operation - @input_tokens in + @output_tokens out = $@cost', [
+        '@module' => $params['module'] ?? 'unknown',
+        '@operation' => $params['operation'] ?? 'unknown',
+        '@input_tokens' => $params['input_tokens'] ?? 0,
+        '@output_tokens' => $params['output_tokens'] ?? 0,
+        '@cost' => number_format($estimated_cost, 4),
+      ]);
+    } catch (\Exception $e) {
+      $this->logError('Failed to track API usage: @message', ['@message' => $e->getMessage()]);
+    }
   }
 
   /**
@@ -470,7 +542,7 @@ class AIApiService {
         'modelId' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
         'body' => json_encode([
           'anthropic_version' => 'bedrock-2023-05-31',
-          'max_tokens' => 1000,
+          'max_tokens' => 20000,
           'messages' => [
             [
               'role' => 'user',
@@ -600,7 +672,7 @@ class AIApiService {
         'modelId' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
         'body' => json_encode([
           'anthropic_version' => 'bedrock-2023-05-31',
-          'max_tokens' => 10,
+          'max_tokens' => 20000,
           'messages' => [
             [
               'role' => 'user',

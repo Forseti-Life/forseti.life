@@ -67,11 +67,17 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
       $raw_responses = $result['raw_responses'];
 
       // Store successful result with raw responses for debugging
+      // Concatenate all chunk responses for storage
+      $all_raw_responses = '';
+      foreach ($raw_responses as $chunk_name => $raw_response) {
+        $all_raw_responses .= "=== $chunk_name ===\n" . $raw_response . "\n\n";
+      }
+      
       $connection->update('jobhunter_resume_parsed_data')
         ->fields([
           'parsed_data' => json_encode($parsed_data),
-          'raw_genai_response_core' => $raw_responses['core'],
-          'raw_genai_response_experience' => $raw_responses['experience'],
+          'raw_genai_response_core' => $all_raw_responses,
+          'raw_genai_response_experience' => json_encode($raw_responses),
           'status' => 'complete',
           'error_message' => NULL,
           'changed' => \Drupal::time()->getRequestTime(),
@@ -162,59 +168,129 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
     // Track raw responses for debugging
     $raw_responses = [];
     
-    // CALL 1: Parse core profile
-    $logger->info('📄 Queue Call 1/2: Parsing core profile sections for @filename (user @username)', [
-      '@filename' => $filename,
-      '@username' => $username,
-    ]);
-    $core_prompt = $this->buildCoreProfilePrompt($extracted_text, $filename);
-    $result = $this->callBedrockAndParse($bedrock, $model, $core_prompt, 'core', $filename, $username);
-    $core_data = $result['parsed_data'];
-    $raw_responses['core'] = $result['raw_response'];
+    // Split resume into chunks of max 10,000 characters at natural breaks
+    $chunks = $this->chunkResumeText($extracted_text, 10000);
+    $logger->info('📊 Resume split into @count chunks for processing', ['@count' => count($chunks)]);
+    
+    // Parse each chunk and collect all experience data
+    $all_experiences = [];
+    $core_data = NULL;
+    $chunk_num = 0;
+    
+    foreach ($chunks as $chunk) {
+      $chunk_num++;
+      $logger->info('🔄 Queue Chunk @num/@total: Processing @chars characters', [
+        '@num' => $chunk_num,
+        '@total' => count($chunks),
+        '@chars' => strlen($chunk),
+      ]);
+      
+      // Parse this chunk for both core profile and experience
+      $chunk_prompt = $this->buildChunkPrompt($chunk, $filename);
+      $result = $this->callBedrockAndParse($bedrock, $model, $chunk_prompt, "chunk_$chunk_num", $filename, $username);
+      $chunk_data = $result['parsed_data'];
+      $raw_responses["chunk_$chunk_num"] = $result['raw_response'];
+      
+      if (!$chunk_data) {
+        $logger->warning('⚠️ Chunk @num failed to parse, skipping', ['@num' => $chunk_num]);
+        continue;
+      }
+      
+      // First chunk with core data wins
+      if (!$core_data && !empty($chunk_data['contact_info'])) {
+        $core_data = $chunk_data;
+        // Remove experience from core data as we'll merge separately
+        unset($core_data['professional_experience']);
+        $logger->info('✅ Core profile data extracted from chunk @num', ['@num' => $chunk_num]);
+      }
+      
+      // Collect experience from all chunks
+      if (!empty($chunk_data['professional_experience'])) {
+        $all_experiences = array_merge($all_experiences, $chunk_data['professional_experience']);
+        $logger->info('✅ Found @count jobs in chunk @num', [
+          '@count' => count($chunk_data['professional_experience']),
+          '@num' => $chunk_num,
+        ]);
+      }
+    }
 
     if (!$core_data) {
-      throw new \Exception('Failed to parse core profile sections');
+      throw new \Exception('Failed to parse core profile sections from any chunk');
     }
 
-    // CALL 2: Parse professional experience
-    $logger->info('💼 Queue Call 2/2: Parsing professional experience for @filename (user @username)', [
-      '@filename' => $filename,
-      '@username' => $username,
-    ]);
-    $experience_prompt = $this->buildProfessionalExperiencePrompt($extracted_text, $filename);
-    $result = $this->callBedrockAndParse($bedrock, $model, $experience_prompt, 'experience', $filename, $username);
-    $experience_data = $result['parsed_data'];
-    $raw_responses['experience'] = $result['raw_response'];
-
-    if (!$experience_data) {
-      throw new \Exception('Failed to parse professional experience');
-    }
-
-    // Merge results
-    $merged_data = $core_data;
-    $merged_data['professional_experience'] = $experience_data['professional_experience'] ?? [];
+    // Add all collected experiences to final data
+    $core_data['professional_experience'] = $all_experiences;
+    $logger->info('✅ Total jobs collected: @count', ['@count' => count($all_experiences)]);
 
     return [
-      'parsed_data' => $merged_data,
+      'parsed_data' => $core_data,
       'raw_responses' => $raw_responses,
     ];
   }
 
   /**
+   * Split resume text into chunks of max_chars, breaking at newlines.
+   * 
+   * @param string $text
+   *   The full resume text.
+   * @param int $max_chars
+   *   Maximum characters per chunk (default 10000).
+   * 
+   * @return array
+   *   Array of text chunks.
+   */
+  private function chunkResumeText($text, $max_chars = 10000) {
+    $chunks = [];
+    $current_chunk = '';
+    $lines = explode("\n", $text);
+    
+    foreach ($lines as $line) {
+      // If adding this line would exceed max, save current chunk and start new one
+      if (strlen($current_chunk) + strlen($line) + 1 > $max_chars && strlen($current_chunk) > 0) {
+        $chunks[] = $current_chunk;
+        $current_chunk = $line;
+      } else {
+        $current_chunk .= ($current_chunk ? "\n" : '') . $line;
+      }
+    }
+    
+    // Add the last chunk if not empty
+    if (strlen($current_chunk) > 0) {
+      $chunks[] = $current_chunk;
+    }
+    
+    return $chunks;
+  }
+
+  /**
    * Call Bedrock and parse JSON response.
+   * 
+   * @param int $max_tokens
+   *   Maximum tokens for response (default 20000 for chunked processing)
    * 
    * @return array
    *   Array with 'parsed_data' and 'raw_response' keys.
    */
-  private function callBedrockAndParse($bedrock, $model, $prompt, $chunk_name, $filename = '', $username = '') {
+  private function callBedrockAndParse($bedrock, $model, $prompt, $chunk_name, $filename = '', $username = '', $max_tokens = 20000) {
     $logger = \Drupal::logger('job_hunter');
+
+    $context_msg = '';
+    if ($filename && $username) {
+      $context_msg = " for $filename (user $username)";
+    }
+
+    $logger->info('⏳ Queue @chunk: Sending request to GenAI API (max_tokens: @tokens)@context', [
+      '@chunk' => $chunk_name,
+      '@tokens' => $max_tokens,
+      '@context' => $context_msg,
+    ]);
 
     $result = $bedrock->invokeModel([
       'modelId' => $model,
       'contentType' => 'application/json',
       'body' => json_encode([
         'anthropic_version' => 'bedrock-2023-05-31',
-        'max_tokens' => 8000,
+        'max_tokens' => $max_tokens,
         'messages' => [
           ['role' => 'user', 'content' => $prompt],
         ],
@@ -223,14 +299,21 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
 
     $response_body = json_decode($result->get('body')->getContents(), TRUE);
     $response_text = $response_body['content'][0]['text'] ?? '';
+    $stop_reason = $response_body['stop_reason'] ?? 'unknown';
 
-    $context_msg = '';
-    if ($filename && $username) {
-      $context_msg = " for $filename (user $username)";
+    // Check if response was truncated due to max_tokens limit
+    if ($stop_reason === 'max_tokens') {
+      $logger->error('❌ Queue @chunk hit max_tokens limit! Response truncated at @len chars@context. Increase max_tokens to fix this.', [
+        '@chunk' => $chunk_name,
+        '@len' => strlen($response_text),
+        '@context' => $context_msg,
+      ]);
     }
-    $logger->info('🔍 Queue @chunk response: @len chars@context', [
+
+    $logger->info('🔍 Queue @chunk response: @len chars, stop_reason: @reason@context', [
       '@chunk' => $chunk_name,
       '@len' => strlen($response_text),
+      '@reason' => $stop_reason,
       '@context' => $context_msg,
     ]);
 
@@ -281,6 +364,17 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
     if (empty($response_text)) {
       return NULL;
     }
+
+    // Normalize responses that contain literal escape sequences (e.g. "\n")
+    // without actual newlines. This indicates the JSON was returned as a
+    // string-escaped payload and must be unescaped before decoding.
+    $has_literal_newlines = strpos($response_text, "\\n") !== FALSE;
+    $has_actual_newlines = strpos($response_text, "\n") !== FALSE;
+    if ($has_literal_newlines && !$has_actual_newlines) {
+      $response_text = stripcslashes($response_text);
+      $response_text = trim($response_text);
+      \Drupal::logger('job_hunter')->warning('🟡 Normalized escaped JSON response (literal \\n sequences detected)');
+    }
     
     // If the response starts with { and ends with }, try parsing it directly first
     if ($response_text[0] === '{' && $response_text[strlen($response_text) - 1] === '}') {
@@ -289,6 +383,21 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
       if (json_last_error() === JSON_ERROR_NONE) {
         return $response_text; // It's already valid JSON!
       }
+      // Log why direct parsing failed
+      \Drupal::logger('job_hunter')->warning('🟡 Direct JSON parse failed: @error, Last 200 chars: @end', [
+        '@error' => json_last_error_msg(),
+        '@end' => substr($response_text, -200),
+      ]);
+    }
+    else {
+      // Log why we didn't try direct parsing
+      $first_char = isset($response_text[0]) ? $response_text[0] : 'EMPTY';
+      $last_char = strlen($response_text) > 0 ? $response_text[strlen($response_text) - 1] : 'EMPTY';
+      \Drupal::logger('job_hunter')->warning('🟡 Skipped direct parse. First: @first, Last: @last, Last 100 chars: @end', [
+        '@first' => $first_char,
+        '@last' => $last_char,
+        '@end' => substr($response_text, -100),
+      ]);
     }
     
     // Try markdown code fence
@@ -448,6 +557,112 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
     } catch (\Exception $e) {
       \Drupal::logger('job_hunter')->error('Queue: Failed to consolidate all parsed data: @error', ['@error' => $e->getMessage()]);
     }
+  }
+
+  /**
+   * Build chunk parsing prompt (handles both core and experience).
+   */
+  private function buildChunkPrompt($chunk_text, $filename) {
+    $timestamp = date('c');
+    $char_count = strlen($chunk_text);
+    
+    return <<<PROMPT
+You are a professional resume parser. Extract ALL information from this resume chunk.
+
+IMPORTANT: This is part of a larger resume that has been split into chunks. Extract whatever information is present in this chunk. Some fields may not be present - return null or empty arrays for missing data.
+
+REQUIREMENTS:
+1. Preserve ALL information - do not summarize
+2. Use YYYY-MM format for dates
+3. Use null for missing optional fields
+4. Return ONLY valid JSON with no markdown or explanation
+5. For professional experience: Extract complete job entries even if split across chunks
+
+JSON SCHEMA:
+{
+  "schema_version": "1.0",
+  "extraction_metadata": {
+    "source_filename": "{$filename}",
+    "extracted_at": "{$timestamp}",
+    "character_count": {$char_count}
+  },
+  "contact_info": {
+    "full_name": "First Last",
+    "credentials": ["MBA", "PMP"],
+    "headline": "Professional title/tagline",
+    "location": {"city": "City", "state": "ST"},
+    "phone": "(xxx) xxx-xxxx",
+    "email": "email@example.com",
+    "websites": [{"type": "linkedin|github|personal", "url": "https://..."}]
+  },
+  "executive_profile": {
+    "summary": "Full executive summary text",
+    "industry_focus": ["industry1", "industry2"],
+    "key_metrics": [{"metric": "name", "value": "XXM+", "context": "explanation"}]
+  },
+  "strategic_differentiators": [
+    {"title": "Title", "description": "Description"}
+  ],
+  "consulting_practice": {
+    "company": "Company Name",
+    "title": "Title",
+    "start_date": "YYYY-MM",
+    "end_date": null,
+    "description": "Description",
+    "notable_engagements": [{"client": "Client", "role": "Role", "description": "Desc"}]
+  },
+  "early_career": {
+    "period": "YYYY-YYYY",
+    "summary": "Summary text",
+    "positions": [{"company": "Company", "duration": "X years", "focus": "Role desc"}]
+  },
+  "education": [
+    {"institution": "University", "degree": "Degree Name", "abbreviation": "MBA", "field": "Field", "end_date": "YYYY-MM"}
+  ],
+  "technical_expertise": {
+    "categories": [{"name": "Category", "skills": ["skill1", "skill2"]}]
+  },
+  "leadership_philosophy": {
+    "statement": "Philosophy text",
+    "key_themes": ["theme1", "theme2"]
+  },
+  "demonstration_projects": [
+    {"name": "Project", "url": "https://...", "technologies": ["tech1"], "description": "Desc"}
+  ],
+  "professional_experience": [
+    {
+      "company": "Company Name",
+      "title": "Job Title",
+      "employment_type": "direct|consulting",
+      "via_company": null,
+      "start_date": "YYYY-MM",
+      "end_date": "YYYY-MM or null if current",
+      "location": "City, ST",
+      "company_context": "Brief company description if provided",
+      "responsibility_categories": [
+        {
+          "category": "Category Name",
+          "achievements": [
+            {
+              "text": "Full bullet point text",
+              "metrics": ["\$3.2M revenue", "30% improvement"],
+              "technologies": ["Python", "AWS"],
+              "keywords": ["AI strategy", "data governance"]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
+RESUME CHUNK:
+---
+{$chunk_text}
+---
+
+Return the JSON object with whatever sections are present in this chunk. Use null or empty arrays for missing sections.
+PROMPT;
   }
 
   /**

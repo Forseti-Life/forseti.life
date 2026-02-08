@@ -129,7 +129,7 @@ class AIConversationSettingsForm extends ConfigFormBase {
     $form['conversation_settings']['max_tokens'] = [
       '#type' => 'number',
       '#title' => $this->t('Maximum Tokens'),
-      '#default_value' => $config->get('max_tokens') ?: 4000,
+      '#default_value' => $config->get('max_tokens') ?: 20000,
       '#description' => $this->t('Maximum number of tokens for AI responses.'),
       '#min' => 100,
       '#max' => 8000,

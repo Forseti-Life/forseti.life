@@ -1,0 +1,11 @@
+_core:
+  default_config_hash: I9H2VE-8oXeJsmeILgRxgWNIv-XmoVpnU-2JVwEk6PU
+langcode: en
+status: true
+dependencies: {  }
+id: job_hunter.settings
+original_resume_node_id: null
+enable_automatic_tailoring: true
+ai_service_region: us-west-2
+ai_model_id: 'anthropic.claude-3-5-sonnet-20240620-v1:0'
+max_tokens: 4000

@@ -1,5 +1,7 @@
 # Agent Evaluation Module
 
+**Last Updated:** February 6, 2026
+
 ## Overview
 
 The Agent Evaluation module enables AI-powered evaluation of entities (AI systems, organizations, platforms, individuals) using the comprehensive Agent Power Framework. It leverages the AI Conversation module to create interactive evaluations across 30 sub-dimensions organized into 5 main power dimensions.

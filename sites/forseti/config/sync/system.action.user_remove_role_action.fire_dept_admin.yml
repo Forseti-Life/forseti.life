@@ -1,0 +1,14 @@
+uuid: 1e7bc1f1-b33b-4b8b-80f2-460a7e3c56cd
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.fire_dept_admin
+  module:
+    - user
+id: user_remove_role_action.fire_dept_admin
+label: 'Remove the Fire Department Administrator role from the selected user(s)'
+type: user
+plugin: user_remove_role_action
+configuration:
+  rid: fire_dept_admin

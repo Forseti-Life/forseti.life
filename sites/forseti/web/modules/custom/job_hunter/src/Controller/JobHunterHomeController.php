@@ -249,6 +249,56 @@ class JobHunterHomeController extends ControllerBase {
   }
 
   /**
+   * Get recent queue activity logs (AJAX endpoint).
+   */
+  public function getQueueLogsAjax(): JsonResponse {
+    // Admin only for detailed logs
+    if (!$this->currentUser()->hasPermission('administer job application automation')) {
+      return new JsonResponse(['success' => FALSE, 'message' => 'Access denied'], 403);
+    }
+
+    $database = \Drupal::database();
+    
+    // Get last 20 queue-related log entries
+    $query = $database->select('watchdog', 'w')
+      ->fields('w', ['wid', 'timestamp', 'type', 'severity', 'message', 'variables'])
+      ->condition('type', 'job_hunter')
+      ->orderBy('timestamp', 'DESC')
+      ->range(0, 20);
+    
+    $results = $query->execute()->fetchAll();
+    
+    $logs = [];
+    foreach ($results as $row) {
+      $variables = unserialize($row->variables);
+      $message = strtr($row->message, $variables);
+      
+      // Map severity to type
+      $type_map = [
+        0 => 'error',    // EMERGENCY
+        1 => 'error',    // ALERT
+        2 => 'error',    // CRITICAL
+        3 => 'error',    // ERROR
+        4 => 'warning',  // WARNING
+        5 => 'warning',  // NOTICE
+        6 => 'info',     // INFO
+        7 => 'info',     // DEBUG
+      ];
+      
+      $logs[] = [
+        'timestamp' => $row->timestamp,
+        'message' => $message,
+        'type' => $type_map[$row->severity] ?? 'info',
+      ];
+    }
+    
+    return new JsonResponse([
+      'success' => TRUE,
+      'logs' => $logs,
+    ]);
+  }
+
+  /**
    * Process items from a queue.
    *
    * @param string $queue_id
@@ -388,16 +438,79 @@ class JobHunterHomeController extends ControllerBase {
       return $b['created'] - $a['created'];
     });
     
+    // Check database table health
+    $table_health = $this->checkTableHealth();
+    
     return [
       '#theme' => 'job_hunter_queue_management',
       '#queue_items' => $queue_items,
       '#queue_status' => $this->getQueueStatus(),
+      '#table_health' => $table_health,
       '#attached' => [
         'library' => [
           'job_hunter/queue-management',
           'job_hunter/queue-controls',
         ],
       ],
+    ];
+  }
+
+  /**
+   * Check health of all job_hunter database tables.
+   *
+   * @return array
+   *   Health check results with overall status and table details.
+   */
+  private function checkTableHealth() {
+    $schema = \Drupal::database()->schema();
+    
+    // Define expected tables and their critical columns
+    $expected_tables = [
+      'jobhunter_job_seeker' => ['id', 'uid', 'created', 'changed'],
+      'jobhunter_job_history' => ['id', 'job_seeker_id', 'company', 'title'],
+      'jobhunter_education_history' => ['id', 'job_seeker_id', 'institution', 'degree'],
+      'jobhunter_resume_parsed_data' => ['id', 'uid', 'resume_file_id', 'parsed_data', 'status', 'raw_genai_response_core', 'raw_genai_response_experience'],
+      'jobhunter_job_seeker_resumes' => ['id', 'job_seeker_id', 'file_id', 'extracted_text'],
+      'jobhunter_tailored_resumes' => ['id', 'job_seeker_id', 'company', 'job_title'],
+    ];
+    
+    $results = [];
+    $all_healthy = TRUE;
+    
+    foreach ($expected_tables as $table_name => $required_columns) {
+      $table_exists = $schema->tableExists($table_name);
+      $columns_ok = TRUE;
+      $missing_columns = [];
+      
+      if ($table_exists) {
+        foreach ($required_columns as $column) {
+          if (!$schema->fieldExists($table_name, $column)) {
+            $columns_ok = FALSE;
+            $missing_columns[] = $column;
+          }
+        }
+      } else {
+        $columns_ok = FALSE;
+        $all_healthy = FALSE;
+      }
+      
+      $is_healthy = $table_exists && $columns_ok;
+      if (!$is_healthy) {
+        $all_healthy = FALSE;
+      }
+      
+      $results[$table_name] = [
+        'exists' => $table_exists,
+        'columns_ok' => $columns_ok,
+        'missing_columns' => $missing_columns,
+        'healthy' => $is_healthy,
+      ];
+    }
+    
+    return [
+      'overall_healthy' => $all_healthy,
+      'tables' => $results,
+      'checked_at' => time(),
     ];
   }
 
@@ -443,6 +556,14 @@ class JobHunterHomeController extends ControllerBase {
    * Delete a queue item (AJAX endpoint).
    */
   public function deleteQueueItem(Request $request) {
+    // Check admin permission
+    if (!$this->currentUser()->hasPermission('administer job application automation')) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Access denied',
+      ], 403);
+    }
+
     // Handle JSON request body
     $content = $request->getContent();
     if ($content) {
@@ -507,6 +628,14 @@ class JobHunterHomeController extends ControllerBase {
    * Delete a file (AJAX endpoint).
    */
   public function deleteFile(Request $request) {
+    // Check admin permission
+    if (!$this->currentUser()->hasPermission('administer job application automation')) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Access denied',
+      ], 403);
+    }
+
     // Handle JSON request body
     $content = $request->getContent();
     if ($content) {

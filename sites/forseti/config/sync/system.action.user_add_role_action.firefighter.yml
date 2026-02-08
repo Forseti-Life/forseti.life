@@ -1,0 +1,14 @@
+uuid: 9625b804-49de-4959-b39e-3673321d648f
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.firefighter
+  module:
+    - user
+id: user_add_role_action.firefighter
+label: 'Add the Firefighter role to the selected user(s)'
+type: user
+plugin: user_add_role_action
+configuration:
+  rid: firefighter

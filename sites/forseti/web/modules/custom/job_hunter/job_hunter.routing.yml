@@ -9,7 +9,7 @@ job_hunter.dashboard:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::dashboard'
     _title: 'Job Hunter Dashboard'
   requirements:
-    _access: 'TRUE'
+    _permission: 'access job hunter'
 
 # Job Hunter Home (alternate entry point)
 job_hunter.home:
@@ -18,7 +18,7 @@ job_hunter.home:
     _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::home'
     _title: 'Job Hunter'
   requirements:
-    _access: 'TRUE'
+    _permission: 'access job hunter'
 
 # Queue Management Routes (Admin only)
 job_hunter.queue_run:
@@ -43,7 +43,15 @@ job_hunter.queue_status:
     _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::getQueueStatusAjax'
   methods: [GET]
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
+
+job_hunter.queue_logs:
+  path: '/jobhunter/queue/logs'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::getQueueLogsAjax'
+  methods: [GET]
+  requirements:
+    _permission: 'administer job application automation'
 
 job_hunter.queue_management:
   path: '/jobhunter/queue-management'
@@ -153,7 +161,7 @@ job_hunter.user_job_seeker_view:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::redirectToEdit'
     _title: 'My Profile'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
 
 # Job Discovery - Company Selection Page
 job_hunter.start_job_discovery:
@@ -283,7 +291,7 @@ job_hunter.user_profile_dashboard:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::dashboard'
     _title: 'Job Application Profile'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
 
 job_hunter.user_profile_edit:
   path: '/jobhunter/profile/edit'
@@ -291,7 +299,7 @@ job_hunter.user_profile_edit:
     _form: '\Drupal\job_hunter\Form\UserProfileForm'
     _title: 'Edit Job Application Profile'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
 
 # Download Resume File
 job_hunter.download_resume:
@@ -299,7 +307,7 @@ job_hunter.download_resume:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::downloadResume'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
     file: \d+
 
 # Delete Resume File
@@ -308,7 +316,7 @@ job_hunter.delete_resume:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::deleteResume'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
     resume_id: \d+
 
 # Current User Profile Shortcuts
@@ -318,7 +326,7 @@ job_hunter.my_profile:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::myProfile'
     _title: 'My Job Application Profile'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
 
 job_hunter.my_profile_edit:
   path: '/jobhunter/my-profile/edit'
@@ -326,7 +334,7 @@ job_hunter.my_profile_edit:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::myProfileEdit'
     _title: 'Edit My Job Application Profile'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
 
 # Tailor Resume for Specific Job
 job_hunter.tailor_resume:
@@ -335,7 +343,7 @@ job_hunter.tailor_resume:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::tailorResume'
     _title: 'Tailor Resume for Job'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
     job: \d+
 
 # AJAX endpoint for resume tailoring
@@ -344,7 +352,7 @@ job_hunter.tailor_resume_ajax:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::tailorResumeAjax'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
   methods: [POST]
   options:
     _csrf_token: FALSE
@@ -355,7 +363,7 @@ job_hunter.tailor_resume_status_ajax:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::tailorResumeStatusAjax'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
   methods: [GET]
 
 # AJAX endpoint for adding skill to profile
@@ -364,7 +372,7 @@ job_hunter.add_skill_to_profile_ajax:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::addSkillToProfileAjax'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
   methods: [POST]
   options:
     _csrf_token: FALSE
@@ -375,7 +383,7 @@ job_hunter.refresh_skills_gap_ajax:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::refreshSkillsGapAjax'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
   methods: [POST]
   options:
     _csrf_token: FALSE
@@ -421,7 +429,7 @@ job_hunter.jobs_list:
     _controller: '\Drupal\job_hunter\Controller\CompanyController::listJobs'
     _title: 'Job Postings'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
 
 # Paste job posting (main entry point for job tailoring workflow)
 job_hunter.job_paste:
@@ -430,7 +438,7 @@ job_hunter.job_paste:
     _form: '\Drupal\job_hunter\Form\AddJobPostingForm'
     _title: 'Add Job Posting'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
 
 # DEPRECATED: Old manual add routes removed - use job_hunter.job_paste instead
 # job_hunter.job_add and job_hunter.job_add_for_company have been removed
@@ -442,7 +450,7 @@ job_hunter.job_edit:
     _form: '\Drupal\job_hunter\Form\JobRequirementForm'
     _title: 'Edit Job Requirement'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
     job_id: \d+
 
 job_hunter.job_view:
@@ -451,7 +459,7 @@ job_hunter.job_view:
     _controller: '\Drupal\job_hunter\Controller\CompanyController::viewJob'
     _title: 'View Job'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
     job_id: \d+
 
 job_hunter.job_delete:
@@ -469,7 +477,7 @@ job_hunter.generate_tailored_resume_pdf:
     _controller: '\Drupal\job_hunter\Controller\ResumeController::generateTailoredPdf'
     _title: 'Generate Resume PDF'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
     job_id: \d+
 
 # Download Tailored Resume as PDF
@@ -479,7 +487,7 @@ job_hunter.download_tailored_resume_pdf:
     _controller: '\Drupal\job_hunter\Controller\ResumeController::downloadTailoredPdf'
     _title: 'Download Resume PDF'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
     job_id: \d+
 
 # Download specific PDF by history ID
@@ -489,7 +497,7 @@ job_hunter.download_pdf_by_id:
     _controller: '\Drupal\job_hunter\Controller\ResumeController::downloadPdfById'
     _title: 'Download Resume PDF'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
     pdf_id: \d+
 
 # Delete specific PDF by history ID
@@ -500,7 +508,7 @@ job_hunter.delete_pdf:
     _title: 'Delete Resume PDF'
   methods: [POST, DELETE]
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
     pdf_id: \d+
 
 # Download Base Resume as PDF
@@ -510,7 +518,7 @@ job_hunter.download_base_resume_pdf:
     _controller: '\Drupal\job_hunter\Controller\ResumeController::downloadBasePdf'
     _title: 'Download Resume PDF'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access job hunter'
 
 # 6. Future Routes (Commented Out)
 # job_hunter.settings:

@@ -1,0 +1,14 @@
+uuid: 969ebe23-3183-4f54-833b-d52aef4df9b2
+langcode: en
+status: true
+dependencies:
+  module:
+    - nfr
+id: firefighter
+label: Firefighter
+weight: 6
+is_admin: false
+permissions:
+  - 'access nfr dashboard'
+  - 'view cancer data'
+  - 'view firefighter records'

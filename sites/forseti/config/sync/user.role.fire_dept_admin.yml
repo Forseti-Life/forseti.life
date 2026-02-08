@@ -1,0 +1,14 @@
+uuid: 7c70cb5a-cfeb-47ee-a280-734190e12e86
+langcode: en
+status: true
+dependencies:
+  module:
+    - nfr
+id: fire_dept_admin
+label: 'Fire Department Administrator'
+weight: 7
+is_admin: false
+permissions:
+  - 'access nfr dashboard'
+  - 'view cancer data'
+  - 'view firefighter records'

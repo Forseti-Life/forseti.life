@@ -1,5 +1,7 @@
 # Job Application Automation Module
 
+**Last Updated:** February 6, 2026
+
 ## Overview
 A comprehensive AI-powered Drupal module that automates the entire job application process using Generative AI. This system analyzes user resumes, scrapes job postings from employer websites, tailors applications using AI, and automatically submits applications across multiple employer platforms.
 
@@ -73,6 +75,10 @@ The module provides a streamlined 4-step workflow focused on JSON storage of res
 - **Storage**: Stores parsed JSON in `jobhunter_resume_parsed_data.parsed_data` JSON field
 - **Status Update**: ✅ Text Extracted | ✅ Individual JSON Stored | ⬜ Merged to Consolidated
 
+**Response Normalization**: The parser now normalizes AI responses that return JSON as a
+string-escaped payload (e.g., literal `\n` sequences between lines). This ensures valid
+JSON is decoded even when the model returns escaped formatting.
+
 **Individual Resume JSON Structure**:
 ```json
 {
@@ -119,6 +125,16 @@ The module provides a streamlined 4-step workflow focused on JSON storage of res
   - Education History: Deduplicated by institution + degree, tracks source resumes
 - **Storage**: Updates `jobhunter_job_seeker.consolidated_profile_json` JSON field
 - **Status Update**: ✅ Text Extracted | ✅ Individual JSON Stored | ✅ Merged to Consolidated
+
+**Profile Pre-Fill**: `/jobhunter/profile/edit` reads `consolidated_profile_json` to
+pre-populate contact and summary fields when available.
+
+**Search Assist Section**: Job search preferences and demographic fields are shown
+at the top of the profile form under “Fill this out to assist in your search.” These
+fields are user-entered and are not derived from the resume JSON.
+
+**Salary Fields**: Salary inputs no longer render a `$` suffix in the UI. The section
+now includes a single note indicating all salary values are in USD.
 
 **Consolidated Profile JSON Structure**:
 ```json
@@ -387,12 +403,21 @@ User clicks "Generate" → tailorResumeAjax()
 
 #### Database Tables
 
+**Storage Strategy:** This module uses a hybrid model — **nodes for canonical content** and **custom tables for operational/automation data** (AI artifacts, pipeline state, sync metadata). See [ARCHITECTURE.md](ARCHITECTURE.md) for policy and rules.
+
 | Table | Purpose |
 |-------|---------|
 | `job_hunter_job_requirements` | Job posting data (extracted_json, skills_required_json) |
+| `job_hunter_companies` | Company profile data and scraping configuration |
 | `jobhunter_job_seeker` | User profile with `consolidated_profile_json` |
+| `jobhunter_job_seeker_resumes` | Uploaded resumes and extracted text state |
+| `jobhunter_resume_parsed_data` | Parsed resume JSON data |
+| `jobhunter_job_history` | Normalized work history (future use) |
+| `jobhunter_education_history` | Normalized education history (future use) |
 | `job_hunter_tailored_resumes` | Tailored results and `tailoring_status` |
 | `job_hunter_pdf_history` | Tracks generated PDF files per job |
+| `job_hunter_google_jobs_sync` | Google Jobs sync state and metrics |
+| `job_hunter_google_jobs_validation_log` | Validation history and results |
 
 #### Available Actions by Status
 

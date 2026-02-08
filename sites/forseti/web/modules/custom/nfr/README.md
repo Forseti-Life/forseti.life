@@ -1,5 +1,7 @@
 # National Firefighter Registry (NFR) Module
 
+**Last Updated:** February 6, 2026
+
 ## ⚠️ CRITICAL: Data Preservation Warning
 
 **DO NOT UNINSTALL THIS MODULE** without backing up the database first. Drupal automatically drops all tables defined in hook_schema() when a module is uninstalled, which will **permanently delete all collected data**, including:

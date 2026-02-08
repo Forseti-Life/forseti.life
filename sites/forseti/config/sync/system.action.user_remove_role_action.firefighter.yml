@@ -1,0 +1,14 @@
+uuid: c497304d-e6ee-4edb-89b6-8099ec47ef50
+langcode: en
+status: true
+dependencies:
+  config:
+    - user.role.firefighter
+  module:
+    - user
+id: user_remove_role_action.firefighter
+label: 'Remove the Firefighter role from the selected user(s)'
+type: user
+plugin: user_remove_role_action
+configuration:
+  rid: firefighter

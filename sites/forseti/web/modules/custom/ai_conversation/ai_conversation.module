@@ -29,6 +29,15 @@ function ai_conversation_theme() {
       ],
       'template' => 'user-ai-conversations',
     ],
+    'ai_usage_dashboard' => [
+      'variables' => [
+        'statistics' => [],
+        'recent_calls' => [],
+        'module_breakdown' => [],
+        'daily_usage' => [],
+      ],
+      'template' => 'ai-usage-dashboard',
+    ],
   ];
 }
 

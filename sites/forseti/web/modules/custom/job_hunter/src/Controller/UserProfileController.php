@@ -649,6 +649,9 @@ class UserProfileController extends ControllerBase {
       '#content' => $content,
     ];
 
+    return $build;
+  }
+
   /**
    * Redirect to profile edit page.
    *
@@ -657,9 +660,6 @@ class UserProfileController extends ControllerBase {
    */
   public function redirectToEdit() {
     return $this->redirect('job_hunter.user_profile_edit');
-  }
-
-    return $build;
   }
 
   /**

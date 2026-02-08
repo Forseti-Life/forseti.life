@@ -1,0 +1,20 @@
+uuid: d0b6023f-9d30-46db-9aac-62b20aacf212
+langcode: en
+status: true
+dependencies:
+  module:
+    - nfr
+id: nfr_administrator
+label: 'NFR Administrator'
+weight: 4
+is_admin: false
+permissions:
+  - 'access nfr dashboard'
+  - 'administer nfr'
+  - 'export nfr data'
+  - 'manage cancer data'
+  - 'manage firefighters'
+  - 'manage state registry linkages'
+  - 'view cancer data'
+  - 'view firefighter records'
+  - 'view nfr reports'

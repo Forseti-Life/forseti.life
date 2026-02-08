@@ -329,7 +329,7 @@ PROMPT;
       'contentType' => 'application/json',
       'body' => json_encode([
         'anthropic_version' => 'bedrock-2023-05-31',
-        'max_tokens' => 8000,
+        'max_tokens' => 40000,
         'messages' => [
           ['role' => 'user', 'content' => $prompt],
         ],
@@ -338,10 +338,20 @@ PROMPT;
 
     $response_body = json_decode($result->get('body')->getContents(), TRUE);
     $response_text = $response_body['content'][0]['text'] ?? '';
+    $stop_reason = $response_body['stop_reason'] ?? 'unknown';
 
-    $logger->info('🔍 Queue Job @chunk response: @len chars', [
+    // Check if response was truncated due to max_tokens limit
+    if ($stop_reason === 'max_tokens') {
+      $logger->error('❌ Queue Job @chunk hit max_tokens limit! Response truncated at @len chars. Increase max_tokens to fix this.', [
+        '@chunk' => $chunk_name,
+        '@len' => strlen($response_text),
+      ]);
+    }
+
+    $logger->info('🔍 Queue Job @chunk response: @len chars, stop_reason: @reason', [
       '@chunk' => $chunk_name,
       '@len' => strlen($response_text),
+      '@reason' => $stop_reason,
     ]);
 
     $json_text = $this->extractJsonFromResponse($response_text);

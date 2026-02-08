@@ -82,6 +82,49 @@
   }
 
   /**
+   * Load recent logs from Drupal watchdog.
+   */
+  function loadRecentLogs() {
+    $.ajax({
+      url: '/jobhunter/queue/logs',
+      type: 'GET',
+      dataType: 'json',
+      success: function(response) {
+        if (response.success && response.logs) {
+          const logContainer = $('#log-entries');
+          logContainer.empty();
+          
+          const icons = {
+            'success': '✅',
+            'error': '❌',
+            'info': 'ℹ️',
+            'processing': '⏳',
+            'warning': '⚠️'
+          };
+          
+          response.logs.forEach(function(log) {
+            const date = new Date(log.timestamp * 1000);
+            const timestamp = formatTime(date);
+            const entry = $('<div class="log-entry log-' + log.type + '">' +
+              '<span class="log-time">' + timestamp + '</span> ' +
+              '<span class="log-icon">' + (icons[log.type] || 'ℹ️') + '</span> ' +
+              '<span class="log-message">' + log.message + '</span>' +
+              '</div>');
+            logContainer.append(entry);
+          });
+          
+          if (response.logs.length === 0) {
+            logContainer.html('<div class="log-entry log-info">No recent queue activity</div>');
+          }
+        }
+      },
+      error: function() {
+        $('#log-entries').html('<div class="log-entry log-error">Failed to load logs</div>');
+      }
+    });
+  }
+
+  /**
    * Update queue status indicator.
    */
   function updateQueueStatus(queueId, status, text) {
@@ -128,6 +171,49 @@
   }
 
   /**
+   * Load recent logs from Drupal watchdog.
+   */
+  function loadRecentLogs() {
+    $.ajax({
+      url: '/jobhunter/queue/logs',
+      type: 'GET',
+      dataType: 'json',
+      success: function(response) {
+        if (response.success && response.logs) {
+          const logContainer = $('#log-entries');
+          logContainer.empty();
+          
+          const icons = {
+            'success': '✅',
+            'error': '❌',
+            'info': 'ℹ️',
+            'processing': '⏳',
+            'warning': '⚠️'
+          };
+          
+          response.logs.forEach(function(log) {
+            const date = new Date(log.timestamp * 1000);
+            const timestamp = formatTime(date);
+            const entry = $('<div class=\"log-entry log-' + log.type + '\">' +
+              '<span class=\"log-time\">' + timestamp + '</span> ' +
+              '<span class=\"log-icon\">' + (icons[log.type] || 'ℹ️') + '</span> ' +
+              '<span class=\"log-message\">' + log.message + '</span>' +
+              '</div>');
+            logContainer.append(entry);
+          });
+          
+          if (response.logs.length === 0) {
+            logContainer.html('<div class=\"log-entry log-info\">No recent queue activity</div>');
+          }
+        }
+      },
+      error: function() {
+        // Silently fail - keep existing logs
+      }
+    });
+  }
+
+  /**
    * Start auto-refresh countdown.
    */
   function startAutoRefresh() {
@@ -151,6 +237,7 @@
     
     autoRefreshInterval = setTimeout(function() {
       silentRefreshQueueStatus();
+      loadRecentLogs();
       startAutoRefresh();
     }, REFRESH_SECONDS * 1000);
   }
@@ -173,6 +260,7 @@
       // Initialize total count on page load
       once('queue-init-total', '#queue-controls-panel', context).forEach(function () {
         updateTotalCount();
+        loadRecentLogs();
         startAutoRefresh();
         addLogEntry('Queue dashboard initialized', 'info');
       });
