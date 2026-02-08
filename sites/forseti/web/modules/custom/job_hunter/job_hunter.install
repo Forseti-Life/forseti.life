@@ -588,7 +588,7 @@ function job_hunter_update_9012() {
 /**
  * Create Google Jobs integration tables.
  */
-function job_hunter_update_9010() {
+function job_hunter_update_9013() {
   _job_hunter_create_google_jobs_sync_table();
   _job_hunter_create_google_jobs_validation_log_table();
   return t('Created Google Jobs integration tables.');

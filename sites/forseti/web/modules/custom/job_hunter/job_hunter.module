@@ -164,6 +164,7 @@ function job_hunter_theme() {
         'company' => NULL,
         'sync' => NULL,
         'validation_log' => [],
+        'sync_validation_errors' => [],
       ],
       'template' => 'google-jobs-job-detail',
     ],

@@ -50,7 +50,7 @@
         <div class="stat-content">
           <h3>{{ stats.enabled_count }}</h3>
           <p>Google Jobs Enabled</p>
-          <small>{{ stats.enabled_count > 0 ? ((stats.enabled_count / stats.total_jobs) * 100)|round(1) : 0 }}%</small>
+          <small>{{ stats.total_jobs > 0 ? ((stats.enabled_count / stats.total_jobs) * 100)|round(1) : 0 }}%</small>
         </div>
       </div>
     </div>

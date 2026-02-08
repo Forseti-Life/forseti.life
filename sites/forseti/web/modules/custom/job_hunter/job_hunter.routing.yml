@@ -546,6 +546,8 @@ job_hunter.google_jobs_toggle_sync:
   methods: [POST]
   requirements:
     _permission: 'administer job application automation'
+  options:
+    _csrf_request_header_mode: 'true'
 
 job_hunter.google_jobs_generate_structured_data:
   path: '/jobhunter/googlejobsintegration/generate'
@@ -554,6 +556,8 @@ job_hunter.google_jobs_generate_structured_data:
   methods: [POST]
   requirements:
     _permission: 'administer job application automation'
+  options:
+    _csrf_request_header_mode: 'true'
 
 job_hunter.google_jobs_validate:
   path: '/jobhunter/googlejobsintegration/validate'
@@ -562,6 +566,8 @@ job_hunter.google_jobs_validate:
   methods: [POST]
   requirements:
     _permission: 'administer job application automation'
+  options:
+    _csrf_request_header_mode: 'true'
 
 job_hunter.google_jobs_list:
   path: '/jobhunter/googlejobsintegration/jobs-list'

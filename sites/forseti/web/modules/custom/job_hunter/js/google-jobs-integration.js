@@ -3,7 +3,7 @@
  * JavaScript for Google Jobs Integration.
  */
 
-(function ($, Drupal) {
+(function ($, Drupal, once) {
   'use strict';
 
   Drupal.behaviors.googleJobsIntegration = {
@@ -24,8 +24,9 @@
           });
       }
       
-      // Initialize once
-      $('.google-jobs-integration-home', context).once('google-jobs-init').each(function () {
+      // Initialize home page once
+      once('google-jobs-init', '.google-jobs-integration-home', context).forEach(function (element) {
+        const $element = $(element);
         
         // Refresh statistics
         $('#refresh-stats').on('click', function () {
@@ -216,80 +217,253 @@
                   headers: {
                     'X-CSRF-Token': token
                   },
-                data: JSON.stringify({ job_id: jobId }),
-                success: function (response) {
-                  completed++;
-                  if (response.status === 'valid') {
-                    valid++;
-                  } else {
+                  data: JSON.stringify({ job_id: jobId }),
+                  success: function (response) {
+                    completed++;
+                    if (response.status === 'valid') {
+                      valid++;
+                    } else {
+                      invalid++;
+                    }
+
+                    // Update progress
+                    $btn.html('<span class="loading-spinner"></span> ' + completed + '/' + jobIds.length);
+
+                    // When all complete
+                    if (completed === jobIds.length) {
+                      $btn.prop('disabled', false);
+                      $btn.html('Validate All');
+                      showMessage('success', 'Validation complete: ' + valid + ' valid, ' + invalid + ' invalid');
+                      // Reload to show updated statuses
+                      setTimeout(function() {
+                        location.reload();
+                      }, 2000);
+                    }
+                  },
+                  error: function () {
+                    completed++;
                     invalid++;
+                    if (completed === jobIds.length) {
+                      $btn.prop('disabled', false);
+                      $btn.html('Validate All');
+                      showMessage('warning', 'Validation complete with some errors');
+                      setTimeout(function() {
+                        location.reload();
+                      }, 2000);
+                    }
                   }
-                  
-                  // Update progress
-                  $btn.html('<span class="loading-spinner"></span> ' + completed + '/' + jobIds.length);
-                  
-                  // When all complete
-                  if (completed === jobIds.length) {
-                    $btn.prop('disabled', false);
-                    $btn.html('Validate All');
-                    showMessage('success', 'Validation complete: ' + valid + ' valid, ' + invalid + ' invalid');
-                    // Reload to show updated statuses
-                    setTimeout(function() {
-                      location.reload();
-                    }, 2000);
-                  }
-                },
-                error: function () {
-                  completed++;
-                  invalid++;
-                  if (completed === jobIds.length) {
-                    $btn.prop('disabled', false);
-                    $btn.html('Validate All');
-                    showMessage('warning', 'Validation complete with some errors');
-                    setTimeout(function() {
-                      location.reload();
-                    }, 2000);
-                  }
-                  }
-                }
-              });
-            }, index * 300); // Stagger requests by 300ms
+                });
+              }, index * 300); // Stagger requests by 300ms
+            });
           });
         });
+      });
+
+      // Initialize detail page once
+      once('google-jobs-detail-init', '.google-jobs-job-detail', context).forEach(function (element) {
+        const $element = $(element);
+
+        // Validate job from detail page
+        $element.find('#validate-job').on('click', function () {
+          const $btn = $(this);
+          const jobId = $btn.data('job-id');
+
+          $btn.prop('disabled', true);
+          $btn.html('<span class="loading-spinner"></span> Validating...');
+
+          getCsrfToken().then(function (token) {
+            $.ajax({
+              url: '/jobhunter/googlejobsintegration/validate',
+              method: 'POST',
+              contentType: 'application/json',
+              headers: { 'X-CSRF-Token': token },
+              data: JSON.stringify({ job_id: jobId }),
+              success: function (response) {
+                if (response.status === 'valid') {
+                  showMessage('success', 'Structured data is valid! ✓');
+                } else {
+                  var errorCount = response.errors ? response.errors.length : 0;
+                  showMessage('warning', 'Validation found ' + errorCount + ' error(s)');
+                }
+                $btn.prop('disabled', false);
+                $btn.html('<i class="bi bi-check2-square"></i> Validate Now');
+              },
+              error: function (xhr) {
+                var error = xhr.responseJSON ? xhr.responseJSON.error : 'Error validating structured data';
+                showMessage('error', error);
+                $btn.prop('disabled', false);
+                $btn.html('<i class="bi bi-check2-square"></i> Validate Now');
+              }
+            });
+          });
         });
 
-        // Helper function to show messages
-        function showMessage(type, message) {
-          const alertClass = {
-            'success': 'alert-success',
-            'error': 'alert-danger',
-            'warning': 'alert-warning',
-            'info': 'alert-info'
-          }[type] || 'alert-info';
-          
-          const icon = {
-            'success': 'bi-check-circle-fill',
-            'error': 'bi-exclamation-circle-fill',
-            'warning': 'bi-exclamation-triangle-fill',
-            'info': 'bi-info-circle-fill'
-          }[type] || 'bi-info-circle-fill';
-          
-          const $alert = $('<div>')
-            .addClass('alert ' + alertClass + ' alert-dismissible fade show')
-            .attr('role', 'alert')
-            .html('<i class="bi ' + icon + '"></i> ' + message + 
-                  '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>');
-          
-          $('#status-messages').append($alert);
-          
-          // Auto-dismiss after 5 seconds
-          setTimeout(function () {
-            $alert.alert('close');
-          }, 5000);
-        }
-        
+        // Generate / regenerate structured data from detail page
+        $element.find('#generate-structured-data').on('click', function () {
+          const $btn = $(this);
+          const jobId = $btn.data('job-id');
+
+          $btn.prop('disabled', true);
+          $btn.html('<span class="loading-spinner"></span> Generating...');
+
+          getCsrfToken().then(function (token) {
+            $.ajax({
+              url: '/jobhunter/googlejobsintegration/generate',
+              method: 'POST',
+              contentType: 'application/json',
+              headers: { 'X-CSRF-Token': token },
+              data: JSON.stringify({ job_id: jobId }),
+              success: function (response) {
+                if (response.success) {
+                  showMessage('success', 'Structured data regenerated successfully');
+                  if (response.structured_data) {
+                    var $preview = $('#json-ld-preview code');
+                    if ($preview.length) {
+                      $preview.text(JSON.stringify(response.structured_data, null, 2));
+                    }
+                  }
+                } else {
+                  showMessage('error', response.error || 'Failed to generate structured data');
+                }
+                $btn.prop('disabled', false);
+                $btn.html('<i class="bi bi-code-square"></i> Regenerate Structured Data');
+              },
+              error: function (xhr) {
+                var error = xhr.responseJSON ? xhr.responseJSON.error : 'Error generating structured data';
+                showMessage('error', error);
+                $btn.prop('disabled', false);
+                $btn.html('<i class="bi bi-code-square"></i> Regenerate Structured Data');
+              }
+            });
+          });
+        });
+
+        // Enable integration
+        $element.find('#enable-integration').on('click', function () {
+          const $btn = $(this);
+          const jobId = $btn.data('job-id');
+
+          $btn.prop('disabled', true);
+
+          getCsrfToken().then(function (token) {
+            $.ajax({
+              url: '/jobhunter/googlejobsintegration/toggle-sync',
+              method: 'POST',
+              contentType: 'application/json',
+              headers: { 'X-CSRF-Token': token },
+              data: JSON.stringify({ job_id: jobId, enabled: 1 }),
+              success: function (response) {
+                if (response.success) {
+                  showMessage('success', response.message);
+                  setTimeout(function () { location.reload(); }, 1000);
+                } else {
+                  showMessage('error', 'Failed to enable integration');
+                  $btn.prop('disabled', false);
+                }
+              },
+              error: function () {
+                showMessage('error', 'Error communicating with server');
+                $btn.prop('disabled', false);
+              }
+            });
+          });
+        });
+
+        // Disable integration
+        $element.find('#disable-integration').on('click', function () {
+          const $btn = $(this);
+          const jobId = $btn.data('job-id');
+
+          $btn.prop('disabled', true);
+
+          getCsrfToken().then(function (token) {
+            $.ajax({
+              url: '/jobhunter/googlejobsintegration/toggle-sync',
+              method: 'POST',
+              contentType: 'application/json',
+              headers: { 'X-CSRF-Token': token },
+              data: JSON.stringify({ job_id: jobId, enabled: 0 }),
+              success: function (response) {
+                if (response.success) {
+                  showMessage('success', response.message);
+                  setTimeout(function () { location.reload(); }, 1000);
+                } else {
+                  showMessage('error', 'Failed to disable integration');
+                  $btn.prop('disabled', false);
+                }
+              },
+              error: function () {
+                showMessage('error', 'Error communicating with server');
+                $btn.prop('disabled', false);
+              }
+            });
+          });
+        });
+
+        // Copy JSON to clipboard
+        $element.find('#copy-json').on('click', function () {
+          const jsonText = $('#json-ld-preview code').text();
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(jsonText).then(function () {
+              showMessage('success', 'JSON-LD copied to clipboard');
+            });
+          } else {
+            // Fallback for older browsers.
+            const $temp = $('<textarea>');
+            $('body').append($temp);
+            $temp.val(jsonText).select();
+            document.execCommand('copy');
+            $temp.remove();
+            showMessage('success', 'JSON-LD copied to clipboard');
+          }
+        });
       });
     }
   };
 
-})(jQuery, Drupal);
+  /**
+   * Show a dismissable status message.
+   *
+   * @param {string} type
+   *   Message type: success, error, warning, info.
+   * @param {string} message
+   *   The message text (plain text, no HTML).
+   */
+  function showMessage(type, message) {
+    const alertClass = {
+      'success': 'alert-success',
+      'error': 'alert-danger',
+      'warning': 'alert-warning',
+      'info': 'alert-info'
+    }[type] || 'alert-info';
+
+    const icon = {
+      'success': 'bi-check-circle-fill',
+      'error': 'bi-exclamation-circle-fill',
+      'warning': 'bi-exclamation-triangle-fill',
+      'info': 'bi-info-circle-fill'
+    }[type] || 'bi-info-circle-fill';
+
+    const $icon = $('<i>').addClass('bi ' + icon);
+    const $close = $('<button>')
+      .attr('type', 'button')
+      .addClass('btn-close')
+      .attr('data-bs-dismiss', 'alert');
+
+    const $alert = $('<div>')
+      .addClass('alert ' + alertClass + ' alert-dismissible fade show')
+      .attr('role', 'alert')
+      .append($icon)
+      .append(' ')
+      .append(document.createTextNode(message))
+      .append($close);
+
+    $('#status-messages').append($alert);
+
+    // Auto-dismiss after 5 seconds.
+    setTimeout(function () {
+      $alert.alert('close');
+    }, 5000);
+  }
+
+})(jQuery, Drupal, once);

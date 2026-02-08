@@ -187,23 +187,17 @@
                     <span class="badge badge-sync-{{ log.status }}">{{ log.status|capitalize }}</span>
                   </td>
                   <td>
-                    {% if log.errors %}
-                      {% set errors = log.errors|json_decode %}
-                      {% if errors is iterable and errors|length > 0 %}
-                        <button class="btn btn-sm btn-outline-warning" 
-                                onclick="alert('Errors:\\n{{ errors|join('\\n')|escape('js') }}')">
-                          {{ errors|length }} error(s)
-                        </button>
-                      {% endif %}
+                    {% if log.errors_decoded is iterable and log.errors_decoded|length > 0 %}
+                      <button class="btn btn-sm btn-outline-warning" 
+                              onclick="alert('Errors:\n{{ log.errors_decoded|join('\n')|escape('js') }}')">
+                        {{ log.errors_decoded|length }} error(s)
+                      </button>
                     {% endif %}
-                    {% if log.warnings %}
-                      {% set warnings = log.warnings|json_decode %}
-                      {% if warnings is iterable and warnings|length > 0 %}
-                        <button class="btn btn-sm btn-outline-info"
-                                onclick="alert('Warnings:\\n{{ warnings|join('\\n')|escape('js') }}')">
-                          {{ warnings|length }} warning(s)
-                        </button>
-                      {% endif %}
+                    {% if log.warnings_decoded is iterable and log.warnings_decoded|length > 0 %}
+                      <button class="btn btn-sm btn-outline-info"
+                              onclick="alert('Warnings:\n{{ log.warnings_decoded|join('\n')|escape('js') }}')">
+                        {{ log.warnings_decoded|length }} warning(s)
+                      </button>
                     {% endif %}
                   </td>
                 </tr>
@@ -216,18 +210,15 @@
   {% endif %}
 
   {# Validation Errors/Warnings #}
-  {% if sync and sync.validation_errors %}
-    {% set errors = sync.validation_errors|json_decode %}
-    {% if errors is iterable and errors|length > 0 %}
-      <div class="alert alert-warning">
-        <h4><i class="bi bi-exclamation-triangle"></i> Validation Issues</h4>
-        <ul>
-          {% for error in errors %}
-            <li>{{ error }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endif %}
+  {% if sync_validation_errors|length > 0 %}
+    <div class="alert alert-warning">
+      <h4><i class="bi bi-exclamation-triangle"></i> Validation Issues</h4>
+      <ul>
+        {% for error in sync_validation_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
   {% endif %}
 
   {# Resources #}

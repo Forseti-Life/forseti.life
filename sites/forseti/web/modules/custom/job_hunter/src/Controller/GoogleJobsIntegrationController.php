@@ -128,18 +128,13 @@ class GoogleJobsIntegrationController extends ControllerBase {
       ->execute()
       ->fetchField();
     
-    // Total impressions
-    $total_impressions = $this->database->select('job_hunter_google_jobs_sync', 'g')
-      ->fields('g', [])
-      ->execute()
-      ->fetchAll();
-    
-    $impressions = 0;
-    $clicks = 0;
-    foreach ($total_impressions as $row) {
-      $impressions += $row->impressions_count ?? 0;
-      $clicks += $row->clicks_count ?? 0;
-    }
+    // Total impressions and clicks via SQL SUM.
+    $aggregate = $this->database->query(
+      'SELECT COALESCE(SUM(impressions_count), 0) AS total_impressions, COALESCE(SUM(clicks_count), 0) AS total_clicks FROM {job_hunter_google_jobs_sync}'
+    )->fetchObject();
+
+    $impressions = (int) $aggregate->total_impressions;
+    $clicks = (int) $aggregate->total_clicks;
     
     $ctr = $impressions > 0 ? round(($clicks / $impressions) * 100, 2) : 0;
     
@@ -249,12 +244,25 @@ class GoogleJobsIntegrationController extends ControllerBase {
       ->execute()
       ->fetchAll();
     
+    // Pre-decode JSON fields for Twig (json_decode filter doesn't exist in Drupal).
+    foreach ($validation_log as $log) {
+      $log->errors_decoded = !empty($log->errors) ? json_decode($log->errors, TRUE) : [];
+      $log->warnings_decoded = !empty($log->warnings) ? json_decode($log->warnings, TRUE) : [];
+    }
+
+    // Pre-decode sync validation errors for Twig.
+    $sync_validation_errors = [];
+    if ($sync && !empty($sync->validation_errors)) {
+      $sync_validation_errors = json_decode($sync->validation_errors, TRUE) ?: [];
+    }
+
     $build = [
       '#theme' => 'google_jobs_job_detail',
       '#job' => $job,
       '#company' => $company,
       '#sync' => $sync,
       '#validation_log' => $validation_log,
+      '#sync_validation_errors' => $sync_validation_errors,
       '#attached' => [
         'library' => [
           'job_hunter/google_jobs_integration',
