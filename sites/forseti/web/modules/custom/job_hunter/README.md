@@ -401,12 +401,21 @@ User clicks "Generate" → tailorResumeAjax()
 
 #### Database Tables
 
+**Storage Strategy:** This module uses a hybrid model — **nodes for canonical content** and **custom tables for operational/automation data** (AI artifacts, pipeline state, sync metadata). See [ARCHITECTURE.md](ARCHITECTURE.md) for policy and rules.
+
 | Table | Purpose |
 |-------|---------|
 | `job_hunter_job_requirements` | Job posting data (extracted_json, skills_required_json) |
+| `job_hunter_companies` | Company profile data and scraping configuration |
 | `jobhunter_job_seeker` | User profile with `consolidated_profile_json` |
+| `jobhunter_job_seeker_resumes` | Uploaded resumes and extracted text state |
+| `jobhunter_resume_parsed_data` | Parsed resume JSON data |
+| `jobhunter_job_history` | Normalized work history (future use) |
+| `jobhunter_education_history` | Normalized education history (future use) |
 | `job_hunter_tailored_resumes` | Tailored results and `tailoring_status` |
 | `job_hunter_pdf_history` | Tracks generated PDF files per job |
+| `job_hunter_google_jobs_sync` | Google Jobs sync state and metrics |
+| `job_hunter_google_jobs_validation_log` | Validation history and results |
 
 #### Available Actions by Status
 

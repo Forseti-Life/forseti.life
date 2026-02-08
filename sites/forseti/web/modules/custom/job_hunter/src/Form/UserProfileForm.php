@@ -841,11 +841,35 @@ class UserProfileForm extends FormBase {
       '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_remote_preference'),
     ];
 
+    $relocation_value = $this->getConsolidatedValue($job_seeker_profile, 'field_relocation_willing', NULL);
+    $relocation_default = NULL;
+    if ($relocation_value !== NULL && $relocation_value !== '') {
+      if (is_bool($relocation_value)) {
+        $relocation_default = $relocation_value ? 'yes' : 'no';
+      } elseif (is_numeric($relocation_value)) {
+        $relocation_default = ((int) $relocation_value === 1) ? 'yes' : 'no';
+      } elseif (is_string($relocation_value)) {
+        $normalized = strtolower(trim($relocation_value));
+        if (in_array($normalized, ['yes', 'no'], TRUE)) {
+          $relocation_default = $normalized;
+        } elseif (in_array($normalized, ['true', 'false'], TRUE)) {
+          $relocation_default = $normalized === 'true' ? 'yes' : 'no';
+        } elseif (in_array($normalized, ['1', '0'], TRUE)) {
+          $relocation_default = $normalized === '1' ? 'yes' : 'no';
+        }
+      }
+    }
+
     $form['search_assist']['field_relocation_willing'] = [
-      '#type' => 'checkbox',
+      '#type' => 'radios',
       '#title' => $this->t('Willing to Relocate'),
       '#description' => $this->t('Are you willing to relocate for the right opportunity?'),
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_relocation_willing', 0),
+      '#required' => FALSE,
+      '#options' => [
+        'yes' => $this->t('Yes'),
+        'no' => $this->t('No'),
+      ],
+      '#default_value' => $relocation_default,
     ];
 
     $form['search_assist']['field_keywords_interested'] = [
@@ -3122,6 +3146,19 @@ class UserProfileForm extends FormBase {
     if ($field_name === 'field_target_job_titles' || $field_name === 'field_keywords_interested') {
       // Convert newline-separated string to array
       $value = array_filter(array_map('trim', explode("\n", $value)));
+    }
+
+    if ($field_name === 'field_relocation_willing') {
+      if (is_string($value)) {
+        $normalized = strtolower(trim($value));
+        if (in_array($normalized, ['yes', 'true', '1'], TRUE)) {
+          $value = TRUE;
+        } elseif (in_array($normalized, ['no', 'false', '0'], TRUE)) {
+          $value = FALSE;
+        }
+      } elseif (is_numeric($value)) {
+        $value = ((int) $value === 1);
+      }
     }
     
     $ref[$final_key] = $value;

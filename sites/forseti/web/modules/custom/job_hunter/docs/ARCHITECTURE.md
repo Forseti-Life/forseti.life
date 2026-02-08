@@ -23,14 +23,14 @@ The Job Application Automation module provides an AI-powered system for automati
 - **Job Discovery** - Framework for scraping job postings (per-employer implementation)
 - **Application Tracking** - Monitor submission status and outcomes
 - **Error Queue Management** - Administrative oversight of automation failures
-- **Job Seeker Profiles** - Custom database table for user profile data (skills, experience, preferences)
+- **Hybrid Storage** - Nodes for canonical content, tables for operational/AI data (profiles, parsing, sync)
 
 ### Design Principles
 
 #### 1. Drupal-Native Architecture
 The module follows Drupal best practices and leverages core functionality:
 - **Content Types** for primary data storage (companies, job postings, applications)
-- **Custom Database Table** for job seeker profiles (preserved during uninstall)
+- **Operational Tables** for AI artifacts and automation state (preserved during uninstall)
 - **Views** for all administrative interfaces (no custom listing pages)
 - **Configuration Management** for exportable settings
 - **Service Container** for dependency injection
@@ -199,7 +199,7 @@ services:
          ↓
 ┌─────────────────┐
 │ Profile         │
-│ (job_seeker)    │
+│ (jobhunter_job_seeker table) │
 │                 │
 │ - profile_id    │
 │ - field_resume_file
@@ -365,13 +365,23 @@ services:
 
 ### Custom Tables
 
-#### job_seeker Table
+#### Hybrid Storage Strategy (Nodes + Tables)
+
+The module uses **nodes for canonical business content** and **custom tables for operational/automation data** that is high‑volume, transient, or AI‑generated.
+
+**Rules:**
+1. Canonical content stays in nodes; tables reference node/user IDs.
+2. Tables store derived or operational data only.
+3. Schema changes require install/update hooks.
+4. Retention and cleanup are documented per table.
+
+#### jobhunter_job_seeker Table
 
 **Purpose:** Store job seeker profile information (persists through module uninstall)
 
 **Schema:**
 ```sql
-CREATE TABLE job_seeker (
+CREATE TABLE jobhunter_job_seeker (
   id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
   uid INT NOT NULL UNIQUE,
   resume_node_id INT NULL,
@@ -398,6 +408,19 @@ CREATE TABLE job_seeker (
 - JSON-encoded fields for arrays (skills, target_companies, etc.)
 - Created outside hook_schema() to prevent automatic deletion
 - Accessed via service layer, not directly
+
+#### Additional Operational Tables (non‑exhaustive)
+
+- `job_hunter_companies` — Company data and scraping configuration
+- `job_hunter_job_requirements` — Job requirement data and extracted JSON
+- `jobhunter_job_seeker_resumes` — Uploaded resumes and extraction status
+- `jobhunter_resume_parsed_data` — Parsed resume JSON output
+- `jobhunter_job_history` — Normalized work history (future use)
+- `jobhunter_education_history` — Normalized education history (future use)
+- `job_hunter_tailored_resumes` — Tailoring pipeline status and results
+- `job_hunter_pdf_history` — Generated PDFs per job
+- `job_hunter_google_jobs_sync` — Google Jobs sync state and metrics
+- `job_hunter_google_jobs_validation_log` — Validation history and results
 
 ---
 

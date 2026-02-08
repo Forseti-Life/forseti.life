@@ -22,6 +22,7 @@ Comprehensive technical architecture covering:
 - Technology stack and dependencies
 - Module structure and organization
 - Data model and entity relationships
+- Hybrid storage strategy (nodes + operational tables)
 - Service layer architecture
 - Security architecture
 - Integration points (AWS Bedrock, Drupal Core)

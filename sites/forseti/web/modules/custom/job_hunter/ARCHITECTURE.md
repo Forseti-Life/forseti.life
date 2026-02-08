@@ -11,7 +11,7 @@ This document outlines the architecture for the Job Application Automation modul
 This module MUST follow Drupal best practices and utilize built-in functionality:
 
 #### ✅ **REQUIRED: Use Native Drupal Systems**
-- **Content Storage**: Use **NODES** with custom fields for all data storage (Company, Job Posting, Application, Issue)
+- **Primary Content Storage**: Use **NODES** with custom fields for canonical content (Company, Job Posting, Application, Issue)
 - **User Interface**: Use **DEFAULT DRUPAL FORMS** (`/node/add`, `/node/edit`) for content creation/editing  
 - **Data Display**: Use **VIEWS MODULE** for all listing and administrative interfaces
 - **User Profiles**: Extend **USER ENTITY** with custom fields, use default user edit forms
@@ -20,17 +20,18 @@ This module MUST follow Drupal best practices and utilize built-in functionality
 - **Configuration**: Use **CONFIGURATION MANAGEMENT** for exportable settings
 
 #### 🚫 **AVOID: Custom Development Unless Absolutely Necessary**
-- **No Custom Controllers** unless explicitly required for automation/API integrations
+- **No Custom Controllers** unless explicitly required for automation/API integrations or operational dashboards
 - **No Custom Forms** - use Drupal's node forms with form_alter hooks if customization needed
 - **No Custom Pages** - use Views for listing pages, node pages for detail views
 - **No Custom Services** - use existing Drupal services and extend via dependency injection only when required
-- **No Custom Database Tables** - use content entities (nodes) with fields for all data
+- **Custom Database Tables** are allowed only for operational/automation data that is not suitable for nodes (see Hybrid Storage Strategy)
 
 #### 🎯 **Implementation Strategy**
 1. **Content-First**: Create content types with appropriate fields
 2. **Views-Second**: Create Views for administrative and user interfaces  
 3. **Forms-Third**: Customize existing forms only if default behavior insufficient
-4. **Custom Code-Last**: Add custom code only for automation, API integration, or complex business logic
+4. **Operational Tables (When Required)**: Use custom tables for high-volume automation, AI artifacts, and sync/validation state
+5. **Custom Code-Last**: Add custom code only for automation, API integration, or complex business logic
 
 #### 📋 **Validation Checklist**
 Before implementing any custom code, verify:
@@ -38,6 +39,35 @@ Before implementing any custom code, verify:
 - [ ] Can this be displayed using Views?
 - [ ] Can this use default Drupal forms?
 - [ ] Is custom code absolutely necessary for core functionality?
+
+### **Hybrid Storage Strategy (Nodes + Custom Tables)**
+This module now follows a **hybrid storage strategy**:
+
+**Nodes remain the canonical source of truth** for business content, while **custom tables** store operational and automation data that is high‑volume, transient, or AI‑generated.
+
+**Custom tables are used for:**
+- Automation pipeline state (queue/processing status, generated artifacts)
+- AI‑generated intermediate data (parsed resume JSON, consolidated profiles)
+- Integration/sync metadata (Google Jobs validation, indexing, metrics)
+- Performance‑sensitive or high‑write telemetry
+
+**Rules:**
+1. **Canonical content stays in nodes.** Tables must reference node/user IDs, not replace content entities.
+2. **No duplicate business truth.** Tables store derived/operational data only.
+3. **Schema is versioned.** All table changes require install/update hooks.
+4. **Retention is explicit.** Document cleanup or archival policies per table.
+5. **Views first.** Use Views for listings unless an operational dashboard requires bespoke UI.
+
+**Current operational tables (non‑exhaustive):**
+- `job_hunter_companies`
+- `job_hunter_job_requirements`
+- `jobhunter_job_seeker`
+- `jobhunter_job_seeker_resumes`
+- `jobhunter_resume_parsed_data`
+- `job_hunter_tailored_resumes`
+- `job_hunter_pdf_history`
+- `job_hunter_google_jobs_sync`
+- `job_hunter_google_jobs_validation_log`
 
 ### **User Experience Standards**
 - Users create/manage content via **standard Drupal node forms** (`/node/add/company`, `/node/edit/123`)
