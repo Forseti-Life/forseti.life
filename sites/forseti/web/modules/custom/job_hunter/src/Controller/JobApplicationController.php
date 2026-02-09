@@ -1125,8 +1125,11 @@ class JobApplicationController extends ControllerBase {
     $connection = \Drupal::database();
     $default_keywords = '';
     $default_location = '';
-    $default_remote = '';
-    $default_salary = '';
+    $default_remote_pref = '';
+    $default_salary_min = '';
+    $default_salary_max = '';
+    $default_employment_type = '';
+    $default_relocation = '';
     
     try {
       $profile = $connection->select('jobhunter_job_seeker', 'js')
@@ -1156,17 +1159,23 @@ class JobApplicationController extends ControllerBase {
         }
         
         // Get remote preference
-        $remote_pref = $consolidated['job_search_preferences']['remote_preference'] ?? '';
-        if ($remote_pref === 'remote') {
+        $default_remote_pref = $consolidated['job_search_preferences']['remote_preference'] ?? '';
+        if ($default_remote_pref === 'remote' && empty($default_location)) {
           $default_location = 'Remote';
-          $default_remote = 'checked';
         }
         
         // Get salary expectations
         $salary_min = $consolidated['job_search_preferences']['salary_expectation_min'] ?? '';
+        $salary_max = $consolidated['job_search_preferences']['salary_expectation_max'] ?? '';
         if ($salary_min && is_numeric($salary_min)) {
-          $default_salary = (int) $salary_min;
+          $default_salary_min = (int) $salary_min;
         }
+        if ($salary_max && is_numeric($salary_max)) {
+          $default_salary_max = (int) $salary_max;
+        }
+        
+        // Get relocation preference
+        $default_relocation = $consolidated['job_search_preferences']['relocation_willing'] ?? '';
       }
     } catch (\Exception $e) {
       \Drupal::logger('job_hunter')->error('Error loading profile for search: @error', ['@error' => $e->getMessage()]);
@@ -1310,7 +1319,22 @@ class JobApplicationController extends ControllerBase {
                   
                   <div class="filter-field">
                     <label for="salary-min">Min Salary</label>
-                    <input type="number" id="salary-min" name="salary_min" value="' . htmlspecialchars($default_salary) . '" placeholder="e.g., 100000" class="filter-input">
+                    <input type="number" id="salary-min" name="salary_min" value="' . htmlspecialchars($default_salary_min) . '" placeholder="e.g., 100000" class="filter-input" step="1000">
+                  </div>
+                  
+                  <div class="filter-field">
+                    <label for="salary-max">Max Salary</label>
+                    <input type="number" id="salary-max" name="salary_max" value="' . htmlspecialchars($default_salary_max) . '" placeholder="e.g., 150000" class="filter-input" step="1000">
+                  </div>
+                  
+                  <div class="filter-field">
+                    <label for="remote-preference">Remote Preference</label>
+                    <select id="remote-preference" name="remote_preference" class="filter-select">
+                      <option value="">Any</option>
+                      <option value="remote"' . ($default_remote_pref === 'remote' ? ' selected' : '') . '>Remote</option>
+                      <option value="hybrid"' . ($default_remote_pref === 'hybrid' ? ' selected' : '') . '>Hybrid</option>
+                      <option value="onsite"' . ($default_remote_pref === 'onsite' ? ' selected' : '') . '>On-site</option>
+                    </select>
                   </div>
                   
                   <div class="filter-field">
@@ -1324,10 +1348,12 @@ class JobApplicationController extends ControllerBase {
                   </div>
                   
                   <div class="filter-field">
-                    <label>
-                      <input type="checkbox" name="remote_only" value="1" ' . $default_remote . '>
-                      <span>Remote jobs only</span>
-                    </label>
+                    <label for="relocation-willing">Willing to Relocate</label>
+                    <select id="relocation-willing" name="relocation_willing" class="filter-select">
+                      <option value="">Any</option>
+                      <option value="yes"' . ($default_relocation === 'yes' ? ' selected' : '') . '>Yes</option>
+                      <option value="no"' . ($default_relocation === 'no' ? ' selected' : '') . '>No</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -1505,14 +1531,16 @@ class JobApplicationController extends ControllerBase {
     $current_user = \Drupal::currentUser();
     
     // Get search parameters from GET request
-    $query = $request->query->get('query', '');
+    $query = $request->query->get('q', ''); // Changed from 'query' to 'q' to match form
     $location = $request->query->get('location', '');
     $employment_type = $request->query->get('employment_type', '');
     $sources = $request->query->get('sources', ['forseti']); // Default to Forseti
     $company_filter = $request->query->get('company', '');
     $salary_min = $request->query->get('salary_min', '');
+    $salary_max = $request->query->get('salary_max', '');
+    $remote_preference = $request->query->get('remote_preference', '');
     $date_posted = $request->query->get('date_posted', '');
-    $remote_only = $request->query->get('remote_only', false);
+    $relocation_willing = $request->query->get('relocation_willing', '');
     
     // Ensure sources is an array
     if (!is_array($sources)) {
@@ -1560,27 +1588,37 @@ class JobApplicationController extends ControllerBase {
         $db_query->condition('salary_min', $salary_min, '>=');
       }
       
+      if (!empty($salary_max) && is_numeric($salary_max)) {
+        $db_query->condition('salary_max', $salary_max, '<=');
+      }
+      
+      // Add remote preference filter if provided
+      if (!empty($remote_preference)) {
+        if ($remote_preference === 'remote') {
+          $or = $db_query->orConditionGroup()
+            ->condition('location', '%remote%', 'LIKE')
+            ->condition('location', '%Remote%', 'LIKE')
+            ->condition('is_remote', 1);
+          $db_query->condition($or);
+        } elseif ($remote_preference === 'onsite') {
+          $db_query->condition('location', '%remote%', 'NOT LIKE');
+          $db_query->condition('is_remote', 0);
+        }
+        // For 'hybrid' or other values, don't add filters - show all
+      }
+      
       // Add date posted filter if provided
       if (!empty($date_posted)) {
         $days_ago = 30; // Default to last 30 days
-        if ($date_posted === 'last_24h') {
+        if ($date_posted === '1' || $date_posted === 'last_24h') {
           $days_ago = 1;
-        } elseif ($date_posted === 'last_week') {
+        } elseif ($date_posted === '7' || $date_posted === 'last_week') {
           $days_ago = 7;
-        } elseif ($date_posted === 'last_month') {
+        } elseif ($date_posted === '30' || $date_posted === 'last_month') {
           $days_ago = 30;
         }
         $timestamp = time() - ($days_ago * 24 * 60 * 60);
         $db_query->condition('created', $timestamp, '>=');
-      }
-      
-      // Add remote only filter if provided
-      if ($remote_only) {
-        $or = $db_query->orConditionGroup()
-          ->condition('location', '%remote%', 'LIKE')
-          ->condition('location', '%Remote%', 'LIKE')
-          ->condition('is_remote', 1);
-        $db_query->condition($or);
       }
       
       $results = $db_query->execute()->fetchAll();
@@ -1688,7 +1726,19 @@ class JobApplicationController extends ControllerBase {
     if (!empty($employment_type)) {
       $search_summary .= '<span class="search-param"><strong>Type:</strong> ' . htmlspecialchars($employment_type) . '</span>';
     }
-    $search_summary .= '<span class="search-param"><strong>Sources:</strong> ' . htmlspecialchars(implode(', ', $sources)) . '</span>';
+    if (!empty($salary_min)) {
+      $search_summary .= '<span class="search-param"><strong>Min Salary:</strong> $' . number_format((int)$salary_min) . '</span>';
+    }
+    if (!empty($salary_max)) {
+      $search_summary .= '<span class="search-param"><strong>Max Salary:</strong> $' . number_format((int)$salary_max) . '</span>';
+    }
+    if (!empty($remote_preference)) {
+      $search_summary .= '<span class="search-param"><strong>Remote:</strong> ' . htmlspecialchars(ucfirst($remote_preference)) . '</span>';
+    }
+    if (!empty($relocation_willing)) {
+      $search_summary .= '<span class="search-param"><strong>Relocate:</strong> ' . htmlspecialchars(ucfirst($relocation_willing)) . '</span>';
+    }
+    $search_summary .= '<span class="search-param"><strong>Sources:</strong> ' . htmlspecialchars(implode(', ', array_map('ucfirst', $sources))) . '</span>';
     $search_summary .= '</div>';
     
     // Render navigation

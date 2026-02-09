@@ -727,12 +727,13 @@ class UserProfileForm extends FormBase {
       return $default;
     };
 
-    // Search Assist Section (user-entered, not derived from resume)
+    // Automated Search Assist Section (user-entered, not derived from resume)
     $form['search_assist'] = [
-      '#type' => 'fieldset',
-      '#title' => $this->t('🔎 Fill this out to assist in your search'),
-      '#description' => $this->t('These fields are not derived from your resume. Please fill them out to improve job matching.'),
+      '#type' => 'details',
+      '#title' => $this->t('🤖 Automated Search Assist'),
+      '#description' => $this->t('These preferences power your automated job search. Fill them out to improve job matching across all search sources.'),
       '#attributes' => ['class' => ['search-assist-section', 'no-toggle-fieldset']],
+      '#open' => TRUE,
       '#weight' => 0,
     ];
 
