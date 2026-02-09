@@ -1774,8 +1774,54 @@ class JobApplicationController extends ControllerBase {
     // Build results display
     $results_html = '';
     if (empty($all_results)) {
+      // Add diagnostic information
+      $diagnostic_info = '<ul>';
+      
+      // Check Forseti database
+      $forseti_total = $connection->select('jobhunter_job_requirements', 'j')
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      $diagnostic_info .= '<li><strong>Forseti Database:</strong> ' . $forseti_total . ' total jobs available</li>';
+      
+      // Check Google Cloud if selected
+      if (in_array('google_cloud', $sources)) {
+        try {
+          $config = \Drupal::config('job_hunter.settings');
+          $google_credentials = $config->get('google_cloud_credentials');
+          
+          if (!empty($google_credentials)) {
+            $google_service = \Drupal::service('job_hunter.cloud_talent_solution');
+            try {
+              $diagnostic_check = $google_service->searchJobs([]);
+              $diagnostic_info .= '<li><strong>Google Cloud Tenant:</strong> ' . ($diagnostic_check['total_size'] ?? 0) . ' total jobs available</li>';
+            } catch (\Exception $e) {
+              $diagnostic_info .= '<li><strong>Google Cloud:</strong> ⚠️ Error - ' . htmlspecialchars($e->getMessage()) . '</li>';
+            }
+          } else {
+            $diagnostic_info .= '<li><strong>Google Cloud:</strong> ❌ Not configured (no credentials)</li>';
+          }
+        } catch (\Exception $e) {
+          $diagnostic_info .= '<li><strong>Google Cloud:</strong> ❌ Service error</li>';
+        }
+      }
+      
+      $diagnostic_info .= '</ul>';
+      
       $results_html = '<div class="no-results">
-        <p>No jobs found matching your criteria. Try adjusting your search filters.</p>
+        <h3>No jobs found matching your criteria</h3>
+        <p>Your search returned 0 results from ' . count($sources) . ' source(s).</p>
+        <div class="diagnostic-info">
+          <h4>🔍 Diagnostic Information:</h4>
+          ' . $diagnostic_info . '
+          <p><strong>Suggestions:</strong></p>
+          <ul>
+            <li>Try removing location filters (search nationwide)</li>
+            <li>Try broader keywords</li>
+            <li>Remove date posted filters</li>
+            <li>If no jobs available in data sources, import jobs first</li>
+          </ul>
+        </div>
       </div>';
     } else {
       $results_html = '<div class="results-summary">
