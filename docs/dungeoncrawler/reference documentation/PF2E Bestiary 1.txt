@@ -2,7 +2,6 @@
 
 4121754
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Second Edition
 
@@ -34,7 +33,6 @@ Printed in China.
 PZO2102
 16415350
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415350
 
@@ -42,7 +40,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121755
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 BESTIARY
 
@@ -52,7 +49,6 @@ BESTIARY
 
 4121755
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415351
 
@@ -64,7 +60,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415352
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Table of Contents
 
@@ -292,7 +287,6 @@ Deep Gnome Scout
 Deep Gnome Warrior
 Deinosuchus (crocodile)
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 38
 255
@@ -353,7 +347,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415353
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 BESTIARY
 Deinonychus (dinosaur)
@@ -648,7 +641,6 @@ Merfolk Warrior
 Merfolk Wavepriest
 Mimic
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 162
 193
@@ -700,7 +692,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121758
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 Minotaur
@@ -1030,7 +1021,6 @@ Zombie Shambler
 4121758
 
 4
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415354
 
@@ -1042,7 +1032,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415355
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Introduction
 
@@ -1185,7 +1174,6 @@ Appendix
 4121759
 
 5
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415355
 
@@ -1193,7 +1181,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121760
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -1331,7 +1318,6 @@ HP Decrease
 –30
 
 6
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415356
 
@@ -1343,7 +1329,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415357
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Languages
 The languages listed in a creature’s entry are what a typical
@@ -1448,7 +1433,6 @@ Skills, Perception, and Proficiency
 In some situations, such as when a creature is trying to
 
 7
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415357
 
@@ -1456,7 +1440,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121762
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -1555,7 +1538,6 @@ chaotic 3; Resistances electricity 3
 Speed 20 feet, fly 40 feet
 
 8
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415358
 
@@ -1567,7 +1549,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415359
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Melee [one-action] shortsword +9 (agile, finesse, lawful, magical, versatile S), Damage 1d6+1 piercing
@@ -1660,7 +1641,6 @@ in this state. It can return to its humanoid form by using this action while in
 crystalline dust form.
 
 9
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415359
 
@@ -1668,7 +1648,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121764
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -1765,7 +1744,6 @@ mysterious. An aeon can use this ability to communicate flawlessly with any othe
 aeon on the same plane as itself.
 
 10
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415360
 
@@ -1777,7 +1755,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415361
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 AC 45; Fort +32, Ref +31, Will +37; +1 status to all saves vs. magic
@@ -1865,7 +1842,6 @@ Appendix
 4121765
 
 11
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415361
 
@@ -1873,7 +1849,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121766
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -1957,7 +1932,6 @@ Ranged [one-action] trident +7 (thrown 20 feet),
 Damage 1d8+3 piercing
 
 12
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415362
 
@@ -1969,7 +1943,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415363
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Faceless Stalker (Ugothol)
@@ -2064,7 +2037,6 @@ Sneak Attack The faceless stalker deals 1d6 extra precision damage to
 flat-footed creatures.
 
 13
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415363
 
@@ -2072,7 +2044,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121768
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -2169,7 +2140,6 @@ take many veiled masters pulling the strings behind the scenes to wreak havoc
 upon an entire nation!
 
 14
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415364
 
@@ -2181,7 +2151,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415365
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 VEILED MASTER
@@ -2284,7 +2253,6 @@ Appendix
 4121769
 
 15
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415365
 
@@ -2292,7 +2260,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121770
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -2381,7 +2348,6 @@ chants and sacred hymns. They form from the souls of talented bards and other
 performers. While they shy away from conflict, they occasionally brave the mortal
 
 16
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415366
 
@@ -2393,7 +2359,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415367
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 realm to deliver good omens and auspicious messages. Choral angels often serve
@@ -2488,7 +2453,6 @@ performed evil acts but were redeemed. Many serve the goddess Sarenrae, but
 they can serve other good deities and empyreal lords as well.
 
 17
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415367
 
@@ -2496,7 +2460,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121772
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -2583,7 +2546,6 @@ those in need of aid. They watch over planar
 travelers and take powerful mortals under
 
 18
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415368
 
@@ -2595,7 +2557,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415369
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 their wings to mentor them. Astral devas carry scrolls containing important
@@ -2691,7 +2652,6 @@ Appendix
 4121773
 
 19
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415369
 
@@ -2699,7 +2659,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121774
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -2800,7 +2759,6 @@ government buildings where they can be positioned amid normal statues to
 hide their true nature until an intruder arouses their ire. Adventurers’ suspicions
 
 20
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415370
 
@@ -2812,7 +2770,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415371
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 regarding statues suddenly animating and attacking has led many less scrupulous
@@ -2923,7 +2880,6 @@ fire damage.
 4121775
 
 21
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415371
 
@@ -2931,7 +2887,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121776
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -3034,7 +2989,6 @@ persistent acid damage (DC 26 basic Reflex save). It
 can’t spew acid again for 1d4 rounds.
 
 22
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415372
 
@@ -3042,7 +2996,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121777
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Ape
@@ -3142,7 +3095,6 @@ Failure The creature is frightened 1.
 Critical Failure The creature is frightened 2 and fleeing until the end of its next turn.
 
 23
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415373
 
@@ -3150,7 +3102,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121778
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -3235,7 +3186,6 @@ and then makes a shield bash Strike. If the
 attack hits, the target is pushed 10 feet.
 
 24
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415374
 
@@ -3247,7 +3197,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415375
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Awakened Tree
@@ -3348,7 +3297,6 @@ deals an additional 2d10 damage to that item or structure.
 Throw Rock [one-action]
 
 25
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415375
 
@@ -3356,7 +3304,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121780
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -3455,7 +3402,6 @@ shines as a beacon of hope. Good allies within 30 feet gain a +1 status bonus to
 damage rolls and to saving throws against crushing despair.
 
 26
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415376
 
@@ -3467,7 +3413,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415377
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Horned Archon
@@ -3561,7 +3506,6 @@ Appendix
 4121781
 
 27
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415377
 
@@ -3569,7 +3513,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121782
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -3642,7 +3585,6 @@ damage from the flame of justice deals maximum damage (6 on the d6) before being
 doubled for the critical hit, and the target takes 1d10 persistent fire damage.
 
 28
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415378
 
@@ -3654,7 +3596,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415379
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Shield Archon
@@ -3748,7 +3689,6 @@ Appendix
 4121783
 
 29
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415379
 
@@ -3756,7 +3696,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121784
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -3848,7 +3787,6 @@ Reflex save). The lyrakien can’t use Starlight Blast or its starlight
 ray ranged attack for 1d4 rounds.
 
 30
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415380
 
@@ -3860,7 +3798,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415381
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Gancanagh (Passion Azata)
@@ -3960,7 +3897,6 @@ becomes fatigued for 10 minutes unless they succeed at a DC 21
 Fortitude save.
 
 31
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415381
 
@@ -3968,7 +3904,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121786
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -4057,7 +3992,6 @@ a path to which their heart is not set.
 4121786
 
 32
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415382
 
@@ -4069,7 +4003,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415383
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Ghaele (Crusader Azata)
@@ -4164,7 +4097,6 @@ Appendix
 4121787
 
 33
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415383
 
@@ -4172,7 +4104,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121788
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -4264,7 +4195,6 @@ exposed to their wails of grief rarely survive the experience.
 4121788
 
 34
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415384
 
@@ -4276,7 +4206,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415385
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Baomal
@@ -4380,7 +4309,6 @@ Appendix
 4121789
 
 35
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415385
 
@@ -4388,7 +4316,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121790
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -4480,7 +4407,6 @@ to engineer such a return can
 usually be measured in years, if
 
 36
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415386
 
@@ -4492,7 +4418,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415387
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 not decades. During that time, greater barghests continue to play the roles of
@@ -4596,7 +4521,6 @@ Appendix
 4121791
 
 37
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415387
 
@@ -4604,7 +4528,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121792
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -4698,7 +4621,6 @@ enough blood to coat 1d3 Medium
 creatures in this manner.
 
 38
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415388
 
@@ -4710,7 +4632,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415389
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Bat
@@ -4820,7 +4741,6 @@ Melee [one-action] fangs +10, Damage 1d10+4 slashing
 Melee [one-action] wing +10 (agile), Damage 1d6+4 piercing
 
 39
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415389
 
@@ -4828,7 +4748,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121794
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -4923,7 +4842,6 @@ Rush [two-actions] The cave bear Strides and makes a Strike at the end of that m
 During the Stride, it gains a +10-foot circumstance bonus to its Speed.
 
 40
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415390
 
@@ -4935,7 +4853,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415391
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Beetle
@@ -5048,7 +4965,6 @@ Melee [one-action] foot +11, Damage 1d10+5 bludgeoning
 Trample [three-actions] Medium or smaller, foot, DC 21
 
 41
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415391
 
@@ -5056,7 +4972,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121796
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -5145,7 +5060,6 @@ damage dealt. A creature that has its blood drained by a bloodseeker is drained 
 it receives healing (of any kind or amount).
 
 42
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415392
 
@@ -5157,7 +5071,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415393
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Boar
@@ -5268,7 +5181,6 @@ A Medium or smaller creature struck by this attack must succeed at a DC 19 Refle
 save or be knocked prone by the force of the blow.
 
 43
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415393
 
@@ -5276,7 +5188,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121798
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -5378,7 +5289,6 @@ Melee [one-action] club +10, Damage 1d6+6 bludgeoning
 Melee [one-action] tongue +10 (reach 10 feet), Effect tongue grab
 
 44
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415394
 
@@ -5390,7 +5300,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415395
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Ranged [one-action] javelin +6 (thrown 30 feet), Damage 1d6+4 piercing
@@ -5508,7 +5417,6 @@ Duration 30 minutes; Stage 1 dazzled (10 minutes); Stage 2 dazzled and
 frightened 1 (10 minutes); Stage 3 frightened 1 and confused 1 (1 minute)
 
 45
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415395
 
@@ -5516,7 +5424,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121800
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -5612,7 +5519,6 @@ deep space as worthy of faith and fear.
 4121800
 
 46
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415396
 
@@ -5624,7 +5530,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415397
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Bugbear
@@ -5739,7 +5644,6 @@ automatically flat‑footed against the second attack. Apply the bugbear
 tormentor’s multiple attack penalty to the Strikes normally.
 
 47
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415397
 
@@ -5747,7 +5651,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121802
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -5837,7 +5740,6 @@ Powerful Jumper A bulette jumps 10 feet up on a
 successful High Jump, or 20 feet up on a critical success.
 
 48
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415398
 
@@ -5849,7 +5751,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415399
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Bunyip
@@ -5949,7 +5850,6 @@ again, the bunyip can return to normal or switch between a long tail or crocodil
 4121803
 
 49
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415399
 
@@ -5957,7 +5857,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121804
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -6051,7 +5950,6 @@ AC 19; Fort +9, Ref +10, Will +6
 HP 30, death flash
 
 50
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415400
 
@@ -6063,7 +5961,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415401
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Death Flash (light) When the caligni creeper dies, their body combusts in a flash of bright
@@ -6179,7 +6076,6 @@ Saving Throw DC 16 Fortitude; Maximum Duration 6 rounds; Stage 1 1d6 poison and
 enfeebled 1 (1 round); Stage 2 As stage 1; Stage 3 1d6 poison, and enfeebled 2 (1 round)
 
 51
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415401
 
@@ -6187,7 +6083,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121806
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -6291,7 +6186,6 @@ call home and preferring to attack
 with surprise.
 
 52
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415402
 
@@ -6303,7 +6197,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415403
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 TIGER
@@ -6413,7 +6306,6 @@ flat-footed.
 4121807
 
 53
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415403
 
@@ -6421,7 +6313,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121808
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -6510,7 +6401,6 @@ Speed. If the catfolk ends their movement within melee reach of at
 least one enemy, they can make a melee Strike against that enemy.
 
 54
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415404
 
@@ -6522,7 +6412,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415405
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Cauthooj
@@ -6630,7 +6519,6 @@ Appendix
 4121809
 
 55
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415405
 
@@ -6638,7 +6526,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121810
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -6694,7 +6581,6 @@ Str +9, Dex –1, Con +7, Int –5, Wis –1, Cha –1
 4121810
 
 56
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415406
 
@@ -6706,7 +6592,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415407
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 AC 32; Fort +28, Ref +21, Will +21
@@ -6814,7 +6699,6 @@ Inexorable As purple worm.
 Shake It Off [reaction] As purple worm.
 
 57
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415407
 
@@ -6822,7 +6706,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121812
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -6884,7 +6767,6 @@ Thrash [two-actions] As purple worm.
 4121812
 
 58
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415408
 
@@ -6896,7 +6778,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415409
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 CRIMSON WORM
@@ -6972,7 +6853,6 @@ Appendix
 4121813
 
 59
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415409
 
@@ -6980,7 +6860,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121814
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -7064,7 +6943,6 @@ Ranged [one-action] spear +9 (thrown 20 feet), Damage 1d6+4 piercing
 Trample [three-actions] Medium or smaller, hoof, DC 18
 
 60
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415410
 
@@ -7076,7 +6954,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415411
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Centipede
@@ -7187,7 +7064,6 @@ Swarming Bites [one-action] Each enemy in the swarm’s space takes 1d8 piercing
 damage (DC 20 basic Reflex save) plus centipede swarm venom.
 
 61
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415411
 
@@ -7195,7 +7071,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121816
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -7285,7 +7160,6 @@ Druid Order Spells DC 21; 2nd (1 Focus Point) wild morph,
 wild shape
 
 62
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415412
 
@@ -7297,7 +7171,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415413
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Chimera
@@ -7395,7 +7268,6 @@ Appendix
 4121817
 
 63
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415413
 
@@ -7403,7 +7275,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121818
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -7490,7 +7361,6 @@ chuul’s turns if it remains grabbed by
 the tentacles.
 
 64
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415414
 
@@ -7502,7 +7372,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415415
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Cloaker
@@ -7606,7 +7475,6 @@ clumsy 1 and stupefied 1 for 1 minute.
 4121819
 
 65
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415415
 
@@ -7614,7 +7482,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121820
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -7707,7 +7574,6 @@ the creature remains petrified, but can try again in 24 hours. On a critical fai
 the petrification is permanent, and the creature can’t attempt any more saves.
 
 66
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415416
 
@@ -7719,7 +7585,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415417
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Crocodile
@@ -7828,7 +7693,6 @@ Deep Breath A deinosuchus can hold its breath for about 2 hours.
 Swallow Whole [one-action] (attack) Large, 2d8+7 bludgeoning, Rupture 18
 
 67
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415417
 
@@ -7836,7 +7700,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121822
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -7934,7 +7797,6 @@ Melee [one-action] greataxe +14 (reach 10 feet, sweep),
 Damage 1d12+9 slashing
 
 68
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415418
 
@@ -7946,7 +7808,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415419
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 A-C
 Ranged [one-action] heavy crossbow +8 (range increment 120 feet, reload 2), Damage 1d10+4 piercing
@@ -8047,7 +7908,6 @@ Throw Rock [one-action]
 4121823
 
 69
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415419
 
@@ -8055,7 +7915,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121824
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -8156,7 +8015,6 @@ Soul Lock [three-actions] (death, divine, necromancy) Once per day, a cacodaemon
 of a sentient creature within 30 feet that died within the last minute. When it does, the
 
 70
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415420
 
@@ -8168,7 +8026,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415421
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 cacodaemon grows a fist-sized soul gem (Hardness 2, HP 8) in its gut and can regurgitate
@@ -8261,7 +8118,6 @@ souls who perished from disease in life, leukodaemons work tirelessly to spread
 disease across all the worlds of the multiverse. More than any other daemon,
 
 71
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415421
 
@@ -8269,7 +8125,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121826
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -8358,7 +8213,6 @@ between them and these eerie hunters of the recently departed are indeed the stu
 of legend.
 
 72
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415422
 
@@ -8370,7 +8224,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415423
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Not all astradaemons limit their hunt to souls. The most notorious of their kind
@@ -8466,7 +8319,6 @@ Appendix
 4121827
 
 73
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415423
 
@@ -8474,7 +8326,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121828
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -8575,7 +8426,6 @@ AC 17; Fort +7, Ref +9, Will +5
 HP 18
 
 74
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415424
 
@@ -8587,7 +8437,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415425
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Speed 20 feet
@@ -8696,7 +8545,6 @@ produce flame, read aura
 Primal Innate Spells DC 21; 1st illusory disguise
 
 75
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415425
 
@@ -8704,7 +8552,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121830
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -8782,7 +8629,6 @@ Quasit Venom (poison) Saving Throw DC 17 Fortitude; Maximum Duration 6 rounds; S
 1d6 poison (1 round); Stage 2 As stage 1; Stage 3 1d6 poison and slowed 1 (1 round)
 
 76
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415426
 
@@ -8794,7 +8640,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415427
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Succubus (Lust Demon)
@@ -8884,7 +8729,6 @@ Appendix
 4121831
 
 77
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415427
 
@@ -8892,7 +8736,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121832
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -8985,7 +8828,6 @@ in flight and chants to create a ruinous explosion of electricity. If more vrock
 30 feet want to join the dance, the vrock can delay the dance to wait for more vrocks;
 
 78
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415428
 
@@ -8997,7 +8839,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415429
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 in that case, the effect occurs after the last vrock uses Dance of Ruin or one of the
@@ -9090,7 +8931,6 @@ Melee [one-action] claw +27 (agile, evil, magical, reach 10 feet), Damage 3d6+13
 plus 1d6 evil
 
 79
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415429
 
@@ -9098,7 +8938,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121834
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -9182,7 +9021,6 @@ Melee [one-action] jaws (evil, magical, reach 20 feet) +33, Damage 3d12+17 pierc
 and enfeebling bite
 
 80
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415430
 
@@ -9190,7 +9028,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121835
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Melee [one-action] claw (agile, evil, magical, reach 20 feet) +33, Damage 3d8+17 slashing plus 1d6 evil
@@ -9295,7 +9132,6 @@ Failure Vulnerability A marilith’s pride feeds their strength, so the sting of
 failure wounds them. If the marilith uses a damaging spell or makes a Strike on
 
 81
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415431
 
@@ -9303,7 +9139,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121836
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -9388,7 +9223,6 @@ Those rare few balors who form from single souls are the ones most likely to
 eventually transcend the notable power they already wield, becoming a nascent
 
 82
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415432
 
@@ -9400,7 +9234,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415433
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 demon lord. These balor lords are each unique creatures of 21st to 25th level in
@@ -9508,7 +9341,6 @@ Appendix
 4121837
 
 83
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415433
 
@@ -9516,7 +9348,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121838
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -9618,7 +9449,6 @@ Ranged [one-action] hand crossbow +10 (range increment 60 feet, reload 1), Damag
 1d6+2 piercing plus lethargy poison
 
 84
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415434
 
@@ -9630,7 +9460,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415435
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Occult Innate Spells DC 19; 2nd darkness (at will), sound burst; Cantrips (2st) daze, ghost sound
@@ -9731,7 +9560,6 @@ grasp after you have thrown it as a ranged attack or after it has been disarmed
 (unless it is being held by another creature).
 
 85
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415435
 
@@ -9739,7 +9567,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121840
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -9830,7 +9657,6 @@ entire infernal armies.
 4121840
 
 86
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415436
 
@@ -9842,7 +9668,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415437
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Imp
@@ -9949,7 +9774,6 @@ Appendix
 4121841
 
 87
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415437
 
@@ -9957,7 +9781,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121842
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -10048,7 +9871,6 @@ as they see fit.
 4121842
 
 88
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415438
 
@@ -10060,7 +9882,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415439
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Erinys (Fury Devil)
@@ -10159,7 +9980,6 @@ tempting mortals to sell their souls in exchange for achieving their worldly
 desires. If a target is desirable enough, a phistophilus can offer contracts for
 
 89
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415439
 
@@ -10167,7 +9987,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121844
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -10258,7 +10077,6 @@ use healing magic is 29.
 4121844
 
 90
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415440
 
@@ -10270,7 +10088,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415441
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Gelugon (Ice Devil)
@@ -10353,7 +10170,6 @@ Appendix
 4121845
 
 91
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415441
 
@@ -10361,7 +10177,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121846
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -10485,7 +10300,6 @@ HP 335, regeneration 30 (deactivated by good); Immunities fire; Weaknesses good 
 Resistances physical 15 (except silver), poison 15
 
 92
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415442
 
@@ -10497,7 +10311,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415443
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Commander’s Aura (aura, divine, enchantment) 100 feet. Commanded or allied evil
@@ -10584,7 +10397,6 @@ Appendix
 4121847
 
 93
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415443
 
@@ -10592,7 +10404,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121848
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -10679,7 +10490,6 @@ ensconced inside their pitchers.
 4121848
 
 94
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415444
 
@@ -10691,7 +10501,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415445
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Dhampir
@@ -10784,7 +10593,6 @@ magic missile; Cantrips (1st) chill touch, detect magic, prestidigitation, ray
 of frost, shield
 
 95
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415445
 
@@ -10792,7 +10600,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121850
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -10893,7 +10700,6 @@ However, larger deinonychuses exist. These creatures—which stand
 taller than a human—are called megaraptors.
 
 96
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415446
 
@@ -10905,7 +10711,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415447
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 DEINONYCHUS
@@ -11012,7 +10817,6 @@ Trample [three-actions] Medium or
 smaller, foot, DC 24
 
 97
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415447
 
@@ -11020,7 +10824,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121852
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -11108,7 +10911,6 @@ dinosaurs are herbivores and use these bony protrusions only
 to defend themselves from attackers or in dramatic clashes
 
 98
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415448
 
@@ -11120,7 +10922,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415449
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 against other triceratopses for grazing territory or mates. Short-tempered and
@@ -11229,7 +11030,6 @@ heedlessly onto the ground. A brontosaurus is 70
 feet long and weighs more than 30 tons.
 
 99
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415449
 
@@ -11237,7 +11037,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121854
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -11309,7 +11108,6 @@ behemoths exist.
 4121854
 
 100
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415450
 
@@ -11321,7 +11119,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415451
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 exceptional balance. Although a their small forelimbs are of little use other
@@ -11421,7 +11218,6 @@ Trample [three-actions] Huge or smaller, foot, DC 29
 4121855
 
 101
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415451
 
@@ -11429,7 +11225,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121856
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -11528,7 +11323,6 @@ Pack Attack The dog’s Strikes deal 1d4 extra damage to creatures
 within the reach of at least two of the dog’s allies.
 
 102
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415452
 
@@ -11540,7 +11334,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415453
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Doppelganger
@@ -11643,7 +11436,6 @@ or its attack and damage bonuses with its Strikes but might change the damage ty
 its Strikes deal (typically to bludgeoning).
 
 103
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415453
 
@@ -11651,7 +11443,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121858
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -11753,7 +11544,6 @@ suited to their wetland environments and submerged lairs. They’re immune to th
 fetid water that comes as a result of their magical ability to corrupt water.
 
 104
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415454
 
@@ -11765,7 +11555,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415455
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Black dragon lairs are as foul as their souls. The floors are littered with rotting
@@ -11873,7 +11662,6 @@ Melee [one-action] jaws +25 (acid, magical, reach 10 feet), Damage 2d12+13
 piercing plus 2d6 acid
 
 105
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415455
 
@@ -11881,7 +11669,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121860
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -11995,7 +11782,6 @@ palatial; they’re universally intolerant of insubordination, incompetence, and
 embezzlement, and punish perpetrators with murderous efficiency.
 
 106
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415456
 
@@ -12007,7 +11793,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415457
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Blue dragons are also known for their use and mastery of illusion magic. They
@@ -12106,7 +11891,6 @@ Appendix
 4121861
 
 107
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415457
 
@@ -12114,7 +11898,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121862
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -12236,7 +12019,6 @@ last for 10 minutes and allow the dragon to use Storm Breath.
 Desert Thirst (arcane, transmutation); As young blue dragon, but DC 37.
 
 108
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415458
 
@@ -12248,7 +12030,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415459
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Draconic Frenzy [two-actions] As young blue dragon.
@@ -12352,7 +12133,6 @@ Str +5, Dex +1, Con +3, Int +2, Wis +2,
 Cha +4
 
 109
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415459
 
@@ -12360,7 +12140,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121864
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -12472,7 +12251,6 @@ AC 41; Fort +30, Ref +29, Will +32; +1 status to all saves vs. magic
 HP 315; Immunities paralyzed, poison, sleep
 
 110
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415460
 
@@ -12484,7 +12262,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415461
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Frightful Presence (aura, emotion, fear, mental) 90 feet, DC 37
@@ -12569,7 +12346,6 @@ to fuse together.
 4121865
 
 111
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415461
 
@@ -12577,7 +12353,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121866
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -12710,7 +12485,6 @@ Skills Acrobatics +30, Arcana +35, Athletics +37, Deception +35, Diplomacy +35,
 Intimidation +37, Stealth +33
 
 112
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415462
 
@@ -12722,7 +12496,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415463
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Str +9, Dex +5, Con +8, Int +5, Wis +6, Cha +7
@@ -12820,7 +12593,6 @@ Languages Draconic
 Skills Acrobatics +10, Arcana +7, Athletics +16, Intimidation +12, Stealth +14
 
 113
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415463
 
@@ -12828,7 +12600,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121868
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -12939,7 +12710,6 @@ Ice Climb As young white dragon.
 Shape Ice [two-actions] (arcane, transmutation, water) As young white dragon.
 
 114
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415464
 
@@ -12951,7 +12721,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415465
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 ANCIENT WHITE DRAGON
@@ -13054,7 +12823,6 @@ Appendix
 4121869
 
 115
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415465
 
@@ -13062,7 +12830,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121870
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -13165,7 +12932,6 @@ controversial experiment is instead regarded by many as a cruel and unusual form
 of eugenics.
 
 116
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415466
 
@@ -13173,7 +12939,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121871
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Brass Dragon
@@ -13260,7 +13025,6 @@ Breath Weapon [two-actions] (arcane, evocation, fire);
 The brass dragon breathes fire in a 60-foot
 
 117
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415467
 
@@ -13268,7 +13032,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121872
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -13370,7 +13133,6 @@ Draconic Frenzy [two-actions] As young brass dragon.
 Draconic Momentum As young brass dragon.
 
 118
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415468
 
@@ -13382,7 +13144,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415469
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Bronze Dragon
@@ -13479,7 +13240,6 @@ Appendix
 4121873
 
 119
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415469
 
@@ -13487,7 +13247,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121874
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -13611,7 +13370,6 @@ Breath Weapon [two-actions] As young bronze dragon, but a 100-foot line, DC 40, 
 lightning deals 12d12 electricity damage.
 
 120
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415470
 
@@ -13623,7 +13381,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415471
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Draconic Frenzy [two-actions] As young bronze dragon.
@@ -13717,7 +13474,6 @@ Melee [one-action] tail +18 (reach 15 feet), Damage
 1d8+7 bludgeoning
 
 121
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415471
 
@@ -13725,7 +13481,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121876
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -13846,7 +13601,6 @@ Arcane Innate Spells DC 39; 5th hideous laughter (at will), wall of stone; 4th s
 (at will); 1st grease (at will)
 
 122
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415472
 
@@ -13858,7 +13612,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415473
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Breath Weapon [two-actions] As young copper dragon, but a 100-foot line, DC 38, and the dragon’s
@@ -13947,7 +13700,6 @@ Appendix
 4121877
 
 123
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415473
 
@@ -13955,7 +13707,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121878
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -14077,7 +13828,6 @@ HP 330; Immunities fire, paralyzed, sleep; Weaknesses cold 15
 Frightful Presence (aura, emotion, fear, mental) 90 feet, DC 33
 
 124
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415474
 
@@ -14089,7 +13839,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415475
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Attack of Opportunity [reaction] Jaws only.
@@ -14187,7 +13936,6 @@ and they adhere to strict codes of honor usually passed down from parent to
 hatchling. On occasion, they instead learn these codes from trusted mentors,
 
 125
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415475
 
@@ -14195,7 +13943,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121880
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -14319,7 +14066,6 @@ Skills Acrobatics +21, Athletics +27, Diplomacy +25, Intimidation +27, Medicine 
 Religion +24, Society +20
 
 126
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415476
 
@@ -14331,7 +14077,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415477
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Str +7, Dex +3, Con +4, Int +3, Wis +4, Cha +5
@@ -14416,7 +14161,6 @@ Draconic Momentum As young silver dragon.
 4121881
 
 127
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415477
 
@@ -14424,7 +14168,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121882
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -14517,7 +14260,6 @@ whose inhabitants know nothing of land that doesn’t drift across the sea.
 4121882
 
 128
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415478
 
@@ -14529,7 +14271,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415479
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Drakauthix
@@ -14629,7 +14370,6 @@ around it. The drakauthix makes a tentacle Strike against every
 creature within its reach.
 
 129
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415479
 
@@ -14637,7 +14377,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121884
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -14722,7 +14461,6 @@ perform incredible feats of speed.
 4121884
 
 130
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415480
 
@@ -14734,7 +14472,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415481
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 River Drake
@@ -14841,7 +14578,6 @@ Smoke Vision Smoke doesn’t impair a flame drake’s vision; it
 ignores concealment from smoke.
 
 131
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415481
 
@@ -14849,7 +14585,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121886
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -14936,7 +14671,6 @@ times per day.
 4121886
 
 132
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415482
 
@@ -14948,7 +14682,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415483
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Wyvern
@@ -15040,7 +14773,6 @@ damage (1 round)
 4121887
 
 133
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415483
 
@@ -15048,7 +14780,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121888
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -15142,7 +14873,6 @@ can be seen beneath its scales.
 4121888
 
 134
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415484
 
@@ -15154,7 +14884,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415485
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Desert Drake
@@ -15243,7 +14972,6 @@ Appendix
 4121889
 
 135
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415485
 
@@ -15251,7 +14979,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121890
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -15343,7 +15070,6 @@ Skewer [two-actions] The drow fighter Strikes with its rapier, and gains a
 the attack takes 1d6 persistent bleed damage.
 
 136
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415486
 
@@ -15355,7 +15081,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415487
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 Drow Rogue
@@ -15463,7 +15188,6 @@ fire (at will); 1st command (at will); Cantrips (4th)
 dancing lights
 
 137
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415487
 
@@ -15471,7 +15195,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121892
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -15563,7 +15286,6 @@ how their targets react and record the results to enhance future modifications
 to their alchemical concoctions.
 
 138
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415488
 
@@ -15575,7 +15297,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415489
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 D
 DUERGAR BOMBARDIER
@@ -15690,7 +15411,6 @@ to attack rolls and damage rolls until the end of the duergar
 taskmaster’s next turn.
 
 139
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415489
 
@@ -15698,7 +15418,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121894
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -15792,7 +15511,6 @@ trees, or unceremoniously tossed in a bog hole.
 4121894
 
 140
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415490
 
@@ -15804,7 +15522,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415491
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Eagle
@@ -15908,7 +15625,6 @@ creature grabbed or restrained in its talons, carrying that
 creature along with it.
 
 141
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415491
 
@@ -15916,7 +15632,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121896
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -16007,7 +15722,6 @@ moray eel Swallows it Whole.
 Swallow Whole [one-action] (attack) Small, 1d6+6 bludgeoning, Rupture 12
 
 142
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415492
 
@@ -16019,7 +15733,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415493
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Elananx
@@ -16113,7 +15826,6 @@ Pounce [one-action] The elananx Strides and makes a Strike at the end of that mo
 the elananx began this action hidden, it remains hidden until after the attack.
 
 143
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415493
 
@@ -16121,7 +15833,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121898
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -16231,7 +15942,6 @@ AC 26; Fort +14, Ref +18, Will +11
 HP 70; Immunities bleed, paralyzed, poison, sleep
 
 144
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415494
 
@@ -16243,7 +15953,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415495
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Naturally Invisible The invisible stalker is invisible at all times, though when it takes
@@ -16353,7 +16062,6 @@ Critical Failure The creature is Pushed 40 feet and knocked prone.
 Swiftness The elemental’s movement doesn’t trigger reactions.
 
 145
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415495
 
@@ -16361,7 +16069,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121900
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -16467,7 +16174,6 @@ Stealth +11, Survival +15
 Str +6, Dex +0, Con +5, Int +0, Wis +2, Cha +0
 
 146
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415496
 
@@ -16479,7 +16185,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415497
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 AC 25, all-around vision; Fort +18, Ref +11, Will +13
@@ -16589,7 +16294,6 @@ Earth Glide As sod hound.
 Trample [three-actions] Large or smaller, fist, DC 30
 
 147
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415497
 
@@ -16597,7 +16301,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121902
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -16700,7 +16403,6 @@ Attack of Opportunity [reaction]
 Speed 20 feet
 
 148
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415498
 
@@ -16712,7 +16414,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415499
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Melee [one-action] ranseur +18 (disarm, magical, reach 10 feet), Damage 2d10+7 piercing
@@ -16816,7 +16517,6 @@ the area (DC 30 basic Reflex save). The elemental inferno can’t Inferno Leap a
 1d4 rounds.
 
 149
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415499
 
@@ -16824,7 +16524,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121904
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -16922,7 +16621,6 @@ mephits is notorious, and these creatures loathe working together for any amount
 of time.
 
 150
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415500
 
@@ -16934,7 +16632,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415501
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 FIRE MEPHIT
@@ -17048,7 +16745,6 @@ non‑magical fires automatically and attempts to counteract magical fires
 (+7 counteract modifier).
 
 151
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415501
 
@@ -17056,7 +16752,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121906
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -17161,7 +16856,6 @@ native to the Plane of Water that resemble fourtentacled octopuses with eerily h
 faces on their mantles.
 
 152
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415502
 
@@ -17173,7 +16867,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415503
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 QUATOID
@@ -17294,7 +16987,6 @@ Fortitude save). A creature that fails this save is Pushed 20 feet. The elementa
 then retracts to its former space. The elemental tsunami can’t Surge again for 1d4 rounds.
 
 153
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415503
 
@@ -17302,7 +16994,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121908
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -17393,7 +17084,6 @@ Grabbing Trunk As elephant.
 Trample [three-actions] Large or smaller, foot, DC 28
 
 154
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415504
 
@@ -17405,7 +17095,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415505
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Ether Spider
@@ -17503,7 +17192,6 @@ Ethereal Plane. Each creature in the area is immobilized, as ethereal web trap, 
 it succeeds at a DC 22 Reflex save.
 
 155
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415505
 
@@ -17511,7 +17199,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121910
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -17599,7 +17286,6 @@ Melee [one-action] flail +16 (disarm, reach 10 feet, sweep, trip), Damage 2d6+10
 Melee [one-action] fist +16 (agile, reach 10 feet), Damage 1d6+10 bludgeoning
 
 156
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415506
 
@@ -17611,7 +17297,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415507
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Faerie Dragon
@@ -17713,7 +17398,6 @@ become stupefied 2 and slowed 1 for 1d4 rounds; on a critical failure, the durat
 minute. The faerie dragon can’t use Breath Weapon again for 1d4 rounds.
 
 157
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415507
 
@@ -17721,7 +17405,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121912
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -17814,7 +17497,6 @@ of examples of these horrors.
 4121912
 
 158
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415508
 
@@ -17826,7 +17508,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415509
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Drider
@@ -17921,7 +17602,6 @@ the nearest surface (Escape DC 21).
 4121913
 
 159
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415509
 
@@ -17929,7 +17609,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121914
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -18027,7 +17706,6 @@ Swallow Whole [one-action] (attack) Large, 2d8+3 bludgeoning plus 2d6
 acid, Rupture 17
 
 160
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415510
 
@@ -18039,7 +17717,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415511
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Gargoyle
@@ -18132,7 +17809,6 @@ be a statue. It has an automatic result of 32 on Deception checks and
 DCs to pass as a statue.
 
 161
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415511
 
@@ -18140,7 +17816,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121916
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -18229,7 +17904,6 @@ size. This works as a 4th-level enlarge or shrink spell but can target
 an unwilling creature (DC 21 Fortitude save negates).
 
 162
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415512
 
@@ -18241,7 +17915,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415513
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Djinni
@@ -18340,7 +18013,6 @@ have built a vast mercantile empire from these abundant
 natural resources.
 
 163
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415513
 
@@ -18348,7 +18020,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121918
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -18454,7 +18125,6 @@ bludgeoning plus 2d6 fire
 Arcane Innate Spells DC 29, attack +19; 7th plane shift (at will; to Astral Plane,
 
 164
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415514
 
@@ -18466,7 +18136,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415515
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Elemental Planes, or Material Plane only) 5th illusory object; 4th gaseous form,
@@ -18566,7 +18235,6 @@ persistent bleed damage on a hit (4d6 on a critical hit).
 4121919
 
 165
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415515
 
@@ -18574,7 +18242,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121920
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -18660,7 +18327,6 @@ higher than the ghost’s level – 2. If the target object is being held by a c
 bearer can attempt a Will save to prevent the possession. This possession ends when
 
 166
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415516
 
@@ -18672,7 +18338,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415517
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 the object is destroyed or the ghost leaves it. At this point, the ghost reappears in the
@@ -18782,7 +18447,6 @@ Frightful Moan [one-action] (auditory, divine, emotion, enchantment, fear, menta
 Telekinetic Assault [two-actions] (divine, evocation) 6d6 bludgeoning, DC 29
 
 167
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415517
 
@@ -18790,7 +18454,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121922
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -18878,7 +18541,6 @@ starting its turn in the aura must succeed at a Fortitude save
 (use a DC based on the monster’s level; Core Rulebook 503)
 
 168
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415518
 
@@ -18890,7 +18552,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415519
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 or become sickened 1 (plus slowed 1 as long as itʼs sickened on a critical failure). While
@@ -18996,7 +18657,6 @@ Paralysis (incapacitation, occult, necromancy) See Ghast Abilities; DC 16.
 Swift Leap [one-action] (move) See Ghast Abilities.
 
 169
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415519
 
@@ -19004,7 +18664,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121924
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -19105,7 +18764,6 @@ Catch Rock [reaction]
 Speed 35 feet
 
 170
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415520
 
@@ -19117,7 +18775,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415521
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Melee [one-action] greatclub +21 (backswing, magical, reach 10 feet, shove), Damage
@@ -19214,7 +18871,6 @@ must attempt a DC 28 basic Reflex save. A creature
 that fails its save is also immobilized and takes 2d6
 
 171
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415521
 
@@ -19222,7 +18878,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121926
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -19309,7 +18964,6 @@ Throw Rock [one-action] (fire) A rock thrown by a fire giant deals an additional
 1d6 fire damage on a hit.
 
 172
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415522
 
@@ -19321,7 +18975,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415523
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Cloud Giant
@@ -19420,7 +19073,6 @@ or rocky archipelagos. Storm giants tend to rapidly shift in mood and
 behavior, one moment engaging in peaceful negotiation, the next unleashing
 
 173
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415523
 
@@ -19428,7 +19080,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121928
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -19517,7 +19168,6 @@ are potent manifestations of their eldritch powers. Rune giants are towering
 creatures, averaging at 40 feet in height and weighing 25,000 pounds.
 
 174
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415524
 
@@ -19529,7 +19179,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415525
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 RUNE GIANT
@@ -19628,7 +19277,6 @@ Appendix
 4121929
 
 175
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415525
 
@@ -19636,7 +19284,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121930
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -19730,7 +19377,6 @@ prevalence of settlements that don’t tolerate gibbering mouthers’ presence.
 4121930
 
 176
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415526
 
@@ -19742,7 +19388,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415527
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Gimmerling
@@ -19849,7 +19494,6 @@ Appendix
 4121931
 
 177
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415527
 
@@ -19857,7 +19501,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121932
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -19947,7 +19590,6 @@ Rugged Travel A gnoll ignores the first square of difficult
 terrain it moves into each time it Steps or Strides.
 
 178
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415528
 
@@ -19959,7 +19601,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415529
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Gnoll Cultist
@@ -20068,7 +19709,6 @@ Pack Attack As gnoll hunter.
 Rugged Travel As gnoll hunter.
 
 179
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415529
 
@@ -20076,7 +19716,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121934
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -20182,7 +19821,6 @@ Ranged [one-action] shortbow +8 (deadly 1d10, range increment
 60 feet, reload 0), Damage 1d6 piercing
 
 180
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415530
 
@@ -20194,7 +19832,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415531
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Goblin Pyro
@@ -20305,7 +19942,6 @@ Critical Failure The target is temporarily immune to Goblin Song
 for 1 hour.
 
 181
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415531
 
@@ -20313,7 +19949,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121936
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -20409,7 +20044,6 @@ dog vigorously scratches itself, exposing
 all adjacent creatures to goblin pox.
 
 182
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415532
 
@@ -20421,7 +20055,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415533
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Gogiteth
@@ -20520,7 +20153,6 @@ attack penalty until after making all its Strikes. If any of the
 Strikes result in a critical failure, Skittering Assault ends.
 
 183
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415533
 
@@ -20528,7 +20160,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121938
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -20609,7 +20240,6 @@ desecrating corpses for their own ends. Though the
 first flesh golem is believed to have been a misguided
 
 184
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415534
 
@@ -20621,7 +20251,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415535
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 attempt to create from simple base elements, these monstrosities are far from
@@ -20734,7 +20363,6 @@ a chamber that was shattered, there is no alchemical effect):
 6 sickness: DC 26 Fortitude save or sickened 1 (sickened 2 on a critical failure)
 
 185
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415535
 
@@ -20742,7 +20370,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121940
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -20832,7 +20459,6 @@ Golem Antimagic harmed by cold and water (5d10, 2d6 from areas or
 persistent damage); healed by acid (area 2d6 HP); slowed by earth
 
 186
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415536
 
@@ -20844,7 +20470,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415537
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Vulnerable to Disintegrate A disintegrate spell affects the golem but deals half the
@@ -20943,7 +20568,6 @@ Inexorable March [one-action] The stone golem Strides up to its Speed, pushing b
 creature whose space it moves into and damaging them if they try to stop
 
 187
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415537
 
@@ -20951,7 +20575,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121942
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -21038,7 +20661,6 @@ mounting a mining expedition to a distant planet, the Plane
 of Earth, or an Outer Plane.
 
 188
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415538
 
@@ -21050,7 +20672,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415539
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 ADAMANTINE GOLEM
@@ -21148,7 +20769,6 @@ Appendix
 4121943
 
 189
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415539
 
@@ -21156,7 +20776,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121944
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -21259,7 +20878,6 @@ weapons deal 1d6 additional mental damage, and its Devastating Blast deals menta
 damage with a Will saving throw instead of Reflex.
 
 190
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415540
 
@@ -21271,7 +20889,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415541
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Create Grave Squire The graveknight can gift a piece of its armor to a willing ally, which
@@ -21357,7 +20974,6 @@ Phantom Mount [three-actions] (arcane, conjuration) HP 58; AC 27, Fort +17, Ref 
 Weapon Master
 
 191
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415541
 
@@ -21365,7 +20981,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121946
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -21457,7 +21072,6 @@ hate pugwampis even more than most creatures do, due to their
 sycophantic fawning.
 
 192
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415542
 
@@ -21469,7 +21083,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415543
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 PUGWAMPI
@@ -21574,7 +21187,6 @@ a bizarre requirement to use the item, or imparts some other curse of a
 similar caliber.
 
 193
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415543
 
@@ -21582,7 +21194,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121948
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -21675,7 +21286,6 @@ end of that movement. If the griffon began this action hidden, it
 remains hidden until after the attack.
 
 194
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415544
 
@@ -21687,7 +21297,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415545
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Grikkitog
@@ -21789,7 +21398,6 @@ Appendix
 4121949
 
 195
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415545
 
@@ -21797,7 +21405,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121950
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -21888,7 +21495,6 @@ The grim reaper teleports to a square adjacent to the triggering creature and ma
 melee Strike against it. If the Strike hits, the grim reaper disrupts the triggering action.
 
 196
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415546
 
@@ -21900,7 +21506,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415547
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Speed 50 feet, fly 75 feet
@@ -21993,7 +21598,6 @@ Infuse Weapon (divine, evocation) Any scythe gains the agile trait, can’t be d
 and becomes a +2 greater striking keen scythe while the lesser death wields it.
 
 197
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415547
 
@@ -22001,7 +21605,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121952
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -22090,7 +21693,6 @@ penalty doesn’t increase until after the gug makes all its attacks.
 Rend [one-action] claw
 
 198
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415548
 
@@ -22102,7 +21704,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415549
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 E-G
 Guthallath
@@ -22203,7 +21804,6 @@ Appendix
 4121953
 
 199
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415549
 
@@ -22211,7 +21811,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121954
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -22301,7 +21900,6 @@ become hags themselves.
 4121954
 
 200
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415550
 
@@ -22313,7 +21911,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415551
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 H-K
 Green Hag
@@ -22404,7 +22001,6 @@ that burns the flesh of other hags. This allows them to bully their way to
 the leadership of hag covens.
 
 201
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415551
 
@@ -22412,7 +22008,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121956
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -22511,7 +22106,6 @@ Perception +18; darkvision
 Languages Abyssal, Aklo, Celestial, Common, Infernal
 
 202
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415552
 
@@ -22523,7 +22117,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415553
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 H-K
 Skills Arcana +18, Deception +18, Diplomacy +18, Intimidation +14, Occultism +20,
@@ -22613,7 +22206,6 @@ counteract modifier +18).
 Craft Requirements You must be a night hag.
 
 203
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415553
 
@@ -22621,7 +22213,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121958
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -22708,7 +22299,6 @@ their kind and terrors among their victims.
 4121958
 
 204
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415554
 
@@ -22716,7 +22306,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121959
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 H-K
 Hell Hound
@@ -22828,7 +22417,6 @@ the Nessian warhound would take fire damage or be targeted
 by a fire effect, its Breath Weapon recharges.
 
 205
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415555
 
@@ -22836,7 +22424,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121960
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -22927,7 +22514,6 @@ Ranged [one-action] shortbow +8 (deadly 1d10, range increment 60
 feet, reload 0), Damage 1d6 piercing
 
 206
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415556
 
@@ -22939,7 +22525,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415557
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 H-K
 Hobgoblin Archer
@@ -23044,7 +22629,6 @@ Polearm Critical Specialization On a critical hit, the target of the critical hi
 5 feet in a direction of the hobgoblin general’s choice.
 
 207
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415557
 
@@ -23052,7 +22636,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121962
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -23149,7 +22732,6 @@ DC 15 Fortitude; Maximum Duration 6 rounds; Stage 1 1d6 poison and enfeebled 1
 (1 round)
 
 208
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415558
 
@@ -23161,7 +22743,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415559
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 H-K
 Horse
@@ -23280,7 +22861,6 @@ Melee [one-action] hoof +9, Damage 1d6+5 bludgeoning
 Gallop [two-actions] As riding pony.
 
 209
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415559
 
@@ -23288,7 +22868,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121964
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -23380,7 +22959,6 @@ doesn’t increase until after the hydra makes all its attacks.
 4121964
 
 210
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415560
 
@@ -23392,7 +22970,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415561
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 H-K
 Hyena
@@ -23504,7 +23081,6 @@ Pack Attack The hyaenodon deals an extra 1d6 damage to any
 creature within reach of at least two of the hyaenodon’s allies.
 
 211
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415561
 
@@ -23512,7 +23088,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121966
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -23612,7 +23187,6 @@ Sneak Attack The kobold warrior deals an extra 1d4
 precision damage to flat-footed creatures.
 
 212
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415562
 
@@ -23624,7 +23198,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415563
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 H-K
 Kobold Scout
@@ -23730,7 +23303,6 @@ creatures.
 4121967
 
 213
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415563
 
@@ -23738,7 +23310,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121968
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -23839,7 +23410,6 @@ poison damage and sickened 2 (1 round).
 4121968
 
 214
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415564
 
@@ -23851,7 +23421,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415565
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 H-K
 Krooth
@@ -23952,7 +23521,6 @@ automatically end the
 bleed damage.
 
 215
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415565
 
@@ -23960,7 +23528,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121970
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -24048,7 +23615,6 @@ Ranged [one-action] javelin +15 (thrown 30 feet), Damage 1d6+8 piercing
 Occult Innate Spells DC 25; 4th charm (×3), suggestion; 3rd sleep; 2nd humanoid
 
 216
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415566
 
@@ -24060,7 +23626,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415567
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 form (at will), mirror image; 1st illusory disguise (at will), illusory object (at will),
@@ -24155,7 +23720,6 @@ its existing stupefied increased by 2) if it critically fails.
 4121971
 
 217
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415567
 
@@ -24163,7 +23727,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121972
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -24259,7 +23822,6 @@ PLANT
 Perception +5; low-light vision
 
 218
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415568
 
@@ -24271,7 +23833,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415569
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 Languages Common, Druidic, Sylvan; speak with plants (gourds only)
@@ -24367,7 +23928,6 @@ throw with the same DC and effect as its Spore
 Cloud ability.
 
 219
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415569
 
@@ -24375,7 +23935,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121974
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -24457,7 +24016,6 @@ paralyzed permanently, falls prone, and seems dead. A DC 25 Medicine check revea
 the victim is alive.
 
 220
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415570
 
@@ -24469,7 +24027,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415571
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 Alternate Lich Abilities
@@ -24564,7 +24121,6 @@ success, the action isn’t disrupted.
 4121975
 
 221
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415571
 
@@ -24572,7 +24128,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121976
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -24668,7 +24223,6 @@ with one of its arcane innate spells of 5th level or lower as the companion spel
 typically dimension door. Trigger While the lich is in torpor, a creature disturbs
 
 222
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415572
 
@@ -24680,7 +24234,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415573
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 the demilich’s remains, touches its treasure, or casts a spell that would affect the
@@ -24773,7 +24326,6 @@ hours later, when the spell can be used once again.
 Craft Requirements Demilich eye gems can’t be crafted.
 
 223
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415573
 
@@ -24781,7 +24333,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121978
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -24872,7 +24423,6 @@ strength and deadly powers that often rival authentic dragon brutality.
 4121978
 
 224
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415574
 
@@ -24884,7 +24434,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415575
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 Ice Linnorm
@@ -24969,7 +24518,6 @@ Appendix
 4121979
 
 225
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415575
 
@@ -24977,7 +24525,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121980
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -25067,7 +24614,6 @@ drained 2.
 4121980
 
 226
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415576
 
@@ -25079,7 +24625,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415577
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 Tor Linnorm
@@ -25174,7 +24719,6 @@ Appendix
 4121981
 
 227
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415577
 
@@ -25182,7 +24726,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121982
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -25271,7 +24814,6 @@ a single meal, and its loosely articulated jaws allow it
 to swallow surprisingly large prey.
 
 228
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415578
 
@@ -25283,7 +24825,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415579
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 GIANT MONITOR LIZARD
@@ -25394,7 +24935,6 @@ is then temporarily immune to Intimidating Display for
 1 minute.
 
 229
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415579
 
@@ -25402,7 +24942,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121984
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -25490,7 +25029,6 @@ Terrain Advantage Non-lizardfolk creatures in difficult terrain and nonlizardfol
 to the lizardfolk defender.
 
 230
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415580
 
@@ -25502,7 +25040,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415581
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 Lizardfolk Scout
@@ -25606,7 +25143,6 @@ summon animal; Cantrips (1st) guidance, know direction, produce flame, stabilize
 Deep Breath As lizardfolk defender, but 200 rounds (20 minutes).
 
 231
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415581
 
@@ -25614,7 +25150,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121986
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -25706,7 +25241,6 @@ mount can prove surprisingly loyal.
 4121986
 
 232
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415582
 
@@ -25718,7 +25252,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415583
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 Mantis, Giant
@@ -25825,7 +25358,6 @@ further damage armor that’s already broken.
 Sudden Strike As giant mantis.
 
 233
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415583
 
@@ -25833,7 +25365,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121988
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -25921,7 +25452,6 @@ monster’s life.
 4121988
 
 234
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415584
 
@@ -25933,7 +25463,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415585
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 Merfolk
@@ -26046,7 +25575,6 @@ become immobilized for 1 round and immediately lose 1d4 actions' worth of air (o
 that on a critical failure).
 
 235
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415585
 
@@ -26054,7 +25582,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121990
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -26141,7 +25668,6 @@ strike at any moment.
 4121990
 
 236
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415586
 
@@ -26149,7 +25675,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121991
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 Minotaur
@@ -26247,7 +25772,6 @@ makes a horn Strike. If it moved at least 20 feet from its
 starting position, the Strike’s damage is increased to 2d8+10.
 
 237
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415587
 
@@ -26255,7 +25779,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121992
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -26342,7 +25865,6 @@ harvest them to operate in perilously close proximity to the abominations.
 4121992
 
 238
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415588
 
@@ -26354,7 +25876,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415589
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 Mukradi
@@ -26451,7 +25972,6 @@ Appendix
 4121993
 
 239
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415589
 
@@ -26459,7 +25979,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121994
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -26544,7 +26063,6 @@ While mummy guardians are undead crafted from the corpses of
 sacrificed—usually unwilling victims—and retain only fragments of their
 
 240
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415590
 
@@ -26556,7 +26074,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415591
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 memories, a mummy pharaoh is the result of a deliberate embrace of undeath by
@@ -26650,7 +26167,6 @@ Appendix
 4121995
 
 241
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415591
 
@@ -26658,7 +26174,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121996
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -26745,7 +26260,6 @@ Occult Innate Spells DC 25; Constant (3rd) mind reading
 Dark Naga Venom (incapacitation, poison) Saving Throw
 
 242
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415592
 
@@ -26757,7 +26271,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415593
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 DC 25 Fortitude; Maximum Duration 5 minutes; Stage 1 slowed 1 (1 round);
@@ -26851,7 +26364,6 @@ Maximum Duration 6 rounds; Stage 1 3d6 poison (1 round); Stage
 2 3d6 poison and drained 1 (1 round)
 
 243
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415593
 
@@ -26859,7 +26371,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4121998
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -26953,7 +26464,6 @@ Flaming Gallop [two-actions] (fire) As nightmare, but 6d6 fire damage and DC 30.
 Trample [three-actions] Large or smaller, hoof, DC 30
 
 244
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415594
 
@@ -26965,7 +26475,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415595
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 Nilith
@@ -27059,7 +26568,6 @@ affected as though by feeblemind, and it must attempt a second Will save against
 that effect.
 
 245
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415595
 
@@ -27067,7 +26575,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122000
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -27173,7 +26680,6 @@ PLANT
 Perception +10; low-light vision
 
 246
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415596
 
@@ -27185,7 +26691,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415597
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 Languages Common, Elven, Sylvan; speak with plants
@@ -27271,7 +26776,6 @@ any Small or Medium humanoid form, typically choosing a more humanoid-looking
 version of their natural form.
 
 247
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415597
 
@@ -27279,7 +26783,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122002
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -27373,7 +26876,6 @@ haste, heal; 2nd animal messenger, faerie fire, tree shape; 1st fleet step, gust
 negate aroma; Cantrips (4th) detect magic, guidance, light, ray of frost, stabilize
 
 248
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415598
 
@@ -27385,7 +26887,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415599
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 L-N
 Primal Innate Spells DC 28; 4th tidal surge (at will; Core Rulebook 397); 1st charm,
@@ -27483,7 +26984,6 @@ to eight other creatures with her when she does so.
 4122003
 
 249
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415599
 
@@ -27491,7 +26991,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122004
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -27558,7 +27057,6 @@ with Writhing Arms.
 4122004
 
 250
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415600
 
@@ -27570,7 +27068,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415601
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 Ofalth
@@ -27667,7 +27164,6 @@ hour and enfeebled 2 (1 day)
 4122005
 
 251
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415601
 
@@ -27675,7 +27171,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122006
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -27763,7 +27258,6 @@ little consolation to those who have been gobbled down whole
 by these ravenous giants. In addition to their sadistic table
 
 252
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415602
 
@@ -27775,7 +27269,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415603
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 manners, ogre gluttons have a disturbing knack for coming up with violent
@@ -27878,7 +27371,6 @@ creature using an ogre hook. Effect The ogre boss makes an ogre
 hook Strike against the creature they tripped.
 
 253
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415603
 
@@ -27886,7 +27378,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122008
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -27983,7 +27474,6 @@ of yellow, orange, and brown hues. Their acidic bodies dissolve flesh but
 leave other materials, including a victim’s gear and bones, intact. Some
 
 254
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415604
 
@@ -27995,7 +27485,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415605
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 ancient cultures would entomb bodies in stone sarcophaguses with ochre jellies to
@@ -28105,7 +27594,6 @@ Suction The pudding can climb on ceilings and other inverted surfaces,
 though such surfaces are difficult terrain for it.
 
 255
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415605
 
@@ -28113,7 +27601,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122010
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -28200,7 +27687,6 @@ Str +3, Dex +2, Con +3, Int –1, Wis +1, Cha +0
 Items shoddy breastplate, javelin (3), orc knuckle dagger (2)
 
 256
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415606
 
@@ -28212,7 +27698,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415607
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 AC 15; Fort +6, Ref +4, Will +2
@@ -28315,7 +27800,6 @@ a +1 status bonus to attack and damage rolls until the start of the orc
 warchief’s next turn.
 
 257
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415607
 
@@ -28323,7 +27807,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122012
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -28411,7 +27894,6 @@ other prizes of dubious nature.
 4122012
 
 258
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415608
 
@@ -28423,7 +27905,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415609
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 Owlbear
@@ -28520,7 +28001,6 @@ effects of Bloodcurdling Screech.
 4122013
 
 259
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415609
 
@@ -28528,7 +28008,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122014
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -28606,7 +28085,6 @@ Gallop [two-actions] The pegasus uses 2 move actions, each of which can be eithe
 Fly. It gains a +20-foot circumstance bonus to its Speeds during a Gallop.
 
 260
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415610
 
@@ -28618,7 +28096,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415611
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 Phoenix
@@ -28713,7 +28190,6 @@ Appendix
 4122015
 
 261
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415611
 
@@ -28721,7 +28197,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122016
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -28818,7 +28293,6 @@ Intimidation +6, Nature +8, Stealth +12, Survival +8
 Str +2, Dex +4, Con +1, Int +0, Wis +2, Cha +0
 
 262
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415612
 
@@ -28830,7 +28304,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415613
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 Items composite longbow (20 arrows), hatchet (2), leather armor
@@ -28926,7 +28399,6 @@ Divine Innate Spells DC 20; Cantrips (3rd) light
 Champion Devotion Spells DC 20; 3rd (1 Focus Point) lay on hands (Core Rulebook 387)
 
 263
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415613
 
@@ -28934,7 +28406,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122018
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -29030,7 +28501,6 @@ on a failure, and no damage on a critical failure.
 4122018
 
 264
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415614
 
@@ -29042,7 +28512,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415615
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 Poracha
@@ -29148,7 +28617,6 @@ creature Strikes the object, the poracha is
 expelled unharmed.
 
 265
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415615
 
@@ -29156,7 +28624,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122020
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -29294,7 +28761,6 @@ PROTEAN
 Perception +4; entropy sense (imprecise) 30 feet, darkvision
 
 266
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415616
 
@@ -29306,7 +28772,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415617
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 Languages Abyssal, Protean
@@ -29402,7 +28867,6 @@ Entropy Sense (divination, divine, prediction) As voidworm.
 AC 24; Fort +18, Ref +14, Will +12; +1 status to all saves vs. magic
 
 267
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415617
 
@@ -29410,7 +28874,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122022
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -29491,7 +28954,6 @@ Constrict [one-action] 1d8+8 bludgeoning, DC 26
 4122022
 
 268
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415618
 
@@ -29503,7 +28965,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415619
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 KEKETAR
@@ -29601,7 +29062,6 @@ Appendix
 4122023
 
 269
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415619
 
@@ -29609,7 +29069,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122024
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -29705,7 +29164,6 @@ creatures that thwart death or interfere with the natural
 flow of souls. Morrignas dress in flowing spider silk and
 
 270
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415620
 
@@ -29717,7 +29175,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415621
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 wear masks reminiscent of webs, as they consider patient and watchful spiders
@@ -29808,7 +29265,6 @@ Appendix
 4122025
 
 271
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415621
 
@@ -29816,7 +29272,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122026
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -29908,7 +29363,6 @@ makes one beak or talon
 Strike at any point during that movement.
 
 272
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415622
 
@@ -29920,7 +29374,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415623
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 Quelaunt
@@ -30014,7 +29467,6 @@ from which the triggering creature is benefiting.
 4122027
 
 273
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415623
 
@@ -30022,7 +29474,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122028
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -30115,7 +29566,6 @@ Sneak Attack The dandasuka deals an extra 1d6 precision
 damage to flat-footed creatures.
 
 274
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415624
 
@@ -30127,7 +29577,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415625
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 Raja Rakshasa
@@ -30225,7 +29674,6 @@ Appendix
 4122029
 
 275
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415625
 
@@ -30233,7 +29681,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122030
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -30329,7 +29776,6 @@ that fails its save is exposed to filth fever.
 Filth Fever (disease) As giant rat.
 
 276
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415626
 
@@ -30341,7 +29787,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415627
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 Ratfolk
@@ -30441,7 +29886,6 @@ creatures can share the same space.
 4122031
 
 277
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415627
 
@@ -30449,7 +29893,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122032
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -30544,7 +29987,6 @@ bleed damage.
 4122032
 
 278
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415628
 
@@ -30556,7 +29998,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415629
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 Reefclaw
@@ -30656,7 +30097,6 @@ Maximum Duration 4 rounds; Stage 1 1d6 poison damage and enfeebled 1
 (1 round), Stage 2 1d6 poison damage and enfeebled 2 (1 round).
 
 279
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415629
 
@@ -30664,7 +30104,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122034
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -30753,7 +30192,6 @@ employ the worms as war beasts, using them to undermine enemy positions.
 4122034
 
 280
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415630
 
@@ -30765,7 +30203,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415631
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 Roc
@@ -30853,7 +30290,6 @@ Snatch A roc can Fly at half Speed while it has a creature grabbed or restrained
 or both of its talons, carrying that creature along with it.
 
 281
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415631
 
@@ -30861,7 +30297,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122036
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -30952,7 +30387,6 @@ their keepers’ wits and patience. A roper is 9 feet tall and weighs 2,200 poun
 4122036
 
 282
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415632
 
@@ -30964,7 +30398,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415633
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 O-R
 Rust Monster
@@ -31067,7 +30500,6 @@ Appendix
 4122037
 
 283
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415633
 
@@ -31075,7 +30507,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122038
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -31163,7 +30594,6 @@ advise any mortals they like to steer clear of satyrs’ glades.
 4122038
 
 284
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415634
 
@@ -31175,7 +30605,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415635
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 Scorpion
@@ -31285,7 +30714,6 @@ swarm’s space takes 2d8 piercing damage
 scorpion venom.
 
 285
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415635
 
@@ -31293,7 +30721,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122040
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -31383,7 +30810,6 @@ Trigger The sea devil deals bleed damage to a living creature. Effect The sea de
 a frenzy that lasts 1 minute. While frenzied, the sea devil gains a +1 status bonus to attack
 
 286
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415636
 
@@ -31395,7 +30821,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415637
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 rolls with its claws and jaws, gains a +4 status bonus to damage rolls with its claws and
@@ -31506,7 +30931,6 @@ of attacks against its foes, making a single melee Strike with its
 claws or jaws against each opponent within reach.
 
 287
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415637
 
@@ -31514,7 +30938,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122042
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -31601,7 +31024,6 @@ magical detection.
 4122042
 
 288
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415638
 
@@ -31613,7 +31035,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415639
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 Shadow
@@ -31714,7 +31135,6 @@ Steal Shadow [one-action] (divine, necromancy) As shadow, but causes enfeebled 2
 on a critical hit).
 
 289
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415639
 
@@ -31722,7 +31142,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122044
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -31807,7 +31226,6 @@ Vine Lash [two-actions] The shambler makes a vine Strike against each creature w
 Its multiple attack penalty increases only after all the attacks.
 
 290
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415640
 
@@ -31819,7 +31237,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415641
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 Shark
@@ -31927,7 +31344,6 @@ Savage [one-action] As great white shark, but 2d12 slashing damage.
 Swallow Whole [one-action] (attack) Huge, 2d8+5 bludgeoning, Rupture 20
 
 291
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415641
 
@@ -31935,7 +31351,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122046
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -32023,7 +31438,6 @@ wall of force; 5th dimension door, false vision, hallucinatory terrain; 4th dime
 door (at will; self only); 2nd illusory object (at will); Cantrips (6th) light
 
 292
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415642
 
@@ -32035,7 +31449,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415643
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 Shoggoth
@@ -32141,7 +31554,6 @@ Rupture 40
 4122047
 
 293
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415643
 
@@ -32149,7 +31561,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122048
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -32242,7 +31653,6 @@ less than that of adamantine like it is soil or loose rubble, leaving a tunnel 1
 in diameter.
 
 294
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415644
 
@@ -32254,7 +31664,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415645
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 Simurgh
@@ -32356,7 +31765,6 @@ Appendix
 4122049
 
 295
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415645
 
@@ -32364,7 +31772,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122050
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -32462,7 +31869,6 @@ Sinful Bite Creatures that critically fail their saves against a lustspawn’s s
 stupefied 2 for 1 minute.
 
 296
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415646
 
@@ -32474,7 +31880,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415647
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 Pridespawn
@@ -32569,7 +31974,6 @@ sinspawn are noted in the Sinspawn Sins section.
 4122051
 
 297
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415647
 
@@ -32577,7 +31981,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122052
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -32678,7 +32081,6 @@ Melee [one-action] claw +10 (agile), Damage 1d6+4 slashing
 Melee [one-action] lance +10 (deadly d8, jousting d6, reach 10 feet), Damage 1d8+4 piercing
 
 298
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415648
 
@@ -32690,7 +32092,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415649
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 Skeletal Horse
@@ -32811,7 +32212,6 @@ Speed 30 feet
 bonus to damage. If the strike hits, the hulk automatically Shoves the target 10 feet.
 
 299
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415649
 
@@ -32819,7 +32219,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122054
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -32907,7 +32306,6 @@ again or the bones are manually removed, which takes 10 minutes for each 5-foot 
 4122054
 
 300
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415650
 
@@ -32919,7 +32317,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415651
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 Slurk
@@ -33011,7 +32408,6 @@ the creature. These actions don’t need to be
 consecutive or made by the same creature.
 
 301
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415651
 
@@ -33019,7 +32415,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122056
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -33118,7 +32513,6 @@ coils, freeing its jaws to make attacks, then uses Constrict against the creatur
 ball python’s coils can hold one creature.
 
 302
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415652
 
@@ -33126,7 +32520,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122057
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 Giant Viper
@@ -33235,7 +32628,6 @@ the creature. The giant anaconda’s coils can hold as many
 creatures as will fit in its space.
 
 303
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415653
 
@@ -33243,7 +32635,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122058
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -33334,7 +32725,6 @@ depending on the donor soul’s alignment (see sidebar); Cantrips (1st) light,
 mage hand, prestidigitation
 
 304
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415654
 
@@ -33346,7 +32736,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415655
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 Sphinx
@@ -33442,7 +32831,6 @@ to them.
 4122059
 
 305
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415655
 
@@ -33450,7 +32838,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122060
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -33545,7 +32932,6 @@ Strikes the web (AC 20, Hardness 3, 5 HP) severs it, causing the
 spider to fall.
 
 306
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415656
 
@@ -33557,7 +32943,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415657
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 Hunting Spider Venom (poison); Saving Throw Fortitude DC 16; Maximum Duration 6 rounds;
@@ -33656,7 +33041,6 @@ can be severed with a Strike (AC 20, Hardness 5,
 HP 20), but this doesn’t free the restrained creature.
 
 307
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415657
 
@@ -33664,7 +33048,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122062
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -33764,7 +33147,6 @@ Speed 25 feet, fly 30 feet
 Melee [one-action] fist +9 (agile, finesse, magical), Damage 1d4–2 bludgeoning
 
 308
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415658
 
@@ -33776,7 +33158,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415659
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 Ranged [one-action] dissonant note +9 (evocation, magical, range 30 feet, sonic), Damage 1d8 sonic
@@ -33872,7 +33253,6 @@ Appendix
 4122063
 
 309
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415659
 
@@ -33880,7 +33260,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122064
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -33976,7 +33355,6 @@ Surprise Attacker On the first round of combat, creatures that haven’t
 acted yet are flat-footed to the tengu.
 
 310
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415660
 
@@ -33988,7 +33366,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415661
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 Terotricus
@@ -34092,7 +33469,6 @@ immobilized until it Escapes (DC 40).
 4122065
 
 311
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415661
 
@@ -34100,7 +33476,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122066
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -34213,7 +33588,6 @@ a creature, object, or spell effect with a weapon Strike or a defoliation attack
 4122066
 
 312
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415662
 
@@ -34225,7 +33599,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415663
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 Treerazer casts his innate dispel magic, targeting the creature he hit with his Strike or
@@ -34316,7 +33689,6 @@ Appendix
 4122067
 
 313
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415663
 
@@ -34324,7 +33696,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122068
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -34418,7 +33789,6 @@ Troll King
 Some trolls have learned the skills necessary to survive
 
 314
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415664
 
@@ -34430,7 +33800,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415665
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 S-T
 well beyond the typical life expectancy for their kind and rally others to follow
@@ -34529,7 +33898,6 @@ Appendix
 4122069
 
 315
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415665
 
@@ -34537,7 +33905,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122070
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -34609,7 +33976,6 @@ unicorns are equally likely to recognize purity in young men as in young women.
 4122070
 
 316
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415666
 
@@ -34621,7 +33987,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415667
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 U-Z
 Uthul
@@ -34719,7 +34084,6 @@ Appendix
 4122071
 
 317
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415667
 
@@ -34727,7 +34091,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122072
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -34843,7 +34206,6 @@ slowed value increases by 1 each time the vampire ends its turn in sunlight. If 
 4122072
 
 318
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415668
 
@@ -34855,7 +34217,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415669
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 U-Z
 vampire loses all its actions in this way, it is destroyed. Due to their supernatural
@@ -34953,7 +34314,6 @@ can cast dominate at will as a divine innate spell. Casting it requires staring 
 4122073
 
 319
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415669
 
@@ -34961,7 +34321,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122074
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -35055,7 +34414,6 @@ Blood, the vampire regains 10 HP.
 Turn to Mist [one-action] (concentrate, divine, transmutation)
 
 320
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415670
 
@@ -35067,7 +34425,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415671
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 U-Z
 Vampire Mastermind
@@ -35160,7 +34517,6 @@ Appendix
 4122075
 
 321
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415671
 
@@ -35168,7 +34524,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122076
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -35262,7 +34617,6 @@ Pack Attack The winter wolf’s Strikes deal 1d6 extra damage to creatures withi
 reach of at least two of the winter wolf’s allies.
 
 322
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415672
 
@@ -35274,7 +34628,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415673
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 U-Z
 Warsworn
@@ -35371,7 +34724,6 @@ Appendix
 4122077
 
 323
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415673
 
@@ -35379,7 +34731,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122078
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -35486,7 +34837,6 @@ Wasp Venom (poison) Saving Throw Fortitude DC 21; Maximum Duration 6 rounds;
 Stage 1 1d6 poison (1 round); Stage 2 2d6 poison and clumsy 2 (2 rounds)
 
 324
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415674
 
@@ -35498,7 +34848,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415675
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 U-Z
 Web Lurker
@@ -35603,7 +34952,6 @@ and pulled off the ground (Escape DC 22). The target takes 1d6 bludgeoning damag
 at the end of each of its turns as long as it’s caught in the noose.
 
 325
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415675
 
@@ -35611,7 +34959,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122080
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -35695,7 +35042,6 @@ Tumble Through its space, that creature takes 1d12+10
 piercing damage.
 
 326
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415676
 
@@ -35707,7 +35053,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415677
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 U-Z
 Wendigo
@@ -35806,7 +35151,6 @@ Appendix
 4122081
 
 327
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415677
 
@@ -35814,7 +35158,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122082
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -35930,7 +35273,6 @@ the same as the damage dealt by those attacks. If it had only non-agile attacks,
 claws should deal three-quarters that damage.
 
 328
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415678
 
@@ -35942,7 +35284,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415679
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 U-Z
 Jaws The creature gains a jaws Strike (an unarmed attack that deals piercing damage)
@@ -36043,7 +35384,6 @@ AC against the triggering attack.
 Speed 25 feet
 
 329
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415679
 
@@ -36051,7 +35391,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122084
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -36145,7 +35484,6 @@ Unlike many other types of werecreature, a werebear does not become
 malevolent during its involuntary transformations, but is instead filled with
 
 330
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415680
 
@@ -36157,7 +35495,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415681
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 U-Z
 righteous conviction. This indignation can still manifest in violent ways, though,
@@ -36260,7 +35597,6 @@ Appendix
 4122085
 
 331
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415681
 
@@ -36268,7 +35604,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122086
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -36357,7 +35692,6 @@ becomes a full-fledged, autonomous wight; it regains its free will, gains Drain 
 Wight Spawn, and is no longer clumsy.
 
 332
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415682
 
@@ -36369,7 +35703,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415683
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 U-Z
 Will-o’-Wisp
@@ -36469,7 +35802,6 @@ invisible, the arc of electricity lets any observer determine its location, maki
 will-o’-wisp only hidden to all observers until it moves.
 
 333
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415683
 
@@ -36477,7 +35809,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122088
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -36575,7 +35906,6 @@ grabbed creature with its teeth, dealing
 1d10+2 damage (DC 20 basic Fortitude save).
 
 334
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415684
 
@@ -36587,7 +35917,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415685
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 U-Z
 Wraith
@@ -36684,7 +36013,6 @@ of the wraith spawn dies, the wraith spawn becomes a full-fledged, autonomous
 wraith; it regains its free will, gains Wraith Spawn, and is no longer clumsy.
 
 335
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415685
 
@@ -36692,7 +36020,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122090
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -36784,7 +36111,6 @@ Ranged [one-action] club +7 (thrown 10 feet), Damage 1d6+4 bludgeoning
 Ranged [one-action] javelin +7 (thrown 30 feet), Damage 1d6+4 piercing
 
 336
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415686
 
@@ -36792,7 +36118,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122091
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 U-Z
 Xulgath Skulker
@@ -36899,7 +36224,6 @@ become enfeebled 1 (or enfeebled 2 on
 a critical hit) for 1 round.
 
 337
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415687
 
@@ -36907,7 +36231,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122092
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -36995,7 +36318,6 @@ situation all the worse.
 4122092
 
 338
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415688
 
@@ -37007,7 +36329,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415689
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 U-Z
 Zaramuun
@@ -37099,7 +36420,6 @@ Appendix
 4122093
 
 339
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415689
 
@@ -37107,7 +36427,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122094
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -37207,7 +36526,6 @@ Slow As zombie shambler.
 AC 13; Fort +6, Ref +3, Will +4
 
 340
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415690
 
@@ -37219,7 +36537,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415691
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 U-Z
 HP 50, negative healing; Immunities death effects, disease, mental, paralyzed, poison,
@@ -37329,7 +36646,6 @@ of whom must be within the Strike’s reach. This attack counts
 as two attacks for the zombie hulk’s multiple attack penalty.
 
 341
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415691
 
@@ -37337,7 +36653,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122096
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -37463,7 +36778,6 @@ talking corpse. Individual creatures with the coven ability
 4122096
 
 342
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415692
 
@@ -37475,7 +36789,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415693
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 also grant additional spells to any coven they join. A coven
 can also cast the control weather ritual (Core Rulebook 411),
@@ -37607,7 +36920,6 @@ Appendix
 4122097
 
 343
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415693
 
@@ -37615,7 +36927,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122098
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -37743,7 +37054,6 @@ increased by 2.
 Rare As the name suggests, these creatures are rare. They
 
 344
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415694
 
@@ -37755,7 +37065,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415695
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 typically can’t be summoned. The DC of Recall Knowledge
 checks related to this creature is increased by 5.
@@ -37886,7 +37195,6 @@ Appendix
 4122099
 
 345
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415695
 
@@ -37894,7 +37202,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122100
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -38021,7 +37328,6 @@ poison, and precision damage. They usually have resistance
 4122100
 
 346
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415696
 
@@ -38033,7 +37339,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415697
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 against all damage (except force damage and damage from
 Strikes with the ghost touch property rune), with double
@@ -38170,7 +37475,6 @@ or three demons whose levels are each at least 3 less than
 double the spell level.
 
 347
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415697
 
@@ -38178,7 +37482,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122102
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -38329,7 +37632,6 @@ Level 1 cassisian, lantern archon, lyrakien; Level 4 gancanagh,
 horned archon; Level 6 choral; Level 7 legion archon, lillend;
 
 348
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415698
 
@@ -38341,7 +37643,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415699
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Level 8 balisse; Level 10 shield archon; Level 13 ghaele;
 Level 14 astral deva
@@ -38481,7 +37782,6 @@ Level 16 lesser death R, warsworn U; Level 17 banshee U; Level
 18 skulltaker U; Level 21 Grim Reaper Uq
 
 349
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415699
 
@@ -38489,7 +37789,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122104
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -38826,7 +38125,6 @@ Page
 4122104
 
 350
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415700
 
@@ -38838,7 +38136,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415701
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Lizardfolk defender
 Lizardfolk scout
@@ -39202,7 +38499,6 @@ Appendix
 4122105
 
 351
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415701
 
@@ -39210,7 +38506,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122106
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -39569,7 +38864,6 @@ Common
 4122106
 
 352
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415702
 
@@ -39581,7 +38875,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415703
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Griffon
 Hobgoblin archer
@@ -39945,7 +39238,6 @@ Appendix
 4122107
 
 353
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415703
 
@@ -39953,7 +39245,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122108
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -40312,7 +39603,6 @@ Common
 4122108
 
 354
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415704
 
@@ -40324,7 +39614,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415705
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Sphinx
 Stone giant
@@ -40688,7 +39977,6 @@ Appendix
 4122109
 
 355
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415705
 
@@ -40696,7 +39984,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122110
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Bestiary
 
@@ -41055,7 +40342,6 @@ Rare
 4122110
 
 356
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415706
 
@@ -41067,7 +40353,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415707
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Kraken
 Shoggoth
@@ -41350,7 +40635,6 @@ Paizo Inc.
 Printed in China.
 
 357
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415707
 
@@ -41358,7 +40642,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122112
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415708
 
@@ -41366,7 +40649,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122112
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 16415708
 
@@ -41374,7 +40656,6 @@ paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 4122113
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Second Edition
 
@@ -41394,7 +40675,6 @@ HARDCOVER $36.99
 © 2019, Paizo Inc. Paizo, Paizo Inc., the Paizo golem logo, Pathfinder, and the Pathfinder logo are registered trademarks of Paizo Inc.;
 the Pathfinder P logo, Pathfinder Adventure Path, Pathfinder Roleplaying Game, and Pathfinder World Guide are trademarks of Paizo Inc.
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 paizo.com/pathfinder
 
@@ -41404,7 +40684,6 @@ paizo.com/pathfinder
 
 4122114
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 Second Edition
 
@@ -41423,7 +40702,6 @@ HARDCOVER $59.99 and Deluxe Hardcover $79.99
 © 2019, Paizo Inc. Paizo, Paizo Inc., the Paizo golem logo, Pathfinder, and the Pathfinder logo are registered trademarks of Paizo Inc.;
 the Pathfinder P logo, Pathfinder Adventure Path, Pathfinder Roleplaying Game, and Pathfinder World Guide are trademarks of Paizo Inc.
 
-paizo.com #15487012, Aaron Hughes <hughesofthefuture@gmail.com>, Feb 23, 2021
 
 paizo.com/pathfinder
 
