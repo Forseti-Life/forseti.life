@@ -540,9 +540,10 @@ class JobApplicationController extends ControllerBase {
       '#tag' => 'div',
       '#attributes' => ['class' => ['target-companies-header']],
       '#value' => '<h2>🎯 Target Companies</h2>
-                   <p class="subtitle">Manage your list of companies you want to work for</p>
+                   <p class="subtitle">Your primary target companies that Job Hunter actively monitors for opportunities</p>
+                   <p class="description">These are the organizations you want to work for. The Job Hunter AI will prioritize opportunities from these companies when discovering jobs, tracking applications, and tailoring resumes.</p>
                    <div class="stats-bar">
-                     <div class="stat"><span class="stat-number">' . $total_companies . '</span> Total Companies</div>
+                     <div class="stat"><span class="stat-number">' . $total_companies . '</span> Target Companies</div>
                      <div class="stat"><span class="stat-number">' . $active_companies . '</span> Active</div>
                      <div class="stat"><span class="stat-number">' . array_sum($job_results) . '</span> Jobs Found</div>
                    </div>',

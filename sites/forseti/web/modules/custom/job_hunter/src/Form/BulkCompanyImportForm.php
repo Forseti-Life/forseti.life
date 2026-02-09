@@ -53,14 +53,15 @@ class BulkCompanyImportForm extends FormBase {
     
     $form['header'] = [
       '#type' => 'markup',
-      '#markup' => '<h2>Add Companies</h2>
+      '#markup' => '<h2>Add Target Companies</h2>
+                    <p class="description"><strong>These are your primary target companies</strong> that the Job Hunter will focus on when searching for opportunities. Add the companies you want to work for, and the AI will help you discover and track job openings from these organizations.</p>
                     <p><strong>Enter one company name per line.</strong> You can add a single company or import multiple companies at once.</p>',
     ];
 
     $form['company_list'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Company Names (one per line)'),
-      '#description' => $this->t('Enter one company name per line. For example:<br/>
+      '#title' => $this->t('Target Company Names (one per line)'),
+      '#description' => $this->t('Enter one company name per line. These will be your primary job search targets. For example:<br/>
                                  Google<br/>
                                  Microsoft<br/>
                                  Apple<br/>
