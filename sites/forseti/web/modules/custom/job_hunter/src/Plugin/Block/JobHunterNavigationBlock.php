@@ -84,15 +84,20 @@ class JobHunterNavigationBlock extends BlockBase implements ContainerFactoryPlug
         'icon' => 'plus-circle',
         'weight' => 70,
       ],
-      'report_problem' => [
+    ];
+
+    // Add "Report a Problem" link if forseti_content module is enabled
+    $moduleHandler = \Drupal::service('module_handler');
+    if ($moduleHandler->moduleExists('forseti_content')) {
+      $navigation['report_problem'] = [
         'title' => $this->t('Report a Problem'),
         'subtitle' => $this->t('We are in BETA'),
-        'url' => Url::fromRoute('forseti.talk_with_forseti'),
+        'url' => Url::fromRoute('forseti_content.talk_with_forseti'),
         'icon' => 'exclamation-circle',
         'weight' => 90,
         'classes' => 'report-problem-beta',
-      ],
-    ];
+      ];
+    }
 
     if ($this->currentUser->hasPermission('administer job application automation')) {
       $navigation['job_discovery'] = [
