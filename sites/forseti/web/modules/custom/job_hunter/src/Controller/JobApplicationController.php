@@ -1544,18 +1544,17 @@ class JobApplicationController extends ControllerBase {
     $query = $request->query->get('q', ''); // Changed from 'query' to 'q' to match form
     $location = $request->query->get('location', '');
     $employment_type = $request->query->get('employment_type', '');
-    $sources = $request->query->get('sources', 'forseti'); // Default to scalar value
+    // Use all() for array parameters like checkboxes
+    $sources = $request->query->all('sources');
+    if (empty($sources)) {
+      $sources = ['forseti']; // Default to Forseti if nothing selected
+    }
     $company_filter = $request->query->get('company', '');
     $salary_min = $request->query->get('salary_min', '');
     $salary_max = $request->query->get('salary_max', '');
     $remote_preference = $request->query->get('remote_preference', '');
     $date_posted = $request->query->get('date_posted', '');
     $relocation_willing = $request->query->get('relocation_willing', '');
-    
-    // Ensure sources is an array
-    if (!is_array($sources)) {
-      $sources = $sources ? [$sources] : ['forseti'];
-    }
     
     // Initialize results array
     $all_results = [];
