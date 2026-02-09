@@ -108,12 +108,16 @@ class SettingsForm extends ConfigFormBase {
     $form['google_cloud_settings']['google_cloud_credentials'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Service Account JSON Key'),
-      '#description' => $this->t('Paste the contents of your Google Cloud service account JSON key file here. Get your key from the <a href="@url" target="_blank">Google Cloud Console</a>.', [
+      '#description' => $this->t('Paste the contents of your Google Cloud service account JSON key file here. Get your key from the <a href="@url" target="_blank">Google Cloud Console</a>.<br><br><strong>Note:</strong> You can use the same JSON key for both development and production environments. The key identifies your project and permissions, not the environment.', [
         '@url' => 'https://console.cloud.google.com/talent-solution/connect-service-accounts?project=forseti-483518',
       ]),
       '#default_value' => $config->get('google_cloud_credentials') ?? '',
-      '#rows' => 5,
+      '#rows' => 12,
       '#required' => FALSE,
+      '#attributes' => [
+        'placeholder' => '{"type": "service_account", "project_id": "forseti-483518", ...}',
+        'style' => 'font-family: monospace; font-size: 0.9em;',
+      ],
     ];
 
     $form['google_cloud_settings']['test_credentials'] = [

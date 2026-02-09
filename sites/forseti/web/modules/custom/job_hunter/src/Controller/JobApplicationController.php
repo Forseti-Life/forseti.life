@@ -1188,7 +1188,7 @@ class JobApplicationController extends ControllerBase {
     
     try {
       $config = \Drupal::config('job_hunter.settings');
-      $google_credentials = $config->get('google_cloud_credentials_json');
+      $google_credentials = $config->get('google_cloud_credentials');
       if (!empty($google_credentials)) {
         $has_credentials = TRUE;
         $credentials_status = 'Configured';
