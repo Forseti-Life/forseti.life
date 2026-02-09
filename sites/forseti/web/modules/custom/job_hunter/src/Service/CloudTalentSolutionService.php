@@ -185,17 +185,19 @@ class CloudTalentSolutionService {
         'domain' => \Drupal::request()->getHost(),
       ],
       'searchMode' => 'JOB_SEARCH',
-      'jobQuery' => [],
     ];
+    
+    // Build jobQuery object separately
+    $job_query = [];
 
     // Add query string if provided
     if (!empty($params['query'])) {
-      $request_body['jobQuery']['query'] = $params['query'];
+      $job_query['query'] = $params['query'];
     }
 
     // Add location filter
     if (!empty($params['location'])) {
-      $request_body['jobQuery']['locationFilters'] = [
+      $job_query['locationFilters'] = [
         [
           'address' => $params['location'],
         ]
@@ -204,7 +206,7 @@ class CloudTalentSolutionService {
 
     // Add employment types filter
     if (!empty($params['employment_types'])) {
-      $request_body['jobQuery']['employmentTypes'] = $params['employment_types'];
+      $job_query['employmentTypes'] = $params['employment_types'];
     }
 
     // Add compensation filter
@@ -226,7 +228,7 @@ class CloudTalentSolutionService {
         $compensation_range['maxCompensation']['currencyCode'] = 'USD';
         $compensation_range['maxCompensation']['units'] = (int) $params['salary_max'];
       }
-      $request_body['jobQuery']['compensationFilter'] = [
+      $job_query['compensationFilter'] = [
         'type' => 'ANNUALIZED_BASE_AMOUNT',
         'units' => ['ANNUAL'],
         'range' => $compensation_range,
@@ -251,7 +253,7 @@ class CloudTalentSolutionService {
       }
       
       if ($start_time) {
-        $request_body['jobQuery']['publishTimeRange'] = [
+        $job_query['publishTimeRange'] = [
           'startTime' => date('c', $start_time),
           'endTime' => date('c', $now),
         ];
@@ -262,15 +264,20 @@ class CloudTalentSolutionService {
     if (!empty($params['remote_preference'])) {
       if ($params['remote_preference'] === 'remote' || $params['remote_preference'] === 'hybrid') {
         // For location filters, add telecommute preference
-        if (isset($request_body['jobQuery']['locationFilters'][0])) {
-          $request_body['jobQuery']['locationFilters'][0]['telecommutePreference'] = 'TELECOMMUTE_ALLOWED';
+        if (isset($job_query['locationFilters'][0])) {
+          $job_query['locationFilters'][0]['telecommutePreference'] = 'TELECOMMUTE_ALLOWED';
         } else {
           // If no location specified but remote requested, create location filter with telecommute
-          $request_body['jobQuery']['locationFilters'] = [
+          $job_query['locationFilters'] = [
             ['telecommutePreference' => 'TELECOMMUTE_ALLOWED']
           ];
         }
       }
+    }
+    
+    // Add jobQuery to request body only if not empty
+    if (!empty($job_query)) {
+      $request_body['jobQuery'] = $job_query;
     }
 
     // Pagination
