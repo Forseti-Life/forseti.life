@@ -1154,10 +1154,18 @@ class JobApplicationController extends ControllerBase {
           $default_keywords = implode(', ', array_slice($combined, 0, 3)); // Use first 3
         }
         
-        // Extract location preference from work history or profile
-        if (isset($consolidated['work_experience']) && !empty($consolidated['work_experience'])) {
-          $latest_job = reset($consolidated['work_experience']);
-          $default_location = $latest_job['location'] ?? '';
+        // Extract location from contact info
+        if (isset($consolidated['contact_info']['location'])) {
+          $location_parts = [];
+          if (!empty($consolidated['contact_info']['location']['city'])) {
+            $location_parts[] = $consolidated['contact_info']['location']['city'];
+          }
+          if (!empty($consolidated['contact_info']['location']['state'])) {
+            $location_parts[] = $consolidated['contact_info']['location']['state'];
+          }
+          if (!empty($location_parts)) {
+            $default_location = implode(', ', $location_parts);
+          }
         }
         
         // Get remote preference
@@ -1343,9 +1351,9 @@ class JobApplicationController extends ControllerBase {
                     <label for="date-posted">Posted Within</label>
                     <select id="date-posted" name="date_posted" class="filter-select">
                       <option value="">Any time</option>
-                      <option value="1">Last 24 hours</option>
-                      <option value="7">Last 7 days</option>
-                      <option value="30">Last 30 days</option>
+                      <option value="past_24_hours">Last 24 hours</option>
+                      <option value="past_week">Last 7 days</option>
+                      <option value="past_month">Last 30 days</option>
                     </select>
                   </div>
                   
@@ -1655,11 +1663,62 @@ class JobApplicationController extends ControllerBase {
       }
     }
     
-    // TODO: Search Google Cloud Talent Solution API if selected and credentials available
+    // Search Google Cloud Talent Solution API if selected and credentials available
     if (in_array('google_cloud', $sources)) {
-      // Check if Google Cloud credentials are configured
-      // If yes, query the API and append results to $all_results
-      // This will be implemented when API integration is ready
+      try {
+        $config = \Drupal::config('job_hunter.settings');
+        $google_credentials = $config->get('google_cloud_credentials');
+        
+        if (!empty($google_credentials)) {
+          /** @var \Drupal\job_hunter\Service\CloudTalentSolutionService $google_service */
+          $google_service = \Drupal::service('job_hunter.cloud_talent_solution');
+          
+          // Build search parameters for Google API
+          $google_params = [];
+          if (!empty($query)) {
+            $google_params['query'] = $query;
+          }
+          if (!empty($location)) {
+            $google_params['location'] = $location;
+          }
+          if (!empty($employment_type)) {
+            $google_params['employment_types'] = [$employment_type];
+          }
+          if (!empty($salary_min)) {
+            $google_params['salary_min'] = $salary_min;
+          }
+          if (!empty($salary_max)) {
+            $google_params['salary_max'] = $salary_max;
+          }
+          if (!empty($remote_preference)) {
+            $google_params['remote_preference'] = $remote_preference;
+          }
+          if (!empty($date_posted)) {
+            $google_params['date_posted'] = $date_posted;
+          }
+          
+          $google_results = $google_service->searchJobs($google_params);
+          
+          // Convert Google results to our format
+          foreach ($google_results['jobs'] as $google_job) {
+            $job_data = $google_job['job'] ?? [];
+            $all_results[] = [
+              'id' => $job_data['name'] ?? uniqid('google_'),
+              'title' => $job_data['title'] ?? 'No title',
+              'company' => $job_data['companyDisplayName'] ?? 'Unknown',
+              'location' => !empty($job_data['addresses']) ? implode(', ', $job_data['addresses']) : 'Not specified',
+              'employment_type' => !empty($job_data['employmentTypes']) ? implode(', ', $job_data['employmentTypes']) : 'Not specified',
+              'salary_range' => 'Not specified', // Parse compensation if available
+              'description' => $this->truncateText($job_data['description'] ?? '', 200),
+              'source' => 'Google Jobs',
+              'posted_date' => !empty($job_data['postingPublishTime']) ? date('M j, Y', strtotime($job_data['postingPublishTime'])) : 'Unknown',
+              'url' => $job_data['applicationInfo']['uris'][0] ?? '',
+            ];
+          }
+        }
+      } catch (\Exception $e) {
+        \Drupal::logger('job_hunter')->error('Google Cloud job search failed: @error', ['@error' => $e->getMessage()]);
+      }
     }
     
     // TODO: Search LinkedIn Jobs API if selected and credentials available

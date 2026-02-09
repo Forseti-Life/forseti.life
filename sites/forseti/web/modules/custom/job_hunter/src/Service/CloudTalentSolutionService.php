@@ -207,6 +207,72 @@ class CloudTalentSolutionService {
       $request_body['jobQuery']['employmentTypes'] = $params['employment_types'];
     }
 
+    // Add compensation filter
+    if (!empty($params['salary_min']) || !empty($params['salary_max'])) {
+      $compensation_range = [];
+      if (!empty($params['salary_min'])) {
+        $compensation_range['minCompensation'] = [
+          'units' => 'USD',
+          'nanos' => 0,
+        ];
+        $compensation_range['minCompensation']['currencyCode'] = 'USD';
+        $compensation_range['minCompensation']['units'] = (int) $params['salary_min'];
+      }
+      if (!empty($params['salary_max'])) {
+        $compensation_range['maxCompensation'] = [
+          'units' => 'USD',
+          'nanos' => 0,
+        ];
+        $compensation_range['maxCompensation']['currencyCode'] = 'USD';
+        $compensation_range['maxCompensation']['units'] = (int) $params['salary_max'];
+      }
+      $request_body['jobQuery']['compensationFilter'] = [
+        'type' => 'ANNUALIZED_BASE_AMOUNT',
+        'units' => ['ANNUAL'],
+        'range' => $compensation_range,
+      ];
+    }
+
+    // Add publish time range filter (date posted)
+    if (!empty($params['date_posted'])) {
+      $now = time();
+      $start_time = null;
+      
+      switch ($params['date_posted']) {
+        case 'past_24_hours':
+          $start_time = $now - (24 * 3600);
+          break;
+        case 'past_week':
+          $start_time = $now - (7 * 24 * 3600);
+          break;
+        case 'past_month':
+          $start_time = $now - (30 * 24 * 3600);
+          break;
+      }
+      
+      if ($start_time) {
+        $request_body['jobQuery']['publishTimeRange'] = [
+          'startTime' => date('c', $start_time),
+          'endTime' => date('c', $now),
+        ];
+      }
+    }
+
+    // Add telecommute preference for remote jobs
+    if (!empty($params['remote_preference'])) {
+      if ($params['remote_preference'] === 'remote' || $params['remote_preference'] === 'hybrid') {
+        // For location filters, add telecommute preference
+        if (isset($request_body['jobQuery']['locationFilters'][0])) {
+          $request_body['jobQuery']['locationFilters'][0]['telecommutePreference'] = 'TELECOMMUTE_ALLOWED';
+        } else {
+          // If no location specified but remote requested, create location filter with telecommute
+          $request_body['jobQuery']['locationFilters'] = [
+            ['telecommutePreference' => 'TELECOMMUTE_ALLOWED']
+          ];
+        }
+      }
+    }
+
     // Pagination
     $page_size = 10;
     if (!empty($params['page_size'])) {
