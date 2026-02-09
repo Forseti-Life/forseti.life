@@ -281,6 +281,12 @@ class CompanyController extends ControllerBase {
       '#theme' => 'job_application_dashboard_wrapper',
       '#navigation' => $navigation_block,
       '#content' => $content,
+      '#attached' => [
+        'library' => [
+          'job_hunter/job-hunter-navigation',
+          'job_hunter/job-hunter-home',
+        ],
+      ],
     ];
     
     return $build;
