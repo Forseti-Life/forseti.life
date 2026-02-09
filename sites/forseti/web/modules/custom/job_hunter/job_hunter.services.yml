@@ -23,6 +23,18 @@ services:
     class: Drupal\job_hunter\Service\CloudTalentSolutionService
     arguments: ['@http_client', '@database', '@logger.factory', '@config.factory']
   
+  job_hunter.adzuna_api:
+    class: Drupal\job_hunter\Service\AdzunaApiService
+    arguments: ['@http_client', '@logger.factory', '@config.factory']
+  
+  job_hunter.usajobs_api:
+    class: Drupal\job_hunter\Service\UsaJobsApiService
+    arguments: ['@http_client', '@logger.factory', '@config.factory']
+  
+  job_hunter.serpapi:
+    class: Drupal\job_hunter\Service\SerpApiService
+    arguments: ['@http_client', '@logger.factory', '@config.factory']
+  
   job_hunter.commands:
     class: Drupal\job_hunter\Commands\JobApplicationAutomationCommands
     arguments: ['@entity_type.manager', '@logger.factory']

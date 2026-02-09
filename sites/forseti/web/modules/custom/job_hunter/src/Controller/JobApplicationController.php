@@ -1204,6 +1204,29 @@ class JobApplicationController extends ControllerBase {
         $credentials_status = 'Configured';
         $credentials_class = 'status-success';
       }
+      
+      // Check Adzuna credentials
+      $has_adzuna = FALSE;
+      $adzuna_app_id = $config->get('adzuna_app_id');
+      $adzuna_app_key = $config->get('adzuna_app_key');
+      if (!empty($adzuna_app_id) && !empty($adzuna_app_key)) {
+        $has_adzuna = TRUE;
+      }
+      
+      // Check USAJobs credentials
+      $has_usajobs = FALSE;
+      $usajobs_api_key = $config->get('usajobs_api_key');
+      $usajobs_email = $config->get('usajobs_email');
+      if (!empty($usajobs_api_key) && !empty($usajobs_email)) {
+        $has_usajobs = TRUE;
+      }
+      
+      // Check SerpAPI credentials
+      $has_serpapi = FALSE;
+      $serpapi_api_key = $config->get('serpapi_api_key');
+      if (!empty($serpapi_api_key)) {
+        $has_serpapi = TRUE;
+      }
     } catch (\Exception $e) {
       \Drupal::logger('job_hunter')->error('Error checking credentials: @error', ['@error' => $e->getMessage()]);
     }
@@ -1288,13 +1311,17 @@ class JobApplicationController extends ControllerBase {
                       <input type="checkbox" name="sources[]" value="google_cloud" ' . ($has_credentials ? 'checked' : 'disabled') . '>
                       <span>Google Jobs' . ($has_credentials ? '' : ' (Configure API)') . '</span>
                     </label>
-                    <label class="checkbox-label disabled">
-                      <input type="checkbox" name="sources[]" value="linkedin" disabled>
-                      <span>LinkedIn (Coming Soon)</span>
+                    <label class="checkbox-label' . ($has_adzuna ? '' : ' disabled') . '">
+                      <input type="checkbox" name="sources[]" value="adzuna" ' . ($has_adzuna ? 'checked' : 'disabled') . '>
+                      <span>Adzuna (Indeed/Monster/etc.)' . ($has_adzuna ? '' : ' (Configure API)') . '</span>
                     </label>
-                    <label class="checkbox-label disabled">
-                      <input type="checkbox" name="sources[]" value="indeed" disabled>
-                      <span>Indeed (Coming Soon)</span>
+                    <label class="checkbox-label' . ($has_usajobs ? '' : ' disabled') . '">
+                      <input type="checkbox" name="sources[]" value="usajobs" ' . ($has_usajobs ? 'checked' : 'disabled') . '>
+                      <span>USAJobs (Government)' . ($has_usajobs ? '' : ' (Configure API)') . '</span>
+                    </label>
+                    <label class="checkbox-label' . ($has_serpapi ? '' : ' disabled') . '">
+                      <input type="checkbox" name="sources[]" value="serpapi" ' . ($has_serpapi ? 'checked' : 'disabled') . '>
+                      <span>SerpAPI (Google Jobs)' . ($has_serpapi ? '' : ' (Configure API)') . '</span>
                     </label>
                   </div>
                 </div>
@@ -1757,19 +1784,183 @@ class JobApplicationController extends ControllerBase {
       }
     }
     
-    \Drupal::logger('job_hunter')->info('📊 Total combined results from all sources: @count (Forseti + Google Cloud)', [
+    \Drupal::logger('job_hunter')->info('📊 Total results after Forseti + Google Cloud: @count', [
       '@count' => count($all_results),
     ]);
     
-    // TODO: Search LinkedIn Jobs API if selected and credentials available
-    if (in_array('linkedin', $sources)) {
-      // LinkedIn API integration coming soon
+    // Search Adzuna API if selected and credentials available
+    if (in_array('adzuna', $sources)) {
+      try {
+        $adzunaService = \Drupal::service('job_hunter.adzuna_api');
+        
+        $adzuna_params = [
+          'query' => $query,
+          'location' => $location,
+          'employment_type' => $employment_type,
+          'page' => 1,
+          'results_per_page' => 25,
+        ];
+        
+        \Drupal::logger('job_hunter')->info('🔍 Searching Adzuna API with params: @params', [
+          '@params' => print_r($adzuna_params, TRUE),
+        ]);
+        
+        $adzuna_results = $adzunaService->searchJobs($adzuna_params);
+        
+        \Drupal::logger('job_hunter')->info('📥 Adzuna returned @count jobs', [
+          '@count' => $adzuna_results['total'] ?? 0,
+        ]);
+        
+        // Format Adzuna results to standard format
+        if (!empty($adzuna_results['jobs'])) {
+          foreach ($adzuna_results['jobs'] as $job_data) {
+            $all_results[] = [
+              'title' => $job_data['title'] ?? 'Unknown',
+              'company' => $job_data['company']['display_name'] ?? 'Unknown',
+              'location' => $job_data['location']['display_name'] ?? 'Unknown',
+              'salary_range' => !empty($job_data['salary_min']) && !empty($job_data['salary_max']) 
+                ? '$' . number_format($job_data['salary_min']) . '-$' . number_format($job_data['salary_max']) 
+                : 'Not specified',
+              'description' => $this->truncateText($job_data['description'] ?? '', 200),
+              'source' => 'Adzuna',
+              'posted_date' => !empty($job_data['created']) ? date('M j, Y', strtotime($job_data['created'])) : 'Unknown',
+              'url' => $job_data['redirect_url'] ?? '',
+            ];
+          }
+        }
+      } catch (\Exception $e) {
+        \Drupal::logger('job_hunter')->error('❌ Adzuna API search failed: @error. Stack trace: @trace', [
+          '@error' => $e->getMessage(),
+          '@trace' => $e->getTraceAsString(),
+        ]);
+      }
     }
     
-    // TODO: Search Indeed Job Search if selected and credentials available
-    if (in_array('indeed', $sources)) {
-      // Indeed API integration coming soon
+    // Search USAJobs API if selected and credentials available
+    if (in_array('usajobs', $sources)) {
+      try {
+        $usajobsService = \Drupal::service('job_hunter.usajobs_api');
+        
+        $usajobs_params = [
+          'query' => $query,
+          'location' => $location,
+          'page' => 1,
+          'results_per_page' => 25,
+        ];
+        
+        \Drupal::logger('job_hunter')->info('🔍 Searching USAJobs API with params: @params', [
+          '@params' => print_r($usajobs_params, TRUE),
+        ]);
+        
+        $usajobs_results = $usajobsService->searchJobs($usajobs_params);
+        
+        \Drupal::logger('job_hunter')->info('📥 USAJobs returned @count jobs', [
+          '@count' => $usajobs_results['total'] ?? 0,
+        ]);
+        
+        // Format USAJobs results to standard format
+        if (!empty($usajobs_results['jobs'])) {
+          foreach ($usajobs_results['jobs'] as $job_data) {
+            $matched_job = $job_data['MatchedObjectDescriptor'] ?? [];
+            $position_title = $matched_job['PositionTitle'] ?? 'Unknown';
+            $org_name = $matched_job['OrganizationName'] ?? 'U.S. Government';
+            $location_name = !empty($matched_job['PositionLocationDisplay']) 
+              ? $matched_job['PositionLocationDisplay'] 
+              : 'Washington, DC';
+            
+            // Parse salary range
+            $salary_range = 'Not specified';
+            if (!empty($matched_job['PositionRemuneration'])) {
+              $remuneration = $matched_job['PositionRemuneration'][0] ?? [];
+              $min_range = $remuneration['MinimumRange'] ?? null;
+              $max_range = $remuneration['MaximumRange'] ?? null;
+              if ($min_range && $max_range) {
+                $salary_range = '$' . number_format($min_range) . '-$' . number_format($max_range);
+              }
+            }
+            
+            $all_results[] = [
+              'title' => $position_title,
+              'company' => $org_name,
+              'location' => $location_name,
+              'salary_range' => $salary_range,
+              'description' => $this->truncateText($matched_job['UserArea']['Details']['JobSummary'] ?? '', 200),
+              'source' => 'USAJobs',
+              'posted_date' => !empty($matched_job['PublicationStartDate']) ? date('M j, Y', strtotime($matched_job['PublicationStartDate'])) : 'Unknown',
+              'url' => $matched_job['PositionURI'] ?? '',
+            ];
+          }
+        }
+      } catch (\Exception $e) {
+        \Drupal::logger('job_hunter')->error('❌ USAJobs API search failed: @error. Stack trace: @trace', [
+          '@error' => $e->getMessage(),
+          '@trace' => $e->getTraceAsString(),
+        ]);
+      }
     }
+    
+    // Search SerpAPI (Google Jobs) if selected and credentials available
+    if (in_array('serpapi', $sources)) {
+      try {
+        $serpapiService = \Drupal::service('job_hunter.serpapi');
+        
+        $serpapi_params = [
+          'query' => $query,
+          'location' => $location,
+          'employment_type' => $employment_type,
+          'page' => 1,
+          'results_per_page' => 10,
+        ];
+        
+        \Drupal::logger('job_hunter')->info('🔍 Searching SerpAPI (Google Jobs) with params: @params', [
+          '@params' => print_r($serpapi_params, TRUE),
+        ]);
+        
+        $serpapi_results = $serpapiService->searchJobs($serpapi_params);
+        
+        \Drupal::logger('job_hunter')->info('📥 SerpAPI returned @count jobs', [
+          '@count' => $serpapi_results['total'] ?? 0,
+        ]);
+        
+        // Format SerpAPI results to standard format
+        if (!empty($serpapi_results['jobs'])) {
+          foreach ($serpapi_results['jobs'] as $job_data) {
+            // Parse salary from detected_extensions
+            $salary_range = 'Not specified';
+            if (!empty($job_data['detected_extensions']['salary'])) {
+              $salary_range = $job_data['detected_extensions']['salary'];
+            }
+            
+            // Parse posted date
+            $posted_date = 'Unknown';
+            if (!empty($job_data['detected_extensions']['posted_at'])) {
+              $posted_date = $job_data['detected_extensions']['posted_at'];
+            }
+            
+            $all_results[] = [
+              'title' => $job_data['title'] ?? 'Unknown',
+              'company' => $job_data['company_name'] ?? 'Unknown',
+              'location' => $job_data['location'] ?? 'Unknown',
+              'salary_range' => $salary_range,
+              'description' => $this->truncateText($job_data['description'] ?? '', 200),
+              'source' => 'Google Jobs (SerpAPI)',
+              'posted_date' => $posted_date,
+              'url' => $job_data['related_links'][0]['link'] ?? '',
+            ];
+          }
+        }
+      } catch (\Exception $e) {
+        \Drupal::logger('job_hunter')->error('❌ SerpAPI search failed: @error. Stack trace: @trace', [
+          '@error' => $e->getMessage(),
+          '@trace' => $e->getTraceAsString(),
+        ]);
+      }
+    }
+    
+    \Drupal::logger('job_hunter')->info('✅ Final total results from all sources: @count (searched: @sources)', [
+      '@count' => count($all_results),
+      '@sources' => implode(', ', $sources),
+    ]);
     
     // Build results display
     $results_html = '';

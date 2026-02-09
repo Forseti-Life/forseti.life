@@ -172,6 +172,98 @@ class SettingsForm extends ConfigFormBase {
       '#markup' => '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #ddd; border-radius: 4px; background: #f9f9f9;"><em style="color: #666;">Click a button above to test...</em></div>',
     ];
 
+    $form['external_job_apis'] = [
+      '#type' => 'details',
+      '#title' => $this->t('External Job Search APIs'),
+      '#description' => $this->t('<p>Configure third-party job board APIs to search public job postings from across the internet.</p>'),
+      '#open' => FALSE,
+    ];
+
+    // Adzuna API configuration
+    $form['external_job_apis']['adzuna'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Adzuna API'),
+      '#description' => $this->t('<p><strong>Adzuna</strong> aggregates job postings from Indeed, Monster, and other major job boards. Free tier: 250 API calls per month.</p><p>Get your free API keys: <a href="@url" target="_blank">@url</a></p>', [
+        '@url' => 'https://developer.adzuna.com/signup',
+      ]),
+      '#open' => TRUE,
+    ];
+
+    $form['external_job_apis']['adzuna']['adzuna_app_id'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Application ID'),
+      '#description' => $this->t('Your Adzuna application ID.'),
+      '#default_value' => $config->get('adzuna_app_id') ?? '',
+      '#required' => FALSE,
+      '#attributes' => [
+        'placeholder' => 'e.g., abc123xyz',
+      ],
+    ];
+
+    $form['external_job_apis']['adzuna']['adzuna_app_key'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Application Key'),
+      '#description' => $this->t('Your Adzuna application key (API key).'),
+      '#default_value' => $config->get('adzuna_app_key') ?? '',
+      '#required' => FALSE,
+      '#attributes' => [
+        'placeholder' => 'e.g., 0123456789abcdef0123456789abcdef',
+      ],
+    ];
+
+    // USAJobs API configuration
+    $form['external_job_apis']['usajobs'] = [
+      '#type' => 'details',
+      '#title' => $this->t('USAJobs API'),
+      '#description' => $this->t('<p><strong>USAJobs</strong> is the official job board for U.S. federal government positions. Free API with unlimited requests.</p><p>Get your free API key: <a href="@url" target="_blank">@url</a></p>', [
+        '@url' => 'https://developer.usajobs.gov/APIRequest/Index',
+      ]),
+      '#open' => TRUE,
+    ];
+
+    $form['external_job_apis']['usajobs']['usajobs_api_key'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('API Key'),
+      '#description' => $this->t('Your USAJobs API authentication key.'),
+      '#default_value' => $config->get('usajobs_api_key') ?? '',
+      '#required' => FALSE,
+      '#attributes' => [
+        'placeholder' => 'e.g., ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcd',
+      ],
+    ];
+
+    $form['external_job_apis']['usajobs']['usajobs_email'] = [
+      '#type' => 'email',
+      '#title' => $this->t('Email Address'),
+      '#description' => $this->t('Your email address. Required by USAJobs API for the User-Agent header.'),
+      '#default_value' => $config->get('usajobs_email') ?? '',
+      '#required' => FALSE,
+      '#attributes' => [
+        'placeholder' => 'your-email@example.com',
+      ],
+    ];
+
+    // SerpAPI configuration
+    $form['external_job_apis']['serpapi'] = [
+      '#type' => 'details',
+      '#title' => $this->t('SerpAPI (Google Jobs Scraper)'),
+      '#description' => $this->t('<p><strong>SerpAPI</strong> provides access to Google Jobs search results (scrapes Google\'s job search). Free tier: 100 searches per month.</p><p>Get your free API key: <a href="@url" target="_blank">@url</a></p>', [
+        '@url' => 'https://serpapi.com/users/sign_up',
+      ]),
+      '#open' => TRUE,
+    ];
+
+    $form['external_job_apis']['serpapi']['serpapi_api_key'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('API Key'),
+      '#description' => $this->t('Your SerpAPI authentication key.'),
+      '#default_value' => $config->get('serpapi_api_key') ?? '',
+      '#required' => FALSE,
+      '#attributes' => [
+        'placeholder' => 'e.g., 01234567890abcdef01234567890abcdef01234567890abcdef01234567890abc',
+      ],
+    ];
+
     $form['developer_settings'] = [
       '#type' => 'details',
       '#title' => $this->t('🔧 Developer Settings'),
@@ -372,6 +464,11 @@ class SettingsForm extends ConfigFormBase {
       ->set('max_tokens', $form_state->getValue('max_tokens'))
       ->set('google_cloud_credentials', $form_state->getValue('google_cloud_credentials'))
       ->set('tenant_name', $form_state->getValue('tenant_name'))
+      ->set('adzuna_app_id', $form_state->getValue('adzuna_app_id'))
+      ->set('adzuna_app_key', $form_state->getValue('adzuna_app_key'))
+      ->set('usajobs_api_key', $form_state->getValue('usajobs_api_key'))
+      ->set('usajobs_email', $form_state->getValue('usajobs_email'))
+      ->set('serpapi_api_key', $form_state->getValue('serpapi_api_key'))
       ->set('log_level', $form_state->getValue('log_level'))
       ->save();
 
