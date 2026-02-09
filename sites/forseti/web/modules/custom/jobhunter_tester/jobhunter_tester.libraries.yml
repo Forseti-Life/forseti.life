@@ -1,0 +1,9 @@
+test-runner:
+  version: 1.x
+  js:
+    js/test-runner.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+    - core/drupal.ajax
