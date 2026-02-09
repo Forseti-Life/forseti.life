@@ -130,20 +130,29 @@ class JobHunterTesterController extends ControllerBase {
     // Sort routes by name
     ksort($job_hunter_routes);
     
-    // Environment selector
+    // Environment selector — use inline_template so form/select/button
+    // elements are not stripped by Drupal's Xss::filterAdmin().
     $current_url = Url::fromRoute('jobhunter_tester.test_page')->toString();
     $build['environment_selector'] = [
-      '#markup' => '<div style="background: #f0f0f0; padding: 15px; margin-bottom: 20px; border-radius: 5px;">' .
-        '<form method="get" action="' . $current_url . '">' .
+      '#type' => 'inline_template',
+      '#template' => '<div style="background: #f0f0f0; padding: 15px; margin-bottom: 20px; border-radius: 5px;">' .
+        '<form method="get" action="{{ action_url }}">' .
         '<label for="env" style="font-weight: bold; margin-right: 10px;">Test Environment:</label>' .
         '<select name="env" id="env" style="padding: 5px; margin-right: 10px;">' .
-        '<option value="current"' . ($environment === 'current' ? ' selected' : '') . '>Current (' . $environments['current'] . ')</option>' .
-        '<option value="production"' . ($environment === 'production' ? ' selected' : '') . '>Production (https://forseti.life)</option>' .
-        '<option value="localhost"' . ($environment === 'localhost' ? ' selected' : '') . '>Localhost (http://localhost)</option>' .
+        '<option value="current"{{ current_selected }}>Current ({{ current_host }})</option>' .
+        '<option value="production"{{ production_selected }}>Production (https://forseti.life)</option>' .
+        '<option value="localhost"{{ localhost_selected }}>Localhost (http://localhost)</option>' .
         '</select>' .
         '<button type="submit" style="padding: 5px 15px; background: #0073aa; color: white; border: none; border-radius: 3px; cursor: pointer;">Run Tests</button>' .
         '</form>' .
         '</div>',
+      '#context' => [
+        'action_url' => $current_url,
+        'current_host' => $environments['current'],
+        'current_selected' => $environment === 'current' ? ' selected' : '',
+        'production_selected' => $environment === 'production' ? ' selected' : '',
+        'localhost_selected' => $environment === 'localhost' ? ' selected' : '',
+      ],
     ];
     
     $build['summary'] = [
@@ -481,7 +490,11 @@ class JobHunterTesterController extends ControllerBase {
           $category_info['test_file'],
           $category_info['test_count'],
           $category_info['description'],
-          ['data' => ['#markup' => '<button class="button button--primary test-run-btn" data-test-file="' . $category_info['test_file'] . '">Run Tests</button>']],
+          ['data' => [
+            '#type' => 'inline_template',
+            '#template' => '<button class="button button--primary test-run-btn" data-test-file="{{ test_file }}">Run Tests</button>',
+            '#context' => ['test_file' => $category_info['test_file']],
+          ]],
         ],
       ];
     }
