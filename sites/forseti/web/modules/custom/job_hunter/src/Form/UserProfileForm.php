@@ -1122,8 +1122,8 @@ class UserProfileForm extends FormBase {
     $form['experience_education']['field_certifications'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Professional Certifications'),
-      '#description' => $this->t('List your professional certifications and licenses'),
-      '#rows' => 3,
+      '#description' => $this->t('List your professional certifications and licenses (one per line).<br>Format: <em>Certification Name - Issuing Organization (Year)</em><br>Example: <em>AWS Certified Solutions Architect - Amazon Web Services (2023)</em>'),
+      '#rows' => 5,
       '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_certifications'),
     ];
 
@@ -2911,22 +2911,31 @@ class UserProfileForm extends FormBase {
         },
       ],
       'field_certifications' => [
-        'json_path' => ['education'],
+        'json_path' => ['certifications'],
         'db_column' => 'certifications',
         'transform' => function($val) {
-          // Extract certifications from education array
+          // Format certifications array to display one per line with details
           if (is_array($val)) {
-            $certs = [];
-            foreach ($val as $edu) {
-              if (!empty($edu['certifications'])) {
-                if (is_array($edu['certifications'])) {
-                  $certs = array_merge($certs, $edu['certifications']);
-                } else {
-                  $certs[] = $edu['certifications'];
+            $formatted = [];
+            foreach ($val as $cert) {
+              if (is_array($cert)) {
+                // Structured certification data
+                $line = $cert['name'] ?? 'Unknown Certification';
+                if (!empty($cert['issuing_organization'])) {
+                  $line .= ' - ' . $cert['issuing_organization'];
                 }
+                if (!empty($cert['issue_date'])) {
+                  // Extract year from date (format: YYYY-MM or YYYY)
+                  $year = substr($cert['issue_date'], 0, 4);
+                  $line .= ' (' . $year . ')';
+                }
+                $formatted[] = $line;
+              } else {
+                // Simple string certification
+                $formatted[] = $cert;
               }
             }
-            return implode(', ', array_unique($certs));
+            return implode("\n", array_unique($formatted));
           }
           return is_string($val) ? $val : '';
         },
@@ -4255,6 +4264,38 @@ PROMPT;
       }
     }
     
+    // Certifications - dedupe by name
+    if (!empty($new_data['certifications'])) {
+      $additions += $this->mergeArraySection($consolidated, 'certifications', $new_data['certifications'], 'name');
+    }
+    
+    // Awards and honors - dedupe by title and organization
+    if (!empty($new_data['awards_and_honors'])) {
+      if (empty($consolidated['awards_and_honors'])) {
+        $consolidated['awards_and_honors'] = [];
+      }
+      foreach ($new_data['awards_and_honors'] as $award) {
+        $key = ($award['title'] ?? '') . '|' . ($award['issuing_organization'] ?? '');
+        $exists = false;
+        foreach ($consolidated['awards_and_honors'] as $existing) {
+          $existingKey = ($existing['title'] ?? '') . '|' . ($existing['issuing_organization'] ?? '');
+          if ($key === $existingKey) {
+            $exists = true;
+            break;
+          }
+        }
+        if (!$exists) {
+          $consolidated['awards_and_honors'][] = $award;
+          $additions++;
+        }
+      }
+    }
+    
+    // Languages - dedupe by language name
+    if (!empty($new_data['languages'])) {
+      $additions += $this->mergeArraySection($consolidated, 'languages', $new_data['languages'], 'language');
+    }
+    
     return $additions;
   }
 
@@ -4463,9 +4504,28 @@ PROMPT;
         $update_fields['education_level'] = $consolidated['education_level'];
       }
       
-      // Certifications - join all unique certs if field is empty
+      // Certifications - format structured data one per line if field is empty
       if (empty($profile['certifications']) && !empty($consolidated['certifications'])) {
-        $update_fields['certifications'] = implode(', ', $consolidated['certifications']);
+        $formatted = [];
+        foreach ($consolidated['certifications'] as $cert) {
+          if (is_array($cert)) {
+            // Structured certification data
+            $line = $cert['name'] ?? 'Unknown Certification';
+            if (!empty($cert['issuing_organization'])) {
+              $line .= ' - ' . $cert['issuing_organization'];
+            }
+            if (!empty($cert['issue_date'])) {
+              // Extract year from date (format: YYYY-MM or YYYY)
+              $year = substr($cert['issue_date'], 0, 4);
+              $line .= ' (' . $year . ')';
+            }
+            $formatted[] = $line;
+          } else {
+            // Simple string certification
+            $formatted[] = $cert;
+          }
+        }
+        $update_fields['certifications'] = implode("\n", $formatted);
       }
       
       // Job titles - join all unique titles if field is empty
