@@ -120,6 +120,17 @@ class SettingsForm extends ConfigFormBase {
       ],
     ];
 
+    $form['google_cloud_settings']['tenant_name'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Tenant Name'),
+      '#description' => $this->t('The full tenant resource name (e.g., projects/forseti-483518/tenants/76d39aae-4a00-0000-0000-00527559cb6e). Use the "List Tenants" button below to find your tenant name.'),
+      '#default_value' => $config->get('tenant_name') ?? '',
+      '#required' => FALSE,
+      '#attributes' => [
+        'placeholder' => 'projects/forseti-483518/tenants/76d39aae-4a00-0000-0000-00527559cb6e',
+      ],
+    ];
+
     $form['google_cloud_settings']['actions'] = [
       '#type' => 'container',
       '#attributes' => ['style' => 'display: flex; gap: 10px; margin-top: 10px;'],
@@ -169,16 +180,26 @@ class SettingsForm extends ConfigFormBase {
    */
   public function testGoogleCloudCredentials(array &$form, FormStateInterface $form_state) {
     $credentials_json = $form_state->getValue('google_cloud_credentials');
+    $tenant_name = $form_state->getValue('tenant_name');
     
     if (empty($credentials_json)) {
       $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" class="messages messages--error">Please enter your service account credentials first.</div>';
       return $form['google_cloud_settings']['test_result'];
     }
 
+    if (empty($tenant_name)) {
+      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" class="messages messages--error">Please enter the tenant name first. Use the "List Tenants" or "Create Tenant" button to get a tenant.</div>';
+      return $form['google_cloud_settings']['test_result'];
+    }
+
     // Temporarily save and test the credentials
     $temp_config = \Drupal::configFactory()->getEditable('job_hunter.settings');
     $old_creds = $temp_config->get('google_cloud_credentials');
-    $temp_config->set('google_cloud_credentials', $credentials_json)->save();
+    $old_tenant = $temp_config->get('tenant_name');
+    $temp_config
+      ->set('google_cloud_credentials', $credentials_json)
+      ->set('tenant_name', $tenant_name)
+      ->save();
 
     try {
       $service = \Drupal::service('job_hunter.cloud_talent_solution');
@@ -195,8 +216,11 @@ class SettingsForm extends ConfigFormBase {
       $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" class="messages messages--error">✗ Error: ' . $e->getMessage() . '</div>';
     }
 
-    // Restore old credentials
-    $temp_config->set('google_cloud_credentials', $old_creds)->save();
+    // Restore old values
+    $temp_config
+      ->set('google_cloud_credentials', $old_creds)
+      ->set('tenant_name', $old_tenant)
+      ->save();
 
     return $form['google_cloud_settings']['test_result'];
   }
@@ -218,16 +242,20 @@ class SettingsForm extends ConfigFormBase {
         throw new \Exception('Invalid JSON credentials format');
       }
 
-      $client = new \Google\Client();
-      $client->setAuthConfig($credentials);
-      $client->addScope('https://www.googleapis.com/auth/cloud-platform');
-      $httpClient = $client->authorize();
+      $client = new \Google\Auth\Credentials\ServiceAccountCredentials(
+        'https://www.googleapis.com/auth/cloud-platform',
+        $credentials
+      );
+      $token = $client->fetchAuthToken();
+      $httpClient = \Drupal::httpClient();
 
       $project_id = $credentials['project_id'];
       
       // Check if tenant already exists
       try {
-        $list_response = $httpClient->get("https://jobs.googleapis.com/v4/projects/{$project_id}/tenants");
+        $list_response = $httpClient->get("https://jobs.googleapis.com/v4/projects/{$project_id}/tenants", [
+          'headers' => ['Authorization' => 'Bearer ' . $token['access_token']],
+        ]);
         $existing_tenants = json_decode($list_response->getBody()->getContents(), true);
         
         if (!empty($existing_tenants['tenants'])) {
@@ -240,6 +268,7 @@ class SettingsForm extends ConfigFormBase {
       
       // Create the tenant
       $response = $httpClient->post("https://jobs.googleapis.com/v4/projects/{$project_id}/tenants", [
+        'headers' => ['Authorization' => 'Bearer ' . $token['access_token']],
         'json' => [
           'externalId' => 'forseti-jobhunter',
           'usageType' => 'GENERAL_PURPOSE',
@@ -275,13 +304,18 @@ class SettingsForm extends ConfigFormBase {
         throw new \Exception('Invalid JSON credentials format');
       }
 
-      $client = new \Google\Client();
-      $client->setAuthConfig($credentials);
-      $client->addScope('https://www.googleapis.com/auth/cloud-platform');
-      $httpClient = $client->authorize();
-
+      // Create authenticated HTTP client using Google Auth
+      $auth = new \Google\Auth\Credentials\ServiceAccountCredentials(
+        'https://www.googleapis.com/auth/cloud-platform',
+        $credentials
+      );
+      $token = $auth->fetchAuthToken();
+      
+      $httpClient = \Drupal::httpClient();
       $project_id = $credentials['project_id'];
-      $response = $httpClient->get("https://jobs.googleapis.com/v4/projects/{$project_id}/tenants");
+      $response = $httpClient->get("https://jobs.googleapis.com/v4/projects/{$project_id}/tenants", [
+        'headers' => ['Authorization' => 'Bearer ' . $token['access_token']],
+      ]);
 
       $tenants_data = json_decode($response->getBody()->getContents(), true);
       $tenants = $tenants_data['tenants'] ?? [];
@@ -316,6 +350,7 @@ class SettingsForm extends ConfigFormBase {
       ->set('ai_model_id', $form_state->getValue('ai_model_id'))
       ->set('max_tokens', $form_state->getValue('max_tokens'))
       ->set('google_cloud_credentials', $form_state->getValue('google_cloud_credentials'))
+      ->set('tenant_name', $form_state->getValue('tenant_name'))
       ->save();
 
     parent::submitForm($form, $form_state);

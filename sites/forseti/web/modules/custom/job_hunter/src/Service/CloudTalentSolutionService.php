@@ -131,6 +131,25 @@ class CloudTalentSolutionService {
   }
 
   /**
+   * Get tenant name from configuration.
+   *
+   * @return string
+   *   The full tenant resource name (e.g., projects/forseti-483518/tenants/76d39aae-4a00-0000-0000-00527559cb6e).
+   *
+   * @throws \Exception
+   *   If tenant name is not configured.
+   */
+  protected function getTenantName() {
+    $tenant_name = $this->configFactory->get('job_hunter.settings')->get('tenant_name');
+    
+    if (empty($tenant_name)) {
+      throw new \Exception('Google Cloud Tenant name not configured. Please set the tenant name in Job Hunter settings or create a tenant using the "Create Tenant" button.');
+    }
+
+    return $tenant_name;
+  }
+
+  /**
    * Search for jobs via Cloud Talent Solution API.
    *
    * @param array $params
@@ -202,7 +221,7 @@ class CloudTalentSolutionService {
       ]);
 
       // Make API request
-      $url = self::API_BASE_URL . '/projects/' . self::PROJECT_ID . '/tenants/default/jobs:search';
+      $url = self::API_BASE_URL . '/' . $this->getTenantName() . '/jobs:search';
       
       $response = $this->httpClient->request('POST', $url, [
         'json' => $request_body,
@@ -427,7 +446,7 @@ class CloudTalentSolutionService {
     }
 
     try {
-      $url = self::API_BASE_URL . '/projects/' . self::PROJECT_ID . '/tenants/default/jobs';
+      $url = self::API_BASE_URL . '/' . $this->getTenantName() . '/jobs';
       
       $response = $this->httpClient->request('POST', $url, [
         'json' => $job_request,
@@ -499,7 +518,7 @@ class CloudTalentSolutionService {
     }
 
     try {
-      $url = self::API_BASE_URL . '/projects/' . self::PROJECT_ID . '/tenants/default/companies';
+      $url = self::API_BASE_URL . '/' . $this->getTenantName() . '/companies';
       
       $response = $this->httpClient->request('POST', $url, [
         'json' => $company_request,
@@ -697,7 +716,7 @@ class CloudTalentSolutionService {
       // Try to list companies as a test
       $access_token = $this->getAccessToken();
       
-      $url = self::API_BASE_URL . '/projects/' . self::PROJECT_ID . '/tenants/default/companies';
+      $url = self::API_BASE_URL . '/' . $this->getTenantName() . '/companies';
       
       $response = $this->httpClient->request('GET', $url, [
         'query' => ['pageSize' => 1],
