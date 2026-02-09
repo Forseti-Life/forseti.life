@@ -172,6 +172,27 @@ class SettingsForm extends ConfigFormBase {
       '#markup' => '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #ddd; border-radius: 4px; background: #f9f9f9;"><em style="color: #666;">Click a button above to test...</em></div>',
     ];
 
+    $form['developer_settings'] = [
+      '#type' => 'details',
+      '#title' => $this->t('🔧 Developer Settings'),
+      '#description' => $this->t('Configure debugging and logging options.'),
+      '#open' => FALSE,
+    ];
+
+    $form['developer_settings']['log_level'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Logging Level'),
+      '#description' => $this->t('Control the verbosity of job_hunter module logging. Only messages at or above the selected level will be logged.<br><strong>debug</strong> = All messages (most verbose)<br><strong>info</strong> = Informational messages and above<br><strong>notice</strong> = Notable events and above<br><strong>warning</strong> = Warnings and errors only<br><strong>error</strong> = Only error messages (least verbose)'),
+      '#options' => [
+        'debug' => $this->t('Debug (most verbose - development only)'),
+        'info' => $this->t('Info (recommended for development)'),
+        'notice' => $this->t('Notice (default - production)'),
+        'warning' => $this->t('Warning (only warnings and errors)'),
+        'error' => $this->t('Error (only errors - least verbose)'),
+      ],
+      '#default_value' => $config->get('log_level') ?? 'notice',
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -351,6 +372,7 @@ class SettingsForm extends ConfigFormBase {
       ->set('max_tokens', $form_state->getValue('max_tokens'))
       ->set('google_cloud_credentials', $form_state->getValue('google_cloud_credentials'))
       ->set('tenant_name', $form_state->getValue('tenant_name'))
+      ->set('log_level', $form_state->getValue('log_level'))
       ->save();
 
     parent::submitForm($form, $form_state);

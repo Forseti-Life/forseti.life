@@ -5,6 +5,7 @@ namespace Drupal\job_hunter\Service;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\job_hunter\Traits\JobHunterLoggerTrait;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\RequestException;
 
@@ -16,6 +17,8 @@ use GuzzleHttp\Exception\RequestException;
  * API: Cloud Talent Solution (jobs.googleapis.com)
  */
 class CloudTalentSolutionService {
+
+  use JobHunterLoggerTrait;
 
   /**
    * The HTTP client.
@@ -123,7 +126,7 @@ class CloudTalentSolutionService {
       throw new \Exception('Failed to obtain access token.');
     }
     catch (\Exception $e) {
-      $this->logger->error('Google Cloud authentication failed: @error', [
+      $this->logError('Google Cloud authentication failed: @error', [
         '@error' => $e->getMessage(),
       ]);
       throw $e;
@@ -216,7 +219,7 @@ class CloudTalentSolutionService {
     }
 
     try {
-      $this->logger->info('Cloud Talent Solution search request: @query', [
+      $this->logInfo('Cloud Talent Solution search request: @query', [
         '@query' => json_encode($request_body),
       ]);
 
@@ -275,7 +278,7 @@ class CloudTalentSolutionService {
         $e->getMessage()
       );
       
-      $this->logger->error('Cloud Talent Solution search failed: @error', [
+      $this->logError('Cloud Talent Solution search failed: @error', [
         '@error' => $e->getMessage(),
       ]);
       throw new \Exception('Failed to search jobs via Cloud Talent Solution: ' . $e->getMessage());
@@ -392,7 +395,7 @@ class CloudTalentSolutionService {
 
     }
     catch (RequestException $e) {
-      $this->logger->error('Cloud Talent Solution get job failed: @error', [
+      $this->logError('Cloud Talent Solution search failed: @error', [
         '@error' => $e->getMessage(),
       ]);
       throw new \Exception('Failed to fetch job details: ' . $e->getMessage());
@@ -624,7 +627,7 @@ class CloudTalentSolutionService {
 
     }
     catch (\Exception $e) {
-      $this->logger->error('Failed to import job: @error', [
+      $this->logError('Failed to create job: @error', [
         '@error' => $e->getMessage(),
       ]);
       return NULL;
@@ -730,7 +733,7 @@ class CloudTalentSolutionService {
 
     }
     catch (\Exception $e) {
-      $this->logger->error('API credentials validation failed: @error', [
+      $this->logError('API credentials validation failed: @error', [
         '@error' => $e->getMessage(),
       ]);
       return FALSE;
