@@ -1536,7 +1536,7 @@ class JobApplicationController extends ControllerBase {
     $query = $request->query->get('q', ''); // Changed from 'query' to 'q' to match form
     $location = $request->query->get('location', '');
     $employment_type = $request->query->get('employment_type', '');
-    $sources = $request->query->get('sources', ['forseti']); // Default to Forseti
+    $sources = $request->query->get('sources', 'forseti'); // Default to scalar value
     $company_filter = $request->query->get('company', '');
     $salary_min = $request->query->get('salary_min', '');
     $salary_max = $request->query->get('salary_max', '');
@@ -1546,7 +1546,7 @@ class JobApplicationController extends ControllerBase {
     
     // Ensure sources is an array
     if (!is_array($sources)) {
-      $sources = [$sources];
+      $sources = $sources ? [$sources] : ['forseti'];
     }
     
     // Initialize results array
