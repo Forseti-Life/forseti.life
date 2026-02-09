@@ -286,7 +286,7 @@ $databases = [];
  *   $settings['hash_salt'] = file_get_contents('/home/example/salt.txt');
  * @endcode
  */
-$settings['hash_salt'] = 'NVwNouJundxNHsmapF5ZfIHAu5Zf9Mjy0XqvCC2PtAW27BAS2Mpz4BVKyoZyC2Sz3qFUeM5dow';
+$settings['hash_salt'] = 'eldJzn_uUYH84UAwKRlscvzPXcXX3R3JGfImUI0rqXVj6yjVETmDZi5Rr6tMd1eLYLDTUomNIg';
 
 /**
  * Deployment identifier.
@@ -931,3 +931,15 @@ if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
 $config['system.performance']['css']['preprocess'] = FALSE;
 $config['system.performance']['js']['preprocess'] = FALSE;
 $config['system.logging']['error_level'] = 'verbose';
+$databases['default']['default'] = array (
+  'database' => 'dungeoncrawler_dev',
+  'username' => 'drupal_user',
+  'password' => 'drupal_secure_password',
+  'prefix' => '',
+  'host' => '127.0.0.1',
+  'port' => 3306,
+  'isolation_level' => 'READ COMMITTED',
+  'driver' => 'mysql',
+  'namespace' => 'Drupal\\mysql\\Driver\\Database\\mysql',
+  'autoload' => 'core/modules/mysql/src/Driver/Database/mysql/',
+);

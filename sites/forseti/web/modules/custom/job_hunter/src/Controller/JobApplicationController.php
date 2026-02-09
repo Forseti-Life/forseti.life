@@ -245,63 +245,40 @@ class JobApplicationController extends ControllerBase {
       ],
     ];
     
-    // Step 2: Target Companies
+    // Step 2: AI Job Discovery & Search
     $build['automated_step2'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['phase-section', 'phase-companies', 'disabled']],
+      '#attributes' => ['class' => ['phase-section', 'phase-discovery']],
       'content' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
         '#attributes' => ['class' => ['phase-content']],
         '#value' => '<div class="step-indicator">Step 2</div>
                      <div class="phase-info">
-                       <h3>Target Companies</h3>
-                       <p>Build a list of companies you want to work for.</p>
+                       <h3>AI Job Discovery & Search</h3>
+                       <p>Search and discover jobs using multiple sources. Companies are automatically added to your targets when you save jobs.</p>
                      </div>
                      <div class="phase-stat">
-                       <div class="stat-number">' . $target_companies . '</div>
-                       <div class="stat-label">Target Companies</div>
+                       <div class="stat-number">' . $saved_jobs . '</div>
+                       <div class="stat-label">Jobs Saved</div>
+                       <div class="stat-sublabel">' . $target_companies . ' companies tracked</div>
                      </div>
                      <div class="phase-actions">
-                       <a href="/jobhunter/target-companies" class="phase-button">Manage Companies</a>
-                       <a href="/jobhunter/bulk-import-companies" class="phase-button primary">+ Add Companies</a>
+                       <a href="/jobhunter/job-discovery" class="phase-button primary">Search Jobs</a>
+                       <a href="/jobhunter/jobs" class="phase-button">View Saved Jobs</a>
                      </div>',
       ],
     ];
     
-    // Step 3: AI Job Discovery
+    // Step 3: Application Submission
     $build['automated_step3'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['phase-section', 'phase-discovery', 'disabled']],
-      'content' => [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['phase-content']],
-        '#value' => '<div class="step-indicator">Step 3</div>
-                     <div class="phase-info">
-                       <h3>AI Job Discovery</h3>
-                       <p>Find matching jobs at target companies using AI-powered search.</p>
-                     </div>
-                     <div class="phase-stat">
-                       <div class="stat-number">0</div>
-                       <div class="stat-label">Jobs Found</div>
-                     </div>
-                     <div class="phase-actions">
-                       <a href="/jobhunter/job-discovery" class="phase-button">Start Discovery</a>
-                     </div>
-                     <div class="coming-soon-badge">Coming Soon</div>',
-      ],
-    ];
-    
-    // Step 4: Application Submission
-    $build['automated_step4'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-submission', 'disabled']],
       'content' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
         '#attributes' => ['class' => ['phase-content']],
-        '#value' => '<div class="step-indicator">Step 4</div>
+        '#value' => '<div class="step-indicator">Step 3</div>
                      <div class="phase-info">
                        <h3>Application Submission</h3>
                        <p>Auto-apply to jobs with tailored resumes and cover letters.</p>
@@ -317,15 +294,15 @@ class JobApplicationController extends ControllerBase {
       ],
     ];
     
-    // Step 5: Interview & Follow-up
-    $build['automated_step5'] = [
+    // Step 4: Interview & Follow-up
+    $build['automated_step4'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-interview', 'disabled']],
       'content' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
         '#attributes' => ['class' => ['phase-content']],
-        '#value' => '<div class="step-indicator">Step 5</div>
+        '#value' => '<div class="step-indicator">Step 4</div>
                      <div class="phase-info">
                        <h3>Interview & Follow-up</h3>
                        <p>Track application status, schedule interviews, and manage follow-ups.</p>
@@ -341,8 +318,8 @@ class JobApplicationController extends ControllerBase {
       ],
     ];
     
-    // Step 6: Analytics & Optimization
-    $build['automated_step6'] = [
+    // Step 5: Analytics & Optimization
+    $build['automated_step5'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-analytics', 'disabled']],
       'content' => [
@@ -1131,7 +1108,7 @@ class JobApplicationController extends ControllerBase {
   }
 
   /**
-   * Step 3: AI Job Discovery page.
+   * Step 2: Job Discovery & Search page.
    *
    * @return array
    *   A renderable array for the job discovery page.
@@ -1316,7 +1293,7 @@ class JobApplicationController extends ControllerBase {
   }
 
   /**
-   * Step 4: Application Submission page.
+   * Step 3: Application Submission page.
    *
    * @return array
    *   A renderable array for the application submission page.
@@ -1414,7 +1391,7 @@ class JobApplicationController extends ControllerBase {
   }
 
   /**
-   * Step 6: Analytics page.
+   * Step 5: Analytics page.
    *
    * @return array
    *   A renderable array for the analytics page.

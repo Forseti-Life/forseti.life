@@ -916,28 +916,33 @@ if [ "$DRUPAL_INSTALLED" = true ]; then
     # ------------------------------------------------------------------------------
     # 2.8 Block Placement Configuration
     # ------------------------------------------------------------------------------
+    # 2.8 Block Placement Configuration
+    # ------------------------------------------------------------------------------
     print_status "Configuring block placement..."
     
-    # Ensure Main Navigation is enabled and in navbar_left region
-    if /usr/bin/php8.3 vendor/drush/drush/drush.php config:get block.block.forseti_main_menu 2>/dev/null | grep -q "region:"; then
-        print_status "Configuring Main Navigation block..."
-        /usr/bin/php8.3 vendor/drush/drush/drush.php php:eval "\$config = \Drupal::service('config.factory')->getEditable('block.block.forseti_main_menu'); \$config->set('status', true)->set('region', 'navbar_left')->save();" 2>/dev/null
-        print_status "✅ Main navigation enabled in navbar_left"
-    else
-        print_status "Main navigation block not found. Skipping."
-    fi
+    # Create temporary block placement script
+    cat > "$PROJECT_DIR/temp_block_placement.php" << 'BLOCKSCRIPT'
+<?php
+$main_menu_config = \Drupal::service('config.factory')->getEditable('block.block.forseti_main_menu');
+if (!$main_menu_config->isNew()) {
+  $main_menu_config->set('status', true)->set('region', 'navbar_left')->set('weight', 0)->save();
+  echo "Main navigation configured\n";
+}
+$footer_menu_config = \Drupal::service('config.factory')->getEditable('block.block.forseti_forsetifootermenu');
+if (!$footer_menu_config->isNew()) {
+  $footer_menu_config->set('status', true)->set('region', 'footer')->set('weight', 0)->save();
+  echo "Footer menu configured\n";
+}
+$old_footer = \Drupal::service('config.factory')->getEditable('block.block.forseti_footer');
+if (!$old_footer->isNew()) { $old_footer->set('status', false)->save(); }
+$powered = \Drupal::service('config.factory')->getEditable('block.block.forseti_powered');
+if (!$powered->isNew()) { $powered->set('status', false)->save(); }
+BLOCKSCRIPT
     
-    # Ensure Forseti Footer Menu is the ONLY block in footer region
-    if /usr/bin/php8.3 vendor/drush/drush/drush.php config:get block.block.forseti_forsetifootermenu 2>/dev/null | grep -q "region:"; then
-        print_status "Configuring Forseti Footer Menu as sole footer block..."
-        # Disable forseti_footer if it exists
-        /usr/bin/php8.3 vendor/drush/drush/drush.php php:eval "\$config = \Drupal::service('config.factory')->getEditable('block.block.forseti_footer'); if (!\$config->isNew()) { \$config->set('status', false)->save(); }" 2>/dev/null
-        # Enable and configure forseti_forsetifootermenu
-        /usr/bin/php8.3 vendor/drush/drush/drush.php php:eval "\$config = \Drupal::service('config.factory')->getEditable('block.block.forseti_forsetifootermenu'); \$config->set('status', true)->set('region', 'footer')->set('theme', 'forseti')->save();" 2>/dev/null
-        print_status "✅ Forseti Footer Menu enabled as sole footer block"
-    else
-        print_status "Forseti Footer Menu block not found. Skipping."
-    fi
+    # Run block placement script
+    /usr/bin/php8.3 vendor/drush/drush/drush.php scr temp_block_placement.php 2>/dev/null || true
+    rm -f temp_block_placement.php
+    print_status "✅ Block placement configured"
     
     # Verify Site Branding is in navbar_branding region
     if /usr/bin/php8.3 vendor/drush/drush/drush.php config:get block.block.forseti_branding 2>/dev/null | grep -q "region:"; then
