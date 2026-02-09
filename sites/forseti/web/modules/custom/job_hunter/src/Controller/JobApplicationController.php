@@ -393,7 +393,7 @@ class JobApplicationController extends ControllerBase {
    */
   private function getSavedJobsCount($user) {
     try {
-      $count = \Drupal::database()->select('job_hunter_job_requirements', 'j')
+      $count = \Drupal::database()->select('jobhunter_job_requirements', 'j')
         ->countQuery()
         ->execute()
         ->fetchField();
@@ -415,15 +415,15 @@ class JobApplicationController extends ControllerBase {
     
     $database = \Drupal::database();
     
-    // Query companies from job_hunter_companies table
-    $query = $database->select('job_hunter_companies', 'c')
+    // Query companies from jobhunter_companies table
+    $query = $database->select('jobhunter_companies', 'c')
       ->fields('c')
       ->orderBy('name', 'ASC');
     $companies = $query->execute()->fetchAll();
     
     // Count jobs per company
     $job_counts = [];
-    $job_query = $database->select('job_hunter_job_requirements', 'j')
+    $job_query = $database->select('jobhunter_job_requirements', 'j')
       ->fields('j', ['company_id'])
       ->condition('status', 'active')
       ->groupBy('company_id');
@@ -483,7 +483,7 @@ class JobApplicationController extends ControllerBase {
       $all_rows = '';
       foreach ($job_companies as $company_name => $job_count) {
         // Check if already in target companies
-        $exists = $database->select('job_hunter_companies', 'c')
+        $exists = $database->select('jobhunter_companies', 'c')
           ->condition('name', $company_name)
           ->countQuery()
           ->execute()
@@ -987,7 +987,7 @@ class JobApplicationController extends ControllerBase {
     $database = \Drupal::database();
     
     // Get all job requirements with extracted JSON
-    $query = $database->select("job_hunter_job_requirements", "j")
+    $query = $database->select("jobhunter_job_requirements", "j")
       ->fields("j", ["id", "extracted_json", "company_id"])
       ->condition("status", "active");
     $jobs = $query->execute()->fetchAll();
@@ -999,7 +999,7 @@ class JobApplicationController extends ControllerBase {
       
       // First, try to get company from company_id
       if ($job->company_id) {
-        $company = $database->select("job_hunter_companies", "c")
+        $company = $database->select("jobhunter_companies", "c")
           ->fields("c", ["name"])
           ->condition("id", $job->company_id)
           ->execute()

@@ -77,8 +77,8 @@ This document outlines the architecture for the Job Tailoring feature that allow
 
 | Table | Purpose | Relevant Fields |
 |-------|---------|-----------------|
-| `job_hunter_companies` | Company records | id, name, website, industry, location |
-| `job_hunter_job_requirements` | Job postings | id, company_id, job_title, job_description, requirements |
+| `jobhunter_companies` | Company records | id, name, website, industry, location |
+| `jobhunter_job_requirements` | Job postings | id, company_id, job_title, job_description, requirements |
 | `jobhunter_job_seeker` | User profiles | id, uid, consolidated_profile_json |
 
 ### New Table: `jobhunter_tailored_resumes`
@@ -87,7 +87,7 @@ This document outlines the architecture for the Job Tailoring feature that allow
 CREATE TABLE jobhunter_tailored_resumes (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   job_seeker_id INT UNSIGNED NOT NULL,          -- FK to jobhunter_job_seeker.id
-  job_requirement_id INT UNSIGNED NOT NULL,      -- FK to job_hunter_job_requirements.id
+  job_requirement_id INT UNSIGNED NOT NULL,      -- FK to jobhunter_job_requirements.id
   
   -- Tailored Resume Content
   tailored_resume_json LONGTEXT,                 -- Full tailored resume in JSON format
@@ -118,12 +118,12 @@ CREATE TABLE jobhunter_tailored_resumes (
 );
 ```
 
-### Enhanced: `job_hunter_job_requirements`
+### Enhanced: `jobhunter_job_requirements`
 
 Add columns to existing table:
 
 ```sql
-ALTER TABLE job_hunter_job_requirements ADD COLUMN (
+ALTER TABLE jobhunter_job_requirements ADD COLUMN (
   raw_posting_text LONGTEXT,                     -- Original pasted text
   extracted_json LONGTEXT,                       -- AI-extracted structured data
   skills_required_json LONGTEXT,                 -- {"must_have": [...], "nice_to_have": [...]}
@@ -137,12 +137,12 @@ ALTER TABLE job_hunter_job_requirements ADD COLUMN (
 );
 ```
 
-### Enhanced: `job_hunter_companies`
+### Enhanced: `jobhunter_companies`
 
 Add columns for richer company data:
 
 ```sql
-ALTER TABLE job_hunter_companies ADD COLUMN (
+ALTER TABLE jobhunter_companies ADD COLUMN (
   linkedin_url VARCHAR(512),
   glassdoor_url VARCHAR(512),
   company_size VARCHAR(50),                      -- startup, small, medium, large, enterprise
@@ -207,7 +207,7 @@ ALTER TABLE job_hunter_companies ADD COLUMN (
     │                                                  │
     │ - id                                            │
     │ - job_seeker_id ────────────────────────────────┼── FK to jobhunter_job_seeker
-    │ - job_requirement_id ───────────────────────────┼── FK to job_hunter_job_requirements
+    │ - job_requirement_id ───────────────────────────┼── FK to jobhunter_job_requirements
     │ - tailored_resume_json                          │
     │ - match_analysis_json                           │
     │ - match_score                                   │
@@ -491,8 +491,8 @@ ALTER TABLE job_hunter_companies ADD COLUMN (
 ## Implementation Phases
 
 ### Phase 1: Database & Basic Forms (MVP)
-1. Add new columns to `job_hunter_job_requirements`
-2. Add new columns to `job_hunter_companies`  
+1. Add new columns to `jobhunter_job_requirements`
+2. Add new columns to `jobhunter_companies`  
 3. Create `jobhunter_tailored_resumes` table
 4. Create Add Job Posting form with basic text input
 5. Create job listing page (Views)

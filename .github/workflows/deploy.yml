@@ -9,6 +9,11 @@ on:
       - 'sites/forseti/composer.json'
       - 'sites/forseti/composer.lock'
       - 'sites/forseti/config/sync/**'
+      - 'sites/dungeoncrawler/web/modules/custom/**'
+      - 'sites/dungeoncrawler/web/themes/custom/**'
+      - 'sites/dungeoncrawler/composer.json'
+      - 'sites/dungeoncrawler/composer.lock'
+      - 'sites/dungeoncrawler/config/sync/**'
       - 'h3-geolocation/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
@@ -47,7 +52,7 @@ jobs:
           
           echo "Downloading code from repository..."
           git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git .
-          git sparse-checkout set sites/forseti h3-geolocation
+          git sparse-checkout set sites/forseti sites/dungeoncrawler h3-geolocation
           
           # Deploy custom modules
           if [ -d "sites/forseti/web/modules/custom" ]; then
@@ -124,7 +129,86 @@ jobs:
           
           sudo -u www-data ./vendor/bin/drush cache:rebuild
           
+          # ============================================================
+          # DUNGEON CRAWLER DEPLOYMENT
+          # ============================================================
+          DC_ROOT="/var/www/html/dungeoncrawler"
+          
+          if [ -d "$DC_ROOT" ] && [ -d "sites/dungeoncrawler/web/modules/custom" ]; then
+            echo ""
+            echo "=== DUNGEON CRAWLER DEPLOYMENT ==="
+            
+            # Deploy custom modules
+            if [ -d "sites/dungeoncrawler/web/modules/custom" ]; then
+              echo "Deploying Dungeon Crawler custom modules..."
+              sudo rsync -av --delete sites/dungeoncrawler/web/modules/custom/ "$DC_ROOT/web/modules/custom/"
+              echo "✅ DC Modules deployed"
+            fi
+            
+            # Deploy custom themes
+            if [ -d "sites/dungeoncrawler/web/themes/custom" ]; then
+              echo "Deploying Dungeon Crawler custom themes..."
+              sudo rsync -av --delete sites/dungeoncrawler/web/themes/custom/ "$DC_ROOT/web/themes/custom/"
+              echo "✅ DC Themes deployed"
+            fi
+            
+            # Deploy configuration
+            if [ -d "sites/dungeoncrawler/config/sync" ]; then
+              echo "Deploying Dungeon Crawler configuration..."
+              sudo rsync -av --delete sites/dungeoncrawler/config/sync/ "$DC_ROOT/config/sync/"
+              echo "✅ DC Configuration deployed"
+            fi
+            
+            # Composer update
+            DC_COMPOSER_CHANGED=false
+            if [ -f "sites/dungeoncrawler/composer.json" ]; then
+              if ! cmp -s "sites/dungeoncrawler/composer.json" "$DC_ROOT/composer.json"; then
+                echo "DC Composer files changed, updating..."
+                sudo cp "sites/dungeoncrawler/composer.json" "$DC_ROOT/"
+                [ -f "sites/dungeoncrawler/composer.lock" ] && sudo cp "sites/dungeoncrawler/composer.lock" "$DC_ROOT/"
+                DC_COMPOSER_CHANGED=true
+              fi
+            fi
+            
+            cd "$DC_ROOT"
+            
+            if [ "$DC_COMPOSER_CHANGED" = true ]; then
+              echo "Installing DC composer dependencies..."
+              sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
+              echo "✅ DC Composer updated"
+            fi
+            
+            # Import configuration
+            echo "Importing DC configuration..."
+            sudo -u www-data ./vendor/bin/drush config:import -y || echo "⚠️ DC Config import warnings"
+            
+            # Database updates
+            echo "Checking DC database updates..."
+            sudo -u www-data ./vendor/bin/drush updatedb -y || echo "ℹ️ No DC updates needed"
+            
+            # Fix permissions
+            sudo chown -R www-data:www-data "$DC_ROOT/web/modules/custom" \
+              "$DC_ROOT/web/themes/custom" \
+              "$DC_ROOT/config" \
+              "$DC_ROOT/web/sites/default/files" 2>/dev/null || true
+            
+            sudo find "$DC_ROOT/web/modules/custom" "$DC_ROOT/web/themes/custom" \
+              -type f -exec chmod 644 {} + -o -type d -exec chmod 755 {} + 2>/dev/null || true
+            
+            # Cache clear
+            sudo rm -rf "$DC_ROOT/web/sites/default/files/css" \
+              "$DC_ROOT/web/sites/default/files/js" \
+              "$DC_ROOT/web/sites/default/files/php/twig" 2>/dev/null || true
+            
+            sudo -u www-data ./vendor/bin/drush cache:rebuild
+            
+            echo "✅ Dungeon Crawler deployment complete"
+          else
+            echo "ℹ️ Dungeon Crawler not set up on production yet, skipping"
+          fi
+          
           # Clean up
+          cd /tmp
           rm -rf "$TEMP_DIR"
           
           echo ""

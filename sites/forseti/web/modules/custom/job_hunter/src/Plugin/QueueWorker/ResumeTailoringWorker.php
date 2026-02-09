@@ -95,7 +95,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
 
       // Save the tailored resume
       $now = time();
-      $existing = $connection->select('job_hunter_tailored_resumes', 'tr')
+      $existing = $connection->select('jobhunter_tailored_resumes', 'tr')
         ->fields('tr', ['id'])
         ->condition('uid', $uid)
         ->condition('job_id', $job_id)
@@ -103,7 +103,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
         ->fetchField();
 
       if ($existing) {
-        $connection->update('job_hunter_tailored_resumes')
+        $connection->update('jobhunter_tailored_resumes')
           ->fields([
             'tailored_resume_json' => json_encode($tailored_result['tailored_resume_json']),
             'tailoring_status' => 'completed',
@@ -113,7 +113,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
           ->execute();
       }
       else {
-        $connection->insert('job_hunter_tailored_resumes')
+        $connection->insert('jobhunter_tailored_resumes')
           ->fields([
             'uid' => $uid,
             'job_id' => $job_id,
@@ -154,7 +154,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
    */
   private function updateTailoringStatus($connection, $uid, $job_id, $status) {
     $now = time();
-    $existing = $connection->select('job_hunter_tailored_resumes', 'tr')
+    $existing = $connection->select('jobhunter_tailored_resumes', 'tr')
       ->fields('tr', ['id'])
       ->condition('uid', $uid)
       ->condition('job_id', $job_id)
@@ -162,7 +162,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
       ->fetchField();
 
     if ($existing) {
-      $connection->update('job_hunter_tailored_resumes')
+      $connection->update('jobhunter_tailored_resumes')
         ->fields([
           'tailoring_status' => $status,
           'updated' => $now,
@@ -171,7 +171,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
         ->execute();
     }
     else {
-      $connection->insert('job_hunter_tailored_resumes')
+      $connection->insert('jobhunter_tailored_resumes')
         ->fields([
           'uid' => $uid,
           'job_id' => $job_id,

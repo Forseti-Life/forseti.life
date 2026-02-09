@@ -61,15 +61,15 @@ This module now follows a **hybrid storage strategy**:
 5. **Views first.** Use Views for listings unless an operational dashboard requires bespoke UI.
 
 **Current operational tables (non‑exhaustive):**
-- `job_hunter_companies`
-- `job_hunter_job_requirements`
+- `jobhunter_companies`
+- `jobhunter_job_requirements`
 - `jobhunter_job_seeker`
 - `jobhunter_job_seeker_resumes`
 - `jobhunter_resume_parsed_data`
-- `job_hunter_tailored_resumes`
-- `job_hunter_pdf_history`
-- `job_hunter_google_jobs_sync`
-- `job_hunter_google_jobs_validation_log`
+- `jobhunter_tailored_resumes`
+- `jobhunter_pdf_history`
+- `jobhunter_google_jobs_sync`
+- `jobhunter_google_jobs_validation_log`
 
 ### **User Experience Standards**
 - Users create/manage content via **standard Drupal node forms** (`/node/add/company`, `/node/edit/123`)

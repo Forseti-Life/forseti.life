@@ -7,3 +7,12 @@ test-runner:
     - core/jquery
     - core/once
     - core/drupal.ajax
+
+validation:
+  version: 1.x
+  js:
+    js/jh-validation.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once

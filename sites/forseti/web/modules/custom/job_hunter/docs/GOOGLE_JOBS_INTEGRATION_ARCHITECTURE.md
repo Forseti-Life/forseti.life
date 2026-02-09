@@ -14,13 +14,13 @@ The Google Jobs Integration feature provides a complete UI and API for managing 
 
 ## Database Architecture
 
-### Table: `job_hunter_google_jobs_sync`
+### Table: `jobhunter_google_jobs_sync`
 
 Tracks the synchronization status and performance of job postings with Google for Jobs.
 
 **Key Fields**:
 - `id` - Primary key
-- `job_id` - Foreign key to `job_hunter_job_requirements.id` (unique)
+- `job_id` - Foreign key to `jobhunter_job_requirements.id` (unique)
 - `structured_data_json` - Generated Schema.org JSON-LD (TEXT)
 - `is_enabled` - Whether Google Jobs is active for this job (BOOLEAN)
 - `validation_status` - Current status: pending, valid, invalid, error
@@ -33,14 +33,14 @@ Tracks the synchronization status and performance of job postings with Google fo
 
 **Indexes**: job_id (unique), validation_status, is_enabled, google_indexing_status
 
-### Table: `job_hunter_google_jobs_validation_log`
+### Table: `jobhunter_google_jobs_validation_log`
 
 Historical log of all validation attempts with detailed error tracking.
 
 **Key Fields**:
 - `id` - Primary key
-- `sync_id` - Foreign key to `job_hunter_google_jobs_sync.id`
-- `job_id` - Foreign key to `job_hunter_job_requirements.id` (denormalized)
+- `sync_id` - Foreign key to `jobhunter_google_jobs_sync.id`
+- `job_id` - Foreign key to `jobhunter_job_requirements.id` (denormalized)
 - `validation_type` - Type: schema, rich_results, search_console
 - `status` - Result: valid, invalid, error, warning
 - `errors` - JSON array of error messages
@@ -255,7 +255,7 @@ Appears in: **Administration → Job Hunter → Google Jobs Integration**
 
 ```
 User clicks "Enable" → AJAX POST to toggle-sync
-  → Controller updates job_hunter_google_jobs_sync.is_enabled = 1
+  → Controller updates jobhunter_google_jobs_sync.is_enabled = 1
   → Response returns success
   → UI updates badge to "Pending"
 ```
@@ -267,7 +267,7 @@ User clicks "Generate" → AJAX POST to generate
   → Controller calls GoogleJobsService.generateJobPostingJsonLd(job_id)
   → Service queries job and company data
   → Service builds Schema.org JSON-LD structure
-  → Controller saves to job_hunter_google_jobs_sync.structured_data_json
+  → Controller saves to jobhunter_google_jobs_sync.structured_data_json
   → Response returns JSON-LD
   → UI logs to console
 ```
@@ -281,8 +281,8 @@ User clicks "Validate" → AJAX POST to validate
   → Service checks required fields (title, description, datePosted, etc.)
   → Service checks field formats (dates, employment types, etc.)
   → Service returns validation result (status, errors, warnings)
-  → Controller updates job_hunter_google_jobs_sync (validation_status, errors, last_validated)
-  → Controller logs to job_hunter_google_jobs_validation_log
+  → Controller updates jobhunter_google_jobs_sync (validation_status, errors, last_validated)
+  → Controller logs to jobhunter_google_jobs_validation_log
   → Response returns validation result
   → UI updates status badge and shows message
 ```
@@ -308,7 +308,7 @@ The service generates JSON-LD with these fields:
 ### Required Fields
 - `@context`: "https://schema.org/"
 - `@type`: "JobPosting"
-- `title`: Job title from job_hunter_job_requirements
+- `title`: Job title from jobhunter_job_requirements
 - `description`: Sanitized job description
 - `datePosted`: ISO 8601 date from created_at
 - `hiringOrganization`: Organization object with company name
@@ -355,11 +355,11 @@ The service generates JSON-LD with these fields:
 ## Integration with Existing Data
 
 ### Data Sources
-- `job_hunter_job_requirements` - Job details
+- `jobhunter_job_requirements` - Job details
   - `job_title`, `job_description`, `created_at`
   - `extracted_json` - Parsed job data (description, location, salary, etc.)
   - `skills_required_json` - Skills arrays (must_have, nice_to_have, tech_stack)
-- `job_hunter_companies` - Company information
+- `jobhunter_companies` - Company information
   - `company_name`, `website`, `logo_path`
 
 ### Data Mapping
@@ -402,8 +402,8 @@ drush updatedb
 ```
 
 This creates the two new tables:
-- `job_hunter_google_jobs_sync`
-- `job_hunter_google_jobs_validation_log`
+- `jobhunter_google_jobs_sync`
+- `jobhunter_google_jobs_validation_log`
 
 ### 2. Clear Cache
 

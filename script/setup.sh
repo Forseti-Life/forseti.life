@@ -39,7 +39,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Project configuration
+# Project configuration - Forseti (main site)
 PROJECT_NAME="forseti"
 PROJECT_DIR="$WORKSPACE_ROOT/sites/forseti"
 DB_NAME="forseti_dev"
@@ -50,6 +50,14 @@ SITE_NAME="Forseti"
 ADMIN_USER="admin"
 ADMIN_PASSWORD="admin_secure_password"
 ADMIN_EMAIL="admin@forseti.life"
+
+# Project configuration - Dungeon Crawler (sub-site)
+DC_PROJECT_NAME="dungeoncrawler"
+DC_PROJECT_DIR="$WORKSPACE_ROOT/sites/dungeoncrawler"
+DC_DB_NAME="dungeoncrawler_dev"
+DC_SITE_NAME="Dungeon Crawler"
+DC_ADMIN_EMAIL="admin@dungeoncrawler.forseti.life"
+DC_DEV_PORT="8080"
 
 # Check if .env file exists and source it
 ENV_FILE="$WORKSPACE_ROOT/.env"
@@ -530,6 +538,15 @@ FLUSH PRIVILEGES;
 EOF
 print_status "AmISafe database created"
 
+# Create database for Dungeon Crawler sub-site
+print_status "Creating Dungeon Crawler database..."
+sudo mysql <<EOF
+CREATE DATABASE IF NOT EXISTS ${DC_DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON ${DC_DB_NAME}.* TO '${DB_USER}'@'127.0.0.1';
+FLUSH PRIVILEGES;
+EOF
+print_status "Dungeon Crawler database '${DC_DB_NAME}' created"
+
 # ------------------------------------------------------------------------------
 # 1.8 Private Files Directory
 # ------------------------------------------------------------------------------
@@ -540,6 +557,13 @@ fi
 sudo chown -R www-data:www-data /var/private/forseti
 sudo chmod -R 777 /var/private/forseti
 print_status "Private files directory created at /var/private/forseti"
+
+if [ ! -d "/var/private/dungeoncrawler" ]; then
+    sudo mkdir -p /var/private/dungeoncrawler
+fi
+sudo chown -R www-data:www-data /var/private/dungeoncrawler
+sudo chmod -R 777 /var/private/dungeoncrawler
+print_status "Private files directory created at /var/private/dungeoncrawler"
 
 # ------------------------------------------------------------------------------
 # 1.9 Apache Virtual Host Configuration
@@ -567,6 +591,35 @@ EOF
 # Disable default Apache site and enable Forseti
 sudo a2dissite 000-default.conf 2>/dev/null || true
 sudo a2ensite forseti.conf
+
+# Configure Apache virtual host for Dungeon Crawler (port 8080 in dev)
+print_status "Configuring Apache virtual host for Dungeon Crawler..."
+
+# Ensure Apache listens on port 8080
+if ! grep -q "Listen ${DC_DEV_PORT}" /etc/apache2/ports.conf 2>/dev/null; then
+    print_status "Adding Listen ${DC_DEV_PORT} to Apache ports.conf..."
+    sudo bash -c "echo 'Listen ${DC_DEV_PORT}' >> /etc/apache2/ports.conf"
+fi
+
+sudo bash -c "cat > /etc/apache2/sites-available/dungeoncrawler.conf" <<EOF
+<VirtualHost *:${DC_DEV_PORT}>
+        ServerName dungeoncrawler.local
+        ServerAlias dungeoncrawler.forseti.local
+        ServerAdmin webmaster@localhost
+        DocumentRoot $WORKSPACE_ROOT/sites/dungeoncrawler/web
+
+        <Directory $WORKSPACE_ROOT/sites/dungeoncrawler/web>
+                Options Indexes FollowSymLinks
+                AllowOverride All
+                Require all granted
+        </Directory>
+
+        ErrorLog \${APACHE_LOG_DIR}/dungeoncrawler_error.log
+        CustomLog \${APACHE_LOG_DIR}/dungeoncrawler_access.log combined
+</VirtualHost>
+EOF
+
+sudo a2ensite dungeoncrawler.conf 2>/dev/null || true
 
 print_status "Starting services..."
 ensure_mysql_running
@@ -1572,6 +1625,200 @@ echo "  - H3 Aggregated: $AMISAFE_H3_COUNT"
 # ------------------------------------------------------------------------------
 print_status "✅ STEP 5 COMPLETE: H3 geolocation setup finished"
 
+
+# ==============================================================================
+# STEP 6: DRUPAL INSTALLATION - DUNGEON CRAWLER SUB-SITE
+# ==============================================================================
+
+print_step "6. DRUPAL INSTALLATION - Setting up Dungeon Crawler sub-site..."
+
+# Ensure we're using the correct PHP version
+export PATH="/usr/bin:$PATH"
+
+# ------------------------------------------------------------------------------
+# 6.1 Directory Setup
+# ------------------------------------------------------------------------------
+print_status "Creating Dungeon Crawler directory structure..."
+
+if [ -d "$DC_PROJECT_DIR" ] && [ -f "$DC_PROJECT_DIR/composer.json" ]; then
+    print_status "Existing Dungeon Crawler directory found. Skipping fresh installation to preserve custom work."
+    print_status "Using existing Drupal installation at $DC_PROJECT_DIR"
+else
+    print_status "No existing Drupal installation found for Dungeon Crawler. Creating new Drupal 11 project..."
+    cd $WORKSPACE_ROOT/sites
+    # Remove placeholder .gitkeep if it exists
+    rm -f "$DC_PROJECT_DIR/.gitkeep" 2>/dev/null || true
+    rmdir "$DC_PROJECT_DIR" 2>/dev/null || true
+    /usr/bin/php8.3 /usr/local/bin/composer create-project drupal/recommended-project:^11.0 dungeoncrawler --no-interaction
+fi
+
+cd "$DC_PROJECT_DIR"
+
+# ------------------------------------------------------------------------------
+# 6.2 Composer Dependencies
+# ------------------------------------------------------------------------------
+if [ -f "composer.json" ] && [ ! -f "vendor/autoload.php" ]; then
+    print_status "Installing Dungeon Crawler Composer dependencies..."
+    /usr/bin/php8.3 /usr/local/bin/composer install --no-interaction --optimize-autoloader
+elif [ -f "vendor/autoload.php" ] && [ ! -f "vendor/bin/drush" ]; then
+    print_status "Installing missing Dungeon Crawler dependencies..."
+    /usr/bin/php8.3 /usr/local/bin/composer update --no-interaction
+fi
+
+# ------------------------------------------------------------------------------
+# 6.3 Drush Installation
+# ------------------------------------------------------------------------------
+if [ ! -f "vendor/bin/drush" ]; then
+    print_status "Installing Drush for Dungeon Crawler..."
+    /usr/bin/php8.3 /usr/local/bin/composer require drush/drush --no-interaction
+fi
+
+# ------------------------------------------------------------------------------
+# 6.4 Essential Modules
+# ------------------------------------------------------------------------------
+if [ ! -d "web/modules/contrib/admin_toolbar" ]; then
+    print_status "Installing essential modules for Dungeon Crawler..."
+    /usr/bin/php8.3 /usr/local/bin/composer require \
+        drupal/admin_toolbar \
+        drupal/pathauto \
+        drupal/metatag \
+        drupal/bootstrap5 \
+        --no-interaction
+else
+    print_status "Dungeon Crawler modules already installed. Skipping."
+fi
+
+# ------------------------------------------------------------------------------
+# 6.5 Database Verification & Site Installation
+# ------------------------------------------------------------------------------
+DC_DRUPAL_NEEDS_INSTALL=true
+if [ -f "web/sites/default/settings.php" ] && [ -s "web/sites/default/settings.php" ]; then
+    USER_TABLE_COUNT=$(/usr/bin/php8.3 vendor/drush/drush/drush.php sql:query "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DC_DB_NAME}' AND table_name='users'" 2>/dev/null | tail -n1)
+    if [ "$USER_TABLE_COUNT" = "1" ]; then
+        DC_DRUPAL_NEEDS_INSTALL=false
+        print_status "Existing Dungeon Crawler Drupal installation detected and verified."
+    fi
+fi
+
+if [ "$DC_DRUPAL_NEEDS_INSTALL" = true ]; then
+    print_status "Setting up file permissions and installing Dungeon Crawler Drupal..."
+    sudo chmod 755 web/sites/default 2>/dev/null || chmod 755 web/sites/default
+
+    mkdir -p web/sites/default/files
+    sudo chmod -R 777 web/sites/default/files 2>/dev/null || chmod -R 777 web/sites/default/files
+    mkdir -p web/sites/default/files/php
+    sudo chmod 777 web/sites/default/files/php 2>/dev/null || chmod 777 web/sites/default/files/php
+
+    if sudo chown -R www-data:www-data web/sites/default/files 2>/dev/null; then
+        print_status "Successfully set www-data ownership"
+    elif sudo chown -R $(whoami):$(whoami) web/sites/default/files 2>/dev/null; then
+        print_status "Set current user ownership as fallback"
+    fi
+
+    if [ ! -f "web/sites/default/settings.php" ]; then
+        cp web/sites/default/default.settings.php web/sites/default/settings.php
+    fi
+    sudo chmod 664 web/sites/default/settings.php 2>/dev/null || chmod 664 web/sites/default/settings.php
+
+    if ! /usr/bin/php8.3 vendor/drush/drush/drush.php status | grep -q "Drupal bootstrap.*Successful" 2>/dev/null; then
+        print_status "Installing Dungeon Crawler Drupal site..."
+        /usr/bin/php8.3 vendor/drush/drush/drush.php site:install standard \
+            --db-url="mysql://${DB_USER}:${DB_PASSWORD}@127.0.0.1:3306/${DC_DB_NAME}" \
+            --site-name="${DC_SITE_NAME}" \
+            --account-name="${ADMIN_USER}" \
+            --account-pass="${ADMIN_PASSWORD}" \
+            --account-mail="${DC_ADMIN_EMAIL}" \
+            --yes
+
+        if [ $? -eq 0 ]; then
+            print_status "✅ Dungeon Crawler Drupal installed successfully"
+        else
+            print_error "❌ Dungeon Crawler Drupal installation failed"
+        fi
+    else
+        print_status "Dungeon Crawler Drupal already installed, preserving existing data"
+    fi
+fi
+
+# ------------------------------------------------------------------------------
+# 6.6 Enable Modules
+# ------------------------------------------------------------------------------
+DC_DRUPAL_INSTALLED=false
+if [ "$DC_DRUPAL_NEEDS_INSTALL" = false ]; then
+    DC_DRUPAL_INSTALLED=true
+elif /usr/bin/php8.3 vendor/drush/drush/drush.php status --format=json 2>/dev/null | grep -q '"bootstrap":"Successful"'; then
+    DC_DRUPAL_INSTALLED=true
+fi
+
+if [ "$DC_DRUPAL_INSTALLED" = true ]; then
+    if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "admin_toolbar"; then
+        print_status "Enabling Dungeon Crawler modules..."
+        /usr/bin/php8.3 vendor/drush/drush/drush.php en admin_toolbar admin_toolbar_tools pathauto metatag -y 2>/dev/null || true
+    fi
+fi
+
+# ------------------------------------------------------------------------------
+# 6.7 Development Directories
+# ------------------------------------------------------------------------------
+mkdir -p web/modules/custom
+mkdir -p web/themes/custom
+mkdir -p config/sync
+chmod 755 web/modules/custom web/themes/custom config/sync
+
+# ------------------------------------------------------------------------------
+# 6.8 Settings Configuration
+# ------------------------------------------------------------------------------
+fix_drupal_permissions "$DC_PROJECT_DIR"
+
+if ! grep -q "Development-specific settings" web/sites/default/settings.php 2>/dev/null; then
+    print_status "Adding Dungeon Crawler development settings..."
+    cat >> web/sites/default/settings.php << 'EOL'
+/**
+ * Development-specific settings
+ */
+if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
+  include $app_root . '/' . $site_path . '/settings.local.php';
+}
+$settings['config_sync_directory'] = '../config/sync';
+$config['system.performance']['css']['preprocess'] = FALSE;
+$config['system.performance']['js']['preprocess'] = FALSE;
+$config['system.logging']['error_level'] = 'verbose';
+EOL
+fi
+
+if [ ! -f "web/sites/default/settings.local.php" ]; then
+    print_status "Creating Dungeon Crawler local development settings..."
+    cat > web/sites/default/settings.local.php << EOL
+<?php
+/**
+ * Dungeon Crawler - Local development settings
+ */
+\$databases['default']['default'] = [
+  'database' => '${DC_DB_NAME}',
+  'username' => '${DB_USER}',
+  'password' => '${DB_PASSWORD}',
+  'host' => '127.0.0.1',
+  'port' => '3306',
+  'driver' => 'mysql',
+  'prefix' => '',
+  'collation' => 'utf8mb4_general_ci',
+];
+\$settings['hash_salt'] = '$(openssl rand -base64 32)';
+\$settings['container_yamls'][] = DRUPAL_ROOT . '/sites/development.services.yml';
+\$settings['skip_permissions_hardening'] = TRUE;
+\$config['system.performance']['css']['preprocess'] = FALSE;
+\$config['system.performance']['js']['preprocess'] = FALSE;
+EOL
+    chmod 644 web/sites/default/settings.local.php
+fi
+
+# Final cache rebuild
+if [ "$DC_DRUPAL_INSTALLED" = true ]; then
+    /usr/bin/php8.3 vendor/drush/drush/drush.php cache:rebuild 2>/dev/null || true
+fi
+
+print_status "✅ STEP 6 COMPLETE: Dungeon Crawler sub-site setup finished"
+
 # ==============================================================================
 # COMPLETION MESSAGE
 # ==============================================================================
@@ -1587,10 +1834,12 @@ echo "✓ Drupal: 11.2.5 installed and configured"
 echo "✓ Development Tools: Coder, PHPCS, PHPUnit configured"
 echo "✓ H3 Geolocation Framework: Ready for AmISafe crime mapping"
 echo "✓ Database: $DB_NAME with AmISafe tables"
+echo "✓ Dungeon Crawler: Sub-site at port $DC_DEV_PORT"
 echo ""
 echo "========================="
 echo "Access Information"
 echo "========================="
+echo "--- Forseti (main site) ---"
 echo "Site URL: http://forseti.local"
 echo "Admin Login: http://forseti.local/user/login"
 echo "Admin User: $ADMIN_USER"
@@ -1598,10 +1847,20 @@ echo "Admin Password: $ADMIN_PASSWORD"
 echo "Database: $DB_NAME"
 echo "Directory: $PROJECT_DIR"
 echo ""
+echo "--- Dungeon Crawler (sub-site) ---"
+echo "Site URL: http://localhost:$DC_DEV_PORT"
+echo "Admin Login: http://localhost:$DC_DEV_PORT/user/login"
+echo "Admin User: $ADMIN_USER"
+echo "Admin Password: $ADMIN_PASSWORD"
+echo "Database: $DC_DB_NAME"
+echo "Directory: $DC_PROJECT_DIR"
+echo "Production URL: https://dungeoncrawler.forseti.life"
+echo ""
 echo "========================="
 echo "Available Commands"
 echo "========================="
-echo "Navigate to site: cd $PROJECT_DIR"
+echo "Navigate to forseti: cd $PROJECT_DIR"
+echo "Navigate to dungeoncrawler: cd $DC_PROJECT_DIR"
 echo "Clear cache: ./vendor/bin/drush cr"
 echo "One-time login: ./vendor/bin/drush uli"
 echo "Check coding standards: ./scripts/check-standards.sh"

@@ -64,7 +64,7 @@ class ResumeController extends ControllerBase {
     $userId = $this->currentUser()->id();
 
     // Get tailored resume for this job.
-    $tailoredRecord = $this->database->select('job_hunter_tailored_resumes', 'tr')
+    $tailoredRecord = $this->database->select('jobhunter_tailored_resumes', 'tr')
       ->fields('tr', ['id', 'tailored_resume_json'])
       ->condition('job_id', $job_id)
       ->condition('uid', $userId)
@@ -87,7 +87,7 @@ class ResumeController extends ControllerBase {
     }
 
     // Get job info for filename.
-    $job = $this->database->select('job_hunter_job_requirements', 'j')
+    $job = $this->database->select('jobhunter_job_requirements', 'j')
       ->fields('j', ['job_title', 'extracted_json'])
       ->condition('id', $job_id)
       ->execute()
@@ -139,7 +139,7 @@ class ResumeController extends ControllerBase {
     }
 
     // Update the database record.
-    $this->database->update('job_hunter_tailored_resumes')
+    $this->database->update('jobhunter_tailored_resumes')
       ->fields([
         'pdf_path' => $filepath,
         'pdf_generated' => \Drupal::time()->getRequestTime(),
@@ -148,7 +148,7 @@ class ResumeController extends ControllerBase {
       ->execute();
 
     // Insert into PDF history table.
-    $this->database->insert('job_hunter_pdf_history')
+    $this->database->insert('jobhunter_pdf_history')
       ->fields([
         'uid' => $userId,
         'job_id' => $job_id,
@@ -180,7 +180,7 @@ class ResumeController extends ControllerBase {
     $userId = (int) $this->currentUser()->id();
 
     // Get PDF record.
-    $pdfRecord = $this->database->select('job_hunter_pdf_history', 'ph')
+    $pdfRecord = $this->database->select('jobhunter_pdf_history', 'ph')
       ->fields('ph', ['filepath', 'filename', 'uid'])
       ->condition('id', $pdf_id)
       ->execute()
@@ -229,7 +229,7 @@ class ResumeController extends ControllerBase {
     $userId = (int) $this->currentUser()->id();
 
     // Get PDF record.
-    $pdfRecord = $this->database->select('job_hunter_pdf_history', 'ph')
+    $pdfRecord = $this->database->select('jobhunter_pdf_history', 'ph')
       ->fields('ph', ['id', 'filepath', 'filename', 'uid', 'job_id'])
       ->condition('id', $pdf_id)
       ->execute()
@@ -260,12 +260,12 @@ class ResumeController extends ControllerBase {
     }
 
     // Delete from database.
-    $this->database->delete('job_hunter_pdf_history')
+    $this->database->delete('jobhunter_pdf_history')
       ->condition('id', $pdf_id)
       ->execute();
 
     // Check if this was the latest PDF and update tailored_resumes table.
-    $latestPdf = $this->database->select('job_hunter_pdf_history', 'ph')
+    $latestPdf = $this->database->select('jobhunter_pdf_history', 'ph')
       ->fields('ph', ['filepath', 'created'])
       ->condition('uid', $userId)
       ->condition('job_id', $pdfRecord['job_id'])
@@ -275,7 +275,7 @@ class ResumeController extends ControllerBase {
       ->fetchAssoc();
 
     if ($latestPdf) {
-      $this->database->update('job_hunter_tailored_resumes')
+      $this->database->update('jobhunter_tailored_resumes')
         ->fields([
           'pdf_path' => $latestPdf['filepath'],
           'pdf_generated' => $latestPdf['created'],
@@ -285,7 +285,7 @@ class ResumeController extends ControllerBase {
         ->execute();
     } else {
       // No more PDFs, clear the path.
-      $this->database->update('job_hunter_tailored_resumes')
+      $this->database->update('jobhunter_tailored_resumes')
         ->fields([
           'pdf_path' => NULL,
           'pdf_generated' => 0,
@@ -315,7 +315,7 @@ class ResumeController extends ControllerBase {
     $userId = $this->currentUser()->id();
 
     // First try to get tailored resume for this job.
-    $tailoredResume = $this->database->select('job_hunter_tailored_resumes', 'tr')
+    $tailoredResume = $this->database->select('jobhunter_tailored_resumes', 'tr')
       ->fields('tr', ['tailored_resume_json'])
       ->condition('job_id', $job_id)
       ->condition('uid', $userId)
@@ -337,7 +337,7 @@ class ResumeController extends ControllerBase {
     }
 
     // Get job info for filename.
-    $job = $this->database->select('job_hunter_job_requirements', 'j')
+    $job = $this->database->select('jobhunter_job_requirements', 'j')
       ->fields('j', ['job_title', 'extracted_json'])
       ->condition('id', $job_id)
       ->execute()

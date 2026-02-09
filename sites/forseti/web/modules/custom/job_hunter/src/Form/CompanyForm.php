@@ -61,7 +61,7 @@ class CompanyForm extends FormBase {
     
     // Load existing company if editing
     if ($company_id) {
-      $company = $this->database->select('job_hunter_companies', 'c')
+      $company = $this->database->select('jobhunter_companies', 'c')
         ->fields('c')
         ->condition('id', $company_id)
         ->execute()
@@ -119,7 +119,7 @@ class CompanyForm extends FormBase {
 
     if ($company_id) {
       // Update existing company
-      $this->database->update('job_hunter_companies')
+      $this->database->update('jobhunter_companies')
         ->fields($fields)
         ->condition('id', $company_id)
         ->execute();
@@ -132,7 +132,7 @@ class CompanyForm extends FormBase {
       // Insert new company
       $fields['created'] = $timestamp;
       
-      $this->database->insert('job_hunter_companies')
+      $this->database->insert('jobhunter_companies')
         ->fields($fields)
         ->execute();
       

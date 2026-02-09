@@ -221,7 +221,7 @@ Benefits:
     
     if (!empty($company_name)) {
       // Check if company exists
-      $existing = $this->database->select('job_hunter_companies', 'c')
+      $existing = $this->database->select('jobhunter_companies', 'c')
         ->fields('c', ['id'])
         ->condition('name', $company_name)
         ->execute()
@@ -232,7 +232,7 @@ Benefits:
       }
       else {
         // Create new company
-        $company_id = $this->database->insert('job_hunter_companies')
+        $company_id = $this->database->insert('jobhunter_companies')
           ->fields([
             'name' => $company_name,
             'active' => 1,
@@ -274,7 +274,7 @@ Benefits:
     ];
 
     // Insert job posting
-    $job_id = $this->database->insert('job_hunter_job_requirements')
+    $job_id = $this->database->insert('jobhunter_job_requirements')
       ->fields($fields)
       ->execute();
 

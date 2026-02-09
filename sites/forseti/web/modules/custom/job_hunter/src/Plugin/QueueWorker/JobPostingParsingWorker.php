@@ -57,7 +57,7 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
 
     try {
       // Update status to processing
-      $connection->update('job_hunter_job_requirements')
+      $connection->update('jobhunter_job_requirements')
         ->fields(['ai_extraction_status' => 'processing'])
         ->condition('id', $job_id)
         ->execute();
@@ -125,7 +125,7 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
         $update_fields['keywords_json'] = json_encode($parsed_data['keywords_json']);
       }
 
-      $connection->update('job_hunter_job_requirements')
+      $connection->update('jobhunter_job_requirements')
         ->fields($update_fields)
         ->condition('id', $job_id)
         ->execute();
@@ -134,7 +134,7 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
       if (!empty($parsed_data['extracted_json'])) {
         $duplicates = $this->findDuplicateJobs($job_id, $parsed_data['extracted_json'], $connection);
         if (!empty($duplicates)) {
-          $connection->update('job_hunter_job_requirements')
+          $connection->update('jobhunter_job_requirements')
             ->fields(['potential_duplicates_json' => json_encode($duplicates)])
             ->condition('id', $job_id)
             ->execute();
@@ -154,7 +154,7 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
         '@error' => $e->getMessage(),
       ]);
 
-      $connection->update('job_hunter_job_requirements')
+      $connection->update('jobhunter_job_requirements')
         ->fields([
           'ai_extraction_status' => 'failed',
           'updated' => time(),
@@ -425,7 +425,7 @@ PROMPT;
     $connection = \Drupal::database();
 
     // Check if company exists
-    $existing = $connection->select('job_hunter_companies', 'c')
+    $existing = $connection->select('jobhunter_companies', 'c')
       ->fields('c', ['id'])
       ->condition('name', $company_name)
       ->execute()
@@ -437,7 +437,7 @@ PROMPT;
 
     // Create new company
     try {
-      $company_id = $connection->insert('job_hunter_companies')
+      $company_id = $connection->insert('jobhunter_companies')
         ->fields([
           'name' => $company_name,
           'description' => $extracted_data['company_description'] ?? NULL,
@@ -490,7 +490,7 @@ PROMPT;
     }
     
     // Query other jobs with extracted_json populated (already parsed)
-    $query = $connection->select('job_hunter_job_requirements', 'j')
+    $query = $connection->select('jobhunter_job_requirements', 'j')
       ->fields('j', ['id', 'job_title', 'extracted_json'])
       ->condition('id', $current_job_id, '<>')
       ->condition('extracted_json', '', '<>')

@@ -5,8 +5,12 @@ namespace Drupal\Tests\jobhunter_tester\Unit\Service;
 use Drupal\Tests\UnitTestCase;
 use Drupal\job_hunter\Service\JobSeekerService;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Database\Query\Delete;
+use Drupal\Core\Database\Query\Insert;
 use Drupal\Core\Database\Query\Select;
+use Drupal\Core\Database\Query\Update;
 use Drupal\Core\Database\StatementInterface;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Session\AccountProxyInterface;
 
 /**
@@ -48,7 +52,15 @@ class JobSeekerServiceTest extends UnitTestCase {
     
     $this->database = $this->createMock(Connection::class);
     $this->currentUser = $this->createMock(AccountProxyInterface::class);
-    
+
+    // Mock the datetime.time service for \Drupal::time()->getRequestTime()
+    // called by create() and update().
+    $time = $this->createMock(\Drupal\Component\Datetime\TimeInterface::class);
+    $time->method('getRequestTime')->willReturn(1700000000);
+    $container = new ContainerBuilder();
+    $container->set('datetime.time', $time);
+    \Drupal::setContainer($container);
+
     $this->jobSeekerService = new JobSeekerService($this->database, $this->currentUser);
   }
 
@@ -189,18 +201,18 @@ class JobSeekerServiceTest extends UnitTestCase {
       'experience_years' => 5,
     ];
 
+    $insertQuery = $this->createMock(Insert::class);
+    $insertQuery->expects($this->once())
+      ->method('fields')
+      ->willReturnSelf();
+    $insertQuery->expects($this->once())
+      ->method('execute')
+      ->willReturn(1);
+
     $this->database->expects($this->once())
       ->method('insert')
       ->with('jobhunter_job_seeker')
-      ->willReturnSelf();
-    
-    $this->database->expects($this->once())
-      ->method('fields')
-      ->willReturnSelf();
-    
-    $this->database->expects($this->once())
-      ->method('execute')
-      ->willReturn(1);
+      ->willReturn($insertQuery);
 
     $result = $this->jobSeekerService->create($values);
     
@@ -217,21 +229,21 @@ class JobSeekerServiceTest extends UnitTestCase {
       'uid' => 42,
     ];
 
-    $this->database->expects($this->once())
-      ->method('insert')
-      ->willReturnSelf();
-    
-    $this->database->expects($this->once())
+    $insertQuery = $this->createMock(Insert::class);
+    $insertQuery->expects($this->once())
       ->method('fields')
       ->with($this->callback(function($fields) {
         // Verify default timestamps are set
-        return isset($fields['created']) && isset($fields['updated']);
+        return isset($fields['created']) && isset($fields['changed']);
       }))
       ->willReturnSelf();
-    
-    $this->database->expects($this->once())
+    $insertQuery->expects($this->once())
       ->method('execute')
       ->willReturn(1);
+
+    $this->database->expects($this->once())
+      ->method('insert')
+      ->willReturn($insertQuery);
 
     $result = $this->jobSeekerService->create($minimal_values);
     
@@ -250,27 +262,26 @@ class JobSeekerServiceTest extends UnitTestCase {
       'skills' => 'PHP, Drupal, React',
     ];
 
-    $this->database->expects($this->once())
-      ->method('update')
-      ->with('jobhunter_job_seeker')
-      ->willReturnSelf();
-    
-    $this->database->expects($this->once())
+    $updateQuery = $this->createMock(Update::class);
+    $updateQuery->expects($this->once())
       ->method('fields')
       ->with($this->callback(function($fields) {
         // Verify updated timestamp is set
-        return isset($fields['updated']);
+        return isset($fields['changed']);
       }))
       ->willReturnSelf();
-    
-    $this->database->expects($this->once())
+    $updateQuery->expects($this->once())
       ->method('condition')
       ->with('id', $id)
       ->willReturnSelf();
-    
-    $this->database->expects($this->once())
+    $updateQuery->expects($this->once())
       ->method('execute')
       ->willReturn(1);
+
+    $this->database->expects($this->once())
+      ->method('update')
+      ->with('jobhunter_job_seeker')
+      ->willReturn($updateQuery);
 
     $result = $this->jobSeekerService->update($id, $values);
     
@@ -285,19 +296,19 @@ class JobSeekerServiceTest extends UnitTestCase {
   public function testDeleteProfile() {
     $id = 1;
 
-    $this->database->expects($this->once())
-      ->method('delete')
-      ->with('jobhunter_job_seeker')
-      ->willReturnSelf();
-    
-    $this->database->expects($this->once())
+    $deleteQuery = $this->createMock(Delete::class);
+    $deleteQuery->expects($this->once())
       ->method('condition')
       ->with('id', $id)
       ->willReturnSelf();
-    
-    $this->database->expects($this->once())
+    $deleteQuery->expects($this->once())
       ->method('execute')
       ->willReturn(1);
+
+    $this->database->expects($this->once())
+      ->method('delete')
+      ->with('jobhunter_job_seeker')
+      ->willReturn($deleteQuery);
 
     $result = $this->jobSeekerService->delete($id);
     
@@ -312,17 +323,17 @@ class JobSeekerServiceTest extends UnitTestCase {
   public function testDeleteNonExistentProfile() {
     $id = 9999;
 
-    $this->database->expects($this->once())
-      ->method('delete')
-      ->willReturnSelf();
-    
-    $this->database->expects($this->once())
+    $deleteQuery = $this->createMock(Delete::class);
+    $deleteQuery->expects($this->once())
       ->method('condition')
       ->willReturnSelf();
-    
-    $this->database->expects($this->once())
+    $deleteQuery->expects($this->once())
       ->method('execute')
       ->willReturn(0);
+
+    $this->database->expects($this->once())
+      ->method('delete')
+      ->willReturn($deleteQuery);
 
     $result = $this->jobSeekerService->delete($id);
     

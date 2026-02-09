@@ -61,7 +61,7 @@ class JobRequirementForm extends FormBase {
     
     // Load existing job if editing
     if ($job_id) {
-      $job = $this->database->select('job_hunter_job_requirements', 'j')
+      $job = $this->database->select('jobhunter_job_requirements', 'j')
         ->fields('j')
         ->condition('id', $job_id)
         ->execute()
@@ -269,14 +269,14 @@ class JobRequirementForm extends FormBase {
 
     if ($job_id) {
       // Update existing job
-      $this->database->update('job_hunter_job_requirements')
+      $this->database->update('jobhunter_job_requirements')
         ->fields($fields)
         ->condition('id', $job_id)
         ->execute();
       
       // Queue for AI parsing if raw text exists and status is pending or no extracted data
       $raw_text = $form_state->getValue('raw_posting_text');
-      $current_status = $this->database->select('job_hunter_job_requirements', 'j')
+      $current_status = $this->database->select('jobhunter_job_requirements', 'j')
         ->fields('j', ['ai_extraction_status', 'extracted_json'])
         ->condition('id', $job_id)
         ->execute()
@@ -302,7 +302,7 @@ class JobRequirementForm extends FormBase {
       $fields['status'] = 'active';
       $fields['ai_extraction_status'] = 'pending';
       
-      $new_job_id = $this->database->insert('job_hunter_job_requirements')
+      $new_job_id = $this->database->insert('jobhunter_job_requirements')
         ->fields($fields)
         ->execute();
       
@@ -331,7 +331,7 @@ class JobRequirementForm extends FormBase {
     ]);
 
     // Update status to pending
-    $this->database->update('job_hunter_job_requirements')
+    $this->database->update('jobhunter_job_requirements')
       ->fields(['ai_extraction_status' => 'pending'])
       ->condition('id', $job_id)
       ->execute();

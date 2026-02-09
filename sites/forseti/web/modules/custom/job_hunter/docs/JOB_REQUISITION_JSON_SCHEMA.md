@@ -1,6 +1,6 @@
 # Job Requisition JSON Schema
 
-This document defines the standard JSON structures for job requisitions stored in `job_hunter_job_requirements`. These structures are passed to the GenAI backend along with the user's resume (`consolidated_profile_json`) to generate tailored resumes.
+This document defines the standard JSON structures for job requisitions stored in `jobhunter_job_requirements`. These structures are passed to the GenAI backend along with the user's resume (`consolidated_profile_json`) to generate tailored resumes.
 
 **Related Schema:** See `RESUME_JSON_SCHEMA.md` for the resume/profile JSON structure.
 

@@ -1036,7 +1036,7 @@ job_posting (content type)
   - field_scraped_date
 
 -- Tailored resumes
-job_hunter_tailored_resumes
+jobhunter_tailored_resumes
   - id (primary key)
   - uid (user ID)
   - job_id (job posting node ID)

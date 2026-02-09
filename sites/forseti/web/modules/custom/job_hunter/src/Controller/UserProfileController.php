@@ -1070,7 +1070,7 @@ class UserProfileController extends ControllerBase {
    * Tailor resume for a specific job opportunity.
    *
    * @param int $job
-   *   The job requirement ID from job_hunter_job_requirements table.
+   *   The job requirement ID from jobhunter_job_requirements table.
    *
    * @return array
    *   The render array for the tailor resume page.
@@ -1082,7 +1082,7 @@ class UserProfileController extends ControllerBase {
     $user = $this->entityTypeManager->getStorage('user')->load($this->currentUser->id());
 
     // Load job from custom table
-    $job_data = $database->select('job_hunter_job_requirements', 'j')
+    $job_data = $database->select('jobhunter_job_requirements', 'j')
       ->fields('j')
       ->condition('id', $job)
       ->execute()
@@ -1098,7 +1098,7 @@ class UserProfileController extends ControllerBase {
     $keywords = $job_data->keywords_json ? json_decode($job_data->keywords_json, TRUE) : [];
 
     // Load user's tailored resume for this job (if exists)
-    $tailored_record = $database->select('job_hunter_tailored_resumes', 'tr')
+    $tailored_record = $database->select('jobhunter_tailored_resumes', 'tr')
       ->fields('tr')
       ->condition('uid', $user->id())
       ->condition('job_id', $job)
@@ -1128,7 +1128,7 @@ class UserProfileController extends ControllerBase {
       if (!$queue_item) {
         // No queue item - reset status
         $new_status = $tailored ? 'completed' : 'pending';
-        $database->update('job_hunter_tailored_resumes')
+        $database->update('jobhunter_tailored_resumes')
           ->fields(['tailoring_status' => $new_status])
           ->condition('uid', $user->id())
           ->condition('job_id', $job)
@@ -1146,7 +1146,7 @@ class UserProfileController extends ControllerBase {
     $pdf_generated = $tailored_record && !empty($tailored_record->pdf_generated) ? $tailored_record->pdf_generated : NULL;
 
     // Get PDF history for this job
-    $pdf_history = $database->select('job_hunter_pdf_history', 'ph')
+    $pdf_history = $database->select('jobhunter_pdf_history', 'ph')
       ->fields('ph')
       ->condition('uid', $user->id())
       ->condition('job_id', $job)
@@ -1225,7 +1225,7 @@ class UserProfileController extends ControllerBase {
       $database = \Drupal::database();
       
       // Load job from custom table
-      $job_data = $database->select('job_hunter_job_requirements', 'j')
+      $job_data = $database->select('jobhunter_job_requirements', 'j')
         ->fields('j')
         ->condition('id', $job_id)
         ->execute()
@@ -1251,7 +1251,7 @@ class UserProfileController extends ControllerBase {
       }
 
       // Check if already completed (skip if force regenerate)
-      $existing = $database->select('job_hunter_tailored_resumes', 'tr')
+      $existing = $database->select('jobhunter_tailored_resumes', 'tr')
         ->fields('tr')
         ->condition('uid', $user_id)
         ->condition('job_id', $job_id)
@@ -1300,7 +1300,7 @@ class UserProfileController extends ControllerBase {
       // Create/update pending record
       $now = \Drupal::time()->getRequestTime();
       if ($existing) {
-        $database->update('job_hunter_tailored_resumes')
+        $database->update('jobhunter_tailored_resumes')
           ->fields([
             'tailoring_status' => 'queued',
             'updated' => $now,
@@ -1309,7 +1309,7 @@ class UserProfileController extends ControllerBase {
           ->execute();
       }
       else {
-        $database->insert('job_hunter_tailored_resumes')
+        $database->insert('jobhunter_tailored_resumes')
           ->fields([
             'uid' => $user_id,
             'job_id' => $job_id,
@@ -1354,7 +1354,7 @@ class UserProfileController extends ControllerBase {
       $user_id = $this->currentUser->id();
       $database = \Drupal::database();
 
-      $record = $database->select('job_hunter_tailored_resumes', 'tr')
+      $record = $database->select('jobhunter_tailored_resumes', 'tr')
         ->fields('tr')
         ->condition('uid', $user_id)
         ->condition('job_id', $job_id)
@@ -1873,7 +1873,7 @@ PROMPT;
       }
 
       // Load job data
-      $job_data = $database->select('job_hunter_job_requirements', 'j')
+      $job_data = $database->select('jobhunter_job_requirements', 'j')
         ->fields('j')
         ->condition('id', $job_id)
         ->execute()

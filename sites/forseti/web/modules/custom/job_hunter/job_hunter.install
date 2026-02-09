@@ -92,12 +92,12 @@ function job_hunter_uninstall() {
 }
 
 /**
- * Create job_hunter_companies table.
+ * Create jobhunter_companies table.
  */
 function _job_hunter_create_companies_table() {
   $schema = \Drupal::database()->schema();
   
-  if ($schema->tableExists('job_hunter_companies')) {
+  if ($schema->tableExists('jobhunter_companies')) {
     return;
   }
   
@@ -120,16 +120,16 @@ function _job_hunter_create_companies_table() {
     'indexes' => ['active' => ['active'], 'name' => ['name']],
   ];
   
-  $schema->createTable('job_hunter_companies', $table_schema);
+  $schema->createTable('jobhunter_companies', $table_schema);
 }
 
 /**
- * Create job_hunter_job_requirements table.
+ * Create jobhunter_job_requirements table.
  */
 function _job_hunter_create_job_requirements_table() {
   $schema = \Drupal::database()->schema();
   
-  if ($schema->tableExists('job_hunter_job_requirements')) {
+  if ($schema->tableExists('jobhunter_job_requirements')) {
     return;
   }
   
@@ -161,7 +161,7 @@ function _job_hunter_create_job_requirements_table() {
     'indexes' => ['company_id' => ['company_id'], 'status' => ['status']],
   ];
   
-  $schema->createTable('job_hunter_job_requirements', $table_schema);
+  $schema->createTable('jobhunter_job_requirements', $table_schema);
 }
 
 /**
@@ -341,14 +341,14 @@ function job_hunter_update_9001() {
 }
 
 /**
- * Add JSON storage columns to job_hunter_job_requirements for job tailoring workflow.
+ * Add JSON storage columns to jobhunter_job_requirements for job tailoring workflow.
  */
 function job_hunter_update_9002() {
   $schema = \Drupal::database()->schema();
   $messages = [];
   
-  if (!$schema->tableExists('job_hunter_job_requirements')) {
-    return t('Table job_hunter_job_requirements does not exist.');
+  if (!$schema->tableExists('jobhunter_job_requirements')) {
+    return t('Table jobhunter_job_requirements does not exist.');
   }
   
   $new_fields = [
@@ -386,8 +386,8 @@ function job_hunter_update_9002() {
   ];
   
   foreach ($new_fields as $field_name => $spec) {
-    if (!$schema->fieldExists('job_hunter_job_requirements', $field_name)) {
-      $schema->addField('job_hunter_job_requirements', $field_name, $spec);
+    if (!$schema->fieldExists('jobhunter_job_requirements', $field_name)) {
+      $schema->addField('jobhunter_job_requirements', $field_name, $spec);
       $messages[] = $field_name;
     }
   }
@@ -396,33 +396,33 @@ function job_hunter_update_9002() {
     return t('No update needed - all JSON columns already exist.');
   }
   
-  return t('Added columns to job_hunter_job_requirements: @columns', [
+  return t('Added columns to jobhunter_job_requirements: @columns', [
     '@columns' => implode(', ', $messages),
   ]);
 }
 
 /**
- * Create job_hunter_tailored_resumes table for user-specific tailored resumes.
+ * Create jobhunter_tailored_resumes table for user-specific tailored resumes.
  */
 function job_hunter_update_9003() {
   $schema = \Drupal::database()->schema();
   
-  if ($schema->tableExists('job_hunter_tailored_resumes')) {
-    return t('Table job_hunter_tailored_resumes already exists.');
+  if ($schema->tableExists('jobhunter_tailored_resumes')) {
+    return t('Table jobhunter_tailored_resumes already exists.');
   }
   
   _job_hunter_create_tailored_resumes_table();
   
-  return t('Created job_hunter_tailored_resumes table.');
+  return t('Created jobhunter_tailored_resumes table.');
 }
 
 /**
- * Create job_hunter_tailored_resumes table.
+ * Create jobhunter_tailored_resumes table.
  */
 function _job_hunter_create_tailored_resumes_table() {
   $schema = \Drupal::database()->schema();
   
-  if ($schema->tableExists('job_hunter_tailored_resumes')) {
+  if ($schema->tableExists('jobhunter_tailored_resumes')) {
     return;
   }
   
@@ -445,42 +445,42 @@ function _job_hunter_create_tailored_resumes_table() {
     ],
   ];
   
-  $schema->createTable('job_hunter_tailored_resumes', $table_schema);
+  $schema->createTable('jobhunter_tailored_resumes', $table_schema);
 }
 
 /**
- * Add pdf_path column to job_hunter_tailored_resumes table.
+ * Add pdf_path column to jobhunter_tailored_resumes table.
  */
 function job_hunter_update_9008() {
   $schema = \Drupal::database()->schema();
   
-  if (!$schema->fieldExists('job_hunter_tailored_resumes', 'pdf_path')) {
-    $schema->addField('job_hunter_tailored_resumes', 'pdf_path', [
+  if (!$schema->fieldExists('jobhunter_tailored_resumes', 'pdf_path')) {
+    $schema->addField('jobhunter_tailored_resumes', 'pdf_path', [
       'type' => 'varchar',
       'length' => 512,
       'description' => 'Path to generated PDF file',
     ]);
   }
   
-  if (!$schema->fieldExists('job_hunter_tailored_resumes', 'pdf_generated')) {
-    $schema->addField('job_hunter_tailored_resumes', 'pdf_generated', [
+  if (!$schema->fieldExists('jobhunter_tailored_resumes', 'pdf_generated')) {
+    $schema->addField('jobhunter_tailored_resumes', 'pdf_generated', [
       'type' => 'int',
       'default' => 0,
       'description' => 'Timestamp when PDF was generated',
     ]);
   }
   
-  return t('Added pdf_path and pdf_generated columns to job_hunter_tailored_resumes.');
+  return t('Added pdf_path and pdf_generated columns to jobhunter_tailored_resumes.');
 }
 
 /**
- * Create job_hunter_pdf_history table to track all generated PDFs.
+ * Create jobhunter_pdf_history table to track all generated PDFs.
  */
 function job_hunter_update_9009() {
   $schema = \Drupal::database()->schema();
   
-  if ($schema->tableExists('job_hunter_pdf_history')) {
-    return t('Table job_hunter_pdf_history already exists.');
+  if ($schema->tableExists('jobhunter_pdf_history')) {
+    return t('Table jobhunter_pdf_history already exists.');
   }
   
   $table_schema = [
@@ -502,9 +502,9 @@ function job_hunter_update_9009() {
     ],
   ];
   
-  $schema->createTable('job_hunter_pdf_history', $table_schema);
+  $schema->createTable('jobhunter_pdf_history', $table_schema);
   
-  return t('Created job_hunter_pdf_history table.');
+  return t('Created jobhunter_pdf_history table.');
 }
 
 /**
@@ -513,21 +513,21 @@ function job_hunter_update_9009() {
 function job_hunter_update_9010() {
   $schema = \Drupal::database()->schema();
   
-  if (!$schema->tableExists('job_hunter_job_requirements')) {
-    return t('Table job_hunter_job_requirements does not exist.');
+  if (!$schema->tableExists('jobhunter_job_requirements')) {
+    return t('Table jobhunter_job_requirements does not exist.');
   }
   
-  if ($schema->fieldExists('job_hunter_job_requirements', 'potential_duplicates_json')) {
+  if ($schema->fieldExists('jobhunter_job_requirements', 'potential_duplicates_json')) {
     return t('Column potential_duplicates_json already exists.');
   }
   
-  $schema->addField('job_hunter_job_requirements', 'potential_duplicates_json', [
+  $schema->addField('jobhunter_job_requirements', 'potential_duplicates_json', [
     'type' => 'text',
     'size' => 'medium',
     'description' => 'JSON array of potential duplicate job IDs with similarity scores',
   ]);
   
-  return t('Added potential_duplicates_json column to job_hunter_job_requirements.');
+  return t('Added potential_duplicates_json column to jobhunter_job_requirements.');
 }
 
 /**
@@ -595,14 +595,14 @@ function job_hunter_update_9013() {
 }
 
 /**
- * Create job_hunter_google_jobs_sync table.
+ * Create jobhunter_google_jobs_sync table.
  * 
  * Tracks the sync status of job postings to Google for Jobs.
  */
 function _job_hunter_create_google_jobs_sync_table() {
   $schema = \Drupal::database()->schema();
   
-  if ($schema->tableExists('job_hunter_google_jobs_sync')) {
+  if ($schema->tableExists('jobhunter_google_jobs_sync')) {
     return;
   }
   
@@ -617,7 +617,7 @@ function _job_hunter_create_google_jobs_sync_table() {
       'job_id' => [
         'type' => 'int',
         'not null' => TRUE,
-        'description' => 'Reference to job_hunter_job_requirements.id',
+        'description' => 'Reference to jobhunter_job_requirements.id',
       ],
       'structured_data_json' => [
         'type' => 'text',
@@ -687,18 +687,18 @@ function _job_hunter_create_google_jobs_sync_table() {
     ],
   ];
   
-  $schema->createTable('job_hunter_google_jobs_sync', $table_schema);
+  $schema->createTable('jobhunter_google_jobs_sync', $table_schema);
 }
 
 /**
- * Create job_hunter_google_jobs_validation_log table.
+ * Create jobhunter_google_jobs_validation_log table.
  * 
  * Stores history of validation attempts and results.
  */
 function _job_hunter_create_google_jobs_validation_log_table() {
   $schema = \Drupal::database()->schema();
   
-  if ($schema->tableExists('job_hunter_google_jobs_validation_log')) {
+  if ($schema->tableExists('jobhunter_google_jobs_validation_log')) {
     return;
   }
   
@@ -713,12 +713,12 @@ function _job_hunter_create_google_jobs_validation_log_table() {
       'sync_id' => [
         'type' => 'int',
         'not null' => TRUE,
-        'description' => 'Reference to job_hunter_google_jobs_sync.id',
+        'description' => 'Reference to jobhunter_google_jobs_sync.id',
       ],
       'job_id' => [
         'type' => 'int',
         'not null' => TRUE,
-        'description' => 'Reference to job_hunter_job_requirements.id (denormalized for queries)',
+        'description' => 'Reference to jobhunter_job_requirements.id (denormalized for queries)',
       ],
       'validation_type' => [
         'type' => 'varchar',
@@ -761,5 +761,5 @@ function _job_hunter_create_google_jobs_validation_log_table() {
     ],
   ];
   
-  $schema->createTable('job_hunter_google_jobs_validation_log', $table_schema);
+  $schema->createTable('jobhunter_google_jobs_validation_log', $table_schema);
 }

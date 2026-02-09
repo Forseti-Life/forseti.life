@@ -257,14 +257,14 @@ This document provides comprehensive test cases for the Job Hunter module, a Dru
 - **Test Case ID**: MI-002
 - **Description**: Verify all database tables created correctly
 - **Test Cases**:
-  - job_hunter_companies table exists
-  - job_hunter_job_requirements table exists
+  - jobhunter_companies table exists
+  - jobhunter_job_requirements table exists
   - jobhunter_job_seeker table exists
   - jobhunter_job_history table exists
   - jobhunter_education_history table exists
   - jobhunter_resume_parsed_data table exists
   - jobhunter_job_seeker_resumes table exists
-  - job_hunter_tailored_resumes table exists
+  - jobhunter_tailored_resumes table exists
   - All indexes created correctly
 - **Status**: 🔄 TODO
 

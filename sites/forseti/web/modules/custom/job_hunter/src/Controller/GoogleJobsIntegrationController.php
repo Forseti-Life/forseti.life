@@ -92,20 +92,20 @@ class GoogleJobsIntegrationController extends ControllerBase {
    */
   protected function getIntegrationStatistics() {
     // Total job postings
-    $total_jobs = $this->database->select('job_hunter_job_requirements', 'j')
+    $total_jobs = $this->database->select('jobhunter_job_requirements', 'j')
       ->countQuery()
       ->execute()
       ->fetchField();
     
     // Jobs with Google integration enabled
-    $enabled_count = $this->database->select('job_hunter_google_jobs_sync', 'g')
+    $enabled_count = $this->database->select('jobhunter_google_jobs_sync', 'g')
       ->condition('is_enabled', 1)
       ->countQuery()
       ->execute()
       ->fetchField();
     
     // Valid jobs
-    $valid_count = $this->database->select('job_hunter_google_jobs_sync', 'g')
+    $valid_count = $this->database->select('jobhunter_google_jobs_sync', 'g')
       ->condition('validation_status', 'valid')
       ->condition('is_enabled', 1)
       ->countQuery()
@@ -113,7 +113,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
       ->fetchField();
     
     // Invalid jobs
-    $invalid_count = $this->database->select('job_hunter_google_jobs_sync', 'g')
+    $invalid_count = $this->database->select('jobhunter_google_jobs_sync', 'g')
       ->condition('validation_status', 'invalid')
       ->condition('is_enabled', 1)
       ->countQuery()
@@ -121,7 +121,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
       ->fetchField();
     
     // Indexed by Google
-    $indexed_count = $this->database->select('job_hunter_google_jobs_sync', 'g')
+    $indexed_count = $this->database->select('jobhunter_google_jobs_sync', 'g')
       ->condition('google_indexing_status', 'indexed')
       ->condition('is_enabled', 1)
       ->countQuery()
@@ -130,7 +130,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
     
     // Total impressions and clicks via SQL SUM.
     $aggregate = $this->database->query(
-      'SELECT COALESCE(SUM(impressions_count), 0) AS total_impressions, COALESCE(SUM(clicks_count), 0) AS total_clicks FROM {job_hunter_google_jobs_sync}'
+      'SELECT COALESCE(SUM(impressions_count), 0) AS total_impressions, COALESCE(SUM(clicks_count), 0) AS total_clicks FROM {jobhunter_google_jobs_sync}'
     )->fetchObject();
 
     $impressions = (int) $aggregate->total_impressions;
@@ -160,9 +160,9 @@ class GoogleJobsIntegrationController extends ControllerBase {
    *   Array of job data.
    */
   protected function getRecentJobsWithSyncStatus($limit = 10) {
-    $query = $this->database->select('job_hunter_job_requirements', 'j');
-    $query->leftJoin('job_hunter_companies', 'c', 'j.company_id = c.id');
-    $query->leftJoin('job_hunter_google_jobs_sync', 'g', 'j.id = g.job_id');
+    $query = $this->database->select('jobhunter_job_requirements', 'j');
+    $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
+    $query->leftJoin('jobhunter_google_jobs_sync', 'g', 'j.id = g.job_id');
     
     $query->fields('j', ['id', 'job_title', 'created_at'])
       ->fields('c', ['company_name'])
@@ -210,7 +210,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
    */
   public function jobDetail($job_id) {
     // Get job data
-    $job = $this->database->select('job_hunter_job_requirements', 'j')
+    $job = $this->database->select('jobhunter_job_requirements', 'j')
       ->fields('j')
       ->condition('id', $job_id)
       ->execute()
@@ -222,21 +222,21 @@ class GoogleJobsIntegrationController extends ControllerBase {
     }
     
     // Get company
-    $company = $this->database->select('job_hunter_companies', 'c')
+    $company = $this->database->select('jobhunter_companies', 'c')
       ->fields('c')
       ->condition('id', $job->company_id)
       ->execute()
       ->fetchObject();
     
     // Get sync status
-    $sync = $this->database->select('job_hunter_google_jobs_sync', 'g')
+    $sync = $this->database->select('jobhunter_google_jobs_sync', 'g')
       ->fields('g')
       ->condition('job_id', $job_id)
       ->execute()
       ->fetchObject();
     
     // Get validation history
-    $validation_log = $this->database->select('job_hunter_google_jobs_validation_log', 'v')
+    $validation_log = $this->database->select('jobhunter_google_jobs_validation_log', 'v')
       ->fields('v')
       ->condition('job_id', $job_id)
       ->orderBy('created', 'DESC')
@@ -292,7 +292,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
     }
     
     // Check if sync record exists
-    $exists = $this->database->select('job_hunter_google_jobs_sync', 'g')
+    $exists = $this->database->select('jobhunter_google_jobs_sync', 'g')
       ->condition('job_id', $job_id)
       ->countQuery()
       ->execute()
@@ -300,7 +300,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
     
     if ($exists) {
       // Update
-      $this->database->update('job_hunter_google_jobs_sync')
+      $this->database->update('jobhunter_google_jobs_sync')
         ->fields([
           'is_enabled' => $enabled ? 1 : 0,
           'updated' => time(),
@@ -310,7 +310,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
     }
     else {
       // Insert
-      $this->database->insert('job_hunter_google_jobs_sync')
+      $this->database->insert('jobhunter_google_jobs_sync')
         ->fields([
           'job_id' => $job_id,
           'is_enabled' => $enabled ? 1 : 0,
@@ -348,7 +348,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
       $structured_data = $this->googleJobsService->generateJobPostingJsonLd($job_id);
       
       // Save to sync table
-      $this->database->merge('job_hunter_google_jobs_sync')
+      $this->database->merge('jobhunter_google_jobs_sync')
         ->key(['job_id' => $job_id])
         ->fields([
           'structured_data_json' => json_encode($structured_data, JSON_PRETTY_PRINT),
@@ -394,7 +394,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
       $validation_result = $this->googleJobsService->validateJobPosting($job_id);
       
       // Get sync ID
-      $sync_id = $this->database->select('job_hunter_google_jobs_sync', 'g')
+      $sync_id = $this->database->select('jobhunter_google_jobs_sync', 'g')
         ->fields('g', ['id'])
         ->condition('job_id', $job_id)
         ->execute()
@@ -402,7 +402,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
       
       if ($sync_id) {
         // Update sync record
-        $this->database->update('job_hunter_google_jobs_sync')
+        $this->database->update('jobhunter_google_jobs_sync')
           ->fields([
             'validation_status' => $validation_result['status'],
             'validation_errors' => json_encode($validation_result['errors'] ?? []),
@@ -413,7 +413,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
           ->execute();
         
         // Log validation attempt
-        $this->database->insert('job_hunter_google_jobs_validation_log')
+        $this->database->insert('jobhunter_google_jobs_validation_log')
           ->fields([
             'sync_id' => $sync_id,
             'job_id' => $job_id,

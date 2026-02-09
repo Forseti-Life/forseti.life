@@ -326,7 +326,7 @@ The resume tailoring page (`/jobhunter/tailor-resume/{job_id}`) provides a compr
 #### Status Determination Logic
 
 ```
-Page Load → Query job_hunter_tailored_resumes for (uid, job_id)
+Page Load → Query jobhunter_tailored_resumes for (uid, job_id)
          ↓
     Record exists?
          ↓
@@ -339,7 +339,7 @@ Page Load → Query job_hunter_tailored_resumes for (uid, job_id)
 The page automatically calculates which job-required skills are missing from the user's profile:
 
 **Data Sources:**
-- Job skills from `job_hunter_job_requirements.skills_required_json` (must_have, nice_to_have, tech_stack)
+- Job skills from `jobhunter_job_requirements.skills_required_json` (must_have, nice_to_have, tech_stack)
 - User skills from `jobhunter_job_seeker.consolidated_profile_json` (technical_expertise, skills, certifications)
 
 **Matching Logic:**
@@ -407,17 +407,17 @@ User clicks "Generate" → tailorResumeAjax()
 
 | Table | Purpose |
 |-------|---------|
-| `job_hunter_job_requirements` | Job posting data (extracted_json, skills_required_json) |
-| `job_hunter_companies` | Company profile data and scraping configuration |
+| `jobhunter_job_requirements` | Job posting data (extracted_json, skills_required_json) |
+| `jobhunter_companies` | Company profile data and scraping configuration |
 | `jobhunter_job_seeker` | User profile with `consolidated_profile_json` |
 | `jobhunter_job_seeker_resumes` | Uploaded resumes and extracted text state |
 | `jobhunter_resume_parsed_data` | Parsed resume JSON data |
 | `jobhunter_job_history` | Normalized work history (future use) |
 | `jobhunter_education_history` | Normalized education history (future use) |
-| `job_hunter_tailored_resumes` | Tailored results and `tailoring_status` |
-| `job_hunter_pdf_history` | Tracks generated PDF files per job |
-| `job_hunter_google_jobs_sync` | Google Jobs sync state and metrics |
-| `job_hunter_google_jobs_validation_log` | Validation history and results |
+| `jobhunter_tailored_resumes` | Tailored results and `tailoring_status` |
+| `jobhunter_pdf_history` | Tracks generated PDF files per job |
+| `jobhunter_google_jobs_sync` | Google Jobs sync state and metrics |
+| `jobhunter_google_jobs_validation_log` | Validation history and results |
 
 #### Available Actions by Status
 

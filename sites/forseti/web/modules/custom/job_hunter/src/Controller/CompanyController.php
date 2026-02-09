@@ -24,7 +24,7 @@ class CompanyController extends ControllerBase {
     $navigation_block = $plugin_block->build();
     
     // Get all companies
-    $query = $database->select('job_hunter_companies', 'c')
+    $query = $database->select('jobhunter_companies', 'c')
       ->fields('c')
       ->orderBy('name', 'ASC');
     $companies = $query->execute()->fetchAll();
@@ -42,7 +42,7 @@ class CompanyController extends ControllerBase {
     $rows = [];
     foreach ($companies as $company) {
       // Count jobs for this company
-      $job_count = $database->select('job_hunter_job_requirements', 'j')
+      $job_count = $database->select('jobhunter_job_requirements', 'j')
         ->condition('company_id', $company->id)
         ->countQuery()
         ->execute()
@@ -115,12 +115,12 @@ class CompanyController extends ControllerBase {
     $database = \Drupal::database();
     
     // Delete all jobs for this company first
-    $database->delete('job_hunter_job_requirements')
+    $database->delete('jobhunter_job_requirements')
       ->condition('company_id', $company_id)
       ->execute();
     
     // Delete the company
-    $database->delete('job_hunter_companies')
+    $database->delete('jobhunter_companies')
       ->condition('id', $company_id)
       ->execute();
     
@@ -142,12 +142,12 @@ class CompanyController extends ControllerBase {
     $navigation_block = $plugin_block->build();
     
     // Get all jobs with company names and tailoring status
-    $query = $database->select('job_hunter_job_requirements', 'j')
+    $query = $database->select('jobhunter_job_requirements', 'j')
       ->fields('j');
-    $query->leftJoin('job_hunter_companies', 'c', 'j.company_id = c.id');
+    $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
     $query->addField('c', 'name', 'company_name');
     // Join tailored resumes for current user
-    $query->leftJoin('job_hunter_tailored_resumes', 'tr', 'j.id = tr.job_id AND tr.uid = :uid', [':uid' => $current_user_id]);
+    $query->leftJoin('jobhunter_tailored_resumes', 'tr', 'j.id = tr.job_id AND tr.uid = :uid', [':uid' => $current_user_id]);
     $query->addField('tr', 'tailoring_status');
     $query->addField('tr', 'tailored_resume_json');
     $query->addField('tr', 'pdf_path');
@@ -293,7 +293,7 @@ class CompanyController extends ControllerBase {
     $database = \Drupal::database();
     
     // Delete the job
-    $database->delete('job_hunter_job_requirements')
+    $database->delete('jobhunter_job_requirements')
       ->condition('id', $job_id)
       ->execute();
     
@@ -314,7 +314,7 @@ class CompanyController extends ControllerBase {
     $navigation_block = $plugin_block->build();
     
     // Load the job
-    $job = $database->select('job_hunter_job_requirements', 'j')
+    $job = $database->select('jobhunter_job_requirements', 'j')
       ->fields('j')
       ->condition('id', $job_id)
       ->execute()

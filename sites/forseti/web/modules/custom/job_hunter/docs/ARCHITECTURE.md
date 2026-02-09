@@ -411,16 +411,16 @@ CREATE TABLE jobhunter_job_seeker (
 
 #### Additional Operational Tables (non‑exhaustive)
 
-- `job_hunter_companies` — Company data and scraping configuration
-- `job_hunter_job_requirements` — Job requirement data and extracted JSON
+- `jobhunter_companies` — Company data and scraping configuration
+- `jobhunter_job_requirements` — Job requirement data and extracted JSON
 - `jobhunter_job_seeker_resumes` — Uploaded resumes and extraction status
 - `jobhunter_resume_parsed_data` — Parsed resume JSON output
 - `jobhunter_job_history` — Normalized work history (future use)
 - `jobhunter_education_history` — Normalized education history (future use)
-- `job_hunter_tailored_resumes` — Tailoring pipeline status and results
-- `job_hunter_pdf_history` — Generated PDFs per job
-- `job_hunter_google_jobs_sync` — Google Jobs sync state and metrics
-- `job_hunter_google_jobs_validation_log` — Validation history and results
+- `jobhunter_tailored_resumes` — Tailoring pipeline status and results
+- `jobhunter_pdf_history` — Generated PDFs per job
+- `jobhunter_google_jobs_sync` — Google Jobs sync state and metrics
+- `jobhunter_google_jobs_validation_log` — Validation history and results
 
 ---
 

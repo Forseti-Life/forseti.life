@@ -435,23 +435,37 @@ class UserProfileServiceExtendedTest extends UnitTestCase {
     });
 
     // Mock get method.
-    $user->method('get')->willReturnCallback(function ($field_name) use ($field_values) {
-      $field_item_list = $this->createMock(FieldItemListInterface::class);
+    $test = $this;
+    $user->method('get')->willReturnCallback(function ($field_name) use ($field_values, $test) {
+      $field_item_list = $test->createMock(FieldItemListInterface::class);
 
       if (array_key_exists($field_name, $field_values)) {
         $field_item_list->method('isEmpty')->willReturn(FALSE);
 
+        // Use __get mock so $field_value->uri and $field_value->value work
+        // correctly when the service accesses them.
         if (in_array($field_name, ['field_portfolio_url', 'field_linkedin_url', 'field_github_url'])) {
-          $field_item_list->uri = $field_values[$field_name];
+          $uri = $field_values[$field_name];
+          $field_item_list->method('__get')->willReturnCallback(function ($prop) use ($uri) {
+            if ($prop === 'uri') {
+              return $uri;
+            }
+            return NULL;
+          });
         }
         else {
-          $field_item_list->value = $field_values[$field_name];
+          $value = $field_values[$field_name];
+          $field_item_list->method('__get')->willReturnCallback(function ($prop) use ($value) {
+            if ($prop === 'value') {
+              return $value;
+            }
+            return NULL;
+          });
         }
       }
       else {
         $field_item_list->method('isEmpty')->willReturn(TRUE);
-        $field_item_list->value = NULL;
-        $field_item_list->uri = NULL;
+        $field_item_list->method('__get')->willReturn(NULL);
       }
 
       return $field_item_list;

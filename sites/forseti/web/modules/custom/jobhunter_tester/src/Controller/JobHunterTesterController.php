@@ -166,7 +166,7 @@ class JobHunterTesterController extends ControllerBase {
     
     // Get test users
     $test_users = $this->getTestUsers();
-    
+
     // Test each route
     $results = [];
     foreach ($job_hunter_routes as $route_info) {
@@ -182,10 +182,7 @@ class JobHunterTesterController extends ControllerBase {
       }
       else {
         try {
-          // Make HTTP request with current session cookies
           $response = $this->httpClient->request('GET', $url, [
-            'cookies' => TRUE,
-            'allow_redirects' => TRUE,
             'http_errors' => FALSE,
             'timeout' => 10,
           ]);

@@ -122,8 +122,10 @@
         }
     },
     "require-dev": {
+        "behat/mink": "^1.13",
         "drupal/coder": "^8.3",
-        "phpunit/phpunit": "^12.4",
+        "phpspec/prophecy-phpunit": "^2.4",
+        "phpunit/phpunit": "^11",
         "symfony/phpunit-bridge": "^8.0"
     }
 }

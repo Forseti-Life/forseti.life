@@ -53,7 +53,7 @@ class GoogleJobsService {
    * Generate Schema.org JobPosting JSON-LD for a job.
    *
    * @param int $job_id
-   *   The job ID from job_hunter_job_requirements table.
+   *   The job ID from jobhunter_job_requirements table.
    *
    * @return array
    *   The JSON-LD structured data as an array.
@@ -63,7 +63,7 @@ class GoogleJobsService {
    */
   public function generateJobPostingJsonLd($job_id) {
     // Get job data
-    $job = $this->database->select('job_hunter_job_requirements', 'j')
+    $job = $this->database->select('jobhunter_job_requirements', 'j')
       ->fields('j')
       ->condition('id', $job_id)
       ->execute()
@@ -74,7 +74,7 @@ class GoogleJobsService {
     }
     
     // Get company data
-    $company = $this->database->select('job_hunter_companies', 'c')
+    $company = $this->database->select('jobhunter_companies', 'c')
       ->fields('c')
       ->condition('id', $job->company_id)
       ->execute()
