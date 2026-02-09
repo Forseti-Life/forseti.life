@@ -120,18 +120,45 @@ class SettingsForm extends ConfigFormBase {
       ],
     ];
 
-    $form['google_cloud_settings']['test_credentials'] = [
+    $form['google_cloud_settings']['actions'] = [
+      '#type' => 'container',
+      '#attributes' => ['style' => 'display: flex; gap: 10px; margin-top: 10px;'],
+    ];
+
+    $form['google_cloud_settings']['actions']['test_credentials'] = [
       '#type' => 'button',
       '#value' => $this->t('Test API Connection'),
       '#ajax' => [
         'callback' => '::testGoogleCloudCredentials',
         'wrapper' => 'google-cloud-test-result',
+        'progress' => ['type' => 'throbber', 'message' => $this->t('Testing...')],
+      ],
+    ];
+
+    $form['google_cloud_settings']['actions']['create_tenant'] = [
+      '#type' => 'button',
+      '#value' => $this->t('Create Tenant'),
+      '#ajax' => [
+        'callback' => '::createGoogleCloudTenant',
+        'wrapper' => 'google-cloud-test-result',
+        'progress' => ['type' => 'throbber', 'message' => $this->t('Creating...')],
+      ],
+      '#attributes' => ['class' => ['button--primary']],
+    ];
+
+    $form['google_cloud_settings']['actions']['list_tenants'] = [
+      '#type' => 'button',
+      '#value' => $this->t('List Tenants'),
+      '#ajax' => [
+        'callback' => '::listGoogleCloudTenants',
+        'wrapper' => 'google-cloud-test-result',
+        'progress' => ['type' => 'throbber', 'message' => $this->t('Loading...')],
       ],
     ];
 
     $form['google_cloud_settings']['test_result'] = [
       '#type' => 'markup',
-      '#markup' => '<div id="google-cloud-test-result"></div>',
+      '#markup' => '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #ddd; border-radius: 4px; background: #f9f9f9;"><em style="color: #666;">Click a button above to test...</em></div>',
     ];
 
     return parent::buildForm($form, $form_state);
@@ -170,6 +197,110 @@ class SettingsForm extends ConfigFormBase {
 
     // Restore old credentials
     $temp_config->set('google_cloud_credentials', $old_creds)->save();
+
+    return $form['google_cloud_settings']['test_result'];
+  }
+
+  /**
+   * AJAX callback to create Google Cloud Talent Solution tenant.
+   */
+  public function createGoogleCloudTenant(array &$form, FormStateInterface $form_state) {
+    $credentials_json = $form_state->getValue('google_cloud_credentials');
+    
+    if (empty($credentials_json)) {
+      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #d32f2f; border-radius: 4px; background: #ffebee;"><strong style="color: #d32f2f;">✗ ERROR:</strong> Enter credentials first.</div>';
+      return $form['google_cloud_settings']['test_result'];
+    }
+
+    try {
+      $credentials = json_decode($credentials_json, true);
+      if (!$credentials || !isset($credentials['project_id'])) {
+        throw new \Exception('Invalid JSON credentials format');
+      }
+
+      $client = new \Google\Client();
+      $client->setAuthConfig($credentials);
+      $client->addScope('https://www.googleapis.com/auth/cloud-platform');
+      $httpClient = $client->authorize();
+
+      $project_id = $credentials['project_id'];
+      
+      // Check if tenant already exists
+      try {
+        $list_response = $httpClient->get("https://jobs.googleapis.com/v4/projects/{$project_id}/tenants");
+        $existing_tenants = json_decode($list_response->getBody()->getContents(), true);
+        
+        if (!empty($existing_tenants['tenants'])) {
+          $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #f57c00; border-radius: 4px; background: #fff3e0;"><strong style="color: #f57c00; font-size: 16px;">⚠ ALREADY EXISTS</strong><br>Found ' . count($existing_tenants['tenants']) . ' tenant(s). Use "List Tenants" to view.</div>';
+          return $form['google_cloud_settings']['test_result'];
+        }
+      } catch (\Exception $e) {
+        // Continue with creation if listing fails
+      }
+      
+      // Create the tenant
+      $response = $httpClient->post("https://jobs.googleapis.com/v4/projects/{$project_id}/tenants", [
+        'json' => [
+          'externalId' => 'forseti-jobhunter',
+          'usageType' => 'GENERAL_PURPOSE',
+        ]
+      ]);
+
+      $tenant_data = json_decode($response->getBody()->getContents(), true);
+      $tenant_name = $tenant_data['name'] ?? 'unknown';
+      
+      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #388e3c; border-radius: 4px; background: #e8f5e9;"><strong style="color: #388e3c; font-size: 16px;">✓ CREATED!</strong><br><code>' . htmlspecialchars($tenant_name) . '</code></div>';
+    }
+    catch (\Exception $e) {
+      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #d32f2f; border-radius: 4px; background: #ffebee;"><strong style="color: #d32f2f;">✗ ERROR:</strong><br>' . htmlspecialchars($e->getMessage()) . '</div>';
+    }
+
+    return $form['google_cloud_settings']['test_result'];
+  }
+
+  /**
+   * AJAX callback to list Google Cloud Talent Solution tenants.
+   */
+  public function listGoogleCloudTenants(array &$form, FormStateInterface $form_state) {
+    $credentials_json = $form_state->getValue('google_cloud_credentials');
+    
+    if (empty($credentials_json)) {
+      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #d32f2f; border-radius: 4px; background: #ffebee;"><strong style="color: #d32f2f;">✗ ERROR:</strong> Enter credentials first.</div>';
+      return $form['google_cloud_settings']['test_result'];
+    }
+
+    try {
+      $credentials = json_decode($credentials_json, true);
+      if (!$credentials || !isset($credentials['project_id'])) {
+        throw new \Exception('Invalid JSON credentials format');
+      }
+
+      $client = new \Google\Client();
+      $client->setAuthConfig($credentials);
+      $client->addScope('https://www.googleapis.com/auth/cloud-platform');
+      $httpClient = $client->authorize();
+
+      $project_id = $credentials['project_id'];
+      $response = $httpClient->get("https://jobs.googleapis.com/v4/projects/{$project_id}/tenants");
+
+      $tenants_data = json_decode($response->getBody()->getContents(), true);
+      $tenants = $tenants_data['tenants'] ?? [];
+      
+      if (empty($tenants)) {
+        $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #f57c00; border-radius: 4px; background: #fff3e0;"><strong style="color: #f57c00; font-size: 16px;">⚠ NO TENANTS</strong><br>Click "Create Tenant" to create one.</div>';
+      } else {
+        $output = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #388e3c; border-radius: 4px; background: #e8f5e9;">';
+        $output .= '<strong style="color: #388e3c; font-size: 16px;">✓ FOUND ' . count($tenants) . ' TENANT(S)</strong><ul style="margin-top: 10px; list-style: none; padding: 0;">';
+        foreach ($tenants as $tenant) {
+          $output .= '<li style="margin: 8px 0; padding: 8px; background: white; border-radius: 4px;"><code>' . htmlspecialchars($tenant['name'] ?? 'N/A') . '</code></li>';
+        }
+        $output .= '</ul></div>';
+        $form['google_cloud_settings']['test_result']['#markup'] = $output;
+      }
+    }
+    catch (\Exception $e) {
+      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #d32f2f; border-radius: 4px; background: #ffebee;"><strong style="color: #d32f2f;">✗ ERROR:</strong><br>' . htmlspecialchars($e->getMessage()) . '</div>';
+    }
 
     return $form['google_cloud_settings']['test_result'];
   }
