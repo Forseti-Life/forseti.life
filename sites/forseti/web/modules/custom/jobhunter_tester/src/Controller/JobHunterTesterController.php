@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use GuzzleHttp\ClientInterface;
 use Drupal\Core\Url;
 use Drupal\user\Entity\User;
+use Drupal\Core\Extension\ModuleExtensionList;
 
 /**
  * Controller for testing Job Hunter routes.
@@ -45,13 +46,29 @@ class JobHunterTesterController extends ControllerBase {
   protected $accountSwitcher;
 
   /**
+   * The module extension list.
+   *
+   * @var \Drupal\Core\Extension\ModuleExtensionList
+   */
+  protected $moduleExtensionList;
+
+  /**
+   * The database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $database;
+
+  /**
    * Constructs a JobHunterTesterController object.
    */
-  public function __construct(RouteProviderInterface $route_provider, ClientInterface $http_client, RequestStack $request_stack, AccountSwitcherInterface $account_switcher) {
+  public function __construct(RouteProviderInterface $route_provider, ClientInterface $http_client, RequestStack $request_stack, AccountSwitcherInterface $account_switcher, ModuleExtensionList $module_extension_list, $database) {
     $this->routeProvider = $route_provider;
     $this->httpClient = $http_client;
     $this->requestStack = $request_stack;
     $this->accountSwitcher = $account_switcher;
+    $this->moduleExtensionList = $module_extension_list;
+    $this->database = $database;
   }
 
   /**
@@ -62,7 +79,9 @@ class JobHunterTesterController extends ControllerBase {
       $container->get('router.route_provider'),
       $container->get('http_client'),
       $container->get('request_stack'),
-      $container->get('account_switcher')
+      $container->get('account_switcher'),
+      $container->get('extension.list.module'),
+      $container->get('database')
     );
   }
 
@@ -318,8 +337,7 @@ class JobHunterTesterController extends ControllerBase {
     ];
 
     // Find an authenticated user without special roles
-    $connection = \Drupal::database();
-    $query = $connection->select('users_field_data', 'u')
+    $query = $this->database->select('users_field_data', 'u')
       ->fields('u', ['uid', 'name'])
       ->condition('u.status', 1)
       ->condition('u.uid', 1, '>')
@@ -439,9 +457,10 @@ class JobHunterTesterController extends ControllerBase {
     ];
     
     // Navigation
+    $route_test_url = Url::fromRoute('jobhunter_tester.test_page')->toString();
     $build['navigation'] = [
       '#markup' => '<div style="background: #f0f0f0; padding: 15px; margin: 20px 0; border-radius: 5px;">' .
-        '<a href="/jobhunter_testing">← Back to Route Testing</a> | ' .
+        '<a href="' . $route_test_url . '">← Back to Route Testing</a> | ' .
         '<strong>Unit Tests Dashboard</strong>' .
         '</div>',
     ];
@@ -504,7 +523,7 @@ class JobHunterTesterController extends ControllerBase {
       ], 400);
     }
     
-    $module_path = \Drupal::service('extension.list.module')->getPath('jobhunter_tester');
+    $module_path = $this->moduleExtensionList->getPath('jobhunter_tester');
     $test_path = DRUPAL_ROOT . '/' . $module_path . '/tests/src/Unit/Service/' . basename($test_file);
     
     if (!file_exists($test_path)) {
@@ -518,7 +537,7 @@ class JobHunterTesterController extends ControllerBase {
     $output = [];
     $return_code = 0;
     
-    $command = 'cd ' . DRUPAL_ROOT . ' && phpunit --colors=never ' . escapeshellarg($test_path) . ' 2>&1';
+    $command = 'cd ' . escapeshellarg(DRUPAL_ROOT) . ' && phpunit --colors=never ' . escapeshellarg($test_path) . ' 2>&1';
     exec($command, $output, $return_code);
     
     $output_text = implode("\n", $output);

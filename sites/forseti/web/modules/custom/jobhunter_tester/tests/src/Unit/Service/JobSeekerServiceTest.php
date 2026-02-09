@@ -58,7 +58,7 @@ class JobSeekerServiceTest extends UnitTestCase {
    * Valid user ID returns correct profile data.
    */
   public function testLoadByUserIdWithValidUser() {
-    $expected_data = [
+    $expected_data = (object) [
       'id' => 1,
       'uid' => 42,
       'professional_summary' => 'Experienced developer',
@@ -68,7 +68,7 @@ class JobSeekerServiceTest extends UnitTestCase {
 
     $statement = $this->createMock(StatementInterface::class);
     $statement->expects($this->once())
-      ->method('fetchAssoc')
+      ->method('fetchObject')
       ->willReturn($expected_data);
 
     $select = $this->createMock(Select::class);
@@ -92,8 +92,8 @@ class JobSeekerServiceTest extends UnitTestCase {
     
     $this->assertNotNull($result);
     $this->assertEquals($expected_data, $result);
-    $this->assertEquals(42, $result['uid']);
-    $this->assertEquals('Experienced developer', $result['professional_summary']);
+    $this->assertEquals(42, $result->uid);
+    $this->assertEquals('Experienced developer', $result->professional_summary);
   }
 
   /**
@@ -104,7 +104,7 @@ class JobSeekerServiceTest extends UnitTestCase {
   public function testLoadByUserIdWithInvalidUser() {
     $statement = $this->createMock(StatementInterface::class);
     $statement->expects($this->once())
-      ->method('fetchAssoc')
+      ->method('fetchObject')
       ->willReturn(FALSE);
 
     $select = $this->createMock(Select::class);
@@ -124,7 +124,8 @@ class JobSeekerServiceTest extends UnitTestCase {
 
     $result = $this->jobSeekerService->loadByUserId(9999);
     
-    $this->assertNull($result);
+    // fetchObject() returns FALSE when no row found.
+    $this->assertFalse($result);
   }
 
   /**
@@ -135,8 +136,8 @@ class JobSeekerServiceTest extends UnitTestCase {
   public function testLoadByUserIdWithNonExistentProfile() {
     $statement = $this->createMock(StatementInterface::class);
     $statement->expects($this->once())
-      ->method('fetchAssoc')
-      ->willReturn(NULL);
+      ->method('fetchObject')
+      ->willReturn(FALSE);
 
     $select = $this->createMock(Select::class);
     $select->expects($this->once())
@@ -155,7 +156,8 @@ class JobSeekerServiceTest extends UnitTestCase {
 
     $result = $this->jobSeekerService->loadByUserId(100);
     
-    $this->assertNull($result);
+    // fetchObject() returns FALSE when no row found.
+    $this->assertFalse($result);
   }
 
   /**
@@ -340,9 +342,6 @@ class JobSeekerServiceTest extends UnitTestCase {
 
     $select = $this->createMock(Select::class);
     $select->expects($this->once())
-      ->method('fields')
-      ->willReturnSelf();
-    $select->expects($this->once())
       ->method('condition')
       ->willReturnSelf();
     $select->expects($this->once())
@@ -373,9 +372,6 @@ class JobSeekerServiceTest extends UnitTestCase {
       ->willReturn(0);
 
     $select = $this->createMock(Select::class);
-    $select->expects($this->once())
-      ->method('fields')
-      ->willReturnSelf();
     $select->expects($this->once())
       ->method('condition')
       ->willReturnSelf();
@@ -408,9 +404,6 @@ class JobSeekerServiceTest extends UnitTestCase {
 
     $select = $this->createMock(Select::class);
     $select->expects($this->once())
-      ->method('fields')
-      ->willReturnSelf();
-    $select->expects($this->once())
       ->method('condition')
       ->willReturnSelf();
     $select->expects($this->once())
@@ -436,7 +429,7 @@ class JobSeekerServiceTest extends UnitTestCase {
    */
   public function testGetCurrentUserProfile() {
     $current_uid = 42;
-    $expected_data = [
+    $expected_data = (object) [
       'id' => 1,
       'uid' => $current_uid,
       'professional_summary' => 'Current user profile',
@@ -448,7 +441,7 @@ class JobSeekerServiceTest extends UnitTestCase {
 
     $statement = $this->createMock(StatementInterface::class);
     $statement->expects($this->once())
-      ->method('fetchAssoc')
+      ->method('fetchObject')
       ->willReturn($expected_data);
 
     $select = $this->createMock(Select::class);
@@ -485,8 +478,8 @@ class JobSeekerServiceTest extends UnitTestCase {
 
     $statement = $this->createMock(StatementInterface::class);
     $statement->expects($this->once())
-      ->method('fetchAssoc')
-      ->willReturn(NULL);
+      ->method('fetchObject')
+      ->willReturn(FALSE);
 
     $select = $this->createMock(Select::class);
     $select->expects($this->once())
@@ -505,7 +498,8 @@ class JobSeekerServiceTest extends UnitTestCase {
 
     $result = $this->jobSeekerService->getCurrentUserProfile();
     
-    $this->assertNull($result);
+    // fetchObject() returns FALSE when no row found.
+    $this->assertFalse($result);
   }
 
 }

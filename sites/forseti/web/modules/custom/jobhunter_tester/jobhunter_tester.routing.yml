@@ -21,3 +21,5 @@ jobhunter_tester.run_tests:
   methods: [POST]
   requirements:
     _permission: 'administer site configuration'
+  options:
+    _csrf_request_header_mode: 'true'

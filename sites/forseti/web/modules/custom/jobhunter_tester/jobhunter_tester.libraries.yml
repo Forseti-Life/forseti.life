@@ -5,4 +5,5 @@ test-runner:
   dependencies:
     - core/drupal
     - core/jquery
+    - core/once
     - core/drupal.ajax

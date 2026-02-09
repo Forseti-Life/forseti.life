@@ -3,12 +3,13 @@
  * Test runner functionality for Job Hunter testing dashboard.
  */
 
-(function ($, Drupal) {
+(function ($, Drupal, once) {
   'use strict';
 
   Drupal.behaviors.jobhunterTestRunner = {
     attach: function (context, settings) {
-      $('.test-run-btn', context).once('test-runner').on('click', function(e) {
+      once('test-runner', '.test-run-btn', context).forEach(function(element) {
+        $(element).on('click', function(e) {
         e.preventDefault();
         
         var $button = $(this);
@@ -29,11 +30,13 @@
             test_file: testFile
           },
           success: function(response) {
+            var $status;
             if (response.success) {
-              $output.html('<span style="color: green; font-weight: bold;">✓ ALL TESTS PASSED</span>\n\n' + response.output);
+              $status = $('<span>').css({color: 'green', fontWeight: 'bold'}).text('✓ ALL TESTS PASSED');
             } else {
-              $output.html('<span style="color: red; font-weight: bold;">✗ TESTS FAILED (Code: ' + response.return_code + ')</span>\n\n' + response.output);
+              $status = $('<span>').css({color: 'red', fontWeight: 'bold'}).text('✗ TESTS FAILED (Code: ' + response.return_code + ')');
             }
+            $output.empty().append($status).append('\n\n').append(document.createTextNode(response.output));
             $button.prop('disabled', false).text('Run Tests');
           },
           error: function(xhr) {
@@ -41,14 +44,20 @@
             if (xhr.responseJSON && xhr.responseJSON.error) {
               errorMsg = xhr.responseJSON.error;
             }
-            $output.html('<span style="color: red; font-weight: bold;">✗ ERROR</span>\n\n' + errorMsg);
+            var $status = $('<span>').css({color: 'red', fontWeight: 'bold'}).text('✗ ERROR');
+            $output.empty().append($status).append('\n\n').append(document.createTextNode(errorMsg));
             $button.prop('disabled', false).text('Run Tests');
           }
         });
       });
+      });
       
       // Add "Run All Tests" button
-      if ($('.test-run-all-btn', context).length === 0 && $('.test-run-btn', context).length > 0) {
+      once('test-run-all', '.test-run-btn', context).forEach(function() {
+        // Only add once — check if button already exists
+        if ($('.test-run-all-btn').length > 0) {
+          return;
+        }
         var $runAllBtn = $('<button class="button button--primary test-run-all-btn" style="margin: 20px 0;">Run All Tests</button>');
         $runAllBtn.insertBefore($('#test-results'));
         
@@ -60,7 +69,8 @@
           
           function runNextTest() {
             if (currentIndex >= $testButtons.length) {
-              $('#test-output').append('\n\n<span style="color: blue; font-weight: bold;">✓ ALL TEST SUITES COMPLETED</span>');
+              var $done = $('<span>').css({color: 'blue', fontWeight: 'bold'}).text('✓ ALL TEST SUITES COMPLETED');
+              $('#test-output').append('\n\n').append($done);
               return;
             }
             
@@ -74,12 +84,12 @@
               method: 'POST',
               data: { test_file: testFile },
               success: function(response) {
-                $('#test-output').append(response.output + '\n');
+                $('#test-output').append(document.createTextNode(response.output + '\n'));
                 currentIndex++;
                 runNextTest();
               },
               error: function(xhr) {
-                $('#test-output').append('ERROR: ' + (xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error') + '\n');
+                $('#test-output').append(document.createTextNode('ERROR: ' + (xhr.responseJSON ? xhr.responseJSON.error : 'Unknown error') + '\n'));
                 currentIndex++;
                 runNextTest();
               }
@@ -90,8 +100,8 @@
           $('#test-output').text('Running all test suites...\n\n');
           runNextTest();
         });
-      }
+      });
     }
   };
 
-})(jQuery, Drupal);
+})(jQuery, Drupal, once);
