@@ -41,7 +41,8 @@
         "drupal/twig_tweak": "^3.4",
         "drupal/users_metrics": "^1.0",
         "drupal/webform": "^6.3@beta",
-        "drush/drush": "^13.6"
+        "drush/drush": "^13.6",
+        "google/auth": "^1.40"
     },
     "conflict": {
         "drupal/drupal": "*"
