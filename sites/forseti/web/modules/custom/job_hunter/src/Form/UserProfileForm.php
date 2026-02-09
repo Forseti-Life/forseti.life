@@ -1064,13 +1064,25 @@ class UserProfileForm extends FormBase {
       '#weight' => 4,
     ];
 
+    // Calculate years of experience from education history (graduation date)
+    $calculated_years = 0;
+    if ($job_seeker_profile && !empty($job_seeker_profile->id)) {
+      $calculated_years = $this->calculateYearsOfExperience($job_seeker_profile->id);
+    }
+    
+    // Use calculated value if available, otherwise fall back to stored value
+    $experience_years = $calculated_years > 0 ? $calculated_years : $this->getConsolidatedValue($job_seeker_profile, 'field_experience_years');
+
     $form['experience_education']['field_experience_years'] = [
       '#type' => 'number',
       '#title' => $this->t('Years of Professional Experience'),
-      '#description' => $this->t('Total years of relevant professional experience'),
+      '#description' => $calculated_years > 0 
+        ? $this->t('Automatically calculated from your earliest graduation date (@years years). This field is read-only.', ['@years' => $calculated_years])
+        : $this->t('Will be automatically calculated when you add education history with graduation dates.'),
       '#min' => 0,
       '#max' => 50,
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_experience_years'),
+      '#default_value' => $experience_years,
+      '#disabled' => $calculated_years > 0,
     ];
 
     $form['experience_education']['field_education_level'] = [
@@ -2727,6 +2739,52 @@ class UserProfileForm extends FormBase {
         '@error' => $e->getMessage(),
       ]));
     }
+  }
+
+  /**
+   * Calculate years of professional experience based on earliest graduation date.
+   *
+   * @param int $job_seeker_id
+   *   The job seeker profile ID.
+   *
+   * @return int
+   *   Years of experience calculated from graduation date.
+   */
+  private function calculateYearsOfExperience($job_seeker_id) {
+    if (!$job_seeker_id) {
+      return 0;
+    }
+
+    // Get earliest graduation date from education history
+    $query = $this->database->select('jobhunter_education_history', 'e')
+      ->fields('e', ['end_date'])
+      ->condition('e.job_seeker_id', $job_seeker_id)
+      ->orderBy('e.end_date', 'ASC')
+      ->range(0, 1);
+    
+    $earliest_graduation = $query->execute()->fetchField();
+
+    if (!$earliest_graduation) {
+      return 0;
+    }
+
+    // Parse the date - could be various formats like "2015", "May 2015", "2015-05", etc.
+    $graduation_year = null;
+    
+    // Try to extract year from the date string
+    if (preg_match('/\b(19|20)\d{2}\b/', $earliest_graduation, $matches)) {
+      $graduation_year = (int) $matches[0];
+    }
+
+    if (!$graduation_year) {
+      return 0;
+    }
+
+    // Calculate years since graduation
+    $current_year = (int) date('Y');
+    $years = max(0, $current_year - $graduation_year);
+    
+    return $years;
   }
 
   /**
