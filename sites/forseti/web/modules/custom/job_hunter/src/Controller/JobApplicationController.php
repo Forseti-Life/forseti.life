@@ -1561,6 +1561,16 @@ class JobApplicationController extends ControllerBase {
     
     // Search in Forseti database if selected
     if (in_array('forseti', $sources)) {
+      // First check total jobs in database
+      $total_jobs = $connection->select('jobhunter_job_requirements', 'j')
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      
+      \Drupal::logger('job_hunter')->info('📊 Total jobs in jobhunter_job_requirements table: @total', [
+        '@total' => $total_jobs,
+      ]);
+      
       $db_query = $connection->select('jobhunter_job_requirements', 'j')
         ->fields('j')
         ->orderBy('created', 'DESC')
@@ -1571,7 +1581,7 @@ class JobApplicationController extends ControllerBase {
         $or = $db_query->orConditionGroup()
           ->condition('job_title', '%' . $connection->escapeLike($query) . '%', 'LIKE')
           ->condition('job_description', '%' . $connection->escapeLike($query) . '%', 'LIKE')
-          ->condition('required_skills', '%' . $connection->escapeLike($query) . '%', 'LIKE');
+          ->condition('requirements', '%' . $connection->escapeLike($query) . '%', 'LIKE');
         $db_query->condition($or);
       }
       
@@ -1592,14 +1602,8 @@ class JobApplicationController extends ControllerBase {
         $db_query->condition('c.name', '%' . $connection->escapeLike($company_filter) . '%', 'LIKE');
       }
       
-      // Add salary filter if provided
-      if (!empty($salary_min) && is_numeric($salary_min)) {
-        $db_query->condition('salary_min', $salary_min, '>=');
-      }
-      
-      if (!empty($salary_max) && is_numeric($salary_max)) {
-        $db_query->condition('salary_max', $salary_max, '<=');
-      }
+      // Note: Forseti DB uses salary_range (varchar) not salary_min/max (numeric)
+      // Salary filtering only works for Google Cloud API results
       
       // Add remote preference filter if provided
       if (!empty($remote_preference)) {
@@ -1607,11 +1611,11 @@ class JobApplicationController extends ControllerBase {
           $or = $db_query->orConditionGroup()
             ->condition('location', '%remote%', 'LIKE')
             ->condition('location', '%Remote%', 'LIKE')
-            ->condition('is_remote', 1);
+            ->condition('remote_option', 'remote', 'LIKE');
           $db_query->condition($or);
         } elseif ($remote_preference === 'onsite') {
           $db_query->condition('location', '%remote%', 'NOT LIKE');
-          $db_query->condition('is_remote', 0);
+          $db_query->condition('remote_option', 'on-site', '=');
         }
         // For 'hybrid' or other values, don't add filters - show all
       }
@@ -1631,6 +1635,12 @@ class JobApplicationController extends ControllerBase {
       }
       
       $results = $db_query->execute()->fetchAll();
+      
+      \Drupal::logger('job_hunter')->info('📊 Forseti DB search returned @count results for query: @query, location: @location', [
+        '@count' => count($results),
+        '@query' => $query,
+        '@location' => $location,
+      ]);
       
       // Format results from database
       foreach ($results as $job) {
@@ -1653,11 +1663,11 @@ class JobApplicationController extends ControllerBase {
           'company' => $company_name,
           'location' => $job->location ?? 'Not specified',
           'employment_type' => $job->employment_type ?? 'Not specified',
-          'salary_range' => !empty($job->salary_min) ? '$' . number_format($job->salary_min) . (!empty($job->salary_max) ? ' - $' . number_format($job->salary_max) : '+') : 'Not specified',
+          'salary_range' => $job->salary_range ?? 'Not specified',
           'description' => $this->truncateText($job->job_description ?? '', 200),
           'source' => 'Forseti',
           'posted_date' => !empty($job->created) ? date('M j, Y', $job->created) : 'Unknown',
-          'url' => $job->application_url ?? '',
+          'url' => $job->job_url ?? '',
         ];
       }
     }
@@ -1671,6 +1681,18 @@ class JobApplicationController extends ControllerBase {
         if (!empty($google_credentials)) {
           /** @var \Drupal\job_hunter\Service\CloudTalentSolutionService $google_service */
           $google_service = \Drupal::service('job_hunter.cloud_talent_solution');
+          
+          // First, check if there are ANY jobs in the tenant (diagnostic)
+          try {
+            $diagnostic_results = $google_service->searchJobs(['page_size' => 1]);
+            \Drupal::logger('job_hunter')->info('🔍 Google Cloud diagnostic: Tenant has @total total jobs available', [
+              '@total' => $diagnostic_results['total_size'] ?? 0,
+            ]);
+          } catch (\Exception $e) {
+            \Drupal::logger('job_hunter')->warning('⚠️ Google Cloud diagnostic search failed: @error', [
+              '@error' => $e->getMessage(),
+            ]);
+          }
           
           // Build search parameters for Google API
           $google_params = [];
@@ -1698,6 +1720,18 @@ class JobApplicationController extends ControllerBase {
           
           $google_results = $google_service->searchJobs($google_params);
           
+          \Drupal::logger('job_hunter')->info('📊 Google Cloud API returned @count results. Total size: @total. Metadata: @metadata. Params: @params', [
+            '@count' => count($google_results['jobs'] ?? []),
+            '@total' => $google_results['total_size'] ?? 0,
+            '@metadata' => json_encode($google_results['metadata'] ?? []),
+            '@params' => json_encode($google_params),
+          ]);
+          
+          // If no results but we expected some, show why
+          if (empty($google_results['jobs']) && !empty($google_params)) {
+            \Drupal::logger('job_hunter')->notice('ℹ️ Google Cloud returned 0 results. This could mean: 1) No jobs match the filters, 2) Tenant has no jobs, 3) Location format issue');
+          }
+          
           // Convert Google results to our format
           foreach ($google_results['jobs'] as $google_job) {
             $job_data = $google_job['job'] ?? [];
@@ -1716,9 +1750,16 @@ class JobApplicationController extends ControllerBase {
           }
         }
       } catch (\Exception $e) {
-        \Drupal::logger('job_hunter')->error('Google Cloud job search failed: @error', ['@error' => $e->getMessage()]);
+        \Drupal::logger('job_hunter')->error('❌ Google Cloud job search failed: @error. Stack trace: @trace', [
+          '@error' => $e->getMessage(),
+          '@trace' => $e->getTraceAsString(),
+        ]);
       }
     }
+    
+    \Drupal::logger('job_hunter')->info('📊 Total combined results from all sources: @count (Forseti + Google Cloud)', [
+      '@count' => count($all_results),
+    ]);
     
     // TODO: Search LinkedIn Jobs API if selected and credentials available
     if (in_array('linkedin', $sources)) {
