@@ -1,0 +1,189 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/item.schema.json",
+  "title": "Item Schema",
+  "description": "PF2e-compatible item definition. Covers weapons, armor, consumables, treasure, and magic items. Supports rarity tiers, bulk, and activation actions.",
+  "type": "object",
+  "required": ["item_id", "name", "item_type", "level", "rarity"],
+  "properties": {
+    "item_id": { "type": "string", "format": "uuid" },
+    "name": { "type": "string" },
+    "item_type": {
+      "type": "string",
+      "enum": [
+        "weapon", "armor", "shield", "consumable", "potion", "scroll",
+        "wand", "talisman", "worn_item", "held_item", "material",
+        "adventuring_gear", "treasure", "relic", "artifact"
+      ]
+    },
+    "level": { "type": "integer", "minimum": 0, "maximum": 25 },
+    "rarity": {
+      "type": "string",
+      "enum": ["common", "uncommon", "rare", "unique"],
+      "default": "common"
+    },
+    "traits": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "PF2e item traits: magical, invested, two-hand, etc."
+    },
+    "description": { "type": "string" },
+    "price": {
+      "type": "object",
+      "properties": {
+        "cp": { "type": "integer", "default": 0 },
+        "sp": { "type": "integer", "default": 0 },
+        "gp": { "type": "integer", "default": 0 },
+        "pp": { "type": "integer", "default": 0 }
+      }
+    },
+    "bulk": {
+      "type": "string",
+      "description": "PF2e bulk: a number, 'L' for light, or '-' for negligible."
+    },
+    "hands": {
+      "type": "string",
+      "enum": ["0", "1", "1+", "2"],
+      "description": "Hands required to use."
+    },
+    "weapon_stats": {
+      "type": ["object", "null"],
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": ["simple", "martial", "advanced", "unarmed"]
+        },
+        "group": {
+          "type": "string",
+          "description": "Weapon group: sword, axe, bow, etc."
+        },
+        "damage": {
+          "type": "object",
+          "properties": {
+            "dice_count": { "type": "integer", "minimum": 1 },
+            "die_size": { "type": "string", "enum": ["d4", "d6", "d8", "d10", "d12"] },
+            "damage_type": { "type": "string", "enum": ["bludgeoning", "piercing", "slashing"] },
+            "bonus_damage": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "dice": { "type": "string" },
+                  "damage_type": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "range": {
+          "type": ["integer", "null"],
+          "description": "Range increment in feet. Null for melee."
+        },
+        "reload": { "type": ["integer", "null"] },
+        "weapon_traits": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Agile, backstabber, deadly d8, finesse, etc."
+        }
+      }
+    },
+    "armor_stats": {
+      "type": ["object", "null"],
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": ["unarmored", "light", "medium", "heavy"]
+        },
+        "ac_bonus": { "type": "integer" },
+        "dex_cap": { "type": ["integer", "null"] },
+        "check_penalty": { "type": "integer", "default": 0 },
+        "speed_penalty": { "type": "integer", "default": 0 },
+        "strength": { "type": ["integer", "null"], "description": "Minimum STR to ignore speed penalty." },
+        "armor_group": { "type": "string" }
+      }
+    },
+    "shield_stats": {
+      "type": ["object", "null"],
+      "properties": {
+        "ac_bonus": { "type": "integer" },
+        "hardness": { "type": "integer" },
+        "hp": { "type": "integer" },
+        "bt": { "type": "integer", "description": "Broken threshold." },
+        "speed_penalty": { "type": "integer", "default": 0 }
+      }
+    },
+    "consumable_stats": {
+      "type": ["object", "null"],
+      "properties": {
+        "consumable_type": {
+          "type": "string",
+          "enum": ["potion", "elixir", "scroll", "talisman", "bomb", "poison", "oil", "tool", "ammunition", "snare"]
+        },
+        "activate": {
+          "type": "object",
+          "properties": {
+            "actions": { "type": "string", "enum": ["free", "reaction", "1", "2", "3", "1_minute", "10_minutes"] },
+            "components": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["command", "envision", "interact", "cast_a_spell"] }
+            }
+          }
+        },
+        "effect": { "type": "string" },
+        "duration": { "type": "string" },
+        "saving_throw": {
+          "type": ["object", "null"],
+          "properties": {
+            "type": { "type": "string", "enum": ["fortitude", "reflex", "will"] },
+            "dc": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "magic_properties": {
+      "type": ["object", "null"],
+      "properties": {
+        "invested": { "type": "boolean", "default": false },
+        "activation": {
+          "type": "object",
+          "properties": {
+            "actions": { "type": "string" },
+            "components": { "type": "array", "items": { "type": "string" } },
+            "frequency": { "type": "string" },
+            "trigger": { "type": "string" },
+            "requirements": { "type": "string" }
+          }
+        },
+        "effect": { "type": "string" },
+        "runes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "type": "string", "enum": ["fundamental", "property"] },
+              "effect": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "ai_generation": {
+      "type": "object",
+      "description": "Metadata for AI-generated items.",
+      "properties": {
+        "generated_by": { "type": "string" },
+        "generation_prompt": { "type": "string" },
+        "lore_hook": { "type": "string", "description": "Why this item exists in the dungeon." },
+        "previous_owner": { "type": "string" },
+        "condition": {
+          "type": "string",
+          "enum": ["pristine", "good", "worn", "damaged", "ruined", "cursed"],
+          "default": "good"
+        },
+        "is_identified": { "type": "boolean", "default": false },
+        "identify_dc": { "type": "integer" }
+      }
+    }
+  }
+}

@@ -1,0 +1,246 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/encounter.schema.json",
+  "title": "Encounter Schema",
+  "description": "PF2e-compatible encounter and combat management. Handles initiative, rounds, XP budgets, and encounter difficulty. Supports both combat and social encounters.",
+  "type": "object",
+  "required": ["encounter_id", "encounter_type", "room_id", "status", "threat_level"],
+  "properties": {
+    "encounter_id": { "type": "string", "format": "uuid" },
+    "encounter_type": {
+      "type": "string",
+      "enum": ["combat", "social", "exploration", "puzzle", "skill_challenge", "mixed"]
+    },
+    "room_id": { "type": "string", "format": "uuid" },
+    "party_id": { "type": "string", "format": "uuid" },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "active", "paused", "victory", "defeat", "fled", "negotiated"],
+      "default": "pending"
+    },
+    "started_at": { "type": ["string", "null"], "format": "date-time" },
+    "ended_at": { "type": ["string", "null"], "format": "date-time" },
+    "threat_level": {
+      "type": "string",
+      "enum": ["trivial", "low", "moderate", "severe", "extreme"],
+      "description": "PF2e encounter threat level based on XP budget."
+    },
+    "xp_budget": {
+      "type": "object",
+      "properties": {
+        "total": { "type": "integer", "description": "Total XP value of all enemies/hazards." },
+        "party_level": { "type": "integer" },
+        "party_size": { "type": "integer" },
+        "adjustment": {
+          "type": "integer",
+          "default": 0,
+          "description": "XP adjustment for party size != 4."
+        }
+      },
+      "description": "PF2e XP budget thresholds: trivial(40), low(60), moderate(80), severe(120), extreme(160) for 4 players."
+    },
+    "combatants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["combatant_id", "name", "side", "initiative"],
+        "properties": {
+          "combatant_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "side": {
+            "type": "string",
+            "enum": ["party", "enemy", "ally", "neutral"],
+            "description": "Which side this combatant fights on."
+          },
+          "creature_id": {
+            "type": ["string", "null"],
+            "format": "uuid",
+            "description": "Ref to creature.schema if enemy/ally."
+          },
+          "character_id": {
+            "type": ["string", "null"],
+            "format": "uuid",
+            "description": "Ref to party member if PC."
+          },
+          "initiative": { "type": "number" },
+          "initiative_skill": {
+            "type": "string",
+            "enum": ["perception", "stealth", "deception", "performance", "other"],
+            "default": "perception"
+          },
+          "current_hp": { "type": "integer" },
+          "max_hp": { "type": "integer" },
+          "ac": { "type": "integer" },
+          "position": {
+            "type": "object",
+            "properties": {
+              "q": { "type": "integer" },
+              "r": { "type": "integer" }
+            }
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "value": { "type": ["integer", "null"] },
+                "source": { "type": "string" },
+                "duration_rounds": { "type": ["integer", "null"] },
+                "started_round": { "type": "integer" }
+              }
+            }
+          },
+          "actions_remaining": { "type": "integer", "default": 3 },
+          "reaction_available": { "type": "boolean", "default": true },
+          "has_acted_this_round": { "type": "boolean", "default": false },
+          "is_alive": { "type": "boolean", "default": true },
+          "is_conscious": { "type": "boolean", "default": true },
+          "dying_value": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4,
+            "default": 0,
+            "description": "PF2e dying condition value. Dying 4 = dead."
+          },
+          "wounded_value": { "type": "integer", "minimum": 0, "default": 0 }
+        }
+      }
+    },
+    "round": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "Current combat round. 0 = not started."
+    },
+    "active_combatant_index": {
+      "type": "integer",
+      "default": 0,
+      "description": "Index into the sorted combatants array for current turn."
+    },
+    "action_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "round": { "type": "integer" },
+          "actor_id": { "type": "string", "format": "uuid" },
+          "action_type": {
+            "type": "string",
+            "enum": [
+              "strike", "move", "step", "cast_spell", "raise_shield",
+              "interact", "recall_knowledge", "demoralize", "feint",
+              "grapple", "trip", "shove", "disarm", "tumble_through",
+              "hide", "sneak", "seek", "aid", "escape", "crawl",
+              "stand", "delay", "ready", "sustain_spell", "dismiss",
+              "use_item", "activate_item", "free_action", "reaction",
+              "other"
+            ]
+          },
+          "action_cost": {
+            "type": "string",
+            "enum": ["free", "reaction", "1", "2", "3"],
+            "description": "Number of actions spent."
+          },
+          "target_id": { "type": ["string", "null"], "format": "uuid" },
+          "target_hex": {
+            "type": ["object", "null"],
+            "properties": { "q": { "type": "integer" }, "r": { "type": "integer" } }
+          },
+          "roll": {
+            "type": ["object", "null"],
+            "properties": {
+              "d20": { "type": "integer" },
+              "modifier": { "type": "integer" },
+              "total": { "type": "integer" },
+              "dc": { "type": "integer" },
+              "degree_of_success": {
+                "type": "string",
+                "enum": ["critical_success", "success", "failure", "critical_failure"]
+              }
+            }
+          },
+          "damage": {
+            "type": ["object", "null"],
+            "properties": {
+              "rolls": { "type": "string", "description": "e.g., '2d6+4'" },
+              "total": { "type": "integer" },
+              "damage_type": { "type": "string" },
+              "applied": { "type": "integer", "description": "After resistances/weaknesses." }
+            }
+          },
+          "description": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "terrain_effects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "hex": {
+            "type": "object",
+            "properties": { "q": { "type": "integer" }, "r": { "type": "integer" } }
+          },
+          "effect": {
+            "type": "string",
+            "enum": [
+              "difficult_terrain", "greater_difficult_terrain",
+              "hazardous_terrain", "cover", "greater_cover",
+              "concealment", "darkness", "magical_darkness",
+              "grease", "web", "entangle", "wall_of_fire",
+              "obscuring_mist", "other"
+            ]
+          },
+          "source": { "type": "string" },
+          "duration_rounds": { "type": ["integer", "null"] },
+          "damage_per_round": { "type": ["integer", "null"] },
+          "damage_type": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "rewards": {
+      "type": "object",
+      "properties": {
+        "xp": { "type": "integer", "default": 0 },
+        "currency": {
+          "type": "object",
+          "properties": {
+            "cp": { "type": "integer", "default": 0 },
+            "sp": { "type": "integer", "default": 0 },
+            "gp": { "type": "integer", "default": 0 },
+            "pp": { "type": "integer", "default": 0 }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": { "type": "string", "format": "uuid" }
+        }
+      }
+    },
+    "ai_generation": {
+      "type": "object",
+      "properties": {
+        "generated_at": { "type": "string", "format": "date-time" },
+        "difficulty_target": { "type": "string" },
+        "narrative_hook": { "type": "string" },
+        "flavor_text": { "type": "string" },
+        "victory_text": { "type": "string" },
+        "defeat_text": { "type": "string" },
+        "special_rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "trigger": { "type": "string" },
+              "effect": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

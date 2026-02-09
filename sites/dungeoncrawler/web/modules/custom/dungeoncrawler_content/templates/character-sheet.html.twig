@@ -1,0 +1,370 @@
+{#
+ # Character Sheet — /characters/{id} page
+ # Full PF2e character sheet rendered from JSON data.
+ #}
+<div class="dc-character-sheet">
+
+  {# Navigation #}
+  <div class="dc-sheet__nav">
+    <a href="{{ back_url }}" class="dc-btn dc-btn-secondary">← Back to Characters</a>
+    <div class="dc-sheet__nav-actions">
+      <a href="{{ edit_url }}" class="dc-btn dc-btn-primary">✏️ Edit</a>
+      <a href="{{ delete_url }}" class="dc-btn dc-btn-danger">🗑️ Delete</a>
+    </div>
+  </div>
+
+  {# Character Header #}
+  <div class="dc-sheet__header">
+    <div class="dc-sheet__portrait-wrap">
+      {% if character.portrait %}
+        <img src="{{ character.portrait }}" alt="{{ character.name }}" class="dc-sheet__portrait" />
+      {% else %}
+        <div class="dc-sheet__portrait-placeholder">
+          <span>{{ character.name|first|upper }}</span>
+        </div>
+      {% endif %}
+      {% if character.status == 'dead' %}
+        <div class="dc-sheet__status-dead">☠️ FALLEN</div>
+      {% endif %}
+    </div>
+
+    <div class="dc-sheet__identity">
+      <h1 class="dc-sheet__name">{{ character.name }}</h1>
+      <div class="dc-sheet__subtitle">
+        Level {{ character.level }}
+        {% if ancestry.name %}{{ ancestry.name }}{% endif %}
+        {% if class_data.name %}{{ class_data.name }}{% endif %}
+        {% if class_data.subclass %}({{ class_data.subclass }}){% endif %}
+      </div>
+      {% if background.name %}
+        <div class="dc-sheet__background">Background: {{ background.name }}</div>
+      {% endif %}
+      {% if personality.alignment %}
+        <div class="dc-sheet__alignment">{{ personality.alignment }}</div>
+      {% endif %}
+    </div>
+
+    <div class="dc-sheet__vitals">
+      <div class="dc-sheet__vital-box dc-sheet__vital-box--hp">
+        <div class="dc-sheet__vital-label">Hit Points</div>
+        <div class="dc-sheet__vital-value">
+          <span class="dc-sheet__hp-current">{{ hp.current }}</span>
+          <span class="dc-sheet__hp-separator">/</span>
+          <span class="dc-sheet__hp-max">{{ hp.max }}</span>
+        </div>
+        {% if hp.temporary > 0 %}
+          <div class="dc-sheet__hp-temp">+{{ hp.temporary }} temp</div>
+        {% endif %}
+      </div>
+
+      <div class="dc-sheet__vital-box dc-sheet__vital-box--ac">
+        <div class="dc-sheet__vital-label">AC</div>
+        <div class="dc-sheet__vital-value">{{ ac }}</div>
+      </div>
+
+      <div class="dc-sheet__vital-box">
+        <div class="dc-sheet__vital-label">Hero Points</div>
+        <div class="dc-sheet__vital-value">{{ character.hero_points }}</div>
+      </div>
+
+      <div class="dc-sheet__vital-box">
+        <div class="dc-sheet__vital-label">XP</div>
+        <div class="dc-sheet__vital-value">{{ character.xp }}</div>
+      </div>
+    </div>
+  </div>
+
+  {# Ability Scores #}
+  <div class="dc-sheet__section">
+    <h2 class="dc-sheet__section-title">Ability Scores</h2>
+    <div class="dc-sheet__abilities">
+      {% for ability_name, ability in abilities %}
+        <div class="dc-sheet__ability">
+          <div class="dc-sheet__ability-name">{{ ability_name|slice(0, 3)|upper }}</div>
+          <div class="dc-sheet__ability-mod {% if ability.modifier >= 0 %}dc-sheet__ability-mod--positive{% else %}dc-sheet__ability-mod--negative{% endif %}">
+            {{ ability.modifier >= 0 ? '+' : '' }}{{ ability.modifier }}
+          </div>
+          <div class="dc-sheet__ability-score">{{ ability.score }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# Saving Throws & Perception #}
+  <div class="dc-sheet__row">
+    <div class="dc-sheet__section dc-sheet__section--half">
+      <h2 class="dc-sheet__section-title">Saving Throws</h2>
+      <div class="dc-sheet__saves">
+        {% for save_name, save in saves %}
+          <div class="dc-sheet__save">
+            <span class="dc-sheet__save-name">{{ save_name|capitalize }}</span>
+            <span class="dc-sheet__save-prof dc-sheet__prof--{{ save.proficiency|lower }}">{{ save.proficiency|slice(0, 1) }}</span>
+            <span class="dc-sheet__save-mod">{{ save.modifier >= 0 ? '+' : '' }}{{ save.modifier }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="dc-sheet__section dc-sheet__section--half">
+      <h2 class="dc-sheet__section-title">Perception</h2>
+      <div class="dc-sheet__perception">
+        <div class="dc-sheet__perception-mod">
+          <span class="dc-sheet__save-prof dc-sheet__prof--{{ perception.proficiency|lower }}">{{ perception.proficiency|slice(0, 1) }}</span>
+          {{ perception.modifier >= 0 ? '+' : '' }}{{ perception.modifier }}
+        </div>
+        {% if perception.senses|length > 0 %}
+          <div class="dc-sheet__senses">
+            {% for sense in perception.senses %}
+              <span class="dc-sheet__sense-tag">{{ sense }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# Ancestry & Class Info #}
+  <div class="dc-sheet__row">
+    <div class="dc-sheet__section dc-sheet__section--half">
+      <h2 class="dc-sheet__section-title">Ancestry — {{ ancestry.name }}</h2>
+      {% if ancestry.heritage %}
+        <div class="dc-sheet__detail"><strong>Heritage:</strong> {{ ancestry.heritage }}</div>
+      {% endif %}
+      <div class="dc-sheet__detail"><strong>Size:</strong> {{ ancestry.size }}</div>
+      <div class="dc-sheet__detail"><strong>Speed:</strong> {{ ancestry.speed }}ft</div>
+      {% if ancestry.languages|length > 0 %}
+        <div class="dc-sheet__detail"><strong>Languages:</strong> {{ ancestry.languages|join(', ') }}</div>
+      {% endif %}
+      {% if ancestry.traits|length > 0 %}
+        <div class="dc-sheet__tags">
+          {% for trait in ancestry.traits %}
+            <span class="dc-sheet__trait-tag">{{ trait }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% if ancestry.ancestry_feat.name %}
+        <div class="dc-sheet__feat">
+          <strong>{{ ancestry.ancestry_feat.name }}:</strong> {{ ancestry.ancestry_feat.description }}
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="dc-sheet__section dc-sheet__section--half">
+      <h2 class="dc-sheet__section-title">Class — {{ class_data.name }}</h2>
+      {% if class_data.subclass %}
+        <div class="dc-sheet__detail"><strong>Subclass:</strong> {{ class_data.subclass }}</div>
+      {% endif %}
+      <div class="dc-sheet__detail"><strong>Key Ability:</strong> {{ class_data.key_ability }}</div>
+      <div class="dc-sheet__detail"><strong>HP/Level:</strong> {{ class_data.hp_per_level }}</div>
+
+      {% if class_data.class_features|length > 0 %}
+        <div class="dc-sheet__detail"><strong>Features:</strong></div>
+        <ul class="dc-sheet__feature-list">
+          {% for feature in class_data.class_features %}
+            <li>{{ feature }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if class_data.class_feats|length > 0 %}
+        <h3 class="dc-sheet__subsection-title">Class Feats</h3>
+        {% for feat in class_data.class_feats %}
+          <div class="dc-sheet__feat">
+            <strong>{{ feat.name }} (Lvl {{ feat.level }}):</strong> {{ feat.description }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+
+  {# Skills #}
+  {% if skills|length > 0 %}
+    <div class="dc-sheet__section">
+      <h2 class="dc-sheet__section-title">Skills</h2>
+      <div class="dc-sheet__skills-grid">
+        {% for skill in skills %}
+          <div class="dc-sheet__skill">
+            <span class="dc-sheet__skill-name">{{ skill.name }}</span>
+            <span class="dc-sheet__save-prof dc-sheet__prof--{{ skill.proficiency|lower }}">{{ skill.proficiency|slice(0, 1) }}</span>
+            <span class="dc-sheet__skill-mod">{{ skill.modifier >= 0 ? '+' : '' }}{{ skill.modifier }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Attacks #}
+  {% if melee_attacks|length > 0 or ranged_attacks|length > 0 %}
+    <div class="dc-sheet__section">
+      <h2 class="dc-sheet__section-title">Attacks</h2>
+
+      {% if melee_attacks|length > 0 %}
+        <h3 class="dc-sheet__subsection-title">⚔️ Melee</h3>
+        {% for attack in melee_attacks %}
+          <div class="dc-sheet__attack">
+            <span class="dc-sheet__attack-name">{{ attack.name }}</span>
+            <span class="dc-sheet__attack-bonus">{{ attack.bonus >= 0 ? '+' : '' }}{{ attack.bonus }}</span>
+            <span class="dc-sheet__attack-damage">{{ attack.damage }} {{ attack.damage_type }}</span>
+            {% if attack.traits|length > 0 %}
+              <div class="dc-sheet__attack-traits">
+                {% for trait in attack.traits %}
+                  <span class="dc-sheet__trait-tag dc-sheet__trait-tag--small">{{ trait }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      {% if ranged_attacks|length > 0 %}
+        <h3 class="dc-sheet__subsection-title">🏹 Ranged</h3>
+        {% for attack in ranged_attacks %}
+          <div class="dc-sheet__attack">
+            <span class="dc-sheet__attack-name">{{ attack.name }}</span>
+            <span class="dc-sheet__attack-bonus">{{ attack.bonus >= 0 ? '+' : '' }}{{ attack.bonus }}</span>
+            <span class="dc-sheet__attack-damage">{{ attack.damage }} {{ attack.damage_type }}</span>
+            {% if attack.range %}
+              <span class="dc-sheet__attack-range">{{ attack.range }}</span>
+            {% endif %}
+            {% if attack.traits|length > 0 %}
+              <div class="dc-sheet__attack-traits">
+                {% for trait in attack.traits %}
+                  <span class="dc-sheet__trait-tag dc-sheet__trait-tag--small">{{ trait }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# Equipment #}
+  {% if equipment %}
+    <div class="dc-sheet__section">
+      <h2 class="dc-sheet__section-title">Equipment</h2>
+
+      {% if equipment.worn.armor %}
+        <div class="dc-sheet__detail">
+          <strong>Armor:</strong> {{ equipment.worn.armor.name }}
+          (AC +{{ equipment.worn.armor.ac_bonus }}, Dex Cap +{{ equipment.worn.armor.dex_cap }})
+        </div>
+      {% endif %}
+
+      {% if equipment.worn.other|length > 0 %}
+        <h3 class="dc-sheet__subsection-title">Worn Items</h3>
+        <ul class="dc-sheet__item-list">
+          {% for item in equipment.worn.other %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if equipment.stowed|length > 0 %}
+        <h3 class="dc-sheet__subsection-title">Stowed</h3>
+        {% for item in equipment.stowed %}
+          <div class="dc-sheet__equipment-item">
+            <strong>{{ item.name }}</strong>
+            {% if item.description %}<br><em>{{ item.description }}</em>{% endif %}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      {% if equipment.currency %}
+        <h3 class="dc-sheet__subsection-title">Currency</h3>
+        <div class="dc-sheet__currency">
+          {% if equipment.currency.gold is defined and equipment.currency.gold > 0 %}
+            <span class="dc-sheet__coin dc-sheet__coin--gold">{{ equipment.currency.gold }} gp</span>
+          {% endif %}
+          {% if equipment.currency.silver is defined and equipment.currency.silver > 0 %}
+            <span class="dc-sheet__coin dc-sheet__coin--silver">{{ equipment.currency.silver }} sp</span>
+          {% endif %}
+          {% if equipment.currency.copper is defined and equipment.currency.copper > 0 %}
+            <span class="dc-sheet__coin dc-sheet__coin--copper">{{ equipment.currency.copper }} cp</span>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {% if equipment.bulk %}
+        <div class="dc-sheet__bulk">
+          <strong>Bulk:</strong> {{ equipment.bulk.current }} / {{ equipment.bulk.encumbered }} (Max {{ equipment.bulk.max }})
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# Personality / Backstory #}
+  {% if personality %}
+    <div class="dc-sheet__section">
+      <h2 class="dc-sheet__section-title">Personality & Backstory</h2>
+
+      {% if personality.deity %}
+        <div class="dc-sheet__detail"><strong>Deity:</strong> {{ personality.deity }}</div>
+      {% endif %}
+
+      {% if personality.traits|length > 0 %}
+        <h3 class="dc-sheet__subsection-title">Traits</h3>
+        <ul class="dc-sheet__trait-list">
+          {% for trait in personality.traits %}
+            <li>{{ trait }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if personality.goals %}
+        <h3 class="dc-sheet__subsection-title">Goals</h3>
+        {% if personality.goals is iterable %}
+          <ul class="dc-sheet__goal-list">
+            {% for key, goal in personality.goals %}
+              <li><strong>{{ key|capitalize }}:</strong> {{ goal }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      {% endif %}
+
+      {% if personality.catchphrases is defined and personality.catchphrases|length > 0 %}
+        <h3 class="dc-sheet__subsection-title">Catchphrases</h3>
+        <ul class="dc-sheet__catchphrase-list">
+          {% for phrase in personality.catchphrases %}
+            <li><em>"{{ phrase }}"</em></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if personality.backstory %}
+        <h3 class="dc-sheet__subsection-title">Backstory</h3>
+        <div class="dc-sheet__backstory">{{ personality.backstory }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# NPC Data (if exists) #}
+  {% if npc_data %}
+    <div class="dc-sheet__section dc-sheet__section--npc">
+      <h2 class="dc-sheet__section-title">🤖 NPC Data</h2>
+      {% if npc_data.role %}
+        <div class="dc-sheet__detail"><strong>Role:</strong> {{ npc_data.role }}</div>
+      {% endif %}
+      {% if npc_data.disposition %}
+        <div class="dc-sheet__detail"><strong>Disposition:</strong> {{ npc_data.disposition }}</div>
+      {% endif %}
+      {% if npc_data.encounter_behavior %}
+        <div class="dc-sheet__detail"><strong>Encounter:</strong> {{ npc_data.encounter_behavior }}</div>
+      {% endif %}
+      {% if npc_data.combat_behavior %}
+        <div class="dc-sheet__detail"><strong>Combat:</strong> {{ npc_data.combat_behavior }}</div>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# Raw JSON Toggle #}
+  <div class="dc-sheet__section">
+    <h2 class="dc-sheet__section-title dc-sheet__json-toggle" data-dc-toggle="json-raw">
+      📋 Raw JSON Data <span class="dc-sheet__toggle-icon">▸</span>
+    </h2>
+    <div class="dc-sheet__json-raw" id="json-raw" style="display: none;">
+      <pre class="dc-sheet__json-pre"><code>{{ raw_json }}</code></pre>
+    </div>
+  </div>
+
+</div>

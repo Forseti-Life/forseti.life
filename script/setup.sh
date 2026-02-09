@@ -59,6 +59,11 @@ DC_SITE_NAME="Dungeon Crawler"
 DC_ADMIN_EMAIL="admin@dungeoncrawler.forseti.life"
 DC_DEV_PORT="8080"
 
+# Shared authentication configuration
+# Both sites share the same hash_salt and cookie domain for SSO
+SHARED_HASH_SALT="lsV6IOGvHJOJ04VsQ_cy9aMNbRtyhVdBlP9b-KX9Xj43rhdN3x8sf8zCyJFaPmkFgAU0ZdTCpw"
+SHARED_COOKIE_DOMAIN=".forseti.life"
+
 # Check if .env file exists and source it
 ENV_FILE="$WORKSPACE_ROOT/.env"
 if [ -f "$ENV_FILE" ]; then
@@ -546,6 +551,17 @@ GRANT ALL PRIVILEGES ON ${DC_DB_NAME}.* TO '${DB_USER}'@'127.0.0.1';
 FLUSH PRIVILEGES;
 EOF
 print_status "Dungeon Crawler database '${DC_DB_NAME}' created"
+
+# Grant localhost user same privileges (required for cross-database MySQL VIEWs)
+print_status "Ensuring localhost grants for cross-database VIEWs..."
+sudo mysql <<EOF
+CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';
+GRANT ALL PRIVILEGES ON ${DC_DB_NAME}.* TO '${DB_USER}'@'localhost';
+GRANT ALL PRIVILEGES ON amisafe_database.* TO '${DB_USER}'@'localhost';
+FLUSH PRIVILEGES;
+EOF
+print_status "Localhost grants configured for shared user tables"
 
 # ------------------------------------------------------------------------------
 # 1.8 Private Files Directory
@@ -1683,9 +1699,15 @@ if [ ! -d "web/modules/contrib/admin_toolbar" ]; then
         drupal/pathauto \
         drupal/metatag \
         drupal/bootstrap5 \
+        drupal/radix \
         --no-interaction
 else
     print_status "Dungeon Crawler modules already installed. Skipping."
+    # Ensure Radix base theme is installed even if other modules exist
+    if [ ! -d "web/themes/contrib/radix" ]; then
+        print_status "Installing Radix base theme..."
+        /usr/bin/php8.3 /usr/local/bin/composer require drupal/radix --no-interaction
+    fi
 fi
 
 # ------------------------------------------------------------------------------
@@ -1752,8 +1774,33 @@ fi
 
 if [ "$DC_DRUPAL_INSTALLED" = true ]; then
     if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "admin_toolbar"; then
-        print_status "Enabling Dungeon Crawler modules..."
+        print_status "Enabling Dungeon Crawler contrib modules..."
         /usr/bin/php8.3 vendor/drush/drush/drush.php en admin_toolbar admin_toolbar_tools pathauto metatag -y 2>/dev/null || true
+    fi
+
+    # Enable custom dungeoncrawler_content module
+    if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "dungeoncrawler_content"; then
+        if [ -f "web/modules/custom/dungeoncrawler_content/dungeoncrawler_content.info.yml" ]; then
+            print_status "Enabling Dungeon Crawler Content module..."
+            /usr/bin/php8.3 vendor/drush/drush/drush.php en dungeoncrawler_content --yes 2>/dev/null || true
+            print_status "✅ dungeoncrawler_content module enabled"
+        fi
+    fi
+
+    # Enable and set Dungeon Crawler custom theme
+    if [ -f "web/themes/custom/dungeoncrawler/dungeoncrawler.info.yml" ]; then
+        if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --type=theme --status=enabled 2>/dev/null | grep -q "dungeoncrawler"; then
+            print_status "Enabling Dungeon Crawler custom theme..."
+            /usr/bin/php8.3 vendor/drush/drush/drush.php theme:enable dungeoncrawler --yes 2>/dev/null || true
+            print_status "✅ Dungeon Crawler theme enabled"
+        fi
+        # Set as default theme
+        CURRENT_THEME=$(/usr/bin/php8.3 vendor/drush/drush/drush.php config:get system.theme default --format=string 2>/dev/null)
+        if [ "$CURRENT_THEME" != "dungeoncrawler" ]; then
+            print_status "Setting Dungeon Crawler theme as default..."
+            echo "yes" | /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.theme default dungeoncrawler 2>/dev/null || true
+            print_status "✅ Dungeon Crawler theme set as default"
+        fi
     fi
 fi
 
@@ -1766,23 +1813,167 @@ mkdir -p config/sync
 chmod 755 web/modules/custom web/themes/custom config/sync
 
 # ------------------------------------------------------------------------------
+# 6.7.1 Copy & Rebrand Forseti Theme for Dungeon Crawler
+# ------------------------------------------------------------------------------
+FORSETI_THEME_DIR="$WORKSPACE_ROOT/sites/forseti/web/themes/custom/forseti"
+DC_THEME_DIR="$DC_PROJECT_DIR/web/themes/custom/dungeoncrawler"
+
+if [ ! -f "$DC_THEME_DIR/dungeoncrawler.info.yml" ] && [ -d "$FORSETI_THEME_DIR" ]; then
+    print_status "Copying and rebranding Forseti theme for Dungeon Crawler..."
+
+    # Copy the entire Forseti theme
+    cp -r "$FORSETI_THEME_DIR" "$DC_THEME_DIR"
+
+    # Rename forseti.* files to dungeoncrawler.*
+    cd "$DC_THEME_DIR"
+    for f in forseti.*; do
+        [ -f "$f" ] && mv "$f" "$(echo $f | sed 's/forseti/dungeoncrawler/g')"
+    done
+
+    # Rename config files with forseti in the name
+    if [ -d "config/optional" ]; then
+        cd config/optional
+        for f in *forseti*; do
+            [ -f "$f" ] && mv "$f" "$(echo $f | sed 's/forseti/dungeoncrawler/g')"
+        done
+        cd "$DC_THEME_DIR"
+    fi
+
+    # Rename schema file
+    [ -f "config/schema/forseti.schema.yml" ] && mv config/schema/forseti.schema.yml config/schema/dungeoncrawler.schema.yml
+
+    # Rename template files
+    [ -f "templates/block/forseti-footer-block.html.twig" ] && mv templates/block/forseti-footer-block.html.twig templates/block/dungeoncrawler-footer-block.html.twig
+    [ -f "templates/webform/webform--contact-forseti.html.twig" ] && mv templates/webform/webform--contact-forseti.html.twig templates/webform/webform--contact-dungeoncrawler.html.twig
+
+    # Rename SCSS/CSS files
+    [ -f "src/scss/components/_forseti-cards.scss" ] && mv src/scss/components/_forseti-cards.scss src/scss/components/_dungeoncrawler-cards.scss
+    [ -f "build/css/forseti-theme.css" ] && mv build/css/forseti-theme.css build/css/dungeoncrawler-theme.css
+
+    # Bulk replace all forseti references in theme files
+    find . -type f \( -name '*.yml' -o -name '*.theme' -o -name '*.php' -o -name '*.twig' -o -name '*.json' -o -name '*.js' -o -name '*.scss' -o -name '*.css' -o -name '*.md' -o -name '*.mdx' \) \
+      ! -path './node_modules/*' ! -path './package-lock.json' \
+      -exec sed -i \
+        -e 's/forseti_navbar/dungeoncrawler_navbar/g' \
+        -e 's/forseti_cards/dungeoncrawler_cards/g' \
+        -e 's/forseti-cards/dungeoncrawler-cards/g' \
+        -e 's/forseti-footer/dungeoncrawler-footer/g' \
+        -e 's/forseti-theme/dungeoncrawler-theme/g' \
+        -e 's/forseti_branding/dungeoncrawler_branding/g' \
+        -e 's/forseti_breadcrumbs/dungeoncrawler_breadcrumbs/g' \
+        -e 's/forseti_content/dungeoncrawler_content/g' \
+        -e 's/forseti_footer/dungeoncrawler_footer/g' \
+        -e 's/forseti_local_actions/dungeoncrawler_local_actions/g' \
+        -e 's/forseti_main_menu/dungeoncrawler_main_menu/g' \
+        -e 's/forseti_messages/dungeoncrawler_messages/g' \
+        -e 's/forseti_page_title/dungeoncrawler_page_title/g' \
+        -e 's/forseti_safety_content/dungeoncrawler_safety_content/g' \
+        -e 's/contact-forseti/contact-dungeoncrawler/g' \
+        -e 's/forseti\.life/dungeoncrawler.forseti.life/g' \
+        -e 's/forseti\//dungeoncrawler\//g' \
+        -e 's/forseti\.schema/dungeoncrawler.schema/g' \
+        -e 's/forseti\.settings/dungeoncrawler.settings/g' \
+        -e 's/theme: forseti/theme: dungeoncrawler/g' \
+        -e 's/function forseti_/function dungeoncrawler_/g' \
+        -e 's/forseti_preprocess/dungeoncrawler_preprocess/g' \
+        -e "s/Forseti Safety Community Platform/Dungeon Crawler RPG Platform/g" \
+        -e "s/Forseti Core/Dungeon Crawler Core/g" \
+        {} \;
+
+    # Final pass: replace remaining generic Forseti/forseti in theme definition files
+    find . -type f \( -name '*.yml' -o -name '*.theme' -o -name '*.twig' \) \
+      ! -path './node_modules/*' \
+      -exec sed -i \
+        -e "s/'forseti-navbar'/'dungeoncrawler-navbar'/g" \
+        -e "s/'forseti-navbar-front'/'dungeoncrawler-navbar-front'/g" \
+        -e 's/forseti-chat-icon/dc-brand-icon/g' \
+        -e 's/forseti-icon/dc-brand-icon/g' \
+        -e 's/card-forseti/card-dungeoncrawler/g' \
+        -e 's/alt="Forseti"/alt="Dungeon Crawler"/g' \
+        {} \;
+
+    # Update info.yml name and description
+    sed -i \
+      -e "s/^name: .*/name: Dungeon Crawler/" \
+      -e "s/^description: .*/description: 'Dungeon Crawler - A browser-based RPG dungeon crawling adventure game'/" \
+      -e "s/interface translation project: .*/interface translation project: dungeoncrawler/" \
+      dungeoncrawler.info.yml
+
+    # Update package.json
+    sed -i \
+      -e 's/"name": "forseti"/"name": "dungeoncrawler"/' \
+      -e 's/Forseti custom theme/Dungeon Crawler custom theme/' \
+      package.json
+
+    cd "$DC_PROJECT_DIR"
+    print_status "✅ Dungeon Crawler theme created and rebranded from Forseti theme"
+elif [ -f "$DC_THEME_DIR/dungeoncrawler.info.yml" ]; then
+    print_status "Dungeon Crawler custom theme already exists. Skipping copy."
+else
+    print_warning "Forseti theme not found at $FORSETI_THEME_DIR. Skipping theme copy."
+fi
+
+# ------------------------------------------------------------------------------
 # 6.8 Settings Configuration
 # ------------------------------------------------------------------------------
 fix_drupal_permissions "$DC_PROJECT_DIR"
 
-if ! grep -q "Development-specific settings" web/sites/default/settings.php 2>/dev/null; then
-    print_status "Adding Dungeon Crawler development settings..."
-    cat >> web/sites/default/settings.php << 'EOL'
+if ! grep -q "Shared user tables configuration" web/sites/default/settings.php 2>/dev/null; then
+    print_status "Adding Dungeon Crawler shared user tables and development settings..."
+    cat >> web/sites/default/settings.php << EOL
+/**
+ * Shared user tables configuration.
+ *
+ * Dungeon Crawler shares user authentication tables with the main Forseti site
+ * (forseti_dev database). MySQL VIEWs in dungeoncrawler_dev transparently
+ * reference forseti_dev user tables for unified authentication.
+ *
+ * Shared tables (served via VIEWs from forseti_dev):
+ *   - users, users_data, users_field_data
+ *   - user__roles, user__user_picture
+ *   - sessions
+ */
+
+/**
+ * Secondary database connection to the main Forseti site.
+ * Used for direct cross-database queries when needed.
+ */
+\$databases['forseti']['default'] = array (
+  'database' => '${DB_NAME}',
+  'username' => '${DB_USER}',
+  'password' => '${DB_PASSWORD}',
+  'prefix' => '',
+  'host' => '127.0.0.1',
+  'port' => 3306,
+  'isolation_level' => 'READ COMMITTED',
+  'driver' => 'mysql',
+  'namespace' => 'Drupal\\\\mysql\\\\Driver\\\\Database\\\\mysql',
+  'autoload' => 'core/modules/mysql/src/Driver/Database/mysql/',
+);
+
+/**
+ * Shared cookie domain for cross-site SSO.
+ * Allows session cookies to be shared between forseti.life and
+ * dungeoncrawler.forseti.life for seamless single sign-on.
+ */
+\$settings['cookie_domain'] = '${SHARED_COOKIE_DOMAIN}';
+
+/**
+ * Hash salt - must match the main Forseti site for shared session compatibility.
+ */
+\$settings['hash_salt'] = '${SHARED_HASH_SALT}';
+
+\$settings['config_sync_directory'] = '../config/sync';
+
 /**
  * Development-specific settings
  */
-if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
-  include $app_root . '/' . $site_path . '/settings.local.php';
+if (file_exists(\$app_root . '/' . \$site_path . '/settings.local.php')) {
+  include \$app_root . '/' . \$site_path . '/settings.local.php';
 }
-$settings['config_sync_directory'] = '../config/sync';
-$config['system.performance']['css']['preprocess'] = FALSE;
-$config['system.performance']['js']['preprocess'] = FALSE;
-$config['system.logging']['error_level'] = 'verbose';
+\$config['system.performance']['css']['preprocess'] = FALSE;
+\$config['system.performance']['js']['preprocess'] = FALSE;
+\$config['system.logging']['error_level'] = 'verbose';
 EOL
 fi
 
@@ -1792,6 +1983,11 @@ if [ ! -f "web/sites/default/settings.local.php" ]; then
 <?php
 /**
  * Dungeon Crawler - Local development settings
+ *
+ * Shares user/session tables with the main Forseti site (forseti_dev database)
+ * for unified authentication across both Drupal sites.
+ *
+ * MySQL VIEWs in dungeoncrawler_dev point to forseti_dev user tables.
  */
 \$databases['default']['default'] = [
   'database' => '${DC_DB_NAME}',
@@ -1803,7 +1999,28 @@ if [ ! -f "web/sites/default/settings.local.php" ]; then
   'prefix' => '',
   'collation' => 'utf8mb4_general_ci',
 ];
-\$settings['hash_salt'] = '$(openssl rand -base64 32)';
+
+\$databases['forseti']['default'] = [
+  'database' => '${DB_NAME}',
+  'username' => '${DB_USER}',
+  'password' => '${DB_PASSWORD}',
+  'host' => '127.0.0.1',
+  'port' => '3306',
+  'driver' => 'mysql',
+  'prefix' => '',
+  'collation' => 'utf8mb4_general_ci',
+];
+
+/**
+ * Hash salt must match the main Forseti site for shared sessions.
+ */
+\$settings['hash_salt'] = '${SHARED_HASH_SALT}';
+
+/**
+ * Shared cookie domain for SSO.
+ */
+\$settings['cookie_domain'] = '${SHARED_COOKIE_DOMAIN}';
+
 \$settings['container_yamls'][] = DRUPAL_ROOT . '/sites/development.services.yml';
 \$settings['skip_permissions_hardening'] = TRUE;
 \$config['system.performance']['css']['preprocess'] = FALSE;
@@ -1811,6 +2028,58 @@ if [ ! -f "web/sites/default/settings.local.php" ]; then
 EOL
     chmod 644 web/sites/default/settings.local.php
 fi
+
+# ------------------------------------------------------------------------------
+# 6.9 Shared User Tables (MySQL VIEWs)
+# ------------------------------------------------------------------------------
+# Dungeon Crawler shares user/session tables with the main Forseti site.
+# We create updatable VIEWs in dungeoncrawler_dev that transparently reference
+# the forseti_dev user tables. This is the Drupal 11 compatible approach
+# (the array-based prefix was removed in Drupal 11).
+# Uses ALGORITHM=MERGE (updatable) and SQL SECURITY INVOKER.
+print_status "Configuring shared user tables (MySQL VIEWs → forseti_dev)..."
+
+# List of user-related tables to share from forseti_dev
+SHARED_TABLES=("users" "users_data" "users_field_data" "user__roles" "user__user_picture" "sessions")
+
+for TABLE_NAME in "${SHARED_TABLES[@]}"; do
+    # Check if table exists as a real table (not a VIEW) in dungeoncrawler_dev
+    IS_BASE_TABLE=$(sudo mysql -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DC_DB_NAME}' AND table_name='${TABLE_NAME}' AND table_type='BASE TABLE';" 2>/dev/null)
+    if [ "$IS_BASE_TABLE" = "1" ]; then
+        print_status "Dropping local ${TABLE_NAME} table (will be replaced by VIEW)..."
+        sudo mysql ${DC_DB_NAME} -e "DROP TABLE IF EXISTS \`${TABLE_NAME}\`;" 2>/dev/null || true
+    fi
+
+    # Check if the source table exists in forseti_dev
+    SOURCE_EXISTS=$(sudo mysql -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}' AND table_name='${TABLE_NAME}';" 2>/dev/null)
+    if [ "$SOURCE_EXISTS" = "1" ]; then
+        sudo mysql ${DC_DB_NAME} -e "CREATE OR REPLACE ALGORITHM=MERGE SQL SECURITY INVOKER VIEW \`${TABLE_NAME}\` AS SELECT * FROM \`${DB_NAME}\`.\`${TABLE_NAME}\`;" 2>/dev/null
+        print_status "  ✅ VIEW ${TABLE_NAME} → ${DB_NAME}.${TABLE_NAME}"
+    else
+        print_warning "  ⚠️  Source table ${DB_NAME}.${TABLE_NAME} not found, skipping VIEW"
+    fi
+done
+
+# Verify VIEWs were created
+VIEW_COUNT=$(sudo mysql -N -e "SELECT COUNT(*) FROM information_schema.views WHERE table_schema='${DC_DB_NAME}';" 2>/dev/null)
+print_status "Shared user table VIEWs created: ${VIEW_COUNT}/${#SHARED_TABLES[@]}"
+
+# Ensure shortcut_set_users exists as a real table (it references users but is per-site)
+SHORTCUT_EXISTS=$(sudo mysql -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DC_DB_NAME}' AND table_name='shortcut_set_users';" 2>/dev/null)
+if [ "$SHORTCUT_EXISTS" != "1" ]; then
+    print_status "Creating shortcut_set_users table (per-site, not shared)..."
+    sudo mysql ${DC_DB_NAME} -e "
+    CREATE TABLE IF NOT EXISTS shortcut_set_users (
+        uid int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'The users.uid for this set.',
+        set_name varchar(32) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT '' COMMENT 'The shortcut_set.set_name that will be displayed for this user.',
+        PRIMARY KEY (uid),
+        KEY set_name (set_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='Maps users to shortcut sets.';
+    " 2>/dev/null
+    print_status "  ✅ shortcut_set_users table created"
+fi
+
+print_status "✅ Shared authentication configured (cookie_domain: ${SHARED_COOKIE_DOMAIN})"
 
 # Final cache rebuild
 if [ "$DC_DRUPAL_INSTALLED" = true ]; then
@@ -1834,7 +2103,9 @@ echo "✓ Drupal: 11.2.5 installed and configured"
 echo "✓ Development Tools: Coder, PHPCS, PHPUnit configured"
 echo "✓ H3 Geolocation Framework: Ready for AmISafe crime mapping"
 echo "✓ Database: $DB_NAME with AmISafe tables"
-echo "✓ Dungeon Crawler: Sub-site at port $DC_DEV_PORT"
+echo "✓ Dungeon Crawler: Sub-site at port $DC_DEV_PORT (shared auth with Forseti)"
+echo "✓ Dungeon Crawler Theme: Custom theme (Radix/Bootstrap 5 based)"
+echo "✓ Dungeon Crawler Content: Custom game content module enabled"
 echo ""
 echo "========================="
 echo "Access Information"
@@ -1847,14 +2118,15 @@ echo "Admin Password: $ADMIN_PASSWORD"
 echo "Database: $DB_NAME"
 echo "Directory: $PROJECT_DIR"
 echo ""
-echo "--- Dungeon Crawler (sub-site) ---"
+echo "--- Dungeon Crawler (sub-site, shared users) ---"
 echo "Site URL: http://localhost:$DC_DEV_PORT"
 echo "Admin Login: http://localhost:$DC_DEV_PORT/user/login"
-echo "Admin User: $ADMIN_USER"
+echo "Admin User: $ADMIN_USER (shared with Forseti)"
 echo "Admin Password: $ADMIN_PASSWORD"
-echo "Database: $DC_DB_NAME"
+echo "Database: $DC_DB_NAME (user tables via VIEWs → $DB_NAME)"
 echo "Directory: $DC_PROJECT_DIR"
 echo "Production URL: https://dungeoncrawler.forseti.life"
+echo "Shared Auth: cookie_domain=$SHARED_COOKIE_DOMAIN"
 echo ""
 echo "========================="
 echo "Available Commands"

@@ -1,0 +1,171 @@
+/**
+ * @file
+ * Styles for game content cards - Dungeon Crawler RPG theme.
+ * Dark dungeon aesthetic with torchlight accents.
+ */
+
+/* Dungeon room cards */
+.dungeon-card {
+  background: linear-gradient(135deg, #2d2d3d, #1a1a2e);
+  border-left: 4px solid #f59e0b;
+  border-radius: 0.375rem;
+  color: #e2e8f0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dungeon-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.25);
+}
+
+.dungeon-card .card-title {
+  color: #f59e0b;
+  font-family: 'Cinzel', serif;
+}
+
+.dungeon-card__image img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* Character class cards */
+.class-card {
+  background: linear-gradient(135deg, #2d2d3d, #1a1a2e);
+  border-left: 4px solid #7c3aed;
+  border-radius: 0.375rem;
+  color: #e2e8f0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.class-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.25);
+}
+
+.class-card .card-title {
+  color: #a78bfa;
+  font-family: 'Cinzel', serif;
+}
+
+.class-card__image img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-bottom: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+/* Item cards */
+.item-card {
+  background: linear-gradient(135deg, #2d2d3d, #1a1a2e);
+  border-radius: 0.375rem;
+  color: #e2e8f0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.item-card:hover {
+  transform: translateY(-2px);
+}
+
+.item-card .card-title {
+  font-family: 'Cinzel', serif;
+}
+
+.item-card--common {
+  border-left: 4px solid #9ca3af;
+}
+.item-card--common .card-title { color: #9ca3af; }
+
+.item-card--uncommon {
+  border-left: 4px solid #22c55e;
+}
+.item-card--uncommon .card-title { color: #22c55e; }
+
+.item-card--rare {
+  border-left: 4px solid #3b82f6;
+}
+.item-card--rare .card-title { color: #3b82f6; }
+
+.item-card--epic {
+  border-left: 4px solid #a855f7;
+}
+.item-card--epic .card-title { color: #a855f7; }
+
+.item-card--legendary {
+  border-left: 4px solid #f59e0b;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+}
+.item-card--legendary .card-title { color: #f59e0b; }
+
+.item-card--legendary:hover {
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.5);
+}
+
+.item-card__image img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Rarity badge colors */
+.badge.bg-purple {
+  background-color: #a855f7 !important;
+}
+
+/* Game stats summary - dungeon panel */
+.game-stats-summary {
+  background: linear-gradient(135deg, #0f0f1a, #1a1a2e);
+  color: #e2e8f0;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.game-stats-summary h4 {
+  color: #f59e0b;
+  font-family: 'Cinzel', serif;
+  margin-bottom: 1rem;
+}
+
+.game-stats-summary .stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.1);
+}
+
+.game-stats-summary .stat-label {
+  color: #94a3b8;
+}
+
+.game-stats-summary .stat-value {
+  color: #f59e0b;
+  font-weight: bold;
+}
+
+/* Dungeon error pages */
+.dungeon-error-page {
+  background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%);
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+}
+
+/* Game content dashboard */
+.game-content-dashboard {
+  background: #2d2d3d;
+  color: #e2e8f0;
+}
+
+.game-content-dashboard th {
+  background: #0f0f1a;
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.game-content-dashboard td {
+  border-color: rgba(245, 158, 11, 0.1);
+}

@@ -1,0 +1,11 @@
+dungeoncrawler_content.admin:
+  title: 'Dungeon Crawler Content'
+  description: 'Manage Dungeon Crawler game content settings.'
+  route_name: dungeoncrawler_content.settings
+  parent: system.admin_config_content
+
+dungeoncrawler_content.dashboard:
+  title: 'Game Dashboard'
+  description: 'Overview of Dungeon Crawler game content.'
+  route_name: dungeoncrawler_content.dashboard
+  parent: system.admin_content

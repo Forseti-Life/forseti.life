@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/trap.schema.json",
+  "title": "Trap Schema",
+  "description": "PF2e-compatible trap or snare placed in the dungeon. Can be attached to hexes, connections (doors), or interactables.",
+  "type": "object",
+  "required": ["trap_id", "name", "level", "type", "stealth_dc"],
+  "properties": {
+    "trap_id": { "type": "string", "format": "uuid" },
+    "name": { "type": "string" },
+    "level": { "type": "integer", "minimum": -1, "maximum": 25 },
+    "type": {
+      "type": "string",
+      "enum": ["mechanical", "magical", "haunt", "environmental"],
+      "description": "PF2e trap type."
+    },
+    "complexity": {
+      "type": "string",
+      "enum": ["simple", "complex"],
+      "description": "Simple traps act once; complex traps act each round."
+    },
+    "stealth_dc": { "type": "integer", "description": "DC to detect the trap with Perception." },
+    "disable": {
+      "type": "object",
+      "description": "How to disable this trap.",
+      "properties": {
+        "thievery_dc": { "type": ["integer", "null"] },
+        "athletics_dc": { "type": ["integer", "null"] },
+        "arcana_dc": { "type": ["integer", "null"] },
+        "religion_dc": { "type": ["integer", "null"] },
+        "crafting_dc": { "type": ["integer", "null"] },
+        "custom": { "type": "string", "description": "Non-standard disarm method." }
+      }
+    },
+    "trigger": { "type": "string", "description": "What triggers the trap." },
+    "effect": {
+      "type": "object",
+      "properties": {
+        "attack_bonus": { "type": ["integer", "null"] },
+        "damage": { "type": "string", "examples": ["2d6+8"] },
+        "damage_type": { "type": "string" },
+        "save_dc": { "type": ["integer", "null"] },
+        "save_type": { "type": "string", "enum": ["fortitude", "reflex", "will"] },
+        "conditions_applied": { "type": "array", "items": { "type": "string" } },
+        "area": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["single_hex", "burst", "emanation", "cone", "line"] },
+            "radius_ft": { "type": "integer" }
+          }
+        },
+        "description": { "type": "string" }
+      }
+    },
+    "reset": {
+      "type": "object",
+      "properties": {
+        "automatic": { "type": "boolean", "default": false },
+        "reset_time_minutes": { "type": ["integer", "null"] }
+      }
+    },
+    "hardness": { "type": "integer" },
+    "hp": { "type": "integer" },
+    "broken_threshold": { "type": "integer" },
+    "is_detected": { "type": "boolean", "default": false },
+    "is_disabled": { "type": "boolean", "default": false },
+    "is_triggered": { "type": "boolean", "default": false },
+    "hex": {
+      "type": "object",
+      "properties": {
+        "q": { "type": "integer" },
+        "r": { "type": "integer" }
+      }
+    },
+    "xp_reward": { "type": "integer" }
+  }
+}

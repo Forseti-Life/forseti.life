@@ -1,0 +1,8 @@
+services:
+  dungeoncrawler_content.game_manager:
+    class: Drupal\dungeoncrawler_content\Service\GameContentManager
+    arguments: ['@entity_type.manager', '@database']
+
+  dungeoncrawler_content.character_manager:
+    class: Drupal\dungeoncrawler_content\Service\CharacterManager
+    arguments: ['@database', '@current_user', '@uuid']

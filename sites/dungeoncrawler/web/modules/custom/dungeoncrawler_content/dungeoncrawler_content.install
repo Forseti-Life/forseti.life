@@ -1,0 +1,135 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for Dungeon Crawler Content module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function dungeoncrawler_content_schema() {
+  $schema['dc_characters'] = [
+    'description' => 'Stores PF2e character data as JSON for dungeon crawl campaigns.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'uuid' => [
+        'type' => 'varchar',
+        'length' => 36,
+        'not null' => TRUE,
+        'description' => 'UUID for the character.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Drupal user ID of the character owner.',
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Character name.',
+      ],
+      'level' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+        'description' => 'Character level (1-20).',
+      ],
+      'ancestry' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'PF2e ancestry (Human, Elf, Goblin, etc.).',
+      ],
+      'class' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'PF2e class (Fighter, Rogue, Wizard, etc.).',
+      ],
+      'character_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'Full PF2e character sheet as JSON.',
+      ],
+      'portrait' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'Path to character portrait image.',
+      ],
+      'status' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+        'description' => '1 = active, 0 = dead/retired.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when character was created.',
+      ],
+      'changed' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when character was last modified.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uuid' => ['uuid'],
+    ],
+    'indexes' => [
+      'uid' => ['uid'],
+      'name' => ['name'],
+      'status' => ['status'],
+      'ancestry' => ['ancestry'],
+      'class' => ['class'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function dungeoncrawler_content_install() {
+  \Drupal::messenger()->addMessage(t('Dungeon Crawler Content module has been installed. Character management is now available at /characters.'));
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function dungeoncrawler_content_uninstall() {
+  \Drupal::messenger()->addMessage(t('Dungeon Crawler Content module has been uninstalled.'));
+}
+
+/**
+ * Add dc_characters table for PF2e character storage.
+ */
+function dungeoncrawler_content_update_10001() {
+  $schema = dungeoncrawler_content_schema();
+  $database = \Drupal::database();
+  if (!$database->schema()->tableExists('dc_characters')) {
+    $database->schema()->createTable('dc_characters', $schema['dc_characters']);
+    return t('Created dc_characters table.');
+  }
+  return t('dc_characters table already exists.');
+}

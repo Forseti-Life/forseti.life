@@ -1,0 +1,367 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/room.schema.json",
+  "title": "Dungeon Room Schema",
+  "description": "A single room in the dungeon. Occupies one or more hexes. AI-generated on first entry and permanent thereafter. Contains terrain, lighting, creatures, items, and environmental effects compatible with PF2e rules.",
+  "type": "object",
+  "required": ["room_id", "name", "hexes", "terrain", "lighting", "state"],
+  "properties": {
+    "room_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique room identifier."
+    },
+    "name": {
+      "type": "string",
+      "description": "AI-generated room name. Becomes permanent after first exploration.",
+      "examples": ["The Echoey Room What Screams Back", "Fungal Pantry", "Eduardo's Nest"]
+    },
+    "description": {
+      "type": "string",
+      "description": "AI-generated narrative description. Read aloud text for players."
+    },
+    "gm_notes": {
+      "type": "string",
+      "description": "Hidden GM/AI notes not visible to players."
+    },
+    "hexes": {
+      "type": "array",
+      "description": "All hex coordinates this room occupies. A room can span multiple hexes.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["q", "r"],
+        "properties": {
+          "q": { "type": "integer" },
+          "r": { "type": "integer" },
+          "terrain_override": {
+            "type": "string",
+            "description": "Per-hex terrain override (e.g., a pit in one hex of a larger room)."
+          },
+          "elevation_ft": {
+            "type": "number",
+            "default": 0,
+            "description": "Relative elevation in feet. Used for PF2e elevation rules."
+          },
+          "objects": {
+            "type": "array",
+            "description": "Objects placed on this specific hex (furniture, pillars, etc.).",
+            "items": { "$ref": "#/definitions/hex_object" }
+          }
+        }
+      }
+    },
+    "room_type": {
+      "type": "string",
+      "enum": [
+        "corridor", "chamber", "cavern", "hall", "shrine", "vault",
+        "lair", "nest", "workshop", "library", "prison", "throne_room",
+        "armory", "pantry", "garden", "pool", "mine", "crypt",
+        "laboratory", "barracks", "marketplace", "arena", "boss_chamber",
+        "entrance", "exit", "stairwell", "crossroads", "dead_end",
+        "trap_room", "puzzle_room", "treasure_room", "safe_room"
+      ],
+      "description": "Functional room type. Affects AI generation parameters."
+    },
+    "size_category": {
+      "type": "string",
+      "enum": ["tiny", "small", "medium", "large", "huge", "gargantuan"],
+      "description": "Room size category. tiny=1 hex, small=2-3, medium=4-7, large=8-12, huge=13-19, gargantuan=20+."
+    },
+    "terrain": {
+      "type": "object",
+      "description": "Default terrain properties for the room.",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "stone_floor", "rough_stone", "smooth_stone", "dirt", "mud",
+            "sand", "water_shallow", "water_deep", "ice", "lava",
+            "fungal_growth", "bone", "crystal", "metal_grate",
+            "wooden_floor", "carpet", "rubble", "void"
+          ]
+        },
+        "difficult_terrain": {
+          "type": "boolean",
+          "default": false,
+          "description": "PF2e difficult terrain. Movement costs double."
+        },
+        "greater_difficult_terrain": {
+          "type": "boolean",
+          "default": false,
+          "description": "PF2e greater difficult terrain. Each 5ft costs 15ft of movement."
+        },
+        "hazardous_terrain": {
+          "type": ["object", "null"],
+          "description": "PF2e hazardous terrain. Deals damage on entry.",
+          "properties": {
+            "damage_dice": { "type": "string", "examples": ["1d6", "2d6"] },
+            "damage_type": {
+              "type": "string",
+              "enum": ["fire", "cold", "acid", "poison", "piercing", "slashing", "bludgeoning", "negative"]
+            },
+            "dc": { "type": "integer" },
+            "save_type": { "type": "string", "enum": ["fortitude", "reflex", "will"] }
+          }
+        },
+        "ceiling_height_ft": {
+          "type": "number",
+          "default": 10,
+          "description": "Ceiling height in feet. Affects flying, reach weapons, and AoE spells."
+        }
+      }
+    },
+    "lighting": {
+      "type": "object",
+      "description": "Lighting conditions per PF2e rules.",
+      "required": ["level"],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["bright_light", "dim_light", "darkness", "magical_darkness"],
+          "description": "PF2e lighting level. Affects concealment and flat-check DCs."
+        },
+        "light_sources": {
+          "type": "array",
+          "description": "Fixed light sources in the room.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["torch", "brazier", "magical_crystal", "bioluminescent", "lava_glow", "sunrod", "lantern", "magical_flame"]
+              },
+              "hex": {
+                "type": "object",
+                "properties": {
+                  "q": { "type": "integer" },
+                  "r": { "type": "integer" }
+                }
+              },
+              "bright_radius_ft": { "type": "number" },
+              "dim_radius_ft": { "type": "number" },
+              "permanent": { "type": "boolean", "default": true }
+            }
+          }
+        }
+      }
+    },
+    "environmental_effects": {
+      "type": "array",
+      "description": "Active PF2e environmental effects in this room.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["weather", "magical", "natural", "planar", "curse"]
+          },
+          "description": { "type": "string" },
+          "mechanical_effect": { "type": "string" },
+          "save_dc": { "type": "integer" },
+          "save_type": { "type": "string", "enum": ["fortitude", "reflex", "will"] }
+        }
+      }
+    },
+    "creatures": {
+      "type": "array",
+      "description": "Creatures currently in this room. References creature schema.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "creature_id": { "type": "string", "format": "uuid" },
+          "hex": {
+            "type": "object",
+            "properties": {
+              "q": { "type": "integer" },
+              "r": { "type": "integer" }
+            }
+          },
+          "spawn_type": {
+            "type": "string",
+            "enum": ["permanent", "respawning", "wandering", "summoned", "quest"],
+            "description": "permanent=dies forever, respawning=returns after time, wandering=moves between rooms."
+          },
+          "respawn_hours": {
+            "type": ["number", "null"],
+            "description": "Hours until respawn (null for permanent creatures)."
+          }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "description": "Items/loot present in this room.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item_id": { "type": "string" },
+          "hex": {
+            "type": "object",
+            "properties": {
+              "q": { "type": "integer" },
+              "r": { "type": "integer" }
+            }
+          },
+          "hidden": { "type": "boolean", "default": false },
+          "perception_dc": { "type": "integer", "description": "DC to spot if hidden." },
+          "trapped": { "type": "boolean", "default": false },
+          "collected": { "type": "boolean", "default": false }
+        }
+      }
+    },
+    "traps": {
+      "type": "array",
+      "description": "Traps in this room.",
+      "items": { "$ref": "trap.schema.json" }
+    },
+    "hazards": {
+      "type": "array",
+      "description": "PF2e hazards (complex or simple) in this room.",
+      "items": { "$ref": "hazard.schema.json" }
+    },
+    "interactables": {
+      "type": "array",
+      "description": "Interactive objects (levers, altars, puzzles, etc.).",
+      "items": {
+        "type": "object",
+        "properties": {
+          "interactable_id": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "hex": {
+            "type": "object",
+            "properties": {
+              "q": { "type": "integer" },
+              "r": { "type": "integer" }
+            }
+          },
+          "interaction_type": {
+            "type": "string",
+            "enum": ["lever", "button", "altar", "fountain", "puzzle", "inscription", "portal", "chest", "door_mechanism", "custom"]
+          },
+          "skill_check": {
+            "type": "object",
+            "properties": {
+              "skill": { "type": "string" },
+              "dc": { "type": "integer" }
+            }
+          },
+          "effect": { "type": "string" },
+          "used": { "type": "boolean", "default": false },
+          "reusable": { "type": "boolean", "default": false }
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "description": "Mutable room state. Changes as players interact with the room.",
+      "required": ["explored"],
+      "properties": {
+        "explored": {
+          "type": "boolean",
+          "default": false,
+          "description": "Has any party entered this room?"
+        },
+        "explored_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "explored_by_party": {
+          "type": ["string", "null"],
+          "description": "Party ID that first explored this room."
+        },
+        "cleared": {
+          "type": "boolean",
+          "default": false,
+          "description": "Have all hostile creatures been defeated?"
+        },
+        "looted": {
+          "type": "boolean",
+          "default": false
+        },
+        "traps_disarmed": {
+          "type": "boolean",
+          "default": false
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["hidden", "fog_of_war", "revealed", "visible"],
+          "default": "hidden",
+          "description": "Current visibility state for the exploring party."
+        },
+        "notes": {
+          "type": "array",
+          "description": "Player-added notes about this room.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "author": { "type": "string" },
+              "text": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      }
+    },
+    "ai_generation": {
+      "type": "object",
+      "description": "AI generation metadata. Used for procedural content creation.",
+      "properties": {
+        "prompt_context": {
+          "type": "string",
+          "description": "The context prompt fed to the AI when generating this room."
+        },
+        "theme_tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["fungal", "organic", "damp"], ["undead", "crypt", "dark"]]
+        },
+        "difficulty_target": {
+          "type": "string",
+          "enum": ["trivial", "low", "moderate", "severe", "extreme"],
+          "description": "PF2e encounter difficulty target for AI generation."
+        },
+        "party_level_at_generation": {
+          "type": "integer",
+          "description": "Average party level when this room was generated."
+        },
+        "generation_model": { "type": "string" },
+        "generation_timestamp": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "definitions": {
+    "hex_object": {
+      "type": "object",
+      "description": "A physical object placed on a hex (furniture, pillar, debris, etc.).",
+      "properties": {
+        "name": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "pillar", "statue", "table", "chair", "barrel", "crate",
+            "bookshelf", "altar", "fountain", "debris", "rubble",
+            "stalactite", "stalagmite", "mushroom_cluster", "web",
+            "pit", "raised_platform", "wall_segment", "portcullis"
+          ]
+        },
+        "provides_cover": {
+          "type": "string",
+          "enum": ["none", "lesser_cover", "standard_cover", "greater_cover"],
+          "default": "none",
+          "description": "PF2e cover type. lesser=+1 AC, standard=+2 AC, greater=+4 AC."
+        },
+        "blocks_movement": { "type": "boolean", "default": false },
+        "blocks_line_of_sight": { "type": "boolean", "default": false },
+        "hardness": { "type": "integer", "description": "PF2e hardness for destructible objects." },
+        "hp": { "type": "integer" },
+        "broken_threshold": { "type": "integer" },
+        "interactable": { "type": "boolean", "default": false },
+        "description": { "type": "string" }
+      }
+    }
+  }
+}

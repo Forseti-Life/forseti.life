@@ -1,0 +1,179 @@
+// Dungeon Crawler Card & Content Styles
+// =============================================================================
+// Dark dungeon-themed card layouts for content pages, lore entries, and features.
+
+// Utility classes
+.text-muted-light {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.hover-lift {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.card-dungeoncrawler {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+// Style for all card elements in dungeon content pages
+.card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  background: #16213e;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0, 212, 255, 0.15);
+  }
+  
+  &.h-100 {
+    height: 100%;
+  }
+  
+  .card-body {
+    padding: 2rem;
+    
+    h5, .h5 {
+      font-weight: 600;
+      margin-bottom: 1rem;
+      
+      a {
+        color: #00d4ff;
+        text-decoration: none;
+        transition: color 0.3s ease;
+        
+        &:hover {
+          color: #33dcff;
+          text-decoration: none;
+        }
+      }
+    }
+    
+    p {
+      color: #e8e8e8;
+      margin-bottom: 0;
+    }
+    
+    .text-muted {
+      color: #b8b8b8 !important;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+  }
+  
+  // Card header styling — dungeon stone gradient
+  .card-header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #2d2d3d 100%);
+    color: #00d4ff;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+    padding: 1.25rem 2rem;
+    
+    h3, h4, h5, .h3, .h4, .h5 {
+      color: #00d4ff;
+      margin: 0;
+    }
+  }
+}
+
+// Grid layout for cards
+.row-cols-1,
+.row-cols-md-2,
+.row-cols-lg-3 {
+  .col {
+    margin-bottom: 1.5rem;
+  }
+}
+
+// Content pages — dark card backgrounds
+.container {
+  .card {
+    background: #16213e;
+    
+    &:hover {
+      .card-body {
+        h5 a {
+          color: #33dcff;
+        }
+      }
+    }
+  }
+}
+
+// Sub-sections and breadcrumb navigation
+.sub-dimension-section {
+  margin-top: 30px;
+  padding: 20px;
+  background: #1a1a2e;
+  border-left: 4px solid #00d4ff;
+  border-radius: 4px;
+  
+  h3, .h3 {
+    color: #00d4ff;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  
+  p {
+    color: #e8e8e8;
+    margin-bottom: 0;
+    
+    strong {
+      color: #00d4ff;
+    }
+    
+    a {
+      color: #00d4ff;
+      text-decoration: none;
+      
+      &:hover {
+        color: #33dcff;
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.breadcrumb-nav {
+  margin-bottom: 20px;
+  padding: 10px 15px;
+  background: #16213e;
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  
+  a {
+    color: #00d4ff;
+    text-decoration: none;
+    
+    &:hover {
+      color: #33dcff;
+      text-decoration: underline;
+    }
+  }
+  
+  strong {
+    color: #e8e8e8;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 767.98px) {
+  .card .card-body {
+    padding: 1.5rem;
+  }
+  
+  .sub-dimension-section {
+    padding: 15px;
+  }
+}

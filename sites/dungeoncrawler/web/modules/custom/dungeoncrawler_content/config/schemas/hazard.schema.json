@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/hazard.schema.json",
+  "title": "Hazard Schema",
+  "description": "PF2e-compatible environmental hazard. Unlike traps, hazards are often ongoing and visible. Includes complex hazards that act in initiative.",
+  "type": "object",
+  "required": ["hazard_id", "name", "level", "complexity"],
+  "properties": {
+    "hazard_id": { "type": "string", "format": "uuid" },
+    "name": { "type": "string" },
+    "level": { "type": "integer", "minimum": -1, "maximum": 25 },
+    "complexity": { "type": "string", "enum": ["simple", "complex"] },
+    "traits": { "type": "array", "items": { "type": "string" } },
+    "stealth_dc": { "type": ["integer", "null"], "description": "Null if the hazard is obvious." },
+    "description": { "type": "string" },
+    "disable": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" },
+      "description": "Skill → DC mapping for disabling."
+    },
+    "ac": { "type": ["integer", "null"] },
+    "hardness": { "type": ["integer", "null"] },
+    "hp": { "type": ["integer", "null"] },
+    "saves": {
+      "type": "object",
+      "properties": {
+        "fortitude": { "type": ["integer", "null"] },
+        "reflex": { "type": ["integer", "null"] }
+      }
+    },
+    "immunities": { "type": "array", "items": { "type": "string" } },
+    "initiative_modifier": {
+      "type": ["integer", "null"],
+      "description": "For complex hazards that roll initiative."
+    },
+    "actions_per_round": {
+      "type": "integer",
+      "default": 1,
+      "description": "For complex hazards."
+    },
+    "routine": {
+      "type": "string",
+      "description": "What the complex hazard does each round."
+    },
+    "trigger": { "type": "string" },
+    "effect": { "type": "string" },
+    "reset": { "type": "string" },
+    "hexes_affected": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "q": { "type": "integer" },
+          "r": { "type": "integer" }
+        }
+      }
+    },
+    "is_active": { "type": "boolean", "default": true },
+    "xp_reward": { "type": "integer" }
+  }
+}

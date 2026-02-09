@@ -1,0 +1,73 @@
+{#
+ # Character List — /characters page
+ # Shows all characters for the logged-in user as cards.
+ #}
+<div class="dc-character-list">
+  <div class="dc-character-list__header">
+    <h1 class="dc-character-list__title">⚔️ My Characters</h1>
+    <a href="{{ create_url }}" class="dc-btn dc-btn-primary">
+      <span class="dc-btn__icon">+</span> Create New Character
+    </a>
+  </div>
+
+  {% if characters|length > 0 %}
+    <div class="dc-character-grid">
+      {% for char in characters %}
+        <a href="{{ char.url }}" class="dc-character-card dc-character-card--{{ char.status }}">
+          <div class="dc-character-card__portrait">
+            {% if char.portrait %}
+              <img src="{{ char.portrait }}" alt="{{ char.name }}" />
+            {% else %}
+              <div class="dc-character-card__portrait-placeholder">
+                <span class="dc-character-card__initial">{{ char.name|first|upper }}</span>
+              </div>
+            {% endif %}
+            {% if char.status == 'dead' %}
+              <div class="dc-character-card__status-badge dc-character-card__status-badge--dead">☠️ Dead</div>
+            {% endif %}
+          </div>
+
+          <div class="dc-character-card__info">
+            <h3 class="dc-character-card__name">{{ char.name }}</h3>
+            <div class="dc-character-card__subtitle">
+              Level {{ char.level }} {{ char.ancestry }} {{ char.class }}
+            </div>
+
+            {% if char.heritage %}
+              <div class="dc-character-card__heritage">{{ char.heritage }}</div>
+            {% endif %}
+
+            <div class="dc-character-card__stats">
+              <div class="dc-character-card__stat">
+                <span class="dc-character-card__stat-label">HP</span>
+                <span class="dc-character-card__stat-value dc-character-card__hp">
+                  {{ char.hp_current }}/{{ char.hp_max }}
+                </span>
+              </div>
+              <div class="dc-character-card__stat">
+                <span class="dc-character-card__stat-label">AC</span>
+                <span class="dc-character-card__stat-value">{{ char.ac }}</span>
+              </div>
+            </div>
+
+            <div class="dc-character-card__meta">
+              <span class="dc-character-card__alignment">{{ char.alignment }}</span>
+              <span class="dc-character-card__created">{{ char.created }}</span>
+            </div>
+          </div>
+
+          <div class="dc-character-card__arrow">›</div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="dc-character-list__empty">
+      <div class="dc-character-list__empty-icon">🗡️</div>
+      <h2>No Characters Yet</h2>
+      <p>Your adventuring party awaits. Create your first character to begin the crawl.</p>
+      <a href="{{ create_url }}" class="dc-btn dc-btn-primary">
+        Create Your First Character
+      </a>
+    </div>
+  {% endif %}
+</div>

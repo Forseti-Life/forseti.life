@@ -1,0 +1,26 @@
+style:
+  css:
+    theme:
+      css/dungeoncrawler-content.css: {}
+  dependencies:
+    - core/drupal
+
+game-cards:
+  css:
+    component:
+      css/game-cards.css: {}
+  js:
+    js/game-cards.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+
+character-sheet:
+  css:
+    component:
+      css/character-sheet.css: {}
+  js:
+    js/character-sheet.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

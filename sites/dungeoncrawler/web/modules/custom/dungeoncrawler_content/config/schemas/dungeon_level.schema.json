@@ -1,0 +1,194 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/dungeon_level.schema.json",
+  "title": "Dungeon Level Schema",
+  "description": "Top-level orchestrator for one floor of the dungeon. Ties together the hex map, rooms, creatures, encounters, and AI generation rules for a single level. This is what gets generated when a party descends to a new depth.",
+  "type": "object",
+  "required": ["level_id", "depth", "theme", "hex_map", "generation_rules"],
+  "properties": {
+    "level_id": { "type": "string", "format": "uuid" },
+    "depth": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "How deep this level is. Drives difficulty scaling."
+    },
+    "theme": {
+      "type": "string",
+      "enum": [
+        "goblin_warrens", "fungal_caverns", "spider_nests", "undead_crypts",
+        "flooded_depths", "lava_forge", "shadow_realm", "crystal_caves",
+        "beast_den", "abandoned_mine", "eldritch_library", "dragon_lair",
+        "elemental_nexus", "demonic_sanctum", "ancient_ruins", "custom"
+      ],
+      "description": "Thematic type for AI generation."
+    },
+    "custom_theme": {
+      "type": ["string", "null"],
+      "description": "Custom theme description if theme=custom."
+    },
+    "name": { "type": "string", "description": "AI-generated name for this level." },
+    "flavor_text": { "type": "string", "description": "Descriptive text shown on entry." },
+    "created_at": { "type": "string", "format": "date-time" },
+    "is_persistent": {
+      "type": "boolean",
+      "default": true,
+      "description": "Once generated, this level stays. All rooms are permanent."
+    },
+    "hex_map": { "$ref": "hexmap.schema.json" },
+    "rooms": {
+      "type": "array",
+      "items": { "$ref": "room.schema.json" }
+    },
+    "creatures": {
+      "type": "array",
+      "items": { "$ref": "creature.schema.json" }
+    },
+    "items": {
+      "type": "array",
+      "items": { "$ref": "item.schema.json" }
+    },
+    "traps": {
+      "type": "array",
+      "items": { "$ref": "trap.schema.json" }
+    },
+    "hazards": {
+      "type": "array",
+      "items": { "$ref": "hazard.schema.json" }
+    },
+    "active_encounters": {
+      "type": "array",
+      "items": { "$ref": "encounter.schema.json" }
+    },
+    "stairways": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["hex", "direction", "destination_level"],
+        "properties": {
+          "stairway_id": { "type": "string", "format": "uuid" },
+          "hex": {
+            "type": "object",
+            "properties": { "q": { "type": "integer" }, "r": { "type": "integer" } }
+          },
+          "direction": { "type": "string", "enum": ["up", "down"] },
+          "destination_level": { "type": "integer" },
+          "destination_hex": {
+            "type": "object",
+            "properties": { "q": { "type": "integer" }, "r": { "type": "integer" } }
+          },
+          "is_locked": { "type": "boolean", "default": false },
+          "lock_dc": { "type": ["integer", "null"] },
+          "is_hidden": { "type": "boolean", "default": false },
+          "perception_dc": { "type": ["integer", "null"] }
+        }
+      }
+    },
+    "generation_rules": {
+      "type": "object",
+      "description": "Rules the AI uses when procedurally generating this level's content.",
+      "properties": {
+        "party_level_target": {
+          "type": "integer",
+          "description": "Intended party level. Drives creature/trap/loot scaling."
+        },
+        "difficulty_modifier": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2.0,
+          "default": 1.0,
+          "description": "Multiplier on encounter difficulty. 1.0 = standard."
+        },
+        "room_count": {
+          "type": "object",
+          "properties": {
+            "min": { "type": "integer", "default": 8 },
+            "max": { "type": "integer", "default": 20 }
+          }
+        },
+        "creature_density": {
+          "type": "string",
+          "enum": ["sparse", "normal", "dense", "swarming"],
+          "default": "normal"
+        },
+        "trap_frequency": {
+          "type": "string",
+          "enum": ["none", "rare", "occasional", "frequent", "deadly"],
+          "default": "occasional"
+        },
+        "loot_quality": {
+          "type": "string",
+          "enum": ["poor", "standard", "generous", "hoard"],
+          "default": "standard"
+        },
+        "boss_room": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this level should have a boss encounter."
+        },
+        "rest_area": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to generate a safe rest area."
+        },
+        "secret_rooms": {
+          "type": "object",
+          "properties": {
+            "min": { "type": "integer", "default": 0 },
+            "max": { "type": "integer", "default": 3 }
+          }
+        },
+        "creature_types_allowed": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Restrict to theme-appropriate creature types."
+        },
+        "creature_level_range": {
+          "type": "object",
+          "properties": {
+            "min": { "type": "integer" },
+            "max": { "type": "integer" }
+          }
+        },
+        "environmental_effects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "effect": { "type": "string" },
+              "description": { "type": "string" },
+              "mechanical_effect": { "type": "string" }
+            }
+          },
+          "description": "Level-wide environmental effects (e.g., toxic spores, magical darkness)."
+        },
+        "wandering_monsters": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "check_interval_minutes": { "type": "integer", "default": 30 },
+            "encounter_chance_percent": { "type": "integer", "default": 15 },
+            "max_level": { "type": "integer" },
+            "creature_pool": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Creature template names that can appear as wandering monsters."
+            }
+          }
+        }
+      }
+    },
+    "level_state": {
+      "type": "object",
+      "properties": {
+        "is_fully_generated": { "type": "boolean", "default": false },
+        "rooms_generated": { "type": "integer", "default": 0 },
+        "rooms_explored": { "type": "integer", "default": 0 },
+        "boss_defeated": { "type": "boolean", "default": false },
+        "completion_percent": { "type": "number", "minimum": 0, "maximum": 100, "default": 0 },
+        "first_entered_at": { "type": ["string", "null"], "format": "date-time" },
+        "last_visited_at": { "type": ["string", "null"], "format": "date-time" },
+        "times_visited": { "type": "integer", "default": 0 }
+      }
+    }
+  }
+}

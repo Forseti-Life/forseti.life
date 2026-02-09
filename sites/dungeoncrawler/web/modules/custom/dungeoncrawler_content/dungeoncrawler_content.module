@@ -1,0 +1,115 @@
+<?php
+
+/**
+ * @file
+ * Primary module hooks for Dungeon Crawler Content module.
+ *
+ * Provides content types and management for the AI-generated living dungeon
+ * including procedurally generated rooms, AI-powered creatures with
+ * personalities, items with rarity tiers, quests, and world lore.
+ */
+
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_theme().
+ */
+function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
+  return [
+    'dungeon_card' => [
+      'variables' => [
+        'title' => NULL,
+        'description' => NULL,
+        'difficulty' => NULL,
+        'image' => NULL,
+        'level_range' => NULL,
+        'rewards' => [],
+      ],
+      'template' => 'dungeon-card',
+      'path' => $path . '/templates',
+    ],
+    'character_class_card' => [
+      'variables' => [
+        'name' => NULL,
+        'description' => NULL,
+        'image' => NULL,
+        'primary_stat' => NULL,
+        'abilities' => [],
+      ],
+      'template' => 'character-class-card',
+      'path' => $path . '/templates',
+    ],
+    'item_card' => [
+      'variables' => [
+        'name' => NULL,
+        'description' => NULL,
+        'rarity' => NULL,
+        'image' => NULL,
+        'stats' => [],
+      ],
+      'template' => 'item-card',
+      'path' => $path . '/templates',
+    ],
+    'character_list' => [
+      'variables' => [
+        'characters' => [],
+        'create_url' => NULL,
+      ],
+      'template' => 'character-list',
+      'path' => $path . '/templates',
+    ],
+    'character_sheet' => [
+      'variables' => [
+        'character' => [],
+        'ancestry' => [],
+        'background' => [],
+        'class_data' => [],
+        'abilities' => [],
+        'hp' => [],
+        'ac' => 10,
+        'saves' => [],
+        'perception' => [],
+        'skills' => [],
+        'melee_attacks' => [],
+        'ranged_attacks' => [],
+        'equipment' => [],
+        'personality' => [],
+        'npc_data' => NULL,
+        'raw_json' => '',
+        'edit_url' => NULL,
+        'delete_url' => NULL,
+        'back_url' => NULL,
+      ],
+      'template' => 'character-sheet',
+      'path' => $path . '/templates',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_entity_extra_field_info().
+ */
+function dungeoncrawler_content_entity_extra_field_info() {
+  $extra = [];
+
+  // Add extra display fields for game content types when they exist.
+  $content_types = ['dungeon', 'character_class', 'quest', 'item'];
+  $node_types = \Drupal::entityTypeManager()
+    ->getStorage('node_type')
+    ->loadMultiple();
+
+  foreach ($content_types as $type) {
+    if (isset($node_types[$type])) {
+      $extra['node'][$type]['display']['game_stats_summary'] = [
+        'label' => t('Game Stats Summary'),
+        'description' => t('A formatted summary of game statistics.'),
+        'weight' => 100,
+        'visible' => TRUE,
+      ];
+    }
+  }
+
+  return $extra;
+}

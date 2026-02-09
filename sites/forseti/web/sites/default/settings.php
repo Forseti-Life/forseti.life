@@ -289,6 +289,14 @@ $databases = [];
 $settings['hash_salt'] = 'lsV6IOGvHJOJ04VsQ_cy9aMNbRtyhVdBlP9b-KX9Xj43rhdN3x8sf8zCyJFaPmkFgAU0ZdTCpw';
 
 /**
+ * Shared cookie domain for cross-site SSO.
+ *
+ * Setting the cookie domain to '.forseti.life' allows the session cookie to be
+ * shared between forseti.life and dungeoncrawler.forseti.life.
+ */
+$settings['cookie_domain'] = '.forseti.life';
+
+/**
  * Deployment identifier.
  *
  * Drupal's dependency injection container will be automatically invalidated and

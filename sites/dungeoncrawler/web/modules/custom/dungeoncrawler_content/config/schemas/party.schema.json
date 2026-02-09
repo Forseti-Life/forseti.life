@@ -1,0 +1,220 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/party.schema.json",
+  "title": "Party Schema",
+  "description": "Tracks an adventuring party moving through the dungeon. Maintains group position, shared resources, exploration state, and encounter history.",
+  "type": "object",
+  "required": ["party_id", "name", "members", "current_hex", "dungeon_level"],
+  "properties": {
+    "party_id": { "type": "string", "format": "uuid" },
+    "name": { "type": "string" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "last_active": { "type": "string", "format": "date-time" },
+    "owner_uid": {
+      "type": "integer",
+      "description": "Drupal user ID of the party owner."
+    },
+    "dungeon_level": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Current dungeon depth level."
+    },
+    "current_hex": {
+      "type": "object",
+      "properties": {
+        "q": { "type": "integer" },
+        "r": { "type": "integer" }
+      },
+      "required": ["q", "r"]
+    },
+    "current_room_id": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "Room the party is currently in, if any."
+    },
+    "members": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["character_id", "name", "role"],
+        "properties": {
+          "character_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "level": { "type": "integer", "minimum": 1, "maximum": 20 },
+          "class": { "type": "string" },
+          "role": {
+            "type": "string",
+            "enum": ["leader", "scout", "healer", "tank", "striker", "support"],
+            "description": "Party role for AI tactical decisions."
+          },
+          "current_hp": { "type": "integer" },
+          "max_hp": { "type": "integer" },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "value": { "type": ["integer", "null"] },
+                "duration": { "type": ["string", "null"] }
+              }
+            },
+            "description": "Active PF2e conditions: frightened 2, wounded 1, etc."
+          },
+          "spell_slots_remaining": {
+            "type": "object",
+            "additionalProperties": { "type": "integer" },
+            "description": "Spell rank → remaining slots for casters."
+          },
+          "focus_points_remaining": { "type": "integer" },
+          "hero_points": { "type": "integer", "minimum": 0, "maximum": 3, "default": 1 },
+          "is_alive": { "type": "boolean", "default": true },
+          "is_active": { "type": "boolean", "default": true, "description": "False if unconscious, petrified, etc." },
+          "marching_position": {
+            "type": "string",
+            "enum": ["front", "middle", "rear"],
+            "description": "Position in marching order."
+          },
+          "exploration_activity": {
+            "type": "string",
+            "enum": [
+              "avoid_notice", "defend", "detect_magic", "follow_the_expert",
+              "hustle", "investigate", "repeat_a_spell", "scout", "search"
+            ],
+            "description": "Active PF2e exploration activity."
+          }
+        }
+      }
+    },
+    "shared_inventory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item_id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "quantity": { "type": "integer", "minimum": 1 },
+          "carried_by": { "type": ["string", "null"], "format": "uuid" }
+        }
+      }
+    },
+    "currency": {
+      "type": "object",
+      "properties": {
+        "cp": { "type": "integer", "default": 0 },
+        "sp": { "type": "integer", "default": 0 },
+        "gp": { "type": "integer", "default": 0 },
+        "pp": { "type": "integer", "default": 0 }
+      }
+    },
+    "exploration_state": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["exploration", "encounter", "downtime", "rest"],
+          "default": "exploration"
+        },
+        "light_source": {
+          "type": "string",
+          "enum": ["none", "candle", "torch", "lantern", "magical_light", "darkvision_only"],
+          "default": "torch"
+        },
+        "light_radius_hexes": { "type": "integer", "default": 4 },
+        "movement_speed": {
+          "type": "string",
+          "enum": ["normal", "hustle", "cautious", "sneak"],
+          "default": "normal"
+        },
+        "is_resting": { "type": "boolean", "default": false },
+        "rest_type": {
+          "type": ["string", "null"],
+          "enum": [null, "short", "long", "daily_preparations"]
+        },
+        "rest_started_at": { "type": ["string", "null"], "format": "date-time" },
+        "watch_order": {
+          "type": "array",
+          "items": { "type": "string", "format": "uuid" },
+          "description": "Character IDs in watch rotation order."
+        }
+      }
+    },
+    "fog_of_war": {
+      "type": "object",
+      "properties": {
+        "revealed_hexes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "q": { "type": "integer" },
+              "r": { "type": "integer" }
+            }
+          }
+        },
+        "revealed_rooms": {
+          "type": "array",
+          "items": { "type": "string", "format": "uuid" }
+        },
+        "revealed_connections": {
+          "type": "array",
+          "items": { "type": "string", "format": "uuid" }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "hex": {
+                "type": "object",
+                "properties": { "q": { "type": "integer" }, "r": { "type": "integer" } }
+              },
+              "text": { "type": "string" },
+              "added_by": { "type": "string", "format": "uuid" },
+              "added_at": { "type": "string", "format": "date-time" }
+            }
+          },
+          "description": "Player-placed notes on the map."
+        }
+      }
+    },
+    "encounter_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "encounter_id": { "type": "string", "format": "uuid" },
+          "room_id": { "type": "string", "format": "uuid" },
+          "type": { "type": "string", "enum": ["combat", "social", "exploration", "trap", "hazard", "puzzle"] },
+          "outcome": { "type": "string", "enum": ["victory", "defeat", "fled", "negotiated", "bypassed", "ongoing"] },
+          "xp_earned": { "type": "integer" },
+          "loot_gained": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" }
+          },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "total_xp": { "type": "integer", "default": 0 },
+    "dungeon_stats": {
+      "type": "object",
+      "properties": {
+        "rooms_explored": { "type": "integer", "default": 0 },
+        "creatures_defeated": { "type": "integer", "default": 0 },
+        "traps_disarmed": { "type": "integer", "default": 0 },
+        "hazards_neutralized": { "type": "integer", "default": 0 },
+        "secrets_found": { "type": "integer", "default": 0 },
+        "items_collected": { "type": "integer", "default": 0 },
+        "total_damage_dealt": { "type": "integer", "default": 0 },
+        "total_damage_taken": { "type": "integer", "default": 0 },
+        "deaths": { "type": "integer", "default": 0 },
+        "times_fled": { "type": "integer", "default": 0 },
+        "deepest_level_reached": { "type": "integer", "default": 1 },
+        "play_time_seconds": { "type": "integer", "default": 0 }
+      }
+    }
+  }
+}

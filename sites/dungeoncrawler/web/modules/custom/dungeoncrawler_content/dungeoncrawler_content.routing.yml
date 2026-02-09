@@ -1,0 +1,59 @@
+dungeoncrawler_content.settings:
+  path: '/admin/config/content/dungeoncrawler'
+  defaults:
+    _form: '\Drupal\dungeoncrawler_content\Form\DungeonCrawlerSettingsForm'
+    _title: 'Dungeon Crawler Settings'
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_content.dashboard:
+  path: '/admin/content/dungeoncrawler'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\DashboardController::content'
+    _title: 'Game Content Dashboard'
+  requirements:
+    _permission: 'access content overview'
+
+# Character management routes.
+dungeoncrawler_content.characters:
+  path: '/characters'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterListController::listCharacters'
+    _title: 'My Characters'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+dungeoncrawler_content.character_view:
+  path: '/characters/{character_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterViewController::viewCharacter'
+    _title_callback: '\Drupal\dungeoncrawler_content\Controller\CharacterViewController::viewTitle'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    character_id: '\d+'
+
+dungeoncrawler_content.character_create:
+  path: '/characters/create'
+  defaults:
+    _form: '\Drupal\dungeoncrawler_content\Form\CharacterCreateForm'
+    _title: 'Create Character'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+dungeoncrawler_content.character_edit:
+  path: '/characters/{character_id}/edit'
+  defaults:
+    _form: '\Drupal\dungeoncrawler_content\Form\CharacterCreateForm'
+    _title: 'Edit Character'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    character_id: '\d+'
+
+dungeoncrawler_content.character_delete:
+  path: '/characters/{character_id}/delete'
+  defaults:
+    _form: '\Drupal\dungeoncrawler_content\Form\CharacterDeleteForm'
+    _title: 'Delete Character'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    character_id: '\d+'
