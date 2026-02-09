@@ -182,9 +182,19 @@ job_hunter.company_job_discovery:
     _permission: 'administer job application automation'
     company: \d+
 
-# Job Discovery - AJAX Search Endpoint
+# Job Discovery - Unified Search Results (GET)
 job_hunter.job_discovery_search:
   path: '/jobhunter/job-discovery/search'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::jobDiscoverySearchResults'
+    _title: 'Job Search Results'
+  requirements:
+    _permission: 'access job hunter'
+  methods: [GET]
+
+# Job Discovery - AJAX Search Endpoint (POST, legacy for company-specific discovery)
+job_hunter.job_discovery_search_ajax:
+  path: '/jobhunter/job-discovery/search-ajax'
   defaults:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::jobDiscoverySearch'
   requirements:

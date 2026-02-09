@@ -5,6 +5,7 @@ namespace Drupal\job_hunter\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
+use Drupal\Core\Render\Markup;
 use Drupal\user\Entity\User;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -1119,6 +1120,58 @@ class JobApplicationController extends ControllerBase {
     $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
     $navigation_block = $plugin_block->build();
     
+    // Load user profile data for pre-filling search form
+    $current_user = \Drupal::currentUser();
+    $connection = \Drupal::database();
+    $default_keywords = '';
+    $default_location = '';
+    $default_remote = '';
+    $default_salary = '';
+    
+    try {
+      $profile = $connection->select('jobhunter_job_seeker', 'js')
+        ->fields('js')
+        ->condition('uid', $current_user->id())
+        ->execute()
+        ->fetchObject();
+      
+      if ($profile && !empty($profile->consolidated_profile_json)) {
+        $consolidated = json_decode($profile->consolidated_profile_json, TRUE) ?: [];
+        
+        // Extract target job titles and keywords
+        $titles = $consolidated['job_search_preferences']['target_titles'] ?? '';
+        $keywords = $consolidated['job_search_preferences']['keywords'] ?? '';
+        $combined = array_filter(array_merge(
+          $titles ? explode("\n", $titles) : [],
+          $keywords ? explode("\n", $keywords) : []
+        ));
+        if (!empty($combined)) {
+          $default_keywords = implode(', ', array_slice($combined, 0, 3)); // Use first 3
+        }
+        
+        // Extract location preference from work history or profile
+        if (isset($consolidated['work_experience']) && !empty($consolidated['work_experience'])) {
+          $latest_job = reset($consolidated['work_experience']);
+          $default_location = $latest_job['location'] ?? '';
+        }
+        
+        // Get remote preference
+        $remote_pref = $consolidated['job_search_preferences']['remote_preference'] ?? '';
+        if ($remote_pref === 'remote') {
+          $default_location = 'Remote';
+          $default_remote = 'checked';
+        }
+        
+        // Get salary expectations
+        $salary_min = $consolidated['job_search_preferences']['salary_expectation_min'] ?? '';
+        if ($salary_min && is_numeric($salary_min)) {
+          $default_salary = (int) $salary_min;
+        }
+      }
+    } catch (\Exception $e) {
+      \Drupal::logger('job_hunter')->error('Error loading profile for search: @error', ['@error' => $e->getMessage()]);
+    }
+    
     // Check Google Cloud credentials
     $has_credentials = FALSE;
     $credentials_status = 'Not Configured';
@@ -1142,136 +1195,282 @@ class JobApplicationController extends ControllerBase {
       'header' => [
         '#type' => 'html_tag',
         '#tag' => 'h1',
-        '#value' => '🔍 AI Job Discovery',
+        '#value' => '🔍 Job Discovery & Search',
       ],
       'description' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => 'Automatically find matching jobs at your target companies using AI-powered search integrations.',
+        '#value' => 'Search for jobs across multiple sources. Jobs you save will automatically add their companies to your target list.',
+      ],
+      'search_form' => [
+        '#markup' => Markup::create('
+        <div class="job-search-form">
+          <form id="unified-job-search" method="GET" action="/jobhunter/job-discovery/search">
+            <div class="search-form-container">
+              <div class="search-primary-row">
+                <div class="search-field search-field-primary">
+                  <label for="search-query">
+                    <span class="field-icon">💼</span>
+                    <span class="field-label">Job Title or Keywords</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    id="search-query" 
+                    name="q" 
+                    value="' . htmlspecialchars($default_keywords) . '"
+                    placeholder="e.g., Software Engineer, Product Manager, Data Scientist"
+                    class="search-input"
+                  >
+                </div>
+                
+                <div class="search-field">
+                  <label for="search-location">
+                    <span class="field-icon">📍</span>
+                    <span class="field-label">Location</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    id="search-location" 
+                    name="location" 
+                    value="' . htmlspecialchars($default_location) . '"
+                    placeholder="e.g., San Francisco, CA or Remote"
+                    class="search-input"
+                  >
+                </div>
+              </div>
+              
+              <div class="search-filters-row">
+                <div class="search-field search-field-select">
+                  <label for="employment-type">
+                    <span class="field-icon">📋</span>
+                    <span class="field-label">Employment Type</span>
+                  </label>
+                  <select id="employment-type" name="employment_type" class="search-select">
+                    <option value="">Any</option>
+                    <option value="FULL_TIME">Full-time</option>
+                    <option value="PART_TIME">Part-time</option>
+                    <option value="CONTRACT">Contract</option>
+                    <option value="TEMPORARY">Temporary</option>
+                    <option value="INTERN">Internship</option>
+                  </select>
+                </div>
+                
+                <div class="search-field search-field-checkboxes">
+                  <label class="field-label-block">
+                    <span class="field-icon">🔍</span>
+                    <span class="field-label">Search In</span>
+                  </label>
+                  <div class="checkbox-group">
+                    <label class="checkbox-label">
+                      <input type="checkbox" name="sources[]" value="forseti" checked>
+                      <span>Forseti Jobs</span>
+                    </label>
+                    <label class="checkbox-label' . ($has_credentials ? '' : ' disabled') . '">
+                      <input type="checkbox" name="sources[]" value="google_cloud" ' . ($has_credentials ? 'checked' : 'disabled') . '>
+                      <span>Google Jobs' . ($has_credentials ? '' : ' (Configure API)') . '</span>
+                    </label>
+                    <label class="checkbox-label disabled">
+                      <input type="checkbox" name="sources[]" value="linkedin" disabled>
+                      <span>LinkedIn (Coming Soon)</span>
+                    </label>
+                    <label class="checkbox-label disabled">
+                      <input type="checkbox" name="sources[]" value="indeed" disabled>
+                      <span>Indeed (Coming Soon)</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="search-actions-row">
+                <button type="submit" class="btn-search">
+                  <span class="btn-icon">🔍</span>
+                  <span class="btn-text">Search Jobs</span>
+                </button>
+                <button type="button" class="btn-advanced" onclick="toggleAdvancedFilters()">
+                  <span class="btn-text">Advanced Filters</span>
+                  <span class="btn-icon">▼</span>
+                </button>
+                <div class="search-stats">
+                  <span class="stat-item">
+                    <strong>' . $this->getSavedJobsCount($this->currentUser()) . '</strong> jobs saved
+                  </span>
+                  <span class="stat-separator">•</span>
+                  <span class="stat-item">
+                    <strong>' . $this->getTargetCompaniesCount($this->currentUser()) . '</strong> companies tracked
+                  </span>
+                </div>
+              </div>
+              
+              <div id="advanced-filters" class="advanced-filters" style="display: none;">
+                <div class="advanced-filters-grid">
+                  <div class="filter-field">
+                    <label for="company-filter">Company</label>
+                    <input type="text" id="company-filter" name="company" placeholder="Filter by company name" class="filter-input">
+                  </div>
+                  
+                  <div class="filter-field">
+                    <label for="salary-min">Min Salary</label>
+                    <input type="number" id="salary-min" name="salary_min" value="' . htmlspecialchars($default_salary) . '" placeholder="e.g., 100000" class="filter-input">
+                  </div>
+                  
+                  <div class="filter-field">
+                    <label for="date-posted">Posted Within</label>
+                    <select id="date-posted" name="date_posted" class="filter-select">
+                      <option value="">Any time</option>
+                      <option value="1">Last 24 hours</option>
+                      <option value="7">Last 7 days</option>
+                      <option value="30">Last 30 days</option>
+                    </select>
+                  </div>
+                  
+                  <div class="filter-field">
+                    <label>
+                      <input type="checkbox" name="remote_only" value="1" ' . $default_remote . '>
+                      <span>Remote jobs only</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+          
+          <script>
+            function toggleAdvancedFilters() {
+              const filters = document.getElementById("advanced-filters");
+              const btn = event.currentTarget;
+              const icon = btn.querySelector(".btn-icon");
+              
+              if (filters.style.display === "none") {
+                filters.style.display = "block";
+                icon.textContent = "▲";
+              } else {
+                filters.style.display = "none";
+                icon.textContent = "▼";
+              }
+            }
+          </script>
+        </div>
+        '),
       ],
       'integrations_section' => [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['integrations-section']],
-        '#value' => '
-          <h2>🔗 Job Search Integrations</h2>
-          <div class="integration-cards">
-            <div class="integration-card">
-              <div class="integration-header">
-                <div class="integration-icon">�️</div>
-                <div class="integration-info">
-                  <h3>Forseti Jobs Search</h3>
-                  <p>Search jobs you\'ve manually added and manage your application pipeline</p>
-                </div>
-              </div>
-              <div class="integration-status">
-                <div class="status-row">
-                  <span class="status-label">Status:</span>
-                  <span class="status-badge status-success">Active</span>
-                </div>
-                <div class="status-row">
-                  <span class="status-label">Features:</span>
-                  <span class="status-text">Manual Job Entry, Resume Tailoring, Application Tracking</span>
-                </div>
-              </div>
-              <div class="integration-actions">
-                <a href="/jobhunter/job-paste" class="btn btn-primary">➕ Add Job</a>
-                <a href="/jobhunter/jobs" class="btn btn-secondary">📋 View Jobs</a>
+        '#markup' => Markup::create('
+        <div class="integrations-section">
+          <h2>� Job Source Status</h2>
+          <div class="integration-status-grid">
+            <div class="status-card status-card-active">
+              <div class="status-card-icon">💼</div>
+              <div class="status-card-content">
+                <h4>Forseti Jobs</h4>
+                <span class="status-badge status-success">Active</span>
+                <p>Your saved jobs and manual entries</p>
               </div>
             </div>
             
-            <div class="integration-card">
-              <div class="integration-header">
-                <div class="integration-icon">�📊</div>
-                <div class="integration-info">
-                  <h3>Google Cloud Talent Solution</h3>
-                  <p>Search millions of jobs across the web using Google\'s AI-powered job search API</p>
-                </div>
-              </div>
-              <div class="integration-status">
-                <div class="status-row">
-                  <span class="status-label">API Status:</span>
-                  <span class="status-badge ' . $credentials_class . '">' . $credentials_status . '</span>
-                </div>
-                <div class="status-row">
-                  <span class="status-label">Features:</span>
-                  <span class="status-text">Job Search, Company Filtering, Location Search</span>
-                </div>
-              </div>
-              <div class="integration-actions">
-                ' . ($has_credentials ? 
-                  '<a href="/jobhunter/google-jobs-search" class="btn btn-primary">🔍 Search Jobs</a>
-                   <a href="/admin/config/forseti/job-hunter" class="btn btn-secondary">⚙️ Settings</a>' :
-                  '<a href="/admin/config/forseti/job-hunter" class="btn btn-warning">⚙️ Configure API</a>') . '
+            <div class="status-card status-card-' . ($has_credentials ? 'active' : 'pending') . '">
+              <div class="status-card-icon">🔍</div>
+              <div class="status-card-content">
+                <h4>Google Cloud Jobs</h4>
+                <span class="status-badge ' . $credentials_class . '">' . $credentials_status . '</span>
+                <p>' . ($has_credentials ? 'AI-powered job search across the web' : 'Configure API credentials to enable') . '</p>
               </div>
             </div>
             
-            <div class="integration-card disabled">
-              <div class="integration-header">
-                <div class="integration-icon">💼</div>
-                <div class="integration-info">
-                  <h3>LinkedIn Jobs API</h3>
-                  <p>Access professional network job postings and company data</p>
-                </div>
-              </div>
-              <div class="integration-status">
-                <div class="status-row">
-                  <span class="status-label">API Status:</span>
-                  <span class="status-badge status-inactive">Coming Soon</span>
-                </div>
+            <div class="status-card status-card-disabled">
+              <div class="status-card-icon">💼</div>
+              <div class="status-card-content">
+                <h4>LinkedIn Jobs</h4>
+                <span class="status-badge status-inactive">Coming Soon</span>
+                <p>Professional network job postings</p>
               </div>
             </div>
             
-            <div class="integration-card disabled">
-              <div class="integration-header">
-                <div class="integration-icon">🌐</div>
-                <div class="integration-info">
-                  <h3>Indeed Job Search</h3>
-                  <p>Search one of the world\'s largest job boards</p>
-                </div>
-              </div>
-              <div class="integration-status">
-                <div class="status-row">
-                  <span class="status-label">API Status:</span>
-                  <span class="status-badge status-inactive">Coming Soon</span>
-                </div>
+            <div class="status-card status-card-disabled">
+              <div class="status-card-icon">🌐</div>
+              <div class="status-card-content">
+                <h4>Indeed Jobs</h4>
+                <span class="status-badge status-inactive">Coming Soon</span>
+                <p>World\'s largest job board</p>
               </div>
             </div>
           </div>
-        ',
+        </div>
+        '),
       ],
       'styles' => [
         '#type' => 'html_tag',
         '#tag' => 'style',
         '#value' => '
-          .job-discovery-page { max-width: 1200px; }
-          .job-discovery-page h1 { margin: 0 0 15px 0; font-size: 2.5em; }
-          .job-discovery-page > p { color: #666; font-size: 1.1em; margin-bottom: 40px; }
-          .integrations-section h2 { font-size: 1.8em; margin: 30px 0 20px 0; }
-          .integration-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-top: 20px; }
-          .integration-card { background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.3s; }
-          .integration-card:hover { box-shadow: 0 6px 12px rgba(0,0,0,0.15); transform: translateY(-2px); }
-          .integration-card.disabled { opacity: 0.6; }
-          .integration-header { display: flex; gap: 15px; margin-bottom: 20px; }
-          .integration-icon { font-size: 3em; }
-          .integration-info h3 { margin: 0 0 8px 0; font-size: 1.3em; color: #2d3748; }
-          .integration-info p { margin: 0; color: #718096; font-size: 0.9em; }
-          .integration-status { background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-          .status-row { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; }
-          .status-label { font-weight: 600; color: #4a5568; }
+          .job-discovery-page { max-width: 1400px; margin: 0 auto; }
+          .job-discovery-page h1 { margin: 0 0 10px 0; font-size: 2.5em; color: #2d3748; }
+          .job-discovery-page > p { color: #718096; font-size: 1.05em; margin-bottom: 30px; }
+          
+          /* Search Form */
+          .job-search-form { background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 30px; margin-bottom: 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+          .search-form-container { display: flex; flex-direction: column; gap: 20px; }
+          
+          .search-primary-row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+          .search-filters-row { display: grid; grid-template-columns: 200px 1fr; gap: 20px; align-items: start; }
+          .search-actions-row { display: flex; gap: 15px; align-items: center; padding-top: 10px; border-top: 2px solid #f7fafc; margin-top: 10px; }
+          
+          .search-field { display: flex; flex-direction: column; gap: 8px; }
+          .search-field-primary { grid-column: span 1; }
+          .search-field label { display: flex; align-items: center; gap: 6px; font-weight: 600; color: #2d3748; font-size: 0.95em; }
+          .field-label-block { margin-bottom: 8px; }
+          .field-icon { font-size: 1.1em; }
+          .field-label { font-size: 0.95em; }
+          
+          .search-input, .search-select { padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1em; color: #2d3748; transition: all 0.2s; width: 100%; }
+          .search-input:focus, .search-select:focus { outline: none; border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1); }
+          .search-input::placeholder { color: #a0aec0; }
+          
+          .checkbox-group { display: flex; flex-wrap: wrap; gap: 15px; }
+          .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 0.9em; color: #4a5568; cursor: pointer; user-select: none; }
+          .checkbox-label.disabled { opacity: 0.5; cursor: not-allowed; }
+          .checkbox-label input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+          .checkbox-label input[type="checkbox"]:disabled { cursor: not-allowed; }
+          
+          .btn-search { background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%); color: white; border: none; padding: 12px 32px; border-radius: 8px; font-weight: 600; font-size: 1.05em; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(66, 153, 225, 0.3); }
+          .btn-search:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(66, 153, 225, 0.4); }
+          .btn-search .btn-icon { font-size: 1.2em; }
+          
+          .btn-advanced { background: #f7fafc; color: #4a5568; border: 2px solid #e2e8f0; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+          .btn-advanced:hover { background: #edf2f7; border-color: #cbd5e0; }
+          
+          .search-stats { margin-left: auto; display: flex; align-items: center; gap: 10px; color: #718096; font-size: 0.9em; }
+          .search-stats strong { color: #2d3748; font-weight: 700; }
+          .stat-separator { color: #cbd5e0; }
+          
+          .advanced-filters { padding-top: 20px; border-top: 2px solid #f7fafc; margin-top: 15px; }
+          .advanced-filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+          .filter-field { display: flex; flex-direction: column; gap: 6px; }
+          .filter-field label { font-weight: 600; color: #4a5568; font-size: 0.9em; }
+          .filter-input, .filter-select { padding: 10px 14px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 0.95em; }
+          .filter-input:focus, .filter-select:focus { outline: none; border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1); }
+          
+          /* Job Source Status */
+          .integrations-section { margin-top: 50px; padding-top: 40px; border-top: 2px solid #e2e8f0; }
+          .integrations-section h2 { font-size: 1.4em; margin: 0 0 20px 0; color: #2d3748; }
+          .integration-status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+          .status-card { background: white; border: 2px solid #e2e8f0; border-radius: 10px; padding: 20px; text-align: center; transition: all 0.2s; }
+          .status-card:hover { border-color: #cbd5e0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+          .status-card-disabled { opacity: 0.6; }
+          .status-card-icon { font-size: 2.5em; margin-bottom: 12px; }
+          .status-card-content h4 { margin: 0 0 8px 0; font-size: 1.1em; color: #2d3748; }
+          .status-card-content p { margin: 12px 0 0 0; color: #718096; font-size: 0.85em; line-height: 1.4; }
+          .status-card-content .status-badge { display: inline-block; margin: 8px 0; }
           .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 600; }
           .status-success { background: #c6f6d5; color: #22543d; }
           .status-warning { background: #fbd38d; color: #744210; }
           .status-inactive { background: #e2e8f0; color: #4a5568; }
-          .status-text { color: #4a5568; font-size: 0.9em; }
-          .integration-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-          .btn { padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 0.9em; display: inline-block; text-align: center; }
-          .btn-primary { background: #4299e1; color: white; }
-          .btn-primary:hover { background: #3182ce; }
-          .btn-secondary { background: #e2e8f0; color: #2d3748; }
-          .btn-secondary:hover { background: #cbd5e0; }
-          .btn-warning { background: #ed8936; color: white; }
-          .btn-warning:hover { background: #dd6b20; }
+          
+          /* Responsive */
+          @media (max-width: 768px) {
+            .search-primary-row { grid-template-columns: 1fr; }
+            .search-filters-row { grid-template-columns: 1fr; }
+            .search-actions-row { flex-direction: column; align-items: stretch; }
+            .search-stats { margin-left: 0; margin-top: 10px; }
+            .integration-status-grid { grid-template-columns: 1fr; }
+          }
         ',
       ],
     ];
@@ -1290,6 +1489,321 @@ class JobApplicationController extends ControllerBase {
     ];
     
     return $build;
+  }
+
+  /**
+   * Job Discovery Search Results page.
+   * 
+   * Handles unified search across multiple job sources based on user query.
+   *
+   * @return array
+   *   A renderable array for the job search results page.
+   */
+  public function jobDiscoverySearchResults() {
+    $request = \Drupal::request();
+    $connection = \Drupal::database();
+    $current_user = \Drupal::currentUser();
+    
+    // Get search parameters from GET request
+    $query = $request->query->get('query', '');
+    $location = $request->query->get('location', '');
+    $employment_type = $request->query->get('employment_type', '');
+    $sources = $request->query->get('sources', ['forseti']); // Default to Forseti
+    $company_filter = $request->query->get('company', '');
+    $salary_min = $request->query->get('salary_min', '');
+    $date_posted = $request->query->get('date_posted', '');
+    $remote_only = $request->query->get('remote_only', false);
+    
+    // Ensure sources is an array
+    if (!is_array($sources)) {
+      $sources = [$sources];
+    }
+    
+    // Initialize results array
+    $all_results = [];
+    
+    // Search in Forseti database if selected
+    if (in_array('forseti', $sources)) {
+      $db_query = $connection->select('jobhunter_job_requirements', 'j')
+        ->fields('j')
+        ->orderBy('created', 'DESC')
+        ->range(0, 50); // Limit to 50 results
+      
+      // Add keyword search if provided
+      if (!empty($query)) {
+        $or = $db_query->orConditionGroup()
+          ->condition('job_title', '%' . $connection->escapeLike($query) . '%', 'LIKE')
+          ->condition('job_description', '%' . $connection->escapeLike($query) . '%', 'LIKE')
+          ->condition('required_skills', '%' . $connection->escapeLike($query) . '%', 'LIKE');
+        $db_query->condition($or);
+      }
+      
+      // Add location filter if provided
+      if (!empty($location)) {
+        $db_query->condition('location', '%' . $connection->escapeLike($location) . '%', 'LIKE');
+      }
+      
+      // Add employment type filter if provided
+      if (!empty($employment_type)) {
+        $db_query->condition('employment_type', $employment_type);
+      }
+      
+      // Add company name filter if provided
+      if (!empty($company_filter)) {
+        // Join with companies table to filter by company name
+        $db_query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
+        $db_query->condition('c.name', '%' . $connection->escapeLike($company_filter) . '%', 'LIKE');
+      }
+      
+      // Add salary filter if provided
+      if (!empty($salary_min) && is_numeric($salary_min)) {
+        $db_query->condition('salary_min', $salary_min, '>=');
+      }
+      
+      // Add date posted filter if provided
+      if (!empty($date_posted)) {
+        $days_ago = 30; // Default to last 30 days
+        if ($date_posted === 'last_24h') {
+          $days_ago = 1;
+        } elseif ($date_posted === 'last_week') {
+          $days_ago = 7;
+        } elseif ($date_posted === 'last_month') {
+          $days_ago = 30;
+        }
+        $timestamp = time() - ($days_ago * 24 * 60 * 60);
+        $db_query->condition('created', $timestamp, '>=');
+      }
+      
+      // Add remote only filter if provided
+      if ($remote_only) {
+        $or = $db_query->orConditionGroup()
+          ->condition('location', '%remote%', 'LIKE')
+          ->condition('location', '%Remote%', 'LIKE')
+          ->condition('is_remote', 1);
+        $db_query->condition($or);
+      }
+      
+      $results = $db_query->execute()->fetchAll();
+      
+      // Format results from database
+      foreach ($results as $job) {
+        // Get company name
+        $company_name = 'N/A';
+        if (!empty($job->company_id)) {
+          $company = $connection->select('jobhunter_companies', 'c')
+            ->fields('c', ['name'])
+            ->condition('id', $job->company_id)
+            ->execute()
+            ->fetchField();
+          if ($company) {
+            $company_name = $company;
+          }
+        }
+        
+        $all_results[] = [
+          'id' => $job->id,
+          'title' => $job->job_title,
+          'company' => $company_name,
+          'location' => $job->location ?? 'Not specified',
+          'employment_type' => $job->employment_type ?? 'Not specified',
+          'salary_range' => !empty($job->salary_min) ? '$' . number_format($job->salary_min) . (!empty($job->salary_max) ? ' - $' . number_format($job->salary_max) : '+') : 'Not specified',
+          'description' => $this->truncateText($job->job_description ?? '', 200),
+          'source' => 'Forseti',
+          'posted_date' => !empty($job->created) ? date('M j, Y', $job->created) : 'Unknown',
+          'url' => $job->application_url ?? '',
+        ];
+      }
+    }
+    
+    // TODO: Search Google Cloud Talent Solution API if selected and credentials available
+    if (in_array('google_cloud', $sources)) {
+      // Check if Google Cloud credentials are configured
+      // If yes, query the API and append results to $all_results
+      // This will be implemented when API integration is ready
+    }
+    
+    // TODO: Search LinkedIn Jobs API if selected and credentials available
+    if (in_array('linkedin', $sources)) {
+      // LinkedIn API integration coming soon
+    }
+    
+    // TODO: Search Indeed Job Search if selected and credentials available
+    if (in_array('indeed', $sources)) {
+      // Indeed API integration coming soon
+    }
+    
+    // Build results display
+    $results_html = '';
+    if (empty($all_results)) {
+      $results_html = '<div class="no-results">
+        <p>No jobs found matching your criteria. Try adjusting your search filters.</p>
+      </div>';
+    } else {
+      $results_html = '<div class="results-summary">
+        <h3>Found ' . count($all_results) . ' job' . (count($all_results) !== 1 ? 's' : '') . '</h3>
+      </div>
+      <div class="job-results-list">';
+      
+      foreach ($all_results as $job) {
+        $results_html .= '
+        <div class="job-result-card">
+          <div class="job-result-header">
+            <div class="job-result-title-block">
+              <h4 class="job-result-title">' . htmlspecialchars($job['title']) . '</h4>
+              <div class="job-result-meta">
+                <span class="job-company">🏢 ' . htmlspecialchars($job['company']) . '</span>
+                <span class="job-location">📍 ' . htmlspecialchars($job['location']) . '</span>
+                <span class="job-type">💼 ' . htmlspecialchars($job['employment_type']) . '</span>
+              </div>
+            </div>
+            <div class="job-result-actions">
+              <span class="job-source-badge">' . htmlspecialchars($job['source']) . '</span>
+            </div>
+          </div>
+          <div class="job-result-body">
+            <div class="job-result-details">
+              <span class="job-salary">💰 ' . htmlspecialchars($job['salary_range']) . '</span>
+              <span class="job-posted">📅 ' . htmlspecialchars($job['posted_date']) . '</span>
+            </div>
+            <p class="job-description">' . htmlspecialchars($job['description']) . '</p>
+          </div>
+          <div class="job-result-footer">
+            <a href="/jobhunter/addposting?job_id=' . $job['id'] . '" class="btn-save-job">💾 Save Job</a>
+            ' . (!empty($job['url']) ? '<a href="' . htmlspecialchars($job['url']) . '" target="_blank" class="btn-view-job">🔗 View Original</a>' : '') . '
+          </div>
+        </div>';
+      }
+      
+      $results_html .= '</div>';
+    }
+    
+    // Build search summary
+    $search_summary = '<div class="search-summary">';
+    if (!empty($query)) {
+      $search_summary .= '<span class="search-param"><strong>Keywords:</strong> ' . htmlspecialchars($query) . '</span>';
+    }
+    if (!empty($location)) {
+      $search_summary .= '<span class="search-param"><strong>Location:</strong> ' . htmlspecialchars($location) . '</span>';
+    }
+    if (!empty($employment_type)) {
+      $search_summary .= '<span class="search-param"><strong>Type:</strong> ' . htmlspecialchars($employment_type) . '</span>';
+    }
+    $search_summary .= '<span class="search-param"><strong>Sources:</strong> ' . htmlspecialchars(implode(', ', $sources)) . '</span>';
+    $search_summary .= '</div>';
+    
+    // Render navigation
+    $block_manager = \Drupal::service('plugin.manager.block');
+    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
+    $navigation_block = $plugin_block->build();
+    
+    $content = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['job-search-results-page']],
+      'header' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h1',
+        '#value' => '🔍 Job Search Results',
+      ],
+      'back_link' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['back-link-container']],
+        '#value' => '<a href="/jobhunter/job-discovery" class="back-link">← Back to Search</a>',
+      ],
+      'search_summary' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['search-summary-container']],
+        '#value' => $search_summary,
+      ],
+      'results' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['results-container']],
+        '#value' => $results_html,
+      ],
+      'styles' => [
+        '#type' => 'html_tag',
+        '#tag' => 'style',
+        '#value' => '
+          .job-search-results-page { max-width: 1200px; margin: 0 auto; }
+          .job-search-results-page h1 { margin: 0 0 20px 0; font-size: 2.5em; color: #2d3748; }
+          .back-link-container { margin-bottom: 20px; }
+          .back-link { color: #4299e1; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+          .back-link:hover { color: #3182ce; text-decoration: underline; }
+          
+          .search-summary-container { background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 8px; padding: 15px 20px; margin-bottom: 30px; }
+          .search-summary { display: flex; flex-wrap: wrap; gap: 15px; }
+          .search-param { color: #4a5568; font-size: 0.95em; }
+          .search-param strong { color: #2d3748; }
+          
+          .results-summary { margin-bottom: 20px; }
+          .results-summary h3 { margin: 0; font-size: 1.4em; color: #2d3748; }
+          
+          .no-results { background: #fff5f5; border: 2px solid #fc8181; border-radius: 8px; padding: 30px; text-align: center; }
+          .no-results p { margin: 0; color: #742a2a; font-size: 1.1em; }
+          
+          .job-results-list { display: flex; flex-direction: column; gap: 20px; }
+          .job-result-card { background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.2s; }
+          .job-result-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #cbd5e0; }
+          
+          .job-result-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; }
+          .job-result-title { margin: 0 0 10px 0; font-size: 1.4em; color: #2d3748; }
+          .job-result-meta { display: flex; flex-wrap: wrap; gap: 15px; color: #718096; font-size: 0.9em; }
+          
+          .job-source-badge { background: #e2e8f0; color: #4a5568; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 600; }
+          
+          .job-result-body { margin: 15px 0; }
+          .job-result-details { display: flex; gap: 20px; margin-bottom: 12px; color: #4a5568; font-size: 0.95em; font-weight: 600; }
+          .job-description { color: #4a5568; line-height: 1.6; margin: 0; }
+          
+          .job-result-footer { display: flex; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 2px solid #f7fafc; }
+          .btn-save-job { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+          .btn-save-job:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(72, 187, 120, 0.4); }
+          .btn-view-job { background: #e2e8f0; color: #2d3748; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+          .btn-view-job:hover { background: #cbd5e0; }
+          
+          @media (max-width: 768px) {
+            .job-result-header { flex-direction: column; gap: 15px; }
+            .job-result-footer { flex-direction: column; }
+          }
+        ',
+      ],
+    ];
+    
+    // Wrap with navigation
+    $build = [
+      '#theme' => 'job_application_dashboard_wrapper',
+      '#navigation' => $navigation_block,
+      '#content' => $content,
+      '#attached' => [
+        'library' => [
+          'job_hunter/job-hunter-navigation',
+          'job_hunter/job-hunter-home',
+        ],
+      ],
+    ];
+    
+    return $build;
+  }
+  
+  /**
+   * Helper method to truncate text to a specified length.
+   *
+   * @param string $text
+   *   The text to truncate.
+   * @param int $length
+   *   The maximum length.
+   *
+   * @return string
+   *   The truncated text with ellipsis if needed.
+   */
+  private function truncateText($text, $length = 200) {
+    $text = strip_tags($text);
+    if (strlen($text) <= $length) {
+      return $text;
+    }
+    return substr($text, 0, $length) . '...';
   }
 
   /**
