@@ -68,8 +68,13 @@ class GoogleJobsIntegrationController extends ControllerBase {
     // Get recent job postings with sync status
     $recent_jobs = $this->getRecentJobsWithSyncStatus(10);
     
-    // Attach library
-    $build = [
+    // Render the navigation block
+    $block_manager = \Drupal::service('plugin.manager.block');
+    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
+    $navigation_block = $plugin_block->build();
+    
+    // Build content
+    $content = [
       '#theme' => 'google_jobs_integration_home',
       '#stats' => $stats,
       '#recent_jobs' => $recent_jobs,
@@ -79,6 +84,13 @@ class GoogleJobsIntegrationController extends ControllerBase {
           'job_hunter/google_jobs_integration',
         ],
       ],
+    ];
+    
+    // Wrap with navigation
+    $build = [
+      '#theme' => 'job_application_dashboard_wrapper',
+      '#navigation' => $navigation_block,
+      '#content' => $content,
     ];
     
     return $build;
@@ -256,7 +268,13 @@ class GoogleJobsIntegrationController extends ControllerBase {
       $sync_validation_errors = json_decode($sync->validation_errors, TRUE) ?: [];
     }
 
-    $build = [
+    // Render the navigation block
+    $block_manager = \Drupal::service('plugin.manager.block');
+    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
+    $navigation_block = $plugin_block->build();
+
+    // Build content
+    $content = [
       '#theme' => 'google_jobs_job_detail',
       '#job' => $job,
       '#company' => $company,
@@ -268,6 +286,13 @@ class GoogleJobsIntegrationController extends ControllerBase {
           'job_hunter/google_jobs_integration',
         ],
       ],
+    ];
+    
+    // Wrap with navigation
+    $build = [
+      '#theme' => 'job_application_dashboard_wrapper',
+      '#navigation' => $navigation_block,
+      '#content' => $content,
     ];
     
     return $build;

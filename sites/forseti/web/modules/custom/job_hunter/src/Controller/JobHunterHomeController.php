@@ -441,7 +441,13 @@ class JobHunterHomeController extends ControllerBase {
     // Check database table health
     $table_health = $this->checkTableHealth();
     
-    return [
+    // Render the navigation block
+    $block_manager = \Drupal::service('plugin.manager.block');
+    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
+    $navigation_block = $plugin_block->build();
+    
+    // Build content
+    $content = [
       '#theme' => 'job_hunter_queue_management',
       '#queue_items' => $queue_items,
       '#queue_status' => $this->getQueueStatus(),
@@ -453,6 +459,15 @@ class JobHunterHomeController extends ControllerBase {
         ],
       ],
     ];
+    
+    // Wrap with navigation
+    $build = [
+      '#theme' => 'job_application_dashboard_wrapper',
+      '#navigation' => $navigation_block,
+      '#content' => $content,
+    ];
+    
+    return $build;
   }
 
   /**
