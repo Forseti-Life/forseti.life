@@ -2941,16 +2941,70 @@ class UserProfileForm extends FormBase {
         },
       ],
       'field_linkedin_url' => [
-        'json_path' => ['contact_info', 'linkedin'],
+        'json_path' => ['contact_info'],
         'db_column' => 'linkedin_url',
+        'transform' => function($val) {
+          // Extract LinkedIn URL from websites array (new schema) or direct property (old schema)
+          if (is_array($val)) {
+            // Check new schema: contact_info.websites array
+            if (isset($val['websites']) && is_array($val['websites'])) {
+              foreach ($val['websites'] as $site) {
+                if (is_array($site) && isset($site['type']) && $site['type'] === 'linkedin' && !empty($site['url'])) {
+                  return $site['url'];
+                }
+              }
+            }
+            // Check old schema: contact_info.linkedin as direct property
+            if (isset($val['linkedin']) && is_string($val['linkedin'])) {
+              return $val['linkedin'];
+            }
+          }
+          return '';
+        },
       ],
       'field_github_url' => [
-        'json_path' => ['contact_info', 'github'],
+        'json_path' => ['contact_info'],
         'db_column' => 'github_url',
+        'transform' => function($val) {
+          // Extract GitHub URL from websites array (new schema) or direct property (old schema)
+          if (is_array($val)) {
+            // Check new schema: contact_info.websites array
+            if (isset($val['websites']) && is_array($val['websites'])) {
+              foreach ($val['websites'] as $site) {
+                if (is_array($site) && isset($site['type']) && $site['type'] === 'github' && !empty($site['url'])) {
+                  return $site['url'];
+                }
+              }
+            }
+            // Check old schema: contact_info.github as direct property
+            if (isset($val['github']) && is_string($val['github'])) {
+              return $val['github'];
+            }
+          }
+          return '';
+        },
       ],
       'field_portfolio_url' => [
-        'json_path' => ['contact_info', 'portfolio'],
+        'json_path' => ['contact_info'],
         'db_column' => 'portfolio_url',
+        'transform' => function($val) {
+          // Extract portfolio/personal website URL from websites array (new schema) or direct property (old schema)
+          if (is_array($val)) {
+            // Check new schema: contact_info.websites array
+            if (isset($val['websites']) && is_array($val['websites'])) {
+              foreach ($val['websites'] as $site) {
+                if (is_array($site) && isset($site['type']) && in_array($site['type'], ['portfolio', 'personal']) && !empty($site['url'])) {
+                  return $site['url'];
+                }
+              }
+            }
+            // Check old schema: contact_info.portfolio as direct property
+            if (isset($val['portfolio']) && is_string($val['portfolio'])) {
+              return $val['portfolio'];
+            }
+          }
+          return '';
+        },
       ],
       'field_target_job_titles' => [
         'json_path' => ['job_search_preferences', 'target_titles'],
