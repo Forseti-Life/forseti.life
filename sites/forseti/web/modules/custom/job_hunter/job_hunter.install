@@ -115,11 +115,12 @@ function _job_hunter_create_companies_table() {
       'location' => ['type' => 'varchar', 'length' => 255],
       'active' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 1],
       'notes' => ['type' => 'text', 'size' => 'big'],
+      'cloud_talent_company_name' => ['type' => 'varchar', 'length' => 255, 'description' => 'Company resource name in Google Cloud Talent Solution API (e.g., projects/{project}/companies/{company})'],
       'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
       'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
     ],
     'primary key' => ['id'],
-    'indexes' => ['active' => ['active'], 'name' => ['name']],
+    'indexes' => ['active' => ['active'], 'name' => ['name'], 'cloud_talent_company_name' => ['cloud_talent_company_name']],
   ];
   
   $schema->createTable('jobhunter_companies', $table_schema);
@@ -158,9 +159,12 @@ function _job_hunter_create_job_requirements_table() {
       'keywords_json' => ['type' => 'text', 'size' => 'big', 'description' => 'Important keywords from posting'],
       'source_platform' => ['type' => 'varchar', 'length' => 100, 'description' => 'linkedin, indeed, company_site, etc.'],
       'ai_extraction_status' => ['type' => 'varchar', 'length' => 32, 'default' => 'pending', 'description' => 'pending, completed, failed'],
+      'external_source' => ['type' => 'varchar', 'length' => 100, 'description' => 'External source: cloud_talent_solution, linkedin, indeed, etc.'],
+      'external_job_id' => ['type' => 'varchar', 'length' => 512, 'description' => 'External job ID from source system'],
+      'potential_duplicates_json' => ['type' => 'text', 'size' => 'medium', 'description' => 'JSON array of potential duplicate job IDs with similarity scores'],
     ],
     'primary key' => ['id'],
-    'indexes' => ['company_id' => ['company_id'], 'status' => ['status']],
+    'indexes' => ['company_id' => ['company_id'], 'status' => ['status'], 'external_job_id' => [['external_job_id', 100]]],
   ];
   
   $schema->createTable('jobhunter_job_requirements', $table_schema);
@@ -283,6 +287,8 @@ function _job_hunter_create_resume_parsed_data_table() {
       'parsed_data' => ['type' => 'text', 'size' => 'big', 'description' => 'JSON data from AI parsing'],
       'status' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'pending'],
       'error_message' => ['type' => 'text'],
+      'raw_genai_response_core' => ['type' => 'text', 'size' => 'big', 'description' => 'Raw response from GenAI Call 1 (core profile) for debugging'],
+      'raw_genai_response_experience' => ['type' => 'text', 'size' => 'big', 'description' => 'Raw response from GenAI Call 2 (professional experience) for debugging'],
       'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
       'changed' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
     ],
@@ -438,6 +444,8 @@ function _job_hunter_create_tailored_resumes_table() {
       'tailoring_status' => ['type' => 'varchar', 'length' => 32, 'default' => 'pending', 'description' => 'pending, completed, failed'],
       'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
       'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'pdf_path' => ['type' => 'varchar', 'length' => 512, 'description' => 'Path to generated PDF file'],
+      'pdf_generated' => ['type' => 'int', 'default' => 0, 'description' => 'Timestamp when PDF was generated'],
     ],
     'primary key' => ['id'],
     'unique keys' => ['user_job' => ['uid', 'job_id']],
