@@ -55,3 +55,17 @@ job_hunter.google_jobs_integration:
   description: 'Manage Google for Jobs integration with Schema.org structured data'
   parent: job_hunter.admin
   weight: 4
+
+job_hunter.google_jobs_search:
+  title: 'Google Jobs Search'
+  route_name: job_hunter.google_jobs_search
+  description: 'Search and import jobs from Google Cloud Talent Solution API'
+  parent: job_hunter.admin
+  weight: 5
+
+job_hunter.settings_menu:
+  title: 'Settings'
+  route_name: job_hunter.settings
+  description: 'Configure Job Hunter module settings including Google Cloud credentials'
+  parent: job_hunter.admin
+  weight: 10

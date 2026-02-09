@@ -56,6 +56,8 @@ function job_hunter_install() {
     _job_hunter_create_tailored_resumes_table();
     _job_hunter_create_google_jobs_sync_table();
     _job_hunter_create_google_jobs_validation_log_table();
+    _job_hunter_create_job_search_queries_table();
+    _job_hunter_create_job_search_results_table();
     
     $messenger->addMessage(t('Job Hunter module installed successfully. Custom database tables created.'));
     $logger->info('Job Hunter module installation completed.');
@@ -763,3 +765,316 @@ function _job_hunter_create_google_jobs_validation_log_table() {
   
   $schema->createTable('jobhunter_google_jobs_validation_log', $table_schema);
 }
+
+/**
+ * Create jobhunter_job_search_queries table.
+ * 
+ * Tracks all search queries sent to Cloud Talent Solution API.
+ */
+function _job_hunter_create_job_search_queries_table() {
+  $schema = \Drupal::database()->schema();
+  
+  if ($schema->tableExists('jobhunter_job_search_queries')) {
+    return;
+  }
+  
+  $table_schema = [
+    'description' => 'Tracks search queries sent to Google Cloud Talent Solution API',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'User ID who performed the search',
+      ],
+      'query_text' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'description' => 'Search query text',
+      ],
+      'location' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'description' => 'Location filter',
+      ],
+      'search_params_json' => [
+        'type' => 'text',
+        'size' => 'medium',
+        'description' => 'Complete JSON of all search parameters sent to API',
+      ],
+      'company_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'description' => 'Company name filter',
+      ],
+      'employment_types' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'description' => 'Comma-separated employment types (FULL_TIME, PART_TIME, etc.)',
+      ],
+      'job_categories' => [
+        'type' => 'text',
+        'description' => 'Comma-separated job categories',
+      ],
+      'page_token' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'description' => 'Pagination token used for this query',
+      ],
+      'page_size' => [
+        'type' => 'int',
+        'default' => 10,
+        'description' => 'Number of results requested',
+      ],
+      'total_results' => [
+        'type' => 'int',
+        'default' => 0,
+        'description' => 'Total number of results returned by API',
+      ],
+      'next_page_token' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'description' => 'Next page token returned by API',
+      ],
+      'api_response_time_ms' => [
+        'type' => 'int',
+        'description' => 'API response time in milliseconds',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'default' => 'completed',
+        'description' => 'Status: completed, error, timeout',
+      ],
+      'error_message' => [
+        'type' => 'text',
+        'description' => 'Error message if status is error',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Timestamp when search was performed',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid' => ['uid'],
+      'status' => ['status'],
+      'created' => ['created'],
+      'query_text' => [['query_text', 100]],
+      'location' => [['location', 100]],
+      'company_name' => [['company_name', 100]],
+    ],
+  ];
+  
+  $schema->createTable('jobhunter_job_search_queries', $table_schema);
+}
+
+/**
+ * Create jobhunter_job_search_results table.
+ * 
+ * Stores individual job results from each search query.
+ */
+function _job_hunter_create_job_search_results_table() {
+  $schema = \Drupal::database()->schema();
+  
+  if ($schema->tableExists('jobhunter_job_search_results')) {
+    return;
+  }
+  
+  $table_schema = [
+    'description' => 'Stores individual job results from Cloud Talent Solution API searches',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary key',
+      ],
+      'search_query_id' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Reference to jobhunter_job_search_queries.id',
+      ],
+      'external_job_id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Google job ID (e.g., projects/{project}/companies/{company}/jobs/{job})',
+      ],
+      'job_title' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'description' => 'Job title from search result',
+      ],
+      'company_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'description' => 'Company name from search result',
+      ],
+      'location' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'description' => 'Job location',
+      ],
+      'job_data_json' => [
+        'type' => 'text',
+        'size' => 'big',
+        'description' => 'Complete JSON data of the job from API',
+      ],
+      'rank_position' => [
+        'type' => 'int',
+        'description' => 'Position in search results (1-based)',
+      ],
+      'imported_to_job_id' => [
+        'type' => 'int',
+        'description' => 'Reference to jobhunter_job_requirements.id if imported',
+      ],
+      'imported_at' => [
+        'type' => 'int',
+        'description' => 'Timestamp when job was imported, NULL if not imported',
+      ],
+      'imported_by_uid' => [
+        'type' => 'int',
+        'description' => 'User ID who imported this job',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Timestamp when result was stored',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'search_query_id' => ['search_query_id'],
+      'external_job_id' => [['external_job_id', 100]],
+      'imported_to_job_id' => ['imported_to_job_id'],
+      'imported_at' => ['imported_at'],
+      'job_title' => [['job_title', 100]],
+      'company_name' => [['company_name', 100]],
+      'created' => ['created'],
+    ],
+  ];
+  
+  $schema->createTable('jobhunter_job_search_results', $table_schema);
+}
+
+/**
+ * Create Google Cloud Talent Solution search tracking tables.
+ */
+function job_hunter_update_9014() {
+  _job_hunter_create_job_search_queries_table();
+  _job_hunter_create_job_search_results_table();
+  return t('Created job search tracking tables: jobhunter_job_search_queries and jobhunter_job_search_results.');
+}
+
+/**
+ * Add cloud_talent_company_name column to jobhunter_companies table.
+ */
+function job_hunter_update_9015() {
+  $schema = \Drupal::database()->schema();
+  
+  if (!$schema->tableExists('jobhunter_companies')) {
+    return t('Table jobhunter_companies does not exist.');
+  }
+  
+  if ($schema->fieldExists('jobhunter_companies', 'cloud_talent_company_name')) {
+    return t('Column cloud_talent_company_name already exists.');
+  }
+  
+  $schema->addField('jobhunter_companies', 'cloud_talent_company_name', [
+    'type' => 'varchar',
+    'length' => 255,
+    'description' => 'Company resource name in Google Cloud Talent Solution API (e.g., projects/{project}/companies/{company})',
+  ]);
+  
+  $schema->addIndex('jobhunter_companies', 'cloud_talent_company_name', ['cloud_talent_company_name']);
+  
+  return t('Added cloud_talent_company_name column to jobhunter_companies table.');
+}
+
+/**
+ * Add external source tracking columns to jobhunter_job_requirements.
+ */
+function job_hunter_update_9016() {
+  $schema = \Drupal::database()->schema();
+  $messages = [];
+  
+  if (!$schema->tableExists('jobhunter_job_requirements')) {
+    return t('Table jobhunter_job_requirements does not exist.');
+  }
+  
+  // Add external_source column
+  if (!$schema->fieldExists('jobhunter_job_requirements', 'external_source')) {
+    $schema->addField('jobhunter_job_requirements', 'external_source', [
+      'type' => 'varchar',
+      'length' => 100,
+      'description' => 'External source: cloud_talent_solution, linkedin, indeed, etc.',
+    ]);
+    $messages[] = 'Added external_source column';
+  }
+  
+  // Add external_job_id column
+  if (!$schema->fieldExists('jobhunter_job_requirements', 'external_job_id')) {
+    $schema->addField('jobhunter_job_requirements', 'external_job_id', [
+      'type' => 'varchar',
+      'length' => 512,
+      'description' => 'External job ID from source system',
+    ]);
+    $schema->addIndex('jobhunter_job_requirements', 'external_job_id', [['external_job_id', 100]]);
+    $messages[] = 'Added external_job_id column';
+  }
+  
+  // Add created_by_user_id column
+  if (!$schema->fieldExists('jobhunter_job_requirements', 'created_by_user_id')) {
+    $schema->addField('jobhunter_job_requirements', 'created_by_user_id', [
+      'type' => 'int',
+      'description' => 'User ID who created/imported this job',
+    ]);
+    $messages[] = 'Added created_by_user_id column';
+  }
+  
+  // Add application_url column
+  if (!$schema->fieldExists('jobhunter_job_requirements', 'application_url')) {
+    $schema->addField('jobhunter_job_requirements', 'application_url', [
+      'type' => 'varchar',
+      'length' => 512,
+      'description' => 'Direct application URL for the job',
+    ]);
+    $messages[] = 'Added application_url column';
+  }
+  
+  // Add created_at and updated_at timestamp columns (complement existing created/updated)
+  if (!$schema->fieldExists('jobhunter_job_requirements', 'created_at')) {
+    $schema->addField('jobhunter_job_requirements', 'created_at', [
+      'type' => 'varchar',
+      'length' => 50,
+      'description' => 'ISO 8601 timestamp when job was created',
+    ]);
+    $messages[] = 'Added created_at column';
+  }
+  
+  if (!$schema->fieldExists('jobhunter_job_requirements', 'updated_at')) {
+    $schema->addField('jobhunter_job_requirements', 'updated_at', [
+      'type' => 'varchar',
+      'length' => 50,
+      'description' => 'ISO 8601 timestamp when job was last updated',
+    ]);
+    $messages[] = 'Added updated_at column';
+  }
+  
+  if (empty($messages)) {
+    return t('No update needed - all columns already exist.');
+  }
+  
+  return t('Updated jobhunter_job_requirements table: @changes', [
+    '@changes' => implode(', ', $messages),
+  ]);
+}
+

@@ -5,13 +5,6 @@ forseti.about:
   weight: -40
   expanded: true
 
-forseti.about_overview:
-  title: 'About'
-  route_name: forseti.about
-  menu_name: main
-  parent: forseti.about
-  weight: -40
-
 forseti.legal:
   title: 'Legal'
   route_name: forseti.legal
@@ -32,13 +25,6 @@ forseti.talk_with_forseti:
   menu_name: main
   weight: -25
 
-forseti.how_it_works_overview:
-  title: 'How It Works'
-  route_name: forseti.how_it_works
-  menu_name: main
-  parent: forseti.how_it_works
-  weight: -30
-
 forseti.agent_hierarchy:
   title: 'Agent Power Framework'
   route_name: forseti.agent_hierarchy
@@ -52,15 +38,3 @@ forseti.example_entities:
   menu_name: main
   parent: forseti.how_it_works
   weight: -22
-
-forseti.institutional:
-  title: 'Family & Institutions'
-  route_name: institutional_management.landing
-  menu_name: main
-  weight: 5
-
-job_hunter.main_menu:
-  title: 'Job Hunter'
-  route_name: job_hunter.dashboard
-  menu_name: main
-  weight: 10

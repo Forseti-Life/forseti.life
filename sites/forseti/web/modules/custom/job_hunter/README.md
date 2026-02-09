@@ -31,16 +31,17 @@ To remove content types/fields after uninstall: Structure > Content types > Dele
 
 ### Initial Setup
 
-1. **Set Original Resume Node** - Navigate to `/admin/config/job-application/settings`
+1. **Set Original Resume Node** - Navigate to `/jobhunter/settings` (Admin > Job Hunter > Settings)
 2. **Select Resume Node** - Use autocomplete to select your master resume node
 3. **Enable Automatic Tailoring** - Check the box to enable automatic resume generation when job postings are created
 4. **Configure AI Settings** (optional) - AWS Bedrock region, model ID, and max tokens are preset but customizable
+5. **Configure Google Cloud Credentials** - Add your service account JSON key for Cloud Talent Solution API access
 
 The module uses AWS Bedrock with Claude 3.5 Sonnet by default. Ensure your environment has proper AWS credentials configured.
 
 ### Original Resume Selection
 
-The module requires a designated "Original Resume" node to generate tailored versions. Configure this at `/admin/config/job-application/settings`:
+The module requires a designated "Original Resume" node to generate tailored versions. Configure this at `/jobhunter/settings`:
 
 - **Configuration-based (Recommended)**: Admin selects the resume node via entity autocomplete in settings form
 - **Fallback (Legacy)**: System searches for a resume node titled "Original Resume" if not configured
@@ -436,7 +437,7 @@ User clicks "Generate" → tailorResumeAjax()
 - **Admin Dashboard:** `/admin/job-applications` - System overview and analytics
 - **Error Queue:** `/admin/job-applications/queue` - Failed workflow management
 - **User Management:** `/admin/job-applications/users` - User profile and credential oversight
-- **System Settings:** `/admin/config/services/job-application-automation` - Module configuration
+- **System Settings:** `/jobhunter/settings` (Admin > Job Hunter > Settings) - Module configuration
 - **Scraping Management:** `/admin/job-applications/scraping` - Job discovery configuration
 
 ## Permissions & Security

@@ -1,7 +1,7 @@
 # Google Job Search API Integration Guide
 
-**Last Updated**: February 6, 2026  
-**Status**: 🟢 Complete  
+**Last Updated**: February 9, 2026  
+**Status**: 🟡 In Progress - Migrating to Cloud Talent Solution API  
 **Module**: job_hunter
 
 ---
@@ -9,18 +9,19 @@
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [What is Google for Jobs](#what-is-google-for-jobs)
-3. [Prerequisites](#prerequisites)
-4. [Integration Methods](#integration-methods)
-5. [Structured Data Implementation](#structured-data-implementation)
-6. [Schema.org JobPosting Specification](#schemaorg-jobposting-specification)
-7. [Implementation Examples](#implementation-examples)
-8. [Testing and Validation](#testing-and-validation)
-9. [Best Practices](#best-practices)
-10. [Common Pitfalls](#common-pitfalls)
-11. [SEO Optimization](#seo-optimization)
-12. [Monitoring and Maintenance](#monitoring-and-maintenance)
-13. [Additional Resources](#additional-resources)
+2. [Cloud Talent Solution API Setup](#cloud-talent-solution-api-setup)
+3. [What is Google for Jobs](#what-is-google-for-jobs)
+4. [Prerequisites](#prerequisites)
+5. [Integration Methods](#integration-methods)
+6. [Structured Data Implementation](#structured-data-implementation)
+7. [Schema.org JobPosting Specification](#schemaorg-jobposting-specification)
+8. [Implementation Examples](#implementation-examples)
+9. [Testing and Validation](#testing-and-validation)
+10. [Best Practices](#best-practices)
+11. [Common Pitfalls](#common-pitfalls)
+12. [SEO Optimization](#seo-optimization)
+13. [Monitoring and Maintenance](#monitoring-and-maintenance)
+14. [Additional Resources](#additional-resources)
 
 ---
 
@@ -35,6 +36,95 @@ This guide provides comprehensive documentation for integrating the `job_hunter`
 - **Better Qualified Candidates**: Users can filter by location, job type, date posted, etc.
 - **No Cost**: Free to implement and use (unlike paid job boards)
 - **Mobile Optimization**: Jobs appear in Google Search mobile app with excellent UX
+
+---
+
+## Cloud Talent Solution API Setup
+
+**Google Cloud Project**: forseti-483518  
+**API**: Cloud Talent Solution (Google Enterprise API)  
+**Status**: 🔴 Requires Configuration
+
+The Cloud Talent Solution API provides enterprise-level capabilities to create, read, update, and delete job postings programmatically, going beyond the basic structured data approach.
+
+### Service Account Configuration
+
+**Console URL**: [https://console.cloud.google.com/talent-solution/connect-service-accounts?project=forseti-483518](https://console.cloud.google.com/talent-solution/connect-service-accounts?project=forseti-483518)
+
+#### Connected Service Accounts
+
+| Name | Service Account ID | Key ID | Status |
+|------|-------------------|--------|--------|
+| forseti.life | `forseti-life@forseti-483518.iam.gserviceaccount.com` | No keys | ⚠️ Needs API Key |
+
+### Setup Requirements
+
+1. **Enable Cloud Talent Solution API**
+   ```bash
+   gcloud services enable jobs.googleapis.com --project=forseti-483518
+   ```
+
+2. **Create Service Account Key**
+   - Navigate to: [Service Accounts Console](https://console.cloud.google.com/talent-solution/connect-service-accounts?project=forseti-483518)
+   - Select the `forseti-life@forseti-483518.iam.gserviceaccount.com` service account
+   - Create a new JSON key
+   - Download and securely store the key file
+
+3. **Configure Permissions**
+   Required IAM roles for the service account:
+   - `roles/cloudtalentsolution.jobsEditor` - Create, update, delete jobs
+   - `roles/cloudtalentsolution.jobsViewer` - Read jobs
+   - `roles/cloudtalentsolution.profilesEditor` - Manage candidate profiles (optional)
+
+4. **Store API Credentials**
+   - Add the JSON key to Drupal configuration
+   - Use Drupal Key module for secure storage (recommended)
+   - Or store in `job_hunter.settings` configuration
+   - **Settings Page**: `/jobhunter/settings` (Admin > Job Hunter > Settings)
+
+### API Capabilities
+
+Unlike basic structured data, the Cloud Talent Solution API provides:
+
+- **Job Management**: Full CRUD operations for job postings
+- **Company Management**: Create and manage company profiles
+- **Advanced Search**: AI-powered job matching and search
+- **Commute Search**: Find jobs by commute time
+- **Autocomplete**: Job title and location suggestions
+- **Analytics**: Track job performance metrics
+- **Batch Operations**: Bulk import/update jobs
+- **Real-time Updates**: Immediate job posting updates
+
+### Integration Approach
+
+This module uses a **hybrid approach**:
+
+1. **Schema.org Markup** (Current)
+   - For public job posting pages
+   - Free, simple implementation
+   - Google crawls and indexes automatically
+
+2. **Cloud Talent Solution API** (In Progress)
+   - For programmatic job management
+   - Advanced search and matching
+   - Direct job posting to Google's index
+   - Enterprise features and analytics
+
+### Next Steps
+
+- [ ] Generate and download service account key
+- [ ] Configure API credentials in job_hunter module (`/jobhunter/settings`)
+- [ ] Implement CloudTalentSolutionService class
+- [ ] Create API endpoints for job CRUD operations
+- [ ] Add job search interface using API
+- [ ] Migrate from third-party scraping to direct API access
+
+### Reference Links
+
+- [Cloud Talent Solution Documentation](https://cloud.google.com/talent-solution/job-search/docs)
+- [API Reference](https://cloud.google.com/talent-solution/job-search/docs/reference/rest)
+- [Client Libraries](https://cloud.google.com/talent-solution/job-search/docs/libraries)
+- [Quotas and Limits](https://cloud.google.com/talent-solution/quotas)
 
 ---
 

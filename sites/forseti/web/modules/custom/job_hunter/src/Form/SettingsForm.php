@@ -96,7 +96,78 @@ class SettingsForm extends ConfigFormBase {
       '#max' => 50000,
     ];
 
+    $form['google_cloud_settings'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Google Cloud Talent Solution API'),
+      '#description' => $this->t('<p>Configure Google Cloud Talent Solution API for advanced job search capabilities.</p><p><strong>Project:</strong> forseti-483518<br><strong>Service Account:</strong> forseti-life@forseti-483518.iam.gserviceaccount.com</p><p>See the <a href="@doc_url" target="_blank">documentation</a> for setup instructions.</p>', [
+        '@doc_url' => '/jobhunter/documentation/google-jobs-integration',
+      ]),
+      '#open' => FALSE,
+    ];
+
+    $form['google_cloud_settings']['google_cloud_credentials'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Service Account JSON Key'),
+      '#description' => $this->t('Paste the contents of your Google Cloud service account JSON key file here. Get your key from the <a href="@url" target="_blank">Google Cloud Console</a>.', [
+        '@url' => 'https://console.cloud.google.com/talent-solution/connect-service-accounts?project=forseti-483518',
+      ]),
+      '#default_value' => $config->get('google_cloud_credentials') ?? '',
+      '#rows' => 5,
+      '#required' => FALSE,
+    ];
+
+    $form['google_cloud_settings']['test_credentials'] = [
+      '#type' => 'button',
+      '#value' => $this->t('Test API Connection'),
+      '#ajax' => [
+        'callback' => '::testGoogleCloudCredentials',
+        'wrapper' => 'google-cloud-test-result',
+      ],
+    ];
+
+    $form['google_cloud_settings']['test_result'] = [
+      '#type' => 'markup',
+      '#markup' => '<div id="google-cloud-test-result"></div>',
+    ];
+
     return parent::buildForm($form, $form_state);
+  }
+
+  /**
+   * AJAX callback to test Google Cloud credentials.
+   */
+  public function testGoogleCloudCredentials(array &$form, FormStateInterface $form_state) {
+    $credentials_json = $form_state->getValue('google_cloud_credentials');
+    
+    if (empty($credentials_json)) {
+      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" class="messages messages--error">Please enter your service account credentials first.</div>';
+      return $form['google_cloud_settings']['test_result'];
+    }
+
+    // Temporarily save and test the credentials
+    $temp_config = \Drupal::configFactory()->getEditable('job_hunter.settings');
+    $old_creds = $temp_config->get('google_cloud_credentials');
+    $temp_config->set('google_cloud_credentials', $credentials_json)->save();
+
+    try {
+      $service = \Drupal::service('job_hunter.cloud_talent_solution');
+      $valid = $service->checkApiCredentials();
+      
+      if ($valid) {
+        $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" class="messages messages--status">✓ Successfully connected to Cloud Talent Solution API!</div>';
+      }
+      else {
+        $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" class="messages messages--error">✗ Connection test failed. Please check your credentials and project configuration.</div>';
+      }
+    }
+    catch (\Exception $e) {
+      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" class="messages messages--error">✗ Error: ' . $e->getMessage() . '</div>';
+    }
+
+    // Restore old credentials
+    $temp_config->set('google_cloud_credentials', $old_creds)->save();
+
+    return $form['google_cloud_settings']['test_result'];
   }
 
   /**
@@ -109,6 +180,7 @@ class SettingsForm extends ConfigFormBase {
       ->set('ai_service_region', $form_state->getValue('ai_service_region'))
       ->set('ai_model_id', $form_state->getValue('ai_model_id'))
       ->set('max_tokens', $form_state->getValue('max_tokens'))
+      ->set('google_cloud_credentials', $form_state->getValue('google_cloud_credentials'))
       ->save();
 
     parent::submitForm($form, $form_state);

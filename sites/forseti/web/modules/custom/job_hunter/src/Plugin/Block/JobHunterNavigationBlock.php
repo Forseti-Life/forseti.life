@@ -87,7 +87,7 @@ class JobHunterNavigationBlock extends BlockBase implements ContainerFactoryPlug
       'report_problem' => [
         'title' => $this->t('Report a Problem'),
         'subtitle' => $this->t('We are in BETA'),
-        'url' => Url::fromRoute('forseti_content.contact'),
+        'url' => Url::fromRoute('forseti.talk_with_forseti'),
         'icon' => 'exclamation-circle',
         'weight' => 90,
         'classes' => 'report-problem-beta',

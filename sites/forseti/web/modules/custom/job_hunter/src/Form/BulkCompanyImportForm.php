@@ -53,14 +53,14 @@ class BulkCompanyImportForm extends FormBase {
     
     $form['header'] = [
       '#type' => 'markup',
-      '#markup' => '<h2>Bulk Import Companies</h2>
-                    <p>Enter company names, one per line. Each company will be created as a new company node.</p>',
+      '#markup' => '<h2>Add Companies</h2>
+                    <p><strong>Enter one company name per line.</strong> You can add a single company or import multiple companies at once.</p>',
     ];
 
     $form['company_list'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Company Names'),
-      '#description' => $this->t('Enter company names, one per line. For example:<br/>
+      '#title' => $this->t('Company Names (one per line)'),
+      '#description' => $this->t('Enter one company name per line. For example:<br/>
                                  Google<br/>
                                  Microsoft<br/>
                                  Apple<br/>

@@ -264,24 +264,105 @@ class JobApplicationController extends ControllerBase {
                      </div>
                      <div class="phase-actions">
                        <a href="/jobhunter/target-companies" class="phase-button">Manage Companies</a>
+                       <a href="/jobhunter/bulk-import-companies" class="phase-button primary">+ Add Companies</a>
                      </div>',
       ],
     ];
     
-    // Future steps placeholder
-    $build['automated_future'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'div',
-      '#attributes' => ['class' => ['future-steps']],
-      '#value' => '<div class="future-placeholder">
-                     <p><strong>Coming Soon:</strong></p>
-                     <ul>
-                       <li>Step 3: AI Job Discovery - Find matching jobs at target companies</li>
-                       <li>Step 4: Application Submission - Auto-apply with tailored resumes</li>
-                       <li>Step 5: Interview & Follow-up - Track application status</li>
-                       <li>Step 6: Analytics - Measure success rates and optimize</li>
-                     </ul>
-                   </div>',
+    // Step 3: AI Job Discovery
+    $build['automated_step3'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['phase-section', 'phase-discovery', 'disabled']],
+      'content' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['phase-content']],
+        '#value' => '<div class="step-indicator">Step 3</div>
+                     <div class="phase-info">
+                       <h3>AI Job Discovery</h3>
+                       <p>Find matching jobs at target companies using AI-powered search.</p>
+                     </div>
+                     <div class="phase-stat">
+                       <div class="stat-number">0</div>
+                       <div class="stat-label">Jobs Found</div>
+                     </div>
+                     <div class="phase-actions">
+                       <a href="/jobhunter/job-discovery" class="phase-button">Start Discovery</a>
+                     </div>
+                     <div class="coming-soon-badge">Coming Soon</div>',
+      ],
+    ];
+    
+    // Step 4: Application Submission
+    $build['automated_step4'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['phase-section', 'phase-submission', 'disabled']],
+      'content' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['phase-content']],
+        '#value' => '<div class="step-indicator">Step 4</div>
+                     <div class="phase-info">
+                       <h3>Application Submission</h3>
+                       <p>Auto-apply to jobs with tailored resumes and cover letters.</p>
+                     </div>
+                     <div class="phase-stat">
+                       <div class="stat-number">0</div>
+                       <div class="stat-label">Auto-Applied</div>
+                     </div>
+                     <div class="phase-actions">
+                       <a href="/jobhunter/application-submission" class="phase-button">View Submissions</a>
+                     </div>
+                     <div class="coming-soon-badge">Coming Soon</div>',
+      ],
+    ];
+    
+    // Step 5: Interview & Follow-up
+    $build['automated_step5'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['phase-section', 'phase-interview', 'disabled']],
+      'content' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['phase-content']],
+        '#value' => '<div class="step-indicator">Step 5</div>
+                     <div class="phase-info">
+                       <h3>Interview & Follow-up</h3>
+                       <p>Track application status, schedule interviews, and manage follow-ups.</p>
+                     </div>
+                     <div class="phase-stat">
+                       <div class="stat-number">0</div>
+                       <div class="stat-label">Interviews</div>
+                     </div>
+                     <div class="phase-actions">
+                       <a href="/jobhunter/interview-followup" class="phase-button">Manage Pipeline</a>
+                     </div>
+                     <div class="coming-soon-badge">Coming Soon</div>',
+      ],
+    ];
+    
+    // Step 6: Analytics & Optimization
+    $build['automated_step6'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['phase-section', 'phase-analytics', 'disabled']],
+      'content' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['phase-content']],
+        '#value' => '<div class="step-indicator">Step 6</div>
+                     <div class="phase-info">
+                       <h3>Analytics & Optimization</h3>
+                       <p>Measure success rates, identify patterns, and optimize your strategy.</p>
+                     </div>
+                     <div class="phase-stat">
+                       <div class="stat-number">--</div>
+                       <div class="stat-label">Success Rate</div>
+                     </div>
+                     <div class="phase-actions">
+                       <a href="/jobhunter/analytics" class="phase-button">View Analytics</a>
+                     </div>
+                     <div class="coming-soon-badge">Coming Soon</div>',
+      ],
     ];
     
     // Add CSS styles
@@ -304,11 +385,28 @@ class JobApplicationController extends ControllerBase {
           .status-badge.not-implemented { background: #fbd38d; color: #744210; }
           
           /* Phase Sections */
-          .phase-section { background: white; border: 2px solid #e2e8f0; border-radius: 12px; margin: 15px 0; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+          .phase-section { background: white; border: 2px solid #e2e8f0; border-radius: 12px; margin: 15px 0; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; }
           .phase-section.disabled { opacity: 0.7; }
           .phase-profile { border-left: 5px solid #48bb78; }
           .phase-tailoring { border-left: 5px solid #d69e2e; }
           .phase-companies { border-left: 5px solid #4299e1; }
+          .phase-discovery { border-left: 5px solid #9f7aea; }
+          .phase-submission { border-left: 5px solid #ed8936; }
+          .phase-interview { border-left: 5px solid #f56565; }
+          .phase-analytics { border-left: 5px solid #38b2ac; }
+          
+          /* Coming Soon Badge */
+          .coming-soon-badge { 
+            position: absolute; 
+            top: 10px; 
+            right: 10px; 
+            background: #fbd38d; 
+            color: #744210; 
+            padding: 4px 12px; 
+            border-radius: 20px; 
+            font-size: 0.7em; 
+            font-weight: bold;
+          }
           
           /* Phase Content */
           .phase-content { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
@@ -442,7 +540,7 @@ class JobApplicationController extends ControllerBase {
       '#tag' => 'div',
       '#attributes' => ['class' => ['target-companies-header']],
       '#value' => '<h2>🎯 Target Companies</h2>
-                   <p class="subtitle">Build your list of companies you want to work for</p>
+                   <p class="subtitle">Manage your list of companies you want to work for</p>
                    <div class="stats-bar">
                      <div class="stat"><span class="stat-number">' . $total_companies . '</span> Total Companies</div>
                      <div class="stat"><span class="stat-number">' . $active_companies . '</span> Active</div>
@@ -455,8 +553,7 @@ class JobApplicationController extends ControllerBase {
       '#type' => 'html_tag',
       '#tag' => 'div',
       '#attributes' => ['class' => ['action-bar']],
-      '#value' => '<a href="/jobhunter/companies/add" class="btn-add-company">+ Add Company</a>
-                   <a href="/jobhunter/bulk-import-companies" class="btn-bulk-import">📋 Bulk Import</a>',
+      '#value' => '<a href="/jobhunter/bulk-import-companies" class="btn-add-company">+ Add Companies</a>',
     ];
     
     // Get companies from job postings (extracted via AI)
@@ -524,7 +621,7 @@ class JobApplicationController extends ControllerBase {
         '#value' => '<div class="empty-icon">🏢</div>
                      <h3>No Target Companies Yet</h3>
                      <p>Start by adding companies you\'re interested in working for.</p>
-                     <a href="/jobhunter/companies/add" class="btn-primary">Add Your First Company</a>',
+                     <a href="/jobhunter/bulk-import-companies" class="btn-primary">Add Your First Company</a>',
       ];
     } else {
       // Build companies table
@@ -591,10 +688,8 @@ class JobApplicationController extends ControllerBase {
           .stat-number { font-size: 1.8em; font-weight: bold; color: #2c5282; display: block; }
           .stat-label { font-size: 0.9em; color: #666; }
           .action-bar { margin: 20px 0; display: flex; gap: 10px; }
-          .btn-add-company, .btn-bulk-import { padding: 12px 24px; background: #48bb78; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; }
-          .btn-bulk-import { background: #4299e1; }
+          .btn-add-company { padding: 12px 24px; background: #48bb78; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; }
           .btn-add-company:hover { background: #38a169; }
-          .btn-bulk-import:hover { background: #3182ce; }
           .empty-state { text-align: center; padding: 60px 20px; background: #f8f9fa; border-radius: 12px; margin: 30px 0; }
           .empty-icon { font-size: 4em; margin-bottom: 20px; }
           .empty-state h3 { margin: 0 0 10px 0; font-size: 1.5em; }
@@ -1032,6 +1127,338 @@ class JobApplicationController extends ControllerBase {
     arsort($companies);
     
     return $companies;
+  }
+
+  /**
+   * Step 3: AI Job Discovery page.
+   *
+   * @return array
+   *   A renderable array for the job discovery page.
+   */
+  public function jobDiscovery() {
+    // Render the navigation block
+    $block_manager = \Drupal::service('plugin.manager.block');
+    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
+    $navigation_block = $plugin_block->build();
+    
+    // Check Google Cloud credentials
+    $has_credentials = FALSE;
+    $credentials_status = 'Not Configured';
+    $credentials_class = 'status-warning';
+    
+    try {
+      $config = \Drupal::config('job_hunter.settings');
+      $google_credentials = $config->get('google_cloud_credentials_json');
+      if (!empty($google_credentials)) {
+        $has_credentials = TRUE;
+        $credentials_status = 'Configured';
+        $credentials_class = 'status-success';
+      }
+    } catch (\Exception $e) {
+      \Drupal::logger('job_hunter')->error('Error checking credentials: @error', ['@error' => $e->getMessage()]);
+    }
+    
+    $content = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['job-discovery-page']],
+      'header' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h1',
+        '#value' => '🔍 AI Job Discovery',
+      ],
+      'description' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => 'Automatically find matching jobs at your target companies using AI-powered search integrations.',
+      ],
+      'integrations_section' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['integrations-section']],
+        '#value' => '
+          <h2>🔗 Job Search Integrations</h2>
+          <div class="integration-cards">
+            <div class="integration-card">
+              <div class="integration-header">
+                <div class="integration-icon">�️</div>
+                <div class="integration-info">
+                  <h3>Forseti Jobs Search</h3>
+                  <p>Search jobs you\'ve manually added and manage your application pipeline</p>
+                </div>
+              </div>
+              <div class="integration-status">
+                <div class="status-row">
+                  <span class="status-label">Status:</span>
+                  <span class="status-badge status-success">Active</span>
+                </div>
+                <div class="status-row">
+                  <span class="status-label">Features:</span>
+                  <span class="status-text">Manual Job Entry, Resume Tailoring, Application Tracking</span>
+                </div>
+              </div>
+              <div class="integration-actions">
+                <a href="/jobhunter/job-paste" class="btn btn-primary">➕ Add Job</a>
+                <a href="/jobhunter/jobs" class="btn btn-secondary">📋 View Jobs</a>
+              </div>
+            </div>
+            
+            <div class="integration-card">
+              <div class="integration-header">
+                <div class="integration-icon">�📊</div>
+                <div class="integration-info">
+                  <h3>Google Cloud Talent Solution</h3>
+                  <p>Search millions of jobs across the web using Google\'s AI-powered job search API</p>
+                </div>
+              </div>
+              <div class="integration-status">
+                <div class="status-row">
+                  <span class="status-label">API Status:</span>
+                  <span class="status-badge ' . $credentials_class . '">' . $credentials_status . '</span>
+                </div>
+                <div class="status-row">
+                  <span class="status-label">Features:</span>
+                  <span class="status-text">Job Search, Company Filtering, Location Search</span>
+                </div>
+              </div>
+              <div class="integration-actions">
+                ' . ($has_credentials ? 
+                  '<a href="/jobhunter/google-jobs-search" class="btn btn-primary">🔍 Search Jobs</a>
+                   <a href="/admin/config/forseti/job-hunter" class="btn btn-secondary">⚙️ Settings</a>' :
+                  '<a href="/admin/config/forseti/job-hunter" class="btn btn-warning">⚙️ Configure API</a>') . '
+              </div>
+            </div>
+            
+            <div class="integration-card disabled">
+              <div class="integration-header">
+                <div class="integration-icon">💼</div>
+                <div class="integration-info">
+                  <h3>LinkedIn Jobs API</h3>
+                  <p>Access professional network job postings and company data</p>
+                </div>
+              </div>
+              <div class="integration-status">
+                <div class="status-row">
+                  <span class="status-label">API Status:</span>
+                  <span class="status-badge status-inactive">Coming Soon</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="integration-card disabled">
+              <div class="integration-header">
+                <div class="integration-icon">🌐</div>
+                <div class="integration-info">
+                  <h3>Indeed Job Search</h3>
+                  <p>Search one of the world\'s largest job boards</p>
+                </div>
+              </div>
+              <div class="integration-status">
+                <div class="status-row">
+                  <span class="status-label">API Status:</span>
+                  <span class="status-badge status-inactive">Coming Soon</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ',
+      ],
+      'styles' => [
+        '#type' => 'html_tag',
+        '#tag' => 'style',
+        '#value' => '
+          .job-discovery-page { max-width: 1200px; }
+          .job-discovery-page h1 { margin: 0 0 15px 0; font-size: 2.5em; }
+          .job-discovery-page > p { color: #666; font-size: 1.1em; margin-bottom: 40px; }
+          .integrations-section h2 { font-size: 1.8em; margin: 30px 0 20px 0; }
+          .integration-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-top: 20px; }
+          .integration-card { background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.3s; }
+          .integration-card:hover { box-shadow: 0 6px 12px rgba(0,0,0,0.15); transform: translateY(-2px); }
+          .integration-card.disabled { opacity: 0.6; }
+          .integration-header { display: flex; gap: 15px; margin-bottom: 20px; }
+          .integration-icon { font-size: 3em; }
+          .integration-info h3 { margin: 0 0 8px 0; font-size: 1.3em; color: #2d3748; }
+          .integration-info p { margin: 0; color: #718096; font-size: 0.9em; }
+          .integration-status { background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+          .status-row { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; }
+          .status-label { font-weight: 600; color: #4a5568; }
+          .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 600; }
+          .status-success { background: #c6f6d5; color: #22543d; }
+          .status-warning { background: #fbd38d; color: #744210; }
+          .status-inactive { background: #e2e8f0; color: #4a5568; }
+          .status-text { color: #4a5568; font-size: 0.9em; }
+          .integration-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+          .btn { padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 0.9em; display: inline-block; text-align: center; }
+          .btn-primary { background: #4299e1; color: white; }
+          .btn-primary:hover { background: #3182ce; }
+          .btn-secondary { background: #e2e8f0; color: #2d3748; }
+          .btn-secondary:hover { background: #cbd5e0; }
+          .btn-warning { background: #ed8936; color: white; }
+          .btn-warning:hover { background: #dd6b20; }
+        ',
+      ],
+    ];
+    
+    // Wrap with navigation
+    $build = [
+      '#theme' => 'job_application_dashboard_wrapper',
+      '#navigation' => $navigation_block,
+      '#content' => $content,
+      '#attached' => [
+        'library' => [
+          'job_hunter/job-hunter-navigation',
+          'job_hunter/job-hunter-home',
+        ],
+      ],
+    ];
+    
+    return $build;
+  }
+
+  /**
+   * Step 4: Application Submission page.
+   *
+   * @return array
+   *   A renderable array for the application submission page.
+   */
+  public function applicationSubmission() {
+    // Render the navigation block
+    $block_manager = \Drupal::service('plugin.manager.block');
+    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
+    $navigation_block = $plugin_block->build();
+    
+    $content = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['application-submission-page']],
+      'header' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h1',
+        '#value' => '🚀 Application Submission',
+      ],
+      'description' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => 'Auto-apply to jobs with tailored resumes and cover letters.',
+      ],
+      'todo' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['alert', 'alert-warning']],
+        '#value' => '<strong>TODO:</strong> Implement automated application submission.',
+      ],
+    ];
+    
+    // Wrap with navigation
+    $build = [
+      '#theme' => 'job_application_dashboard_wrapper',
+      '#navigation' => $navigation_block,
+      '#content' => $content,
+      '#attached' => [
+        'library' => [
+          'job_hunter/job-hunter-navigation',
+          'job_hunter/job-hunter-home',
+        ],
+      ],
+    ];
+    
+    return $build;
+  }
+
+  /**
+   * Step 5: Interview & Follow-up page.
+   *
+   * @return array
+   *   A renderable array for the interview and follow-up page.
+   */
+  public function interviewFollowup() {
+    // Render the navigation block
+    $block_manager = \Drupal::service('plugin.manager.block');
+    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
+    $navigation_block = $plugin_block->build();
+    
+    $content = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['interview-followup-page']],
+      'header' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h1',
+        '#value' => '📅 Interview & Follow-up',
+      ],
+      'description' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => 'Track application status, schedule interviews, and manage follow-ups.',
+      ],
+      'todo' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['alert', 'alert-warning']],
+        '#value' => '<strong>TODO:</strong> Implement interview tracking and follow-up management.',
+      ],
+    ];
+    
+    // Wrap with navigation
+    $build = [
+      '#theme' => 'job_application_dashboard_wrapper',
+      '#navigation' => $navigation_block,
+      '#content' => $content,
+      '#attached' => [
+        'library' => [
+          'job_hunter/job-hunter-navigation',
+          'job_hunter/job-hunter-home',
+        ],
+      ],
+    ];
+    
+    return $build;
+  }
+
+  /**
+   * Step 6: Analytics page.
+   *
+   * @return array
+   *   A renderable array for the analytics page.
+   */
+  public function analytics() {
+    // Render the navigation block
+    $block_manager = \Drupal::service('plugin.manager.block');
+    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
+    $navigation_block = $plugin_block->build();
+    
+    $content = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['analytics-page']],
+      'header' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h1',
+        '#value' => '📊 Analytics & Optimization',
+      ],
+      'description' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => 'Measure success rates, identify patterns, and optimize your job search strategy.',
+      ],
+      'todo' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['alert', 'alert-warning']],
+        '#value' => '<strong>TODO:</strong> Implement analytics dashboard with success metrics.',
+      ],
+    ];
+    
+    // Wrap with navigation
+    $build = [
+      '#theme' => 'job_application_dashboard_wrapper',
+      '#navigation' => $navigation_block,
+      '#content' => $content,
+      '#attached' => [
+        'library' => [
+          'job_hunter/job-hunter-navigation',
+          'job_hunter/job-hunter-home',
+        ],
+      ],
+    ];
+    
+    return $build;
   }
 
 }

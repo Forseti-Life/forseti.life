@@ -19,6 +19,10 @@ services:
     class: Drupal\job_hunter\Service\GoogleJobsService
     arguments: ['@database', '@logger.factory', '@file_url_generator']
   
+  job_hunter.cloud_talent_solution:
+    class: Drupal\job_hunter\Service\CloudTalentSolutionService
+    arguments: ['@http_client', '@database', '@logger.factory', '@config.factory']
+  
   job_hunter.commands:
     class: Drupal\job_hunter\Commands\JobApplicationAutomationCommands
     arguments: ['@entity_type.manager', '@logger.factory']

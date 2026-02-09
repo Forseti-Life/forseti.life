@@ -86,7 +86,7 @@ class CompanyController extends ControllerBase {
       'add_button' => [
         '#type' => 'link',
         '#title' => $this->t('Add Company'),
-        '#url' => Url::fromRoute('job_hunter.company_add'),
+        '#url' => Url::fromRoute('job_hunter.bulk_import_companies'),
         '#attributes' => ['class' => ['button', 'button--primary']],
       ],
       'table' => [
@@ -617,6 +617,62 @@ class CompanyController extends ControllerBase {
       '#content' => $content,
     ];
     
+    return $build;
+  }
+
+  /**
+   * Display the add company form wrapped in navigation.
+   */
+  public function addForm($company_id = NULL) {
+    // Render navigation block
+    $block_manager = \Drupal::service('plugin.manager.block');
+    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
+    $navigation_block = $plugin_block->build();
+
+    // Build the form
+    $form = \Drupal::formBuilder()->getForm('Drupal\job_hunter\Form\CompanyForm', $company_id);
+
+    // Wrap with navigation
+    $build = [
+      '#theme' => 'job_application_dashboard_wrapper',
+      '#navigation' => $navigation_block,
+      '#content' => $form,
+      '#attached' => [
+        'library' => [
+          'job_hunter/job-hunter-navigation',
+          'job_hunter/job-hunter-home',
+        ],
+      ],
+    ];
+
+    return $build;
+  }
+
+  /**
+   * Display the bulk import form wrapped in navigation.
+   */
+  public function bulkImportForm() {
+    // Render navigation block
+    $block_manager = \Drupal::service('plugin.manager.block');
+    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
+    $navigation_block = $plugin_block->build();
+
+    // Build the form
+    $form = \Drupal::formBuilder()->getForm('Drupal\job_hunter\Form\BulkCompanyImportForm');
+
+    // Wrap with navigation
+    $build = [
+      '#theme' => 'job_application_dashboard_wrapper',
+      '#navigation' => $navigation_block,
+      '#content' => $form,
+      '#attached' => [
+        'library' => [
+          'job_hunter/job-hunter-navigation',
+          'job_hunter/job-hunter-home',
+        ],
+      ],
+    ];
+
     return $build;
   }
 

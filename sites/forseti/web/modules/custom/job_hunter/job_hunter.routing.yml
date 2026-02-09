@@ -221,12 +221,48 @@ job_hunter.save_target_companies:
     _permission: 'administer job application automation'
   methods: [POST]
 
-# Bulk Company Import
+# Step 3: AI Job Discovery
+job_hunter.job_discovery:
+  path: '/jobhunter/job-discovery'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::jobDiscovery'
+    _title: 'AI Job Discovery'
+  requirements:
+    _permission: 'access job hunter'
+
+# Step 4: Application Submission
+job_hunter.application_submission:
+  path: '/jobhunter/application-submission'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmission'
+    _title: 'Application Submission'
+  requirements:
+    _permission: 'access job hunter'
+
+# Step 5: Interview & Follow-up
+job_hunter.interview_followup:
+  path: '/jobhunter/interview-followup'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::interviewFollowup'
+    _title: 'Interview & Follow-up'
+  requirements:
+    _permission: 'access job hunter'
+
+# Step 6: Analytics
+job_hunter.analytics:
+  path: '/jobhunter/analytics'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::analytics'
+    _title: 'Analytics & Optimization'
+  requirements:
+    _permission: 'access job hunter'
+
+# Add/Import Companies
 job_hunter.bulk_import_companies:
   path: '/jobhunter/bulk-import-companies'
   defaults:
-    _form: '\Drupal\job_hunter\Form\BulkCompanyImportForm'
-    _title: 'Bulk Import Companies'
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::bulkImportForm'
+    _title: 'Add Companies'
   requirements:
     _permission: 'administer job application automation'
 
@@ -400,7 +436,7 @@ job_hunter.companies_list:
 job_hunter.company_add:
   path: '/jobhunter/companies/add'
   defaults:
-    _form: '\Drupal\job_hunter\Form\CompanyForm'
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::addForm'
     _title: 'Add Company'
   requirements:
     _permission: 'administer job application automation'
@@ -594,3 +630,44 @@ job_hunter.documentation.google_jobs:
     file: 'GOOGLE_JOB_SEARCH_API_INTEGRATION.md'
   requirements:
     _permission: 'administer job application automation'
+
+# Google Jobs Search Routes (via Cloud Talent Solution API)
+job_hunter.google_jobs_search:
+  path: '/jobhunter/googlejobssearch'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsSearchController::searchPage'
+    _title: 'Google Jobs Search'
+  requirements:
+    _permission: 'access job hunter'
+
+job_hunter.google_jobs_search_api:
+  path: '/jobhunter/api/googlejobs/search'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsSearchController::apiSearch'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+
+job_hunter.google_jobs_import:
+  path: '/jobhunter/api/googlejobs/import'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsSearchController::apiImport'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+
+job_hunter.google_jobs_batch_import:
+  path: '/jobhunter/api/googlejobs/batch-import'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsSearchController::apiBatchImport'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+
+job_hunter.google_jobs_details:
+  path: '/jobhunter/api/googlejobs/details/{job_name}'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsSearchController::apiGetJobDetails'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'

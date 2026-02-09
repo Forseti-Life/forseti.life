@@ -191,10 +191,11 @@ function job_hunter_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $for
   }
   
   // List of Job Hunter form IDs that need navigation
+  // Note: Forms rendered through controllers should NOT be in this list
+  // as they are wrapped by the controller instead
   $job_hunter_forms = [
     'job_hunter_settings_form',
     'job_seeker_form',
-    'bulk_company_import_form',
     'job_application_form',
     'bulk_actions_form',
     'job_hunter_user_profile_form',

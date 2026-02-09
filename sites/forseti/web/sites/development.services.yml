@@ -12,3 +12,5 @@ services:
   config.schema_checker:
     class: Drupal\Core\Config\Development\LenientConfigSchemaChecker
     arguments: [ '@config.typed', '@config.storage.schema' ]
+  cache.backend.null:
+    class: Drupal\Core\Cache\NullBackendFactory
