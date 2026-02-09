@@ -340,6 +340,18 @@ class CloudTalentSolutionService {
       $end_time = microtime(true);
       $response_time_ms = (int) (($end_time - $start_time) * 1000);
       
+      // Get full error response body
+      $error_body = '';
+      if ($e->hasResponse()) {
+        $error_body = (string) $e->getResponse()->getBody();
+      }
+      
+      $this->logError('Cloud Talent Solution search failed: @error. Response body: @body. Request: @request', [
+        '@error' => $e->getMessage(),
+        '@body' => $error_body,
+        '@request' => json_encode($request_body),
+      ]);
+      
       // Log failed search query
       $this->logSearchQuery(
         $uid,
@@ -351,10 +363,7 @@ class CloudTalentSolutionService {
         $e->getMessage()
       );
       
-      $this->logError('Cloud Talent Solution search failed: @error', [
-        '@error' => $e->getMessage(),
-      ]);
-      throw new \Exception('Failed to search jobs via Cloud Talent Solution: ' . $e->getMessage());
+      throw new \Exception('Failed to search jobs via Cloud Talent Solution: ' . $e->getMessage() . ' - See logs for full API response.');
     }
   }
 
