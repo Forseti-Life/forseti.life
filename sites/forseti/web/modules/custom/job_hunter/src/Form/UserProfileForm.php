@@ -13,6 +13,7 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\job_hunter\Service\UserProfileService;
 use Drupal\job_hunter\Service\JobSeekerService;
+use Drupal\job_hunter\Traits\JobHunterLoggerTrait;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\InvokeCommand;
 
@@ -20,6 +21,8 @@ use Drupal\Core\Ajax\InvokeCommand;
  * Provides a form for editing user job application profile.
  */
 class UserProfileForm extends FormBase {
+
+  use JobHunterLoggerTrait;
 
   /**
    * The current user account.
@@ -161,7 +164,7 @@ class UserProfileForm extends FormBase {
     $completeness = $this->userProfileService->calculateProfileCompleteness($user_entity);
     
     // Debug logging for profile completeness
-    \Drupal::logger('job_hunter')->info('🔍 DEBUG: Profile completeness calculation: @percent% for user @uid', [
+    $this->logDebug('🔍 DEBUG: Profile completeness calculation: @percent% for user @uid', [
       '@percent' => $completeness,
       '@uid' => $uid,
     ]);
@@ -1426,7 +1429,7 @@ class UserProfileForm extends FormBase {
    * Automatically registers and parses the uploaded resume.
    */
   public function refreshStep2Callback(array &$form, FormStateInterface $form_state) {
-    \Drupal::logger('job_hunter')->info('📁 refreshStep2Callback called - Auto-register and parse');
+    $this->logInfo('📁 refreshStep2Callback called - Auto-register and parse');
     
     $uid = \Drupal::currentUser()->id();
     $connection = \Drupal::database();
@@ -1441,7 +1444,7 @@ class UserProfileForm extends FormBase {
         $file->setPermanent();
         $file->save();
         
-        \Drupal::logger('job_hunter')->info('📁 File uploaded and made permanent: @filename (fid: @fid)', [
+        $this->logInfo('📁 File uploaded and made permanent: @filename (fid: @fid)', [
           '@filename' => $file->getFilename(),
           '@fid' => $file->id(),
         ]);
@@ -1451,7 +1454,7 @@ class UserProfileForm extends FormBase {
         if (!$job_seeker_profile) {
           $job_seeker_id = $this->jobSeekerService->create(['uid' => $uid]);
           $job_seeker_profile = $this->jobSeekerService->load($job_seeker_id);
-          \Drupal::logger('job_hunter')->info('📁 Auto-created job seeker profile for uid: @uid', ['@uid' => $uid]);
+          $this->logInfo('📁 Auto-created job seeker profile for uid: @uid', ['@uid' => $uid]);
         }
         
         // Check if already registered
@@ -1484,7 +1487,7 @@ class UserProfileForm extends FormBase {
             ])
             ->execute();
           
-          \Drupal::logger('job_hunter')->info('📁 Auto-registered resume: @filename (resume_id: @id)', [
+          $this->logInfo('📁 Auto-registered resume: @filename (resume_id: @id)', [
             '@filename' => $file->getFilename(),
             '@id' => $resume_id,
           ]);
@@ -1500,7 +1503,7 @@ class UserProfileForm extends FormBase {
                 ->condition('id', $resume_id)
                 ->execute();
               
-              \Drupal::logger('job_hunter')->info('📁 Auto-extracted @chars characters from: @filename', [
+              $this->logInfo('📁 Auto-extracted @chars characters from: @filename', [
                 '@chars' => strlen($extracted_text),
                 '@filename' => $file->getFilename(),
               ]);
@@ -1526,7 +1529,7 @@ class UserProfileForm extends FormBase {
                   ])
                   ->execute();
                   
-                \Drupal::logger('job_hunter')->info('📁 DEV: Sync-parsed resume: @filename', [
+                $this->logInfo('📁 DEV: Sync-parsed resume: @filename', [
                   '@filename' => $file->getFilename(),
                 ]);
               } else {
@@ -1557,13 +1560,13 @@ class UserProfileForm extends FormBase {
                   'filename' => $file->getFilename(),
                 ]);
                 
-                \Drupal::logger('job_hunter')->info('📁 PROD: Queued resume for GenAI parsing: @filename', [
+                $this->logInfo('📁 PROD: Queued resume for GenAI parsing: @filename', [
                   '@filename' => $file->getFilename(),
                 ]);
               }
             }
           } catch (\Exception $e) {
-            \Drupal::logger('job_hunter')->error('📁 Auto-parse failed: @error', [
+            $this->logError('📁 Auto-parse failed: @error', [
               '@error' => $e->getMessage(),
             ]);
           }
@@ -1592,7 +1595,7 @@ class UserProfileForm extends FormBase {
    * Triggers a page reload to show updated status.
    */
   public function refreshResumeWorkflowCallback(array &$form, FormStateInterface $form_state) {
-    \Drupal::logger('job_hunter')->info('📁 refreshResumeWorkflowCallback called');
+    $this->logInfo('📁 refreshResumeWorkflowCallback called');
     
     // Call the existing processing logic
     return $this->refreshStep2Callback($form, $form_state);
@@ -1602,7 +1605,7 @@ class UserProfileForm extends FormBase {
    * AJAX callback to refresh the upload field for adding another file.
    */
   public function refreshUploadFieldCallback(array &$form, FormStateInterface $form_state) {
-    \Drupal::logger('job_hunter')->info('📁 refreshUploadFieldCallback called - Ready for new upload');
+    $this->logInfo('📁 refreshUploadFieldCallback called - Ready for new upload');
     
     // Return the upload field element (cleared and ready for new file)
     return $form['resume_workflow']['field_resume_file'];
@@ -1641,7 +1644,7 @@ class UserProfileForm extends FormBase {
       $file->setPermanent();
       $file->save();
       
-      \Drupal::logger('job_hunter')->info('📁 File made permanent: @filename (fid: @fid)', [
+      $this->logInfo('📁 File made permanent: @filename (fid: @fid)', [
         '@filename' => $file->getFilename(),
         '@fid' => $file->id(),
       ]);
@@ -1666,7 +1669,7 @@ class UserProfileForm extends FormBase {
           ->fetchField();
         
         if ($has_parsed_data > 0) {
-          \Drupal::logger('job_hunter')->info('📁 File already processed or queued, skipping: @filename', [
+          $this->logInfo('📁 File already processed or queued, skipping: @filename', [
             '@filename' => $file->getFilename(),
           ]);
           continue;
@@ -1674,7 +1677,7 @@ class UserProfileForm extends FormBase {
         
         // File registered but not processed - reprocess it
         $resume_id = $existing_record['id'];
-        \Drupal::logger('job_hunter')->info('📁 File registered but not processed, reprocessing: @filename', [
+        $this->logInfo('📁 File registered but not processed, reprocessing: @filename', [
           '@filename' => $file->getFilename(),
         ]);
       }
@@ -1700,7 +1703,7 @@ class UserProfileForm extends FormBase {
           ])
           ->execute();
         
-        \Drupal::logger('job_hunter')->info('📁 Registered resume: @filename (resume_id: @id)', [
+        $this->logInfo('📁 Registered resume: @filename (resume_id: @id)', [
           '@filename' => $file->getFilename(),
           '@id' => $resume_id,
         ]);
@@ -1717,7 +1720,7 @@ class UserProfileForm extends FormBase {
             ->condition('id', $resume_id)
             ->execute();
           
-          \Drupal::logger('job_hunter')->info('📁 Extracted @chars characters from: @filename', [
+          $this->logInfo('📁 Extracted @chars characters from: @filename', [
             '@chars' => strlen($extracted_text),
             '@filename' => $file->getFilename(),
           ]);
@@ -1767,13 +1770,13 @@ class UserProfileForm extends FormBase {
               'filename' => $file->getFilename(),
             ]);
             
-            \Drupal::logger('job_hunter')->info('📁 Queued for GenAI parsing: @filename', [
+            $this->logInfo('📁 Queued for GenAI parsing: @filename', [
               '@filename' => $file->getFilename(),
             ]);
           }
         }
       } catch (\Exception $e) {
-        \Drupal::logger('job_hunter')->error('📁 Processing failed for @filename: @error', [
+        $this->logError('📁 Processing failed for @filename: @error', [
           '@filename' => $file->getFilename(),
           '@error' => $e->getMessage(),
         ]);
@@ -1800,7 +1803,7 @@ class UserProfileForm extends FormBase {
    * Clears the upload field to allow uploading another file.
    */
   public function addAnotherResumeSubmit(array &$form, FormStateInterface $form_state) {
-    \Drupal::logger('job_hunter')->info('📁 Add Another Resume clicked');
+    $this->logInfo('📁 Add Another Resume clicked');
     
     // Clear the managed_file field value to allow new upload
     $form_state->setValue('field_resume_file', []);
@@ -1875,7 +1878,7 @@ class UserProfileForm extends FormBase {
     if ($existing_profile) {
       // Update existing profile
       $this->jobSeekerService->update($existing_profile->id, $job_seeker_data);
-      \Drupal::logger('job_hunter')->info('Updated job_seeker profile for user @uid. Data: @data', [
+      $this->logInfo('Updated job_seeker profile for user @uid. Data: @data', [
         '@uid' => $uid,
         '@data' => json_encode($job_seeker_data),
       ]);
@@ -1883,7 +1886,7 @@ class UserProfileForm extends FormBase {
       // Create new profile
       $job_seeker_data['uid'] = $uid;
       $this->jobSeekerService->create($job_seeker_data);
-      \Drupal::logger('job_hunter')->info('Created job_seeker profile for user @uid. Data: @data', [
+      $this->logInfo('Created job_seeker profile for user @uid. Data: @data', [
         '@uid' => $uid,
         '@data' => json_encode($job_seeker_data),
       ]);
@@ -2010,12 +2013,12 @@ class UserProfileForm extends FormBase {
    * Also automatically extracts text and parses with AI.
    */
   public function registerResumeSubmit(array &$form, FormStateInterface $form_state) {
-    \Drupal::logger('job_hunter')->info('📝 REGISTER BUTTON CLICKED - registerResumeSubmit called');
+    $this->logInfo('📝 REGISTER BUTTON CLICKED - registerResumeSubmit called');
     
     $triggering_element = $form_state->getTriggeringElement();
     $filename = $triggering_element['#attributes']['data-filename'] ?? NULL;
     
-    \Drupal::logger('job_hunter')->info('📝 Register filename: @filename', ['@filename' => $filename ?? 'NULL']);
+    $this->logInfo('📝 Register filename: @filename', ['@filename' => $filename ?? 'NULL']);
     
     if (!$filename) {
       \Drupal::messenger()->addError($this->t('Could not identify file to register.'));
@@ -2095,7 +2098,7 @@ class UserProfileForm extends FormBase {
       ]);
     }
     
-    \Drupal::logger('job_hunter')->info('📝 Resume registered with ID: @id', ['@id' => $resume_id]);
+    $this->logInfo('📝 Resume registered with ID: @id', ['@id' => $resume_id]);
     
     // AUTO-PARSE: Extract text and parse with AI
     try {
@@ -2108,7 +2111,7 @@ class UserProfileForm extends FormBase {
           ->condition('id', $resume_id)
           ->execute();
         
-        \Drupal::logger('job_hunter')->info('📝 Auto-extracted @chars characters from: @filename', [
+        $this->logInfo('📝 Auto-extracted @chars characters from: @filename', [
           '@chars' => strlen($extracted_text),
           '@filename' => $filename,
         ]);
@@ -2137,7 +2140,7 @@ class UserProfileForm extends FormBase {
           ])
           ->execute();
         
-        \Drupal::logger('job_hunter')->info('📝 Auto-parsed resume: @filename', ['@filename' => $filename]);
+        $this->logInfo('📝 Auto-parsed resume: @filename', ['@filename' => $filename]);
         
         // Build consolidated JSON and apply to profile
         $this->buildConsolidatedJsonAndApplyToProfile($uid, $parsed_data);
@@ -2147,7 +2150,7 @@ class UserProfileForm extends FormBase {
         \Drupal::messenger()->addStatus($this->t('Resume "@filename" has been registered. (Text extraction returned empty - check file format)', ['@filename' => $filename]));
       }
     } catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('📝 Auto-parse failed: @error', ['@error' => $e->getMessage()]);
+      $this->logError('📝 Auto-parse failed: @error', ['@error' => $e->getMessage()]);
       \Drupal::messenger()->addWarning($this->t('Resume registered but parsing failed: @error', ['@error' => $e->getMessage()]));
     }
     
@@ -2240,7 +2243,7 @@ class UserProfileForm extends FormBase {
     $resume_id = $triggering_element['#attributes']['data-resume-id'] ?? NULL;
     
     // Debug logging
-    \Drupal::logger('job_hunter')->info('Extract Text Submit - Triggering element: @element, Resume ID: @resume_id', [
+    $this->logInfo('Extract Text Submit - Triggering element: @element, Resume ID: @resume_id', [
       '@element' => print_r($triggering_element, TRUE),
       '@resume_id' => $resume_id ?? 'NULL',
     ]);
@@ -2277,7 +2280,7 @@ class UserProfileForm extends FormBase {
       ]));
       
     } catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Text extraction failed: @message', ['@message' => $e->getMessage()]);
+      $this->logError('Text extraction failed: @message', ['@message' => $e->getMessage()]);
       \Drupal::messenger()->addError($this->t('Failed to extract text: @message', ['@message' => $e->getMessage()]));
     }
     
@@ -2328,7 +2331,7 @@ class UserProfileForm extends FormBase {
       ]));
       
     } catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('JSON parsing failed: @message', ['@message' => $e->getMessage()]);
+      $this->logError('JSON parsing failed: @message', ['@message' => $e->getMessage()]);
       \Drupal::messenger()->addError($this->t('Failed to parse JSON: @message', ['@message' => $e->getMessage()]));
     }
     
@@ -2380,7 +2383,7 @@ class UserProfileForm extends FormBase {
       \Drupal::messenger()->addStatus($this->t('Resume data has been consolidated into your profile.'));
       
     } catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Consolidation failed: @message', ['@message' => $e->getMessage()]);
+      $this->logError('Consolidation failed: @message', ['@message' => $e->getMessage()]);
       \Drupal::messenger()->addError($this->t('Failed to consolidate data: @message', ['@message' => $e->getMessage()]));
     }
     
@@ -2460,7 +2463,7 @@ class UserProfileForm extends FormBase {
           }
         } catch (\Exception $e) {
           $errors[] = "Error deleting file {$resume->resume_name}: " . $e->getMessage();
-          \Drupal::logger('job_hunter')->error('Error deleting file entity: @error', [
+          $this->logError('Error deleting file entity: @error', [
             '@error' => $e->getMessage(),
             'file_id' => $resume->file_id,
           ]);
@@ -2599,7 +2602,7 @@ class UserProfileForm extends FormBase {
           '@items' => implode(', ', $message_parts),
         ]));
         
-        \Drupal::logger('job_hunter')->info('User @uid deleted all profile and resume data: @count files, profile: @profile', [
+        $this->logInfo('User @uid deleted all profile and resume data: @count files, profile: @profile', [
           '@uid' => $uid,
           '@count' => $deleted_count,
           '@profile' => $profile_deleted ? 'yes' : 'no',
@@ -2618,7 +2621,7 @@ class UserProfileForm extends FormBase {
       \Drupal::messenger()->addError($this->t('Error deleting profile and resume data: @error', [
         '@error' => $e->getMessage(),
       ]));
-      \Drupal::logger('job_hunter')->error('Error in deleteAllResumeDataSubmit: @error', [
+      $this->logError('Error in deleteAllResumeDataSubmit: @error', [
         '@error' => $e->getMessage(),
         'uid' => $uid,
       ]);
@@ -2719,7 +2722,7 @@ class UserProfileForm extends FormBase {
         ])
         ->execute();
       
-      \Drupal::logger('job_hunter')->info('📝 Stored parsed data for resume: @filename', ['@filename' => $filename]);
+      $this->logInfo('📝 Stored parsed data for resume: @filename', ['@filename' => $filename]);
       
       // ===================================================================
       // STEP 7: Build Consolidated JSON and Apply to Profile
@@ -2732,7 +2735,7 @@ class UserProfileForm extends FormBase {
       $form_state->setRedirect('job_hunter.user_profile_edit');
       
     } catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Error parsing resume: @error', [
+      $this->logError('Error parsing resume: @error', [
         '@error' => $e->getMessage(),
       ]);
       \Drupal::messenger()->addError($this->t('Error parsing resume: @error', [
@@ -3455,7 +3458,7 @@ class UserProfileForm extends FormBase {
       ->condition('id', $resume_id)
       ->execute();
 
-    \Drupal::logger('job_hunter')->info('✅ STEP 4: Stored @chars characters of extracted text for: @filename', [
+    $this->logInfo('✅ STEP 4: Stored @chars characters of extracted text for: @filename', [
       '@chars' => strlen($extracted_text),
       '@filename' => $filename,
     ]);
@@ -4138,7 +4141,7 @@ PROMPT;
         ->execute();
       
       if ($additions > 0) {
-        \Drupal::logger('job_hunter')->info('📊 Updated consolidated JSON for uid @uid: @count new items added', [
+        $this->logInfo('📊 Updated consolidated JSON for uid @uid: @count new items added', [
           '@uid' => $uid,
           '@count' => $additions,
         ]);
@@ -4150,7 +4153,7 @@ PROMPT;
       return $additions;
       
     } catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Failed to build consolidated JSON: @error', ['@error' => $e->getMessage()]);
+      $this->logError('Failed to build consolidated JSON: @error', ['@error' => $e->getMessage()]);
       \Drupal::messenger()->addWarning($this->t('Could not update profile: @error', ['@error' => $e->getMessage()]));
       return 0;
     }
@@ -4597,7 +4600,7 @@ PROMPT;
           ->execute();
         
         $fields_updated = implode(', ', array_keys($update_fields));
-        \Drupal::logger('job_hunter')->info('✅ Applied consolidated data to profile for uid @uid: @fields', [
+        $this->logInfo('✅ Applied consolidated data to profile for uid @uid: @fields', [
           '@uid' => $uid,
           '@fields' => $fields_updated,
         ]);
@@ -4606,11 +4609,11 @@ PROMPT;
           '@fields' => $fields_updated,
         ]));
       } else {
-        \Drupal::logger('job_hunter')->info('ℹ️ No profile fields updated - all fields already populated');
+        $this->logInfo('ℹ️ No profile fields updated - all fields already populated');
       }
       
     } catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Failed to apply consolidated data: @error', ['@error' => $e->getMessage()]);
+      $this->logError('Failed to apply consolidated data: @error', ['@error' => $e->getMessage()]);
     }
   }
 
@@ -4641,7 +4644,7 @@ PROMPT;
         ->condition('id', $existing)
         ->execute();
 
-      \Drupal::logger('job_hunter')->info('✅ STEP 6: Updated parsed data record for: @filename', [
+      $this->logInfo('✅ STEP 6: Updated parsed data record for: @filename', [
         '@filename' => $filename,
       ]);
     }
@@ -4660,7 +4663,7 @@ PROMPT;
         ])
         ->execute();
 
-      \Drupal::logger('job_hunter')->info('✅ STEP 6: Created new parsed data record for: @filename', [
+      $this->logInfo('✅ STEP 6: Created new parsed data record for: @filename', [
         '@filename' => $filename,
       ]);
     }
@@ -4960,7 +4963,7 @@ PROMPT;
       $parsed = json_decode($json_text, TRUE);
       
       if (json_last_error() !== JSON_ERROR_NONE) {
-        \Drupal::logger('job_hunter')->error('Failed to parse AI response as JSON: @error. Response: @response', [
+        $this->logError('Failed to parse AI response as JSON: @error. Response: @response', [
           '@error' => json_last_error_msg(),
           '@response' => substr($json_text, 0, 500),
         ]);
@@ -4970,7 +4973,7 @@ PROMPT;
       return $parsed;
       
     } catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Error parsing resume with AI: @message', [
+      $this->logError('Error parsing resume with AI: @message', [
         '@message' => $e->getMessage(),
       ]);
       return NULL;

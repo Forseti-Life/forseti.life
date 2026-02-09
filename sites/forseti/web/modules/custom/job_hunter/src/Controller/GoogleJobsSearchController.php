@@ -5,6 +5,7 @@ namespace Drupal\job_hunter\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\job_hunter\Service\CloudTalentSolutionService;
+use Drupal\job_hunter\Traits\JobHunterLoggerTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,6 +14,8 @@ use Symfony\Component\HttpFoundation\Request;
  * Controller for Google Jobs search via Cloud Talent Solution API.
  */
 class GoogleJobsSearchController extends ControllerBase {
+
+  use JobHunterLoggerTrait;
 
   /**
    * The database connection.
@@ -151,7 +154,7 @@ class GoogleJobsSearchController extends ControllerBase {
 
     }
     catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Google Jobs search failed: @error', [
+      $this->logError('Google Jobs search failed: @error', [
         '@error' => $e->getMessage(),
       ]);
 
@@ -202,7 +205,7 @@ class GoogleJobsSearchController extends ControllerBase {
 
     }
     catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Job import failed: @error', [
+      $this->logError('Job import failed: @error', [
         '@error' => $e->getMessage(),
       ]);
 
@@ -270,7 +273,7 @@ class GoogleJobsSearchController extends ControllerBase {
 
     }
     catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Batch import failed: @error', [
+      $this->logError('Batch import failed: @error', [
         '@error' => $e->getMessage(),
       ]);
 
@@ -302,7 +305,7 @@ class GoogleJobsSearchController extends ControllerBase {
 
     }
     catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Get job details failed: @error', [
+      $this->logError('Get job details failed: @error', [
         '@error' => $e->getMessage(),
       ]);
 

@@ -4,6 +4,7 @@ namespace Drupal\job_hunter\Plugin\QueueWorker;
 
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
+use Drupal\job_hunter\Traits\JobHunterLoggerTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -18,6 +19,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * )
  */
 class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryPluginInterface {
+
+  use JobHunterLoggerTrait;
 
   /**
    * The config factory.
@@ -54,7 +57,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
     $company = $extracted['company_name'] ?? 'Unknown Company';
     $job_title = $extracted['job_title'] ?? 'Unknown Position';
     
-    $logger->info('🔄 Queue: Starting resume tailoring for @username → "@title" at @company (job @job_id)', [
+    $this->logInfo('🔄 Queue: Starting resume tailoring for @username → "@title" at @company (job @job_id)', [
       '@username' => $username,
       '@title' => $job_title,
       '@company' => $company,
@@ -125,7 +128,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
           ->execute();
       }
 
-      $logger->info('✅ Queue: Resume tailoring complete for @username → "@title" at @company (job @job_id)', [
+      $this->logInfo('✅ Queue: Resume tailoring complete for @username → "@title" at @company (job @job_id)', [
         '@username' => $username,
         '@title' => $job_title,
         '@company' => $company,
@@ -134,7 +137,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
 
     }
     catch (\Exception $e) {
-      $logger->error('❌ Queue: Resume tailoring failed for @username → "@title" at @company (job @job_id): @error', [
+      $this->logError('❌ Queue: Resume tailoring failed for @username → "@title" at @company (job @job_id): @error', [
         '@username' => $username,
         '@title' => $job_title,
         '@company' => $company,
@@ -196,7 +199,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
       $bedrock = $sdk->createBedrockRuntime();
       $prompt = $this->buildTailoredResumePrompt($payload);
 
-      \Drupal::logger('job_hunter')->info('Queue: Calling AWS Bedrock Claude for resume tailoring');
+      $this->logInfo('Queue: Calling AWS Bedrock Claude for resume tailoring');
 
       $response = $bedrock->invokeModel([
         'modelId' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
@@ -220,13 +223,13 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
         
         // Check if response was truncated due to max_tokens limit
         if ($stop_reason === 'max_tokens') {
-          \Drupal::logger('job_hunter')->error('❌ Resume tailoring hit max_tokens limit! Response truncated at @len chars. Increase max_tokens to fix this.', [
+          $this->logError('❌ Resume tailoring hit max_tokens limit! Response truncated at @len chars. Increase max_tokens to fix this.', [
             '@len' => strlen($ai_response),
           ]);
         }
         
         // Debug: Log first 500 chars of response
-        \Drupal::logger('job_hunter')->info('Queue: AI response preview (stop_reason: @reason): @preview', [
+        $this->logInfo('Queue: AI response preview (stop_reason: @reason): @preview', [
           '@reason' => $stop_reason,
           '@preview' => substr($ai_response, 0, 500),
         ]);
@@ -237,7 +240,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
           $tailored_resume = json_decode($json_str, TRUE);
 
           if (json_last_error() === JSON_ERROR_NONE && $tailored_resume) {
-            \Drupal::logger('job_hunter')->info('Queue: Successfully generated tailored resume JSON');
+            $this->logInfo('Queue: Successfully generated tailored resume JSON');
 
             return [
               'tailored_resume_json' => $tailored_resume,
@@ -246,26 +249,26 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
           }
           
           // Log JSON parse error
-          \Drupal::logger('job_hunter')->error('Queue: JSON parse error: @error', [
+          $this->logError('Queue: JSON parse error: @error', [
             '@error' => json_last_error_msg(),
           ]);
         }
         else {
-          \Drupal::logger('job_hunter')->error('Queue: extractJsonFromResponse returned null. Response length: @len', [
+          $this->logError('Queue: extractJsonFromResponse returned null. Response length: @len', [
             '@len' => strlen($ai_response),
           ]);
         }
 
-        \Drupal::logger('job_hunter')->error('Queue: Failed to parse tailored resume JSON from AI response');
+        $this->logError('Queue: Failed to parse tailored resume JSON from AI response');
         return NULL;
       }
 
-      \Drupal::logger('job_hunter')->error('Queue: Unexpected API response format from Bedrock');
+      $this->logError('Queue: Unexpected API response format from Bedrock');
       return NULL;
 
     }
     catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Queue: GenAI API call failed: @error', ['@error' => $e->getMessage()]);
+      $this->logError('Queue: GenAI API call failed: @error', ['@error' => $e->getMessage()]);
       throw $e;
     }
   }
