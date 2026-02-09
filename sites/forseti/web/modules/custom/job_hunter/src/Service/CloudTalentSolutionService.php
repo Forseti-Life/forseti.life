@@ -153,6 +153,71 @@ class CloudTalentSolutionService {
   }
 
   /**
+   * Test minimal Google Cloud API search (debugging helper).
+   *
+   * Sends simplest possible request to verify API connectivity
+   * and tenant configuration without any filters.
+   *
+   * @return array
+   *   Search results with total count.
+   *
+   * @throws \Exception
+   *   If API request fails.
+   */
+  public function testSimpleSearch() {
+    $access_token = $this->getAccessToken();
+    
+    // Absolute minimal request - just required fields, no jobQuery
+    $request_body = [
+      'requestMetadata' => [
+        'userId' => 'test-user-1',
+        'sessionId' => 'test-session-' . time(),
+        'domain' => 'forseti.life',
+      ],
+      'searchMode' => 'JOB_SEARCH',
+    ];
+    
+    $this->logInfo('🧪 Testing minimal API request (no jobQuery): @body', [
+      '@body' => json_encode($request_body),
+    ]);
+    
+    try {
+      $url = self::API_BASE_URL . '/' . $this->getTenantName() . '/jobs:search';
+      
+      $response = $this->httpClient->request('POST', $url, [
+        'json' => $request_body,
+        'headers' => [
+          'Authorization' => 'Bearer ' . $access_token,
+          'Content-Type' => 'application/json',
+        ],
+        'timeout' => 30,
+      ]);
+
+      $data = json_decode($response->getBody()->getContents(), TRUE);
+      
+      $this->logInfo('✅ Minimal test succeeded! Total jobs in tenant: @total', [
+        '@total' => $data['totalSize'] ?? 0,
+      ]);
+      
+      return [
+        'jobs' => $data['matchingJobs'] ?? [],
+        'total_size' => $data['totalSize'] ?? 0,
+        'metadata' => $data['metadata'] ?? [],
+      ];
+    }
+    catch (RequestException $e) {
+      $error_body = $e->hasResponse() ? (string) $e->getResponse()->getBody() : '';
+      
+      $this->logError('❌ Minimal test failed: @error. Full response: @body', [
+        '@error' => $e->getMessage(),
+        '@body' => $error_body,
+      ]);
+      
+      throw $e;
+    }
+  }
+
+  /**
    * Search for jobs via Cloud Talent Solution API.
    *
    * @param array $params

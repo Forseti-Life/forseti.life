@@ -1684,7 +1684,7 @@ class JobApplicationController extends ControllerBase {
           
           // First, check if there are ANY jobs in the tenant (diagnostic)
           try {
-            $diagnostic_results = $google_service->searchJobs(['page_size' => 1]);
+            $diagnostic_results = $google_service->testSimpleSearch();
             \Drupal::logger('job_hunter')->info('🔍 Google Cloud diagnostic: Tenant has @total total jobs available', [
               '@total' => $diagnostic_results['total_size'] ?? 0,
             ]);
@@ -1793,7 +1793,7 @@ class JobApplicationController extends ControllerBase {
           if (!empty($google_credentials)) {
             $google_service = \Drupal::service('job_hunter.cloud_talent_solution');
             try {
-              $diagnostic_check = $google_service->searchJobs([]);
+              $diagnostic_check = $google_service->testSimpleSearch();
               $diagnostic_info .= '<li><strong>Google Cloud Tenant:</strong> ' . ($diagnostic_check['total_size'] ?? 0) . ' total jobs available</li>';
             } catch (\Exception $e) {
               $diagnostic_info .= '<li><strong>Google Cloud:</strong> ⚠️ Error - ' . htmlspecialchars($e->getMessage()) . '</li>';
