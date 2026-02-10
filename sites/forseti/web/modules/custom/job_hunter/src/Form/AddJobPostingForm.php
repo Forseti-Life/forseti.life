@@ -259,7 +259,7 @@ Benefits:
     $raw_posting_text = $form_state->getValue('raw_posting_text');
     
     $fields = [
-      'company_id' => $company_id ?? 0,
+      'company_id' => $company_id,
       'job_title' => $job_title,
       'job_description' => $raw_posting_text,
       'raw_posting_text' => $raw_posting_text,
