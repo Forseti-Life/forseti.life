@@ -206,21 +206,22 @@ job_hunter.save_job:
     _csrf_token: FALSE
 
 # Target Companies Management
-job_hunter.manage_target_companies:
-  path: '/jobhunter/target-companies'
-  defaults:
-    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::manageTargetCompanies'
-    _title: 'Manage Target Companies'
-  requirements:
-    _permission: 'administer job application automation'
-
-job_hunter.save_target_companies:
-  path: '/jobhunter/target-companies/save'
-  defaults:
-    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::saveTargetCompanies'
-  requirements:
-    _permission: 'administer job application automation'
-  methods: [POST]
+# DISABLED - No longer needed
+# job_hunter.manage_target_companies:
+#   path: '/jobhunter/target-companies'
+#   defaults:
+#     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::manageTargetCompanies'
+#     _title: 'Manage Target Companies'
+#   requirements:
+#     _permission: 'administer job application automation'
+# 
+# job_hunter.save_target_companies:
+#   path: '/jobhunter/target-companies/save'
+#   defaults:
+#     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::saveTargetCompanies'
+#   requirements:
+#     _permission: 'administer job application automation'
+#   methods: [POST]
 
 # Step 3: AI Job Discovery
 job_hunter.job_discovery:

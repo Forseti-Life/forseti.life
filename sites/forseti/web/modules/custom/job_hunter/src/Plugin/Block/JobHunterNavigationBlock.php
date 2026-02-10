@@ -106,12 +106,6 @@ class JobHunterNavigationBlock extends BlockBase implements ContainerFactoryPlug
         'icon' => 'search',
         'weight' => 20,
       ];
-      $navigation['target_companies'] = [
-        'title' => $this->t('Target Companies'),
-        'url' => Url::fromRoute('job_hunter.manage_target_companies'),
-        'icon' => 'target',
-        'weight' => 40,
-      ];
       $navigation['bulk_import'] = [
         'title' => $this->t('Bulk Import'),
         'url' => Url::fromRoute('job_hunter.bulk_import_companies'),
