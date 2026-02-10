@@ -8,12 +8,14 @@ on:
       - 'sites/forseti/web/themes/custom/**'
       - 'sites/forseti/composer.json'
       - 'sites/forseti/composer.lock'
-      - 'sites/forseti/config/sync/**'
+      # Config changes require manual deployment - excluded from auto-deploy
+      # - 'sites/forseti/config/sync/**'
       - 'sites/dungeoncrawler/web/modules/custom/**'
       - 'sites/dungeoncrawler/web/themes/custom/**'
       - 'sites/dungeoncrawler/composer.json'
       - 'sites/dungeoncrawler/composer.lock'
-      - 'sites/dungeoncrawler/config/sync/**'
+      # Config changes require manual deployment - excluded from auto-deploy
+      # - 'sites/dungeoncrawler/config/sync/**'
       - 'h3-geolocation/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
@@ -107,13 +109,16 @@ jobs:
               echo "✅ Themes deployed"
             fi
             
-            # Deploy configuration
-            if [ -d "${SITE_PATH}/config/sync" ]; then
-              echo "Deploying configuration..."
-              sudo rsync -aq --delete "${SITE_PATH}/config/sync/" "${SITE_ROOT}/config/sync/"
-              CONFIG_DEPLOYED=true
-              echo "✅ Configuration deployed"
-            fi
+            # Deploy configuration - DISABLED
+            # Config should be managed manually: export from prod, commit to dev, then deploy
+            # Automatic config deployment is dangerous and can wipe production config
+            # if [ -d "${SITE_PATH}/config/sync" ]; then
+            #   echo "Deploying configuration..."
+            #   sudo rsync -aq --delete "${SITE_PATH}/config/sync/" "${SITE_ROOT}/config/sync/"
+            #   CONFIG_DEPLOYED=true
+            #   echo "✅ Configuration deployed"
+            # fi
+            echo "ℹ️ Config deployment disabled (handle manually)"
             
             # Composer update (only if files changed)
             local COMPOSER_CHANGED=false
@@ -138,23 +143,16 @@ jobs:
             
             # Determine if drush commands are needed
             local DRUSH_NEEDED=false
-            if [ "$COMPOSER_CHANGED" = true ] || [ "$MODULES_DEPLOYED" = true ] || [ "$CONFIG_DEPLOYED" = true ]; then
+            if [ "$COMPOSER_CHANGED" = true ] || [ "$MODULES_DEPLOYED" = true ]; then
               DRUSH_NEEDED=true
             fi
             
             if [ "$DRUSH_NEEDED" = true ]; then
-              # Import configuration first (defines schema)
-              echo "Importing configuration..."
-              DRUSH_OUTPUT=$(sudo -u www-data ./vendor/bin/drush config:import -y 2>&1)
-              DRUSH_EXIT=$?
-              if [ $DRUSH_EXIT -ne 0 ]; then
-                echo "⚠️ Config import had warnings (exit code: $DRUSH_EXIT)"
-                echo "$DRUSH_OUTPUT" | tail -5
-              else
-                echo "$DRUSH_OUTPUT" | grep -i 'imported\|already in sync' || true
-              fi
+              # Skip config import - handle manually when needed
+              # echo "Importing configuration..."
+              # DRUSH_OUTPUT=$(sudo -u www-data ./vendor/bin/drush config:import -y 2>&1)
               
-              # Database updates second (applies schema changes)
+              # Database updates (applies schema changes from module updates)
               echo "Checking for database updates..."
               DRUSH_OUTPUT=$(sudo -u www-data ./vendor/bin/drush updatedb -y 2>&1)
               DRUSH_EXIT=$?
