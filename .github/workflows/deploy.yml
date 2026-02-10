@@ -97,7 +97,12 @@ jobs:
             # Deploy custom modules
             if [ -d "${SITE_PATH}/web/modules/custom" ]; then
               echo "Deploying custom modules..."
-              sudo rsync -aq --delete "${SITE_PATH}/web/modules/custom/" "${SITE_ROOT}/web/modules/custom/"
+              sudo rsync -azq \
+                --exclude='node_modules' \
+                --exclude='.git' \
+                --exclude='*.scss' \
+                --exclude='src/' \
+                "${SITE_PATH}/web/modules/custom/" "${SITE_ROOT}/web/modules/custom/"
               MODULES_DEPLOYED=true
               echo "✅ Modules deployed"
             fi
@@ -105,7 +110,12 @@ jobs:
             # Deploy custom themes
             if [ -d "${SITE_PATH}/web/themes/custom" ]; then
               echo "Deploying custom themes..."
-              sudo rsync -aq --delete "${SITE_PATH}/web/themes/custom/" "${SITE_ROOT}/web/themes/custom/"
+              sudo rsync -azq \
+                --exclude='node_modules' \
+                --exclude='.git' \
+                --exclude='*.scss' \
+                --exclude='src/' \
+                "${SITE_PATH}/web/themes/custom/" "${SITE_ROOT}/web/themes/custom/"
               THEMES_DEPLOYED=true
               echo "✅ Themes deployed"
             fi
@@ -246,10 +256,17 @@ jobs:
             echo "✅ ${SITE_NAME} deployment complete in $((SITE_END - SITE_START))s"
           }
           
-          # Deploy Forseti (only if changed)
+          # Deploy sites in parallel
           FORSETI_DEPLOYED=false
+          DC_DEPLOYED=false
+          
+          # Start Forseti deployment in background (if changed)
           if echo "$CHANGED_FILES" | grep -q "^sites/forseti/" || [ -z "$CHANGED_FILES" ]; then
-            deploy_site "FORSETI" "/var/www/html/forseti" "sites/forseti"
+            (
+              deploy_site "FORSETI" "/var/www/html/forseti" "sites/forseti"
+              echo "FORSETI_DONE" > /tmp/forseti_status
+            ) &
+            FORSETI_PID=$!
             FORSETI_DEPLOYED=true
           else
             echo ""
@@ -280,7 +297,7 @@ jobs:
               echo ""
               echo "=== H3 GEOLOCATION DEPLOYMENT ==="
               H3_START=$(date +%s)
-              sudo rsync -aq --delete --exclude='h3-env' --exclude='__pycache__' h3-geolocation/ "/var/www/html/forseti/h3-geolocation/"
+              sudo rsync -azq --exclude='h3-env' --exclude='__pycache__' --exclude='.git' --exclude='*.pyc' h3-geolocation/ "/var/www/html/forseti/h3-geolocation/"
               echo "✅ H3 deployed in $(($(date +%s) - H3_START))s"
             else
               echo ""
@@ -288,12 +305,15 @@ jobs:
             fi
           fi
           
-          # Deploy Dungeon Crawler (if site exists on production and changed)
+          # Start Dungeon Crawler deployment in background (if site exists and changed)
           DC_ROOT="/var/www/html/dungeoncrawler"
-          DC_DEPLOYED=false
           if [ -d "$DC_ROOT" ] && [ -d "sites/dungeoncrawler/web/modules/custom" ]; then
             if echo "$CHANGED_FILES" | grep -q "^sites/dungeoncrawler/" || [ -z "$CHANGED_FILES" ]; then
-              deploy_site "DUNGEON CRAWLER" "$DC_ROOT" "sites/dungeoncrawler"
+              (
+                deploy_site "DUNGEON CRAWLER" "$DC_ROOT" "sites/dungeoncrawler"
+                echo "DC_DONE" > /tmp/dc_status
+              ) &
+              DC_PID=$!
               DC_DEPLOYED=true
             else
               echo ""
@@ -303,6 +323,19 @@ jobs:
             echo ""
             echo "ℹ️ Dungeon Crawler not set up on production yet, skipping"
           fi
+          
+          # Wait for all site deployments to complete
+          if [ "$FORSETI_DEPLOYED" = true ]; then
+            echo "Waiting for Forseti deployment to complete..."
+            wait $FORSETI_PID
+          fi
+          if [ "$DC_DEPLOYED" = true ]; then
+            echo "Waiting for Dungeon Crawler deployment to complete..."
+            wait $DC_PID
+          fi
+          
+          # Clean up status files
+          rm -f /tmp/forseti_status /tmp/dc_status
           
           # Health checks (only for deployed sites)
           echo ""
