@@ -1,0 +1,214 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/character_options_step4.json",
+  "title": "Character Creation Step 4: Class",
+  "description": "Defines available options and validation for selecting character's class in Pathfinder 2E character creation",
+  "type": "object",
+  "properties": {
+    "step": {
+      "type": "integer",
+      "const": 4,
+      "description": "Step number in character creation process"
+    },
+    "step_name": {
+      "type": "string",
+      "const": "Class",
+      "description": "Human-readable name for this step"
+    },
+    "step_description": {
+      "type": "string",
+      "const": "Choose your character's class, which determines their capabilities, hit points, proficiencies, and role in the party.",
+      "description": "Explanation of what happens in this step"
+    },
+    "fields": {
+      "type": "object",
+      "description": "Form fields available in this step",
+      "properties": {
+        "class": {
+          "type": "object",
+          "description": "Class selection field",
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "const": "select",
+              "description": "HTML input type"
+            },
+            "label": {
+              "type": "string",
+              "const": "Choose Your Class",
+              "description": "Field label"
+            },
+            "required": {
+              "type": "boolean",
+              "const": true,
+              "description": "Whether this field is mandatory"
+            },
+            "options": {
+              "type": "array",
+              "description": "Available classes from CharacterManager::CLASSES",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Class identifier"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Display name"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Class flavor text and playstyle"
+                  },
+                  "hp": {
+                    "type": "integer",
+                    "description": "Hit points per level"
+                  },
+                  "key_ability": {
+                    "type": "string",
+                    "description": "Primary ability score(s)"
+                  },
+                  "proficiencies": {
+                    "type": "object",
+                    "description": "Initial proficiency ranks",
+                    "properties": {
+                      "perception": {
+                        "type": "string",
+                        "enum": ["Untrained", "Trained", "Expert", "Master", "Legendary"]
+                      },
+                      "fortitude": {
+                        "type": "string",
+                        "enum": ["Untrained", "Trained", "Expert", "Master", "Legendary"]
+                      },
+                      "reflex": {
+                        "type": "string",
+                        "enum": ["Untrained", "Trained", "Expert", "Master", "Legendary"]
+                      },
+                      "will": {
+                        "type": "string",
+                        "enum": ["Untrained", "Trained", "Expert", "Master", "Legendary"]
+                      }
+                    }
+                  },
+                  "skills": {
+                    "type": "string",
+                    "description": "Number of trained skills description"
+                  },
+                  "trained_skills": {
+                    "type": "integer",
+                    "description": "Base number of trained skills (before Intelligence modifier)"
+                  },
+                  "weapons": {
+                    "type": "string",
+                    "description": "Weapon proficiencies"
+                  },
+                  "spellcasting": {
+                    "type": "string",
+                    "description": "Spellcasting tradition and key ability (if applicable)"
+                  }
+                },
+                "required": ["id", "name", "description", "hp", "key_ability", "proficiencies", "skills", "trained_skills", "weapons"]
+              },
+              "minItems": 16,
+              "maxItems": 16
+            },
+            "help_text": {
+              "type": "string",
+              "const": "Your class is your character's profession and provides their combat role, special abilities, and proficiencies. Choose a class that matches your desired playstyle.",
+              "description": "Helper text displayed to user"
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "required": {
+                  "type": "boolean",
+                  "const": true
+                },
+                "error_message": {
+                  "type": "string",
+                  "const": "Please select a class before continuing."
+                }
+              }
+            }
+          },
+          "required": ["field_type", "label", "required", "options", "help_text", "validation"]
+        }
+      },
+      "required": ["class"]
+    },
+    "navigation": {
+      "type": "object",
+      "description": "Navigation rules for this step",
+      "properties": {
+        "previous_step": {
+          "type": "integer",
+          "const": 3,
+          "description": "Previous step number"
+        },
+        "next_step": {
+          "type": "integer",
+          "const": 5,
+          "description": "Next step number"
+        },
+        "can_go_back": {
+          "type": "boolean",
+          "const": true,
+          "description": "User can return to previous step"
+        },
+        "can_skip": {
+          "type": "boolean",
+          "const": false,
+          "description": "Step cannot be skipped"
+        }
+      },
+      "required": ["previous_step", "next_step", "can_go_back", "can_skip"]
+    },
+    "tips": {
+      "type": "array",
+      "description": "Helpful tips for new players",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "Hit Points (HP) determine how much damage you can take. Higher HP classes are more durable in combat.",
+        "Key Ability is the most important stat for your class. Make sure to boost it with your free ability improvements.",
+        "Spellcasting classes (wizard, cleric, druid, sorcerer, bard, oracle, witch) can cast powerful spells but tend to have lower HP.",
+        "Martial classes (fighter, ranger, barbarian, monk, rogue, swashbuckler) excel in physical combat with weapons.",
+        "Hybrid classes (champion, alchemist, investigator) combine elements of martial and spellcasting roles.",
+        "Consider your party composition - balanced parties with different roles tend to handle challenges better."
+      ]
+    },
+    "class_categories": {
+      "type": "object",
+      "description": "Classes organized by combat role for easier selection",
+      "properties": {
+        "martial": {
+          "type": "array",
+          "description": "Front-line combatants focused on weapons and physical prowess",
+          "items": {
+            "type": "string",
+            "enum": ["fighter", "barbarian", "ranger", "monk", "champion", "swashbuckler"]
+          }
+        },
+        "spellcasters": {
+          "type": "array",
+          "description": "Magic-focused classes with powerful spells",
+          "items": {
+            "type": "string",
+            "enum": ["wizard", "cleric", "druid", "sorcerer", "bard", "oracle", "witch"]
+          }
+        },
+        "skill_specialists": {
+          "type": "array",
+          "description": "Classes focused on skills, expertise, and versatility",
+          "items": {
+            "type": "string",
+            "enum": ["rogue", "investigator", "alchemist"]
+          }
+        }
+      }
+    }
+  },
+  "required": ["step", "step_name", "step_description", "fields", "navigation", "tips", "class_categories"]
+}

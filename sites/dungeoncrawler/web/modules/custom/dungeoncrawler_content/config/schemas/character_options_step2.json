@@ -1,0 +1,307 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/character_options_step2.json",
+  "title": "Character Creation Step 2: Ancestry & Heritage",
+  "description": "Defines available options and validation for selecting character's ancestry and heritage in Pathfinder 2E character creation",
+  "type": "object",
+  "properties": {
+    "step": {
+      "type": "integer",
+      "const": 2,
+      "description": "Step number in character creation process"
+    },
+    "step_name": {
+      "type": "string",
+      "const": "Ancestry & Heritage",
+      "description": "Human-readable name for this step"
+    },
+    "step_description": {
+      "type": "string",
+      "const": "Choose your character's ancestry and heritage, which determine your physical traits, innate abilities, and cultural background.",
+      "description": "Explanation of what happens in this step"
+    },
+    "fields": {
+      "type": "object",
+      "description": "Form fields available in this step",
+      "properties": {
+        "ancestry": {
+          "type": "object",
+          "description": "Ancestry selection field",
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "const": "select",
+              "description": "HTML input type"
+            },
+            "label": {
+              "type": "string",
+              "const": "Choose Your Ancestry",
+              "description": "Field label"
+            },
+            "required": {
+              "type": "boolean",
+              "const": true,
+              "description": "Whether this field is mandatory"
+            },
+            "options": {
+              "type": "array",
+              "description": "Available ancestries from CharacterManager::ANCESTRIES",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "hp": {
+                    "type": "integer",
+                    "description": "Hit points from ancestry"
+                  },
+                  "size": {
+                    "type": "string",
+                    "enum": ["Small", "Medium"]
+                  },
+                  "speed": {
+                    "type": "integer",
+                    "description": "Base speed in feet"
+                  },
+                  "boosts": {
+                    "type": "array",
+                    "description": "Ability boosts granted",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "flaw": {
+                    "type": "string",
+                    "description": "Ability flaw (if any)"
+                  },
+                  "languages": {
+                    "type": "array",
+                    "description": "Starting languages",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "vision": {
+                    "type": "string",
+                    "description": "Type of vision (darkvision, low-light vision, normal)"
+                  }
+                },
+                "required": ["id", "name", "hp", "size", "speed", "boosts", "languages"]
+              },
+              "minItems": 14,
+              "maxItems": 14
+            },
+            "help_text": {
+              "type": "string",
+              "const": "Your ancestry represents your character's lineage and heritage. It determines hit points, size, speed, ability boosts/flaws, starting languages, and special senses like darkvision.",
+              "description": "Helper text displayed to user"
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "required": {
+                  "type": "boolean",
+                  "const": true
+                },
+                "error_message": {
+                  "type": "string",
+                  "const": "Please select an ancestry before continuing."
+                }
+              }
+            }
+          },
+          "required": ["field_type", "label", "required", "options", "help_text", "validation"]
+        },
+        "heritage": {
+          "type": "object",
+          "description": "Heritage selection field (conditional on ancestry)",
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "const": "select",
+              "description": "HTML input type"
+            },
+            "label": {
+              "type": "string",
+              "const": "Choose Your Heritage",
+              "description": "Field label"
+            },
+            "required": {
+              "type": "boolean",
+              "const": true,
+              "description": "Whether this field is mandatory"
+            },
+            "conditional": {
+              "type": "object",
+              "description": "Field only appears when ancestry is selected",
+              "properties": {
+                "depends_on": {
+                  "type": "string",
+                  "const": "ancestry"
+                },
+                "relationship": {
+                  "type": "string",
+                  "const": "is_not_empty"
+                }
+              }
+            },
+            "options_source": {
+              "type": "string",
+              "const": "CharacterManager::HERITAGES",
+              "description": "Dynamic options loaded via AJAX based on selected ancestry"
+            },
+            "heritages_by_ancestry": {
+              "type": "object",
+              "description": "Heritage options organized by ancestry",
+              "properties": {
+                "Dwarf": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {"type": "string"},
+                      "name": {"type": "string"},
+                      "benefit": {"type": "string"}
+                    }
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "Elf": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {"type": "string"},
+                      "name": {"type": "string"},
+                      "benefit": {"type": "string"}
+                    }
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "Gnome": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {"type": "string"},
+                      "name": {"type": "string"},
+                      "benefit": {"type": "string"}
+                    }
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "Goblin": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {"type": "string"},
+                      "name": {"type": "string"},
+                      "benefit": {"type": "string"}
+                    }
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "Halfling": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {"type": "string"},
+                      "name": {"type": "string"},
+                      "benefit": {"type": "string"}
+                    }
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                },
+                "Human": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {"type": "string"},
+                      "name": {"type": "string"},
+                      "benefit": {"type": "string"}
+                    }
+                  },
+                  "minItems": 1,
+                  "maxItems": 1
+                }
+              }
+            },
+            "help_text": {
+              "type": "string",
+              "const": "Your heritage represents a unique subset of your ancestry with specific benefits. Select one that fits your character concept.",
+              "description": "Helper text displayed to user"
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "required": {
+                  "type": "boolean",
+                  "const": true
+                },
+                "error_message": {
+                  "type": "string",
+                  "const": "Please select a heritage before continuing."
+                }
+              }
+            }
+          },
+          "required": ["field_type", "label", "required", "conditional", "help_text", "validation"]
+        }
+      },
+      "required": ["ancestry", "heritage"]
+    },
+    "navigation": {
+      "type": "object",
+      "description": "Navigation rules for this step",
+      "properties": {
+        "previous_step": {
+          "type": "integer",
+          "const": 1,
+          "description": "Previous step number"
+        },
+        "next_step": {
+          "type": "integer",
+          "const": 3,
+          "description": "Next step number"
+        },
+        "can_go_back": {
+          "type": "boolean",
+          "const": true,
+          "description": "User can return to previous step"
+        },
+        "can_skip": {
+          "type": "boolean",
+          "const": false,
+          "description": "Step cannot be skipped"
+        }
+      },
+      "required": ["previous_step", "next_step", "can_go_back", "can_skip"]
+    },
+    "tips": {
+      "type": "array",
+      "description": "Helpful tips for new players",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "Your ancestry provides mechanical benefits like ability boosts, hit points, and special senses. Choose based on both story and mechanics.",
+        "Ability boosts marked 'Free' let you choose any ability score. Strategic choices here can enhance your character's effectiveness.",
+        "Small ancestries have advantages in tight spaces but may have reduced reach for melee attacks.",
+        "Darkvision lets you see in darkness up to 60 feet. Low-light vision lets you see in dim light as if it were bright light."
+      ]
+    }
+  },
+  "required": ["step", "step_name", "step_description", "fields", "navigation", "tips"]
+}

@@ -1086,3 +1086,76 @@ function job_hunter_update_9016() {
   ]);
 }
 
+/**
+ * Ensure jobhunter_tailored_resumes table has all required columns.
+ */
+function job_hunter_update_9017() {
+  $schema = \Drupal::database()->schema();
+  $messages = [];
+  
+  if (!$schema->tableExists('jobhunter_tailored_resumes')) {
+    // Table doesn't exist, create it
+    _job_hunter_create_tailored_resumes_table();
+    return t('Created jobhunter_tailored_resumes table with all columns.');
+  }
+  
+  // Ensure all required columns exist
+  $columns_to_add = [
+    'tailored_resume_json' => [
+      'type' => 'text',
+      'size' => 'big',
+      'description' => 'AI-generated tailored resume JSON',
+    ],
+    'tailoring_status' => [
+      'type' => 'varchar',
+      'length' => 32,
+      'default' => 'pending',
+      'description' => 'pending, completed, failed',
+    ],
+    'pdf_path' => [
+      'type' => 'varchar',
+      'length' => 512,
+      'description' => 'Path to generated PDF file',
+    ],
+    'pdf_generated' => [
+      'type' => 'int',
+      'default' => 0,
+      'description' => 'Timestamp when PDF was generated',
+    ],
+    'created' => [
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+    ],
+    'updated' => [
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+    ],
+    'uid' => [
+      'type' => 'int',
+      'not null' => TRUE,
+      'description' => 'User ID',
+    ],
+    'job_id' => [
+      'type' => 'int',
+      'not null' => TRUE,
+      'description' => 'Job requirement ID',
+    ],
+  ];
+  
+  foreach ($columns_to_add as $column_name => $spec) {
+    if (!$schema->fieldExists('jobhunter_tailored_resumes', $column_name)) {
+      $schema->addField('jobhunter_tailored_resumes', $column_name, $spec);
+      $messages[] = $column_name;
+    }
+  }
+  
+  if (empty($messages)) {
+    return t('No update needed - all columns already exist in jobhunter_tailored_resumes table.');
+  }
+  
+  return t('Added missing columns to jobhunter_tailored_resumes: @columns', [
+    '@columns' => implode(', ', $messages),
+  ]);
+}

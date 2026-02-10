@@ -95,7 +95,20 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
       'template' => 'character-creation-wizard',
       'path' => $path . '/templates',
     ],
-    // Individual step templates
+    // Unified schema-driven step template
+    'character_creation_step' => [
+      'variables' => [
+        'character_id' => NULL,
+        'character' => [],
+        'step' => 1,
+        'step_name' => NULL,
+        'step_description' => NULL,
+        'tips' => [],
+      ],
+      'template' => 'character-creation-step',
+      'path' => $path . '/templates',
+    ],
+    // Individual step templates (deprecated - kept for backwards compatibility)
     'character_step_1' => [
       'variables' => [
         'character_id' => NULL,

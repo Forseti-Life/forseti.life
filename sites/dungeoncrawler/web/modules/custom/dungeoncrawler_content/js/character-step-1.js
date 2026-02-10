@@ -24,17 +24,39 @@
 
         // Form submission
         $form.on('submit', function(e) {
+          e.preventDefault();
+          
           const name = $nameInput.val().trim();
           
           if (name.length < 2) {
-            e.preventDefault();
             alert('Please enter a character name (at least 2 characters).');
             $nameInput.focus();
             return false;
           }
           
+          const formData = $(this).serialize();
+          const actionUrl = $(this).attr('action');
+          
           // Show loading state
           $form.find('button[type="submit"]').prop('disabled', true).text('Saving...');
+          
+          $.ajax({
+            url: actionUrl,
+            method: 'POST',
+            data: formData,
+            success: function(response) {
+              if (response.success) {
+                window.location.href = response.redirect;
+              } else {
+                alert(response.message || 'An error occurred.');
+                $form.find('button[type="submit"]').prop('disabled', false).text('Next Step →');
+              }
+            },
+            error: function() {
+              alert('Failed to save. Please try again.');
+              $form.find('button[type="submit"]').prop('disabled', false).text('Next Step →');
+            }
+          });
         });
       });
     }

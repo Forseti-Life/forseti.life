@@ -1,0 +1,280 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/character_options_step5.json",
+  "title": "Character Creation Step 5: Ability Scores",
+  "description": "Defines the ability score allocation process in Pathfinder 2E character creation, applying ancestry, background, class, and free boosts",
+  "type": "object",
+  "properties": {
+    "step": {
+      "type": "integer",
+      "const": 5,
+      "description": "Step number in character creation process"
+    },
+    "step_name": {
+      "type": "string",
+      "const": "Ability Scores",
+      "description": "Human-readable name for this step"
+    },
+    "step_description": {
+      "type": "string",
+      "const": "Determine your character's ability scores by applying boosts from your ancestry, background, class, and four free boosts. Each ability starts at 10.",
+      "description": "Explanation of what happens in this step"
+    },
+    "fields": {
+      "type": "object",
+      "description": "Form fields available in this step",
+      "properties": {
+        "ability_summary": {
+          "type": "object",
+          "description": "Display-only summary showing current ability scores and applied boosts",
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "const": "readonly_display",
+              "description": "Display type"
+            },
+            "label": {
+              "type": "string",
+              "const": "Current Ability Scores",
+              "description": "Field label"
+            },
+            "abilities": {
+              "type": "object",
+              "description": "Ability score breakdown",
+              "properties": {
+                "str": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string", "const": "Strength"},
+                    "abbreviation": {"type": "string", "const": "STR"},
+                    "base": {"type": "integer", "const": 10},
+                    "boosts_applied": {"type": "integer", "minimum": 0, "maximum": 8},
+                    "current_value": {"type": "integer", "minimum": 10, "maximum": 18},
+                    "modifier": {"type": "integer", "minimum": 0, "maximum": 4}
+                  }
+                },
+                "dex": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string", "const": "Dexterity"},
+                    "abbreviation": {"type": "string", "const": "DEX"},
+                    "base": {"type": "integer", "const": 10},
+                    "boosts_applied": {"type": "integer", "minimum": 0, "maximum": 8},
+                    "current_value": {"type": "integer", "minimum": 10, "maximum": 18},
+                    "modifier": {"type": "integer", "minimum": 0, "maximum": 4}
+                  }
+                },
+                "con": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string", "const": "Constitution"},
+                    "abbreviation": {"type": "string", "const": "CON"},
+                    "base": {"type": "integer", "const": 10},
+                    "boosts_applied": {"type": "integer", "minimum": 0, "maximum": 8},
+                    "current_value": {"type": "integer", "minimum": 10, "maximum": 18},
+                    "modifier": {"type": "integer", "minimum": 0, "maximum": 4}
+                  }
+                },
+                "int": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string", "const": "Intelligence"},
+                    "abbreviation": {"type": "string", "const": "INT"},
+                    "base": {"type": "integer", "const": 10},
+                    "boosts_applied": {"type": "integer", "minimum": 0, "maximum": 8},
+                    "current_value": {"type": "integer", "minimum": 10, "maximum": 18},
+                    "modifier": {"type": "integer", "minimum": 0, "maximum": 4}
+                  }
+                },
+                "wis": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string", "const": "Wisdom"},
+                    "abbreviation": {"type": "string", "const": "WIS"},
+                    "base": {"type": "integer", "const": 10},
+                    "boosts_applied": {"type": "integer", "minimum": 0, "maximum": 8},
+                    "current_value": {"type": "integer", "minimum": 10, "maximum": 18},
+                    "modifier": {"type": "integer", "minimum": 0, "maximum": 4}
+                  }
+                },
+                "cha": {
+                  "type": "object",
+                  "properties": {
+                    "name": {"type": "string", "const": "Charisma"},
+                    "abbreviation": {"type": "string", "const": "CHA"},
+                    "base": {"type": "integer", "const": 10},
+                    "boosts_applied": {"type": "integer", "minimum": 0, "maximum": 8},
+                    "current_value": {"type": "integer", "minimum": 10, "maximum": 18},
+                    "modifier": {"type": "integer", "minimum": 0, "maximum": 4}
+                  }
+                }
+              }
+            },
+            "help_text": {
+              "type": "string",
+              "const": "Each ability score starts at 10. Each boost you apply increases it by +2. The modifier is (Score - 10) / 2, rounded down.",
+              "description": "Helper text explaining ability score mechanics"
+            }
+          },
+          "required": ["field_type", "label", "abilities", "help_text"]
+        },
+        "free_boosts": {
+          "type": "object",
+          "description": "Four free ability boosts that can be applied to any ability",
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "const": "multi-select",
+              "description": "HTML input type"
+            },
+            "label": {
+              "type": "string",
+              "const": "Choose 4 Free Ability Boosts",
+              "description": "Field label"
+            },
+            "required": {
+              "type": "boolean",
+              "const": true,
+              "description": "Whether this field is mandatory"
+            },
+            "options": {
+              "type": "array",
+              "description": "Available ability scores",
+              "items": {
+                "type": "string",
+                "enum": ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"]
+              },
+              "minItems": 6,
+              "maxItems": 6
+            },
+            "help_text": {
+              "type": "string",
+              "const": "You have 4 free ability boosts to assign. You can boost the same ability score with multiple boosts, making it easier to focus on your key abilities.",
+              "description": "Helper text displayed to user"
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "required": {
+                  "type": "boolean",
+                  "const": true
+                },
+                "min_selections": {
+                  "type": "integer",
+                  "const": 4
+                },
+                "max_selections": {
+                  "type": "integer",
+                  "const": 4
+                },
+                "allow_duplicates": {
+                  "type": "boolean",
+                  "const": true,
+                  "description": "Can select the same ability multiple times"
+                },
+                "max_ability_18": {
+                  "type": "boolean",
+                  "const": true,
+                  "description": "No ability can exceed 18 at character creation (base 10 + 4 boosts = 18)"
+                },
+                "error_message": {
+                  "type": "string",
+                  "const": "Please assign all 4 free ability boosts. No ability score can exceed 18."
+                }
+              }
+            }
+          },
+          "required": ["field_type", "label", "required", "options", "help_text", "validation"]
+        }
+      },
+      "required": ["ability_summary", "free_boosts"]
+    },
+    "boost_sources": {
+      "type": "object",
+      "description": "Sources of ability boosts accumulated from previous steps",
+      "properties": {
+        "ancestry_boosts": {
+          "type": "array",
+          "description": "Boosts from chosen ancestry (applied automatically)",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "ancestry_flaw": {
+          "type": "string",
+          "description": "Ability flaw from ancestry (if any) - reduces score by 2",
+          "enum": ["", "Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"]
+        },
+        "background_boosts": {
+          "type": "array",
+          "description": "2 free boosts from background (chosen in Step 3)",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "class_boost": {
+          "type": "string",
+          "description": "Key ability boost from class (applied automatically)",
+          "enum": ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"]
+        },
+        "free_boosts": {
+          "type": "array",
+          "description": "4 free boosts selected by player in this step",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": ["ancestry_boosts", "background_boosts", "class_boost", "free_boosts"]
+    },
+    "navigation": {
+      "type": "object",
+      "description": "Navigation rules for this step",
+      "properties": {
+        "previous_step": {
+          "type": "integer",
+          "const": 4,
+          "description": "Previous step number"
+        },
+        "next_step": {
+          "type": "integer",
+          "const": 6,
+          "description": "Next step number"
+        },
+        "can_go_back": {
+          "type": "boolean",
+          "const": true,
+          "description": "User can return to previous step"
+        },
+        "can_skip": {
+          "type": "boolean",
+          "const": false,
+          "description": "Step cannot be skipped"
+        }
+      },
+      "required": ["previous_step", "next_step", "can_go_back", "can_skip"]
+    },
+    "tips": {
+      "type": "array",
+      "description": "Helpful tips for new players",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "Your class's key ability should be your highest score. Most classes want it at 16 or 18 at level 1.",
+        "Constitution affects your hit points. Every character benefits from a decent Constitution score.",
+        "You can't exceed 18 in any ability during character creation. Later levels provide opportunities to increase abilities further.",
+        "A score of 10 has a +0 modifier. Each 2 points above 10 adds +1 to the modifier (12=+1, 14=+2, 16=+3, 18=+4).",
+        "Some ancestries have ability flaws (shown as -2). This is balanced by their other benefits.",
+        "Spread your boosts wisely - extreme specialization can leave you vulnerable in certain situations."
+      ]
+    }
+  },
+  "required": ["step", "step_name", "step_description", "fields", "boost_sources", "navigation", "tips"]
+}

@@ -5,25 +5,29 @@ namespace Drupal\dungeoncrawler_content\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_content\Service\CharacterManager;
+use Drupal\dungeoncrawler_content\Service\SchemaLoader;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 /**
- * Multi-step character creation with separate pages per step.
+ * Schema-driven multi-step character creation.
  */
 class CharacterCreationStepController extends ControllerBase {
 
   protected CharacterManager $characterManager;
+  protected SchemaLoader $schemaLoader;
 
-  public function __construct(CharacterManager $character_manager) {
+  public function __construct(CharacterManager $character_manager, SchemaLoader $schema_loader) {
     $this->characterManager = $character_manager;
+    $this->schemaLoader = $schema_loader;
   }
 
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('dungeoncrawler_content.character_manager'),
+      $container->get('dungeoncrawler_content.schema_loader'),
     );
   }
 
@@ -61,45 +65,13 @@ class CharacterCreationStepController extends ControllerBase {
     }
 
     $character_id = $request->query->get('character_id');
-    $character_data = $this->loadOrCreateDraft($character_id);
-
-    // Prepare step-specific data
-    $build = [
-      '#theme' => 'character_step_' . $step,
-      '#character_id' => $character_data['id'],
-      '#character' => $character_data['data'],
-      '#step' => $step,
-      '#attached' => [
-        'library' => [
-          'dungeoncrawler_content/character-step-' . $step,
-        ],
-      ],
-    ];
-
-    // Add step-specific variables
-    switch ($step) {
-      case 2:
-        $build['#ancestries'] = $this->prepareAncestries();
-        break;
-      
-      case 3:
-        $build['#backgrounds'] = $this->prepareBackgrounds();
-        break;
-      
-      case 4:
-        $build['#classes'] = $this->prepareClasses();
-        break;
-      
-      case 6:
-        $build['#alignments'] = $this->getAlignments();
-        break;
-      
-      case 7:
-        $build['#equipment'] = $this->getEquipmentCatalog();
-        break;
-    }
-
-    return $build;
+    
+    // Return the form
+    return $this->formBuilder()->getForm(
+      'Drupal\dungeoncrawler_content\Form\CharacterCreationStepForm',
+      $step,
+      $character_id
+    );
   }
 
   /**
@@ -123,7 +95,14 @@ class CharacterCreationStepController extends ControllerBase {
     $character_data = $character ? json_decode($character->character_data, TRUE) : $this->getDefaultCharacterData();
     
     // Update with step data
-    $character_data = $this->updateStepData($character_data, $step, $data);
+    $result = $this->updateStepData($character_data, $step, $data);
+    
+    // If validation failed, return the error response
+    if ($result instanceof JsonResponse) {
+      return $result;
+    }
+    
+    $character_data = $result;
     $character_data['step'] = $step + 1; // Advance to next step
 
     // Save to database
@@ -206,50 +185,73 @@ class CharacterCreationStepController extends ControllerBase {
    * Update character data with step-specific fields.
    */
   private function updateStepData(array $character_data, int $step, array $form_data) {
-    switch ($step) {
-      case 1:
-        $character_data['name'] = $form_data['name'] ?? '';
-        $character_data['concept'] = $form_data['concept'] ?? '';
-        break;
-      
-      case 2:
-        $character_data['ancestry'] = $form_data['ancestry'] ?? '';
-        $character_data['heritage'] = $form_data['heritage'] ?? '';
-        break;
-      
-      case 3:
-        $character_data['background'] = $form_data['background'] ?? '';
-        $character_data['background_boosts'] = $form_data['background_boosts'] ?? [];
-        break;
-      
-      case 4:
-        $character_data['class'] = $form_data['class'] ?? '';
-        break;
-      
-      case 5:
-        $character_data['free_boosts'] = $form_data['free_boosts'] ?? [];
-        break;
-      
-      case 6:
-        $character_data['alignment'] = $form_data['alignment'] ?? '';
-        $character_data['deity'] = $form_data['deity'] ?? '';
-        $character_data['age'] = $form_data['age'] ?? '';
-        $character_data['gender'] = $form_data['gender'] ?? '';
-        break;
-      
-      case 7:
-        $character_data['equipment'] = $form_data['equipment'] ?? [];
-        $character_data['gold'] = $form_data['gold'] ?? 15;
-        break;
-      
-      case 8:
-        $character_data['appearance'] = $form_data['appearance'] ?? '';
-        $character_data['personality'] = $form_data['personality'] ?? '';
-        $character_data['backstory'] = $form_data['backstory'] ?? '';
-        break;
+    // Simple mapping of form fields to character data
+    $field_mappings = [
+      1 => ['name', 'concept'],
+      2 => ['ancestry', 'heritage'],
+      3 => ['background', 'background_boosts'],
+      4 => ['class'],
+      5 => ['free_boosts'],
+      6 => ['alignment', 'deity', 'age', 'gender'],
+      7 => ['equipment', 'gold'],
+      8 => ['appearance', 'personality', 'backstory'],
+    ];
+
+    // Use schema validation
+    $validation = $this->schemaLoader->validateStepData($step, $form_data);
+    if (!$validation['valid']) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => implode(' ', $validation['errors']),
+      ], 400);
+    }
+
+    // Map form data to character data
+    if (isset($field_mappings[$step])) {
+      foreach ($field_mappings[$step] as $field) {
+        if (isset($form_data[$field])) {
+          $character_data[$field] = $form_data[$field];
+        }
+      }
     }
 
     return $character_data;
+  }
+
+  /**
+   * Prepare options data for a specific step from CharacterManager constants.
+   */
+  private function prepareOptionsForStep(int $step): array {
+    switch ($step) {
+      case 2:
+        return [
+          'ancestries' => $this->prepareAncestries(),
+          'heritages' => CharacterManager::HERITAGES,
+        ];
+
+      case 3:
+        return [
+          'backgrounds' => CharacterManager::BACKGROUNDS,
+        ];
+
+      case 4:
+        return [
+          'classes' => array_values(CharacterManager::CLASSES),
+        ];
+
+      case 6:
+        return [
+          'alignments' => $this->getAlignments(),
+        ];
+
+      case 7:
+        return [
+          'equipment' => $this->getEquipmentCatalog(),
+        ];
+
+      default:
+        return [];
+    }
   }
 
   /**
@@ -294,42 +296,12 @@ class CharacterCreationStepController extends ControllerBase {
         'hp' => $data['hp'],
         'size' => $data['size'],
         'speed' => $data['speed'],
+        'boosts' => $data['boosts'],
+        'flaw' => $data['flaw'] ?? '',
+        'vision' => $data['vision'],
       ];
     }
     return $ancestries;
-  }
-
-  /**
-   * Prepare class data.
-   */
-  private function prepareClasses() {
-    $classes = [];
-    foreach (CharacterManager::CLASSES as $name => $data) {
-      $classes[] = [
-        'id' => strtolower(str_replace(' ', '-', $name)),
-        'name' => $name,
-        'hp' => $data['hp'],
-        'key_ability' => $data['key_ability'],
-      ];
-    }
-    return $classes;
-  }
-
-  /**
-   * Prepare background options.
-   */
-  private function prepareBackgrounds() {
-    return [
-      ['id' => 'acolyte', 'name' => 'Acolyte'],
-      ['id' => 'criminal', 'name' => 'Criminal'],
-      ['id' => 'entertainer', 'name' => 'Entertainer'],
-      ['id' => 'farmhand', 'name' => 'Farmhand'],
-      ['id' => 'guard', 'name' => 'Guard'],
-      ['id' => 'merchant', 'name' => 'Merchant'],
-      ['id' => 'noble', 'name' => 'Noble'],
-      ['id' => 'scholar', 'name' => 'Scholar'],
-      ['id' => 'warrior', 'name' => 'Warrior'],
-    ];
   }
 
   /**
@@ -337,15 +309,15 @@ class CharacterCreationStepController extends ControllerBase {
    */
   private function getAlignments() {
     return [
-      ['id' => 'LG', 'name' => 'Lawful Good'],
-      ['id' => 'NG', 'name' => 'Neutral Good'],
-      ['id' => 'CG', 'name' => 'Chaotic Good'],
-      ['id' => 'LN', 'name' => 'Lawful Neutral'],
-      ['id' => 'N', 'name' => 'True Neutral'],
-      ['id' => 'CN', 'name' => 'Chaotic Neutral'],
-      ['id' => 'LE', 'name' => 'Lawful Evil'],
-      ['id' => 'NE', 'name' => 'Neutral Evil'],
-      ['id' => 'CE', 'name' => 'Chaotic Evil'],
+      ['id' => 'LG', 'name' => 'Lawful Good', 'description' => 'Acts with compassion and honor within the bounds of law and order.'],
+      ['id' => 'NG', 'name' => 'Neutral Good', 'description' => 'Does good without bias toward or against order.'],
+      ['id' => 'CG', 'name' => 'Chaotic Good', 'description' => 'Acts with freedom and kindness.'],
+      ['id' => 'LN', 'name' => 'Lawful Neutral', 'description' => 'Values tradition and order above morality.'],
+      ['id' => 'N', 'name' => 'Neutral', 'description' => 'Seeks balance or personal interest.'],
+      ['id' => 'CN', 'name' => 'Chaotic Neutral', 'description' => 'Follows individual freedom.'],
+      ['id' => 'LE', 'name' => 'Lawful Evil', 'description' => 'Uses order as a tool for exploitation.'],
+      ['id' => 'NE', 'name' => 'Neutral Evil', 'description' => 'Acts selfishly with no regard for others.'],
+      ['id' => 'CE', 'name' => 'Chaotic Evil', 'description' => 'Driven by greed and hatred.'],
     ];
   }
 
@@ -355,13 +327,19 @@ class CharacterCreationStepController extends ControllerBase {
   private function getEquipmentCatalog() {
     return [
       'weapons' => [
-        ['id' => 'longsword', 'name' => 'Longsword', 'cost' => 1, 'damage' => '1d8 S'],
-        ['id' => 'shortsword', 'name' => 'Shortsword', 'cost' => 0.9, 'damage' => '1d6 P'],
-        ['id' => 'dagger', 'name' => 'Dagger', 'cost' => 0.2, 'damage' => '1d4 P'],
+        ['id' => 'longsword', 'name' => 'Longsword', 'cost' => 1, 'damage' => '1d8 S', 'bulk' => 1, 'hands' => 1],
+        ['id' => 'shortsword', 'name' => 'Shortsword', 'cost' => 0.9, 'damage' => '1d6 P', 'bulk' => 'L', 'hands' => 1],
+        ['id' => 'dagger', 'name' => 'Dagger', 'cost' => 0.2, 'damage' => '1d4 P', 'bulk' => 'L', 'hands' => 1],
+        ['id' => 'staff', 'name' => 'Staff', 'cost' => 0, 'damage' => '1d4 B', 'bulk' => 1, 'hands' => 1],
       ],
       'armor' => [
-        ['id' => 'leather', 'name' => 'Leather Armor', 'cost' => 2, 'ac' => '+1'],
-        ['id' => 'chain-shirt', 'name' => 'Chain Shirt', 'cost' => 5, 'ac' => '+2'],
+        ['id' => 'leather', 'name' => 'Leather Armor', 'cost' => 2, 'ac' => '+1', 'bulk' => 1],
+        ['id' => 'chain-shirt', 'name' => 'Chain Shirt', 'cost' => 5, 'ac' => '+2', 'bulk' => 1],
+      ],
+      'gear' => [
+        ['id' => 'backpack', 'name' => 'Backpack', 'cost' => 0.1, 'bulk' => 'L'],
+        ['id' => 'bedroll', 'name' => 'Bedroll', 'cost' => 0.1, 'bulk' => 'L'],
+        ['id' => 'rope', 'name' => 'Rope (50ft)', 'cost' => 0.5, 'bulk' => 'L'],
       ],
     ];
   }

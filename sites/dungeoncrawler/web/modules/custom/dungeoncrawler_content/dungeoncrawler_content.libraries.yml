@@ -29,11 +29,13 @@ character-creation:
   css:
     component:
       css/character-creation.css: {}
+      css/character-steps.css: {}
   js:
-    js/character-creation.js: {}
+    js/character-creation-schema.js: {}
   dependencies:
     - core/drupal
     - core/jquery
+    - core/once
 
 # Individual step libraries
 character-step-1:
@@ -73,6 +75,8 @@ character-step-4:
   css:
     component:
       css/character-steps.css: {}
+  js:
+    js/character-step-4.js: {}
   dependencies:
     - core/drupal
     - core/jquery
@@ -82,6 +86,8 @@ character-step-5:
   css:
     component:
       css/character-steps.css: {}
+  js:
+    js/character-step-5.js: {}
   dependencies:
     - core/drupal
     - core/jquery
@@ -91,6 +97,8 @@ character-step-6:
   css:
     component:
       css/character-steps.css: {}
+  js:
+    js/character-step-6.js: {}
   dependencies:
     - core/drupal
     - core/jquery
@@ -100,6 +108,8 @@ character-step-7:
   css:
     component:
       css/character-steps.css: {}
+  js:
+    js/character-step-7.js: {}
   dependencies:
     - core/drupal
     - core/jquery
@@ -109,6 +119,8 @@ character-step-8:
   css:
     component:
       css/character-steps.css: {}
+  js:
+    js/character-step-8.js: {}
   dependencies:
     - core/drupal
     - core/jquery

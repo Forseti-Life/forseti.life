@@ -1,0 +1,313 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/character_options_step3.json",
+  "title": "Character Creation Step 3: Background",
+  "description": "Defines available options and validation for selecting character's background in Pathfinder 2E character creation",
+  "type": "object",
+  "properties": {
+    "step": {
+      "type": "integer",
+      "const": 3,
+      "description": "Step number in character creation process"
+    },
+    "step_name": {
+      "type": "string",
+      "const": "Background",
+      "description": "Human-readable name for this step"
+    },
+    "step_description": {
+      "type": "string",
+      "const": "Choose your character's background, representing their life before becoming an adventurer. Each background grants ability boosts, a trained skill, a lore skill, and a skill feat.",
+      "description": "Explanation of what happens in this step"
+    },
+    "fields": {
+      "type": "object",
+      "description": "Form fields available in this step",
+      "properties": {
+        "background": {
+          "type": "object",
+          "description": "Background selection field",
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "const": "select",
+              "description": "HTML input type"
+            },
+            "label": {
+              "type": "string",
+              "const": "Choose Your Background",
+              "description": "Field label"
+            },
+            "required": {
+              "type": "boolean",
+              "const": true,
+              "description": "Whether this field is mandatory"
+            },
+            "options": {
+              "type": "array",
+              "description": "Available backgrounds from CharacterManager::BACKGROUNDS",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Background identifier"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Display name"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Background story and context"
+                  },
+                  "ability_boosts": {
+                    "type": "integer",
+                    "const": 2,
+                    "description": "Number of free ability boosts (player choice)"
+                  },
+                  "skill": {
+                    "type": "string",
+                    "description": "Trained skill granted"
+                  },
+                  "feat": {
+                    "type": "string",
+                    "description": "Skill feat granted"
+                  },
+                  "lore": {
+                    "type": "string",
+                    "description": "Lore skill granted"
+                  }
+                },
+                "required": ["id", "name", "description", "ability_boosts", "skill", "feat", "lore"]
+              },
+              "minItems": 9,
+              "maxItems": 9,
+              "default": [
+                {
+                  "id": "acolyte",
+                  "name": "Acolyte",
+                  "description": "You spent your early days in a religious monastery or cloister.",
+                  "ability_boosts": 2,
+                  "skill": "Religion",
+                  "feat": "Student of the Canon",
+                  "lore": "Scribing Lore"
+                },
+                {
+                  "id": "criminal",
+                  "name": "Criminal",
+                  "description": "You have a history of breaking the law and living in the criminal underworld.",
+                  "ability_boosts": 2,
+                  "skill": "Stealth",
+                  "feat": "Experienced Smuggler",
+                  "lore": "Underworld Lore"
+                },
+                {
+                  "id": "entertainer",
+                  "name": "Entertainer",
+                  "description": "You performed before crowds, earning your coin through art and panache.",
+                  "ability_boosts": 2,
+                  "skill": "Performance",
+                  "feat": "Fascinating Performance",
+                  "lore": "Theater Lore"
+                },
+                {
+                  "id": "farmhand",
+                  "name": "Farmhand",
+                  "description": "You grew up in a rural area, working the land and tending livestock.",
+                  "ability_boosts": 2,
+                  "skill": "Athletics",
+                  "feat": "Assurance (Athletics)",
+                  "lore": "Farming Lore"
+                },
+                {
+                  "id": "guard",
+                  "name": "Guard",
+                  "description": "You served in a military, guard force, or city watch, protecting others.",
+                  "ability_boosts": 2,
+                  "skill": "Intimidation",
+                  "feat": "Quick Coercion",
+                  "lore": "Legal Lore"
+                },
+                {
+                  "id": "merchant",
+                  "name": "Merchant",
+                  "description": "You come from a family of traders, or you worked in commerce yourself.",
+                  "ability_boosts": 2,
+                  "skill": "Diplomacy",
+                  "feat": "Bargain Hunter",
+                  "lore": "Mercantile Lore"
+                },
+                {
+                  "id": "noble",
+                  "name": "Noble",
+                  "description": "You were born into nobility or achieved a position of privilege.",
+                  "ability_boosts": 2,
+                  "skill": "Society",
+                  "feat": "Courtly Graces",
+                  "lore": "Heraldry Lore"
+                },
+                {
+                  "id": "scholar",
+                  "name": "Scholar",
+                  "description": "You spent years studying in libraries, academies, or under mentors.",
+                  "ability_boosts": 2,
+                  "skill": "Arcana",
+                  "feat": "Assurance",
+                  "lore": "Academia Lore"
+                },
+                {
+                  "id": "warrior",
+                  "name": "Warrior",
+                  "description": "You have a history of fighting, whether through military service or personal conflict.",
+                  "ability_boosts": 2,
+                  "skill": "Intimidation",
+                  "feat": "Intimidating Glare",
+                  "lore": "Warfare Lore"
+                }
+              ]
+            },
+            "help_text": {
+              "type": "string",
+              "const": "Your background represents what you did before becoming an adventurer. Each grants 2 ability boosts of your choice, training in a skill, a lore specialty, and a skill feat.",
+              "description": "Helper text displayed to user"
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "required": {
+                  "type": "boolean",
+                  "const": true
+                },
+                "error_message": {
+                  "type": "string",
+                  "const": "Please select a background before continuing."
+                }
+              }
+            }
+          },
+          "required": ["field_type", "label", "required", "options", "help_text", "validation"]
+        },
+        "background_boosts": {
+          "type": "object",
+          "description": "Ability boost selection from background",
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "const": "multi-select",
+              "description": "HTML input type"
+            },
+            "label": {
+              "type": "string",
+              "const": "Choose 2 Ability Boosts",
+              "description": "Field label"
+            },
+            "required": {
+              "type": "boolean",
+              "const": true,
+              "description": "Whether this field is mandatory"
+            },
+            "conditional": {
+              "type": "object",
+              "description": "Field only appears when background is selected",
+              "properties": {
+                "depends_on": {
+                  "type": "string",
+                  "const": "background"
+                },
+                "relationship": {
+                  "type": "string",
+                  "const": "is_not_empty"
+                }
+              }
+            },
+            "options": {
+              "type": "array",
+              "description": "Available ability scores",
+              "items": {
+                "type": "string",
+                "enum": ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"]
+              },
+              "minItems": 6,
+              "maxItems": 6
+            },
+            "help_text": {
+              "type": "string",
+              "const": "Select any two different ability scores to increase by +2 each. Choose abilities that complement your class and playstyle.",
+              "description": "Helper text displayed to user"
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "required": {
+                  "type": "boolean",
+                  "const": true
+                },
+                "min_selections": {
+                  "type": "integer",
+                  "const": 2
+                },
+                "max_selections": {
+                  "type": "integer",
+                  "const": 2
+                },
+                "must_be_different": {
+                  "type": "boolean",
+                  "const": true,
+                  "description": "Cannot select the same ability twice"
+                },
+                "error_message": {
+                  "type": "string",
+                  "const": "Please select exactly 2 different ability scores to boost."
+                }
+              }
+            }
+          },
+          "required": ["field_type", "label", "required", "conditional", "options", "help_text", "validation"]
+        }
+      },
+      "required": ["background", "background_boosts"]
+    },
+    "navigation": {
+      "type": "object",
+      "description": "Navigation rules for this step",
+      "properties": {
+        "previous_step": {
+          "type": "integer",
+          "const": 2,
+          "description": "Previous step number"
+        },
+        "next_step": {
+          "type": "integer",
+          "const": 4,
+          "description": "Next step number"
+        },
+        "can_go_back": {
+          "type": "boolean",
+          "const": true,
+          "description": "User can return to previous step"
+        },
+        "can_skip": {
+          "type": "boolean",
+          "const": false,
+          "description": "Step cannot be skipped"
+        }
+      },
+      "required": ["previous_step", "next_step", "can_go_back", "can_skip"]
+    },
+    "tips": {
+      "type": "array",
+      "description": "Helpful tips for new players",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "Choose a background that fits your character's story. The mechanical benefits are all useful, so prioritize narrative.",
+        "The 2 ability boosts from your background are completely free choice - use them to shore up weaknesses or enhance strengths.",
+        "Skill training from backgrounds helps define what your character is good at outside of combat.",
+        "Lore skills represent specialized knowledge and can unlock unique dialogue options and skill checks."
+      ]
+    }
+  },
+  "required": ["step", "step_name", "step_description", "fields", "navigation", "tips"]
+}

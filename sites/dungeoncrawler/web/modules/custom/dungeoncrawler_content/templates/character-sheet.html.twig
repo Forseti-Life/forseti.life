@@ -8,6 +8,9 @@
   <div class="dc-sheet__nav">
     <a href="{{ back_url }}" class="dc-btn dc-btn-secondary">← Back to Characters</a>
     <div class="dc-sheet__nav-actions">
+      {% if character.step < 8 %}
+        <a href="/characters/create/step/{{ character.step }}?character_id={{ character.id }}" class="dc-btn dc-btn-warning">⚠️ Continue Creation (Step {{ character.step }}/8)</a>
+      {% endif %}
       <a href="{{ edit_url }}" class="dc-btn dc-btn-primary">✏️ Edit</a>
       <a href="{{ delete_url }}" class="dc-btn dc-btn-danger">🗑️ Delete</a>
     </div>
@@ -23,7 +26,9 @@
           <span>{{ character.name|first|upper }}</span>
         </div>
       {% endif %}
-      {% if character.status == 'dead' %}
+      {% if character.status == 'incomplete' %}
+        <div class="dc-sheet__status-incomplete">⚠️ INCOMPLETE</div>
+      {% elseif character.status == 'dead' %}
         <div class="dc-sheet__status-dead">☠️ FALLEN</div>
       {% endif %}
     </div>
@@ -33,6 +38,7 @@
       <div class="dc-sheet__subtitle">
         Level {{ character.level }}
         {% if ancestry.name %}{{ ancestry.name }}{% endif %}
+        {% if ancestry.heritage %} ({{ ancestry.heritage }}){% endif %}
         {% if class_data.name %}{{ class_data.name }}{% endif %}
         {% if class_data.subclass %}({{ class_data.subclass }}){% endif %}
       </div>
@@ -40,7 +46,16 @@
         <div class="dc-sheet__background">Background: {{ background.name }}</div>
       {% endif %}
       {% if personality.alignment %}
-        <div class="dc-sheet__alignment">{{ personality.alignment }}</div>
+        <div class="dc-sheet__alignment">Alignment: {{ personality.alignment }}</div>
+      {% endif %}
+      {% if personality.deity %}
+        <div class="dc-sheet__deity">Deity: {{ personality.deity }}</div>
+      {% endif %}
+      {% if personality.age or personality.gender %}
+        <div class="dc-sheet__demographics">
+          {% if personality.age %}Age: {{ personality.age }}{% endif %}
+          {% if personality.gender %}{% if personality.age %} | {% endif %}{{ personality.gender }}{% endif %}
+        </div>
       {% endif %}
     </div>
 
@@ -134,6 +149,8 @@
       <div class="dc-sheet__detail"><strong>Speed:</strong> {{ ancestry.speed }}ft</div>
       {% if ancestry.languages|length > 0 %}
         <div class="dc-sheet__detail"><strong>Languages:</strong> {{ ancestry.languages|join(', ') }}</div>
+      {% elseif char_data.languages|length > 0 %}
+        <div class="dc-sheet__detail"><strong>Languages:</strong> {{ char_data.languages|join(', ') }}</div>
       {% endif %}
       {% if ancestry.traits|length > 0 %}
         <div class="dc-sheet__tags">
@@ -239,8 +256,153 @@
     </div>
   {% endif %}
 
-  {# Equipment #}
-  {% if equipment %}
+  {# Equipment & Gold #}
+  <div class="dc-sheet__section">
+    <h2 class="dc-sheet__section-title">Equipment & Wealth</h2>
+
+    {% if char_data.gold is defined %}
+      <div class="dc-sheet__detail"><strong>Gold:</strong> {{ char_data.gold }} gp</div>
+    {% elseif equipment.gold is defined %}
+      <div class="dc-sheet__detail"><strong>Gold:</strong> {{ equipment.gold }} gp</div>
+    {% endif %}
+
+    {% if char_data.equipment|length > 0 %}
+      <h3 class="dc-sheet__subsection-title">Items</h3>
+      <ul class="dc-sheet__item-list">
+        {% for item in char_data.equipment %}
+          <li>
+            {{ item.name ?? item.item_id }}
+            {% if item.quantity > 1 %} (×{{ item.quantity }}){% endif %}
+            {% if item.equipped %}<span class="dc-sheet__tag dc-sheet__tag--equipped">Equipped</span>{% endif %}
+            {% if item.worn %}<span class="dc-sheet__tag dc-sheet__tag--worn">Worn</span>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p><em>No equipment listed.</em></p>
+    {% endif %}
+
+    {% if equipment.worn.armor %}
+      <div class="dc-sheet__detail">
+        <strong>Armor:</strong> {{ equipment.worn.armor.name }}
+        (AC +{{ equipment.worn.armor.ac_bonus }}, Dex Cap +{{ equipment.worn.armor.dex_cap }})
+      </div>
+    {% endif %}
+
+    {% if equipment.worn.other|length > 0 %}
+      <h3 class="dc-sheet__subsection-title">Worn Items</h3>
+      <ul class="dc-sheet__item-list">
+        {% for item in equipment.worn.other %}
+          <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if equipment.stowed|length > 0 %}
+      <h3 class="dc-sheet__subsection-title">Stowed</h3>
+      {% for item in equipment.stowed %}
+        <div class="dc-sheet__equipment-item">
+          <strong>{{ item.name }}</strong>
+          {% if item.description %}<br><em>{{ item.description }}</em>{% endif %}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    {% if equipment.currency %}
+      <h3 class="dc-sheet__subsection-title">Currency</h3>
+      <div class="dc-sheet__currency">
+        {% if equipment.currency.gold is defined and equipment.currency.gold > 0 %}
+          <span class="dc-sheet__coin dc-sheet__coin--gold">{{ equipment.currency.gold }} gp</span>
+        {% endif %}
+        {% if equipment.currency.silver is defined and equipment.currency.silver > 0 %}
+          <span class="dc-sheet__coin dc-sheet__coin--silver">{{ equipment.currency.silver }} sp</span>
+        {% endif %}
+        {% if equipment.currency.copper is defined and equipment.currency.copper > 0 %}
+          <span class="dc-sheet__coin dc-sheet__coin--copper">{{ equipment.currency.copper }} cp</span>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if equipment.bulk %}
+      <div class="dc-sheet__bulk">
+        <strong>Bulk:</strong> {{ equipment.bulk.current }} / {{ equipment.bulk.encumbered }} (Max {{ equipment.bulk.max }})
+      </div>
+    {% endif %}
+  </div>
+
+  {# Feats #}
+  {% if feats|length > 0 %}
+    <div class="dc-sheet__section">
+      <h2 class="dc-sheet__section-title">Feats</h2>
+      {% for feat in feats %}
+        <div class="dc-sheet__feat-item">
+          <strong>{{ feat.name }}</strong>
+          <span class="dc-sheet__tag dc-sheet__tag--feat-type">{{ feat.feat_type|capitalize }}</span>
+          {% if feat.level_gained %}<span class="dc-sheet__tag">Level {{ feat.level_gained }}</span>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# Spellcasting #}
+  {% if spells %}
+    <div class="dc-sheet__section">
+      <h2 class="dc-sheet__section-title">Spellcasting</h2>
+
+      <div class="dc-sheet__detail"><strong>Tradition:</strong> {{ spells.tradition|capitalize }}</div>
+      {% if spells.spell_attack is defined %}
+        <div class="dc-sheet__detail"><strong>Spell Attack:</strong> {{ spells.spell_attack >= 0 ? '+' : '' }}{{ spells.spell_attack }}</div>
+      {% endif %}
+      {% if spells.spell_dc is defined %}
+        <div class="dc-sheet__detail"><strong>Spell DC:</strong> {{ spells.spell_dc }}</div>
+      {% endif %}
+
+      {% if spells.focus_points %}
+        <div class="dc-sheet__detail">
+          <strong>Focus Points:</strong> {{ spells.focus_points.remaining ?? 0 }} / {{ spells.focus_points.max }}
+        </div>
+      {% endif %}
+
+      {% if spells.spells_known|length > 0 %}
+        <h3 class="dc-sheet__subsection-title">Spells Known</h3>
+        {% set spells_by_rank = {} %}
+        {% for spell in spells.spells_known %}
+          {% set rank = spell.rank ?? 0 %}
+          {% set spells_by_rank = spells_by_rank|merge({(rank): spells_by_rank[rank]|default([])|merge([spell])}) %}
+        {% endfor %}
+        {% for rank, rank_spells in spells_by_rank %}
+          <h4 class="dc-sheet__spell-rank-title">Rank {{ rank }}{% if rank == 0 %} (Cantrips){% endif %}</h4>
+          {% if spells.spell_slots[rank] is defined %}
+            <div class="dc-sheet__spell-slots">
+              Slots: {{ spells.spell_slots[rank].remaining ?? 0 }} / {{ spells.spell_slots[rank].max }}
+            </div>
+          {% endif %}
+          <ul class="dc-sheet__spell-list">
+            {% for spell in rank_spells %}
+              <li>{{ spell.name }}</li>
+            {% endfor %}
+          </ul>
+        {% endfor %}
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# Conditions #}
+  {% if conditions|length > 0 %}
+    <div class="dc-sheet__section">
+      <h2 class="dc-sheet__section-title">Active Conditions</h2>
+      {% for condition in conditions %}
+        <div class="dc-sheet__condition">
+          <strong>{{ condition.name }}</strong>
+          {% if condition.value is not null %} {{ condition.value }}{% endif %}
+          {% if condition.duration %}<span class="dc-sheet__tag">{{ condition.duration }}</span>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# Concept & Personality #}
+  {% if char_data.concept or personality.appearance or personality.personality or personality.backstory %}
     <div class="dc-sheet__section">
       <h2 class="dc-sheet__section-title">Equipment</h2>
 
@@ -293,10 +455,30 @@
     </div>
   {% endif %}
 
-  {# Personality / Backstory #}
-  {% if personality %}
+  {# Concept & Personality #}
+  {% if char_data.concept or personality.appearance or personality.personality or personality.backstory %}
     <div class="dc-sheet__section">
       <h2 class="dc-sheet__section-title">Personality & Backstory</h2>
+
+      {% if char_data.concept %}
+        <h3 class="dc-sheet__subsection-title">Concept</h3>
+        <div class="dc-sheet__text-block">{{ char_data.concept }}</div>
+      {% endif %}
+
+      {% if personality.appearance %}
+        <h3 class="dc-sheet__subsection-title">Appearance</h3>
+        <div class="dc-sheet__text-block">{{ personality.appearance }}</div>
+      {% endif %}
+
+      {% if personality.personality %}
+        <h3 class="dc-sheet__subsection-title">Personality</h3>
+        <div class="dc-sheet__text-block">{{ personality.personality }}</div>
+      {% endif %}
+
+      {% if personality.backstory %}
+        <h3 class="dc-sheet__subsection-title">Backstory</h3>
+        <div class="dc-sheet__backstory">{{ personality.backstory }}</div>
+      {% endif %}
 
       {% if personality.deity %}
         <div class="dc-sheet__detail"><strong>Deity:</strong> {{ personality.deity }}</div>
@@ -330,11 +512,6 @@
           {% endfor %}
         </ul>
       {% endif %}
-
-      {% if personality.backstory %}
-        <h3 class="dc-sheet__subsection-title">Backstory</h3>
-        <div class="dc-sheet__backstory">{{ personality.backstory }}</div>
-      {% endif %}
     </div>
   {% endif %}
 
@@ -356,6 +533,65 @@
       {% endif %}
     </div>
   {% endif %}
+
+  {# Complete Character Data - All Schema Fields #}
+  <div class="dc-sheet__section">
+    <h2 class="dc-sheet__section-title dc-sheet__json-toggle" data-dc-toggle="complete-data">
+      📊 Complete Character Data (All Schema Fields) <span class="dc-sheet__toggle-icon">▸</span>
+    </h2>
+    <div class="dc-sheet__complete-data" id="complete-data" style="display: none;">
+      <table class="dc-sheet__data-table">
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Step</td><td>{{ char_data.step ?? 'Not set' }}</td></tr>
+          <tr><td>Name</td><td>{{ char_data.name ?? 'Not set' }}</td></tr>
+          <tr><td>Concept</td><td>{{ char_data.concept ?? 'Not set' }}</td></tr>
+          <tr><td>Level</td><td>{{ char_data.level ?? character.level ?? 1 }}</td></tr>
+          <tr><td>Experience Points</td><td>{{ char_data.experience_points ?? 0 }}</td></tr>
+          <tr><td>Ancestry</td><td>{{ char_data.ancestry ?? 'Not set' }}</td></tr>
+          <tr><td>Heritage</td><td>{{ char_data.heritage ?? 'Not set' }}</td></tr>
+          <tr><td>Background</td><td>{{ char_data.background ?? 'Not set' }}</td></tr>
+          <tr><td>Background Boosts</td><td>{{ char_data.background_boosts ? char_data.background_boosts|join(', ') : 'Not set' }}</td></tr>
+          <tr><td>Class</td><td>{{ char_data.class ?? 'Not set' }}</td></tr>
+          <tr><td>Subclass</td><td>{{ char_data.subclass ?? 'Not set' }}</td></tr>
+          <tr><td>Free Boosts</td><td>{{ char_data.free_boosts ? char_data.free_boosts|length ~ ' boosts recorded' : 'Not set' }}</td></tr>
+          <tr><td>Strength</td><td>{{ char_data.abilities.str ?? abilities.strength.score ?? 10 }}</td></tr>
+          <tr><td>Dexterity</td><td>{{ char_data.abilities.dex ?? abilities.dexterity.score ?? 10 }}</td></tr>
+          <tr><td>Constitution</td><td>{{ char_data.abilities.con ?? abilities.constitution.score ?? 10 }}</td></tr>
+          <tr><td>Intelligence</td><td>{{ char_data.abilities.int ?? abilities.intelligence.score ?? 10 }}</td></tr>
+          <tr><td>Wisdom</td><td>{{ char_data.abilities.wis ?? abilities.wisdom.score ?? 10 }}</td></tr>
+          <tr><td>Charisma</td><td>{{ char_data.abilities.cha ?? abilities.charisma.score ?? 10 }}</td></tr>
+          <tr><td>Hit Points (Max)</td><td>{{ char_data.hit_points.max ?? hp.max }}</td></tr>
+          <tr><td>Hit Points (Current)</td><td>{{ char_data.hit_points.current ?? hp.current }}</td></tr>
+          <tr><td>Hit Points (Temp)</td><td>{{ char_data.hit_points.temp ?? hp.temporary ?? 0 }}</td></tr>
+          <tr><td>Alignment</td><td>{{ char_data.alignment ?? 'Not set' }}</td></tr>
+          <tr><td>Deity</td><td>{{ char_data.deity ?? 'Not set' }}</td></tr>
+          <tr><td>Age</td><td>{{ char_data.age ?? 'Not set' }}</td></tr>
+          <tr><td>Gender</td><td>{{ char_data.gender ?? 'Not set' }}</td></tr>
+          <tr><td>Size</td><td>{{ char_data.size ?? 'Medium' }}</td></tr>
+          <tr><td>Speed</td><td>{{ char_data.speed ?? 25 }} ft</td></tr>
+          <tr><td>Languages</td><td>{{ char_data.languages ? char_data.languages|join(', ') : 'Not set' }}</td></tr>
+          <tr><td>Skills</td><td>{{ char_data.skills ? char_data.skills|length ~ ' skills recorded' : 'Not set' }}</td></tr>
+          <tr><td>Equipment</td><td>{{ char_data.equipment ? char_data.equipment|length ~ ' items' : 'Not set' }}</td></tr>
+          <tr><td>Gold</td><td>{{ char_data.gold ?? 15 }} gp</td></tr>
+          <tr><td>Appearance</td><td>{{ char_data.appearance ? 'Set (' ~ char_data.appearance|length ~ ' chars)' : 'Not set' }}</td></tr>
+          <tr><td>Personality</td><td>{{ char_data.personality ? 'Set (' ~ char_data.personality|length ~ ' chars)' : 'Not set' }}</td></tr>
+          <tr><td>Backstory</td><td>{{ char_data.backstory ? 'Set (' ~ char_data.backstory|length ~ ' chars)' : 'Not set' }}</td></tr>
+          <tr><td>Feats</td><td>{{ char_data.feats ? char_data.feats|length ~ ' feats' : 'Not set' }}</td></tr>
+          <tr><td>Spells</td><td>{{ char_data.spells ? 'Spellcaster (' ~ char_data.spells.tradition ~ ')' : 'Not set' }}</td></tr>
+          <tr><td>Conditions</td><td>{{ char_data.conditions ? char_data.conditions|length ~ ' active' : 'None' }}</td></tr>
+          <tr><td>Hero Points</td><td>{{ char_data.hero_points ?? 1 }}</td></tr>
+          <tr><td>Created At</td><td>{{ char_data.created_at ?? 'Not recorded' }}</td></tr>
+          <tr><td>Updated At</td><td>{{ char_data.updated_at ?? 'Not recorded' }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
   {# Raw JSON Toggle #}
   <div class="dc-sheet__section">

@@ -1,0 +1,237 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/character_options_step1.json",
+  "title": "Character Creation Step 1 Options - Name & Concept",
+  "description": "Available options and requirements for Step 1 of PF2e character creation: choosing a name and concept.",
+  "type": "object",
+  "required": ["step", "step_name", "fields", "validation"],
+  "properties": {
+    "step": {
+      "type": "integer",
+      "const": 1,
+      "description": "Step number in character creation process."
+    },
+    "step_name": {
+      "type": "string",
+      "const": "Name & Concept",
+      "description": "Display name for this step."
+    },
+    "step_description": {
+      "type": "string",
+      "default": "Begin your adventure by choosing your character's name and defining their core concept.",
+      "description": "Instructions shown to the player."
+    },
+    "fields": {
+      "type": "object",
+      "required": ["name", "concept"],
+      "properties": {
+        "name": {
+          "type": "object",
+          "required": ["field_type", "label", "required", "validation"],
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "enum": ["text"],
+              "description": "HTML input type."
+            },
+            "label": {
+              "type": "string",
+              "default": "Character Name",
+              "description": "Field label shown to user."
+            },
+            "placeholder": {
+              "type": "string",
+              "default": "Enter your character's name",
+              "description": "Placeholder text in input field."
+            },
+            "help_text": {
+              "type": "string",
+              "default": "Choose a name that fits your character's ancestry and background. This is how other players will know you.",
+              "description": "Additional guidance shown below field."
+            },
+            "required": {
+              "type": "boolean",
+              "const": true,
+              "description": "Whether this field must be filled."
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "min_length": {
+                  "type": "integer",
+                  "default": 2,
+                  "description": "Minimum character length."
+                },
+                "max_length": {
+                  "type": "integer",
+                  "default": 100,
+                  "description": "Maximum character length."
+                },
+                "pattern": {
+                  "type": "string",
+                  "default": "^[a-zA-Z][a-zA-Z\\s'-]*$",
+                  "description": "Regex pattern for valid names."
+                },
+                "error_messages": {
+                  "type": "object",
+                  "properties": {
+                    "required": {
+                      "type": "string",
+                      "default": "Character name is required."
+                    },
+                    "min_length": {
+                      "type": "string",
+                      "default": "Name must be at least 2 characters long."
+                    },
+                    "max_length": {
+                      "type": "string",
+                      "default": "Name cannot exceed 100 characters."
+                    },
+                    "pattern": {
+                      "type": "string",
+                      "default": "Name must start with a letter and contain only letters, spaces, hyphens, and apostrophes."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "concept": {
+          "type": "object",
+          "required": ["field_type", "label", "required"],
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "enum": ["textarea"],
+              "description": "HTML input type."
+            },
+            "label": {
+              "type": "string",
+              "default": "Character Concept",
+              "description": "Field label shown to user."
+            },
+            "placeholder": {
+              "type": "string",
+              "default": "Describe your character's core concept in a few sentences...",
+              "description": "Placeholder text in textarea."
+            },
+            "help_text": {
+              "type": "string",
+              "default": "What's your character's story? Are they a brave warrior seeking glory, a cunning rogue escaping their past, or a wise scholar pursuing forbidden knowledge? This helps guide your choices in later steps.",
+              "description": "Additional guidance shown below field."
+            },
+            "required": {
+              "type": "boolean",
+              "const": false,
+              "description": "Concept is optional but recommended."
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "max_length": {
+                  "type": "integer",
+                  "default": 500,
+                  "description": "Maximum character length."
+                },
+                "error_messages": {
+                  "type": "object",
+                  "properties": {
+                    "max_length": {
+                      "type": "string",
+                      "default": "Concept cannot exceed 500 characters."
+                    }
+                  }
+                }
+              }
+            },
+            "suggestions": {
+              "type": "array",
+              "description": "Example concepts to inspire players.",
+              "items": {
+                "type": "string"
+              },
+              "default": [
+                "A battle-scarred mercenary seeking redemption for past mistakes",
+                "An exiled noble with a secret magical heritage",
+                "A street urchin who discovered they have a gift for arcane magic",
+                "A devoted temple guardian protecting ancient relics",
+                "A wandering performer with a mysterious past",
+                "A monster hunter tracking the creature that destroyed their village",
+                "A scholar uncovering forbidden knowledge in ancient ruins",
+                "A folk hero rising from humble beginnings to defend the oppressed"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "step_complete": {
+          "type": "object",
+          "properties": {
+            "required_fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": ["name"],
+              "description": "Fields that must be filled to proceed."
+            },
+            "error_message": {
+              "type": "string",
+              "default": "Please enter a character name to continue.",
+              "description": "Message shown when validation fails."
+            }
+          }
+        }
+      }
+    },
+    "navigation": {
+      "type": "object",
+      "properties": {
+        "can_go_back": {
+          "type": "boolean",
+          "const": false,
+          "description": "Cannot go back from first step."
+        },
+        "next_step": {
+          "type": "integer",
+          "const": 2,
+          "description": "Step to navigate to on completion."
+        }
+      }
+    },
+    "tips": {
+      "type": "array",
+      "description": "Helpful tips shown to new players.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [
+        {
+          "title": "Getting Started",
+          "text": "Don't worry too much about your name at this stage - you can always change it later. Focus on creating a character concept that excites you!"
+        },
+        {
+          "title": "Naming Conventions",
+          "text": "Different ancestries have different naming traditions. Dwarves often have clan names, elves prefer flowing melodic names, and goblins love silly-sounding names."
+        },
+        {
+          "title": "Character Concept",
+          "text": "Your concept will guide your choices in ancestry, background, and class. Think about what kind of hero you want to play - brave, cunning, wise, or something else entirely."
+        }
+      ]
+    }
+  }
+}

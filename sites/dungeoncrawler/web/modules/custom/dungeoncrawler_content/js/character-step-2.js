@@ -6,108 +6,158 @@
 (function ($, Drupal, once) {
   'use strict';
 
-  const ancestryData = {
-    'dwarf': {
-      heritages: [
-        {id: 'ancient-blooded', name: 'Ancient-Blooded', benefit: 'Resistance to magic'},
-        {id: 'forge', name: 'Forge Dwarf', benefit: 'Fire resistance'},
-        {id: 'rock', name: 'Rock Dwarf', benefit: 'Extended darkvision'},
-        {id: 'strong-blooded', name: 'Strong-Blooded', benefit: 'Poison resistance'}
-      ]
-    },
-    'elf': {
-      heritages: [
-        {id: 'arctic', name: 'Arctic Elf', benefit: 'Cold resistance'},
-        {id: 'cavern', name: 'Cavern Elf', benefit: 'Darkvision'},
-        {id: 'seer', name: 'Seer Elf', benefit: 'Detect magic'},
-        {id: 'woodland', name: 'Woodland Elf', benefit: 'Climb speed'}
-      ]
-    },
-    'gnome': {
-      heritages: [
-        {id: 'chameleon', name: 'Chameleon Gnome', benefit: 'Change colors'},
-        {id: 'fey-touched', name: 'Fey-Touched Gnome', benefit: 'First World magic'},
-        {id: 'sensate', name: 'Sensate Gnome', benefit: 'Enhanced senses'},
-        {id: 'umbral', name: 'Umbral Gnome', benefit: 'Darkvision'}
-      ]
-    },
-    'goblin': {
-      heritages: [
-        {id: 'charhide', name: 'Charhide Goblin', benefit: 'Fire resistance'},
-        {id: 'irongut', name: 'Irongut Goblin', benefit: 'Eat anything'},
-        {id: 'razortooth', name: 'Razortooth Goblin', benefit: 'Bite attack'},
-        {id: 'snow', name: 'Snow Goblin', benefit: 'Cold resistance'}
-      ]
-    },
-    'halfling': {
-      heritages: [
-        {id: 'gutsy', name: 'Gutsy Halfling', benefit: 'Bonus vs fear'},
-        {id: 'hillock', name: 'Hillock Halfling', benefit: 'Faster healing'},
-        {id: 'nomadic', name: 'Nomadic Halfling', benefit: 'Extra languages'},
-        {id: 'twilight', name: 'Twilight Halfling', benefit: 'Low-light vision'}
-      ]
-    },
-    'human': {
-      heritages: [
-        {id: 'versatile', name: 'Versatile Heritage', benefit: 'Extra general feat'}
-      ]
-    }
-  };
-
-  window.selectAncestry = function(ancestryId) {
-    $('.ancestry-card').removeClass('selected');
-    $('.ancestry-card[data-ancestry="' + ancestryId + '"]').addClass('selected');
-    $('#selectedAncestry').val(ancestryId);
-    
-    // Show heritages
-    const ancestry = ancestryData[ancestryId];
-    if (ancestry && ancestry.heritages.length > 0) {
-      let html = '';
-      ancestry.heritages.forEach(heritage => {
-        html += '<div class="heritage-card" onclick="selectHeritage(\'' + heritage.id + '\')">';
-        html += '<h4>' + heritage.name + '</h4>';
-        html += '<p>' + heritage.benefit + '</p>';
-        html += '</div>';
-      });
-      $('#heritageOptions').html(html);
-      $('#heritageSelection').show();
-      $('#step2Submit').prop('disabled', true);
-    } else {
-      $('#heritageSelection').hide();
-      $('#step2Submit').prop('disabled', false);
-    }
-  };
-
-  window.selectHeritage = function(heritageId) {
-    $('.heritage-card').removeClass('selected');
-    $('.heritage-card').filter(function() {
-      return $(this).text().includes(heritageId);
-    }).addClass('selected');
-    $('#selectedHeritage').val(heritageId);
-    $('#step2Submit').prop('disabled', false);
-  };
-
   Drupal.behaviors.characterStep2 = {
     attach: function (context, settings) {
-      // Initialize if ancestry is already selected
-      const selectedAncestry = $('#selectedAncestry').val();
-      if (selectedAncestry) {
-        selectAncestry(selectedAncestry);
-        
-        const selectedHeritage = $('#selectedHeritage').val();
-        if (selectedHeritage) {
-          selectHeritage(selectedHeritage);
-        }
-      }
-
       once('step2-init', '#step2Form', context).forEach(function(element) {
-        $(element).on('submit', function(e) {
-        if (!$('#selectedAncestry').val()) {
-          e.preventDefault();
-          alert('Please select an ancestry.');
-          return false;
+        const $form = $(element);
+        const $ancestryCards = $('.ancestry-card', context);
+        const $heritageSection = $('#heritageSelection', context);
+        const $heritageOptions = $('#heritageOptions', context);
+        const $submitButton = $('#step2Submit', context);
+        const $selectedAncestry = $('#selectedAncestry');
+        const $selectedHeritage = $('#selectedHeritage');
+        
+        // Get heritage data from form data attribute
+        let heritageData = {};
+        try {
+          const parsed = JSON.parse($form.attr('data-heritages') || '{}');
+          // Ensure we have a valid object
+          heritageData = (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : {};
+        } catch (e) {
+          console.error('Failed to parse heritage data:', e);
+          heritageData = {};
         }
-          $(this).find('button[type="submit"]').prop('disabled', true).text('Saving...');
+
+        // Convert ancestry names to lowercase IDs for matching
+        const normalizedHeritages = {};
+        if (heritageData && typeof heritageData === 'object') {
+          Object.keys(heritageData).forEach(function(key) {
+            const normalizedKey = key.toLowerCase().replace(/\s+/g, '-');
+            normalizedHeritages[normalizedKey] = heritageData[key];
+          });
+        }
+        
+        console.log('Heritage data loaded:', normalizedHeritages);
+
+        // Function to display heritages for selected ancestry
+        function showHeritages(ancestryId) {
+          console.log('showHeritages called with:', ancestryId);
+          console.log('Available heritages:', Object.keys(normalizedHeritages));
+          const heritages = normalizedHeritages[ancestryId];
+          console.log('Found heritages for', ancestryId, ':', heritages);
+          
+          if (!heritages || heritages.length === 0) {
+            $heritageSection.addClass('hidden');
+            $submitButton.prop('disabled', false);
+            return;
+          }
+
+          // Build heritage cards
+          let html = '';
+          heritages.forEach(function(heritage) {
+            const isSelected = $selectedHeritage.val() === heritage.id ? 'selected' : '';
+            html += '<div class="heritage-card ' + isSelected + '" data-heritage="' + heritage.id + '">';
+            html += '<h4>' + heritage.name + '</h4>';
+            html += '<p>' + heritage.benefit + '</p>';
+            html += '</div>';
+          });
+          
+          $heritageOptions.html(html);
+          $heritageSection.removeClass('hidden');
+          
+          // Disable submit until heritage selected
+          if (!$selectedHeritage.val()) {
+            $submitButton.prop('disabled', true);
+          }
+        }
+
+        // Handle ancestry card clicks
+        once('ancestry-click', '.ancestry-card', context).forEach(function(card) {
+          $(card).on('click', function() {
+            const ancestryId = $(this).data('ancestry');
+            
+            // Update UI
+            $ancestryCards.removeClass('selected');
+            $(this).addClass('selected');
+            
+            // Update hidden field
+            $selectedAncestry.val(ancestryId);
+            
+            // Clear heritage selection
+            $selectedHeritage.val('');
+            
+            // Show heritages for this ancestry
+            showHeritages(ancestryId);
+          });
+        });
+
+        // Handle heritage card clicks (delegated event)
+        $heritageOptions.on('click', '.heritage-card', function() {
+          const heritageId = $(this).data('heritage');
+          
+          // Update UI
+          $('.heritage-card').removeClass('selected');
+          $(this).addClass('selected');
+          
+          // Update hidden field
+          $selectedHeritage.val(heritageId);
+          
+          // Enable submit button
+          $submitButton.prop('disabled', false);
+        });
+
+        // Initialize if ancestry already selected
+        const currentAncestry = $selectedAncestry.val();
+        if (currentAncestry) {
+          showHeritages(currentAncestry);
+        }
+
+        // Handle form submission with AJAX
+        $form.on('submit', function(e) {
+          e.preventDefault();
+          
+          // Validation
+          if (!$selectedAncestry.val()) {
+            alert('Please select an ancestry.');
+            return false;
+          }
+          
+          // Check if heritage is required (all ancestries have heritages)
+          const ancestryId = $selectedAncestry.val();
+          const heritages = normalizedHeritages[ancestryId];
+          if (heritages && heritages.length > 0 && !$selectedHeritage.val()) {
+            alert('Please select a heritage.');
+            return false;
+          }
+          
+          // Show loading state
+          $submitButton.prop('disabled', true).text('Saving...');
+          
+          const formData = $form.serialize();
+          const actionUrl = $form.attr('action');
+          
+          $.ajax({
+            url: actionUrl,
+            method: 'POST',
+            data: formData,
+            dataType: 'json',
+            success: function(response) {
+              if (response.success) {
+                window.location.href = response.redirect;
+              } else {
+                alert(response.message || 'An error occurred.');
+                $submitButton.prop('disabled', false).text('Next: Choose Background →');
+              }
+            },
+            error: function(xhr) {
+              let message = 'Failed to save. Please try again.';
+              if (xhr.responseJSON && xhr.responseJSON.message) {
+                message = xhr.responseJSON.message;
+              }
+              alert(message);
+              $submitButton.prop('disabled', false).text('Next: Choose Background →');
+            }
+          });
         });
       });
     }

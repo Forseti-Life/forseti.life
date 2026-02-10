@@ -1,0 +1,390 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/character.schema.json",
+  "title": "Pathfinder 2E Character Schema",
+  "description": "Complete character data structure for a PF2e character stored in the dc_characters table character_data JSON column.",
+  "type": "object",
+  "required": ["step", "name", "level", "ancestry", "class", "abilities"],
+  "properties": {
+    "step": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8,
+      "description": "Current step in character creation wizard (1-8). 8 = complete."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 100,
+      "description": "Character's name."
+    },
+    "concept": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Character concept or hook - optional flavor text."
+    },
+    "level": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20,
+      "default": 1,
+      "description": "Character level."
+    },
+    "experience_points": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 0,
+      "description": "Current XP. 1000 XP per level."
+    },
+    "ancestry": {
+      "type": "string",
+      "enum": [
+        "Human", "Elf", "Dwarf", "Gnome", "Goblin", "Halfling",
+        "Half-Elf", "Half-Orc", "Leshy", "Orc", "Catfolk", "Kobold",
+        "Ratfolk", "Tengu"
+      ],
+      "description": "PF2e ancestry choice."
+    },
+    "heritage": {
+      "type": "string",
+      "description": "Heritage specific to chosen ancestry (e.g., 'ancient-blooded' for Dwarf)."
+    },
+    "background": {
+      "type": "string",
+      "description": "Background ID (e.g., 'acolyte', 'criminal', 'noble')."
+    },
+    "background_boosts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["str", "dex", "con", "int", "wis", "cha"]
+      },
+      "minItems": 2,
+      "maxItems": 2,
+      "description": "Two ability boosts chosen from background. Player's choice."
+    },
+    "class": {
+      "type": "string",
+      "enum": [
+        "Alchemist", "Barbarian", "Bard", "Champion", "Cleric", "Druid",
+        "Fighter", "Monk", "Ranger", "Rogue", "Sorcerer", "Wizard"
+      ],
+      "description": "PF2e class choice."
+    },
+    "subclass": {
+      "type": "string",
+      "description": "Class-specific subclass (e.g., Fighter weapon group, Wizard school, Sorcerer bloodline)."
+    },
+    "free_boosts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "ability"],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": ["ancestry", "background", "class", "level_1", "level_5", "level_10", "level_15", "level_20"],
+            "description": "Where this boost came from."
+          },
+          "ability": {
+            "type": "string",
+            "enum": ["str", "dex", "con", "int", "wis", "cha"],
+            "description": "Which ability was boosted."
+          },
+          "value": {
+            "type": "integer",
+            "default": 2,
+            "description": "Boost amount (+2 typical, +1 if already 18+)."
+          }
+        }
+      },
+      "description": "Tracking of all ability boosts applied to character."
+    },
+    "abilities": {
+      "type": "object",
+      "required": ["str", "dex", "con", "int", "wis", "cha"],
+      "properties": {
+        "str": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 10,
+          "description": "Strength score."
+        },
+        "dex": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 10,
+          "description": "Dexterity score."
+        },
+        "con": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 10,
+          "description": "Constitution score."
+        },
+        "int": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 10,
+          "description": "Intelligence score."
+        },
+        "wis": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 10,
+          "description": "Wisdom score."
+        },
+        "cha": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 10,
+          "description": "Charisma score."
+        }
+      },
+      "description": "Current ability scores after all boosts and flaws."
+    },
+    "hit_points": {
+      "type": "object",
+      "properties": {
+        "max": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum HP (ancestry + class + Con modifier per level)."
+        },
+        "current": {
+          "type": "integer",
+          "description": "Current HP."
+        },
+        "temp": {
+          "type": "integer",
+          "default": 0,
+          "description": "Temporary HP."
+        }
+      }
+    },
+    "alignment": {
+      "type": "string",
+      "enum": ["LG", "NG", "CG", "LN", "N", "CN", "LE", "NE", "CE"],
+      "description": "Character alignment (pre-Remaster legacy support)."
+    },
+    "deity": {
+      "type": "string",
+      "description": "Deity worshipped (if any). Required for clerics and champions."
+    },
+    "age": {
+      "type": ["string", "integer"],
+      "description": "Character's age."
+    },
+    "gender": {
+      "type": "string",
+      "description": "Character's gender identity."
+    },
+    "size": {
+      "type": "string",
+      "enum": ["Tiny", "Small", "Medium", "Large"],
+      "default": "Medium",
+      "description": "Character size (from ancestry)."
+    },
+    "speed": {
+      "type": "integer",
+      "default": 25,
+      "description": "Base movement speed in feet."
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Languages known."
+    },
+    "skills": {
+      "type": "object",
+      "description": "Skill proficiencies: untrained, trained, expert, master, legendary.",
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["untrained", "trained", "expert", "master", "legendary"]
+      }
+    },
+    "equipment": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "description": "Item identifier."
+          },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "equipped": {
+            "type": "boolean",
+            "default": false
+          },
+          "worn": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "description": "Character's equipment and inventory."
+    },
+    "gold": {
+      "type": "number",
+      "minimum": 0,
+      "default": 15,
+      "description": "Gold pieces. Characters start with 15 gp."
+    },
+    "appearance": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Physical description."
+    },
+    "personality": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Personality traits."
+    },
+    "backstory": {
+      "type": "string",
+      "maxLength": 5000,
+      "description": "Character backstory."
+    },
+    "feats": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "feat_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "level_gained": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "feat_type": {
+            "type": "string",
+            "enum": ["ancestry", "class", "skill", "general"]
+          }
+        }
+      },
+      "description": "Feats acquired through leveling."
+    },
+    "spells": {
+      "type": "object",
+      "properties": {
+        "tradition": {
+          "type": "string",
+          "enum": ["arcane", "divine", "occult", "primal"],
+          "description": "Spellcasting tradition (if any)."
+        },
+        "spell_attack": {
+          "type": "integer",
+          "description": "Spell attack modifier."
+        },
+        "spell_dc": {
+          "type": "integer",
+          "description": "Spell DC."
+        },
+        "spells_known": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "spell_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "rank": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10
+              }
+            }
+          }
+        },
+        "spell_slots": {
+          "type": "object",
+          "description": "Spell slots per rank.",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "max": {
+                "type": "integer"
+              },
+              "remaining": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "focus_points": {
+          "type": "object",
+          "properties": {
+            "max": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3,
+              "default": 0
+            },
+            "remaining": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "description": "Spellcasting data (null if not a spellcaster)."
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "type": ["integer", "null"]
+          },
+          "duration": {
+            "type": ["string", "null"]
+          }
+        }
+      },
+      "description": "Active PF2e conditions."
+    },
+    "hero_points": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3,
+      "default": 1,
+      "description": "Hero points (refresh at session start)."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Character creation timestamp."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last modification timestamp."
+    }
+  }
+}

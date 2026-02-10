@@ -8,7 +8,7 @@
   <div class="creation-container">
     {# Progress Bar #}
     <div class="progress-bar">
-      <div class="progress-indicator" style="width: 25%"></div>
+      <div class="progress-indicator progress-step-2"></div>
     </div>
     <div class="progress-text">Step 2 of 8: Choose Ancestry</div>
 
@@ -17,7 +17,7 @@
       <h2>Choose Your Ancestry</h2>
       <p class="step-description">Your ancestry determines your character's heritage and inherent abilities.</p>
 
-      <form id="step2Form" method="post" action="/characters/create/step/2/save">
+      <form id="step2Form" method="post" action="/characters/create/step/2/save" data-heritages="{{ heritages|default({})|json_encode|e('html_attr') }}">
         <input type="hidden" name="character_id" value="{{ character_id }}">
         <input type="hidden" name="ancestry" id="selectedAncestry" value="{{ character.ancestry }}" required>
         <input type="hidden" name="heritage" id="selectedHeritage" value="{{ character.heritage }}">
@@ -25,8 +25,7 @@
         <div class="ancestry-grid">
           {% for ancestry in ancestries %}
             <div class="ancestry-card {{ character.ancestry == ancestry.id ? 'selected' : '' }}" 
-                 data-ancestry="{{ ancestry.id }}"
-                 onclick="selectAncestry('{{ ancestry.id }}')">
+                 data-ancestry="{{ ancestry.id }}">
               <h3>{{ ancestry.name }}</h3>
               <div class="ancestry-stats">
                 <span class="stat"><strong>HP:</strong> {{ ancestry.hp }}</span>
@@ -37,7 +36,7 @@
           {% endfor %}
         </div>
 
-        <div id="heritageSelection" class="heritage-section" style="display: none;">
+        <div id="heritageSelection" class="heritage-section hidden">
           <h3>Choose a Heritage</h3>
           <div id="heritageOptions" class="heritage-grid"></div>
         </div>

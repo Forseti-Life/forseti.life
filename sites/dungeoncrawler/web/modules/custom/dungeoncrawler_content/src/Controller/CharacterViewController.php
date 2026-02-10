@@ -40,82 +40,161 @@ class CharacterViewController extends ControllerBase {
       throw new AccessDeniedHttpException();
     }
 
-    $data = $this->characterManager->getCharacterData($record);
-    $char = $data['character'] ?? [];
+    // Decode character_data JSON
+    $char_data = json_decode($record->character_data, TRUE) ?? [];
 
-    // Flatten skills for template.
+    // Support both old flat structure and new nested abilities structure
+    $abilities = [];
+    if (!empty($char_data['abilities'])) {
+      // New schema format
+      foreach (['str' => 'strength', 'dex' => 'dexterity', 'con' => 'constitution', 'int' => 'intelligence', 'wis' => 'wisdom', 'cha' => 'charisma'] as $short => $long) {
+        $score = $char_data['abilities'][$short] ?? 10;
+        $modifier = floor(($score - 10) / 2);
+        $abilities[$long] = [
+          'score' => $score,
+          'modifier' => $modifier,
+        ];
+      }
+    }
+    else {
+      // Old flat format - fallback
+      foreach (['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'] as $ability) {
+        $score = $char_data[$ability] ?? 10;
+        $modifier = floor(($score - 10) / 2);
+        $abilities[$ability] = [
+          'score' => $score,
+          'modifier' => $modifier,
+        ];
+      }
+    }
+
+    // Calculate derived stats
+    $level = $char_data['level'] ?? $record->level ?? 1;
+    $con_mod = $abilities['constitution']['modifier'];
+    
+    // AC calculation (10 + DEX modifier for unarmored)
+    $ac = 10 + $abilities['dexterity']['modifier'];
+    
+    // Max HP from schema or calculate
+    $max_hp = $char_data['hit_points']['max'] ?? 20;
+    
+    // Saving throws (proficiency bonus = level + 2 for trained)
+    $prof_bonus = $level + 2;
+    $saves = [
+      'Fortitude' => [
+        'modifier' => $con_mod + $prof_bonus,
+        'proficiency' => 'Trained',
+      ],
+      'Reflex' => [
+        'modifier' => $abilities['dexterity']['modifier'] + $prof_bonus,
+        'proficiency' => 'Trained',
+      ],
+      'Will' => [
+        'modifier' => $abilities['wisdom']['modifier'] + $prof_bonus,
+        'proficiency' => 'Trained',
+      ],
+    ];
+
+    // Perception
+    $perception = [
+      'modifier' => $abilities['wisdom']['modifier'] + $prof_bonus,
+      'proficiency' => 'Trained',
+      'senses' => [],
+    ];
+
+    // Basic skills (all untrained unless specified)
+    $skill_list = [
+      'Acrobatics' => 'dexterity',
+      'Arcana' => 'intelligence',
+      'Athletics' => 'strength',
+      'Crafting' => 'intelligence',
+      'Deception' => 'charisma',
+      'Diplomacy' => 'charisma',
+      'Intimidation' => 'charisma',
+      'Lore' => 'intelligence',
+      'Medicine' => 'wisdom',
+      'Nature' => 'wisdom',
+      'Occultism' => 'intelligence',
+      'Performance' => 'charisma',
+      'Religion' => 'wisdom',
+      'Society' => 'intelligence',
+      'Stealth' => 'dexterity',
+      'Survival' => 'wisdom',
+      'Thievery' => 'dexterity',
+    ];
+
     $skills = [];
-    if (!empty($char['skills'])) {
-      foreach ($char['skills'] as $skill_key => $skill_data) {
-        if (is_array($skill_data)) {
-          $skills[] = [
-            'name' => ucwords(str_replace('_', ' ', $skill_key)),
-            'modifier' => $skill_data['modifier'] ?? 0,
-            'proficiency' => $skill_data['proficiency'] ?? 'Untrained',
-          ];
-        }
-      }
+    foreach ($skill_list as $skill_name => $ability_key) {
+      $skills[] = [
+        'name' => $skill_name,
+        'modifier' => $abilities[$ability_key]['modifier'],
+        'proficiency' => 'Untrained',
+      ];
     }
-
-    // Flatten attacks.
-    $melee_attacks = [];
-    if (!empty($char['attacks']['melee'])) {
-      foreach ($char['attacks']['melee'] as $attack) {
-        $melee_attacks[] = [
-          'name' => $attack['name'] ?? '',
-          'bonus' => $attack['attack_bonus'] ?? 0,
-          'damage' => $attack['damage'] ?? '',
-          'damage_type' => $attack['damage_type'] ?? '',
-          'traits' => $attack['traits'] ?? [],
-        ];
-      }
-    }
-
-    $ranged_attacks = [];
-    if (!empty($char['attacks']['ranged'])) {
-      foreach ($char['attacks']['ranged'] as $attack) {
-        $ranged_attacks[] = [
-          'name' => $attack['name'] ?? '',
-          'bonus' => $attack['attack_bonus'] ?? 0,
-          'damage' => $attack['damage'] ?? '',
-          'damage_type' => $attack['damage_type'] ?? '',
-          'range' => $attack['range'] ?? '',
-          'traits' => $attack['traits'] ?? [],
-        ];
-      }
-    }
-
-    // Equipment.
-    $equipment = $char['equipment'] ?? [];
 
     $build = [
       '#theme' => 'character_sheet',
       '#character' => [
         'id' => $record->id,
         'uuid' => $record->uuid,
-        'name' => $char['name'] ?? $record->name,
-        'player' => $char['player'] ?? 'Player',
-        'level' => $char['level'] ?? $record->level,
-        'xp' => $char['experience_points'] ?? 0,
-        'hero_points' => $char['hero_points'] ?? 1,
-        'status' => $record->status ? 'active' : 'dead',
-        'portrait' => $record->portrait,
+        'name' => $char_data['name'] ?? $record->name,
+        'level' => $level,
+        'xp' => $char_data['experience_points'] ?? 0,
+        'hero_points' => $char_data['hero_points'] ?? 1,
+        'status' => $record->status ? 'active' : 'incomplete',
+        'portrait' => $record->portrait ?? NULL,
+        'step' => $char_data['step'] ?? 1,
       ],
-      '#ancestry' => $char['ancestry'] ?? [],
-      '#background' => $char['background'] ?? [],
-      '#class_data' => $char['class'] ?? [],
-      '#abilities' => $char['ability_scores'] ?? [],
-      '#hp' => $char['hit_points'] ?? ['max' => 0, 'current' => 0, 'temporary' => 0],
-      '#ac' => $char['armor_class'] ?? 10,
-      '#saves' => $char['saving_throws'] ?? [],
-      '#perception' => $char['perception'] ?? [],
+      '#char_data' => $char_data,
+      '#ancestry' => [
+        'name' => $char_data['ancestry'] ?? 'Unknown',
+        'heritage' => $char_data['heritage'] ?? NULL,
+        'size' => $char_data['size'] ?? 'Medium',
+        'speed' => $char_data['speed'] ?? 25,
+        'languages' => $char_data['languages'] ?? [],
+        'traits' => [],
+      ],
+      '#background' => [
+        'name' => $char_data['background'] ?? 'Unknown',
+      ],
+      '#class_data' => [
+        'name' => $char_data['class'] ?? 'Unknown',
+        'subclass' => $char_data['subclass'] ?? NULL,
+        'key_ability' => 'STR',
+        'hp_per_level' => 8,
+        'class_features' => [],
+        'class_feats' => [],
+      ],
+      '#abilities' => $abilities,
+      '#hp' => [
+        'max' => $char_data['hit_points']['max'] ?? $max_hp,
+        'current' => $char_data['hit_points']['current'] ?? $max_hp,
+        'temporary' => $char_data['hit_points']['temp'] ?? 0,
+      ],
+      '#ac' => $ac,
+      '#saves' => $saves,
+      '#perception' => $perception,
       '#skills' => $skills,
-      '#melee_attacks' => $melee_attacks,
-      '#ranged_attacks' => $ranged_attacks,
-      '#equipment' => $equipment,
-      '#personality' => $char['personality'] ?? [],
-      '#npc_data' => $char['npc_data'] ?? NULL,
-      '#raw_json' => json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+      '#melee_attacks' => [],
+      '#ranged_attacks' => [],
+      '#equipment' => [
+        'gold' => $char_data['gold'] ?? 15,
+        'items' => $char_data['equipment'] ?? [],
+      ],
+      '#feats' => $char_data['feats'] ?? [],
+      '#spells' => $char_data['spells'] ?? NULL,
+      '#conditions' => $char_data['conditions'] ?? [],
+      '#personality' => [
+        'alignment' => $char_data['alignment'] ?? NULL,
+        'deity' => $char_data['deity'] ?? NULL,
+        'age' => $char_data['age'] ?? NULL,
+        'gender' => $char_data['gender'] ?? NULL,
+        'appearance' => $char_data['appearance'] ?? NULL,
+        'personality' => $char_data['personality'] ?? NULL,
+        'backstory' => $char_data['backstory'] ?? NULL,
+      ],
+      '#npc_data' => NULL,
+      '#raw_json' => json_encode($char_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
       '#edit_url' => Url::fromRoute('dungeoncrawler_content.character_edit', ['character_id' => $record->id])->toString(),
       '#delete_url' => Url::fromRoute('dungeoncrawler_content.character_delete', ['character_id' => $record->id])->toString(),
       '#back_url' => Url::fromRoute('dungeoncrawler_content.characters')->toString(),

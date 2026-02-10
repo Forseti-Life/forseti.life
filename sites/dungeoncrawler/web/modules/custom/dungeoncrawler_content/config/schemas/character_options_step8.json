@@ -1,0 +1,345 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/character_options_step8.json",
+  "title": "Character Creation Step 8: Finishing Touches",
+  "description": "Defines options for finalizing character details including age, gender, appearance, personality, and backstory in Pathfinder 2E character creation",
+  "type": "object",
+  "properties": {
+    "step": {
+      "type": "integer",
+      "const": 8,
+      "description": "Step number in character creation process"
+    },
+    "step_name": {
+      "type": "string",
+      "const": "Finishing Touches",
+      "description": "Human-readable name for this step"
+    },
+    "step_description": {
+      "type": "string",
+      "const": "Bring your character to life with personal details like age, gender, appearance, personality traits, and a compelling backstory.",
+      "description": "Explanation of what happens in this step"
+    },
+    "fields": {
+      "type": "object",
+      "description": "Form fields available in this step",
+      "properties": {
+        "age": {
+          "type": "object",
+          "description": "Character age field",
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "const": "text",
+              "description": "HTML input type"
+            },
+            "label": {
+              "type": "string",
+              "const": "Age",
+              "description": "Field label"
+            },
+            "required": {
+              "type": "boolean",
+              "const": false,
+              "description": "Optional field"
+            },
+            "placeholder": {
+              "type": "string",
+              "const": "e.g., 25, young adult, ancient",
+              "description": "Placeholder text"
+            },
+            "help_text": {
+              "type": "string",
+              "const": "Your character's age. Can be specific (25 years) or descriptive (young, middle-aged). Different ancestries age at different rates.",
+              "description": "Helper text"
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "max_length": {
+                  "type": "integer",
+                  "const": 50
+                },
+                "pattern": {
+                  "type": "string",
+                  "const": "^[0-9a-zA-Z\\s,-]+$",
+                  "description": "Alphanumeric with spaces, commas, hyphens"
+                }
+              }
+            }
+          },
+          "required": ["field_type", "label", "required", "help_text"]
+        },
+        "gender": {
+          "type": "object",
+          "description": "Character gender/pronouns field",
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "const": "text",
+              "description": "HTML input type"
+            },
+            "label": {
+              "type": "string",
+              "const": "Gender / Pronouns",
+              "description": "Field label"
+            },
+            "required": {
+              "type": "boolean",
+              "const": false,
+              "description": "Optional field"
+            },
+            "placeholder": {
+              "type": "string",
+              "const": "e.g., she/her, he/him, they/them, or any identity",
+              "description": "Placeholder text"
+            },
+            "help_text": {
+              "type": "string",
+              "const": "Your character's gender identity and preferred pronouns. This is entirely up to you and has no mechanical effects.",
+              "description": "Helper text"
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "max_length": {
+                  "type": "integer",
+                  "const": 100
+                }
+              }
+            }
+          },
+          "required": ["field_type", "label", "required", "help_text"]
+        },
+        "appearance": {
+          "type": "object",
+          "description": "Physical appearance description",
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "const": "textarea",
+              "description": "HTML input type"
+            },
+            "label": {
+              "type": "string",
+              "const": "Physical Appearance",
+              "description": "Field label"
+            },
+            "required": {
+              "type": "boolean",
+              "const": false,
+              "description": "Optional field"
+            },
+            "placeholder": {
+              "type": "string",
+              "const": "Describe your character's physical features: height, build, hair, eyes, notable features...",
+              "description": "Placeholder text"
+            },
+            "help_text": {
+              "type": "string",
+              "const": "Describe how your character looks. Include physical features, distinguishing marks, typical clothing, or anything else that makes them recognizable.",
+              "description": "Helper text"
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "max_length": {
+                  "type": "integer",
+                  "const": 1000,
+                  "description": "Maximum character count"
+                },
+                "rows": {
+                  "type": "integer",
+                  "const": 5,
+                  "description": "Visible rows in textarea"
+                }
+              }
+            }
+          },
+          "required": ["field_type", "label", "required", "help_text", "validation"]
+        },
+        "personality": {
+          "type": "object",
+          "description": "Personality traits and mannerisms",
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "const": "textarea",
+              "description": "HTML input type"
+            },
+            "label": {
+              "type": "string",
+              "const": "Personality & Mannerisms",
+              "description": "Field label"
+            },
+            "required": {
+              "type": "boolean",
+              "const": false,
+              "description": "Optional field"
+            },
+            "placeholder": {
+              "type": "string",
+              "const": "What is your character like? Brave, cautious, sarcastic, earnest, curious...",
+              "description": "Placeholder text"
+            },
+            "help_text": {
+              "type": "string",
+              "const": "Describe your character's personality, quirks, habits, speech patterns, or emotional tendencies. What makes them tick?",
+              "description": "Helper text"
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "max_length": {
+                  "type": "integer",
+                  "const": 1000,
+                  "description": "Maximum character count"
+                },
+                "rows": {
+                  "type": "integer",
+                  "const": 5,
+                  "description": "Visible rows in textarea"
+                }
+              }
+            }
+          },
+          "required": ["field_type", "label", "required", "help_text", "validation"]
+        },
+        "backstory": {
+          "type": "object",
+          "description": "Character backstory and history",
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "const": "textarea",
+              "description": "HTML input type"
+            },
+            "label": {
+              "type": "string",
+              "const": "Backstory",
+              "description": "Field label"
+            },
+            "required": {
+              "type": "boolean",
+              "const": false,
+              "description": "Optional field"
+            },
+            "placeholder": {
+              "type": "string",
+              "const": "Where did your character come from? What experiences shaped them? Why did they become an adventurer?",
+              "description": "Placeholder text"
+            },
+            "help_text": {
+              "type": "string",
+              "const": "Tell your character's story. Include their origins, key life events, relationships, motivations, and goals. This helps the GM integrate your character into the campaign.",
+              "description": "Helper text"
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "max_length": {
+                  "type": "integer",
+                  "const": 5000,
+                  "description": "Maximum character count"
+                },
+                "rows": {
+                  "type": "integer",
+                  "const": 10,
+                  "description": "Visible rows in textarea"
+                }
+              }
+            }
+          },
+          "required": ["field_type", "label", "required", "help_text", "validation"]
+        }
+      },
+      "required": ["age", "gender", "appearance", "personality", "backstory"]
+    },
+    "character_summary": {
+      "type": "object",
+      "description": "Display-only summary of all choices made during character creation",
+      "properties": {
+        "label": {
+          "type": "string",
+          "const": "Character Summary",
+          "description": "Section label"
+        },
+        "sections": {
+          "type": "array",
+          "description": "Organized summary of character data",
+          "items": {
+            "type": "object",
+            "properties": {
+              "section_name": {
+                "type": "string",
+                "enum": ["Basic Info", "Ancestry & Heritage", "Background & Class", "Abilities", "Alignment & Deity", "Equipment"]
+              },
+              "fields": {
+                "type": "object",
+                "description": "Key-value pairs summarizing this section"
+              }
+            }
+          }
+        },
+        "help_text": {
+          "type": "string",
+          "const": "Review your character's mechanical details before finalizing. You can go back to any previous step to make changes.",
+          "description": "Helper text"
+        }
+      },
+      "required": ["label", "sections", "help_text"]
+    },
+    "navigation": {
+      "type": "object",
+      "description": "Navigation rules for this step",
+      "properties": {
+        "previous_step": {
+          "type": "integer",
+          "const": 7,
+          "description": "Previous step number"
+        },
+        "next_step": {
+          "type": "null",
+          "description": "No next step - this is the final step"
+        },
+        "can_go_back": {
+          "type": "boolean",
+          "const": true,
+          "description": "User can return to previous step"
+        },
+        "can_skip": {
+          "type": "boolean",
+          "const": false,
+          "description": "Step cannot be skipped"
+        },
+        "completion_action": {
+          "type": "string",
+          "const": "create_character",
+          "description": "Action to perform when this step is completed"
+        },
+        "completion_button_text": {
+          "type": "string",
+          "const": "Create Character",
+          "description": "Text for the final completion button"
+        }
+      },
+      "required": ["previous_step", "next_step", "can_go_back", "can_skip", "completion_action", "completion_button_text"]
+    },
+    "tips": {
+      "type": "array",
+      "description": "Helpful tips for new players",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "These fields are all optional but add depth to your character and help with roleplaying.",
+        "Your backstory doesn't need to be elaborate - a few sentences about motivations and goals is enough to start.",
+        "Think about how your background choice connects to your backstory.",
+        "Consider leaving some elements of your backstory mysterious to discover during play.",
+        "Your character's personality can evolve during gameplay - this is just a starting point.",
+        "Coordinate with your GM and other players to create connections between characters and the campaign world."
+      ]
+    }
+  },
+  "required": ["step", "step_name", "step_description", "fields", "character_summary", "navigation", "tips"]
+}

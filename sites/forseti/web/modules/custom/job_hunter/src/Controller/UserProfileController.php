@@ -1163,7 +1163,7 @@ class UserProfileController extends ControllerBase {
     
     if (!$job_seeker_profile || empty($job_seeker_profile->consolidated_profile_json)) {
       $this->messenger()->addError($this->t('Please complete your job seeker profile first before tailoring your resume.'));
-      return $this->redirect('job_hunter.profile');
+      return $this->redirect('job_hunter.user_job_seeker_view');
     }
     
     $profile_json = json_decode($job_seeker_profile->consolidated_profile_json, TRUE) ?: [];
