@@ -40,10 +40,10 @@
         "drupal/social_api": "^4.0",
         "drupal/social_auth": "^4.1",
         "drupal/social_auth_google": "^4.0",
-        "drupal/token": "^1.17",
+        "drupal/token": "^1.16",
         "drupal/twig_tweak": "^3.4",
         "drupal/users_metrics": "^1.0",
-        "drupal/webform": "^7.0",
+        "drupal/webform": "^6.3",
         "drush/drush": "^13.6",
         "google/auth": "^1.40"
     },
