@@ -1,4 +1,17 @@
-# Forseti Safety Content Module
+# ⚠️ DEPRECATED - Forseti Safety Content Module
+
+**STATUS**: This module has been deprecated and renamed to `forseti_content`.
+
+**DO NOT USE**: This module is kept for reference only and should not be enabled.
+
+**Replacement**: Use the `forseti_content` module instead, located at:
+`/sites/forseti/web/modules/custom/forseti_content`
+
+---
+
+## Historical Documentation
+
+# Forseti Safety Content Module (DEPRECATED)
 
 **Last Updated:** February 6, 2026
 

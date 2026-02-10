@@ -792,6 +792,13 @@ if [ ! -d "web/modules/contrib/devel" ]; then
         drupal/admin_toolbar \
         drupal/pathauto \
         drupal/metatag \
+        drupal/webform \
+        drupal/social_api \
+        drupal/social_auth \
+        drupal/social_auth_google \
+        drupal/google_tag \
+        drupal/token \
+        drupal/twig_tweak \
         drupal/backup_migrate \
         drupal/bootstrap5 \
         drupal/radix \
@@ -909,6 +916,15 @@ if [ "$DRUPAL_INSTALLED" = true ]; then
     if ! /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "devel"; then
         print_status "Enabling development and utility modules..."
         /usr/bin/php8.3 vendor/drush/drush/drush.php en devel admin_toolbar admin_toolbar_tools pathauto metatag -y
+        
+        print_status "Enabling production feature modules..."
+        /usr/bin/php8.3 vendor/drush/drush/drush.php en webform webform_ui token twig_tweak -y
+        
+        print_status "Enabling social authentication..."
+        /usr/bin/php8.3 vendor/drush/drush/drush.php en social_api social_auth social_auth_google -y
+        
+        print_status "Enabling Google Tag Manager..."
+        /usr/bin/php8.3 vendor/drush/drush/drush.php en google_tag -y
     else
         print_status "Development modules already enabled. Skipping to preserve existing configuration."
     fi
@@ -1478,11 +1494,17 @@ if [ -f "vendor/drush/drush/drush.php" ]; then
             /usr/bin/php8.3 vendor/drush/drush/drush.php en profile -y 2>/dev/null || true
         fi
         
+        # Uninstall old module if it exists (renamed to forseti_content)
+        if /usr/bin/php8.3 vendor/drush/drush/drush.php pm:list --status=enabled 2>/dev/null | grep -q "forseti_safety_content"; then
+            print_status "Uninstalling old forseti_safety_content module (renamed to forseti_content)..."
+            /usr/bin/php8.3 vendor/drush/drush/drush.php pm:uninstall forseti_safety_content -y 2>/dev/null || true
+        fi
+        
         # Enable modules that exist in custom directory
         [ -d "web/modules/custom/ai_conversation" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en ai_conversation -y 2>/dev/null && print_status "✅ ai_conversation enabled"
         [ -d "web/modules/custom/amisafe" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en amisafe -y 2>/dev/null && print_status "✅ amisafe enabled"
         [ -d "web/modules/custom/agent_evaluation" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en agent_evaluation -y 2>/dev/null && print_status "✅ agent_evaluation enabled"
-        [ -d "web/modules/custom/forseti_safety_content" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en forseti_safety_content -y 2>/dev/null && print_status "✅ forseti_safety_content enabled"
+        [ -d "web/modules/custom/forseti_content" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en forseti_content -y 2>/dev/null && print_status "✅ forseti_content enabled"
         [ -d "web/modules/custom/stli_site_customizations" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en stli_site_customizations -y 2>/dev/null && print_status "✅ stli_site_customizations enabled"
         [ -d "web/modules/custom/resume_tailoring" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en resume_tailoring -y 2>/dev/null && print_status "✅ resume_tailoring enabled"
         [ -d "web/modules/custom/job_application_automation" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en job_application_automation -y 2>/dev/null && print_status "✅ job_application_automation enabled"
