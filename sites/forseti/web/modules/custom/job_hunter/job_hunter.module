@@ -199,6 +199,7 @@ function job_hunter_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $for
     'job_application_form',
     'bulk_actions_form',
     'job_hunter_user_profile_form',
+    'job_hunter_add_job_posting_form',
   ];
   
   // Check if this is a Job Hunter form that needs navigation
