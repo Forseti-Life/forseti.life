@@ -28,6 +28,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 2
 
     - name: Deploy to production
       uses: appleboy/ssh-action@v0.1.5
@@ -41,177 +43,148 @@ jobs:
         script: |
           set -e
           
-          echo "=== FORSETI DEPLOYMENT STARTED ==="
+          DEPLOY_START=$(date +%s)
+          echo "🚀 DEPLOYMENT STARTED at $(date)"
           
-          DRUPAL_ROOT="/var/www/html/forseti"
           TEMP_DIR="/tmp/deploy-$(date +%s)"
           
-          # Single git clone with sparse checkout
+          # Optimized git clone
           mkdir -p "$TEMP_DIR"
           cd "$TEMP_DIR"
           
           echo "Downloading code from repository..."
-          git clone --depth 1 --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git .
+          git clone --depth 1 --single-branch --branch main --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git .
           git sparse-checkout set sites/forseti sites/dungeoncrawler h3-geolocation
           
-          # Deploy custom modules
-          if [ -d "sites/forseti/web/modules/custom" ]; then
-            echo "Deploying custom modules..."
-            sudo rsync -av --delete sites/forseti/web/modules/custom/ "$DRUPAL_ROOT/web/modules/custom/"
-            echo "✅ Modules deployed"
-          fi
-          
-          # Deploy custom themes
-          if [ -d "sites/forseti/web/themes/custom" ]; then
-            echo "Deploying custom themes..."
-            sudo rsync -av --delete sites/forseti/web/themes/custom/ "$DRUPAL_ROOT/web/themes/custom/"
-            echo "✅ Themes deployed"
-          fi
-          
-          # Deploy configuration
-          if [ -d "sites/forseti/config/sync" ]; then
-            echo "Deploying configuration..."
-            sudo rsync -av --delete sites/forseti/config/sync/ "$DRUPAL_ROOT/config/sync/"
-            echo "✅ Configuration deployed"
-          fi
-          
-          # Deploy H3 geolocation (if exists)
-          if [ -d "h3-geolocation" ]; then
-            echo "Deploying H3 geolocation..."
-            sudo rsync -av --exclude='h3-env' --exclude='__pycache__' h3-geolocation/ "$DRUPAL_ROOT/h3-geolocation/"
-            echo "✅ H3 deployed"
-          fi
-          
-          # Composer update (only if files changed)
-          COMPOSER_CHANGED=false
-          if [ -f "sites/forseti/composer.json" ]; then
-            if ! cmp -s "sites/forseti/composer.json" "$DRUPAL_ROOT/composer.json"; then
-              echo "Composer files changed, updating..."
-              sudo cp "sites/forseti/composer.json" "$DRUPAL_ROOT/"
-              [ -f "sites/forseti/composer.lock" ] && sudo cp "sites/forseti/composer.lock" "$DRUPAL_ROOT/"
-              COMPOSER_CHANGED=true
-            fi
-          fi
-          
-          cd "$DRUPAL_ROOT"
-          
-          if [ "$COMPOSER_CHANGED" = true ]; then
-            echo "Installing composer dependencies..."
-            sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
-            echo "✅ Composer updated"
-          else
-            echo "ℹ️ Composer files unchanged, skipping"
-          fi
-          
-          # Import configuration
-          echo "Importing configuration..."
-          sudo -u www-data ./vendor/bin/drush config:import -y || echo "⚠️ Config import warnings"
-          
-          # Database updates
-          echo "Checking for database updates..."
-          sudo -u www-data ./vendor/bin/drush updatedb -y || echo "ℹ️ No updates needed"
-          
-          # Fix permissions (batch operation)
-          echo "Setting permissions..."
-          sudo chown -R www-data:www-data "$DRUPAL_ROOT/web/modules/custom" \
-            "$DRUPAL_ROOT/web/themes/custom" \
-            "$DRUPAL_ROOT/config" \
-            "$DRUPAL_ROOT/web/sites/default/files" 2>/dev/null || true
-          
-          sudo find "$DRUPAL_ROOT/web/modules/custom" "$DRUPAL_ROOT/web/themes/custom" \
-            -type f -exec chmod 644 {} + -o -type d -exec chmod 755 {} + 2>/dev/null || true
-          
-          # Final cache clear (once)
-          echo "Clearing all caches..."
-          sudo rm -rf "$DRUPAL_ROOT/web/sites/default/files/css" \
-            "$DRUPAL_ROOT/web/sites/default/files/js" \
-            "$DRUPAL_ROOT/web/sites/default/files/php/twig" 2>/dev/null || true
-          
-          sudo -u www-data ./vendor/bin/drush cache:rebuild
-          
-          # ============================================================
-          # DUNGEON CRAWLER DEPLOYMENT
-          # ============================================================
-          DC_ROOT="/var/www/html/dungeoncrawler"
-          
-          if [ -d "$DC_ROOT" ] && [ -d "sites/dungeoncrawler/web/modules/custom" ]; then
+          # Reusable deployment function
+          deploy_site() {
+            local SITE_NAME=$1
+            local SITE_ROOT=$2
+            local SITE_PATH=$3
+            
             echo ""
-            echo "=== DUNGEON CRAWLER DEPLOYMENT ==="
+            echo "=== ${SITE_NAME} DEPLOYMENT ==="
+            local SITE_START=$(date +%s)
             
             # Deploy custom modules
-            if [ -d "sites/dungeoncrawler/web/modules/custom" ]; then
-              echo "Deploying Dungeon Crawler custom modules..."
-              sudo rsync -av --delete sites/dungeoncrawler/web/modules/custom/ "$DC_ROOT/web/modules/custom/"
-              echo "✅ DC Modules deployed"
+            if [ -d "${SITE_PATH}/web/modules/custom" ]; then
+              echo "Deploying custom modules..."
+              sudo rsync -av --delete --checksum "${SITE_PATH}/web/modules/custom/" "${SITE_ROOT}/web/modules/custom/"
+              echo "✅ Modules deployed"
             fi
             
             # Deploy custom themes
-            if [ -d "sites/dungeoncrawler/web/themes/custom" ]; then
-              echo "Deploying Dungeon Crawler custom themes..."
-              sudo rsync -av --delete sites/dungeoncrawler/web/themes/custom/ "$DC_ROOT/web/themes/custom/"
-              echo "✅ DC Themes deployed"
+            if [ -d "${SITE_PATH}/web/themes/custom" ]; then
+              echo "Deploying custom themes..."
+              sudo rsync -av --delete --checksum "${SITE_PATH}/web/themes/custom/" "${SITE_ROOT}/web/themes/custom/"
+              echo "✅ Themes deployed"
             fi
             
             # Deploy configuration
-            if [ -d "sites/dungeoncrawler/config/sync" ]; then
-              echo "Deploying Dungeon Crawler configuration..."
-              sudo rsync -av --delete sites/dungeoncrawler/config/sync/ "$DC_ROOT/config/sync/"
-              echo "✅ DC Configuration deployed"
+            if [ -d "${SITE_PATH}/config/sync" ]; then
+              echo "Deploying configuration..."
+              sudo rsync -av --delete --checksum "${SITE_PATH}/config/sync/" "${SITE_ROOT}/config/sync/"
+              echo "✅ Configuration deployed"
             fi
             
-            # Composer update
-            DC_COMPOSER_CHANGED=false
-            if [ -f "sites/dungeoncrawler/composer.json" ]; then
-              if ! cmp -s "sites/dungeoncrawler/composer.json" "$DC_ROOT/composer.json"; then
-                echo "DC Composer files changed, updating..."
-                sudo cp "sites/dungeoncrawler/composer.json" "$DC_ROOT/"
-                [ -f "sites/dungeoncrawler/composer.lock" ] && sudo cp "sites/dungeoncrawler/composer.lock" "$DC_ROOT/"
-                DC_COMPOSER_CHANGED=true
+            # Composer update (only if files changed)
+            COMPOSER_CHANGED=false
+            if [ -f "${SITE_PATH}/composer.json" ]; then
+              if ! cmp -s "${SITE_PATH}/composer.json" "${SITE_ROOT}/composer.json"; then
+                echo "Composer files changed, updating..."
+                sudo cp "${SITE_PATH}/composer.json" "${SITE_ROOT}/"
+                [ -f "${SITE_PATH}/composer.lock" ] && sudo cp "${SITE_PATH}/composer.lock" "${SITE_ROOT}/"
+                COMPOSER_CHANGED=true
               fi
             fi
             
-            cd "$DC_ROOT"
+            cd "${SITE_ROOT}"
             
-            if [ "$DC_COMPOSER_CHANGED" = true ]; then
-              echo "Installing DC composer dependencies..."
-              sudo -u www-data composer install --no-dev --optimize-autoloader --no-interaction
-              echo "✅ DC Composer updated"
+            if [ "$COMPOSER_CHANGED" = true ]; then
+              echo "Installing composer dependencies..."
+              sudo -u www-data composer install --no-dev --optimize-autoloader --prefer-dist --no-interaction
+              echo "✅ Composer updated"
+            else
+              echo "ℹ️ Composer files unchanged, skipping"
             fi
             
-            # Import configuration
-            echo "Importing DC configuration..."
-            sudo -u www-data ./vendor/bin/drush config:import -y || echo "⚠️ DC Config import warnings"
-            
             # Database updates
-            echo "Checking DC database updates..."
-            sudo -u www-data ./vendor/bin/drush updatedb -y || echo "ℹ️ No DC updates needed"
+            echo "Checking for database updates..."
+            sudo -u www-data ./vendor/bin/drush updatedb -y || echo "ℹ️ No updates needed"
             
-            # Fix permissions
-            sudo chown -R www-data:www-data "$DC_ROOT/web/modules/custom" \
-              "$DC_ROOT/web/themes/custom" \
-              "$DC_ROOT/config" \
-              "$DC_ROOT/web/sites/default/files" 2>/dev/null || true
+            # Import configuration
+            echo "Importing configuration..."
+            sudo -u www-data ./vendor/bin/drush config:import -y || echo "⚠️ Config import warnings"
             
-            sudo find "$DC_ROOT/web/modules/custom" "$DC_ROOT/web/themes/custom" \
-              -type f -exec chmod 644 {} + -o -type d -exec chmod 755 {} + 2>/dev/null || true
+            # Fix permissions (optimized single pass)
+            echo "Setting permissions..."
+            sudo chown -R www-data:www-data "${SITE_ROOT}/web/modules/custom" \
+              "${SITE_ROOT}/web/themes/custom" \
+              "${SITE_ROOT}/config" 2>/dev/null || true
             
-            # Cache clear
-            sudo rm -rf "$DC_ROOT/web/sites/default/files/css" \
-              "$DC_ROOT/web/sites/default/files/js" \
-              "$DC_ROOT/web/sites/default/files/php/twig" 2>/dev/null || true
+            sudo chmod -R u=rwX,g=rX,o=rX "${SITE_ROOT}/web/modules/custom" \
+              "${SITE_ROOT}/web/themes/custom" \
+              "${SITE_ROOT}/config" 2>/dev/null || true
             
+            # Cache rebuild (handles all cache clearing internally)
+            echo "Clearing all caches..."
             sudo -u www-data ./vendor/bin/drush cache:rebuild
             
-            echo "✅ Dungeon Crawler deployment complete"
+            local SITE_END=$(date +%s)
+            echo "✅ ${SITE_NAME} deployment complete in $((SITE_END - SITE_START))s"
+          }
+          
+          # Deploy Forseti
+          deploy_site "FORSETI" "/var/www/html/forseti" "sites/forseti"
+          
+          # Deploy H3 geolocation (if exists)
+          if [ -d "h3-geolocation" ]; then
+            echo ""
+            echo "=== H3 GEOLOCATION DEPLOYMENT ==="
+            H3_START=$(date +%s)
+            sudo rsync -av --checksum --exclude='h3-env' --exclude='__pycache__' h3-geolocation/ "/var/www/html/forseti/h3-geolocation/"
+            echo "✅ H3 deployed in $(($(date +%s) - H3_START))s"
+          fi
+          
+          # Deploy Dungeon Crawler (if site exists on production)
+          DC_ROOT="/var/www/html/dungeoncrawler"
+          if [ -d "$DC_ROOT" ] && [ -d "sites/dungeoncrawler/web/modules/custom" ]; then
+            deploy_site "DUNGEON CRAWLER" "$DC_ROOT" "sites/dungeoncrawler"
           else
+            echo ""
             echo "ℹ️ Dungeon Crawler not set up on production yet, skipping"
+          fi
+          
+          # Health checks
+          echo ""
+          echo "=== HEALTH CHECKS ==="
+          
+          echo "Testing Forseti..."
+          if curl -f -s -o /dev/null -w "%{http_code}" https://forseti.life | grep -q "200"; then
+            echo "✅ Forseti.life is responding (200 OK)"
+          else
+            echo "⚠️ Forseti.life health check failed"
+            exit 1
+          fi
+          
+          if [ -d "$DC_ROOT" ]; then
+            echo "Testing Dungeon Crawler..."
+            if curl -f -s -o /dev/null -w "%{http_code}" https://dungeoncrawler.forseti.life | grep -q "200"; then
+              echo "✅ Dungeon Crawler is responding (200 OK)"
+            else
+              echo "⚠️ Dungeon Crawler health check failed"
+            fi
           fi
           
           # Clean up
           cd /tmp
           rm -rf "$TEMP_DIR"
           
+          DEPLOY_END=$(date +%s)
+          TOTAL_TIME=$((DEPLOY_END - DEPLOY_START))
+          
           echo ""
           echo "🎉 DEPLOYMENT COMPLETED at $(date)"
+          echo "⏱️  Total deployment time: ${TOTAL_TIME}s"
           echo "✅ Changes live at https://forseti.life"
 
