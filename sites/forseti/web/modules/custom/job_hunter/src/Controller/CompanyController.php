@@ -630,8 +630,42 @@ class CompanyController extends ControllerBase {
       '#theme' => 'job_application_dashboard_wrapper',
       '#navigation' => $navigation_block,
       '#content' => $content,
+      '#attached' => [
+        'library' => [
+          'job_hunter/job-hunter-navigation',
+          'job_hunter/job-hunter-home',
+        ],
+      ],
     ];
     
+    return $build;
+  }
+
+  /**
+   * Display the edit job form wrapped in navigation.
+   */
+  public function editJobForm($job_id) {
+    // Render navigation block
+    $block_manager = \Drupal::service('plugin.manager.block');
+    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
+    $navigation_block = $plugin_block->build();
+
+    // Build the form
+    $form = \Drupal::formBuilder()->getForm('Drupal\job_hunter\Form\JobRequirementForm', $job_id);
+
+    // Wrap with navigation
+    $build = [
+      '#theme' => 'job_application_dashboard_wrapper',
+      '#navigation' => $navigation_block,
+      '#content' => $form,
+      '#attached' => [
+        'library' => [
+          'job_hunter/job-hunter-navigation',
+          'job_hunter/job-hunter-home',
+        ],
+      ],
+    ];
+
     return $build;
   }
 

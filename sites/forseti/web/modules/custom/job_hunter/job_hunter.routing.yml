@@ -515,7 +515,7 @@ job_hunter.job_retry_parsing:
 job_hunter.job_edit:
   path: '/jobhunter/jobs/{job_id}/edit'
   defaults:
-    _form: '\Drupal\job_hunter\Form\JobRequirementForm'
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::editJobForm'
     _title: 'Edit Job Requirement'
   requirements:
     _permission: 'access job hunter'
