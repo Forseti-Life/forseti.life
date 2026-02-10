@@ -25,6 +25,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     
     steps:
     - uses: actions/checkout@v3
@@ -45,6 +46,8 @@ jobs:
           
           DEPLOY_START=$(date +%s)
           echo "🚀 DEPLOYMENT STARTED at $(date)"
+          echo "📝 Commit: $GITHUB_SHA"
+          echo "👤 Author: $GITHUB_ACTOR"
           
           TEMP_DIR="/tmp/deploy-$(date +%s)"
           
@@ -102,7 +105,7 @@ jobs:
             fi
             
             # Composer update (only if files changed)
-            COMPOSER_CHANGED=false
+            local COMPOSER_CHANGED=false
             if [ -f "${SITE_PATH}/composer.json" ]; then
               if ! cmp -s "${SITE_PATH}/composer.json" "${SITE_ROOT}/composer.json"; then
                 echo "Composer files changed, updating..."
@@ -193,12 +196,17 @@ jobs:
           fi
           
           # Deploy H3 geolocation (if exists and changed)
-          if [ -d "h3-geolocation" ] && (echo "$CHANGED_FILES" | grep -q "^h3-geolocation/" || [ -z "$CHANGED_FILES" ]); then
-            echo ""
-            echo "=== H3 GEOLOCATION DEPLOYMENT ==="
-            H3_START=$(date +%s)
-            sudo rsync -aq --delete --exclude='h3-env' --exclude='__pycache__' h3-geolocation/ "/var/www/html/forseti/h3-geolocation/"
-            echo "✅ H3 deployed in $(($(date +%s) - H3_START))s"
+          if [ -d "h3-geolocation" ]; then
+            if echo "$CHANGED_FILES" | grep -q "^h3-geolocation/" || [ -z "$CHANGED_FILES" ]; then
+              echo ""
+              echo "=== H3 GEOLOCATION DEPLOYMENT ==="
+              H3_START=$(date +%s)
+              sudo rsync -aq --delete --exclude='h3-env' --exclude='__pycache__' h3-geolocation/ "/var/www/html/forseti/h3-geolocation/"
+              echo "✅ H3 deployed in $(($(date +%s) - H3_START))s"
+            else
+              echo ""
+              echo "ℹ️ H3 geolocation unchanged, skipping deployment"
+            fi
           fi
           
           # Deploy Dungeon Crawler (if site exists on production and changed)
@@ -230,6 +238,8 @@ jobs:
               echo "❌ Forseti.life health check failed (HTTP $HTTP_CODE)"
               exit 1
             fi
+          else
+            echo "ℹ️ Forseti not deployed, skipping health check"
           fi
           
           if [ "$DC_DEPLOYED" = true ]; then
@@ -240,6 +250,8 @@ jobs:
             else
               echo "⚠️ Dungeon Crawler health check failed (HTTP $DC_HTTP_CODE)"
             fi
+          else
+            [ -d "$DC_ROOT" ] && echo "ℹ️ Dungeon Crawler not deployed, skipping health check"
           fi
           
           # Clean up
@@ -252,5 +264,10 @@ jobs:
           echo ""
           echo "🎉 DEPLOYMENT COMPLETED at $(date)"
           echo "⏱️  Total deployment time: ${TOTAL_TIME}s"
-          echo "✅ Changes live at https://forseti.life"
+          echo ""
+          echo "=== DEPLOYMENT SUMMARY ==="
+          [ "$FORSETI_DEPLOYED" = true ] && echo "✅ Forseti deployed" || echo "⏭️  Forseti skipped"
+          [ "$DC_DEPLOYED" = true ] && echo "✅ Dungeon Crawler deployed" || echo "⏭️  Dungeon Crawler skipped"
+          echo ""
+          echo "🌐 Changes live at https://forseti.life"
 
