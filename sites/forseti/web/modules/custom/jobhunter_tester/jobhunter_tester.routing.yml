@@ -1,8 +1,16 @@
-jobhunter_tester.test_page:
+jobhunter_tester.home:
   path: '/jobhunter_testing'
   defaults:
+    _controller: '\Drupal\jobhunter_tester\Controller\JobHunterValidationController::validationDashboard'
+    _title: 'Job Hunter Validation Dashboard'
+  requirements:
+    _permission: 'administer site configuration'
+
+jobhunter_tester.test_page:
+  path: '/jobhunter_testing/routes'
+  defaults:
     _controller: '\Drupal\jobhunter_tester\Controller\JobHunterTesterController::testPage'
-    _title: 'Job Hunter Route Testing'
+    _title: 'Route Testing'
   requirements:
     _permission: 'administer site configuration'
 

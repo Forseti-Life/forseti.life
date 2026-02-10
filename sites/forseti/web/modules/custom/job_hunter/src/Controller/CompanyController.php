@@ -382,6 +382,15 @@ class CompanyController extends ControllerBase {
       }
     }
     
+    // Check if user has a tailored resume for this job
+    $current_user = \Drupal::currentUser();
+    $tailored_resume = $database->select('jobhunter_tailored_resumes', 'tr')
+      ->fields('tr', ['id', 'tailoring_status', 'pdf_path'])
+      ->condition('uid', $current_user->id())
+      ->condition('job_id', $job_id)
+      ->execute()
+      ->fetchObject();
+
     // Header with edit link
     $content['header'] = [
       '#type' => 'container',
@@ -409,6 +418,44 @@ class CompanyController extends ControllerBase {
         ],
       ],
     ];
+
+    // Job source information and links
+    $source_info = [];
+    if (!empty($job->job_url)) {
+      $source_info[] = '<strong>Job URL:</strong> <a href="' . htmlspecialchars($job->job_url) . '" target="_blank" rel="noopener">' . htmlspecialchars($job->job_url) . ' ↗</a>';
+    }
+    if (!empty($job->external_source)) {
+      $source_info[] = '<strong>Source:</strong> ' . htmlspecialchars($job->external_source);
+    }
+    if (!empty($job->external_job_id)) {
+      $source_info[] = '<strong>External Job ID:</strong> ' . htmlspecialchars($job->external_job_id);
+    }
+    if (!empty($job->source_platform)) {
+      $source_info[] = '<strong>Platform:</strong> ' . htmlspecialchars($job->source_platform);
+    }
+    if ($tailored_resume) {
+      $status_text = ucfirst($tailored_resume->tailoring_status);
+      $status_class = match($tailored_resume->tailoring_status) {
+        'completed' => 'status-completed',
+        'pending' => 'status-pending',
+        'queued' => 'status-queued',
+        'processing' => 'status-processing',
+        'failed' => 'status-failed',
+        default => 'status-unknown',
+      };
+      $source_info[] = '<strong>Tailored Resume:</strong> <a href="' . Url::fromRoute('job_hunter.tailor_resume', ['job' => $job_id])->toString() . '">View/Edit Tailored Resume</a> <span class="' . $status_class . '">(' . $status_text . ')</span>';
+      if ($tailored_resume->tailoring_status === 'completed' && !empty($tailored_resume->pdf_path)) {
+        $source_info[] = '<strong>Resume PDF:</strong> <a href="' . Url::fromRoute('job_hunter.resume_pdf', ['job_id' => $job_id])->toString() . '" target="_blank">Download PDF ↗</a>';
+      }
+    }
+    
+    if (!empty($source_info)) {
+      $content['source_info'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['job-source-info']],
+        '#markup' => '<div class="job-info-box">' . implode('<br>', $source_info) . '</div>',
+      ];
+    }
     
     // Extracted Job Data section
     if ($extracted) {
@@ -620,6 +667,16 @@ class CompanyController extends ControllerBase {
           .job-subsection { margin-bottom: 20px; }
           .job-view-header { margin-bottom: 20px; }
           .job-company { color: #666; font-size: 1.1em; margin-top: -10px; }
+          .job-source-info { margin-bottom: 20px; }
+          .job-info-box { background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; border-radius: 4px; }
+          .job-info-box strong { color: #333; }
+          .job-info-box a { color: #667eea; text-decoration: none; }
+          .job-info-box a:hover { text-decoration: underline; }
+          .status-completed { color: #10b981; font-weight: 600; }
+          .status-pending { color: #f59e0b; font-weight: 600; }
+          .status-queued { color: #3b82f6; font-weight: 600; }
+          .status-processing { color: #8b5cf6; font-weight: 600; }
+          .status-failed { color: #ef4444; font-weight: 600; }
         ',
       ],
       'job_view_styles',

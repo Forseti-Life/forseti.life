@@ -114,6 +114,20 @@
       </div>
     </div>
     
+    {# Job Reference Section #}
+    <div class="job-reference-box">
+      {% if job.job_url %}
+        <div class="reference-item">
+          <strong>Job URL:</strong> 
+          <a href="{{ job.job_url }}" target="_blank" rel="noopener">{{ job.job_url }} ↗</a>
+        </div>
+      {% endif %}
+      <div class="reference-item">
+        <strong>Parsed Job Details:</strong> 
+        <a href="{{ path('job_hunter.job_view', {'job_id': job_id}) }}">jobhunter/jobs/{{ job_id }}</a>
+      </div>
+    </div>
+    
     {# Action Controls - All in one place #}
     <div class="status-controls">
       {# Primary Action based on status #}

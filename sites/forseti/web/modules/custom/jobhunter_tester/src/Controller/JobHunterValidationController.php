@@ -51,19 +51,15 @@ class JobHunterValidationController extends ControllerBase {
   /**
    * Build sub-navigation for tester pages.
    */
-  private function buildSubNavigation(string $active_page = 'route_testing'): array {
+  private function buildSubNavigation(string $active_page = 'validation'): array {
     $items = [
-      'route_testing' => [
-        'title' => '🧪 Route Testing',
-        'url' => Url::fromRoute('jobhunter_tester.test_page'),
+      'validation' => [
+        'title' => '✓ Validation Dashboard',
+        'url' => Url::fromRoute('jobhunter_tester.validation'),
       ],
       'unit_tests' => [
         'title' => '⚡ Unit Tests',
         'url' => Url::fromRoute('jobhunter_tester.unit_tests'),
-      ],
-      'validation' => [
-        'title' => '✓ Validation Dashboard',
-        'url' => Url::fromRoute('jobhunter_tester.validation'),
       ],
     ];
 
@@ -86,10 +82,43 @@ class JobHunterValidationController extends ControllerBase {
     $routes = $this->getJobHunterRoutes();
     $test_users = $this->getTestUsers();
 
+    // Get base URL from query parameter or default to current
+    $request = \Drupal::request();
+    $environment = $request->query->get('env', 'current');
+    
+    $environments = [
+      'current' => $request->getSchemeAndHttpHost(),
+      'production' => 'https://forseti.life',
+      'localhost' => 'http://localhost',
+    ];
+    
+    $base_url = $environments[$environment] ?? $environments['current'];
+
     $content = [
       'sub_nav' => $this->buildSubNavigation('validation'),
+      'environment_selector' => [
+        '#type' => 'inline_template',
+        '#template' => '<div class="env-selector-card">' .
+          '<form method="get" action="{{ action_url }}">' .
+          '<label for="env">🌐 Test Environment:</label>' .
+          '<select name="env" id="env">' .
+          '<option value="current"{{ current_selected }}>Current ({{ current_host }})</option>' .
+          '<option value="production"{{ production_selected }}>Production (https://forseti.life)</option>' .
+          '<option value="localhost"{{ localhost_selected }}>Localhost (http://localhost)</option>' .
+          '</select>' .
+          '<button type="submit">▶️ Run Tests</button>' .
+          '</form>' .
+          '</div>',
+        '#context' => [
+          'action_url' => Url::fromRoute('jobhunter_tester.validation')->toString(),
+          'current_host' => $environments['current'],
+          'current_selected' => $environment === 'current' ? ' selected' : '',
+          'production_selected' => $environment === 'production' ? ' selected' : '',
+          'localhost_selected' => $environment === 'localhost' ? ' selected' : '',
+        ],
+      ],
       'dashboard' => [
-        '#markup' => new FormattableMarkup($this->buildDashboardHtml($routes, $test_users), []),
+        '#markup' => new FormattableMarkup($this->buildDashboardHtml($routes, $test_users, $base_url), []),
       ],
       '#attached' => [
         'library' => ['jobhunter_tester/validation'],
@@ -412,9 +441,24 @@ class JobHunterValidationController extends ControllerBase {
 
   /**
    * Build the dashboard HTML.
+   *
+   * @param array $routes
+   *   Job Hunter routes.
+   * @param array $users
+   *   Test users.
+   * @param string $base_url
+   *   Base URL for testing context.
+   *
+   * @return string
+   *   HTML string.
    */
-  private function buildDashboardHtml(array $routes, array $users): string {
+  private function buildDashboardHtml(array $routes, array $users, string $base_url = ''): string {
     $html = '<div class="jh-validation-dashboard">';
+
+    // Show current test environment
+    if ($base_url) {
+      $html .= '<div class="page-header"><p><strong>Testing URL:</strong> ' . htmlspecialchars($base_url) . '</p></div>';
+    }
 
     // Stats row.
     $testable = count(array_filter($routes, fn($r) => !$r['has_parameters']));
