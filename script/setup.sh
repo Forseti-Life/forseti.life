@@ -1806,6 +1806,21 @@ if [ "$DC_DRUPAL_INSTALLED" = true ]; then
             echo "yes" | /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.theme default dungeoncrawler 2>/dev/null || true
             print_status "✅ Dungeon Crawler theme set as default"
         fi
+        
+        # Import theme block configuration
+        print_status "Importing Dungeon Crawler block configuration..."
+        if [ -d "web/themes/custom/dungeoncrawler/config/optional" ]; then
+            /usr/bin/php8.3 vendor/drush/drush/drush.php config:import --partial --source=web/themes/custom/dungeoncrawler/config/optional 2>/dev/null || true
+            print_status "✅ Block configuration imported"
+        fi
+        
+        # Set front page to use custom page--front.html.twig template (remove default node listing)
+        CURRENT_FRONT=$(/usr/bin/php8.3 vendor/drush/drush/drush.php config:get system.site page.front --format=string 2>/dev/null)
+        if [ "$CURRENT_FRONT" = "/node" ]; then
+            print_status "Setting custom front page..."
+            /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.site page.front '<front>' --yes 2>/dev/null || true
+            print_status "✅ Front page configured"
+        fi
     fi
 fi
 
