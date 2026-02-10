@@ -469,6 +469,14 @@ job_hunter.job_paste:
   requirements:
     _permission: 'access job hunter'
 
+job_hunter.job_retry_parsing:
+  path: '/jobhunter/jobs/{job_id}/retry-parsing'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobPostingController::retryParsing'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: \d+
+
 # DEPRECATED: Old manual add routes removed - use job_hunter.job_paste instead
 # job_hunter.job_add and job_hunter.job_add_for_company have been removed
 # to ensure all job postings go through the AI-powered workflow

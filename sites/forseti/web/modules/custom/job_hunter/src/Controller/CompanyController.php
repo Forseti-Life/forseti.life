@@ -244,6 +244,15 @@ class CompanyController extends ControllerBase {
                 'title' => $this->t('Edit'),
                 'url' => Url::fromRoute('job_hunter.job_edit', ['job_id' => $job->id]),
               ],
+            ] + ($ai_status === 'failed' && $has_raw_text ? [
+              'retry_parsing' => [
+                'title' => $this->t('Retry Parsing'),
+                'url' => Url::fromRoute('job_hunter.job_retry_parsing', ['job_id' => $job->id]),
+                'attributes' => [
+                  'class' => ['button--warning'],
+                ],
+              ],
+            ] : []) + [
               'delete' => [
                 'title' => $this->t('Delete'),
                 'url' => Url::fromRoute('job_hunter.job_delete', ['job_id' => $job->id]),
