@@ -205,7 +205,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
         'modelId' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
         'body' => json_encode([
           'anthropic_version' => 'bedrock-2023-05-31',
-          'max_tokens' => 40000,
+          'max_tokens' => 80000,
           'messages' => [
             [
               'role' => 'user',
