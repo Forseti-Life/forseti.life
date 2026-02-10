@@ -198,8 +198,8 @@ class CompanyController extends ControllerBase {
     foreach ($jobs as $job) {
       // Parse extracted JSON for better title display
       $extracted = $job->extracted_json ? json_decode($job->extracted_json, TRUE) : NULL;
-      $job_title = $extracted['position']['title'] ?? $job->job_title ?: 'Job #' . $job->id;
-      $company_name = $extracted['company']['name'] ?? $job->company_name ?: 'Unknown';
+      $job_title = ($extracted['position']['title'] ?? $job->job_title) ?: 'Job #' . $job->id;
+      $company_name = ($extracted['company']['name'] ?? $job->company_name) ?: 'Unknown';
       
       // Determine AI parsing status
       $has_raw_text = !empty($job->raw_posting_text);
@@ -253,8 +253,8 @@ class CompanyController extends ControllerBase {
             '#url' => Url::fromRoute('job_hunter.job_view', ['job_id' => $job->id]),
           ],
         ],
-        $company_name,
-        ucfirst($job->status ?: 'active'),
+        ['data' => ['#markup' => $company_name]],
+        ['data' => ['#markup' => ucfirst($job->status ?: 'active')]],
         ['data' => ['#markup' => $ai_badge]],
         ['data' => ['#markup' => $tailor_badge]],
         [
