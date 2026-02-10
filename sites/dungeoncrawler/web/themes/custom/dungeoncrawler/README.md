@@ -117,6 +117,33 @@ dungeoncrawler/
 | `content` | Main page content |
 | `footer` | Site footer |
 
+## Block Configuration
+
+The theme includes pre-configured blocks in `config/optional/`:
+
+### Navigation Blocks
+- **Main Menu** (`dungeoncrawler_main_menu`)
+  - Region: `navbar_left`
+  - Menu: Main navigation
+  - Depth: 2 levels
+  - Status: Enabled
+
+- **Footer Menu** (`dungeoncrawler_footer`)
+  - Region: `footer`
+  - Menu: Footer menu
+  - Depth: 1 level (flat)
+  - Status: Enabled
+
+### Content Blocks
+- **Page Title** (`dungeoncrawler_page_title`) - Header region
+- **Main Content** (`dungeoncrawler_content`) - Content region
+- **Messages** (`dungeoncrawler_messages`) - Header region
+- **Breadcrumbs** (`dungeoncrawler_breadcrumbs`) - Breadcrumb region
+- **Site Branding** (`dungeoncrawler_branding`) - Navbar branding region
+- **Local Actions** (`dungeoncrawler_local_actions`) - Tabs region
+
+These blocks are automatically placed when the theme is enabled. Menu links are provided by the `dungeoncrawler_content` module.
+
 ## Typography
 
 - **Headings:** Cinzel (serif, RPG aesthetic)

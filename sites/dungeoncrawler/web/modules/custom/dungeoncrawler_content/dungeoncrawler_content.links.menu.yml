@@ -1,3 +1,4 @@
+# Admin menu links
 dungeoncrawler_content.admin:
   title: 'Dungeon Crawler Content'
   description: 'Manage Dungeon Crawler game content settings.'
@@ -9,3 +10,75 @@ dungeoncrawler_content.dashboard:
   description: 'Overview of Dungeon Crawler game content.'
   route_name: dungeoncrawler_content.dashboard
   parent: system.admin_content
+
+# Main navigation menu links
+dungeoncrawler_content.menu.play:
+  title: 'Play'
+  description: 'Start your adventure in the living dungeon'
+  route_name: <front>
+  menu_name: main
+  weight: 0
+
+dungeoncrawler_content.menu.characters:
+  title: 'Characters'
+  description: 'View and manage your characters'
+  route_name: dungeoncrawler_content.characters
+  menu_name: main
+  weight: 10
+
+dungeoncrawler_content.menu.world:
+  title: 'World'
+  description: 'Explore the living dungeon lore and world information'
+  route_name: dungeoncrawler_content.world
+  menu_name: main
+  weight: 20
+
+dungeoncrawler_content.menu.how_to_play:
+  title: 'How to Play'
+  description: 'Learn the game mechanics and rules'
+  route_name: dungeoncrawler_content.how_to_play
+  menu_name: main
+  weight: 30
+
+dungeoncrawler_content.menu.about:
+  title: 'About'
+  description: 'About Dungeon Crawler Life'
+  route_name: dungeoncrawler_content.about
+  menu_name: main
+  weight: 40
+
+# Footer menu links
+dungeoncrawler_content.footer.about:
+  title: 'About'
+  description: 'About Dungeon Crawler Life'
+  route_name: dungeoncrawler_content.about
+  menu_name: footer
+  weight: 0
+
+dungeoncrawler_content.footer.how_to_play:
+  title: 'How to Play'
+  description: 'Game guide and mechanics'
+  route_name: dungeoncrawler_content.how_to_play
+  menu_name: footer
+  weight: 10
+
+dungeoncrawler_content.footer.world:
+  title: 'World Lore'
+  description: 'Explore the dungeon lore'
+  route_name: dungeoncrawler_content.world
+  menu_name: footer
+  weight: 20
+
+dungeoncrawler_content.footer.privacy:
+  title: 'Privacy Policy'
+  description: 'Privacy and data protection'
+  route_name: <front>
+  menu_name: footer
+  weight: 30
+
+dungeoncrawler_content.footer.terms:
+  title: 'Terms of Service'
+  description: 'Terms and conditions'
+  route_name: <front>
+  menu_name: footer
+  weight: 40
