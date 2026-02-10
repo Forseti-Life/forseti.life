@@ -7,6 +7,7 @@ namespace Drupal\jobhunter_tester\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Session\AccountSwitcherInterface;
+use Drupal\job_hunter\Controller\JobHunterControllerTrait;
 use Drupal\Core\Url;
 use Drupal\Component\Render\FormattableMarkup;
 use Psr\Log\LoggerInterface;
@@ -22,6 +23,8 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
  * (same approach as NFR validation). No external HTTP calls.
  */
 class JobHunterValidationController extends ControllerBase {
+
+  use JobHunterControllerTrait;
 
   /**
    * Constructs the controller.
@@ -46,18 +49,54 @@ class JobHunterValidationController extends ControllerBase {
   }
 
   /**
+   * Build sub-navigation for tester pages.
+   */
+  private function buildSubNavigation(string $active_page = 'route_testing'): array {
+    $items = [
+      'route_testing' => [
+        'title' => '🧪 Route Testing',
+        'url' => Url::fromRoute('jobhunter_tester.test_page'),
+      ],
+      'unit_tests' => [
+        'title' => '⚡ Unit Tests',
+        'url' => Url::fromRoute('jobhunter_tester.unit_tests'),
+      ],
+      'validation' => [
+        'title' => '✓ Validation Dashboard',
+        'url' => Url::fromRoute('jobhunter_tester.validation'),
+      ],
+    ];
+
+    $links = [];
+    foreach ($items as $key => $item) {
+      $is_active = ($key === $active_page);
+      $active_class = $is_active ? 'tester-nav-active' : '';
+      $links[] = '<a href="' . $item['url']->toString() . '" class="tester-nav-link ' . $active_class . '">' . $item['title'] . '</a>';
+    }
+
+    return [
+      '#markup' => '<div class="tester-sub-nav"><div class="tester-nav-container">' . implode('', $links) . '</div></div>',
+    ];
+  }
+
+  /**
    * Validation dashboard page.
    */
   public function validationDashboard(): array {
     $routes = $this->getJobHunterRoutes();
     $test_users = $this->getTestUsers();
 
-    return [
-      '#markup' => new FormattableMarkup($this->buildDashboardHtml($routes, $test_users), []),
+    $content = [
+      'sub_nav' => $this->buildSubNavigation('validation'),
+      'dashboard' => [
+        '#markup' => new FormattableMarkup($this->buildDashboardHtml($routes, $test_users), []),
+      ],
       '#attached' => [
         'library' => ['jobhunter_tester/validation'],
       ],
     ];
+
+    return $this->wrapWithNavigation($content);
   }
 
   /**
@@ -381,7 +420,7 @@ class JobHunterValidationController extends ControllerBase {
     $testable = count(array_filter($routes, fn($r) => !$r['has_parameters']));
     $parameterized = count($routes) - $testable;
 
-    $html .= '<div style="display:flex; gap:15px; margin-bottom:20px;">';
+    $html .= '<div class="stats-grid">';
     $html .= $this->statBox((string) count($routes), 'Total Routes');
     $html .= $this->statBox((string) $testable, 'Testable');
     $html .= $this->statBox((string) $parameterized, 'Need Parameters');
@@ -390,39 +429,39 @@ class JobHunterValidationController extends ControllerBase {
     $html .= '</div>';
 
     // Actions.
-    $html .= '<div style="margin-bottom:20px;">';
-    $html .= '<button id="test-all-routes" class="button button--primary">Run All Tests</button> ';
-    $html .= '<button id="check-tables" class="button button--primary">Check Database Tables</button> ';
-    $html .= '<button id="clear-results" class="button">Clear Results</button>';
+    $html .= '<div class="action-buttons">';
+    $html .= '<button id="test-all-routes" class="btn-primary">▶️ Run All Tests</button>';
+    $html .= '<button id="check-tables" class="btn-primary">📊 Check Database Tables</button>';
+    $html .= '<button id="clear-results" class="btn-secondary">🗑️ Clear Results</button>';
     $html .= '</div>';
 
     // Database health section.
-    $html .= '<div id="db-health-section" style="display:none; margin-bottom:25px;">';
-    $html .= '<h3 style="margin-top:0;">Database Health</h3>';
-    $html .= '<div id="db-health-summary" style="margin-bottom:10px;"></div>';
-    $html .= '<table id="db-health-table" style="width:100%; border-collapse:collapse;">';
-    $html .= '<thead><tr style="background:#f5f5f5;">';
-    $html .= '<th style="padding:8px; text-align:left; border-bottom:2px solid #ddd;">Status</th>';
-    $html .= '<th style="padding:8px; text-align:left; border-bottom:2px solid #ddd;">Table</th>';
-    $html .= '<th style="padding:8px; text-align:left; border-bottom:2px solid #ddd;">Description</th>';
-    $html .= '<th style="padding:8px; text-align:right; border-bottom:2px solid #ddd;">Rows</th>';
+    $html .= '<div id="db-health-section" class="db-health-card">';
+    $html .= '<h3>📊 Database Health</h3>';
+    $html .= '<div id="db-health-summary" style="margin-bottom:15px;"></div>';
+    $html .= '<table class="validation-table">';
+    $html .= '<thead><tr>';
+    $html .= '<th>Status</th>';
+    $html .= '<th>Table</th>';
+    $html .= '<th>Description</th>';
+    $html .= '<th style="text-align:right;">Rows</th>';
     $html .= '</tr></thead>';
     $html .= '<tbody id="db-health-body"></tbody>';
     $html .= '</table>';
-    $html .= '<div id="db-old-tables" style="display:none; margin-top:10px;"></div>';
+    $html .= '<div id="db-old-tables" style="display:none; margin-top:15px;"></div>';
     $html .= '</div>';
 
     // Summary placeholder.
-    $html .= '<div id="test-summary" style="display:none; margin-bottom:20px;"></div>';
+    $html .= '<div id="test-summary" style="display:none; margin-bottom:25px;"></div>';
 
     // Routes table.
-    $html .= '<table class="jh-validation-table" style="width:100%; border-collapse:collapse;">';
-    $html .= '<thead><tr style="background:#f5f5f5;">';
-    $html .= '<th style="padding:8px; text-align:left; border-bottom:2px solid #ddd;">Path</th>';
-    $html .= '<th style="padding:8px; text-align:left; border-bottom:2px solid #ddd;">Permission</th>';
+    $html .= '<table class="validation-table">';
+    $html .= '<thead><tr>';
+    $html .= '<th>Path</th>';
+    $html .= '<th>Permission</th>';
 
     foreach ($users as $user) {
-      $html .= '<th style="padding:8px; text-align:center; border-bottom:2px solid #ddd;">' . htmlspecialchars($user['label']) . '</th>';
+      $html .= '<th style="text-align:center;">' . htmlspecialchars($user['label']) . '</th>';
     }
 
     $html .= '</tr></thead><tbody>';
@@ -433,29 +472,29 @@ class JobHunterValidationController extends ControllerBase {
 
       // Path column.
       if ($route['has_parameters']) {
-        $html .= '<td style="padding:6px 8px; border-bottom:1px solid #eee;"><code>' . htmlspecialchars($route['path']) . '</code> <small style="color:#999;">(params)</small></td>';
+        $html .= '<td><code>' . htmlspecialchars($route['path']) . '</code> <small style="color:#9ca3af;">(params)</small></td>';
       }
       else {
-        $html .= '<td style="padding:6px 8px; border-bottom:1px solid #eee;"><a href="' . htmlspecialchars($route['path']) . '" target="_blank"><code>' . htmlspecialchars($route['path']) . '</code></a></td>';
+        $html .= '<td><a href="' . htmlspecialchars($route['path']) . '" target="_blank" style="color:#667eea; text-decoration:none; font-weight:500;"><code>' . htmlspecialchars($route['path']) . '</code></a></td>';
       }
 
       // Permission column.
       $perm = $route['permission'] ? '<code>' . htmlspecialchars($route['permission']) . '</code>' : '—';
-      $html .= '<td style="padding:6px 8px; border-bottom:1px solid #eee;">' . $perm . '</td>';
+      $html .= '<td>' . $perm . '</td>';
 
       // User test cells.
       foreach ($users as $user_key => $user) {
         $cell_id = $route_id . '_' . $user_key;
         $should_access = $this->shouldHaveAccess($route['permission'], $route['requires_login'], $user_key);
         $expected_icon = $should_access ? '✓' : '✗';
-        $expected_color = $should_access ? 'green' : 'red';
+        $expected_color = $should_access ? '#10b981' : '#ef4444';
         $expected_val = $should_access ? 'allow' : 'deny';
 
-        $html .= '<td style="padding:6px 8px; border-bottom:1px solid #eee; text-align:center;" id="cell-' . $cell_id . '">';
-        $html .= '<span style="color:' . $expected_color . '; margin-right:4px;">' . $expected_icon . '</span>';
+        $html .= '<td style="text-align:center;" id="cell-' . $cell_id . '">';
+        $html .= '<span style="color:' . $expected_color . '; margin-right:4px; font-weight:600;">' . $expected_icon . '</span>';
 
         if (!$route['has_parameters']) {
-          $html .= '<button class="jh-test-btn button button--small" '
+          $html .= '<button class="jh-test-btn" style="padding:4px 12px; background:#f3f4f6; color:#667eea; border:1px solid #e5e7eb; border-radius:4px; cursor:pointer; font-size:12px; font-weight:500; transition:all 0.2s;" '
             . 'data-route="' . htmlspecialchars($route['name']) . '" '
             . 'data-path="' . htmlspecialchars($route['path']) . '" '
             . 'data-uid="' . $user['uid'] . '" '
@@ -464,7 +503,7 @@ class JobHunterValidationController extends ControllerBase {
             . 'Test</button>';
         }
         else {
-          $html .= '<span style="color:#999;">—</span>';
+          $html .= '<span style="color:#9ca3af;">—</span>';
         }
 
         $html .= '<div class="jh-test-result" id="result-' . $cell_id . '"></div>';
@@ -484,9 +523,9 @@ class JobHunterValidationController extends ControllerBase {
    * Render a stat box.
    */
   private function statBox(string $value, string $label): string {
-    return '<div style="background:#f5f5f5; padding:15px 20px; border-radius:5px; text-align:center; flex:1;">'
-      . '<div style="font-size:24px; font-weight:bold;">' . $value . '</div>'
-      . '<div style="font-size:12px; color:#666;">' . $label . '</div>'
+    return '<div class="stat-card">'
+      . '<div class="stat-value">' . $value . '</div>'
+      . '<div class="stat-label">' . $label . '</div>'
       . '</div>';
   }
 

@@ -5,6 +5,7 @@ namespace Drupal\jobhunter_tester\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Session\AccountSwitcherInterface;
+use Drupal\job_hunter\Controller\JobHunterControllerTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use GuzzleHttp\ClientInterface;
@@ -16,6 +17,8 @@ use Drupal\Core\Extension\ModuleExtensionList;
  * Controller for testing Job Hunter routes.
  */
 class JobHunterTesterController extends ControllerBase {
+
+  use JobHunterControllerTrait;
 
   /**
    * The route provider.
@@ -86,10 +89,47 @@ class JobHunterTesterController extends ControllerBase {
   }
 
   /**
+   * Build sub-navigation for tester pages.
+   */
+  private function buildSubNavigation(string $active_page = 'route_testing'): array {
+    $items = [
+      'route_testing' => [
+        'title' => '🧪 Route Testing',
+        'url' => Url::fromRoute('jobhunter_tester.test_page'),
+      ],
+      'unit_tests' => [
+        'title' => '⚡ Unit Tests',
+        'url' => Url::fromRoute('jobhunter_tester.unit_tests'),
+      ],
+      'validation' => [
+        'title' => '✓ Validation Dashboard',
+        'url' => Url::fromRoute('jobhunter_tester.validation'),
+      ],
+    ];
+
+    $links = [];
+    foreach ($items as $key => $item) {
+      $is_active = ($key === $active_page);
+      $active_class = $is_active ? 'tester-nav-active' : '';
+      $links[] = '<a href="' . $item['url']->toString() . '" class="tester-nav-link ' . $active_class . '">' . $item['title'] . '</a>';
+    }
+
+    return [
+      '#markup' => '<div class="tester-sub-nav"><div class="tester-nav-container">' . implode('', $links) . '</div></div>',
+    ];
+  }
+
+  /**
    * Test all Job Hunter routes.
    */
   public function testPage() {
     $build = [];
+    
+    // Attach styling library
+    $build['#attached']['library'][] = 'jobhunter_tester/tester_styles';
+    
+    // Add sub-navigation
+    $build['sub_nav'] = $this->buildSubNavigation('route_testing');
     
     // Get base URL from query parameter or default to current
     $request = $this->requestStack->getCurrentRequest();
@@ -135,15 +175,15 @@ class JobHunterTesterController extends ControllerBase {
     $current_url = Url::fromRoute('jobhunter_tester.test_page')->toString();
     $build['environment_selector'] = [
       '#type' => 'inline_template',
-      '#template' => '<div style="background: #f0f0f0; padding: 15px; margin-bottom: 20px; border-radius: 5px;">' .
+      '#template' => '<div class="env-selector-card">' .
         '<form method="get" action="{{ action_url }}">' .
-        '<label for="env" style="font-weight: bold; margin-right: 10px;">Test Environment:</label>' .
-        '<select name="env" id="env" style="padding: 5px; margin-right: 10px;">' .
+        '<label for="env">🌐 Test Environment:</label>' .
+        '<select name="env" id="env">' .
         '<option value="current"{{ current_selected }}>Current ({{ current_host }})</option>' .
         '<option value="production"{{ production_selected }}>Production (https://forseti.life)</option>' .
         '<option value="localhost"{{ localhost_selected }}>Localhost (http://localhost)</option>' .
         '</select>' .
-        '<button type="submit" style="padding: 5px 15px; background: #0073aa; color: white; border: none; border-radius: 3px; cursor: pointer;">Run Tests</button>' .
+        '<button type="submit">▶️ Run Tests</button>' .
         '</form>' .
         '</div>',
       '#context' => [
@@ -156,9 +196,9 @@ class JobHunterTesterController extends ControllerBase {
     ];
     
     $build['summary'] = [
-      '#markup' => '<div class="messages messages--status">' .
-        '<h2>Job Hunter Route Testing</h2>' .
-        '<p>Found ' . count($job_hunter_routes) . ' GET-accessible Job Hunter routes.</p>' .
+      '#markup' => '<div class="page-header">' .
+        '<h2>🧪 Job Hunter Route Testing</h2>' .
+        '<p>Found <span class="badge">' . count($job_hunter_routes) . ' routes</span> GET-accessible Job Hunter routes.</p>' .
         '<p><strong>Testing URL:</strong> ' . $base_url . '</p>' .
         '<p><strong>Testing Mode:</strong> HTTP Response + Permission Analysis</p>' .
         '</div>',
@@ -238,16 +278,13 @@ class JobHunterTesterController extends ControllerBase {
     $skipped_count = count(array_filter($results, fn($r) => $r['status'] === 'skipped'));
     
     $build['stats'] = [
-      '#markup' => '<div style="background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px;">' .
-        '<h3>Test Results Summary</h3>' .
-        '<ul style="list-style: none; padding: 0;">' .
-        '<li style="color: green;">✓ Success (200): ' . $success_count . '</li>' .
-        '<li style="color: orange;">⚠ Redirects: ' . $redirect_count . '</li>' .
-        '<li style="color: red;">✗ Errors: ' . $error_count . '</li>' .
-        '<li style="color: orange;">⊗ Forbidden (403): ' . $forbidden_count . '</li>' .
-        '<li style="color: red;">⊗ Not Found (404): ' . $not_found_count . '</li>' .
-        '<li style="color: gray;">− Skipped (parameters): ' . $skipped_count . '</li>' .
-        '</ul>' .
+      '#markup' => '<div class="stats-grid">' .
+        '<div class="stat-card stat-success"><div class="stat-icon">✓</div><div class="stat-value">' . $success_count . '</div><div class="stat-label">Success (200)</div></div>' .
+        '<div class="stat-card stat-redirect"><div class="stat-icon">⚠</div><div class="stat-value">' . $redirect_count . '</div><div class="stat-label">Redirects</div></div>' .
+        '<div class="stat-card stat-error"><div class="stat-icon">✗</div><div class="stat-value">' . $error_count . '</div><div class="stat-label">Errors</div></div>' .
+        '<div class="stat-card stat-forbidden"><div class="stat-icon">⊗</div><div class="stat-value">' . $forbidden_count . '</div><div class="stat-label">Forbidden (403)</div></div>' .
+        '<div class="stat-card stat-notfound"><div class="stat-icon">⊗</div><div class="stat-value">' . $not_found_count . '</div><div class="stat-label">Not Found (404)</div></div>' .
+        '<div class="stat-card stat-skipped"><div class="stat-icon">−</div><div class="stat-value">' . $skipped_count . '</div><div class="stat-label">Skipped</div></div>' .
         '</div>',
     ];
     
@@ -295,6 +332,7 @@ class JobHunterTesterController extends ControllerBase {
     
     $build['results'] = [
       '#type' => 'table',
+      '#attributes' => ['class' => ['results-table']],
       '#header' => [
         'Status',
         'Code',
@@ -308,7 +346,7 @@ class JobHunterTesterController extends ControllerBase {
       ],
       '#rows' => $rows,
       '#attributes' => [
-        'style' => 'width: 100%; margin-top: 20px;',
+        'class' => ['results-table'],
       ],
       '#attached' => [
         'library' => [
@@ -317,7 +355,7 @@ class JobHunterTesterController extends ControllerBase {
       ],
     ];
     
-    return $build;
+    return $this->wrapWithNavigation($build);
   }
 
   /**
@@ -457,17 +495,16 @@ class JobHunterTesterController extends ControllerBase {
   public function unitTestsPage() {
     $build = [];
     
-    $build['header'] = [
-      '#markup' => '<h2>Job Hunter Unit Tests Dashboard</h2>' .
-        '<p>This page allows you to view and run PHPUnit tests for the Job Hunter module.</p>',
-    ];
+    // Attach styling library
+    $build['#attached']['library'][] = 'jobhunter_tester/tester_styles';
     
-    // Navigation
-    $route_test_url = Url::fromRoute('jobhunter_tester.test_page')->toString();
-    $build['navigation'] = [
-      '#markup' => '<div style="background: #f0f0f0; padding: 15px; margin: 20px 0; border-radius: 5px;">' .
-        '<a href="' . $route_test_url . '">← Back to Route Testing</a> | ' .
-        '<strong>Unit Tests Dashboard</strong>' .
+    // Add sub-navigation
+    $build['sub_nav'] = $this->buildSubNavigation('unit_tests');
+    
+    $build['header'] = [
+      '#markup' => '<div class="page-header">' .
+        '<h2>⚡ Job Hunter Unit Tests Dashboard</h2>' .
+        '<p>View and run PHPUnit tests for the Job Hunter module.</p>' .
         '</div>',
     ];
     
@@ -516,7 +553,7 @@ class JobHunterTesterController extends ControllerBase {
     // Add JavaScript for test execution
     $build['#attached']['library'][] = 'jobhunter_tester/test-runner';
     
-    return $build;
+    return $this->wrapWithNavigation($build);
   }
 
   /**

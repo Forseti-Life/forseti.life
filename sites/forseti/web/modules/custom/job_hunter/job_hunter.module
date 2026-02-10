@@ -150,6 +150,25 @@ function job_hunter_theme() {
       ],
       'template' => 'tailor-resume',
     ],
+    'job_tailoring_combined' => [
+      'variables' => [
+        'user' => NULL,
+        'profile' => NULL,
+        'profile_json' => NULL,
+        'job' => NULL,
+        'job_id' => NULL,
+        'job_extracted' => NULL,
+        'job_skills' => NULL,
+        'job_keywords' => NULL,
+        'skills_gap' => [],
+        'tailored_resume' => NULL,
+        'tailoring_status' => 'pending',
+        'pdf_path' => NULL,
+        'pdf_generated' => NULL,
+        'pdf_history' => [],
+      ],
+      'template' => 'job-tailoring-combined',
+    ],
     'google_jobs_integration_home' => [
       'variables' => [
         'stats' => [],

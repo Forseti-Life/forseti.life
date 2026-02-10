@@ -1,5 +1,14 @@
+tester_styles:
+  version: 1.x
+  css:
+    theme:
+      css/tester-styles.css: {}
+
 test-runner:
   version: 1.x
+  css:
+    theme:
+      css/tester-styles.css: {}
   js:
     js/test-runner.js: {}
   dependencies:
@@ -10,6 +19,9 @@ test-runner:
 
 validation:
   version: 1.x
+  css:
+    theme:
+      css/tester-styles.css: {}
   js:
     js/jh-validation.js: {}
   dependencies:

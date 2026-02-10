@@ -530,6 +530,15 @@ job_hunter.job_view:
     _permission: 'access job hunter'
     job_id: \d+
 
+job_hunter.job_tailoring:
+  path: '/jobhunter/jobtailoring/{job_id}'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::jobTailoring'
+    _title: 'Job & Resume Tailoring'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: \d+
+
 job_hunter.job_delete:
   path: '/jobhunter/jobs/{job_id}/delete'
   defaults:

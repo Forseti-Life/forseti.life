@@ -670,6 +670,143 @@ class CompanyController extends ControllerBase {
   }
 
   /**
+   * Combined job view and resume tailoring page.
+   */
+  public function jobTailoring($job_id) {
+    $database = \Drupal::database();
+    
+    // Get current user
+    $user = $this->entityTypeManager->getStorage('user')->load($this->currentUser->id());
+    
+    // Render navigation block
+    $block_manager = \Drupal::service('plugin.manager.block');
+    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
+    $navigation_block = $plugin_block->build();
+    
+    // Load the job
+    $job = $database->select('jobhunter_job_requirements', 'j')
+      ->fields('j')
+      ->condition('id', $job_id)
+      ->execute()
+      ->fetchObject();
+    
+    if (!$job) {
+      $this->messenger()->addError($this->t('Job not found.'));
+      return new RedirectResponse(Url::fromRoute('job_hunter.jobs_list')->toString());
+    }
+    
+    // Parse JSON data
+    $extracted = $job->extracted_json ? json_decode($job->extracted_json, TRUE) : [];
+    $skills = $job->skills_required_json ? json_decode($job->skills_required_json, TRUE) : [];
+    $keywords = $job->keywords_json ? json_decode($job->keywords_json, TRUE) : [];
+    
+    // Load user's tailored resume for this job (if exists)
+    $tailored_record = $database->select('jobhunter_tailored_resumes', 'tr')
+      ->fields('tr')
+      ->condition('uid', $user->id())
+      ->condition('job_id', $job_id)
+      ->execute()
+      ->fetchObject();
+    
+    $tailored = $tailored_record && $tailored_record->tailored_resume_json 
+      ? json_decode($tailored_record->tailored_resume_json, TRUE) 
+      : NULL;
+    $tailoring_status = $tailored_record ? $tailored_record->tailoring_status : 'pending';
+    
+    // Fix stuck queued/processing status
+    if ($tailored_record && in_array($tailoring_status, ['queued', 'processing'])) {
+      $queue_item = $database->select('queue', 'q')
+        ->fields('q', ['item_id'])
+        ->condition('name', 'job_hunter_resume_tailoring')
+        ->condition('data', '%"job_id":' . $job_id . '%', 'LIKE')
+        ->execute()
+        ->fetchField();
+      
+      if (!$queue_item) {
+        $new_status = $tailored ? 'completed' : 'pending';
+        $database->update('jobhunter_tailored_resumes')
+          ->fields(['tailoring_status' => $new_status])
+          ->condition('uid', $user->id())
+          ->condition('job_id', $job_id)
+          ->execute();
+        $tailoring_status = $new_status;
+      }
+    }
+    
+    // Get PDF info
+    $pdf_path = $tailored_record && !empty($tailored_record->pdf_path) ? $tailored_record->pdf_path : NULL;
+    $pdf_generated = $tailored_record && !empty($tailored_record->pdf_generated) ? $tailored_record->pdf_generated : NULL;
+
+    // Get PDF history for this job
+    $pdf_history = $database->select('jobhunter_pdf_history', 'ph')
+      ->fields('ph')
+      ->condition('uid', $user->id())
+      ->condition('job_id', $job_id)
+      ->orderBy('created', 'DESC')
+      ->execute()
+      ->fetchAll();
+
+    // Load user's job seeker profile
+    $job_seeker_profile = $database->select('jobhunter_job_seeker', 'js')
+      ->fields('js')
+      ->condition('uid', $user->id())
+      ->execute()
+      ->fetchObject();
+    
+    $profile_json = [];
+    if ($job_seeker_profile && !empty($job_seeker_profile->consolidated_profile_json)) {
+      $profile_json = json_decode($job_seeker_profile->consolidated_profile_json, TRUE) ?: [];
+    }
+
+    // Calculate skills gap
+    $skills_gap = [];
+    if (!empty($skills['must_have']) && !empty($profile_json['skills'])) {
+      $user_skills_lower = array_map('strtolower', array_column($profile_json['skills'], 'name'));
+      foreach ($skills['must_have'] as $required_skill) {
+        $skill_name = $required_skill['skill'] ?? '';
+        if ($skill_name && !in_array(strtolower($skill_name), $user_skills_lower)) {
+          $skills_gap[] = $required_skill;
+        }
+      }
+    }
+    
+    // Build combined content
+    $content = [
+      '#theme' => 'job_tailoring_combined',
+      '#job' => $job,
+      '#job_id' => $job_id,
+      '#job_extracted' => $extracted,
+      '#job_skills' => $skills,
+      '#job_keywords' => $keywords,
+      '#user' => $user,
+      '#profile' => $job_seeker_profile,
+      '#profile_json' => $profile_json,
+      '#skills_gap' => $skills_gap,
+      '#tailored_resume' => $tailored,
+      '#tailoring_status' => $tailoring_status,
+      '#pdf_path' => $pdf_path,
+      '#pdf_generated' => $pdf_generated,
+      '#pdf_history' => $pdf_history,
+      '#attached' => [
+        'library' => [
+          'job_hunter/job-hunter-navigation',
+          'job_hunter/job-hunter-home',
+          'job_hunter/tailor_resume',
+        ],
+      ],
+    ];
+    
+    // Wrap with navigation
+    $build = [
+      '#theme' => 'job_application_dashboard_wrapper',
+      '#navigation' => $navigation_block,
+      '#content' => $content,
+    ];
+    
+    return $build;
+  }
+
+  /**
    * Display the add company form wrapped in navigation.
    */
   public function addForm($company_id = NULL) {
