@@ -15,7 +15,7 @@ dungeoncrawler_content.dashboard:
 dungeoncrawler_content.menu.play:
   title: 'Play'
   description: 'Start your adventure in the living dungeon'
-  route_name: <front>
+  route_name: dungeoncrawler_content.home
   menu_name: main
   weight: 0
 

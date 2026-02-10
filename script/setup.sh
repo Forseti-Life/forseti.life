@@ -1818,7 +1818,7 @@ if [ "$DC_DRUPAL_INSTALLED" = true ]; then
         CURRENT_FRONT=$(/usr/bin/php8.3 vendor/drush/drush/drush.php config:get system.site page.front --format=string 2>/dev/null)
         if [ "$CURRENT_FRONT" = "/node" ]; then
             print_status "Setting custom front page..."
-            /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.site page.front '<front>' --yes 2>/dev/null || true
+            /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.site page.front '/home' --yes 2>/dev/null || true
             print_status "✅ Front page configured"
         fi
     fi
