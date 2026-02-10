@@ -72,10 +72,16 @@ jobs:
             echo "=== ${SITE_NAME} DEPLOYMENT ==="
             local SITE_START=$(date +%s)
             
+            # Track what was deployed
+            local MODULES_DEPLOYED=false
+            local THEMES_DEPLOYED=false
+            local CONFIG_DEPLOYED=false
+            
             # Deploy custom modules
             if [ -d "${SITE_PATH}/web/modules/custom" ]; then
               echo "Deploying custom modules..."
               sudo rsync -aq --delete "${SITE_PATH}/web/modules/custom/" "${SITE_ROOT}/web/modules/custom/"
+              MODULES_DEPLOYED=true
               echo "✅ Modules deployed"
             fi
             
@@ -83,6 +89,7 @@ jobs:
             if [ -d "${SITE_PATH}/web/themes/custom" ]; then
               echo "Deploying custom themes..."
               sudo rsync -aq --delete "${SITE_PATH}/web/themes/custom/" "${SITE_ROOT}/web/themes/custom/"
+              THEMES_DEPLOYED=true
               echo "✅ Themes deployed"
             fi
             
@@ -90,6 +97,7 @@ jobs:
             if [ -d "${SITE_PATH}/config/sync" ]; then
               echo "Deploying configuration..."
               sudo rsync -aq --delete "${SITE_PATH}/config/sync/" "${SITE_ROOT}/config/sync/"
+              CONFIG_DEPLOYED=true
               echo "✅ Configuration deployed"
             fi
             
@@ -115,25 +123,33 @@ jobs:
             fi
             
             # Determine if drush commands are needed
-            DRUSH_NEEDED=false
-            if [ "$COMPOSER_CHANGED" = true ] || [ -d "${START_DIR}/${SITE_PATH}/web/modules/custom" ] || [ -d "${START_DIR}/${SITE_PATH}/config/sync" ]; then
+            local DRUSH_NEEDED=false
+            if [ "$COMPOSER_CHANGED" = true ] || [ "$MODULES_DEPLOYED" = true ] || [ "$CONFIG_DEPLOYED" = true ]; then
               DRUSH_NEEDED=true
             fi
             
             if [ "$DRUSH_NEEDED" = true ]; then
               # Import configuration first (defines schema)
               echo "Importing configuration..."
-              DRUSH_OUTPUT=$(sudo -u www-data ./vendor/bin/drush config:import -y 2>&1) || {
-                echo "⚠️ Config import had warnings (non-fatal):"
+              DRUSH_OUTPUT=$(sudo -u www-data ./vendor/bin/drush config:import -y 2>&1)
+              DRUSH_EXIT=$?
+              if [ $DRUSH_EXIT -ne 0 ]; then
+                echo "⚠️ Config import had warnings (exit code: $DRUSH_EXIT)"
                 echo "$DRUSH_OUTPUT" | tail -5
-              }
+              else
+                echo "$DRUSH_OUTPUT" | grep -i 'imported\|already in sync' || true
+              fi
               
               # Database updates second (applies schema changes)
               echo "Checking for database updates..."
-              DRUSH_OUTPUT=$(sudo -u www-data ./vendor/bin/drush updatedb -y 2>&1) || {
-                echo "⚠️ Database update had warnings (non-fatal):"
+              DRUSH_OUTPUT=$(sudo -u www-data ./vendor/bin/drush updatedb -y 2>&1)
+              DRUSH_EXIT=$?
+              if [ $DRUSH_EXIT -ne 0 ]; then
+                echo "⚠️ Database update had warnings (exit code: $DRUSH_EXIT)"
                 echo "$DRUSH_OUTPUT" | tail -5
-              }
+              else
+                echo "$DRUSH_OUTPUT" | grep -i 'update\|no pending' || echo "ℹ️ No updates needed"
+              fi
             else
               echo "ℹ️ No module/config changes, skipping drush commands"
             fi
@@ -148,9 +164,16 @@ jobs:
               "${SITE_ROOT}/web/themes/custom" \
               "${SITE_ROOT}/config" 2>/dev/null || true
             
-            # Cache rebuild (handles all cache clearing internally)
-            echo "Clearing all caches..."
-            sudo -u www-data ./vendor/bin/drush cache:rebuild
+            # Cache clearing - optimized based on what changed
+            if [ "$DRUSH_NEEDED" = true ]; then
+              echo "Full cache rebuild (modules/config changed)..."
+              sudo -u www-data ./vendor/bin/drush cache:rebuild
+            elif [ "$THEMES_DEPLOYED" = true ]; then
+              echo "Clearing theme caches..."
+              sudo -u www-data ./vendor/bin/drush cc render css-js 2>/dev/null || sudo -u www-data ./vendor/bin/drush cache:rebuild
+            else
+              echo "ℹ️ No cache clear needed"
+            fi
             
             # Return to original directory
             cd "${START_DIR}"
@@ -160,8 +183,10 @@ jobs:
           }
           
           # Deploy Forseti (only if changed)
+          FORSETI_DEPLOYED=false
           if echo "$CHANGED_FILES" | grep -q "^sites/forseti/" || [ -z "$CHANGED_FILES" ]; then
             deploy_site "FORSETI" "/var/www/html/forseti" "sites/forseti"
+            FORSETI_DEPLOYED=true
           else
             echo ""
             echo "ℹ️ Forseti site unchanged, skipping deployment"
@@ -178,9 +203,11 @@ jobs:
           
           # Deploy Dungeon Crawler (if site exists on production and changed)
           DC_ROOT="/var/www/html/dungeoncrawler"
+          DC_DEPLOYED=false
           if [ -d "$DC_ROOT" ] && [ -d "sites/dungeoncrawler/web/modules/custom" ]; then
             if echo "$CHANGED_FILES" | grep -q "^sites/dungeoncrawler/" || [ -z "$CHANGED_FILES" ]; then
               deploy_site "DUNGEON CRAWLER" "$DC_ROOT" "sites/dungeoncrawler"
+              DC_DEPLOYED=true
             else
               echo ""
               echo "ℹ️ Dungeon Crawler unchanged, skipping deployment"
@@ -190,20 +217,22 @@ jobs:
             echo "ℹ️ Dungeon Crawler not set up on production yet, skipping"
           fi
           
-          # Health checks
+          # Health checks (only for deployed sites)
           echo ""
           echo "=== HEALTH CHECKS ==="
           
-          echo "Testing Forseti..."
-          HTTP_CODE=$(curl -f -s -o /dev/null -w "%{http_code}" --max-time 10 https://forseti.life || echo "000")
-          if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Forseti.life is responding (200 OK)"
-          else
-            echo "❌ Forseti.life health check failed (HTTP $HTTP_CODE)"
-            exit 1
+          if [ "$FORSETI_DEPLOYED" = true ]; then
+            echo "Testing Forseti..."
+            HTTP_CODE=$(curl -f -s -o /dev/null -w "%{http_code}" --max-time 10 https://forseti.life || echo "000")
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Forseti.life is responding (200 OK)"
+            else
+              echo "❌ Forseti.life health check failed (HTTP $HTTP_CODE)"
+              exit 1
+            fi
           fi
           
-          if [ -d "$DC_ROOT" ]; then
+          if [ "$DC_DEPLOYED" = true ]; then
             echo "Testing Dungeon Crawler..."
             DC_HTTP_CODE=$(curl -f -s -o /dev/null -w "%{http_code}" --max-time 10 https://dungeoncrawler.forseti.life || echo "000")
             if [ "$DC_HTTP_CODE" = "200" ]; then
