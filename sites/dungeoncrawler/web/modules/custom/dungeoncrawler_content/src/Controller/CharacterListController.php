@@ -57,7 +57,7 @@ class CharacterListController extends ControllerBase {
     $build = [
       '#theme' => 'character_list',
       '#characters' => $character_cards,
-      '#create_url' => Url::fromRoute('dungeoncrawler_content.character_create')->toString(),
+      '#create_url' => Url::fromRoute('dungeoncrawler_content.character_creation_wizard')->toString(),
       '#attached' => [
         'library' => ['dungeoncrawler_content/character-sheet'],
       ],

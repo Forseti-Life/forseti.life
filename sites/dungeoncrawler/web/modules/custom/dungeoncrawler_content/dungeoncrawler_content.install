@@ -75,8 +75,8 @@ function dungeoncrawler_content_schema() {
         'type' => 'int',
         'size' => 'tiny',
         'not null' => TRUE,
-        'default' => 1,
-        'description' => '1 = active, 0 = dead/retired.',
+        'default' => 0,
+        'description' => '0 = draft, 1 = active, -1 = dead/retired.',
       ],
       'created' => [
         'type' => 'int',

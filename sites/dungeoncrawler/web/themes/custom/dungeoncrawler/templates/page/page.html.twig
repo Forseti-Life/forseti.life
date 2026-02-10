@@ -48,28 +48,11 @@
 <div class="page-wrapper">
   {# Animated Header Section - Full height for front page, simplified for other pages #}
   {% set current_path = path('<current>') %}
-  {% if is_front or current_path == '/home' %}
-    <div id="large-header" class="large-header home-header">
-      <canvas id="demo-canvas"></canvas>
-      <h1 class="main-title">
-        <a href="/home" style="text-decoration: none; color: inherit;">
-          <span class="highlight">Dungeon Crawler</span> <span class="thin">Life</span>
-        </a>
-      </h1>
-      <p class="main-subtitle">
-        An AI-Generated Living Dungeon — Explore, Fight, and Shape a World That Remembers
-      </p>
-      <div class="hero-cta">
-        <a href="#how-it-works" class="btn btn-primary">How It Works</a>
-        <a href="#the-dungeon" class="btn btn-outline-light">Explore the Depths</a>
-        <a href="/user/register" class="btn btn-primary">Create Your Adventurer</a>
-      </div>
-    </div>
-  {% else %}
+  {% if not is_front and current_path != '/home' %}
     <div id="large-header" class="large-header page-header">
       <canvas id="demo-canvas"></canvas>
       <h1 class="main-title main-title--simple">
-        <a href="/home" style="text-decoration: none; color: inherit;">
+        <a href="/home" class="site-title-link">
           <span class="highlight">Dungeon Crawler</span> <span class="thin">Life</span>
         </a>
       </h1>

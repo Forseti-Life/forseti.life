@@ -35,6 +35,19 @@
   line-height: 1.1;
 }
 
+/* Site title link (no underline, inherit color) */
+.site-title-link {
+  text-decoration: none;
+  color: inherit;
+  
+  &:hover,
+  &:focus,
+  &:active {
+    text-decoration: none;
+    color: inherit;
+  }
+}
+
 /* Simplified title styling for page headers */
 .main-title--simple {
   top: 50%; /* Center vertically in shorter header */

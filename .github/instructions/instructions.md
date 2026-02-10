@@ -297,6 +297,46 @@ The autodeploy clears the cache on the server during deployment. Do not recomend
 - Follow hook implementation patterns
 - Use proper caching strategies for performance
 
+## Theme and Styling Standards
+
+**CENTRALIZED STYLING MANDATE**: All styling must be managed through the theme's centralized CSS architecture:
+
+- **NO INLINE CSS**: Inline `style=""` attributes are strictly prohibited in all templates and code
+- **NO STYLE TAGS**: Embedded `<style>` tags are not allowed - all CSS must be in theme files
+- **Standardized Theme**: Each site has a consistent look and feel maintained through its custom theme
+- **CSS Organization**: All styling must be placed in appropriate theme CSS files:
+  - Component-specific styles: `/themes/custom/{themename}/src/scss/components/_component-name.scss`
+  - Base styles: `/themes/custom/{themename}/src/scss/base/`
+  - Layout styles: `/themes/custom/{themename}/src/scss/layout/`
+- **SCSS Compilation**: Theme uses SASS/SCSS compiled to CSS via build process
+- **Library Declarations**: Attach CSS files through Drupal's library system in `*.libraries.yml`
+- **Consistent Design System**: Maintain theme consistency across all pages and components
+- **Build Process**: Run theme build process (`npm run dev` or `npm run production`) after CSS changes
+
+**Theme Architecture Pattern**:
+```
+themes/custom/{themename}/
+├── src/
+│   ├── scss/
+│   │   ├── main.style.scss          # Master import file
+│   │   ├── base/                    # Base element styles
+│   │   ├── components/              # Component-specific styles
+│   │   └── layout/                  # Layout and structural styles
+│   └── js/
+├── build/
+│   └── css/
+│       └── main.style.css           # Compiled output
+├── templates/                        # Twig templates (NO inline styles)
+├── {themename}.libraries.yml        # Library definitions
+└── package.json                      # Build configuration
+```
+
+**Enforcement**:
+- **Code Review**: All inline styles will be rejected in code review
+- **Template Purity**: Twig templates must focus on structure and content, not styling
+- **Maintainability**: Centralized CSS ensures consistent updates and easier maintenance
+- **Performance**: Proper caching and minification of compiled CSS files
+
 ## Database & Performance
 - **MySQL 8.0+ Database**: Optimized InnoDB engine with utf8mb4 character set
 - **Multi-database Architecture**: Separate databases for each Drupal site

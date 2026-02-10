@@ -24,3 +24,92 @@ character-sheet:
   dependencies:
     - core/drupal
     - core/once
+
+character-creation:
+  css:
+    component:
+      css/character-creation.css: {}
+  js:
+    js/character-creation.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+
+# Individual step libraries
+character-step-1:
+  css:
+    component:
+      css/character-steps.css: {}
+  js:
+    js/character-step-1.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+
+character-step-2:
+  css:
+    component:
+      css/character-steps.css: {}
+  js:
+    js/character-step-2.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+
+character-step-3:
+  css:
+    component:
+      css/character-steps.css: {}
+  js:
+    js/character-step-3.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+
+character-step-4:
+  css:
+    component:
+      css/character-steps.css: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+
+character-step-5:
+  css:
+    component:
+      css/character-steps.css: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+
+character-step-6:
+  css:
+    component:
+      css/character-steps.css: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+
+character-step-7:
+  css:
+    component:
+      css/character-steps.css: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+
+character-step-8:
+  css:
+    component:
+      css/character-steps.css: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once

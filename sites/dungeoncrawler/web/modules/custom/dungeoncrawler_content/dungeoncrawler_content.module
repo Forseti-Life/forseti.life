@@ -85,6 +85,94 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
       'template' => 'character-sheet',
       'path' => $path . '/templates',
     ],
+    'character_creation_wizard' => [
+      'variables' => [
+        'ancestries' => [],
+        'classes' => [],
+        'backgrounds' => [],
+        'alignments' => [],
+      ],
+      'template' => 'character-creation-wizard',
+      'path' => $path . '/templates',
+    ],
+    // Individual step templates
+    'character_step_1' => [
+      'variables' => [
+        'character_id' => NULL,
+        'character' => [],
+        'step' => 1,
+      ],
+      'template' => 'character-step-1',
+      'path' => $path . '/templates',
+    ],
+    'character_step_2' => [
+      'variables' => [
+        'character_id' => NULL,
+        'character' => [],
+        'step' => 2,
+        'ancestries' => [],
+      ],
+      'template' => 'character-step-2',
+      'path' => $path . '/templates',
+    ],
+    'character_step_3' => [
+      'variables' => [
+        'character_id' => NULL,
+        'character' => [],
+        'step' => 3,
+        'backgrounds' => [],
+      ],
+      'template' => 'character-step-3',
+      'path' => $path . '/templates',
+    ],
+    'character_step_4' => [
+      'variables' => [
+        'character_id' => NULL,
+        'character' => [],
+        'step' => 4,
+        'classes' => [],
+      ],
+      'template' => 'character-step-4',
+      'path' => $path . '/templates',
+    ],
+    'character_step_5' => [
+      'variables' => [
+        'character_id' => NULL,
+        'character' => [],
+        'step' => 5,
+      ],
+      'template' => 'character-step-5',
+      'path' => $path . '/templates',
+    ],
+    'character_step_6' => [
+      'variables' => [
+        'character_id' => NULL,
+        'character' => [],
+        'step' => 6,
+        'alignments' => [],
+      ],
+      'template' => 'character-step-6',
+      'path' => $path . '/templates',
+    ],
+    'character_step_7' => [
+      'variables' => [
+        'character_id' => NULL,
+        'character' => [],
+        'step' => 7,
+        'equipment' => [],
+      ],
+      'template' => 'character-step-7',
+      'path' => $path . '/templates',
+    ],
+    'character_step_8' => [
+      'variables' => [
+        'character_id' => NULL,
+        'character' => [],
+        'step' => 8,
+      ],
+      'template' => 'character-step-8',
+      'path' => $path . '/templates',
+    ],
   ];
 }
 
