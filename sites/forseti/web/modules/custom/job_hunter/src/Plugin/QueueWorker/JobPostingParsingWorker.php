@@ -440,7 +440,6 @@ PROMPT;
       $company_id = $connection->insert('jobhunter_companies')
         ->fields([
           'name' => $company_name,
-          'description' => $extracted_data['company_description'] ?? NULL,
           'industry' => $extracted_data['industry'] ?? NULL,
           'created' => time(),
           'updated' => time(),
@@ -448,15 +447,15 @@ PROMPT;
         ->execute();
 
       \Drupal::logger('job_hunter')->info('✅ Created company: @name (ID: @id)', [
-        '@name' => $company_name,
+        '@name' => $company_name ?? 'Unknown',
         '@id' => $company_id,
       ]);
 
       return $company_id;
     } catch (\Exception $e) {
       \Drupal::logger('job_hunter')->warning('Could not create company @name: @error', [
-        '@name' => $company_name,
-        '@error' => $e->getMessage(),
+        '@name' => $company_name ?? 'Unknown',
+        '@error' => $e->getMessage() ?? 'Unknown error',
       ]);
       return NULL;
     }

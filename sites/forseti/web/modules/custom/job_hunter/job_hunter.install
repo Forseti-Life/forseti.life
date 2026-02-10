@@ -1205,3 +1205,46 @@ function job_hunter_update_9018() {
   _job_hunter_create_queue_suspended_table();
   return t('Created jobhunter_queue_suspended table for managing suspended queue items.');
 }
+
+/**
+ * Add missing description and active columns to jobhunter_companies table.
+ */
+function job_hunter_update_9019() {
+  $schema = \Drupal::database()->schema();
+  $messages = [];
+  
+  if (!$schema->tableExists('jobhunter_companies')) {
+    return t('Table jobhunter_companies does not exist.');
+  }
+  
+  // Add description column if missing
+  if (!$schema->fieldExists('jobhunter_companies', 'description')) {
+    $schema->addField('jobhunter_companies', 'description', [
+      'type' => 'text',
+      'size' => 'big',
+      'description' => 'Company description',
+    ]);
+    $messages[] = 'Added description column';
+  }
+  
+  // Add active column if missing
+  if (!$schema->fieldExists('jobhunter_companies', 'active')) {
+    $schema->addField('jobhunter_companies', 'active', [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 1,
+    ], [
+      'indexes' => [
+        'active' => ['active'],
+      ],
+    ]);
+    $messages[] = 'Added active column';
+  }
+  
+  if (empty($messages)) {
+    return t('No changes needed - columns already exist.');
+  }
+  
+  return t('Updated jobhunter_companies table: @changes', ['@changes' => implode(', ', $messages)]);
+}

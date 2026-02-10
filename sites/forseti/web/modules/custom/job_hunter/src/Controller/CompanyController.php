@@ -135,11 +135,18 @@ class CompanyController extends ControllerBase {
   public function listJobs() {
     $database = \Drupal::database();
     $current_user_id = \Drupal::currentUser()->id();
+    $request = \Drupal::request();
     
     // Render navigation block
     $block_manager = \Drupal::service('plugin.manager.block');
     $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
     $navigation_block = $plugin_block->build();
+    
+    // Get filter parameters
+    $filter_company = $request->query->get('company', '');
+    $filter_status = $request->query->get('status', '');
+    $filter_ai_status = $request->query->get('ai_status', '');
+    $filter_tailoring = $request->query->get('tailoring', '');
     
     // Get all jobs with company names and tailoring status
     $query = $database->select('jobhunter_job_requirements', 'j')
@@ -151,9 +158,31 @@ class CompanyController extends ControllerBase {
     $query->addField('tr', 'tailoring_status');
     $query->addField('tr', 'tailored_resume_json');
     $query->addField('tr', 'pdf_path');
+    
+    // Apply filters
+    if (!empty($filter_company)) {
+      $query->condition('c.name', '%' . $database->escapeLike($filter_company) . '%', 'LIKE');
+    }
+    if (!empty($filter_status)) {
+      $query->condition('j.status', $filter_status);
+    }
+    if (!empty($filter_ai_status)) {
+      $query->condition('j.ai_extraction_status', $filter_ai_status);
+    }
+    if (!empty($filter_tailoring)) {
+      $query->condition('tr.tailoring_status', $filter_tailoring);
+    }
+    
     $query->orderBy('c.name', 'ASC');
     $query->orderBy('j.job_title', 'ASC');
     $jobs = $query->execute()->fetchAll();
+    
+    // Get distinct companies for filter dropdown
+    $companies_query = $database->select('jobhunter_companies', 'c')
+      ->fields('c', ['name'])
+      ->distinct()
+      ->orderBy('name', 'ASC');
+    $companies = $companies_query->execute()->fetchCol();
     
     // Build table
     $header = [
@@ -276,6 +305,70 @@ class CompanyController extends ControllerBase {
         '#url' => Url::fromRoute('job_hunter.job_paste'),
         '#attributes' => ['class' => ['button', 'button--primary']],
       ],
+      'filters' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['jobs-filters']],
+        'form' => [
+          '#type' => 'inline_template',
+          '#template' => '
+            <div class="filter-form">
+              <form method="get" action="{{ action_url }}">
+                <div class="filter-row">
+                  <div class="filter-field">
+                    <label for="company">{{ "Company"|t }}</label>
+                    <select name="company" id="company">
+                      <option value="">{{ "All Companies"|t }}</option>
+                      {% for company in companies %}
+                        <option value="{{ company }}"{{ company == filter_company ? " selected" : "" }}>{{ company }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="filter-field">
+                    <label for="status">{{ "Status"|t }}</label>
+                    <select name="status" id="status">
+                      <option value="">{{ "All Statuses"|t }}</option>
+                      <option value="active"{{ filter_status == "active" ? " selected" : "" }}>{{ "Active"|t }}</option>
+                      <option value="archived"{{ filter_status == "archived" ? " selected" : "" }}>{{ "Archived"|t }}</option>
+                      <option value="applied"{{ filter_status == "applied" ? " selected" : "" }}>{{ "Applied"|t }}</option>
+                    </select>
+                  </div>
+                  <div class="filter-field">
+                    <label for="ai_status">{{ "AI Status"|t }}</label>
+                    <select name="ai_status" id="ai_status">
+                      <option value="">{{ "All AI Statuses"|t }}</option>
+                      <option value="completed"{{ filter_ai_status == "completed" ? " selected" : "" }}>{{ "Parsed"|t }}</option>
+                      <option value="pending"{{ filter_ai_status == "pending" ? " selected" : "" }}>{{ "Needs Parsing"|t }}</option>
+                      <option value="processing"{{ filter_ai_status == "processing" ? " selected" : "" }}>{{ "Processing"|t }}</option>
+                      <option value="failed"{{ filter_ai_status == "failed" ? " selected" : "" }}>{{ "Failed"|t }}</option>
+                    </select>
+                  </div>
+                  <div class="filter-field">
+                    <label for="tailoring">{{ "Tailoring"|t }}</label>
+                    <select name="tailoring" id="tailoring">
+                      <option value="">{{ "All Tailoring Statuses"|t }}</option>
+                      <option value="completed"{{ filter_tailoring == "completed" ? " selected" : "" }}>{{ "Tailored"|t }}</option>
+                      <option value="pending"{{ filter_tailoring == "pending" ? " selected" : "" }}>{{ "Not Tailored"|t }}</option>
+                      <option value="processing"{{ filter_tailoring == "processing" ? " selected" : "" }}>{{ "Processing"|t }}</option>
+                      <option value="failed"{{ filter_tailoring == "failed" ? " selected" : "" }}>{{ "Failed"|t }}</option>
+                    </select>
+                  </div>
+                  <div class="filter-actions">
+                    <button type="submit" class="button button--primary">{{ "Filter"|t }}</button>
+                    <a href="{{ action_url }}" class="button button--secondary">{{ "Clear"|t }}</a>
+                  </div>
+                </div>
+              </form>
+            </div>',
+          '#context' => [
+            'action_url' => Url::fromRoute('job_hunter.jobs_list')->toString(),
+            'companies' => $companies,
+            'filter_company' => $filter_company,
+            'filter_status' => $filter_status,
+            'filter_ai_status' => $filter_ai_status,
+            'filter_tailoring' => $filter_tailoring,
+          ],
+        ],
+      ],
       'table' => [
         '#type' => 'table',
         '#header' => $header,
@@ -283,6 +376,25 @@ class CompanyController extends ControllerBase {
         '#empty' => $this->t('No job requirements found. Click "Add Job Requirement" to add your first job.'),
         '#attributes' => ['class' => ['jobs-table']],
       ],
+    ];
+    
+    // Add CSS for filters
+    $content['#attached']['html_head'][] = [
+      [
+        '#tag' => 'style',
+        '#value' => '
+          .jobs-filters { margin: 20px 0; }
+          .filter-form { background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; }
+          .filter-row { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
+          .filter-field { display: flex; flex-direction: column; flex: 1; min-width: 150px; }
+          .filter-field label { font-weight: 600; margin-bottom: 5px; color: #374151; font-size: 14px; }
+          .filter-field select { padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white; }
+          .filter-field select:focus { outline: none; border-color: #667eea; }
+          .filter-actions { display: flex; gap: 10px; align-items: center; }
+          .filter-actions .button { margin: 0; }
+        ',
+      ],
+      'jobs_filters_styles',
     ];
     
     // Wrap with navigation

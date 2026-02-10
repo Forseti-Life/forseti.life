@@ -189,16 +189,6 @@ Benefits:
       '#button_type' => 'primary',
     ];
 
-    // TODO: Add "Extract & Analyze" button that triggers AI parsing
-    $form['actions']['extract'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('Extract & Analyze (Coming Soon)'),
-      '#disabled' => TRUE,
-      '#attributes' => [
-        'title' => $this->t('AI-powered extraction coming soon'),
-      ],
-    ];
-
     $form['actions']['cancel'] = [
       '#type' => 'link',
       '#title' => $this->t('Cancel'),
