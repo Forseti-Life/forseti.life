@@ -82,6 +82,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
       '#attached' => [
         'library' => [
           'job_hunter/google_jobs_integration',
+          'job_hunter/job-hunter-home',
         ],
       ],
     ];

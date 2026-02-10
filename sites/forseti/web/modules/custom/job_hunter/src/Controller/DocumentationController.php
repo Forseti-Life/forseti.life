@@ -68,6 +68,7 @@ class DocumentationController extends ControllerBase {
       '#attached' => [
         'library' => [
           'job_hunter/documentation',
+          'job_hunter/job-hunter-home',
         ],
       ],
     ];

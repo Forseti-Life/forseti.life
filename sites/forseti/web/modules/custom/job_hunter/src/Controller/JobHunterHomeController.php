@@ -453,6 +453,7 @@ class JobHunterHomeController extends ControllerBase {
       '#table_health' => $table_health,
       '#attached' => [
         'library' => [
+          'job_hunter/job-hunter-home',
           'job_hunter/queue-management',
           'job_hunter/queue-controls',
         ],

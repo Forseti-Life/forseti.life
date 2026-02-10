@@ -54,6 +54,7 @@ function job_hunter_install() {
     _job_hunter_create_resume_parsed_data_table();
     _job_hunter_create_job_seeker_resumes_table();
     _job_hunter_create_tailored_resumes_table();
+    _job_hunter_create_pdf_history_table();
     _job_hunter_create_google_jobs_sync_table();
     _job_hunter_create_google_jobs_validation_log_table();
     _job_hunter_create_job_search_queries_table();
@@ -484,13 +485,13 @@ function job_hunter_update_9008() {
 }
 
 /**
- * Create jobhunter_pdf_history table to track all generated PDFs.
+ * Create jobhunter_pdf_history table.
  */
-function job_hunter_update_9009() {
+function _job_hunter_create_pdf_history_table() {
   $schema = \Drupal::database()->schema();
   
   if ($schema->tableExists('jobhunter_pdf_history')) {
-    return t('Table jobhunter_pdf_history already exists.');
+    return;
   }
   
   $table_schema = [
@@ -513,7 +514,13 @@ function job_hunter_update_9009() {
   ];
   
   $schema->createTable('jobhunter_pdf_history', $table_schema);
-  
+}
+
+/**
+ * Create jobhunter_pdf_history table to track all generated PDFs.
+ */
+function job_hunter_update_9009() {
+  _job_hunter_create_pdf_history_table();
   return t('Created jobhunter_pdf_history table.');
 }
 

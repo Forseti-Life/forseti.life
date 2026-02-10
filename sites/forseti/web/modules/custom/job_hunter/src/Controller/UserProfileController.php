@@ -703,6 +703,7 @@ class UserProfileController extends ControllerBase {
       '#attached' => [
         'library' => [
           'job_hunter/job_discovery',
+          'job_hunter/job-hunter-home',
         ],
       ],
     ];
@@ -769,6 +770,7 @@ class UserProfileController extends ControllerBase {
       '#attached' => [
         'library' => [
           'job_hunter/job_discovery',
+          'job_hunter/job-hunter-home',
         ],
       ],
     ];
