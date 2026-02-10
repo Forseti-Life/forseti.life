@@ -17,6 +17,7 @@ on:
       # Config changes require manual deployment - excluded from auto-deploy
       # - 'sites/dungeoncrawler/config/sync/**'
       - 'h3-geolocation/**'
+      - 'script/production/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -206,6 +207,24 @@ jobs:
           else
             echo ""
             echo "ℹ️ Forseti site unchanged, skipping deployment"
+          fi
+          
+          # Deploy production helper scripts
+          if [ -d "script/production" ]; then
+            if echo "$CHANGED_FILES" | grep -q "^script/production/" || [ -z "$CHANGED_FILES" ]; then
+              echo ""
+              echo "=== PRODUCTION SCRIPTS DEPLOYMENT ==="
+              SCRIPTS_START=$(date +%s)
+              sudo mkdir -p /var/www/html/scripts
+              sudo rsync -aq script/production/ /var/www/html/scripts/
+              sudo chmod +x /var/www/html/scripts/*.sh
+              sudo chown -R root:root /var/www/html/scripts
+              SCRIPT_COUNT=$(ls -1 /var/www/html/scripts/*.sh 2>/dev/null | wc -l)
+              echo "✅ Deployed ${SCRIPT_COUNT} helper scripts in $(($(date +%s) - SCRIPTS_START))s"
+            else
+              echo ""
+              echo "ℹ️ Production scripts unchanged, skipping deployment"
+            fi
           fi
           
           # Deploy H3 geolocation (if exists and changed)
