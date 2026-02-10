@@ -56,11 +56,17 @@ jobs:
           git clone --depth 1 --single-branch --branch main --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git .
           git sparse-checkout set sites/forseti sites/dungeoncrawler h3-geolocation
           
+          # Detect what changed in this deployment
+          echo "Detecting changed files..."
+          CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD 2>/dev/null || echo "")
+          echo "Changed paths: $(echo "$CHANGED_FILES" | grep -E '^(sites/|h3-geolocation/)' | cut -d'/' -f1-2 | sort -u | tr '\n' ' ')"
+          
           # Reusable deployment function
           deploy_site() {
             local SITE_NAME=$1
             local SITE_ROOT=$2
             local SITE_PATH=$3
+            local START_DIR=$(pwd)
             
             echo ""
             echo "=== ${SITE_NAME} DEPLOYMENT ==="
@@ -69,21 +75,21 @@ jobs:
             # Deploy custom modules
             if [ -d "${SITE_PATH}/web/modules/custom" ]; then
               echo "Deploying custom modules..."
-              sudo rsync -av --delete --checksum "${SITE_PATH}/web/modules/custom/" "${SITE_ROOT}/web/modules/custom/"
+              sudo rsync -aq --delete "${SITE_PATH}/web/modules/custom/" "${SITE_ROOT}/web/modules/custom/"
               echo "✅ Modules deployed"
             fi
             
             # Deploy custom themes
             if [ -d "${SITE_PATH}/web/themes/custom" ]; then
               echo "Deploying custom themes..."
-              sudo rsync -av --delete --checksum "${SITE_PATH}/web/themes/custom/" "${SITE_ROOT}/web/themes/custom/"
+              sudo rsync -aq --delete "${SITE_PATH}/web/themes/custom/" "${SITE_ROOT}/web/themes/custom/"
               echo "✅ Themes deployed"
             fi
             
             # Deploy configuration
             if [ -d "${SITE_PATH}/config/sync" ]; then
               echo "Deploying configuration..."
-              sudo rsync -av --delete --checksum "${SITE_PATH}/config/sync/" "${SITE_ROOT}/config/sync/"
+              sudo rsync -aq --delete "${SITE_PATH}/config/sync/" "${SITE_ROOT}/config/sync/"
               echo "✅ Configuration deployed"
             fi
             
@@ -102,19 +108,35 @@ jobs:
             
             if [ "$COMPOSER_CHANGED" = true ]; then
               echo "Installing composer dependencies..."
-              sudo -u www-data composer install --no-dev --optimize-autoloader --prefer-dist --no-interaction
+              sudo -u www-data composer install --no-dev --optimize-autoloader --apcu-autoloader --prefer-dist --no-interaction
               echo "✅ Composer updated"
             else
               echo "ℹ️ Composer files unchanged, skipping"
             fi
             
-            # Database updates
-            echo "Checking for database updates..."
-            sudo -u www-data ./vendor/bin/drush updatedb -y || echo "ℹ️ No updates needed"
+            # Determine if drush commands are needed
+            DRUSH_NEEDED=false
+            if [ "$COMPOSER_CHANGED" = true ] || [ -d "${START_DIR}/${SITE_PATH}/web/modules/custom" ] || [ -d "${START_DIR}/${SITE_PATH}/config/sync" ]; then
+              DRUSH_NEEDED=true
+            fi
             
-            # Import configuration
-            echo "Importing configuration..."
-            sudo -u www-data ./vendor/bin/drush config:import -y || echo "⚠️ Config import warnings"
+            if [ "$DRUSH_NEEDED" = true ]; then
+              # Import configuration first (defines schema)
+              echo "Importing configuration..."
+              DRUSH_OUTPUT=$(sudo -u www-data ./vendor/bin/drush config:import -y 2>&1) || {
+                echo "⚠️ Config import had warnings (non-fatal):"
+                echo "$DRUSH_OUTPUT" | tail -5
+              }
+              
+              # Database updates second (applies schema changes)
+              echo "Checking for database updates..."
+              DRUSH_OUTPUT=$(sudo -u www-data ./vendor/bin/drush updatedb -y 2>&1) || {
+                echo "⚠️ Database update had warnings (non-fatal):"
+                echo "$DRUSH_OUTPUT" | tail -5
+              }
+            else
+              echo "ℹ️ No module/config changes, skipping drush commands"
+            fi
             
             # Fix permissions (optimized single pass)
             echo "Setting permissions..."
@@ -130,26 +152,39 @@ jobs:
             echo "Clearing all caches..."
             sudo -u www-data ./vendor/bin/drush cache:rebuild
             
+            # Return to original directory
+            cd "${START_DIR}"
+            
             local SITE_END=$(date +%s)
             echo "✅ ${SITE_NAME} deployment complete in $((SITE_END - SITE_START))s"
           }
           
-          # Deploy Forseti
-          deploy_site "FORSETI" "/var/www/html/forseti" "sites/forseti"
+          # Deploy Forseti (only if changed)
+          if echo "$CHANGED_FILES" | grep -q "^sites/forseti/" || [ -z "$CHANGED_FILES" ]; then
+            deploy_site "FORSETI" "/var/www/html/forseti" "sites/forseti"
+          else
+            echo ""
+            echo "ℹ️ Forseti site unchanged, skipping deployment"
+          fi
           
-          # Deploy H3 geolocation (if exists)
-          if [ -d "h3-geolocation" ]; then
+          # Deploy H3 geolocation (if exists and changed)
+          if [ -d "h3-geolocation" ] && (echo "$CHANGED_FILES" | grep -q "^h3-geolocation/" || [ -z "$CHANGED_FILES" ]); then
             echo ""
             echo "=== H3 GEOLOCATION DEPLOYMENT ==="
             H3_START=$(date +%s)
-            sudo rsync -av --checksum --exclude='h3-env' --exclude='__pycache__' h3-geolocation/ "/var/www/html/forseti/h3-geolocation/"
+            sudo rsync -aq --delete --exclude='h3-env' --exclude='__pycache__' h3-geolocation/ "/var/www/html/forseti/h3-geolocation/"
             echo "✅ H3 deployed in $(($(date +%s) - H3_START))s"
           fi
           
-          # Deploy Dungeon Crawler (if site exists on production)
+          # Deploy Dungeon Crawler (if site exists on production and changed)
           DC_ROOT="/var/www/html/dungeoncrawler"
           if [ -d "$DC_ROOT" ] && [ -d "sites/dungeoncrawler/web/modules/custom" ]; then
-            deploy_site "DUNGEON CRAWLER" "$DC_ROOT" "sites/dungeoncrawler"
+            if echo "$CHANGED_FILES" | grep -q "^sites/dungeoncrawler/" || [ -z "$CHANGED_FILES" ]; then
+              deploy_site "DUNGEON CRAWLER" "$DC_ROOT" "sites/dungeoncrawler"
+            else
+              echo ""
+              echo "ℹ️ Dungeon Crawler unchanged, skipping deployment"
+            fi
           else
             echo ""
             echo "ℹ️ Dungeon Crawler not set up on production yet, skipping"
@@ -160,19 +195,21 @@ jobs:
           echo "=== HEALTH CHECKS ==="
           
           echo "Testing Forseti..."
-          if curl -f -s -o /dev/null -w "%{http_code}" https://forseti.life | grep -q "200"; then
+          HTTP_CODE=$(curl -f -s -o /dev/null -w "%{http_code}" --max-time 10 https://forseti.life || echo "000")
+          if [ "$HTTP_CODE" = "200" ]; then
             echo "✅ Forseti.life is responding (200 OK)"
           else
-            echo "⚠️ Forseti.life health check failed"
+            echo "❌ Forseti.life health check failed (HTTP $HTTP_CODE)"
             exit 1
           fi
           
           if [ -d "$DC_ROOT" ]; then
             echo "Testing Dungeon Crawler..."
-            if curl -f -s -o /dev/null -w "%{http_code}" https://dungeoncrawler.forseti.life | grep -q "200"; then
+            DC_HTTP_CODE=$(curl -f -s -o /dev/null -w "%{http_code}" --max-time 10 https://dungeoncrawler.forseti.life || echo "000")
+            if [ "$DC_HTTP_CODE" = "200" ]; then
               echo "✅ Dungeon Crawler is responding (200 OK)"
             else
-              echo "⚠️ Dungeon Crawler health check failed"
+              echo "⚠️ Dungeon Crawler health check failed (HTTP $DC_HTTP_CODE)"
             fi
           fi
           
