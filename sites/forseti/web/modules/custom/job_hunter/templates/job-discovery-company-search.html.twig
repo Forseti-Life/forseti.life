@@ -13,8 +13,8 @@
 <div class="job-discovery-company">
   <div class="job-discovery-header">
     <h1>{{ 'Job Opportunities at %company'|t({'%company': company.getTitle()}) }}</h1>
-    <a href="{{ path('job_hunter.start_job_discovery', {'user': user.id()}) }}" class="btn btn-secondary">
-      {{ 'Back to Company Selection'|t }}
+    <a href="{{ path('job_hunter.job_discovery') }}" class="btn btn-secondary">
+      {{ 'Back to Job Discovery'|t }}
     </a>
   </div>
 

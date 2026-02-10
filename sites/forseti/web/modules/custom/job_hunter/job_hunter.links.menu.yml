@@ -21,13 +21,6 @@ job_hunter.main_nav:
   parent: system.admin
   weight: 25
 
-job_hunter.companies:
-  title: 'Companies'
-  route_name: view.job_application_companies.page_1
-  description: 'Manage companies for job applications'
-  parent: job_hunter.admin
-  weight: 0
-
 job_hunter.job_postings:
   title: 'Job Postings'
   route_name: view.job_application_job_postings.page_1

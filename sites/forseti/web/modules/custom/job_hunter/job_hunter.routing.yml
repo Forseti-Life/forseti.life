@@ -163,15 +163,6 @@ job_hunter.user_job_seeker_view:
   requirements:
     _permission: 'access job hunter'
 
-# Job Discovery - Company Selection Page
-job_hunter.start_job_discovery:
-  path: '/jobhunter/job-discovery/start'
-  defaults:
-    _controller: '\Drupal\job_hunter\Controller\UserProfileController::startJobDiscovery'
-    _title: 'Job Discovery - Select Company'
-  requirements:
-    _permission: 'administer job application automation'
-
 # Job Discovery - Company-Specific Discovery Page
 job_hunter.company_job_discovery:
   path: '/jobhunter/job-discovery/company/{company}'
@@ -273,15 +264,6 @@ job_hunter.bulk_import_companies:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\CompanyController::bulkImportForm'
     _title: 'Add Companies'
-  requirements:
-    _permission: 'administer job application automation'
-
-# Companies Overview
-job_hunter.companies_overview:
-  path: '/jobhunter/companies'
-  defaults:
-    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::companiesOverview'
-    _title: 'Companies Overview'
   requirements:
     _permission: 'administer job application automation'
 

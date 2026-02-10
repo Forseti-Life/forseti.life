@@ -83,13 +83,12 @@ class JobHunterHomeController extends ControllerBase {
 
     // Job discovery section
     $build['#job_discovery'] = [
-      'start_url' => Url::fromRoute('job_hunter.start_job_discovery')->toString(),
+      'start_url' => Url::fromRoute('job_hunter.job_discovery')->toString(),
     ];
 
     // Dashboard section
     $build['#dashboard'] = [
       'main_url' => Url::fromRoute('job_hunter.dashboard')->toString(),
-      'companies_url' => Url::fromRoute('job_hunter.companies_overview')->toString(),
     ];
 
     // Statistics (if available)

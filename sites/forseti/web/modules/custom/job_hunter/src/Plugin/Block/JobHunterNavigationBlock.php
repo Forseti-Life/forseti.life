@@ -102,15 +102,9 @@ class JobHunterNavigationBlock extends BlockBase implements ContainerFactoryPlug
     if ($this->currentUser->hasPermission('administer job application automation')) {
       $navigation['job_discovery'] = [
         'title' => $this->t('Job Discovery'),
-        'url' => Url::fromRoute('job_hunter.start_job_discovery'),
+        'url' => Url::fromRoute('job_hunter.job_discovery'),
         'icon' => 'search',
         'weight' => 20,
-      ];
-      $navigation['companies'] = [
-        'title' => $this->t('Companies'),
-        'url' => Url::fromRoute('job_hunter.companies_overview'),
-        'icon' => 'building',
-        'weight' => 30,
       ];
       $navigation['target_companies'] = [
         'title' => $this->t('Target Companies'),
