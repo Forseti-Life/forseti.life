@@ -3,6 +3,15 @@
 ## Overview
 Implement a comprehensive character leveling system that manages XP tracking, level-up triggers, guided leveling workflow, ability score increases, feat selection, proficiency improvements, HP increases, spell progression, and stat recalculation. The system must enforce Pathfinder 2E rules for level milestones and maintain character progression history.
 
+## Reference Documentation
+Additional detailed game mechanics documentation is available in the `reference documentation/` subdirectory:
+- PF2E Core Rulebook - Fourth Printing.txt
+- PF2E Advanced Players Guide.txt
+- PF2E Gamemastery Guide.txt
+- Other supplementary rulebooks
+
+These reference materials provide comprehensive rules for character advancement, XP awards, level-based features, feat progressions, and proficiency improvements that should be consulted during implementation.
+
 ## Controller Design
 
 ### LevelingController

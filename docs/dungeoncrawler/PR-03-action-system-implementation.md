@@ -3,6 +3,14 @@
 ## Overview
 Implement a comprehensive action library and execution system for the Pathfinder 2E three-action economy. The system must define all basic actions, activities, reactions, and free actions, enforce action costs (1/2/3 actions), manage traits (Attack, Manipulate, Move, Concentrate), and integrate with the combat encounter system.
 
+## Reference Documentation
+Additional detailed game mechanics documentation is available in the `reference documentation/` subdirectory:
+- PF2E Core Rulebook - Fourth Printing.txt
+- PF2E Advanced Players Guide.txt
+- Other supplementary rulebooks
+
+These reference materials provide comprehensive rules for all actions, activities, reactions, traits, and their interactions that should be consulted during implementation.
+
 ## Controller Design
 
 ### ActionController

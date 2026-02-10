@@ -3,6 +3,15 @@
 ## Overview
 Implement a multi-step character creation wizard that guides players through the Pathfinder 2E character creation process (10 steps). The system must enforce game rules, calculate derived statistics, and persist character data.
 
+## Reference Documentation
+Additional detailed game mechanics documentation is available in the `reference documentation/` subdirectory:
+- PF2E Core Rulebook - Fourth Printing.txt
+- PF2E Advanced Players Guide.txt
+- PF2E Gods and Magic.txt
+- Other supplementary rulebooks
+
+These reference materials provide comprehensive rules for ancestries, classes, backgrounds, feats, and equipment that should be consulted during implementation.
+
 ## Controller Design
 
 ### CharacterCreationController

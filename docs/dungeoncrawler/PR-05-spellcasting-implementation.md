@@ -3,6 +3,16 @@
 ## Overview
 Implement a comprehensive spellcasting system supporting Pathfinder 2E's four magical traditions (Arcane, Divine, Occult, Primal), spell slots, prepared vs spontaneous casting, spell components, concentration, heightening, and spell resolution. The system must integrate with character classes, combat encounters, and action economy.
 
+## Reference Documentation
+Additional detailed game mechanics documentation is available in the `reference documentation/` subdirectory:
+- PF2E Core Rulebook - Fourth Printing.txt
+- PF2E Secrets of Magic.txt
+- PF2E Gods and Magic.txt
+- PF2E Advanced Players Guide.txt
+- Other supplementary rulebooks
+
+These reference materials provide comprehensive rules for all spells, traditions, casting methods, spell schools, and magical mechanics that should be consulted during implementation.
+
 ## Controller Design
 
 ### SpellcastingController

@@ -3,6 +3,15 @@
 ## Overview
 Implement a real-time combat encounter system that manages initiative, turn order, actions, damage, conditions, and encounter lifecycle. The system must enforce Pathfinder 2E combat rules including the 3-action economy, Multiple Attack Penalty (MAP), and condition effects.
 
+## Reference Documentation
+Additional detailed game mechanics documentation is available in the `reference documentation/` subdirectory:
+- PF2E Core Rulebook - Fourth Printing.txt
+- PF2E Gamemastery Guide.txt
+- PF2E Bestiary 1.txt, Bestiary 2.txt, Bestiary 3.txt
+- Other supplementary rulebooks
+
+These reference materials provide comprehensive rules for combat mechanics, conditions, monster stat blocks, and encounter building that should be consulted during implementation.
+
 ## Controller Design
 
 ### CombatController

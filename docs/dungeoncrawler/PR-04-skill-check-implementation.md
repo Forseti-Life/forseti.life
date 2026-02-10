@@ -3,6 +3,14 @@
 ## Overview
 Implement a comprehensive skill check resolution system supporting Pathfinder 2E's four degrees of success, proficiency ranks, DC calculation, secret checks, and skill-based actions. The system must integrate with character proficiencies, combat actions, and provide both roll UI and automated calculation.
 
+## Reference Documentation
+Additional detailed game mechanics documentation is available in the `reference documentation/` subdirectory:
+- PF2E Core Rulebook - Fourth Printing.txt
+- PF2E Gamemastery Guide.txt
+- Other supplementary rulebooks
+
+These reference materials provide comprehensive rules for all skills, DCs, proficiency ranks, skill actions, and their applications that should be consulted during implementation.
+
 ## Controller Design
 
 ### SkillCheckController
