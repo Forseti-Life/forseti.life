@@ -110,16 +110,63 @@ jobs:
               echo "✅ Themes deployed"
             fi
             
-            # Deploy configuration - DISABLED
-            # Config should be managed manually: export from prod, commit to dev, then deploy
-            # Automatic config deployment is dangerous and can wipe production config
+            # Deploy configuration - DISABLED FOR SAFETY
+            #
+            # ⚠️ IMPORTANT: Config deployment is intentionally disabled to prevent
+            # accidentally overwriting production with out-of-sync dev config.
+            #
+            # WHY THIS IS DISABLED:
+            # - Dev and prod configs can legitimately differ (see .config-differences.yml)
+            # - Automatic deployment could wipe production-specific settings
+            # - Config changes need review and testing before production deployment
+            # - Some modules only exist in one environment (backup_migrate in prod, devel in dev)
+            #
+            # HOW TO PROPERLY DEPLOY CONFIG:
+            #
+            # 1. ALWAYS sync from production first:
+            #    cd ~/forseti.life/script/production
+            #    ./compare-config.sh forseti root@your-server
+            #    ./reconcile-config.sh forseti root@your-server use-prod
+            #
+            # 2. Make and test your config changes in development:
+            #    drush config:set system.site name "New Name"
+            #    drush config:export -y
+            #
+            # 3. Compare changes before committing:
+            #    git diff sites/forseti/config/sync/
+            #    ./compare-config.sh forseti root@your-server
+            #
+            # 4. If new expected differences, document them:
+            #    Edit sites/forseti/.config-differences.yml
+            #    Add patterns for environment-specific configs
+            #
+            # 5. Commit changes:
+            #    git add sites/forseti/config/sync/
+            #    git add sites/forseti/.config-differences.yml  # if updated
+            #    git commit -m "Update config: describe your changes"
+            #    git push
+            #
+            # 6. Manually deploy to production:
+            #    ssh root@your-server
+            #    cd /var/www/html/forseti
+            #    git pull origin main
+            #    
+            #    # Review what will be imported:
+            #    sudo -u www-data ./vendor/bin/drush config:import --preview=list
+            #    
+            #    # Import if changes look correct:
+            #    sudo -u www-data ./vendor/bin/drush config:import -y
+            #    sudo -u www-data ./vendor/bin/drush cache:rebuild
+            #
+            # See: script/production/README.md for complete workflows
+            #
             # if [ -d "${SITE_PATH}/config/sync" ]; then
             #   echo "Deploying configuration..."
             #   sudo rsync -aq --delete "${SITE_PATH}/config/sync/" "${SITE_ROOT}/config/sync/"
             #   CONFIG_DEPLOYED=true
             #   echo "✅ Configuration deployed"
             # fi
-            echo "ℹ️ Config deployment disabled (handle manually)"
+            echo "ℹ️ Config deployment disabled (handle manually - see script/production/README.md)"
             
             # Composer update (only if files changed)
             local COMPOSER_CHANGED=false

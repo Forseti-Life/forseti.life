@@ -1,22 +1,24 @@
 #!/bin/bash
 #
-# Export Drupal configuration from production
-# Run this on production server as root or www-data
+# Export Drupal configuration with environment labeling
+# Can be run on production server or local development
 #
-# Usage: ./export-config.sh [site-name]
-# Example: ./export-config.sh forseti
+# Usage: ./export-config.sh [site-name] [environment]
+# Example: ./export-config.sh forseti production
+# Example: ./export-config.sh forseti development
 
 set -e
 
 SITE_NAME=${1:-forseti}
+ENVIRONMENT=${2:-production}
 SITE_ROOT="/var/www/html/${SITE_NAME}"
-EXPORT_DIR="/tmp/config-export-${SITE_NAME}-$(date +%Y%m%d-%H%M%S)"
-EXPORT_FILE="/tmp/${SITE_NAME}-config-$(date +%Y%m%d-%H%M%S).tar.gz"
+EXPORT_FILE="/tmp/${SITE_NAME}-config-${ENVIRONMENT}-$(date +%Y%m%d-%H%M%S).tar.gz"
 
 echo "🔧 Drupal Config Export Tool"
 echo "============================"
 echo ""
 echo "Site: ${SITE_NAME}"
+echo "Environment: ${ENVIRONMENT}"
 echo "Root: ${SITE_ROOT}"
 echo ""
 
@@ -56,15 +58,21 @@ echo "✅ Created: ${EXPORT_FILE} (${TARBALL_SIZE})"
 # Set permissions so it can be downloaded
 sudo chmod 644 "${EXPORT_FILE}"
 
+# Create metadata file
+METADATA_FILE="${EXPORT_FILE}.meta"
+cat > "${METADATA_FILE}" <<EOF
+site: ${SITE_NAME}
+environment: ${ENVIRONMENT}
+timestamp: $(date -Iseconds)
+file_count: ${FILE_COUNT}
+export_file: ${EXPORT_FILE}
+EOF
+sudo chmod 644 "${METADATA_FILE}"
+
 echo ""
 echo "🎉 Export complete!"
 echo ""
-echo "To sync to development, run on your LOCAL machine:"
-echo "  scp root@your-server:${EXPORT_FILE} /tmp/"
-echo "  cd ~/forseti.life/sites/${SITE_NAME}"
-echo "  tar -xzf /tmp/$(basename ${EXPORT_FILE})"
-echo "  git add config/sync/"
-echo "  git commit -m \"Sync config from production $(date +%Y-%m-%d)\""
-echo "  git push"
+echo "Export labeled as: ${ENVIRONMENT}"
+echo "Metadata: ${METADATA_FILE}"
 echo ""
-echo "Or use the sync-from-production.sh script from your dev machine."
+echo "To compare with other environment, use compare-config.sh"
