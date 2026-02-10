@@ -8,6 +8,7 @@ use Drupal\dungeoncrawler_content\Service\CharacterManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 /**
  * Multi-step character creation with separate pages per step.
@@ -102,18 +103,20 @@ class CharacterCreationStepController extends ControllerBase {
   }
 
   /**
-   * Save step data and redirect to next step.
+   * Save step data and return JSON response for AJAX.
    */
   public function saveStep(int $step, Request $request) {
-    $character_id = $request->request->get('character_id');
+    $character_id = $request->request->get('character_id') ?: $request->query->get('character_id');
     $data = $request->request->all();
     
     // Load existing character
     $character = $character_id ? $this->characterManager->loadCharacter($character_id) : NULL;
     
     if ($character && $character->uid != $this->currentUser()->id()) {
-      $this->messenger()->addError($this->t('Access denied.'));
-      return new RedirectResponse(Url::fromRoute('dungeoncrawler_content.characters')->toString());
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => $this->t('Access denied.'),
+      ], 403);
     }
 
     // Merge with existing data
@@ -135,19 +138,25 @@ class CharacterCreationStepController extends ControllerBase {
       $character_id = $this->createDraft($character_data);
     }
 
-    // Redirect to next step or finish
+    // Return JSON response with redirect URL
     if ($step >= 8) {
       // Mark as complete
       $this->characterManager->updateCharacter($character_id, ['status' => 1]);
-      $this->messenger()->addStatus($this->t('Character created successfully!'));
-      return new RedirectResponse(Url::fromRoute('dungeoncrawler_content.character_view', [
-        'character_id' => $character_id,
-      ])->toString());
+      return new JsonResponse([
+        'success' => TRUE,
+        'message' => $this->t('Character created successfully!'),
+        'redirect' => Url::fromRoute('dungeoncrawler_content.character_view', [
+          'character_id' => $character_id,
+        ])->toString(),
+      ]);
     }
 
-    return new RedirectResponse(Url::fromRoute('dungeoncrawler_content.character_step', [
-      'step' => $step + 1,
-    ])->setOption('query', ['character_id' => $character_id])->toString());
+    return new JsonResponse([
+      'success' => TRUE,
+      'redirect' => Url::fromRoute('dungeoncrawler_content.character_step', [
+        'step' => $step + 1,
+      ])->setOption('query', ['character_id' => $character_id])->toString(),
+    ]);
   }
 
   /**
