@@ -422,6 +422,18 @@ if [ ${#MISSING_TEXT_TOOLS[@]} -gt 0 ]; then
 fi
 
 # ------------------------------------------------------------------------------
+# 1.5.1 Image Editing Tools
+# ------------------------------------------------------------------------------
+print_status "Checking for image editing tools..."
+if ! command -v gimp &> /dev/null; then
+    print_status "Installing GIMP (GNU Image Manipulation Program)..."
+    sudo apt install -y gimp
+    print_status "GIMP installed successfully"
+else
+    print_status "GIMP already installed"
+fi
+
+# ------------------------------------------------------------------------------
 # 1.6 H3 Geolocation Framework Setup
 # ------------------------------------------------------------------------------
 print_status "Setting up H3 Geolocation Framework for AmISafe crime mapping..."
