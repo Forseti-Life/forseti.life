@@ -305,9 +305,41 @@ jobs:
             fi
           fi
           
-          # Start Dungeon Crawler deployment in background (if site exists and changed)
+          # Start Dungeon Crawler deployment in background (setup if needed, deploy if changed)
           DC_ROOT="/var/www/html/dungeoncrawler"
-          if [ -d "$DC_ROOT" ] && [ -d "sites/dungeoncrawler/web/modules/custom" ]; then
+          if [ -d "sites/dungeoncrawler/web/modules/custom" ]; then
+            # Create production structure if it doesn't exist
+            if [ ! -d "$DC_ROOT" ]; then
+              echo ""
+              echo "=== DUNGEON CRAWLER INITIAL SETUP ==="
+              echo "Creating directory structure..."
+              sudo mkdir -p "$DC_ROOT"
+              sudo mkdir -p "$DC_ROOT/web/modules/custom"
+              sudo mkdir -p "$DC_ROOT/web/themes/custom"
+              sudo mkdir -p "$DC_ROOT/web/sites/default/files"
+              sudo mkdir -p "$DC_ROOT/config/sync"
+              sudo mkdir -p "$DC_ROOT/vendor"
+              
+              # Copy core Drupal structure from forseti
+              echo "Copying Drupal core structure..."
+              sudo cp -r /var/www/html/forseti/web/core "$DC_ROOT/web/" 2>/dev/null || true
+              sudo cp -r /var/www/html/forseti/web/sites/default/default.settings.php "$DC_ROOT/web/sites/default/" 2>/dev/null || true
+              sudo cp -r /var/www/html/forseti/web/sites/example.sites.php "$DC_ROOT/web/sites/" 2>/dev/null || true
+              sudo cp /var/www/html/forseti/web/.htaccess "$DC_ROOT/web/" 2>/dev/null || true
+              sudo cp /var/www/html/forseti/web/index.php "$DC_ROOT/web/" 2>/dev/null || true
+              sudo cp /var/www/html/forseti/web/autoload.php "$DC_ROOT/web/" 2>/dev/null || true
+              
+              # Copy composer files
+              echo "Copying composer configuration..."
+              sudo cp "sites/dungeoncrawler/composer.json" "$DC_ROOT/"
+              [ -f "sites/dungeoncrawler/composer.lock" ] && sudo cp "sites/dungeoncrawler/composer.lock" "$DC_ROOT/"
+              
+              # Set initial permissions
+              sudo chown -R www-data:www-data "$DC_ROOT"
+              
+              echo "✅ Initial structure created"
+            fi
+            
             if echo "$CHANGED_FILES" | grep -q "^sites/dungeoncrawler/" || [ -z "$CHANGED_FILES" ]; then
               (
                 deploy_site "DUNGEON CRAWLER" "$DC_ROOT" "sites/dungeoncrawler"
@@ -321,7 +353,7 @@ jobs:
             fi
           else
             echo ""
-            echo "ℹ️ Dungeon Crawler not set up on production yet, skipping"
+            echo "ℹ️ Dungeon Crawler source not found in repository, skipping"
           fi
           
           # Wait for all site deployments to complete
