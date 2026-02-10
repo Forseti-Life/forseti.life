@@ -77,6 +77,9 @@
     <div class="queue-controls-header">
       <h3>🎛️ {{ 'Queue Processing Dashboard'|t }}</h3>
       <div class="queue-global-actions">
+        <button type="button" id="pause-resume-queue" class="btn-pause-resume" data-paused="false">
+          ⏸️ {{ 'Pause Processing'|t }}
+        </button>
         <button type="button" id="run-all-queues" class="btn-run-all">
           {{ 'Run All Queues'|t }} (<span id="total-queue-items">0</span> {{ 'items'|t }})
         </button>
@@ -140,6 +143,16 @@
       <div class="log-entries" id="log-entries">
         <div class="log-entry log-info">{{ 'Waiting for activity...'|t }}</div>
       </div>
+    </div>
+  </div>
+
+  {# Suspended Queue Items #}
+  <div class="suspended-items-section" id="suspended-items-panel">
+    <h3>⚠️ {{ 'Suspended Queue Items'|t }}</h3>
+    <p class="subtitle">{{ 'Items that exceeded the 3-retry limit and require manual intervention'|t }}</p>
+    
+    <div id="suspended-items-container">
+      <div class="loading-state">{{ 'Loading suspended items...'|t }}</div>
     </div>
   </div>
 

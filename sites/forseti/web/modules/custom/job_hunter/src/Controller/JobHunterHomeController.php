@@ -309,8 +309,16 @@ class JobHunterHomeController extends ControllerBase {
    *   Number of items processed.
    */
   protected function processQueue(string $queue_id, int $max_items = 10): int {
+    // Check if queue processing is paused
+    $state = \Drupal::state();
+    if ($state->get('job_hunter.queue_paused', FALSE)) {
+      \Drupal::logger('job_hunter')->notice('Queue processing is paused. Skipping @queue', ['@queue' => $queue_id]);
+      return 0;
+    }
+
     $queue_factory = \Drupal::service('queue');
     $queue_worker_manager = \Drupal::service('plugin.manager.queue_worker');
+    $database = \Drupal::database();
     
     $queue = $queue_factory->get($queue_id);
     $worker = $queue_worker_manager->createInstance($queue_id);
@@ -318,16 +326,38 @@ class JobHunterHomeController extends ControllerBase {
     $processed = 0;
     
     while ($processed < $max_items && ($item = $queue->claimItem())) {
+      $item_key = md5(serialize($item->data));
+      
+      // Get retry count for this item
+      $retry_count = $state->get("job_hunter.queue_retry.{$queue_id}.{$item_key}", 0);
+      
+      // Check if item has exceeded retry limit
+      if ($retry_count >= 3) {
+        // Suspend this item
+        $this->suspendQueueItem($queue_id, $item, $retry_count);
+        $queue->deleteItem($item);
+        $state->delete("job_hunter.queue_retry.{$queue_id}.{$item_key}");
+        \Drupal::logger('job_hunter')->warning('Queue item suspended after 3 failed attempts in @queue', ['@queue' => $queue_id]);
+        continue;
+      }
+      
       try {
         $worker->processItem($item->data);
         $queue->deleteItem($item);
+        // Clear retry count on success
+        $state->delete("job_hunter.queue_retry.{$queue_id}.{$item_key}");
         $processed++;
       }
       catch (\Exception $e) {
+        // Increment retry count
+        $retry_count++;
+        $state->set("job_hunter.queue_retry.{$queue_id}.{$item_key}", $retry_count);
+        
         // Release item back to queue on failure
         $queue->releaseItem($item);
-        \Drupal::logger('job_hunter')->error('Queue @queue item failed: @error', [
+        \Drupal::logger('job_hunter')->error('Queue @queue item failed (attempt @attempt/3): @error', [
           '@queue' => $queue_id,
+          '@attempt' => $retry_count,
           '@error' => $e->getMessage(),
         ]);
         // Continue to next item
@@ -335,6 +365,23 @@ class JobHunterHomeController extends ControllerBase {
     }
     
     return $processed;
+  }
+
+  /**
+   * Suspend a queue item after max retries.
+   */
+  private function suspendQueueItem(string $queue_id, $item, int $retry_count) {
+    $database = \Drupal::database();
+    
+    $database->insert('jobhunter_queue_suspended')
+      ->fields([
+        'queue_name' => $queue_id,
+        'item_data' => serialize($item->data),
+        'retry_count' => $retry_count,
+        'suspended_at' => time(),
+        'last_error' => 'Max retries exceeded',
+      ])
+      ->execute();
   }
 
   /**
@@ -706,6 +753,165 @@ class JobHunterHomeController extends ControllerBase {
       return new JsonResponse([
         'success' => false,
         'message' => 'Error deleting file: ' . $e->getMessage(),
+      ], 500);
+    }
+  }
+
+  /**
+   * Pause all queue processing.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with success status.
+   */
+  public function pauseQueueProcessing() {
+    $state = \Drupal::state();
+    $state->set('job_hunter.queue_paused', TRUE);
+    
+    \Drupal::logger('job_hunter')->info('⏸️ Queue Management: Queue processing paused by admin');
+    
+    return new JsonResponse([
+      'success' => true,
+      'message' => 'Queue processing has been paused',
+      'paused' => TRUE,
+    ]);
+  }
+
+  /**
+   * Resume all queue processing.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with success status.
+   */
+  public function resumeQueueProcessing() {
+    $state = \Drupal::state();
+    $state->set('job_hunter.queue_paused', FALSE);
+    
+    \Drupal::logger('job_hunter')->info('▶️ Queue Management: Queue processing resumed by admin');
+    
+    return new JsonResponse([
+      'success' => true,
+      'message' => 'Queue processing has been resumed',
+      'paused' => FALSE,
+    ]);
+  }
+
+  /**
+   * Get all suspended queue items.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with suspended items.
+   */
+  public function getSuspendedItems() {
+    try {
+      $connection = \Drupal::database();
+      $query = $connection->select('jobhunter_queue_suspended', 'qs')
+        ->fields('qs')
+        ->orderBy('suspended_at', 'DESC');
+      
+      $results = $query->execute()->fetchAll();
+      
+      $items = [];
+      foreach ($results as $row) {
+        $items[] = [
+          'id' => $row->id,
+          'queue_name' => $row->queue_name,
+          'queue_display_name' => self::QUEUE_DEFINITIONS[$row->queue_name]['name'] ?? $row->queue_name,
+          'retry_count' => $row->retry_count,
+          'suspended_at' => date('Y-m-d H:i:s', $row->suspended_at),
+          'last_error' => $row->last_error,
+        ];
+      }
+      
+      return new JsonResponse([
+        'success' => true,
+        'items' => $items,
+        'count' => count($items),
+      ]);
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('job_hunter')->error('Error fetching suspended items: @error', [
+        '@error' => $e->getMessage(),
+      ]);
+      
+      return new JsonResponse([
+        'success' => false,
+        'message' => 'Error fetching suspended items: ' . $e->getMessage(),
+      ], 500);
+    }
+  }
+
+  /**
+   * Retry a suspended queue item.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with success status.
+   */
+  public function retrySuspendedItem(Request $request) {
+    $content = $request->getContent();
+    if ($content) {
+      $data = json_decode($content, TRUE);
+      $suspended_id = $data['id'] ?? NULL;
+    }
+    else {
+      $suspended_id = $request->request->get('id');
+    }
+    
+    if (!$suspended_id) {
+      return new JsonResponse(['success' => false, 'message' => 'Missing suspended item ID'], 400);
+    }
+    
+    try {
+      $connection = \Drupal::database();
+      
+      // Get the suspended item
+      $item = $connection->select('jobhunter_queue_suspended', 'qs')
+        ->fields('qs')
+        ->condition('id', $suspended_id)
+        ->execute()
+        ->fetchObject();
+      
+      if (!$item) {
+        return new JsonResponse(['success' => false, 'message' => 'Suspended item not found'], 404);
+      }
+      
+      // Re-add to queue
+      $queue_name = $item->queue_name;
+      $queue = \Drupal::queue($queue_name);
+      $item_data = unserialize($item->item_data);
+      $queue->createItem($item_data);
+      
+      // Clear retry counter in state
+      $item_key = md5(serialize($item_data));
+      $state = \Drupal::state();
+      $state->delete("job_hunter.queue_retry.{$queue_name}.{$item_key}");
+      
+      // Delete from suspended table
+      $connection->delete('jobhunter_queue_suspended')
+        ->condition('id', $suspended_id)
+        ->execute();
+      
+      \Drupal::logger('job_hunter')->info('🔄 Queue Management: Retry suspended item @id in queue @queue', [
+        '@id' => $suspended_id,
+        '@queue' => $queue_name,
+      ]);
+      
+      return new JsonResponse([
+        'success' => true,
+        'message' => 'Item has been re-queued for processing',
+      ]);
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('job_hunter')->error('Error retrying suspended item @id: @error', [
+        '@id' => $suspended_id,
+        '@error' => $e->getMessage(),
+      ]);
+      
+      return new JsonResponse([
+        'success' => false,
+        'message' => 'Error retrying suspended item: ' . $e->getMessage(),
       ], 500);
     }
   }

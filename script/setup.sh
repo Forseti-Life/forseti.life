@@ -831,6 +831,7 @@ if [ ! -d "web/modules/contrib/devel" ]; then
         drupal/profile \
         aws/aws-sdk-php \
         defuse/php-encryption \
+        tecnickcom/tcpdf \
         --no-interaction
 else
     print_status "Development modules already installed. Skipping to preserve existing setup."

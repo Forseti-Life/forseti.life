@@ -72,18 +72,6 @@ class JobHunterNavigationBlock extends BlockBase implements ContainerFactoryPlug
         'icon' => 'user',
         'weight' => 10,
       ],
-      'jobs' => [
-        'title' => $this->t('Jobs'),
-        'url' => Url::fromRoute('job_hunter.jobs_list'),
-        'icon' => 'briefcase',
-        'weight' => 65,
-      ],
-      'add_job_posting' => [
-        'title' => $this->t('Add Job Posting'),
-        'url' => Url::fromRoute('job_hunter.job_paste'),
-        'icon' => 'plus-circle',
-        'weight' => 70,
-      ],
     ];
 
     // Add "Report a Problem" link if forseti_content module is enabled
@@ -111,12 +99,6 @@ class JobHunterNavigationBlock extends BlockBase implements ContainerFactoryPlug
         'url' => Url::fromRoute('job_hunter.bulk_import_companies'),
         'icon' => 'upload',
         'weight' => 50,
-      ];
-      $navigation['add_company'] = [
-        'title' => $this->t('Add Company'),
-        'url' => Url::fromRoute('node.add', ['node_type' => 'company']),
-        'icon' => 'plus',
-        'weight' => 60,
       ];
       $navigation['documentation'] = [
         'title' => $this->t('Documentation'),

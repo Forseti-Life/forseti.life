@@ -77,6 +77,37 @@ job_hunter.queue_delete_file:
   requirements:
     _permission: 'administer job application automation'
 
+job_hunter.queue_pause:
+  path: '/jobhunter/queue/pause'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::pauseQueueProcessing'
+  methods: [POST]
+  requirements:
+    _permission: 'administer job application automation'
+
+job_hunter.queue_resume:
+  path: '/jobhunter/queue/resume'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::resumeQueueProcessing'
+  methods: [POST]
+  requirements:
+    _permission: 'administer job application automation'
+
+job_hunter.queue_suspended:
+  path: '/jobhunter/queue/suspended'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::getSuspendedItems'
+  requirements:
+    _permission: 'administer job application automation'
+
+job_hunter.queue_retry_suspended:
+  path: '/jobhunter/queue/retry-suspended'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::retrySuspendedItem'
+  methods: [POST]
+  requirements:
+    _permission: 'administer job application automation'
+
 # Module Settings
 job_hunter.settings:
   path: '/jobhunter/settings'

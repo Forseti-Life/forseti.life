@@ -55,6 +55,7 @@ function job_hunter_install() {
     _job_hunter_create_job_seeker_resumes_table();
     _job_hunter_create_tailored_resumes_table();
     _job_hunter_create_pdf_history_table();
+    _job_hunter_create_queue_suspended_table();
     _job_hunter_create_google_jobs_sync_table();
     _job_hunter_create_google_jobs_validation_log_table();
     _job_hunter_create_job_search_queries_table();
@@ -514,6 +515,36 @@ function _job_hunter_create_pdf_history_table() {
   ];
   
   $schema->createTable('jobhunter_pdf_history', $table_schema);
+}
+
+/**
+ * Create jobhunter_queue_suspended table for suspended queue items.
+ */
+function _job_hunter_create_queue_suspended_table() {
+  $schema = \Drupal::database()->schema();
+  
+  if ($schema->tableExists('jobhunter_queue_suspended')) {
+    return;
+  }
+  
+  $table_schema = [
+    'description' => 'Suspended queue items that exceeded retry limit.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'not null' => TRUE],
+      'queue_name' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'description' => 'Name of the queue'],
+      'item_data' => ['type' => 'blob', 'size' => 'big', 'not null' => TRUE, 'description' => 'Serialized queue item data'],
+      'retry_count' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Number of attempts before suspension'],
+      'suspended_at' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Timestamp when suspended'],
+      'last_error' => ['type' => 'text', 'description' => 'Last error message'],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'queue_name' => ['queue_name'],
+      'suspended_at' => ['suspended_at'],
+    ],
+  ];
+  
+  $schema->createTable('jobhunter_queue_suspended', $table_schema);
 }
 
 /**
@@ -1165,4 +1196,12 @@ function job_hunter_update_9017() {
   return t('Added missing columns to jobhunter_tailored_resumes: @columns', [
     '@columns' => implode(', ', $messages),
   ]);
+}
+
+/**
+ * Create jobhunter_queue_suspended table for queue retry management.
+ */
+function job_hunter_update_9018() {
+  _job_hunter_create_queue_suspended_table();
+  return t('Created jobhunter_queue_suspended table for managing suspended queue items.');
 }
