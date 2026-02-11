@@ -128,11 +128,59 @@ class AIConversationSettingsForm extends ConfigFormBase {
 
     $form['conversation_settings']['max_tokens'] = [
       '#type' => 'number',
-      '#title' => $this->t('Maximum Tokens'),
+      '#title' => $this->t('Maximum Tokens (Default)'),
       '#default_value' => $config->get('max_tokens') ?: 50000,
-      '#description' => $this->t('Maximum number of tokens for AI responses.'),
+      '#description' => $this->t('Default maximum number of tokens for AI responses. Used when no operation-specific limit is set.'),
       '#min' => 100,
       '#max' => 100000,
+      '#required' => TRUE,
+    ];
+
+    // Operation-Specific Token Limits
+    $form['operation_tokens'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Operation-Specific Token Limits'),
+      '#description' => $this->t('Configure maximum tokens for specific operations. These override the default max_tokens setting for their respective operations.'),
+      '#open' => TRUE,
+    ];
+
+    $form['operation_tokens']['max_tokens_resume_tailoring'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Resume Tailoring'),
+      '#default_value' => $config->get('max_tokens_resume_tailoring') ?: 30000,
+      '#description' => $this->t('Maximum tokens for resume tailoring operations. Needs large output for complete resume JSON.'),
+      '#min' => 8000,
+      '#max' => 100000,
+      '#required' => TRUE,
+    ];
+
+    $form['operation_tokens']['max_tokens_resume_parsing'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Resume Parsing'),
+      '#default_value' => $config->get('max_tokens_resume_parsing') ?: 20000,
+      '#description' => $this->t('Maximum tokens for parsing and extracting resume data.'),
+      '#min' => 5000,
+      '#max' => 100000,
+      '#required' => TRUE,
+    ];
+
+    $form['operation_tokens']['max_tokens_cover_letter'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Cover Letter Generation'),
+      '#default_value' => $config->get('max_tokens_cover_letter') ?: 4000,
+      '#description' => $this->t('Maximum tokens for generating cover letters.'),
+      '#min' => 1000,
+      '#max' => 50000,
+      '#required' => TRUE,
+    ];
+
+    $form['operation_tokens']['max_tokens_job_parsing'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Job Parsing'),
+      '#default_value' => $config->get('max_tokens_job_parsing') ?: 8000,
+      '#description' => $this->t('Maximum tokens for parsing job descriptions and requirements.'),
+      '#min' => 2000,
+      '#max' => 50000,
       '#required' => TRUE,
     ];
 
@@ -273,6 +321,10 @@ class AIConversationSettingsForm extends ConfigFormBase {
       ->set('aws_model', $form_state->getValue('aws_model'))
       ->set('system_prompt', $form_state->getValue('system_prompt'))
       ->set('max_tokens', $form_state->getValue('max_tokens'))
+      ->set('max_tokens_resume_tailoring', $form_state->getValue('max_tokens_resume_tailoring'))
+      ->set('max_tokens_resume_parsing', $form_state->getValue('max_tokens_resume_parsing'))
+      ->set('max_tokens_cover_letter', $form_state->getValue('max_tokens_cover_letter'))
+      ->set('max_tokens_job_parsing', $form_state->getValue('max_tokens_job_parsing'))
       ->set('max_recent_messages', $form_state->getValue('max_recent_messages'))
       ->set('summary_frequency', $form_state->getValue('summary_frequency'))
       ->set('max_tokens_before_summary', $form_state->getValue('max_tokens_before_summary'))
