@@ -1140,15 +1140,12 @@ class UserProfileController extends ControllerBase {
         ],
       ],
     ];
-    
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-    ];
 
-    return $this->wrapWithNavigation($content, ['job_hunter/tailor_resume'])nse with tailored resume.
+    return $this->wrapWithNavigation($content, ['job_hunter/tailor_resume']);
+  }
+
+  /**
+   * AJAX endpoint that generates a tailored response with tailored resume.
    */
   public function tailorResumeAjax() {
     try {
