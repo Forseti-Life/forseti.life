@@ -687,6 +687,111 @@ class JobHunterHomeController extends ControllerBase {
   }
 
   /**
+   * Suspend a queue item (AJAX endpoint).
+   * 
+   * Moves an item from the active queue to the suspended queue table.
+   * Suspended items won't be automatically processed until manually retried.
+   */
+  public function suspendQueueItem(Request $request) {
+    // Check admin permission
+    if (!$this->currentUser()->hasPermission('administer job application automation')) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => 'Access denied',
+      ], 403);
+    }
+
+    // Handle JSON request body
+    $content = $request->getContent();
+    if ($content) {
+      $data = json_decode($content, TRUE);
+      $item_id = $data['item_id'] ?? NULL;
+      $queue_name = $data['queue_name'] ?? NULL;
+      $item_data = $data['item_data'] ?? NULL;
+    } else {
+      $item_id = $request->request->get('item_id');
+      $queue_name = $request->request->get('queue_name');
+      $item_data = $request->request->get('item_data');
+    }
+    
+    if (!$item_id || !$queue_name || !$item_data) {
+      return new JsonResponse(['success' => false, 'message' => 'Missing parameters'], 400);
+    }
+    
+    \Drupal::logger('job_hunter')->info('⏸️ Queue Management: Attempting to suspend queue item @item_id from queue @queue', [
+      '@item_id' => $item_id,
+      '@queue' => $queue_name,
+    ]);
+    
+    try {
+      $database = \Drupal::database();
+      
+      // First, verify the item exists in the queue
+      $queue_item = $database->select('queue', 'q')
+        ->fields('q')
+        ->condition('item_id', $item_id)
+        ->condition('name', $queue_name)
+        ->execute()
+        ->fetchObject();
+      
+      if (!$queue_item) {
+        \Drupal::logger('job_hunter')->warning('⚠️ Queue Management: Queue item @item_id not found in queue @queue', [
+          '@item_id' => $item_id,
+          '@queue' => $queue_name,
+        ]);
+        return new JsonResponse([
+          'success' => false,
+          'message' => 'Queue item not found',
+        ], 404);
+      }
+      
+      // Get the retry count from state
+      $item_key = md5(serialize($item_data));
+      $state = \Drupal::state();
+      $retry_count = $state->get("job_hunter.queue_retry.{$queue_name}.{$item_key}", 0);
+      
+      // Insert into suspended table
+      $database->insert('jobhunter_queue_suspended')
+        ->fields([
+          'queue_name' => $queue_name,
+          'item_data' => serialize($item_data),
+          'suspended_time' => time(),
+          'retry_count' => $retry_count,
+          'error_message' => 'Manually suspended by user',
+        ])
+        ->execute();
+      
+      // Delete from active queue
+      $database->delete('queue')
+        ->condition('item_id', $item_id)
+        ->condition('name', $queue_name)
+        ->execute();
+      
+      \Drupal::logger('job_hunter')->info('✅ Queue Management: Successfully suspended queue item @item_id from queue @queue (retry count: @count)', [
+        '@item_id' => $item_id,
+        '@queue' => $queue_name,
+        '@count' => $retry_count,
+      ]);
+      
+      return new JsonResponse([
+        'success' => true,
+        'message' => 'Queue item suspended successfully',
+      ]);
+      
+    } catch (\Exception $e) {
+      \Drupal::logger('job_hunter')->error('❌ Error suspending queue item @item_id: @error', [
+        '@item_id' => $item_id,
+        '@error' => $e->getMessage(),
+      ]);
+      
+      return new JsonResponse([
+        'success' => false,
+        'message' => 'Error suspending queue item: ' . $e->getMessage(),
+      ], 500);
+    }
+  }
+
+  /**
    * Delete a file (AJAX endpoint).
    */
   public function deleteFile(Request $request) {

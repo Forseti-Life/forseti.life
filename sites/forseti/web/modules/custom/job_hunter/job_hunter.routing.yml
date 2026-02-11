@@ -69,6 +69,14 @@ job_hunter.queue_delete_item:
   requirements:
     _permission: 'administer job application automation'
 
+job_hunter.queue_suspend_item:
+  path: '/jobhunter/queue/suspend-item'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::suspendQueueItem'
+  methods: [POST]
+  requirements:
+    _permission: 'administer job application automation'
+
 job_hunter.queue_delete_file:
   path: '/jobhunter/queue/delete-file'
   defaults:

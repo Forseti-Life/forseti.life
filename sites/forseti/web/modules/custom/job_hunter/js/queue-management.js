@@ -211,6 +211,77 @@
         });
       });
       
+      // Handle queue item suspension
+      document.querySelectorAll('.btn-suspend-item').forEach(function(button) {
+        if (button.classList.contains('processed')) return;
+        button.classList.add('processed');
+        
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          const buttonElement = this;
+          const itemElement = this.closest('.queue-item');
+          const itemId = itemElement.dataset.itemId;
+          const queueName = itemElement.dataset.queueName;
+          const itemData = JSON.parse(itemElement.dataset.itemData || '{}');
+          
+          if (!confirm('Suspend this queue item?\n\nThis will move it to the suspended queue and stop automatic processing until manually retried.')) {
+            return;
+          }
+          
+          buttonElement.disabled = true;
+          buttonElement.textContent = '⏳ Suspending...';
+          
+          fetch('/jobhunter/queue/suspend-item', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': drupalSettings.csrf_token || ''
+            },
+            body: JSON.stringify({
+              item_id: itemId,
+              queue_name: queueName,
+              item_data: itemData
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              // Show success message first
+              showMessage('Queue item suspended successfully', 'success');
+              
+              // Fade out and remove the item
+              itemElement.style.opacity = '0';
+              itemElement.style.transition = 'opacity 0.3s';
+              setTimeout(() => {
+                itemElement.remove();
+                
+                // Check if list is now empty
+                const remainingItems = document.querySelectorAll('.queue-item');
+                if (remainingItems.length === 0) {
+                  location.reload(); // Reload to show empty state and suspended section
+                } else {
+                  // Update count
+                  const countElement = document.querySelector('.list-header strong');
+                  if (countElement) {
+                    countElement.textContent = remainingItems.length;
+                  }
+                }
+              }, 300);
+            } else {
+              buttonElement.disabled = false;
+              buttonElement.textContent = '⏸️ Suspend';
+              showMessage(data.message || 'Failed to suspend queue item', 'error');
+            }
+          })
+          .catch(error => {
+            buttonElement.disabled = false;
+            buttonElement.textContent = '⏸️ Suspend';
+            showMessage('Error suspending queue item: ' + error.message, 'error');
+          });
+        });
+      });
+      
       /**
        * Show a temporary message to the user
        */
