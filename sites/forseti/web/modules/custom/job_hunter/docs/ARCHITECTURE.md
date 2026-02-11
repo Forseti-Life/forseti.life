@@ -105,12 +105,26 @@ job_hunter/
 │   └── README.md                   # Documentation index
 ├── src/
 │   ├── Controller/                 # HTTP controllers
-│   │   └── UserProfileController.php
+│   │   ├── JobHunterHomeController.php       # Main dashboard and queue management
+│   │   ├── GenAiDebugController.php          # GenAI request/response debugging
+│   │   ├── DocumentationController.php       # Documentation viewer
+│   │   ├── UserProfileController.php
+│   │   └── Trait/
+│   │       └── JobHunterControllerTrait.php  # Shared navigation/layout
 │   ├── Form/                       # Form classes
 │   │   └── SettingsForm.php
 │   ├── Service/                    # Business logic services
 │   │   └── ResumeTailoringService.php
-│   ├── Plugin/                     # Plugin implementations
+│   ├── Plugin/
+│   │   ├── QueueWorker/            # Drupal Queue Worker plugins
+│   │   │   ├── ResumeTailoringWorker.php
+│   │   │   ├── CoverLetterTailoringWorker.php
+│   │   │   ├── ResumeGenAiParsingWorker.php
+│   │   │   ├── JobPostingParsingWorker.php
+│   │   │   ├── JobScrapingWorker.php
+│   │   │   ├── ApplicationSubmissionWorker.php
+│   │   │   └── Trait/
+│   │   │       └── QueueWorkerBaseTrait.php  # Shared queue functionality
 │   └── Commands/                   # Drush commands
 │       └── JobApplicationAutomationCommands.php
 ├── templates/                      # Twig templates
@@ -409,6 +423,172 @@ CREATE TABLE jobhunter_job_seeker (
 - Created outside hook_schema() to prevent automatic deletion
 - Accessed via service layer, not directly
 
+#### jobhunter_queue_suspended Table
+
+**Purpose:** Store queue items that exceeded retry limit for manual intervention
+
+**Schema:**
+```sql
+CREATE TABLE jobhunter_queue_suspended (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  queue_name VARCHAR(255) NOT NULL COMMENT 'Name of the Drupal queue',
+  item_data BLOB NOT NULL COMMENT 'Serialized queue item data',
+  suspended_time INT NOT NULL COMMENT 'Unix timestamp when suspended',
+  retry_count INT DEFAULT 0 COMMENT 'Number of retries before suspension',
+  error_message TEXT COMMENT 'Last error message before suspension',
+  INDEX idx_queue_name (queue_name),
+  INDEX idx_suspended_time (suspended_time)
+);
+```
+
+**Managed By:** `JobHunterHomeController` queue management methods
+
+**Key Features:**
+- Items moved here after 3 failed attempts
+- Can be manually retried (resets retry counter)
+- Can be deleted if permanently unfixable
+- Provides error context for debugging
+
+#### ai_conversation_api_usage Table
+
+**Purpose:** Log all GenAI API requests/responses for debugging and analytics
+
+**Schema:**
+```sql
+CREATE TABLE ai_conversation_api_usage (
+  usage_id INT AUTO_INCREMENT PRIMARY KEY,
+  module VARCHAR(255) NOT NULL COMMENT 'Module making the request (job_hunter)',
+  operation VARCHAR(255) NOT NULL COMMENT 'Operation type (resume_tailoring, etc.)',
+  prompt_text MEDIUMTEXT COMMENT 'Full prompt sent to AI',
+  response_text MEDIUMTEXT COMMENT 'Full response from AI',
+  success TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = success, 0 = error',
+  error_message TEXT COMMENT 'Error message if failed',
+  tokens_used INT COMMENT 'Number of tokens consumed',
+  cost DECIMAL(10,4) COMMENT 'Estimated cost in USD',
+  created_at INT NOT NULL COMMENT 'Unix timestamp',
+  context_data TEXT COMMENT 'JSON with additional context (user, job, etc.)',
+  INDEX idx_module (module),
+  INDEX idx_operation (operation),
+  INDEX idx_success (success),
+  INDEX idx_created_at (created_at)
+);
+```
+
+**Managed By:** `QueueWorkerBaseTrait::callGenAiService()`
+
+**Key Features:**
+- MEDIUMTEXT fields support large prompts/responses
+- Queryable via GenAI Debug Inspector (`/admin/reports/genai-debug`)
+- Filter by module, operation, success/failure
+- View full prompt and response for debugging
+- Track token usage and costs over time
+
+#### jobhunter_resume_tailoring Table
+
+**Purpose:** Track resume tailoring operations and results
+
+**Schema:**
+```sql
+CREATE TABLE jobhunter_resume_tailoring (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nid INT NOT NULL COMMENT 'Job posting node ID',
+  user_id INT NOT NULL COMMENT 'User ID requesting tailoring',
+  status VARCHAR(50) NOT NULL COMMENT 'queued, processing, completed, failed',
+  tailored_content LONGTEXT COMMENT 'Generated tailored resume',
+  error_message TEXT COMMENT 'Error if failed',
+  created_time INT NOT NULL,
+  completed_time INT COMMENT 'When tailoring completed',
+  INDEX idx_nid (nid),
+  INDEX idx_user_id (user_id),
+  INDEX idx_status (status)
+);
+```
+
+**Managed By:** `ResumeTailoringWorker` queue worker
+
+**Key Features:**
+- Queued via resume tailoring UI
+- Processed asynchronously by cron
+- Status updated throughout lifecycle
+- 3-retry limit enforced by trait
+
+#### jobhunter_cover_letter_tailoring Table
+
+**Purpose:** Track cover letter generation operations
+
+**Schema:**
+```sql
+CREATE TABLE jobhunter_cover_letter_tailoring (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  job_seeker_profile_id INT NOT NULL COMMENT 'Job seeker profile ID',
+  nid INT COMMENT 'Job posting node ID',
+  status VARCHAR(50) NOT NULL,
+  cover_letter_content LONGTEXT,
+  error_message TEXT,
+  created_time INT NOT NULL,
+  completed_time INT,
+  INDEX idx_profile (job_seeker_profile_id),
+  INDEX idx_nid (nid),
+  INDEX idx_status (status)
+);
+```
+
+**Managed By:** `CoverLetterTailoringWorker` queue worker
+
+#### jobhunter_resume_parsed_data Table
+
+**Purpose:** Store parsed resume data in structured JSON format
+
+**Schema:**
+```sql
+CREATE TABLE jobhunter_resume_parsed_data (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  job_seeker_profile_id INT NOT NULL COMMENT 'Job seeker profile ID',
+  parsed_data LONGTEXT NOT NULL COMMENT 'JSON parsed resume data',
+  parsing_status VARCHAR(50) DEFAULT 'pending',
+  error_message TEXT,
+  created_time INT NOT NULL,
+  updated_time INT,
+  INDEX idx_profile (job_seeker_profile_id),
+  INDEX idx_status (parsing_status)
+);
+```
+
+**Managed By:** `ResumeGenAiParsingWorker` queue worker
+
+**Key Features:**
+- JSON schema documented in `docs/RESUME_JSON_SCHEMA.md`
+- Contains skills, experience, education, achievements
+- Used for intelligent resume tailoring
+- Updated when new resumes uploaded
+
+#### jobhunter_job_requisition_parsed_data Table
+
+**Purpose:** Store parsed job posting data in structured JSON format
+
+**Schema:**
+```sql
+CREATE TABLE jobhunter_job_requisition_parsed_data (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nid INT NOT NULL COMMENT 'Job posting node ID',
+  parsed_data LONGTEXT NOT NULL COMMENT 'JSON parsed job data',
+  parsing_status VARCHAR(50) DEFAULT 'pending',
+  error_message TEXT,
+  created_time INT NOT NULL,
+  updated_time INT,
+  INDEX idx_nid (nid),
+  INDEX idx_status (parsing_status)
+);
+```
+
+**Managed By:** `JobPostingParsingWorker` queue worker
+
+**Key Features:**
+- JSON schema documented in `docs/JOB_REQUISITION_JSON_SCHEMA.md`
+- Extracts requirements, responsibilities, keywords
+- Enables better matching and tailoring
+- Updated when job postings modified
+
 #### Additional Operational Tables (non‑exhaustive)
 
 - `jobhunter_companies` — Company data and scraping configuration
@@ -533,6 +713,243 @@ Return only the tailored resume content, no additional commentary.
 - Login/authentication handling  
 - File upload automation
 - Submission verification
+
+---
+
+## Queue Architecture
+
+### Queue Workers
+
+The module uses Drupal's Queue API for asynchronous processing of AI operations. Queue workers process items in the background via cron, preventing timeouts and providing automatic retry logic.
+
+#### Queue Worker Base Trait
+
+**Trait:** `Drupal\job_hunter\Plugin\QueueWorker\Trait\QueueWorkerBaseTrait`
+
+**Purpose:** Centralize common queue worker functionality to eliminate code duplication
+
+**Provides 7 Core Methods:**
+
+1. **`updateDatabaseStatus($table, $identifier, $data)`**
+   - Unified upsert for status tracking tables
+   - Handles both node-based (`nid`) and job seeker profile-based (`job_seeker_profile_id`) identifiers
+   - Updates or inserts records atomically
+
+2. **`callGenAiService($prompt, $operation, $context_data = [])`**
+   - Standardized GenAI API calls with logging
+   - Records all requests/responses to `ai_conversation_api_usage` table
+   - Handles success/failure tracking
+   - Provides timeout and cost tracking
+
+3. **`parseGenAiJsonResponse($response_text, $operation)`**
+   - JSON parsing with max_tokens detection
+   - Handles common AI response issues (markdown code blocks, truncation)
+   - Validates JSON structure
+   - Returns parsed data or throws descriptive exceptions
+
+4. **`extractJsonFromResponse($response_text)`**
+   - Extracts JSON from various wrapper formats
+   - Handles markdown code blocks (```json)
+   - Strips non-JSON content
+   - Returns clean JSON string
+
+5. **`getLoggingContext($item_data)`**
+   - Extracts username/company/job_title from queue item
+   - Provides consistent contextual logging
+   - Returns array with logging metadata
+
+6. **`handleQueueException(\Exception $e, $operation, $item_key, $item_data, $queue_name)`**
+   - Centralized exception handling for queue workers
+   - Tracks retry count via State API (3-retry limit)
+   - Auto-suspends items after 3 failures
+   - Logs detailed error information
+
+7. **`getMaxTokensConfig()`**
+   - Retrieves max_tokens from module configuration
+   - Returns default (4000) if not configured
+
+**Used By:**
+- `ResumeTailoringWorker`
+- `CoverLetterTailoringWorker`
+- `ResumeGenAiParsingWorker`
+- `JobPostingParsingWorker`
+
+#### Individual Queue Workers
+
+**1. ResumeTailoringWorker**
+- **Queue ID:** `job_hunter_resume_tailoring`
+- **Purpose:** Generate tailored resumes for specific job postings
+- **Processing:** Calls GenAI with resume + job description, generates optimized resume
+- **Database:** Updates `jobhunter_resume_tailoring` table
+- **Retry Logic:** 3 attempts via trait, auto-suspends on failure
+
+**2. CoverLetterTailoringWorker**
+- **Queue ID:** `job_hunter_cover_letter_tailoring`
+- **Purpose:** Generate customized cover letters for applications
+- **Processing:** Calls GenAI with context to create personalized cover letter
+- **Database:** Updates `jobhunter_cover_letter_tailoring` table
+- **Retry Logic:** 3 attempts via trait, auto-suspends on failure
+
+**3. ResumeGenAiParsingWorker**
+- **Queue ID:** `job_hunter_resume_genai_parsing`
+- **Purpose:** Parse resume text into structured JSON data
+- **Processing:** Extracts skills, experience, education into JSON schema
+- **Database:** Updates `jobhunter_resume_parsed_data` table
+- **Retry Logic:** 3 attempts via trait, auto-suspends on failure
+
+**4. JobPostingParsingWorker**
+- **Queue ID:** `job_hunter_job_posting_parsing`
+- **Purpose:** Parse job posting into normalized JSON structure
+- **Processing:** Extracts requirements, responsibilities, company info
+- **Database:** Updates `jobhunter_job_requisition_parsed_data` table
+- **Retry Logic:** 3 attempts via trait, auto-suspends on failure
+
+**5. JobScrapingWorker**
+- **Queue ID:** `job_hunter_job_scraping`
+- **Purpose:** Scrape job postings from company career pages
+- **Status:** Implemented (not using trait yet)
+
+**6. ApplicationSubmissionWorker**
+- **Queue ID:** `job_hunter_application_submission`
+- **Purpose:** Automate job application submissions
+- **Status:** Implemented (not using trait yet)
+
+### Queue Management Infrastructure
+
+#### Retry Logic
+- **Retry Limit:** 3 attempts per queue item
+- **Storage:** Drupal State API (`job_hunter.queue_retry.{queue_name}.{item_key}`)
+- **Item Key:** MD5 hash of serialized item data
+- **Auto-Suspension:** Items exceeding 3 retries moved to suspended table
+
+#### Suspended Items Table
+**Table:** `jobhunter_queue_suspended`
+
+**Schema:**
+```sql
+CREATE TABLE jobhunter_queue_suspended (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  queue_name VARCHAR(255) NOT NULL,
+  item_data BLOB NOT NULL,
+  suspended_time INT NOT NULL,
+  retry_count INT DEFAULT 0,
+  error_message TEXT
+);
+```
+
+**Purpose:** Store failed queue items for manual review and retry
+
+#### Queue Management Interface
+**Route:** `/jobhunter/queue`
+
+**Features:**
+- **Active Queue Inspector:** View/delete items currently in queues
+- **Suspended Items:** View/retry/delete items that exceeded retry limit
+- **Manual Suspension:** Move problematic items to suspended queue
+- **Cache Management:** Clear GenAI cached responses to force fresh API calls
+- **Pause/Resume:** Temporarily stop queue processing
+
+**AJAX Endpoints:**
+- `POST /jobhunter/queue/delete-item` - Delete active queue item
+- `POST /jobhunter/queue/suspend-item` - Manually suspend queue item
+- `POST /jobhunter/queue/retry-suspended` - Re-queue suspended item (resets retry count)
+- `POST /jobhunter/queue/clear-genai-cache` - Clear cached AI response
+
+---
+
+## Controller Architecture
+
+### Controller Base Trait
+
+**Trait:** `Drupal\job_hunter\Controller\Trait\JobHunterControllerTrait`
+
+**Purpose:** Standardize navigation and layout across all Job Hunter controllers
+
+**Key Methods:**
+
+#### `wrapWithNavigation($content, array $libraries = [])`
+Wraps all page content with consistent left-side navigation (250px fixed)
+
+**Returns:** Render array with navigation + content
+
+**Navigation Items:**
+- 🏠 Dashboard (`/jobhunter`)
+- 👤 Job Seeker Profiles (`/jobhunter/profiles`)
+- 🏢 Companies (`/jobhunter/companies`)
+- 💼 Job Postings (`/jobhunter/jobs`)
+- 📝 Applications (`/jobhunter/applications`)
+- 🔧 Queue Management (`/jobhunter/queue`)
+- ⚙️ Settings (`/jobhunter/settings`)
+- 📚 Documentation (`/jobhunter/documentation`)
+
+**Used By:** All Job Hunter controllers for consistent UI
+
+### Key Controllers
+
+#### JobHunterHomeController
+
+**Class:** `Drupal\job_hunter\Controller\JobHunterHomeController`
+
+**Routes:**
+- `GET /jobhunter` - Dashboard with statistics
+- `GET /jobhunter/queue` - Queue management interface
+- `POST /jobhunter/queue/delete-item` - Delete queue item
+- `POST /jobhunter/queue/suspend-item` - Suspend queue item
+- `POST /jobhunter/queue/retry-suspended` - Retry suspended item
+- `POST /jobhunter/queue/clear-genai-cache` - Clear GenAI cache
+
+**Key Methods:**
+- `dashboard()` - Main dashboard with system stats
+- `queueManagement()` - Queue inspector interface
+- `processQueue()` - Process next queue item (cron/manual)
+- `deleteQueueItem()` - AJAX endpoint for item deletion
+- `suspendQueueItem()` - AJAX endpoint for manual suspension
+- `retrySuspendedItem()` - AJAX endpoint to retry failed items
+- `clearGenAiCache()` - AJAX endpoint to clear cached responses
+
+#### GenAiDebugController
+
+**Class:** `Drupal\job_hunter\Controller\GenAiDebugController`
+
+**Purpose:** Debugging interface for GenAI API requests/responses
+
+**Routes:**
+- `GET /admin/reports/genai-debug` - List all GenAI API calls
+- `GET /admin/reports/genai-debug/{id}` - View specific request/response details
+
+**Features:**
+- Filter by module, operation, success/failure
+- View full prompts and responses
+- Inspect token usage and costs
+- Debug JSON parsing issues
+- Track AI service performance
+
+**Database:** Queries `ai_conversation_api_usage` table (MEDIUMTEXT fields)
+
+**Key Methods:**
+- `debugList(Request $request)` - List GenAI calls with filters
+- `debugDetail($id)` - Show full prompt/response for specific call
+
+**Access:** Requires `administer job application automation` permission
+
+#### DocumentationController
+
+**Class:** `Drupal\job_hunter\Controller\DocumentationController`
+
+**Purpose:** Serve module documentation as rendered web pages
+
+**Routes:**
+- `GET /jobhunter/documentation` - Documentation index
+- `GET /jobhunter/documentation/readme` - README.md rendered
+- `GET /jobhunter/documentation/architecture` - This file rendered
+- `GET /jobhunter/documentation/process-flow` - Process flows
+- `GET /jobhunter/documentation/faq` - FAQ
+
+**Features:**
+- Markdown to HTML conversion
+- Version and deployment info accordion
+- Consistent navigation via trait
+- Table of contents generation
 
 ---
 
@@ -902,7 +1319,7 @@ Use Drupal UI:
 
 ---
 
-**Last Updated:** January 2026  
+**Last Updated:** February 11, 2026  
 **Module Version:** 1.0-dev  
 **Drupal Version:** 11.2.3+  
 **AWS SDK Version:** 3.x

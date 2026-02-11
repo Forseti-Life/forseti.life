@@ -203,6 +203,52 @@ Business logic is encapsulated in services:
 
 **Learn more:** [Architecture - Service Layer](ARCHITECTURE.md#service-layer)
 
+### Queue Workers & Background Processing
+The module uses Drupal's Queue API for asynchronous AI operations:
+- **Queue Workers:** Process items in background via cron
+- **4 Active Workers:** Resume Tailoring, Cover Letter, Resume Parsing, Job Posting Parsing
+- **Shared Trait:** `QueueWorkerBaseTrait` centralizes common functionality (7 methods)
+- **3-Retry Logic:** Automatic retry with exponential backoff
+- **Auto-Suspension:** Items exceeding 3 retries moved to suspended queue
+- **Manual Intervention:** Suspended items can be reviewed and retried
+
+**Learn more:** [Architecture - Queue Architecture](ARCHITECTURE.md#queue-architecture)
+
+### Queue Management Interface
+**Route:** `/jobhunter/queue`
+
+Administrative interface for monitoring and managing queues:
+- **Active Queue Inspector:** View and delete items currently in processing queues
+- **Suspended Items:** Review items that failed after 3 retries
+- **Manual Actions:** Suspend, retry, or delete queue items
+- **GenAI Cache:** Clear cached AI responses to force fresh API calls
+- **Pause/Resume:** Temporarily stop queue processing system-wide
+
+**Features:**
+- Real-time queue statistics (pending/processing/failed counts)
+- Item-level inspection (view full item data)
+- Manual suspension for problematic items
+- Batch operations support
+- Error context and retry history
+
+**Learn more:** [Architecture - Queue Management Infrastructure](ARCHITECTURE.md#queue-management-infrastructure)
+
+### GenAI Debug Inspector
+**Route:** `/admin/reports/genai-debug`
+
+Debugging interface for AI API requests and responses:
+- **Filter by:** Module, operation, success/failure, date range
+- **View Details:** Full prompts, responses, token usage, costs
+- **Debug Issues:** Inspect JSON parsing errors, truncation, timeouts
+- **Performance:** Track API latency and success rates
+- **Cost Tracking:** Monitor token usage and estimated costs
+
+**Database:** Queries `ai_conversation_api_usage` table (logs all GenAI calls)
+
+**Access:** Requires `administer job application automation` permission
+
+**Learn more:** [Architecture - GenAiDebugController](ARCHITECTURE.md#genaidebugcontroller)
+
 ### Configuration Management
 The module uses Drupal's configuration system for:
 - Selecting the "Original Resume" node
@@ -296,6 +342,16 @@ If you can't find what you need in the documentation:
 - Detailed dependencies, data sources, and integration points
 - Included implementation status for each feature
 
+### Version 1.2 (February 11, 2026)
+- Added Queue Architecture documentation (QueueWorkerBaseTrait, 4 active workers)
+- Documented Queue Management Interface (/jobhunter/queue)
+- Added GenAI Debug Inspector documentation (/admin/reports/genai-debug)
+- Documented new operational tables (ai_conversation_api_usage, jobhunter_queue_suspended, etc.)
+- Updated Controller Architecture section (JobHunterControllerTrait, GenAiDebugController)
+- Documented 3-retry logic and auto-suspension for failed queue items
+- Added suspend button functionality to queue management
+- Updated ARCHITECTURE.md with comprehensive queue and controller documentation
+
 ---
 
 ## 📂 Complete File List
@@ -326,7 +382,7 @@ If you can't find what you need in the documentation:
 
 ---
 
-**Last Updated:** February 8, 2026  
+**Last Updated:** February 11, 2026  
 **Module Version:** 1.0-dev
 
 **Happy coding! 🚀**
