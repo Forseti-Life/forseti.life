@@ -1112,35 +1112,26 @@ class UserProfileController extends ControllerBase {
       : NULL;
     $tailoring_status = $tailored_record ? $tailored_record->tailoring_status : 'pending';
     
-    // Fix stuck queued/processing status - if status is queued/processing but no queue item exists,
-    // reset to pending (allows user to re-queue) or completed (if tailored resume exists)
-    if ($tailored_record && in_array($tailoring_status, ['queued', 'processing'])) {
-      // Check if there's actually a queue item for this job
-      $queue = \Drupal::queue('job_hunter_resume_tailoring');
-      $queue_has_item = FALSE;
+    // Get actual queue status by checking queue table, suspended queue, and database
+    $queue_status = $this->getActualQueueStatus($user->id(), $job);
+    
+    // Update status in database if it's out of sync
+    if ($queue_status['should_update_db']) {
+      $database->update('jobhunter_tailored_resumes')
+        ->fields(['tailoring_status' => $queue_status['status'], 'updated' => time()])
+        ->condition('uid', $user->id())
+        ->condition('job_id', $job)
+        ->execute();
+      $tailoring_status = $queue_status['status'];
       
-      // Check queue table directly for this specific job
-      $queue_item = $database->select('queue', 'q')
-        ->fields('q', ['item_id'])
-        ->condition('name', 'job_hunter_resume_tailoring')
-        ->condition('data', '%"job_id":' . $job . '%', 'LIKE')
-        ->execute()
-        ->fetchField();
-      
-      if (!$queue_item) {
-        // No queue item - reset status
-        $new_status = $tailored ? 'completed' : 'pending';
-        $database->update('jobhunter_tailored_resumes')
-          ->fields(['tailoring_status' => $new_status])
-          ->condition('uid', $user->id())
-          ->condition('job_id', $job)
-          ->execute();
-        $tailoring_status = $new_status;
-        \Drupal::logger('job_hunter')->notice('Reset stuck tailoring status from queued/processing to @status for job @job', [
-          '@status' => $new_status,
-          '@job' => $job,
-        ]);
-      }
+      \Drupal::logger('job_hunter')->notice('Synced tailoring status from @old to @new for user @uid job @job (in_queue: @q, suspended: @s)', [
+        '@old' => $queue_status['db_status'],
+        '@new' => $tailoring_status,
+        '@uid' => $user->id(),
+        '@job' => $job,
+        '@q' => $queue_status['in_queue'] ? 'yes' : 'no',
+        '@s' => $queue_status['suspended'] ? 'yes' : 'no',
+      ]);
     }
     
     // Get PDF info
@@ -1406,6 +1397,25 @@ class UserProfileController extends ControllerBase {
       $user_id = $this->currentUser->id();
       $database = \Drupal::database();
 
+      // Get actual queue status by checking all sources
+      $queue_status = $this->getActualQueueStatus($user_id, $job_id);
+      
+      // Update database if status is out of sync
+      if ($queue_status['should_update_db']) {
+        $database->update('jobhunter_tailored_resumes')
+          ->fields(['tailoring_status' => $queue_status['status'], 'updated' => time()])
+          ->condition('uid', $user_id)
+          ->condition('job_id', $job_id)
+          ->execute();
+        
+        \Drupal::logger('job_hunter')->info('AJAX status check synced status from @old to @new for user @uid job @job', [
+          '@old' => $queue_status['db_status'],
+          '@new' => $queue_status['status'],
+          '@uid' => $user_id,
+          '@job' => $job_id,
+        ]);
+      }
+      
       $record = $database->select('jobhunter_tailored_resumes', 'tr')
         ->fields('tr')
         ->condition('uid', $user_id)
@@ -1426,16 +1436,23 @@ class UserProfileController extends ControllerBase {
           'status' => 'not_started',
           'message' => 'No tailoring request found for this job.',
           'cover_letter_status' => $cover_letter ? $cover_letter->tailoring_status : 'not_started',
+          'in_queue' => $queue_status['in_queue'],
+          'suspended' => $queue_status['suspended'],
         ]);
       }
 
+      // Use actual status from queue check
+      $actual_status = $queue_status['status'];
+
       $response = [
-        'status' => $record->tailoring_status,
+        'status' => $actual_status,
         'updated' => $record->updated,
         'cover_letter_status' => $cover_letter ? $cover_letter->tailoring_status : 'not_started',
+        'in_queue' => $queue_status['in_queue'],
+        'suspended' => $queue_status['suspended'],
       ];
 
-      if ($record->tailoring_status === 'completed' && !empty($record->tailored_resume_json)) {
+      if ($actual_status === 'completed' && !empty($record->tailored_resume_json)) {
         $response['tailored_resume'] = json_decode($record->tailored_resume_json, TRUE);
         $response['message'] = 'Resume tailoring completed!';
         
@@ -1446,17 +1463,19 @@ class UserProfileController extends ControllerBase {
           $response['message'] = 'Resume and cover letter completed!';
         }
       }
-      elseif ($record->tailoring_status === 'processing') {
+      elseif ($actual_status === 'processing') {
         $response['message'] = 'AI is generating your tailored resume and cover letter...';
       }
-      elseif ($record->tailoring_status === 'queued') {
+      elseif ($actual_status === 'queued') {
         $response['message'] = 'Waiting in queue for processing...';
       }
-      elseif ($record->tailoring_status === 'failed') {
-        $response['message'] = 'Tailoring failed. Please try again.';
+      elseif ($actual_status === 'failed') {
+        $response['message'] = $queue_status['suspended'] 
+          ? 'Tailoring suspended after multiple failures. Check queue management page.'
+          : 'Tailoring failed. Please try again.';
       }
       else {
-        $response['message'] = 'Status: ' . $record->tailoring_status;
+        $response['message'] = 'Status: ' . $actual_status;
       }
 
       return new \Symfony\Component\HttpFoundation\JsonResponse($response);
@@ -2199,6 +2218,95 @@ PROMPT;
     return new \Symfony\Component\HttpFoundation\RedirectResponse(
       \Drupal\Core\Url::fromRoute('job_hunter.user_profile_edit')->toString()
     );
+  }
+
+  /**
+   * Get actual queue status by checking queue table, suspended queue, and database record.
+   * 
+   * This ensures status is always in sync with reality, preventing out-of-date status displays.
+   *
+   * @param int $user_id
+   *   The user ID.
+   * @param int $job_id
+   *   The job ID.
+   * @param string $queue_name
+   *   The queue name to check (e.g., 'job_hunter_resume_tailoring').
+   *
+   * @return array
+   *   Array with keys: 'status', 'in_queue', 'suspended', 'should_update_db'.
+   */
+  private function getActualQueueStatus($user_id, $job_id, $queue_name = 'job_hunter_resume_tailoring') {
+    $database = \Drupal::database();
+    
+    // Check if item is in the active queue
+    $in_queue = $database->select('queue', 'q')
+      ->fields('q', ['item_id'])
+      ->condition('name', $queue_name)
+      ->condition('data', '%"job_id":' . $job_id . '%', 'LIKE')
+      ->condition('data', '%"uid":' . $user_id . '%', 'LIKE')
+      ->execute()
+      ->fetchField();
+    
+    // Check if item is in suspended queue
+    $suspended = $database->select('jobhunter_queue_suspended', 'qs')
+      ->fields('qs', ['id'])
+      ->condition('queue_name', $queue_name)
+      ->condition('item_data', '%"job_id":' . $job_id . '%', 'LIKE')
+      ->condition('item_data', '%"uid":' . $user_id . '%', 'LIKE')
+      ->execute()
+      ->fetchField();
+    
+    // Get current database status
+    $db_record = $database->select('jobhunter_tailored_resumes', 'tr')
+      ->fields('tr', ['tailoring_status', 'tailored_resume_json'])
+      ->condition('uid', $user_id)
+      ->condition('job_id', $job_id)
+      ->execute()
+      ->fetchObject();
+    
+    $db_status = $db_record ? $db_record->tailoring_status : 'pending';
+    $has_tailored_resume = $db_record && !empty($db_record->tailored_resume_json);
+    
+    // Determine actual status based on queue state
+    $actual_status = $db_status;
+    $should_update_db = FALSE;
+    
+    if ($in_queue) {
+      // Item is actively queued
+      if (!in_array($db_status, ['queued', 'processing'])) {
+        $actual_status = 'queued';
+        $should_update_db = TRUE;
+      }
+    }
+    elseif ($suspended) {
+      // Item is suspended (failed too many times)
+      if ($db_status !== 'failed') {
+        $actual_status = 'failed';
+        $should_update_db = TRUE;
+      }
+    }
+    else {
+      // Not in queue or suspended
+      if (in_array($db_status, ['queued', 'processing'])) {
+        // Stuck status - item was processed but status not updated
+        if ($has_tailored_resume) {
+          $actual_status = 'completed';
+        }
+        else {
+          $actual_status = 'pending';
+        }
+        $should_update_db = TRUE;
+      }
+    }
+    
+    return [
+      'status' => $actual_status,
+      'in_queue' => (bool) $in_queue,
+      'suspended' => (bool) $suspended,
+      'should_update_db' => $should_update_db,
+      'db_status' => $db_status,
+      'has_resume' => $has_tailored_resume,
+    ];
   }
 
 }
