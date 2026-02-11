@@ -14,6 +14,23 @@ ai_conversation.usage_dashboard:
   requirements:
     _permission: 'administer site configuration'
 
+ai_conversation.genai_debug_list:
+  path: '/admin/reports/genai-debug'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\GenAiDebugController::debugList'
+    _title: 'GenAI Debug Inspector'
+  requirements:
+    _permission: 'administer site configuration'
+
+ai_conversation.genai_debug_detail:
+  path: '/admin/reports/genai-debug/{id}'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\GenAiDebugController::debugDetail'
+    _title: 'GenAI Call Details'
+  requirements:
+    _permission: 'administer site configuration'
+    id: \d+
+
 ai_conversation.update_prompt:
   path: '/admin/ai-conversation/update-prompt'
   defaults:

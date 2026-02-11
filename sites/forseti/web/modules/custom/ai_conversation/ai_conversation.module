@@ -38,6 +38,24 @@ function ai_conversation_theme() {
       ],
       'template' => 'ai-usage-dashboard',
     ],
+    'genai_debug_list' => [
+      'variables' => [
+        'calls' => [],
+        'modules' => [],
+        'operations' => [],
+        'current_module' => NULL,
+        'current_operation' => NULL,
+        'current_success' => NULL,
+        'current_limit' => 100,
+      ],
+      'template' => 'genai-debug-list',
+    ],
+    'genai_debug_detail' => [
+      'variables' => [
+        'call_data' => [],
+      ],
+      'template' => 'genai-debug-detail',
+    ],
   ];
 }
 
