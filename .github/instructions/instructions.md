@@ -34,6 +34,14 @@ applyTo: '**'
 1. **Instructions File**: Always include /home/keithaumiller/forseti.life/.github/instructions/instructions.md in context
 2. **Architecture Documentation**: Always include relevant ARCHITECTURE.md files when working on module development
 
+**TOKEN USAGE MONITORING AND CONTEXT REFRESH**:
+- **Token Threshold**: Monitor token usage throughout extended sessions
+- **Refresh Trigger**: When cumulative token count reaches 100,000 tokens, automatically re-read instructions.md
+- **Self-Check Protocol**: After every 10 interactions, estimate token usage and refresh context if approaching threshold
+- **Context Preservation**: Re-inject instructions.md ensures behavioral guidelines remain active throughout long sessions
+- **Implementation**: Insert explicit instruction: "Re-reading instructions.md - token count exceeded 100k threshold" when refresh occurs
+- **Continuous Monitoring**: Track approximate token usage and proactively refresh before context degradation
+
 **DRUPAL MODULE DEVELOPMENT REQUIREMENTS**: When working on custom modules, these architectural constraints are mandatory:
 
 **DRUPAL-NATIVE IMPLEMENTATION MANDATE**:
