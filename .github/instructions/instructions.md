@@ -219,27 +219,32 @@ This is a multi-site server with separate, independent Drupal installations. CRI
 - **Correct Pattern**: `cd /var/www/html/[sitename] && ./vendor/bin/drush [command]`
 - **Forseti Example**: `cd /var/www/html/forseti && ./vendor/bin/drush watchdog:show --count=10`
 - **Forseti Example**: `cd /var/www/html/forseti && ./vendor/bin/drush cache:rebuild`
+- **Dungeoncrawler Example**: `cd /var/www/html/dungeoncrawler && ./vendor/bin/drush watchdog:show --count=10`
 - Incorrect: `drush [command]` (may use wrong Drupal installation)
 - Incorrect: Using global `/usr/local/bin/drush` (will connect to wrong database)
 
 **PRODUCTION SERVER DATABASE SEPARATION**: Each site has its own database and Drush installation:
 - forseti.life → `/var/www/html/forseti` → `forseti_prod` database
+- dungeoncrawler.forseti.life → `/var/www/html/dungeoncrawler` → `dungeoncrawler` database
 - stlouisintegration.com → `/var/www/html/stlouisintegration` → `stlouisintegration_drupal` database
 - thetruthperspective.org → `/var/www/html/drupal` → `drupal_db` database
 - theoryofconspiracies.com → `/var/www/html/theoryofconspiracies` → database TBD
 
 ### Development Configuration
-The development environment has a single Drupal installation:
+The development environment has multiple Drupal installations:
 
 **DEVELOPMENT SITE STRUCTURE**:
 - **Forseti**: `/home/keithaumiller/forseti.life/sites/forseti/` → `forseti_dev` database
+- **Dungeoncrawler**: `/home/keithaumiller/forseti.life/sites/dungeoncrawler/web/` → `dungeoncrawler_dev` database
 
 **DEVELOPMENT DRUSH COMMANDS**: Site-specific Drush installation:
 - Forseti: `cd /home/keithaumiller/forseti.life/sites/forseti && ./vendor/bin/drush status`
+- Dungeoncrawler: `cd /home/keithaumiller/forseti.life/sites/dungeoncrawler/web && ../vendor/bin/drush status`
 
 **DEVELOPMENT URLS**:
-- **Local (Chromebook)**: http://penguin.linux.test/ (user's local development environment)
-- **AI Agent**: http://localhost (port 80) - AI agents should use localhost for testing
+- **Forseti (Local/Chromebook)**: http://penguin.linux.test/ (user's local development environment)
+- **Forseti (AI Agent)**: http://localhost (port 80) - AI agents should use localhost for testing
+- **Dungeoncrawler (Development)**: http://localhost:8080 - Dungeon Crawler development site
 - **Codespace VM**: Use the GitHub Codespaces forwarded URL for the VM environment
 
 **PRODUCTION SERVER LOG LOCATIONS**: Site-specific Apache logging for troubleshooting:
@@ -265,22 +270,28 @@ The autodeploy clears the cache on the server during deployment. Do not recomend
 - **Platform**: GitHub Codespaces or local development environment
 - **LAMP Stack Development**: Complete local LAMP environment matching production
 - **Apache Web Server**: Use Apache locally for development, not PHP's built-in development server
-- **MySQL Database**: Local MySQL instance with `forseti_dev` database
+- **MySQL Databases**: Local MySQL instance with multiple development databases
+  - `forseti_dev` - Forseti development database
+  - `dungeoncrawler_dev` - Dungeon Crawler development database
 - **PHP Configuration**: System PHP 8.3+ with all required extensions
   - Default `php` command uses system PHP (`/usr/bin/php8.3`)
   - All required Drupal extensions installed (PDO MySQL, GD, XML, etc.)
 - **Service Management**: Use `service` command instead of `systemctl` in Codespaces
   - Example: `sudo service apache2 restart` instead of `sudo systemctl restart apache2`
-- **Drupal Access**: Local site on http://localhost via Apache virtual host
+- **Drupal Access**: Local sites via Apache virtual hosts
+  - Forseti: http://localhost (port 80)
+  - Dungeoncrawler: http://localhost:8080
 - **Workspace Path**: `/home/keithaumiller/forseti.life`
 - Always use Apache for local development to match production LAMP environment
 
-# Forseti.life Website - AI Coding Instructions
+# Forseti.life & Dungeoncrawler.life - AI Coding Instructions
 
 ## Project Context
-- **Platform**: Forseti - Professional website
+- **Primary Platform**: Forseti.life - Professional integration services website
+- **Secondary Platform**: Dungeoncrawler.forseti.life - AI-powered Pathfinder 2e dungeon crawler game
 - **Environment**: Drupal 11 on Ubuntu Linux
 - **Tech Stack**: Drupal 11, PHP 8.3+, MySQL 8.0+
+- **Development**: Multi-site setup with separate databases and configurations
 
 ## Core Website Architecture
 - **LAMP Stack**: Complete Linux, Apache, MySQL, PHP technology stack
@@ -717,6 +728,46 @@ cd forseti-mobile/android
 ./gradlew clean
 rm -rf .gradle build
 ```
+
+## **Dungeoncrawler.life Game Portal Development** (February 2026)
+Created complete hex-based game portal for Pathfinder 2e dungeon crawler:
+
+### **Game Portal Structure**
+- ✅ **Site Setup**: Dungeoncrawler.forseti.life subdomain configured
+- ✅ **Production**: Apache virtual host, SSL certificate, separate database
+- ✅ **Development**: localhost:8080 with dungeoncrawler_dev database
+- ✅ **Multi-site Deployment**: GitHub Actions parallel deployment configured
+
+### **Hex-Based Map Visualization**
+- ✅ **JavaScript Engine**: HTML5 Canvas-based hexagonal grid rendering
+- ✅ **Coordinate System**: Axial coordinates (q, r) matching hexmap.schema.json
+- ✅ **Game Portal Route**: /game (requires authentication)
+- ✅ **Interactive Features**:
+  - Click and drag to pan map
+  - Mouse wheel zoom (0.5x - 3.0x)
+  - Hex selection and highlighting
+  - Hover effects for map interaction
+
+### **Game Interface Components**
+- ✅ **GamePortalController**: PHP controller with character and map data loading
+- ✅ **Hex Map JavaScript**: Complete rendering engine with camera controls
+- ✅ **Game Portal Template**: 3-column responsive layout
+  - Left sidebar: Character stats, HP bar, AC display
+  - Center: Hex map canvas with zoom controls
+  - Right sidebar: Action buttons, hex info, message log
+- ✅ **Centralized Styling**: _hex-map.scss component (no inline styles)
+
+### **Integration Architecture**
+- ✅ **Schema-Driven**: Hexmap data structure matches hexmap.schema.json
+- ✅ **Character Integration**: Loads active character from character creation system
+- ✅ **Drupal-Native**: Proper routing, theming, and library management
+- ✅ **Theme Hook**: game_portal template registered in dungeoncrawler_content.module
+- ✅ **Library System**: hex-map.js attached via dungeoncrawler.libraries.yml
+
+### **Development URLs**
+- **Production**: https://dungeoncrawler.forseti.life/game
+- **Development**: http://localhost:8080/game
+- **Route Name**: dungeoncrawler_content.game_portal
 
 ---
 
