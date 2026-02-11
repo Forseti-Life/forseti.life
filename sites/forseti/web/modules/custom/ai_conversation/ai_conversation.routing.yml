@@ -31,6 +31,23 @@ ai_conversation.genai_debug_detail:
     _permission: 'administer site configuration'
     id: \d+
 
+ai_conversation.genai_debug_delete:
+  path: '/admin/reports/genai-debug/{id}/delete'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\GenAiDebugController::deleteCall'
+  methods: [POST]
+  requirements:
+    _permission: 'administer site configuration'
+    id: \d+
+
+ai_conversation.genai_debug_delete_all:
+  path: '/admin/reports/genai-debug/delete-all'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\GenAiDebugController::deleteAllFiltered'
+  methods: [POST]
+  requirements:
+    _permission: 'administer site configuration'
+
 ai_conversation.update_prompt:
   path: '/admin/ai-conversation/update-prompt'
   defaults:

@@ -197,6 +197,78 @@ class GenAiDebugController extends ControllerBase {
   }
 
   /**
+   * Delete a GenAI API call record.
+   */
+  public function deleteCall($id) {
+    try {
+      // Delete from database
+      $deleted = $this->database->delete('ai_conversation_api_usage')
+        ->condition('id', $id)
+        ->execute();
+      
+      if ($deleted) {
+        \Drupal::messenger()->addStatus($this->t('GenAI call #@id deleted successfully.', ['@id' => $id]));
+      } else {
+        \Drupal::messenger()->addWarning($this->t('GenAI call #@id not found.', ['@id' => $id]));
+      }
+    } catch (\Exception $e) {
+      \Drupal::messenger()->addError($this->t('Failed to delete GenAI call: @error', ['@error' => $e->getMessage()]));
+    }
+    
+    // Redirect back to list
+    return new \Symfony\Component\HttpFoundation\RedirectResponse('/admin/reports/genai-debug');
+  }
+
+  /**
+   * Delete all filtered GenAI API call records.
+   */
+  public function deleteAllFiltered(Request $request) {
+    $module = $request->request->get('module');
+    $operation = $request->request->get('operation');
+    $success = $request->request->get('success');
+    $days = $request->request->get('days');
+
+    try {
+      $query = $this->database->delete('ai_conversation_api_usage');
+      
+      // Apply same filters as list view
+      if (!empty($module)) {
+        $query->condition('module', $module);
+      }
+      if (!empty($operation)) {
+        $query->condition('operation', $operation);
+      }
+      if ($success !== NULL && $success !== '') {
+        $query->condition('success', (int) $success);
+      }
+      if ($days > 0) {
+        $timestamp_cutoff = \Drupal::time()->getRequestTime() - ($days * 86400);
+        $query->condition('timestamp', $timestamp_cutoff, '>=');
+      }
+      
+      $deleted = $query->execute();
+      
+      \Drupal::messenger()->addStatus($this->t('Deleted @count GenAI call records.', ['@count' => $deleted]));
+    } catch (\Exception $e) {
+      \Drupal::messenger()->addError($this->t('Failed to delete GenAI calls: @error', ['@error' => $e->getMessage()]));
+    }
+    
+    // Redirect back to list with same filters
+    $params = [];
+    if (!empty($module)) $params['module'] = $module;
+    if (!empty($operation)) $params['operation'] = $operation;
+    if ($success !== NULL && $success !== '') $params['success'] = $success;
+    if ($days) $params['days'] = $days;
+    
+    $url = '/admin/reports/genai-debug';
+    if (!empty($params)) {
+      $url .= '?' . http_build_query($params);
+    }
+    
+    return new \Symfony\Component\HttpFoundation\RedirectResponse($url);
+  }
+
+  /**
    * Shows detailed view of a specific GenAI API call.
    */
   public function debugDetail($id) {

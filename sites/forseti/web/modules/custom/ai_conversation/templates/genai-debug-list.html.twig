@@ -87,6 +87,19 @@
         </a>
       </div>
     </form>
+    
+    {# Delete All Filtered button #}
+    {% if calls is not empty %}
+      <form method="post" action="/admin/reports/genai-debug/delete-all" style="display: inline-block; margin-left: 10px;" onsubmit="return confirm('Delete ALL {{ calls|length }} filtered GenAI calls? This will force fresh API calls.');">
+        <input type="hidden" name="module" value="{{ current_module }}">
+        <input type="hidden" name="operation" value="{{ current_operation }}">
+        <input type="hidden" name="success" value="{{ current_success }}">
+        <input type="hidden" name="days" value="{{ current_days }}">
+        <button type="submit" style="padding: 6px 15px; background: #d32f2f; color: white; border: none; border-radius: 3px; cursor: pointer; font-weight: 600;">
+          🗑️ Delete All Filtered ({{ calls|length }})
+        </button>
+      </form>
+    {% endif %}
   </div>
 
   {# Cost Totals Summary #}
@@ -171,9 +184,14 @@
               </td>
               <td style="padding: 10px; text-align: center;">
                 <a href="/admin/reports/genai-debug/{{ call.id }}" 
-                   style="background: #0073aa; color: white; padding: 4px 12px; border-radius: 3px; text-decoration: none; font-size: 12px;">
-                  View Details
+                   style="background: #0073aa; color: white; padding: 4px 12px; border-radius: 3px; text-decoration: none; font-size: 12px; margin-right: 5px;">
+                  View
                 </a>
+                <form method="post" action="/admin/reports/genai-debug/{{ call.id }}/delete" style="display: inline;" onsubmit="return confirm('Delete this GenAI call record? This will force a fresh API call next time.');">
+                  <button type="submit" style="background: #d32f2f; color: white; padding: 4px 12px; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                    Delete
+                  </button>
+                </form>
               </td>
             </tr>
             {% if call.error_message %}
