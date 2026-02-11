@@ -81,6 +81,11 @@ jobs:
           git clone --depth 1 --single-branch --branch main --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git .
           git sparse-checkout set sites/forseti sites/dungeoncrawler h3-geolocation
           
+          echo "🐛 Git clone completed. Checking HEAD commit..."
+          git log -1 --oneline
+          echo "🐛 Checking if files exist in cloned directory..."
+          ls -la sites/forseti/web/modules/custom/job_hunter/src/Controller/ 2>/dev/null | head -5 || echo "Directory not found"
+          
           # Detect what changed in this deployment
           echo "Detecting changed files..."
           CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD 2>/dev/null || echo "")
@@ -105,13 +110,25 @@ jobs:
             # Deploy custom modules
             if [ -d "${SITE_PATH}/web/modules/custom" ]; then
               echo "Deploying custom modules..."
-              sudo rsync -azq \
+              echo "🐛 SOURCE: ${SITE_PATH}/web/modules/custom/"
+              echo "🐛 DEST: ${SITE_ROOT}/web/modules/custom/"
+              echo "🐛 Checking source file before rsync..."
+              ls -la ${SITE_PATH}/web/modules/custom/job_hunter/src/Controller/JobHunterHomeController.php 2>/dev/null || echo "Source file not found"
+              grep -c "public function" ${SITE_PATH}/web/modules/custom/job_hunter/src/Controller/JobHunterHomeController.php 2>/dev/null || echo "Cannot count functions"
+              echo "🐛 Checking dest file before rsync..."
+              ls -la ${SITE_ROOT}/web/modules/custom/job_hunter/src/Controller/JobHunterHomeController.php 2>/dev/null || echo "Dest file not found"
+              
+              sudo rsync -azv \
                 --exclude='node_modules' \
                 --exclude='.git' \
                 --exclude='*.scss' \
                 --exclude='src/' \
-                "${SITE_PATH}/web/modules/custom/" "${SITE_ROOT}/web/modules/custom/"
+                "${SITE_PATH}/web/modules/custom/" "${SITE_ROOT}/web/modules/custom/" | head -30
               MODULES_DEPLOYED=true
+              
+              echo "🐛 Checking dest file after rsync..."
+              ls -la ${SITE_ROOT}/web/modules/custom/job_hunter/src/Controller/JobHunterHomeController.php
+              grep -c "public function" ${SITE_ROOT}/web/modules/custom/job_hunter/src/Controller/JobHunterHomeController.php || echo "Cannot count functions"
               echo "✅ Modules deployed"
             fi
             
