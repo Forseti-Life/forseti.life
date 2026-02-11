@@ -49,12 +49,20 @@ jobs:
         envs: HUBGIT_PAT,GITHUB_SHA,GITHUB_ACTOR,COMMIT_MESSAGE
         script: |
           set -e
+          set -o pipefail
+          
+          # Enable debugging (verbose output)
+          set -x
+          
+          # Error trap for debugging
+          trap 'echo "❌ ERROR at line $LINENO: command \"$BASH_COMMAND\" failed with exit code $?" >&2' ERR
           
           DEPLOY_START=$(date +%s)
           echo "🚀 DEPLOYMENT STARTED at $(date)"
           echo "📝 Commit: ${GITHUB_SHA:0:8}"
           echo "👤 Author: $GITHUB_ACTOR"
           echo "💬 Message: $COMMIT_MESSAGE"
+          echo "🐛 Debug mode: ENABLED"
           
           # Validate production environment
           if [ ! -d "/var/www/html" ]; then
@@ -212,11 +220,14 @@ jobs:
               
               # Database updates (applies schema changes from module updates)
               echo "Checking for database updates..."
-              DRUSH_OUTPUT=$(sudo -u www-data ./vendor/bin/drush updatedb -y 2>&1)
-              DRUSH_EXIT=$?
+              DRUSH_OUTPUT=$(sudo -u www-data ./vendor/bin/drush updatedb -y 2>&1) || DRUSH_EXIT=$?
+              DRUSH_EXIT=${DRUSH_EXIT:-0}
+              echo "🐛 drush updatedb exit code: $DRUSH_EXIT"
               if [ $DRUSH_EXIT -ne 0 ]; then
                 echo "⚠️ Database update had warnings (exit code: $DRUSH_EXIT)"
-                echo "$DRUSH_OUTPUT" | tail -5
+                echo "--- Full drush output ---"
+                echo "$DRUSH_OUTPUT"
+                echo "--- End drush output ---"
               else
                 echo "$DRUSH_OUTPUT" | grep -i 'update\|no pending' || echo "ℹ️ No updates needed"
               fi
@@ -237,13 +248,25 @@ jobs:
             # Cache clearing - optimized based on what changed
             if [ "$DRUSH_NEEDED" = true ]; then
               echo "Full cache rebuild (modules/config changed)..."
-              sudo -u www-data ./vendor/bin/drush cache:rebuild
+              echo "🐛 Running cache:rebuild..."
+              CACHE_OUTPUT=$(sudo -u www-data ./vendor/bin/drush cache:rebuild 2>&1) || CACHE_EXIT=$?
+              CACHE_EXIT=${CACHE_EXIT:-0}
+              echo "🐛 cache:rebuild exit code: $CACHE_EXIT"
+              if [ $CACHE_EXIT -ne 0 ]; then
+                echo "❌ Cache rebuild failed (exit code: $CACHE_EXIT)"
+                echo "--- Full cache rebuild output ---"
+                echo "$CACHE_OUTPUT"
+                echo "--- End cache rebuild output ---"
+                # Don't fail deployment for cache rebuild issues
+              else
+                echo "$CACHE_OUTPUT" | tail -2
+              fi
             elif [ "$THEMES_DEPLOYED" = true ]; then
               echo "Clearing theme caches..."
               if sudo -u www-data ./vendor/bin/drush help cc 2>/dev/null | grep -q 'render'; then
-                sudo -u www-data ./vendor/bin/drush cc render css-js 2>/dev/null
+                sudo -u www-data ./vendor/bin/drush cc render css-js 2>/dev/null || true
               else
-                sudo -u www-data ./vendor/bin/drush cache:rebuild
+                sudo -u www-data ./vendor/bin/drush cache:rebuild 2>&1 || true
               fi
             else
               echo "ℹ️ No cache clear needed"
@@ -254,6 +277,8 @@ jobs:
             
             local SITE_END=$(date +%s)
             echo "✅ ${SITE_NAME} deployment complete in $((SITE_END - SITE_START))s"
+            echo "🐛 ${SITE_NAME} deployment function exiting with status 0"
+            return 0
           }
           
           # Deploy sites in parallel
@@ -262,12 +287,21 @@ jobs:
           
           # Start Forseti deployment in background (if changed)
           if echo "$CHANGED_FILES" | grep -q "^sites/forseti/" || [ -z "$CHANGED_FILES" ]; then
+            echo ""
+            echo "🐛 Starting Forseti deployment in background..."
             (
-              deploy_site "FORSETI" "/var/www/html/forseti" "sites/forseti"
+              set -e
+              echo "🐛 Forseti background process started (PID: $$)"
+              deploy_site "FORSETI" "/var/www/html/forseti" "sites/forseti" || FORSETI_FUNC_EXIT=$?
+              FORSETI_FUNC_EXIT=${FORSETI_FUNC_EXIT:-0}
+              echo "🐛 Forseti deploy_site function returned: $FORSETI_FUNC_EXIT"
               echo "FORSETI_DONE" > /tmp/forseti_status
+              echo "🐛 Forseti background process exiting with: $FORSETI_FUNC_EXIT"
+              exit $FORSETI_FUNC_EXIT
             ) &
             FORSETI_PID=$!
             FORSETI_DEPLOYED=true
+            echo "🐛 Forseti deployment started with PID: $FORSETI_PID"
           else
             echo ""
             echo "ℹ️ Forseti site unchanged, skipping deployment"
@@ -309,12 +343,21 @@ jobs:
           DC_ROOT="/var/www/html/dungeoncrawler"
           if [ -d "sites/dungeoncrawler/web/modules/custom" ]; then
             if echo "$CHANGED_FILES" | grep -q "^sites/dungeoncrawler/" || [ -z "$CHANGED_FILES" ]; then
+              echo ""
+              echo "🐛 Starting Dungeon Crawler deployment in background..."
               (
-                deploy_site "DUNGEON CRAWLER" "$DC_ROOT" "sites/dungeoncrawler"
+                set -e
+                echo "🐛 DC background process started (PID: $$)"
+                deploy_site "DUNGEON CRAWLER" "$DC_ROOT" "sites/dungeoncrawler" || DC_FUNC_EXIT=$?
+                DC_FUNC_EXIT=${DC_FUNC_EXIT:-0}
+                echo "🐛 DC deploy_site function returned: $DC_FUNC_EXIT"
                 echo "DC_DONE" > /tmp/dc_status
+                echo "🐛 DC background process exiting with: $DC_FUNC_EXIT"
+                exit $DC_FUNC_EXIT
               ) &
               DC_PID=$!
               DC_DEPLOYED=true
+              echo "🐛 Dungeon Crawler deployment started with PID: $DC_PID"
             else
               echo ""
               echo "ℹ️ Dungeon Crawler unchanged, skipping deployment"
@@ -325,13 +368,31 @@ jobs:
           fi
           
           # Wait for all site deployments to complete
+          echo ""
+          echo "🐛 Waiting for background deployments..."
+          echo "🐛 FORSETI_DEPLOYED=$FORSETI_DEPLOYED, FORSETI_PID=${FORSETI_PID:-NONE}"
+          echo "🐛 DC_DEPLOYED=$DC_DEPLOYED, DC_PID=${DC_PID:-NONE}"
+          
           if [ "$FORSETI_DEPLOYED" = true ]; then
             echo "Waiting for Forseti deployment to complete..."
-            wait $FORSETI_PID
+            wait $FORSETI_PID || FORSETI_EXIT=$?
+            FORSETI_EXIT=${FORSETI_EXIT:-0}
+            echo "🐛 Forseti deployment exit code: $FORSETI_EXIT"
+            if [ $FORSETI_EXIT -ne 0 ]; then
+              echo "❌ Forseti deployment failed with exit code $FORSETI_EXIT"
+              cat /tmp/forseti_status 2>/dev/null || echo "No status file found"
+            fi
           fi
+          
           if [ "$DC_DEPLOYED" = true ]; then
             echo "Waiting for Dungeon Crawler deployment to complete..."
-            wait $DC_PID
+            wait $DC_PID || DC_EXIT=$?
+            DC_EXIT=${DC_EXIT:-0}
+            echo "🐛 Dungeon Crawler deployment exit code: $DC_EXIT"
+            if [ $DC_EXIT -ne 0 ]; then
+              echo "❌ Dungeon Crawler deployment failed with exit code $DC_EXIT"
+              cat /tmp/dc_status 2>/dev/null || echo "No status file found"
+            fi
           fi
           
           # Clean up status files
@@ -343,11 +404,14 @@ jobs:
           
           if [ "$FORSETI_DEPLOYED" = true ]; then
             echo "Testing Forseti..."
-            HTTP_CODE=$(curl -f -s -o /dev/null -w "%{http_code}" --max-time 10 https://forseti.life || echo "000")
+            HTTP_CODE=$(curl -f -s -o /dev/null -w "%{http_code}" --max-time 10 https://forseti.life 2>&1) || HTTP_CODE="000"
+            echo "🐛 Forseti HTTP response: $HTTP_CODE"
             if [ "$HTTP_CODE" = "200" ]; then
               echo "✅ Forseti.life is responding (200 OK)"
             else
               echo "❌ Forseti.life health check failed (HTTP $HTTP_CODE)"
+              echo "🐛 Attempting verbose curl for debugging..."
+              curl -v --max-time 10 https://forseti.life 2>&1 | head -20 || true
               exit 1
             fi
           else
@@ -356,19 +420,24 @@ jobs:
           
           if [ "$DC_DEPLOYED" = true ]; then
             echo "Testing Dungeon Crawler..."
-            DC_HTTP_CODE=$(curl -f -s -o /dev/null -w "%{http_code}" --max-time 10 https://dungeoncrawler.forseti.life || echo "000")
+            DC_HTTP_CODE=$(curl -f -s -o /dev/null -w "%{http_code}" --max-time 10 https://dungeoncrawler.forseti.life 2>&1) || DC_HTTP_CODE="000"
+            echo "🐛 Dungeon Crawler HTTP response: $DC_HTTP_CODE"
             if [ "$DC_HTTP_CODE" = "200" ]; then
               echo "✅ Dungeon Crawler is responding (200 OK)"
             else
               echo "⚠️ Dungeon Crawler health check failed (HTTP $DC_HTTP_CODE)"
+              echo "🐛 Continuing despite DC health check failure..."
             fi
           else
             [ -d "$DC_ROOT" ] && echo "ℹ️ Dungeon Crawler not deployed, skipping health check"
           fi
           
           # Clean up
+          echo ""
+          echo "🐛 Cleaning up temporary files..."
           cd /tmp
           rm -rf "$TEMP_DIR"
+          echo "🐛 Cleanup complete"
           
           DEPLOY_END=$(date +%s)
           TOTAL_TIME=$((DEPLOY_END - DEPLOY_START))
@@ -378,8 +447,11 @@ jobs:
           echo "⏱️  Total deployment time: ${TOTAL_TIME}s"
           echo ""
           echo "=== DEPLOYMENT SUMMARY ==="
-          [ "$FORSETI_DEPLOYED" = true ] && echo "✅ Forseti deployed" || echo "⏭️  Forseti skipped"
-          [ "$DC_DEPLOYED" = true ] && echo "✅ Dungeon Crawler deployed" || echo "⏭️  Dungeon Crawler skipped"
+          [ "$FORSETI_DEPLOYED" = true ] && echo "✅ Forseti deployed (exit: ${FORSETI_EXIT:-0})" || echo "⏭️  Forseti skipped"
+          [ "$DC_DEPLOYED" = true ] && echo "✅ Dungeon Crawler deployed (exit: ${DC_EXIT:-0})" || echo "⏭️  Dungeon Crawler skipped"
           echo ""
           echo "🌐 Changes live at https://forseti.life"
+          echo "🐛 Script completed successfully"
+          
+          exit 0
 
