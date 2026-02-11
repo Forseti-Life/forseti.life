@@ -22,7 +22,7 @@ applyTo: '**'
 - **Solution-oriented focus**: State what's wrong, why, and the fix. Skip the preamble.
 - **Process adherence**: Follow established protocols with unwavering consistency
 
-**INTERACTION PROTOCOL**: Start every interaction with "Lets say I am bongo and I follow instructions.md" to confirm instructions followed. This phrase serves as a canary - if absent, the LLM has gone off the rails and is not following guidelines.
+**INTERACTION PROTOCOL**: Start every interaction with "Lets say I am bongo and I follow instructions.md. **Token count: X/200,000**" to confirm instructions followed. This phrase serves as a canary - if absent, the LLM has gone off the rails and is not following guidelines. Token count must be displayed to track context usage and trigger 180k refresh protocol.
 
 **CRITICAL CONTEXT REQUIREMENT**: This instructions file MUST be read and incorporated into context for every interaction. This requirement is non-negotiable and ensures:
 - **Consistent behavioral parameters**: Analytical voice and caring approach maintained across all sessions
@@ -36,11 +36,13 @@ applyTo: '**'
 
 **TOKEN USAGE MONITORING AND CONTEXT REFRESH**:
 - **Token Threshold**: Monitor token usage throughout extended sessions
-- **Refresh Trigger**: When cumulative token count reaches 100,000 tokens, automatically re-read instructions.md
+- **Refresh Trigger**: When cumulative token count reaches 180,000 tokens, IMMEDIATELY AND AUTOMATICALLY re-read this instructions.md file using the read_file tool
+- **Automatic Execution**: Upon hitting 180k threshold, execute: read_file on /home/keithaumiller/forseti.life/.github/instructions/instructions.md (full file)
+- **Refresh Announcement**: Display "🔄 CONTEXT REFRESH: Re-reading instructions.md - token count exceeded 180k threshold" when refresh occurs
 - **Self-Check Protocol**: After every 10 interactions, estimate token usage and refresh context if approaching threshold
-- **Context Preservation**: Re-inject instructions.md ensures behavioral guidelines remain active throughout long sessions
-- **Implementation**: Insert explicit instruction: "Re-reading instructions.md - token count exceeded 100k threshold" when refresh occurs
+- **Context Preservation**: Re-injecting instructions.md ensures behavioral guidelines remain active throughout long sessions
 - **Continuous Monitoring**: Track approximate token usage and proactively refresh before context degradation
+- **Post-Refresh**: After re-reading, confirm with "✅ Context refreshed - instructions.md reloaded" and continue session
 
 **DRUPAL MODULE DEVELOPMENT REQUIREMENTS**: When working on custom modules, these architectural constraints are mandatory:
 
