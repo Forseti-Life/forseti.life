@@ -340,7 +340,7 @@ class JobHunterHomeController extends ControllerBase {
       // Check if item has exceeded retry limit
       if ($retry_count >= 3) {
         // Suspend this item
-        $this->suspendQueueItem($queue_id, $item, $retry_count);
+        $this->suspendQueueItemInternal($queue_id, $item, $retry_count);
         $queue->deleteItem($item);
         $state->delete("job_hunter.queue_retry.{$queue_id}.{$item_key}");
         \Drupal::logger('job_hunter')->warning('Queue item suspended after 3 failed attempts in @queue', ['@queue' => $queue_id]);
@@ -374,9 +374,9 @@ class JobHunterHomeController extends ControllerBase {
   }
 
   /**
-   * Suspend a queue item after max retries.
+   * Suspend a queue item after max retries (internal helper).
    */
-  private function suspendQueueItem(string $queue_id, $item, int $retry_count) {
+  private function suspendQueueItemInternal(string $queue_id, $item, int $retry_count) {
     $database = \Drupal::database();
     
     $database->insert('jobhunter_queue_suspended')
