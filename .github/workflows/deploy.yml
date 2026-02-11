@@ -123,7 +123,6 @@ jobs:
                 --exclude='node_modules' \
                 --exclude='.git' \
                 --exclude='*.scss' \
-                --exclude='src/' \
                 "${SITE_PATH}/web/modules/custom/" "${SITE_ROOT}/web/modules/custom/" | grep -E "(JobHunter|sending|total size|^>)" | head -50
               MODULES_DEPLOYED=true
               
@@ -140,7 +139,6 @@ jobs:
                 --exclude='node_modules' \
                 --exclude='.git' \
                 --exclude='*.scss' \
-                --exclude='src/' \
                 "${SITE_PATH}/web/themes/custom/" "${SITE_ROOT}/web/themes/custom/"
               THEMES_DEPLOYED=true
               echo "✅ Themes deployed"
