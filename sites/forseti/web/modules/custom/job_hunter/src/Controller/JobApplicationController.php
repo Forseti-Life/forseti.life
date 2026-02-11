@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  * Provides route responses for the Job Application Automation module.
  */
 class JobApplicationController extends ControllerBase {
+  use JobHunterControllerTrait;
 
   /**
    * Returns a simple homepage for authenticated users.
@@ -42,11 +43,6 @@ class JobApplicationController extends ControllerBase {
       return new RedirectResponse($url->toString());
     }
     
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-    
     // Build dashboard content directly
     $content = [];
     $content['#attached']['library'][] = 'job_hunter/job-hunter-home';
@@ -67,14 +63,7 @@ class JobApplicationController extends ControllerBase {
       $content = $this->buildUnauthenticatedView($content);
     }
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content, ['job_hunter/job-hunter-home']);
   }
 
   /**
@@ -87,23 +76,11 @@ class JobApplicationController extends ControllerBase {
    *   A renderable array for the job application view.
    */
   public function view($job_application) {
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-    
     $content = [
       '#markup' => '<h2>Job Application View</h2><p>Details for job application ID: ' . $job_application . '</p>',
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content);
   }
 
   /**
@@ -426,11 +403,6 @@ class JobApplicationController extends ControllerBase {
    * Manage target companies.
    */
   public function manageTargetCompanies() {
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-    
     $database = \Drupal::database();
     
     // Query companies from jobhunter_companies table
@@ -707,14 +679,7 @@ class JobApplicationController extends ControllerBase {
       'target_companies_js',
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content);
   }
 
   /**
@@ -823,19 +788,7 @@ class JobApplicationController extends ControllerBase {
       ];
     }
 
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-    
-    // Wrap with navigation
-    $wrapper = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $build,
-    ];
-
-    return $wrapper;
+    return $this->wrapWithNavigation($build);
   }
 
   /**
@@ -1057,11 +1010,6 @@ class JobApplicationController extends ControllerBase {
    *   A renderable array for the job discovery page.
    */
   public function jobDiscovery() {
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-    
     // Load user profile data for pre-filling search form
     $current_user = \Drupal::currentUser();
     $connection = \Drupal::database();
@@ -1480,20 +1428,7 @@ class JobApplicationController extends ControllerBase {
       ],
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-      '#attached' => [
-        'library' => [
-          'job_hunter/job-hunter-navigation',
-          'job_hunter/job-hunter-home',
-        ],
-      ],
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content);
   }
 
   /**
@@ -2021,11 +1956,6 @@ class JobApplicationController extends ControllerBase {
     $search_summary .= '<span class="search-param"><strong>Sources:</strong> ' . htmlspecialchars(implode(', ', array_map('ucfirst', $sources))) . '</span>';
     $search_summary .= '</div>';
     
-    // Render navigation
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-    
     $content = [
       '#type' => 'container',
       '#attributes' => ['class' => ['job-search-results-page']],
@@ -2101,20 +2031,7 @@ class JobApplicationController extends ControllerBase {
       ],
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-      '#attached' => [
-        'library' => [
-          'job_hunter/job-hunter-navigation',
-          'job_hunter/job-hunter-home',
-        ],
-      ],
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content);
   }
   
   /**
@@ -2143,11 +2060,6 @@ class JobApplicationController extends ControllerBase {
    *   A renderable array for the application submission page.
    */
   public function applicationSubmission() {
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-    
     $content = [
       '#type' => 'container',
       '#attributes' => ['class' => ['application-submission-page']],
@@ -2169,20 +2081,7 @@ class JobApplicationController extends ControllerBase {
       ],
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-      '#attached' => [
-        'library' => [
-          'job_hunter/job-hunter-navigation',
-          'job_hunter/job-hunter-home',
-        ],
-      ],
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content);
   }
 
   /**
@@ -2192,11 +2091,6 @@ class JobApplicationController extends ControllerBase {
    *   A renderable array for the interview and follow-up page.
    */
   public function interviewFollowup() {
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-    
     $content = [
       '#type' => 'container',
       '#attributes' => ['class' => ['interview-followup-page']],
@@ -2218,20 +2112,7 @@ class JobApplicationController extends ControllerBase {
       ],
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-      '#attached' => [
-        'library' => [
-          'job_hunter/job-hunter-navigation',
-          'job_hunter/job-hunter-home',
-        ],
-      ],
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content);
   }
 
   /**
@@ -2241,11 +2122,6 @@ class JobApplicationController extends ControllerBase {
    *   A renderable array for the analytics page.
    */
   public function analytics() {
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-    
     $content = [
       '#type' => 'container',
       '#attributes' => ['class' => ['analytics-page']],
@@ -2267,20 +2143,7 @@ class JobApplicationController extends ControllerBase {
       ],
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-      '#attached' => [
-        'library' => [
-          'job_hunter/job-hunter-navigation',
-          'job_hunter/job-hunter-home',
-        ],
-      ],
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content);
   }
 
 }

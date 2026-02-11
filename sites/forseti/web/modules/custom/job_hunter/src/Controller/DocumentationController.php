@@ -10,6 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
  * Controller for documentation pages.
  */
 class DocumentationController extends ControllerBase {
+  use JobHunterControllerTrait;
 
   /**
    * Documentation home page.
@@ -56,12 +57,6 @@ class DocumentationController extends ControllerBase {
       ];
     }
     
-    // Get navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $config = [];
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', $config);
-    $navigation = $plugin_block->build();
-    
     $content = [
       '#theme' => 'documentation_home',
       '#doc_links' => $doc_links,
@@ -73,13 +68,7 @@ class DocumentationController extends ControllerBase {
       ],
     ];
     
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation,
-      '#content' => $content,
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content, ['job_hunter/documentation']);
   }
 
   /**
@@ -119,12 +108,6 @@ class DocumentationController extends ControllerBase {
     $deployed_at = $state->get('job_hunter.deployed_at', 'Unknown');
     $deploy_timestamp = is_numeric($deployed_at) ? date('Y-m-d H:i:s T', $deployed_at) : $deployed_at;
     $deploy_date = is_numeric($deployed_at) ? date('M j, Y', $deployed_at) : 'Unknown';
-    
-    // Get navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $config = [];
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', $config);
-    $navigation = $plugin_block->build();
     
     // Build collapsible version accordion
     $unique_id = 'version-info-' . uniqid();
@@ -183,13 +166,7 @@ class DocumentationController extends ControllerBase {
       ],
     ];
     
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation,
-      '#content' => $content,
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content, ['job_hunter/documentation']);
   }
 
   /**

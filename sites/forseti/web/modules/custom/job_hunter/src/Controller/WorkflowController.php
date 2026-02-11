@@ -8,6 +8,7 @@ use Drupal\Core\Controller\ControllerBase;
  * Provides workflow management for job applications.
  */
 class WorkflowController extends ControllerBase {
+  use JobHunterControllerTrait;
 
   /**
    * Manages workflow for a job application.
@@ -19,11 +20,7 @@ class WorkflowController extends ControllerBase {
    *   A renderable array for workflow management.
    */
   public function manage($job_application) {
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-    
+
     $content = [];
     
     // Header section
@@ -75,14 +72,7 @@ class WorkflowController extends ControllerBase {
                    </div>',
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content);
   }
 
 }

@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Request;
  * Controller for Job Hunter home page.
  */
 class JobHunterHomeController extends ControllerBase {
+  use JobHunterControllerTrait;
 
   /**
    * Queue definitions with display names and descriptions.
@@ -492,11 +493,6 @@ class JobHunterHomeController extends ControllerBase {
     // Check database table health
     $table_health = $this->checkTableHealth();
     
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-    
     // Build content
     $content = [
       '#theme' => 'job_hunter_queue_management',
@@ -515,14 +511,10 @@ class JobHunterHomeController extends ControllerBase {
       ],
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content, [
+      'job_hunter/queue-management',
+      'job_hunter/queue-controls',
+    ]);
   }
 
   /**

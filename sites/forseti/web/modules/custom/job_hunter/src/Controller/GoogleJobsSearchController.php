@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
  * Controller for Google Jobs search via Cloud Talent Solution API.
  */
 class GoogleJobsSearchController extends ControllerBase {
-
+  use JobHunterControllerTrait;
   use JobHunterLoggerTrait;
 
   /**
@@ -61,11 +61,7 @@ class GoogleJobsSearchController extends ControllerBase {
    *   Render array for the page.
    */
   public function searchPage() {
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-    
+
     $content = [
       '#theme' => 'google_jobs_search',
       '#attached' => [
@@ -75,14 +71,7 @@ class GoogleJobsSearchController extends ControllerBase {
       ],
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content, ['job_hunter/google_jobs_search']);
   }
 
   /**

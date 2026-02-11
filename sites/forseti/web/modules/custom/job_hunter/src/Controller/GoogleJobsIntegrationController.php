@@ -17,6 +17,7 @@ use Symfony\Component\HttpFoundation\Request;
  * via Schema.org JobPosting structured data.
  */
 class GoogleJobsIntegrationController extends ControllerBase {
+  use JobHunterControllerTrait;
 
   /**
    * The database connection.
@@ -67,11 +68,6 @@ class GoogleJobsIntegrationController extends ControllerBase {
     
     // Get recent job postings with sync status
     $recent_jobs = $this->getRecentJobsWithSyncStatus(10);
-    
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
     
     // Build content
     $content = [
@@ -269,11 +265,6 @@ class GoogleJobsIntegrationController extends ControllerBase {
       $sync_validation_errors = json_decode($sync->validation_errors, TRUE) ?: [];
     }
 
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-
     // Build content
     $content = [
       '#theme' => 'google_jobs_job_detail',
@@ -289,14 +280,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
       ],
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content, ['job_hunter/google_jobs_integration']);
   }
 
   /**

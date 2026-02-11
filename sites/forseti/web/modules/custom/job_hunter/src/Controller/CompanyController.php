@@ -11,17 +11,13 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  * Controller for company and job requirement management.
  */
 class CompanyController extends ControllerBase {
+  use JobHunterControllerTrait;
 
   /**
    * List all companies.
    */
   public function listCompanies() {
     $database = \Drupal::database();
-    
-    // Render navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
     
     // Get all companies
     $query = $database->select('jobhunter_companies', 'c')
@@ -98,14 +94,7 @@ class CompanyController extends ControllerBase {
       ],
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content);
   }
 
   /**
@@ -136,11 +125,6 @@ class CompanyController extends ControllerBase {
     $database = \Drupal::database();
     $current_user_id = \Drupal::currentUser()->id();
     $request = \Drupal::request();
-    
-    // Render navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
     
     // Get filter parameters
     $filter_company = $request->query->get('company', '');
@@ -397,20 +381,7 @@ class CompanyController extends ControllerBase {
       'jobs_filters_styles',
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-      '#attached' => [
-        'library' => [
-          'job_hunter/job-hunter-navigation',
-          'job_hunter/job-hunter-home',
-        ],
-      ],
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content);
   }
 
   /**
@@ -434,11 +405,6 @@ class CompanyController extends ControllerBase {
    */
   public function viewJob($job_id) {
     $database = \Drupal::database();
-    
-    // Render navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
     
     // Load the job
     $job = $database->select('jobhunter_job_requirements', 'j')
@@ -794,48 +760,19 @@ class CompanyController extends ControllerBase {
       'job_view_styles',
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-      '#attached' => [
-        'library' => [
-          'job_hunter/job-hunter-navigation',
-          'job_hunter/job-hunter-home',
-        ],
-      ],
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content);
   }
 
   /**
    * Display the edit job form wrapped in navigation.
    */
   public function editJobForm($job_id) {
-    // Render navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-
     // Build the form
     $form = \Drupal::formBuilder()->getForm('Drupal\job_hunter\Form\JobRequirementForm', $job_id);
 
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $form,
-      '#attached' => [
-        'library' => [
-          'job_hunter/job-hunter-navigation',
-          'job_hunter/job-hunter-home',
-        ],
-      ],
-    ];
+    return $this->wrapWithNavigation($form);
 
-    return $build;
+    return $this->wrapWithNavigation($form);
   }
 
   /**
@@ -846,11 +783,6 @@ class CompanyController extends ControllerBase {
     
     // Get current user
     $user = $this->entityTypeManager->getStorage('user')->load($this->currentUser->id());
-    
-    // Render navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
     
     // Load the job
     $job = $database->select('jobhunter_job_requirements', 'j')
@@ -979,56 +911,20 @@ class CompanyController extends ControllerBase {
    * Display the add company form wrapped in navigation.
    */
   public function addForm($company_id = NULL) {
-    // Render navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-
     // Build the form
     $form = \Drupal::formBuilder()->getForm('Drupal\job_hunter\Form\CompanyForm', $company_id);
 
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $form,
-      '#attached' => [
-        'library' => [
-          'job_hunter/job-hunter-navigation',
-          'job_hunter/job-hunter-home',
-        ],
-      ],
-    ];
-
-    return $build;
+    return $this->wrapWithNavigation($form);
   }
 
   /**
    * Display the bulk import form wrapped in navigation.
    */
   public function bulkImportForm() {
-    // Render navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-
     // Build the form
     $form = \Drupal::formBuilder()->getForm('Drupal\job_hunter\Form\BulkCompanyImportForm');
 
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $form,
-      '#attached' => [
-        'library' => [
-          'job_hunter/job-hunter-navigation',
-          'job_hunter/job-hunter-home',
-        ],
-      ],
-    ];
-
-    return $build;
+    return $this->wrapWithNavigation($form);
   }
 
 }

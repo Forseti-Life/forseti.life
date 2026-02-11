@@ -19,6 +19,7 @@ use Drupal\job_hunter\Service\JobSeekerService;
  * Controller for user profile management functionality.
  */
 class UserProfileController extends ControllerBase {
+  use JobHunterControllerTrait;
 
   /**
    * The current user account.
@@ -120,11 +121,6 @@ class UserProfileController extends ControllerBase {
       throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException();
     }
 
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-
     $content = [];
 
     // Page header
@@ -181,14 +177,7 @@ class UserProfileController extends ControllerBase {
     $content['#theme'] = 'user_profile_dashboard';
     $content['#user'] = $user_entity;
 
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-    ];
-
-    return $build;
+    return $this->wrapWithNavigation($content, ['job_hunter/user_profile']);
   }
 
   /**
@@ -627,11 +616,6 @@ class UserProfileController extends ControllerBase {
     if (!empty($profile->consolidated_profile_json)) {
       $consolidated = json_decode($profile->consolidated_profile_json, TRUE) ?: [];
     }
-
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
     
     // Build the profile view
     $content = [
@@ -642,14 +626,7 @@ class UserProfileController extends ControllerBase {
       '#edit_url' => Url::fromRoute('job_hunter.user_profile_edit'),
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-    ];
-
-    return $build;
+    return $this->wrapWithNavigation($content);
   }
 
   /**
@@ -688,11 +665,6 @@ class UserProfileController extends ControllerBase {
     // Extract keywords from profile for preview
     $keywords = !empty($profile->skills) ? $profile->skills : [];
     
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-    
     // Build the render array for the company selection page
     $content = [
       '#theme' => 'job_discovery_company_selection',
@@ -708,14 +680,7 @@ class UserProfileController extends ControllerBase {
       ],
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-    ];
-
-    return $build;
+    return $this->wrapWithNavigation($content, ['job_hunter/job_discovery']);
   }
 
   /**
@@ -756,11 +721,6 @@ class UserProfileController extends ControllerBase {
       'field_company_ref' => $company_entity->id(),
     ]);
     
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-    
     // Build the render array for the company-specific job discovery page
     $content = [
       '#theme' => 'job_discovery_company_search',
@@ -775,14 +735,7 @@ class UserProfileController extends ControllerBase {
       ],
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-    ];
-
-    return $build;
+    return $this->wrapWithNavigation($content, ['job_hunter/job_discovery']);
   }
 
   /**
@@ -1164,11 +1117,6 @@ class UserProfileController extends ControllerBase {
     // Calculate skills gap - find job skills not in user's profile
     $skills_gap = $this->calculateSkillsGap($skills, $profile_json);
 
-    // Render the navigation block
-    $block_manager = \Drupal::service('plugin.manager.block');
-    $plugin_block = $block_manager->createInstance('job_hunter_navigation', []);
-    $navigation_block = $plugin_block->build();
-
     // Build the render array for the tailor resume page
     $content = [
       '#theme' => 'tailor_resume',
@@ -1200,14 +1148,7 @@ class UserProfileController extends ControllerBase {
       '#content' => $content,
     ];
 
-    return $build;
-  }
-
-  /**
-   * AJAX endpoint for AI resume tailoring.
-   *
-   * @return \Symfony\Component\HttpFoundation\JsonResponse
-   *   JSON response with tailored resume.
+    return $this->wrapWithNavigation($content, ['job_hunter/tailor_resume'])nse with tailored resume.
    */
   public function tailorResumeAjax() {
     try {
