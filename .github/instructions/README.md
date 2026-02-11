@@ -1,3 +1,15 @@
+Temp notes for me:
+
+on /jobhunter
+
+move the button "+ Add Job Posting" in the first "Step 2" to the second "Step 2" area and then lets simplify the whole dashboard. 
+
+I see no reason for the first section of "Step 1" "Step 2" then the rest of the steps.
+
+it seems redundant to me.
+
+
+
 # AI Instructions Directory
 
 This directory contains comprehensive development instructions and guidelines for the Forseti.life project.

@@ -154,77 +154,18 @@ class JobApplicationController extends ControllerBase {
     $build['queue_controls'] = $this->buildQueueControlsSection();
     
     // ========================================
-    // PROCESS FLOW 1: Tailored Resume
+    // Job Application Workflow
     // ========================================
-    $build['flow1_header'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'div',
-      '#attributes' => ['class' => ['flow-header', 'flow-tailored']],
-      '#value' => '<h2>📄 Tailored Resume Process</h2>
-                   <p class="flow-description">Create job-specific resumes by uploading your profile and matching to job descriptions.</p>',
-    ];
-    
-    // Step 1: Profile Setup
-    $build['tailored_step1'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['phase-section', 'phase-profile']],
-      'content' => [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['phase-content']],
-        '#value' => '<div class="step-indicator">Step 1</div>
-                     <div class="phase-info">
-                       <h3>Upload Resume & Clean Up Profile</h3>
-                       <p>Import your resume, parse it with AI, and refine your consolidated profile.</p>
-                     </div>
-                     <div class="phase-stat">
-                       <div class="stat-number">' . $profile_completion . '%</div>
-                       <div class="stat-label">Profile Complete</div>
-                     </div>
-                     <div class="phase-actions">
-                       <a href="' . $user_edit_url->toString() . '" class="phase-button primary">Edit Profile</a>
-                     </div>',
-      ],
-    ];
-    
-    // Step 2: Job Description & Tailored Resume
-    $build['tailored_step2'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['phase-section', 'phase-tailoring']],
-      'content' => [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['phase-content']],
-        '#value' => '<div class="step-indicator">Step 2</div>
-                     <div class="phase-info">
-                       <h3>Submit Job Description → Get Tailored Resume</h3>
-                       <p>Paste a job posting to generate an AI-tailored resume and downloadable PDF.</p>
-                     </div>
-                     <div class="phase-stat">
-                       <div class="stat-number">' . $saved_jobs . '</div>
-                       <div class="stat-label">Saved Jobs</div>
-                     </div>
-                     <div class="phase-actions">
-                       <a href="' . $job_paste_url->toString() . '" class="phase-button primary">+ Add Job Posting</a>
-                       <a href="' . $jobs_list_url->toString() . '" class="phase-button">View All Jobs</a>
-                     </div>',
-      ],
-    ];
-    
-    // ========================================
-    // PROCESS FLOW 2: Automated Job Applications (Future)
-    // ========================================
-    $build['flow2_header'] = [
+    $build['flow_header'] = [
       '#type' => 'html_tag',
       '#tag' => 'div',
       '#attributes' => ['class' => ['flow-header', 'flow-automated']],
-      '#value' => '<h2>🤖 Automated Job Applications</h2>
-                   <p class="flow-description">Coming soon: Automated job discovery and application submission.</p>
-                   <span class="status-badge not-implemented">Not Fully Implemented</span>',
+      '#value' => '<h2>🚀 Job Application Workflow</h2>
+                   <p class="flow-description">Streamlined process from profile setup to application tracking.</p>',
     ];
     
-    // Step 1: Profile Setup (shared with Tailored Resume process)
-    $build['automated_step1'] = [
+    // Step 1: Profile Setup
+    $build['step1'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-profile']],
       'content' => [
@@ -246,8 +187,8 @@ class JobApplicationController extends ControllerBase {
       ],
     ];
     
-    // Step 2: AI Job Discovery & Search
-    $build['automated_step2'] = [
+    // Step 2: Job Discovery & Management
+    $build['step2'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-discovery']],
       'content' => [
@@ -256,8 +197,8 @@ class JobApplicationController extends ControllerBase {
         '#attributes' => ['class' => ['phase-content']],
         '#value' => '<div class="step-indicator">Step 2</div>
                      <div class="phase-info">
-                       <h3>AI Job Discovery & Search</h3>
-                       <p>Search and discover jobs using multiple sources. Companies are automatically added to your targets when you save jobs.</p>
+                       <h3>Job Discovery & Management</h3>
+                       <p>Add jobs manually, search using AI, or paste job postings. Generate tailored resumes for each position.</p>
                      </div>
                      <div class="phase-stat">
                        <div class="stat-number">' . $saved_jobs . '</div>
@@ -265,14 +206,15 @@ class JobApplicationController extends ControllerBase {
                        <div class="stat-sublabel">' . $target_companies . ' companies tracked</div>
                      </div>
                      <div class="phase-actions">
-                       <a href="/jobhunter/job-discovery" class="phase-button primary">Search Jobs</a>
-                       <a href="/jobhunter/jobs" class="phase-button">View Saved Jobs</a>
+                       <a href="' . $job_paste_url->toString() . '" class="phase-button primary">+ Add Job Posting</a>
+                       <a href="/jobhunter/job-discovery" class="phase-button">Search Jobs</a>
+                       <a href="' . $jobs_list_url->toString() . '" class="phase-button">View All Jobs</a>
                      </div>',
       ],
     ];
     
     // Step 3: Application Submission
-    $build['automated_step3'] = [
+    $build['step3'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-submission', 'disabled']],
       'content' => [
@@ -296,7 +238,7 @@ class JobApplicationController extends ControllerBase {
     ];
     
     // Step 4: Interview & Follow-up
-    $build['automated_step4'] = [
+    $build['step4'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-interview', 'disabled']],
       'content' => [
@@ -320,14 +262,14 @@ class JobApplicationController extends ControllerBase {
     ];
     
     // Step 5: Analytics & Optimization
-    $build['automated_step5'] = [
+    $build['step5'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-analytics', 'disabled']],
       'content' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
         '#attributes' => ['class' => ['phase-content']],
-        '#value' => '<div class="step-indicator">Step 6</div>
+        '#value' => '<div class="step-indicator">Step 5</div>
                      <div class="phase-info">
                        <h3>Analytics & Optimization</h3>
                        <p>Measure success rates, identify patterns, and optimize your strategy.</p>
