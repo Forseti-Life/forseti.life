@@ -787,3 +787,27 @@ function ai_conversation_update_8006() {
   
   return t('Added debugging fields (success, error_message, prompt_preview, response_preview) to API usage tracking table for easier troubleshooting.');
 }
+/**
+ * Add operation-specific max_tokens configuration settings.
+ */
+function ai_conversation_update_8007() {
+  $config = \Drupal::configFactory()->getEditable('ai_conversation.settings');
+  
+  // Set operation-specific max_tokens if not already set
+  if (!$config->get('max_tokens_resume_tailoring')) {
+    $config->set('max_tokens_resume_tailoring', 30000);
+  }
+  if (!$config->get('max_tokens_resume_parsing')) {
+    $config->set('max_tokens_resume_parsing', 20000);
+  }
+  if (!$config->get('max_tokens_cover_letter')) {
+    $config->set('max_tokens_cover_letter', 4000);
+  }
+  if (!$config->get('max_tokens_job_parsing')) {
+    $config->set('max_tokens_job_parsing', 8000);
+  }
+  
+  $config->save();
+  
+  return t('Added operation-specific max_tokens settings: resume_tailoring=30000, resume_parsing=20000, cover_letter=4000, job_parsing=8000');
+}
