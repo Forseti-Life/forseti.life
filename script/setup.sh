@@ -922,6 +922,14 @@ else
     fi
 fi
 
+# Additional verification using Drush status (more reliable)
+if [ "$DRUPAL_INSTALLED" = false ]; then
+    if /usr/bin/php8.3 vendor/drush/drush/drush.php status 2>/dev/null | grep -q "Drupal bootstrap.*Successful"; then
+        DRUPAL_INSTALLED=true
+        print_status "Drupal bootstrap verified via Drush status"
+    fi
+fi
+
 # ------------------------------------------------------------------------------
 # 2.7 Enable Development Modules
 # ------------------------------------------------------------------------------
@@ -957,27 +965,62 @@ if [ "$DRUPAL_INSTALLED" = true ]; then
     # ------------------------------------------------------------------------------
     # 2.8 Block Placement Configuration
     # ------------------------------------------------------------------------------
-    # 2.8 Block Placement Configuration
-    # ------------------------------------------------------------------------------
     print_status "Configuring block placement..."
+    
+    # Import missing block configurations from sync directory
+    print_status "Importing block configurations from sync directory..."
+    if [ -f "../config/sync/block.block.forseti_forsetifootermenu.yml" ]; then
+        /usr/bin/php8.3 vendor/drush/drush/drush.php config:import --partial -y 2>/dev/null || true
+        print_status "Configuration import completed"
+    fi
     
     # Create temporary block placement script
     cat > "$PROJECT_DIR/temp_block_placement.php" << 'BLOCKSCRIPT'
 <?php
+// Configure main navigation block
 $main_menu_config = \Drupal::service('config.factory')->getEditable('block.block.forseti_main_menu');
 if (!$main_menu_config->isNew()) {
   $main_menu_config->set('status', true)->set('region', 'navbar_left')->set('weight', 0)->save();
   echo "Main navigation configured\n";
 }
+
+// Configure or create footer menu block
 $footer_menu_config = \Drupal::service('config.factory')->getEditable('block.block.forseti_forsetifootermenu');
 if (!$footer_menu_config->isNew()) {
-  $footer_menu_config->set('status', true)->set('region', 'footer')->set('weight', 0)->save();
-  echo "Footer menu configured\n";
+  $footer_menu_config->set('status', true)->set('region', 'footer')->set('weight', -2)->save();
+  echo "Footer menu configured (existing block)\n";
+} else {
+  // Create footer block if it doesn't exist
+  $block_storage = \Drupal::entityTypeManager()->getStorage('block');
+  $block = $block_storage->create([
+    'id' => 'forseti_forsetifootermenu',
+    'theme' => 'forseti',
+    'region' => 'footer',
+    'weight' => -2,
+    'plugin' => 'forseti_footer_menu',
+    'settings' => [
+      'id' => 'forseti_footer_menu',
+      'label' => 'Forseti Footer Menu',
+      'label_display' => 'visible',
+      'provider' => 'forseti_content',
+    ],
+    'visibility' => [],
+  ]);
+  $block->save();
+  echo "Footer menu block created\n";
 }
+
+// Disable old footer blocks if they exist
 $old_footer = \Drupal::service('config.factory')->getEditable('block.block.forseti_footer');
-if (!$old_footer->isNew()) { $old_footer->set('status', false)->save(); }
+if (!$old_footer->isNew()) { 
+  $old_footer->set('status', false)->save(); 
+  echo "Disabled old footer block\n";
+}
 $powered = \Drupal::service('config.factory')->getEditable('block.block.forseti_powered');
-if (!$powered->isNew()) { $powered->set('status', false)->save(); }
+if (!$powered->isNew()) { 
+  $powered->set('status', false)->save(); 
+  echo "Disabled powered-by block\n";
+}
 BLOCKSCRIPT
     
     # Run block placement script
@@ -1514,8 +1557,8 @@ if [ -f "vendor/drush/drush/drush.php" ]; then
         # Enable all existing custom modules (force enable to ensure they're active)
         print_status "Enabling all custom modules..."
         
-        # Enable profile module first (dependency for job_application_automation if it exists)
-        if [ -d "web/modules/custom/job_application_automation" ]; then
+        # Enable profile module first (dependency for job_hunter if it exists)
+        if [ -d "web/modules/custom/job_hunter" ]; then
             /usr/bin/php8.3 vendor/drush/drush/drush.php en profile -y 2>/dev/null || true
         fi
         
@@ -1530,9 +1573,15 @@ if [ -f "vendor/drush/drush/drush.php" ]; then
         [ -d "web/modules/custom/amisafe" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en amisafe -y 2>/dev/null && print_status "✅ amisafe enabled"
         [ -d "web/modules/custom/agent_evaluation" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en agent_evaluation -y 2>/dev/null && print_status "✅ agent_evaluation enabled"
         [ -d "web/modules/custom/forseti_content" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en forseti_content -y 2>/dev/null && print_status "✅ forseti_content enabled"
-        [ -d "web/modules/custom/stli_site_customizations" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en stli_site_customizations -y 2>/dev/null && print_status "✅ stli_site_customizations enabled"
-        [ -d "web/modules/custom/resume_tailoring" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en resume_tailoring -y 2>/dev/null && print_status "✅ resume_tailoring enabled"
-        [ -d "web/modules/custom/job_application_automation" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en job_application_automation -y 2>/dev/null && print_status "✅ job_application_automation enabled"
+        [ -d "web/modules/custom/forseti_games" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en forseti_games -y 2>/dev/null && print_status "✅ forseti_games enabled"
+        [ -d "web/modules/custom/institutional_management" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en institutional_management -y 2>/dev/null && print_status "✅ institutional_management enabled"
+        [ -d "web/modules/custom/job_hunter" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en job_hunter -y 2>/dev/null && print_status "✅ job_hunter enabled"
+        [ -d "web/modules/custom/nfr" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en nfr -y 2>/dev/null && print_status "✅ nfr enabled"
+        [ -d "web/modules/custom/safety_calculator" ] && /usr/bin/php8.3 vendor/drush/drush/drush.php en safety_calculator -y 2>/dev/null && print_status "✅ safety_calculator enabled"
+        
+        # Run database updates after enabling modules
+        print_status "Running database updates..."
+        /usr/bin/php8.3 vendor/drush/drush/drush.php updatedb -y 2>/dev/null || true
         
         print_status "✅ All available custom modules enabled"
     fi
