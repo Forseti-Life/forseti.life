@@ -148,6 +148,10 @@ class GenAiDebugController extends ControllerBase {
       'duration_ms',
       'stop_reason',
       'context_data',
+      'success',
+      'error_message',
+      'prompt_preview',
+      'response_preview',
     ]);
     $query->orderBy('timestamp', 'DESC');
     $query->range(0, $limit);
@@ -293,6 +297,10 @@ class GenAiDebugController extends ControllerBase {
       'context_data' => $context_info['data'],
       'max_tokens_used' => $context_info['max_tokens'],
       'model_id_used' => $context_info['model_id'] ?? $row->model_id,
+      'success' => $row->success ?? 1,
+      'error_message' => $row->error_message,
+      'prompt_preview' => $row->prompt_preview,
+      'response_preview' => $row->response_preview,
     ];
 
     return [
