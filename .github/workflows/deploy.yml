@@ -330,7 +330,7 @@ jobs:
               echo "=== PRODUCTION SCRIPTS DEPLOYMENT ==="
               SCRIPTS_START=$(date +%s)
               sudo mkdir -p /var/www/html/scripts
-              sudo rsync -aq script/production/ /var/www/html/scripts/
+              sudo rsync -aq --exclude='.git' --exclude='*.bak' --exclude='*~' --exclude='.DS_Store' script/production/ /var/www/html/scripts/
               sudo chmod +x /var/www/html/scripts/*.sh
               sudo chown -R root:root /var/www/html/scripts
               SCRIPT_COUNT=$(ls -1 /var/www/html/scripts/*.sh 2>/dev/null | wc -l)
