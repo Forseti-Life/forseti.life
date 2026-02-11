@@ -42,6 +42,12 @@
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
       <div>
+        <strong>Max Tokens:</strong> 
+        <span style="{% if call_data.max_tokens_used %}background: #e8f5e9; padding: 2px 8px; border-radius: 3px; font-weight: bold;{% endif %}">
+          {{ call_data.max_tokens_used|default('N/A') }}
+        </span>
+      </div>
+      <div>
         <strong>Input Tokens:</strong> <span style="color: #1976d2;">{{ call_data.input_tokens }}</span>
       </div>
       <div>

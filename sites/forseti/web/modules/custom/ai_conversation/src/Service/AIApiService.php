@@ -565,6 +565,9 @@ class AIApiService {
         $input_tokens = $this->estimateTokens($prompt);
         $output_tokens = $this->estimateTokens($ai_response);
         
+        // Add max_tokens to context_data for debugging
+        $context_data_with_config = $context_data + ['max_tokens' => $max_tokens, 'model_id' => $model_id];
+        
         // Track usage (success case)
         $this->trackApiUsage([
           'module' => $module,
@@ -574,7 +577,7 @@ class AIApiService {
           'output_tokens' => $output_tokens,
           'stop_reason' => $stop_reason,
           'duration_ms' => $duration_ms,
-          'context_data' => $context_data,
+          'context_data' => $context_data_with_config,
           'success' => TRUE,
           'prompt' => $prompt,
           'response' => $ai_response,
@@ -591,6 +594,7 @@ class AIApiService {
       }
       
       // Track failure - unexpected response format
+      $context_data_with_config = $context_data + ['max_tokens' => $max_tokens, 'model_id' => $model_id];
       $this->trackApiUsage([
         'module' => $module,
         'operation' => $operation,
@@ -599,7 +603,7 @@ class AIApiService {
         'output_tokens' => 0,
         'stop_reason' => 'error',
         'duration_ms' => $duration_ms ?? 0,
-        'context_data' => $context_data,
+        'context_data' => $context_data_with_config,
         'success' => FALSE,
         'error_message' => 'Unexpected API response format',
         'prompt' => $prompt,
@@ -614,6 +618,8 @@ class AIApiService {
       $this->logError('AWS Bedrock invocation failed: @message', ['@message' => $e->getMessage()]);
       
       // Track failure - exception
+      $max_tokens_for_error = $options['max_tokens'] ?? 8000;
+      $context_data_with_config = $context_data + ['max_tokens' => $max_tokens_for_error, 'model_id' => $options['model_id'] ?? 'anthropic.claude-3-5-sonnet-20240620-v1:0'];
       $this->trackApiUsage([
         'module' => $module,
         'operation' => $operation,
@@ -622,7 +628,7 @@ class AIApiService {
         'output_tokens' => 0,
         'stop_reason' => 'error',
         'duration_ms' => isset($start_time) ? (int)((microtime(TRUE) - $start_time) * 1000) : 0,
-        'context_data' => $context_data,
+        'context_data' => $context_data_with_config,
         'success' => FALSE,
         'error_message' => $e->getMessage(),
         'prompt' => $prompt,

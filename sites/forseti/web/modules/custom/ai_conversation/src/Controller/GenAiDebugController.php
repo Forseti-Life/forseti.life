@@ -160,8 +160,13 @@ class GenAiDebugController extends ControllerBase {
 
     // Decode context_data if it exists
     $context_data = NULL;
+    $max_tokens_used = NULL;
+    $model_id_used = NULL;
     if (!empty($row->context_data)) {
       $context_data = json_decode($row->context_data, TRUE);
+      // Extract max_tokens and model_id if available
+      $max_tokens_used = $context_data['max_tokens'] ?? NULL;
+      $model_id_used = $context_data['model_id'] ?? NULL;
     }
 
     // Pretty-print JSON responses
@@ -190,6 +195,8 @@ class GenAiDebugController extends ControllerBase {
       'response_preview' => $formatted_response,
       'context_data' => $context_data,
       'cache_hit' => $row->cache_hit ?? NULL,
+      'max_tokens_used' => $max_tokens_used,
+      'model_id_used' => $model_id_used ?? $row->model_id,
     ];
 
     return [
