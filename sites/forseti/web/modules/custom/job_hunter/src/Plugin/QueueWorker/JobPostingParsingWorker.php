@@ -316,6 +316,10 @@ PROMPT;
   private function callBedrockAndParse($prompt, $chunk_name, $job_id = 0) {
     $logger = \Drupal::logger('job_hunter');
 
+    // Get max_tokens from config (fallback to 8000 for job parsing)
+    $ai_config = $this->configFactory->get('ai_conversation.settings');
+    $max_tokens = $ai_config->get('max_tokens_job_parsing') ?? 8000;
+
     // Use centralized AIApiService
     $result = $this->aiApiService->invokeModelDirect(
       $prompt,
@@ -328,7 +332,7 @@ PROMPT;
         'item_key' => "job_posting_{$job_id}_{$chunk_name}",
       ],
       [
-        'max_tokens' => 8000,
+        'max_tokens' => $max_tokens,
       ]
     );
 

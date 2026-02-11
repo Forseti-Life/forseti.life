@@ -1488,11 +1488,16 @@ class UserProfileController extends ControllerBase {
   }
 
   /**
-   * Call the GenAI service for resume tailoring.
+   * DEPRECATED: Direct AWS Bedrock call - DO NOT USE.
+   * 
+   * This method is no longer used. Resume tailoring now happens via:
+   * - ResumeTailoringWorker queue worker (asynchronous)
+   * - AIApiService for centralized logging and caching
+   * 
+   * Kept for reference only. Remove in future cleanup.
    *
-   * Uses AWS Bedrock Claude to generate a tailored resume JSON that matches
-   * the RESUME_JSON_SCHEMA.md structure.
-   *
+   * @deprecated Use ResumeTailoringWorker queue worker instead.
+   * 
    * @param array $payload
    *   The request payload matching JOB_REQUISITION_JSON_SCHEMA.md.
    *
@@ -1500,76 +1505,11 @@ class UserProfileController extends ControllerBase {
    *   The response from GenAI with tailored_resume_json, or null on failure.
    */
   private function callGenAiTailoringService(array $payload) {
-    try {
-      // Use AWS SDK directly like ResumeTailoringManager
-      $sdk = new \Aws\Sdk([
-        'region' => 'us-west-2',
-        'version' => 'latest',
-      ]);
-      
-      $bedrock = $sdk->createBedrockRuntime();
-
-      // Build the prompt for tailored resume generation
-      $prompt = $this->buildTailoredResumePrompt($payload);
-
-      \Drupal::logger('job_hunter')->info('Calling AWS Bedrock Claude for resume tailoring');
-
-      $response = $bedrock->invokeModel([
-        'modelId' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
-        'body' => json_encode([
-          'anthropic_version' => 'bedrock-2023-05-31',
-          'max_tokens' => 150000,
-          'messages' => [
-            [
-              'role' => 'user',
-              'content' => $prompt
-            ]
-          ]
-        ])
-      ]);
-
-      $result = json_decode($response['body']->getContents(), TRUE);
-      
-      if (isset($result['content'][0]['text'])) {
-        $ai_response = $result['content'][0]['text'];
-        $stop_reason = $result['stop_reason'] ?? 'unknown';
-        
-        // Check if response was truncated
-        if ($stop_reason === 'max_tokens') {
-          \Drupal::logger('job_hunter')->error('❌ Resume tailoring hit max_tokens limit! Response truncated at @len chars.', [
-            '@len' => strlen($ai_response),
-          ]);
-          return NULL;
-        }
-        
-        // Extract JSON from response (may be wrapped in markdown code blocks)
-        $json_str = $this->extractJsonFromResponse($ai_response);
-        
-        if ($json_str) {
-          $tailored_resume = json_decode($json_str, TRUE);
-          
-          if (json_last_error() === JSON_ERROR_NONE && $tailored_resume) {
-            \Drupal::logger('job_hunter')->info('Successfully generated tailored resume JSON');
-            
-            return [
-              'tailored_resume_json' => $tailored_resume,
-              'tailoring_guidance' => $tailored_resume['tailoring_metadata']['guidance'] ?? NULL,
-            ];
-          }
-        }
-        
-        \Drupal::logger('job_hunter')->error('Failed to parse tailored resume JSON from AI response');
-        return NULL;
-      }
-      
-      \Drupal::logger('job_hunter')->error('Unexpected API response format from Bedrock');
-      return NULL;
-      
-    }
-    catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('GenAI API call failed: @error', ['@error' => $e->getMessage()]);
-      return NULL;
-    }
+    // DEPRECATED - This code path is never called.
+    // Resume tailoring is handled by ResumeTailoringWorker queue worker.
+    \Drupal::logger('job_hunter')->warning('DEPRECATED: callGenAiTailoringService() was called. This should use ResumeTailoringWorker queue worker instead.');
+    
+    throw new \Exception('Direct GenAI tailoring is deprecated. Use queue worker instead.');
   }
 
   /**

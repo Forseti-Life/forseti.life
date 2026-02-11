@@ -260,6 +260,10 @@ class CoverLetterTailoringWorker extends QueueWorkerBase implements ContainerFac
 
       $this->logInfo('🚀 Calling AWS Bedrock for cover letter generation via AIApiService');
 
+      // Get max_tokens from config (fallback to 4000 for cover letters)
+      $ai_config = $this->configFactory->get('ai_conversation.settings');
+      $max_tokens = $ai_config->get('max_tokens_cover_letter') ?? $ai_config->get('max_tokens') ?? 4000;
+
       // Use centralized AIApiService
       $result = $this->aiApiService->invokeModelDirect(
         $prompt,
@@ -272,7 +276,7 @@ class CoverLetterTailoringWorker extends QueueWorkerBase implements ContainerFac
           'item_key' => "cover_letter_{$uid}_{$job_id}",
         ],
         [
-          'max_tokens' => 4000,
+          'max_tokens' => $max_tokens,
         ]
       );
 

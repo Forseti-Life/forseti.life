@@ -23,6 +23,15 @@ ai_conversation.settings:
     max_tokens_resume_tailoring:
       type: integer
       label: 'Maximum tokens for resume tailoring operations'
+    max_tokens_resume_parsing:
+      type: integer
+      label: 'Maximum tokens for resume parsing operations'
+    max_tokens_cover_letter:
+      type: integer
+      label: 'Maximum tokens for cover letter generation'
+    max_tokens_job_parsing:
+      type: integer
+      label: 'Maximum tokens for job posting parsing'
     max_recent_messages:
       type: integer
       label: 'Maximum recent messages to keep'

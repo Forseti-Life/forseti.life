@@ -3568,47 +3568,65 @@ class UserProfileForm extends FormBase {
   }
 
   /**
-   * Call Bedrock and parse the JSON response.
+   * Call AIApiService and parse the JSON response.
    *
-   * @param object $bedrock
-   *   The Bedrock runtime client.
-   * @param string $model
-   *   The model ID.
    * @param string $prompt
    *   The prompt to send.
    * @param string $filename
    *   The source filename for logging.
    * @param string $chunk_name
    *   Name of this chunk for logging (e.g., 'core', 'experience').
+   * @param int $uid
+   *   The user ID.
+   * @param int $max_tokens
+   *   Maximum tokens for the response.
    *
    * @return array|null
    *   Parsed JSON data or null on failure.
    */
-  private function callBedrockAndParse($bedrock, $model, $prompt, $filename, $chunk_name) {
+  private function callAIApiServiceAndParse($prompt, $filename, $chunk_name, $uid, $max_tokens = 20000) {
     $logger = \Drupal::logger('job_hunter');
     
-    $result = $bedrock->invokeModel([
-      'modelId' => $model,
-      'contentType' => 'application/json',
-      'body' => json_encode([
-        'anthropic_version' => 'bedrock-2023-05-31',
-        'max_tokens' => 20000,
-        'messages' => [
-          [
-            'role' => 'user',
-            'content' => $prompt,
-          ],
-        ],
-      ]),
-    ]);
+    // Use centralized AIApiService with proper logging
+    $result = $this->aiApiService->invokeModelDirect(
+      $prompt,
+      'job_hunter',
+      'resume_parsing_quick',
+      [
+        'uid' => $uid,
+        'filename' => $filename,
+        'chunk' => $chunk_name,
+        'source' => 'profile_form_upload',
+        'item_key' => "resume_quick_parse_{$uid}_{$chunk_name}_" . md5($filename),
+      ],
+      [
+        'max_tokens' => $max_tokens,
+      ]
+    );
 
-    $response_body = json_decode($result->get('body')->getContents(), TRUE);
-    $response_text = $response_body['content'][0]['text'] ?? '';
+    if (!$result['success']) {
+      $logger->error('❌ AIApiService call failed for @chunk: @error', [
+        '@chunk' => $chunk_name,
+        '@error' => $result['error'] ?? 'Unknown error',
+      ]);
+      return NULL;
+    }
 
-    $logger->info('🔍 GenAI @chunk response: @len chars', [
+    $response_text = $result['response'];
+    $stop_reason = $result['stop_reason'];
+
+    $logger->info('🔍 GenAI @chunk response: @len chars, stop_reason: @reason', [
       '@chunk' => $chunk_name,
       '@len' => strlen($response_text),
+      '@reason' => $stop_reason,
     ]);
+
+    // Check for truncation
+    if ($stop_reason === 'max_tokens') {
+      $logger->warning('⚠️  @chunk hit max_tokens limit! Response may be incomplete.', [
+        '@chunk' => $chunk_name,
+      ]);
+    }
 
     // Extract and parse JSON
     $json_text = $this->extractJsonFromResponse($response_text);
