@@ -213,7 +213,7 @@ class GenAiDebugController extends ControllerBase {
       $this->messenger->addError($this->t('Failed to delete GenAI call: @error', ['@error' => $e->getMessage()]));
     }
     
-    return new RedirectResponse(Url::fromRoute('ai_conversation.debug_list')->toString());
+    return new RedirectResponse(Url::fromRoute('ai_conversation.genai_debug_list')->toString());
   }
 
   /**
@@ -245,7 +245,7 @@ class GenAiDebugController extends ControllerBase {
     
     // Build redirect URL with same filters
     $params = $this->buildFilterParams($module, $operation, $success, $days);
-    $url = Url::fromRoute('ai_conversation.debug_list', [], ['query' => $params]);
+    $url = Url::fromRoute('ai_conversation.genai_debug_list', [], ['query' => $params]);
     
     return new RedirectResponse($url->toString());
   }
