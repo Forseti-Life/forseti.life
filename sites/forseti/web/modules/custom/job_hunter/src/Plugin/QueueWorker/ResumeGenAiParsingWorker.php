@@ -6,6 +6,7 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\Core\Queue\SuspendQueueException;
 use Drupal\file\Entity\File;
+use Drupal\job_hunter\Traits\QueueWorkerBaseTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -20,6 +21,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * )
  */
 class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFactoryPluginInterface {
+
+  use QueueWorkerBaseTrait;
 
   /**
    * The config factory.
@@ -357,107 +360,6 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
       'parsed_data' => NULL,
       'raw_response' => $response_text,
     ];
-  }
-
-  /**
-   * Extract JSON from response.
-   */
-  private function extractJsonFromResponse($response_text) {
-    $response_text = trim($response_text);
-    
-    if (empty($response_text)) {
-      return NULL;
-    }
-
-    // Normalize responses that contain literal escape sequences (e.g. "\n")
-    // without actual newlines. This indicates the JSON was returned as a
-    // string-escaped payload and must be unescaped before decoding.
-    $has_literal_newlines = strpos($response_text, "\\n") !== FALSE;
-    $has_actual_newlines = strpos($response_text, "\n") !== FALSE;
-    if ($has_literal_newlines && !$has_actual_newlines) {
-      $response_text = stripcslashes($response_text);
-      $response_text = trim($response_text);
-      \Drupal::logger('job_hunter')->warning('🟡 Normalized escaped JSON response (literal \\n sequences detected)');
-    }
-    
-    // If the response starts with { and ends with }, try parsing it directly first
-    if ($response_text[0] === '{' && $response_text[strlen($response_text) - 1] === '}') {
-      // Test if it's valid JSON by trying to decode it
-      $test_decode = json_decode($response_text, TRUE);
-      if (json_last_error() === JSON_ERROR_NONE) {
-        return $response_text; // It's already valid JSON!
-      }
-      // Log why direct parsing failed
-      \Drupal::logger('job_hunter')->warning('🟡 Direct JSON parse failed: @error, Last 200 chars: @end', [
-        '@error' => json_last_error_msg(),
-        '@end' => substr($response_text, -200),
-      ]);
-    }
-    else {
-      // Log why we didn't try direct parsing
-      $first_char = isset($response_text[0]) ? $response_text[0] : 'EMPTY';
-      $last_char = strlen($response_text) > 0 ? $response_text[strlen($response_text) - 1] : 'EMPTY';
-      \Drupal::logger('job_hunter')->warning('🟡 Skipped direct parse. First: @first, Last: @last, Last 100 chars: @end', [
-        '@first' => $first_char,
-        '@last' => $last_char,
-        '@end' => substr($response_text, -100),
-      ]);
-    }
-    
-    // Try markdown code fence
-    if (preg_match('/```(?:json)?\s*(\{[\s\S]*?\})\s*```/s', $response_text, $matches)) {
-      return trim($matches[1]);
-    }
-    
-    // Find balanced JSON using brace counting (handles truncated responses)
-    $start_pos = strpos($response_text, '{');
-    if ($start_pos === FALSE) {
-      return NULL;
-    }
-
-    $depth = 0;
-    $in_string = FALSE;
-    $escape_next = FALSE;
-    $len = strlen($response_text);
-
-    for ($i = $start_pos; $i < $len; $i++) {
-      $char = $response_text[$i];
-
-      if ($escape_next) {
-        $escape_next = FALSE;
-        continue;
-      }
-      if ($char === '\\' && $in_string) {
-        $escape_next = TRUE;
-        continue;
-      }
-      if ($char === '"') {
-        $in_string = !$in_string;
-        continue;
-      }
-      if ($in_string) {
-        continue;
-      }
-      if ($char === '{') {
-        $depth++;
-      }
-      elseif ($char === '}') {
-        $depth--;
-        if ($depth === 0) {
-          return substr($response_text, $start_pos, $i - $start_pos + 1);
-        }
-      }
-    }
-
-    // If we got here, brace counting failed but response looks like JSON
-    // Log the final state for debugging
-    \Drupal::logger('job_hunter')->warning('🟡 Brace counting failed. Final depth: @depth, in_string: @str, last 100 chars: @end', [
-      '@depth' => $depth,
-      '@str' => $in_string ? 'YES' : 'NO',
-      '@end' => substr($response_text, -100),
-    ]);
-
-    return NULL;
   }
 
   /**

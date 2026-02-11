@@ -5,6 +5,7 @@ namespace Drupal\job_hunter\Plugin\QueueWorker;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\Core\Queue\SuspendQueueException;
+use Drupal\job_hunter\Traits\QueueWorkerBaseTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -19,6 +20,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * )
  */
 class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactoryPluginInterface {
+
+  use QueueWorkerBaseTrait;
 
   /**
    * The config factory.
@@ -367,58 +370,6 @@ PROMPT;
       $parsed_data = json_decode($json_text, TRUE);
       if (json_last_error() === JSON_ERROR_NONE && is_array($parsed_data)) {
         return $parsed_data;
-      }
-    }
-
-    return NULL;
-  }
-
-  /**
-   * Extract JSON from response.
-   */
-  private function extractJsonFromResponse($response_text) {
-    // Try markdown code fence
-    if (preg_match('/```(?:json)?\s*(\{[\s\S]*?\})\s*```/s', $response_text, $matches)) {
-      return trim($matches[1]);
-    }
-
-    // Find balanced JSON using brace counting
-    $start_pos = strpos($response_text, '{');
-    if ($start_pos === FALSE) {
-      return NULL;
-    }
-
-    $depth = 0;
-    $in_string = FALSE;
-    $escape_next = FALSE;
-    $len = strlen($response_text);
-
-    for ($i = $start_pos; $i < $len; $i++) {
-      $char = $response_text[$i];
-
-      if ($escape_next) {
-        $escape_next = FALSE;
-        continue;
-      }
-      if ($char === '\\' && $in_string) {
-        $escape_next = TRUE;
-        continue;
-      }
-      if ($char === '"') {
-        $in_string = !$in_string;
-        continue;
-      }
-      if ($in_string) {
-        continue;
-      }
-      if ($char === '{') {
-        $depth++;
-      }
-      elseif ($char === '}') {
-        $depth--;
-        if ($depth === 0) {
-          return substr($response_text, $start_pos, $i - $start_pos + 1);
-        }
       }
     }
 
