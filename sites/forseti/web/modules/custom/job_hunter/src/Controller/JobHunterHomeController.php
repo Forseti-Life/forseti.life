@@ -206,6 +206,7 @@ class JobHunterHomeController extends ControllerBase {
       'job_hunter_genai_parsing',
       'job_hunter_job_posting_parsing',
       'job_hunter_resume_tailoring',
+      'job_hunter_cover_letter_tailoring',
     ];
 
     foreach ($queue_order as $queue_id) {
