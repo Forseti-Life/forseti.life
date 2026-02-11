@@ -6,6 +6,7 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\Core\Queue\SuspendQueueException;
 use Drupal\job_hunter\Traits\JobHunterLoggerTrait;
+use Drupal\job_hunter\Traits\QueueWorkerBaseTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -22,6 +23,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryPluginInterface {
 
   use JobHunterLoggerTrait;
+  use QueueWorkerBaseTrait;
 
   /**
    * The config factory.
@@ -56,28 +58,24 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
     $profile_json = $data['profile_json'];
     $job_data = $data['job_data'];
 
-    $logger = \Drupal::logger('job_hunter');
-    
-    // Get username and job details for logging
-    $user = \Drupal\user\Entity\User::load($uid);
-    $username = $user ? $user->getAccountName() : "uid:$uid";
-    
-    $extracted = !empty($job_data['extracted_json']) ? json_decode($job_data['extracted_json'], TRUE) : [];
-    $company = $extracted['company_name'] ?? 'Unknown Company';
-    $job_title = $extracted['job_title'] ?? 'Unknown Position';
+    // Get logging context (username, company, job_title)
+    $context = $this->getLoggingContext($uid, $job_data);
     
     $this->logInfo('🔄 Queue: Starting resume tailoring for @username → "@title" at @company (job @job_id)', [
-      '@username' => $username,
-      '@title' => $job_title,
-      '@company' => $company,
+      '@username' => $context['username'],
+      '@title' => $context['job_title'],
+      '@company' => $context['company'],
       '@job_id' => $job_id,
     ]);
+    
+    // Parse job extracted data for payload
+    $extracted = !empty($job_data['extracted_json']) ? json_decode($job_data['extracted_json'], TRUE) : [];
 
     $connection = \Drupal::database();
 
     try {
       // Update status to processing
-      $this->updateTailoringStatus($connection, $uid, $job_id, 'processing');
+      $this->updateDatabaseStatus($connection, 'jobhunter_tailored_resumes', $uid, $job_id, 'processing');
 
       // Parse job data (extracted already parsed above for logging)
       $skills = !empty($job_data['skills_required_json']) ? json_decode($job_data['skills_required_json'], TRUE) : [];
@@ -108,92 +106,34 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
       }
 
       // Save the tailored resume
-      $now = time();
-      $existing = $connection->select('jobhunter_tailored_resumes', 'tr')
-        ->fields('tr', ['id'])
-        ->condition('uid', $uid)
-        ->condition('job_id', $job_id)
-        ->execute()
-        ->fetchField();
-
-      if ($existing) {
-        $connection->update('jobhunter_tailored_resumes')
-          ->fields([
-            'tailored_resume_json' => json_encode($tailored_result['tailored_resume_json']),
-            'tailoring_status' => 'completed',
-            'updated' => $now,
-          ])
-          ->condition('id', $existing)
-          ->execute();
-      }
-      else {
-        $connection->insert('jobhunter_tailored_resumes')
-          ->fields([
-            'uid' => $uid,
-            'job_id' => $job_id,
-            'tailored_resume_json' => json_encode($tailored_result['tailored_resume_json']),
-            'tailoring_status' => 'completed',
-            'created' => $now,
-            'updated' => $now,
-          ])
-          ->execute();
-      }
+      $this->updateDatabaseStatus(
+        $connection,
+        'jobhunter_tailored_resumes',
+        $uid,
+        $job_id,
+        'completed',
+        ['tailored_resume_json' => json_encode($tailored_result['tailored_resume_json'])]
+      );
 
       $this->logInfo('✅ Queue: Resume tailoring complete for @username → "@title" at @company (job @job_id)', [
-        '@username' => $username,
-        '@title' => $job_title,
-        '@company' => $company,
+        '@username' => $context['username'],
+        '@title' => $context['job_title'],
+        '@company' => $context['company'],
         '@job_id' => $job_id,
       ]);
 
     }
     catch (\Exception $e) {
-      $this->logError('❌ Queue: Resume tailoring failed for @username → "@title" at @company (job @job_id): @error', [
-        '@username' => $username,
-        '@title' => $job_title,
-        '@company' => $company,
-        '@job_id' => $job_id,
-        '@error' => $e->getMessage(),
-      ]);
-
-      // Update status to failed
-      $this->updateTailoringStatus($connection, $uid, $job_id, 'failed');
-
-      throw $e;
-    }
-  }
-
-  /**
-   * Update or create tailoring status record.
-   */
-  private function updateTailoringStatus($connection, $uid, $job_id, $status) {
-    $now = time();
-    $existing = $connection->select('jobhunter_tailored_resumes', 'tr')
-      ->fields('tr', ['id'])
-      ->condition('uid', $uid)
-      ->condition('job_id', $job_id)
-      ->execute()
-      ->fetchField();
-
-    if ($existing) {
-      $connection->update('jobhunter_tailored_resumes')
-        ->fields([
-          'tailoring_status' => $status,
-          'updated' => $now,
-        ])
-        ->condition('id', $existing)
-        ->execute();
-    }
-    else {
-      $connection->insert('jobhunter_tailored_resumes')
-        ->fields([
-          'uid' => $uid,
-          'job_id' => $job_id,
-          'tailoring_status' => $status,
-          'created' => $now,
-          'updated' => $now,
-        ])
-        ->execute();
+      // Use centralized exception handling
+      $this->handleQueueException(
+        $e,
+        $connection,
+        'jobhunter_tailored_resumes',
+        $uid,
+        $job_id,
+        $context,
+        'Resume tailoring'
+      );
     }
   }
 

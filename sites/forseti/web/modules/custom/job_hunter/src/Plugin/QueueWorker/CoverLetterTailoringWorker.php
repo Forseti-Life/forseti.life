@@ -6,6 +6,7 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\Core\Queue\SuspendQueueException;
 use Drupal\job_hunter\Traits\JobHunterLoggerTrait;
+use Drupal\job_hunter\Traits\QueueWorkerBaseTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -22,6 +23,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class CoverLetterTailoringWorker extends QueueWorkerBase implements ContainerFactoryPluginInterface {
 
   use JobHunterLoggerTrait;
+  use QueueWorkerBaseTrait;
 
   /**
    * The config factory.
@@ -57,20 +59,13 @@ class CoverLetterTailoringWorker extends QueueWorkerBase implements ContainerFac
     $job_data = $data['job_data'];
     $cover_letter_template = $data['cover_letter_template'] ?? '';
 
-    $logger = \Drupal::logger('job_hunter');
-    
-    // Get username and job details for logging
-    $user = \Drupal\user\Entity\User::load($uid);
-    $username = $user ? $user->getAccountName() : "uid:$uid";
-    
-    $extracted = !empty($job_data['extracted_json']) ? json_decode($job_data['extracted_json'], TRUE) : [];
-    $company = $extracted['company_name'] ?? 'Unknown Company';
-    $job_title = $extracted['job_title'] ?? 'Unknown Position';
+    // Get logging context (username, company, job_title)
+    $context = $this->getLoggingContext($uid, $job_data);
     
     $this->logInfo('✉️ Queue: Starting cover letter generation for @username → "@title" at @company (job @job_id)', [
-      '@username' => $username,
-      '@title' => $job_title,
-      '@company' => $company,
+      '@username' => $context['username'],
+      '@title' => $context['job_title'],
+      '@company' => $context['company'],
       '@job_id' => $job_id,
     ]);
     
@@ -79,12 +74,15 @@ class CoverLetterTailoringWorker extends QueueWorkerBase implements ContainerFac
     $this->logInfo('📋 Cover letter sources: template=@template', [
       '@template' => $has_template ? 'YES (' . strlen($cover_letter_template) . ' chars)' : 'NO (will generate from scratch)',
     ]);
+    
+    // Parse job extracted data for payload
+    $extracted = !empty($job_data['extracted_json']) ? json_decode($job_data['extracted_json'], TRUE) : [];
 
     $connection = \Drupal::database();
 
     try {
       // Update status to processing
-      $this->updateCoverLetterStatus($connection, $uid, $job_id, 'processing');
+      $this->updateDatabaseStatus($connection, 'jobhunter_cover_letters', $uid, $job_id, 'processing');
 
       // Parse job data
       $skills = !empty($job_data['skills_required_json']) ? json_decode($job_data['skills_required_json'], TRUE) : [];
@@ -140,97 +138,40 @@ class CoverLetterTailoringWorker extends QueueWorkerBase implements ContainerFac
       }
 
       // Save the cover letter
-      $now = time();
-      $existing = $connection->select('jobhunter_cover_letters', 'cl')
-        ->fields('cl', ['id'])
-        ->condition('uid', $uid)
-        ->condition('job_id', $job_id)
-        ->execute()
-        ->fetchField();
-
       $fields = [
         'cover_letter_text' => $cover_letter_result['cover_letter_text'],
         'cover_letter_html' => $cover_letter_result['cover_letter_html'] ?? '',
         'cover_letter_json' => isset($cover_letter_result['cover_letter_json']) ? json_encode($cover_letter_result['cover_letter_json']) : NULL,
-        'tailoring_status' => 'completed',
-        'updated' => $now,
       ];
-
-      if ($existing) {
-        $connection->update('jobhunter_cover_letters')
-          ->fields($fields)
-          ->condition('id', $existing)
-          ->execute();
-      }
-      else {
-        $fields['uid'] = $uid;
-        $fields['job_id'] = $job_id;
-        $fields['created'] = $now;
-        
-        $connection->insert('jobhunter_cover_letters')
-          ->fields($fields)
-          ->execute();
-      }
+      
+      $this->updateDatabaseStatus(
+        $connection,
+        'jobhunter_cover_letters',
+        $uid,
+        $job_id,
+        'completed',
+        $fields
+      );
 
       $this->logInfo('✅ Queue: Cover letter generation complete for @username → "@title" at @company (job @job_id)', [
-        '@username' => $username,
-        '@title' => $job_title,
-        '@company' => $company,
+        '@username' => $context['username'],
+        '@title' => $context['job_title'],
+        '@company' => $context['company'],
         '@job_id' => $job_id,
       ]);
 
     }
     catch (\Exception $e) {
-      $this->logError('❌ Queue: Cover letter generation failed for @username → "@title" at @company (job @job_id): @error', [
-        '@username' => $username,
-        '@title' => $job_title,
-        '@company' => $company,
-        '@job_id' => $job_id,
-        '@error' => $e->getMessage(),
-      ]);
-
-      // Update status to failed
-      $this->updateCoverLetterStatus($connection, $uid, $job_id, 'failed', $e->getMessage());
-
-      throw $e;
-    }
-  }
-
-  /**
-   * Update or create cover letter status record.
-   */
-  private function updateCoverLetterStatus($connection, $uid, $job_id, $status, $error_message = NULL) {
-    $now = time();
-    $existing = $connection->select('jobhunter_cover_letters', 'cl')
-      ->fields('cl', ['id'])
-      ->condition('uid', $uid)
-      ->condition('job_id', $job_id)
-      ->execute()
-      ->fetchField();
-
-    $fields = [
-      'tailoring_status' => $status,
-      'updated' => $now,
-    ];
-    
-    if ($error_message) {
-      $fields['error_message'] = $error_message;
-    }
-
-    if ($existing) {
-      $connection->update('jobhunter_cover_letters')
-        ->fields($fields)
-        ->condition('id', $existing)
-        ->execute();
-    }
-    else {
-      $fields['uid'] = $uid;
-      $fields['job_id'] = $job_id;
-      $fields['created'] = $now;
-      
-      $connection->insert('jobhunter_cover_letters')
-        ->fields($fields)
-        ->execute();
+      // Use centralized exception handling
+      $this->handleQueueException(
+        $e,
+        $connection,
+        'jobhunter_cover_letters',
+        $uid,
+        $job_id,
+        $context,
+        'Cover letter generation'
+      );
     }
   }
 
