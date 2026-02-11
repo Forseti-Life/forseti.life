@@ -2,7 +2,7 @@ name: 'Job Hunter'
 type: module
 description: 'AI-powered job application automation with comprehensive job tracking, application workflow, and external service integration. SAFE UNINSTALL: Preserves all content and fields during uninstallation.'
 core_version_requirement: ^10 || ^11
-version: '1.0.0'
+version: '1.0.1'
 package: 'St. Louis Integration'
 
 dependencies:

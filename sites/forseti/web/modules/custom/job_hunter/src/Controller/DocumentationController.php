@@ -110,6 +110,15 @@ class DocumentationController extends ControllerBase {
     // For a more robust solution, consider using a library like league/commonmark
     $html_content = $this->convertMarkdownToHtml($markdown_content);
     
+    // Get module version info
+    $module_info = \Drupal::service('extension.list.module')->getExtensionInfo('job_hunter');
+    $version = $module_info['version'] ?? '1.0.0';
+    
+    // Get deployment timestamp (use state API to track)
+    $state = \Drupal::state();
+    $deployed_at = $state->get('job_hunter.deployed_at', 'Unknown');
+    $deploy_timestamp = is_numeric($deployed_at) ? date('Y-m-d H:i:s T', $deployed_at) : $deployed_at;
+    
     // Get navigation block
     $block_manager = \Drupal::service('plugin.manager.block');
     $config = [];
@@ -121,6 +130,9 @@ class DocumentationController extends ControllerBase {
       '#attributes' => ['class' => ['documentation-content']],
       'breadcrumb' => [
         '#markup' => '<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="' . Url::fromRoute('job_hunter.documentation')->toString() . '">Documentation</a></li><li class="breadcrumb-item active" aria-current="page">' . basename($file, '.md') . '</li></ol></nav>',
+      ],
+      'version_info' => [
+        '#markup' => '<div class="alert alert-info" style="margin: 15px 0;"><strong>📦 Version:</strong> ' . $version . ' <span style="margin-left: 20px;"><strong>🚀 Deployed:</strong> ' . $deploy_timestamp . '</span></div>',
       ],
       'content' => [
         '#markup' => $html_content,

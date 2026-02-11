@@ -20,6 +20,9 @@ ai_conversation.settings:
     max_tokens:
       type: integer
       label: 'Maximum tokens per response'
+    max_tokens_resume_tailoring:
+      type: integer
+      label: 'Maximum tokens for resume tailoring operations'
     max_recent_messages:
       type: integer
       label: 'Maximum recent messages to keep'

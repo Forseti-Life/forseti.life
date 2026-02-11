@@ -1294,3 +1294,13 @@ function job_hunter_update_9020() {
   _job_hunter_create_cover_letters_table();
   return t('Created jobhunter_cover_letters table for cover letter generation and storage.');
 }
+
+/**
+ * Record deployment timestamp for version tracking.
+ */
+function job_hunter_update_9021() {
+  $state = \Drupal::state();
+  $state->set('job_hunter.deployed_at', time());
+  $state->set('job_hunter.version', '1.0.1');
+  return t('Recorded deployment timestamp for version tracking in documentation.');
+}

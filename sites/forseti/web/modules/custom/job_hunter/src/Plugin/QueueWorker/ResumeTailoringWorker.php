@@ -206,6 +206,10 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
 
       $this->logInfo('Queue: Calling AWS Bedrock Claude for resume tailoring via AIApiService');
 
+      // Get max_tokens from config (fallback to 8000 for resume tailoring)
+      $ai_config = $this->configFactory->get('ai_conversation.settings');
+      $max_tokens = $ai_config->get('max_tokens_resume_tailoring') ?? $ai_config->get('max_tokens') ?? 8000;
+
       // Use centralized AIApiService (with automatic caching)
       $result = $this->aiApiService->invokeModelDirect(
         $prompt,
@@ -218,7 +222,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
           'item_key' => "resume_tailoring_{$uid}_{$job_id}",
         ],
         [
-          'max_tokens' => 8000,
+          'max_tokens' => $max_tokens,
         ]
       );
 
