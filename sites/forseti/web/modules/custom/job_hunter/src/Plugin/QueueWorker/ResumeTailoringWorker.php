@@ -221,6 +221,26 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
         $ai_response = $result['content'][0]['text'];
         $stop_reason = $result['stop_reason'] ?? 'unknown';
         
+        // 🔍 VERBOSE: Log raw response statistics
+        $response_length = strlen($ai_response);
+        $first_char = substr($ai_response, 0, 1);
+        $last_char = substr($ai_response, -1);
+        $has_opening_brace = strpos($ai_response, '{') !== FALSE;
+        $has_closing_brace = strpos($ai_response, '}') !== FALSE;
+        $opening_brace_pos = strpos($ai_response, '{');
+        $closing_brace_pos = strrpos($ai_response, '}');
+        
+        $this->logInfo('🔍 RAW AI RESPONSE: length=@len, stop_reason=@reason, first_char="@first", last_char="@last", has_braces={@open:YES/NO @close:YES/NO}, brace_positions={open:@opos close:@cpos}', [
+          '@len' => $response_length,
+          '@reason' => $stop_reason,
+          '@first' => $first_char,
+          '@last' => $last_char,
+          '@open' => $has_opening_brace ? 'YES' : 'NO',
+          '@close' => $has_closing_brace ? 'YES' : 'NO',
+          '@opos' => $opening_brace_pos !== FALSE ? $opening_brace_pos : 'NONE',
+          '@cpos' => $closing_brace_pos !== FALSE ? $closing_brace_pos : 'NONE',
+        ]);
+        
         // Check if response was truncated due to max_tokens limit
         if ($stop_reason === 'max_tokens') {
           $this->logError('❌ Resume tailoring hit max_tokens limit! Response truncated at @len chars. The response is incomplete and cannot be parsed. Consider simplifying the resume or increasing max_tokens further.', [
@@ -230,19 +250,37 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
           return NULL;
         }
         
-        // Debug: Log first 500 chars of response
-        $this->logInfo('Queue: AI response preview (stop_reason: @reason): @preview', [
-          '@reason' => $stop_reason,
+        // Debug: Log first 500 chars and last 200 chars of response
+        $this->logInfo('🔍 AI RESPONSE PREVIEW (first 500 chars): @preview', [
           '@preview' => substr($ai_response, 0, 500),
         ]);
+        $this->logInfo('🔍 AI RESPONSE TAIL (last 200 chars): @tail', [
+          '@tail' => substr($ai_response, -200),
+        ]);
         
+        $this->logInfo('🔍 CALLING extractJsonFromResponse with @len char response', ['@len' => strlen($ai_response)]);
         $json_str = $this->extractJsonFromResponse($ai_response);
 
         if ($json_str) {
+          $this->logInfo('🔍 extractJsonFromResponse RETURNED: length=@len, first_100="@preview", last_100="@tail"', [
+            '@len' => strlen($json_str),
+            '@preview' => substr($json_str, 0, 100),
+            '@tail' => substr($json_str, -100),
+          ]);
+          
+          $this->logInfo('🔍 ATTEMPTING json_decode on extracted string...');
           $tailored_resume = json_decode($json_str, TRUE);
+          $json_error = json_last_error();
+          $json_error_msg = json_last_error_msg();
+          
+          $this->logInfo('🔍 json_decode RESULT: error_code=@code, error_msg="@msg", is_array=@is_array', [
+            '@code' => $json_error,
+            '@msg' => $json_error_msg,
+            '@is_array' => is_array($tailored_resume) ? 'YES' : 'NO',
+          ]);
 
-          if (json_last_error() === JSON_ERROR_NONE && $tailored_resume) {
-            $this->logInfo('Queue: Successfully generated tailored resume JSON');
+          if ($json_error === JSON_ERROR_NONE && $tailored_resume) {
+            $this->logInfo('✅ Successfully generated tailored resume JSON');
 
             return [
               'tailored_resume_json' => $tailored_resume,
@@ -250,13 +288,15 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
             ];
           }
           
-          // Log JSON parse error
-          $this->logError('Queue: JSON parse error: @error', [
-            '@error' => json_last_error_msg(),
+          // Log JSON parse error with context
+          $this->logError('❌ JSON parse error: @error (code: @code). Extracted JSON length: @len', [
+            '@error' => $json_error_msg,
+            '@code' => $json_error,
+            '@len' => strlen($json_str),
           ]);
         }
         else {
-          $this->logError('Queue: extractJsonFromResponse returned null. Response length: @len', [
+          $this->logError('❌ extractJsonFromResponse returned NULL. Original response length: @len', [
             '@len' => strlen($ai_response),
           ]);
         }
@@ -390,8 +430,12 @@ PROMPT;
    */
   private function extractJsonFromResponse($response) {
     $response_text = trim($response);
+    $original_length = strlen($response_text);
+    
+    \Drupal::logger('job_hunter')->info('🔍 extractJsonFromResponse START: input_length=@len', ['@len' => $original_length]);
     
     if (empty($response_text)) {
+      \Drupal::logger('job_hunter')->error('❌ extractJsonFromResponse: Empty response after trim');
       return NULL;
     }
 
@@ -402,60 +446,119 @@ PROMPT;
     $has_literal_tabs = strpos($response_text, "\\t") !== FALSE;
     $has_actual_newlines = strpos($response_text, "\n") !== FALSE;
     
+    \Drupal::logger('job_hunter')->info('🔍 ESCAPE DETECTION: literal_newlines=@ln, literal_quotes=@lq, literal_tabs=@lt, actual_newlines=@an', [
+      '@ln' => $has_literal_newlines ? 'YES' : 'NO',
+      '@lq' => $has_literal_quotes ? 'YES' : 'NO',
+      '@lt' => $has_literal_tabs ? 'YES' : 'NO',
+      '@an' => $has_actual_newlines ? 'YES' : 'NO',
+    ]);
+    
     // If we have literal escapes without actual whitespace, the response is string-escaped
     if ($has_literal_newlines || $has_literal_quotes || $has_literal_tabs) {
+      $before_length = strlen($response_text);
       $response_text = stripcslashes($response_text);
       $response_text = trim($response_text);
-      \Drupal::logger('job_hunter')->warning('🟡 Normalized escaped JSON response (literal escape sequences: newlines=@n, quotes=@q, tabs=@t)', [
+      $after_length = strlen($response_text);
+      
+      \Drupal::logger('job_hunter')->warning('🟡 APPLIED stripcslashes normalization: before_len=@before, after_len=@after, diff=@diff (literal escape sequences: newlines=@n, quotes=@q, tabs=@t)', [
+        '@before' => $before_length,
+        '@after' => $after_length,
+        '@diff' => $before_length - $after_length,
         '@n' => $has_literal_newlines ? 'YES' : 'NO',
         '@q' => $has_literal_quotes ? 'YES' : 'NO',
         '@t' => $has_literal_tabs ? 'YES' : 'NO',
       ]);
     }
+    else {
+      \Drupal::logger('job_hunter')->info('🔍 SKIPPED escape normalization (no literal escapes detected)');
+    }
     
     // If the response starts with { and ends with }, try parsing it directly first
+    $first_char = isset($response_text[0]) ? $response_text[0] : 'EMPTY';
+    $last_char = strlen($response_text) > 0 ? $response_text[strlen($response_text) - 1] : 'EMPTY';
+    
+    \Drupal::logger('job_hunter')->info('🔍 DIRECT PARSE CHECK: first_char="@first", last_char="@last", length=@len', [
+      '@first' => $first_char,
+      '@last' => $last_char,
+      '@len' => strlen($response_text),
+    ]);
+    
     if ($response_text[0] === '{' && $response_text[strlen($response_text) - 1] === '}') {
+      \Drupal::logger('job_hunter')->info('🔍 ATTEMPTING direct json_decode (response starts with { and ends with })');
+      
       // Test if it's valid JSON by trying to decode it
       $test_decode = json_decode($response_text, TRUE);
-      if (json_last_error() === JSON_ERROR_NONE) {
+      $error_code = json_last_error();
+      $error_msg = json_last_error_msg();
+      
+      if ($error_code === JSON_ERROR_NONE) {
+        \Drupal::logger('job_hunter')->info('✅ DIRECT PARSE SUCCESS! Returning valid JSON');
         return $response_text; // It's already valid JSON!
       }
-      // Log why direct parsing failed
-      \Drupal::logger('job_hunter')->warning('🟡 Direct JSON parse failed: @error, Last 200 chars: @end', [
-        '@error' => json_last_error_msg(),
+      
+      // Log why direct parsing failed with detailed context
+      \Drupal::logger('job_hunter')->warning('🟡 DIRECT PARSE FAILED: error=@error (code: @code), First 200 chars: "@start", Last 200 chars: "@end"', [
+        '@error' => $error_msg,
+        '@code' => $error_code,
+        '@start' => substr($response_text, 0, 200),
         '@end' => substr($response_text, -200),
       ]);
     }
     else {
       // Log why we didn't try direct parsing
-      $first_char = isset($response_text[0]) ? $response_text[0] : 'EMPTY';
-      $last_char = strlen($response_text) > 0 ? $response_text[strlen($response_text) - 1] : 'EMPTY';
-      \Drupal::logger('job_hunter')->warning('🟡 Skipped direct parse. First: @first, Last: @last, Last 100 chars: @end', [
+      \Drupal::logger('job_hunter')->warning('🟡 SKIPPED direct parse. First: "@first" (expected: "{"), Last: "@last" (expected: "}"), First 100: "@start", Last 100: "@end"', [
         '@first' => $first_char,
         '@last' => $last_char,
+        '@start' => substr($response_text, 0, 100),
         '@end' => substr($response_text, -100),
       ]);
     }
     
     // Try markdown code fence
+    \Drupal::logger('job_hunter')->info('🔍 CHECKING for markdown code fence...');
     if (preg_match('/```(?:json)?\s*(\{[\s\S]*?\})\s*```/s', $response_text, $matches)) {
-      return trim($matches[1]);
+      $extracted = trim($matches[1]);
+      \Drupal::logger('job_hunter')->info('✅ FOUND markdown code fence! Extracted @len chars', ['@len' => strlen($extracted)]);
+      return $extracted;
     }
+    \Drupal::logger('job_hunter')->info('🔍 No markdown code fence found, proceeding to brace counting');
     
     // Find balanced JSON using brace counting (handles truncated responses)
     $start_pos = strpos($response_text, '{');
     if ($start_pos === FALSE) {
+      \Drupal::logger('job_hunter')->error('❌ BRACE COUNTING: No opening brace found in response');
       return NULL;
     }
+    
+    \Drupal::logger('job_hunter')->info('🔍 BRACE COUNTING START: opening_brace at position @pos, will scan @chars chars', [
+      '@pos' => $start_pos,
+      '@chars' => strlen($response_text) - $start_pos,
+    ]);
 
     $depth = 0;
     $in_string = FALSE;
     $escape_next = FALSE;
     $len = strlen($response_text);
     $last_quote_pos = -1;
+    $last_open_brace_pos = -1;
+    $last_close_brace_pos = -1;
+    $last_logged_at = 0;
 
     for ($i = $start_pos; $i < $len; $i++) {
       $char = $response_text[$i];
+
+      // Log progress every 10000 characters
+      if ($i - $last_logged_at >= 10000) {
+        \Drupal::logger('job_hunter')->info('🔍 BRACE COUNTING PROGRESS: position @pos/@total (@pct%), depth=@depth, in_string=@str, last_char="@char"', [
+          '@pos' => $i,
+          '@total' => $len,
+          '@pct' => round(($i / $len) * 100, 1),
+          '@depth' => $depth,
+          '@str' => $in_string ? 'YES' : 'NO',
+          '@char' => $char,
+        ]);
+        $last_logged_at = $i;
+      }
 
       if ($escape_next) {
         $escape_next = FALSE;
@@ -475,40 +578,89 @@ PROMPT;
       }
       if ($char === '{') {
         $depth++;
+        $last_open_brace_pos = $i;
       }
       elseif ($char === '}') {
         $depth--;
+        $last_close_brace_pos = $i;
         if ($depth === 0) {
-          return substr($response_text, $start_pos, $i - $start_pos + 1);
+          $extracted_json = substr($response_text, $start_pos, $i - $start_pos + 1);
+          \Drupal::logger('job_hunter')->info('✅ BRACE COUNTING SUCCESS: Found complete JSON at positions @start to @end (@len chars)', [
+            '@start' => $start_pos,
+            '@end' => $i,
+            '@len' => strlen($extracted_json),
+          ]);
+          return $extracted_json;
         }
       }
     }
 
+    // If we got here, loop completed without finding balanced JSON
+    \Drupal::logger('job_hunter')->warning('🟡 BRACE COUNTING ENDED: Loop completed without finding balanced JSON');
+    \Drupal::logger('job_hunter')->warning('🟡 FINAL STATE: depth=@depth, in_string=@str, escape_next=@esc, last_quote_pos=@qpos, last_open_brace=@opos, last_close_brace=@cpos', [
+      '@depth' => $depth,
+      '@str' => $in_string ? 'YES' : 'NO',
+      '@esc' => $escape_next ? 'YES' : 'NO',
+      '@qpos' => $last_quote_pos,
+      '@opos' => $last_open_brace_pos,
+      '@cpos' => $last_close_brace_pos,
+    ]);
+    
     // If we got here AND we're stuck in_string, it might be a parsing error
     // Try to validate if the JSON up to the last quote is valid
     if ($in_string && $last_quote_pos > 0 && $depth > 0) {
-      \Drupal::logger('job_hunter')->warning('🟡 Brace counting stuck in string state. Attempting recovery by finding last valid JSON...');
+      \Drupal::logger('job_hunter')->warning('🟡 Stuck in string state. Attempting JSON recovery by scanning backwards from last close brace...');
       
       // Try to find the last valid complete JSON object by working backwards
+      $recovery_attempts = 0;
       for ($i = $len - 1; $i > $start_pos; $i--) {
         if ($response_text[$i] === '}') {
+          $recovery_attempts++;
           $candidate = substr($response_text, $start_pos, $i - $start_pos + 1);
           $test = json_decode($candidate, TRUE);
-          if (json_last_error() === JSON_ERROR_NONE) {
-            \Drupal::logger('job_hunter')->info('✅ Recovered valid JSON by truncating at position @pos', ['@pos' => $i]);
+          $test_error = json_last_error();
+          
+          if ($test_error === JSON_ERROR_NONE) {
+            \Drupal::logger('job_hunter')->info('✅ RECOVERY SUCCESS: Found valid JSON by truncating at position @pos (after @attempts attempts)', [
+              '@pos' => $i,
+              '@attempts' => $recovery_attempts,
+            ]);
             return $candidate;
+          }
+          
+          // Log first few failed recovery attempts
+          if ($recovery_attempts <= 3) {
+            \Drupal::logger('job_hunter')->info('🔍 Recovery attempt @num at pos @pos failed: @error', [
+              '@num' => $recovery_attempts,
+              '@pos' => $i,
+              '@error' => json_last_error_msg(),
+            ]);
           }
         }
       }
+      \Drupal::logger('job_hunter')->warning('🟡 JSON recovery failed after @attempts attempts', ['@attempts' => $recovery_attempts]);
     }
 
     // If we got here, brace counting failed but response looks like JSON
-    // Log the final state for debugging
-    \Drupal::logger('job_hunter')->warning('🟡 Brace counting failed. Final depth: @depth, in_string: @str, last 100 chars: @end', [
+    // Log the final state for debugging with maximum context
+    $context_radius = 200;
+    $last_char_pos = $len - 1;
+    \Drupal::logger('job_hunter')->error('❌ BRACE COUNTING FAILED - Final state: depth=@depth, in_string=@str, total_length=@len', [
       '@depth' => $depth,
       '@str' => $in_string ? 'YES' : 'NO',
-      '@end' => substr($response_text, -100),
+      '@len' => $len,
     ]);
+    \Drupal::logger('job_hunter')->error('❌ CONTEXT at failure: Last @radius chars: "@end"', [
+      '@radius' => $context_radius,
+      '@end' => substr($response_text, -$context_radius),
+    ]);
+    
+    if ($last_close_brace_pos > 0) {
+      \Drupal::logger('job_hunter')->error('❌ Last closing brace at position @pos, context around it: "@context"', [
+        '@pos' => $last_close_brace_pos,
+        '@context' => substr($response_text, max(0, $last_close_brace_pos - 50), 100),
+      ]);
+    }
 
     return NULL;
   }
