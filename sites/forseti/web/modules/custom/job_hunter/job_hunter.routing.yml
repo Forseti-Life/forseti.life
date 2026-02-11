@@ -107,7 +107,6 @@ job_hunter.queue_retry_suspended:
   methods: [POST]
   requirements:
     _permission: 'administer job application automation'
-    _csrf_token: TRUE
 
 job_hunter.queue_clear_genai_cache:
   path: '/jobhunter/queue/clear-genai-cache'
@@ -116,7 +115,6 @@ job_hunter.queue_clear_genai_cache:
   methods: [POST]
   requirements:
     _permission: 'administer job application automation'
-    _csrf_token: TRUE
 
 # Module Settings
 job_hunter.settings:
