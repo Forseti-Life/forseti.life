@@ -41,9 +41,9 @@ class SettingsForm extends ConfigFormBase {
       '#type' => 'number',
       '#title' => $this->t('Max Tokens'),
       '#description' => $this->t('Maximum number of tokens to use for API responses.'),
-      '#default_value' => $config->get('max_tokens') ?: 20000,
+      '#default_value' => $config->get('max_tokens') ?: 50000,
       '#min' => 100,
-      '#max' => 8000,
+      '#max' => 100000,
       '#required' => TRUE,
     ];
 

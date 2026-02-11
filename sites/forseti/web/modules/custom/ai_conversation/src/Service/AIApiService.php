@@ -234,7 +234,7 @@ class AIApiService {
       $input_tokens = $this->estimateTokens($context);
 
       // Get max tokens from config.
-      $max_tokens = $config->get('max_tokens') ?: 20000;
+      $max_tokens = $config->get('max_tokens') ?: 50000;
 
       // Get system prompt from PromptManager with optional dynamic content from node 10
       $system_prompt = $this->promptManager->getSystemPrompt(10);
