@@ -60,6 +60,7 @@ class GenAiDebugController extends ControllerBase {
     $operation = $request->query->get('operation');
     $success = $request->query->get('success');
     $limit = $request->query->get('limit', 100);
+    $days = $request->query->get('days', 1);
 
     // Build query
     $query = $this->database->select('ai_conversation_api_usage', 'u')
@@ -90,6 +91,12 @@ class GenAiDebugController extends ControllerBase {
     }
     if ($success !== NULL && $success !== '') {
       $query->condition('success', (int) $success);
+    }
+    
+    // Apply time filter (days back from now)
+    if ($days > 0) {
+      $timestamp_cutoff = \Drupal::time()->getRequestTime() - ($days * 86400);
+      $query->condition('timestamp', $timestamp_cutoff, '>=');
     }
 
     $results = $query->execute()->fetchAll();
@@ -130,6 +137,48 @@ class GenAiDebugController extends ControllerBase {
       ->orderBy('operation');
     $operations = array_column($operations_query->execute()->fetchAll(), 'operation');
 
+    // Calculate cost totals for filtered period
+    $filtered_cost_query = $this->database->select('ai_conversation_api_usage', 'u')
+      ->addExpression('SUM(estimated_cost)', 'total_cost')
+      ->addExpression('COUNT(*)', 'total_calls');
+    
+    if (!empty($module)) {
+      $filtered_cost_query->condition('module', $module);
+    }
+    if (!empty($operation)) {
+      $filtered_cost_query->condition('operation', $operation);
+    }
+    if ($success !== NULL && $success !== '') {
+      $filtered_cost_query->condition('success', (int) $success);
+    }
+    if ($days > 0) {
+      $timestamp_cutoff = \Drupal::time()->getRequestTime() - ($days * 86400);
+      $filtered_cost_query->condition('timestamp', $timestamp_cutoff, '>=');
+    }
+    
+    $filtered_totals = $filtered_cost_query->execute()->fetchObject();
+    $filtered_total_cost = $filtered_totals->total_cost ?? 0;
+    $filtered_total_calls = $filtered_totals->total_calls ?? 0;
+
+    // Calculate all-time cost totals (no time filter)
+    $alltime_cost_query = $this->database->select('ai_conversation_api_usage', 'u')
+      ->addExpression('SUM(estimated_cost)', 'total_cost')
+      ->addExpression('COUNT(*)', 'total_calls');
+    
+    if (!empty($module)) {
+      $alltime_cost_query->condition('module', $module);
+    }
+    if (!empty($operation)) {
+      $alltime_cost_query->condition('operation', $operation);
+    }
+    if ($success !== NULL && $success !== '') {
+      $alltime_cost_query->condition('success', (int) $success);
+    }
+    
+    $alltime_totals = $alltime_cost_query->execute()->fetchObject();
+    $alltime_total_cost = $alltime_totals->total_cost ?? 0;
+    $alltime_total_calls = $alltime_totals->total_calls ?? 0;
+
     return [
       '#theme' => 'genai_debug_list',
       '#calls' => $calls,
@@ -139,6 +188,11 @@ class GenAiDebugController extends ControllerBase {
       '#current_operation' => $operation,
       '#current_success' => $success,
       '#current_limit' => $limit,
+      '#current_days' => $days,
+      '#filtered_total_cost' => $filtered_total_cost,
+      '#filtered_total_calls' => $filtered_total_calls,
+      '#alltime_total_cost' => $alltime_total_cost,
+      '#alltime_total_calls' => $alltime_total_calls,
     ];
   }
 
