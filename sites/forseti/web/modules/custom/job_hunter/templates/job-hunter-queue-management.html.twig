@@ -161,7 +161,14 @@
   {# Queue Items List #}
   <div class="queue-items-section">
     <h3>🔍 {{ 'Queue Item Inspector'|t }}</h3>
-    <p class="subtitle">{{ 'Inspect and delete individual queue items'|t }}</p>
+    <p class="subtitle">
+      {{ 'Inspect and delete individual queue items'|t }}
+      &nbsp;|&nbsp;
+      <a href="/admin/reports/genai-debug" style="font-weight: bold; color: #0073aa;">
+        🐛 {{ 'GenAI Debug Inspector'|t }}
+      </a>
+      {{ '(view actual GenAI request/response data)'|t }}
+    </p>
 
   {% if queue_items is empty %}
     <div class="empty-state">
