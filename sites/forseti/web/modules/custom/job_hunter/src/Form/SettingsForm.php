@@ -88,11 +88,21 @@ class SettingsForm extends ConfigFormBase {
 
     $form['ai_settings']['max_tokens'] = [
       '#type' => 'number',
-      '#title' => $this->t('Max Tokens'),
-      '#description' => $this->t('Maximum number of tokens for AI generation.'),
+      '#title' => $this->t('Max Tokens (Default)'),
+      '#description' => $this->t('Maximum number of tokens for AI generation. Used for most operations.'),
       '#default_value' => $config->get('max_tokens') ?? 20000,
       '#required' => TRUE,
       '#min' => 1000,
+      '#max' => 50000,
+    ];
+
+    $form['ai_settings']['max_tokens_resume_tailoring'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Max Tokens (Resume Tailoring)'),
+      '#description' => $this->t('Maximum tokens for resume tailoring operations. Tailored resumes generate large JSON responses and may need more tokens than other operations. Leave empty to use default.'),
+      '#default_value' => $config->get('max_tokens_resume_tailoring') ?? 16000,
+      '#required' => FALSE,
+      '#min' => 8000,
       '#max' => 50000,
     ];
 
@@ -462,6 +472,7 @@ class SettingsForm extends ConfigFormBase {
       ->set('ai_service_region', $form_state->getValue('ai_service_region'))
       ->set('ai_model_id', $form_state->getValue('ai_model_id'))
       ->set('max_tokens', $form_state->getValue('max_tokens'))
+      ->set('max_tokens_resume_tailoring', $form_state->getValue('max_tokens_resume_tailoring'))
       ->set('google_cloud_credentials', $form_state->getValue('google_cloud_credentials'))
       ->set('tenant_name', $form_state->getValue('tenant_name'))
       ->set('adzuna_app_id', $form_state->getValue('adzuna_app_id'))

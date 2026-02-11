@@ -98,6 +98,18 @@ queue-controls:
   dependencies:
     - core/drupal
     - core/jquery
+
+company-research:
+  css:
+    theme:
+      css/company-research.css: {}
+  js:
+    js/company-research.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+    - job_hunter/job-hunter-home
     - core/once
 
 queue-management:

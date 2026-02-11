@@ -464,6 +464,15 @@ job_hunter.refresh_skills_gap_ajax:
   options:
     _csrf_token: FALSE
 
+# Company Research
+job_hunter.company_research:
+  path: '/jobhunter/companyresearch'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyResearchController::researchPage'
+    _title: 'Company Research'
+  requirements:
+    _permission: 'access job hunter'
+
 # Company Management Routes
 job_hunter.companies_list:
   path: '/jobhunter/companies/list'

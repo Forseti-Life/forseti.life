@@ -127,6 +127,12 @@ function job_hunter_theme() {
       ],
       'template' => 'job-discovery-company-search',
     ],
+    'company_research_page' => [
+      'variables' => [
+        'companies' => [],
+      ],
+      'template' => 'company-research-page',
+    ],
     'node__company' => [
       'template' => 'node--company',
       'base hook' => 'node',

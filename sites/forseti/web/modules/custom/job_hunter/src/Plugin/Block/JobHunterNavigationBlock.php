@@ -72,6 +72,12 @@ class JobHunterNavigationBlock extends BlockBase implements ContainerFactoryPlug
         'icon' => 'user',
         'weight' => 10,
       ],
+      'company_research' => [
+        'title' => $this->t('Company Research'),
+        'url' => Url::fromRoute('job_hunter.company_research'),
+        'icon' => 'building',
+        'weight' => 15,
+      ],
     ];
 
     // Add "Report a Problem" link if forseti_content module is enabled
