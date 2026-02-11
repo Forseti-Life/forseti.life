@@ -118,12 +118,13 @@ jobs:
               echo "🐛 Checking dest file before rsync..."
               ls -la ${SITE_ROOT}/web/modules/custom/job_hunter/src/Controller/JobHunterHomeController.php 2>/dev/null || echo "Dest file not found"
               
-              sudo rsync -azvc \
+              echo "🐛 Running rsync with --ignore-times --itemize-changes to force copy..."
+              sudo rsync -rvz --ignore-times --itemize-changes \
                 --exclude='node_modules' \
                 --exclude='.git' \
                 --exclude='*.scss' \
                 --exclude='src/' \
-                "${SITE_PATH}/web/modules/custom/" "${SITE_ROOT}/web/modules/custom/" | head -30
+                "${SITE_PATH}/web/modules/custom/" "${SITE_ROOT}/web/modules/custom/" | grep -E "(JobHunter|sending|total size|^>)" | head -50
               MODULES_DEPLOYED=true
               
               echo "🐛 Checking dest file after rsync..."
