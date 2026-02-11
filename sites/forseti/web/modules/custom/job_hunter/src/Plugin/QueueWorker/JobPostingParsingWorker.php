@@ -181,11 +181,7 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
    * Parse job posting using AWS Bedrock.
    */
   private function parseJobPosting($raw_posting_text) {
-    $config = $this->configFactory->get('job_hunter.settings');
     $logger = \Drupal::logger('job_hunter');
-
-    // AWS Bedrock configuration
-    $aws_region = $config->get('aws_region') ?: 'us-east-1';
 
     // CALL 1: Extract job details
     $logger->info('📄 Queue Job: Call 1/2 - Extracting job details for job @id via AIApiService', ['@id' => $job_id]);
@@ -319,9 +315,9 @@ PROMPT;
   private function callBedrockAndParse($prompt, $chunk_name, $job_id = 0) {
     $logger = \Drupal::logger('job_hunter');
 
-    // Get max_tokens from job_hunter config (fallback to 8000 for job parsing)
-    $config = $this->configFactory->get('job_hunter.settings');
-    $max_tokens = $config->get('max_tokens_job_parsing') ?? $config->get('max_tokens') ?? 8000;
+    // Get max_tokens from centralized ai_conversation config
+    $config = $this->configFactory->get('ai_conversation.settings');
+    $max_tokens = $config->get('max_tokens_job_parsing') ?? 8000;
 
     // Use centralized AIApiService
     $result = $this->aiApiService->invokeModelDirect(

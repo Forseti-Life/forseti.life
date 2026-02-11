@@ -26,8 +26,8 @@ services:
     tags:
       - { name: service }
 
+  # Deprecated: Use ai_conversation.ai_api_service instead
+  # agent_evaluation.api_service is now an alias to the ai_conversation service
   agent_evaluation.api_service:
-    class: Drupal\agent_evaluation\Service\AIApiService
-    arguments: ['@config.factory', '@logger.factory', '@entity_type.manager', '@agent_evaluation.prompt_manager']
-    tags:
-      - { name: service }
+    alias: ai_conversation.ai_api_service
+    deprecated: Use '@ai_conversation.ai_api_service' directly instead

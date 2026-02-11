@@ -322,7 +322,7 @@ EOD;
    */
   public function saveSystemPrompt($prompt) {
     try {
-      $config = $this->configFactory->getEditable('agent_evaluation.settings');
+      $config = $this->configFactory->getEditable('ai_conversation.settings');
       $config->set('system_prompt', $prompt);
       $config->save();
       
@@ -361,7 +361,7 @@ EOD;
    *   The system prompt.
    */
   public function getConfiguredPrompt() {
-    $config = $this->configFactory->get('agent_evaluation.settings');
+    $config = $this->configFactory->get('ai_conversation.settings');
     $prompt = $config->get('system_prompt');
     
     // If no prompt configured, return default

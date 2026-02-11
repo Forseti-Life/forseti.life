@@ -15,13 +15,7 @@ agent_evaluation.create_evaluation:
     _method: 'POST'
     _format: 'json'
 
-agent_evaluation.settings:
-  path: '/admin/config/ai-conversation/settings'
-  defaults:
-    _form: '\Drupal\agent_evaluation\Form\AIConversationSettingsForm'
-    _title: 'AI Conversation Settings'
-  requirements:
-    _permission: 'administer site configuration'
+# Removed duplicate ai-conversation/settings route - use ai_conversation.settings instead
 
 agent_evaluation.update_prompt:
   path: '/admin/ai-conversation/update-prompt'

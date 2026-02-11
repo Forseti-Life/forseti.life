@@ -21,7 +21,10 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   protected function getEditableConfigNames() {
-    return ['agent_evaluation.settings'];
+    return [
+      'agent_evaluation.settings',
+      'ai_conversation.settings',
+    ];
   }
 
   /**
@@ -147,7 +150,7 @@ class SettingsForm extends ConfigFormBase {
    * AJAX callback for connection test.
    */
   public function testConnection(array &$form, FormStateInterface $form_state) {
-    $ai_service = \Drupal::service('agent_evaluation.api_service');
+    $ai_service = \Drupal::service('ai_conversation.ai_api_service');
     $result = $ai_service->testConnection();
 
     $class = $result['success'] ? 'messages messages--status' : 'messages messages--error';
