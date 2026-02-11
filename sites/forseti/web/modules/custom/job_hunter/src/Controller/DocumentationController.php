@@ -118,6 +118,7 @@ class DocumentationController extends ControllerBase {
     $state = \Drupal::state();
     $deployed_at = $state->get('job_hunter.deployed_at', 'Unknown');
     $deploy_timestamp = is_numeric($deployed_at) ? date('Y-m-d H:i:s T', $deployed_at) : $deployed_at;
+    $deploy_date = is_numeric($deployed_at) ? date('M j, Y', $deployed_at) : 'Unknown';
     
     // Get navigation block
     $block_manager = \Drupal::service('plugin.manager.block');
@@ -125,14 +126,52 @@ class DocumentationController extends ControllerBase {
     $plugin_block = $block_manager->createInstance('job_hunter_navigation', $config);
     $navigation = $plugin_block->build();
     
+    // Build collapsible version accordion
+    $unique_id = 'version-info-' . uniqid();
+    $version_accordion = '
+      <div class="accordion mb-3" id="versionAccordion">
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="headingVersion">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#' . $unique_id . '" aria-expanded="false" aria-controls="' . $unique_id . '">
+              <span style="font-weight: 600;">📦 Version ' . htmlspecialchars($version) . '</span>
+              <span style="margin-left: 20px; color: #666;">🚀 Deployed: ' . htmlspecialchars($deploy_date) . '</span>
+            </button>
+          </h2>
+          <div id="' . $unique_id . '" class="accordion-collapse collapse" aria-labelledby="headingVersion" data-bs-parent="#versionAccordion">
+            <div class="accordion-body">
+              <table class="table table-sm table-borderless mb-0">
+                <tbody>
+                  <tr>
+                    <td style="width: 140px;"><strong>📦 Version:</strong></td>
+                    <td>' . htmlspecialchars($version) . '</td>
+                  </tr>
+                  <tr>
+                    <td><strong>🚀 Deployed:</strong></td>
+                    <td>' . htmlspecialchars($deploy_timestamp) . '</td>
+                  </tr>
+                  <tr>
+                    <td><strong>📍 Environment:</strong></td>
+                    <td>' . (getenv('ENVIRONMENT') ?: 'Production') . '</td>
+                  </tr>
+                  <tr>
+                    <td><strong>🔧 Module:</strong></td>
+                    <td>Job Hunter (job_hunter)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>';
+    
     $content = [
       '#type' => 'container',
       '#attributes' => ['class' => ['documentation-content']],
+      'version_accordion' => [
+        '#markup' => $version_accordion,
+      ],
       'breadcrumb' => [
         '#markup' => '<nav aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="' . Url::fromRoute('job_hunter.documentation')->toString() . '">Documentation</a></li><li class="breadcrumb-item active" aria-current="page">' . basename($file, '.md') . '</li></ol></nav>',
-      ],
-      'version_info' => [
-        '#markup' => '<div class="alert alert-info" style="margin: 15px 0;"><strong>📦 Version:</strong> ' . $version . ' <span style="margin-left: 20px;"><strong>🚀 Deployed:</strong> ' . $deploy_timestamp . '</span></div>',
       ],
       'content' => [
         '#markup' => $html_content,
