@@ -118,7 +118,7 @@ jobs:
               echo "🐛 Checking dest file before rsync..."
               ls -la ${SITE_ROOT}/web/modules/custom/job_hunter/src/Controller/JobHunterHomeController.php 2>/dev/null || echo "Dest file not found"
               
-              sudo rsync -azv \
+              sudo rsync -azvc \
                 --exclude='node_modules' \
                 --exclude='.git' \
                 --exclude='*.scss' \
