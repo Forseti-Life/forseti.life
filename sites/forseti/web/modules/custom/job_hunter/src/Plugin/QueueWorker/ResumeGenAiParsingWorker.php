@@ -4,6 +4,7 @@ namespace Drupal\job_hunter\Plugin\QueueWorker;
 
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
+use Drupal\Core\Queue\SuspendQueueException;
 use Drupal\file\Entity\File;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -28,11 +29,19 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
   protected $configFactory;
 
   /**
+   * The AI API service.
+   *
+   * @var \Drupal\ai_conversation\Service\AIApiService
+   */
+  protected $aiApiService;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     $instance = new static($configuration, $plugin_id, $plugin_definition);
     $instance->configFactory = $container->get('config.factory');
+    $instance->aiApiService = $container->get('ai_conversation.ai_api_service');
     return $instance;
   }
 
@@ -125,7 +134,7 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
         ->condition('uid', $uid)
         ->execute();
 
-      // Re-throw to mark queue item as failed
+      // Re-throw - if it's a SuspendQueueException, preserve it
       throw $e;
     }
   }
@@ -138,28 +147,6 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
    */
   private function parseResumeProdMode($extracted_text, $filename, $uid) {
     $logger = \Drupal::logger('job_hunter');
-
-    // Get AWS configuration
-    $config = $this->configFactory->get('ai_conversation.settings');
-    $aws_access_key = $config->get('aws_access_key_id') ?: getenv('AWS_ACCESS_KEY_ID');
-    $aws_secret_key = $config->get('aws_secret_access_key') ?: getenv('AWS_SECRET_ACCESS_KEY');
-    $aws_region = $config->get('aws_region') ?: getenv('AWS_DEFAULT_REGION') ?: 'us-east-1';
-
-    $sdk_config = [
-      'region' => $aws_region,
-      'version' => 'latest',
-    ];
-
-    if (!empty($aws_access_key) && !empty($aws_secret_key)) {
-      $sdk_config['credentials'] = [
-        'key' => $aws_access_key,
-        'secret' => $aws_secret_key,
-      ];
-    }
-
-    $sdk = new \Aws\Sdk($sdk_config);
-    $bedrock = $sdk->createBedrockRuntime();
-    $model = $config->get('aws_model') ?: 'anthropic.claude-3-5-sonnet-20240620-v1:0';
 
     // Get username for logging
     $user = \Drupal\user\Entity\User::load($uid);
@@ -187,7 +174,7 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
       
       // Parse this chunk for both core profile and experience
       $chunk_prompt = $this->buildChunkPrompt($chunk, $filename);
-      $result = $this->callBedrockAndParse($bedrock, $model, $chunk_prompt, "chunk_$chunk_num", $filename, $username);
+      $result = $this->callBedrockAndParse($chunk_prompt, "chunk_$chunk_num", $filename, $username, $uid);
       $chunk_data = $result['parsed_data'];
       $raw_responses["chunk_$chunk_num"] = $result['raw_response'];
       
@@ -215,7 +202,8 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
     }
 
     if (!$core_data) {
-      throw new \Exception('Failed to parse core profile sections from any chunk');
+      // Suspend queue - GenAI may have succeeded but JSON parsing failed
+      throw new SuspendQueueException('Failed to parse core profile sections from any chunk. Check logs for JSON parsing errors. Clear cache if prompt needs adjustment.');
     }
 
     // Add all collected experiences to final data
@@ -263,7 +251,7 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
   }
 
   /**
-   * Call Bedrock and parse JSON response.
+   * Call AWS Bedrock via AIApiService and parse JSON response.
    * 
    * @param int $max_tokens
    *   Maximum tokens for response (default 20000 for chunked processing)
@@ -271,7 +259,7 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
    * @return array
    *   Array with 'parsed_data' and 'raw_response' keys.
    */
-  private function callBedrockAndParse($bedrock, $model, $prompt, $chunk_name, $filename = '', $username = '', $max_tokens = 20000) {
+  private function callBedrockAndParse($prompt, $chunk_name, $filename = '', $username = '', $uid = 0, $max_tokens = 20000) {
     $logger = \Drupal::logger('job_hunter');
 
     $context_msg = '';
@@ -279,27 +267,43 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
       $context_msg = " for $filename (user $username)";
     }
 
-    $logger->info('⏳ Queue @chunk: Sending request to GenAI API (max_tokens: @tokens)@context', [
+    $logger->info('⏳ Queue @chunk: Sending request to GenAI API via AIApiService (max_tokens: @tokens)@context', [
       '@chunk' => $chunk_name,
       '@tokens' => $max_tokens,
       '@context' => $context_msg,
     ]);
 
-    $result = $bedrock->invokeModel([
-      'modelId' => $model,
-      'contentType' => 'application/json',
-      'body' => json_encode([
-        'anthropic_version' => 'bedrock-2023-05-31',
+    // Use centralized AIApiService
+    $result = $this->aiApiService->invokeModelDirect(
+      $prompt,
+      'job_hunter',
+      'resume_parsing',
+      [
+        'uid' => $uid,
+        'filename' => $filename,
+        'chunk' => $chunk_name,
+        'queue' => 'job_hunter_genai_parsing',
+        'item_key' => "resume_parsing_{$uid}_{$filename}_{$chunk_name}",
+      ],
+      [
         'max_tokens' => $max_tokens,
-        'messages' => [
-          ['role' => 'user', 'content' => $prompt],
-        ],
-      ]),
-    ]);
+      ]
+    );
 
-    $response_body = json_decode($result->get('body')->getContents(), TRUE);
-    $response_text = $response_body['content'][0]['text'] ?? '';
-    $stop_reason = $response_body['stop_reason'] ?? 'unknown';
+    if (!$result['success']) {
+      $logger->error('❌ Queue @chunk: AIApiService call failed: @error@context', [
+        '@chunk' => $chunk_name,
+        '@error' => $result['error'] ?? 'Unknown error',
+        '@context' => $context_msg,
+      ]);
+      return [
+        'parsed_data' => NULL,
+        'raw_response' => $result['error'] ?? 'Unknown error',
+      ];
+    }
+
+    $response_text = $result['response'];
+    $stop_reason = $result['stop_reason'];
 
     // Check if response was truncated due to max_tokens limit
     if ($stop_reason === 'max_tokens') {
@@ -575,7 +579,7 @@ REQUIREMENTS:
 1. Preserve ALL information - do not summarize
 2. Use YYYY-MM format for dates
 3. Use null for missing optional fields
-4. Return ONLY valid JSON - NO markdown code blocks, NO escape sequences like \n or \", use actual whitespace
+4. Return ONLY valid JSON conforming to RFC 8259 - NO markdown code blocks, USE proper JSON escaping (\n for newlines, \" for quotes)
 5. For professional experience: Extract complete job entries even if split across chunks
 
 JSON SCHEMA:
@@ -681,7 +685,7 @@ REQUIREMENTS:
 1. Preserve ALL information - do not summarize
 2. Use YYYY-MM format for dates
 3. Use null for missing optional fields
-4. Return ONLY valid JSON - NO markdown code blocks, NO escape sequences like \n or \", use actual whitespace
+4. Return ONLY valid JSON conforming to RFC 8259 - NO markdown code blocks, USE proper JSON escaping (\n for newlines, \" for quotes)
 
 JSON SCHEMA:
 {
@@ -758,7 +762,7 @@ REQUIREMENTS:
 3. Identify technologies mentioned in each achievement
 4. Extract searchable keywords from each achievement
 5. Use YYYY-MM format for dates
-6. Return ONLY valid JSON with no markdown or explanation
+6. Return ONLY valid JSON conforming to RFC 8259 - USE proper JSON escaping (\n for newlines, \" for quotes)
 
 JSON SCHEMA:
 {

@@ -736,3 +736,54 @@ function ai_conversation_update_8005() {
   
   return t('Updated AI conversation system prompt with Forseti AI assistant persona.');
 }
+
+/**
+ * Add debugging fields to API usage tracking table.
+ */
+function ai_conversation_update_8006() {
+  $schema = \Drupal::database()->schema();
+  $table = 'ai_conversation_api_usage';
+  
+  // Add success status field
+  if (!$schema->fieldExists($table, 'success')) {
+    $schema->addField($table, 'success', [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => FALSE,
+      'default' => 1,
+      'description' => 'Whether the API call succeeded (1) or failed (0)',
+    ]);
+  }
+  
+  // Add error message field
+  if (!$schema->fieldExists($table, 'error_message')) {
+    $schema->addField($table, 'error_message', [
+      'type' => 'text',
+      'size' => 'normal',
+      'not null' => FALSE,
+      'description' => 'Error message if API call failed',
+    ]);
+  }
+  
+  // Add full prompt field for debugging
+  if (!$schema->fieldExists($table, 'prompt_preview')) {
+    $schema->addField($table, 'prompt_preview', [
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+      'description' => 'Full prompt sent to AI for debugging (stored as MEDIUMTEXT)',
+    ]);
+  }
+  
+  // Add full response field for debugging
+  if (!$schema->fieldExists($table, 'response_preview')) {
+    $schema->addField($table, 'response_preview', [
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+      'description' => 'Full response from AI for debugging (stored as MEDIUMTEXT)',
+    ]);
+  }
+  
+  return t('Added debugging fields (success, error_message, prompt_preview, response_preview) to API usage tracking table for easier troubleshooting.');
+}

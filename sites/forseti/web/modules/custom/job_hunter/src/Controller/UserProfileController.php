@@ -1284,10 +1284,16 @@ class UserProfileController extends ControllerBase {
 
       // Parse JSON data for queue payload
       $profile = json_decode($job_seeker_profile->consolidated_profile_json, TRUE) ?: [];
+      
+      // Get cover letter template from profile
+      $cover_letter_template = '';
+      if (isset($profile['job_search_preferences']['cover_letter_template'])) {
+        $cover_letter_template = $profile['job_search_preferences']['cover_letter_template'];
+      }
 
-      // Queue the tailoring job for background processing
-      $queue = \Drupal::queue('job_hunter_resume_tailoring');
-      $queue->createItem([
+      // Queue the resume tailoring job for background processing
+      $resume_queue = \Drupal::queue('job_hunter_resume_tailoring');
+      $resume_queue->createItem([
         'uid' => $user_id,
         'job_id' => $job_id,
         'profile_json' => $profile,
@@ -1298,8 +1304,23 @@ class UserProfileController extends ControllerBase {
           'raw_posting_text' => $job_data->raw_posting_text ?? '',
         ],
       ]);
+      
+      // Queue the cover letter generation job
+      $cover_queue = \Drupal::queue('job_hunter_cover_letter_tailoring');
+      $cover_queue->createItem([
+        'uid' => $user_id,
+        'job_id' => $job_id,
+        'profile_json' => $profile,
+        'cover_letter_template' => $cover_letter_template,
+        'job_data' => [
+          'extracted_json' => $job_data->extracted_json,
+          'skills_required_json' => $job_data->skills_required_json,
+          'keywords_json' => $job_data->keywords_json,
+          'raw_posting_text' => $job_data->raw_posting_text ?? '',
+        ],
+      ]);
 
-      // Create/update pending record
+      // Create/update pending record for resume
       $now = \Drupal::time()->getRequestTime();
       if ($existing) {
         $database->update('jobhunter_tailored_resumes')
@@ -1321,11 +1342,40 @@ class UserProfileController extends ControllerBase {
           ])
           ->execute();
       }
+      
+      // Create/update pending record for cover letter
+      $existing_cover = $database->select('jobhunter_cover_letters', 'cl')
+        ->fields('cl')
+        ->condition('uid', $user_id)
+        ->condition('job_id', $job_id)
+        ->execute()
+        ->fetchObject();
+        
+      if ($existing_cover) {
+        $database->update('jobhunter_cover_letters')
+          ->fields([
+            'tailoring_status' => 'queued',
+            'updated' => $now,
+          ])
+          ->condition('id', $existing_cover->id)
+          ->execute();
+      }
+      else {
+        $database->insert('jobhunter_cover_letters')
+          ->fields([
+            'uid' => $user_id,
+            'job_id' => $job_id,
+            'tailoring_status' => 'queued',
+            'created' => $now,
+            'updated' => $now,
+          ])
+          ->execute();
+      }
 
       $extracted = $job_data->extracted_json ? json_decode($job_data->extracted_json, TRUE) : [];
       $job_title = $extracted['position']['title'] ?? $extracted['job_title'] ?? 'this position';
       
-      \Drupal::logger('job_hunter')->info('Queued resume tailoring for user @uid, job @job_id (@title)', [
+      \Drupal::logger('job_hunter')->info('Queued resume tailoring and cover letter generation for user @uid, job @job_id (@title)', [
         '@uid' => $user_id,
         '@job_id' => $job_id,
         '@title' => $job_title,
@@ -1334,7 +1384,7 @@ class UserProfileController extends ControllerBase {
       return new \Symfony\Component\HttpFoundation\JsonResponse([
         'success' => TRUE,
         'status' => 'queued',
-        'message' => "Resume tailoring queued for {$job_title}. Processing will begin shortly...",
+        'message' => "Resume and cover letter tailoring queued for {$job_title}. Processing will begin shortly...",
       ]);
 
     } catch (\Exception $e) {
@@ -1362,25 +1412,42 @@ class UserProfileController extends ControllerBase {
         ->condition('job_id', $job_id)
         ->execute()
         ->fetchObject();
+        
+      // Also check cover letter status
+      $cover_letter = $database->select('jobhunter_cover_letters', 'cl')
+        ->fields('cl')
+        ->condition('uid', $user_id)
+        ->condition('job_id', $job_id)
+        ->execute()
+        ->fetchObject();
 
       if (!$record) {
         return new \Symfony\Component\HttpFoundation\JsonResponse([
           'status' => 'not_started',
           'message' => 'No tailoring request found for this job.',
+          'cover_letter_status' => $cover_letter ? $cover_letter->tailoring_status : 'not_started',
         ]);
       }
 
       $response = [
         'status' => $record->tailoring_status,
         'updated' => $record->updated,
+        'cover_letter_status' => $cover_letter ? $cover_letter->tailoring_status : 'not_started',
       ];
 
       if ($record->tailoring_status === 'completed' && !empty($record->tailored_resume_json)) {
         $response['tailored_resume'] = json_decode($record->tailored_resume_json, TRUE);
         $response['message'] = 'Resume tailoring completed!';
+        
+        // Include cover letter if available
+        if ($cover_letter && $cover_letter->tailoring_status === 'completed' && !empty($cover_letter->cover_letter_text)) {
+          $response['cover_letter_text'] = $cover_letter->cover_letter_text;
+          $response['cover_letter_html'] = $cover_letter->cover_letter_html;
+          $response['message'] = 'Resume and cover letter completed!';
+        }
       }
       elseif ($record->tailoring_status === 'processing') {
-        $response['message'] = 'AI is generating your tailored resume...';
+        $response['message'] = 'AI is generating your tailored resume and cover letter...';
       }
       elseif ($record->tailoring_status === 'queued') {
         $response['message'] = 'Waiting in queue for processing...';
@@ -1579,16 +1646,17 @@ Generate a TAILORED version of the candidate's resume as a JSON object. The outp
 
 ## Output Format
 
-**CRITICAL**: Return ONLY valid, clean JSON with these requirements:
+**CRITICAL**: Return ONLY valid JSON conforming to RFC 8259:
+- Start immediately with `{` and end with `}`
 - NO markdown code blocks (no ```json or ```)
 - NO explanatory text before or after the JSON
-- NO escape sequences like \n, \t, or \" in string values - use actual newlines and quotes
-- NO string-escaped JSON - return the raw JSON object directly
-- Start your response with { and end with }
+- NO double-escaping (don't wrap JSON as a string)
+- **USE PROPER JSON ESCAPING**: `\n` for newlines, `\t` for tabs, `\"` for quotes within strings
 - Ensure all braces, brackets, and quotes are properly balanced
-- Use proper JSON formatting with real whitespace, not escaped characters
+- Multi-line string values MUST use `\n` escape sequences, NOT literal newlines
+- All special characters in strings MUST be properly escaped per JSON spec
 
-The JSON must be directly parseable by a standard JSON parser without any preprocessing.
+The output must parse successfully with `json_decode()` without any preprocessing.
 
 PROMPT;
   }

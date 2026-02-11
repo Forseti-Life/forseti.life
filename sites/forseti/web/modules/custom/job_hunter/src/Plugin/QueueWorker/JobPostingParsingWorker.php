@@ -4,6 +4,7 @@ namespace Drupal\job_hunter\Plugin\QueueWorker;
 
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
+use Drupal\Core\Queue\SuspendQueueException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -27,11 +28,19 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
   protected $configFactory;
 
   /**
+   * The AI API service.
+   *
+   * @var \Drupal\ai_conversation\Service\AIApiService
+   */
+  protected $aiApiService;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     $instance = new static($configuration, $plugin_id, $plugin_definition);
     $instance->configFactory = $container->get('config.factory');
+    $instance->aiApiService = $container->get('ai_conversation.ai_api_service');
     return $instance;
   }
 
@@ -63,10 +72,11 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
         ->execute();
 
       // Parse the job posting
-      $parsed_data = $this->parseJobPosting($raw_posting_text);
+      $parsed_data = $this->parseJobPosting($raw_posting_text, $job_id);
 
       if (!$parsed_data) {
-        throw new \Exception('Failed to parse job posting');
+        // Suspend queue - GenAI call may have succeeded but JSON parsing failed
+        throw new SuspendQueueException('Failed to parse job posting. Check logs for JSON parsing errors. Clear cache if prompt needs adjustment.');
       }
 
       // Update job record with extracted data
@@ -173,29 +183,11 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
 
     // AWS Bedrock configuration
     $aws_region = $config->get('aws_region') ?: 'us-east-1';
-    $aws_access_key = $config->get('aws_access_key');
-    $aws_secret_key = $config->get('aws_secret_key');
-
-    $sdk_config = [
-      'region' => $aws_region,
-      'version' => 'latest',
-    ];
-
-    if (!empty($aws_access_key) && !empty($aws_secret_key)) {
-      $sdk_config['credentials'] = [
-        'key' => $aws_access_key,
-        'secret' => $aws_secret_key,
-      ];
-    }
-
-    $sdk = new \Aws\Sdk($sdk_config);
-    $bedrock = $sdk->createBedrockRuntime();
-    $model = $config->get('aws_model') ?: 'anthropic.claude-3-5-sonnet-20240620-v1:0';
 
     // CALL 1: Extract job details
-    $logger->info('📄 Queue Job: Call 1/2 - Extracting job details for job @id', ['@id' => $job_id]);
+    $logger->info('📄 Queue Job: Call 1/2 - Extracting job details for job @id via AIApiService', ['@id' => $job_id]);
     $details_prompt = $this->buildJobDetailsPrompt($raw_posting_text);
-    $extracted_json = $this->callBedrockAndParse($bedrock, $model, $details_prompt, 'job_details');
+    $extracted_json = $this->callBedrockAndParse($details_prompt, 'job_details', $job_id);
 
     if (!$extracted_json) {
       throw new \Exception('Failed to extract job details');
@@ -204,13 +196,13 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
     // CALL 2: Extract skills and keywords
     $company = $extracted_json['company_name'] ?? 'Unknown Company';
     $job_title = $extracted_json['job_title'] ?? 'Unknown Position';
-    $logger->info('💼 Queue Job: Call 2/2 - Extracting skills for "@title" at @company (job @id)', [
+    $logger->info('💼 Queue Job: Call 2/2 - Extracting skills for "@title" at @company (job @id) via AIApiService', [
       '@title' => $job_title,
       '@company' => $company,
       '@id' => $job_id,
     ]);
     $skills_prompt = $this->buildSkillsKeywordsPrompt($raw_posting_text);
-    $skills_data = $this->callBedrockAndParse($bedrock, $model, $skills_prompt, 'skills_keywords');
+    $skills_data = $this->callBedrockAndParse($skills_prompt, 'skills_keywords', $job_id);
 
     if (!$skills_data) {
       throw new \Exception('Failed to extract skills and keywords');
@@ -233,7 +225,7 @@ You are a professional job posting parser. Extract structured data from this job
 REQUIREMENTS:
 1. Extract all key information accurately
 2. Use null for missing optional fields
-3. Return ONLY valid JSON - NO markdown code blocks, NO escape sequences like \n or \", use actual whitespace
+3. Return ONLY valid JSON conforming to RFC 8259 - NO markdown code blocks, USE proper JSON escaping (\n for newlines, \" for quotes)
 
 JSON SCHEMA:
 {
@@ -284,7 +276,7 @@ REQUIREMENTS:
 1. Identify all technical and soft skills mentioned
 2. Extract keywords that should appear in a tailored resume
 3. Categorize skills by type and priority
-4. Return ONLY valid JSON - NO markdown code blocks, NO escape sequences like \n or \", use actual whitespace
+4. Return ONLY valid JSON conforming to RFC 8259 - NO markdown code blocks, USE proper JSON escaping (\n for newlines, \" for quotes)
 
 JSON SCHEMA:
 {
@@ -319,26 +311,37 @@ PROMPT;
   }
 
   /**
-   * Call Bedrock and parse JSON response.
+   * Call AWS Bedrock via AIApiService and parse JSON response.
    */
-  private function callBedrockAndParse($bedrock, $model, $prompt, $chunk_name) {
+  private function callBedrockAndParse($prompt, $chunk_name, $job_id = 0) {
     $logger = \Drupal::logger('job_hunter');
 
-    $result = $bedrock->invokeModel([
-      'modelId' => $model,
-      'contentType' => 'application/json',
-      'body' => json_encode([
-        'anthropic_version' => 'bedrock-2023-05-31',
-        'max_tokens' => 40000,
-        'messages' => [
-          ['role' => 'user', 'content' => $prompt],
-        ],
-      ]),
-    ]);
+    // Use centralized AIApiService
+    $result = $this->aiApiService->invokeModelDirect(
+      $prompt,
+      'job_hunter',
+      'job_posting_parsing',
+      [
+        'job_id' => $job_id,
+        'chunk' => $chunk_name,
+        'queue' => 'job_hunter_job_posting_parsing',
+        'item_key' => "job_posting_{$job_id}_{$chunk_name}",
+      ],
+      [
+        'max_tokens' => 8000,
+      ]
+    );
 
-    $response_body = json_decode($result->get('body')->getContents(), TRUE);
-    $response_text = $response_body['content'][0]['text'] ?? '';
-    $stop_reason = $response_body['stop_reason'] ?? 'unknown';
+    if (!$result['success']) {
+      $logger->error('❌ Queue Job @chunk: AIApiService call failed: @error', [
+        '@chunk' => $chunk_name,
+        '@error' => $result['error'] ?? 'Unknown error',
+      ]);
+      return NULL;
+    }
+
+    $response_text = $result['response'];
+    $stop_reason = $result['stop_reason'];
 
     // Check if response was truncated due to max_tokens limit
     if ($stop_reason === 'max_tokens') {

@@ -3735,7 +3735,7 @@ CRITICAL REQUIREMENTS:
 4. Extract searchable keywords from each achievement
 5. Use YYYY-MM format for all dates (e.g., "2022-06")
 6. Use null for missing optional fields, not empty strings
-7. Return ONLY valid JSON - NO markdown code blocks, NO escape sequences like \n or \", use actual whitespace
+7. Return ONLY valid JSON conforming to RFC 8259 - NO markdown code blocks, USE proper JSON escaping (\n for newlines, \" for quotes)
 
 JSON SCHEMA (v1.0):
 {
@@ -3938,7 +3938,7 @@ REQUIREMENTS:
 1. Preserve ALL information - do not summarize
 2. Use YYYY-MM format for dates
 3. Use null for missing optional fields
-4. Return ONLY valid JSON - NO markdown code blocks, NO escape sequences like \n or \", use actual whitespace
+4. Return ONLY valid JSON conforming to RFC 8259 - NO markdown code blocks, USE proper JSON escaping (\n for newlines, \" for quotes)
 
 JSON SCHEMA:
 {
@@ -4025,7 +4025,7 @@ REQUIREMENTS:
 3. Identify technologies mentioned in each achievement
 4. Extract searchable keywords from each achievement
 5. Use YYYY-MM format for dates
-6. Return ONLY valid JSON - NO markdown code blocks, NO escape sequences like \n or \", use actual whitespace
+6. Return ONLY valid JSON conforming to RFC 8259 - NO markdown code blocks, USE proper JSON escaping (\n for newlines, \" for quotes)
 
 JSON SCHEMA:
 {

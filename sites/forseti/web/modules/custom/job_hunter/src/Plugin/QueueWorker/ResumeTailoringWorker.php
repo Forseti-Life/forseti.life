@@ -4,6 +4,7 @@ namespace Drupal\job_hunter\Plugin\QueueWorker;
 
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
+use Drupal\Core\Queue\SuspendQueueException;
 use Drupal\job_hunter\Traits\JobHunterLoggerTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -30,11 +31,19 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
   protected $configFactory;
 
   /**
+   * The AI API service.
+   *
+   * @var \Drupal\ai_conversation\Service\AIApiService
+   */
+  protected $aiApiService;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     $instance = new static($configuration, $plugin_id, $plugin_definition);
     $instance->configFactory = $container->get('config.factory');
+    $instance->aiApiService = $container->get('ai_conversation.ai_api_service');
     return $instance;
   }
 
@@ -89,11 +98,13 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
         ],
       ];
 
-      // Call AWS Bedrock
-      $tailored_result = $this->callGenAiTailoringService($genai_payload);
+      // Call AWS Bedrock via AIApiService
+      $tailored_result = $this->callGenAiTailoringService($genai_payload, $uid, $job_id);
 
       if (!$tailored_result || !isset($tailored_result['tailored_resume_json'])) {
-        throw new \Exception('Failed to generate tailored resume from AI service');
+        // Suspend queue - GenAI call may have succeeded but JSON parsing failed
+        // This allows manual cache clearing and intelligent retry
+        throw new SuspendQueueException('Failed to generate tailored resume from AI service. Check logs for JSON parsing errors. Clear cache if prompt needs adjustment.');
       }
 
       // Save the tailored resume
@@ -187,39 +198,37 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
   }
 
   /**
-   * Call AWS Bedrock for resume tailoring.
+   * Call AWS Bedrock for resume tailoring via AIApiService.
    */
-  private function callGenAiTailoringService(array $payload) {
+  private function callGenAiTailoringService(array $payload, int $uid, int $job_id) {
     try {
-      $sdk = new \Aws\Sdk([
-        'region' => 'us-west-2',
-        'version' => 'latest',
-      ]);
-
-      $bedrock = $sdk->createBedrockRuntime();
       $prompt = $this->buildTailoredResumePrompt($payload);
 
-      $this->logInfo('Queue: Calling AWS Bedrock Claude for resume tailoring');
+      $this->logInfo('Queue: Calling AWS Bedrock Claude for resume tailoring via AIApiService');
 
-      $response = $bedrock->invokeModel([
-        'modelId' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
-        'body' => json_encode([
-          'anthropic_version' => 'bedrock-2023-05-31',
-          'max_tokens' => 150000,
-          'messages' => [
-            [
-              'role' => 'user',
-              'content' => $prompt,
-            ],
-          ],
-        ]),
-      ]);
+      // Use centralized AIApiService (with automatic caching)
+      $result = $this->aiApiService->invokeModelDirect(
+        $prompt,
+        'job_hunter',
+        'resume_tailoring',
+        [
+          'uid' => $uid,
+          'job_id' => $job_id,
+          'queue' => 'job_hunter_resume_tailoring',
+          'item_key' => "resume_tailoring_{$uid}_{$job_id}",
+        ],
+        [
+          'max_tokens' => 8000,
+        ]
+      );
 
-      $result = json_decode($response['body']->getContents(), TRUE);
+      if (!$result['success']) {
+        $this->logError('AIApiService call failed: @error', ['@error' => $result['error'] ?? 'Unknown error']);
+        return NULL;
+      }
 
-      if (isset($result['content'][0]['text'])) {
-        $ai_response = $result['content'][0]['text'];
-        $stop_reason = $result['stop_reason'] ?? 'unknown';
+      $ai_response = $result['response'];
+      $stop_reason = $result['stop_reason'];
         
         // 🔍 VERBOSE: Log raw response statistics
         $response_length = strlen($ai_response);
@@ -303,10 +312,6 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
 
         $this->logError('Queue: Failed to parse tailored resume JSON from AI response');
         return NULL;
-      }
-
-      $this->logError('Queue: Unexpected API response format from Bedrock');
-      return NULL;
 
     }
     catch (\Exception $e) {
@@ -411,16 +416,17 @@ Generate a TAILORED version of the candidate's resume as a JSON object. The outp
 
 ## Output Format
 
-**CRITICAL**: Return ONLY valid, clean JSON with these requirements:
+**CRITICAL**: Return ONLY valid JSON conforming to RFC 8259:
+- Start immediately with `{` and end with `}`
 - NO markdown code blocks (no ```json or ```)
 - NO explanatory text before or after the JSON
-- NO escape sequences like \n, \t, or \" in string values - use actual newlines and quotes
-- NO string-escaped JSON - return the raw JSON object directly
-- Start your response with { and end with }
+- NO double-escaping (don't wrap JSON as a string)
+- **USE PROPER JSON ESCAPING**: `\n` for newlines, `\t` for tabs, `\"` for quotes within strings
 - Ensure all braces, brackets, and quotes are properly balanced
-- Use proper JSON formatting with real whitespace, not escaped characters
+- Multi-line string values MUST use `\n` escape sequences, NOT literal newlines
+- All special characters in strings MUST be properly escaped per JSON spec
 
-The JSON must be directly parseable by a standard JSON parser without any preprocessing.
+The output must parse successfully with `json_decode()` without any preprocessing.
 
 PROMPT;
   }

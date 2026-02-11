@@ -284,7 +284,7 @@ class AIApiService {
         $output_tokens = $this->estimateTokens($ai_response);
         $this->updateTokenCount($conversation, $input_tokens + $output_tokens);
         
-        // Track API usage
+        // Track API usage (success case)
         $this->trackApiUsage([
           'module' => 'ai_conversation',
           'operation' => 'chat_message',
@@ -297,15 +297,54 @@ class AIApiService {
             'conversation_id' => $conversation->id(),
             'conversation_title' => $conversation->getTitle(),
           ],
+          'success' => TRUE,
+          'prompt' => $context,
+          'response' => $ai_response,
         ]);
         
         return $ai_response;
       }
       
+      // Track failure - unexpected response format
+      $this->trackApiUsage([
+        'module' => 'ai_conversation',
+        'operation' => 'chat_message',
+        'model_id' => $model,
+        'input_tokens' => $input_tokens,
+        'output_tokens' => 0,
+        'stop_reason' => 'error',
+        'duration_ms' => $duration_ms,
+        'context_data' => [
+          'conversation_id' => $conversation->id(),
+          'conversation_title' => $conversation->getTitle(),
+        ],
+        'success' => FALSE,
+        'error_message' => 'Unexpected API response format',
+        'prompt' => $context,
+      ]);
+      
       $this->logError('Unexpected API response format: @response', ['@response' => print_r($result, TRUE)]);
       throw new \Exception('Unexpected API response format');
       
     } catch (\Exception $e) {
+      // Track failure - exception
+      $this->trackApiUsage([
+        'module' => 'ai_conversation',
+        'operation' => 'chat_message',
+        'model_id' => $model ?? 'unknown',
+        'input_tokens' => $input_tokens ?? 0,
+        'output_tokens' => 0,
+        'stop_reason' => 'error',
+        'duration_ms' => isset($start_time) ? (int)((microtime(TRUE) - $start_time) * 1000) : 0,
+        'context_data' => [
+          'conversation_id' => $conversation->id(),
+          'conversation_title' => $conversation->getTitle(),
+        ],
+        'success' => FALSE,
+        'error_message' => $e->getMessage(),
+        'prompt' => $context ?? '',
+      ]);
+      
       $this->logError('Error communicating with AI service: @message', [
         '@message' => $e->getMessage(),
       ]);
@@ -329,7 +368,7 @@ class AIApiService {
   }
 
   /**
-   * Track API usage to database for cost monitoring.
+   * Track API usage to database for cost monitoring and troubleshooting.
    * 
    * @param array $params
    *   Array with keys:
@@ -341,6 +380,10 @@ class AIApiService {
    *   - stop_reason: API stop reason (end_turn, max_tokens, etc.)
    *   - duration_ms: Duration in milliseconds
    *   - context_data: Additional context (entity_id, queue_id, etc.)
+   *   - success: Whether the call succeeded (boolean, default TRUE)
+   *   - error_message: Error message if call failed (optional)
+   *   - prompt: The FULL prompt sent to AI (optional, stored completely for debugging)
+   *   - response: The FULL response from AI (optional, stored completely for debugging)
    */
   public function trackApiUsage(array $params) {
     try {
@@ -352,32 +395,334 @@ class AIApiService {
       $output_cost = ($params['output_tokens'] ?? 0) * 0.015 / 1000;
       $estimated_cost = $input_cost + $output_cost;
       
+      // Determine success status
+      $success = $params['success'] ?? TRUE;
+      
+      // Store full prompt/response for debugging (not truncated)
+      $full_prompt = $params['prompt'] ?? NULL;
+      $full_response = $params['response'] ?? NULL;
+      
+      $fields = [
+        'timestamp' => \Drupal::time()->getRequestTime(),
+        'uid' => \Drupal::currentUser()->id(),
+        'module' => $params['module'] ?? 'unknown',
+        'operation' => $params['operation'] ?? 'unknown',
+        'model_id' => $params['model_id'] ?? '',
+        'input_tokens' => $params['input_tokens'] ?? 0,
+        'output_tokens' => $params['output_tokens'] ?? 0,
+        'stop_reason' => $params['stop_reason'] ?? '',
+        'duration_ms' => $params['duration_ms'] ?? 0,
+        'estimated_cost' => $estimated_cost,
+        'context_data' => isset($params['context_data']) ? json_encode($params['context_data']) : NULL,
+      ];
+      
+      // Add debugging fields if they exist
+      if ($connection->schema()->fieldExists('ai_conversation_api_usage', 'success')) {
+        $fields['success'] = $success ? 1 : 0;
+      }
+      if ($connection->schema()->fieldExists('ai_conversation_api_usage', 'error_message')) {
+        $fields['error_message'] = $params['error_message'] ?? NULL;
+      }
+      if ($connection->schema()->fieldExists('ai_conversation_api_usage', 'prompt_preview')) {
+        $fields['prompt_preview'] = $full_prompt;
+      }
+      if ($connection->schema()->fieldExists('ai_conversation_api_usage', 'response_preview')) {
+        $fields['response_preview'] = $full_response;
+      }
+      
       $connection->insert('ai_conversation_api_usage')
-        ->fields([
-          'timestamp' => \Drupal::time()->getRequestTime(),
-          'uid' => \Drupal::currentUser()->id(),
-          'module' => $params['module'] ?? 'unknown',
-          'operation' => $params['operation'] ?? 'unknown',
-          'model_id' => $params['model_id'] ?? '',
-          'input_tokens' => $params['input_tokens'] ?? 0,
-          'output_tokens' => $params['output_tokens'] ?? 0,
-          'stop_reason' => $params['stop_reason'] ?? '',
-          'duration_ms' => $params['duration_ms'] ?? 0,
-          'estimated_cost' => $estimated_cost,
-          'context_data' => isset($params['context_data']) ? json_encode($params['context_data']) : NULL,
-        ])
+        ->fields($fields)
         ->execute();
         
-      $this->logInfo('📊 API usage tracked: @module/@operation - @input_tokens in + @output_tokens out = $@cost', [
-        '@module' => $params['module'] ?? 'unknown',
-        '@operation' => $params['operation'] ?? 'unknown',
-        '@input_tokens' => $params['input_tokens'] ?? 0,
-        '@output_tokens' => $params['output_tokens'] ?? 0,
-        '@cost' => number_format($estimated_cost, 4),
-      ]);
+      if ($success) {
+        $this->logInfo('📊 API usage tracked: @module/@operation - @input_tokens in + @output_tokens out = $@cost', [
+          '@module' => $params['module'] ?? 'unknown',
+          '@operation' => $params['operation'] ?? 'unknown',
+          '@input_tokens' => $params['input_tokens'] ?? 0,
+          '@output_tokens' => $params['output_tokens'] ?? 0,
+          '@cost' => number_format($estimated_cost, 4),
+        ]);
+      } else {
+        $this->logError('❌ API call failed and tracked: @module/@operation - @error', [
+          '@module' => $params['module'] ?? 'unknown',
+          '@operation' => $params['operation'] ?? 'unknown',
+          '@error' => $params['error_message'] ?? 'Unknown error',
+        ]);
+      }
     } catch (\Exception $e) {
       $this->logError('Failed to track API usage: @message', ['@message' => $e->getMessage()]);
     }
+  }
+
+  /**
+   * Invoke AWS Bedrock model directly with tracking and caching.
+   * 
+   * For use by queue workers and batch operations that don't use conversation nodes.
+   * Automatically checks for cached successful responses before making new API calls.
+   * 
+   * @param string $prompt
+   *   The prompt to send to the AI.
+   * @param string $module
+   *   Module making the call (e.g., 'job_hunter').
+   * @param string $operation
+   *   Operation type (e.g., 'resume_tailoring', 'cover_letter_generation').
+   * @param array $context_data
+   *   Additional context for tracking (e.g., ['job_id' => 123, 'uid' => 1]).
+   * @param array $options
+   *   Optional parameters:
+   *   - model_id: Override default model
+   *   - max_tokens: Override default max_tokens (default: 8000)
+   *   - system_prompt: Optional system prompt
+   *   - skip_cache: Set to TRUE to bypass cache lookup (default: FALSE)
+   * 
+   * @return array
+   *   Response array with keys:
+   *   - success: bool
+   *   - response: string (AI response text)
+   *   - stop_reason: string
+   *   - input_tokens: int
+   *   - output_tokens: int
+   *   - error: string (if success is false)
+   *   - cached: bool (TRUE if response came from cache)
+   */
+  public function invokeModelDirect(string $prompt, string $module, string $operation, array $context_data = [], array $options = []) {
+    try {
+      // Check cache first (unless explicitly disabled)
+      if (empty($options['skip_cache'])) {
+        $cached = $this->getCachedApiResponse($module, $operation, $context_data);
+        if ($cached) {
+          $this->logInfo('♻️ Reusing cached GenAI response from @timestamp for @module/@operation', [
+            '@timestamp' => date('Y-m-d H:i:s', $cached['timestamp']),
+            '@module' => $module,
+            '@operation' => $operation,
+          ]);
+          
+          return [
+            'success' => TRUE,
+            'response' => $cached['response'],
+            'stop_reason' => $cached['stop_reason'],
+            'input_tokens' => $cached['input_tokens'],
+            'output_tokens' => $cached['output_tokens'],
+            'cached' => TRUE,
+          ];
+        }
+      }
+      
+      // No cache hit - proceed with API call
+      $config = $this->configFactory->get('ai_conversation.settings');
+      $aws_access_key = $config->get('aws_access_key_id') ?: getenv('AWS_ACCESS_KEY_ID');
+      $aws_secret_key = $config->get('aws_secret_access_key') ?: getenv('AWS_SECRET_ACCESS_KEY');
+      $aws_region = $config->get('aws_region') ?: getenv('AWS_DEFAULT_REGION') ?: 'us-west-2';
+
+      $sdk_config = [
+        'region' => $aws_region,
+        'version' => 'latest',
+      ];
+      
+      if (!empty($aws_access_key) && !empty($aws_secret_key)) {
+        $sdk_config['credentials'] = [
+          'key' => $aws_access_key,
+          'secret' => $aws_secret_key,
+        ];
+      }
+
+      $sdk = new \Aws\Sdk($sdk_config);
+      $bedrock = $sdk->createBedrockRuntime();
+      
+      $model_id = $options['model_id'] ?? 'anthropic.claude-3-5-sonnet-20240620-v1:0';
+      $max_tokens = $options['max_tokens'] ?? 8000;
+      
+      $request_body = [
+        'anthropic_version' => 'bedrock-2023-05-31',
+        'max_tokens' => $max_tokens,
+        'messages' => [
+          [
+            'role' => 'user',
+            'content' => $prompt,
+          ],
+        ],
+      ];
+
+      if (!empty($options['system_prompt'])) {
+        $request_body['system'] = $options['system_prompt'];
+      }
+
+      $start_time = microtime(TRUE);
+
+      $response = $bedrock->invokeModel([
+        'modelId' => $model_id,
+        'body' => json_encode($request_body),
+      ]);
+
+      $duration_ms = (int)((microtime(TRUE) - $start_time) * 1000);
+      $result = json_decode($response['body']->getContents(), TRUE);
+      
+      if (isset($result['content'][0]['text'])) {
+        $ai_response = $result['content'][0]['text'];
+        $stop_reason = $result['stop_reason'] ?? 'unknown';
+        
+        // Estimate tokens
+        $input_tokens = $this->estimateTokens($prompt);
+        $output_tokens = $this->estimateTokens($ai_response);
+        
+        // Track usage (success case)
+        $this->trackApiUsage([
+          'module' => $module,
+          'operation' => $operation,
+          'model_id' => $model_id,
+          'input_tokens' => $input_tokens,
+          'output_tokens' => $output_tokens,
+          'stop_reason' => $stop_reason,
+          'duration_ms' => $duration_ms,
+          'context_data' => $context_data,
+          'success' => TRUE,
+          'prompt' => $prompt,
+          'response' => $ai_response,
+        ]);
+        
+        return [
+          'success' => TRUE,
+          'response' => $ai_response,
+          'stop_reason' => $stop_reason,
+          'input_tokens' => $input_tokens,
+          'output_tokens' => $output_tokens,
+          'cached' => FALSE,
+        ];
+      }
+      
+      // Track failure - unexpected response format
+      $this->trackApiUsage([
+        'module' => $module,
+        'operation' => $operation,
+        'model_id' => $model_id,
+        'input_tokens' => 0,
+        'output_tokens' => 0,
+        'stop_reason' => 'error',
+        'duration_ms' => $duration_ms ?? 0,
+        'context_data' => $context_data,
+        'success' => FALSE,
+        'error_message' => 'Unexpected API response format',
+        'prompt' => $prompt,
+      ]);
+      
+      return [
+        'success' => FALSE,
+        'error' => 'Unexpected API response format',
+      ];
+      
+    } catch (\Exception $e) {
+      $this->logError('AWS Bedrock invocation failed: @message', ['@message' => $e->getMessage()]);
+      
+      // Track failure - exception
+      $this->trackApiUsage([
+        'module' => $module,
+        'operation' => $operation,
+        'model_id' => $options['model_id'] ?? 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+        'input_tokens' => 0,
+        'output_tokens' => 0,
+        'stop_reason' => 'error',
+        'duration_ms' => isset($start_time) ? (int)((microtime(TRUE) - $start_time) * 1000) : 0,
+        'context_data' => $context_data,
+        'success' => FALSE,
+        'error_message' => $e->getMessage(),
+        'prompt' => $prompt,
+      ]);
+      
+      return [
+        'success' => FALSE,
+        'error' => $e->getMessage(),
+        'cached' => FALSE,
+      ];
+    }
+  }
+
+  /**
+   * Get cached successful API response to avoid redundant calls.
+   * 
+   * @param string $module
+   *   Module name.
+   * @param string $operation
+   *   Operation type.
+   * @param array $context_data
+   *   Context data to match against.
+   * 
+   * @return array|null
+   *   Array with response data if found, NULL otherwise.
+   */
+  private function getCachedApiResponse(string $module, string $operation, array $context_data) {
+    $connection = \Drupal::database();
+    
+    // Build WHERE clauses for context_data matching
+    $query = $connection->select('ai_conversation_api_usage', 'u')
+      ->fields('u', ['response_preview', 'stop_reason', 'timestamp', 'input_tokens', 'output_tokens'])
+      ->condition('module', $module)
+      ->condition('operation', $operation)
+      ->condition('success', 1)
+      ->orderBy('timestamp', 'DESC')
+      ->range(0, 1);
+    
+    // Add JSON_EXTRACT conditions for each context field
+    // JSON_EXTRACT handles both numeric and string values correctly
+    foreach ($context_data as $key => $value) {
+      $query->where("JSON_EXTRACT(context_data, '$.$key') = :value_$key", [":value_$key" => $value]);
+    }
+    
+    $result = $query->execute()->fetchAssoc();
+    
+    if ($result && !empty($result['response_preview'])) {
+      return [
+        'response' => $result['response_preview'],
+        'stop_reason' => $result['stop_reason'],
+        'timestamp' => $result['timestamp'],
+        'input_tokens' => $result['input_tokens'],
+        'output_tokens' => $result['output_tokens'],
+      ];
+    }
+    
+    return NULL;
+  }
+
+  /**
+   * Clear cached GenAI responses for specific context.
+   * 
+   * Use this to invalidate cached responses when retrying suspended queue items
+   * or when the prompt/input has changed.
+   * 
+   * @param string $module
+   *   Module name (e.g., 'job_hunter').
+   * @param string $operation
+   *   Operation type (e.g., 'resume_tailoring').
+   * @param array $context_data
+   *   Context data to match against (e.g., ['uid' => 5, 'job_id' => 123]).
+   * 
+   * @return int
+   *   Number of cached responses cleared.
+   */
+  public function clearCachedResponse(string $module, string $operation, array $context_data) {
+    $connection = \Drupal::database();
+    
+    // Build delete query matching the context
+    $query = $connection->delete('ai_conversation_api_usage')
+      ->condition('module', $module)
+      ->condition('operation', $operation);
+    
+    // Add JSON_EXTRACT conditions for each context field
+    // JSON_EXTRACT handles both numeric and string values correctly
+    foreach ($context_data as $key => $value) {
+      $query->where("JSON_EXTRACT(context_data, '$.$key') = :value_$key", [":value_$key" => $value]);
+    }
+    
+    $count = $query->execute();
+    
+    if ($count > 0) {
+      $this->logInfo('🗑️ Cleared @count cached GenAI response(s) for @module/@operation', [
+        '@count' => $count,
+        '@module' => $module,
+        '@operation' => $operation,
+      ]);
+    }
+    
+    return $count;
   }
 
   /**

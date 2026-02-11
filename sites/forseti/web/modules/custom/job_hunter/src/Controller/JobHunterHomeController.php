@@ -31,6 +31,11 @@ class JobHunterHomeController extends ControllerBase {
       'description' => 'Generates tailored resumes matching job requirements',
       'icon' => '✨',
     ],
+    'job_hunter_cover_letter_tailoring' => [
+      'name' => 'Cover Letter Tailoring',
+      'description' => 'Generates personalized cover letters for job applications',
+      'icon' => '✉️',
+    ],
     'job_hunter_text_extraction' => [
       'name' => 'Resume Text Extraction',
       'description' => 'Extracts raw text from PDF/DOCX resume files',
@@ -504,6 +509,9 @@ class JobHunterHomeController extends ControllerBase {
           'job_hunter/queue-management',
           'job_hunter/queue-controls',
         ],
+        'drupalSettings' => [
+          'csrf_token' => \Drupal::csrfToken()->get('rest'),
+        ],
       ],
     ];
     
@@ -912,6 +920,108 @@ class JobHunterHomeController extends ControllerBase {
       return new JsonResponse([
         'success' => false,
         'message' => 'Error retrying suspended item: ' . $e->getMessage(),
+      ], 500);
+    }
+  }
+
+  /**
+   * Clear cached GenAI responses for a queue item.
+   * 
+   * Use this when retrying suspended items to force a fresh API call.
+   */
+  public function clearGenAiCache(Request $request) {
+    $content = $request->getContent();
+    if ($content) {
+      $data = json_decode($content, TRUE);
+      $queue_name = $data['queue_name'] ?? NULL;
+      $item_data = $data['item_data'] ?? NULL;
+    }
+    else {
+      return new JsonResponse(['success' => false, 'message' => 'Invalid request'], 400);
+    }
+    
+    if (!$queue_name || !$item_data) {
+      return new JsonResponse(['success' => false, 'message' => 'Missing queue_name or item_data'], 400);
+    }
+    
+    try {
+      $ai_service = \Drupal::service('ai_conversation.ai_api_service');
+      
+      // Map queue names to operations and extract context
+      $cleared = 0;
+      
+      switch ($queue_name) {
+        case 'job_hunter_resume_tailoring':
+          $cleared = $ai_service->clearCachedResponse(
+            'job_hunter',
+            'resume_tailoring',
+            [
+              'uid' => $item_data['uid'] ?? 0,
+              'job_id' => $item_data['job_id'] ?? 0,
+            ]
+          );
+          break;
+          
+        case 'job_hunter_cover_letter_tailoring':
+          $cleared = $ai_service->clearCachedResponse(
+            'job_hunter',
+            'cover_letter_generation',
+            [
+              'uid' => $item_data['uid'] ?? 0,
+              'job_id' => $item_data['job_id'] ?? 0,
+            ]
+          );
+          break;
+          
+        case 'job_hunter_genai_parsing':
+          $cleared = $ai_service->clearCachedResponse(
+            'job_hunter',
+            'resume_parsing',
+            [
+              'uid' => $item_data['uid'] ?? 0,
+              'filename' => $item_data['filename'] ?? '',
+            ]
+          );
+          break;
+          
+        case 'job_hunter_job_posting_parsing':
+          $cleared = $ai_service->clearCachedResponse(
+            'job_hunter',
+            'job_posting_parsing',
+            [
+              'job_id' => $item_data['job_id'] ?? 0,
+            ]
+          );
+          break;
+          
+        default:
+          return new JsonResponse([
+            'success' => false,
+            'message' => 'Unknown queue type: ' . $queue_name,
+          ], 400);
+      }
+      
+      \Drupal::logger('job_hunter')->info('🗑️ Queue Management: Cleared @count cached GenAI response(s) for @queue', [
+        '@count' => $cleared,
+        '@queue' => $queue_name,
+      ]);
+      
+      return new JsonResponse([
+        'success' => true,
+        'cleared' => $cleared,
+        'message' => $cleared > 0 
+          ? "Cleared {$cleared} cached GenAI response(s). Next run will call AI again." 
+          : 'No cached responses found to clear.',
+      ]);
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('job_hunter')->error('Error clearing GenAI cache: @error', [
+        '@error' => $e->getMessage(),
+      ]);
+      
+      return new JsonResponse([
+        'success' => false,
+        'message' => 'Error clearing cache: ' . $e->getMessage(),
       ], 500);
     }
   }

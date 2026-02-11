@@ -1248,3 +1248,49 @@ function job_hunter_update_9019() {
   
   return t('Updated jobhunter_companies table: @changes', ['@changes' => implode(', ', $messages)]);
 }
+
+/**
+ * Create jobhunter_cover_letters table.
+ */
+function _job_hunter_create_cover_letters_table() {
+  $schema = \Drupal::database()->schema();
+  
+  if ($schema->tableExists('jobhunter_cover_letters')) {
+    return;
+  }
+  
+  $table_schema = [
+    'description' => 'Generated cover letters for job applications',
+    'fields' => [
+      'id' => ['type' => 'serial', 'not null' => TRUE],
+      'uid' => ['type' => 'int', 'not null' => TRUE, 'description' => 'User ID'],
+      'job_id' => ['type' => 'int', 'not null' => TRUE, 'description' => 'Job requirement ID'],
+      'cover_letter_text' => ['type' => 'text', 'size' => 'big', 'description' => 'Plain text cover letter'],
+      'cover_letter_html' => ['type' => 'text', 'size' => 'big', 'description' => 'HTML formatted cover letter'],
+      'cover_letter_json' => ['type' => 'text', 'size' => 'big', 'description' => 'Structured cover letter data'],
+      'tailoring_status' => ['type' => 'varchar', 'length' => 32, 'default' => 'pending', 'description' => 'pending, queued, processing, completed, failed'],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'pdf_path' => ['type' => 'varchar', 'length' => 512, 'description' => 'Path to generated PDF'],
+      'pdf_generated' => ['type' => 'int', 'default' => 0, 'description' => 'Timestamp when PDF was generated'],
+      'error_message' => ['type' => 'text', 'description' => 'Error message if generation failed'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['user_job' => ['uid', 'job_id']],
+    'indexes' => [
+      'uid' => ['uid'],
+      'job_id' => ['job_id'],
+      'tailoring_status' => ['tailoring_status'],
+    ],
+  ];
+  
+  $schema->createTable('jobhunter_cover_letters', $table_schema);
+}
+
+/**
+ * Create cover letters table for job application cover letter generation.
+ */
+function job_hunter_update_9020() {
+  _job_hunter_create_cover_letters_table();
+  return t('Created jobhunter_cover_letters table for cover letter generation and storage.');
+}

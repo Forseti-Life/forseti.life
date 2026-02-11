@@ -152,6 +152,65 @@
         });
       });
       
+      // Handle GenAI cache clearing
+      document.querySelectorAll('.btn-clear-genai-cache').forEach(function(button) {
+        if (button.classList.contains('processed')) return;
+        button.classList.add('processed');
+        
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          const buttonElement = this;
+          const itemElement = this.closest('.queue-item');
+          const queueName = itemElement.dataset.queueName;
+          const itemData = JSON.parse(itemElement.dataset.itemData || '{}');
+          
+          if (!confirm('Clear cached GenAI response for this item?\n\nThis will force a fresh API call on next retry (incurring costs).')) {
+            return;
+          }
+          
+          buttonElement.disabled = true;
+          buttonElement.textContent = '⏳ Clearing...';
+          
+          fetch('/jobhunter/queue/clear-genai-cache', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': drupalSettings.csrf_token || ''
+            },
+            body: JSON.stringify({
+              queue_name: queueName,
+              item_data: itemData
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              showMessage(data.message, 'success');
+              
+              // Update button to show cache cleared
+              buttonElement.textContent = '✓ Cache Cleared';
+              buttonElement.classList.add('cache-cleared');
+              
+              // Re-enable after 2 seconds
+              setTimeout(() => {
+                buttonElement.disabled = false;
+                buttonElement.textContent = '🗑️ Clear Cache';
+              }, 2000);
+            } else {
+              buttonElement.disabled = false;
+              buttonElement.textContent = '🗑️ Clear Cache';
+              showMessage(data.message || 'Failed to clear cache', 'error');
+            }
+          })
+          .catch(error => {
+            buttonElement.disabled = false;
+            buttonElement.textContent = '🗑️ Clear Cache';
+            showMessage('Error clearing cache: ' + error.message, 'error');
+          });
+        });
+      });
+      
       /**
        * Show a temporary message to the user
        */

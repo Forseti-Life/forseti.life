@@ -177,13 +177,21 @@
       </div>
 
       {% for item in queue_items %}
-        <div class="queue-item" data-item-id="{{ item.item_id }}" data-queue-name="{{ item.queue_name }}">
+        <div class="queue-item" 
+             data-item-id="{{ item.item_id }}" 
+             data-queue-name="{{ item.queue_name }}"
+             data-item-data="{{ item.data|json_encode|e('html_attr') }}">
           <div class="item-header">
             <div class="item-title">
               <span class="queue-badge">{{ item.queue_label }}</span>
               <span class="item-id">Item #{{ item.item_id }}</span>
             </div>
             <div class="item-actions">
+              {% if item.queue_name in ['job_hunter_resume_tailoring', 'job_hunter_cover_letter_tailoring', 'job_hunter_genai_parsing', 'job_hunter_job_posting_parsing'] %}
+                <button class="btn-clear-genai-cache btn-secondary" title="{{ 'Clear cached GenAI response to force fresh API call'|t }}">
+                  🗑️ {{ 'Clear Cache'|t }}
+                </button>
+              {% endif %}
               <button class="btn-delete-item" title="{{ 'Delete this queue item'|t }}">
                 🗑️ {{ 'Delete Item'|t }}
               </button>
