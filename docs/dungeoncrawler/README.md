@@ -1,5 +1,9 @@
 # Pathfinder 2E Game Mechanics Documentation
 
+Myrandom notes
+PixiJS: Technically a high-performance 2D rendering engine rather than a full "game engine," it is often used as the foundation for browser games that require extreme speed.
+
+
 ## Overview
 
 This documentation provides comprehensive guides to the core game mechanics and process flows of Pathfinder 2nd Edition (PF2E). These guides are designed to help players and GMs quickly reference the structured procedures that drive gameplay.

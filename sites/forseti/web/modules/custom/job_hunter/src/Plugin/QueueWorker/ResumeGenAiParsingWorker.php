@@ -575,7 +575,7 @@ REQUIREMENTS:
 1. Preserve ALL information - do not summarize
 2. Use YYYY-MM format for dates
 3. Use null for missing optional fields
-4. Return ONLY valid JSON with no markdown or explanation
+4. Return ONLY valid JSON - NO markdown code blocks, NO escape sequences like \n or \", use actual whitespace
 5. For professional experience: Extract complete job entries even if split across chunks
 
 JSON SCHEMA:
@@ -681,7 +681,7 @@ REQUIREMENTS:
 1. Preserve ALL information - do not summarize
 2. Use YYYY-MM format for dates
 3. Use null for missing optional fields
-4. Return ONLY valid JSON with no markdown or explanation
+4. Return ONLY valid JSON - NO markdown code blocks, NO escape sequences like \n or \", use actual whitespace
 
 JSON SCHEMA:
 {

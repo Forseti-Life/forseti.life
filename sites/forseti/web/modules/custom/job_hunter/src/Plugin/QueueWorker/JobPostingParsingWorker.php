@@ -233,7 +233,7 @@ You are a professional job posting parser. Extract structured data from this job
 REQUIREMENTS:
 1. Extract all key information accurately
 2. Use null for missing optional fields
-3. Return ONLY valid JSON with no markdown or explanation
+3. Return ONLY valid JSON - NO markdown code blocks, NO escape sequences like \n or \", use actual whitespace
 
 JSON SCHEMA:
 {
@@ -284,7 +284,7 @@ REQUIREMENTS:
 1. Identify all technical and soft skills mentioned
 2. Extract keywords that should appear in a tailored resume
 3. Categorize skills by type and priority
-4. Return ONLY valid JSON with no markdown or explanation
+4. Return ONLY valid JSON - NO markdown code blocks, NO escape sequences like \n or \", use actual whitespace
 
 JSON SCHEMA:
 {

@@ -1432,7 +1432,7 @@ class UserProfileController extends ControllerBase {
         'modelId' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
         'body' => json_encode([
           'anthropic_version' => 'bedrock-2023-05-31',
-          'max_tokens' => 20000,
+          'max_tokens' => 150000,
           'messages' => [
             [
               'role' => 'user',
@@ -1446,6 +1446,15 @@ class UserProfileController extends ControllerBase {
       
       if (isset($result['content'][0]['text'])) {
         $ai_response = $result['content'][0]['text'];
+        $stop_reason = $result['stop_reason'] ?? 'unknown';
+        
+        // Check if response was truncated
+        if ($stop_reason === 'max_tokens') {
+          \Drupal::logger('job_hunter')->error('❌ Resume tailoring hit max_tokens limit! Response truncated at @len chars.', [
+            '@len' => strlen($ai_response),
+          ]);
+          return NULL;
+        }
         
         // Extract JSON from response (may be wrapped in markdown code blocks)
         $json_str = $this->extractJsonFromResponse($ai_response);
@@ -1495,7 +1504,8 @@ class UserProfileController extends ControllerBase {
     $job_skills = json_encode($job['skills_required_json'] ?? [], JSON_PRETTY_PRINT);
     $job_keywords = json_encode($job['keywords_json'] ?? [], JSON_PRETTY_PRINT);
     $job_description = $job['raw_posting_text'] ?? '';
-    $resume_json = json_encode($resume, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    // Use compact JSON encoding to reduce prompt size
+    $resume_json = json_encode($resume, JSON_UNESCAPED_SLASHES);
     
     return <<<PROMPT
 You are an expert resume tailoring AI. Your task is to create a tailored version of the candidate's resume optimized for a specific job posting.
@@ -1547,6 +1557,8 @@ Generate a TAILORED version of the candidate's resume as a JSON object. The outp
    - Maintain professional tone and factual accuracy
    - DO NOT fabricate information - only reorganize and emphasize existing content
    - For publications, patents, certifications, awards, and languages: only include if they exist in source resume AND are relevant to the position
+   - **Be concise**: Keep descriptions focused and impactful. Avoid unnecessary verbosity while maintaining professional quality.
+   - **Optimize length**: Aim for a balanced, professional resume that highlights the most relevant content for this role.
 
 3. **Add tailoring_metadata section:**
    ```json
@@ -1567,8 +1579,16 @@ Generate a TAILORED version of the candidate's resume as a JSON object. The outp
 
 ## Output Format
 
-Return ONLY valid JSON. No markdown code blocks, no explanatory text. The JSON should be parseable directly.
-Start your response with { and end with }.
+**CRITICAL**: Return ONLY valid, clean JSON with these requirements:
+- NO markdown code blocks (no ```json or ```)
+- NO explanatory text before or after the JSON
+- NO escape sequences like \n, \t, or \" in string values - use actual newlines and quotes
+- NO string-escaped JSON - return the raw JSON object directly
+- Start your response with { and end with }
+- Ensure all braces, brackets, and quotes are properly balanced
+- Use proper JSON formatting with real whitespace, not escaped characters
+
+The JSON must be directly parseable by a standard JSON parser without any preprocessing.
 
 PROMPT;
   }
@@ -1583,23 +1603,91 @@ PROMPT;
    *   Extracted JSON string or null.
    */
   private function extractJsonFromResponse($response) {
+    $response_text = trim($response);
+    
+    if (empty($response_text)) {
+      return NULL;
+    }
+
+    // AGGRESSIVE normalization of escaped sequences
+    $has_literal_newlines = strpos($response_text, "\\n") !== FALSE;
+    $has_literal_quotes = strpos($response_text, '\\"') !== FALSE;
+    $has_literal_tabs = strpos($response_text, "\\t") !== FALSE;
+    
+    if ($has_literal_newlines || $has_literal_quotes || $has_literal_tabs) {
+      $response_text = stripcslashes($response_text);
+      $response_text = trim($response_text);
+      \Drupal::logger('job_hunter')->warning('🟡 Normalized escaped JSON response (literal escapes detected)');
+    }
+    
     // Try direct parse first
-    $decoded = json_decode($response, TRUE);
+    $decoded = json_decode($response_text, TRUE);
     if (json_last_error() === JSON_ERROR_NONE) {
-      return $response;
+      return $response_text;
     }
     
     // Try extracting from markdown code block
-    if (preg_match('/```(?:json)?\s*(\{[\s\S]*\})\s*```/', $response, $matches)) {
-      return trim($matches[1]);
+    if (preg_match('/```(?:json)?\s*(\{[\s\S]*\})\s*```/', $response_text, $matches)) {
+      $candidate = trim($matches[1]);
+      $decoded = json_decode($candidate, TRUE);
+      if (json_last_error() === JSON_ERROR_NONE) {
+        return $candidate;
+      }
     }
     
-    // Try finding JSON object in response
-    if (preg_match('/(\{[\s\S]*\})/', $response, $matches)) {
-      // Validate it's actually valid JSON
-      $decoded = json_decode($matches[1], TRUE);
-      if (json_last_error() === JSON_ERROR_NONE) {
-        return $matches[1];
+    // Try brace counting with recovery
+    $start_pos = strpos($response_text, '{');
+    if ($start_pos === FALSE) {
+      return NULL;
+    }
+
+    $depth = 0;
+    $in_string = FALSE;
+    $escape_next = FALSE;
+    $len = strlen($response_text);
+    $last_quote_pos = -1;
+
+    for ($i = $start_pos; $i < $len; $i++) {
+      $char = $response_text[$i];
+
+      if ($escape_next) {
+        $escape_next = FALSE;
+        continue;
+      }
+      if ($char === '\\') {
+        $escape_next = TRUE;
+        continue;
+      }
+      if ($char === '"') {
+        $in_string = !$in_string;
+        $last_quote_pos = $i;
+        continue;
+      }
+      if ($in_string) {
+        continue;
+      }
+      if ($char === '{') {
+        $depth++;
+      }
+      elseif ($char === '}') {
+        $depth--;
+        if ($depth === 0) {
+          return substr($response_text, $start_pos, $i - $start_pos + 1);
+        }
+      }
+    }
+
+    // Recovery: Try to find last valid JSON if stuck in string state
+    if ($in_string && $last_quote_pos > 0 && $depth > 0) {
+      for ($i = $len - 1; $i > $start_pos; $i--) {
+        if ($response_text[$i] === '}') {
+          $candidate = substr($response_text, $start_pos, $i - $start_pos + 1);
+          $test = json_decode($candidate, TRUE);
+          if (json_last_error() === JSON_ERROR_NONE) {
+            \Drupal::logger('job_hunter')->info('✅ Recovered valid JSON from truncated response');
+            return $candidate;
+          }
+        }
       }
     }
     
