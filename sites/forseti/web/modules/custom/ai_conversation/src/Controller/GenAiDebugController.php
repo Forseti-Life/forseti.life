@@ -138,7 +138,19 @@ class GenAiDebugController extends ControllerBase {
     $operations = array_column($operations_query->execute()->fetchAll(), 'operation');
 
     // Calculate cost totals for filtered period
-    $filtered_cost_query = $this->database->select('ai_conversation_api_usage', 'u')
+    // Debug: Verify database object type
+    if (!($this->database instanceof Connection)) {
+      \Drupal::logger('ai_conversation')->error('Database is not Connection instance: @type', ['@type' => gettype($this->database)]);
+      throw new \Exception('Database connection invalid: ' . gettype($this->database));
+    }
+    
+    $filtered_cost_query = $this->database->select('ai_conversation_api_usage', 'u');
+    if (!is_object($filtered_cost_query)) {
+      \Drupal::logger('ai_conversation')->error('Select query did not return object: @type', ['@type' => gettype($filtered_cost_query)]);
+      throw new \Exception('Select query failed: ' . gettype($filtered_cost_query));
+    }
+    
+    $filtered_cost_query
       ->addExpression('SUM(estimated_cost)', 'total_cost')
       ->addExpression('COUNT(*)', 'total_calls');
     
