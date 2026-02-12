@@ -59,32 +59,7 @@ class JobHunterNavigationBlock extends BlockBase implements ContainerFactoryPlug
    * {@inheritdoc}
    */
   public function build() {
-    $navigation = [
-      'home' => [
-        'title' => $this->t('Dashboard'),
-        'url' => Url::fromRoute('job_hunter.dashboard'),
-        'icon' => 'home',
-        'weight' => 0,
-      ],
-      'profile' => [
-        'title' => $this->t('My Profile'),
-        'url' => Url::fromRoute('job_hunter.user_job_seeker_view'),
-        'icon' => 'user',
-        'weight' => 10,
-      ],
-      'my_jobs' => [
-        'title' => $this->t('My Jobs'),
-        'url' => Url::fromRoute('job_hunter.my_jobs'),
-        'icon' => 'briefcase',
-        'weight' => 12,
-      ],
-      'company_research' => [
-        'title' => $this->t('Company Research'),
-        'url' => Url::fromRoute('job_hunter.company_research'),
-        'icon' => 'building',
-        'weight' => 15,
-      ],
-    ];
+    $navigation = [];
 
     // Add "Report a Problem" link if forseti_content module is enabled
     $moduleHandler = \Drupal::service('module_handler');
@@ -94,31 +69,45 @@ class JobHunterNavigationBlock extends BlockBase implements ContainerFactoryPlug
         'subtitle' => $this->t('We are in BETA'),
         'url' => Url::fromRoute('forseti_content.talk_with_forseti'),
         'icon' => 'exclamation-circle',
-        'weight' => 90,
+        'weight' => -20,
         'classes' => 'report-problem-beta',
       ];
     }
+
+    $navigation['home'] = [
+      'title' => $this->t('Dashboard'),
+      'url' => Url::fromRoute('job_hunter.dashboard'),
+      'icon' => 'home',
+      'weight' => 0,
+    ];
+    $navigation['profile'] = [
+      'title' => $this->t('My Profile'),
+      'url' => Url::fromRoute('job_hunter.user_job_seeker_view'),
+      'icon' => 'user',
+      'weight' => 10,
+    ];
+    $navigation['my_jobs'] = [
+      'title' => $this->t('My Jobs'),
+      'url' => Url::fromRoute('job_hunter.my_jobs'),
+      'icon' => 'briefcase',
+      'weight' => 12,
+    ];
 
     if ($this->currentUser->hasPermission('administer job application automation')) {
       $navigation['job_discovery'] = [
         'title' => $this->t('Job Discovery'),
         'url' => Url::fromRoute('job_hunter.job_discovery'),
         'icon' => 'search',
-        'weight' => 20,
-      ];
-      $navigation['bulk_import'] = [
-        'title' => $this->t('Bulk Import'),
-        'url' => Url::fromRoute('job_hunter.bulk_import_companies'),
-        'icon' => 'upload',
-        'weight' => 50,
-      ];
-      $navigation['documentation'] = [
-        'title' => $this->t('Documentation'),
-        'url' => Url::fromRoute('job_hunter.documentation'),
-        'icon' => 'book',
-        'weight' => 80,
+        'weight' => 14,
       ];
     }
+
+    $navigation['company_research'] = [
+      'title' => $this->t('Company Research'),
+      'url' => Url::fromRoute('job_hunter.company_research'),
+      'icon' => 'building',
+      'weight' => 16,
+    ];
 
     // Add admin links if user has permission
     if ($this->currentUser->hasPermission('administer job application automation')) {
@@ -126,25 +115,21 @@ class JobHunterNavigationBlock extends BlockBase implements ContainerFactoryPlug
         'title' => $this->t('Queue Management'),
         'url' => Url::fromRoute('job_hunter.queue_management'),
         'icon' => 'wrench',
-        'weight' => 95,
+        'weight' => 70,
       ];
-      
-      // Only add route tester if module is enabled
-      $moduleHandler = \Drupal::service('module_handler');
-      if ($moduleHandler->moduleExists('jobhunter_tester')) {
-        $navigation['route_tester'] = [
-          'title' => $this->t('Route Tester'),
-          'url' => Url::fromRoute('jobhunter_tester.test_page'),
-          'icon' => 'vial',
-          'weight' => 96,
-        ];
-      }
-      
+
       $navigation['settings'] = [
         'title' => $this->t('Settings'),
         'url' => Url::fromRoute('job_hunter.settings'),
         'icon' => 'cog',
-        'weight' => 100,
+        'weight' => 80,
+      ];
+
+      $navigation['documentation'] = [
+        'title' => $this->t('Documentation'),
+        'url' => Url::fromRoute('job_hunter.documentation'),
+        'icon' => 'book',
+        'weight' => 90,
       ];
     }
 
