@@ -15,11 +15,11 @@ class AIConversationSettingsForm extends ConfigFormBase {
   /**
    * Default values for various settings.
    */
-  const DEFAULT_MAX_TOKENS = 50000;
+  const DEFAULT_MAX_TOKENS = 30000;
   const DEFAULT_MAX_TOKENS_RESUME_TAILORING = 30000;
-  const DEFAULT_MAX_TOKENS_RESUME_PARSING = 20000;
-  const DEFAULT_MAX_TOKENS_COVER_LETTER = 4000;
-  const DEFAULT_MAX_TOKENS_JOB_PARSING = 8000;
+  const DEFAULT_MAX_TOKENS_RESUME_PARSING = 30000;
+  const DEFAULT_MAX_TOKENS_COVER_LETTER = 30000;
+  const DEFAULT_MAX_TOKENS_JOB_PARSING = 30000;
   const DEFAULT_MAX_RECENT_MESSAGES = 20;
   const DEFAULT_SUMMARY_FREQUENCY = 10;
   const DEFAULT_MAX_TOKENS_BEFORE_SUMMARY = 6000;
@@ -549,5 +549,4 @@ class AIConversationSettingsForm extends ConfigFormBase {
     parent::submitForm($form, $form_state);
   }
 
-}
 }

@@ -169,7 +169,7 @@ system_prompt: |-
   - Modular architecture for extensibility
 
   YOUR GOAL: Help users understand and leverage public safety data to make informed decisions, while maintaining empathy, accuracy, and respect for all communities.
-max_tokens: 4000
+max_tokens: 30000
 max_recent_messages: 20
 summary_frequency: 10
 max_tokens_before_summary: 6000
