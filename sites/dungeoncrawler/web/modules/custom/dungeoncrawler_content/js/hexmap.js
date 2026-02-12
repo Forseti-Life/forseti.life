@@ -13,6 +13,7 @@
     app: null,
     hexContainer: null,
     gridContainer: null,
+    objectContainer: null,
     hexSize: 30,
     gridWidth: 20,
     gridHeight: 20,
@@ -20,6 +21,9 @@
     showGrid: true,
     selectedHex: null,
     hoveredHex: null,
+    objects: new Map(), // Map of q_r -> object sprite
+    draggedObject: null,
+    assetsLoaded: false,
 
     attach: function (context, settings) {
       const container = once('hexmap-init', '#hexmap-canvas-container', context);
@@ -53,15 +57,20 @@
       // Create containers for layers
       this.hexContainer = new PIXI.Container();
       this.gridContainer = new PIXI.Container();
+      this.objectContainer = new PIXI.Container();
       
+      // Add layers in order: hexes (terrain), grid (coords), objects (sprites)
       this.app.stage.addChild(this.hexContainer);
       this.app.stage.addChild(this.gridContainer);
+      this.app.stage.addChild(this.objectContainer);
 
       // Center the view
       this.hexContainer.x = this.app.screen.width / 2;
       this.hexContainer.y = this.app.screen.height / 2;
       this.gridContainer.x = this.hexContainer.x;
       this.gridContainer.y = this.hexContainer.y;
+      this.objectContainer.x = this.hexContainer.x;
+      this.objectContainer.y = this.hexContainer.y;
 
       // Enable interactivity on stage
       this.app.stage.interactive = true;
@@ -268,6 +277,14 @@
      * Hex click event.
      */
     onHexClick: function (hex) {
+      // If object type is selected, place object
+      if (this.selectedObjectType) {
+        const { q, r } = hex.hexData;
+        this.createObject(q, r, this.selectedObjectType, null);
+        return;
+      }
+      
+      // Otherwise, select hex
       // Deselect previous hex
       if (this.selectedHex) {
         this.onHexOut(this.selectedHex);
@@ -299,6 +316,192 @@
       document.getElementById('selected-hex').textContent = `(${q}, ${r})`;
       
       console.log('Selected hex:', q, r);
+    },
+
+    /**
+     * Create a game object on a hex.
+     */
+    createObject: function (q, r, type, spritePath) {
+      const key = `${q}_${r}`;
+      
+      // Remove existing object at this position
+      if (this.objects.has(key)) {
+        this.removeObject(q, r);
+      }
+
+      // Create object sprite
+      const sprite = this.createObjectSprite(type, spritePath);
+      const pos = this.axialToPixel(q, r, this.hexSize);
+      
+      sprite.x = pos.x;
+      sprite.y = pos.y;
+      sprite.anchor.set(0.5);
+      sprite.objectData = { q, r, type };
+      
+      // Make interactive for dragging
+      sprite.interactive = true;
+      sprite.buttonMode = true;
+      sprite.on('pointerdown', (e) => this.onObjectDragStart(e, sprite));
+      sprite.on('pointerup', () => this.onObjectDragEnd(sprite));
+      sprite.on('pointerupoutside', () => this.onObjectDragEnd(sprite));
+      sprite.on('pointermove', (e) => this.onObjectDrag(e, sprite));
+      
+      this.objectContainer.addChild(sprite);
+      this.objects.set(key, sprite);
+      
+      console.log(`Created ${type} at (${q}, ${r})`);
+      return sprite;
+    },
+
+    /**
+     * Create a sprite for an object (placeholder graphics if no texture).
+     */
+    createObjectSprite: function (type, spritePath) {
+      // If we have a sprite path and texture is loaded, use it
+      if (spritePath && PIXI.utils.TextureCache[spritePath]) {
+        const sprite = new PIXI.Sprite(PIXI.utils.TextureCache[spritePath]);
+        sprite.width = this.hexSize * 1.5;
+        sprite.height = this.hexSize * 1.5;
+        return sprite;
+      }
+      
+      // Otherwise create placeholder graphics
+      const graphics = new PIXI.Graphics();
+      const size = this.hexSize * 0.8;
+      
+      // Different shapes/colors for different types
+      switch (type) {
+        case 'creature':
+          graphics.beginFill(0xe74c3c); // Red
+          graphics.drawCircle(0, 0, size / 2);
+          break;
+        case 'item':
+          graphics.beginFill(0xf39c12); // Orange
+          graphics.drawRect(-size / 3, -size / 3, size / 1.5, size / 1.5);
+          break;
+        case 'obstacle':
+          graphics.beginFill(0x95a5a6); // Gray
+          graphics.drawPolygon([
+            -size / 2, size / 2,
+            0, -size / 2,
+            size / 2, size / 2
+          ]);
+          break;
+        case 'treasure':
+          graphics.beginFill(0xf1c40f); // Gold
+          graphics.lineStyle(3, 0xe67e22);
+          graphics.drawRect(-size / 3, -size / 3, size / 1.5, size / 1.5);
+          break;
+        default:
+          graphics.beginFill(0x3498db); // Blue
+          graphics.drawRect(-size / 2, -size / 2, size, size);
+      }
+      graphics.endFill();
+      
+      // Convert to sprite for consistency
+      const texture = this.app.renderer.generateTexture(graphics);
+      const sprite = new PIXI.Sprite(texture);
+      sprite.anchor.set(0.5);
+      return sprite;
+    },
+
+    /**
+     * Remove object from hex.
+     */
+    removeObject: function (q, r) {
+      const key = `${q}_${r}`;
+      const sprite = this.objects.get(key);
+      
+      if (sprite) {
+        this.objectContainer.removeChild(sprite);
+        sprite.destroy();
+        this.objects.delete(key);
+        console.log(`Removed object from (${q}, ${r})`);
+      }
+    },
+
+    /**
+     * Start dragging an object.
+     */
+    onObjectDragStart: function (e, sprite) {
+      e.stopPropagation(); // Prevent stage drag
+      this.draggedObject = sprite;
+      sprite.alpha = 0.7;
+      sprite.dragging = true;
+      sprite.dragData = e.data;
+      console.log('Started dragging object');
+    },
+
+    /**
+     * Drag object.
+     */
+    onObjectDrag: function (e, sprite) {
+      if (sprite.dragging) {
+        const newPosition = sprite.dragData.getLocalPosition(this.objectContainer);
+        sprite.x = newPosition.x;
+        sprite.y = newPosition.y;
+      }
+    },
+
+    /**
+     * End dragging object (snap to hex).
+     */
+    onObjectDragEnd: function (sprite) {
+      if (!sprite.dragging) return;
+      
+      sprite.dragging = false;
+      sprite.alpha = 1;
+      this.draggedObject = null;
+      
+      // Get position in hex coordinates
+      const localPos = { x: sprite.x, y: sprite.y };
+      const axial = this.pixelToAxial(localPos.x, localPos.y, this.hexSize);
+      
+      // Remove from old position
+      const oldKey = `${sprite.objectData.q}_${sprite.objectData.r}`;
+      this.objects.delete(oldKey);
+      
+      // Snap to nearest hex
+      const pos = this.axialToPixel(axial.q, axial.r, this.hexSize);
+      sprite.x = pos.x;
+      sprite.y = pos.y;
+      
+      // Update object data
+      sprite.objectData.q = axial.q;
+      sprite.objectData.r = axial.r;
+      
+      // Add to new position
+      const newKey = `${axial.q}_${axial.r}`;
+      
+      // If there's already an object at this position, remove it
+      if (this.objects.has(newKey)) {
+        const existingSprite = this.objects.get(newKey);
+        this.objectContainer.removeChild(existingSprite);
+        existingSprite.destroy();
+      }
+      
+      this.objects.set(newKey, sprite);
+      
+      console.log(`Moved object to (${axial.q}, ${axial.r})`);
+    },
+
+    /**
+     * Load game assets.
+     */
+    loadAssets: async function (assetList) {
+      if (this.assetsLoaded) return;
+      
+      console.log('Loading assets...');
+      
+      try {
+        for (const asset of assetList) {
+          await PIXI.Assets.load(asset);
+        }
+        this.assetsLoaded = true;
+        console.log('Assets loaded successfully');
+      } catch (error) {
+        console.error('Error loading assets:', error);
+      }
     },
 
     /**
@@ -354,7 +557,41 @@
         self.gridContainer.scale.set(1);
         self.gridContainer.x = self.hexContainer.x;
         self.gridContainer.y = self.hexContainer.y;
+        self.objectContainer.scale.set(1);
+        self.objectContainer.x = self.hexContainer.x;
+        self.objectContainer.y = self.hexContainer.y;
         document.getElementById('zoom-level').textContent = '100%';
+      });
+
+      // Object palette controls
+      self.selectedObjectType = null;
+
+      // Object type buttons
+      document.querySelectorAll('.btn-object').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          // Remove active class from all buttons
+          document.querySelectorAll('.btn-object').forEach(b => b.classList.remove('active'));
+          
+          // Set active button
+          btn.classList.add('active');
+          self.selectedObjectType = btn.dataset.type;
+          
+          // Update display
+          document.getElementById('selected-object-type').textContent = 
+            'Selected: ' + btn.dataset.type.charAt(0).toUpperCase() + btn.dataset.type.slice(1);
+          
+          console.log('Selected object type:', self.selectedObjectType);
+        });
+      });
+
+      // Clear all objects
+      document.getElementById('clear-objects').addEventListener('click', function () {
+        self.objects.forEach((sprite, key) => {
+          self.objectContainer.removeChild(sprite);
+          sprite.destroy();
+        });
+        self.objects.clear();
+        console.log('Cleared all objects');
       });
     },
 
@@ -389,6 +626,8 @@
           self.hexContainer.y += dy;
           self.gridContainer.x += dx;
           self.gridContainer.y += dy;
+          self.objectContainer.x += dx;
+          self.objectContainer.y += dy;
           
           dragStart = { x: e.data.global.x, y: e.data.global.y };
         }
@@ -405,6 +644,7 @@
         if (newScale > 0.5 && newScale < 3) {
           self.hexContainer.scale.set(newScale);
           self.gridContainer.scale.set(newScale);
+          self.objectContainer.scale.set(newScale);
           
           const zoomPercent = Math.round(newScale * 100);
           document.getElementById('zoom-level').textContent = zoomPercent + '%';

@@ -138,3 +138,10 @@ hexmap:
   dependencies:
     - core/drupal
     - core/once
+
+credits:
+  css:
+    theme:
+      css/credits.css: {}
+  dependencies:
+    - core/drupal

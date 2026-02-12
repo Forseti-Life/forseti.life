@@ -35,6 +35,19 @@
         <button id="reset-view" class="btn">{{ 'Reset View'|t }}</button>
       </div>
     </div>
+    
+    <div class="hexmap-object-palette">
+      <h3>{{ 'Object Palette'|t }}</h3>
+      <p class="palette-instructions">{{ 'Click an object type, then click a hex to place it. Click and drag placed objects to move them.'|t }}</p>
+      <div class="object-buttons">
+        <button id="place-creature" class="btn btn-object" data-type="creature">{{ '🐉 Creature'|t }}</button>
+        <button id="place-item" class="btn btn-object" data-type="item">{{ '📦 Item'|t }}</button>
+        <button id="place-treasure" class="btn btn-object" data-type="treasure">{{ '💰 Treasure'|t }}</button>
+        <button id="place-obstacle" class="btn btn-object" data-type="obstacle">{{ '🚧 Obstacle'|t }}</button>
+        <button id="clear-objects" class="btn btn-danger">{{ 'Clear All Objects'|t }}</button>
+      </div>
+      <p id="selected-object-type" class="selected-type">{{ 'Selected: None'|t }}</p>
+    </div>
   </div>
 
   <div id="hexmap-canvas-container" class="hexmap-canvas-wrapper">
@@ -55,9 +68,11 @@
       <h3>{{ 'Instructions'|t }}</h3>
       <ul>
         <li>{{ 'Click a hex to select it'|t }}</li>
-        <li>{{ 'Drag to pan the map'|t }}</li>
+        <li>{{ 'Drag the map to pan around'|t }}</li>
         <li>{{ 'Scroll to zoom in/out'|t }}</li>
         <li>{{ 'Hover to see hex coordinates'|t }}</li>
+        <li>{{ 'Use Object Palette to place game objects'|t }}</li>
+        <li>{{ 'Drag objects to move them between hexes'|t }}</li>
       </ul>
     </div>
   </div>

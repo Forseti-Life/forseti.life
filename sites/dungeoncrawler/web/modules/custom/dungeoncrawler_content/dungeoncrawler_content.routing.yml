@@ -135,3 +135,12 @@ dungeoncrawler_content.about:
     _title: 'About Dungeon Crawler Life'
   requirements:
     _access: 'TRUE'
+
+dungeoncrawler_content.credits:
+  path: '/credits'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CreditsController::page'
+    _title: 'Credits & Attribution'
+  requirements:
+    _access: 'TRUE'
+

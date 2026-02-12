@@ -186,6 +186,18 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
       'template' => 'character-step-8',
       'path' => $path . '/templates',
     ],
+    'hexmap_demo' => [
+      'variables' => [],
+      'template' => 'hexmap-demo',
+      'path' => $path . '/templates',
+    ],
+    'credits_page' => [
+      'variables' => [
+        'credits' => [],
+      ],
+      'template' => 'credits-page',
+      'path' => $path . '/templates',
+    ],
   ];
 }
 
