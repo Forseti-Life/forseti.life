@@ -54,7 +54,7 @@ class ChatController extends ControllerBase {
     return new static(
       $container->get('entity_type.manager'),
       $container->get('current_user'),
-      $container->get('ai_conversation.api_service')
+      $container->get('ai_conversation.ai_api_service')
     );
   }
 

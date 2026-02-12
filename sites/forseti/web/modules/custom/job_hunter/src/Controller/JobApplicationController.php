@@ -28,6 +28,16 @@ class JobApplicationController extends ControllerBase {
   }
 
   /**
+   * Redirect /jobhunter/jobs to /jobhunter/job-discovery.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   A redirect response to the job discovery page.
+   */
+  public function listJobsRedirect() {
+    return new RedirectResponse(Url::fromRoute('job_hunter.job_discovery')->toString());
+  }
+
+  /**
    * Returns an administrative dashboard for job applications.
    *
    * @return array
@@ -1426,6 +1436,280 @@ class JobApplicationController extends ControllerBase {
           }
         ',
       ],
+    ];
+    
+    // ==== SAVED JOBS LIST SECTION ====
+    // Add saved jobs list to bottom of job discovery page
+    $database = \Drupal::database();
+    $current_user_id = \Drupal::currentUser()->id();
+    $request = \Drupal::request();
+    
+    // Get filter parameters
+    $filter_company = $request->query->get('company', '');
+    $filter_status = $request->query->get('status', '');
+    $filter_ai_status = $request->query->get('ai_status', '');
+    $filter_tailoring = $request->query->get('tailoring', '');
+    
+    // Get all jobs with company names and tailoring status
+    $query = $database->select('jobhunter_job_requirements', 'j')
+      ->fields('j');
+    $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
+    $query->addField('c', 'name', 'company_name');
+    // Join tailored resumes for current user
+    $query->leftJoin('jobhunter_tailored_resumes', 'tr', 'j.id = tr.job_id AND tr.uid = :uid', [':uid' => $current_user_id]);
+    $query->addField('tr', 'tailoring_status');
+    $query->addField('tr', 'tailored_resume_json');
+    $query->addField('tr', 'pdf_path');
+    
+    // Apply filters
+    if (!empty($filter_company)) {
+      $query->condition('c.name', '%' . $database->escapeLike($filter_company) . '%', 'LIKE');
+    }
+    if (!empty($filter_status)) {
+      $query->condition('j.status', $filter_status);
+    }
+    if (!empty($filter_ai_status)) {
+      $query->condition('j.ai_extraction_status', $filter_ai_status);
+    }
+    if (!empty($filter_tailoring)) {
+      $query->condition('tr.tailoring_status', $filter_tailoring);
+    }
+    
+    $query->orderBy('c.name', 'ASC');
+    $query->orderBy('j.job_title', 'ASC');
+    $jobs = $query->execute()->fetchAll();
+    
+    // Get distinct companies for filter dropdown
+    $companies_query = $database->select('jobhunter_companies', 'c')
+      ->fields('c', ['name'])
+      ->distinct()
+      ->orderBy('name', 'ASC');
+    $companies = $companies_query->execute()->fetchCol();
+    
+    // Build table
+    $header = [
+      $this->t('Job Title'),
+      $this->t('Company'),
+      $this->t('Status'),
+      $this->t('AI Parsed'),
+      $this->t('Tailored'),
+      $this->t('Actions'),
+    ];
+    
+    $rows = [];
+    foreach ($jobs as $job) {
+      // Parse extracted JSON for better title display
+      $extracted = $job->extracted_json ? json_decode($job->extracted_json, TRUE) : NULL;
+      $job_title = ($extracted['position']['title'] ?? $job->job_title) ?: 'Job #' . $job->id;
+      $company_name = ($extracted['company']['name'] ?? $job->company_name) ?: 'Unknown';
+      
+      // Determine AI parsing status
+      $has_raw_text = !empty($job->raw_posting_text);
+      $has_extracted = !empty($job->extracted_json);
+      $ai_status = $job->ai_extraction_status ?? 'pending';
+      
+      if ($has_extracted) {
+        $ai_badge = '<span class="badge badge--success" title="AI parsing complete">✅ Parsed</span>';
+      } elseif ($ai_status === 'processing' || $ai_status === 'queued') {
+        $ai_badge = '<span class="badge badge--warning" title="AI parsing in progress">⏳ Processing</span>';
+      } elseif ($ai_status === 'failed') {
+        $ai_badge = '<span class="badge badge--error" title="AI parsing failed">❌ Failed</span>';
+      } elseif ($has_raw_text) {
+        $ai_badge = '<span class="badge badge--info" title="Has raw text, needs AI parsing">📝 Needs Parsing</span>';
+      } else {
+        $ai_badge = '<span class="badge badge--neutral" title="No content yet">⚪ No Content</span>';
+      }
+      
+      // Determine tailoring status
+      $tailoring_status = $job->tailoring_status ?? NULL;
+      $has_tailored_json = !empty($job->tailored_resume_json);
+      $has_pdf = !empty($job->pdf_path);
+      
+      if ($tailoring_status === 'completed' && $has_tailored_json) {
+        if ($has_pdf) {
+          $tailor_badge = '<span class="badge badge--success" title="Tailored with PDF ready">✅ PDF Ready</span>';
+        } else {
+          $tailor_badge = '<span class="badge badge--success" title="Resume tailored, generate PDF">✅ Tailored</span>';
+        }
+      } elseif ($tailoring_status === 'processing' || $tailoring_status === 'queued') {
+        $tailor_badge = '<span class="badge badge--warning" title="Tailoring in progress">⏳ Processing</span>';
+      } elseif ($tailoring_status === 'failed') {
+        $tailor_badge = '<span class="badge badge--error" title="Tailoring failed">❌ Failed</span>';
+      } else {
+        $tailor_badge = '<span class="badge badge--neutral" title="Not yet tailored">⚪ Not Tailored</span>';
+      }
+      
+      // Build action links
+      $tailor_link = [
+        '#type' => 'link',
+        '#title' => $tailoring_status === 'completed' ? $this->t('View/Edit') : $this->t('Tailor'),
+        '#url' => Url::fromRoute('job_hunter.tailor_resume', ['job' => $job->id]),
+        '#attributes' => ['class' => ['button', 'button--small', $tailoring_status === 'completed' ? 'button--secondary' : 'button--primary']],
+      ];
+      
+      $rows[] = [
+        [
+          'data' => [
+            '#type' => 'link',
+            '#title' => $job_title,
+            '#url' => Url::fromRoute('job_hunter.job_view', ['job_id' => $job->id]),
+          ],
+        ],
+        ['data' => ['#markup' => $company_name]],
+        ['data' => ['#markup' => ucfirst($job->status ?: 'active')]],
+        ['data' => ['#markup' => $ai_badge]],
+        ['data' => ['#markup' => $tailor_badge]],
+        [
+          'data' => [
+            '#type' => 'operations',
+            '#links' => [
+              'tailor' => [
+                'title' => $tailoring_status === 'completed' ? $this->t('View Tailored') : $this->t('Tailor Resume'),
+                'url' => Url::fromRoute('job_hunter.tailor_resume', ['job' => $job->id]),
+              ],
+              'view' => [
+                'title' => $this->t('View Job'),
+                'url' => Url::fromRoute('job_hunter.job_view', ['job_id' => $job->id]),
+              ],
+              'edit' => [
+                'title' => $this->t('Edit'),
+                'url' => Url::fromRoute('job_hunter.job_edit', ['job_id' => $job->id]),
+              ],
+            ] + ($ai_status === 'failed' && $has_raw_text ? [
+              'retry_parsing' => [
+                'title' => $this->t('Retry Parsing'),
+                'url' => Url::fromRoute('job_hunter.job_retry_parsing', ['job_id' => $job->id]),
+                'attributes' => [
+                  'class' => ['button--warning'],
+                ],
+              ],
+            ] : []) + [
+              'delete' => [
+                'title' => $this->t('Delete'),
+                'url' => Url::fromRoute('job_hunter.job_delete', ['job_id' => $job->id]),
+                'attributes' => [
+                  'onclick' => 'return confirm("Are you sure you want to delete this job?");',
+                ],
+              ],
+            ],
+          ],
+        ],
+      ];
+    }
+    
+    // Add saved jobs section to content
+    $content['saved_jobs_section'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['saved-jobs-section']],
+      'divider' => [
+        '#type' => 'html_tag',
+        '#tag' => 'hr',
+        '#attributes' => ['class' => ['section-divider']],
+      ],
+      'header' => [
+        '#markup' => '<h2>📋 Your Saved Job Postings</h2>',
+      ],
+      'add_button' => [
+        '#type' => 'link',
+        '#title' => $this->t('Add Job Posting'),
+        '#url' => Url::fromRoute('job_hunter.job_paste'),
+        '#attributes' => ['class' => ['button', 'button--primary']],
+      ],
+      'filters' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['jobs-filters']],
+        'form' => [
+          '#type' => 'inline_template',
+          '#template' => '
+            <div class="filter-form">
+              <form method="get" action="{{ action_url }}#saved_jobs_section">
+                <div class="filter-row">
+                  <div class="filter-field">
+                    <label for="company">{{ "Company"|t }}</label>
+                    <select name="company" id="company">
+                      <option value="">{{ "All Companies"|t }}</option>
+                      {% for company in companies %}
+                        <option value="{{ company }}"{{ company == filter_company ? " selected" : "" }}>{{ company }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="filter-field">
+                    <label for="status">{{ "Status"|t }}</label>
+                    <select name="status" id="status">
+                      <option value="">{{ "All Statuses"|t }}</option>
+                      <option value="active"{{ filter_status == "active" ? " selected" : "" }}>{{ "Active"|t }}</option>
+                      <option value="archived"{{ filter_status == "archived" ? " selected" : "" }}>{{ "Archived"|t }}</option>
+                      <option value="applied"{{ filter_status == "applied" ? " selected" : "" }}>{{ "Applied"|t }}</option>
+                    </select>
+                  </div>
+                  <div class="filter-field">
+                    <label for="ai_status">{{ "AI Status"|t }}</label>
+                    <select name="ai_status" id="ai_status">
+                      <option value="">{{ "All AI Statuses"|t }}</option>
+                      <option value="completed"{{ filter_ai_status == "completed" ? " selected" : "" }}>{{ "Parsed"|t }}</option>
+                      <option value="pending"{{ filter_ai_status == "pending" ? " selected" : "" }}>{{ "Needs Parsing"|t }}</option>
+                      <option value="processing"{{ filter_ai_status == "processing" ? " selected" : "" }}>{{ "Processing"|t }}</option>
+                      <option value="failed"{{ filter_ai_status == "failed" ? " selected" : "" }}>{{ "Failed"|t }}</option>
+                    </select>
+                  </div>
+                  <div class="filter-field">
+                    <label for="tailoring">{{ "Tailoring"|t }}</label>
+                    <select name="tailoring" id="tailoring">
+                      <option value="">{{ "All Tailoring Statuses"|t }}</option>
+                      <option value="completed"{{ filter_tailoring == "completed" ? " selected" : "" }}>{{ "Tailored"|t }}</option>
+                      <option value="pending"{{ filter_tailoring == "pending" ? " selected" : "" }}>{{ "Not Tailored"|t }}</option>
+                      <option value="processing"{{ filter_tailoring == "processing" ? " selected" : "" }}>{{ "Processing"|t }}</option>
+                      <option value="failed"{{ filter_tailoring == "failed" ? " selected" : "" }}>{{ "Failed"|t }}</option>
+                    </select>
+                  </div>
+                  <div class="filter-actions">
+                    <button type="submit" class="button button--primary">{{ "Filter"|t }}</button>
+                    <a href="{{ action_url }}" class="button button--secondary">{{ "Clear"|t }}</a>
+                  </div>
+                </div>
+              </form>
+            </div>',
+          '#context' => [
+            'action_url' => Url::fromRoute('job_hunter.job_discovery')->toString(),
+            'companies' => $companies,
+            'filter_company' => $filter_company,
+            'filter_status' => $filter_status,
+            'filter_ai_status' => $filter_ai_status,
+            'filter_tailoring' => $filter_tailoring,
+          ],
+        ],
+      ],
+      'table' => [
+        '#type' => 'table',
+        '#header' => $header,
+        '#rows' => $rows,
+        '#empty' => $this->t('No job postings saved yet. <a href=":url">Add your first job</a> or <a href=":search">search for jobs</a> to get started.', [
+          ':url' => Url::fromRoute('job_hunter.job_paste')->toString(),
+          ':search' => Url::fromRoute('job_hunter.job_discovery')->toString(),
+        ]),
+        '#attributes' => ['class' => ['jobs-table']],
+      ],
+    ];
+    
+    // Add CSS for saved jobs section
+    $content['#attached']['html_head'][] = [
+      [
+        '#tag' => 'style',
+        '#value' => '
+          .saved-jobs-section { margin-top: 60px; padding-top: 40px; }
+          .section-divider { border: none; border-top: 2px solid #e2e8f0; margin: 40px 0; }
+          .jobs-filters { margin: 20px 0; }
+          .filter-form { background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; }
+          .filter-row { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
+          .filter-field { display: flex; flex-direction: column; flex: 1; min-width: 150px; }
+          .filter-field label { font-weight: 600; margin-bottom: 5px; color: #374151; font-size: 14px; }
+          .filter-field select { padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white; }
+          .filter-field select:focus { outline: none; border-color: #667eea; }
+          .filter-actions { display: flex; gap: 10px; align-items: center; }
+          .filter-actions .button { margin: 0; }
+        ',
+      ],
+      'jobs_filters_styles',
     ];
     
     return $this->wrapWithNavigation($content);

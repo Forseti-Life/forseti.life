@@ -508,11 +508,12 @@ job_hunter.company_delete:
     company_id: \d+
 
 # Job Requirement Management Routes
+# NOTE: /jobhunter/jobs has been consolidated into /jobhunter/job-discovery
+# This route now redirects to the unified job discovery page
 job_hunter.jobs_list:
   path: '/jobhunter/jobs'
   defaults:
-    _controller: '\Drupal\job_hunter\Controller\CompanyController::listJobs'
-    _title: 'Job Postings'
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::listJobsRedirect'
   requirements:
     _permission: 'access job hunter'
 
