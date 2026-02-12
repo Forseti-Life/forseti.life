@@ -139,16 +139,123 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
 
   /**
    * Call AWS Bedrock for resume tailoring via AIApiService.
+   * Uses batched approach to avoid Claude 4,096 output token limit.
    */
   private function callGenAiTailoringService(array $payload, int $uid, int $job_id) {
+    return $this->batchedTailoredResume($payload, $uid, $job_id);
+  }
+
+  /**
+   * Generate tailored resume using batched API calls.
+   * 
+   * Splits generation into multiple smaller requests to avoid 4,096 output token limit:
+   * - Batch 1: Metadata + contact + profile + differentiators
+   * - Batch 2-N: One batch per company (professional experience)
+   * - Batch N+1: Education + technical skills + other sections
+   */
+  private function batchedTailoredResume(array $payload, int $uid, int $job_id) {
     try {
-      $prompt = $this->buildTailoredResumePrompt($payload);
+      $resume = $payload['user_resume']['consolidated_profile_json'] ?? [];
+      $job = $payload['job_requisition'] ?? [];
+      
+      $this->logInfo('🔀 Starting BATCHED resume generation (to avoid 4,096 token output limit)');
+      
+      // BATCH 1: Metadata + contact + profile + differentiators
+      $this->logInfo('📦 Batch 1: Generating metadata + contact + profile + differentiators');
+      $metadata_result = $this->callBatchedSection(
+        $this->buildMetadataPrompt($payload),
+        $uid,
+        $job_id,
+        'metadata'
+      );
+      if (!$metadata_result) {
+        $this->logError('❌ Failed to generate metadata section');
+        return NULL;
+      }
+      
+      // BATCH 2-N: One batch per company in professional_experience
+      $experience_entries = [];
+      $companies = $resume['professional_experience'] ?? [];
+      $company_count = count($companies);
+      
+      $this->logInfo('📦 Batches 2-{$count}: Generating {$count} professional experience entries', [
+        '{$count}' => $company_count,
+      ]);
+      
+      foreach ($companies as $index => $company) {
+        $batch_num = $index + 2;
+        $company_name = $company['company'] ?? 'Unknown';
+        $this->logInfo('📦 Batch @num/@total: Generating experience for @company', [
+          '@num' => $batch_num,
+          '@total' => $company_count + 2,
+          '@company' => $company_name,
+        ]);
+        
+        $exp_result = $this->callBatchedSection(
+          $this->buildExperiencePrompt($payload, $company, $index),
+          $uid,
+          $job_id,
+          "experience_{$index}"
+        );
+        
+        if (!$exp_result) {
+          $this->logError('❌ Failed to generate experience for @company', ['@company' => $company_name]);
+          return NULL;
+        }
+        
+        $experience_entries[] = $exp_result;
+      }
+      
+      // BATCH N+1: Education + technical + other sections
+      $final_batch_num = $company_count + 2;
+      $this->logInfo('📦 Batch @num/@total: Generating education + technical + other sections', [
+        '@num' => $final_batch_num,
+        '@total' => $final_batch_num,
+      ]);
+      
+      $other_result = $this->callBatchedSection(
+        $this->buildOtherSectionsPrompt($payload),
+        $uid,
+        $job_id,
+        'other_sections'
+      );
+      
+      if (!$other_result) {
+        $this->logError('❌ Failed to generate other sections');
+        return NULL;
+      }
+      
+      // Combine all batches into final resume JSON
+      $tailored_resume = array_merge(
+        $metadata_result,
+        ['professional_experience' => $experience_entries],
+        $other_result
+      );
+      
+      $this->logInfo('✅ Successfully combined @count batches into final tailored resume', [
+        '@count' => $final_batch_num,
+      ]);
+      
+      return [
+        'tailored_resume_json' => $tailored_resume,
+        'tailoring_guidance' => $tailored_resume['tailoring_metadata']['guidance'] ?? NULL,
+      ];
+    }
+    catch (\Exception $e) {
+      $this->logError('Batched resume generation failed: @error', ['@error' => $e->getMessage()]);
+      throw $e;
+    }
+  }
 
-      $this->logInfo('Queue: Calling AWS Bedrock Claude for resume tailoring via AIApiService');
-
+  /**
+   * Call AI API for a specific batched section.
+   */
+  private function callBatchedSection(string $prompt, int $uid, int $job_id, string $section_name) {
+    try {
       // Get max_tokens from centralized ai_conversation config
+      // Use lower limit since we're generating smaller sections
       $config = $this->configFactory->get('ai_conversation.settings');
-      $max_tokens = $config->get('max_tokens_resume_tailoring') ?? 30000;
+      $max_tokens = 4000; // Stay under Claude's 4,096 hard limit
 
       // Use centralized AIApiService (with automatic caching)
       $result = $this->aiApiService->invokeModelDirect(
@@ -159,7 +266,7 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
           'uid' => $uid,
           'job_id' => $job_id,
           'queue' => 'job_hunter_resume_tailoring',
-          'item_key' => "resume_tailoring_{$uid}_{$job_id}",
+          'item_key' => "resume_tailoring_{$uid}_{$job_id}_{$section_name}",
         ],
         [
           'max_tokens' => $max_tokens,
@@ -167,7 +274,10 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
       );
 
       if (!$result['success']) {
-        $this->logError('AIApiService call failed: @error', ['@error' => $result['error'] ?? 'Unknown error']);
+        $this->logError('AIApiService call failed for section @section: @error', [
+          '@section' => $section_name,
+          '@error' => $result['error'] ?? 'Unknown error',
+        ]);
         return NULL;
       }
 
@@ -196,7 +306,8 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
         
         // Check if response was truncated due to max_tokens limit
         if ($stop_reason === 'max_tokens') {
-          $this->logError('❌ Resume tailoring hit max_tokens limit! Response truncated at @len chars. The response is incomplete and cannot be parsed. Consider simplifying the resume or increasing max_tokens further.', [
+          $this->logError('❌ Section @section hit max_tokens limit! Response truncated at @len chars. This should not happen with batched generation.', [
+            '@section' => $section_name,
             '@len' => strlen($ai_response),
           ]);
           // Return null immediately - don't try to parse truncated JSON
@@ -233,12 +344,8 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
           ]);
 
           if ($json_error === JSON_ERROR_NONE && $tailored_resume) {
-            $this->logInfo('✅ Successfully generated tailored resume JSON');
-
-            return [
-              'tailored_resume_json' => $tailored_resume,
-              'tailoring_guidance' => $tailored_resume['tailoring_metadata']['guidance'] ?? NULL,
-            ];
+            $this->logInfo('✅ Successfully generated section: @section', ['@section' => $section_name]);
+            return $tailored_resume;
           }
           
           // Log JSON parse error with context
@@ -254,12 +361,15 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
           ]);
         }
 
-        $this->logError('Queue: Failed to parse tailored resume JSON from AI response');
+        $this->logError('Queue: Failed to parse section @section JSON from AI response', ['@section' => $section_name]);
         return NULL;
 
     }
     catch (\Exception $e) {
-      $this->logError('Queue: GenAI API call failed: @error', ['@error' => $e->getMessage()]);
+      $this->logError('Queue: GenAI API call failed for section @section: @error', [
+        '@section' => $section_name,
+        '@error' => $e->getMessage(),
+      ]);
       throw $e;
     }
   }
@@ -372,6 +482,225 @@ Generate a TAILORED version of the candidate's resume as a JSON object. The outp
 
 The output must parse successfully with `json_decode()` without any preprocessing.
 
+PROMPT;
+  }
+
+  /**
+   * Build prompt for metadata + contact + profile + differentiators sections.
+   * 
+   * This is Batch 1 of the batched resume generation.
+   */
+  private function buildMetadataPrompt(array $payload) {
+    $job = $payload['job_requisition'] ?? [];
+    $resume = $payload['user_resume']['consolidated_profile_json'] ?? [];
+
+    $job_title = $job['extracted_json']['position']['title'] ?? $job['extracted_json']['job_title'] ?? 'the position';
+    $company_name = $job['extracted_json']['company']['name'] ?? $job['extracted_json']['company_name'] ?? 'the company';
+    $job_skills = json_encode($job['skills_required_json'] ?? [], JSON_UNESCAPED_SLASHES);
+    $job_keywords = json_encode($job['keywords_json'] ?? [], JSON_UNESCAPED_SLASHES);
+    
+    // Extract only needed sections (NO raw_posting_text)
+    $extracted_position = json_encode($job['extracted_json']['position'] ?? [], JSON_UNESCAPED_SLASHES);
+    $extracted_requirements = json_encode($job['extracted_json']['requirements'] ?? [], JSON_UNESCAPED_SLASHES);
+    
+    $contact_json = json_encode($resume['contact_info'] ?? [], JSON_UNESCAPED_SLASHES);
+    $profile_text = $resume['executive_profile']['summary'] ?? '';
+    $differentiators = json_encode($resume['strategic_differentiators'] ?? [], JSON_UNESCAPED_SLASHES);
+    $job_id = $job['id'] ?? 0;
+    
+    return <<<PROMPT
+You are an expert resume tailoring AI. Generate the METADATA + CONTACT + PROFILE + DIFFERENTIATORS sections of a tailored resume.
+
+## Job Context
+**Position:** {$job_title}
+**Company:** {$company_name}
+**Position Details:** {$extracted_position}
+**Requirements:** {$extracted_requirements}
+**Skills:** {$job_skills}
+**Keywords:** {$job_keywords}
+
+## Current Resume Data
+**Contact Info:** {$contact_json}
+**Executive Profile Summary:** {$profile_text}
+**Strategic Differentiators:** {$differentiators}
+
+## Your Task
+Generate ONLY these sections as valid JSON:
+```
+{
+  "schema_version": "1.0",
+  "tailoring_metadata": {
+    "job_id": {$job_id},
+    "job_title": "{$job_title}",
+    "company": "{$company_name}",
+    "tailored_at": "ISO-8601 timestamp",
+    "match_score": 0-100,
+    "guidance": ["Key suggestion 1", "Key suggestion 2"],
+    "emphasized_skills": ["skill1", "skill2"],
+    "emphasized_achievements": ["achievement 1"]
+  },
+  "contact_info": { ...keep unchanged from source... },
+  "executive_profile": {
+    "summary": "TAILORED version emphasizing relevance to this role"
+  },
+  "strategic_differentiators": [
+    "TAILORED differentiator 1 (prioritize job-relevant items)",
+    "TAILORED differentiator 2"
+  ]
+}
+```
+
+**CRITICAL**: 
+- Return ONLY valid JSON (start with `{`, end with `}`)
+- NO markdown code blocks
+- Rewrite executive_profile summary to emphasize fit for this role
+- Reorder/reword strategic_differentiators to match job requirements
+- Keep contact_info unchanged
+- Use proper JSON escaping for special characters
+PROMPT;
+  }
+
+  /**
+   * Build prompt for a single professional experience entry (one company).
+   * 
+   * This is Batch 2-N of the batched resume generation.
+   */
+  private function buildExperiencePrompt(array $payload,Array $company, int $index) {
+    $job = $payload['job_requisition'] ?? [];
+
+    $job_title = $job['extracted_json']['position']['title'] ?? $job['extracted_json']['job_title'] ?? 'the position';
+    $company_name = $job['extracted_json']['company']['name'] ?? $job['extracted_json']['company_name'] ?? 'the company';
+    $job_skills = json_encode($job['skills_required_json'] ?? [], JSON_UNESCAPED_SLASHES);
+    $job_keywords = json_encode($job['keywords_json'] ?? [], JSON_UNESCAPED_SLASHES);
+    
+    // Extract only needed sections (NO raw_posting_text)
+    $extracted_position = json_encode($job['extracted_json']['position'] ?? [], JSON_UNESCAPED_SLASHES);
+    $extracted_requirements = json_encode($job['extracted_json']['requirements'] ?? [], JSON_UNESCAPED_SLASHES);
+    
+    $company_json = json_encode($company, JSON_UNESCAPED_SLASHES);
+    $company_employer_name = $company['company'] ?? 'Unknown Company';
+    
+    return <<<PROMPT
+You are an expert resume tailoring AI. Generate a SINGLE professional experience entry tailored for a specific job.
+
+## Job Context
+**Position:** {$job_title}
+**Company:** {$company_name}
+**Position Details:** {$extracted_position}
+**Requirements:** {$extracted_requirements}
+**Skills:** {$job_skills}
+**Keywords:** {$job_keywords}
+
+## Experience Entry to Tailor
+**Company:** {$company_employer_name}
+**Original Entry:** {$company_json}
+
+## Your Task
+Generate a TAILORED version of this ONE experience entry as valid JSON:
+```
+{
+  "company": "Company Name",
+  "positions": [
+    {
+      "title": "Title",
+      "start_date": "YYYY-MM",
+      "end_date": "YYYY-MM or Present",
+      "duration": "X years Y months",
+      "location": "City, State",
+      "achievements": [
+        "TAILORED achievement emphasizing job-relevant skills/metrics",
+        "Another tailored achievement"
+      ],
+      "technologies": ["tech1", "tech2"],
+      "business_impact": {
+        "revenue": "...",
+        "efficiency": "...",
+        "team_size": "..."
+      }
+    }
+  ]
+}
+```
+
+**CRITICAL**:
+- Return ONLY valid JSON (start with `{`, end with `}`)
+- NO markdown code blocks
+- Emphasize achievements matching job requirements
+- Incorporate job keywords naturally
+- Preserve quantified metrics
+- Highlight technologies mentioned in job posting
+- DO NOT fabricate information - only reorganize and emphasize existing content
+PROMPT;
+  }
+
+  /**
+   * Build prompt for education + technical + other sections.
+   * 
+   * This is the final batch of the batched resume generation.
+   */
+  private function buildOtherSectionsPrompt(array $payload) {
+    $job = $payload['job_requisition'] ?? [];
+    $resume = $payload['user_resume']['consolidated_profile_json'] ?? [];
+
+    $job_title = $job['extracted_json']['position']['title'] ?? $job['extracted_json']['job_title'] ?? 'the position';
+    $company_name = $job['extracted_json']['company']['name'] ?? $job['extracted_json']['company_name'] ?? 'the company';
+    $job_skills = json_encode($job['skills_required_json'] ?? [], JSON_UNESCAPED_SLASHES);
+    $job_keywords = json_encode($job['keywords_json'] ?? [], JSON_UNESCAPED_SLASHES);
+    
+    // Extract only needed sections (NO raw_posting_text)
+    $extracted_position = json_encode($job['extracted_json']['position'] ?? [], JSON_UNESCAPED_SLASHES);
+    $extracted_requirements = json_encode($job['extracted_json']['requirements'] ?? [], JSON_UNESCAPED_SLASHES);
+    
+    $education = json_encode($resume['education'] ?? [], JSON_UNESCAPED_SLASHES);
+    $technical = json_encode($resume['technical_expertise'] ?? [], JSON_UNESCAPED_SLASHES);
+    $consulting = json_encode($resume['consulting_practice'] ?? [], JSON_UNESCAPED_SLASHES);
+    $early_career = json_encode($resume['early_career'] ?? [], JSON_UNESCAPED_SLASHES);
+    $leadership = json_encode($resume['leadership_philosophy'] ?? [], JSON_UNESCAPED_SLASHES);
+    $demos = json_encode($resume['demonstration_projects'] ?? [], JSON_UNESCAPED_SLASHES);
+    
+    return <<<PROMPT
+You are an expert resume tailoring AI. Generate EDUCATION + TECHNICAL SKILLS + OTHER SECTIONS tailored for a specific job.
+
+## Job Context
+**Position:** {$job_title}
+**Company:** {$company_name}
+**Position Details:** {$extracted_position}
+**Requirements:** {$extracted_requirements}
+**Skills:** {$job_skills}
+**Keywords:** {$job_keywords}
+
+## Current Resume Data
+**Education:** {$education}
+**Technical Expertise:** {$technical}
+**Consulting Practice:** {$consulting}
+**Early Career:** {$early_career}
+**Leadership Philosophy:** {$leadership}
+**Demonstration Projects:** {$demos}
+
+## Your Task
+Generate ONLY these sections as valid JSON:
+```
+{
+  "education": [...keep unchanged or omit if not relevant...],
+  "technical_expertise": {
+    "categories": [
+      "REORDERED to prioritize job-relevant skills"
+    ]
+  },
+  "consulting_practice": {...include if relevant...},
+  "early_career": {...include if relevant...},
+  "leadership_philosophy": {...tailor if relevant...},
+  "demonstration_projects": [...include if relevant...]
+}
+```
+
+**CRITICAL**:
+- Return ONLY valid JSON (start with `{`, end with `}`)
+- NO markdown code blocks
+- Reorder technical_expertise categories to prioritize job-relevant skills
+- Include optional sections (consulting, early_career, leadership, demos) ONLY if relevant to this role
+- Keep education unchanged unless specific optimization needed
+- Use proper JSON escaping
 PROMPT;
   }
 
