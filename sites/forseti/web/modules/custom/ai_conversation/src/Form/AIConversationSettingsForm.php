@@ -157,7 +157,11 @@ class AIConversationSettingsForm extends ConfigFormBase {
     $fieldset = [
       '#type' => 'fieldset',
       '#title' => $this->t('AWS Bedrock Settings'),
-      '#description' => $this->t('Configure your AWS credentials to connect to Bedrock AI services. Leave fields empty to use environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION).'),
+      '#description' => $this->t('Configure your AWS credentials to connect to Bedrock AI services. Leave fields empty to use environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION). <br><strong>Monitor usage:</strong> <a href="@debug_url">GenAI Debug Inspector</a> | <a href="@usage_url">Usage Dashboard</a> | <a href="@pricing_url">Model Pricing</a>', [
+        '@debug_url' => '/admin/reports/genai-debug',
+        '@usage_url' => '/admin/reports/genai-usage',
+        '@pricing_url' => '/admin/reports/genai-pricing',
+      ]),
     ];
 
     $fieldset['aws_access_key_id'] = [
@@ -191,7 +195,10 @@ class AIConversationSettingsForm extends ConfigFormBase {
       '#title' => $this->t('AI Model'),
       '#default_value' => $config->get('aws_model') ?: self::DEFAULT_MODEL,
       '#options' => $this->getModelOptions(),
-      '#description' => $this->t('The AI model to use for conversations.'),
+      '#description' => $this->t('Select the AI model for conversations. Pricing shown as <strong>Input/Output per 1M tokens</strong>. <br><strong>Example:</strong> A 10K input + 5K output request with Sonnet 4.5 costs: (10K × $3 / 1M) + (5K × $15 / 1M) = $0.03 + $0.075 = <strong>$0.105</strong><br><strong>Recommendation:</strong> Sonnet 4.5 offers the best balance for most tasks. Use Haiku 4.5 for high-volume/simple tasks, Opus 4.6 for complex reasoning.<br><a href="@pricing_url" target="_blank">View detailed pricing comparison →</a> | <a href="@debug_url" target="_blank">Monitor actual usage →</a>', [
+        '@pricing_url' => '/admin/reports/genai-pricing',
+        '@debug_url' => '/admin/reports/genai-debug',
+      ]),
       '#required' => TRUE,
     ];
 
@@ -371,25 +378,89 @@ class AIConversationSettingsForm extends ConfigFormBase {
    */
   protected function getAwsRegionOptions(): array {
     return [
+      // Americas
       'us-east-1' => 'US East (N. Virginia)',
+      'us-east-2' => 'US East (Ohio)',
+      'us-west-1' => 'US West (N. California)',
       'us-west-2' => 'US West (Oregon)',
+      'ca-central-1' => 'Canada (Central)',
+      'ca-west-1' => 'Canada (Calgary)',
+      'sa-east-1' => 'South America (São Paulo)',
+      'mx-central-1' => 'Mexico (Central)',
+      
+      // Europe
+      'eu-central-1' => 'Europe (Frankfurt)',
+      'eu-central-2' => 'Europe (Zurich)',
       'eu-west-1' => 'Europe (Ireland)',
+      'eu-west-2' => 'Europe (London)',
+      'eu-west-3' => 'Europe (Paris)',
+      'eu-north-1' => 'Europe (Stockholm)',
+      'eu-south-1' => 'Europe (Milan)',
+      'eu-south-2' => 'Europe (Spain)',
+      
+      // Asia Pacific
+      'ap-northeast-1' => 'Asia Pacific (Tokyo)',
+      'ap-northeast-2' => 'Asia Pacific (Seoul)',
+      'ap-northeast-3' => 'Asia Pacific (Osaka)',
+      'ap-south-1' => 'Asia Pacific (Mumbai)',
+      'ap-south-2' => 'Asia Pacific (Hyderabad)',
+      'ap-southeast-1' => 'Asia Pacific (Singapore)',
       'ap-southeast-2' => 'Asia Pacific (Sydney)',
+      'ap-southeast-3' => 'Asia Pacific (Jakarta)',
+      'ap-southeast-4' => 'Asia Pacific (Melbourne)',
+      'ap-southeast-5' => 'Asia Pacific (Malaysia)',
+      'ap-southeast-7' => 'Asia Pacific (Thailand)',
+      'ap-east-2' => 'Asia Pacific (Hong Kong)',
+      
+      // Middle East & Africa
+      'me-central-1' => 'Middle East (UAE)',
+      'me-south-1' => 'Middle East (Bahrain)',
+      'il-central-1' => 'Israel (Tel Aviv)',
+      'af-south-1' => 'Africa (Cape Town)',
+      
+      // AWS GovCloud
+      'us-gov-west-1' => 'AWS GovCloud (US-West)',
+      'us-gov-east-1' => 'AWS GovCloud (US-East)',
     ];
   }
 
   /**
-   * Get AI model options.
+   * Get AI model options with pricing information.
+   *
+   * Output Token Limits:
+   * - Claude 4.x models: Check model-specific documentation
+   * - Claude 3.x models: Typically 4,096 tokens (batching required for larger outputs)
+   * - Claude 2.x models: 4,096 tokens
+   *
+   * Pricing shown as: Input/Output per 1M tokens
    *
    * @return array
-   *   Array of model options.
+   *   Array of model options with pricing.
    */
   protected function getModelOptions(): array {
     return [
-      'anthropic.claude-3-5-sonnet-20240620-v1:0' => 'Claude 3.5 Sonnet',
-      'anthropic.claude-3-haiku-20240307-v1:0' => 'Claude 3 Haiku',
-      'anthropic.claude-v2:1' => 'Claude 2.1',
-      'anthropic.claude-v2' => 'Claude 2.0',
+      // Claude 4 Models (Latest Generation)
+      'anthropic.claude-opus-4-6-v1' => 'Claude Opus 4.6 — $15/$75 per 1M tokens (Most Capable - Latest)',
+      'anthropic.claude-sonnet-4-5-20250929-v1:0' => 'Claude Sonnet 4.5 — $3/$15 per 1M tokens (Best Balance - Recommended)',
+      'anthropic.claude-sonnet-4-20250514-v1:0' => 'Claude Sonnet 4.0 — $3/$15 per 1M tokens',
+      'anthropic.claude-opus-4-5-20251101-v1:0' => 'Claude Opus 4.5 — $15/$75 per 1M tokens',
+      'anthropic.claude-opus-4-1-20250805-v1:0' => 'Claude Opus 4.1 — $15/$75 per 1M tokens',
+      'anthropic.claude-haiku-4-5-20251001-v1:0' => 'Claude Haiku 4.5 — $1/$5 per 1M tokens (Fastest & Cheapest)',
+      
+      // Claude 3.5 Models (Previous generation - Still excellent)
+      'anthropic.claude-3-5-sonnet-20241022-v2:0' => 'Claude 3.5 Sonnet v2 — $3/$15 per 1M tokens',
+      'anthropic.claude-3-5-sonnet-20240620-v1:0' => 'Claude 3.5 Sonnet v1 — $3/$15 per 1M tokens (Current Default)',
+      'anthropic.claude-3-5-haiku-20241022-v1:0' => 'Claude 3.5 Haiku — $0.25/$1.25 per 1M tokens (Very Affordable)',
+      
+      // Claude 3 Models (Stable & Reliable)
+      'anthropic.claude-3-opus-20240229-v1:0' => 'Claude 3 Opus — $15/$75 per 1M tokens',
+      'anthropic.claude-3-sonnet-20240229-v1:0' => 'Claude 3 Sonnet — $3/$15 per 1M tokens',
+      'anthropic.claude-3-haiku-20240307-v1:0' => 'Claude 3 Haiku — $0.25/$1.25 per 1M tokens',
+      
+      // Claude 2 Models (Legacy - Not Recommended)
+      'anthropic.claude-v2:1' => 'Claude 2.1 — ~$8/$24 per 1M tokens (Legacy)',
+      'anthropic.claude-v2' => 'Claude 2.0 — ~$8/$24 per 1M tokens (Legacy)',
+      'anthropic.claude-instant-v1' => 'Claude Instant — ~$0.80/$2.40 per 1M tokens (Legacy)',
     ];
   }
 

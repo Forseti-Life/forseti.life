@@ -14,6 +14,14 @@ ai_conversation.usage_dashboard:
   requirements:
     _permission: 'administer site configuration'
 
+ai_conversation.model_pricing:
+  path: '/admin/reports/genai-pricing'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\UsageReportController::pricing'
+    _title: 'Claude Model Pricing'
+  requirements:
+    _permission: 'administer site configuration'
+
 ai_conversation.genai_debug_list:
   path: '/admin/reports/genai-debug'
   defaults:

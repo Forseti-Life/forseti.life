@@ -368,6 +368,138 @@ class AIApiService {
   }
 
   /**
+   * Get pricing for AWS Bedrock Claude models.
+   * 
+   * @param string $model_id
+   *   AWS Bedrock model identifier.
+   * 
+   * @return array
+   *   Array with 'input' and 'output' pricing per 1M tokens, or NULL if unknown.
+   */
+  protected function getModelPricing(string $model_id): ?array {
+    // Pricing as of February 2026 (per 1M tokens)
+    $pricing = [
+      // Claude 4 Series (Current Generation)
+      'anthropic.claude-opus-4-6-v1' => ['input' => 15.00, 'output' => 75.00],
+      'anthropic.claude-opus-4-5-20251101-v1:0' => ['input' => 15.00, 'output' => 75.00],
+      'anthropic.claude-opus-4-1-20250805-v1:0' => ['input' => 15.00, 'output' => 75.00],
+      'anthropic.claude-sonnet-4-5-20250929-v1:0' => ['input' => 3.00, 'output' => 15.00],
+      'anthropic.claude-sonnet-4-20250514-v1:0' => ['input' => 3.00, 'output' => 15.00],
+      'anthropic.claude-haiku-4-5-20251001-v1:0' => ['input' => 1.00, 'output' => 5.00],
+      
+      // Claude 3.5 Series (Legacy/Maintenance)
+      'anthropic.claude-3-5-sonnet-20241022-v2:0' => ['input' => 3.00, 'output' => 15.00],
+      'anthropic.claude-3-5-sonnet-20240620-v1:0' => ['input' => 3.00, 'output' => 15.00],
+      'anthropic.claude-3-5-haiku-20241022-v1:0' => ['input' => 0.25, 'output' => 1.25],
+      
+      // Claude 3 Series (Legacy)
+      'anthropic.claude-3-opus-20240229-v1:0' => ['input' => 15.00, 'output' => 75.00],
+      'anthropic.claude-3-sonnet-20240229-v1:0' => ['input' => 3.00, 'output' => 15.00],
+      'anthropic.claude-3-haiku-20240307-v1:0' => ['input' => 0.25, 'output' => 1.25],
+      
+      // Claude 2 Series (Legacy - estimated)
+      'anthropic.claude-v2:1' => ['input' => 8.00, 'output' => 24.00],
+      'anthropic.claude-v2' => ['input' => 8.00, 'output' => 24.00],
+      'anthropic.claude-instant-v1' => ['input' => 0.80, 'output' => 2.40],
+    ];
+    
+    return $pricing[$model_id] ?? NULL;
+  }
+
+  /**
+   * Get all model pricing information for display.
+   * 
+   * @return array
+   *   Structured pricing data organized by generation/tier.
+   */
+  public function getAllModelPricing(): array {
+    return [
+      'claude_4' => [
+        'title' => 'Claude 4 Series (Current Generation)',
+        'description' => 'Latest production-ready models for building autonomous agents and complex coding workflows.',
+        'models' => [
+          [
+            'name' => 'Opus 4.6',
+            'model_id' => 'anthropic.claude-opus-4-6-v1',
+            'input_price' => 15.00,
+            'output_price' => 75.00,
+            'highlights' => 'Latest release (Feb 2026); includes "agent teams" and 1M token beta.',
+          ],
+          [
+            'name' => 'Opus 4.5',
+            'model_id' => 'anthropic.claude-opus-4-5-20251101-v1:0',
+            'input_price' => 15.00,
+            'output_price' => 75.00,
+            'highlights' => 'Released Nov 2025; introduced "Infinite Chats" feature.',
+          ],
+          [
+            'name' => 'Opus 4.1',
+            'model_id' => 'anthropic.claude-opus-4-1-20250805-v1:0',
+            'input_price' => 15.00,
+            'output_price' => 75.00,
+            'highlights' => 'Aug 2025 "drop-in replacement" for original Opus 4.',
+          ],
+          [
+            'name' => 'Sonnet 4.5',
+            'model_id' => 'anthropic.claude-sonnet-4-5-20250929-v1:0',
+            'input_price' => 3.00,
+            'output_price' => 15.00,
+            'highlights' => 'Best intelligence/cost ratio; world-leader in coding tasks.',
+          ],
+          [
+            'name' => 'Sonnet 4.0',
+            'model_id' => 'anthropic.claude-sonnet-4-20250514-v1:0',
+            'input_price' => 3.00,
+            'output_price' => 15.00,
+            'highlights' => 'May 2025 release; significant upgrade over Sonnet 3.7.',
+          ],
+          [
+            'name' => 'Haiku 4.5',
+            'model_id' => 'anthropic.claude-haiku-4-5-20251001-v1:0',
+            'input_price' => 1.00,
+            'output_price' => 5.00,
+            'highlights' => 'Fastest current model; matches Sonnet 4 performance at 1/3 cost.',
+          ],
+        ],
+      ],
+      'claude_3_5' => [
+        'title' => 'Claude 3.5 & 3 Series (Legacy/Maintenance)',
+        'description' => 'Most users have migrated to the 4.x series, but these remain available for existing applications.',
+        'models' => [
+          [
+            'name' => 'Claude 3.5 Sonnet v2',
+            'model_id' => 'anthropic.claude-3-5-sonnet-20241022-v2:0',
+            'input_price' => 3.00,
+            'output_price' => 15.00,
+            'status' => 'Effective Oct 2024 update.',
+          ],
+          [
+            'name' => 'Claude 3.5 Haiku',
+            'model_id' => 'anthropic.claude-3-5-haiku-20241022-v1:0',
+            'input_price' => 0.25,
+            'output_price' => 1.25,
+            'status' => 'Oct 2024 update.',
+          ],
+          [
+            'name' => 'Claude 3 Opus',
+            'model_id' => 'anthropic.claude-3-opus-20240229-v1:0',
+            'input_price' => 15.00,
+            'output_price' => 75.00,
+            'status' => 'Discontinued or limited availability in most regions.',
+          ],
+          [
+            'name' => 'Claude 3 Haiku',
+            'model_id' => 'anthropic.claude-3-haiku-20240307-v1:0',
+            'input_price' => 0.25,
+            'output_price' => 1.25,
+            'status' => 'Original "fast" model.',
+          ],
+        ],
+      ],
+    ];
+  }
+
+  /**
    * Track API usage to database for cost monitoring and troubleshooting.
    * 
    * @param array $params
@@ -389,10 +521,23 @@ class AIApiService {
     try {
       $connection = \Drupal::database();
       
-      // Calculate estimated cost based on Claude 3.5 Sonnet pricing
-      // Input: $0.003 per 1K tokens, Output: $0.015 per 1K tokens
-      $input_cost = ($params['input_tokens'] ?? 0) * 0.003 / 1000;
-      $output_cost = ($params['output_tokens'] ?? 0) * 0.015 / 1000;
+      // Calculate estimated cost based on model-specific pricing
+      $model_id = $params['model_id'] ?? '';
+      $pricing = $this->getModelPricing($model_id);
+      
+      if ($pricing) {
+        // Dynamic pricing based on actual model
+        $input_cost = ($params['input_tokens'] ?? 0) * $pricing['input'] / 1000000;
+        $output_cost = ($params['output_tokens'] ?? 0) * $pricing['output'] / 1000000;
+      } else {
+        // Fallback to Claude 3.5 Sonnet pricing if model unknown
+        $input_cost = ($params['input_tokens'] ?? 0) * 3.00 / 1000000;
+        $output_cost = ($params['output_tokens'] ?? 0) * 15.00 / 1000000;
+        $this->logWarning('Unknown model pricing for @model, using Claude 3.5 Sonnet rates', [
+          '@model' => $model_id,
+        ]);
+      }
+      
       $estimated_cost = $input_cost + $output_cost;
       
       // Determine success status
