@@ -150,3 +150,14 @@ google_jobs_integration:
     - core/drupal
     - core/jquery
     - core/once
+
+opportunity-management:
+  css:
+    theme:
+      css/opportunity-management.css: {}
+  js:
+    js/opportunity-management.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once

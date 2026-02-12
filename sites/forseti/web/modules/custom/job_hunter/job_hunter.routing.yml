@@ -61,6 +61,39 @@ job_hunter.queue_management:
   requirements:
     _permission: 'administer job application automation'
 
+# Opportunity Management Routes (Admin only)
+job_hunter.opportunity_management:
+  path: '/jobhunter/opportunity-management'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\OpportunityManagementController::managementPage'
+    _title: 'Opportunity Management'
+  requirements:
+    _permission: 'administer job application automation'
+
+job_hunter.opportunity_delete_job:
+  path: '/jobhunter/opportunity/delete-job'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\OpportunityManagementController::deleteJobAjax'
+  methods: [POST]
+  requirements:
+    _permission: 'administer job application automation'
+
+job_hunter.opportunity_delete_search:
+  path: '/jobhunter/opportunity/delete-search'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\OpportunityManagementController::deleteSearchHistoryAjax'
+  methods: [POST]
+  requirements:
+    _permission: 'administer job application automation'
+
+job_hunter.opportunity_bulk_delete:
+  path: '/jobhunter/opportunity/bulk-delete'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\OpportunityManagementController::bulkDeleteAjax'
+  methods: [POST]
+  requirements:
+    _permission: 'administer job application automation'
+
 job_hunter.queue_delete_item:
   path: '/jobhunter/queue/delete-item'
   defaults:
