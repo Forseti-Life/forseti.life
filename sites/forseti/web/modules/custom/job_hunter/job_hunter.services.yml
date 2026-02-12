@@ -39,6 +39,10 @@ services:
     class: Drupal\job_hunter\Service\SerpApiService
     arguments: ['@http_client', '@logger.factory', '@config.factory']
   
+  job_hunter.search_aggregator:
+    class: Drupal\job_hunter\Service\SearchAggregatorService
+    arguments: ['@database', '@config.factory', '@current_user', '@logger.factory', '@job_hunter.cloud_talent_solution', '@job_hunter.adzuna_api', '@job_hunter.usajobs_api', '@job_hunter.serpapi']
+  
   job_hunter.commands:
     class: Drupal\job_hunter\Commands\JobApplicationAutomationCommands
     arguments: ['@entity_type.manager', '@logger.factory']

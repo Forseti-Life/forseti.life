@@ -3,10 +3,12 @@
 namespace Drupal\job_hunter\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Link;
+use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Url;
-use Drupal\Core\Render\Markup;
 use Drupal\job_hunter\Service\JobDiscoveryService;
+use Drupal\job_hunter\Service\SearchAggregatorService;
 use Drupal\user\Entity\User;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -33,19 +35,52 @@ class JobApplicationController extends ControllerBase {
   protected RequestStack $requestStack;
 
   /**
+   * The database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected Connection $database;
+
+  /**
+   * The queue factory.
+   *
+   * @var \Drupal\Core\Queue\QueueFactory
+   */
+  protected QueueFactory $queueFactory;
+
+  /**
+   * The search aggregator service.
+   *
+   * @var \Drupal\job_hunter\Service\SearchAggregatorService
+   */
+  protected SearchAggregatorService $searchAggregator;
+
+  /**
    * Constructs a JobApplicationController object.
    *
    * @param \Drupal\job_hunter\Service\JobDiscoveryService $job_discovery_service
    *   The job discovery service.
    * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
    *   The request stack.
+   * @param \Drupal\Core\Database\Connection $database
+   *   The database connection.
+   * @param \Drupal\Core\Queue\QueueFactory $queue_factory
+   *   The queue factory.
+   * @param \Drupal\job_hunter\Service\SearchAggregatorService $search_aggregator
+   *   The search aggregator service.
    */
   public function __construct(
     JobDiscoveryService $job_discovery_service,
-    RequestStack $request_stack
+    RequestStack $request_stack,
+    Connection $database,
+    QueueFactory $queue_factory,
+    SearchAggregatorService $search_aggregator
   ) {
     $this->jobDiscoveryService = $job_discovery_service;
     $this->requestStack = $request_stack;
+    $this->database = $database;
+    $this->queueFactory = $queue_factory;
+    $this->searchAggregator = $search_aggregator;
   }
 
   /**
@@ -54,7 +89,10 @@ class JobApplicationController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('job_hunter.job_discovery_service'),
-      $container->get('request_stack')
+      $container->get('request_stack'),
+      $container->get('database'),
+      $container->get('queue'),
+      $container->get('job_hunter.search_aggregator')
     );
   }
 
@@ -441,7 +479,7 @@ class JobApplicationController extends ControllerBase {
    */
   private function getSavedJobsCount($user) {
     try {
-      $count = \Drupal::database()->select('jobhunter_job_requirements', 'j')
+      $count = $this->database->select('jobhunter_job_requirements', 'j')
         ->countQuery()
         ->execute()
         ->fetchField();
@@ -456,16 +494,15 @@ class JobApplicationController extends ControllerBase {
    * Manage target companies.
    */
   public function manageTargetCompanies() {
-    $database = \Drupal::database();
+    $database = $this->database;
     
-    // Query companies from jobhunter_companies table
+    // Query companies from jobhunter_companies table.
     $query = $database->select('jobhunter_companies', 'c')
       ->fields('c')
       ->orderBy('name', 'ASC');
     $companies = $query->execute()->fetchAll();
     
-    // Count jobs per company
-    $job_counts = [];
+    // Count jobs per company.
     $job_query = $database->select('jobhunter_job_requirements', 'j')
       ->fields('j', ['company_id'])
       ->condition('status', 'active')
@@ -473,263 +510,49 @@ class JobApplicationController extends ControllerBase {
     $job_query->addExpression('COUNT(*)', 'job_count');
     $job_results = $job_query->execute()->fetchAllKeyed(0, 1);
     
-    $content = [];
-    $content['#attached']['library'][] = 'job_hunter/job-hunter-home';
-    
-    // Header with stats
+    // Calculate statistics.
     $total_companies = count($companies);
     $active_companies = count(array_filter($companies, fn($c) => $c->active == 1));
+    $total_jobs = array_sum($job_results);
     
-    $content['header'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'div',
-      '#attributes' => ['class' => ['target-companies-header']],
-      '#value' => '<h2>🎯 Target Companies</h2>
-                   <p class="subtitle">Your primary target companies that Job Hunter actively monitors for opportunities</p>
-                   <p class="description">These are the organizations you want to work for. The Job Hunter AI will prioritize opportunities from these companies when discovering jobs, tracking applications, and tailoring resumes.</p>
-                   <div class="stats-bar">
-                     <div class="stat"><span class="stat-number">' . $total_companies . '</span> Target Companies</div>
-                     <div class="stat"><span class="stat-number">' . $active_companies . '</span> Active</div>
-                     <div class="stat"><span class="stat-number">' . array_sum($job_results) . '</span> Jobs Found</div>
-                   </div>',
-    ];
+    // Prepare target companies data for template.
+    $target_companies_data = [];
+    foreach ($companies as $company) {
+      $target_companies_data[] = [
+        'id' => $company->id,
+        'name' => $company->name,
+        'location' => $company->location,
+        'industry' => $company->industry,
+        'website' => $company->website,
+        'careers_page_url' => $company->careers_page_url,
+        'active' => $company->active,
+        'job_count' => $job_results[$company->id] ?? 0,
+      ];
+    }
     
-    // Add company button
-    $content['add_button'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'div',
-      '#attributes' => ['class' => ['action-bar']],
-      '#value' => '<a href="/jobhunter/bulk-import-companies" class="btn-add-company">+ Add Companies</a>',
-    ];
-    
-    // Get companies from job postings (extracted via AI)
+    // Get companies from job postings (extracted via AI).
     $job_companies = $this->getCompaniesFromJobPostings();
     
-    // All companies section - filterable list from job postings
-    if (!empty($job_companies)) {
-      $content['all_companies_header'] = [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['section-header']],
-        '#value' => '<h3>📋 Companies from Job Postings</h3>
-                     <p class="section-description">Companies extracted from job descriptions you\'ve added</p>',
-      ];
-      
-      $content['filter'] = [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['filter-bar']],
-        '#value' => '<input type="text" id="company-filter" placeholder="Filter companies by name..." class="company-filter-input">
-                     <span class="filter-count">Showing <span id="visible-count">' . count($job_companies) . '</span> of ' . count($job_companies) . ' companies</span>',
-      ];
-      
-      $all_rows = '';
-      foreach ($job_companies as $company_name => $job_count) {
-        // Check if already in target companies
-        $exists = $database->select('jobhunter_companies', 'c')
-          ->condition('name', $company_name)
-          ->countQuery()
-          ->execute()
-          ->fetchField();
-        
-        $action = $exists 
-          ? '<span class="already-added">✓ Already in targets</span>'
-          : '<a href="#" class="btn-add-quick" data-company="' . htmlspecialchars($company_name) . '" onclick="addCompanyQuick(this); return false;">+ Add to Targets</a>';
-        
-        $all_rows .= '<tr class="company-row" data-company-name="' . strtolower(htmlspecialchars($company_name)) . '">
-          <td class="company-name-cell"><strong>' . htmlspecialchars($company_name) . '</strong></td>
-          <td class="job-count-cell"><span class="badge">' . $job_count . '</span></td>
-          <td class="action-cell">' . $action . '</td>
-        </tr>';
-      }
-      
-      $content['all_companies_table'] = [
-        '#type' => 'inline_template',
-        '#template' => '<table class="all-companies-table">
-          <thead>
-            <tr>
-              <th>Company Name</th>
-              <th>Job Postings</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="companies-table-body">{{ rows|raw }}</tbody>
-        </table>',
-        '#context' => ['rows' => $all_rows],
-      ];
-    }
+    // Get list of existing company names for template comparison.
+    $existing_companies = array_column($companies, 'name');
     
-    if (empty($companies)) {
-      $content['empty'] = [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['empty-state']],
-        '#value' => '<div class="empty-icon">🏢</div>
-                     <h3>No Target Companies Yet</h3>
-                     <p>Start by adding companies you\'re interested in working for.</p>
-                     <a href="/jobhunter/bulk-import-companies" class="btn-primary">Add Your First Company</a>',
-      ];
-    } else {
-      // Build companies table
-      $rows = '';
-      foreach ($companies as $company) {
-        $job_count = $job_results[$company->id] ?? 0;
-        $status_class = $company->active ? 'status-active' : 'status-inactive';
-        $status_text = $company->active ? 'Active' : 'Inactive';
-        
-        $website_link = $company->website 
-          ? '<a href="' . htmlspecialchars($company->website) . '" target="_blank">🔗 Website</a>'
-          : '<span class="text-muted">No website</span>';
-        
-        $careers_link = $company->careers_page_url
-          ? '<a href="' . htmlspecialchars($company->careers_page_url) . '" target="_blank">💼 Careers</a>'
-          : '';
-        
-        $rows .= '<tr>
-          <td class="company-name">
-            <strong>' . htmlspecialchars($company->name) . '</strong>
-            ' . ($company->industry ? '<div class="company-industry">' . htmlspecialchars($company->industry) . '</div>' : '') . '
-          </td>
-          <td class="company-location">' . ($company->location ? htmlspecialchars($company->location) : '-') . '</td>
-          <td class="company-links">' . $website_link . ' ' . $careers_link . '</td>
-          <td class="company-jobs"><span class="badge">' . $job_count . '</span></td>
-          <td class="company-status"><span class="' . $status_class . '">' . $status_text . '</span></td>
-          <td class="company-actions">
-            <a href="/jobhunter/companies/' . $company->id . '/edit" class="btn-edit">Edit</a>
-            <a href="/jobhunter/companies/' . $company->id . '/delete" class="btn-delete" onclick="return confirm(\'Delete ' . htmlspecialchars($company->name) . '?\')">Delete</a>
-          </td>
-        </tr>';
-      }
-      
-      $content['table'] = [
-        '#type' => 'inline_template',
-        '#template' => '<table class="companies-table">
-          <thead>
-            <tr>
-              <th>Company</th>
-              <th>Location</th>
-              <th>Links</th>
-              <th>Jobs</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>{{ rows|raw }}</tbody>
-        </table>',
-        '#context' => ['rows' => $rows],
-      ];
-    }
-    
-    // Add CSS
-    $content['#attached']['html_head'][] = [
-      [
-        '#type' => 'html_tag',
-        '#tag' => 'style',
-        '#value' => '
-          .target-companies-header { margin-bottom: 30px; }
-          .target-companies-header h2 { margin: 0 0 10px 0; font-size: 2em; }
-          .target-companies-header .subtitle { color: #666; font-size: 1.1em; margin-bottom: 20px; }
-          .stats-bar { display: flex; gap: 30px; margin-top: 15px; }
-          .stat { background: #f8f9fa; padding: 15px 20px; border-radius: 8px; }
-          .stat-number { font-size: 1.8em; font-weight: bold; color: #2c5282; display: block; }
-          .stat-label { font-size: 0.9em; color: #666; }
-          .action-bar { margin: 20px 0; display: flex; gap: 10px; }
-          .btn-add-company { padding: 12px 24px; background: #48bb78; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; }
-          .btn-add-company:hover { background: #38a169; }
-          .empty-state { text-align: center; padding: 60px 20px; background: #f8f9fa; border-radius: 12px; margin: 30px 0; }
-          .empty-icon { font-size: 4em; margin-bottom: 20px; }
-          .empty-state h3 { margin: 0 0 10px 0; font-size: 1.5em; }
-          .empty-state p { color: #666; margin-bottom: 20px; }
-          .btn-primary { display: inline-block; padding: 12px 30px; background: #48bb78; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; }
-          .section-header { margin: 40px 0 20px 0; padding-top: 30px; border-top: 2px solid #e2e8f0; }
-          .section-header h3 { margin: 0 0 10px 0; font-size: 1.5em; }
-          .section-description { color: #666; margin: 0; }
-          .filter-bar { margin: 20px 0; display: flex; gap: 20px; align-items: center; }
-          .company-filter-input { flex: 1; max-width: 400px; padding: 10px 15px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 1em; }
-          .company-filter-input:focus { outline: none; border-color: #4299e1; }
-          .filter-count { color: #666; font-size: 0.9em; }
-          .all-companies-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-          .all-companies-table th { background: #f8f9fa; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
-          .all-companies-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
-          .all-companies-table .company-row.hidden { display: none; }
-          .btn-add-quick { padding: 6px 16px; background: #48bb78; color: white; text-decoration: none; border-radius: 4px; font-size: 0.9em; display: inline-block; }
-          .btn-add-quick:hover { background: #38a169; }
-          .already-added { color: #38a169; font-weight: 600; }
-          .companies-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-          .companies-table th { background: #f8f9fa; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
-          .companies-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
-          .company-name strong { font-size: 1.1em; color: #2d3748; }
-          .company-industry { font-size: 0.9em; color: #718096; margin-top: 4px; }
-          .company-links a { margin-right: 10px; color: #4299e1; text-decoration: none; }
-          .company-links a:hover { text-decoration: underline; }
-          .badge { background: #e6fffa; color: #234e52; padding: 4px 12px; border-radius: 12px; font-weight: 600; }
-          .status-active { color: #38a169; font-weight: 600; }
-          .status-inactive { color: #a0aec0; }
-          .btn-edit, .btn-delete { padding: 6px 12px; margin-right: 8px; border-radius: 4px; text-decoration: none; font-size: 0.9em; }
-          .btn-edit { background: #4299e1; color: white; }
-          .btn-delete { background: #f56565; color: white; }
-          .btn-edit:hover { background: #3182ce; }
-          .btn-delete:hover { background: #e53e3e; }
-          .text-muted { color: #a0aec0; }
-        ',
+    $content = [
+      '#theme' => 'target_companies',
+      '#total_companies' => $total_companies,
+      '#active_companies' => $active_companies,
+      '#total_jobs' => $total_jobs,
+      '#target_companies' => $target_companies_data,
+      '#job_companies' => $job_companies,
+      '#existing_companies' => $existing_companies,
+      '#attached' => [
+        'library' => [
+          'job_hunter/target-companies',
+        ],
       ],
-      'target_companies_styles',
-    ];
-    
-    // Add JavaScript for filtering
-    $content['#attached']['html_head'][] = [
-      [
-        '#type' => 'html_tag',
-        '#tag' => 'script',
-        '#value' => '
-          function filterCompanies() {
-            var input = document.getElementById("company-filter");
-            var filter = input.value.toLowerCase();
-            var rows = document.querySelectorAll(".company-row");
-            var visibleCount = 0;
-            
-            rows.forEach(function(row) {
-              var companyName = row.getAttribute("data-company-name");
-              if (companyName.indexOf(filter) > -1) {
-                row.classList.remove("hidden");
-                visibleCount++;
-              } else {
-                row.classList.add("hidden");
-              }
-            });
-            
-            document.getElementById("visible-count").textContent = visibleCount;
-          }
-          
-          function addCompanyQuick(btn) {
-            var companyName = btn.getAttribute("data-company");
-            var formData = new FormData();
-            formData.append("company_name", companyName);
-            
-            fetch("/jobhunter/companies/add-quick", {
-              method: "POST",
-              body: formData
-            }).then(function(response) {
-              return response.json();
-            }).then(function(data) {
-              if (data.success) {
-                btn.outerHTML = "<span class=\"already-added\">✓ Added to targets</span>";
-                location.reload();
-              } else {
-                alert("Error adding company: " + data.message);
-              }
-            });
-          }
-          
-          document.addEventListener("DOMContentLoaded", function() {
-            var filterInput = document.getElementById("company-filter");
-            if (filterInput) {
-              filterInput.addEventListener("keyup", filterCompanies);
-            }
-          });
-        ',
+      '#cache' => [
+        'contexts' => ['user'],
+        'tags' => ['job_hunter:companies', 'job_hunter:jobs'],
       ],
-      'target_companies_js',
     ];
     
     return $this->wrapWithNavigation($content);
@@ -760,7 +583,7 @@ class JobApplicationController extends ControllerBase {
 
     if ($company_count > 0) {
       // Load companies and build table
-      $companies = \Drupal::entityTypeManager()->getStorage('node')->loadMultiple($company_ids);
+      $companies = $this->entityTypeManager()->getStorage('node')->loadMultiple($company_ids);
       
       // Table header
       $table_header = '<table class="companies-table">
@@ -867,7 +690,7 @@ class JobApplicationController extends ControllerBase {
   private function buildQueueControlsSection() {
     $current_user = $this->currentUser();
     $is_admin = $current_user->hasPermission('administer job application automation');
-    $queue_factory = \Drupal::service('queue');
+    $queue_factory = $this->queueFactory;
     
     // Queue definitions
     $queues = [
@@ -962,7 +785,7 @@ class JobApplicationController extends ControllerBase {
               <p class="queue-controls-subtitle">Monitor background processing queues</p>
               {{ global_actions|raw }}
             </div>
-            <div id="queue-status-message" class="queue-status-message" style="display:none;"></div>
+            <div id="queue-status-message" class="queue-status-message hidden"></div>
             <table class="queue-controls-table">
               <thead>
                 <tr>
@@ -1006,7 +829,7 @@ class JobApplicationController extends ControllerBase {
    *   Array of company names with job counts [company_name => count].
    */
   private function getCompaniesFromJobPostings() {
-    $database = \Drupal::database();
+    $database = $this->database;
     
     // Get all job requirements with extracted JSON
     $query = $database->select("jobhunter_job_requirements", "j")
@@ -1072,28 +895,8 @@ class JobApplicationController extends ControllerBase {
     // Get search defaults from user profile.
     $defaults = $this->jobDiscoveryService->getUserSearchDefaults();
     
-    // Check  API credentials status.
+    // Check API credentials status.
     $api_status = $this->jobDiscoveryService->getApiCredentialsStatus();
-    
-    // Get counts for stats display.
-    $saved_jobs_count = $this->jobDiscoveryService->getSavedJobsCount();
-    $target_companies_count = $this->jobDiscoveryService->getTargetCompaniesCount();
-    
-    // Get filter parameters from request.
-    $request = $this->requestStack->getCurrentRequest();
-    $filters = [
-      'company' => $request->query->get('company', ''),
-      'status' => $request->query->get('status', ''),
-      'ai_status' => $request->query->get('ai_status', ''),
-      'tailoring' => $request->query->get('tailoring', ''),
-    ];
-    
-    // Get saved jobs and company names for filtering.
-    $jobs = $this->jobDiscoveryService->getSavedJobs($filters);
-    $companies = $this->jobDiscoveryService->getCompanyNames();
-    
-    // Build saved jobs table.
-    $saved_jobs_section = $this->buildSavedJobsSection($jobs, $companies, $filters);
     
     // Render the template with all necessary variables.
     $content = [
@@ -1109,9 +912,44 @@ class JobApplicationController extends ControllerBase {
       '#has_adzuna' => $api_status['adzuna'],
       '#has_usajobs' => $api_status['usajobs'],
       '#has_serpapi' => $api_status['serpapi'],
-      '#saved_jobs_count' => $saved_jobs_count,
-      '#target_companies_count' => $target_companies_count,
-      '#saved_jobs_section' => $saved_jobs_section,
+      '#cache' => [
+        'contexts' => ['user'],
+        'tags' => ['job_hunter:settings'],
+      ],
+    ];
+    
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * My Jobs page - displays user's saved job postings.
+   *
+   * @return array
+   *   Renderable array for the my jobs page.
+   */
+  public function myJobs(): array {
+    // Get filter parameters from request.
+    $request = $this->requestStack->getCurrentRequest();
+    $filters = [
+      'company' => $request->query->get('company', ''),
+      'status' => $request->query->get('status', ''),
+      'ai_status' => $request->query->get('ai_status', ''),
+      'tailoring' => $request->query->get('tailoring', ''),
+    ];
+    
+    // Get saved jobs and company names for filtering.
+    $jobs = $this->jobDiscoveryService->getSavedJobs($filters);
+    $companies = $this->jobDiscoveryService->getCompanyNames();
+    
+    // Render the template.
+    $content = [
+      '#theme' => 'my_jobs',
+      '#jobs' => $jobs,
+      '#companies' => $companies,
+      '#filter_company' => $filters['company'],
+      '#filter_status' => $filters['status'],
+      '#filter_ai_status' => $filters['ai_status'],
+      '#filter_tailoring' => $filters['tailoring'],
       '#cache' => [
         'contexts' => ['user', 'url.query_args'],
         'tags' => ['job_hunter:jobs', 'job_hunter:companies'],
@@ -1122,910 +960,92 @@ class JobApplicationController extends ControllerBase {
   }
 
   /**
-   * Build the saved jobs section with table and filters.
-   *
-   * @param array $jobs
-   *   Array of job objects.
-   * @param array $companies
-   *   Array of company names.
-   * @param array $filters
-   *   Current filter values.
-   *
-   * @return array
-   *   Renderable array for saved jobs section.
-   */
-  private function buildSavedJobsSection(array $jobs, array $companies, array $filters): array {
-    // Build table header.
-    $header = [
-      $this->t('Job Title'),
-      $this->t('Company'),
-      $this->t('Status'),
-      $this->t('AI Parsed'),
-      $this->t('Tailored'),
-      $this->t('Actions'),
-    ];
-    
-    // Build table rows.
-    $rows = [];
-    foreach ($jobs as $job) {
-      $rows[] = $this->buildJobTableRow($job);
-    }
-    
-    return [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['saved-jobs-section']],
-      'divider' => [
-        '#type' => 'html_tag',
-        '#tag' => 'hr',
-        '#attributes' => ['class' => ['section-divider']],
-      ],
-      'header' => [
-        '#markup' => '<h2>📋 ' . $this->t('Your Saved Job Postings') . '</h2>',
-      ],
-      'add_button' => [
-        '#type' => 'link',
-        '#title' => $this->t('Add Job Posting'),
-        '#url' => Url::fromRoute('job_hunter.job_paste'),
-        '#attributes' => ['class' => ['button', 'button--primary']],
-      ],
-      'filters' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['jobs-filters']],
-        'form' => [
-          '#type' => 'inline_template',
-          '#template' => '
-            <div class="filter-form">
-              <form method="get" action="{{ action_url }}#saved_jobs_section">
-                <div class="filter-row">
-                  <div class="filter-field">
-                    <label for="company">{{ "Company"|t }}</label>
-                    <select name="company" id="company">
-                      <option value="">{{ "All Companies"|t }}</option>
-                      {% for company in companies %}
-                        <option value="{{ company }}"{{ company == filter_company ? " selected" : "" }}>{{ company }}</option>
-                      {% endfor %}
-                    </select>
-                  </div>
-                  <div class="filter-field">
-                    <label for="status">{{ "Status"|t }}</label>
-                    <select name="status" id="status">
-                      <option value="">{{ "All Statuses"|t }}</option>
-                      <option value="active"{{ filter_status == "active" ? " selected" : "" }}>{{ "Active"|t }}</option>
-                      <option value="archived"{{ filter_status == "archived" ? " selected" : "" }}>{{ "Archived"|t }}</option>
-                      <option value="applied"{{ filter_status == "applied" ? " selected" : "" }}>{{ "Applied"|t }}</option>
-                    </select>
-                  </div>
-                  <div class="filter-field">
-                    <label for="ai_status">{{ "AI Status"|t }}</label>
-                    <select name="ai_status" id="ai_status">
-                      <option value="">{{ "All AI Statuses"|t }}</option>
-                      <option value="completed"{{ filter_ai_status == "completed" ? " selected" : "" }}>{{ "Parsed"|t }}</option>
-                      <option value="pending"{{ filter_ai_status == "pending" ? " selected" : "" }}>{{ "Needs Parsing"|t }}</option>
-                      <option value="processing"{{ filter_ai_status == "processing" ? " selected" : "" }}>{{ "Processing"|t }}</option>
-                      <option value="failed"{{ filter_ai_status == "failed" ? " selected" : "" }}>{{ "Failed"|t }}</option>
-                    </select>
-                  </div>
-                  <div class="filter-field">
-                    <label for="tailoring">{{ "Tailoring"|t }}</label>
-                    <select name="tailoring" id="tailoring">
-                      <option value="">{{ "All Tailoring Statuses"|t }}</option>
-                      <option value="completed"{{ filter_tailoring == "completed" ? " selected" : "" }}>{{ "Tailored"|t }}</option>
-                      <option value="pending"{{ filter_tailoring == "pending" ? " selected" : "" }}>{{ "Not Tailored"|t }}</option>
-                      <option value="processing"{{ filter_tailoring == "processing" ? " selected" : "" }}>{{ "Processing"|t }}</option>
-                      <option value="failed"{{ filter_tailoring == "failed" ? " selected" : "" }}>{{ "Failed"|t }}</option>
-                    </select>
-                  </div>
-                  <div class="filter-actions">
-                    <button type="submit" class="button button--primary">{{ "Filter"|t }}</button>
-                    <a href="{{ action_url }}" class="button button--secondary">{{ "Clear"|t }}</a>
-                  </div>
-                </div>
-              </form>
-            </div>',
-          '#context' => [
-            'action_url' => Url::fromRoute('job_hunter.job_discovery')->toString(),
-            'companies' => $companies,
-            'filter_company' => $filters['company'],
-            'filter_status' => $filters['status'],
-            'filter_ai_status' => $filters['ai_status'],
-            'filter_tailoring' => $filters['tailoring'],
-          ],
-        ],
-      ],
-      'table' => [
-        '#type' => 'table',
-        '#header' => $header,
-        '#rows' => $rows,
-        '#empty' => $this->t('No job postings saved yet. <a href=":url">Add your first job</a> or <a href=":search">search for jobs</a> to get started.', [
-          ':url' => Url::fromRoute('job_hunter.job_paste')->toString(),
-          ':search' => Url::fromRoute('job_hunter.job_discovery')->toString(),
-        ]),
-        '#attributes' => ['class' => ['jobs-table']],
-      ],
-    ];
-  }
-
-  /**
-   * Build a single job table row.
-   *
-   * @param object $job
-   *   Job object from database.
-   *
-   * @return array
-   *   Table row data.
-   */
-  private function buildJobTableRow(object $job): array {
-    // Parse extracted JSON for better title display.
-    $extracted = $job->extracted_json ? json_decode($job->extracted_json, TRUE) : NULL;
-    $job_title = ($extracted['position']['title'] ?? $job->job_title) ?: 'Job #' . $job->id;
-    $company_name = ($extracted['company']['name'] ?? $job->company_name) ?: 'Unknown';
-    
-    // Get AI parsing status badge.
-    $ai_badge = $this->getAiStatusBadge($job);
-    
-    // Get tailoring status badge.
-    $tailor_badge = $this->getTailoringStatusBadge($job);
-    
-    // Build operations links.
-    $operations = $this->buildJobOperations($job);
-    
-    return [
-      [
-        'data' => [
-          '#type' => 'link',
-          '#title' => $job_title,
-          '#url' => Url::fromRoute('job_hunter.job_view', ['job_id' => $job->id]),
-        ],
-      ],
-      ['data' => ['#markup' => $company_name]],
-      ['data' => ['#markup' => ucfirst($job->status ?: 'active')]],
-      ['data' => ['#markup' => $ai_badge]],
-      ['data' => ['#markup' => $tailor_badge]],
-      [
-        'data' => [
-          '#type' => 'operations',
-          '#links' => $operations,
-        ],
-      ],
-    ];
-  }
-
-  /**
-   * Get AI status badge markup for a job.
-   *
-   * @param object $job
-   *   Job object.
-   *
-   * @return string
-   *   Badge HTML markup.
-   */
-  private function getAiStatusBadge(object $job): string {
-    $has_raw_text = !empty($job->raw_posting_text);
-    $has_extracted = !empty($job->extracted_json);
-    $ai_status = $job->ai_extraction_status ?? 'pending';
-    
-    if ($has_extracted) {
-      return '<span class="badge badge--success" title="AI parsing complete">✅ Parsed</span>';
-    }
-    elseif ($ai_status === 'processing' || $ai_status === 'queued') {
-      return '<span class="badge badge--warning" title="AI parsing in progress">⏳ Processing</span>';
-    }
-    elseif ($ai_status === 'failed') {
-      return '<span class="badge badge--error" title="AI parsing failed">❌ Failed</span>';
-    }
-    elseif ($has_raw_text) {
-      return '<span class="badge badge--info" title="Has raw text, needs AI parsing">📝 Needs Parsing</span>';
-    }
-    else {
-      return '<span class="badge badge--neutral" title="No content yet">⚪ No Content</span>';
-    }
-  }
-
-  /**
-   * Get tailoring status badge markup for a job.
-   *
-   * @param object $job
-   *   Job object.
-   *
-   * @return string
-   *   Badge HTML markup.
-   */
-  private function getTailoringStatusBadge(object $job): string {
-    $tailoring_status = $job->tailoring_status ?? NULL;
-    $has_tailored_json = !empty($job->tailored_resume_json);
-    $has_pdf = !empty($job->pdf_path);
-    
-    if ($tailoring_status === 'completed' && $has_tailored_json) {
-      if ($has_pdf) {
-        return '<span class="badge badge--success" title="Tailored with PDF ready">✅ PDF Ready</span>';
-      }
-      else {
-        return '<span class="badge badge--success" title="Resume tailored, generate PDF">✅ Tailored</span>';
-      }
-    }
-    elseif ($tailoring_status === 'processing' || $tailoring_status === 'queued') {
-      return '<span class="badge badge--warning" title="Tailoring in progress">⏳ Processing</span>';
-    }
-    elseif ($tailoring_status === 'failed') {
-      return '<span class="badge badge--error" title="Tailoring failed">❌ Failed</span>';
-    }
-    else {
-      return '<span class="badge badge--neutral" title="Not yet tailored">⚪ Not Tailored</span>';
-    }
-  }
-
-  /**
-   * Build operations links for a job.
-   *
-   * @param object $job
-   *   Job object.
-   *
-   * @return array
-   *   Array of operation link arrays.
-   */
-  private function buildJobOperations(object $job): array {
-    $tailoring_status = $job->tailoring_status ?? NULL;
-    $ai_status = $job->ai_extraction_status ?? 'pending';
-    $has_raw_text = !empty($job->raw_posting_text);
-    
-    $operations = [
-      'tailor' => [
-        'title' => $tailoring_status === 'completed' ? $this->t('View Tailored') : $this->t('Tailor Resume'),
-        'url' => Url::fromRoute('job_hunter.tailor_resume', ['job' => $job->id]),
-      ],
-      'view' => [
-        'title' => $this->t('View Job'),
-        'url' => Url::fromRoute('job_hunter.job_view', ['job_id' => $job->id]),
-      ],
-      'edit' => [
-        'title' => $this->t('Edit'),
-        'url' => Url::fromRoute('job_hunter.job_edit', ['job_id' => $job->id]),
-      ],
-    ];
-    
-    // Add retry parsing option if applicable.
-    if ($ai_status === 'failed' && $has_raw_text) {
-      $operations['retry_parsing'] = [
-        'title' => $this->t('Retry Parsing'),
-        'url' => Url::fromRoute('job_hunter.job_retry_parsing', ['job_id' => $job->id]),
-        'attributes' => [
-          'class' => ['button--warning'],
-        ],
-      ];
-    }
-    
-    // Add delete option.
-    $operations['delete'] = [
-      'title' => $this->t('Delete'),
-      'url' => Url::fromRoute('job_hunter.job_delete', ['job_id' => $job->id]),
-      'attributes' => [
-        'onclick' => 'return confirm("Are you sure you want to delete this job?");',
-      ],
-    ];
-    
-    return $operations;
-  }
-
-  /**
    * Job Discovery Search Results page.
-   * 
-   * Handles unified search across multiple job sources based on user query.
+   *
+   * This method now uses the SearchAggregatorService to centralize
+   * all search logic and API orchestration. The controller is simplified
+   * to only handle request parameter extraction and result rendering.
    *
    * @return array
    *   A renderable array for the job search results page.
    */
-  public function jobDiscoverySearchResults() {
-    $request = \Drupal::request();
-    $connection = \Drupal::database();
-    $current_user = \Drupal::currentUser();
-    
-    // Get search parameters from GET request
-    $query = $request->query->get('q', ''); // Changed from 'query' to 'q' to match form
-    $location = $request->query->get('location', '');
-    $employment_type = $request->query->get('employment_type', '');
-    // Use all() for array parameters like checkboxes
-    $sources = $request->query->all('sources');
-    if (empty($sources)) {
-      $sources = ['forseti']; // Default to Forseti if nothing selected
+  public function jobDiscoverySearchResults(): array {
+    $request = $this->requestStack->getCurrentRequest();
+
+    // Extract search parameters from request
+    $search_params = [
+      'query' => $request->query->get('q', ''),  // Using 'q' to match form
+      'location' => $request->query->get('location', ''),
+      'sources' => $request->query->all('sources'),
+      'employment_type' => $request->query->get('employment_type', ''),
+      'salary_min' => $request->query->get('salary_min', ''),
+      'salary_max' => $request->query->get('salary_max', ''),
+      'remote_preference' => $request->query->get('remote_preference', ''),
+      'date_posted' => $request->query->get('date_posted', ''),
+      'company' => $request->query->get('company', ''),
+      'relocation_willing' => $request->query->get('relocation_willing', ''),
+    ];
+
+    // Ensure sources is an array with default
+    if (empty($search_params['sources'])) {
+      $search_params['sources'] = ['forseti'];
     }
-    $company_filter = $request->query->get('company', '');
-    $salary_min = $request->query->get('salary_min', '');
-    $salary_max = $request->query->get('salary_max', '');
-    $remote_preference = $request->query->get('remote_preference', '');
-    $date_posted = $request->query->get('date_posted', '');
-    $relocation_willing = $request->query->get('relocation_willing', '');
-    
-    // Initialize results array
-    $all_results = [];
-    
-    // Search in Forseti database if selected
-    if (in_array('forseti', $sources)) {
-      // First check total jobs in database
-      $total_jobs = $connection->select('jobhunter_job_requirements', 'j')
-        ->countQuery()
-        ->execute()
-        ->fetchField();
-      
-      \Drupal::logger('job_hunter')->info('📊 Total jobs in jobhunter_job_requirements table: @total', [
-        '@total' => $total_jobs,
-      ]);
-      
-      $db_query = $connection->select('jobhunter_job_requirements', 'j')
-        ->fields('j')
-        ->orderBy('created', 'DESC')
-        ->range(0, 50); // Limit to 50 results
-      
-      // Add keyword search if provided
-      if (!empty($query)) {
-        $or = $db_query->orConditionGroup()
-          ->condition('job_title', '%' . $connection->escapeLike($query) . '%', 'LIKE')
-          ->condition('job_description', '%' . $connection->escapeLike($query) . '%', 'LIKE')
-          ->condition('requirements', '%' . $connection->escapeLike($query) . '%', 'LIKE');
-        $db_query->condition($or);
-      }
-      
-      // Add location filter if provided
-      if (!empty($location)) {
-        $db_query->condition('location', '%' . $connection->escapeLike($location) . '%', 'LIKE');
-      }
-      
-      // Add employment type filter if provided
-      if (!empty($employment_type)) {
-        $db_query->condition('employment_type', $employment_type);
-      }
-      
-      // Add company name filter if provided
-      if (!empty($company_filter)) {
-        // Join with companies table to filter by company name
-        $db_query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
-        $db_query->condition('c.name', '%' . $connection->escapeLike($company_filter) . '%', 'LIKE');
-      }
-      
-      // Note: Forseti DB uses salary_range (varchar) not salary_min/max (numeric)
-      // Salary filtering only works for Google Cloud API results
-      
-      // Add remote preference filter if provided
-      if (!empty($remote_preference)) {
-        if ($remote_preference === 'remote') {
-          $or = $db_query->orConditionGroup()
-            ->condition('location', '%remote%', 'LIKE')
-            ->condition('location', '%Remote%', 'LIKE')
-            ->condition('remote_option', 'remote', 'LIKE');
-          $db_query->condition($or);
-        } elseif ($remote_preference === 'onsite') {
-          $db_query->condition('location', '%remote%', 'NOT LIKE');
-          $db_query->condition('remote_option', 'on-site', '=');
-        }
-        // For 'hybrid' or other values, don't add filters - show all
-      }
-      
-      // Add date posted filter if provided
-      if (!empty($date_posted)) {
-        $days_ago = 30; // Default to last 30 days
-        if ($date_posted === '1' || $date_posted === 'last_24h') {
-          $days_ago = 1;
-        } elseif ($date_posted === '7' || $date_posted === 'last_week') {
-          $days_ago = 7;
-        } elseif ($date_posted === '30' || $date_posted === 'last_month') {
-          $days_ago = 30;
-        }
-        $timestamp = time() - ($days_ago * 24 * 60 * 60);
-        $db_query->condition('created', $timestamp, '>=');
-      }
-      
-      $results = $db_query->execute()->fetchAll();
-      
-      \Drupal::logger('job_hunter')->info('📊 Forseti DB search returned @count results for query: @query, location: @location', [
-        '@count' => count($results),
-        '@query' => $query,
-        '@location' => $location,
-      ]);
-      
-      // Format results from database
-      foreach ($results as $job) {
-        // Get company name
-        $company_name = 'N/A';
-        if (!empty($job->company_id)) {
-          $company = $connection->select('jobhunter_companies', 'c')
-            ->fields('c', ['name'])
-            ->condition('id', $job->company_id)
-            ->execute()
-            ->fetchField();
-          if ($company) {
-            $company_name = $company;
-          }
-        }
-        
-        $all_results[] = [
-          'id' => $job->id,
-          'title' => $job->job_title,
-          'company' => $company_name,
-          'location' => $job->location ?? 'Not specified',
-          'employment_type' => $job->employment_type ?? 'Not specified',
-          'salary_range' => $job->salary_range ?? 'Not specified',
-          'description' => $this->truncateText($job->job_description ?? '', 200),
-          'source' => 'Forseti',
-          'posted_date' => !empty($job->created) ? date('M j, Y', $job->created) : 'Unknown',
-          'url' => $job->job_url ?? '',
-        ];
-      }
-    }
-    
-    // Search Google Cloud Talent Solution API if selected and credentials available
-    if (in_array('google_cloud', $sources)) {
-      try {
-        $config = \Drupal::config('job_hunter.settings');
-        $google_credentials = $config->get('google_cloud_credentials');
-        
-        if (!empty($google_credentials)) {
-          /** @var \Drupal\job_hunter\Service\CloudTalentSolutionService $google_service */
-          $google_service = \Drupal::service('job_hunter.cloud_talent_solution');
-          
-          // First, check if there are ANY jobs in the tenant (diagnostic)
-          try {
-            $diagnostic_results = $google_service->testSimpleSearch();
-            \Drupal::logger('job_hunter')->info('🔍 Google Cloud diagnostic: Tenant has @total total jobs available', [
-              '@total' => $diagnostic_results['total_size'] ?? 0,
-            ]);
-          } catch (\Exception $e) {
-            \Drupal::logger('job_hunter')->warning('⚠️ Google Cloud diagnostic search failed: @error', [
-              '@error' => $e->getMessage(),
-            ]);
-          }
-          
-          // Build search parameters for Google API
-          $google_params = [];
-          if (!empty($query)) {
-            $google_params['query'] = $query;
-          }
-          if (!empty($location)) {
-            $google_params['location'] = $location;
-          }
-          if (!empty($employment_type)) {
-            $google_params['employment_types'] = [$employment_type];
-          }
-          if (!empty($salary_min)) {
-            $google_params['salary_min'] = $salary_min;
-          }
-          if (!empty($salary_max)) {
-            $google_params['salary_max'] = $salary_max;
-          }
-          if (!empty($remote_preference)) {
-            $google_params['remote_preference'] = $remote_preference;
-          }
-          if (!empty($date_posted)) {
-            $google_params['date_posted'] = $date_posted;
-          }
-          
-          $google_results = $google_service->searchJobs($google_params);
-          
-          \Drupal::logger('job_hunter')->info('📊 Google Cloud API returned @count results. Total size: @total. Metadata: @metadata. Params: @params', [
-            '@count' => count($google_results['jobs'] ?? []),
-            '@total' => $google_results['total_size'] ?? 0,
-            '@metadata' => json_encode($google_results['metadata'] ?? []),
-            '@params' => json_encode($google_params),
-          ]);
-          
-          // If no results but we expected some, show why
-          if (empty($google_results['jobs']) && !empty($google_params)) {
-            \Drupal::logger('job_hunter')->notice('ℹ️ Google Cloud returned 0 results. This could mean: 1) No jobs match the filters, 2) Tenant has no jobs, 3) Location format issue');
-          }
-          
-          // Convert Google results to our format
-          foreach ($google_results['jobs'] as $google_job) {
-            $job_data = $google_job['job'] ?? [];
-            $all_results[] = [
-              'id' => $job_data['name'] ?? uniqid('google_'),
-              'title' => $job_data['title'] ?? 'No title',
-              'company' => $job_data['companyDisplayName'] ?? 'Unknown',
-              'location' => !empty($job_data['addresses']) ? implode(', ', $job_data['addresses']) : 'Not specified',
-              'employment_type' => !empty($job_data['employmentTypes']) ? implode(', ', $job_data['employmentTypes']) : 'Not specified',
-              'salary_range' => 'Not specified', // Parse compensation if available
-              'description' => $this->truncateText($job_data['description'] ?? '', 200),
-              'source' => 'Google Jobs',
-              'posted_date' => !empty($job_data['postingPublishTime']) ? date('M j, Y', strtotime($job_data['postingPublishTime'])) : 'Unknown',
-              'url' => $job_data['applicationInfo']['uris'][0] ?? '',
-            ];
-          }
-        }
-      } catch (\Exception $e) {
-        \Drupal::logger('job_hunter')->error('❌ Google Cloud job search failed: @error. Stack trace: @trace', [
-          '@error' => $e->getMessage(),
-          '@trace' => $e->getTraceAsString(),
-        ]);
-      }
-    }
-    
-    \Drupal::logger('job_hunter')->info('📊 Total results after Forseti + Google Cloud: @count', [
-      '@count' => count($all_results),
+
+    $this->getLogger('job_hunter')->info('🔍 Controller: Delegating search to SearchAggregatorService with @count sources', [
+      '@count' => count($search_params['sources']),
     ]);
-    
-    // Search Adzuna API if selected and credentials available
-    if (in_array('adzuna', $sources)) {
-      try {
-        $adzunaService = \Drupal::service('job_hunter.adzuna_api');
-        
-        $adzuna_params = [
-          'query' => $query,
-          'location' => $location,
-          'employment_type' => $employment_type,
-          'page' => 1,
-          'results_per_page' => 25,
-        ];
-        
-        \Drupal::logger('job_hunter')->info('🔍 Searching Adzuna API with params: @params', [
-          '@params' => print_r($adzuna_params, TRUE),
-        ]);
-        
-        $adzuna_results = $adzunaService->searchJobs($adzuna_params);
-        
-        \Drupal::logger('job_hunter')->info('📥 Adzuna returned @count jobs', [
-          '@count' => $adzuna_results['total'] ?? 0,
-        ]);
-        
-        // Format Adzuna results to standard format
-        if (!empty($adzuna_results['jobs'])) {
-          foreach ($adzuna_results['jobs'] as $job_data) {
-            $all_results[] = [
-              'title' => $job_data['title'] ?? 'Unknown',
-              'company' => $job_data['company']['display_name'] ?? 'Unknown',
-              'location' => $job_data['location']['display_name'] ?? 'Unknown',
-              'salary_range' => !empty($job_data['salary_min']) && !empty($job_data['salary_max']) 
-                ? '$' . number_format($job_data['salary_min']) . '-$' . number_format($job_data['salary_max']) 
-                : 'Not specified',
-              'description' => $this->truncateText($job_data['description'] ?? '', 200),
-              'source' => 'Adzuna',
-              'posted_date' => !empty($job_data['created']) ? date('M j, Y', strtotime($job_data['created'])) : 'Unknown',
-              'url' => $job_data['redirect_url'] ?? '',
-            ];
-          }
-        }
-      } catch (\Exception $e) {
-        \Drupal::logger('job_hunter')->error('❌ Adzuna API search failed: @error. Stack trace: @trace', [
-          '@error' => $e->getMessage(),
-          '@trace' => $e->getTraceAsString(),
-        ]);
-      }
+
+    // Delegate to SearchAggregatorService
+    $search_results = $this->searchAggregator->searchJobs($search_params);
+
+    // Prepare display parameters
+    $display_params = [];
+    if (!empty($search_params['query'])) {
+      $display_params['query'] = $search_params['query'];
     }
-    
-    // Search USAJobs API if selected and credentials available
-    if (in_array('usajobs', $sources)) {
-      try {
-        $usajobsService = \Drupal::service('job_hunter.usajobs_api');
-        
-        $usajobs_params = [
-          'query' => $query,
-          'location' => $location,
-          'page' => 1,
-          'results_per_page' => 25,
-        ];
-        
-        \Drupal::logger('job_hunter')->info('🔍 Searching USAJobs API with params: @params', [
-          '@params' => print_r($usajobs_params, TRUE),
-        ]);
-        
-        $usajobs_results = $usajobsService->searchJobs($usajobs_params);
-        
-        \Drupal::logger('job_hunter')->info('📥 USAJobs returned @count jobs', [
-          '@count' => $usajobs_results['total'] ?? 0,
-        ]);
-        
-        // Format USAJobs results to standard format
-        if (!empty($usajobs_results['jobs'])) {
-          foreach ($usajobs_results['jobs'] as $job_data) {
-            $matched_job = $job_data['MatchedObjectDescriptor'] ?? [];
-            $position_title = $matched_job['PositionTitle'] ?? 'Unknown';
-            $org_name = $matched_job['OrganizationName'] ?? 'U.S. Government';
-            $location_name = !empty($matched_job['PositionLocationDisplay']) 
-              ? $matched_job['PositionLocationDisplay'] 
-              : 'Washington, DC';
-            
-            // Parse salary range
-            $salary_range = 'Not specified';
-            if (!empty($matched_job['PositionRemuneration'])) {
-              $remuneration = $matched_job['PositionRemuneration'][0] ?? [];
-              $min_range = $remuneration['MinimumRange'] ?? null;
-              $max_range = $remuneration['MaximumRange'] ?? null;
-              if ($min_range && $max_range) {
-                $salary_range = '$' . number_format($min_range) . '-$' . number_format($max_range);
-              }
-            }
-            
-            $all_results[] = [
-              'title' => $position_title,
-              'company' => $org_name,
-              'location' => $location_name,
-              'salary_range' => $salary_range,
-              'description' => $this->truncateText($matched_job['UserArea']['Details']['JobSummary'] ?? '', 200),
-              'source' => 'USAJobs',
-              'posted_date' => !empty($matched_job['PublicationStartDate']) ? date('M j, Y', strtotime($matched_job['PublicationStartDate'])) : 'Unknown',
-              'url' => $matched_job['PositionURI'] ?? '',
-            ];
-          }
-        }
-      } catch (\Exception $e) {
-        \Drupal::logger('job_hunter')->error('❌ USAJobs API search failed: @error. Stack trace: @trace', [
-          '@error' => $e->getMessage(),
-          '@trace' => $e->getTraceAsString(),
-        ]);
-      }
+    if (!empty($search_params['location'])) {
+      $display_params['location'] = $search_params['location'];
     }
-    
-    // Search SerpAPI (Google Jobs) if selected and credentials available
-    if (in_array('serpapi', $sources)) {
-      try {
-        $serpapiService = \Drupal::service('job_hunter.serpapi');
-        
-        $serpapi_params = [
-          'query' => $query,
-          'location' => $location,
-          'employment_type' => $employment_type,
-          'page' => 1,
-          'results_per_page' => 10,
-        ];
-        
-        \Drupal::logger('job_hunter')->info('🔍 Searching SerpAPI (Google Jobs) with params: @params', [
-          '@params' => print_r($serpapi_params, TRUE),
-        ]);
-        
-        $serpapi_results = $serpapiService->searchJobs($serpapi_params);
-        
-        \Drupal::logger('job_hunter')->info('📥 SerpAPI returned @count jobs', [
-          '@count' => $serpapi_results['total'] ?? 0,
-        ]);
-        
-        // Format SerpAPI results to standard format
-        if (!empty($serpapi_results['jobs'])) {
-          foreach ($serpapi_results['jobs'] as $job_data) {
-            // Parse salary from detected_extensions
-            $salary_range = 'Not specified';
-            if (!empty($job_data['detected_extensions']['salary'])) {
-              $salary_range = $job_data['detected_extensions']['salary'];
-            }
-            
-            // Parse posted date
-            $posted_date = 'Unknown';
-            if (!empty($job_data['detected_extensions']['posted_at'])) {
-              $posted_date = $job_data['detected_extensions']['posted_at'];
-            }
-            
-            $all_results[] = [
-              'title' => $job_data['title'] ?? 'Unknown',
-              'company' => $job_data['company_name'] ?? 'Unknown',
-              'location' => $job_data['location'] ?? 'Unknown',
-              'salary_range' => $salary_range,
-              'description' => $this->truncateText($job_data['description'] ?? '', 200),
-              'source' => 'Google Jobs (SerpAPI)',
-              'posted_date' => $posted_date,
-              'url' => $job_data['related_links'][0]['link'] ?? '',
-            ];
-          }
-        }
-      } catch (\Exception $e) {
-        \Drupal::logger('job_hunter')->error('❌ SerpAPI search failed: @error. Stack trace: @trace', [
-          '@error' => $e->getMessage(),
-          '@trace' => $e->getTraceAsString(),
-        ]);
-      }
+    if (!empty($search_params['employment_type'])) {
+      $display_params['employment_type'] = $search_params['employment_type'];
     }
-    
-    \Drupal::logger('job_hunter')->info('✅ Final total results from all sources: @count (searched: @sources)', [
-      '@count' => count($all_results),
-      '@sources' => implode(', ', $sources),
-    ]);
-    
-    // Build results display
-    $results_html = '';
-    if (empty($all_results)) {
-      // Add diagnostic information
-      $diagnostic_info = '<ul>';
-      
-      // Check Forseti database
-      $forseti_total = $connection->select('jobhunter_job_requirements', 'j')
-        ->countQuery()
-        ->execute()
-        ->fetchField();
-      $diagnostic_info .= '<li><strong>Forseti Database:</strong> ' . $forseti_total . ' total jobs available</li>';
-      
-      // Check Google Cloud if selected
-      if (in_array('google_cloud', $sources)) {
-        try {
-          $config = \Drupal::config('job_hunter.settings');
-          $google_credentials = $config->get('google_cloud_credentials');
-          
-          if (!empty($google_credentials)) {
-            $google_service = \Drupal::service('job_hunter.cloud_talent_solution');
-            try {
-              $diagnostic_check = $google_service->testSimpleSearch();
-              $diagnostic_info .= '<li><strong>Google Cloud Tenant:</strong> ' . ($diagnostic_check['total_size'] ?? 0) . ' total jobs available</li>';
-            } catch (\Exception $e) {
-              $diagnostic_info .= '<li><strong>Google Cloud:</strong> ⚠️ Error - ' . htmlspecialchars($e->getMessage()) . '</li>';
-            }
-          } else {
-            $diagnostic_info .= '<li><strong>Google Cloud:</strong> ❌ Not configured (no credentials)</li>';
-          }
-        } catch (\Exception $e) {
-          $diagnostic_info .= '<li><strong>Google Cloud:</strong> ❌ Service error</li>';
-        }
-      }
-      
-      $diagnostic_info .= '</ul>';
-      
-      $results_html = '<div class="no-results">
-        <h3>No jobs found matching your criteria</h3>
-        <p>Your search returned 0 results from ' . count($sources) . ' source(s).</p>
-        <div class="diagnostic-info">
-          <h4>🔍 Diagnostic Information:</h4>
-          ' . $diagnostic_info . '
-          <p><strong>Suggestions:</strong></p>
-          <ul>
-            <li>Try removing location filters (search nationwide)</li>
-            <li>Try broader keywords</li>
-            <li>Remove date posted filters</li>
-            <li>If no jobs available in data sources, import jobs first</li>
-          </ul>
-        </div>
-      </div>';
-    } else {
-      $results_html = '<div class="results-summary">
-        <h3>Found ' . count($all_results) . ' job' . (count($all_results) !== 1 ? 's' : '') . '</h3>
-      </div>
-      <div class="job-results-list">';
-      
-      foreach ($all_results as $job) {
-        $results_html .= '
-        <div class="job-result-card">
-          <div class="job-result-header">
-            <div class="job-result-title-block">
-              <h4 class="job-result-title">' . htmlspecialchars($job['title']) . '</h4>
-              <div class="job-result-meta">
-                <span class="job-company">🏢 ' . htmlspecialchars($job['company']) . '</span>
-                <span class="job-location">📍 ' . htmlspecialchars($job['location']) . '</span>
-                <span class="job-type">💼 ' . htmlspecialchars($job['employment_type']) . '</span>
-              </div>
-            </div>
-            <div class="job-result-actions">
-              <span class="job-source-badge">' . htmlspecialchars($job['source']) . '</span>
-            </div>
-          </div>
-          <div class="job-result-body">
-            <div class="job-result-details">
-              <span class="job-salary">💰 ' . htmlspecialchars($job['salary_range']) . '</span>
-              <span class="job-posted">📅 ' . htmlspecialchars($job['posted_date']) . '</span>
-            </div>
-            <p class="job-description">' . htmlspecialchars($job['description']) . '</p>
-          </div>
-          <div class="job-result-footer">
-            <a href="/jobhunter/addposting?job_id=' . $job['id'] . '" class="btn-save-job">💾 Save Job</a>
-            ' . (!empty($job['url']) ? '<a href="' . htmlspecialchars($job['url']) . '" target="_blank" class="btn-view-job">🔗 View Original</a>' : '') . '
-          </div>
-        </div>';
-      }
-      
-      $results_html .= '</div>';
+    if (!empty($search_params['salary_min'])) {
+      $display_params['salary_min'] = $search_params['salary_min'];
     }
-    
-    // Build search summary
-    $search_summary = '<div class="search-summary">';
-    if (!empty($query)) {
-      $search_summary .= '<span class="search-param"><strong>Keywords:</strong> ' . htmlspecialchars($query) . '</span>';
+    if (!empty($search_params['salary_max'])) {
+      $display_params['salary_max'] = $search_params['salary_max'];
     }
-    if (!empty($location)) {
-      $search_summary .= '<span class="search-param"><strong>Location:</strong> ' . htmlspecialchars($location) . '</span>';
+    if (!empty($search_params['remote_preference'])) {
+      $display_params['remote_preference'] = $search_params['remote_preference'];
     }
-    if (!empty($employment_type)) {
-      $search_summary .= '<span class="search-param"><strong>Type:</strong> ' . htmlspecialchars($employment_type) . '</span>';
+    if (!empty($search_params['relocation_willing'])) {
+      $display_params['relocation_willing'] = $search_params['relocation_willing'];
     }
-    if (!empty($salary_min)) {
-      $search_summary .= '<span class="search-param"><strong>Min Salary:</strong> $' . number_format((int)$salary_min) . '</span>';
-    }
-    if (!empty($salary_max)) {
-      $search_summary .= '<span class="search-param"><strong>Max Salary:</strong> $' . number_format((int)$salary_max) . '</span>';
-    }
-    if (!empty($remote_preference)) {
-      $search_summary .= '<span class="search-param"><strong>Remote:</strong> ' . htmlspecialchars(ucfirst($remote_preference)) . '</span>';
-    }
-    if (!empty($relocation_willing)) {
-      $search_summary .= '<span class="search-param"><strong>Relocate:</strong> ' . htmlspecialchars(ucfirst($relocation_willing)) . '</span>';
-    }
-    $search_summary .= '<span class="search-param"><strong>Sources:</strong> ' . htmlspecialchars(implode(', ', array_map('ucfirst', $sources))) . '</span>';
-    $search_summary .= '</div>';
-    
+
+    // Capitalize source names for display
+    $sources_display = array_map('ucfirst', $search_results['sources_searched']);
+
+    // Build render array
     $content = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['job-search-results-page']],
-      'header' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h1',
-        '#value' => '🔍 Job Search Results',
+      '#theme' => 'job_search_results',
+      '#results' => $search_results['results'],
+      '#search_params' => $display_params,
+      '#total_results' => $search_results['total'],
+      '#sources_searched' => $sources_display,
+      '#diagnostics' => $search_results['diagnostics'],
+      '#attached' => [
+        'library' => [
+          'job_hunter/job-search-results',
+        ],
       ],
-      'back_link' => [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['back-link-container']],
-        '#value' => '<a href="/jobhunter/job-discovery" class="back-link">← Back to Search</a>',
-      ],
-      'search_summary' => [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['search-summary-container']],
-        '#value' => $search_summary,
-      ],
-      'results' => [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['results-container']],
-        '#value' => $results_html,
-      ],
-      'styles' => [
-        '#type' => 'html_tag',
-        '#tag' => 'style',
-        '#value' => '
-          .job-search-results-page { max-width: 1200px; margin: 0 auto; }
-          .job-search-results-page h1 { margin: 0 0 20px 0; font-size: 2.5em; color: #2d3748; }
-          .back-link-container { margin-bottom: 20px; }
-          .back-link { color: #4299e1; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
-          .back-link:hover { color: #3182ce; text-decoration: underline; }
-          
-          .search-summary-container { background: #f7fafc; border: 2px solid #e2e8f0; border-radius: 8px; padding: 15px 20px; margin-bottom: 30px; }
-          .search-summary { display: flex; flex-wrap: wrap; gap: 15px; }
-          .search-param { color: #4a5568; font-size: 0.95em; }
-          .search-param strong { color: #2d3748; }
-          
-          .results-summary { margin-bottom: 20px; }
-          .results-summary h3 { margin: 0; font-size: 1.4em; color: #2d3748; }
-          
-          .no-results { background: #fff5f5; border: 2px solid #fc8181; border-radius: 8px; padding: 30px; text-align: center; }
-          .no-results p { margin: 0; color: #742a2a; font-size: 1.1em; }
-          
-          .job-results-list { display: flex; flex-direction: column; gap: 20px; }
-          .job-result-card { background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.2s; }
-          .job-result-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: #cbd5e0; }
-          
-          .job-result-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; }
-          .job-result-title { margin: 0 0 10px 0; font-size: 1.4em; color: #2d3748; }
-          .job-result-meta { display: flex; flex-wrap: wrap; gap: 15px; color: #718096; font-size: 0.9em; }
-          
-          .job-source-badge { background: #e2e8f0; color: #4a5568; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 600; }
-          
-          .job-result-body { margin: 15px 0; }
-          .job-result-details { display: flex; gap: 20px; margin-bottom: 12px; color: #4a5568; font-size: 0.95em; font-weight: 600; }
-          .job-description { color: #4a5568; line-height: 1.6; margin: 0; }
-          
-          .job-result-footer { display: flex; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 2px solid #f7fafc; }
-          .btn-save-job { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
-          .btn-save-job:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(72, 187, 120, 0.4); }
-          .btn-view-job { background: #e2e8f0; color: #2d3748; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
-          .btn-view-job:hover { background: #cbd5e0; }
-          
-          @media (max-width: 768px) {
-            .job-result-header { flex-direction: column; gap: 15px; }
-            .job-result-footer { flex-direction: column; }
-          }
-        ',
+      '#cache' => [
+        'contexts' => ['url.query_args'],
+        'tags' => ['job_hunter:search'],
+        'max-age' => 3600,
       ],
     ];
-    
+
     return $this->wrapWithNavigation($content);
-  }
-  
-  /**
-   * Helper method to truncate text to a specified length.
-   *
-   * @param string $text
-   *   The text to truncate.
-   * @param int $length
-   *   The maximum length.
-   *
-   * @return string
-   *   The truncated text with ellipsis if needed.
-   */
-  private function truncateText($text, $length = 200) {
-    $text = strip_tags($text);
-    if (strlen($text) <= $length) {
-      return $text;
-    }
-    return substr($text, 0, $length) . '...';
   }
 
   /**

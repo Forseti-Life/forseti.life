@@ -60,6 +60,7 @@ function job_hunter_install() {
     _job_hunter_create_google_jobs_validation_log_table();
     _job_hunter_create_job_search_queries_table();
     _job_hunter_create_job_search_results_table();
+    _job_hunter_create_search_history_table();
     
     $messenger->addMessage(t('Job Hunter module installed successfully. Custom database tables created.'));
     $logger->info('Job Hunter module installation completed.');
@@ -1303,4 +1304,210 @@ function job_hunter_update_9021() {
   $state->set('job_hunter.deployed_at', time());
   $state->set('job_hunter.version', '1.0.1');
   return t('Recorded deployment timestamp for version tracking in documentation.');
+}
+
+/**
+ * Create search history table for SearchAggregatorService analytics.
+ */
+function job_hunter_update_9022() {
+  _job_hunter_create_search_history_table();
+  return t('Created jobhunter_search_history table for tracking search queries and results.');
+}
+
+/**
+ * Add job_hash column to jobhunter_job_requirements for content-based deduplication.
+ */
+function job_hunter_update_9023() {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+  
+  // Add job_hash column if it doesn't exist
+  if (!$schema->fieldExists('jobhunter_job_requirements', 'job_hash')) {
+    $schema->addField('jobhunter_job_requirements', 'job_hash', [
+      'type' => 'varchar',
+      'length' => 32,
+      'not null' => FALSE,
+      'description' => 'MD5 hash of normalized company|title|location for cross-source deduplication.',
+    ]);
+    
+    // Add index for performance
+    $schema->addIndex('jobhunter_job_requirements', 'idx_job_hash', ['job_hash'], [
+      'fields' => [
+        'job_hash' => [
+          'type' => 'varchar',
+          'length' => 32,
+        ],
+      ],
+    ]);
+    
+    return t('Added job_hash column with index to jobhunter_job_requirements table for content-based deduplication.');
+  }
+  
+  return t('job_hash column already exists.');
+}
+
+/**
+ * Add SerpAPI rich metadata columns for enhanced search and filtering.
+ */
+function job_hunter_update_9024() {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+  $messages = [];
+  
+  // Define columns to add
+  $columns = [
+    'via' => [
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => FALSE,
+      'description' => 'Source platform where job was posted (e.g., LinkedIn, Indeed).',
+    ],
+    'thumbnail' => [
+      'type' => 'varchar',
+      'length' => 512,
+      'not null' => FALSE,
+      'description' => 'Company logo/thumbnail URL.',
+    ],
+    'share_link' => [
+      'type' => 'varchar',
+      'length' => 512,
+      'not null' => FALSE,
+      'description' => 'Google Jobs direct share link.',
+    ],
+    'work_from_home' => [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Work from home option available (1=yes, 0=no).',
+    ],
+    'health_insurance' => [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Health insurance benefit offered (1=yes, 0=no).',
+    ],
+    'dental_coverage' => [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Dental coverage benefit offered (1=yes, 0=no).',
+    ],
+    'paid_time_off' => [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Paid time off benefit offered (1=yes, 0=no).',
+    ],
+    'job_highlights' => [
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+      'description' => 'JSON-encoded structured highlights (qualifications, responsibilities, benefits).',
+    ],
+    'apply_options' => [
+      'type' => 'text',
+      'not null' => FALSE,
+      'description' => 'JSON-encoded array of application links and options.',
+    ],
+  ];
+  
+  // Add each column if it doesn't exist
+  foreach ($columns as $column_name => $column_spec) {
+    if (!$schema->fieldExists('jobhunter_job_requirements', $column_name)) {
+      $schema->addField('jobhunter_job_requirements', $column_name, $column_spec);
+      $messages[] = $column_name;
+    }
+  }
+  
+  // Add indexes for filterable boolean fields
+  if (!$schema->indexExists('jobhunter_job_requirements', 'idx_work_from_home')) {
+    $schema->addIndex('jobhunter_job_requirements', 'idx_work_from_home', ['work_from_home'], [
+      'fields' => ['work_from_home' => ['type' => 'int', 'size' => 'tiny']],
+    ]);
+  }
+  
+  if (!$schema->indexExists('jobhunter_job_requirements', 'idx_health_insurance')) {
+    $schema->addIndex('jobhunter_job_requirements', 'idx_health_insurance', ['health_insurance'], [
+      'fields' => ['health_insurance' => ['type' => 'int', 'size' => 'tiny']],
+    ]);
+  }
+  
+  if (!$schema->indexExists('jobhunter_job_requirements', 'idx_via')) {
+    $schema->addIndex('jobhunter_job_requirements', 'idx_via', ['via'], [
+      'fields' => ['via' => ['type' => 'varchar', 'length' => 255]],
+    ]);
+  }
+  
+  if (!empty($messages)) {
+    return t('Added SerpAPI metadata columns: @columns with performance indexes.', [
+      '@columns' => implode(', ', $messages),
+    ]);
+  }
+  
+  return t('All SerpAPI metadata columns already exist.');
+}
+
+/**
+ * Helper: Create jobhunter_search_history table.
+ */
+function _job_hunter_create_search_history_table() {
+  $database = \Drupal::database();
+  $schema = [
+    'description' => 'Stores search history for analytics and optimization.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique search history ID.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'User ID who performed the search.',
+      ],
+      'search_query' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'The search keywords used.',
+      ],
+      'location' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Location filter used in search.',
+      ],
+      'sources' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Comma-separated list of sources searched.',
+      ],
+      'results_count' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Number of results returned.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Timestamp when search was performed.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid' => ['uid'],
+      'created' => ['created'],
+      'search_query' => ['search_query'],
+    ],
+  ];
+
+  $database->schema()->createTable('jobhunter_search_history', $schema);
 }

@@ -304,7 +304,19 @@ class JobDiscoveryService {
       $query->orderBy('c.name', 'ASC');
       $query->orderBy('j.job_title', 'ASC');
 
-      return $query->execute()->fetchAll();
+      $results = $query->execute()->fetchAll();
+      
+      // Decode JSON fields for template use.
+      foreach ($results as $job) {
+        if (!empty($job->extracted_json)) {
+          $job->extracted_data = json_decode($job->extracted_json, TRUE);
+        }
+        if (!empty($job->tailored_resume_json)) {
+          $job->tailored_data = json_decode($job->tailored_resume_json, TRUE);
+        }
+      }
+      
+      return $results;
     }
     catch (\Exception $e) {
       $this->loggerFactory->get('job_hunter')->error('Error fetching saved jobs: @error', [

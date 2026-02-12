@@ -72,6 +72,12 @@ class JobHunterNavigationBlock extends BlockBase implements ContainerFactoryPlug
         'icon' => 'user',
         'weight' => 10,
       ],
+      'my_jobs' => [
+        'title' => $this->t('My Jobs'),
+        'url' => Url::fromRoute('job_hunter.my_jobs'),
+        'icon' => 'briefcase',
+        'weight' => 12,
+      ],
       'company_research' => [
         'title' => $this->t('Company Research'),
         'url' => Url::fromRoute('job_hunter.company_research'),

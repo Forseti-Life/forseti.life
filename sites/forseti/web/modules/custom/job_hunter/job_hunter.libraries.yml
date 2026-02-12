@@ -112,6 +112,23 @@ company-research:
     - job_hunter/job-hunter-home
     - core/once
 
+target-companies:
+  css:
+    theme:
+      css/target-companies.css: {}
+  js:
+    js/target-companies.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
+job-search-results:
+  css:
+    theme:
+      css/job-search-results.css: {}
+  dependencies:
+    - core/drupal
+
 queue-management:
   css:
     theme:
