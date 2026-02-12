@@ -206,6 +206,7 @@ class SearchAggregatorService {
     $results = [];
 
     try {
+      // Query main job requirements table
       $query = $this->database->select('jobhunter_job_requirements', 'j')
         ->fields('j');
 
@@ -243,11 +244,32 @@ class SearchAggregatorService {
 
       $job_rows = $query->execute()->fetchAll();
 
-      $this->logger->info('📊 Forseti DB returned @count jobs', [
-        '@count' => count($job_rows),
+      // Also query staging table for recent unimported results (last 24 hours)
+      $staging_query = $this->database->select('jobhunter_job_search_results', 's')
+        ->fields('s');
+      
+      $staging_query->condition('retrieved', time() - 86400, '>='); // Last 24 hours
+      
+      // Apply same filters to staging results
+      if (!empty($params['query'])) {
+        $staging_query->condition('job_title', '%' . $this->database->escapeLike($params['query']) . '%', 'LIKE');
+      }
+
+      if (!empty($params['location'])) {
+        $staging_query->condition('location', '%' . $this->database->escapeLike($params['location']) . '%', 'LIKE');
+      }
+
+      $staging_query->orderBy('retrieved', 'DESC');
+      $staging_query->range(0, 25); // Limit staging results
+
+      $staging_rows = $staging_query->execute()->fetchAll();
+
+      $this->logger->info('📊 Forseti DB returned @main_count main jobs + @staging_count staging jobs', [
+        '@main_count' => count($job_rows),
+        '@staging_count' => count($staging_rows),
       ]);
 
-      // Normalize Forseti results
+      // Normalize main table results
       foreach ($job_rows as $job) {
         // Get company name
         $company_name = 'Unknown';
@@ -271,6 +293,22 @@ class SearchAggregatorService {
           'source' => 'Forseti Jobs',
           'posted_date' => !empty($job->created) ? date('M j, Y', $job->created) : 'Unknown',
           'url' => '/jobhunter/job/' . $job->id,
+        ];
+      }
+
+      // Normalize staging table results (pending import)
+      foreach ($staging_rows as $staging_job) {
+        $results[] = [
+          'id' => 'staging_' . $staging_job->id,
+          'title' => $staging_job->job_title ?? 'No title',
+          'company' => $staging_job->company_name ?? 'Unknown',
+          'location' => $staging_job->location ?? 'Not specified',
+          'employment_type' => 'Not specified',
+          'salary_range' => '',
+          'description' => $this->truncateText($staging_job->description ?? '', 200),
+          'source' => 'Forseti Jobs (Pending)',
+          'posted_date' => !empty($staging_job->retrieved) ? date('M j, Y', $staging_job->retrieved) : 'Unknown',
+          'url' => $staging_job->link ?? '#',
         ];
       }
     }
@@ -802,6 +840,138 @@ class SearchAggregatorService {
       'last_month' => 30,
     ];
     return $map[$date_posted] ?? null;
+  }
+
+  /**
+   * Import recent unimported external job results immediately.
+   * 
+   * This makes external API results immediately searchable in Forseti DB
+   * instead of waiting for cron to import them.
+   */
+  protected function importRecentResults(): void {
+    try {
+      // Get unimported results from last hour (just stored)
+      $results = $this->database->select('jobhunter_job_search_results', 'r')
+        ->fields('r')
+        ->isNull('imported_to_job_id')
+        ->condition('created', time() - 3600, '>')
+        ->execute()
+        ->fetchAll();
+
+      if (empty($results)) {
+        return;
+      }
+
+      $imported = 0;
+      $skipped = 0;
+
+      foreach ($results as $result) {
+        $job_data = json_decode($result->job_data_json, TRUE);
+        
+        if (empty($job_data)) {
+          $skipped++;
+          continue;
+        }
+
+        // Check for duplicates using job_hash
+        $job_hash = $job_data['job_hash'] ?? NULL;
+        if ($job_hash) {
+          $existing = $this->database->select('jobhunter_job_requirements', 'j')
+            ->fields('j', ['id'])
+            ->condition('job_hash', $job_hash)
+            ->execute()
+            ->fetchField();
+
+          if ($existing) {
+            // Mark as imported (duplicate)
+            $this->database->update('jobhunter_job_search_results')
+              ->fields(['imported_to_job_id' => $existing, 'imported_at' => time()])
+              ->condition('id', $result->id)
+              ->execute();
+            $skipped++;
+            continue;
+          }
+        }
+
+        // Get or create company
+        $company_id = 1;
+        if (!empty($job_data['company'])) {
+          $existing_company = $this->database->select('jobhunter_companies', 'c')
+            ->fields('c', ['id'])
+            ->condition('company_name', $job_data['company'])
+            ->execute()
+            ->fetchField();
+
+          if ($existing_company) {
+            $company_id = $existing_company;
+          }
+        }
+
+        // Map source
+        $source_map = [
+          'Google Jobs' => 'google_cloud',
+          'Adzuna' => 'adzuna',
+          'USAJobs' => 'usajobs',
+          'Google Jobs (SerpAPI)' => 'serpapi',
+        ];
+        $external_source = $source_map[$job_data['source']] ?? 'external_api';
+
+        // Insert into main table
+        $new_job_id = $this->database->insert('jobhunter_job_requirements')
+          ->fields([
+            'company_id' => $company_id,
+            'job_title' => $job_data['title'] ?? 'Unknown',
+            'job_description' => $job_data['description'] ?? '',
+            'requirements' => '',
+            'salary_range' => $job_data['salary_range'] ?? 'Not specified',
+            'location' => $job_data['location'] ?? 'Unknown',
+            'remote_option' => (stripos($job_data['location'] ?? '', 'remote') !== FALSE) ? 'remote' : 'onsite',
+            'employment_type' => $job_data['employment_type'] ?? 'Full-time',
+            'job_url' => $job_data['url'] ?? '',
+            'status' => 'active',
+            'created' => time(),
+            'updated' => time(),
+            'external_source' => $external_source,
+            'external_job_id' => $result->external_job_id,
+            'job_hash' => $job_hash,
+            'ai_extraction_status' => 'pending',
+            'via' => $job_data['via'] ?? NULL,
+            'thumbnail' => $job_data['thumbnail'] ?? NULL,
+            'share_link' => $job_data['share_link'] ?? NULL,
+            'work_from_home' => !empty($job_data['work_from_home']) ? 1 : 0,
+            'health_insurance' => !empty($job_data['health_insurance']) ? 1 : 0,
+            'dental_coverage' => !empty($job_data['dental_coverage']) ? 1 : 0,
+            'paid_time_off' => !empty($job_data['paid_time_off']) ? 1 : 0,
+            'job_highlights' => !empty($job_data['job_highlights']) ? json_encode($job_data['job_highlights']) : NULL,
+            'apply_options' => !empty($job_data['apply_options']) ? json_encode($job_data['apply_options']) : NULL,
+          ])
+          ->execute();
+
+        // Mark as imported
+        $this->database->update('jobhunter_job_search_results')
+          ->fields([
+            'imported_to_job_id' => $new_job_id,
+            'imported_at' => time(),
+            'imported_by_uid' => $this->currentUser->id(),
+          ])
+          ->condition('id', $result->id)
+          ->execute();
+
+        $imported++;
+      }
+
+      if ($imported > 0) {
+        $this->logger->info('⚡ Immediately imported @count external job results into Forseti DB', [
+          '@count' => $imported,
+        ]);
+      }
+    }
+    catch (\Exception $e) {
+      // Non-critical - log but don't fail
+      $this->logger->warning('⚠️ Failed to import recent results: @error', [
+        '@error' => $e->getMessage(),
+      ]);
+    }
   }
 
 }

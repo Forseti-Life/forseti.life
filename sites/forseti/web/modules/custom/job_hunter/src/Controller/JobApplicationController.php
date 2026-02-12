@@ -208,7 +208,6 @@ class JobApplicationController extends ControllerBase {
     // URLs
     $user_edit_url = Url::fromRoute('job_hunter.user_profile_edit');
     $job_paste_url = Url::fromRoute('job_hunter.job_paste');
-    $jobs_list_url = Url::fromRoute('job_hunter.jobs_list');
     
     // Welcome message
     $build['welcome'] = [
@@ -276,7 +275,6 @@ class JobApplicationController extends ControllerBase {
                      <div class="phase-actions">
                        <a href="' . $job_paste_url->toString() . '" class="phase-button primary">+ Add Job Posting</a>
                        <a href="/jobhunter/job-discovery" class="phase-button">Search Jobs</a>
-                       <a href="' . $jobs_list_url->toString() . '" class="phase-button">View All Jobs</a>
                      </div>',
       ],
     ];
