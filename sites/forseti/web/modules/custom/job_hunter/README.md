@@ -35,7 +35,11 @@ To remove content types/fields after uninstall: Structure > Content types > Dele
 2. **Select Resume Node** - Use autocomplete to select your master resume node
 3. **Enable Automatic Tailoring** - Check the box to enable automatic resume generation when job postings are created
 4. **Configure AI Settings** (optional) - AWS Bedrock region, model ID, and max tokens are preset but customizable
-5. **Configure Google Cloud Credentials** - Add your service account JSON key for Cloud Talent Solution API access
+5. **Configure External Job APIs** - Add API credentials for job search aggregators:
+   - **SerpAPI** - Google Jobs scraper (100 free searches/month) - [Get API key](https://serpapi.com/users/sign_up)
+   - **Google Cloud Talent Solution** - Add service account JSON key
+   - **Adzuna API** - Job search API (App ID + Key required)
+   - **USAJobs API** - US Government jobs (API Key + Email required)
 
 The module uses AWS Bedrock with Claude 3.5 Sonnet by default. Ensure your environment has proper AWS credentials configured.
 
@@ -297,6 +301,49 @@ These features exist in the codebase but are commented out per development prior
 - **Admin Notifications** - Error queue alerts and assignment rules
 
 ## Usage & Access Points
+
+### External Job API Integrations **[IMPLEMENTED]**
+
+The module integrates with multiple external job search APIs to provide comprehensive job discovery:
+
+#### **SerpAPI (Google Jobs Scraper)** **[IMPLEMENTED]**
+- **Purpose**: Access Google Jobs aggregated listings from across the web
+- **Free Tier**: 100 searches per month
+- **Setup**: Get API key from https://serpapi.com/users/sign_up
+- **Documentation**: [SERPAPI_INTEGRATION.md](SERPAPI_INTEGRATION.md)
+- **Coverage**: Millions of jobs from Indeed, LinkedIn, Monster, Glassdoor, and more
+- **Data**: Title, company, location, salary, description, posting date, apply links
+- **Service**: `job_hunter.serpapi` (`SerpApiService.php`)
+- **Configuration**: Add SerpAPI API Key in `/jobhunter/settings`
+
+#### **Google Cloud Talent Solution API** **[IMPLEMENTED]**
+- **Purpose**: Search your own job postings stored in Google Cloud
+- **Setup**: Create service account and download JSON credentials
+- **Cost**: Pay-per-use, requires Google Cloud account
+- **Coverage**: Your uploaded job data only (not public jobs)
+- **Service**: `job_hunter.cloud_talent_solution` (`CloudTalentSolutionService.php`)
+
+#### **Adzuna API** **[IMPLEMENTED]**
+- **Purpose**: Search Adzuna's job aggregation network
+- **Setup**: Get App ID and App Key from https://developer.adzuna.com/
+- **Cost**: Free tier available
+- **Coverage**: UK, US, and international job listings
+- **Service**: `job_hunter.adzuna_api` (`AdzunaApiService.php`)
+
+#### **USAJobs API** **[IMPLEMENTED]**
+- **Purpose**: Search US Government job openings
+- **Setup**: Get API key from https://developer.usajobs.gov/
+- **Cost**: Free (unlimited searches)
+- **Coverage**: Federal government jobs only
+- **Service**: `job_hunter.usajobs_api` (`UsaJobsApiService.php`)
+- **Configuration**: Add API Key + Email in `/jobhunter/settings`
+
+#### **Unified Job Discovery Interface**
+All external APIs are accessible through a single search interface at `/jobhunter/job-discovery`:
+- Select one or more data sources (Forseti, SerpAPI, Google Cloud, Adzuna, USAJobs)
+- Enter search criteria (keywords, location, employment type, salary range)
+- Results displayed with source attribution
+- Filter by date posted, remote work, relocation preferences
 
 ### User Interface **[✅ PARTIALLY IMPLEMENTED]**
 - **Resume Management:** `/job-application/profile` - **[✅ WORKING]** - Upload, extract, parse, and consolidate resume data

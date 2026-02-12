@@ -221,6 +221,22 @@ class SettingsForm extends ConfigFormBase {
       ],
     ];
 
+    $form['external_job_apis']['adzuna']['test_button'] = [
+      '#type' => 'button',
+      '#value' => $this->t('Test Integration'),
+      '#ajax' => [
+        'callback' => '::testAdzunaIntegration',
+        'wrapper' => 'adzuna-test-result',
+        'progress' => ['type' => 'throbber', 'message' => $this->t('Testing...')],
+      ],
+      '#attributes' => ['style' => 'margin-top: 10px;'],
+    ];
+
+    $form['external_job_apis']['adzuna']['test_result'] = [
+      '#type' => 'markup',
+      '#markup' => '<div id="adzuna-test-result" style="margin-top: 10px;"></div>',
+    ];
+
     // USAJobs API configuration
     $form['external_job_apis']['usajobs'] = [
       '#type' => 'details',
@@ -253,6 +269,22 @@ class SettingsForm extends ConfigFormBase {
       ],
     ];
 
+    $form['external_job_apis']['usajobs']['test_button'] = [
+      '#type' => 'button',
+      '#value' => $this->t('Test Integration'),
+      '#ajax' => [
+        'callback' => '::testUsaJobsIntegration',
+        'wrapper' => 'usajobs-test-result',
+        'progress' => ['type' => 'throbber', 'message' => $this->t('Testing...')],
+      ],
+      '#attributes' => ['style' => 'margin-top: 10px;'],
+    ];
+
+    $form['external_job_apis']['usajobs']['test_result'] = [
+      '#type' => 'markup',
+      '#markup' => '<div id="usajobs-test-result" style="margin-top: 10px;"></div>',
+    ];
+
     // SerpAPI configuration
     $form['external_job_apis']['serpapi'] = [
       '#type' => 'details',
@@ -272,6 +304,22 @@ class SettingsForm extends ConfigFormBase {
       '#attributes' => [
         'placeholder' => 'e.g., 01234567890abcdef01234567890abcdef01234567890abcdef01234567890abc',
       ],
+    ];
+
+    $form['external_job_apis']['serpapi']['test_button'] = [
+      '#type' => 'button',
+      '#value' => $this->t('Test Integration'),
+      '#ajax' => [
+        'callback' => '::testSerpApiIntegration',
+        'wrapper' => 'serpapi-test-result',
+        'progress' => ['type' => 'throbber', 'message' => $this->t('Testing...')],
+      ],
+      '#attributes' => ['style' => 'margin-top: 10px;'],
+    ];
+
+    $form['external_job_apis']['serpapi']['test_result'] = [
+      '#type' => 'markup',
+      '#markup' => '<div id="serpapi-test-result" style="margin-top: 10px;"></div>',
     ];
 
     $form['developer_settings'] = [
@@ -460,6 +508,142 @@ class SettingsForm extends ConfigFormBase {
     }
 
     return $form['google_cloud_settings']['test_result'];
+  }
+
+  /**
+   * AJAX callback to test Adzuna API integration.
+   */
+  public function testAdzunaIntegration(array &$form, FormStateInterface $form_state) {
+    $app_id = $form_state->getValue('adzuna_app_id');
+    $app_key = $form_state->getValue('adzuna_app_key');
+    
+    if (empty($app_id) || empty($app_key)) {
+      $form['external_job_apis']['adzuna']['test_result']['#markup'] = '<div id="adzuna-test-result" class="messages messages--error" style="margin-top: 10px;">⚠ Please enter both Application ID and Application Key first.</div>';
+      return $form['external_job_apis']['adzuna']['test_result'];
+    }
+
+    // Temporarily save credentials for testing
+    $temp_config = \Drupal::configFactory()->getEditable('job_hunter.settings');
+    $old_app_id = $temp_config->get('adzuna_app_id');
+    $old_app_key = $temp_config->get('adzuna_app_key');
+    $temp_config
+      ->set('adzuna_app_id', $app_id)
+      ->set('adzuna_app_key', $app_key)
+      ->save();
+
+    try {
+      $service = \Drupal::service('job_hunter.adzuna');
+      $results = $service->searchJobs([
+        'query' => 'software engineer',
+        'location' => 'remote',
+        'results_per_page' => 1,
+      ]);
+      
+      $count = count($results['jobs'] ?? []);
+      $total = $results['total'] ?? 0;
+      
+      $form['external_job_apis']['adzuna']['test_result']['#markup'] = '<div id="adzuna-test-result" class="messages messages--status" style="margin-top: 10px;">✓ Successfully connected to Adzuna API!<br>Test search returned ' . $count . ' result(s) from ' . number_format($total) . ' total jobs available.</div>';
+    }
+    catch (\Exception $e) {
+      $form['external_job_apis']['adzuna']['test_result']['#markup'] = '<div id="adzuna-test-result" class="messages messages--error" style="margin-top: 10px;">✗ Error: ' . htmlspecialchars($e->getMessage()) . '</div>';
+    }
+
+    // Restore old values
+    $temp_config
+      ->set('adzuna_app_id', $old_app_id)
+      ->set('adzuna_app_key', $old_app_key)
+      ->save();
+
+    return $form['external_job_apis']['adzuna']['test_result'];
+  }
+
+  /**
+   * AJAX callback to test USAJobs API integration.
+   */
+  public function testUsaJobsIntegration(array &$form, FormStateInterface $form_state) {
+    $api_key = $form_state->getValue('usajobs_api_key');
+    $email = $form_state->getValue('usajobs_email');
+    
+    if (empty($api_key)) {
+      $form['external_job_apis']['usajobs']['test_result']['#markup'] = '<div id="usajobs-test-result" class="messages messages--error" style="margin-top: 10px;">⚠ Please enter your API Key first.</div>';
+      return $form['external_job_apis']['usajobs']['test_result'];
+    }
+
+    // Temporarily save credentials for testing
+    $temp_config = \Drupal::configFactory()->getEditable('job_hunter.settings');
+    $old_api_key = $temp_config->get('usajobs_api_key');
+    $old_email = $temp_config->get('usajobs_email');
+    $temp_config
+      ->set('usajobs_api_key', $api_key)
+      ->set('usajobs_email', $email)
+      ->save();
+
+    try {
+      $service = \Drupal::service('job_hunter.usajobs');
+      $results = $service->searchJobs([
+        'query' => 'engineer',
+        'results_per_page' => 1,
+      ]);
+      
+      $count = count($results['jobs'] ?? []);
+      $total = $results['total'] ?? 0;
+      
+      $form['external_job_apis']['usajobs']['test_result']['#markup'] = '<div id="usajobs-test-result" class="messages messages--status" style="margin-top: 10px;">✓ Successfully connected to USAJobs API!<br>Test search returned ' . $count . ' result(s) from ' . number_format($total) . ' total federal jobs available.</div>';
+    }
+    catch (\Exception $e) {
+      $form['external_job_apis']['usajobs']['test_result']['#markup'] = '<div id="usajobs-test-result" class="messages messages--error" style="margin-top: 10px;">✗ Error: ' . htmlspecialchars($e->getMessage()) . '</div>';
+    }
+
+    // Restore old values
+    $temp_config
+      ->set('usajobs_api_key', $old_api_key)
+      ->set('usajobs_email', $old_email)
+      ->save();
+
+    return $form['external_job_apis']['usajobs']['test_result'];
+  }
+
+  /**
+   * AJAX callback to test SerpAPI integration.
+   */
+  public function testSerpApiIntegration(array &$form, FormStateInterface $form_state) {
+    $api_key = $form_state->getValue('serpapi_api_key');
+    
+    if (empty($api_key)) {
+      $form['external_job_apis']['serpapi']['test_result']['#markup'] = '<div id="serpapi-test-result" class="messages messages--error" style="margin-top: 10px;">⚠ Please enter your API Key first.</div>';
+      return $form['external_job_apis']['serpapi']['test_result'];
+    }
+
+    // Temporarily save credentials for testing
+    $temp_config = \Drupal::configFactory()->getEditable('job_hunter.settings');
+    $old_api_key = $temp_config->get('serpapi_api_key');
+    $temp_config
+      ->set('serpapi_api_key', $api_key)
+      ->save();
+
+    try {
+      $service = \Drupal::service('job_hunter.serpapi');
+      $results = $service->searchJobs([
+        'query' => 'software engineer',
+        'location' => 'remote',
+        'results_per_page' => 1,
+      ]);
+      
+      $count = count($results['jobs'] ?? []);
+      $total = $results['total'] ?? 0;
+      
+      $form['external_job_apis']['serpapi']['test_result']['#markup'] = '<div id="serpapi-test-result" class="messages messages--status" style="margin-top: 10px;">✓ Successfully connected to SerpAPI (Google Jobs)!<br>Test search returned ' . $count . ' result(s) from ' . number_format($total) . ' total jobs found.</div>';
+    }
+    catch (\Exception $e) {
+      $form['external_job_apis']['serpapi']['test_result']['#markup'] = '<div id="serpapi-test-result" class="messages messages--error" style="margin-top: 10px;">✗ Error: ' . htmlspecialchars($e->getMessage()) . '</div>';
+    }
+
+    // Restore old values
+    $temp_config
+      ->set('serpapi_api_key', $old_api_key)
+      ->save();
+
+    return $form['external_job_apis']['serpapi']['test_result'];
   }
 
   /**
