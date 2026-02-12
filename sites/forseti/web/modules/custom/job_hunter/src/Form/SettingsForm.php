@@ -65,6 +65,19 @@ class SettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('job_hunter.settings');
 
+    $this->buildResumeTailoringSection($form, $config);
+    $this->buildAiSettingsSection($form, $config);
+    $this->buildGoogleCloudSection($form, $config);
+    $this->buildExternalApisSection($form, $config);
+    $this->buildDeveloperSettingsSection($form, $config);
+
+    return parent::buildForm($form, $form_state);
+  }
+
+  /**
+   * Build the Resume Tailoring Settings section.
+   */
+  protected function buildResumeTailoringSection(array &$form, $config): void {
     $form['resume_tailoring'] = [
       '#type' => 'details',
       '#title' => $this->t('Resume Tailoring Settings'),
@@ -98,7 +111,12 @@ class SettingsForm extends ConfigFormBase {
       '#description' => $this->t('When enabled, a tailored resume will be automatically generated when a new job posting is created.'),
       '#default_value' => $config->get('enable_automatic_tailoring') ?? TRUE,
     ];
+  }
 
+  /**
+   * Build the AI Service Configuration section.
+   */
+  protected function buildAiSettingsSection(array &$form, $config): void {
     $form['ai_settings'] = [
       '#type' => 'details',
       '#title' => $this->t('AI Service Configuration'),
@@ -140,7 +158,12 @@ class SettingsForm extends ConfigFormBase {
       '#min' => 8000,
       '#max' => 50000,
     ];
+  }
 
+  /**
+   * Build the Google Cloud Talent Solution API section.
+   */
+  protected function buildGoogleCloudSection(array &$form, $config): void {
     $form['google_cloud_settings'] = [
       '#type' => 'details',
       '#title' => $this->t('Google Cloud Talent Solution API'),
@@ -218,7 +241,12 @@ class SettingsForm extends ConfigFormBase {
       '#type' => 'markup',
       '#markup' => '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #ddd; border-radius: 4px; background: #f9f9f9;"><em style="color: #666;">Click a button above to test...</em></div>',
     ];
+  }
 
+  /**
+   * Build the External Job Search APIs section and subsections.
+   */
+  protected function buildExternalApisSection(array &$form, $config): void {
     $form['external_job_apis'] = [
       '#type' => 'details',
       '#title' => $this->t('External Job Search APIs'),
@@ -358,7 +386,12 @@ class SettingsForm extends ConfigFormBase {
       '#type' => 'markup',
       '#markup' => '<div id="serpapi-test-result" style="margin-top: 10px;"></div>',
     ];
+  }
 
+  /**
+   * Build the Developer Settings section.
+   */
+  protected function buildDeveloperSettingsSection(array &$form, $config): void {
     $form['developer_settings'] = [
       '#type' => 'details',
       '#title' => $this->t('🔧 Developer Settings'),
@@ -379,8 +412,6 @@ class SettingsForm extends ConfigFormBase {
       ],
       '#default_value' => $config->get('log_level') ?? 'notice',
     ];
-
-    return parent::buildForm($form, $form_state);
   }
 
   /**
