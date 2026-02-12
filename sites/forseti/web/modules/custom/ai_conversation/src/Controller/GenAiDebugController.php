@@ -1,9 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\ai_conversation\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Database\Query\SelectInterface;
+use Drupal\Core\Database\Query\Delete;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Messenger\MessengerInterface;
@@ -22,6 +26,28 @@ class GenAiDebugController extends ControllerBase {
    * The table name for AI conversation API usage tracking.
    */
   const TABLE_NAME = 'ai_conversation_api_usage';
+
+  /**
+   * Fields to select for list view.
+   */
+  const LIST_FIELDS = [
+    'id',
+    'timestamp',
+    'uid',
+    'module',
+    'operation',
+    'model_id',
+    'input_tokens',
+    'output_tokens',
+    'estimated_cost',
+    'duration_ms',
+    'stop_reason',
+    'context_data',
+    'success',
+    'error_message',
+    'prompt_preview',
+    'response_preview',
+  ];
 
   /**
    * Seconds in one day.
@@ -87,6 +113,13 @@ class GenAiDebugController extends ControllerBase {
   protected $time;
 
   /**
+   * Static cache for unique field values.
+   *
+   * @var array
+   */
+  protected static $uniqueValuesCache = [];
+
+  /**
    * Constructs a GenAiDebugController object.
    *
    * @param \Drupal\Core\Database\Connection $database
@@ -127,32 +160,15 @@ class GenAiDebugController extends ControllerBase {
    *   Render array for the list view.
    */
   public function debugList(Request $request): array {
-    // Extract filter parameters using helper
+    // Extract filter parameters
     [$module, $operation, $success, $days] = $this->extractFilterParams($request->query);
     
     // Validate and sanitize limit
     $limit = min((int) $request->query->get('limit', self::DEFAULT_LIMIT), self::MAX_LIMIT);
 
-    // Build query
+    // Build optimized query using constant
     $query = $this->database->select(self::TABLE_NAME, 'u');
-    $query->fields('u', [
-      'id',
-      'timestamp',
-      'uid',
-      'module',
-      'operation',
-      'model_id',
-      'input_tokens',
-      'output_tokens',
-      'estimated_cost',
-      'duration_ms',
-      'stop_reason',
-      'context_data',
-      'success',
-      'error_message',
-      'prompt_preview',
-      'response_preview',
-    ]);
+    $query->fields('u', self::LIST_FIELDS);
     $query->orderBy('timestamp', 'DESC');
     $query->range(0, $limit);
 
@@ -161,10 +177,10 @@ class GenAiDebugController extends ControllerBase {
 
     $results = $query->execute()->fetchAll();
 
-    // Format results using helper
+    // Format results efficiently
     $calls = array_map([$this, 'formatCallRow'], $results);
 
-    // Get unique modules and operations for filters
+    // Get unique modules and operations for filters (with caching)
     $modules = $this->getUniqueValues('module');
     $operations = $this->getUniqueValues('operation');
 
@@ -201,6 +217,12 @@ class GenAiDebugController extends ControllerBase {
    *   Redirect back to debug list.
    */
   public function deleteCall(int $id): RedirectResponse {
+    // Validate ID
+    if ($id <= 0) {
+      $this->messenger->addError($this->t('Invalid record ID: @id', ['@id' => $id]));
+      return $this->redirectToList();
+    }
+
     try {
       $deleted = $this->database->delete(self::TABLE_NAME)
         ->condition('id', $id)
@@ -208,16 +230,21 @@ class GenAiDebugController extends ControllerBase {
       
       if ($deleted) {
         $this->messenger->addStatus($this->t('GenAI call #@id deleted successfully.', ['@id' => $id]));
+        // Clear cached filter options (module/operation may have changed)
+        $this->clearFilterCache();
       }
       else {
         $this->messenger->addWarning($this->t('GenAI call #@id not found.', ['@id' => $id]));
       }
     }
     catch (\Exception $e) {
-      $this->messenger->addError($this->t('Failed to delete GenAI call: @error', ['@error' => $e->getMessage()]));
+      $this->messenger->addError($this->t('Failed to delete GenAI call #@id: @error', [
+        '@id' => $id,
+        '@error' => $e->getMessage(),
+      ]));
     }
     
-    return new RedirectResponse(Url::fromRoute('ai_conversation.genai_debug_list')->toString());
+    return $this->redirectToList();
   }
 
   /**
@@ -230,18 +257,25 @@ class GenAiDebugController extends ControllerBase {
    *   Redirect back to debug list with filters.
    */
   public function deleteAllFiltered(Request $request): RedirectResponse {
-    // Extract filter parameters using helper
+    // Extract filter parameters
     [$module, $operation, $success, $days] = $this->extractFilterParams($request->request);
 
     try {
       $query = $this->database->delete(self::TABLE_NAME);
       
-      // Apply same filters as list view using helper
+      // Apply same filters as list view
       $this->applyFilters($query, $module, $operation, $success, $days);
       
       $deleted = $query->execute();
       
-      $this->messenger->addStatus($this->t('Deleted @count GenAI call records.', ['@count' => $deleted]));
+      if ($deleted > 0) {
+        $this->messenger->addStatus($this->t('Deleted @count GenAI call record(s).', ['@count' => $deleted]));
+        // Clear cached filter options (module/operation may have changed)
+        $this->clearFilterCache();
+      }
+      else {
+        $this->messenger->addWarning($this->t('No records matched the filter criteria.'));
+      }
     }
     catch (\Exception $e) {
       $this->messenger->addError($this->t('Failed to delete GenAI calls: @error', ['@error' => $e->getMessage()]));
@@ -267,6 +301,11 @@ class GenAiDebugController extends ControllerBase {
    *   If the API call record is not found.
    */
   public function debugDetail(int $id): array {
+    // Validate ID
+    if ($id <= 0) {
+      throw new NotFoundHttpException(sprintf('Invalid GenAI API call ID: %d', $id));
+    }
+
     $query = $this->database->select(self::TABLE_NAME, 'u');
     $query->fields('u');
     $query->condition('id', $id);
@@ -275,12 +314,13 @@ class GenAiDebugController extends ControllerBase {
     $row = $query->execute()->fetchObject();
 
     if (!$row) {
-      throw new NotFoundHttpException('GenAI API call not found.');
+      throw new NotFoundHttpException(sprintf('GenAI API call #%d not found.', $id));
     }
 
-    // Extract context data using helper
+    // Extract context data
     $context_info = $this->extractContextData($row->context_data ?? NULL);
 
+    // Build detailed call data array
     $call_data = [
       'id' => $row->id,
       'timestamp' => $this->dateFormatter->format($row->timestamp, 'custom', self::DATE_FORMAT_FULL),
@@ -288,11 +328,11 @@ class GenAiDebugController extends ControllerBase {
       'module' => $row->module,
       'operation' => $row->operation,
       'model_id' => $row->model_id,
-      'input_tokens' => number_format($row->input_tokens),
-      'output_tokens' => number_format($row->output_tokens),
-      'total_tokens' => $this->calculateTotalTokens($row->input_tokens, $row->output_tokens),
-      'cost' => $this->formatCost($row->estimated_cost, self::COST_PRECISION_DETAIL),
-      'duration_ms' => number_format($row->duration_ms) . 'ms',
+      'input_tokens' => number_format((int) $row->input_tokens),
+      'output_tokens' => number_format((int) $row->output_tokens),
+      'total_tokens' => $this->calculateTotalTokens((int) $row->input_tokens, (int) $row->output_tokens),
+      'cost' => $this->formatCost((float) $row->estimated_cost, self::COST_PRECISION_DETAIL),
+      'duration_ms' => number_format((int) $row->duration_ms) . 'ms',
       'stop_reason' => $row->stop_reason,
       'context_data' => $context_info['data'],
       'max_tokens_used' => $context_info['max_tokens'],
@@ -310,30 +350,13 @@ class GenAiDebugController extends ControllerBase {
   }
 
   /**
-   * Check if a string is valid JSON.
-   *
-   * @param mixed $string
-   *   The value to check.
-   *
-   * @return bool
-   *   TRUE if valid JSON, FALSE otherwise.
-   */
-  protected function isJson($string): bool {
-    if (!is_string($string)) {
-      return FALSE;
-    }
-    json_decode($string);
-    return json_last_error() === JSON_ERROR_NONE;
-  }
-
-  /**
    * Format a database row into display data for the list view.
    *
    * @param object $row
    *   Database row object.
    *
-   * @return array
-   *   Formatted data array.
+   * @return array<string, mixed>
+   *   Formatted data array with id, timestamp, tokens, cost, etc.
    */
   protected function formatCallRow(object $row): array {
     return [
@@ -344,30 +367,13 @@ class GenAiDebugController extends ControllerBase {
       'module' => $row->module,
       'operation' => $row->operation,
       'model_id' => $row->model_id,
-      'input_tokens' => number_format($row->input_tokens),
-      'output_tokens' => number_format($row->output_tokens),
-      'total_tokens' => $this->calculateTotalTokens($row->input_tokens, $row->output_tokens),
-      'cost' => $this->formatCost($row->estimated_cost, self::COST_PRECISION_LIST),
-      'duration_ms' => number_format($row->duration_ms) . 'ms',
+      'input_tokens' => number_format((int) $row->input_tokens),
+      'output_tokens' => number_format((int) $row->output_tokens),
+      'total_tokens' => $this->calculateTotalTokens((int) $row->input_tokens, (int) $row->output_tokens),
+      'cost' => $this->formatCost((float) $row->estimated_cost, self::COST_PRECISION_LIST),
+      'duration_ms' => number_format((int) $row->duration_ms) . 'ms',
       'stop_reason' => $row->stop_reason,
     ];
-  }
-
-  /**
-   * Format a JSON response string with pretty printing.
-   *
-   * @param string $response
-   *   The response string to format.
-   *
-   * @return string
-   *   Formatted response (pretty JSON if applicable, original otherwise).
-   */
-  protected function formatJsonResponse(string $response): string {
-    if ($this->isJson($response)) {
-      $decoded = json_decode($response, TRUE);
-      return json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    }
-    return $response;
   }
 
   /**
@@ -382,24 +388,16 @@ class GenAiDebugController extends ControllerBase {
    * @param int|null $days
    *   Days filter.
    *
-   * @return array
+   * @return array<string, string|int>
    *   Parameters array for URL query string.
    */
   protected function buildFilterParams(?string $module, ?string $operation, ?string $success, ?int $days): array {
-    $params = [];
-    if (!empty($module)) {
-      $params['module'] = $module;
-    }
-    if (!empty($operation)) {
-      $params['operation'] = $operation;
-    }
-    if ($success !== NULL && $success !== '') {
-      $params['success'] = $success;
-    }
-    if ($days) {
-      $params['days'] = $days;
-    }
-    return $params;
+    return array_filter([
+      'module' => $module,
+      'operation' => $operation,
+      'success' => $success,
+      'days' => $days,
+    ], fn($value) => !empty($value) || ($value === 0 && is_int($value)));
   }
 
   /**
@@ -416,7 +414,7 @@ class GenAiDebugController extends ControllerBase {
    * @param int $days
    *   Number of days to filter (0 for no time filter).
    */
-  protected function applyFilters($query, $module, $operation, $success, $days) {
+  protected function applyFilters(SelectInterface|Delete $query, ?string $module, ?string $operation, ?string $success, int $days): void {
     if (!empty($module)) {
       $query->condition('module', $module);
     }
@@ -431,22 +429,32 @@ class GenAiDebugController extends ControllerBase {
   }
 
   /**
-   * Get unique values for a specific field.
+   * Get unique values for a specific field with static caching.
    * 
    * @param string $field
    *   The field name to get unique values for.
    * 
-   * @return array
+   * @return array<int, string>
    *   Array of unique values.
    */
   protected function getUniqueValues(string $field): array {
+    // Return cached value if available
+    if (isset(self::$uniqueValuesCache[$field])) {
+      return self::$uniqueValuesCache[$field];
+    }
+
     $query = $this->database->select(self::TABLE_NAME, 'u');
     $query->distinct();
     $query->fields('u', [$field]);
     $query->orderBy($field);
     
     $results = $query->execute()->fetchAll();
-    return array_column($results, $field);
+    $values = array_column($results, $field);
+    
+    // Cache the result
+    self::$uniqueValuesCache[$field] = $values;
+    
+    return $values;
   }
 
   /**
@@ -461,7 +469,7 @@ class GenAiDebugController extends ControllerBase {
    * @param int $days
    *   Number of days to filter (0 for no time filter).
    * 
-   * @return array
+   * @return array{total_cost: float, total_calls: int}
    *   Array with 'total_cost' and 'total_calls' keys.
    */
   protected function getCostTotals(?string $module, ?string $operation, ?string $success, int $days): array {
@@ -486,7 +494,7 @@ class GenAiDebugController extends ControllerBase {
    * @param \Symfony\Component\HttpFoundation\ParameterBag $params
    *   The parameter bag (query or request).
    *
-   * @return array
+   * @return array{0: string|null, 1: string|null, 2: string|null, 3: int}
    *   Array containing [module, operation, success, days].
    */
   protected function extractFilterParams($params): array {
@@ -504,24 +512,25 @@ class GenAiDebugController extends ControllerBase {
    * @param string|null $context_json
    *   The JSON-encoded context data.
    *
-   * @return array
+   * @return array{data: array|null, max_tokens: int|null, model_id: string|null}
    *   Array with 'data', 'max_tokens', and 'model_id' keys.
    */
   protected function extractContextData(?string $context_json): array {
-    $data = NULL;
-    $max_tokens = NULL;
-    $model_id = NULL;
-
-    if (!empty($context_json)) {
-      $data = json_decode($context_json, TRUE);
-      $max_tokens = $data['max_tokens'] ?? NULL;
-      $model_id = $data['model_id'] ?? NULL;
+    if (empty($context_json)) {
+      return ['data' => NULL, 'max_tokens' => NULL, 'model_id' => NULL];
     }
 
+    $data = json_decode($context_json, TRUE);
+    
+    // Handle JSON decode errors
+    if (json_last_error() !== JSON_ERROR_NONE) {
+      return ['data' => NULL, 'max_tokens' => NULL, 'model_id' => NULL];
+    }
+    
     return [
       'data' => $data,
-      'max_tokens' => $max_tokens,
-      'model_id' => $model_id,
+      'max_tokens' => isset($data['max_tokens']) ? (int) $data['max_tokens'] : NULL,
+      'model_id' => $data['model_id'] ?? NULL,
     ];
   }
 
@@ -553,6 +562,25 @@ class GenAiDebugController extends ControllerBase {
    */
   protected function formatCost(float $cost, int $precision): string {
     return '$' . number_format($cost, $precision);
+  }
+
+  /**
+   * Helper method to redirect to the debug list page.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   Redirect response to debug list.
+   */
+  protected function redirectToList(): RedirectResponse {
+    return new RedirectResponse(Url::fromRoute('ai_conversation.genai_debug_list')->toString());
+  }
+
+  /**
+   * Clear the static cache for unique field values.
+   *
+   * Called after delete operations to ensure filter dropdowns stay current.
+   */
+  protected function clearFilterCache(): void {
+    self::$uniqueValuesCache = [];
   }
 
 }
