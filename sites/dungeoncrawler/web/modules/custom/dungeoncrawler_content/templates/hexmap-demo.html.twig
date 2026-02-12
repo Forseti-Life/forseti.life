@@ -1,0 +1,64 @@
+{#
+/**
+ * @file
+ * Template for the hex map demo page.
+ *
+ * Available variables:
+ * - None yet, this is a basic demo
+ */
+#}
+
+<div class="hexmap-container">
+  <div class="hexmap-header">
+    <h1>{{ 'Hex Map Demo'|t }}</h1>
+    <p>{{ 'Interactive hexagonal grid powered by PixiJS'|t }}</p>
+    
+    <div class="hexmap-controls">
+      <div class="control-group">
+        <label>{{ 'Grid Size:'|t }}</label>
+        <select id="grid-size">
+          <option value="small">{{ 'Small (10x10)'|t }}</option>
+          <option value="medium" selected>{{ 'Medium (20x20)'|t }}</option>
+          <option value="large">{{ 'Large (40x40)'|t }}</option>
+        </select>
+      </div>
+      
+      <div class="control-group">
+        <label>{{ 'Hex Size:'|t }}</label>
+        <input type="range" id="hex-size" min="20" max="60" value="30" />
+        <span id="hex-size-value">30px</span>
+      </div>
+      
+      <div class="control-group">
+        <button id="toggle-coordinates" class="btn">{{ 'Toggle Coordinates'|t }}</button>
+        <button id="toggle-grid" class="btn">{{ 'Toggle Grid Lines'|t }}</button>
+        <button id="reset-view" class="btn">{{ 'Reset View'|t }}</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="hexmap-canvas-container" class="hexmap-canvas-wrapper">
+    <!-- PixiJS canvas will be inserted here -->
+  </div>
+
+  <div class="hexmap-info">
+    <div class="info-panel">
+      <h3>{{ 'Map Info'|t }}</h3>
+      <div class="info-content">
+        <p><strong>{{ 'Selected Hex:'|t }}</strong> <span id="selected-hex">{{ 'None'|t }}</span></p>
+        <p><strong>{{ 'Hovered Hex:'|t }}</strong> <span id="hovered-hex">{{ 'None'|t }}</span></p>
+        <p><strong>{{ 'Zoom Level:'|t }}</strong> <span id="zoom-level">100%</span></p>
+      </div>
+    </div>
+    
+    <div class="info-panel">
+      <h3>{{ 'Instructions'|t }}</h3>
+      <ul>
+        <li>{{ 'Click a hex to select it'|t }}</li>
+        <li>{{ 'Drag to pan the map'|t }}</li>
+        <li>{{ 'Scroll to zoom in/out'|t }}</li>
+        <li>{{ 'Hover to see hex coordinates'|t }}</li>
+      </ul>
+    </div>
+  </div>
+</div>

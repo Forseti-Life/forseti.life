@@ -102,6 +102,15 @@ dungeoncrawler_content.api_character_load:
     _user_is_logged_in: 'TRUE'
     character_id: '\d+'
 
+# Hex Map Demo
+dungeoncrawler_content.hexmap_demo:
+  path: '/hexmap'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\HexMapController::demo'
+    _title: 'Hex Map Demo'
+  requirements:
+    _access: 'TRUE'
+
 # Public information pages
 dungeoncrawler_content.world:
   path: '/world'
