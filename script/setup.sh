@@ -377,13 +377,21 @@ else
     sudo apt install -y gh
 fi
 
-print_status "Checking Node.js installation..."
+print_status "Checking Node.js and npm installation..."
 if command -v node &> /dev/null; then
     print_status "Node.js is already installed: $(node --version)"
 else
     print_status "Installing Node.js..."
     curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
     sudo apt install -y nodejs
+fi
+
+# Verify npm is available (should be included with Node.js)
+if command -v npm &> /dev/null; then
+    print_status "npm is available: $(npm --version)"
+else
+    print_warning "npm not found - installing separately..."
+    sudo apt install -y npm
 fi
 
 print_status "Checking additional development tools..."
@@ -1597,6 +1605,23 @@ if [ -f "vendor/drush/drush/drush.php" ]; then
         # Always set as default theme
         print_status "Setting Forseti theme as default..."
         /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.theme default forseti -y 2>/dev/null && print_status "✅ Forseti theme set as default" || print_warning "Could not set Forseti as default theme"
+        
+        # Build Forseti theme assets
+        print_status "Building Forseti theme assets..."
+        if command -v npm &> /dev/null; then
+            THEME_DIR="web/themes/custom/forseti"
+            if [ -f "$THEME_DIR/package.json" ]; then
+                print_status "Installing theme npm dependencies..."
+                (cd "$THEME_DIR" && npm install --quiet 2>&1 | grep -v "npm warn") && print_status "✅ Theme dependencies installed" || print_warning "Could not install theme dependencies"
+                
+                print_status "Compiling theme SCSS to CSS..."
+                (cd "$THEME_DIR" && npm run dev 2>&1 | tail -5) && print_status "✅ Theme assets compiled" || print_warning "Could not compile theme assets"
+            else
+                print_warning "No package.json found in theme directory"
+            fi
+        else
+            print_warning "npm not found - cannot build theme assets"
+        fi
     else
         print_warning "Forseti theme directory not found at web/themes/custom/forseti"
     fi
@@ -1917,6 +1942,23 @@ if [ "$DC_DRUPAL_INSTALLED" = true ]; then
             /usr/bin/php8.3 vendor/drush/drush/drush.php config:set system.site page.front '/home' --yes 2>/dev/null || true
             print_status "✅ Front page configured"
         fi
+        
+        # Build Dungeon Crawler theme assets
+        print_status "Building Dungeon Crawler theme assets..."
+        if command -v npm &> /dev/null; then
+            DC_THEME_DIR_REL="web/themes/custom/dungeoncrawler"
+            if [ -f "$DC_THEME_DIR_REL/package.json" ]; then
+                print_status "Installing Dungeon Crawler theme npm dependencies..."
+                (cd "$DC_THEME_DIR_REL" && npm install --quiet 2>&1 | grep -v "npm warn") && print_status "✅ Theme dependencies installed" || print_warning "Could not install theme dependencies"
+                
+                print_status "Compiling Dungeon Crawler theme SCSS to CSS..."
+                (cd "$DC_THEME_DIR_REL" && npm run dev 2>&1 | tail -5) && print_status "✅ Theme assets compiled" || print_warning "Could not compile theme assets"
+            else
+                print_warning "No package.json found in Dungeon Crawler theme directory"
+            fi
+        else
+            print_warning "npm not found - cannot build Dungeon Crawler theme assets"
+        fi
     fi
 fi
 
@@ -2217,6 +2259,8 @@ echo "========================="
 echo "✓ Environment: PHP 8.3, MySQL, Apache configured"
 echo "✓ Drupal: 11.2.5 installed and configured"
 echo "✓ Development Tools: Coder, PHPCS, PHPUnit configured"
+echo "✓ Node.js & npm: $(node --version 2>/dev/null || echo 'N/A') / $(npm --version 2>/dev/null || echo 'N/A')"
+echo "✓ Theme Assets: SCSS compiled to CSS for Forseti and Dungeon Crawler"
 echo "✓ H3 Geolocation Framework: Ready for AmISafe crime mapping"
 echo "✓ Database: $DB_NAME with AmISafe tables"
 echo "✓ Dungeon Crawler: Sub-site at port $DC_DEV_PORT (shared auth with Forseti)"

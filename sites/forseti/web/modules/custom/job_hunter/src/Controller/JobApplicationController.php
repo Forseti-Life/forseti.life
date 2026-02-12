@@ -6,14 +6,57 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Core\Render\Markup;
+use Drupal\job_hunter\Service\JobDiscoveryService;
 use Drupal\user\Entity\User;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Provides route responses for the Job Application Automation module.
  */
 class JobApplicationController extends ControllerBase {
   use JobHunterControllerTrait;
+
+  /**
+   * The job discovery service.
+   *
+   * @var \Drupal\job_hunter\Service\JobDiscoveryService
+   */
+  protected JobDiscoveryService $jobDiscoveryService;
+
+  /**
+   * The request stack.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
+  protected RequestStack $requestStack;
+
+  /**
+   * Constructs a JobApplicationController object.
+   *
+   * @param \Drupal\job_hunter\Service\JobDiscoveryService $job_discovery_service
+   *   The job discovery service.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
+   *   The request stack.
+   */
+  public function __construct(
+    JobDiscoveryService $job_discovery_service,
+    RequestStack $request_stack
+  ) {
+    $this->jobDiscoveryService = $job_discovery_service;
+    $this->requestStack = $request_stack;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container): static {
+    return new static(
+      $container->get('job_hunter.job_discovery_service'),
+      $container->get('request_stack')
+    );
+  }
 
   /**
    * Returns a simple homepage for authenticated users.
@@ -1019,474 +1062,80 @@ class JobApplicationController extends ControllerBase {
    * @return array
    *   A renderable array for the job discovery page.
    */
-  public function jobDiscovery() {
-    // Load user profile data for pre-filling search form
-    $current_user = \Drupal::currentUser();
-    $connection = \Drupal::database();
-    $default_keywords = '';
-    $default_location = '';
-    $default_remote_pref = '';
-    $default_salary_min = '';
-    $default_salary_max = '';
-    $default_employment_type = '';
-    $default_relocation = '';
+  /**
+   * Job Discovery page with unified search and saved jobs management.
+   *
+   * @return array
+   *   A renderable array for the job discovery page.
+   */
+  public function jobDiscovery(): array {
+    // Get search defaults from user profile.
+    $defaults = $this->jobDiscoveryService->getUserSearchDefaults();
     
-    try {
-      $profile = $connection->select('jobhunter_job_seeker', 'js')
-        ->fields('js')
-        ->condition('uid', $current_user->id())
-        ->execute()
-        ->fetchObject();
-      
-      if ($profile && !empty($profile->consolidated_profile_json)) {
-        $consolidated = json_decode($profile->consolidated_profile_json, TRUE) ?: [];
-        
-        // Extract target job titles and keywords
-        $titles = $consolidated['job_search_preferences']['target_titles'] ?? '';
-        $keywords = $consolidated['job_search_preferences']['keywords'] ?? '';
-        
-        // Handle both string and array formats
-        $titles_array = is_array($titles) ? $titles : ($titles ? explode("\n", $titles) : []);
-        $keywords_array = is_array($keywords) ? $keywords : ($keywords ? explode("\n", $keywords) : []);
-        
-        $combined = array_filter(array_merge($titles_array, $keywords_array));
-        if (!empty($combined)) {
-          $default_keywords = implode(', ', array_slice($combined, 0, 3)); // Use first 3
-        }
-        
-        // Extract location from contact info
-        if (isset($consolidated['contact_info']['location'])) {
-          $location_parts = [];
-          if (!empty($consolidated['contact_info']['location']['city'])) {
-            $location_parts[] = $consolidated['contact_info']['location']['city'];
-          }
-          if (!empty($consolidated['contact_info']['location']['state'])) {
-            $location_parts[] = $consolidated['contact_info']['location']['state'];
-          }
-          if (!empty($location_parts)) {
-            $default_location = implode(', ', $location_parts);
-          }
-        }
-        
-        // Get remote preference
-        $default_remote_pref = $consolidated['job_search_preferences']['remote_preference'] ?? '';
-        if ($default_remote_pref === 'remote' && empty($default_location)) {
-          $default_location = 'Remote';
-        }
-        
-        // Get salary expectations
-        $salary_min = $consolidated['job_search_preferences']['salary_expectation_min'] ?? '';
-        $salary_max = $consolidated['job_search_preferences']['salary_expectation_max'] ?? '';
-        if ($salary_min && is_numeric($salary_min)) {
-          $default_salary_min = (int) $salary_min;
-        }
-        if ($salary_max && is_numeric($salary_max)) {
-          $default_salary_max = (int) $salary_max;
-        }
-        
-        // Get relocation preference
-        $default_relocation = $consolidated['job_search_preferences']['relocation_willing'] ?? '';
-      }
-    } catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Error loading profile for search: @error', ['@error' => $e->getMessage()]);
-    }
+    // Check  API credentials status.
+    $api_status = $this->jobDiscoveryService->getApiCredentialsStatus();
     
-    // Check Google Cloud credentials
-    $has_credentials = FALSE;
-    $credentials_status = 'Not Configured';
-    $credentials_class = 'status-warning';
+    // Get counts for stats display.
+    $saved_jobs_count = $this->jobDiscoveryService->getSavedJobsCount();
+    $target_companies_count = $this->jobDiscoveryService->getTargetCompaniesCount();
     
-    try {
-      $config = \Drupal::config('job_hunter.settings');
-      $google_credentials = $config->get('google_cloud_credentials');
-      if (!empty($google_credentials)) {
-        $has_credentials = TRUE;
-        $credentials_status = 'Configured';
-        $credentials_class = 'status-success';
-      }
-      
-      // Check Adzuna credentials
-      $has_adzuna = FALSE;
-      $adzuna_app_id = $config->get('adzuna_app_id');
-      $adzuna_app_key = $config->get('adzuna_app_key');
-      if (!empty($adzuna_app_id) && !empty($adzuna_app_key)) {
-        $has_adzuna = TRUE;
-      }
-      
-      // Check USAJobs credentials
-      $has_usajobs = FALSE;
-      $usajobs_api_key = $config->get('usajobs_api_key');
-      $usajobs_email = $config->get('usajobs_email');
-      if (!empty($usajobs_api_key) && !empty($usajobs_email)) {
-        $has_usajobs = TRUE;
-      }
-      
-      // Check SerpAPI credentials
-      $has_serpapi = FALSE;
-      $serpapi_api_key = $config->get('serpapi_api_key');
-      if (!empty($serpapi_api_key)) {
-        $has_serpapi = TRUE;
-      }
-    } catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Error checking credentials: @error', ['@error' => $e->getMessage()]);
-    }
+    // Get filter parameters from request.
+    $request = $this->requestStack->getCurrentRequest();
+    $filters = [
+      'company' => $request->query->get('company', ''),
+      'status' => $request->query->get('status', ''),
+      'ai_status' => $request->query->get('ai_status', ''),
+      'tailoring' => $request->query->get('tailoring', ''),
+    ];
     
+    // Get saved jobs and company names for filtering.
+    $jobs = $this->jobDiscoveryService->getSavedJobs($filters);
+    $companies = $this->jobDiscoveryService->getCompanyNames();
+    
+    // Build saved jobs table.
+    $saved_jobs_section = $this->buildSavedJobsSection($jobs, $companies, $filters);
+    
+    // Render the template with all necessary variables.
     $content = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['job-discovery-page']],
-      'header' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h1',
-        '#value' => '🔍 Job Discovery & Search',
-      ],
-      'description' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => 'Search for jobs across multiple sources. Jobs you save will automatically add their companies to your target list.',
-      ],
-      'search_form' => [
-        '#markup' => Markup::create('
-        <div class="job-search-form">
-          <form id="unified-job-search" method="GET" action="/jobhunter/job-discovery/search">
-            <div class="search-form-container">
-              <div class="search-primary-row">
-                <div class="search-field search-field-primary">
-                  <label for="search-query">
-                    <span class="field-icon">💼</span>
-                    <span class="field-label">Job Title or Keywords</span>
-                  </label>
-                  <input 
-                    type="text" 
-                    id="search-query" 
-                    name="q" 
-                    value="' . htmlspecialchars($default_keywords) . '"
-                    placeholder="e.g., Software Engineer, Product Manager, Data Scientist"
-                    class="search-input"
-                  >
-                </div>
-                
-                <div class="search-field">
-                  <label for="search-location">
-                    <span class="field-icon">📍</span>
-                    <span class="field-label">Location</span>
-                  </label>
-                  <input 
-                    type="text" 
-                    id="search-location" 
-                    name="location" 
-                    value="' . htmlspecialchars($default_location) . '"
-                    placeholder="e.g., San Francisco, CA or Remote"
-                    class="search-input"
-                  >
-                </div>
-              </div>
-              
-              <div class="search-filters-row">
-                <div class="search-field search-field-select">
-                  <label for="employment-type">
-                    <span class="field-icon">📋</span>
-                    <span class="field-label">Employment Type</span>
-                  </label>
-                  <select id="employment-type" name="employment_type" class="search-select">
-                    <option value="">Any</option>
-                    <option value="FULL_TIME">Full-time</option>
-                    <option value="PART_TIME">Part-time</option>
-                    <option value="CONTRACT">Contract</option>
-                    <option value="TEMPORARY">Temporary</option>
-                    <option value="INTERN">Internship</option>
-                  </select>
-                </div>
-                
-                <div class="search-field search-field-checkboxes">
-                  <label class="field-label-block">
-                    <span class="field-icon">🔍</span>
-                    <span class="field-label">Search In</span>
-                  </label>
-                  <div class="checkbox-group">
-                    <label class="checkbox-label">
-                      <input type="checkbox" name="sources[]" value="forseti" checked>
-                      <span>Forseti Jobs</span>
-                    </label>
-                    <label class="checkbox-label' . ($has_credentials ? '' : ' disabled') . '">
-                      <input type="checkbox" name="sources[]" value="google_cloud" ' . ($has_credentials ? 'checked' : 'disabled') . '>
-                      <span>Google Jobs' . ($has_credentials ? '' : ' (Configure API)') . '</span>
-                    </label>
-                    <label class="checkbox-label' . ($has_adzuna ? '' : ' disabled') . '">
-                      <input type="checkbox" name="sources[]" value="adzuna" ' . ($has_adzuna ? 'checked' : 'disabled') . '>
-                      <span>Adzuna (Indeed/Monster/etc.)' . ($has_adzuna ? '' : ' (Configure API)') . '</span>
-                    </label>
-                    <label class="checkbox-label' . ($has_usajobs ? '' : ' disabled') . '">
-                      <input type="checkbox" name="sources[]" value="usajobs" ' . ($has_usajobs ? 'checked' : 'disabled') . '>
-                      <span>USAJobs (Government)' . ($has_usajobs ? '' : ' (Configure API)') . '</span>
-                    </label>
-                    <label class="checkbox-label' . ($has_serpapi ? '' : ' disabled') . '">
-                      <input type="checkbox" name="sources[]" value="serpapi" ' . ($has_serpapi ? 'checked' : 'disabled') . '>
-                      <span>SerpAPI (Google Jobs)' . ($has_serpapi ? '' : ' (Configure API)') . '</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="search-actions-row">
-                <button type="submit" class="btn-search">
-                  <span class="btn-icon">🔍</span>
-                  <span class="btn-text">Search Jobs</span>
-                </button>
-                <button type="button" class="btn-advanced" onclick="toggleAdvancedFilters()">
-                  <span class="btn-text">Advanced Filters</span>
-                  <span class="btn-icon">▼</span>
-                </button>
-                <div class="search-stats">
-                  <span class="stat-item">
-                    <strong>' . $this->getSavedJobsCount($this->currentUser()) . '</strong> jobs saved
-                  </span>
-                  <span class="stat-separator">•</span>
-                  <span class="stat-item">
-                    <strong>' . $this->getTargetCompaniesCount($this->currentUser()) . '</strong> companies tracked
-                  </span>
-                </div>
-              </div>
-              
-              <div id="advanced-filters" class="advanced-filters" style="display: none;">
-                <div class="advanced-filters-grid">
-                  <div class="filter-field">
-                    <label for="company-filter">Company</label>
-                    <input type="text" id="company-filter" name="company" placeholder="Filter by company name" class="filter-input">
-                  </div>
-                  
-                  <div class="filter-field">
-                    <label for="salary-min">Min Salary</label>
-                    <input type="number" id="salary-min" name="salary_min" value="' . htmlspecialchars($default_salary_min) . '" placeholder="e.g., 100000" class="filter-input" step="1000">
-                  </div>
-                  
-                  <div class="filter-field">
-                    <label for="salary-max">Max Salary</label>
-                    <input type="number" id="salary-max" name="salary_max" value="' . htmlspecialchars($default_salary_max) . '" placeholder="e.g., 150000" class="filter-input" step="1000">
-                  </div>
-                  
-                  <div class="filter-field">
-                    <label for="remote-preference">Remote Preference</label>
-                    <select id="remote-preference" name="remote_preference" class="filter-select">
-                      <option value="">Any</option>
-                      <option value="remote"' . ($default_remote_pref === 'remote' ? ' selected' : '') . '>Remote</option>
-                      <option value="hybrid"' . ($default_remote_pref === 'hybrid' ? ' selected' : '') . '>Hybrid</option>
-                      <option value="onsite"' . ($default_remote_pref === 'onsite' ? ' selected' : '') . '>On-site</option>
-                    </select>
-                  </div>
-                  
-                  <div class="filter-field">
-                    <label for="date-posted">Posted Within</label>
-                    <select id="date-posted" name="date_posted" class="filter-select">
-                      <option value="">Any time</option>
-                      <option value="past_24_hours">Last 24 hours</option>
-                      <option value="past_week">Last 7 days</option>
-                      <option value="past_month">Last 30 days</option>
-                    </select>
-                  </div>
-                  
-                  <div class="filter-field">
-                    <label for="relocation-willing">Willing to Relocate</label>
-                    <select id="relocation-willing" name="relocation_willing" class="filter-select">
-                      <option value="">Any</option>
-                      <option value="yes"' . ($default_relocation === 'yes' ? ' selected' : '') . '>Yes</option>
-                      <option value="no"' . ($default_relocation === 'no' ? ' selected' : '') . '>No</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </form>
-          
-          <script>
-            function toggleAdvancedFilters() {
-              const filters = document.getElementById("advanced-filters");
-              const btn = event.currentTarget;
-              const icon = btn.querySelector(".btn-icon");
-              
-              if (filters.style.display === "none") {
-                filters.style.display = "block";
-                icon.textContent = "▲";
-              } else {
-                filters.style.display = "none";
-                icon.textContent = "▼";
-              }
-            }
-          </script>
-        </div>
-        '),
-      ],
-      'integrations_section' => [
-        '#markup' => Markup::create('
-        <div class="integrations-section">
-          <h2>� Job Source Status</h2>
-          <div class="integration-status-grid">
-            <div class="status-card status-card-active">
-              <div class="status-card-icon">💼</div>
-              <div class="status-card-content">
-                <h4>Forseti Jobs</h4>
-                <span class="status-badge status-success">Active</span>
-                <p>Your saved jobs and manual entries</p>
-              </div>
-            </div>
-            
-            <div class="status-card status-card-' . ($has_credentials ? 'active' : 'pending') . '">
-              <div class="status-card-icon">🔍</div>
-              <div class="status-card-content">
-                <h4>Google Cloud Jobs</h4>
-                <span class="status-badge ' . $credentials_class . '">' . $credentials_status . '</span>
-                <p>' . ($has_credentials ? 'AI-powered job search across the web' : 'Configure API credentials to enable') . '</p>
-              </div>
-            </div>
-            
-            <div class="status-card status-card-disabled">
-              <div class="status-card-icon">💼</div>
-              <div class="status-card-content">
-                <h4>LinkedIn Jobs</h4>
-                <span class="status-badge status-inactive">Coming Soon</span>
-                <p>Professional network job postings</p>
-              </div>
-            </div>
-            
-            <div class="status-card status-card-disabled">
-              <div class="status-card-icon">🌐</div>
-              <div class="status-card-content">
-                <h4>Indeed Jobs</h4>
-                <span class="status-badge status-inactive">Coming Soon</span>
-                <p>World\'s largest job board</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        '),
-      ],
-      'styles' => [
-        '#type' => 'html_tag',
-        '#tag' => 'style',
-        '#value' => '
-          .job-discovery-page { max-width: 1400px; margin: 0 auto; }
-          .job-discovery-page h1 { margin: 0 0 10px 0; font-size: 2.5em; color: #2d3748; }
-          .job-discovery-page > p { color: #718096; font-size: 1.05em; margin-bottom: 30px; }
-          
-          /* Search Form */
-          .job-search-form { background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 30px; margin-bottom: 40px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-          .search-form-container { display: flex; flex-direction: column; gap: 20px; }
-          
-          .search-primary-row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-          .search-filters-row { display: grid; grid-template-columns: 200px 1fr; gap: 20px; align-items: start; }
-          .search-actions-row { display: flex; gap: 15px; align-items: center; padding-top: 10px; border-top: 2px solid #f7fafc; margin-top: 10px; }
-          
-          .search-field { display: flex; flex-direction: column; gap: 8px; }
-          .search-field-primary { grid-column: span 1; }
-          .search-field label { display: flex; align-items: center; gap: 6px; font-weight: 600; color: #2d3748; font-size: 0.95em; }
-          .field-label-block { margin-bottom: 8px; }
-          .field-icon { font-size: 1.1em; }
-          .field-label { font-size: 0.95em; }
-          
-          .search-input, .search-select { padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1em; color: #2d3748; transition: all 0.2s; width: 100%; }
-          .search-input:focus, .search-select:focus { outline: none; border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1); }
-          .search-input::placeholder { color: #a0aec0; }
-          
-          .checkbox-group { display: flex; flex-wrap: wrap; gap: 15px; }
-          .checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 0.9em; color: #4a5568; cursor: pointer; user-select: none; }
-          .checkbox-label.disabled { opacity: 0.5; cursor: not-allowed; }
-          .checkbox-label input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
-          .checkbox-label input[type="checkbox"]:disabled { cursor: not-allowed; }
-          
-          .btn-search { background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%); color: white; border: none; padding: 12px 32px; border-radius: 8px; font-weight: 600; font-size: 1.05em; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(66, 153, 225, 0.3); }
-          .btn-search:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(66, 153, 225, 0.4); }
-          .btn-search .btn-icon { font-size: 1.2em; }
-          
-          .btn-advanced { background: #f7fafc; color: #4a5568; border: 2px solid #e2e8f0; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
-          .btn-advanced:hover { background: #edf2f7; border-color: #cbd5e0; }
-          
-          .search-stats { margin-left: auto; display: flex; align-items: center; gap: 10px; color: #718096; font-size: 0.9em; }
-          .search-stats strong { color: #2d3748; font-weight: 700; }
-          .stat-separator { color: #cbd5e0; }
-          
-          .advanced-filters { padding-top: 20px; border-top: 2px solid #f7fafc; margin-top: 15px; }
-          .advanced-filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
-          .filter-field { display: flex; flex-direction: column; gap: 6px; }
-          .filter-field label { font-weight: 600; color: #4a5568; font-size: 0.9em; }
-          .filter-input, .filter-select { padding: 10px 14px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 0.95em; }
-          .filter-input:focus, .filter-select:focus { outline: none; border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1); }
-          
-          /* Job Source Status */
-          .integrations-section { margin-top: 50px; padding-top: 40px; border-top: 2px solid #e2e8f0; }
-          .integrations-section h2 { font-size: 1.4em; margin: 0 0 20px 0; color: #2d3748; }
-          .integration-status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
-          .status-card { background: white; border: 2px solid #e2e8f0; border-radius: 10px; padding: 20px; text-align: center; transition: all 0.2s; }
-          .status-card:hover { border-color: #cbd5e0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-          .status-card-disabled { opacity: 0.6; }
-          .status-card-icon { font-size: 2.5em; margin-bottom: 12px; }
-          .status-card-content h4 { margin: 0 0 8px 0; font-size: 1.1em; color: #2d3748; }
-          .status-card-content p { margin: 12px 0 0 0; color: #718096; font-size: 0.85em; line-height: 1.4; }
-          .status-card-content .status-badge { display: inline-block; margin: 8px 0; }
-          .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 600; }
-          .status-success { background: #c6f6d5; color: #22543d; }
-          .status-warning { background: #fbd38d; color: #744210; }
-          .status-inactive { background: #e2e8f0; color: #4a5568; }
-          
-          /* Responsive */
-          @media (max-width: 768px) {
-            .search-primary-row { grid-template-columns: 1fr; }
-            .search-filters-row { grid-template-columns: 1fr; }
-            .search-actions-row { flex-direction: column; align-items: stretch; }
-            .search-stats { margin-left: 0; margin-top: 10px; }
-            .integration-status-grid { grid-template-columns: 1fr; }
-          }
-        ',
+      '#theme' => 'job_discovery_page',
+      '#default_keywords' => $defaults['keywords'],
+      '#default_location' => $defaults['location'],
+      '#default_remote_pref' => $defaults['remote_pref'],
+      '#default_salary_min' => $defaults['salary_min'],
+      '#default_salary_max' => $defaults['salary_max'],
+      '#default_employment_type' => $defaults['employment_type'],
+      '#default_relocation' => $defaults['relocation'],
+      '#has_google_cloud' => $api_status['google_cloud'],
+      '#has_adzuna' => $api_status['adzuna'],
+      '#has_usajobs' => $api_status['usajobs'],
+      '#has_serpapi' => $api_status['serpapi'],
+      '#saved_jobs_count' => $saved_jobs_count,
+      '#target_companies_count' => $target_companies_count,
+      '#saved_jobs_section' => $saved_jobs_section,
+      '#cache' => [
+        'contexts' => ['user', 'url.query_args'],
+        'tags' => ['job_hunter:jobs', 'job_hunter:companies'],
       ],
     ];
     
-    // ==== SAVED JOBS LIST SECTION ====
-    // Add saved jobs list to bottom of job discovery page
-    $database = \Drupal::database();
-    $current_user_id = \Drupal::currentUser()->id();
-    $request = \Drupal::request();
-    
-    // Get filter parameters
-    $filter_company = $request->query->get('company', '');
-    $filter_status = $request->query->get('status', '');
-    $filter_ai_status = $request->query->get('ai_status', '');
-    $filter_tailoring = $request->query->get('tailoring', '');
-    
-    // Get all jobs with company names and tailoring status
-    $query = $database->select('jobhunter_job_requirements', 'j')
-      ->fields('j');
-    $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
-    $query->addField('c', 'name', 'company_name');
-    // Join tailored resumes for current user
-    $query->leftJoin('jobhunter_tailored_resumes', 'tr', 'j.id = tr.job_id AND tr.uid = :uid', [':uid' => $current_user_id]);
-    $query->addField('tr', 'tailoring_status');
-    $query->addField('tr', 'tailored_resume_json');
-    $query->addField('tr', 'pdf_path');
-    
-    // Apply filters
-    if (!empty($filter_company)) {
-      $query->condition('c.name', '%' . $database->escapeLike($filter_company) . '%', 'LIKE');
-    }
-    if (!empty($filter_status)) {
-      $query->condition('j.status', $filter_status);
-    }
-    if (!empty($filter_ai_status)) {
-      $query->condition('j.ai_extraction_status', $filter_ai_status);
-    }
-    if (!empty($filter_tailoring)) {
-      $query->condition('tr.tailoring_status', $filter_tailoring);
-    }
-    
-    $query->orderBy('c.name', 'ASC');
-    $query->orderBy('j.job_title', 'ASC');
-    $jobs = $query->execute()->fetchAll();
-    
-    // Get distinct companies for filter dropdown
-    $companies_query = $database->select('jobhunter_companies', 'c')
-      ->fields('c', ['name'])
-      ->distinct()
-      ->orderBy('name', 'ASC');
-    $companies = $companies_query->execute()->fetchCol();
-    
-    // Build table
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Build the saved jobs section with table and filters.
+   *
+   * @param array $jobs
+   *   Array of job objects.
+   * @param array $companies
+   *   Array of company names.
+   * @param array $filters
+   *   Current filter values.
+   *
+   * @return array
+   *   Renderable array for saved jobs section.
+   */
+  private function buildSavedJobsSection(array $jobs, array $companies, array $filters): array {
+    // Build table header.
     $header = [
       $this->t('Job Title'),
       $this->t('Company'),
@@ -1496,109 +1145,13 @@ class JobApplicationController extends ControllerBase {
       $this->t('Actions'),
     ];
     
+    // Build table rows.
     $rows = [];
     foreach ($jobs as $job) {
-      // Parse extracted JSON for better title display
-      $extracted = $job->extracted_json ? json_decode($job->extracted_json, TRUE) : NULL;
-      $job_title = ($extracted['position']['title'] ?? $job->job_title) ?: 'Job #' . $job->id;
-      $company_name = ($extracted['company']['name'] ?? $job->company_name) ?: 'Unknown';
-      
-      // Determine AI parsing status
-      $has_raw_text = !empty($job->raw_posting_text);
-      $has_extracted = !empty($job->extracted_json);
-      $ai_status = $job->ai_extraction_status ?? 'pending';
-      
-      if ($has_extracted) {
-        $ai_badge = '<span class="badge badge--success" title="AI parsing complete">✅ Parsed</span>';
-      } elseif ($ai_status === 'processing' || $ai_status === 'queued') {
-        $ai_badge = '<span class="badge badge--warning" title="AI parsing in progress">⏳ Processing</span>';
-      } elseif ($ai_status === 'failed') {
-        $ai_badge = '<span class="badge badge--error" title="AI parsing failed">❌ Failed</span>';
-      } elseif ($has_raw_text) {
-        $ai_badge = '<span class="badge badge--info" title="Has raw text, needs AI parsing">📝 Needs Parsing</span>';
-      } else {
-        $ai_badge = '<span class="badge badge--neutral" title="No content yet">⚪ No Content</span>';
-      }
-      
-      // Determine tailoring status
-      $tailoring_status = $job->tailoring_status ?? NULL;
-      $has_tailored_json = !empty($job->tailored_resume_json);
-      $has_pdf = !empty($job->pdf_path);
-      
-      if ($tailoring_status === 'completed' && $has_tailored_json) {
-        if ($has_pdf) {
-          $tailor_badge = '<span class="badge badge--success" title="Tailored with PDF ready">✅ PDF Ready</span>';
-        } else {
-          $tailor_badge = '<span class="badge badge--success" title="Resume tailored, generate PDF">✅ Tailored</span>';
-        }
-      } elseif ($tailoring_status === 'processing' || $tailoring_status === 'queued') {
-        $tailor_badge = '<span class="badge badge--warning" title="Tailoring in progress">⏳ Processing</span>';
-      } elseif ($tailoring_status === 'failed') {
-        $tailor_badge = '<span class="badge badge--error" title="Tailoring failed">❌ Failed</span>';
-      } else {
-        $tailor_badge = '<span class="badge badge--neutral" title="Not yet tailored">⚪ Not Tailored</span>';
-      }
-      
-      // Build action links
-      $tailor_link = [
-        '#type' => 'link',
-        '#title' => $tailoring_status === 'completed' ? $this->t('View/Edit') : $this->t('Tailor'),
-        '#url' => Url::fromRoute('job_hunter.tailor_resume', ['job' => $job->id]),
-        '#attributes' => ['class' => ['button', 'button--small', $tailoring_status === 'completed' ? 'button--secondary' : 'button--primary']],
-      ];
-      
-      $rows[] = [
-        [
-          'data' => [
-            '#type' => 'link',
-            '#title' => $job_title,
-            '#url' => Url::fromRoute('job_hunter.job_view', ['job_id' => $job->id]),
-          ],
-        ],
-        ['data' => ['#markup' => $company_name]],
-        ['data' => ['#markup' => ucfirst($job->status ?: 'active')]],
-        ['data' => ['#markup' => $ai_badge]],
-        ['data' => ['#markup' => $tailor_badge]],
-        [
-          'data' => [
-            '#type' => 'operations',
-            '#links' => [
-              'tailor' => [
-                'title' => $tailoring_status === 'completed' ? $this->t('View Tailored') : $this->t('Tailor Resume'),
-                'url' => Url::fromRoute('job_hunter.tailor_resume', ['job' => $job->id]),
-              ],
-              'view' => [
-                'title' => $this->t('View Job'),
-                'url' => Url::fromRoute('job_hunter.job_view', ['job_id' => $job->id]),
-              ],
-              'edit' => [
-                'title' => $this->t('Edit'),
-                'url' => Url::fromRoute('job_hunter.job_edit', ['job_id' => $job->id]),
-              ],
-            ] + ($ai_status === 'failed' && $has_raw_text ? [
-              'retry_parsing' => [
-                'title' => $this->t('Retry Parsing'),
-                'url' => Url::fromRoute('job_hunter.job_retry_parsing', ['job_id' => $job->id]),
-                'attributes' => [
-                  'class' => ['button--warning'],
-                ],
-              ],
-            ] : []) + [
-              'delete' => [
-                'title' => $this->t('Delete'),
-                'url' => Url::fromRoute('job_hunter.job_delete', ['job_id' => $job->id]),
-                'attributes' => [
-                  'onclick' => 'return confirm("Are you sure you want to delete this job?");',
-                ],
-              ],
-            ],
-          ],
-        ],
-      ];
+      $rows[] = $this->buildJobTableRow($job);
     }
     
-    // Add saved jobs section to content
-    $content['saved_jobs_section'] = [
+    return [
       '#type' => 'container',
       '#attributes' => ['class' => ['saved-jobs-section']],
       'divider' => [
@@ -1607,7 +1160,7 @@ class JobApplicationController extends ControllerBase {
         '#attributes' => ['class' => ['section-divider']],
       ],
       'header' => [
-        '#markup' => '<h2>📋 Your Saved Job Postings</h2>',
+        '#markup' => '<h2>📋 ' . $this->t('Your Saved Job Postings') . '</h2>',
       ],
       'add_button' => [
         '#type' => 'link',
@@ -1672,10 +1225,10 @@ class JobApplicationController extends ControllerBase {
           '#context' => [
             'action_url' => Url::fromRoute('job_hunter.job_discovery')->toString(),
             'companies' => $companies,
-            'filter_company' => $filter_company,
-            'filter_status' => $filter_status,
-            'filter_ai_status' => $filter_ai_status,
-            'filter_tailoring' => $filter_tailoring,
+            'filter_company' => $filters['company'],
+            'filter_status' => $filters['status'],
+            'filter_ai_status' => $filters['ai_status'],
+            'filter_tailoring' => $filters['tailoring'],
           ],
         ],
       ],
@@ -1690,29 +1243,167 @@ class JobApplicationController extends ControllerBase {
         '#attributes' => ['class' => ['jobs-table']],
       ],
     ];
+  }
+
+  /**
+   * Build a single job table row.
+   *
+   * @param object $job
+   *   Job object from database.
+   *
+   * @return array
+   *   Table row data.
+   */
+  private function buildJobTableRow(object $job): array {
+    // Parse extracted JSON for better title display.
+    $extracted = $job->extracted_json ? json_decode($job->extracted_json, TRUE) : NULL;
+    $job_title = ($extracted['position']['title'] ?? $job->job_title) ?: 'Job #' . $job->id;
+    $company_name = ($extracted['company']['name'] ?? $job->company_name) ?: 'Unknown';
     
-    // Add CSS for saved jobs section
-    $content['#attached']['html_head'][] = [
+    // Get AI parsing status badge.
+    $ai_badge = $this->getAiStatusBadge($job);
+    
+    // Get tailoring status badge.
+    $tailor_badge = $this->getTailoringStatusBadge($job);
+    
+    // Build operations links.
+    $operations = $this->buildJobOperations($job);
+    
+    return [
       [
-        '#tag' => 'style',
-        '#value' => '
-          .saved-jobs-section { margin-top: 60px; padding-top: 40px; }
-          .section-divider { border: none; border-top: 2px solid #e2e8f0; margin: 40px 0; }
-          .jobs-filters { margin: 20px 0; }
-          .filter-form { background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e5e7eb; }
-          .filter-row { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
-          .filter-field { display: flex; flex-direction: column; flex: 1; min-width: 150px; }
-          .filter-field label { font-weight: 600; margin-bottom: 5px; color: #374151; font-size: 14px; }
-          .filter-field select { padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 14px; background: white; }
-          .filter-field select:focus { outline: none; border-color: #667eea; }
-          .filter-actions { display: flex; gap: 10px; align-items: center; }
-          .filter-actions .button { margin: 0; }
-        ',
+        'data' => [
+          '#type' => 'link',
+          '#title' => $job_title,
+          '#url' => Url::fromRoute('job_hunter.job_view', ['job_id' => $job->id]),
+        ],
       ],
-      'jobs_filters_styles',
+      ['data' => ['#markup' => $company_name]],
+      ['data' => ['#markup' => ucfirst($job->status ?: 'active')]],
+      ['data' => ['#markup' => $ai_badge]],
+      ['data' => ['#markup' => $tailor_badge]],
+      [
+        'data' => [
+          '#type' => 'operations',
+          '#links' => $operations,
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Get AI status badge markup for a job.
+   *
+   * @param object $job
+   *   Job object.
+   *
+   * @return string
+   *   Badge HTML markup.
+   */
+  private function getAiStatusBadge(object $job): string {
+    $has_raw_text = !empty($job->raw_posting_text);
+    $has_extracted = !empty($job->extracted_json);
+    $ai_status = $job->ai_extraction_status ?? 'pending';
+    
+    if ($has_extracted) {
+      return '<span class="badge badge--success" title="AI parsing complete">✅ Parsed</span>';
+    }
+    elseif ($ai_status === 'processing' || $ai_status === 'queued') {
+      return '<span class="badge badge--warning" title="AI parsing in progress">⏳ Processing</span>';
+    }
+    elseif ($ai_status === 'failed') {
+      return '<span class="badge badge--error" title="AI parsing failed">❌ Failed</span>';
+    }
+    elseif ($has_raw_text) {
+      return '<span class="badge badge--info" title="Has raw text, needs AI parsing">📝 Needs Parsing</span>';
+    }
+    else {
+      return '<span class="badge badge--neutral" title="No content yet">⚪ No Content</span>';
+    }
+  }
+
+  /**
+   * Get tailoring status badge markup for a job.
+   *
+   * @param object $job
+   *   Job object.
+   *
+   * @return string
+   *   Badge HTML markup.
+   */
+  private function getTailoringStatusBadge(object $job): string {
+    $tailoring_status = $job->tailoring_status ?? NULL;
+    $has_tailored_json = !empty($job->tailored_resume_json);
+    $has_pdf = !empty($job->pdf_path);
+    
+    if ($tailoring_status === 'completed' && $has_tailored_json) {
+      if ($has_pdf) {
+        return '<span class="badge badge--success" title="Tailored with PDF ready">✅ PDF Ready</span>';
+      }
+      else {
+        return '<span class="badge badge--success" title="Resume tailored, generate PDF">✅ Tailored</span>';
+      }
+    }
+    elseif ($tailoring_status === 'processing' || $tailoring_status === 'queued') {
+      return '<span class="badge badge--warning" title="Tailoring in progress">⏳ Processing</span>';
+    }
+    elseif ($tailoring_status === 'failed') {
+      return '<span class="badge badge--error" title="Tailoring failed">❌ Failed</span>';
+    }
+    else {
+      return '<span class="badge badge--neutral" title="Not yet tailored">⚪ Not Tailored</span>';
+    }
+  }
+
+  /**
+   * Build operations links for a job.
+   *
+   * @param object $job
+   *   Job object.
+   *
+   * @return array
+   *   Array of operation link arrays.
+   */
+  private function buildJobOperations(object $job): array {
+    $tailoring_status = $job->tailoring_status ?? NULL;
+    $ai_status = $job->ai_extraction_status ?? 'pending';
+    $has_raw_text = !empty($job->raw_posting_text);
+    
+    $operations = [
+      'tailor' => [
+        'title' => $tailoring_status === 'completed' ? $this->t('View Tailored') : $this->t('Tailor Resume'),
+        'url' => Url::fromRoute('job_hunter.tailor_resume', ['job' => $job->id]),
+      ],
+      'view' => [
+        'title' => $this->t('View Job'),
+        'url' => Url::fromRoute('job_hunter.job_view', ['job_id' => $job->id]),
+      ],
+      'edit' => [
+        'title' => $this->t('Edit'),
+        'url' => Url::fromRoute('job_hunter.job_edit', ['job_id' => $job->id]),
+      ],
     ];
     
-    return $this->wrapWithNavigation($content);
+    // Add retry parsing option if applicable.
+    if ($ai_status === 'failed' && $has_raw_text) {
+      $operations['retry_parsing'] = [
+        'title' => $this->t('Retry Parsing'),
+        'url' => Url::fromRoute('job_hunter.job_retry_parsing', ['job_id' => $job->id]),
+        'attributes' => [
+          'class' => ['button--warning'],
+        ],
+      ];
+    }
+    
+    // Add delete option.
+    $operations['delete'] = [
+      'title' => $this->t('Delete'),
+      'url' => Url::fromRoute('job_hunter.job_delete', ['job_id' => $job->id]),
+      'attributes' => [
+        'onclick' => 'return confirm("Are you sure you want to delete this job?");',
+      ],
+    ];
+    
+    return $operations;
   }
 
   /**

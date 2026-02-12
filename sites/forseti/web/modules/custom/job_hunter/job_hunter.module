@@ -127,6 +127,25 @@ function job_hunter_theme() {
       ],
       'template' => 'job-discovery-company-search',
     ],
+    'job_discovery_page' => [
+      'variables' => [
+        'default_keywords' => '',
+        'default_location' => '',
+        'default_remote_pref' => '',
+        'default_salary_min' => '',
+        'default_salary_max' => '',
+        'default_employment_type' => '',
+        'default_relocation' => '',
+        'has_google_cloud' => FALSE,
+        'has_adzuna' => FALSE,
+        'has_usajobs' => FALSE,
+        'has_serpapi' => FALSE,
+        'saved_jobs_count' => 0,
+        'target_companies_count' => 0,
+        'saved_jobs_section' => [],
+      ],
+      'template' => 'job-discovery-page',
+    ],
     'company_research_page' => [
       'variables' => [
         'companies' => [],
