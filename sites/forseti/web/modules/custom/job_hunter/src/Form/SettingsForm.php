@@ -11,6 +11,41 @@ use Drupal\Core\Form\FormStateInterface;
 class SettingsForm extends ConfigFormBase {
 
   /**
+   * Google Cloud project ID.
+   */
+  const GOOGLE_CLOUD_PROJECT_ID = 'forseti-483518';
+
+  /**
+   * Google Cloud service account email.
+   */
+  const GOOGLE_CLOUD_SERVICE_ACCOUNT = 'forseti-life@forseti-483518.iam.gserviceaccount.com';
+
+  /**
+   * Google Jobs API base URL.
+   */
+  const GOOGLE_JOBS_API_URL = 'https://jobs.googleapis.com/v4';
+
+  /**
+   * SerpAPI base URL.
+   */
+  const SERPAPI_URL = 'https://serpapi.com/search';
+
+  /**
+   * CSS class for success messages.
+   */
+  const MESSAGE_SUCCESS = 'messages messages--status';
+
+  /**
+   * CSS class for error messages.
+   */
+  const MESSAGE_ERROR = 'messages messages--error';
+
+  /**
+   * CSS class for warning messages.
+   */
+  const MESSAGE_WARNING = 'messages messages--warning';
+
+  /**
    * {@inheritdoc}
    */
   protected function getEditableConfigNames() {
@@ -109,7 +144,9 @@ class SettingsForm extends ConfigFormBase {
     $form['google_cloud_settings'] = [
       '#type' => 'details',
       '#title' => $this->t('Google Cloud Talent Solution API'),
-      '#description' => $this->t('<p>Configure Google Cloud Talent Solution API for advanced job search capabilities.</p><p><strong>Project:</strong> forseti-483518<br><strong>Service Account:</strong> forseti-life@forseti-483518.iam.gserviceaccount.com</p><p>See the <a href="@doc_url" target="_blank">documentation</a> for setup instructions.</p>', [
+      '#description' => $this->t('<p>Configure Google Cloud Talent Solution API for advanced job search capabilities.</p><p><strong>Project:</strong> @project<br><strong>Service Account:</strong> @account</p><p>See the <a href="@doc_url" target="_blank">documentation</a> for setup instructions.</p>', [
+        '@project' => self::GOOGLE_CLOUD_PROJECT_ID,
+        '@account' => self::GOOGLE_CLOUD_SERVICE_ACCOUNT,
         '@doc_url' => '/jobhunter/documentation/google-jobs-integration',
       ]),
       '#open' => FALSE,
@@ -119,7 +156,7 @@ class SettingsForm extends ConfigFormBase {
       '#type' => 'textarea',
       '#title' => $this->t('Service Account JSON Key'),
       '#description' => $this->t('Paste the contents of your Google Cloud service account JSON key file here. Get your key from the <a href="@url" target="_blank">Google Cloud Console</a>.<br><br><strong>Note:</strong> You can use the same JSON key for both development and production environments. The key identifies your project and permissions, not the environment.', [
-        '@url' => 'https://console.cloud.google.com/talent-solution/connect-service-accounts?project=forseti-483518',
+        '@url' => 'https://console.cloud.google.com/talent-solution/connect-service-accounts?project=' . self::GOOGLE_CLOUD_PROJECT_ID,
       ]),
       '#default_value' => $config->get('google_cloud_credentials') ?? '',
       '#rows' => 12,
@@ -137,7 +174,7 @@ class SettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('tenant_name') ?? '',
       '#required' => FALSE,
       '#attributes' => [
-        'placeholder' => 'projects/forseti-483518/tenants/76d39aae-4a00-0000-0000-00527559cb6e',
+        'placeholder' => 'projects/' . self::GOOGLE_CLOUD_PROJECT_ID . '/tenants/76d39aae-4a00-0000-0000-00527559cb6e',
       ],
     ];
 
@@ -347,6 +384,43 @@ class SettingsForm extends ConfigFormBase {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    parent::validateForm($form, $form_state);
+
+    // Validate Google Cloud credentials JSON format
+    $credentials_json = $form_state->getValue('google_cloud_credentials');
+    if (!empty($credentials_json)) {
+      $credentials = json_decode($credentials_json, TRUE);
+      if (json_last_error() !== JSON_ERROR_NONE) {
+        $form_state->setErrorByName('google_cloud_credentials',
+          $this->t('Invalid JSON format: @error', ['@error' => json_last_error_msg()]));
+      }
+      elseif (!isset($credentials['project_id']) || !isset($credentials['type'])) {
+        $form_state->setErrorByName('google_cloud_credentials',
+          $this->t('Invalid service account JSON. Must contain "project_id" and "type" fields.'));
+      }
+    }
+
+    // Validate email format for USAJobs (if provided)
+    $usajobs_email = $form_state->getValue('usajobs_email');
+    if (!empty($usajobs_email) && !\Drupal::service('email.validator')->isValid($usajobs_email)) {
+      $form_state->setErrorByName('usajobs_email',
+        $this->t('Please enter a valid email address.'));
+    }
+
+    // Validate API keys are not empty spaces
+    $api_keys = ['adzuna_app_id', 'adzuna_app_key', 'usajobs_api_key', 'serpapi_api_key'];
+    foreach ($api_keys as $key) {
+      $value = $form_state->getValue($key);
+      if (!empty($value) && trim($value) === '') {
+        $form_state->setErrorByName($key, $this->t('API key cannot be only whitespace.'));
+      }
+    }
+  }
+
+  /**
    * AJAX callback to test Google Cloud credentials.
    */
   public function testGoogleCloudCredentials(array &$form, FormStateInterface $form_state) {
@@ -354,13 +428,11 @@ class SettingsForm extends ConfigFormBase {
     $tenant_name = $form_state->getValue('tenant_name');
     
     if (empty($credentials_json)) {
-      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" class="messages messages--error">Please enter your service account credentials first.</div>';
-      return $form['google_cloud_settings']['test_result'];
+      return $this->buildAjaxMessage('google-cloud-test-result', 'Please enter your service account credentials first.', 'error');
     }
 
     if (empty($tenant_name)) {
-      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" class="messages messages--error">Please enter the tenant name first. Use the "List Tenants" or "Create Tenant" button to get a tenant.</div>';
-      return $form['google_cloud_settings']['test_result'];
+      return $this->buildAjaxMessage('google-cloud-test-result', 'Please enter the tenant name first. Use the "List Tenants" or "Create Tenant" button to get a tenant.', 'error');
     }
 
     // Temporarily save and test the credentials
@@ -403,42 +475,29 @@ class SettingsForm extends ConfigFormBase {
     $credentials_json = $form_state->getValue('google_cloud_credentials');
     
     if (empty($credentials_json)) {
-      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #d32f2f; border-radius: 4px; background: #ffebee;"><strong style="color: #d32f2f;">✗ ERROR:</strong> Enter credentials first.</div>';
-      return $form['google_cloud_settings']['test_result'];
+      return $this->buildAjaxMessage('google-cloud-test-result', '✗ ERROR: Enter credentials first.', 'error', 'styled');
     }
 
     try {
-      $credentials = json_decode($credentials_json, true);
-      if (!$credentials || !isset($credentials['project_id'])) {
-        throw new \Exception('Invalid JSON credentials format');
-      }
-
-      $client = new \Google\Auth\Credentials\ServiceAccountCredentials(
-        'https://www.googleapis.com/auth/cloud-platform',
-        $credentials
-      );
-      $token = $client->fetchAuthToken();
-      $httpClient = \Drupal::httpClient();
-
-      $project_id = $credentials['project_id'];
+      list($credentials, $token, $httpClient, $project_id) = $this->authenticateGoogleCloud($credentials_json);
       
       // Check if tenant already exists
       try {
-        $list_response = $httpClient->get("https://jobs.googleapis.com/v4/projects/{$project_id}/tenants", [
+        $list_response = $httpClient->get(self::GOOGLE_JOBS_API_URL . "/projects/{$project_id}/tenants", [
           'headers' => ['Authorization' => 'Bearer ' . $token['access_token']],
         ]);
         $existing_tenants = json_decode($list_response->getBody()->getContents(), true);
         
         if (!empty($existing_tenants['tenants'])) {
-          $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #f57c00; border-radius: 4px; background: #fff3e0;"><strong style="color: #f57c00; font-size: 16px;">⚠ ALREADY EXISTS</strong><br>Found ' . count($existing_tenants['tenants']) . ' tenant(s). Use "List Tenants" to view.</div>';
-          return $form['google_cloud_settings']['test_result'];
+          $message = '⚠ ALREADY EXISTS<br>Found ' . count($existing_tenants['tenants']) . ' tenant(s). Use "List Tenants" to view.';
+          return $this->buildAjaxMessage('google-cloud-test-result', $message, 'warning', 'styled');
         }
       } catch (\Exception $e) {
         // Continue with creation if listing fails
       }
       
       // Create the tenant
-      $response = $httpClient->post("https://jobs.googleapis.com/v4/projects/{$project_id}/tenants", [
+      $response = $httpClient->post(self::GOOGLE_JOBS_API_URL . "/projects/{$project_id}/tenants", [
         'headers' => ['Authorization' => 'Bearer ' . $token['access_token']],
         'json' => [
           'externalId' => 'forseti-jobhunter',
@@ -449,13 +508,13 @@ class SettingsForm extends ConfigFormBase {
       $tenant_data = json_decode($response->getBody()->getContents(), true);
       $tenant_name = $tenant_data['name'] ?? 'unknown';
       
-      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #388e3c; border-radius: 4px; background: #e8f5e9;"><strong style="color: #388e3c; font-size: 16px;">✓ CREATED!</strong><br><code>' . htmlspecialchars($tenant_name) . '</code></div>';
+      $message = '✓ CREATED!<br><code>' . htmlspecialchars($tenant_name) . '</code>';
+      return $this->buildAjaxMessage('google-cloud-test-result', $message, 'success', 'styled');
     }
     catch (\Exception $e) {
-      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #d32f2f; border-radius: 4px; background: #ffebee;"><strong style="color: #d32f2f;">✗ ERROR:</strong><br>' . htmlspecialchars($e->getMessage()) . '</div>';
+      $message = '✗ ERROR:<br>' . htmlspecialchars($e->getMessage());
+      return $this->buildAjaxMessage('google-cloud-test-result', $message, 'error', 'styled');
     }
-
-    return $form['google_cloud_settings']['test_result'];
   }
 
   /**
@@ -465,26 +524,12 @@ class SettingsForm extends ConfigFormBase {
     $credentials_json = $form_state->getValue('google_cloud_credentials');
     
     if (empty($credentials_json)) {
-      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #d32f2f; border-radius: 4px; background: #ffebee;"><strong style="color: #d32f2f;">✗ ERROR:</strong> Enter credentials first.</div>';
-      return $form['google_cloud_settings']['test_result'];
+      return $this->buildAjaxMessage('google-cloud-test-result', '✗ ERROR: Enter credentials first.', 'error', 'styled');
     }
 
     try {
-      $credentials = json_decode($credentials_json, true);
-      if (!$credentials || !isset($credentials['project_id'])) {
-        throw new \Exception('Invalid JSON credentials format');
-      }
-
-      // Create authenticated HTTP client using Google Auth
-      $auth = new \Google\Auth\Credentials\ServiceAccountCredentials(
-        'https://www.googleapis.com/auth/cloud-platform',
-        $credentials
-      );
-      $token = $auth->fetchAuthToken();
-      
-      $httpClient = \Drupal::httpClient();
-      $project_id = $credentials['project_id'];
-      $response = $httpClient->get("https://jobs.googleapis.com/v4/projects/{$project_id}/tenants", [
+      list($credentials, $token, $httpClient, $project_id) = $this->authenticateGoogleCloud($credentials_json);
+      $response = $httpClient->get(self::GOOGLE_JOBS_API_URL . "/projects/{$project_id}/tenants", [
         'headers' => ['Authorization' => 'Bearer ' . $token['access_token']],
       ]);
 
@@ -492,22 +537,23 @@ class SettingsForm extends ConfigFormBase {
       $tenants = $tenants_data['tenants'] ?? [];
       
       if (empty($tenants)) {
-        $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #f57c00; border-radius: 4px; background: #fff3e0;"><strong style="color: #f57c00; font-size: 16px;">⚠ NO TENANTS</strong><br>Click "Create Tenant" to create one.</div>';
-      } else {
-        $output = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #388e3c; border-radius: 4px; background: #e8f5e9;">';
-        $output .= '<strong style="color: #388e3c; font-size: 16px;">✓ FOUND ' . count($tenants) . ' TENANT(S)</strong><ul style="margin-top: 10px; list-style: none; padding: 0;">';
-        foreach ($tenants as $tenant) {
-          $output .= '<li style="margin: 8px 0; padding: 8px; background: white; border-radius: 4px;"><code>' . htmlspecialchars($tenant['name'] ?? 'N/A') . '</code></li>';
-        }
-        $output .= '</ul></div>';
-        $form['google_cloud_settings']['test_result']['#markup'] = $output;
+        $message = '⚠ NO TENANTS<br>Click "Create Tenant" to create one.';
+        return $this->buildAjaxMessage('google-cloud-test-result', $message, 'warning', 'styled');
       }
+      
+      $tenant_list = '<ul style="margin-top: 10px; list-style: none; padding: 0;">';
+      foreach ($tenants as $tenant) {
+        $tenant_list .= '<li style="margin: 8px 0; padding: 8px; background: white; border-radius: 4px;"><code>' . htmlspecialchars($tenant['name'] ?? 'N/A') . '</code></li>';
+      }
+      $tenant_list .= '</ul>';
+      
+      $message = '✓ FOUND ' . count($tenants) . ' TENANT(S)' . $tenant_list;
+      return $this->buildAjaxMessage('google-cloud-test-result', $message, 'success', 'styled');
     }
     catch (\Exception $e) {
-      $form['google_cloud_settings']['test_result']['#markup'] = '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #d32f2f; border-radius: 4px; background: #ffebee;"><strong style="color: #d32f2f;">✗ ERROR:</strong><br>' . htmlspecialchars($e->getMessage()) . '</div>';
+      $message = '✗ ERROR:<br>' . htmlspecialchars($e->getMessage());
+      return $this->buildAjaxMessage('google-cloud-test-result', $message, 'error', 'styled');
     }
-
-    return $form['google_cloud_settings']['test_result'];
   }
 
   /**
@@ -518,43 +564,16 @@ class SettingsForm extends ConfigFormBase {
     $app_key = $form_state->getValue('adzuna_app_key');
     
     if (empty($app_id) || empty($app_key)) {
-      $form['external_job_apis']['adzuna']['test_result']['#markup'] = '<div id="adzuna-test-result" class="messages messages--error" style="margin-top: 10px;">⚠ Please enter both Application ID and Application Key first.</div>';
-      return $form['external_job_apis']['adzuna']['test_result'];
+      return $this->buildAjaxMessage('adzuna-test-result', '⚠ Please enter both Application ID and Application Key first.', 'error');
     }
 
-    // Temporarily save credentials for testing
-    $temp_config = \Drupal::configFactory()->getEditable('job_hunter.settings');
-    $old_app_id = $temp_config->get('adzuna_app_id');
-    $old_app_key = $temp_config->get('adzuna_app_key');
-    $temp_config
-      ->set('adzuna_app_id', $app_id)
-      ->set('adzuna_app_key', $app_key)
-      ->save();
-
-    try {
-      $service = \Drupal::service('job_hunter.adzuna');
-      $results = $service->searchJobs([
-        'query' => 'software engineer',
-        'location' => 'remote',
-        'results_per_page' => 1,
-      ]);
-      
-      $count = count($results['jobs'] ?? []);
-      $total = $results['total'] ?? 0;
-      
-      $form['external_job_apis']['adzuna']['test_result']['#markup'] = '<div id="adzuna-test-result" class="messages messages--status" style="margin-top: 10px;">✓ Successfully connected to Adzuna API!<br>Test search returned ' . $count . ' result(s) from ' . number_format($total) . ' total jobs available.</div>';
-    }
-    catch (\Exception $e) {
-      $form['external_job_apis']['adzuna']['test_result']['#markup'] = '<div id="adzuna-test-result" class="messages messages--error" style="margin-top: 10px;">✗ Error: ' . htmlspecialchars($e->getMessage()) . '</div>';
-    }
-
-    // Restore old values
-    $temp_config
-      ->set('adzuna_app_id', $old_app_id)
-      ->set('adzuna_app_key', $old_app_key)
-      ->save();
-
-    return $form['external_job_apis']['adzuna']['test_result'];
+    return $this->testApiIntegration(
+      'job_hunter.adzuna',
+      ['adzuna_app_id' => $app_id, 'adzuna_app_key' => $app_key],
+      ['query' => 'software engineer', 'location' => 'remote', 'results_per_page' => 1],
+      'adzuna-test-result',
+      'Adzuna API'
+    );
   }
 
   /**
@@ -565,42 +584,17 @@ class SettingsForm extends ConfigFormBase {
     $email = $form_state->getValue('usajobs_email');
     
     if (empty($api_key)) {
-      $form['external_job_apis']['usajobs']['test_result']['#markup'] = '<div id="usajobs-test-result" class="messages messages--error" style="margin-top: 10px;">⚠ Please enter your API Key first.</div>';
-      return $form['external_job_apis']['usajobs']['test_result'];
+      return $this->buildAjaxMessage('usajobs-test-result', '⚠ Please enter your API Key first.', 'error');
     }
 
-    // Temporarily save credentials for testing
-    $temp_config = \Drupal::configFactory()->getEditable('job_hunter.settings');
-    $old_api_key = $temp_config->get('usajobs_api_key');
-    $old_email = $temp_config->get('usajobs_email');
-    $temp_config
-      ->set('usajobs_api_key', $api_key)
-      ->set('usajobs_email', $email)
-      ->save();
-
-    try {
-      $service = \Drupal::service('job_hunter.usajobs');
-      $results = $service->searchJobs([
-        'query' => 'engineer',
-        'results_per_page' => 1,
-      ]);
-      
-      $count = count($results['jobs'] ?? []);
-      $total = $results['total'] ?? 0;
-      
-      $form['external_job_apis']['usajobs']['test_result']['#markup'] = '<div id="usajobs-test-result" class="messages messages--status" style="margin-top: 10px;">✓ Successfully connected to USAJobs API!<br>Test search returned ' . $count . ' result(s) from ' . number_format($total) . ' total federal jobs available.</div>';
-    }
-    catch (\Exception $e) {
-      $form['external_job_apis']['usajobs']['test_result']['#markup'] = '<div id="usajobs-test-result" class="messages messages--error" style="margin-top: 10px;">✗ Error: ' . htmlspecialchars($e->getMessage()) . '</div>';
-    }
-
-    // Restore old values
-    $temp_config
-      ->set('usajobs_api_key', $old_api_key)
-      ->set('usajobs_email', $old_email)
-      ->save();
-
-    return $form['external_job_apis']['usajobs']['test_result'];
+    return $this->testApiIntegration(
+      'job_hunter.usajobs',
+      ['usajobs_api_key' => $api_key, 'usajobs_email' => $email],
+      ['query' => 'engineer', 'results_per_page' => 1],
+      'usajobs-test-result',
+      'USAJobs API',
+      'federal jobs'
+    );
   }
 
   /**
@@ -610,14 +604,13 @@ class SettingsForm extends ConfigFormBase {
     $api_key = $form_state->getValue('serpapi_api_key');
     
     if (empty($api_key)) {
-      $form['external_job_apis']['serpapi']['test_result']['#markup'] = '<div id="serpapi-test-result" class="messages messages--error" style="margin-top: 10px;">⚠ Please enter your API Key first.</div>';
-      return $form['external_job_apis']['serpapi']['test_result'];
+      return $this->buildAjaxMessage('serpapi-test-result', '⚠ Please enter your API Key first.', 'error');
     }
 
     // Test API key directly with SerpAPI
     try {
       $httpClient = \Drupal::httpClient();
-      $response = $httpClient->get('https://serpapi.com/search', [
+      $response = $httpClient->get(self::SERPAPI_URL, [
         'query' => [
           'engine' => 'google_jobs',
           'api_key' => $api_key,
@@ -632,8 +625,7 @@ class SettingsForm extends ConfigFormBase {
       
       // Check for API errors
       if (isset($data['error'])) {
-        $form['external_job_apis']['serpapi']['test_result']['#markup'] = '<div id="serpapi-test-result" class="messages messages--error" style="margin-top: 10px;">✗ API Error: ' . htmlspecialchars($data['error']) . '</div>';
-        return $form['external_job_apis']['serpapi']['test_result'];
+        return $this->buildAjaxMessage('serpapi-test-result', '✗ API Error: ' . htmlspecialchars($data['error']), 'error');
       }
       
       // Check search metadata
@@ -643,8 +635,7 @@ class SettingsForm extends ConfigFormBase {
       $count = count($jobs);
       
       // Build success message with details
-      $message = '<div id="serpapi-test-result" class="messages messages--status" style="margin-top: 10px;">';
-      $message .= '<strong>✓ Successfully connected to SerpAPI!</strong><br>';
+      $message = '<strong>✓ Successfully connected to SerpAPI!</strong><br>';
       $message .= 'Status: ' . htmlspecialchars($status) . '<br>';
       $message .= 'Jobs returned: ' . $count . '<br>';
       
@@ -663,14 +654,138 @@ class SettingsForm extends ConfigFormBase {
         $message .= '<br><strong>Sample job:</strong> ' . htmlspecialchars($jobs[0]['title'] ?? 'N/A');
       }
       
-      $message .= '</div>';
-      $form['external_job_apis']['serpapi']['test_result']['#markup'] = $message;
+      return $this->buildAjaxMessage('serpapi-test-result', $message, 'success');
     }
     catch (\Exception $e) {
-      $form['external_job_apis']['serpapi']['test_result']['#markup'] = '<div id="serpapi-test-result" class="messages messages--error" style="margin-top: 10px;">✗ Connection Error: ' . htmlspecialchars($e->getMessage()) . '</div>';
+      return $this->buildAjaxMessage('serpapi-test-result', '✗ Connection Error: ' . htmlspecialchars($e->getMessage()), 'error');
+    }
+  }
+
+  /**
+   * Helper method to authenticate with Google Cloud.
+   *
+   * @param string $credentials_json
+   *   JSON credentials string.
+   *
+   * @return array
+   *   Array containing [credentials, token, httpClient, project_id].
+   *
+   * @throws \Exception
+   */
+  protected function authenticateGoogleCloud(string $credentials_json): array {
+    $credentials = json_decode($credentials_json, TRUE);
+    if (!$credentials || !isset($credentials['project_id'])) {
+      throw new \Exception('Invalid JSON credentials format');
     }
 
-    return $form['external_job_apis']['serpapi']['test_result'];
+    $client = new \Google\Auth\Credentials\ServiceAccountCredentials(
+      'https://www.googleapis.com/auth/cloud-platform',
+      $credentials
+    );
+    $token = $client->fetchAuthToken();
+    $httpClient = \Drupal::httpClient();
+    $project_id = $credentials['project_id'];
+
+    return [$credentials, $token, $httpClient, $project_id];
+  }
+
+  /**
+   * Helper method to test external API integrations.
+   *
+   * @param string $service_id
+   *   The service ID to test.
+   * @param array $credentials
+   *   Array of credential key-value pairs to temporarily save.
+   * @param array $test_params
+   *   Parameters to pass to searchJobs().
+   * @param string $wrapper_id
+   *   AJAX wrapper element ID.
+   * @param string $api_name
+   *   Human-readable API name.
+   * @param string $job_type
+   *   Optional job type descriptor (e.g., 'federal jobs').
+   *
+   * @return array
+   *   Form element with test result.
+   */
+  protected function testApiIntegration(string $service_id, array $credentials, array $test_params, string $wrapper_id, string $api_name, string $job_type = 'jobs'): array {
+    $temp_config = \Drupal::configFactory()->getEditable('job_hunter.settings');
+    $old_values = [];
+
+    // Save old values and set new credentials
+    foreach ($credentials as $key => $value) {
+      $old_values[$key] = $temp_config->get($key);
+      $temp_config->set($key, $value);
+    }
+    $temp_config->save();
+
+    try {
+      $service = \Drupal::service($service_id);
+      $results = $service->searchJobs($test_params);
+      
+      $count = count($results['jobs'] ?? []);
+      $total = $results['total'] ?? 0;
+      
+      $message = "✓ Successfully connected to {$api_name}!<br>Test search returned {$count} result(s) from " . number_format($total) . " total {$job_type} available.";
+      $result = $this->buildAjaxMessage($wrapper_id, $message, 'success');
+    }
+    catch (\Exception $e) {
+      $message = '✗ Error: ' . htmlspecialchars($e->getMessage());
+      $result = $this->buildAjaxMessage($wrapper_id, $message, 'error');
+    }
+
+    // Restore old values
+    foreach ($old_values as $key => $value) {
+      $temp_config->set($key, $value);
+    }
+    $temp_config->save();
+
+    return $result;
+  }
+
+  /**
+   * Helper method to build AJAX message markup.
+   *
+   * @param string $wrapper_id
+   *   The HTML element ID.
+   * @param string $message
+   *   The message text.
+   * @param string $type
+   *   Message type: 'success', 'error', 'warning'.
+   * @param string $style
+   *   Optional style variant: 'styled' for Google Cloud style.
+   *
+   * @return array
+   *   Form element with markup.
+   */
+  protected function buildAjaxMessage(string $wrapper_id, string $message, string $type = 'success', string $style = 'default'): array {
+    $class_map = [
+      'success' => self::MESSAGE_SUCCESS,
+      'error' => self::MESSAGE_ERROR,
+      'warning' => self::MESSAGE_WARNING,
+    ];
+
+    $css_class = $class_map[$type] ?? self::MESSAGE_SUCCESS;
+    
+    if ($style === 'styled') {
+      // Google Cloud styled variant
+      $color_map = [
+        'success' => ['border' => '#388e3c', 'bg' => '#e8f5e9', 'text' => '#388e3c'],
+        'error' => ['border' => '#d32f2f', 'bg' => '#ffebee', 'text' => '#d32f2f'],
+        'warning' => ['border' => '#f57c00', 'bg' => '#fff3e0', 'text' => '#f57c00'],
+      ];
+      $colors = $color_map[$type] ?? $color_map['success'];
+      $markup = '<div id="' . $wrapper_id . '" style="margin-top: 15px; padding: 15px; border: 2px solid ' . $colors['border'] . '; border-radius: 4px; background: ' . $colors['bg'] . ';"><strong style="color: ' . $colors['text'] . ';">' . $message . '</strong></div>';
+    }
+    else {
+      // Standard Drupal message style
+      $markup = '<div id="' . $wrapper_id . '" class="' . $css_class . '" style="margin-top: 10px;">' . $message . '</div>';
+    }
+
+    return [
+      '#type' => 'markup',
+      '#markup' => $markup,
+    ];
   }
 
   /**
