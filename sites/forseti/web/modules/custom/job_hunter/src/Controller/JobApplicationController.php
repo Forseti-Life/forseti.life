@@ -982,6 +982,8 @@ class JobApplicationController extends ControllerBase {
       'date_posted' => $request->query->get('date_posted', ''),
       'company' => $request->query->get('company', ''),
       'relocation_willing' => $request->query->get('relocation_willing', ''),
+      'page' => $request->query->get('page', 1),
+      'next_page_token' => $request->query->get('next_page_token', ''),
     ];
 
     // Ensure sources is an array with default
@@ -1031,6 +1033,8 @@ class JobApplicationController extends ControllerBase {
       '#total_results' => $search_results['total'],
       '#sources_searched' => $sources_display,
       '#diagnostics' => $search_results['diagnostics'],
+      '#pagination' => $search_results['pagination'] ?? [],
+      '#current_page' => $search_params['page'],
       '#attached' => [
         'library' => [
           'job_hunter/job-search-results',

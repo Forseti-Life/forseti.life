@@ -123,11 +123,14 @@ target-companies:
     - core/once
 
 job-search-results:
+  js:
+    js/job-search-results.js: {}
   css:
     theme:
       css/job-search-results.css: {}
   dependencies:
     - core/drupal
+    - core/once
 
 queue-management:
   css:

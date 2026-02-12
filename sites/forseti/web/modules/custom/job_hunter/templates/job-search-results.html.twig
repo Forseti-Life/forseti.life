@@ -116,6 +116,28 @@
           </div>
         {% endfor %}
       </div>
+
+      {# Pagination Controls for SerpAPI #}
+      {% if pagination.serpapi and pagination.serpapi.next_page_token %}
+        <div class="search-pagination">
+          <div class="pagination-info">
+            <p>{{ 'Showing page @page of results from Google Jobs (SerpAPI)'|t({'@page': current_page|default(1)}) }}</p>
+          </div>
+          <div class="pagination-controls">
+            {% if current_page > 1 %}
+              <a href="#" class="btn-pagination btn-prev" data-page="{{ current_page - 1 }}">
+                ← {{ 'Previous Page'|t }}
+              </a>
+            {% endif %}
+            
+            {% if pagination.serpapi.has_more %}
+              <a href="#" class="btn-pagination btn-next" data-page="{{ current_page + 1 }}" data-token="{{ pagination.serpapi.next_page_token }}">
+                {{ 'Next Page'|t }} →
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
     {% endif %}
   </div>
 </div>

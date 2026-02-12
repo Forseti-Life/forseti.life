@@ -126,6 +126,8 @@ class SearchAggregatorService {
    *   - date_posted: (string) Date posted filter
    *   - company: (string) Company filter (Forseti only)
    *   - relocation_willing: (bool) Relocation preference
+   *   - page: (int) Page number
+   *   - next_page_token: (string) Pagination token for SerpAPI
    *
    * @return array
    *   Array containing:
@@ -133,10 +135,12 @@ class SearchAggregatorService {
    *   - total: Total number of results
    *   - sources_searched: Array of sources that were searched
    *   - diagnostics: Diagnostic information if no results found
+   *   - pagination: Pagination metadata (for sources that support it)
    */
   public function searchJobs(array $params): array {
     $sources = $params['sources'] ?? ['forseti'];
     $all_results = [];
+    $pagination_metadata = [];
 
     $this->logger->info('🔍 SearchAggregator: Starting search with sources: @sources', [
       '@sources' => implode(', ', $sources),
@@ -166,8 +170,12 @@ class SearchAggregatorService {
           break;
 
         case 'serpapi':
-          $results = $this->searchSerpApi($params);
-          $all_results = array_merge($all_results, $results);
+          $serpapi_data = $this->searchSerpApi($params);
+          $all_results = array_merge($all_results, $serpapi_data['results'] ?? []);
+          // Store pagination metadata for SerpAPI
+          if (!empty($serpapi_data['pagination'])) {
+            $pagination_metadata['serpapi'] = $serpapi_data['pagination'];
+          }
           break;
       }
     }
@@ -190,6 +198,7 @@ class SearchAggregatorService {
       'total' => count($all_results),
       'sources_searched' => $sources,
       'diagnostics' => $diagnostics,
+      'pagination' => $pagination_metadata,
     ];
   }
 
@@ -535,19 +544,25 @@ class SearchAggregatorService {
    *   Search parameters.
    *
    * @return array
-   *   Array of normalized job results.
+   *   Array with 'results' and 'pagination' keys.
    */
   protected function searchSerpApi(array $params): array {
     $results = [];
+    $pagination = [];
 
     try {
       $serpapi_params = [
         'query' => $params['query'] ?? '',
         'location' => $params['location'] ?? '',
         'employment_type' => $params['employment_type'] ?? '',
-        'page' => 1,
-        'results_per_page' => 10,
+        'page' => $params['page'] ?? 1,
+        'results_per_page' => 10, // SerpAPI standard
       ];
+
+      // Pass through next_page_token if provided
+      if (!empty($params['next_page_token'])) {
+        $serpapi_params['next_page_token'] = $params['next_page_token'];
+      }
 
       $this->logger->info('🔍 Searching SerpAPI (Google Jobs)');
 
@@ -556,6 +571,13 @@ class SearchAggregatorService {
       $this->logger->info('📥 SerpAPI returned @count jobs', [
         '@count' => $serpapi_results['total'] ?? 0,
       ]);
+
+      // Store pagination info
+      $pagination = [
+        'current_page' => $serpapi_results['page'] ?? 1,
+        'next_page_token' => $serpapi_results['next_page_token'] ?? NULL,
+        'has_more' => $serpapi_results['has_more'] ?? FALSE,
+      ];
 
       // Normalize SerpAPI results
       foreach ($serpapi_results['jobs'] ?? [] as $job_data) {
@@ -622,7 +644,10 @@ class SearchAggregatorService {
       ]);
     }
 
-    return $results;
+    return [
+      'results' => $results,
+      'pagination' => $pagination,
+    ];
   }
 
   /**

@@ -68,12 +68,14 @@ class SerpApiService {
    *   - employment_type: Employment type filter (optional)
    *   - page: Page number (optional, default 1)
    *   - results_per_page: Number of results (optional, max 100, default 10)
+   *   - next_page_token: Pagination token from previous search (optional)
    *
    * @return array
    *   Array containing:
    *   - jobs: Array of job listings
    *   - total: Total number of results
    *   - page: Current page number
+   *   - next_page_token: Token for next page (if available)
    */
   public function searchJobs(array $params) {
     $config = $this->configFactory->get('job_hunter.settings');
@@ -113,8 +115,12 @@ class SerpApiService {
       }
     }
 
-    // Add pagination
-    if (!empty($params['page']) && $params['page'] > 1) {
+    // Add pagination token if provided (SerpAPI native pagination)
+    if (!empty($params['next_page_token'])) {
+      $query_params['next_page_token'] = $params['next_page_token'];
+    }
+    // Fallback to offset-based pagination for initial searches
+    elseif (!empty($params['page']) && $params['page'] > 1) {
       $query_params['start'] = ($params['page'] - 1) * ($params['results_per_page'] ?? 10);
     }
 
@@ -139,14 +145,28 @@ class SerpApiService {
 
       $jobs = $data['jobs_results'] ?? [];
       
-      $this->loggerFactory->get('job_hunter')->info('✅ SerpAPI returned @count jobs', [
+      // Extract pagination information
+      $next_page_token = NULL;
+      if (isset($data['serpapi_pagination']['next_page_token'])) {
+        $next_page_token = $data['serpapi_pagination']['next_page_token'];
+      }
+      // Also check for next link with embedded token
+      elseif (isset($data['serpapi_pagination']['next'])) {
+        parse_str(parse_url($data['serpapi_pagination']['next'], PHP_URL_QUERY), $next_params);
+        $next_page_token = $next_params['next_page_token'] ?? NULL;
+      }
+      
+      $this->loggerFactory->get('job_hunter')->info('✅ SerpAPI returned @count jobs (next_page_token: @token)', [
         '@count' => count($jobs),
+        '@token' => $next_page_token ? 'available' : 'none',
       ]);
 
       return [
         'jobs' => $jobs,
         'total' => count($jobs), // SerpAPI doesn't provide total count easily
         'page' => $params['page'] ?? 1,
+        'next_page_token' => $next_page_token,
+        'has_more' => !empty($next_page_token),
       ];
 
     } catch (RequestException $e) {
