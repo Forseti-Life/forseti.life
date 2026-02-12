@@ -35,14 +35,14 @@
         </div>
       </div>
       
-      <div class="status-card status-card-{{ has_google_cloud ? 'active' : 'pending' }}">
+      <div class="status-card status-card-{{ has_serpapi ? 'active' : 'pending' }}">
         <div class="status-card-icon">🔍</div>
         <div class="status-card-content">
-          <h4>{{ 'Google Cloud Jobs'|t }}</h4>
-          <span class="status-badge {{ has_google_cloud ? 'status-success' : 'status-warning' }}">
-            {{ has_google_cloud ? 'Configured'|t : 'Not Configured'|t }}
+          <h4>{{ 'Google Cloud Jobs (Via SerpAPI)'|t }}</h4>
+          <span class="status-badge {{ has_serpapi ? 'status-success' : 'status-warning' }}">
+            {{ has_serpapi ? 'Configured'|t : 'Not Configured'|t }}
           </span>
-          <p>{{ has_google_cloud ? 'AI-powered job search across the web'|t : 'Configure API credentials to enable'|t }}</p>
+          <p>{{ has_serpapi ? 'AI-powered job search across the web'|t : 'Configure SerpAPI credentials to enable'|t }}</p>
         </div>
       </div>
     </div>
@@ -113,21 +113,17 @@
                 <input type="checkbox" name="sources[]" value="forseti" checked>
                 <span>{{ 'Forseti Jobs'|t }}</span>
               </label>
-              <label class="checkbox-label{{ has_google_cloud ? '' : ' disabled' }}">
-                <input type="checkbox" name="sources[]" value="google_cloud" {{ has_google_cloud ? 'checked' : 'disabled' }}>
-                <span>{{ has_google_cloud ? 'Google Jobs'|t : 'Google Jobs (Configure API)'|t }}</span>
+              <label class="checkbox-label{{ has_serpapi ? '' : ' disabled' }}">
+                <input type="checkbox" name="sources[]" value="serpapi" {{ has_serpapi ? '' : 'disabled' }}>
+                <span>{{ has_serpapi ? 'Google Jobs (Via SerpAPI)'|t : 'Google Jobs (Configure SerpAPI)'|t }}</span>
               </label>
               <label class="checkbox-label{{ has_adzuna ? '' : ' disabled' }}">
-                <input type="checkbox" name="sources[]" value="adzuna" {{ has_adzuna ? 'checked' : 'disabled' }}>
+                <input type="checkbox" name="sources[]" value="adzuna" {{ has_adzuna ? '' : 'disabled' }}>
                 <span>{{ has_adzuna ? 'Adzuna (Indeed/Monster/etc.)'|t : 'Adzuna (Configure API)'|t }}</span>
               </label>
               <label class="checkbox-label{{ has_usajobs ? '' : ' disabled' }}">
-                <input type="checkbox" name="sources[]" value="usajobs" {{ has_usajobs ? 'checked' : 'disabled' }}>
+                <input type="checkbox" name="sources[]" value="usajobs" {{ has_usajobs ? '' : 'disabled' }}>
                 <span>{{ has_usajobs ? 'USAJobs (Government)'|t : 'USAJobs (Configure API)'|t }}</span>
-              </label>
-              <label class="checkbox-label{{ has_serpapi ? '' : ' disabled' }}">
-                <input type="checkbox" name="sources[]" value="serpapi" {{ has_serpapi ? 'checked' : 'disabled' }}>
-                <span>{{ has_serpapi ? 'SerpAPI (Google Jobs)'|t : 'SerpAPI (Configure API)'|t }}</span>
               </label>
             </div>
           </div>

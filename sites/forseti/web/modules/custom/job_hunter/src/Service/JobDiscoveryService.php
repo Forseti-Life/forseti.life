@@ -101,19 +101,15 @@ class JobDiscoveryService {
       if ($profile && !empty($profile->consolidated_profile_json)) {
         $consolidated = json_decode($profile->consolidated_profile_json, TRUE) ?: [];
 
-        // Extract target job titles and keywords.
-        $titles = $consolidated['job_search_preferences']['target_titles'] ?? '';
-        $keywords = $consolidated['job_search_preferences']['keywords'] ?? '';
-
-        // Handle both string and array formats.
-        $titles_array = is_array($titles) ? $titles : ($titles ? explode("\n", $titles) : []);
-        $keywords_array = is_array($keywords) ? $keywords : ($keywords ? explode("\n", $keywords) : []);
-
-        $combined = array_filter(array_merge($titles_array, $keywords_array));
-        if (!empty($combined)) {
-          // Use first 3.
-          $defaults['keywords'] = implode(', ', array_slice($combined, 0, 3));
-        }
+        // Don't pre-populate keywords/job titles - let users enter their own
+        // $titles = $consolidated['job_search_preferences']['target_titles'] ?? '';
+        // $keywords = $consolidated['job_search_preferences']['keywords'] ?? '';
+        // $titles_array = is_array($titles) ? $titles : ($titles ? explode("\n", $titles) : []);
+        // $keywords_array = is_array($keywords) ? $keywords : ($keywords ? explode("\n", $keywords) : []);
+        // $combined = array_filter(array_merge($titles_array, $keywords_array));
+        // if (!empty($combined)) {
+        //   $defaults['keywords'] = implode(', ', array_slice($combined, 0, 3));
+        // }
 
         // Extract location from contact info.
         if (isset($consolidated['contact_info']['location'])) {

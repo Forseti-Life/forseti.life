@@ -534,6 +534,15 @@ job_hunter.job_paste:
   requirements:
     _permission: 'access job hunter'
 
+# Backward compatibility alias for old URL
+job_hunter.job_paste_legacy:
+  path: '/jobhunter/job/paste'
+  defaults:
+    _form: '\Drupal\job_hunter\Form\AddJobPostingForm'
+    _title: 'Add Job Posting'
+  requirements:
+    _permission: 'access job hunter'
+
 job_hunter.job_retry_parsing:
   path: '/jobhunter/jobs/{job_id}/retry-parsing'
   defaults:
