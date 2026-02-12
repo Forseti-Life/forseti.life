@@ -472,11 +472,11 @@ class GenAiDebugController extends ControllerBase {
     // Apply filters using helper
     $this->applyFilters($query, $module, $operation, $success, $days);
     
-    $result = $query->execute()->fetchObject();
+    $result = $query->execute()->fetchAssoc();
     
     return [
-      'total_cost' => $result->total_cost ?? 0,
-      'total_calls' => $result->total_calls ?? 0,
+      'total_cost' => (float) ($result['total_cost'] ?? 0),
+      'total_calls' => (int) ($result['total_calls'] ?? 0),
     ];
   }
 
@@ -494,7 +494,7 @@ class GenAiDebugController extends ControllerBase {
       $params->get('module'),
       $params->get('operation'),
       $params->get('success'),
-      (int) $params->get('days', 1),
+      (int) $params->get('days', 0),
     ];
   }
 
