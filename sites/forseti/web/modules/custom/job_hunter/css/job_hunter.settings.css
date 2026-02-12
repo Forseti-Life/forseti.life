@@ -1,0 +1,40 @@
+/**
+ * @file
+ * Styles for Job Hunter settings form.
+ */
+
+/* Google Cloud credentials textarea */
+.job-hunter-credentials-textarea {
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+/* Button group container */
+.job-hunter-button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+/* Test button styling */
+.job-hunter-test-btn {
+  margin-top: 10px;
+}
+
+/* Test result containers */
+.job-hunter-test-result {
+  margin-top: 10px;
+}
+
+/* Google Cloud test result - styled variant */
+#google-cloud-test-result {
+  margin-top: 15px;
+  padding: 15px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  background: #f9f9f9;
+}
+
+#google-cloud-test-result em {
+  color: #666;
+}

@@ -133,3 +133,10 @@ google_jobs_integration:
     - core/drupal
     - core/jquery
     - core/once
+
+settings_form:
+  css:
+    theme:
+      css/job_hunter.settings.css: {}
+  dependencies:
+    - core/drupal

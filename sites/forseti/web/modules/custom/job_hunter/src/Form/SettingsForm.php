@@ -2,11 +2,23 @@
 
 namespace Drupal\job_hunter\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Component\Utility\EmailValidatorInterface;
+use GuzzleHttp\ClientInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Configuration form for Job Application Automation module settings.
+ *
+ * Provides a comprehensive settings interface for:
+ * - Resume tailoring configuration
+ * - AI service settings (AWS Bedrock)
+ * - Google Cloud Talent Solution API
+ * - External job search APIs (Adzuna, USAJobs, SerpAPI)
+ * - Developer/debugging options
  */
 class SettingsForm extends ConfigFormBase {
 
@@ -46,6 +58,58 @@ class SettingsForm extends ConfigFormBase {
   const MESSAGE_WARNING = 'messages messages--warning';
 
   /**
+   * The HTTP client.
+   *
+   * @var \GuzzleHttp\ClientInterface
+   */
+  protected $httpClient;
+
+  /**
+   * The entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
+
+  /**
+   * The email validator.
+   *
+   * @var \Drupal\Component\Utility\EmailValidatorInterface
+   */
+  protected $emailValidator;
+
+  /**
+   * Constructs a SettingsForm object.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The factory for configuration objects.
+   * @param \GuzzleHttp\ClientInterface $http_client
+   *   The HTTP client.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
+   * @param \Drupal\Component\Utility\EmailValidatorInterface $email_validator
+   *   The email validator.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory, ClientInterface $http_client, EntityTypeManagerInterface $entity_type_manager, EmailValidatorInterface $email_validator) {
+    parent::__construct($config_factory);
+    $this->httpClient = $http_client;
+    $this->entityTypeManager = $entity_type_manager;
+    $this->emailValidator = $email_validator;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory'),
+      $container->get('http_client'),
+      $container->get('entity_type.manager'),
+      $container->get('email.validator')
+    );
+  }
+
+  /**
    * {@inheritdoc}
    */
   protected function getEditableConfigNames() {
@@ -65,6 +129,9 @@ class SettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('job_hunter.settings');
 
+    // Attach CSS library for form styling.
+    $form['#attached']['library'][] = 'job_hunter/settings_form';
+
     $this->buildResumeTailoringSection($form, $config);
     $this->buildAiSettingsSection($form, $config);
     $this->buildGoogleCloudSection($form, $config);
@@ -76,6 +143,15 @@ class SettingsForm extends ConfigFormBase {
 
   /**
    * Build the Resume Tailoring Settings section.
+   *
+   * Creates form elements for configuring resume tailoring functionality,
+   * including selection of the master resume node and automatic tailoring
+   * options.
+   *
+   * @param array &$form
+   *   The form array to add elements to.
+   * @param \Drupal\Core\Config\ImmutableConfig $config
+   *   The configuration object.
    */
   protected function buildResumeTailoringSection(array &$form, $config): void {
     $form['resume_tailoring'] = [
@@ -88,7 +164,7 @@ class SettingsForm extends ConfigFormBase {
     $default_resume = NULL;
     $resume_node_id = $config->get('original_resume_node_id');
     if ($resume_node_id && is_numeric($resume_node_id)) {
-      $resume_node = \Drupal\node\Entity\Node::load($resume_node_id);
+      $resume_node = $this->entityTypeManager->getStorage('node')->load($resume_node_id);
       if ($resume_node && $resume_node->access('view')) {
         $default_resume = $resume_node;
       }
@@ -115,6 +191,14 @@ class SettingsForm extends ConfigFormBase {
 
   /**
    * Build the AI Service Configuration section.
+   *
+   * Creates form elements for AWS Bedrock AI service settings, including
+   * region, model ID, and token limits for various operations.
+   *
+   * @param array &$form
+   *   The form array to add elements to.
+   * @param \Drupal\Core\Config\ImmutableConfig $config
+   *   The configuration object.
    */
   protected function buildAiSettingsSection(array &$form, $config): void {
     $form['ai_settings'] = [
@@ -162,6 +246,14 @@ class SettingsForm extends ConfigFormBase {
 
   /**
    * Build the Google Cloud Talent Solution API section.
+   *
+   * Creates form elements for Google Cloud configuration, including service
+   * account credentials, tenant management, and API testing features.
+   *
+   * @param array &$form
+   *   The form array to add elements to.
+   * @param \Drupal\Core\Config\ImmutableConfig $config
+   *   The configuration object.
    */
   protected function buildGoogleCloudSection(array &$form, $config): void {
     $form['google_cloud_settings'] = [
@@ -186,7 +278,7 @@ class SettingsForm extends ConfigFormBase {
       '#required' => FALSE,
       '#attributes' => [
         'placeholder' => '{"type": "service_account", "project_id": "forseti-483518", ...}',
-        'style' => 'font-family: monospace; font-size: 0.9em;',
+        'class' => ['job-hunter-credentials-textarea'],
       ],
     ];
 
@@ -203,7 +295,7 @@ class SettingsForm extends ConfigFormBase {
 
     $form['google_cloud_settings']['actions'] = [
       '#type' => 'container',
-      '#attributes' => ['style' => 'display: flex; gap: 10px; margin-top: 10px;'],
+      '#attributes' => ['class' => ['job-hunter-button-group']],
     ];
 
     $form['google_cloud_settings']['actions']['test_credentials'] = [
@@ -239,12 +331,20 @@ class SettingsForm extends ConfigFormBase {
 
     $form['google_cloud_settings']['test_result'] = [
       '#type' => 'markup',
-      '#markup' => '<div id="google-cloud-test-result" style="margin-top: 15px; padding: 15px; border: 2px solid #ddd; border-radius: 4px; background: #f9f9f9;"><em style="color: #666;">Click a button above to test...</em></div>',
+      '#markup' => '<div id="google-cloud-test-result"><em>Click a button above to test...</em></div>',
     ];
   }
 
   /**
    * Build the External Job Search APIs section and subsections.
+   *
+   * Creates form elements for third-party job board API configurations,
+   * including Adzuna, USAJobs, and SerpAPI integrations with test buttons.
+   *
+   * @param array &$form
+   *   The form array to add elements to.
+   * @param \Drupal\Core\Config\ImmutableConfig $config
+   *   The configuration object.
    */
   protected function buildExternalApisSection(array &$form, $config): void {
     $form['external_job_apis'] = [
@@ -294,12 +394,12 @@ class SettingsForm extends ConfigFormBase {
         'wrapper' => 'adzuna-test-result',
         'progress' => ['type' => 'throbber', 'message' => $this->t('Testing...')],
       ],
-      '#attributes' => ['style' => 'margin-top: 10px;'],
+      '#attributes' => ['class' => ['job-hunter-test-btn']],
     ];
 
     $form['external_job_apis']['adzuna']['test_result'] = [
       '#type' => 'markup',
-      '#markup' => '<div id="adzuna-test-result" style="margin-top: 10px;"></div>',
+      '#markup' => '<div id="adzuna-test-result" class="job-hunter-test-result"></div>',
     ];
 
     // USAJobs API configuration
@@ -342,12 +442,12 @@ class SettingsForm extends ConfigFormBase {
         'wrapper' => 'usajobs-test-result',
         'progress' => ['type' => 'throbber', 'message' => $this->t('Testing...')],
       ],
-      '#attributes' => ['style' => 'margin-top: 10px;'],
+      '#attributes' => ['class' => ['job-hunter-test-btn']],
     ];
 
     $form['external_job_apis']['usajobs']['test_result'] = [
       '#type' => 'markup',
-      '#markup' => '<div id="usajobs-test-result" style="margin-top: 10px;"></div>',
+      '#markup' => '<div id="usajobs-test-result" class="job-hunter-test-result"></div>',
     ];
 
     // SerpAPI configuration
@@ -379,17 +479,25 @@ class SettingsForm extends ConfigFormBase {
         'wrapper' => 'serpapi-test-result',
         'progress' => ['type' => 'throbber', 'message' => $this->t('Testing...')],
       ],
-      '#attributes' => ['style' => 'margin-top: 10px;'],
+      '#attributes' => ['class' => ['job-hunter-test-btn']],
     ];
 
     $form['external_job_apis']['serpapi']['test_result'] = [
       '#type' => 'markup',
-      '#markup' => '<div id="serpapi-test-result" style="margin-top: 10px;"></div>',
+      '#markup' => '<div id="serpapi-test-result" class="job-hunter-test-result"></div>',
     ];
   }
 
   /**
    * Build the Developer Settings section.
+   *
+   * Creates form elements for debugging and logging configuration options
+   * to control the verbosity of module logging.
+   *
+   * @param array &$form
+   *   The form array to add elements to.
+   * @param \Drupal\Core\Config\ImmutableConfig $config
+   *   The configuration object.
    */
   protected function buildDeveloperSettingsSection(array &$form, $config): void {
     $form['developer_settings'] = [
@@ -453,6 +561,17 @@ class SettingsForm extends ConfigFormBase {
 
   /**
    * AJAX callback to test Google Cloud credentials.
+   *
+   * Validates the Google Cloud service account credentials by attempting
+   * to authenticate and fetch tenant information.
+   *
+   * @param array &$form
+   *   The form array.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   *
+   * @return array
+   *   Renderable array with test results.
    */
   public function testGoogleCloudCredentials(array &$form, FormStateInterface $form_state) {
     $credentials_json = $form_state->getValue('google_cloud_credentials');
@@ -501,6 +620,17 @@ class SettingsForm extends ConfigFormBase {
 
   /**
    * AJAX callback to create Google Cloud Talent Solution tenant.
+   *
+   * Creates a new tenant in the Google Cloud Talent Solution API for
+   * organizing job postings and company data.
+   *
+   * @param array &$form
+   *   The form array.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   *
+   * @return array
+   *   Renderable array with creation results.
    */
   public function createGoogleCloudTenant(array &$form, FormStateInterface $form_state) {
     $credentials_json = $form_state->getValue('google_cloud_credentials');
@@ -510,11 +640,11 @@ class SettingsForm extends ConfigFormBase {
     }
 
     try {
-      list($credentials, $token, $httpClient, $project_id) = $this->authenticateGoogleCloud($credentials_json);
+      list($credentials, $token, $project_id) = $this->authenticateGoogleCloud($credentials_json);
       
       // Check if tenant already exists
       try {
-        $list_response = $httpClient->get(self::GOOGLE_JOBS_API_URL . "/projects/{$project_id}/tenants", [
+        $list_response = $this->httpClient->get(self::GOOGLE_JOBS_API_URL . "/projects/{$project_id}/tenants", [
           'headers' => ['Authorization' => 'Bearer ' . $token['access_token']],
         ]);
         $existing_tenants = json_decode($list_response->getBody()->getContents(), true);
@@ -528,7 +658,7 @@ class SettingsForm extends ConfigFormBase {
       }
       
       // Create the tenant
-      $response = $httpClient->post(self::GOOGLE_JOBS_API_URL . "/projects/{$project_id}/tenants", [
+      $response = $this->httpClient->post(self::GOOGLE_JOBS_API_URL . "/projects/{$project_id}/tenants", [
         'headers' => ['Authorization' => 'Bearer ' . $token['access_token']],
         'json' => [
           'externalId' => 'forseti-jobhunter',
@@ -550,6 +680,17 @@ class SettingsForm extends ConfigFormBase {
 
   /**
    * AJAX callback to list Google Cloud Talent Solution tenants.
+   *
+   * Retrieves and displays all tenants associated with the Google Cloud
+   * project, showing their resource names and external IDs.
+   *
+   * @param array &$form
+   *   The form array.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   *
+   * @return array
+   *   Renderable array with tenant list.
    */
   public function listGoogleCloudTenants(array &$form, FormStateInterface $form_state) {
     $credentials_json = $form_state->getValue('google_cloud_credentials');
@@ -559,8 +700,8 @@ class SettingsForm extends ConfigFormBase {
     }
 
     try {
-      list($credentials, $token, $httpClient, $project_id) = $this->authenticateGoogleCloud($credentials_json);
-      $response = $httpClient->get(self::GOOGLE_JOBS_API_URL . "/projects/{$project_id}/tenants", [
+      list($credentials, $token, $project_id) = $this->authenticateGoogleCloud($credentials_json);
+      $response = $this->httpClient->get(self::GOOGLE_JOBS_API_URL . "/projects/{$project_id}/tenants", [
         'headers' => ['Authorization' => 'Bearer ' . $token['access_token']],
       ]);
 
@@ -589,6 +730,17 @@ class SettingsForm extends ConfigFormBase {
 
   /**
    * AJAX callback to test Adzuna API integration.
+   *
+   * Validates Adzuna API credentials by performing a test search for
+   * Software Engineer jobs in the US.
+   *
+   * @param array &$form
+   *   The form array.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   *
+   * @return array
+   *   Renderable array with test results.
    */
   public function testAdzunaIntegration(array &$form, FormStateInterface $form_state) {
     $app_id = $form_state->getValue('adzuna_app_id');
@@ -609,6 +761,17 @@ class SettingsForm extends ConfigFormBase {
 
   /**
    * AJAX callback to test USAJobs API integration.
+   *
+   * Validates USAJobs API credentials by performing a test search for
+   * Software Developer positions.
+   *
+   * @param array &$form
+   *   The form array.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   *
+   * @return array
+   *   Renderable array with test results.
    */
   public function testUsaJobsIntegration(array &$form, FormStateInterface $form_state) {
     $api_key = $form_state->getValue('usajobs_api_key');
@@ -630,6 +793,18 @@ class SettingsForm extends ConfigFormBase {
 
   /**
    * AJAX callback to test SerpAPI integration.
+   *
+   * Validates SerpAPI credentials and performs a comprehensive diagnostic
+   * test of the Google Jobs scraper functionality, including rate limit
+   * detection and search result validation.
+   *
+   * @param array &$form
+   *   The form array.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   *
+   * @return array
+   *   Renderable array with detailed test results and diagnostics.
    */
   public function testSerpApiIntegration(array &$form, FormStateInterface $form_state) {
     $api_key = $form_state->getValue('serpapi_api_key');
@@ -640,8 +815,7 @@ class SettingsForm extends ConfigFormBase {
 
     // Test API key directly with SerpAPI
     try {
-      $httpClient = \Drupal::httpClient();
-      $response = $httpClient->get(self::SERPAPI_URL, [
+      $response = $this->httpClient->get(self::SERPAPI_URL, [
         'query' => [
           'engine' => 'google_jobs',
           'api_key' => $api_key,
@@ -699,7 +873,7 @@ class SettingsForm extends ConfigFormBase {
    *   JSON credentials string.
    *
    * @return array
-   *   Array containing [credentials, token, httpClient, project_id].
+   *   Array containing [credentials, token, project_id].
    *
    * @throws \Exception
    */
@@ -714,10 +888,9 @@ class SettingsForm extends ConfigFormBase {
       $credentials
     );
     $token = $client->fetchAuthToken();
-    $httpClient = \Drupal::httpClient();
     $project_id = $credentials['project_id'];
 
-    return [$credentials, $token, $httpClient, $project_id];
+    return [$credentials, $token, $project_id];
   }
 
   /**
