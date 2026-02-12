@@ -614,34 +614,61 @@ class SettingsForm extends ConfigFormBase {
       return $form['external_job_apis']['serpapi']['test_result'];
     }
 
-    // Temporarily save credentials for testing
-    $temp_config = \Drupal::configFactory()->getEditable('job_hunter.settings');
-    $old_api_key = $temp_config->get('serpapi_api_key');
-    $temp_config
-      ->set('serpapi_api_key', $api_key)
-      ->save();
-
+    // Test API key directly with SerpAPI
     try {
-      $service = \Drupal::service('job_hunter.serpapi');
-      $results = $service->searchJobs([
-        'query' => 'software engineer',
-        'location' => 'remote',
-        'results_per_page' => 1,
+      $httpClient = \Drupal::httpClient();
+      $response = $httpClient->get('https://serpapi.com/search', [
+        'query' => [
+          'engine' => 'google_jobs',
+          'api_key' => $api_key,
+          'q' => 'software developer',
+          'location' => 'United States',
+          'num' => 5,
+        ],
+        'timeout' => 15,
       ]);
+
+      $data = json_decode($response->getBody()->getContents(), TRUE);
       
-      $count = count($results['jobs'] ?? []);
-      $total = $results['total'] ?? 0;
+      // Check for API errors
+      if (isset($data['error'])) {
+        $form['external_job_apis']['serpapi']['test_result']['#markup'] = '<div id="serpapi-test-result" class="messages messages--error" style="margin-top: 10px;">✗ API Error: ' . htmlspecialchars($data['error']) . '</div>';
+        return $form['external_job_apis']['serpapi']['test_result'];
+      }
       
-      $form['external_job_apis']['serpapi']['test_result']['#markup'] = '<div id="serpapi-test-result" class="messages messages--status" style="margin-top: 10px;">✓ Successfully connected to SerpAPI (Google Jobs)!<br>Test search returned ' . $count . ' result(s) from ' . number_format($total) . ' total jobs found.</div>';
+      // Check search metadata
+      $search_metadata = $data['search_metadata'] ?? [];
+      $status = $search_metadata['status'] ?? 'unknown';
+      $jobs = $data['jobs_results'] ?? [];
+      $count = count($jobs);
+      
+      // Build success message with details
+      $message = '<div id="serpapi-test-result" class="messages messages--status" style="margin-top: 10px;">';
+      $message .= '<strong>✓ Successfully connected to SerpAPI!</strong><br>';
+      $message .= 'Status: ' . htmlspecialchars($status) . '<br>';
+      $message .= 'Jobs returned: ' . $count . '<br>';
+      
+      if (isset($search_metadata['total_results'])) {
+        $message .= 'Total available: ' . number_format($search_metadata['total_results']) . '<br>';
+      }
+      
+      if ($count === 0) {
+        $message .= '<br><em style="color: #f57c00;">⚠ No results returned. This could mean:</em><br>';
+        $message .= '<ul style="margin: 5px 0; padding-left: 20px;">';
+        $message .= '<li>API key has no remaining credits (check <a href="https://serpapi.com/dashboard" target="_blank">dashboard</a>)</li>';
+        $message .= '<li>Query didn\'t match any jobs</li>';
+        $message .= '<li>Rate limit reached</li>';
+        $message .= '</ul>';
+      } else {
+        $message .= '<br><strong>Sample job:</strong> ' . htmlspecialchars($jobs[0]['title'] ?? 'N/A');
+      }
+      
+      $message .= '</div>';
+      $form['external_job_apis']['serpapi']['test_result']['#markup'] = $message;
     }
     catch (\Exception $e) {
-      $form['external_job_apis']['serpapi']['test_result']['#markup'] = '<div id="serpapi-test-result" class="messages messages--error" style="margin-top: 10px;">✗ Error: ' . htmlspecialchars($e->getMessage()) . '</div>';
+      $form['external_job_apis']['serpapi']['test_result']['#markup'] = '<div id="serpapi-test-result" class="messages messages--error" style="margin-top: 10px;">✗ Connection Error: ' . htmlspecialchars($e->getMessage()) . '</div>';
     }
-
-    // Restore old values
-    $temp_config
-      ->set('serpapi_api_key', $old_api_key)
-      ->save();
 
     return $form['external_job_apis']['serpapi']['test_result'];
   }
