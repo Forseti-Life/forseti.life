@@ -1,6 +1,9 @@
 /**
  * @file
  * Styles for Job Hunter settings form.
+ *
+ * Module: job_hunter
+ * Component: Settings Form (/jobhunter/settings)
  */
 
 /* Settings intro */
@@ -10,13 +13,13 @@
   border-radius: 8px;
   margin-bottom: 2rem;
   border-left: 4px solid #667eea;
-}
 
-.settings-intro p {
-  margin: 0;
-  color: #666;
-  font-size: 1rem;
-  line-height: 1.6;
+  p {
+    margin: 0;
+    color: #666;
+    font-size: 1rem;
+    line-height: 1.6;
+  }
 }
 
 /* Google Cloud credentials textarea */
@@ -43,10 +46,10 @@
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.3s ease;
-}
 
-.job-hunter-test-btn:hover {
-  background: #5568d3;
+  &:hover {
+    background: #5568d3;
+  }
 }
 
 /* Test result containers */
@@ -61,10 +64,10 @@
   border: 2px solid #ddd;
   border-radius: 8px;
   background: #f9f9f9;
-}
 
-#google-cloud-test-result em {
-  color: #666;
+  em {
+    color: #666;
+  }
 }
 
 /* Details/fieldset styling to match modern theme */
@@ -74,28 +77,28 @@ details.form-wrapper {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin-bottom: 1.5rem;
   border: none;
-}
 
-details.form-wrapper > summary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 1.1rem;
-  transition: all 0.3s ease;
-}
+  > summary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
 
-details.form-wrapper > summary:hover {
-  background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
-}
+    &:hover {
+      background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+    }
+  }
 
-details.form-wrapper[open] > summary {
-  border-radius: 8px 8px 0 0;
-  margin-bottom: 1rem;
-}
+  &[open] > summary {
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 1rem;
+  }
 
-details.form-wrapper .fieldset-wrapper {
-  padding: 1.5rem;
+  .fieldset-wrapper {
+    padding: 1.5rem;
+  }
 }

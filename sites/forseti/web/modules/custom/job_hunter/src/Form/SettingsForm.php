@@ -3,6 +3,7 @@
 namespace Drupal\job_hunter\Form;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -83,6 +84,8 @@ class SettingsForm extends ConfigFormBase {
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
+   * @param \Drupal\Core\Config\TypedConfigManagerInterface $typed_config_manager
+   *   The typed config manager.
    * @param \GuzzleHttp\ClientInterface $http_client
    *   The HTTP client.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
@@ -90,8 +93,8 @@ class SettingsForm extends ConfigFormBase {
    * @param \Drupal\Component\Utility\EmailValidatorInterface $email_validator
    *   The email validator.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, ClientInterface $http_client, EntityTypeManagerInterface $entity_type_manager, EmailValidatorInterface $email_validator) {
-    parent::__construct($config_factory);
+  public function __construct(ConfigFactoryInterface $config_factory, TypedConfigManagerInterface $typed_config_manager, ClientInterface $http_client, EntityTypeManagerInterface $entity_type_manager, EmailValidatorInterface $email_validator) {
+    parent::__construct($config_factory, $typed_config_manager);
     $this->httpClient = $http_client;
     $this->entityTypeManager = $entity_type_manager;
     $this->emailValidator = $email_validator;
@@ -103,6 +106,7 @@ class SettingsForm extends ConfigFormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('config.factory'),
+      $container->get('config.typed'),
       $container->get('http_client'),
       $container->get('entity_type.manager'),
       $container->get('email.validator')
@@ -128,9 +132,6 @@ class SettingsForm extends ConfigFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('job_hunter.settings');
-
-    // Attach CSS library for form styling.
-    $form['#attached']['library'][] = 'job_hunter/settings_form';
 
     // Add intro text to match theme standards
     $form['intro'] = [
