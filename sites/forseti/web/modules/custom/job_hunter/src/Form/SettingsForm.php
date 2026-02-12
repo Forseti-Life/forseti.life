@@ -132,61 +132,18 @@ class SettingsForm extends ConfigFormBase {
     // Attach CSS library for form styling.
     $form['#attached']['library'][] = 'job_hunter/settings_form';
 
-    $this->buildResumeTailoringSection($form, $config);
+    // Add intro text to match theme standards
+    $form['intro'] = [
+      '#markup' => '<div class="settings-intro"><p>' . $this->t('Configure Job Hunter module settings including AI service credentials, external API integrations, and system options.') . '</p></div>',
+      '#weight' => -100,
+    ];
+
     $this->buildAiSettingsSection($form, $config);
     $this->buildGoogleCloudSection($form, $config);
     $this->buildExternalApisSection($form, $config);
     $this->buildDeveloperSettingsSection($form, $config);
 
     return parent::buildForm($form, $form_state);
-  }
-
-  /**
-   * Build the Resume Tailoring Settings section.
-   *
-   * Creates form elements for configuring resume tailoring functionality,
-   * including selection of the master resume node and automatic tailoring
-   * options.
-   *
-   * @param array &$form
-   *   The form array to add elements to.
-   * @param \Drupal\Core\Config\ImmutableConfig $config
-   *   The configuration object.
-   */
-  protected function buildResumeTailoringSection(array &$form, $config): void {
-    $form['resume_tailoring'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Resume Tailoring Settings'),
-      '#open' => TRUE,
-    ];
-
-    // Load the entity if we have an ID stored
-    $default_resume = NULL;
-    $resume_node_id = $config->get('original_resume_node_id');
-    if ($resume_node_id && is_numeric($resume_node_id)) {
-      $resume_node = $this->entityTypeManager->getStorage('node')->load($resume_node_id);
-      if ($resume_node && $resume_node->access('view')) {
-        $default_resume = $resume_node;
-      }
-    }
-
-    $form['resume_tailoring']['original_resume_node_id'] = [
-      '#type' => 'entity_autocomplete',
-      '#title' => $this->t('Original Resume Node'),
-      '#description' => $this->t('Select the resume node that contains the master resume content. This will be used as the base for all tailored resumes. Leave empty to search for a node titled "Original Resume".'),
-      '#target_type' => 'node',
-      '#selection_settings' => [
-        'target_bundles' => ['resume'],
-      ],
-      '#default_value' => $default_resume,
-    ];
-
-    $form['resume_tailoring']['enable_automatic_tailoring'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Enable Automatic Resume Tailoring'),
-      '#description' => $this->t('When enabled, a tailored resume will be automatically generated when a new job posting is created.'),
-      '#default_value' => $config->get('enable_automatic_tailoring') ?? TRUE,
-    ];
   }
 
   /**
@@ -204,7 +161,7 @@ class SettingsForm extends ConfigFormBase {
     $form['ai_settings'] = [
       '#type' => 'details',
       '#title' => $this->t('AI Service Configuration'),
-      '#open' => FALSE,
+      '#open' => TRUE,
     ];
 
     $form['ai_settings']['ai_service_region'] = [
@@ -997,8 +954,6 @@ class SettingsForm extends ConfigFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->config('job_hunter.settings')
-      ->set('original_resume_node_id', $form_state->getValue('original_resume_node_id'))
-      ->set('enable_automatic_tailoring', $form_state->getValue('enable_automatic_tailoring'))
       ->set('ai_service_region', $form_state->getValue('ai_service_region'))
       ->set('ai_model_id', $form_state->getValue('ai_model_id'))
       ->set('max_tokens', $form_state->getValue('max_tokens'))
