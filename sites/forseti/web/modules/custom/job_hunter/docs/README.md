@@ -74,6 +74,20 @@ Comprehensive Q&A covering:
 
 ### Specialized Documentation
 
+#### [API Integration Guide](API_INTEGRATION_GUIDE.md) 🔌
+**Audience:** Administrators, Developers, DevOps
+
+Comprehensive setup guide for all external API integrations:
+- AWS Bedrock configuration for AI features
+- SerpAPI setup for Google Jobs search
+- Google Cloud Talent Solution integration
+- Adzuna API configuration
+- USAJobs API setup
+- Testing and troubleshooting procedures
+- Cost management and best practices
+
+**When to read:** When setting up the module for the first time, configuring API integrations, or troubleshooting API issues.
+
 #### [Resume JSON Schema](RESUME_JSON_SCHEMA.md) 📄
 **Audience:** Developers, Data Engineers
 
@@ -140,6 +154,20 @@ Step-by-step installation instructions:
 - Initial configuration
 - Post-installation verification
 - Troubleshooting installation issues
+
+#### [Queue Worker Troubleshooting](QUEUE_TROUBLESHOOTING.md) 🔧
+**Audience:** System Administrators, DevOps Engineers, Developers
+
+Comprehensive troubleshooting guide for background queue processing:
+- Queue worker overview and status checking
+- Common issues and solutions (stuck items, suspensions, timeouts)
+- AWS Bedrock integration troubleshooting
+- Memory and performance optimization
+- Concurrent processing management
+- Monitoring and debugging procedures
+- Emergency procedures and recovery
+
+**When to read:** When queue items aren't processing, investigating suspended items, or optimizing queue performance.
 
 ---
 
