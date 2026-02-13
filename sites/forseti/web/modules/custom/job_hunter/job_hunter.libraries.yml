@@ -162,6 +162,13 @@ google_jobs_integration:
     - core/jquery
     - core/once
 
+job-application-dashboard:
+  css:
+    theme:
+      css/job-application-dashboard.css: {}
+  dependencies:
+    - core/drupal
+
 opportunity-management:
   css:
     theme:

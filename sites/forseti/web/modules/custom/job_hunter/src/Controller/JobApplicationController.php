@@ -4,11 +4,14 @@ namespace Drupal\job_hunter\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\job_hunter\Service\JobDiscoveryService;
 use Drupal\job_hunter\Service\SearchAggregatorService;
+use Drupal\job_hunter\Service\UserProfileService;
 use Drupal\user\Entity\User;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -56,6 +59,20 @@ class JobApplicationController extends ControllerBase {
   protected SearchAggregatorService $searchAggregator;
 
   /**
+   * The entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected EntityTypeManagerInterface $entityTypeManager;
+
+  /**
+   * The user profile service.
+   *
+   * @var \Drupal\job_hunter\Service\UserProfileService
+   */
+  protected UserProfileService $userProfileService;
+
+  /**
    * Constructs a JobApplicationController object.
    *
    * @param \Drupal\job_hunter\Service\JobDiscoveryService $job_discovery_service
@@ -68,19 +85,27 @@ class JobApplicationController extends ControllerBase {
    *   The queue factory.
    * @param \Drupal\job_hunter\Service\SearchAggregatorService $search_aggregator
    *   The search aggregator service.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
+   * @param \Drupal\job_hunter\Service\UserProfileService $user_profile_service
+   *   The user profile service.
    */
   public function __construct(
     JobDiscoveryService $job_discovery_service,
     RequestStack $request_stack,
     Connection $database,
     QueueFactory $queue_factory,
-    SearchAggregatorService $search_aggregator
+    SearchAggregatorService $search_aggregator,
+    EntityTypeManagerInterface $entity_type_manager,
+    UserProfileService $user_profile_service
   ) {
     $this->jobDiscoveryService = $job_discovery_service;
     $this->requestStack = $request_stack;
     $this->database = $database;
     $this->queueFactory = $queue_factory;
     $this->searchAggregator = $search_aggregator;
+    $this->entityTypeManager = $entity_type_manager;
+    $this->userProfileService = $user_profile_service;
   }
 
   /**
@@ -92,7 +117,9 @@ class JobApplicationController extends ControllerBase {
       $container->get('request_stack'),
       $container->get('database'),
       $container->get('queue'),
-      $container->get('job_hunter.search_aggregator')
+      $container->get('job_hunter.search_aggregator'),
+      $container->get('entity_type.manager'),
+      $container->get('job_hunter.user_profile_service')
     );
   }
 
@@ -303,78 +330,8 @@ class JobApplicationController extends ControllerBase {
       ],
     ];
     
-    // Add CSS styles
-    $build['#attached']['html_head'][] = [
-      [
-        '#type' => 'html_tag',
-        '#tag' => 'style',
-        '#value' => '
-          .job-dashboard { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
-          .user-welcome { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; margin: 20px 0; border-radius: 10px; text-align: center; font-size: 1.2em; }
-          
-          /* Flow Headers */
-          .flow-header { margin: 40px 0 20px 0; padding: 20px; border-radius: 10px; }
-          .flow-header h2 { margin: 0 0 10px 0; font-size: 1.5em; }
-          .flow-header .flow-description { margin: 0; color: #4a5568; }
-          .flow-tailored { background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; }
-          .flow-tailored .flow-description { color: rgba(255,255,255,0.9); }
-          .flow-automated { background: #e2e8f0; color: #2d3748; border: 2px dashed #a0aec0; }
-          .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8em; margin-top: 10px; }
-          .status-badge.not-implemented { background: #fbd38d; color: #744210; }
-          
-          /* Phase Sections */
-          .phase-section { background: white; border: 2px solid #e2e8f0; border-radius: 12px; margin: 15px 0; padding: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: relative; }
-          .phase-section.disabled { opacity: 0.7; }
-          .phase-profile { border-left: 5px solid #48bb78; }
-          .phase-tailoring { border-left: 5px solid #d69e2e; }
-          .phase-companies { border-left: 5px solid #4299e1; }
-          .phase-discovery { border-left: 5px solid #9f7aea; }
-          .phase-submission { border-left: 5px solid #ed8936; }
-          .phase-interview { border-left: 5px solid #f56565; }
-          .phase-analytics { border-left: 5px solid #38b2ac; }
-          
-          /* Coming Soon Badge */
-          .coming-soon-badge { 
-            position: absolute; 
-            top: 10px; 
-            right: 10px; 
-            background: #fbd38d; 
-            color: #744210; 
-            padding: 4px 12px; 
-            border-radius: 20px; 
-            font-size: 0.7em; 
-            font-weight: bold;
-          }
-          
-          /* Phase Content */
-          .phase-content { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-          .step-indicator { background: #1a365d; color: white; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 0.9em; white-space: nowrap; }
-          .phase-info { flex: 1; min-width: 200px; }
-          .phase-info h3 { margin: 0 0 5px 0; color: #2d3748; font-size: 1.1em; }
-          .phase-info p { margin: 0; color: #718096; font-size: 0.9em; }
-          .phase-stat { text-align: center; min-width: 100px; }
-          .stat-number { font-size: 2em; font-weight: bold; color: #1a365d; }
-          .stat-label { color: #4a5568; font-size: 0.85em; }
-          .phase-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-          .phase-button { padding: 10px 18px; text-decoration: none; border-radius: 6px; font-size: 0.9em; transition: all 0.2s; }
-          .phase-button.primary { background: #4299e1; color: white; }
-          .phase-button.primary:hover { background: #3182ce; }
-          .phase-button:not(.primary) { background: #e2e8f0; color: #2d3748; }
-          .phase-button:not(.primary):hover { background: #cbd5e0; }
-          
-          /* Future Steps */
-          .future-steps { background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 15px 0; }
-          .future-placeholder ul { margin: 10px 0 0 0; padding-left: 20px; color: #718096; }
-          .future-placeholder li { margin: 5px 0; }
-          
-          @media (max-width: 768px) {
-            .phase-content { flex-direction: column; text-align: center; }
-            .phase-actions { justify-content: center; }
-          }
-        ',
-      ],
-      'job-dashboard-styles'
-    ];
+    // Attach CSS library instead of inline styles.
+    $build['#attached']['library'][] = 'job_hunter/job-application-dashboard';
     
     $build['#prefix'] = '<div class="job-dashboard">';
     $build['#suffix'] = '</div>';
@@ -383,23 +340,42 @@ class JobApplicationController extends ControllerBase {
   }
 
   /**
-   * Calculate user profile completion percentage.
+   * Calculate user profile completeness percentage.
+   *
+   * Uses the UserProfileService to calculate how complete a user's
+   * job seeker profile is based on filled fields.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $user
+   *   The current user account.
+   *
+   * @return int
+   *   The profile completeness percentage (0-100).
    */
-  private function calculateProfileCompletion($user) {
-    // Use the UserProfileService for real calculation
-    $userProfileService = \Drupal::service('job_hunter.user_profile_service');
+  private function calculateProfileCompletion(AccountInterface $user) {
+    // Use the injected UserProfileService for real calculation.
     $user_entity = User::load($user->id());
     if ($user_entity) {
-      return $userProfileService->calculateProfileCompleteness($user_entity);
+      return $this->userProfileService->calculateProfileCompleteness($user_entity);
     }
     return 0;
   }
 
   /**
    * Get count of target companies.
+   *
+   * Counts the number of active company nodes in the system.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $user
+   *   The current user account. Kept for future use when implementing
+   *   user-specific company filtering. Currently unused.
+   *
+   * @return int
+   *   The number of active companies.
+   *
+   * @todo Implement user-specific company filtering in the query.
    */
-  private function getTargetCompaniesCount($user) {
-    $query = \Drupal::entityQuery('node')
+  private function getTargetCompaniesCount(AccountInterface $user) {
+    $query = $this->entityTypeManager->getStorage('node')->getQuery()
       ->condition('type', 'company')
       ->condition('status', 1)
       ->accessCheck(TRUE);
@@ -408,9 +384,20 @@ class JobApplicationController extends ControllerBase {
 
   /**
    * Get count of matched jobs.
+   *
+   * Counts the number of active job posting nodes in the system.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $user
+   *   The current user account. Kept for future use when implementing
+   *   user-specific job matching. Currently unused.
+   *
+   * @return int
+   *   The number of active job postings.
+   *
+   * @todo Implement user-specific job matching in the query.
    */
-  private function getMatchedJobsCount($user) {
-    $query = \Drupal::entityQuery('node')
+  private function getMatchedJobsCount(AccountInterface $user) {
+    $query = $this->entityTypeManager->getStorage('node')->getQuery()
       ->condition('type', 'job_posting')
       ->condition('status', 1)
       ->accessCheck(TRUE);
@@ -419,15 +406,35 @@ class JobApplicationController extends ControllerBase {
 
   /**
    * Get count of active applications.
+   *
+   * Placeholder method for counting active job applications.
+   * Currently returns 0.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $user
+   *   The current user account.
+   *
+   * @return int
+   *   The number of active applications (currently always 0).
    */
-  private function getActiveApplicationsCount($user) {
+  private function getActiveApplicationsCount(AccountInterface $user) {
     return 0; // Placeholder
   }
 
   /**
    * Get count of saved job postings.
+   *
+   * Counts the total number of job requirements in the database.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $user
+   *   The current user account. Kept for future use when implementing
+   *   user-specific saved jobs. Currently unused.
+   *
+   * @return int
+   *   The number of saved job postings.
+   *
+   * @todo Implement user-specific saved jobs filtering in the query.
    */
-  private function getSavedJobsCount($user) {
+  private function getSavedJobsCount(AccountInterface $user) {
     try {
       $count = $this->database->select('jobhunter_job_requirements', 'j')
         ->countQuery()
@@ -441,7 +448,13 @@ class JobApplicationController extends ControllerBase {
   }
 
   /**
-   * Manage target companies.
+   * Manage target companies page.
+   *
+   * Displays a list of target companies for job hunting, with statistics
+   * about each company including job counts and activity status.
+   *
+   * @return array
+   *   A renderable array for the target companies management page.
    */
   public function manageTargetCompanies() {
     $database = $this->database;
@@ -510,16 +523,28 @@ class JobApplicationController extends ControllerBase {
 
   /**
    * Save target companies.
+   *
+   * Handles the saving of target company selections.
+   * Currently redirects to job applications page.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   A redirect response to the job applications page.
    */
   public function saveTargetCompanies() {
     return new \Symfony\Component\HttpFoundation\RedirectResponse('/job-applications');
   }
 
   /**
-   * Companies overview.
+   * Companies overview page.
+   *
+   * Displays a comprehensive overview of all companies in the system,
+   * including completion percentages, job counts, and application statistics.
+   *
+   * @return array
+   *   A renderable array for the companies overview page.
    */
   public function companiesOverview() {
-    $query = \Drupal::entityQuery('node')
+    $query = $this->entityTypeManager->getStorage('node')->getQuery()
       ->condition('type', 'company')
       ->condition('status', 1)
       ->accessCheck(TRUE);
@@ -532,8 +557,8 @@ class JobApplicationController extends ControllerBase {
     ];
 
     if ($company_count > 0) {
-      // Load companies and build table
-      $companies = $this->entityTypeManager()->getStorage('node')->loadMultiple($company_ids);
+      // Load companies and build table.
+      $companies = $this->entityTypeManager->getStorage('node')->loadMultiple($company_ids);
       
       // Table header
       $table_header = '<table class="companies-table">
