@@ -15,7 +15,10 @@ export { RenderComponent } from './components/RenderComponent.js';
 export { IdentityComponent, EntityType } from './components/IdentityComponent.js';
 export { MovementComponent, MovementMode } from './components/MovementComponent.js';
 export { StatsComponent } from './components/StatsComponent.js';
+export { ActionsComponent, ActionType, ActionCost } from './components/ActionsComponent.js';
+export { CombatComponent, Team } from './components/CombatComponent.js';
 
 // Systems
 export { RenderSystem } from './systems/RenderSystem.js';
 export { MovementSystem } from './systems/MovementSystem.js';
+export { TurnManagementSystem, CombatState } from './systems/TurnManagementSystem.js';

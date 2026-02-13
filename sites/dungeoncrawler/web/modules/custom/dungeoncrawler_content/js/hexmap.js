@@ -4,7 +4,7 @@
  */
 
 // Import ECS modules
-import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, EntityType, RenderSystem, MovementComponent, StatsComponent, MovementSystem, MovementMode } from './ecs/index.js';
+import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, EntityType, RenderSystem, MovementComponent, StatsComponent, MovementSystem, MovementMode, ActionsComponent, ActionType, ActionCost, CombatComponent, Team, TurnManagementSystem, CombatState } from './ecs/index.js';
 
 // Ensure Drupal and once are available
 /* global Drupal, once, PIXI */
@@ -36,11 +36,15 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     entityManager: null,
     renderSystem: null,
     movementSystem: null,
+    turnManagementSystem: null,
     
     // Movement and selection
     selectedEntity: null,
     movementRange: null,
     movementRangeOverlay: null,
+    
+    // Combat state
+    combatActive: false,
 
     attach: function (context, settings) {
       const container = once('hexmap-init', '#hexmap-canvas-container', context);
@@ -86,6 +90,22 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       this.movementSystem = new MovementSystem(this.entityManager);
       this.entityManager.addSystem(this.movementSystem);
       
+      // Create turn management system
+      this.turnManagementSystem = new TurnManagementSystem(this.entityManager);
+      this.entityManager.addSystem(this.turnManagementSystem);
+      
+      // Set up turn management callbacks
+      const self = this;
+      this.turnManagementSystem.onTurnChange(function(entity, turnIndex, totalTurns) {
+        self.onTurnChange(entity, turnIndex, totalTurns);
+      });
+      this.turnManagementSystem.onRoundChange(function(roundNumber) {
+        self.onRoundChange(roundNumber);
+      });
+      this.turnManagementSystem.onCombatStateChange(function(combatState) {
+        self.onCombatStateChange(combatState);
+      });
+      
       // Add UI layer to stage
       this.app.stage.addChild(this.uiContainer);
       
@@ -105,6 +125,55 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       if (this.entityManager) {
         this.entityManager.update(delta * 16.67); // Convert to milliseconds
       }
+    },
+    
+    /**
+     * Turn change callback.
+     * @param {Entity} entity - Entity whose turn it is
+     * @param {number} turnIndex - Current turn index
+     * @param {number} totalTurns - Total turns in round
+     */
+    onTurnChange: function (entity, turnIndex, totalTurns) {
+      const identity = entity.getComponent('IdentityComponent');
+      const actions = entity.getComponent('ActionsComponent');
+      const name = identity ? identity.name : `Entity ${entity.id}`;
+      
+      console.log(`Turn change: ${name} (${turnIndex + 1}/${totalTurns})`);
+      
+      // Update UI
+      this.updateTurnUI(entity, turnIndex, totalTurns);
+      
+      // Auto-select entity on their turn (if player controlled)
+      const combat = entity.getComponent('CombatComponent');
+      if (combat && combat.isPlayerTeam()) {
+        this.selectEntity(entity);
+      }
+    },
+    
+    /**
+     * Round change callback.
+     * @param {number} roundNumber - New round number
+     */
+    onRoundChange: function (roundNumber) {
+      console.log(`Round ${roundNumber} started`);
+      
+      // Update round display
+      const roundDisplay = document.getElementById('current-round');
+      if (roundDisplay) {
+        roundDisplay.textContent = `Round ${roundNumber}`;
+      }
+    },
+    
+    /**
+     * Combat state change callback.
+     * @param {string} combatState - New combat state
+     */
+    onCombatStateChange: function (combatState) {
+      console.log(`Combat state: ${combatState}`);
+      this.combatActive = (combatState === CombatState.IN_PROGRESS || combatState === CombatState.ROLLING_INITIATIVE);
+      
+      // Update UI
+      this.updateCombatUI(combatState);
     },
 
     /**
@@ -377,14 +446,8 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
             name = 'Unknown';
         }
         
-        // Create entity using ECS (with movement and stats for creatures/characters)
-        const entity = this.createEntityObject(q, r, entityType, name, null);
-        
-        // Add movement and stats for creatures and characters
-        if (entityType === EntityType.CREATURE || entityType === EntityType.PLAYER_CHARACTER) {
-          entity.addComponent('StatsComponent', new StatsComponent({ speed: 30, maxHp: 20 }));
-          entity.addComponent('MovementComponent', new MovementComponent(30));
-        }
+        // Create entity using ECS (components are auto-added based on type)
+        this.createEntityObject(q, r, entityType, name, null);
         
         return;
       }
@@ -474,10 +537,37 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       // Create new entity
       const entity = this.entityManager.createEntity();
       
-      // Add components
+      //Add core components
       entity.addComponent('PositionComponent', new PositionComponent(q, r));
       entity.addComponent('IdentityComponent', new IdentityComponent(name, entityType));
       entity.addComponent('RenderComponent', new RenderComponent(spriteKey));
+      
+      // Add components based on entity type
+      if (entityType === EntityType.CREATURE || entityType === EntityType.PLAYER_CHARACTER || entityType === EntityType.NPC) {
+        // Add stats
+        const stats = new StatsComponent({ 
+          speed: 30, 
+          maxHp: 20,
+          perception: 0
+        });
+        entity.addComponent('StatsComponent', stats);
+        
+        // Add movement
+        const movement = new MovementComponent(30);
+        entity.addComponent('MovementComponent', movement);
+        
+        // Add actions (3-action economy)
+        const actions = new ActionsComponent(3);
+        entity.addComponent('ActionsComponent', actions);
+        
+        // Add combat
+        const team = entityType === EntityType.PLAYER_CHARACTER ? Team.PLAYER : Team.ENEMY;
+        const combat = new CombatComponent({ 
+          team: team,
+          initiativeBonus: 0
+        });
+        entity.addComponent('CombatComponent', combat);
+      }
       
       console.log(`Created entity "${name}" (${entityType}) at (${q}, ${r})`);
       return entity;
@@ -587,6 +677,102 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         this.movementRangeOverlay = null;
       }
       this.movementRange = null;
+    },
+    
+    /**
+     * Start combat encounter.
+     */
+    startCombat: function () {
+      console.log('Starting combat...');
+      this.turnManagementSystem.startCombat();
+    },
+    
+    /**
+     * End current turn.
+     */
+    endTurn: function () {
+      console.log('Ending turn...');
+      this.turnManagementSystem.endTurn();
+    },
+    
+    /**
+     * End combat encounter.
+     */
+    endCombat: function () {
+      console.log('Ending combat...');
+      this.turnManagementSystem.endCombat();
+      this.deselectEntity();
+    },
+    
+    /**
+     * Update turn UI display.
+     * @param {Entity} entity - Current turn entity
+     * @param {number} turnIndex - Turn index
+     * @param {number} totalTurns - Total turns
+     */
+    updateTurnUI: function (entity, turnIndex, totalTurns) {
+      const identity = entity.getComponent('IdentityComponent');
+      const actions = entity.getComponent('ActionsComponent');
+      const name = identity ? identity.name : `Entity ${entity.id}`;
+      
+      // Update current turn display
+      const currentTurnDiv = document.getElementById('current-turn');
+      if (currentTurnDiv) {
+        let html = `<strong>${name}</strong>`;
+        if (actions) {
+          html += ` ${actions.getActionDisplay()}`;
+          if (actions.hasReactionAvailable()) {
+            html += ' ⚡'; // Reaction available
+          }
+        }
+        currentTurnDiv.innerHTML = html;
+      }
+      
+      // Update initiative tracker
+      const initiativeList = document.getElementById('initiative-list');
+      if (initiativeList) {
+        const order = this.turnManagementSystem.getInitiativeOrder();
+        let html = '';
+        
+        order.forEach((data, index) => {
+          const activeClass = data.isCurrent ? 'active-turn' : '';
+          const defeatedClass = data.isDefeated ? 'defeated' : '';
+          html += `<div class="initiative-item ${activeClass} ${defeatedClass}">
+            <span class="init-value">${data.initiative}</span>
+            <span class="init-name">${data.name}</span>
+          </div>`;
+        });
+        
+        initiativeList.innerHTML = html;
+      }
+    },
+    
+    /**
+     * Update combat UI based on state.
+     * @param {string} combatState - Combat state
+     */
+    updateCombatUI: function (combatState) {
+      const combatControls = document.getElementById('combat-controls');
+      const startCombatBtn = document.getElementById('start-combat');
+      const endTurnBtn = document.getElementById('end-turn');
+      const endCombatBtn = document.getElementById('end-combat');
+      const initiativeTracker = document.getElementById('initiative-tracker');
+      
+      if (!combatControls) return;
+      
+      if (combatState === CombatState.INACTIVE || combatState === CombatState.ENDED) {
+        // Show start button, hide others
+        if (startCombatBtn) startCombatBtn.style.display = 'inline-block';
+        if (endTurnBtn) endTurnBtn.style.display = 'none';
+        if (endCombatBtn) endCombatBtn.style.display = 'none';
+        if (initiativeTracker) initiativeTracker.style.display = 'none';
+      } else {
+        // Hide start button, show combat controls
+        if (startCombatBtn) startCombatBtn.style.display = 'none';
+        if (endTurnBtn) endTurnBtn.style.display = 'inline-block';
+        if (endCombatBtn) endCombatBtn.style.display = 'inline-block';
+        if (initiativeTracker) initiativeTracker.style.display = 'block';
+      }
     },
 
     /**
@@ -870,6 +1056,28 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       if (deselectBtn) {
         deselectBtn.addEventListener('click', function () {
           self.deselectEntity();
+        });
+      }
+      
+      // Combat controls
+      const startCombatBtn = document.getElementById('start-combat');
+      if (startCombatBtn) {
+        startCombatBtn.addEventListener('click', function () {
+          self.startCombat();
+        });
+      }
+      
+      const endTurnBtn = document.getElementById('end-turn');
+      if (endTurnBtn) {
+        endTurnBtn.addEventListener('click', function () {
+          self.endTurn();
+        });
+      }
+      
+      const endCombatBtn = document.getElementById('end-combat');
+      if (endCombatBtn) {
+        endCombatBtn.addEventListener('click', function () {
+          self.endCombat();
         });
       }
     },
