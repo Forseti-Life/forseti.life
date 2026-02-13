@@ -52,10 +52,18 @@ export class RenderSystem extends System {
   syncEntityToSprite(entity) {
     const position = entity.getComponent('PositionComponent');
     const render = entity.getComponent('RenderComponent');
+    const stats = entity.getComponent('StatsComponent');
+    const identity = entity.getComponent('IdentityComponent');
     
     if (!render.visible) {
       if (render.sprite) {
         render.sprite.visible = false;
+      }
+      if (render.healthBar) {
+        render.healthBar.visible = false;
+      }
+      if (render.nameLabel) {
+        render.nameLabel.visible = false;
       }
       return;
     }
@@ -80,6 +88,112 @@ export class RenderSystem extends System {
 
     // Store entity reference on sprite
     render.sprite.entityId = entity.id;
+    
+    // Update or create health bar for entities with stats
+    if (stats && (identity?.entityType === 'creature' || 
+                  identity?.entityType === 'player_character' || 
+                  identity?.entityType === 'npc')) {
+      this.updateHealthBar(entity, render, stats, pixelPos);
+    }
+    
+    // Update or create name label
+    if (identity && identity.name) {
+      this.updateNameLabel(entity, render, identity, pixelPos);
+    }
+  }
+  
+  /**
+   * Update or create health bar for entity.
+   * @param {Entity} entity - Entity
+   * @param {RenderComponent} render - Render component
+   * @param {StatsComponent} stats - Stats component
+   * @param {Object} pixelPos - Pixel position {x, y}
+   */
+  updateHealthBar(entity, render, stats, pixelPos) {
+    if (!render.healthBar) {
+      // Create health bar container
+      const container = new PIXI.Container();
+      
+      // Background bar (gray)
+      const background = new PIXI.Graphics();
+      background.beginFill(0x2d3748);
+      background.drawRect(0, 0, 40, 4);
+      background.endFill();
+      container.addChild(background);
+      
+      // Health bar (green/yellow/red based on HP)
+      const bar = new PIXI.Graphics();
+      container.addChild(bar);
+      
+      // Border
+      const border = new PIXI.Graphics();
+      border.lineStyle(1, 0x1a202c);
+      border.drawRect(0, 0, 40, 4);
+      container.addChild(border);
+      
+      render.healthBar = container;
+      render.healthBar.bar = bar;
+      this.uiContainer.addChild(container);
+    }
+    
+    // Update health bar position (above sprite)
+    render.healthBar.x = pixelPos.x - 20;
+    render.healthBar.y = pixelPos.y - this.hexSize * 0.8;
+    render.healthBar.visible = render.visible;
+    
+    // Update health bar fill
+    const healthPercent = stats.getHealthPercentage();
+    const barWidth = 40 * healthPercent;
+    
+    // Color based on health percentage
+    let barColor;
+    if (healthPercent > 0.6) {
+      barColor = 0x48bb78; // Green
+    } else if (healthPercent > 0.3) {
+      barColor = 0xed8936; // Orange
+    } else {
+      barColor = 0xe53e3e; // Red
+    }
+    
+    render.healthBar.bar.clear();
+    render.healthBar.bar.beginFill(barColor);
+    render.healthBar.bar.drawRect(0, 0, barWidth, 4);
+    render.healthBar.bar.endFill();
+  }
+  
+  /**
+   * Update or create name label for entity.
+   * @param {Entity} entity - Entity
+   * @param {RenderComponent} render - Render component
+   * @param {IdentityComponent} identity - Identity component
+   * @param {Object} pixelPos - Pixel position {x, y}
+   */
+  updateNameLabel(entity, render, identity, pixelPos) {
+    if (!render.nameLabel) {
+      // Create name label
+      const text = new PIXI.Text(identity.name, {
+        fontFamily: 'Arial',
+        fontSize: 12,
+        fill: 0xffffff,
+        stroke: 0x000000,
+        strokeThickness: 3,
+        align: 'center'
+      });
+      text.anchor.set(0.5, 1);
+      
+      render.nameLabel = text;
+      this.uiContainer.addChild(text);
+    }
+    
+    // Update name label position (below sprite)
+    render.nameLabel.x = pixelPos.x;
+    render.nameLabel.y = pixelPos.y + this.hexSize * 0.7;
+    render.nameLabel.visible = render.visible;
+    
+    // Update text if name changed
+    if (render.nameLabel.text !== identity.name) {
+      render.nameLabel.text = identity.name;
+    }
   }
 
   /**
@@ -161,16 +275,34 @@ export class RenderSystem extends System {
   }
 
   /**
-   * Remove sprite for entity.
-   * @param {Entity} entity - Entity to remove sprite from
+   * Remove sprite and UI elements for entity.
+   * @param {Entity} entity - Entity
    */
   removeSprite(entity) {
     const render = entity.getComponent('RenderComponent');
-    if (render && render.sprite) {
-      this.objectContainer.removeChild(render.sprite);
-      render.sprite.destroy();
-      render.sprite = null;
-      console.log(`Removed sprite for entity ${entity.id}`);
+    if (render) {
+      // Remove sprite
+      if (render.sprite) {
+        this.objectContainer.removeChild(render.sprite);
+        render.sprite.destroy();
+        render.sprite = null;
+      }
+      
+      // Remove health bar
+      if (render.healthBar) {
+        this.uiContainer.removeChild(render.healthBar);
+        render.healthBar.destroy({ children: true });
+        render.healthBar = null;
+      }
+      
+      // Remove name label
+      if (render.nameLabel) {
+        this.uiContainer.removeChild(render.nameLabel);
+        render.nameLabel.destroy();
+        render.nameLabel = null;
+      }
+      
+      console.log(`Removed sprite and UI for entity ${entity.id}`);
     }
   }
 

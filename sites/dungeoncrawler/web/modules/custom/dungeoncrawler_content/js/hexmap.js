@@ -631,6 +631,27 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       if (render && render.sprite) {
         render.sprite.tint = 0x60a5fa; // Blue tint
       }
+      
+      // Show and populate entity info panel
+      const infoPanel = document.getElementById('entity-info-panel');
+      if (infoPanel) {
+        infoPanel.style.display = 'block';
+        
+        const stats = entity.getComponent('StatsComponent');
+        const combat = entity.getComponent('CombatComponent');
+        const actions = entity.getComponent('ActionsComponent');
+        
+        document.getElementById('entity-name').textContent = identity?.name || 'Unknown';
+        document.getElementById('entity-type').textContent = identity?.entityType || '-';
+        document.getElementById('entity-team').textContent = combat?.team || '-';
+        document.getElementById('entity-hp').textContent = stats ? 
+          `${stats.currentHp}/${stats.maxHp}` : '-';
+        document.getElementById('entity-ac').textContent = stats?.ac || '-';
+        document.getElementById('entity-actions').textContent = actions ? 
+          actions.getActionDisplay() : '-';
+        document.getElementById('entity-movement').textContent = movement ? 
+          `${movement.movementRemaining}/${movement.movementSpeed} ft` : '-';
+      }
     },
     
     /**
@@ -649,6 +670,12 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       
       this.selectedEntity = null;
       this.hideMovementRange();
+      
+      // Hide entity info panel
+      const infoPanel = document.getElementById('entity-info-panel');
+      if (infoPanel) {
+        infoPanel.style.display = 'none';
+      }
       
       console.log('Entity deselected');
     },
