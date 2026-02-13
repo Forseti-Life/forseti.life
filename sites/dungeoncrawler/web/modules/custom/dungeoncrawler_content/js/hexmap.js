@@ -13,24 +13,307 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
   'use strict';
 
   /**
+   * UIManager - Handles all DOM interactions and UI updates.
+   * Decouples business logic from DOM manipulation.
+   */
+  class UIManager {
+    constructor() {
+      this.elements = {};
+      this.cacheElements();
+    }
+
+    /**
+     * Cache frequently accessed DOM elements.
+     */
+    cacheElements() {
+      this.elements = {
+        hoveredHex: document.getElementById('hovered-hex'),
+        selectedHex: document.getElementById('selected-hex'),
+        currentTurn: document.getElementById('current-turn'),
+        currentRound: document.getElementById('current-round'),
+        initiativeList: document.getElementById('initiative-list'),
+        combatControls: document.getElementById('combat-controls'),
+        startCombatBtn: document.getElementById('start-combat'),
+        endTurnBtn: document.getElementById('end-turn'),
+        endCombatBtn: document.getElementById('end-combat'),
+        initiativeTracker: document.getElementById('initiative-tracker'),
+        entityInfoPanel: document.getElementById('entity-info-panel'),
+        entityName: document.getElementById('entity-name'),
+        entityType: document.getElementById('entity-type'),
+        entityTeam: document.getElementById('entity-team'),
+        entityHp: document.getElementById('entity-hp'),
+        entityAc: document.getElementById('entity-ac'),
+        entityActions: document.getElementById('entity-actions'),
+        entityMovement: document.getElementById('entity-movement'),
+        selectedObjectType: document.getElementById('selected-object-type'),
+        zoomLevel: document.getElementById('zoom-level')
+      };
+    }
+
+    /**
+     * Update hovered hex display.
+     */
+    updateHoveredHex(q, r) {
+      if (this.elements.hoveredHex) {
+        this.elements.hoveredHex.textContent = q !== null ? `(${q}, ${r})` : 'None';
+      }
+    }
+
+    /**
+     * Update selected hex display.
+     */
+    updateSelectedHex(q, r) {
+      if (this.elements.selectedHex) {
+        this.elements.selectedHex.textContent = `(${q}, ${r})`;
+      }
+    }
+
+    /**
+     * Update current turn display.
+     */
+    updateCurrentTurn(name, actions, hasReaction) {
+      if (this.elements.currentTurn) {
+        let html = `<strong>${name}</strong>`;
+        if (actions) {
+          html += ` ${actions.getActionDisplay()}`;
+          if (hasReaction) {
+            html += ' ⚡';
+          }
+        }
+        this.elements.currentTurn.innerHTML = html;
+      }
+    }
+
+    /**
+     * Update round display.
+     */
+    updateRound(roundNumber) {
+      if (this.elements.currentRound) {
+        this.elements.currentRound.textContent = `Round ${roundNumber}`;
+      }
+    }
+
+    /**
+     * Update initiative tracker.
+     */
+    updateInitiativeTracker(initiativeOrder) {
+      if (!this.elements.initiativeList) return;
+
+      let html = '';
+      initiativeOrder.forEach((data) => {
+        const activeClass = data.isCurrent ? 'active-turn' : '';
+        const defeatedClass = data.isDefeated ? 'defeated' : '';
+        html += `<div class="initiative-item ${activeClass} ${defeatedClass}">
+          <span class="init-value">${data.initiative}</span>
+          <span class="init-name">${data.name}</span>
+        </div>`;
+      });
+      this.elements.initiativeList.innerHTML = html;
+    }
+
+    /**
+     * Update combat controls visibility.
+     */
+    updateCombatControls(combatState) {
+      const isInactive = (combatState === CombatState.INACTIVE || combatState === CombatState.ENDED);
+
+      if (this.elements.startCombatBtn) {
+        this.elements.startCombatBtn.style.display = isInactive ? 'inline-block' : 'none';
+      }
+      if (this.elements.endTurnBtn) {
+        this.elements.endTurnBtn.style.display = isInactive ? 'none' : 'inline-block';
+      }
+      if (this.elements.endCombatBtn) {
+        this.elements.endCombatBtn.style.display = isInactive ? 'none' : 'inline-block';
+      }
+      if (this.elements.initiativeTracker) {
+        this.elements.initiativeTracker.style.display = isInactive ? 'none' : 'block';
+      }
+    }
+
+    /**
+     * Show entity info panel.
+     */
+    showEntityInfo(entity) {
+      if (!this.elements.entityInfoPanel) return;
+
+      this.elements.entityInfoPanel.style.display = 'block';
+
+      const identity = entity.getComponent('IdentityComponent');
+      const stats = entity.getComponent('StatsComponent');
+      const combat = entity.getComponent('CombatComponent');
+      const actions = entity.getComponent('ActionsComponent');
+      const movement = entity.getComponent('MovementComponent');
+
+      if (this.elements.entityName) {
+        this.elements.entityName.textContent = identity?.name || 'Unknown';
+      }
+      if (this.elements.entityType) {
+        this.elements.entityType.textContent = identity?.entityType || '-';
+      }
+      if (this.elements.entityTeam) {
+        this.elements.entityTeam.textContent = combat?.team || '-';
+      }
+      if (this.elements.entityHp) {
+        this.elements.entityHp.textContent = stats ? `${stats.currentHp}/${stats.maxHp}` : '-';
+      }
+      if (this.elements.entityAc) {
+        this.elements.entityAc.textContent = stats?.ac || '-';
+      }
+      if (this.elements.entityActions) {
+        this.elements.entityActions.textContent = actions ? actions.getActionDisplay() : '-';
+      }
+      if (this.elements.entityMovement) {
+        this.elements.entityMovement.textContent = movement ?
+          `${movement.movementRemaining}/${movement.movementSpeed} ft` : '-';
+      }
+    }
+
+    /**
+     * Hide entity info panel.
+     */
+    hideEntityInfo() {
+      if (this.elements.entityInfoPanel) {
+        this.elements.entityInfoPanel.style.display = 'none';
+      }
+    }
+
+    /**
+     * Update selected object type display.
+     */
+    updateSelectedObjectType(type) {
+      if (this.elements.selectedObjectType) {
+        const displayName = type ? type.charAt(0).toUpperCase() + type.slice(1) : 'None';
+        this.elements.selectedObjectType.textContent = `Selected: ${displayName}`;
+      }
+    }
+
+    /**
+     * Update zoom level display.
+     */
+    updateZoomLevel(scale) {
+      if (this.elements.zoomLevel) {
+        const zoomPercent = Math.round(scale * 100);
+        this.elements.zoomLevel.textContent = `${zoomPercent}%`;
+      }
+    }
+  }
+
+  /**
+   * StateManager - Centralized state management.
+   * Provides a single source of truth for application state.
+   */
+  class StateManager {
+    constructor() {
+      this.state = {
+        // Selection state
+        selectedEntity: null,
+        selectedHex: null,
+        hoveredHex: null,
+        selectedObjectType: null,
+        
+        // Movement state
+        movementRange: null,
+        movementRangeOverlay: null,
+        
+        // Combat state
+        combatActive: false,
+        attackTarget: null,
+        
+        // Drag state
+        draggedObject: null,
+        
+        // Flags
+        assetsLoaded: false,
+        showCoordinates: false,
+        showGrid: true
+      };
+      
+      this.listeners = {};
+    }
+
+    /**
+     * Get state value.
+     */
+    get(key) {
+      return this.state[key];
+    }
+
+    /**
+     * Set state value and notify listeners.
+     */
+    set(key, value) {
+      const oldValue = this.state[key];
+      this.state[key] = value;
+      
+      // Notify listeners
+      if (this.listeners[key]) {
+        this.listeners[key].forEach(callback => callback(value, oldValue));
+      }
+    }
+
+    /**
+     * Subscribe to state changes.
+     */
+    subscribe(key, callback) {
+      if (!this.listeners[key]) {
+        this.listeners[key] = [];
+      }
+      this.listeners[key].push(callback);
+      
+      // Return unsubscribe function
+      return () => {
+        this.listeners[key] = this.listeners[key].filter(cb => cb !== callback);
+      };
+    }
+
+    /**
+     * Reset all state to defaults.
+     */
+    reset() {
+      this.state = {
+        selectedEntity: null,
+        selectedHex: null,
+        hoveredHex: null,
+        selectedObjectType: null,
+        movementRange: null,
+        movementRangeOverlay: null,
+        combatActive: false,
+        attackTarget: null,
+        draggedObject: null,
+        assetsLoaded: false,
+        showCoordinates: false,
+        showGrid: true
+      };
+    }
+  }
+
+  /**
    * Hex map behavior.
    */
   Drupal.behaviors.hexMap = {
+    // Configuration
+    config: {
+      hexSize: 30,
+      gridWidth: 20,
+      gridHeight: 20,
+      minZoom: 0.5,
+      maxZoom: 3.0,
+      defaultWidth: 800,
+      defaultHeight: 600,
+      backgroundColor: 0x1a1a2e
+    },
+    
+    // PixiJS containers
     app: null,
     hexContainer: null,
     gridContainer: null,
     objectContainer: null,
     uiContainer: null,
-    hexSize: 30,
-    gridWidth: 20,
-    gridHeight: 20,
-    showCoordinates: false,
-    showGrid: true,
-    selectedHex: null,
-    hoveredHex: null,
-    objects: new Map(), // Legacy - will migrate to ECS
-    draggedObject: null,
-    assetsLoaded: false,
+    
+    // Managers
+    uiManager: null,
+    stateManager: null,
     
     // ECS architecture
     entityManager: null,
@@ -39,14 +322,11 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     turnManagementSystem: null,
     combatSystem: null,
     
-    // Movement and selection
-    selectedEntity: null,
-    movementRange: null,
-    movementRangeOverlay: null,
-    
-    // Combat state
-    combatActive: false,
-    attackTarget: null,
+    // Cleanup tracking
+    eventListeners: [],
+    stageListeners: [],
+    tickerCallbacks: [],
+    stateSubscriptions: [],
 
     attach: function (context, settings) {
       const container = once('hexmap-init', '#hexmap-canvas-container', context);
@@ -55,25 +335,94 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         return;
       }
 
+      // Initialize managers
+      this.uiManager = new UIManager();
+      this.stateManager = new StateManager();
+      this.setupStateSubscriptions();
+
       this.initPixiApp(container[0]);
       this.initECS(); // Initialize ECS architecture
       this.generateHexGrid();
       this.setupControls();
       this.setupInteraction();
       
-      // Start game loop
-      this.app.ticker.add((delta) => this.update(delta));
+      // Start game loop and track for cleanup
+      const updateCallback = (delta) => this.update(delta);
+      this.app.ticker.add(updateCallback);
+      this.tickerCallbacks.push(updateCallback);
+    },
+    
+    /**
+     * Detach behavior and cleanup resources.
+     */
+    detach: function (context, settings, trigger) {
+      if (trigger !== 'unload') {
+        return;
+      }
+      
+      console.log('Cleaning up hexmap resources...');
+      
+      // Remove ticker callbacks
+      this.tickerCallbacks.forEach(callback => {
+        if (this.app && this.app.ticker) {
+          this.app.ticker.remove(callback);
+        }
+      });
+      this.tickerCallbacks = [];
+      
+      // Remove event listeners
+      this.eventListeners.forEach(({ element, event, handler }) => {
+        element.removeEventListener(event, handler);
+      });
+      this.eventListeners = [];
+
+      // Remove stage listeners
+      this.stageListeners.forEach(({ event, handler }) => {
+        if (this.app && this.app.stage) {
+          this.app.stage.off(event, handler);
+        }
+      });
+      this.stageListeners = [];
+
+      // Unsubscribe state listeners
+      this.stateSubscriptions.forEach(unsubscribe => unsubscribe());
+      this.stateSubscriptions = [];
+      
+      // Cleanup ECS systems
+      if (this.entityManager) {
+        this.entityManager.removeAllEntities();
+        this.entityManager = null;
+      }
+      
+      // Cleanup PixiJS
+      const movementRangeOverlay = this.stateManager ? this.stateManager.get('movementRangeOverlay') : null;
+      if (movementRangeOverlay) {
+        movementRangeOverlay.destroy();
+        this.stateManager.set('movementRangeOverlay', null);
+      }
+      
+      if (this.app) {
+        this.app.destroy(true, { children: true, texture: false, baseTexture: false });
+        this.app = null;
+      }
+      
+      // Reset state
+      if (this.stateManager) {
+        this.stateManager.reset();
+      }
+      
+      console.log('Hexmap cleanup complete');
     },
     
     /**
      * Initialize ECS architecture.
      */
     initECS: function () {
+      // Store self reference for callbacks
+      const self = this;
+      
       // Create entity manager
       this.entityManager = new EntityManager();
-      
-      // Create UI overlay container
-      this.uiContainer = new PIXI.Container();
       
       // Create render system
       this.renderSystem = new RenderSystem(
@@ -85,7 +434,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
           ui: this.uiContainer
         }
       );
-      this.renderSystem.setHexSize(this.hexSize);
+      this.renderSystem.setHexSize(this.config.hexSize);
       this.entityManager.addSystem(this.renderSystem);
       
       // Create movement system
@@ -109,7 +458,6 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       this.entityManager.addSystem(this.turnManagementSystem);
       
       // Set up turn management callbacks
-      const self = this;
       this.turnManagementSystem.onTurnChange(function(entity, turnIndex, totalTurns) {
         self.onTurnChange(entity, turnIndex, totalTurns);
       });
@@ -119,13 +467,6 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       this.turnManagementSystem.onCombatStateChange(function(combatState) {
         self.onCombatStateChange(combatState);
       });
-      
-      // Add UI layer to stage
-      this.app.stage.addChild(this.uiContainer);
-      
-      // Center UI container
-      this.uiContainer.x = this.hexContainer.x;
-      this.uiContainer.y = this.hexContainer.y;
       
       console.log('ECS initialized');
     },
@@ -139,6 +480,70 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       if (this.entityManager) {
         this.entityManager.update(delta * 16.67); // Convert to milliseconds
       }
+    },
+
+    /**
+     * Setup state subscriptions for reactive UI updates.
+     */
+    setupStateSubscriptions: function () {
+      this.stateSubscriptions.push(
+        this.stateManager.subscribe('selectedObjectType', (value) => {
+          this.uiManager.updateSelectedObjectType(value);
+        })
+      );
+
+      this.stateSubscriptions.push(
+        this.stateManager.subscribe('showGrid', (value) => {
+          if (this.gridContainer) {
+            this.gridContainer.visible = value;
+          }
+        })
+      );
+
+      this.uiManager.updateSelectedObjectType(this.stateManager.get('selectedObjectType'));
+    },
+
+    /**
+     * Set world layer position for all render containers.
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     */
+    setWorldPosition: function (x, y) {
+      this.hexContainer.x = x;
+      this.hexContainer.y = y;
+      this.gridContainer.x = x;
+      this.gridContainer.y = y;
+      this.objectContainer.x = x;
+      this.objectContainer.y = y;
+      this.uiContainer.x = x;
+      this.uiContainer.y = y;
+    },
+
+    /**
+     * Set world layer scale for all render containers.
+     * @param {number} scale - Uniform scale value
+     */
+    setWorldScale: function (scale) {
+      this.hexContainer.scale.set(scale);
+      this.gridContainer.scale.set(scale);
+      this.objectContainer.scale.set(scale);
+      this.uiContainer.scale.set(scale);
+    },
+
+    /**
+     * Clear all ECS entities and related overlays/state.
+     */
+    clearEntities: function () {
+      if (!this.entityManager) {
+        return;
+      }
+
+      this.deselectEntity();
+      this.entityManager.removeAllEntities();
+      this.uiManager.hideEntityInfo();
+      this.uiManager.updateCurrentTurn('-', null, false);
+      this.uiManager.updateInitiativeTracker([]);
+      console.log('Cleared all ECS entities');
     },
     
     /**
@@ -154,8 +559,9 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       
       console.log(`Turn change: ${name} (${turnIndex + 1}/${totalTurns})`);
       
-      // Update UI
-      this.updateTurnUI(entity, turnIndex, totalTurns);
+      // Update UI via UIManager
+      this.uiManager.updateCurrentTurn(name, actions, actions?.hasReactionAvailable());
+      this.uiManager.updateInitiativeTracker(this.turnManagementSystem.getInitiativeOrder());
       
       // Auto-select entity on their turn (if player controlled)
       const combat = entity.getComponent('CombatComponent');
@@ -170,12 +576,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
      */
     onRoundChange: function (roundNumber) {
       console.log(`Round ${roundNumber} started`);
-      
-      // Update round display
-      const roundDisplay = document.getElementById('current-round');
-      if (roundDisplay) {
-        roundDisplay.textContent = `Round ${roundNumber}`;
-      }
+      this.uiManager.updateRound(roundNumber);
     },
     
     /**
@@ -184,10 +585,10 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
      */
     onCombatStateChange: function (combatState) {
       console.log(`Combat state: ${combatState}`);
-      this.combatActive = (combatState === CombatState.IN_PROGRESS || combatState === CombatState.ROLLING_INITIATIVE);
+      this.stateManager.set('combatActive', combatState === CombatState.IN_PROGRESS || combatState === CombatState.ROLLING_INITIATIVE);
       
       // Update UI
-      this.updateCombatUI(combatState);
+      this.uiManager.updateCombatControls(combatState);
     },
 
     /**
@@ -196,9 +597,9 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     initPixiApp: function (container) {
       // Create PixiJS application
       this.app = new PIXI.Application({
-        width: container.clientWidth || 800,
-        height: container.clientHeight || 600,
-        backgroundColor: 0x1a1a2e,
+        width: container.clientWidth || this.config.defaultWidth,
+        height: container.clientHeight || this.config.defaultHeight,
+        backgroundColor: this.config.backgroundColor,
         antialias: true,
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
@@ -210,11 +611,13 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       this.hexContainer = new PIXI.Container();
       this.gridContainer = new PIXI.Container();
       this.objectContainer = new PIXI.Container();
+      this.uiContainer = new PIXI.Container();
       
-      // Add layers in order: hexes (terrain), grid (coords), objects (sprites)
+      // Add layers in order: hexes (terrain), grid (coords), objects (sprites), ui (overlays)
       this.app.stage.addChild(this.hexContainer);
       this.app.stage.addChild(this.gridContainer);
       this.app.stage.addChild(this.objectContainer);
+      this.app.stage.addChild(this.uiContainer);
 
       // Center the view
       this.hexContainer.x = this.app.screen.width / 2;
@@ -241,9 +644,9 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       this.hexContainer.removeChildren();
       this.gridContainer.removeChildren();
 
-      const hexSize = this.hexSize;
-      const width = this.gridWidth;
-      const height = this.gridHeight;
+      const hexSize = this.config.hexSize;
+      const width = this.config.gridWidth;
+      const height = this.config.gridHeight;
 
       // Calculate hex dimensions
       const hexWidth = hexSize * 2;
@@ -304,7 +707,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       this.hexContainer.addChild(hex);
 
       // Add coordinates text if enabled
-      if (this.showCoordinates) {
+      if (this.stateManager.get('showCoordinates')) {
         this.addHexCoordinates(hex, q, r, pos);
       }
     },
@@ -379,8 +782,8 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       
       for (let i = 0; i < 6; i++) {
         const angle = (Math.PI / 3) * i;
-        const x = this.hexSize * Math.cos(angle);
-        const y = this.hexSize * Math.sin(angle);
+        const x = this.config.hexSize * Math.cos(angle);
+        const y = this.config.hexSize * Math.sin(angle);
         
         if (i === 0) {
           hex.moveTo(x, y);
@@ -391,11 +794,11 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       hex.closePath();
       hex.endFill();
 
-      this.hoveredHex = hex;
+      this.stateManager.set('hoveredHex', hex);
       
       // Update UI
       const { q, r } = hex.hexData;
-      document.getElementById('hovered-hex').textContent = `(${q}, ${r})`;
+      this.uiManager.updateHoveredHex(q, r);
     },
 
     /**
@@ -403,15 +806,15 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
      */
     onHexOut: function (hex) {
       // Reset hex appearance (unless it's selected)
-      if (this.selectedHex !== hex) {
+      if (this.stateManager.get('selectedHex') !== hex) {
         hex.clear();
         hex.beginFill(0x2d3748);
         hex.lineStyle(1, 0x4a5568, 1);
         
         for (let i = 0; i < 6; i++) {
           const angle = (Math.PI / 3) * i;
-          const x = this.hexSize * Math.cos(angle);
-          const y = this.hexSize * Math.sin(angle);
+          const x = this.config.hexSize * Math.cos(angle);
+          const y = this.config.hexSize * Math.sin(angle);
           
           if (i === 0) {
             hex.moveTo(x, y);
@@ -423,8 +826,8 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         hex.endFill();
       }
 
-      this.hoveredHex = null;
-      document.getElementById('hovered-hex').textContent = 'None';
+      this.stateManager.set('hoveredHex', null);
+      this.uiManager.updateHoveredHex(null, null);
     },
 
     /**
@@ -434,11 +837,12 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       const { q, r } = hex.hexData;
       
       // Mode 1: Object placement mode
-      if (this.selectedObjectType) {
+      const selectedObjectType = this.stateManager.get('selectedObjectType');
+      if (selectedObjectType) {
         // Map object type to EntityType
         let entityType;
         let name;
-        switch (this.selectedObjectType) {
+        switch (selectedObjectType) {
           case 'creature':
             entityType = EntityType.CREATURE;
             name = 'Creature';
@@ -468,17 +872,19 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       
       // Mode 2: Check if clicking on an entity
       const entitiesAtPos = this.entityManager.getEntitiesWith('PositionComponent', 'IdentityComponent');
+      const selectedEntity = this.stateManager.get('selectedEntity');
+      
       for (const entity of entitiesAtPos) {
         const pos = entity.getComponent('PositionComponent');
         if (pos.q === q && pos.r === r) {
           // Check if this is an attack action (selected entity + hostile target)
-          if (this.selectedEntity && entity.id !== this.selectedEntity.id) {
-            const attackerCombat = this.selectedEntity.getComponent('CombatComponent');
+          if (selectedEntity && entity.id !== selectedEntity.id) {
+            const attackerCombat = selectedEntity.getComponent('CombatComponent');
             const targetCombat = entity.getComponent('CombatComponent');
             
             if (attackerCombat && targetCombat && attackerCombat.isHostileTo(targetCombat)) {
               // Attempt attack
-              this.performAttack(this.selectedEntity, entity);
+              this.performAttack(selectedEntity, entity);
               return;
             }
           }
@@ -492,15 +898,16 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       }
       
       // Mode 3: Move selected entity
-      if (this.selectedEntity && this.movementRange) {
+      const movementRange = this.stateManager.get('movementRange');
+      if (selectedEntity && movementRange) {
         const hexKey = `${q}_${r}`;
-        if (this.movementRange.has(hexKey)) {
+        if (movementRange.has(hexKey)) {
           // Try to move entity
-          const success = this.movementSystem.moveEntity(this.selectedEntity, q, r);
+          const success = this.movementSystem.moveEntity(selectedEntity, q, r);
           if (success) {
             console.log(`Moved entity to (${q}, ${r})`);
             // Refresh movement range after move
-            this.showMovementRange(this.selectedEntity);
+            this.showMovementRange(selectedEntity);
           }
           return;
         }
@@ -508,12 +915,13 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       
       // Mode 4: Default hex selection
       // Deselect previous hex
-      if (this.selectedHex) {
-        this.onHexOut(this.selectedHex);
+      const previousSelectedHex = this.stateManager.get('selectedHex');
+      if (previousSelectedHex) {
+        this.onHexOut(previousSelectedHex);
       }
 
       // Select this hex
-      this.selectedHex = hex;
+      this.stateManager.set('selectedHex', hex);
       
       hex.clear();
       hex.beginFill(0x3b82f6);
@@ -521,8 +929,8 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       
       for (let i = 0; i < 6; i++) {
         const angle = (Math.PI / 3) * i;
-        const x = this.hexSize * Math.cos(angle);
-        const y = this.hexSize * Math.sin(angle);
+        const x = this.config.hexSize * Math.cos(angle);
+        const y = this.config.hexSize * Math.sin(angle);
         
         if (i === 0) {
           hex.moveTo(x, y);
@@ -534,7 +942,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       hex.endFill();
 
       // Update UI
-      document.getElementById('selected-hex').textContent = `(${q}, ${r})`;
+      this.uiManager.updateSelectedHex(q, r);
       
       console.log('Selected hex:', q, r);
     },
@@ -605,11 +1013,12 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
      */
     selectEntity: function (entity) {
       // Deselect previous entity
-      if (this.selectedEntity) {
+      const previousEntity = this.stateManager.get('selectedEntity');
+      if (previousEntity) {
         this.deselectEntity();
       }
       
-      this.selectedEntity = entity;
+      this.stateManager.set('selectedEntity', entity);
       
       // Check if entity can move
       const movement = entity.getComponent('MovementComponent');
@@ -632,50 +1041,30 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         render.sprite.tint = 0x60a5fa; // Blue tint
       }
       
-      // Show and populate entity info panel
-      const infoPanel = document.getElementById('entity-info-panel');
-      if (infoPanel) {
-        infoPanel.style.display = 'block';
-        
-        const stats = entity.getComponent('StatsComponent');
-        const combat = entity.getComponent('CombatComponent');
-        const actions = entity.getComponent('ActionsComponent');
-        
-        document.getElementById('entity-name').textContent = identity?.name || 'Unknown';
-        document.getElementById('entity-type').textContent = identity?.entityType || '-';
-        document.getElementById('entity-team').textContent = combat?.team || '-';
-        document.getElementById('entity-hp').textContent = stats ? 
-          `${stats.currentHp}/${stats.maxHp}` : '-';
-        document.getElementById('entity-ac').textContent = stats?.ac || '-';
-        document.getElementById('entity-actions').textContent = actions ? 
-          actions.getActionDisplay() : '-';
-        document.getElementById('entity-movement').textContent = movement ? 
-          `${movement.movementRemaining}/${movement.movementSpeed} ft` : '-';
-      }
+      // Show entity info panel via UIManager
+      this.uiManager.showEntityInfo(entity);
     },
     
     /**
      * Deselect currently selected entity.
      */
     deselectEntity: function () {
-      if (!this.selectedEntity) {
+      const selectedEntity = this.stateManager.get('selectedEntity');
+      if (!selectedEntity) {
         return;
       }
       
       // Remove tint from sprite
-      const render = this.selectedEntity.getComponent('RenderComponent');
+      const render = selectedEntity.getComponent('RenderComponent');
       if (render && render.sprite) {
         render.sprite.tint = 0xffffff; // Reset to white
       }
       
-      this.selectedEntity = null;
+      this.stateManager.set('selectedEntity', null);
       this.hideMovementRange();
       
       // Hide entity info panel
-      const infoPanel = document.getElementById('entity-info-panel');
-      if (infoPanel) {
-        infoPanel.style.display = 'none';
-      }
+      this.uiManager.hideEntityInfo();
       
       console.log('Entity deselected');
     },
@@ -689,47 +1078,50 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       this.hideMovementRange();
       
       // Calculate movement range
-      this.movementRange = this.movementSystem.calculateMovementRange(entity);
+      const movementRange = this.movementSystem.calculateMovementRange(entity);
+      this.stateManager.set('movementRange', movementRange);
       
       // Create overlay graphics
-      this.movementRangeOverlay = new PIXI.Graphics();
+      const movementRangeOverlay = new PIXI.Graphics();
       
       // Draw reachable hexes
-      this.movementRange.forEach(hexKey => {
+      movementRange.forEach(hexKey => {
         const [q, r] = hexKey.split('_').map(Number);
-        const pos = this.axialToPixel(q, r, this.hexSize);
+        const pos = this.axialToPixel(q, r, this.config.hexSize);
         
-        this.movementRangeOverlay.beginFill(0x3b82f6, 0.2); // Blue with transparency
-        this.movementRangeOverlay.lineStyle(2, 0x60a5fa, 0.5);
+        movementRangeOverlay.beginFill(0x3b82f6, 0.2); // Blue with transparency
+        movementRangeOverlay.lineStyle(2, 0x60a5fa, 0.5);
         
         for (let i = 0; i < 6; i++) {
           const angle = (Math.PI / 3) * i;
-          const x = pos.x + this.hexSize * Math.cos(angle);
-          const y = pos.y + this.hexSize * Math.sin(angle);
+          const x = pos.x + this.config.hexSize * Math.cos(angle);
+          const y = pos.y + this.config.hexSize * Math.sin(angle);
           
           if (i === 0) {
-            this.movementRangeOverlay.moveTo(x, y);
+            movementRangeOverlay.moveTo(x, y);
           } else {
-            this.movementRangeOverlay.lineTo(x, y);
+            movementRangeOverlay.lineTo(x, y);
           }
         }
-        this.movementRangeOverlay.closePath();
-        this.movementRangeOverlay.endFill();
+        movementRangeOverlay.closePath();
+        movementRangeOverlay.endFill();
       });
       
-      this.uiContainer.addChild(this.movementRangeOverlay);
+      this.uiContainer.addChild(movementRangeOverlay);
+      this.stateManager.set('movementRangeOverlay', movementRangeOverlay);
     },
     
     /**
      * Hide movement range overlay.
      */
     hideMovementRange: function () {
-      if (this.movementRangeOverlay) {
-        this.uiContainer.removeChild(this.movementRangeOverlay);
-        this.movementRangeOverlay.destroy();
-        this.movementRangeOverlay = null;
+      const movementRangeOverlay = this.stateManager.get('movementRangeOverlay');
+      if (movementRangeOverlay) {
+        this.uiContainer.removeChild(movementRangeOverlay);
+        movementRangeOverlay.destroy();
+        this.stateManager.set('movementRangeOverlay', null);
       }
-      this.movementRange = null;
+      this.stateManager.set('movementRange', null);
     },
     
     /**
@@ -756,78 +1148,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       this.turnManagementSystem.endCombat();
       this.deselectEntity();
     },
-    
-    /**
-     * Update turn UI display.
-     * @param {Entity} entity - Current turn entity
-     * @param {number} turnIndex - Turn index
-     * @param {number} totalTurns - Total turns
-     */
-    updateTurnUI: function (entity, turnIndex, totalTurns) {
-      const identity = entity.getComponent('IdentityComponent');
-      const actions = entity.getComponent('ActionsComponent');
-      const name = identity ? identity.name : `Entity ${entity.id}`;
-      
-      // Update current turn display
-      const currentTurnDiv = document.getElementById('current-turn');
-      if (currentTurnDiv) {
-        let html = `<strong>${name}</strong>`;
-        if (actions) {
-          html += ` ${actions.getActionDisplay()}`;
-          if (actions.hasReactionAvailable()) {
-            html += ' ⚡'; // Reaction available
-          }
-        }
-        currentTurnDiv.innerHTML = html;
-      }
-      
-      // Update initiative tracker
-      const initiativeList = document.getElementById('initiative-list');
-      if (initiativeList) {
-        const order = this.turnManagementSystem.getInitiativeOrder();
-        let html = '';
-        
-        order.forEach((data, index) => {
-          const activeClass = data.isCurrent ? 'active-turn' : '';
-          const defeatedClass = data.isDefeated ? 'defeated' : '';
-          html += `<div class="initiative-item ${activeClass} ${defeatedClass}">
-            <span class="init-value">${data.initiative}</span>
-            <span class="init-name">${data.name}</span>
-          </div>`;
-        });
-        
-        initiativeList.innerHTML = html;
-      }
-    },
-    
-    /**
-     * Update combat UI based on state.
-     * @param {string} combatState - Combat state
-     */
-    updateCombatUI: function (combatState) {
-      const combatControls = document.getElementById('combat-controls');
-      const startCombatBtn = document.getElementById('start-combat');
-      const endTurnBtn = document.getElementById('end-turn');
-      const endCombatBtn = document.getElementById('end-combat');
-      const initiativeTracker = document.getElementById('initiative-tracker');
-      
-      if (!combatControls) return;
-      
-      if (combatState === CombatState.INACTIVE || combatState === CombatState.ENDED) {
-        // Show start button, hide others
-        if (startCombatBtn) startCombatBtn.style.display = 'inline-block';
-        if (endTurnBtn) endTurnBtn.style.display = 'none';
-        if (endCombatBtn) endCombatBtn.style.display = 'none';
-        if (initiativeTracker) initiativeTracker.style.display = 'none';
-      } else {
-        // Hide start button, show combat controls
-        if (startCombatBtn) startCombatBtn.style.display = 'none';
-        if (endTurnBtn) endTurnBtn.style.display = 'inline-block';
-        if (endCombatBtn) endCombatBtn.style.display = 'inline-block';
-        if (initiativeTracker) initiativeTracker.style.display = 'block';
-      }
-    },
-    
+
     /**
      * Perform attack action.
      * @param {Entity} attacker - Attacking entity
@@ -835,7 +1156,8 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
      */
     performAttack: function (attacker, target) {
       // Check if it's the attacker's turn (if combat is active)
-      if (this.combatActive && this.turnManagementSystem) {
+      const combatActive = this.stateManager.get('combatActive');
+      if (combatActive && this.turnManagementSystem) {
         if (!this.turnManagementSystem.isEntityTurn(attacker)) {
           console.warn('Not your turn!');
           return;
@@ -850,17 +1172,11 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         
         // Refresh UI after attack
         const actions = attacker.getComponent('ActionsComponent');
+        const identity = attacker.getComponent('IdentityComponent');
+        const name = identity ? identity.name : `Entity ${attacker.id}`;
+        
         if (actions) {
-          const currentTurnDiv = document.getElementById('current-turn');
-          if (currentTurnDiv) {
-            const identity = attacker.getComponent('IdentityComponent');
-            const name = identity ? identity.name : `Entity ${attacker.id}`;
-            let html = `<strong>${name}</strong> ${actions.getActionDisplay()}`;
-            if (actions.hasReactionAvailable()) {
-              html += ' ⚡';
-            }
-            currentTurnDiv.innerHTML = html;
-          }
+          this.uiManager.updateCurrentTurn(name, actions, actions.hasReactionAvailable());
         }
       }
     },
@@ -915,177 +1231,10 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     },
 
     /**
-     * Create a game object on a hex (LEGACY - use createEntityObject for new code).
-     */
-    createObject: function (q, r, type, spritePath) {
-      const key = `${q}_${r}`;
-      
-      // Remove existing object at this position
-      if (this.objects.has(key)) {
-        this.removeObject(q, r);
-      }
-
-      // Create object sprite
-      const sprite = this.createObjectSprite(type, spritePath);
-      const pos = this.axialToPixel(q, r, this.hexSize);
-      
-      sprite.x = pos.x;
-      sprite.y = pos.y;
-      sprite.anchor.set(0.5);
-      sprite.objectData = { q, r, type };
-      
-      // Make interactive for dragging
-      sprite.interactive = true;
-      sprite.buttonMode = true;
-      sprite.on('pointerdown', (e) => this.onObjectDragStart(e, sprite));
-      sprite.on('pointerup', () => this.onObjectDragEnd(sprite));
-      sprite.on('pointerupoutside', () => this.onObjectDragEnd(sprite));
-      sprite.on('pointermove', (e) => this.onObjectDrag(e, sprite));
-      
-      this.objectContainer.addChild(sprite);
-      this.objects.set(key, sprite);
-      
-      console.log(`Created ${type} at (${q}, ${r})`);
-      return sprite;
-    },
-
-    /**
-     * Create a sprite for an object (placeholder graphics if no texture).
-     */
-    createObjectSprite: function (type, spritePath) {
-      // If we have a sprite path and texture is loaded, use it
-      if (spritePath && PIXI.utils.TextureCache[spritePath]) {
-        const sprite = new PIXI.Sprite(PIXI.utils.TextureCache[spritePath]);
-        sprite.width = this.hexSize * 1.5;
-        sprite.height = this.hexSize * 1.5;
-        return sprite;
-      }
-      
-      // Otherwise create placeholder graphics
-      const graphics = new PIXI.Graphics();
-      const size = this.hexSize * 0.8;
-      
-      // Different shapes/colors for different types
-      switch (type) {
-        case 'creature':
-          graphics.beginFill(0xe74c3c); // Red
-          graphics.drawCircle(0, 0, size / 2);
-          break;
-        case 'item':
-          graphics.beginFill(0xf39c12); // Orange
-          graphics.drawRect(-size / 3, -size / 3, size / 1.5, size / 1.5);
-          break;
-        case 'obstacle':
-          graphics.beginFill(0x95a5a6); // Gray
-          graphics.drawPolygon([
-            -size / 2, size / 2,
-            0, -size / 2,
-            size / 2, size / 2
-          ]);
-          break;
-        case 'treasure':
-          graphics.beginFill(0xf1c40f); // Gold
-          graphics.lineStyle(3, 0xe67e22);
-          graphics.drawRect(-size / 3, -size / 3, size / 1.5, size / 1.5);
-          break;
-        default:
-          graphics.beginFill(0x3498db); // Blue
-          graphics.drawRect(-size / 2, -size / 2, size, size);
-      }
-      graphics.endFill();
-      
-      // Convert to sprite for consistency
-      const texture = this.app.renderer.generateTexture(graphics);
-      const sprite = new PIXI.Sprite(texture);
-      sprite.anchor.set(0.5);
-      return sprite;
-    },
-
-    /**
-     * Remove object from hex.
-     */
-    removeObject: function (q, r) {
-      const key = `${q}_${r}`;
-      const sprite = this.objects.get(key);
-      
-      if (sprite) {
-        this.objectContainer.removeChild(sprite);
-        sprite.destroy();
-        this.objects.delete(key);
-        console.log(`Removed object from (${q}, ${r})`);
-      }
-    },
-
-    /**
-     * Start dragging an object.
-     */
-    onObjectDragStart: function (e, sprite) {
-      e.stopPropagation(); // Prevent stage drag
-      this.draggedObject = sprite;
-      sprite.alpha = 0.7;
-      sprite.dragging = true;
-      sprite.dragData = e.data;
-      console.log('Started dragging object');
-    },
-
-    /**
-     * Drag object.
-     */
-    onObjectDrag: function (e, sprite) {
-      if (sprite.dragging) {
-        const newPosition = sprite.dragData.getLocalPosition(this.objectContainer);
-        sprite.x = newPosition.x;
-        sprite.y = newPosition.y;
-      }
-    },
-
-    /**
-     * End dragging object (snap to hex).
-     */
-    onObjectDragEnd: function (sprite) {
-      if (!sprite.dragging) return;
-      
-      sprite.dragging = false;
-      sprite.alpha = 1;
-      this.draggedObject = null;
-      
-      // Get position in hex coordinates
-      const localPos = { x: sprite.x, y: sprite.y };
-      const axial = this.pixelToAxial(localPos.x, localPos.y, this.hexSize);
-      
-      // Remove from old position
-      const oldKey = `${sprite.objectData.q}_${sprite.objectData.r}`;
-      this.objects.delete(oldKey);
-      
-      // Snap to nearest hex
-      const pos = this.axialToPixel(axial.q, axial.r, this.hexSize);
-      sprite.x = pos.x;
-      sprite.y = pos.y;
-      
-      // Update object data
-      sprite.objectData.q = axial.q;
-      sprite.objectData.r = axial.r;
-      
-      // Add to new position
-      const newKey = `${axial.q}_${axial.r}`;
-      
-      // If there's already an object at this position, remove it
-      if (this.objects.has(newKey)) {
-        const existingSprite = this.objects.get(newKey);
-        this.objectContainer.removeChild(existingSprite);
-        existingSprite.destroy();
-      }
-      
-      this.objects.set(newKey, sprite);
-      
-      console.log(`Moved object to (${axial.q}, ${axial.r})`);
-    },
-
-    /**
      * Load game assets.
      */
     loadAssets: async function (assetList) {
-      if (this.assetsLoaded) return;
+      if (this.stateManager && this.stateManager.get('assetsLoaded')) return;
       
       console.log('Loading assets...');
       
@@ -1093,7 +1242,9 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         for (const asset of assetList) {
           await PIXI.Assets.load(asset);
         }
-        this.assetsLoaded = true;
+        if (this.stateManager) {
+          this.stateManager.set('assetsLoaded', true);
+        }
         console.log('Assets loaded successfully');
       } catch (error) {
         console.error('Error loading assets:', error);
@@ -1106,119 +1257,114 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     setupControls: function () {
       const self = this;
 
+      // Helper to track event listeners for cleanup
+      const addTrackedListener = (element, event, handler) => {
+        if (element) {
+          element.addEventListener(event, handler);
+          self.eventListeners.push({ element, event, handler });
+        }
+      };
+
       // Grid size selector
-      document.getElementById('grid-size').addEventListener('change', function (e) {
+      const gridSizeSelect = document.getElementById('grid-size');
+      addTrackedListener(gridSizeSelect, 'change', function (e) {
         const size = e.target.value;
         switch (size) {
           case 'small':
-            self.gridWidth = 10;
-            self.gridHeight = 10;
+            self.config.gridWidth = 10;
+            self.config.gridHeight = 10;
             break;
           case 'medium':
-            self.gridWidth = 20;
-            self.gridHeight = 20;
+            self.config.gridWidth = 20;
+            self.config.gridHeight = 20;
             break;
           case 'large':
-            self.gridWidth = 40;
-            self.gridHeight = 40;
+            self.config.gridWidth = 40;
+            self.config.gridHeight = 40;
             break;
         }
         self.generateHexGrid();
       });
 
       // Hex size slider
-      document.getElementById('hex-size').addEventListener('input', function (e) {
-        self.hexSize = parseInt(e.target.value);
-        document.getElementById('hex-size-value').textContent = self.hexSize + 'px';
+      const hexSizeSlider = document.getElementById('hex-size');
+      addTrackedListener(hexSizeSlider, 'input', function (e) {
+        self.config.hexSize = parseInt(e.target.value);
+        const hexSizeValue = document.getElementById('hex-size-value');
+        if (hexSizeValue) {
+          hexSizeValue.textContent = self.config.hexSize + 'px';
+        }
         self.generateHexGrid();
       });
 
       // Toggle coordinates
-      document.getElementById('toggle-coordinates').addEventListener('click', function () {
-        self.showCoordinates = !self.showCoordinates;
+      const toggleCoords = document.getElementById('toggle-coordinates');
+      addTrackedListener(toggleCoords, 'click', function () {
+        const current = self.stateManager.get('showCoordinates');
+        self.stateManager.set('showCoordinates', !current);
         self.generateHexGrid();
       });
 
       // Toggle grid lines
-      document.getElementById('toggle-grid').addEventListener('click', function () {
-        self.showGrid = !self.showGrid;
-        self.gridContainer.visible = self.showGrid;
+      const toggleGrid = document.getElementById('toggle-grid');
+      addTrackedListener(toggleGrid, 'click', function () {
+        const current = self.stateManager.get('showGrid');
+        const newValue = !current;
+        self.stateManager.set('showGrid', newValue);
       });
 
       // Reset view
-      document.getElementById('reset-view').addEventListener('click', function () {
-        self.hexContainer.scale.set(1);
-        self.hexContainer.x = self.app.screen.width / 2;
-        self.hexContainer.y = self.app.screen.height / 2;
-        self.gridContainer.scale.set(1);
-        self.gridContainer.x = self.hexContainer.x;
-        self.gridContainer.y = self.hexContainer.y;
-        self.objectContainer.scale.set(1);
-        self.objectContainer.x = self.hexContainer.x;
-        self.objectContainer.y = self.hexContainer.y;
-        document.getElementById('zoom-level').textContent = '100%';
+      const resetView = document.getElementById('reset-view');
+      addTrackedListener(resetView, 'click', function () {
+        self.setWorldScale(1);
+        self.setWorldPosition(self.app.screen.width / 2, self.app.screen.height / 2);
+        self.uiManager.updateZoomLevel(1);
       });
-
-      // Object palette controls
-      self.selectedObjectType = null;
 
       // Object type buttons
       document.querySelectorAll('.btn-object').forEach(function (btn) {
-        btn.addEventListener('click', function () {
+        const clickHandler = function () {
           // Remove active class from all buttons
           document.querySelectorAll('.btn-object').forEach(b => b.classList.remove('active'));
           
           // Set active button
           btn.classList.add('active');
-          self.selectedObjectType = btn.dataset.type;
+          const objectType = btn.dataset.type;
+          self.stateManager.set('selectedObjectType', objectType);
           
-          // Update display
-          document.getElementById('selected-object-type').textContent = 
-            'Selected: ' + btn.dataset.type.charAt(0).toUpperCase() + btn.dataset.type.slice(1);
-          
-          console.log('Selected object type:', self.selectedObjectType);
-        });
+          console.log('Selected object type:', objectType);
+        };
+        addTrackedListener(btn, 'click', clickHandler);
       });
 
       // Clear all objects
-      document.getElementById('clear-objects').addEventListener('click', function () {
-        self.objects.forEach((sprite, key) => {
-          self.objectContainer.removeChild(sprite);
-          sprite.destroy();
-        });
-        self.objects.clear();
+      const clearObjects = document.getElementById('clear-objects');
+      addTrackedListener(clearObjects, 'click', function () {
+        self.clearEntities();
         console.log('Cleared all objects');
       });
       
-      // Deselect entity button (if it exists)
+      // Deselect entity button
       const deselectBtn = document.getElementById('deselect-entity');
-      if (deselectBtn) {
-        deselectBtn.addEventListener('click', function () {
-          self.deselectEntity();
-        });
-      }
+      addTrackedListener(deselectBtn, 'click', function () {
+        self.deselectEntity();
+      });
       
       // Combat controls
       const startCombatBtn = document.getElementById('start-combat');
-      if (startCombatBtn) {
-        startCombatBtn.addEventListener('click', function () {
-          self.startCombat();
-        });
-      }
+      addTrackedListener(startCombatBtn, 'click', function () {
+        self.startCombat();
+      });
       
       const endTurnBtn = document.getElementById('end-turn');
-      if (endTurnBtn) {
-        endTurnBtn.addEventListener('click', function () {
-          self.endTurn();
-        });
-      }
+      addTrackedListener(endTurnBtn, 'click', function () {
+        self.endTurn();
+      });
       
       const endCombatBtn = document.getElementById('end-combat');
-      if (endCombatBtn) {
-        endCombatBtn.addEventListener('click', function () {
-          self.endCombat();
-        });
-      }
+      addTrackedListener(endCombatBtn, 'click', function () {
+        self.endCombat();
+      });
     },
 
     /**
@@ -1229,53 +1375,55 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       let isDragging = false;
       let dragStart = { x: 0, y: 0 };
 
+      const addTrackedStageListener = (event, handler) => {
+        this.app.stage.on(event, handler);
+        this.stageListeners.push({ event, handler });
+      };
+
       // Pan functionality
-      this.app.stage.on('pointerdown', function (e) {
+      addTrackedStageListener('pointerdown', function (e) {
         isDragging = true;
         dragStart = { x: e.data.global.x, y: e.data.global.y };
       });
 
-      this.app.stage.on('pointerup', function () {
+      addTrackedStageListener('pointerup', function () {
         isDragging = false;
       });
 
-      this.app.stage.on('pointerupoutside', function () {
+      addTrackedStageListener('pointerupoutside', function () {
         isDragging = false;
       });
 
-      this.app.stage.on('pointermove', function (e) {
+      addTrackedStageListener('pointermove', function (e) {
         if (isDragging) {
           const dx = e.data.global.x - dragStart.x;
           const dy = e.data.global.y - dragStart.y;
-          
-          self.hexContainer.x += dx;
-          self.hexContainer.y += dy;
-          self.gridContainer.x += dx;
-          self.gridContainer.y += dy;
-          self.objectContainer.x += dx;
-          self.objectContainer.y += dy;
+
+          const nextX = self.hexContainer.x + dx;
+          const nextY = self.hexContainer.y + dy;
+          self.setWorldPosition(nextX, nextY);
           
           dragStart = { x: e.data.global.x, y: e.data.global.y };
         }
       });
 
       // Zoom functionality
-      this.app.view.addEventListener('wheel', function (e) {
+      const wheelHandler = function (e) {
         e.preventDefault();
         
         const delta = e.deltaY < 0 ? 1.1 : 0.9;
         const newScale = self.hexContainer.scale.x * delta;
         
-        // Limit zoom
-        if (newScale > 0.5 && newScale < 3) {
-          self.hexContainer.scale.set(newScale);
-          self.gridContainer.scale.set(newScale);
-          self.objectContainer.scale.set(newScale);
+        // Limit zoom using config values
+        if (newScale > self.config.minZoom && newScale < self.config.maxZoom) {
+          self.setWorldScale(newScale);
           
-          const zoomPercent = Math.round(newScale * 100);
-          document.getElementById('zoom-level').textContent = zoomPercent + '%';
+          self.uiManager.updateZoomLevel(newScale);
         }
-      });
+      };
+      
+      this.app.view.addEventListener('wheel', wheelHandler);
+      this.eventListeners.push({ element: this.app.view, event: 'wheel', handler: wheelHandler });
     }
   };
 

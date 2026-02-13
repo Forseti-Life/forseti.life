@@ -1,0 +1,40 @@
+# Dungeon Crawler Content Permissions
+
+# Basic access permissions
+access dungeoncrawler characters:
+  title: 'Access Dungeon Crawler Characters'
+  description: 'View and manage own characters in Dungeon Crawler.'
+  restrict access: false
+
+# Admin permissions
+administer dungeoncrawler content:
+  title: 'Administer Dungeon Crawler Content'
+  description: 'Administer game content, settings, and all characters.'
+  restrict access: true
+
+# Character management permissions
+create dungeoncrawler characters:
+  title: 'Create Dungeon Crawler Characters'
+  description: 'Create new characters in Dungeon Crawler.'
+  restrict access: false
+
+edit own dungeoncrawler characters:
+  title: 'Edit Own Dungeon Crawler Characters'
+  description: 'Edit own characters in Dungeon Crawler.'
+  restrict access: false
+
+delete own dungeoncrawler characters:
+  title: 'Delete Own Dungeon Crawler Characters'
+  description: 'Delete own characters in Dungeon Crawler.'
+  restrict access: false
+
+# Admin character permissions
+edit any dungeoncrawler character:
+  title: 'Edit Any Dungeon Crawler Character'
+  description: 'Edit any character regardless of ownership.'
+  restrict access: true
+
+delete any dungeoncrawler character:
+  title: 'Delete Any Dungeon Crawler Character'
+  description: 'Delete any character regardless of ownership.'
+  restrict access: true

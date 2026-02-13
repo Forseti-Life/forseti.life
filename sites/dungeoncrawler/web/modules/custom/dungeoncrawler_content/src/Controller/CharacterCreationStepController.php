@@ -2,6 +2,7 @@
 
 namespace Drupal\dungeoncrawler_content\Controller;
 
+use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_content\Service\CharacterManager;
@@ -18,16 +19,19 @@ class CharacterCreationStepController extends ControllerBase {
 
   protected CharacterManager $characterManager;
   protected SchemaLoader $schemaLoader;
+  protected CsrfTokenGenerator $csrfToken;
 
-  public function __construct(CharacterManager $character_manager, SchemaLoader $schema_loader) {
+  public function __construct(CharacterManager $character_manager, SchemaLoader $schema_loader, CsrfTokenGenerator $csrf_token) {
     $this->characterManager = $character_manager;
     $this->schemaLoader = $schema_loader;
+    $this->csrfToken = $csrf_token;
   }
 
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('dungeoncrawler_content.character_manager'),
       $container->get('dungeoncrawler_content.schema_loader'),
+      $container->get('csrf_token'),
     );
   }
 
@@ -76,8 +80,18 @@ class CharacterCreationStepController extends ControllerBase {
 
   /**
    * Save step data and return JSON response for AJAX.
+   * Requires CSRF token for security.
    */
   public function saveStep(int $step, Request $request) {
+    // Validate CSRF token
+    $token = $request->headers->get('X-CSRF-Token');
+    if (!$token || !$this->csrfToken->validate($token, 'rest')) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => $this->t('Invalid or missing CSRF token.'),
+      ], 403);
+    }
+
     $character_id = $request->request->get('character_id') ?: $request->query->get('character_id');
     $data = $request->request->all();
     

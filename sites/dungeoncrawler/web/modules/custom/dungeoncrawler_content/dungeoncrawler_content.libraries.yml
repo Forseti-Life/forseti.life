@@ -132,27 +132,27 @@ hexmap:
     # PixiJS CDN
     https://cdn.jsdelivr.net/npm/pixi.js@7.3.2/dist/pixi.min.js: { type: external, minified: true }
     # ECS Core (loaded before hexmap.js)
-    js/ecs/Component.js: { type: module }
-    js/ecs/Entity.js: { type: module }
-    js/ecs/System.js: { type: module }
-    js/ecs/EntityManager.js: { type: module }
+    js/ecs/Component.js: { attributes: { type: module } }
+    js/ecs/Entity.js: { attributes: { type: module } }
+    js/ecs/System.js: { attributes: { type: module } }
+    js/ecs/EntityManager.js: { attributes: { type: module } }
     # ECS Components
-    js/ecs/components/PositionComponent.js: { type: module }
-    js/ecs/components/RenderComponent.js: { type: module }
-    js/ecs/components/IdentityComponent.js: { type: module }
-    js/ecs/components/MovementComponent.js: { type: module }
-    js/ecs/components/StatsComponent.js: { type: module }
-    js/ecs/components/ActionsComponent.js: { type: module }
-    js/ecs/components/CombatComponent.js: { type: module }
+    js/ecs/components/PositionComponent.js: { attributes: { type: module } }
+    js/ecs/components/RenderComponent.js: { attributes: { type: module } }
+    js/ecs/components/IdentityComponent.js: { attributes: { type: module } }
+    js/ecs/components/MovementComponent.js: { attributes: { type: module } }
+    js/ecs/components/StatsComponent.js: { attributes: { type: module } }
+    js/ecs/components/ActionsComponent.js: { attributes: { type: module } }
+    js/ecs/components/CombatComponent.js: { attributes: { type: module } }
     # ECS Systems
-    js/ecs/systems/RenderSystem.js: { type: module }
-    js/ecs/systems/MovementSystem.js: { type: module }
-    js/ecs/systems/TurnManagementSystem.js: { type: module }
-    js/ecs/systems/CombatSystem.js: { type: module }
+    js/ecs/systems/RenderSystem.js: { attributes: { type: module } }
+    js/ecs/systems/MovementSystem.js: { attributes: { type: module } }
+    js/ecs/systems/TurnManagementSystem.js: { attributes: { type: module } }
+    js/ecs/systems/CombatSystem.js: { attributes: { type: module } }
     # ECS Index
-    js/ecs/index.js: { type: module }
+    js/ecs/index.js: { attributes: { type: module } }
     # Main hexmap (loads ECS as module)
-    js/hexmap.js: { type: module }
+    js/hexmap.js: { attributes: { type: module } }
   css:
     theme:
       css/hexmap.css: {}

@@ -77,7 +77,7 @@
               <tr data-job-id="{{ job.id }}" class="job-row">
                 <td><input type="checkbox" class="job-checkbox" value="{{ job.id }}"></td>
                 <td>
-                  <a href="{{ path('job_hunter.view_job', {'job_id': job.id}) }}" target="_blank">
+                  <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}" target="_blank">
                     {{ job.title }}
                   </a>
                 </td>

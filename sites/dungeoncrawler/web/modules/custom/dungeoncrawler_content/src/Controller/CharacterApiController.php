@@ -2,6 +2,7 @@
 
 namespace Drupal\dungeoncrawler_content\Controller;
 
+use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\dungeoncrawler_content\Service\CharacterManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -14,14 +15,17 @@ use Symfony\Component\HttpFoundation\Request;
 class CharacterApiController extends ControllerBase {
 
   protected CharacterManager $characterManager;
+  protected CsrfTokenGenerator $csrfToken;
 
-  public function __construct(CharacterManager $character_manager) {
+  public function __construct(CharacterManager $character_manager, CsrfTokenGenerator $csrf_token) {
     $this->characterManager = $character_manager;
+    $this->csrfToken = $csrf_token;
   }
 
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('dungeoncrawler_content.character_manager'),
+      $container->get('csrf_token'),
     );
   }
 
@@ -44,6 +48,8 @@ class CharacterApiController extends ControllerBase {
    *   "equipment": [...],
    *   ...
    * }
+   * 
+   * Requires X-CSRF-Token header for security.
    */
   public function saveCharacter(Request $request): JsonResponse {
     // Ensure user is logged in
@@ -52,6 +58,15 @@ class CharacterApiController extends ControllerBase {
         'success' => FALSE,
         'error' => 'Authentication required',
       ], 401);
+    }
+
+    // Validate CSRF token
+    $token = $request->headers->get('X-CSRF-Token');
+    if (!$token || !$this->csrfToken->validate($token, 'rest')) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'error' => 'Invalid or missing CSRF token',
+      ], 403);
     }
 
     // Parse JSON body

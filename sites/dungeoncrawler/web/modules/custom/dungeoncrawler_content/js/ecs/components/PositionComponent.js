@@ -3,7 +3,7 @@
  * PositionComponent - hex grid position data.
  */
 
-import { Component } from '../Entity.js';
+import { Component } from '../Component.js';
 
 export class PositionComponent extends Component {
   /**

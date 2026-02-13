@@ -1,3 +1,7 @@
+# ==============================================================================
+# ADMIN ROUTES
+# ==============================================================================
+
 dungeoncrawler_content.settings:
   path: '/admin/config/content/dungeoncrawler'
   defaults:
@@ -5,14 +9,6 @@ dungeoncrawler_content.settings:
     _title: 'Dungeon Crawler Settings'
   requirements:
     _permission: 'administer site configuration'
-
-dungeoncrawler_content.home:
-  path: '/home'
-  defaults:
-    _controller: '\Drupal\dungeoncrawler_content\Controller\HomeController::index'
-    _title: 'Dungeon Crawler Life'
-  requirements:
-    _access: 'TRUE'
 
 dungeoncrawler_content.dashboard:
   path: '/admin/content/dungeoncrawler'
@@ -22,31 +18,85 @@ dungeoncrawler_content.dashboard:
   requirements:
     _permission: 'access content overview'
 
-# Character management routes.
+# ==============================================================================
+# PUBLIC PAGES
+# ==============================================================================
+
+dungeoncrawler_content.home:
+  path: '/home'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\HomeController::index'
+    _title: 'Dungeon Crawler Life'
+  requirements:
+    _access: 'TRUE'  # Public homepage
+
+dungeoncrawler_content.world:
+  path: '/world'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\WorldController::index'
+    _title: 'The Living Dungeon'
+  requirements:
+    _access: 'TRUE'  # Public information page
+
+dungeoncrawler_content.how_to_play:
+  path: '/how-to-play'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\HowToPlayController::index'
+    _title: 'How to Play'
+  requirements:
+    _access: 'TRUE'  # Public information page
+
+dungeoncrawler_content.about:
+  path: '/about'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\AboutController::index'
+    _title: 'About Dungeon Crawler Life'
+  requirements:
+    _access: 'TRUE'  # Public information page
+
+dungeoncrawler_content.credits:
+  path: '/credits'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CreditsController::page'
+    _title: 'Credits & Attribution'
+  requirements:
+    _access: 'TRUE'  # Public information page
+
+# ==============================================================================
+# DEMO/TESTING ROUTES
+# ==============================================================================
+
+# Hex Map tactical combat demo
+dungeoncrawler_content.hexmap_demo:
+  path: '/hexmap'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\HexMapController::demo'
+    _title: 'Hex Map Demo'
+  requirements:
+    _access: 'TRUE'  # Public demo for testing
+
+# ==============================================================================
+# CHARACTER MANAGEMENT ROUTES
+# ==============================================================================
+# Note: '/characters/create' must come BEFORE '/characters/{character_id}'
+# to prevent "create" from being interpreted as a character_id parameter.
+
 dungeoncrawler_content.characters:
   path: '/characters'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterListController::listCharacters'
     _title: 'My Characters'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'access dungeoncrawler characters'
 
-dungeoncrawler_content.character_view:
-  path: '/characters/{character_id}'
-  defaults:
-    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterViewController::viewCharacter'
-    _title_callback: '\Drupal\dungeoncrawler_content\Controller\CharacterViewController::viewTitle'
-  requirements:
-    _user_is_logged_in: 'TRUE'
-    character_id: '\d+'
-
+# Character creation wizard - must be before character_view
 dungeoncrawler_content.character_creation_wizard:
   path: '/characters/create'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterCreationStepController::start'
     _title: 'Create Character'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'create dungeoncrawler characters'
 
 dungeoncrawler_content.character_step:
   path: '/characters/create/step/{step}'
@@ -54,7 +104,7 @@ dungeoncrawler_content.character_step:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterCreationStepController::step'
     _title: 'Create Character'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'create dungeoncrawler characters'
     step: '\d+'
 
 dungeoncrawler_content.character_save_step:
@@ -63,84 +113,64 @@ dungeoncrawler_content.character_save_step:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterCreationStepController::saveStep'
   methods: [POST]
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'create dungeoncrawler characters'
     step: '\d+'
 
+# Character viewing - requires ownership or admin
+dungeoncrawler_content.character_view:
+  path: '/characters/{character_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterViewController::viewCharacter'
+    _title_callback: '\Drupal\dungeoncrawler_content\Controller\CharacterViewController::viewTitle'
+  requirements:
+    _character_access: 'TRUE'
+    character_id: '\d+'
+
+# Character editing - requires ownership or admin
 dungeoncrawler_content.character_edit:
   path: '/characters/{character_id}/edit'
   defaults:
     _form: '\Drupal\dungeoncrawler_content\Form\CharacterCreateForm'
     _title: 'Edit Character'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _character_access: 'TRUE'
     character_id: '\d+'
 
+# Character deletion - requires ownership or admin
 dungeoncrawler_content.character_delete:
   path: '/characters/{character_id}/delete'
   defaults:
     _form: '\Drupal\dungeoncrawler_content\Form\CharacterDeleteForm'
     _title: 'Delete Character'
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _character_access: 'TRUE'
     character_id: '\d+'
 
-# API endpoints for character management
-dungeoncrawler_content.api_character_save:
+# ==============================================================================
+# API ENDPOINTS
+# ==============================================================================
+# JSON API endpoints for AJAX operations. All require authentication and
+# return JSON responses. CSRF token validation handled in controllers.
+
+dungeoncrawler_content.api.character_save:
   path: '/api/character/save'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterApiController::saveCharacter'
   methods: [POST]
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _permission: 'create dungeoncrawler characters'
+  options:
+    _format: json
 
-dungeoncrawler_content.api_character_load:
+dungeoncrawler_content.api.character_load:
   path: '/api/character/load/{character_id}'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterApiController::loadCharacter'
   methods: [GET]
   requirements:
-    _user_is_logged_in: 'TRUE'
+    _character_access: 'TRUE'
     character_id: '\d+'
+  options:
+    _format: json
 
-# Hex Map Demo
-dungeoncrawler_content.hexmap_demo:
-  path: '/hexmap'
-  defaults:
-    _controller: '\Drupal\dungeoncrawler_content\Controller\HexMapController::demo'
-    _title: 'Hex Map Demo'
-  requirements:
-    _access: 'TRUE'
-
-# Public information pages
-dungeoncrawler_content.world:
-  path: '/world'
-  defaults:
-    _controller: '\Drupal\dungeoncrawler_content\Controller\WorldController::index'
-    _title: 'The Living Dungeon'
-  requirements:
-    _access: 'TRUE'
-
-dungeoncrawler_content.how_to_play:
-  path: '/how-to-play'
-  defaults:
-    _controller: '\Drupal\dungeoncrawler_content\Controller\HowToPlayController::index'
-    _title: 'How to Play'
-  requirements:
-    _access: 'TRUE'
-
-dungeoncrawler_content.about:
-  path: '/about'
-  defaults:
-    _controller: '\Drupal\dungeoncrawler_content\Controller\AboutController::index'
-    _title: 'About Dungeon Crawler Life'
-  requirements:
-    _access: 'TRUE'
-
-dungeoncrawler_content.credits:
-  path: '/credits'
-  defaults:
-    _controller: '\Drupal\dungeoncrawler_content\Controller\CreditsController::page'
-    _title: 'Credits & Attribution'
-  requirements:
-    _access: 'TRUE'
 

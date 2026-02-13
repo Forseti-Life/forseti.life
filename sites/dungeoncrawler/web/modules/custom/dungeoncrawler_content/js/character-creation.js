@@ -8,6 +8,28 @@
 (function ($, Drupal) {
   'use strict';
 
+  // CSRF Token cache
+  let csrfToken = null;
+
+  /**
+   * Get CSRF token for API requests.
+   * @returns {Promise<string>} The CSRF token.
+   */
+  async function getCsrfToken() {
+    if (csrfToken) {
+      return csrfToken;
+    }
+
+    try {
+      const response = await fetch('/session/token');
+      csrfToken = await response.text();
+      return csrfToken;
+    } catch (error) {
+      console.error('Failed to fetch CSRF token:', error);
+      throw error;
+    }
+  }
+
   // Character state management
   const characterData = {
     character_id: null, // Tracks the database ID for draft saves
@@ -517,26 +539,36 @@
       wizard_complete: false
     };
 
-    // Send to API
-    $.ajax({
-      url: '/api/character/save',
-      method: 'POST',
-      contentType: 'application/json',
-      data: JSON.stringify(saveData),
-      success: function(response) {
-        if (response.success) {
-          // Store character ID for future saves
-          if (!characterData.character_id && response.character_id) {
-            characterData.character_id = response.character_id;
+    // Send to API with CSRF token
+    getCsrfToken().then(token => {
+      $.ajax({
+        url: '/api/character/save',
+        method: 'POST',
+        contentType: 'application/json',
+        headers: {
+          'X-CSRF-Token': token
+        },
+        data: JSON.stringify(saveData),
+        success: function(response) {
+          if (response.success) {
+            // Store character ID for future saves
+            if (!characterData.character_id && response.character_id) {
+              characterData.character_id = response.character_id;
+            }
+            console.log('Character progress saved:', response);
+          } else {
+            console.error('Failed to save character:', response.error);
           }
-          console.log('Character progress saved:', response);
-        } else {
-          console.error('Failed to save character:', response.error);
+        },
+        error: function(xhr, status, error) {
+          console.error('AJAX error saving character:', error);
+          if (xhr.status === 403) {
+            console.error('CSRF token validation failed');
+          }
         }
-      },
-      error: function(xhr, status, error) {
-        console.error('AJAX error saving character:', error);
-      }
+      });
+    }).catch(error => {
+      console.error('Failed to save character:', error);
     });
   }
 
@@ -939,24 +971,36 @@
       abilities: characterData.abilities,
       alignment: characterData.alignment,
       deity: characterData.deity,
-      age: characterData.age,
-      gender: characterData.gender,
-      appearance: characterData.appearance,
-      personality: characterData.personality,
-      backstory: characterData.backstory,
-      equipment: characterData.equipment,
-      gold: characterData.gold,
-      wizard_complete: true // Mark as complete
-    };
-
-    // Submit via AJAX
-    $.ajax({
-      url: '/api/character/save',
-      method: 'POST',
-      data: JSON.stringify(finalData),
-      contentType: 'application/json',
-      success: function(response) {
-        if (response.success) {
+      age: characterDa with CSRF token
+    getCsrfToken().then(token => {
+      $.ajax({
+        url: '/api/character/save',
+        method: 'POST',
+        data: JSON.stringify(finalData),
+        contentType: 'application/json',
+        headers: {
+          'X-CSRF-Token': token
+        },
+        success: function(response) {
+          if (response.success) {
+            // Redirect to character view page
+            window.location.href = '/characters/' + response.character_id;
+          } else {
+            alert('Error creating character: ' + (response.error || 'Unknown error'));
+          }
+        },
+        error: function(xhr, status, error) {
+          console.error('AJAX error:', error);
+          if (xhr.status === 403) {
+            alert('Security token expired. Please refresh the page and try again.');
+          } else {
+            alert('Error creating character. Please try again.');
+          }
+        }
+      });
+    }).catch(error => {
+      console.error('Failed to get CSRF token:', error);
+      alert('Error creating character. Please try again.'); if (response.success) {
           // Redirect to character view page
           window.location.href = '/characters/' + response.character_id;
         } else {
