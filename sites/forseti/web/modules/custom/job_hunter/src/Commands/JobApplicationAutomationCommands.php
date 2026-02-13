@@ -43,13 +43,23 @@ class JobApplicationAutomationCommands extends DrushCommands {
    * Fix NumberWidget configuration to resolve PHP 8.3+ warnings.
    *
    * @command job-app:fix-numberwidget
+   * @option dry-run Preview changes without applying them
    * @aliases jafix
    * @usage job-app:fix-numberwidget
    *   Fix NumberWidget prefix/suffix configuration issues.
+   * @usage job-app:fix-numberwidget --dry-run
+   *   Preview what changes would be made without applying them.
    */
-  public function fixNumberWidget() {
+  public function fixNumberWidget($options = ['dry-run' => FALSE]) {
     $logger = $this->loggerFactory->get('job_hunter');
+    $dryRun = $options['dry-run'];
+    
+    if ($dryRun) {
+      $this->output()->writeln('<info>DRY-RUN MODE: Changes will NOT be saved</info>');
+    }
+    
     $this->output()->writeln('Starting NumberWidget configuration fix...');
+    $logger->info('Starting NumberWidget configuration fix' . ($dryRun ? ' (dry-run mode)' : ''));
     
     try {
       // Load the job_seeker profile form display
@@ -59,10 +69,12 @@ class JobApplicationAutomationCommands extends DrushCommands {
       
       if (!$form_display) {
         $this->output()->writeln('<error>Form display profile.job_seeker.default not found</error>');
+        $logger->error('Form display profile.job_seeker.default not found');
         return;
       }
       
       $updated_fields = 0;
+      $missing_fields = [];
       $number_fields = [
         'field_experience_years' => ['suffix' => ' years'],
         'field_salary_expectation_min' => ['prefix' => '$'],
@@ -99,26 +111,45 @@ class JobApplicationAutomationCommands extends DrushCommands {
           $form_display->setComponent($field_name, $component);
           $updated_fields++;
           
-          $this->output()->writeln("✓ Updated {$field_name}");
+          $action = $dryRun ? 'Would update' : '✓ Updated';
+          $this->output()->writeln("{$action} {$field_name}");
           $logger->info('Fixed NumberWidget configuration for field: @field', ['@field' => $field_name]);
         } else {
+          $missing_fields[] = $field_name;
           $this->output()->writeln("<comment>Field {$field_name} not found in form display</comment>");
+          $logger->warning('Field not found in form display: @field', ['@field' => $field_name]);
         }
       }
       
+      if (!empty($missing_fields)) {
+        $this->output()->writeln('<comment>Missing fields: ' . implode(', ', $missing_fields) . '</comment>');
+      }
+      
       if ($updated_fields > 0) {
-        $form_display->save();
-        
-        // Clear relevant caches
-        \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
-        \Drupal::cache('render')->deleteAll();
-        \Drupal::cache('config')->deleteAll();
-        drupal_flush_all_caches();
-        
-        $this->output()->writeln("<info>✓ Successfully updated {$updated_fields} fields and cleared caches</info>");
-        $logger->info('NumberWidget configuration fix completed. Updated @count fields.', ['@count' => $updated_fields]);
+        if (!$dryRun) {
+          $form_display->save();
+          
+          // Clear relevant caches
+          \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+          \Drupal::cache('render')->deleteAll();
+          \Drupal::cache('config')->deleteAll();
+          drupal_flush_all_caches();
+          
+          $this->output()->writeln("<info>✓ Successfully updated {$updated_fields} fields and cleared caches</info>");
+          $logger->info('NumberWidget configuration fix completed. Updated @count fields.', ['@count' => $updated_fields]);
+        } else {
+          $this->output()->writeln("<info>DRY-RUN: Would update {$updated_fields} fields and clear caches</info>");
+          $logger->info('NumberWidget configuration fix dry-run completed. Would update @count fields.', ['@count' => $updated_fields]);
+        }
       } else {
-        $this->output()->writeln('<comment>No fields required updates</comment>');
+        // No fields were updated - provide clear messaging
+        if (!empty($missing_fields)) {
+          $this->output()->writeln('<comment>No fields were updated. All specified fields are missing from form display.</comment>');
+          $logger->warning('No fields were found to update. All specified fields are missing.');
+        } else {
+          $this->output()->writeln('<comment>No fields required updates (all fields are already correctly configured)</comment>');
+          $logger->info('No fields required updates');
+        }
       }
       
     } catch (\Exception $e) {
@@ -128,21 +159,25 @@ class JobApplicationAutomationCommands extends DrushCommands {
   }
 
   /**
-   * Clear all caches and import configuration.
+   * Clear all caches and check for configuration changes.
    *
    * @command job-app:refresh-config
    * @aliases jarefresh
    * @usage job-app:refresh-config
-   *   Clear caches and import latest configuration.
+   *   Clear caches and check for configuration changes.
    */
   public function refreshConfig() {
-    $this->output()->writeln('Clearing all caches...');
-    drupal_flush_all_caches();
+    $logger = $this->loggerFactory->get('job_hunter');
     
-    $this->output()->writeln('Importing configuration...');
+    $this->output()->writeln('Clearing all caches...');
+    $logger->info('Starting cache clear and configuration check');
+    drupal_flush_all_caches();
+    $this->output()->writeln('<info>✓ All caches cleared</info>');
+    
+    $this->output()->writeln('');
+    $this->output()->writeln('Checking for configuration changes...');
     try {
       // Import configuration
-      $config_importer = \Drupal::service('config.import_transformer');
       $storage_sync = \Drupal::service('config.storage.sync');
       $storage_active = \Drupal::service('config.storage');
       
@@ -151,19 +186,34 @@ class JobApplicationAutomationCommands extends DrushCommands {
       $config_comparer->createChangelist();
       
       if ($config_comparer->hasChanges()) {
-        $this->output()->writeln('Configuration changes detected. Importing...');
-        $config_importer = \Drupal::service('config.import_transformer');
-        // Note: In production, you'd want to use drush config:import instead
-        $this->output()->writeln('<comment>Run: drush config:import -y</comment>');
+        $this->output()->writeln('<info>Configuration changes detected:</info>');
+        
+        $changelist = $config_comparer->getChangelist();
+        foreach (['create', 'update', 'delete', 'rename'] as $change_type) {
+          if (!empty($changelist[$change_type])) {
+            $count = count($changelist[$change_type]);
+            $this->output()->writeln("  {$change_type}: {$count} item(s)");
+          }
+        }
+        
+        $this->output()->writeln('');
+        $this->output()->writeln('To import these changes, run:');
+        $this->output()->writeln('  <info>drush config:import -y</info>');
+        $logger->info('Configuration changes detected and reported to user');
       } else {
-        $this->output()->writeln('No configuration changes to import.');
+        $this->output()->writeln('<info>✓ No configuration changes to import</info>');
+        $logger->info('No configuration changes detected');
       }
       
     } catch (\Exception $e) {
-      $this->output()->writeln('<error>Configuration import error: ' . $e->getMessage() . '</error>');
+      $this->output()->writeln('<error>Configuration check error: ' . $e->getMessage() . '</error>');
+      $logger->error('Configuration check error: @error', ['@error' => $e->getMessage()]);
+      return;
     }
     
-    $this->output()->writeln('✓ Configuration refresh completed');
+    $this->output()->writeln('');
+    $this->output()->writeln('✓ Configuration check completed');
+    $logger->info('Configuration check completed successfully');
   }
 
 }
