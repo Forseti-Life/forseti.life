@@ -586,12 +586,19 @@ class CharacterManager {
 
     $hp = $ancestry['hp'] + $class['hp'] + $con_mod;
 
+    $class_proficiencies = [
+      'perception' => (string) ($class['proficiencies']['perception'] ?? $class['perception'] ?? 'Trained'),
+      'fortitude' => (string) ($class['proficiencies']['fortitude'] ?? $class['fortitude'] ?? 'Trained'),
+      'reflex' => (string) ($class['proficiencies']['reflex'] ?? $class['reflex'] ?? 'Trained'),
+      'will' => (string) ($class['proficiencies']['will'] ?? $class['will'] ?? 'Trained'),
+    ];
+
     // Proficiency bonus at level 1 = 2 + level for trained, 4 + level for expert.
     $trained = 3; // 2 + level(1)
     $expert = 5;  // 4 + level(1)
 
-    $prof_to_bonus = function (string $prof, int $ability_mod) use ($trained, $expert): int {
-      return match($prof) {
+    $prof_to_bonus = function (?string $prof, int $ability_mod) use ($trained, $expert): int {
+      return match((string) $prof) {
         'Expert' => $expert + $ability_mod,
         'Trained' => $trained + $ability_mod,
         default => $ability_mod,
@@ -636,10 +643,10 @@ class CharacterManager {
           'key_ability' => $class['key_ability'],
           'hp_per_level' => $class['hp'],
           'proficiencies' => [
-            'perception' => $class['perception'],
-            'fortitude' => $class['fortitude'],
-            'reflex' => $class['reflex'],
-            'will' => $class['will'],
+            'perception' => $class_proficiencies['perception'],
+            'fortitude' => $class_proficiencies['fortitude'],
+            'reflex' => $class_proficiencies['reflex'],
+            'will' => $class_proficiencies['will'],
           ],
           'class_features' => [],
           'class_feats' => [],
@@ -654,21 +661,21 @@ class CharacterManager {
         'armor_class' => 10 + $dex_mod,
         'saving_throws' => [
           'fortitude' => [
-            'modifier' => $prof_to_bonus($class['fortitude'], $con_mod),
-            'proficiency' => $class['fortitude'],
+            'modifier' => $prof_to_bonus($class_proficiencies['fortitude'], $con_mod),
+            'proficiency' => $class_proficiencies['fortitude'],
           ],
           'reflex' => [
-            'modifier' => $prof_to_bonus($class['reflex'], $dex_mod),
-            'proficiency' => $class['reflex'],
+            'modifier' => $prof_to_bonus($class_proficiencies['reflex'], $dex_mod),
+            'proficiency' => $class_proficiencies['reflex'],
           ],
           'will' => [
-            'modifier' => $prof_to_bonus($class['will'], $wis_mod),
-            'proficiency' => $class['will'],
+            'modifier' => $prof_to_bonus($class_proficiencies['will'], $wis_mod),
+            'proficiency' => $class_proficiencies['will'],
           ],
         ],
         'perception' => [
-          'modifier' => $prof_to_bonus($class['perception'], $wis_mod),
-          'proficiency' => $class['perception'],
+          'modifier' => $prof_to_bonus($class_proficiencies['perception'], $wis_mod),
+          'proficiency' => $class_proficiencies['perception'],
           'senses' => $ancestry['vision'] !== 'normal' ? [ucwords($ancestry['vision'])] : [],
         ],
         'skills' => new \stdClass(),

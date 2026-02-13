@@ -1,0 +1,107 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dungeoncrawler.life/schemas/entity_instance.schema.json",
+  "title": "Entity Instance Schema",
+  "description": "Unified placed entity instance for dungeon maps. Canonical runtime list for creatures, items, and obstacles.",
+  "type": "object",
+  "required": ["entity_instance_id", "entity_type", "entity_ref", "placement", "state"],
+  "properties": {
+    "entity_instance_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this placed instance."
+    },
+    "entity_type": {
+      "type": "string",
+      "enum": ["creature", "item", "obstacle"],
+      "description": "Runtime entity category."
+    },
+    "entity_ref": {
+      "type": "object",
+      "required": ["content_type", "content_id"],
+      "properties": {
+        "content_type": {
+          "type": "string",
+          "enum": ["creature", "item", "obstacle", "trap", "hazard"],
+          "description": "Registry content type this instance points to."
+        },
+        "content_id": {
+          "type": "string",
+          "description": "Registry content_id for base definition."
+        },
+        "version": {
+          "type": ["string", "null"],
+          "description": "Optional version pin for deterministic replay."
+        }
+      }
+    },
+    "placement": {
+      "type": "object",
+      "required": ["room_id", "hex"],
+      "properties": {
+        "room_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Owning room for placement scope."
+        },
+        "hex": {
+          "type": "object",
+          "required": ["q", "r"],
+          "properties": {
+            "q": { "type": "integer" },
+            "r": { "type": "integer" }
+          }
+        },
+        "spawn_type": {
+          "type": ["string", "null"],
+          "enum": ["permanent", "respawning", "wandering", "summoned", "quest", null],
+          "description": "Spawn behavior metadata, primarily for creatures."
+        }
+      }
+    },
+    "state": {
+      "type": "object",
+      "description": "Mutable runtime state overlay for this instance.",
+      "properties": {
+        "active": { "type": "boolean", "default": true },
+        "destroyed": { "type": "boolean", "default": false },
+        "disabled": { "type": "boolean", "default": false },
+        "hidden": { "type": "boolean", "default": false },
+        "collected": { "type": "boolean", "default": false },
+        "hit_points": {
+          "type": ["object", "null"],
+          "properties": {
+            "current": { "type": "integer" },
+            "max": { "type": "integer" }
+          }
+        },
+        "inventory": {
+          "type": "array",
+          "description": "Inventory item refs carried by this instance (typically creatures).",
+          "items": {
+            "type": "object",
+            "required": ["content_id"],
+            "properties": {
+              "content_id": { "type": "string" },
+              "quantity": { "type": "integer", "minimum": 1, "default": 1 }
+            }
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "created_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": true
+}

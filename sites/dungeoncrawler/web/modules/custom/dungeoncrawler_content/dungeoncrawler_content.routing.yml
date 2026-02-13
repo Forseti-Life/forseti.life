@@ -89,6 +89,40 @@ dungeoncrawler_content.characters:
   requirements:
     _permission: 'access dungeoncrawler characters'
 
+dungeoncrawler_content.campaigns:
+  path: '/campaigns'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignController::listCampaigns'
+    _title: 'My Campaigns'
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+
+dungeoncrawler_content.campaign_create:
+  path: '/campaigns/create'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignController::createCampaignPage'
+    _title: 'Create Campaign'
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+
+dungeoncrawler_content.campaign_tavernentrance:
+  path: '/campaigns/{campaign_id}/tavernentrance'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignController::tavernEntrance'
+    _title: 'Tavern Entrance'
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    campaign_id: '\d+'
+
+dungeoncrawler_content.campaign_select_character:
+  path: '/campaigns/{campaign_id}/select-character/{character_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignController::selectCharacter'
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    campaign_id: '\d+'
+    character_id: '\d+'
+
 # Character creation wizard - must be before character_view
 dungeoncrawler_content.character_creation_wizard:
   path: '/characters/create'
@@ -169,6 +203,127 @@ dungeoncrawler_content.api.character_load:
   methods: [GET]
   requirements:
     _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_state:
+  path: '/api/character/{character_id}/state'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::getState'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_summary:
+  path: '/api/character/{character_id}/summary'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::getSummary'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_state_update:
+  path: '/api/character/{character_id}/update'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::updateState'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_cast_spell:
+  path: '/api/character/{character_id}/cast-spell'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::castSpell'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_hit_points:
+  path: '/api/character/{character_id}/hp'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::updateHitPoints'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_add_condition:
+  path: '/api/character/{character_id}/conditions'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::addCondition'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_remove_condition:
+  path: '/api/character/{character_id}/conditions/{condition_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::removeCondition'
+  methods: [DELETE]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_inventory:
+  path: '/api/character/{character_id}/inventory'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::updateInventory'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_experience:
+  path: '/api/character/{character_id}/experience'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::gainExperience'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_level_up:
+  path: '/api/character/{character_id}/level-up'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::levelUp'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_start_turn:
+  path: '/api/character/{character_id}/start-turn'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::startTurn'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
     character_id: '\d+'
   options:
     _format: json

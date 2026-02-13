@@ -3,6 +3,7 @@
 namespace Drupal\dungeoncrawler_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Url;
 
 /**
  * Controller for the How to Play page.
@@ -166,7 +167,7 @@ class HowToPlayController extends ControllerBase {
       '#type' => 'container',
       '#attributes' => ['class' => ['cta', 'mt-4', 'text-center']],
       'content' => [
-        '#markup' => '<a href="/characters/create" class="btn btn-primary btn-lg">Start Your Adventure</a>',
+        '#markup' => '<a href="' . Url::fromRoute('dungeoncrawler_content.campaigns')->toString() . '" class="btn btn-primary btn-lg">Start Your Adventure</a>',
       ],
     ];
 

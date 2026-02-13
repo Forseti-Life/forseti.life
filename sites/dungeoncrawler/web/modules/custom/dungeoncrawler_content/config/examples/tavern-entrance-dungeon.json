@@ -1,0 +1,795 @@
+{
+  "$schema": "../schemas/dungeon_level.schema.json",
+  "level_id": "f8c6b8f1-2df9-469f-9fd5-67a59f120001",
+  "depth": 1,
+  "theme": "abandoned_mine",
+  "name": "Tavern Entrance Test Level",
+  "flavor_text": "A spacious tavern staging hall with enough room for a full party and companions, plus a dedicated bar area before the first dungeon door.",
+  "created_at": "2026-02-13T00:00:00Z",
+  "is_persistent": true,
+  "hex_map": {
+    "schema_version": "1.0.0",
+    "map_id": "0b7e3d2f-8f7c-4ae0-8f72-9e99e0800001",
+    "name": "Tavern to Dungeon",
+    "depth_tier": "shallow_halls",
+    "depth_level": 1,
+    "hex_grid": {
+      "orientation": "flat-top",
+      "hex_size_ft": 5,
+      "origin": {
+        "q": 0,
+        "r": 0
+      },
+      "coordinate_system": "axial"
+    },
+    "connections": [
+      {
+        "connection_id": "6fd074d6-f59a-4b45-bf7b-b88eea410001",
+        "from_room": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+        "to_room": "7f2f1051-5f88-45a2-a66a-0f7063900002",
+        "from_hex": {
+          "q": 4,
+          "r": 0
+        },
+        "to_hex": {
+          "q": 5,
+          "r": 0
+        },
+        "type": "door",
+        "pf2e_checks": {
+          "perception_dc": null,
+          "thievery_dc": null,
+          "athletics_dc": null,
+          "arcana_dc": null
+        },
+        "is_discovered": true,
+        "is_passable": true
+      }
+    ],
+    "regions": [
+      {
+        "region_id": "region-tavern-entry",
+        "name": "Tavern Entrance",
+        "description": "Safe staging room before the dungeon.",
+        "room_ids": [
+          "7f2f1051-5f88-45a2-a66a-0f7063900001"
+        ],
+        "environmental_effects": [],
+        "ambient_hazard_level": 0
+      },
+      {
+        "region_id": "region-first-dungeon-room",
+        "name": "First Dungeon Room",
+        "description": "Initial combat/exploration chamber.",
+        "room_ids": [
+          "7f2f1051-5f88-45a2-a66a-0f7063900002"
+        ],
+        "environmental_effects": [],
+        "ambient_hazard_level": 1
+      }
+    ],
+    "metadata": {
+      "created_at": "2026-02-13T00:00:00Z",
+      "last_modified": "2026-02-13T00:00:00Z",
+      "generation_seed": "tavern-door-demo-v1",
+      "generated_by": "manual-example",
+      "is_finalized": true,
+      "total_rooms": 2,
+      "explored_rooms": 0,
+      "exploration_percentage": 0
+    }
+  },
+  "rooms": [
+    {
+      "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+      "name": "The Gilded Tankard",
+      "description": "A 45-hex tavern hall that can stage 10 creatures comfortably, with a fixed bar area and open movement lanes.",
+      "hexes": [
+        {
+          "q": -4,
+          "r": -2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -4,
+          "r": -1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -4,
+          "r": 0,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -4,
+          "r": 1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -4,
+          "r": 2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -3,
+          "r": -2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -3,
+          "r": -1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -3,
+          "r": 0,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -3,
+          "r": 1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -3,
+          "r": 2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -2,
+          "r": -2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -2,
+          "r": -1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -2,
+          "r": 0,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -2,
+          "r": 1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -2,
+          "r": 2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -1,
+          "r": -2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -1,
+          "r": -1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -1,
+          "r": 0,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -1,
+          "r": 1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": -1,
+          "r": 2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 0,
+          "r": -2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 0,
+          "r": -1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 0,
+          "r": 0,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 0,
+          "r": 1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 0,
+          "r": 2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 1,
+          "r": -2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 1,
+          "r": -1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 1,
+          "r": 0,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 1,
+          "r": 1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 1,
+          "r": 2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 2,
+          "r": -2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 2,
+          "r": -1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 2,
+          "r": 0,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 2,
+          "r": 1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 2,
+          "r": 2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 3,
+          "r": -2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 3,
+          "r": -1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 3,
+          "r": 0,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 3,
+          "r": 1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 3,
+          "r": 2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 4,
+          "r": -2,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 4,
+          "r": -1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 4,
+          "r": 0,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 4,
+          "r": 1,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 4,
+          "r": 2,
+          "elevation_ft": 0,
+          "objects": []
+        }
+      ],
+      "room_type": "entrance",
+      "size_category": "large",
+      "terrain": {
+        "type": "wooden_floor",
+        "difficult_terrain": false,
+        "greater_difficult_terrain": false,
+        "hazardous_terrain": null,
+        "ceiling_height_ft": 10
+      },
+      "lighting": {
+        "level": "bright_light",
+        "light_sources": [
+          {
+            "type": "lantern",
+            "hex": {
+              "q": 0,
+              "r": 0
+            },
+            "bright_radius_ft": 20,
+            "dim_radius_ft": 20,
+            "permanent": true
+          },
+          {
+            "type": "lantern",
+            "hex": {
+              "q": -1,
+              "r": 1
+            },
+            "bright_radius_ft": 15,
+            "dim_radius_ft": 15,
+            "permanent": true
+          },
+          {
+            "type": "lantern",
+            "hex": {
+              "q": 1,
+              "r": 1
+            },
+            "bright_radius_ft": 15,
+            "dim_radius_ft": 15,
+            "permanent": true
+          }
+        ]
+      },
+      "environmental_effects": [],
+      "creatures": [],
+      "items": [],
+      "traps": [],
+      "hazards": [],
+      "obstacles": [],
+      "interactables": [],
+      "state": {
+        "explored": true,
+        "explored_at": "2026-02-13T00:00:00Z",
+        "explored_by_party": null,
+        "cleared": true,
+        "looted": true,
+        "traps_disarmed": true,
+        "visibility": "visible",
+        "notes": []
+      },
+      "ai_generation": {
+        "theme_tags": [
+          "tavern",
+          "safe-zone",
+          "entry"
+        ],
+        "difficulty_target": "trivial",
+        "generation_model": "manual-example",
+        "generation_timestamp": "2026-02-13T00:00:00Z"
+      }
+    },
+    {
+      "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900002",
+      "name": "Dungeon Antechamber",
+      "description": "The first dungeon room beyond the tavern door.",
+      "hexes": [
+        {
+          "q": 5,
+          "r": 0,
+          "elevation_ft": 0,
+          "objects": []
+        },
+        {
+          "q": 6,
+          "r": 0,
+          "elevation_ft": 0,
+          "objects": []
+        }
+      ],
+      "room_type": "chamber",
+      "size_category": "small",
+      "terrain": {
+        "type": "stone_floor",
+        "difficult_terrain": false,
+        "greater_difficult_terrain": false,
+        "hazardous_terrain": null,
+        "ceiling_height_ft": 12
+      },
+      "lighting": {
+        "level": "dim_light",
+        "light_sources": []
+      },
+      "environmental_effects": [],
+      "creatures": [],
+      "items": [],
+      "traps": [],
+      "hazards": [],
+      "obstacles": [],
+      "interactables": [],
+      "state": {
+        "explored": false,
+        "explored_at": null,
+        "explored_by_party": null,
+        "cleared": false,
+        "looted": false,
+        "traps_disarmed": false,
+        "visibility": "hidden",
+        "notes": []
+      },
+      "ai_generation": {
+        "theme_tags": [
+          "dungeon",
+          "starter-room"
+        ],
+        "difficulty_target": "low",
+        "generation_model": "manual-example",
+        "generation_timestamp": "2026-02-13T00:00:00Z"
+      }
+    }
+  ],
+  "entities": [
+    {
+      "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000001",
+      "entity_type": "obstacle",
+      "entity_ref": {
+        "content_type": "obstacle",
+        "content_id": "wooden_tavern_door",
+        "version": "1.0.0"
+      },
+      "placement": {
+        "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+        "hex": {
+          "q": 4,
+          "r": 0
+        },
+        "spawn_type": null
+      },
+      "state": {
+        "active": true,
+        "destroyed": false,
+        "disabled": false,
+        "hidden": false,
+        "collected": false,
+        "hit_points": null,
+        "inventory": [],
+        "metadata": {
+          "movable": false,
+          "passable": true,
+          "stackable": false,
+          "blocks_path_until_opened": false,
+          "connects_to_room_id": "7f2f1051-5f88-45a2-a66a-0f7063900002"
+        }
+      },
+      "created_at": "2026-02-13T00:00:00Z",
+      "updated_at": "2026-02-13T00:00:00Z"
+    },
+    {
+      "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000002",
+      "entity_type": "obstacle",
+      "entity_ref": {
+        "content_type": "obstacle",
+        "content_id": "tavern_bar_counter_a",
+        "version": "1.0.0"
+      },
+      "placement": {
+        "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+        "hex": {
+          "q": -4,
+          "r": -2
+        },
+        "spawn_type": null
+      },
+      "state": {
+        "active": true,
+        "destroyed": false,
+        "disabled": false,
+        "hidden": false,
+        "collected": false,
+        "hit_points": null,
+        "inventory": [],
+        "metadata": {
+          "movable": false,
+          "passable": false,
+          "stackable": false,
+          "blocks_path_until_opened": true,
+          "fixture": "bar_counter"
+        }
+      },
+      "created_at": "2026-02-13T00:00:00Z",
+      "updated_at": "2026-02-13T00:00:00Z"
+    },
+    {
+      "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000003",
+      "entity_type": "obstacle",
+      "entity_ref": {
+        "content_type": "obstacle",
+        "content_id": "tavern_bar_counter_b",
+        "version": "1.0.0"
+      },
+      "placement": {
+        "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+        "hex": {
+          "q": -3,
+          "r": -2
+        },
+        "spawn_type": null
+      },
+      "state": {
+        "active": true,
+        "destroyed": false,
+        "disabled": false,
+        "hidden": false,
+        "collected": false,
+        "hit_points": null,
+        "inventory": [],
+        "metadata": {
+          "movable": false,
+          "passable": false,
+          "stackable": false,
+          "blocks_path_until_opened": true,
+          "fixture": "bar_counter"
+        }
+      },
+      "created_at": "2026-02-13T00:00:00Z",
+      "updated_at": "2026-02-13T00:00:00Z"
+    },
+    {
+      "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000004",
+      "entity_type": "obstacle",
+      "entity_ref": {
+        "content_type": "obstacle",
+        "content_id": "tavern_bar_counter_c",
+        "version": "1.0.0"
+      },
+      "placement": {
+        "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+        "hex": {
+          "q": -2,
+          "r": -2
+        },
+        "spawn_type": null
+      },
+      "state": {
+        "active": true,
+        "destroyed": false,
+        "disabled": false,
+        "hidden": false,
+        "collected": false,
+        "hit_points": null,
+        "inventory": [],
+        "metadata": {
+          "movable": false,
+          "passable": false,
+          "stackable": false,
+          "blocks_path_until_opened": true,
+          "fixture": "bar_counter"
+        }
+      },
+      "created_at": "2026-02-13T00:00:00Z",
+      "updated_at": "2026-02-13T00:00:00Z"
+    },
+    {
+      "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000005",
+      "entity_type": "obstacle",
+      "entity_ref": {
+        "content_type": "obstacle",
+        "content_id": "tavern_table_round_a",
+        "version": "1.0.0"
+      },
+      "placement": {
+        "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+        "hex": {
+          "q": -1,
+          "r": 0
+        },
+        "spawn_type": null
+      },
+      "state": {
+        "active": true,
+        "destroyed": false,
+        "disabled": false,
+        "hidden": false,
+        "collected": false,
+        "hit_points": null,
+        "inventory": [],
+        "metadata": {
+          "movable": true,
+          "passable": false,
+          "stackable": false,
+          "fixture": "table_round"
+        }
+      },
+      "created_at": "2026-02-13T00:00:00Z",
+      "updated_at": "2026-02-13T00:00:00Z"
+    },
+    {
+      "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000006",
+      "entity_type": "obstacle",
+      "entity_ref": {
+        "content_type": "obstacle",
+        "content_id": "tavern_table_long_a",
+        "version": "1.0.0"
+      },
+      "placement": {
+        "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+        "hex": {
+          "q": 2,
+          "r": -1
+        },
+        "spawn_type": null
+      },
+      "state": {
+        "active": true,
+        "destroyed": false,
+        "disabled": false,
+        "hidden": false,
+        "collected": false,
+        "hit_points": null,
+        "inventory": [],
+        "metadata": {
+          "movable": true,
+          "passable": false,
+          "stackable": false,
+          "fixture": "table_long"
+        }
+      },
+      "created_at": "2026-02-13T00:00:00Z",
+      "updated_at": "2026-02-13T00:00:00Z"
+    },
+    {
+      "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000007",
+      "entity_type": "obstacle",
+      "entity_ref": {
+        "content_type": "obstacle",
+        "content_id": "tavern_stool_stack_a",
+        "version": "1.0.0"
+      },
+      "placement": {
+        "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+        "hex": {
+          "q": 0,
+          "r": 1
+        },
+        "spawn_type": null
+      },
+      "state": {
+        "active": true,
+        "destroyed": false,
+        "disabled": false,
+        "hidden": false,
+        "collected": false,
+        "hit_points": null,
+        "inventory": [],
+        "metadata": {
+          "movable": true,
+          "passable": true,
+          "stackable": true,
+          "fixture": "stool_stack"
+        }
+      },
+      "created_at": "2026-02-13T00:00:00Z",
+      "updated_at": "2026-02-13T00:00:00Z"
+    },
+    {
+      "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000008",
+      "entity_type": "obstacle",
+      "entity_ref": {
+        "content_type": "obstacle",
+        "content_id": "tavern_crate_stack_a",
+        "version": "1.0.0"
+      },
+      "placement": {
+        "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+        "hex": {
+          "q": 3,
+          "r": 1
+        },
+        "spawn_type": null
+      },
+      "state": {
+        "active": true,
+        "destroyed": false,
+        "disabled": false,
+        "hidden": false,
+        "collected": false,
+        "hit_points": null,
+        "inventory": [],
+        "metadata": {
+          "movable": true,
+          "passable": false,
+          "stackable": true,
+          "fixture": "crate_stack"
+        }
+      },
+      "created_at": "2026-02-13T00:00:00Z",
+      "updated_at": "2026-02-13T00:00:00Z"
+    }
+  ],
+  "generation_rules": {
+    "party_level_target": 1,
+    "difficulty_modifier": 1.0,
+    "room_count": {
+      "min": 2,
+      "max": 2
+    },
+    "creature_density": "sparse",
+    "trap_frequency": "none",
+    "loot_quality": "standard",
+    "boss_room": false,
+    "rest_area": true,
+    "secret_rooms": {
+      "min": 0,
+      "max": 0
+    }
+  },
+  "level_state": {
+    "is_fully_generated": true,
+    "rooms_generated": 2,
+    "rooms_explored": 1,
+    "boss_defeated": false,
+    "completion_percent": 0,
+    "first_entered_at": "2026-02-13T00:00:00Z",
+    "last_visited_at": "2026-02-13T00:00:00Z",
+    "times_visited": 1
+  }
+}

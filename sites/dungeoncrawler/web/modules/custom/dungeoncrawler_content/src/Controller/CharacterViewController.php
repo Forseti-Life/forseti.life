@@ -30,6 +30,8 @@ class CharacterViewController extends ControllerBase {
    * Renders a full character sheet.
    */
   public function viewCharacter(int $character_id) {
+    $campaign_id = (int) (\Drupal::request()->query->get('campaign_id') ?? 0);
+
     $record = $this->characterManager->loadCharacter($character_id);
 
     if (!$record) {
@@ -132,6 +134,24 @@ class CharacterViewController extends ControllerBase {
       ];
     }
 
+    $launch_url = Url::fromRoute('dungeoncrawler_content.hexmap_demo')
+      ->setOption('query', ['character_id' => $record->id]);
+    $tavern_url = NULL;
+    if ($campaign_id > 0) {
+      $launch_url->setOption('query', [
+        'campaign_id' => $campaign_id,
+        'character_id' => $record->id,
+      ]);
+      $tavern_url = Url::fromRoute('dungeoncrawler_content.campaign_tavernentrance', [
+        'campaign_id' => $campaign_id,
+      ])->toString();
+    }
+
+    $back_url = Url::fromRoute('dungeoncrawler_content.characters');
+    if ($campaign_id > 0) {
+      $back_url->setOption('query', ['campaign_id' => $campaign_id]);
+    }
+
     $build = [
       '#theme' => 'character_sheet',
       '#character' => [
@@ -197,7 +217,10 @@ class CharacterViewController extends ControllerBase {
       '#raw_json' => json_encode($char_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
       '#edit_url' => Url::fromRoute('dungeoncrawler_content.character_edit', ['character_id' => $record->id])->toString(),
       '#delete_url' => Url::fromRoute('dungeoncrawler_content.character_delete', ['character_id' => $record->id])->toString(),
-      '#back_url' => Url::fromRoute('dungeoncrawler_content.characters')->toString(),
+      '#launch_url' => $launch_url->toString(),
+      '#tavern_url' => $tavern_url,
+      '#campaign_id' => $campaign_id,
+      '#back_url' => $back_url->toString(),
       '#attached' => [
         'library' => ['dungeoncrawler_content/character-sheet'],
       ],

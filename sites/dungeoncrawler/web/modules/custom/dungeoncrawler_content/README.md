@@ -21,6 +21,19 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
   - `/characters/{id}/edit` - Edit character
   - `/characters/{id}/delete` - Delete character
 
+### Campaign Management System
+- **Campaign-first entry flow**: Start adventure by creating a campaign, then select or create a character
+- **Centralized page wrapper for management forms**: `management_form_page` template for themed create/edit pages
+- **Tavern entrance launch flow**: After creating a campaign, route to campaign tavern entrance to select character and launch hexmap
+- **Campaign Routes**:
+   - `/campaigns` - List your campaigns (returning-user hub)
+   - `/campaigns/create` - Create a campaign
+   - `/campaigns/{campaign_id}/tavernentrance` - Select character and launch campaign into hexmap
+   - `/campaigns/{campaign_id}/select-character/{character_id}` - Bind character to campaign and launch
+- **Campaign Context Flow**:
+   - `/characters?campaign_id={id}` switches My Characters into campaign selection mode
+   - Character creation preserves `campaign_id` through step redirects
+
 ### Information Pages
 - **World Lore** (`/world`) - Living dungeon background and lore
 - **How to Play** (`/how-to-play`) - Game mechanics and tutorial
@@ -80,12 +93,14 @@ dungeoncrawler_content/
 ├── src/
 │   ├── Controller/
 │   │   ├── AboutController.php
+│   │   ├── CampaignController.php
 │   │   ├── CharacterListController.php
 │   │   ├── CharacterViewController.php
 │   │   ├── DashboardController.php
 │   │   ├── HowToPlayController.php
 │   │   └── WorldController.php
 │   ├── Form/
+│   │   ├── CampaignCreateForm.php
 │   │   ├── CharacterCreateForm.php
 │   │   ├── CharacterDeleteForm.php
 │   │   └── DungeonCrawlerSettingsForm.php
@@ -168,7 +183,7 @@ Both blocks are configured as `status: true` and will be automatically placed wh
 
 ## Database Schema
 
-### Character Table: `dungeoncrawler_characters`
+### Character Table: `dc_characters`
 - `id` (int, primary key) - Character ID
 - `uuid` (varchar) - Unique character UUID
 - `user_id` (int) - Owner user ID
@@ -177,9 +192,20 @@ Both blocks are configured as `status: true` and will be automatically placed wh
 - `race` (varchar) - Character race
 - `level` (int) - Character level
 - `experience` (int) - Experience points
-- `data` (text) - JSON-encoded character data
+- `character_data` (text) - JSON-encoded character data
 - `created` (int) - Creation timestamp
 - `changed` (int) - Last modified timestamp
+
+### Campaign Table: `dc_campaigns`
+- `id`, `uuid`, `uid`, `name`
+- `status` (`draft`, `ready`, `active`, `completed`)
+- `theme`, `difficulty`, `active_character_id`
+- `campaign_data` (JSON state)
+- `created`, `changed`
+
+### Campaign Character Mapping Table: `dc_campaign_characters`
+- `campaign_id`, `character_id`, `uid`
+- `role`, `is_active`, `joined`
 
 ## Routes
 
@@ -195,6 +221,9 @@ Both blocks are configured as `status: true` and will be automatically placed wh
 - `/characters/{id}` - Character sheet
 - `/characters/{id}/edit` - Edit character
 - `/characters/{id}/delete` - Delete character
+- `/campaigns` - Campaign list
+- `/campaigns/create` - Campaign creation
+- `/campaigns/{campaign_id}/select-character/{character_id}` - Select character for campaign
 
 ### Admin Routes
 - `/admin/config/content/dungeoncrawler` - Module settings

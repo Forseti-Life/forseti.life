@@ -46,11 +46,21 @@ Character creation wizard options and validation rules for each of the 8 steps:
 
 ### Dungeon Schemas
 
+#### `campaign.schema.json`
+Campaign state payload stored in `dc_campaigns.campaign_data`.
+
+Runtime validation is applied during campaign creation via `SchemaLoader::validateCampaignData()`.
+
 #### `creature.schema.json`
 Monsters, NPCs, and beasts with PF2e stats and AI personality.
 
 #### `dungeon_level.schema.json`
 Entire dungeon floor with hexmap, rooms, and encounters.
+
+Canonical runtime placement in this schema is `entities[]` via `entity_instance.schema.json`.
+
+#### `entity_instance.schema.json`
+Unified placed-entity runtime instance (`creature`, `item`, `obstacle`) with placement and mutable state.
 
 #### `encounter.schema.json`
 Combat encounters with creatures, initiative, and tactical state.
@@ -62,7 +72,13 @@ Environmental hazards and traps.
 Hexagonal dungeon map with fog of war and terrain.
 
 #### `item.schema.json`
-Equipment, treasure, and magic items.
+Equipment and magic items (loot/treasure is represented as items).
+
+#### `obstacle.schema.json`
+Unified traversal/combat obstacles (non-container blockers/modifiers).
+
+#### `obstacle_object_catalog.schema.json`
+Reusable obstacle object definitions (label, movable, stackable, movement flags) used by placed obstacle instances.
 
 #### `party.schema.json`
 Adventuring party with shared resources and exploration state.

@@ -28,6 +28,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     cacheElements() {
       this.elements = {
         hoveredHex: document.getElementById('hovered-hex'),
+        hoveredObject: document.getElementById('hovered-object'),
         selectedHex: document.getElementById('selected-hex'),
         currentTurn: document.getElementById('current-turn'),
         currentRound: document.getElementById('current-round'),
@@ -56,6 +57,15 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     updateHoveredHex(q, r) {
       if (this.elements.hoveredHex) {
         this.elements.hoveredHex.textContent = q !== null ? `(${q}, ${r})` : 'None';
+      }
+    }
+
+    /**
+     * Update hovered object label display.
+     */
+    updateHoveredObject(label) {
+      if (this.elements.hoveredObject) {
+        this.elements.hoveredObject.textContent = label || 'None';
       }
     }
 
@@ -321,6 +331,13 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     movementSystem: null,
     turnManagementSystem: null,
     combatSystem: null,
+
+    // Launch context from campaign/tavern flow.
+    launchContext: {},
+
+    // Dungeon payload for room-aware rendering and transitions.
+    dungeonData: {},
+    activeRoomId: null,
     
     // Cleanup tracking
     eventListeners: [],
@@ -339,12 +356,17 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       this.uiManager = new UIManager();
       this.stateManager = new StateManager();
       this.setupStateSubscriptions();
+      this.launchContext = settings?.dungeoncrawlerContent?.hexmapLaunchContext || {};
+      this.dungeonData = settings?.dungeoncrawlerContent?.hexmapDungeonData || {};
+      this.activeRoomId = this.dungeonData?.active_room_id || null;
 
       this.initPixiApp(container[0]);
       this.initECS(); // Initialize ECS architecture
       this.generateHexGrid();
       this.setupControls();
       this.setupInteraction();
+      this.applyDungeonData();
+      this.applyLaunchContext();
       
       // Start game loop and track for cleanup
       const updateCallback = (delta) => this.update(delta);
@@ -410,6 +432,10 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       if (this.stateManager) {
         this.stateManager.reset();
       }
+
+      this.launchContext = {};
+      this.dungeonData = {};
+      this.activeRoomId = null;
       
       console.log('Hexmap cleanup complete');
     },
@@ -644,6 +670,16 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       this.hexContainer.removeChildren();
       this.gridContainer.removeChildren();
 
+      // Reset transient UI state tied to previous hex graphics
+      this.stateManager.set('hoveredHex', null);
+      this.uiManager.updateHoveredHex(null, null);
+      this.uiManager.updateHoveredObject('None');
+      if (this.uiManager.elements.selectedHex) {
+        this.uiManager.elements.selectedHex.textContent = 'None';
+      }
+      this.stateManager.set('selectedHex', null);
+      this.hideMovementRange();
+
       const hexSize = this.config.hexSize;
       const width = this.config.gridWidth;
       const height = this.config.gridHeight;
@@ -657,6 +693,15 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         for (let r = -Math.floor(height / 2); r < Math.ceil(height / 2); r++) {
           this.createHex(q, r, hexSize);
         }
+      }
+
+      // Reapply room/obstacle styling for the rebuilt grid
+      this.paintActiveRoom();
+
+      // If an entity remains selected, refresh its movement range overlay with the new grid sizing
+      const selectedEntity = this.stateManager.get('selectedEntity');
+      if (selectedEntity) {
+        this.showMovementRange(selectedEntity);
       }
 
       console.log(`Generated ${width}x${height} hex grid`);
@@ -799,6 +844,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       // Update UI
       const { q, r } = hex.hexData;
       this.uiManager.updateHoveredHex(q, r);
+      this.uiManager.updateHoveredObject(this.getObjectLabelAtHex(q, r));
     },
 
     /**
@@ -807,27 +853,12 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     onHexOut: function (hex) {
       // Reset hex appearance (unless it's selected)
       if (this.stateManager.get('selectedHex') !== hex) {
-        hex.clear();
-        hex.beginFill(0x2d3748);
-        hex.lineStyle(1, 0x4a5568, 1);
-        
-        for (let i = 0; i < 6; i++) {
-          const angle = (Math.PI / 3) * i;
-          const x = this.config.hexSize * Math.cos(angle);
-          const y = this.config.hexSize * Math.sin(angle);
-          
-          if (i === 0) {
-            hex.moveTo(x, y);
-          } else {
-            hex.lineTo(x, y);
-          }
-        }
-        hex.closePath();
-        hex.endFill();
+        this.resetHexAppearance(hex);
       }
 
       this.stateManager.set('hoveredHex', null);
       this.uiManager.updateHoveredHex(null, null);
+      this.uiManager.updateHoveredObject('None');
     },
 
     /**
@@ -851,10 +882,6 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
             entityType = EntityType.ITEM;
             name = 'Item';
             break;
-          case 'treasure':
-            entityType = EntityType.TREASURE;
-            name = 'Treasure';
-            break;
           case 'obstacle':
             entityType = EntityType.OBSTACLE;
             name = 'Obstacle';
@@ -867,6 +894,11 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         // Create entity using ECS (components are auto-added based on type)
         this.createEntityObject(q, r, entityType, name, null);
         
+        return;
+      }
+
+      // Mode 1.5: Room transition if hex is a passable room connection endpoint.
+      if (this.tryTransitionAtHex(q, r)) {
         return;
       }
       
@@ -920,29 +952,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         this.onHexOut(previousSelectedHex);
       }
 
-      // Select this hex
-      this.stateManager.set('selectedHex', hex);
-      
-      hex.clear();
-      hex.beginFill(0x3b82f6);
-      hex.lineStyle(3, 0x60a5fa, 1);
-      
-      for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI / 3) * i;
-        const x = this.config.hexSize * Math.cos(angle);
-        const y = this.config.hexSize * Math.sin(angle);
-        
-        if (i === 0) {
-          hex.moveTo(x, y);
-        } else {
-          hex.lineTo(x, y);
-        }
-      }
-      hex.closePath();
-      hex.endFill();
-
-      // Update UI
-      this.uiManager.updateSelectedHex(q, r);
+      this.setSelectedHex(hex);
       
       console.log('Selected hex:', q, r);
     },
@@ -1424,6 +1434,417 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       
       this.app.view.addEventListener('wheel', wheelHandler);
       this.eventListeners.push({ element: this.app.view, event: 'wheel', handler: wheelHandler });
+    },
+
+    /**
+     * Find a rendered hex by axial coordinates.
+     * @param {number} q - Axial q coordinate
+     * @param {number} r - Axial r coordinate
+     * @returns {PIXI.Graphics|null}
+     */
+    findHexByCoords: function (q, r) {
+      const matchingHex = this.hexContainer.children.find((child) => {
+        if (!child.hexData) {
+          return false;
+        }
+        return child.hexData.q === q && child.hexData.r === r;
+      });
+
+      return matchingHex || null;
+    },
+
+    /**
+     * Draw a hex with provided style.
+     * @param {PIXI.Graphics} hex - Hex graphic
+     * @param {number} fillColor - Fill color
+     * @param {number} lineWidth - Border width
+     * @param {number} lineColor - Border color
+     * @param {number} alpha - Fill alpha
+     */
+    drawHexStyle: function (hex, fillColor, lineWidth, lineColor, alpha = 1) {
+      hex.clear();
+      hex.beginFill(fillColor, alpha);
+      hex.lineStyle(lineWidth, lineColor, 1);
+
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i;
+        const x = this.config.hexSize * Math.cos(angle);
+        const y = this.config.hexSize * Math.sin(angle);
+
+        if (i === 0) {
+          hex.moveTo(x, y);
+        } else {
+          hex.lineTo(x, y);
+        }
+      }
+      hex.closePath();
+      hex.endFill();
+    },
+
+    /**
+     * Check whether a hex coordinate belongs to the active room.
+     * @param {number} q - Axial q coordinate
+     * @param {number} r - Axial r coordinate
+     * @returns {boolean}
+     */
+    isHexInActiveRoom: function (q, r) {
+      const room = this.getActiveRoomData();
+      if (!room || !Array.isArray(room.hexes)) {
+        return false;
+      }
+      return room.hexes.some((roomHex) => roomHex.q === q && roomHex.r === r);
+    },
+
+    /**
+     * Reset hex appearance based on active room membership.
+     * @param {PIXI.Graphics} hex - Hex graphic
+     */
+    resetHexAppearance: function (hex) {
+      if (!hex?.hexData) {
+        return;
+      }
+
+      const { q, r } = hex.hexData;
+      const obstacleProfile = this.getObstacleMobilityAtHex(q, r);
+
+      if (obstacleProfile) {
+        if (!obstacleProfile.passable && !obstacleProfile.movable) {
+          this.drawHexStyle(hex, 0x5b2b2b, 2, 0x8b3a3a, 0.95);
+          return;
+        }
+
+        if (!obstacleProfile.passable && obstacleProfile.movable) {
+          this.drawHexStyle(hex, 0x7a5325, 2, 0xb7791f, 0.95);
+          return;
+        }
+
+        if (obstacleProfile.passable && obstacleProfile.movable) {
+          this.drawHexStyle(hex, 0x2d5170, 2, 0x4299e1, 0.95);
+          return;
+        }
+
+        this.drawHexStyle(hex, 0x2d4b36, 2, 0x4d7a5b, 1);
+        return;
+      }
+
+      if (this.isHexInActiveRoom(q, r)) {
+        this.drawHexStyle(hex, 0x2d4b36, 2, 0x4d7a5b, 1);
+      } else {
+        this.drawHexStyle(hex, 0x2d3748, 1, 0x4a5568, 1);
+      }
+    },
+
+    /**
+     * Apply selected-hex visuals and state.
+     * @param {PIXI.Graphics} hex - Hex graphic
+     */
+    setSelectedHex: function (hex) {
+      if (!hex?.hexData) {
+        return;
+      }
+
+      this.stateManager.set('selectedHex', hex);
+      this.drawHexStyle(hex, 0x3b82f6, 3, 0x60a5fa, 1);
+
+      const { q, r } = hex.hexData;
+      this.uiManager.updateSelectedHex(q, r);
+    },
+
+    /**
+     * Get currently active room payload.
+     * @returns {Object|null}
+     */
+    getActiveRoomData: function () {
+      if (!this.dungeonData || !this.activeRoomId || !this.dungeonData.rooms) {
+        return null;
+      }
+      return this.dungeonData.rooms[this.activeRoomId] || null;
+    },
+
+    /**
+     * Color room footprint for active room.
+     */
+    paintActiveRoom: function () {
+      this.hexContainer.children.forEach((hex) => {
+        if (!hex?.hexData) {
+          return;
+        }
+        this.resetHexAppearance(hex);
+      });
+    },
+
+    /**
+     * Render active-room entities from dungeon payload.
+     */
+    renderActiveRoomEntities: function () {
+      if (!this.entityManager) {
+        return;
+      }
+
+      this.clearEntities();
+      const entities = Array.isArray(this.dungeonData?.entities) ? this.dungeonData.entities : [];
+
+      entities.forEach((entity) => {
+        const placement = entity?.placement;
+        if (!placement || placement.room_id !== this.activeRoomId || !placement.hex) {
+          return;
+        }
+
+        const q = Number(placement.hex.q);
+        const r = Number(placement.hex.r);
+        if (!Number.isFinite(q) || !Number.isFinite(r)) {
+          return;
+        }
+
+        let entityType = EntityType.OBSTACLE;
+        if (entity.entity_type === 'creature') {
+          entityType = EntityType.CREATURE;
+        } else if (entity.entity_type === 'item') {
+          entityType = EntityType.ITEM;
+        }
+
+        const contentId = entity?.entity_ref?.content_id;
+        const objectDefinition = this.getObjectDefinition(contentId);
+        const entityName = objectDefinition?.label ||
+          (contentId ? String(contentId).replace(/[_-]+/g, ' ') : String(entity.entity_type || 'entity'));
+        this.createEntityObject(q, r, entityType, entityName, null);
+      });
+    },
+
+    /**
+     * Resolve object definition by content ID.
+     * @param {string} contentId - Object content ID
+     * @returns {Object|null}
+     */
+    getObjectDefinition: function (contentId) {
+      if (!contentId) {
+        return null;
+      }
+
+      const definitions = this.dungeonData?.object_definitions;
+      if (!definitions || typeof definitions !== 'object') {
+        return null;
+      }
+
+      return definitions[contentId] || null;
+    },
+
+    /**
+     * Get obstacle mobility profile at hex in active room.
+     * @param {number} q - Axial q coordinate
+     * @param {number} r - Axial r coordinate
+     * @returns {{movable: boolean, passable: boolean, stackable: boolean}|null}
+     */
+    getObstacleMobilityAtHex: function (q, r) {
+      const entities = Array.isArray(this.dungeonData?.entities) ? this.dungeonData.entities : [];
+      if (!entities.length || !this.activeRoomId) {
+        return null;
+      }
+
+      const obstacle = entities.find((entity) => {
+        if (entity?.entity_type !== 'obstacle') {
+          return false;
+        }
+
+        const placement = entity.placement;
+        if (!placement || placement.room_id !== this.activeRoomId || !placement.hex) {
+          return false;
+        }
+
+        return Number(placement.hex.q) === q && Number(placement.hex.r) === r;
+      });
+
+      if (!obstacle) {
+        return null;
+      }
+
+      const objectDefinition = this.getObjectDefinition(obstacle?.entity_ref?.content_id);
+      const metadata = obstacle?.state?.metadata || {};
+      const definitionMovement = objectDefinition?.movement || {};
+
+      const movable = (typeof metadata.movable === 'boolean') ? metadata.movable : Boolean(objectDefinition?.movable);
+      const passable = (typeof metadata.passable === 'boolean') ? metadata.passable : Boolean(definitionMovement.passable);
+      const stackable = (typeof metadata.stackable === 'boolean') ? metadata.stackable : Boolean(objectDefinition?.stackable);
+
+      return { movable, passable, stackable };
+    },
+
+    /**
+     * Get object label (if any) at a given hex in the active room.
+     * @param {number} q - Axial q coordinate
+     * @param {number} r - Axial r coordinate
+     * @returns {string|null}
+     */
+    getObjectLabelAtHex: function (q, r) {
+      // Prefer live ECS entities so session-placed objects are labeled
+      if (this.entityManager) {
+        const liveEntities = this.entityManager.getEntitiesWith('PositionComponent', 'IdentityComponent');
+        const match = liveEntities.find((candidate) => {
+          const pos = candidate.getComponent('PositionComponent');
+          return pos && pos.q === q && pos.r === r;
+        });
+
+        if (match) {
+          const identity = match.getComponent('IdentityComponent');
+          if (identity?.name) {
+            return identity.name;
+          }
+        }
+      }
+
+      // Fallback to dungeon payload for pre-seeded entities
+      const entities = Array.isArray(this.dungeonData?.entities) ? this.dungeonData.entities : [];
+      if (!entities.length || !this.activeRoomId) {
+        return null;
+      }
+
+      const entity = entities.find((candidate) => {
+        if (!candidate?.placement || candidate.placement.room_id !== this.activeRoomId) {
+          return false;
+        }
+
+        const hex = candidate.placement.hex;
+        if (!hex) {
+          return false;
+        }
+        return Number(hex.q) === q && Number(hex.r) === r;
+      });
+
+      if (!entity) {
+        return null;
+      }
+
+      const contentId = entity?.entity_ref?.content_id;
+      const definition = this.getObjectDefinition(contentId);
+      if (definition?.label) {
+        return definition.label;
+      }
+
+      if (contentId) {
+        return String(contentId).replace(/[_-]+/g, ' ');
+      }
+
+      return entity.entity_type ? String(entity.entity_type) : null;
+    },
+
+    /**
+     * Set active room and redraw room content.
+     * @param {string} roomId - Target room ID
+     */
+    setActiveRoom: function (roomId) {
+      if (!roomId || !this.dungeonData?.rooms || !this.dungeonData.rooms[roomId]) {
+        return;
+      }
+
+      this.activeRoomId = roomId;
+      this.paintActiveRoom();
+      this.renderActiveRoomEntities();
+      console.log('Active room set:', roomId);
+    },
+
+    /**
+     * Apply dungeon payload and initialize active room view.
+     */
+    applyDungeonData: function () {
+      const rooms = this.dungeonData?.rooms;
+      if (!rooms || Object.keys(rooms).length === 0) {
+        return;
+      }
+
+      if (!this.activeRoomId || !rooms[this.activeRoomId]) {
+        this.activeRoomId = Object.keys(rooms)[0];
+      }
+
+      this.setActiveRoom(this.activeRoomId);
+    },
+
+    /**
+     * Try to transition to a connected room at a given hex.
+     * @param {number} q - Axial q coordinate
+     * @param {number} r - Axial r coordinate
+     * @returns {boolean}
+     */
+    tryTransitionAtHex: function (q, r) {
+      const connections = Array.isArray(this.dungeonData?.connections) ? this.dungeonData.connections : [];
+      if (!connections.length || !this.activeRoomId) {
+        return false;
+      }
+
+      const match = connections.find((connection) => {
+        if (connection?.is_passable === false) {
+          return false;
+        }
+
+        const fromMatch = connection.from_room === this.activeRoomId &&
+          Number(connection?.from_hex?.q) === q &&
+          Number(connection?.from_hex?.r) === r;
+        const toMatch = connection.to_room === this.activeRoomId &&
+          Number(connection?.to_hex?.q) === q &&
+          Number(connection?.to_hex?.r) === r;
+
+        return fromMatch || toMatch;
+      });
+
+      if (!match) {
+        return false;
+      }
+
+      let nextRoomId = null;
+      let nextHex = null;
+
+      if (match.from_room === this.activeRoomId) {
+        nextRoomId = match.to_room;
+        nextHex = match.to_hex;
+      } else {
+        nextRoomId = match.from_room;
+        nextHex = match.from_hex;
+      }
+
+      this.setActiveRoom(nextRoomId);
+
+      const destinationHex = this.findHexByCoords(Number(nextHex?.q), Number(nextHex?.r));
+      if (destinationHex) {
+        const previousSelectedHex = this.stateManager.get('selectedHex');
+        if (previousSelectedHex && previousSelectedHex !== destinationHex) {
+          this.onHexOut(previousSelectedHex);
+        }
+        this.setSelectedHex(destinationHex);
+      }
+
+      console.log('Transitioned room:', this.activeRoomId, 'via connection', match.connection_id);
+      return true;
+    },
+
+    /**
+     * Apply campaign launch context to initialize map state.
+     */
+    applyLaunchContext: function () {
+      const context = this.launchContext || {};
+      const hasContext = Boolean(
+        (Number(context.campaign_id) > 0) ||
+        context.room_id ||
+        context.dungeon_level_id ||
+        context.map_id
+      );
+
+      if (!hasContext) {
+        return;
+      }
+
+      const startQ = Number.isFinite(Number(context.start_q)) ? Number(context.start_q) : 0;
+      const startR = Number.isFinite(Number(context.start_r)) ? Number(context.start_r) : 0;
+      const startHex = this.findHexByCoords(startQ, startR);
+
+      if (startHex) {
+        const previousSelectedHex = this.stateManager.get('selectedHex');
+        if (previousSelectedHex && previousSelectedHex !== startHex) {
+          this.onHexOut(previousSelectedHex);
+        }
+        this.setSelectedHex(startHex);
+        console.log('Applied launch context start hex:', startQ, startR, context);
+      } else {
+        console.warn('Launch context start hex not found in current grid:', startQ, startR, context);
+      }
     }
   };
 

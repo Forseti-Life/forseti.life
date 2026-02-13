@@ -20,8 +20,8 @@
       An AI-powered living dungeon that grows as you explore
     </p>
     <div class="hero-cta">
-      <a href="/characters/create" class="btn btn-primary">Start Your Adventure</a>
-      <a href="/how-to-play" class="btn btn-outline-light">Learn More</a>
+      <a href="{{ primary_cta_url|default('/campaigns') }}" class="btn btn-primary">{{ primary_cta_label|default('Start Your Adventure') }}</a>
+      <a href="{{ secondary_cta_url|default('/how-to-play') }}" class="btn btn-outline-light">{{ secondary_cta_label|default('Learn More') }}</a>
     </div>
   </div>
 
@@ -104,8 +104,8 @@
       <section class="cta-section">
         <div class="cta-content">
           <h2>Ready to <span class="highlight">Explore</span>?</h2>
-          <p>Create your character and descend into the depths</p>
-          <a href="/characters/create" class="btn btn-primary">Create Your Hero</a>
+          <p>Create your campaign and choose your party to descend into the depths</p>
+          <a href="{{ primary_cta_url|default('/campaigns') }}" class="btn btn-primary">{{ primary_cta_label|default('Create Your Campaign') }}</a>
         </div>
       </section>
 

@@ -1,0 +1,117 @@
+{
+  "$schema": "../schemas/obstacle_object_catalog.schema.json",
+  "objects": [
+    {
+      "object_id": "wooden_tavern_door",
+      "label": "Tavern Door",
+      "category": "door",
+      "description": "Heavy wooden door between tavern and dungeon room.",
+      "movable": false,
+      "stackable": false,
+      "movement": {
+        "passable": true,
+        "blocks_movement": false,
+        "cost_multiplier": 1
+      },
+      "tags": ["door", "transition"]
+    },
+    {
+      "object_id": "tavern_bar_counter_a",
+      "label": "Bar Counter A",
+      "category": "bar",
+      "description": "Fixed wooden bar counter segment.",
+      "movable": false,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 999
+      },
+      "tags": ["bar", "fixture"]
+    },
+    {
+      "object_id": "tavern_bar_counter_b",
+      "label": "Bar Counter B",
+      "category": "bar",
+      "description": "Fixed wooden bar counter segment.",
+      "movable": false,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 999
+      },
+      "tags": ["bar", "fixture"]
+    },
+    {
+      "object_id": "tavern_bar_counter_c",
+      "label": "Bar Counter C",
+      "category": "bar",
+      "description": "Fixed wooden bar counter segment.",
+      "movable": false,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 999
+      },
+      "tags": ["bar", "fixture"]
+    },
+    {
+      "object_id": "tavern_table_round_a",
+      "label": "Round Table A",
+      "category": "table",
+      "description": "Moveable round tavern table.",
+      "movable": true,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 2
+      },
+      "tags": ["table", "furniture"]
+    },
+    {
+      "object_id": "tavern_table_long_a",
+      "label": "Long Table A",
+      "category": "table",
+      "description": "Moveable long wooden table.",
+      "movable": true,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 2
+      },
+      "tags": ["table", "furniture"]
+    },
+    {
+      "object_id": "tavern_stool_stack_a",
+      "label": "Stool Stack",
+      "category": "stool",
+      "description": "Stacked stools that can be moved.",
+      "movable": true,
+      "stackable": true,
+      "movement": {
+        "passable": true,
+        "blocks_movement": false,
+        "cost_multiplier": 1.5
+      },
+      "tags": ["stool", "furniture", "stack"]
+    },
+    {
+      "object_id": "tavern_crate_stack_a",
+      "label": "Crate Stack",
+      "category": "crate",
+      "description": "Supply crates stacked near the wall.",
+      "movable": true,
+      "stackable": true,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 3
+      },
+      "tags": ["crate", "storage", "stack"]
+    }
+  ]
+}

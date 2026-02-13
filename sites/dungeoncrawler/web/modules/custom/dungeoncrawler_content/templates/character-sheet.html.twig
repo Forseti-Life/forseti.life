@@ -8,8 +8,13 @@
   <div class="dc-sheet__nav">
     <a href="{{ back_url }}" class="dc-btn dc-btn-secondary">← Back to Characters</a>
     <div class="dc-sheet__nav-actions">
+      {% if campaign_id and tavern_url %}
+        <a href="{{ tavern_url }}" class="dc-btn dc-btn-secondary">🍻 Enter Tavern</a>
+      {% endif %}
       {% if character.step < 8 %}
         <a href="/characters/create/step/{{ character.step }}?character_id={{ character.id }}" class="dc-btn dc-btn-warning">⚠️ Continue Creation (Step {{ character.step }}/8)</a>
+      {% else %}
+        <a href="{{ launch_url }}" class="dc-btn dc-btn-success">▶️ Launch Campaign</a>
       {% endif %}
       <a href="{{ edit_url }}" class="dc-btn dc-btn-primary">✏️ Edit</a>
       <a href="{{ delete_url }}" class="dc-btn dc-btn-danger">🗑️ Delete</a>

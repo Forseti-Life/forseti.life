@@ -35,6 +35,10 @@
   font-size: 2rem;
 }
 
+.dc-character-list__campaign-setup {
+  margin-bottom: 1rem;
+}
+
 .dc-character-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -66,6 +70,11 @@
 .dc-character-card--dead {
   opacity: 0.7;
   border-color: var(--dc-danger);
+}
+
+.dc-character-card--disabled {
+  pointer-events: none;
+  opacity: 0.8;
 }
 
 .dc-character-card__portrait {
@@ -173,6 +182,10 @@
   font-size: 0.7rem;
   color: var(--dc-text-muted);
   margin-top: auto;
+}
+
+.dc-character-card__meta--campaign-state {
+  margin-top: 0.5rem;
 }
 
 .dc-character-card__arrow {
@@ -765,6 +778,30 @@
   text-decoration: none;
 }
 
+.dc-btn-success {
+  background: var(--dc-success);
+  border-color: var(--dc-success);
+  color: var(--dc-abyss);
+}
+
+.dc-btn-success:hover {
+  filter: brightness(1.05);
+  color: var(--dc-abyss);
+  text-decoration: none;
+}
+
+.dc-btn-warning {
+  background: var(--dc-torch-gold);
+  border-color: var(--dc-torch-gold);
+  color: var(--dc-abyss);
+}
+
+.dc-btn-warning:hover {
+  filter: brightness(1.05);
+  color: var(--dc-abyss);
+  text-decoration: none;
+}
+
 .dc-btn-danger {
   background: transparent;
   color: var(--dc-danger);
@@ -824,6 +861,17 @@
   display: flex;
   gap: 0.75rem;
   margin-top: 1.5rem;
+}
+
+/* ===== MANAGEMENT FORM PAGE ===== */
+
+.dc-management-page__description {
+  color: var(--dc-text-muted);
+  margin: 0 0 1rem;
+}
+
+.dc-management-page__form {
+  margin-top: 0.5rem;
 }
 
 /* ===== RESPONSIVE ===== */

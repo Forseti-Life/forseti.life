@@ -1,35 +1,29 @@
 {#
- # Character List — /characters page
- # Shows all characters for the logged-in user as cards.
+ # Campaign Tavern Entrance — select a character and launch campaign.
  #}
 <div class="dc-character-list">
   <div class="dc-character-list__header">
-    <h1 class="dc-character-list__title">⚔️ My Characters</h1>
+    <h1 class="dc-character-list__title">🍻 Tavern Entrance</h1>
     <div class="dc-sheet__nav-actions">
-      {% if not campaign_id %}
-        <a href="{{ create_campaign_url }}" class="dc-btn dc-btn-success">▶️ Create Campaign</a>
-      {% endif %}
-      <a href="{{ create_url }}" class="dc-btn dc-btn-primary">
+      <a href="{{ back_url }}" class="dc-btn dc-btn-secondary">← Back to Campaigns</a>
+      <a href="{{ create_character_url }}" class="dc-btn dc-btn-primary">
         <span class="dc-btn__icon">+</span> Create New Character
       </a>
     </div>
   </div>
 
-  {% if campaign_id %}
-    <div class="dc-sheet__section dc-character-list__campaign-setup">
-      <h2 class="dc-sheet__section-title">Campaign Setup</h2>
-      <p>
-        You are selecting a character for
-        <strong>{{ campaign_name ?: ('Campaign #' ~ campaign_id) }}</strong>.
-        Choose an existing completed character, or create one if needed.
-      </p>
-    </div>
-  {% endif %}
+  <div class="dc-sheet__section dc-character-list__campaign-setup">
+    <h2 class="dc-sheet__section-title">{{ campaign.name }}</h2>
+    <p>
+      Theme: <strong>{{ campaign.theme }}</strong> · Difficulty: <strong>{{ campaign.difficulty }}</strong> · Status: <strong>{{ campaign.status }}</strong>
+    </p>
+    <p>Select a completed character to launch this campaign in the hexmap.</p>
+  </div>
 
   {% if characters|length > 0 %}
     <div class="dc-character-grid">
       {% for char in characters %}
-        <a href="{{ campaign_id and char.select_url ? char.select_url : char.url }}" class="dc-character-card dc-character-card--{{ char.status }}">
+        <a href="{{ char.select_url ?: '#' }}" class="dc-character-card dc-character-card--{{ char.status }} {{ not char.select_url ? 'dc-character-card--disabled' : '' }}">
           <div class="dc-character-card__portrait">
             {% if char.portrait %}
               <img src="{{ char.portrait }}" alt="{{ char.name }}" />
@@ -37,9 +31,6 @@
               <div class="dc-character-card__portrait-placeholder">
                 <span class="dc-character-card__initial">{{ char.name|first|upper }}</span>
               </div>
-            {% endif %}
-            {% if char.status == 'dead' %}
-              <div class="dc-character-card__status-badge dc-character-card__status-badge--dead">☠️ Dead</div>
             {% endif %}
           </div>
 
@@ -49,16 +40,10 @@
               Level {{ char.level }} {{ char.ancestry }} {{ char.class }}
             </div>
 
-            {% if char.heritage %}
-              <div class="dc-character-card__heritage">{{ char.heritage }}</div>
-            {% endif %}
-
             <div class="dc-character-card__stats">
               <div class="dc-character-card__stat">
                 <span class="dc-character-card__stat-label">HP</span>
-                <span class="dc-character-card__stat-value dc-character-card__hp">
-                  {{ char.hp_current }}/{{ char.hp_max }}
-                </span>
+                <span class="dc-character-card__stat-value dc-character-card__hp">{{ char.hp_current }}/{{ char.hp_max }}</span>
               </div>
               <div class="dc-character-card__stat">
                 <span class="dc-character-card__stat-label">AC</span>
@@ -67,15 +52,15 @@
             </div>
 
             <div class="dc-character-card__meta">
-              <span class="dc-character-card__alignment">{{ char.alignment }}</span>
-              <span class="dc-character-card__created">{{ char.created }}</span>
+              <span>{{ char.alignment }}</span>
+              <span>{{ char.created }}</span>
             </div>
 
-            {% if campaign_id and char.select_url %}
+            {% if char.select_url %}
               <div class="dc-character-card__meta dc-character-card__meta--campaign-state">
-                <span class="dc-btn dc-btn-success">✅ Select for Campaign</span>
+                <span class="dc-btn dc-btn-success">▶️ Launch Campaign</span>
               </div>
-            {% elseif campaign_id %}
+            {% else %}
               <div class="dc-character-card__meta dc-character-card__meta--campaign-state">
                 <span class="dc-btn dc-btn-warning">Complete character creation first</span>
               </div>
@@ -88,12 +73,10 @@
     </div>
   {% else %}
     <div class="dc-character-list__empty">
-      <div class="dc-character-list__empty-icon">🗡️</div>
-      <h2>No Characters Yet</h2>
-      <p>Your adventuring party awaits. Create your first character to begin the crawl.</p>
-      <a href="{{ create_url }}" class="dc-btn dc-btn-primary">
-        Create Your First Character
-      </a>
+      <div class="dc-character-list__empty-icon">🧙</div>
+      <h2>No Characters Available</h2>
+      <p>Create a character first, then return to the tavern entrance to launch your campaign.</p>
+      <a href="{{ create_character_url }}" class="dc-btn dc-btn-primary">Create Your First Character</a>
     </div>
   {% endif %}
 </div>

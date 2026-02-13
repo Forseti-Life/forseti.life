@@ -3,6 +3,7 @@
 namespace Drupal\dungeoncrawler_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Url;
 
 /**
  * Controller for the World/Lore page.
@@ -95,8 +96,8 @@ class WorldController extends ControllerBase {
         '#markup' => '<div class="card bg-warning text-dark">
           <div class="card-body">
             <h3 class="card-title">Ready to Begin Your Journey?</h3>
-            <p class="card-text">Create your character and step into the unknown.</p>
-            <a href="/characters/create" class="btn btn-dark btn-lg">Create Character</a>
+            <p class="card-text">Create your campaign, choose a character, and step into the unknown.</p>
+            <a href="' . Url::fromRoute('dungeoncrawler_content.campaigns')->toString() . '" class="btn btn-dark btn-lg">View Campaigns</a>
           </div>
         </div>',
       ],

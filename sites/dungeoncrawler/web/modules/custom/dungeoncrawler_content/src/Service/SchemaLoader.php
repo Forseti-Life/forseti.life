@@ -63,6 +63,152 @@ class SchemaLoader {
   }
 
   /**
+   * Load the campaign schema.
+   *
+   * @return array|null
+   *   Decoded schema data or NULL if not found.
+   */
+  public function loadCampaignSchema(): ?array {
+    $file = "{$this->schemaPath}/campaign.schema.json";
+
+    if (!file_exists($file)) {
+      return NULL;
+    }
+
+    $content = file_get_contents($file);
+    $schema = json_decode($content, TRUE);
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
+      \Drupal::logger('dungeoncrawler_content')->error('Invalid JSON in campaign schema: @error', ['@error' => json_last_error_msg()]);
+      return NULL;
+    }
+
+    return $schema;
+  }
+
+  /**
+   * Validate campaign payload data against campaign schema rules.
+   *
+   * @param array $data
+   *   Campaign payload data.
+   *
+   * @return array
+   *   Validation result with keys: valid(bool), errors(array).
+   */
+  public function validateCampaignData(array $data): array {
+    $schema = $this->loadCampaignSchema();
+    if (!$schema) {
+      return ['valid' => FALSE, 'errors' => ['Campaign schema not found']];
+    }
+
+    $errors = [];
+    $required = $schema['required'] ?? [];
+    $properties = $schema['properties'] ?? [];
+
+    foreach ($required as $field) {
+      if (!array_key_exists($field, $data)) {
+        $errors[] = "Missing required field: {$field}";
+      }
+    }
+
+    foreach ($properties as $field => $definition) {
+      if (!array_key_exists($field, $data)) {
+        continue;
+      }
+
+      $value = $data[$field];
+      $allowed_types = $definition['type'] ?? NULL;
+      if ($allowed_types !== NULL && !$this->isValidType($value, $allowed_types)) {
+        $expected = is_array($allowed_types) ? implode('|', $allowed_types) : $allowed_types;
+        $errors[] = "Invalid type for {$field}. Expected {$expected}.";
+      }
+    }
+
+    if (isset($data['progress']) && is_array($data['progress'])) {
+      foreach ($data['progress'] as $index => $entry) {
+        if (!is_array($entry)) {
+          $errors[] = "Progress entry #{$index} must be an object.";
+          continue;
+        }
+        if (!array_key_exists('type', $entry) || !is_string($entry['type']) || $entry['type'] === '') {
+          $errors[] = "Progress entry #{$index} requires string field: type.";
+        }
+        if (!array_key_exists('timestamp', $entry) || !is_int($entry['timestamp']) || $entry['timestamp'] < 0) {
+          $errors[] = "Progress entry #{$index} requires non-negative integer field: timestamp.";
+        }
+      }
+    }
+
+    return [
+      'valid' => empty($errors),
+      'errors' => $errors,
+    ];
+  }
+
+  /**
+   * Check if a value matches one or more allowed schema types.
+   *
+   * @param mixed $value
+   *   Value to check.
+   * @param string|array $allowed_types
+   *   Allowed JSON Schema type(s).
+   *
+   * @return bool
+   *   TRUE if type is valid.
+   */
+  private function isValidType($value, $allowed_types): bool {
+    $types = is_array($allowed_types) ? $allowed_types : [$allowed_types];
+
+    foreach ($types as $type) {
+      switch ($type) {
+        case 'string':
+          if (is_string($value)) {
+            return TRUE;
+          }
+          break;
+
+        case 'integer':
+          if (is_int($value)) {
+            return TRUE;
+          }
+          break;
+
+        case 'number':
+          if (is_int($value) || is_float($value)) {
+            return TRUE;
+          }
+          break;
+
+        case 'boolean':
+          if (is_bool($value)) {
+            return TRUE;
+          }
+          break;
+
+        case 'array':
+          if (is_array($value) && array_is_list($value)) {
+            return TRUE;
+          }
+          break;
+
+        case 'object':
+          if (is_array($value) && !array_is_list($value)) {
+            return TRUE;
+          }
+          break;
+
+        case 'null':
+          if ($value === NULL) {
+            return TRUE;
+          }
+          break;
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
    * Get field configuration for a specific step.
    *
    * @param int $step

@@ -41,22 +41,35 @@ class CharacterCreationStepController extends ControllerBase {
   public function start(Request $request) {
     // Check for existing draft
     $character_id = $request->query->get('character_id');
+    $campaign_id = $request->query->get('campaign_id');
     
     if ($character_id) {
       // Load existing draft
       $character = $this->characterManager->loadCharacter($character_id);
       if ($character && $character->uid == $this->currentUser()->id()) {
         $data = json_decode($character->character_data, TRUE);
-        $step = $data['step'] ?? 1;
-        return new RedirectResponse(Url::fromRoute('dungeoncrawler_content.character_step', [
+        $step = (int) ($data['step'] ?? 1);
+        if ($step === 5) {
+          $step = 6;
+        }
+        $url = Url::fromRoute('dungeoncrawler_content.character_step', [
           'step' => $step,
-          'character_id' => $character_id,
-        ])->toString());
+        ]);
+        $query = ['character_id' => $character_id];
+        if ($campaign_id) {
+          $query['campaign_id'] = $campaign_id;
+        }
+        $url->setOption('query', $query);
+        return new RedirectResponse($url->toString());
       }
     }
     
     // Start new character at step 1
-    return new RedirectResponse(Url::fromRoute('dungeoncrawler_content.character_step', ['step' => 1])->toString());
+    $url = Url::fromRoute('dungeoncrawler_content.character_step', ['step' => 1]);
+    if ($campaign_id) {
+      $url->setOption('query', ['campaign_id' => $campaign_id]);
+    }
+    return new RedirectResponse($url->toString());
   }
 
   /**
@@ -69,12 +82,14 @@ class CharacterCreationStepController extends ControllerBase {
     }
 
     $character_id = $request->query->get('character_id');
+    $campaign_id = $request->query->get('campaign_id');
     
     // Return the form
     return $this->formBuilder()->getForm(
       'Drupal\dungeoncrawler_content\Form\CharacterCreationStepForm',
       $step,
-      $character_id
+      $character_id,
+      $campaign_id
     );
   }
 
@@ -117,7 +132,8 @@ class CharacterCreationStepController extends ControllerBase {
     }
     
     $character_data = $result;
-    $character_data['step'] = $step + 1; // Advance to next step
+    $next_step = $this->getNextStep($step);
+    $character_data['step'] = $next_step; // Advance to next step
 
     // Save to database
     if ($character) {
@@ -147,9 +163,20 @@ class CharacterCreationStepController extends ControllerBase {
     return new JsonResponse([
       'success' => TRUE,
       'redirect' => Url::fromRoute('dungeoncrawler_content.character_step', [
-        'step' => $step + 1,
+        'step' => $next_step,
       ])->setOption('query', ['character_id' => $character_id])->toString(),
     ]);
+  }
+
+  /**
+   * Gets the next step in the flow, skipping editable step 5.
+   */
+  private function getNextStep(int $step): int {
+    if ($step === 4 || $step === 5) {
+      return 6;
+    }
+
+    return min(8, $step + 1);
   }
 
   /**

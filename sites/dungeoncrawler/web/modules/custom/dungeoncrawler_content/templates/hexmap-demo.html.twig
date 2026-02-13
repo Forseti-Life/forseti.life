@@ -4,7 +4,8 @@
  * Template for the hex map demo page.
  *
  * Available variables:
- * - None yet, this is a basic demo
+ * - launch_context: Optional campaign/dungeon launch context from tavern flow.
+ * - dungeon_payload: Optional room/entity payload from example level.
  */
 #}
 
@@ -42,7 +43,6 @@
       <div class="object-buttons">
         <button id="place-creature" class="btn btn-object" data-type="creature">{{ '🐉 Creature'|t }}</button>
         <button id="place-item" class="btn btn-object" data-type="item">{{ '📦 Item'|t }}</button>
-        <button id="place-treasure" class="btn btn-object" data-type="treasure">{{ '💰 Treasure'|t }}</button>
         <button id="place-obstacle" class="btn btn-object" data-type="obstacle">{{ '🚧 Obstacle'|t }}</button>
         <button id="clear-objects" class="btn btn-danger">{{ 'Clear All Objects'|t }}</button>
       </div>
@@ -82,9 +82,36 @@
       <div class="info-content">
         <p><strong>{{ 'Selected Hex:'|t }}</strong> <span id="selected-hex">{{ 'None'|t }}</span></p>
         <p><strong>{{ 'Hovered Hex:'|t }}</strong> <span id="hovered-hex">{{ 'None'|t }}</span></p>
+        <p><strong>{{ 'Hovered Object:'|t }}</strong> <span id="hovered-object">{{ 'None'|t }}</span></p>
         <p><strong>{{ 'Zoom Level:'|t }}</strong> <span id="zoom-level">100%</span></p>
       </div>
     </div>
+
+    {% if launch_context and (launch_context.campaign_id or launch_context.room_id or launch_context.dungeon_level_id or launch_context.map_id) %}
+      <div class="info-panel">
+        <h3>{{ 'Launch Context'|t }}</h3>
+        <div class="info-content">
+          <p><strong>{{ 'Campaign:'|t }}</strong> {{ launch_context.campaign_id ?: 'n/a' }}</p>
+          <p><strong>{{ 'Character:'|t }}</strong> {{ launch_context.character_id ?: 'n/a' }}</p>
+          <p><strong>{{ 'Level:'|t }}</strong> {{ launch_context.dungeon_level_id ?: 'n/a' }}</p>
+          <p><strong>{{ 'Map:'|t }}</strong> {{ launch_context.map_id ?: 'n/a' }}</p>
+          <p><strong>{{ 'Room:'|t }}</strong> {{ launch_context.room_id ?: 'n/a' }}</p>
+          <p><strong>{{ 'Next Room:'|t }}</strong> {{ launch_context.next_room_id ?: 'n/a' }}</p>
+          <p><strong>{{ 'Start Hex:'|t }}</strong> ({{ launch_context.start_q ?: 0 }}, {{ launch_context.start_r ?: 0 }})</p>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if dungeon_payload and dungeon_payload.active_room_id and dungeon_payload.rooms[dungeon_payload.active_room_id] is defined %}
+      <div class="info-panel">
+        <h3>{{ 'Active Room'|t }}</h3>
+        <div class="info-content">
+          <p><strong>{{ 'Room:'|t }}</strong> {{ dungeon_payload.rooms[dungeon_payload.active_room_id].name }}</p>
+          <p><strong>{{ 'Room ID:'|t }}</strong> {{ dungeon_payload.active_room_id }}</p>
+          <p><strong>{{ 'Hexes:'|t }}</strong> {{ dungeon_payload.rooms[dungeon_payload.active_room_id].hexes|length }}</p>
+        </div>
+      </div>
+    {% endif %}
     
     <div class="info-panel" id="entity-info-panel" style="display:none;">
       <h3>{{ 'Selected Entity'|t }}</h3>
@@ -99,6 +126,18 @@
       </div>
     </div>
     
+    <div class="info-panel">
+      <h3>{{ 'Legend'|t }}</h3>
+      <div class="info-content">
+        <p><span style="display:inline-block;width:18px;height:18px;background:#5b2b2b;border:2px solid #8b3a3a;margin-right:6px;color:#fff;font-size:10px;line-height:14px;text-align:center;">F</span>{{ 'Impassable, fixed obstacle'|t }}</p>
+        <p><span style="display:inline-block;width:18px;height:18px;background:#7a5325;border:2px solid #b7791f;margin-right:6px;color:#fff;font-size:10px;line-height:14px;text-align:center;">M</span>{{ 'Impassable, movable obstacle'|t }}</p>
+        <p><span style="display:inline-block;width:18px;height:18px;background:#2d5170;border:2px solid #4299e1;margin-right:6px;color:#fff;font-size:10px;line-height:14px;text-align:center;">P</span>{{ 'Passable, movable obstacle'|t }}</p>
+        <p><span style="display:inline-block;width:18px;height:18px;background:#2d4b36;border:2px solid #4d7a5b;margin-right:6px;color:#fff;font-size:10px;line-height:14px;text-align:center;">R</span>{{ 'Active room floor'|t }}</p>
+        <p><span style="display:inline-block;width:18px;height:18px;background:#2d3748;border:1px solid #4a5568;margin-right:6px;color:#fff;font-size:10px;line-height:14px;text-align:center;">O</span>{{ 'Outside active room'|t }}</p>
+        <p><span style="display:inline-block;width:18px;height:18px;background:#3b82f6;border:2px solid #60a5fa;margin-right:6px;color:#fff;font-size:10px;line-height:14px;text-align:center;">S</span>{{ 'Selected hex'|t }}</p>
+      </div>
+    </div>
+
     <div class="info-panel">
       <h3>{{ 'Instructions'|t }}</h3>
       <ul>

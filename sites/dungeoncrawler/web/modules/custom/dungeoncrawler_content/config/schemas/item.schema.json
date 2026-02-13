@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://dungeoncrawler.life/schemas/item.schema.json",
   "title": "Item Schema",
-  "description": "PF2e-compatible item definition. Covers weapons, armor, consumables, treasure, and magic items. Supports rarity tiers, bulk, and activation actions.",
+  "description": "PF2e-compatible item definition. Covers weapons, armor, consumables, and magic items. Loot/treasure is represented as standard items. Supports rarity tiers, bulk, and activation actions.",
   "type": "object",
   "required": ["item_id", "name", "item_type", "level", "rarity"],
   "properties": {
@@ -13,7 +13,7 @@
       "enum": [
         "weapon", "armor", "shield", "consumable", "potion", "scroll",
         "wand", "talisman", "worn_item", "held_item", "material",
-        "adventuring_gear", "treasure", "relic", "artifact"
+        "adventuring_gear", "relic", "artifact"
       ]
     },
     "level": { "type": "integer", "minimum": 0, "maximum": 25 },

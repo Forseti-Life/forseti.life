@@ -26,6 +26,13 @@ dungeoncrawler_content.menu.characters:
   menu_name: main
   weight: 10
 
+dungeoncrawler_content.menu.campaigns:
+  title: 'Campaigns'
+  description: 'View and manage your campaigns'
+  route_name: dungeoncrawler_content.campaigns
+  menu_name: main
+  weight: 15
+
 dungeoncrawler_content.menu.world:
   title: 'World'
   description: 'Explore the living dungeon lore and world information'

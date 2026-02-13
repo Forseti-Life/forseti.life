@@ -60,6 +60,36 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
       'template' => 'character-list',
       'path' => $path . '/templates',
     ],
+    'campaign_list' => [
+      'variables' => [
+        'campaigns' => [],
+        'create_url' => NULL,
+        'characters_url' => NULL,
+      ],
+      'template' => 'campaign-list',
+      'path' => $path . '/templates',
+    ],
+    'campaign_tavernentrance' => [
+      'variables' => [
+        'campaign' => [],
+        'characters' => [],
+        'create_character_url' => NULL,
+        'back_url' => NULL,
+      ],
+      'template' => 'campaign-tavernentrance',
+      'path' => $path . '/templates',
+    ],
+    'management_form_page' => [
+      'variables' => [
+        'page_title' => NULL,
+        'page_description' => NULL,
+        'form' => [],
+        'back_url' => NULL,
+        'back_label' => NULL,
+      ],
+      'template' => 'management-form-page',
+      'path' => $path . '/templates',
+    ],
     'character_sheet' => [
       'variables' => [
         'character' => [],
@@ -80,6 +110,8 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
         'raw_json' => '',
         'edit_url' => NULL,
         'delete_url' => NULL,
+        'tavern_url' => NULL,
+        'campaign_id' => NULL,
         'back_url' => NULL,
       ],
       'template' => 'character-sheet',
@@ -187,7 +219,10 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
       'path' => $path . '/templates',
     ],
     'hexmap_demo' => [
-      'variables' => [],
+      'variables' => [
+        'launch_context' => [],
+        'dungeon_payload' => [],
+      ],
       'template' => 'hexmap-demo',
       'path' => $path . '/templates',
     ],

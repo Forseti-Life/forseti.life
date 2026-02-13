@@ -59,7 +59,7 @@
         "armory", "pantry", "garden", "pool", "mine", "crypt",
         "laboratory", "barracks", "marketplace", "arena", "boss_chamber",
         "entrance", "exit", "stairwell", "crossroads", "dead_end",
-        "trap_room", "puzzle_room", "treasure_room", "safe_room"
+        "trap_room", "puzzle_room", "vault_room", "safe_room"
       ],
       "description": "Functional room type. Affects AI generation parameters."
     },
@@ -221,6 +221,11 @@
       "type": "array",
       "description": "PF2e hazards (complex or simple) in this room.",
       "items": { "$ref": "hazard.schema.json" }
+    },
+    "obstacles": {
+      "type": "array",
+      "description": "Traversal/combat obstacles in this room. Obstacles are not containers.",
+      "items": { "$ref": "obstacle.schema.json" }
     },
     "interactables": {
       "type": "array",

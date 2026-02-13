@@ -1,0 +1,66 @@
+{#
+ # Campaign List — /campaigns page
+ # Campaign hub for returning and new users.
+ #}
+<div class="dc-character-list">
+  <div class="dc-character-list__header">
+    <h1 class="dc-character-list__title">🎯 My Campaigns</h1>
+    <div class="dc-sheet__nav-actions">
+      <a href="{{ characters_url }}" class="dc-btn dc-btn-secondary">⚔️ My Characters</a>
+      <a href="{{ create_url }}" class="dc-btn dc-btn-primary">
+        <span class="dc-btn__icon">+</span> Create New Campaign
+      </a>
+    </div>
+  </div>
+
+  {% if campaigns|length > 0 %}
+    <div class="dc-character-grid">
+      {% for campaign in campaigns %}
+        <a href="{{ campaign.url }}" class="dc-character-card dc-character-card--{{ campaign.status }}">
+          <div class="dc-character-card__portrait">
+            <div class="dc-character-card__portrait-placeholder">
+              <span class="dc-character-card__initial">{{ campaign.name|first|upper }}</span>
+            </div>
+          </div>
+
+          <div class="dc-character-card__info">
+            <h3 class="dc-character-card__name">{{ campaign.name }}</h3>
+            <div class="dc-character-card__subtitle">
+              {{ campaign.theme }} · {{ campaign.difficulty }}
+            </div>
+
+            <div class="dc-character-card__stats">
+              <div class="dc-character-card__stat">
+                <span class="dc-character-card__stat-label">Party</span>
+                <span class="dc-character-card__stat-value">{{ campaign.character_count }}</span>
+              </div>
+              <div class="dc-character-card__stat">
+                <span class="dc-character-card__stat-label">Active</span>
+                <span class="dc-character-card__stat-value">{{ campaign.active_character }}</span>
+              </div>
+            </div>
+
+            <div class="dc-character-card__meta">
+              <span>{{ campaign.status_label }}</span>
+              <span>Updated {{ campaign.changed }}</span>
+            </div>
+
+            <div class="dc-character-card__meta dc-character-card__meta--campaign-state">
+              <span class="dc-btn {{ campaign.can_launch ? 'dc-btn-success' : 'dc-btn-primary' }}">{{ campaign.action_label }}</span>
+              <span>Created {{ campaign.created }}</span>
+            </div>
+          </div>
+
+          <div class="dc-character-card__arrow">›</div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="dc-character-list__empty">
+      <div class="dc-character-list__empty-icon">🧭</div>
+      <h2>No Campaigns Yet</h2>
+      <p>Create your first campaign, then choose a character to start the adventure.</p>
+      <a href="{{ create_url }}" class="dc-btn dc-btn-primary">Create Your First Campaign</a>
+    </div>
+  {% endif %}
+</div>
