@@ -131,6 +131,42 @@ Technical implementation architecture for the Google Jobs Integration feature:
 - Integration with existing job_hunter data
 - Testing checklist and maintenance notes
 
+#### [Company Research Path Design](COMPANY_RESEARCH_DESIGN_SUMMARY.md) 🔬
+**Audience:** Developers, System Architects, Product Managers
+
+**NEW - Complete design package for company research automation (NOT YET IMPLEMENTED)**
+
+Comprehensive design for automated company research including:
+- **[Design Summary](COMPANY_RESEARCH_DESIGN_SUMMARY.md)** - Overview and quick start (14KB)
+- **[Main Design Document](COMPANY_RESEARCH_PATH_DESIGN.md)** - Complete specifications (45KB)
+  - 8-step process flow (company name → careers pages → ATS detection → auth analysis)
+  - Controller and service layer architecture (6 services)
+  - Database schemas (2 tables with full specifications)
+  - API integrations (Google Search, LinkedIn, Headless Browser)
+  - Authentication strategies (Email/Password, SSO, SAML, 2FA)
+  - 12-week implementation roadmap
+- **[Visual Diagrams](COMPANY_RESEARCH_DIAGRAMS.md)** - Process flows and architecture diagrams (50KB)
+  - System architecture (5 layers)
+  - Service interactions and data flows
+  - State machines and decision trees
+  - Error handling and caching strategies
+- **[Implementation Examples](COMPANY_RESEARCH_IMPLEMENTATION_EXAMPLES.md)** - Code examples (49KB)
+  - Complete service implementations
+  - Controller examples with routes
+  - Database installation hooks
+  - Configuration schemas
+  - Unit test examples
+  - Twig templates
+
+**Purpose:** Accept company name as input, automatically identify:
+1. Job application careers pages
+2. Application system type (Workday, Greenhouse, Taleo, etc.)
+3. Authentication methodologies required for account creation
+
+**Status:** Design complete, ready for implementation. No code has been written yet.
+
+**When to read:** Before implementing company research features, when planning ATS integrations, or understanding automation requirements.
+
 #### [Installation Guide](../INSTALL.md) 🚀
 **Audience:** System Administrators, DevOps Engineers
 
@@ -352,6 +388,14 @@ If you can't find what you need in the documentation:
 - Added suspend button functionality to queue management
 - Updated ARCHITECTURE.md with comprehensive queue and controller documentation
 
+### Version 1.3 (February 13, 2026)
+- **NEW: Company Research Path Design Package** - Complete design for company research automation (NOT YET IMPLEMENTED)
+  - Added COMPANY_RESEARCH_DESIGN_SUMMARY.md - Quick reference and overview
+  - Added COMPANY_RESEARCH_PATH_DESIGN.md - Complete technical design (8-step process, 6 services, 2 database tables)
+  - Added COMPANY_RESEARCH_DIAGRAMS.md - Visual process flows and architecture diagrams
+  - Added COMPANY_RESEARCH_IMPLEMENTATION_EXAMPLES.md - Code examples and implementation patterns
+- Updated README.md documentation index with company research section
+
 ---
 
 ## 📂 Complete File List
@@ -369,6 +413,10 @@ If you can't find what you need in the documentation:
 - `JOB_TAILORING_DESIGN.md` - Job tailoring design documentation
 - `RESUME_PDF_STYLE_SCHEMA.md` - Resume PDF styling schema
 - `RESUME_STYLE_MAPPING_REPORT.md` - Resume style mapping report
+- **`COMPANY_RESEARCH_DESIGN_SUMMARY.md`** - Company research design overview (NEW)
+- **`COMPANY_RESEARCH_PATH_DESIGN.md`** - Complete company research design specification (NEW)
+- **`COMPANY_RESEARCH_DIAGRAMS.md`** - Visual process flows and diagrams (NEW)
+- **`COMPANY_RESEARCH_IMPLEMENTATION_EXAMPLES.md`** - Implementation code examples (NEW)
 
 ### Module Root Documentation
 - `../README.md` - Module overview and quick start
@@ -382,7 +430,7 @@ If you can't find what you need in the documentation:
 
 ---
 
-**Last Updated:** February 11, 2026  
+**Last Updated:** February 13, 2026  
 **Module Version:** 1.0-dev
 
 **Happy coding! 🚀**
