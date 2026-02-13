@@ -140,8 +140,11 @@ hexmap:
     js/ecs/components/PositionComponent.js: { type: module }
     js/ecs/components/RenderComponent.js: { type: module }
     js/ecs/components/IdentityComponent.js: { type: module }
+    js/ecs/components/MovementComponent.js: { type: module }
+    js/ecs/components/StatsComponent.js: { type: module }
     # ECS Systems
     js/ecs/systems/RenderSystem.js: { type: module }
+    js/ecs/systems/MovementSystem.js: { type: module }
     # ECS Index
     js/ecs/index.js: { type: module }
     # Main hexmap (loads ECS as module)

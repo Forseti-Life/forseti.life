@@ -4,7 +4,7 @@
  */
 
 // Import ECS modules
-import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, EntityType, RenderSystem } from './ecs/index.js';
+import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, EntityType, RenderSystem, MovementComponent, StatsComponent, MovementSystem, MovementMode } from './ecs/index.js';
 
 // Ensure Drupal and once are available
 /* global Drupal, once, PIXI */
@@ -35,6 +35,12 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     // ECS architecture
     entityManager: null,
     renderSystem: null,
+    movementSystem: null,
+    
+    // Movement and selection
+    selectedEntity: null,
+    movementRange: null,
+    movementRangeOverlay: null,
 
     attach: function (context, settings) {
       const container = once('hexmap-init', '#hexmap-canvas-container', context);
@@ -60,6 +66,9 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       // Create entity manager
       this.entityManager = new EntityManager();
       
+      // Create UI overlay container
+      this.uiContainer = new PIXI.Container();
+      
       // Create render system
       this.renderSystem = new RenderSystem(
         this.entityManager,
@@ -69,13 +78,20 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
           object: this.objectContainer,
           ui: this.uiContainer
         }
-      this.uiContainer = new PIXI.Container();
+      );
+      this.renderSystem.setHexSize(this.hexSize);
+      this.entityManager.addSystem(this.renderSystem);
       
-      // Add layers in order: hexes (terrain), grid (coords), objects (sprites), ui (overlays)
-      this.app.stage.addChild(this.hexContainer);
-      this.app.stage.addChild(this.gridContainer);
-      this.app.stage.addChild(this.objectContainer);
-      this.app.stage.addChild(this.uienderSystem);
+      // Create movement system
+      this.movementSystem = new MovementSystem(this.entityManager);
+      this.entityManager.addSystem(this.movementSystem);
+      
+      // Add UI layer to stage
+      this.app.stage.addChild(this.uiContainer);
+      
+      // Center UI container
+      this.uiContainer.x = this.hexContainer.x;
+      this.uiContainer.y = this.hexContainer.y;
       
       console.log('ECS initialized');
     },
@@ -332,10 +348,10 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
      * Hex click event.
      */
     onHexClick: function (hex) {
-      // If object type is selected, place object using ECS
+      const { q, r } = hex.hexData;
+      
+      // Mode 1: Object placement mode
       if (this.selectedObjectType) {
-        const { q, r } = hex.hexData;
-        
         // Map object type to EntityType
         let entityType;
         let name;
@@ -361,12 +377,47 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
             name = 'Unknown';
         }
         
-        // Create entity using ECS
-        this.createEntityObject(q, r, entityType, name, null);
+        // Create entity using ECS (with movement and stats for creatures/characters)
+        const entity = this.createEntityObject(q, r, entityType, name, null);
+        
+        // Add movement and stats for creatures and characters
+        if (entityType === EntityType.CREATURE || entityType === EntityType.PLAYER_CHARACTER) {
+          entity.addComponent('StatsComponent', new StatsComponent({ speed: 30, maxHp: 20 }));
+          entity.addComponent('MovementComponent', new MovementComponent(30));
+        }
+        
         return;
       }
       
-      // Otherwise, select hex
+      // Mode 2: Check if clicking on an entity to select it
+      const entitiesAtPos = this.entityManager.getEntitiesWith('PositionComponent', 'IdentityComponent');
+      for (const entity of entitiesAtPos) {
+        const pos = entity.getComponent('PositionComponent');
+        if (pos.q === q && pos.r === r) {
+          // Check if entity has MovementComponent (can be selected)
+          if (entity.hasComponent('MovementComponent')) {
+            this.selectEntity(entity);
+            return;
+          }
+        }
+      }
+      
+      // Mode 3: Move selected entity
+      if (this.selectedEntity && this.movementRange) {
+        const hexKey = `${q}_${r}`;
+        if (this.movementRange.has(hexKey)) {
+          // Try to move entity
+          const success = this.movementSystem.moveEntity(this.selectedEntity, q, r);
+          if (success) {
+            console.log(`Moved entity to (${q}, ${r})`);
+            // Refresh movement range after move
+            this.showMovementRange(this.selectedEntity);
+          }
+          return;
+        }
+      }
+      
+      // Mode 4: Default hex selection
       // Deselect previous hex
       if (this.selectedHex) {
         this.onHexOut(this.selectedHex);
@@ -394,7 +445,6 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       hex.endFill();
 
       // Update UI
-      const { q, r } = hex.hexData;
       document.getElementById('selected-hex').textContent = `(${q}, ${r})`;
       
       console.log('Selected hex:', q, r);
@@ -431,6 +481,112 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       
       console.log(`Created entity "${name}" (${entityType}) at (${q}, ${r})`);
       return entity;
+    },
+    
+    /**
+     * Select an entity for movement.
+     * @param {Entity} entity - Entity to select
+     */
+    selectEntity: function (entity) {
+      // Deselect previous entity
+      if (this.selectedEntity) {
+        this.deselectEntity();
+      }
+      
+      this.selectedEntity = entity;
+      
+      // Check if entity can move
+      const movement = entity.getComponent('MovementComponent');
+      if (!movement) {
+        console.warn('Entity has no MovementComponent');
+        return;
+      }
+      
+      // Calculate and show movement range
+      this.showMovementRange(entity);
+      
+      // Update UI
+      const identity = entity.getComponent('IdentityComponent');
+      const name = identity ? identity.name : `Entity ${entity.id}`;
+      console.log(`Selected entity: ${name}`);
+      
+      // Highlight selected entity (could add visual feedback on sprite)
+      const render = entity.getComponent('RenderComponent');
+      if (render && render.sprite) {
+        render.sprite.tint = 0x60a5fa; // Blue tint
+      }
+    },
+    
+    /**
+     * Deselect currently selected entity.
+     */
+    deselectEntity: function () {
+      if (!this.selectedEntity) {
+        return;
+      }
+      
+      // Remove tint from sprite
+      const render = this.selectedEntity.getComponent('RenderComponent');
+      if (render && render.sprite) {
+        render.sprite.tint = 0xffffff; // Reset to white
+      }
+      
+      this.selectedEntity = null;
+      this.hideMovementRange();
+      
+      console.log('Entity deselected');
+    },
+    
+    /**
+     * Show movement range overlay for entity.
+     * @param {Entity} entity - Entity to show range for
+     */
+    showMovementRange: function (entity) {
+      // Clear existing overlay
+      this.hideMovementRange();
+      
+      // Calculate movement range
+      this.movementRange = this.movementSystem.calculateMovementRange(entity);
+      
+      // Create overlay graphics
+      this.movementRangeOverlay = new PIXI.Graphics();
+      
+      // Draw reachable hexes
+      this.movementRange.forEach(hexKey => {
+        const [q, r] = hexKey.split('_').map(Number);
+        const pos = this.axialToPixel(q, r, this.hexSize);
+        
+        this.movementRangeOverlay.beginFill(0x3b82f6, 0.2); // Blue with transparency
+        this.movementRangeOverlay.lineStyle(2, 0x60a5fa, 0.5);
+        
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i;
+          const x = pos.x + this.hexSize * Math.cos(angle);
+          const y = pos.y + this.hexSize * Math.sin(angle);
+          
+          if (i === 0) {
+            this.movementRangeOverlay.moveTo(x, y);
+          } else {
+            this.movementRangeOverlay.lineTo(x, y);
+          }
+        }
+        this.movementRangeOverlay.closePath();
+        this.movementRangeOverlay.endFill();
+      });
+      
+      this.uiContainer.addChild(this.movementRangeOverlay);
+    },
+    
+    /**
+     * Hide movement range overlay.
+     */
+    hideMovementRange: function () {
+      if (this.movementRangeOverlay) {
+        this.uiContainer.removeChild(this.movementRangeOverlay);
+        this.movementRangeOverlay.destroy();
+        this.movementRangeOverlay = null;
+      }
+      this.movementRange = null;
     },
 
     /**
@@ -708,6 +864,14 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         self.objects.clear();
         console.log('Cleared all objects');
       });
+      
+      // Deselect entity button (if it exists)
+      const deselectBtn = document.getElementById('deselect-entity');
+      if (deselectBtn) {
+        deselectBtn.addEventListener('click', function () {
+          self.deselectEntity();
+        });
+      }
     },
 
     /**
