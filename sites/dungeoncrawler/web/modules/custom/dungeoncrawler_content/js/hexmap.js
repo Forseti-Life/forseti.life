@@ -1,7 +1,13 @@
 /**
  * @file
- * Hex map rendering with PixiJS.
+ * Hex map rendering with PixiJS + ECS architecture.
  */
+
+// Import ECS modules
+import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, EntityType, RenderSystem } from './ecs/index.js';
+
+// Ensure Drupal and once are available
+/* global Drupal, once, PIXI */
 
 (function (Drupal, once) {
   'use strict';
@@ -14,6 +20,7 @@
     hexContainer: null,
     gridContainer: null,
     objectContainer: null,
+    uiContainer: null,
     hexSize: 30,
     gridWidth: 20,
     gridHeight: 20,
@@ -21,9 +28,13 @@
     showGrid: true,
     selectedHex: null,
     hoveredHex: null,
-    objects: new Map(), // Map of q_r -> object sprite
+    objects: new Map(), // Legacy - will migrate to ECS
     draggedObject: null,
     assetsLoaded: false,
+    
+    // ECS architecture
+    entityManager: null,
+    renderSystem: null,
 
     attach: function (context, settings) {
       const container = once('hexmap-init', '#hexmap-canvas-container', context);
@@ -33,9 +44,51 @@
       }
 
       this.initPixiApp(container[0]);
+      this.initECS(); // Initialize ECS architecture
       this.generateHexGrid();
       this.setupControls();
       this.setupInteraction();
+      
+      // Start game loop
+      this.app.ticker.add((delta) => this.update(delta));
+    },
+    
+    /**
+     * Initialize ECS architecture.
+     */
+    initECS: function () {
+      // Create entity manager
+      this.entityManager = new EntityManager();
+      
+      // Create render system
+      this.renderSystem = new RenderSystem(
+        this.entityManager,
+        this.app,
+        {
+          hex: this.hexContainer,
+          object: this.objectContainer,
+          ui: this.uiContainer
+        }
+      this.uiContainer = new PIXI.Container();
+      
+      // Add layers in order: hexes (terrain), grid (coords), objects (sprites), ui (overlays)
+      this.app.stage.addChild(this.hexContainer);
+      this.app.stage.addChild(this.gridContainer);
+      this.app.stage.addChild(this.objectContainer);
+      this.app.stage.addChild(this.uienderSystem);
+      
+      console.log('ECS initialized');
+    },
+    
+    /**
+     * Game loop update.
+     * @param {number} delta - Time delta from PixiJS ticker
+     */
+    update: function (delta) {
+      // Update all ECS systems
+      if (this.entityManager) {
+        this.entityManager.update(delta * 16.67); // Convert to milliseconds
+      }
     },
 
     /**
@@ -69,6 +122,8 @@
       this.hexContainer.y = this.app.screen.height / 2;
       this.gridContainer.x = this.hexContainer.x;
       this.gridContainer.y = this.hexContainer.y;
+      this.uiContainer.x = this.hexContainer.x;
+      this.uiContainer.y = this.hexContainer.y;
       this.objectContainer.x = this.hexContainer.x;
       this.objectContainer.y = this.hexContainer.y;
 
@@ -277,10 +332,37 @@
      * Hex click event.
      */
     onHexClick: function (hex) {
-      // If object type is selected, place object
+      // If object type is selected, place object using ECS
       if (this.selectedObjectType) {
         const { q, r } = hex.hexData;
-        this.createObject(q, r, this.selectedObjectType, null);
+        
+        // Map object type to EntityType
+        let entityType;
+        let name;
+        switch (this.selectedObjectType) {
+          case 'creature':
+            entityType = EntityType.CREATURE;
+            name = 'Creature';
+            break;
+          case 'item':
+            entityType = EntityType.ITEM;
+            name = 'Item';
+            break;
+          case 'treasure':
+            entityType = EntityType.TREASURE;
+            name = 'Treasure';
+            break;
+          case 'obstacle':
+            entityType = EntityType.OBSTACLE;
+            name = 'Obstacle';
+            break;
+          default:
+            entityType = EntityType.CREATURE;
+            name = 'Unknown';
+        }
+        
+        // Create entity using ECS
+        this.createEntityObject(q, r, entityType, name, null);
         return;
       }
       
@@ -317,9 +399,42 @@
       
       console.log('Selected hex:', q, r);
     },
+    
+    /**
+     * Create a game entity using ECS architecture.
+     * @param {number} q - Hex Q coordinate
+     * @param {number} r - Hex R coordinate
+     * @param {string} entityType - Entity type from EntityType enum
+     * @param {string} name - Entity name
+     * @param {string} spriteKey - Optional sprite key
+     * @returns {Entity} Created entity
+     */
+    createEntityObject: function (q, r, entityType, name, spriteKey = null) {
+      // Check if entity already exists at this position
+      const existingEntities = this.entityManager.getEntitiesWith('PositionComponent');
+      for (const entity of existingEntities) {
+        const pos = entity.getComponent('PositionComponent');
+        if (pos.q === q && pos.r === r) {
+          // Remove existing entity
+          this.entityManager.removeEntity(entity.id);
+          break;
+        }
+      }
+      
+      // Create new entity
+      const entity = this.entityManager.createEntity();
+      
+      // Add components
+      entity.addComponent('PositionComponent', new PositionComponent(q, r));
+      entity.addComponent('IdentityComponent', new IdentityComponent(name, entityType));
+      entity.addComponent('RenderComponent', new RenderComponent(spriteKey));
+      
+      console.log(`Created entity "${name}" (${entityType}) at (${q}, ${r})`);
+      return entity;
+    },
 
     /**
-     * Create a game object on a hex.
+     * Create a game object on a hex (LEGACY - use createEntityObject for new code).
      */
     createObject: function (q, r, type, spritePath) {
       const key = `${q}_${r}`;

@@ -126,12 +126,26 @@ character-step-8:
     - core/jquery
     - core/once
 
-# Hex Map with PixiJS
+# Hex Map with PixiJS + ECS
 hexmap:
   js:
     # PixiJS CDN
     https://cdn.jsdelivr.net/npm/pixi.js@7.3.2/dist/pixi.min.js: { type: external, minified: true }
-    js/hexmap.js: {}
+    # ECS Core (loaded before hexmap.js)
+    js/ecs/Component.js: { type: module }
+    js/ecs/Entity.js: { type: module }
+    js/ecs/System.js: { type: module }
+    js/ecs/EntityManager.js: { type: module }
+    # ECS Components
+    js/ecs/components/PositionComponent.js: { type: module }
+    js/ecs/components/RenderComponent.js: { type: module }
+    js/ecs/components/IdentityComponent.js: { type: module }
+    # ECS Systems
+    js/ecs/systems/RenderSystem.js: { type: module }
+    # ECS Index
+    js/ecs/index.js: { type: module }
+    # Main hexmap (loads ECS as module)
+    js/hexmap.js: { type: module }
   css:
     theme:
       css/hexmap.css: {}
