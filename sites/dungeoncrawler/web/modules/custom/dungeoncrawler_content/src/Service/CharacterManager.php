@@ -704,4 +704,19 @@ class CharacterManager {
     return (int) $record->uid === (int) $this->currentUser->id();
   }
 
+  /**
+   * Returns class data by class id.
+   */
+  public function getClassData(string $classId): ?array {
+    return self::CLASSES[strtolower($classId)] ?? NULL;
+  }
+
+  /**
+   * Returns base HP for a class with safe fallback.
+   */
+  public function getClassHP(string $classId): int {
+    $classData = $this->getClassData($classId);
+    return (int) ($classData['hp'] ?? 8);
+  }
+
 }

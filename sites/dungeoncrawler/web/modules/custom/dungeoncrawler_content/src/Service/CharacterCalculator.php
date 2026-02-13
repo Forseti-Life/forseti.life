@@ -44,13 +44,51 @@ class CharacterCalculator {
    * TODO: Implement per design document Section "Service Layer Design"
    */
   public function calculateHP(array $characterData): array {
-    // PSEUDOCODE:
-    // 1. Extract class_hp, level, CON score, ancestry_hp_bonus
-    // 2. Calculate CON modifier using calculateAbilityModifier()
-    // 3. Calculate: (class_hp * level) + (con_mod * level) + ancestry_bonus
-    // 4. Return array with 'total' and 'breakdown' keys
-    
-    throw new \Exception('Not yet implemented - see design doc section "Service Layer Design"');
+    $level = max(1, (int) ($characterData['level'] ?? 1));
+
+    $classHp = (int) ($characterData['class_hp'] ?? 0);
+    if ($classHp <= 0 && !empty($characterData['class'])) {
+      $classId = strtolower((string) $characterData['class']);
+      $classData = CharacterManager::CLASSES[$classId] ?? NULL;
+      $classHp = (int) ($classData['hp'] ?? 8);
+    }
+    if ($classHp <= 0) {
+      $classHp = 8;
+    }
+
+    $abilities = $characterData['abilities'] ?? [];
+    $conScore = (int) (
+      $abilities['constitution']
+      ?? $abilities['con']
+      ?? 10
+    );
+    $conModifier = $this->calculateAbilityModifier($conScore);
+
+    $ancestryHp = 0;
+    if (isset($characterData['ancestry_hp_bonus'])) {
+      $ancestryHp = (int) $characterData['ancestry_hp_bonus'];
+    }
+    elseif (!empty($characterData['ancestry'])) {
+      $ancestryId = strtolower((string) $characterData['ancestry']);
+      $ancestryData = CharacterManager::ANCESTRIES[$ancestryId] ?? NULL;
+      $ancestryHp = (int) ($ancestryData['hp'] ?? 0);
+    }
+
+    $otherBonuses = (int) ($characterData['other_hp_bonus'] ?? 0);
+    $baseHp = $ancestryHp + $classHp + $conModifier;
+    $levelHp = ($level - 1) * ($classHp + $conModifier);
+    $totalHp = max(1, $baseHp + $levelHp + $otherBonuses);
+
+    return [
+      'total' => $totalHp,
+      'breakdown' => [
+        'ancestry_bonus' => $ancestryHp,
+        'class_base' => $classHp,
+        'con_modifier' => $conModifier,
+        'level_multiplier' => $levelHp,
+        'other_bonuses' => $otherBonuses,
+      ],
+    ];
   }
 
   /**
@@ -76,10 +114,7 @@ class CharacterCalculator {
    * TODO: Implement per PF2e Core Rulebook rules
    */
   public function calculateAbilityModifier(int $score): int {
-    // PSEUDOCODE:
-    // return floor(($score - 10) / 2);
-    
-    throw new \Exception('Not yet implemented - see PF2e Core Rulebook pp. 20-21');
+    return (int) floor(($score - 10) / 2);
   }
 
   /**
@@ -100,13 +135,10 @@ class CharacterCalculator {
    * TODO: Implement boost rules
    */
   public function applyAbilityBoost(int $score): int {
-    // PSEUDOCODE:
-    // if ($score < 18) {
-    //   return $score + 2;
-    // }
-    // return $score + 1;
-    
-    throw new \Exception('Not yet implemented - see design doc PF2e boost rules');
+    if ($score < 18) {
+      return $score + 2;
+    }
+    return $score + 1;
   }
 
   /**
@@ -129,14 +161,14 @@ class CharacterCalculator {
    * TODO: Implement proficiency calculation
    */
   public function calculateProficiencyBonus(string $rank, int $level): int {
-    // PSEUDOCODE:
-    // $rankBonuses = [
-    //   'untrained' => 0, 'trained' => 2, 'expert' => 4,
-    //   'master' => 6, 'legendary' => 8
-    // ];
-    // return ($rankBonuses[$rank] ?? 0) + $level;
-    
-    throw new \Exception('Not yet implemented - see proficiency rules');
+    $rankBonuses = [
+      'untrained' => 0,
+      'trained' => 2,
+      'expert' => 4,
+      'master' => 6,
+      'legendary' => 8,
+    ];
+    return ($rankBonuses[strtolower($rank)] ?? 0) + max(0, $level);
   }
 
   /**
@@ -156,16 +188,34 @@ class CharacterCalculator {
    * TODO: Implement AC calculation
    */
   public function calculateArmorClass(array $characterData): array {
-    // PSEUDOCODE:
-    // 1. Base 10
-    // 2. Add DEX modifier
-    // 3. Add armor bonus
-    // 4. Add shield bonus
-    // 5. Add proficiency bonus
-    // 6. Add level
-    // 7. Return total and breakdown
-    
-    throw new \Exception('Not yet implemented - see AC calculation design');
+    $abilities = $characterData['abilities'] ?? [];
+    $dexScore = (int) (
+      $abilities['dexterity']
+      ?? $abilities['dex']
+      ?? 10
+    );
+    $dexModifier = $this->calculateAbilityModifier($dexScore);
+
+    $level = max(0, (int) ($characterData['level'] ?? 1));
+    $armorBonus = (int) ($characterData['armor_bonus'] ?? 0);
+    $shieldBonus = (int) ($characterData['shield_bonus'] ?? 0);
+    $otherBonuses = (int) ($characterData['other_ac_bonus'] ?? 0);
+    $proficiencyRank = (string) ($characterData['proficiency_rank'] ?? 'untrained');
+    $proficiency = $this->calculateProficiencyBonus($proficiencyRank, $level);
+
+    $total = 10 + $dexModifier + $armorBonus + $shieldBonus + $proficiency + $otherBonuses;
+
+    return [
+      'total' => $total,
+      'breakdown' => [
+        'base' => 10,
+        'dex_modifier' => $dexModifier,
+        'armor_bonus' => $armorBonus,
+        'shield_bonus' => $shieldBonus,
+        'proficiency' => $proficiency,
+        'other_bonuses' => $otherBonuses,
+      ],
+    ];
   }
 
 }
