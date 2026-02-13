@@ -4,7 +4,10 @@ namespace Drupal\job_hunter\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Datetime\TimeInterface;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\job_hunter\Service\ResumePdfService;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -13,6 +16,16 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * Controller for resume PDF generation and download.
  */
 class ResumeController extends ControllerBase {
+
+  /**
+   * Maximum file size in bytes (10MB).
+   */
+  private const MAX_PDF_SIZE = 10 * 1024 * 1024;
+
+  /**
+   * Maximum filename length.
+   */
+  private const MAX_FILENAME_LENGTH = 50;
 
   /**
    * The database connection.
@@ -29,16 +42,52 @@ class ResumeController extends ControllerBase {
   protected ResumePdfService $pdfService;
 
   /**
+   * The file system service.
+   *
+   * @var \Drupal\Core\File\FileSystemInterface
+   */
+  protected FileSystemInterface $fileSystem;
+
+  /**
+   * The time service.
+   *
+   * @var \Drupal\Core\Datetime\TimeInterface
+   */
+  protected TimeInterface $time;
+
+  /**
+   * The logger service.
+   *
+   * @var \Psr\Log\LoggerInterface
+   */
+  protected LoggerInterface $logger;
+
+  /**
    * Constructs a ResumeController object.
    *
    * @param \Drupal\Core\Database\Connection $database
    *   The database connection.
    * @param \Drupal\job_hunter\Service\ResumePdfService $pdf_service
    *   The resume PDF service.
+   * @param \Drupal\Core\File\FileSystemInterface $file_system
+   *   The file system service.
+   * @param \Drupal\Core\Datetime\TimeInterface $time
+   *   The time service.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The logger service.
    */
-  public function __construct(Connection $database, ResumePdfService $pdf_service) {
+  public function __construct(
+    Connection $database,
+    ResumePdfService $pdf_service,
+    FileSystemInterface $file_system,
+    TimeInterface $time,
+    LoggerInterface $logger
+  ) {
     $this->database = $database;
     $this->pdfService = $pdf_service;
+    $this->fileSystem = $file_system;
+    $this->time = $time;
+    $this->logger = $logger;
   }
 
   /**
@@ -47,7 +96,10 @@ class ResumeController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('database'),
-      $container->get('job_hunter.resume_pdf_service')
+      $container->get('job_hunter.resume_pdf_service'),
+      $container->get('file_system'),
+      $container->get('datetime.time'),
+      $container->get('logger.factory')->get('job_hunter')
     );
   }
 
@@ -97,25 +149,20 @@ class ResumeController extends ControllerBase {
     $companyName = '';
     if ($job) {
       $extractedData = json_decode($job['extracted_json'] ?? '', TRUE);
-      $jobTitle = $extractedData['position']['title'] ?? $job['job_title'] ?? 'Job';
+      $jobTitle = $extractedData['position']['title'] ?? $job['job_title'] ?? 'Position';
       $companyName = $extractedData['company']['name'] ?? '';
     }
 
     // Generate filename with timestamp.
-    $name = $content['contact_info']['full_name'] ?? 'Resume';
-    $timestamp = date('Ymd_His');
-    $filename = $this->sanitizeFilename($name);
-    if ($companyName) {
-      $filename .= '_' . $this->sanitizeFilename($companyName);
-    }
-    if ($jobTitle) {
-      $filename .= '_' . $this->sanitizeFilename($jobTitle);
-    }
-    $filename .= '_' . $timestamp . '.pdf';
+    $filename = $this->generateFilename($content, $companyName, $jobTitle, TRUE);
 
     // Generate and save PDF.
     $pdfContent = $this->pdfService->generatePdf($content);
     if ($pdfContent === NULL) {
+      $this->logger->error('Failed to generate PDF for user @uid, job @job_id', [
+        '@uid' => $userId,
+        '@job_id' => $job_id,
+      ]);
       return new \Symfony\Component\HttpFoundation\JsonResponse([
         'success' => FALSE,
         'message' => 'Failed to generate PDF.',
@@ -124,14 +171,16 @@ class ResumeController extends ControllerBase {
 
     // Save to private files directory (tailored resumes).
     $directory = 'private://job_hunter/resumes/' . $userId . '/tailoredresumes';
-    /** @var \Drupal\Core\File\FileSystemInterface $fileSystem */
-    $fileSystem = \Drupal::service('file_system');
-    $fileSystem->prepareDirectory($directory, \Drupal\Core\File\FileSystemInterface::CREATE_DIRECTORY | \Drupal\Core\File\FileSystemInterface::MODIFY_PERMISSIONS);
+    $this->fileSystem->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
 
     $filepath = $directory . '/' . $filename;
-    $saved = $fileSystem->saveData($pdfContent, $filepath, \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE);
+    $saved = $this->fileSystem->saveData($pdfContent, $filepath, FileSystemInterface::EXISTS_REPLACE);
 
     if (!$saved) {
+      $this->logger->error('Failed to save PDF file for user @uid, job @job_id', [
+        '@uid' => $userId,
+        '@job_id' => $job_id,
+      ]);
       return new \Symfony\Component\HttpFoundation\JsonResponse([
         'success' => FALSE,
         'message' => 'Failed to save PDF file.',
@@ -139,10 +188,11 @@ class ResumeController extends ControllerBase {
     }
 
     // Update the database record.
+    $requestTime = $this->time->getRequestTime();
     $this->database->update('jobhunter_tailored_resumes')
       ->fields([
         'pdf_path' => $filepath,
-        'pdf_generated' => \Drupal::time()->getRequestTime(),
+        'pdf_generated' => $requestTime,
       ])
       ->condition('id', $tailoredRecord['id'])
       ->execute();
@@ -155,15 +205,21 @@ class ResumeController extends ControllerBase {
         'filename' => $filename,
         'filepath' => $filepath,
         'filesize' => strlen($pdfContent),
-        'created' => \Drupal::time()->getRequestTime(),
+        'created' => $requestTime,
       ])
       ->execute();
+
+    $this->logger->info('PDF generated successfully for user @uid, job @job_id, filename @filename', [
+      '@uid' => $userId,
+      '@job_id' => $job_id,
+      '@filename' => $filename,
+    ]);
 
     return new \Symfony\Component\HttpFoundation\JsonResponse([
       'success' => TRUE,
       'message' => 'PDF generated successfully.',
       'filename' => $filename,
-      'generated' => date('Y-m-d H:i:s'),
+      'generated' => date('Y-m-d H:i:s', $requestTime),
     ]);
   }
 
@@ -192,26 +248,49 @@ class ResumeController extends ControllerBase {
 
     // Security check - make sure user owns this PDF.
     if ((int) $pdfRecord['uid'] !== $userId) {
+      $this->logger->warning('User @uid attempted to access PDF @pdf_id owned by @owner', [
+        '@uid' => $userId,
+        '@pdf_id' => $pdf_id,
+        '@owner' => $pdfRecord['uid'],
+      ]);
       throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException('Access denied.');
     }
 
     // Read the file.
-    /** @var \Drupal\Core\File\FileSystemInterface $fileSystem */
-    $fileSystem = \Drupal::service('file_system');
-    $realPath = $fileSystem->realpath($pdfRecord['filepath']);
+    $realPath = $this->fileSystem->realpath($pdfRecord['filepath']);
 
     if (!$realPath || !file_exists($realPath)) {
+      $this->logger->error('PDF file not found on disk: @path', ['@path' => $pdfRecord['filepath']]);
       throw new NotFoundHttpException('PDF file not found on disk.');
+    }
+
+    // Check file size before reading.
+    $fileSize = filesize($realPath);
+    if ($fileSize > self::MAX_PDF_SIZE) {
+      $this->logger->error('PDF file too large: @size bytes', ['@size' => $fileSize]);
+      throw new \RuntimeException('PDF file is too large to download.');
     }
 
     $pdfContent = file_get_contents($realPath);
 
     $response = new Response($pdfContent);
     $response->headers->set('Content-Type', 'application/pdf');
-    $response->headers->set('Content-Disposition', 'attachment; filename="' . $pdfRecord['filename'] . '"');
+    
+    // Use RFC 5987 encoding for filename.
+    $encodedFilename = rawurlencode($pdfRecord['filename']);
+    $response->headers->set('Content-Disposition', 
+      'attachment; filename="' . addslashes($pdfRecord['filename']) . '"; ' .
+      "filename*=UTF-8''" . $encodedFilename
+    );
+    
     $response->headers->set('Content-Length', strlen($pdfContent));
     $response->headers->set('Cache-Control', 'private, max-age=0, must-revalidate');
     $response->headers->set('Pragma', 'public');
+
+    $this->logger->info('PDF downloaded by user @uid: @filename', [
+      '@uid' => $userId,
+      '@filename' => $pdfRecord['filename'],
+    ]);
 
     return $response;
   }
@@ -244,6 +323,11 @@ class ResumeController extends ControllerBase {
 
     // Security check - make sure user owns this PDF.
     if ((int) $pdfRecord['uid'] !== $userId) {
+      $this->logger->warning('User @uid attempted to delete PDF @pdf_id owned by @owner', [
+        '@uid' => $userId,
+        '@pdf_id' => $pdf_id,
+        '@owner' => $pdfRecord['uid'],
+      ]);
       return new \Symfony\Component\HttpFoundation\JsonResponse([
         'success' => FALSE,
         'message' => 'Access denied.',
@@ -251,18 +335,23 @@ class ResumeController extends ControllerBase {
     }
 
     // Delete the file from disk.
-    /** @var \Drupal\Core\File\FileSystemInterface $fileSystem */
-    $fileSystem = \Drupal::service('file_system');
-    $realPath = $fileSystem->realpath($pdfRecord['filepath']);
+    $realPath = $this->fileSystem->realpath($pdfRecord['filepath']);
 
     if ($realPath && file_exists($realPath)) {
-      unlink($realPath);
+      if (!unlink($realPath)) {
+        $this->logger->warning('Failed to delete PDF file: @path', ['@path' => $realPath]);
+      }
     }
 
     // Delete from database.
     $this->database->delete('jobhunter_pdf_history')
       ->condition('id', $pdf_id)
       ->execute();
+
+    $this->logger->info('PDF deleted by user @uid: @filename', [
+      '@uid' => $userId,
+      '@filename' => $pdfRecord['filename'],
+    ]);
 
     // Check if this was the latest PDF and update tailored_resumes table.
     $latestPdf = $this->database->select('jobhunter_pdf_history', 'ph')
@@ -347,20 +436,12 @@ class ResumeController extends ControllerBase {
     $companyName = '';
     if ($job) {
       $extractedData = json_decode($job['extracted_json'] ?? '', TRUE);
-      $jobTitle = $extractedData['position']['title'] ?? $job['job_title'] ?? 'Job';
+      $jobTitle = $extractedData['position']['title'] ?? $job['job_title'] ?? 'Position';
       $companyName = $extractedData['company']['name'] ?? '';
     }
 
     // Generate filename.
-    $name = $content['contact_info']['full_name'] ?? 'Resume';
-    $filename = $this->sanitizeFilename($name);
-    if ($companyName) {
-      $filename .= '_' . $this->sanitizeFilename($companyName);
-    }
-    if ($jobTitle) {
-      $filename .= '_' . $this->sanitizeFilename($jobTitle);
-    }
-    $filename .= '.pdf';
+    $filename = $this->generateFilename($content, $companyName, $jobTitle);
 
     return $this->generatePdfResponse($content, $filename);
   }
@@ -380,8 +461,7 @@ class ResumeController extends ControllerBase {
     }
 
     // Generate filename.
-    $name = $content['contact_info']['full_name'] ?? 'Resume';
-    $filename = $this->sanitizeFilename($name) . '_Resume.pdf';
+    $filename = $this->generateFilename($content, NULL, NULL, FALSE, TRUE);
 
     return $this->generatePdfResponse($content, $filename);
   }
@@ -429,17 +509,71 @@ class ResumeController extends ControllerBase {
     $pdfContent = $this->pdfService->generatePdf($content);
 
     if ($pdfContent === NULL) {
+      $this->logger->error('Failed to generate PDF for user @uid', [
+        '@uid' => $this->currentUser()->id(),
+      ]);
       throw new NotFoundHttpException('Failed to generate PDF.');
     }
 
     $response = new Response($pdfContent);
     $response->headers->set('Content-Type', 'application/pdf');
-    $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+    
+    // Use RFC 5987 encoding for filename.
+    $encodedFilename = rawurlencode($filename);
+    $response->headers->set('Content-Disposition',
+      'attachment; filename="' . addslashes($filename) . '"; ' .
+      "filename*=UTF-8''" . $encodedFilename
+    );
+    
     $response->headers->set('Content-Length', strlen($pdfContent));
     $response->headers->set('Cache-Control', 'private, max-age=0, must-revalidate');
     $response->headers->set('Pragma', 'public');
 
     return $response;
+  }
+
+  /**
+   * Generate a filename for a resume PDF.
+   *
+   * @param array $content
+   *   The resume content.
+   * @param string|null $companyName
+   *   Optional company name to include.
+   * @param string|null $jobTitle
+   *   Optional job title to include.
+   * @param bool $includeTimestamp
+   *   Whether to include a timestamp.
+   * @param bool $includeResumeLabel
+   *   Whether to include "_Resume" suffix (for base resumes).
+   *
+   * @return string
+   *   The generated filename with .pdf extension.
+   */
+  protected function generateFilename(
+    array $content,
+    ?string $companyName = NULL,
+    ?string $jobTitle = NULL,
+    bool $includeTimestamp = FALSE,
+    bool $includeResumeLabel = FALSE
+  ): string {
+    $name = $content['contact_info']['full_name'] ?? 'Resume';
+    $filename = $this->sanitizeFilename($name);
+
+    if ($companyName) {
+      $filename .= '_' . $this->sanitizeFilename($companyName);
+    }
+    if ($jobTitle) {
+      $filename .= '_' . $this->sanitizeFilename($jobTitle);
+    }
+    if ($includeResumeLabel) {
+      $filename .= '_Resume';
+    }
+    if ($includeTimestamp) {
+      $timestamp = $this->time->getRequestTime();
+      $filename .= '_' . date('Ymd_His', $timestamp);
+    }
+
+    return $filename . '.pdf';
   }
 
   /**
@@ -457,7 +591,7 @@ class ResumeController extends ControllerBase {
     // Replace spaces with underscores.
     $string = preg_replace('/\s+/', '_', $string);
     // Limit length.
-    $string = substr($string, 0, 50);
+    $string = substr($string, 0, self::MAX_FILENAME_LENGTH);
     // Remove trailing underscores.
     $string = rtrim($string, '_');
 
