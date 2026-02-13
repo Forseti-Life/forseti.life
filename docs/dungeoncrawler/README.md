@@ -212,12 +212,32 @@ When you have a rules question:
 4. Ask your GM for their ruling
 5. Check official Paizo FAQs for clarifications
 
+## Issue Design Documents
+
+Design documents for upcoming features and system improvements:
+
+1. **[Issue #1: Character Creation Class HP Lookup](./issues/issue-1-character-class-hp-design.md)**
+   - System design for retrieving class HP from schema data
+
+2. **[Issue #2: Hex Map Rendering System](./issues/issue-2-hexmap-rendering-design.md)**
+   - Performant hexagonal map rendering with fog of war
+
+3. **[Issue #3: Game Content System](./issues/issue-3-game-content-system-design.md)**
+   - Scalable content management for PF2E game data
+
+4. **[Issue #4: Enhanced Character Sheet](./issues/issue-4-enhanced-character-sheet-design.md)**
+   - Real-time character management with WebSocket sync
+   - Mobile-responsive design
+   - Resource tracking and condition management
+
 ## Document History
 
+- **2026-02-12**: Issue #4 design added (Enhanced Character Sheet)
 - **2026-02-09**: Initial documentation created
   - Extracted from PF2E Core Rulebook and supplements
   - Created comprehensive markdown guides
   - Organized into clear process flows
+  - Issues #1-3 design documents added
 
 ## Contributing
 
