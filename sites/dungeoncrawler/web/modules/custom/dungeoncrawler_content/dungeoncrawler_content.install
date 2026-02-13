@@ -104,6 +104,207 @@ function dungeoncrawler_content_schema() {
     ],
   ];
 
+  $schema['dungeoncrawler_content_registry'] = [
+    'description' => 'Registry of all game content (creatures, items, traps, hazards).',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'content_type' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+        'description' => 'Content type: creature, item, trap, hazard',
+      ],
+      'content_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'description' => 'Unique identifier (e.g., goblin_warrior)',
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Display name',
+      ],
+      'level' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Challenge level (for creatures/traps)',
+      ],
+      'rarity' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+        'description' => 'Rarity: common, uncommon, rare, unique',
+      ],
+      'tags' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON array of tags',
+      ],
+      'schema_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'Full schema content as JSON',
+      ],
+      'source_file' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Path to source JSON file',
+      ],
+      'version' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+        'description' => 'Content version',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when created',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when updated',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'unique_content' => ['content_type', 'content_id'],
+    ],
+    'indexes' => [
+      'type_level' => ['content_type', 'level'],
+      'rarity' => ['rarity'],
+    ],
+  ];
+
+  $schema['dungeoncrawler_content_loot_tables'] = [
+    'description' => 'Loot tables for random item generation.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'table_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'description' => 'Table identifier (e.g., goblin_common)',
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Display name',
+      ],
+      'description' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Table description',
+      ],
+      'level_range' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+        'description' => 'Level range (e.g., 1-3)',
+      ],
+      'entries' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'JSON array of loot entries with weights',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when created',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'table_id' => ['table_id'],
+    ],
+    'indexes' => [
+      'level' => ['level_range'],
+    ],
+  ];
+
+  $schema['dungeoncrawler_content_encounter_templates'] = [
+    'description' => 'Pre-designed encounter templates.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'template_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'description' => 'Template identifier',
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Display name',
+      ],
+      'description' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Template description',
+      ],
+      'level' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Average party level',
+      ],
+      'xp_budget' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Total XP for encounter',
+      ],
+      'threat_level' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+        'description' => 'Threat: trivial, low, moderate, severe, extreme',
+      ],
+      'creature_slots' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'JSON array of creature slot requirements',
+      ],
+      'environment_tags' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON array of environment tags',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'template_id' => ['template_id'],
+    ],
+    'indexes' => [
+      'level_threat' => ['level', 'threat_level'],
+    ],
+  ];
+
   return $schema;
 }
 
@@ -132,4 +333,34 @@ function dungeoncrawler_content_update_10001() {
     return t('Created dc_characters table.');
   }
   return t('dc_characters table already exists.');
+}
+
+/**
+ * Add game content system tables.
+ */
+function dungeoncrawler_content_update_10002() {
+  $schema = dungeoncrawler_content_schema();
+  $database = \Drupal::database();
+  $messages = [];
+
+  if (!$database->schema()->tableExists('dungeoncrawler_content_registry')) {
+    $database->schema()->createTable('dungeoncrawler_content_registry', $schema['dungeoncrawler_content_registry']);
+    $messages[] = 'Created dungeoncrawler_content_registry table.';
+  }
+
+  if (!$database->schema()->tableExists('dungeoncrawler_content_loot_tables')) {
+    $database->schema()->createTable('dungeoncrawler_content_loot_tables', $schema['dungeoncrawler_content_loot_tables']);
+    $messages[] = 'Created dungeoncrawler_content_loot_tables table.';
+  }
+
+  if (!$database->schema()->tableExists('dungeoncrawler_content_encounter_templates')) {
+    $database->schema()->createTable('dungeoncrawler_content_encounter_templates', $schema['dungeoncrawler_content_encounter_templates']);
+    $messages[] = 'Created dungeoncrawler_content_encounter_templates table.';
+  }
+
+  if (empty($messages)) {
+    return t('Game content system tables already exist.');
+  }
+
+  return t('Game content system update complete: @messages', ['@messages' => implode(' ', $messages)]);
 }

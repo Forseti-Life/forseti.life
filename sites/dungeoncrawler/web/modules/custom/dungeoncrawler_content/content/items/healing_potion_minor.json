@@ -1,0 +1,21 @@
+{
+  "content_id": "healing_potion_minor",
+  "name": "Minor Healing Potion",
+  "type": "item",
+  "item_category": "consumable",
+  "level": 1,
+  "rarity": "common",
+  "price": {
+    "gold": 4
+  },
+  "bulk": 0.1,
+  "tags": ["consumable", "healing", "magical", "potion"],
+  "effect": {
+    "type": "healing",
+    "amount": "1d8",
+    "description": "Restores 1d8 hit points when consumed."
+  },
+  "description": "A small vial of red liquid that restores minor wounds.",
+  "source": "Core Rulebook",
+  "version": "1.0"
+}

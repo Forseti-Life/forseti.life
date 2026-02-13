@@ -14,3 +14,15 @@ services:
     class: Drupal\dungeoncrawler_content\Access\CharacterAccessCheck
     tags:
       - { name: access_check, applies_to: _character_access }
+
+  dungeoncrawler_content.content_registry:
+    class: Drupal\dungeoncrawler_content\Service\ContentRegistry
+    arguments: ['@database', '@logger.factory']
+
+  dungeoncrawler_content.content_query:
+    class: Drupal\dungeoncrawler_content\Service\ContentQuery
+    arguments: ['@database']
+
+  dungeoncrawler_content.content_generator:
+    class: Drupal\dungeoncrawler_content\Service\ContentGenerator
+    arguments: ['@dungeoncrawler_content.content_query']

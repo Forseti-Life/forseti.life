@@ -1,0 +1,53 @@
+{
+  "content_id": "goblin_warrior",
+  "name": "Goblin Warrior",
+  "type": "creature",
+  "level": 1,
+  "rarity": "common",
+  "size": "Small",
+  "alignment": "CE",
+  "tags": ["goblinoid", "humanoid", "minion"],
+  "perception": {
+    "modifier": 5,
+    "senses": ["darkvision 60ft"]
+  },
+  "languages": ["Goblin"],
+  "abilities": {
+    "STR": 10,
+    "DEX": 16,
+    "CON": 12,
+    "INT": 8,
+    "WIS": 10,
+    "CHA": 8
+  },
+  "stats": {
+    "ac": 17,
+    "hp": 16,
+    "fortitude": 6,
+    "reflex": 9,
+    "will": 4
+  },
+  "speed": {
+    "land": 25
+  },
+  "attacks": [
+    {
+      "name": "Dogslasher",
+      "type": "melee",
+      "bonus": 8,
+      "damage": "1d6+2 slashing",
+      "traits": ["agile", "backstabber", "finesse"]
+    }
+  ],
+  "ai_behavior": {
+    "aggression": 0.7,
+    "tactics": "skirmisher",
+    "preferred_range": "melee",
+    "retreat_threshold": 0.3,
+    "priority_targets": ["spellcaster", "healer"]
+  },
+  "xp_value": 10,
+  "description": "A goblin warrior armed with a simple blade.",
+  "source": "Pathfinder Bestiary 1",
+  "version": "1.0"
+}
