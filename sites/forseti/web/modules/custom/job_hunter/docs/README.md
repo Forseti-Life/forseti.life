@@ -169,6 +169,19 @@ Comprehensive troubleshooting guide for background queue processing:
 
 **When to read:** When queue items aren't processing, investigating suspended items, or optimizing queue performance.
 
+#### [Permissions Matrix](PERMISSIONS.md) 🔐
+**Audience:** System Administrators, Site Managers
+
+Complete permissions reference and role configuration guide:
+- Recommended permission sets for Job Seeker, Manager, and Admin roles
+- Detailed permission descriptions with use cases
+- Permission dependencies for workflows
+- Security considerations and best practices
+- Troubleshooting permission issues
+- Granting permissions via UI, Drush, or code
+
+**When to read:** Setting up new user roles, troubleshooting access denied errors, or implementing custom role hierarchies.
+
 ---
 
 ## 🎯 Documentation by Role
@@ -390,6 +403,9 @@ If you can't find what you need in the documentation:
 - `PROCESS_FLOW.md` - Process flows and workflows
 - `SUBMISSION_PROCESS.md` - Job application submission process, dependencies, data sources, and integration points
 - `FAQ.md` - Frequently asked questions
+- `API_INTEGRATION_GUIDE.md` - External API setup guide (AWS Bedrock, SerpAPI, Google Cloud, Adzuna, USAJobs)
+- `QUEUE_TROUBLESHOOTING.md` - Queue worker debugging and optimization
+- `PERMISSIONS.md` - Complete permissions matrix and role configuration
 - `GOOGLE_JOB_SEARCH_API_INTEGRATION.md` - Google for Jobs integration guide
 - `GOOGLE_JOBS_INTEGRATION_ARCHITECTURE.md` - Google Jobs feature implementation architecture
 - `RESUME_JSON_SCHEMA.md` - Resume data JSON schema specification
@@ -401,7 +417,7 @@ If you can't find what you need in the documentation:
 ### Module Root Documentation
 - `../README.md` - Module overview and quick start
 - `../INSTALL.md` - Installation instructions
-- `../ARCHITECTURE.md` - Legacy architecture doc (consider archiving)
+- `../ARCHITECTURE.md` - Comprehensive architecture design
 - `../PROFILE_MANAGEMENT.md` - User profile field documentation
 - `../JOB_DISCOVERY_README.md` - Job scraping technical guide
 - `../BRANDING_AUDIT.md` - Branding analysis
@@ -410,7 +426,7 @@ If you can't find what you need in the documentation:
 
 ---
 
-**Last Updated:** February 11, 2026  
-**Module Version:** 1.0-dev
+**Last Updated:** February 13, 2026  
+**Module Version:** 1.0.1
 
 **Happy coding! 🚀**
