@@ -4,7 +4,7 @@ namespace Drupal\job_hunter\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Controller for documentation pages.
@@ -81,19 +81,56 @@ class DocumentationController extends ControllerBase {
    *   A render array for the documentation content.
    */
   public function viewDocument($file = 'README.md') {
+    // Whitelist of allowed documentation files to prevent path traversal
+    $allowed_files = [
+      'README.md',
+      'ARCHITECTURE.md',
+      'PROCESS_FLOW.md',
+      'FAQ.md',
+      'GOOGLE_JOBS_INTEGRATION_ARCHITECTURE.md',
+      'GOOGLE_JOB_SEARCH_API_INTEGRATION.md',
+      'JOB_REQUISITION_JSON_SCHEMA.md',
+      'JOB_TAILORING_DESIGN.md',
+      'RESUME_JSON_SCHEMA.md',
+      'RESUME_PDF_STYLE_SCHEMA.md',
+      'RESUME_STYLE_MAPPING_REPORT.md',
+      'SERPAPI_GOOGLE_JOBS_API_REFERENCE.md',
+      'SUBMISSION_PROCESS.md',
+      'COVER_LETTER_ANALYSIS_REPORT.md',
+    ];
+
+    // Sanitize filename and validate against whitelist
+    $file = basename($file);
+    if (!in_array($file, $allowed_files)) {
+      throw new NotFoundHttpException('Documentation file not found.');
+    }
+
     $module_path = \Drupal::service('extension.list.module')->getPath('job_hunter');
     $file_path = DRUPAL_ROOT . '/' . $module_path . '/docs/' . $file;
-    
-    // Check if file exists
-    if (!file_exists($file_path)) {
-      \Drupal::messenger()->addError($this->t('Documentation file not found: @file', ['@file' => $file]));
-      return [
-        '#markup' => '<p>' . $this->t('The requested documentation file could not be found.') . '</p>',
-      ];
+
+    // Validate the resolved path is within the docs directory
+    // This prevents directory traversal attacks
+    // Note: Since $file comes from whitelist of filenames (e.g., 'README.md'),
+    // $real_path will always be a file path, never equal to $docs_dir itself
+    $real_path = realpath($file_path);
+    $docs_dir = realpath(DRUPAL_ROOT . '/' . $module_path . '/docs');
+    if ($real_path === FALSE || $docs_dir === FALSE ||
+        strpos($real_path, $docs_dir . DIRECTORY_SEPARATOR) !== 0) {
+      throw new NotFoundHttpException('Documentation file not found.');
     }
-    
+
+    // Check file size before reading to prevent memory exhaustion (max 10MB)
+    $max_file_size = 10 * 1024 * 1024;
+    $file_size = filesize($real_path);
+    if ($file_size === FALSE || $file_size > $max_file_size) {
+      throw new NotFoundHttpException('Documentation file is too large or cannot be accessed.');
+    }
+
     // Read the markdown file
-    $markdown_content = file_get_contents($file_path);
+    $markdown_content = file_get_contents($real_path);
+    if ($markdown_content === FALSE) {
+      throw new NotFoundHttpException('Documentation file cannot be read.');
+    }
     
     // Convert markdown to HTML (basic conversion)
     // For a more robust solution, consider using a library like league/commonmark
@@ -134,7 +171,7 @@ class DocumentationController extends ControllerBase {
                   </tr>
                   <tr>
                     <td><strong>📍 Environment:</strong></td>
-                    <td>' . (getenv('ENVIRONMENT') ?: 'Production') . '</td>
+                    <td>' . htmlspecialchars(getenv('ENVIRONMENT') ?: 'Production', ENT_QUOTES, 'UTF-8') . '</td>
                   </tr>
                   <tr>
                     <td><strong>🔧 Module:</strong></td>
