@@ -94,15 +94,48 @@ phpunit --coverage-html coverage web/modules/custom/jobhunter_tester/tests/
 - JobSeekerService: 14 tests
 - UserProfileService Extended: 8 tests
 
-### 🔄 Planned (see job_hunter/tests/TEST_CASES.md)
-- ResumePdfService tests (RPS-001 to RPS-005)
-- AbbVieJobScrapingService tests (AJSS-001 to AJSS-004)
-- Integration tests (workflow testing)
-- Functional tests (UI testing)
+### 📝 Stubbed Out (225+ test stubs across 24 test files)
+
+#### Unit Tests - Services (9 files, ~80 test stubs)
+- **JobSeekerServiceTest.php** - 14 tests (implemented)
+- **UserProfileServiceExtendedTest.php** - 10 tests (implemented)
+- **ResumePdfServiceTest.php** - 23 test stubs (RPS-001 to RPS-005)
+- **AbbVieJobScrapingServiceTest.php** - 16 test stubs (AJSS-001 to AJSS-004)
+- **GoogleJobsServiceTest.php** - 8 test stubs
+- **CloudTalentSolutionServiceTest.php** - 8 test stubs
+- **SerpApiServiceTest.php** - 7 test stubs
+- **AdzunaApiServiceTest.php** - 6 test stubs
+- **UsaJobsApiServiceTest.php** - 6 test stubs
+
+#### Unit Tests - QueueWorkers (5 files, ~49 test stubs)
+- **ResumeTailoringWorkerTest.php** - 10 test stubs
+- **CoverLetterTailoringWorkerTest.php** - 6 test stubs
+- **JobPostingParsingWorkerTest.php** - 8 test stubs
+- **ResumeTextExtractionWorkerTest.php** - 7 test stubs
+- **ResumeGenAiParsingWorkerTest.php** - 8 test stubs
+
+#### Integration Tests - Kernel (2 files, ~30 test stubs)
+- **ModuleInstallationTest.php** - 16 test stubs (MI-001 to MI-003)
+- **ResumeManagementWorkflowTest.php** - 14 test stubs (RMW-001 to RMW-004)
+
+#### Functional Tests - Controllers (4 files, ~28 test stubs)
+- **JobApplicationControllerTest.php** - 8 test stubs
+- **UserProfileControllerTest.php** - 7 test stubs
+- **CompanyControllerTest.php** - 6 test stubs
+- **ResumeControllerTest.php** - 7 test stubs
+
+#### Functional Tests - Forms (4 files, ~36 test stubs)
+- **UserProfileFormTest.php** - 10 test stubs
+- **JobApplicationFormTest.php** - 8 test stubs
+- **SettingsFormTest.php** - 6 test stubs
+- **CompanyFormTest.php** - 6 test stubs
+
+### 🔄 Still To Do (see job_hunter/tests/TEST_CASES.md)
 - Security tests
 - Performance tests
-- Queue worker tests
-- AI service tests
+- API endpoint tests
+- JavaScript/UI tests
+- AI service quality tests
 
 ## Test Organization
 
@@ -114,18 +147,51 @@ jobhunter_tester/
 ├── README.md (this file)
 ├── src/
 │   └── Controller/
-│       └── JobHunterTesterController.php
+│       ├── JobHunterTesterController.php
+│       └── JobHunterValidationController.php
+├── css/
+│   └── tester-styles.css
 ├── js/
 │   └── test-runner.js
 └── tests/
     └── src/
         ├── Unit/
-        │   └── Service/
-        │       ├── JobSeekerServiceTest.php
-        │       └── UserProfileServiceExtendedTest.php
-        ├── Kernel/ (integration tests - planned)
-        └── Functional/ (functional tests - planned)
+        │   ├── Service/
+        │   │   ├── JobSeekerServiceTest.php ✅ (14 tests implemented)
+        │   │   ├── UserProfileServiceExtendedTest.php ✅ (10 tests implemented)
+        │   │   ├── ResumePdfServiceTest.php 📝 (23 stubs)
+        │   │   ├── AbbVieJobScrapingServiceTest.php 📝 (16 stubs)
+        │   │   ├── GoogleJobsServiceTest.php 📝 (8 stubs)
+        │   │   ├── CloudTalentSolutionServiceTest.php 📝 (8 stubs)
+        │   │   ├── SerpApiServiceTest.php 📝 (7 stubs)
+        │   │   ├── AdzunaApiServiceTest.php 📝 (6 stubs)
+        │   │   └── UsaJobsApiServiceTest.php 📝 (6 stubs)
+        │   └── Plugin/
+        │       └── QueueWorker/
+        │           ├── ResumeTailoringWorkerTest.php 📝 (10 stubs)
+        │           ├── CoverLetterTailoringWorkerTest.php 📝 (6 stubs)
+        │           ├── JobPostingParsingWorkerTest.php 📝 (8 stubs)
+        │           ├── ResumeTextExtractionWorkerTest.php 📝 (7 stubs)
+        │           └── ResumeGenAiParsingWorkerTest.php 📝 (8 stubs)
+        ├── Kernel/
+        │   ├── ModuleInstallationTest.php 📝 (16 stubs)
+        │   └── ResumeManagementWorkflowTest.php 📝 (14 stubs)
+        └── Functional/
+            ├── Controller/
+            │   ├── JobApplicationControllerTest.php 📝 (8 stubs)
+            │   ├── UserProfileControllerTest.php 📝 (7 stubs)
+            │   ├── CompanyControllerTest.php 📝 (6 stubs)
+            │   └── ResumeControllerTest.php 📝 (7 stubs)
+            └── Form/
+                ├── UserProfileFormTest.php 📝 (10 stubs)
+                ├── JobApplicationFormTest.php 📝 (8 stubs)
+                ├── SettingsFormTest.php 📝 (6 stubs)
+                └── CompanyFormTest.php 📝 (6 stubs)
 ```
+
+Legend:
+- ✅ = Fully implemented with assertions
+- 📝 = Stubbed out with `markTestIncomplete()` (ready for implementation)
 
 ## Development
 
