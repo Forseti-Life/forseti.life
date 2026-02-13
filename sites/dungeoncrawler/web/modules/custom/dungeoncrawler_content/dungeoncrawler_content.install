@@ -242,6 +242,388 @@ function dungeoncrawler_content_schema() {
     ],
   ];
 
+  // Combat encounter lifecycle tables.
+  $schema['combat_encounters'] = [
+    'description' => 'Tracks active and historical combat encounters.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Owning campaign (optional).',
+      ],
+      'room_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'description' => 'Room identifier where combat occurs.',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => 'setup',
+        'description' => 'setup|active|paused|ended',
+      ],
+      'current_round' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Current combat round.',
+      ],
+      'turn_index' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Current turn index in initiative order.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp created.',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp updated.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'campaign_status' => ['campaign_id', 'status'],
+    ],
+  ];
+
+  $schema['combat_participants'] = [
+    'description' => 'Participants within a combat encounter.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'encounter_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Linked encounter.',
+      ],
+      'entity_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'External entity identifier from the map/ECS.',
+      ],
+      'entity_ref' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'description' => 'External reference (character/content id).',
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Display name.',
+      ],
+      'team' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => FALSE,
+        'description' => 'Team designation (player/enemy/ally/neutral).',
+      ],
+      'initiative' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Final initiative value.',
+      ],
+      'initiative_roll' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Raw d20 roll if rolled server-side.',
+      ],
+      'ac' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Armor Class.',
+      ],
+      'hp' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Current hit points.',
+      ],
+      'max_hp' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Maximum hit points.',
+      ],
+      'actions_remaining' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 3,
+        'description' => 'Actions left this turn.',
+      ],
+      'attacks_this_turn' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Attacks made this turn (for MAP).',
+      ],
+      'position_x' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Grid/hex X position.',
+      ],
+      'position_y' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Grid/hex Y position.',
+      ],
+      'is_defeated' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Boolean defeated flag.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp created.',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp updated.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'encounter_lookup' => ['encounter_id'],
+      'encounter_team' => ['encounter_id', 'team'],
+      'encounter_entity' => ['encounter_id', 'entity_id'],
+    ],
+  ];
+
+  $schema['combat_conditions'] = [
+    'description' => 'Applied conditions and their durations.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'participant_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Linked participant.',
+      ],
+      'encounter_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Linked encounter.',
+      ],
+      'condition_type' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => 'Condition identifier (frightened, prone, etc.).',
+      ],
+      'value' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Optional numeric value (e.g., frightened 2).',
+      ],
+      'duration_type' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => FALSE,
+        'description' => 'rounds|turns|encounter',
+      ],
+      'duration_remaining' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Remaining duration units.',
+      ],
+      'source' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'description' => 'Source of the condition.',
+      ],
+      'applied_at_round' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Round when applied.',
+      ],
+      'removed_at_round' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Round when removed (null if active).',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp created.',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp updated.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'participant_active' => ['participant_id', 'removed_at_round'],
+      'encounter_lookup' => ['encounter_id'],
+    ],
+  ];
+
+  $schema['combat_actions'] = [
+    'description' => 'Action log entries for encounters.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'encounter_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Linked encounter.',
+      ],
+      'participant_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Acting participant.',
+      ],
+      'action_type' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => 'Action type (attack, stride, cast, etc.).',
+      ],
+      'target_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Target participant if applicable.',
+      ],
+      'payload' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'JSON payload of action parameters.',
+      ],
+      'result' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'JSON result of action resolution.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp created.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'encounter_lookup' => ['encounter_id'],
+      'participant_lookup' => ['participant_id'],
+    ],
+  ];
+
+  $schema['combat_damage_log'] = [
+    'description' => 'Damage events applied to participants.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'encounter_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Linked encounter.',
+      ],
+      'participant_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Target participant.',
+      ],
+      'amount' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Damage amount applied.',
+      ],
+      'damage_type' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+        'description' => 'Damage type (e.g., slashing, fire).',
+      ],
+      'source' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'description' => 'Source of damage (action/spell).',
+      ],
+      'hp_before' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'HP before applying damage.',
+      ],
+      'hp_after' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'HP after applying damage.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp created.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'encounter_lookup' => ['encounter_id'],
+      'participant_lookup' => ['participant_id'],
+    ],
+  ];
+
   $schema['dungeoncrawler_content_encounter_templates'] = [
     'description' => 'Pre-designed encounter templates.',
     'fields' => [
@@ -302,6 +684,410 @@ function dungeoncrawler_content_schema() {
     ],
     'indexes' => [
       'level_threat' => ['level', 'threat_level'],
+    ],
+  ];
+
+  $schema['dc_campaign_content_registry'] = [
+    'description' => 'Campaign-scoped copies of registry content.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Campaign ID.',
+      ],
+      'content_type' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'not null' => TRUE,
+        'description' => 'Content type: creature, item, obstacle, trap, hazard',
+      ],
+      'content_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'description' => 'Unique identifier scoped to campaign.',
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Display name',
+      ],
+      'level' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Challenge level (for creatures/traps)',
+      ],
+      'rarity' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+        'description' => 'Rarity: common, uncommon, rare, unique',
+      ],
+      'tags' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON array of tags',
+      ],
+      'schema_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'Full schema content as JSON',
+      ],
+      'source_content_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+        'description' => 'Library content_id this was copied from.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when created',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when updated',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'campaign_content' => ['campaign_id', 'content_type', 'content_id'],
+    ],
+    'indexes' => [
+      'campaign_id' => ['campaign_id'],
+      'source_content' => ['source_content_id'],
+      'rarity' => ['rarity'],
+    ],
+  ];
+
+  $schema['dc_campaign_loot_tables'] = [
+    'description' => 'Campaign-scoped loot tables.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Campaign ID.',
+      ],
+      'table_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'description' => 'Table identifier scoped to campaign.',
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Display name',
+      ],
+      'description' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Table description',
+      ],
+      'level_range' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+        'description' => 'Level range (e.g., 1-3)',
+      ],
+      'entries' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'JSON array of loot entries with weights',
+      ],
+      'source_table_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+        'description' => 'Library loot table id this was copied from.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when created',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when updated',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'campaign_table' => ['campaign_id', 'table_id'],
+    ],
+    'indexes' => [
+      'campaign_id' => ['campaign_id'],
+      'level' => ['level_range'],
+      'source_table_id' => ['source_table_id'],
+    ],
+  ];
+
+  $schema['dc_campaign_encounter_templates'] = [
+    'description' => 'Campaign-scoped encounter templates.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Campaign ID.',
+      ],
+      'template_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'description' => 'Template identifier scoped to campaign.',
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Display name',
+      ],
+      'description' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Template description',
+      ],
+      'level' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Average party level',
+      ],
+      'xp_budget' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'Total XP for encounter',
+      ],
+      'threat_level' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+        'description' => 'Threat: trivial, low, moderate, severe, extreme',
+      ],
+      'creature_slots' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'JSON array of creature slot requirements',
+      ],
+      'environment_tags' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON array of environment tags',
+      ],
+      'source_template_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+        'description' => 'Library template id this was copied from.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when created',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when updated',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'campaign_template' => ['campaign_id', 'template_id'],
+    ],
+    'indexes' => [
+      'campaign_level_threat' => ['campaign_id', 'level', 'threat_level'],
+      'source_template_id' => ['source_template_id'],
+    ],
+  ];
+
+  $schema['dc_campaign_rooms'] = [
+    'description' => 'Campaign-scoped room definitions.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Campaign ID.',
+      ],
+      'room_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'description' => 'Room identifier scoped to campaign.',
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Display name',
+      ],
+      'description' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Room description',
+      ],
+      'environment_tags' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON array of environment tags',
+      ],
+      'layout_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'Room layout JSON payload.',
+      ],
+      'contents_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'JSON payload of placed objects (creatures/items/traps).',
+      ],
+      'source_room_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+        'description' => 'Library room id this was copied from.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when created',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when updated',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'campaign_room' => ['campaign_id', 'room_id'],
+    ],
+    'indexes' => [
+      'campaign_id' => ['campaign_id'],
+      'source_room_id' => ['source_room_id'],
+    ],
+  ];
+
+  $schema['dc_campaign_dungeons'] = [
+    'description' => 'Campaign-scoped dungeon definitions.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Campaign ID.',
+      ],
+      'dungeon_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'description' => 'Dungeon identifier scoped to campaign.',
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Display name',
+      ],
+      'description' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Dungeon description',
+      ],
+      'theme' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+        'description' => 'Dungeon theme key.',
+      ],
+      'dungeon_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'Dungeon graph and metadata as JSON.',
+      ],
+      'source_dungeon_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+        'description' => 'Library dungeon id this was copied from.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when created',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when updated',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'campaign_dungeon' => ['campaign_id', 'dungeon_id'],
+    ],
+    'indexes' => [
+      'campaign_id' => ['campaign_id'],
+      'source_dungeon_id' => ['source_dungeon_id'],
+      'theme' => ['theme'],
     ],
   ];
 
@@ -450,6 +1236,280 @@ function dungeoncrawler_content_schema() {
     ],
   ];
 
+  $schema['dc_campaign_encounter_instances'] = [
+    'description' => 'Runtime encounter instances for campaigns.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Campaign ID.',
+      ],
+      'encounter_instance_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'description' => 'Runtime encounter identifier scoped to campaign.',
+      ],
+      'template_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+        'description' => 'Campaign template id that seeded this instance.',
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Display name for the encounter.',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'pending',
+        'description' => 'Encounter status: pending, active, concluded, aborted.',
+      ],
+      'state_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'Full encounter state JSON (initiative, actors, effects).',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when created',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when updated',
+      ],
+      'ended' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when concluded.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'campaign_encounter_instance' => ['campaign_id', 'encounter_instance_id'],
+    ],
+    'indexes' => [
+      'campaign_status' => ['campaign_id', 'status'],
+      'template_id' => ['template_id'],
+    ],
+  ];
+
+  $schema['dc_campaign_room_states'] = [
+    'description' => 'Runtime room state per campaign.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Campaign ID.',
+      ],
+      'room_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'description' => 'Campaign room identifier.',
+      ],
+      'is_cleared' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Whether the room has been cleared.',
+      ],
+      'fog_state' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'Fog of war and visibility JSON payload.',
+      ],
+      'last_visited' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when last visited.',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when updated',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'campaign_room_state' => ['campaign_id', 'room_id'],
+    ],
+    'indexes' => [
+      'campaign_id' => ['campaign_id'],
+      'is_cleared' => ['is_cleared'],
+    ],
+  ];
+
+  $schema['dc_campaign_item_instances'] = [
+    'description' => 'Runtime item instances per campaign.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Campaign ID.',
+      ],
+      'item_instance_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'description' => 'Runtime item identifier scoped to campaign.',
+      ],
+      'item_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'description' => 'Campaign content item id.',
+      ],
+      'location_type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'inventory',
+        'description' => 'inventory, room, creature, stash, etc.',
+      ],
+      'location_ref' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Reference id for the location (character id, room id, etc.).',
+      ],
+      'quantity' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+        'description' => 'Quantity of this item instance.',
+      ],
+      'state_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'JSON payload for item condition, runes, etc.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when created',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when updated',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'campaign_item_instance' => ['campaign_id', 'item_instance_id'],
+    ],
+    'indexes' => [
+      'campaign_item' => ['campaign_id', 'item_id'],
+      'location' => ['campaign_id', 'location_type', 'location_ref'],
+    ],
+  ];
+
+  $schema['dc_campaign_log'] = [
+    'description' => 'Event log per campaign.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Campaign ID.',
+      ],
+      'log_type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'info',
+        'description' => 'info, warning, error, combat, loot, narrative.',
+      ],
+      'message' => [
+        'type' => 'text',
+        'not null' => TRUE,
+        'description' => 'Human-readable message.',
+      ],
+      'context' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Optional JSON context payload.',
+      ],
+      'encounter_instance_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+        'description' => 'Related encounter instance id, if any.',
+      ],
+      'room_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+        'description' => 'Related room id, if any.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when created',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'campaign_id' => ['campaign_id'],
+      'log_type' => ['log_type'],
+      'encounter_instance_id' => ['encounter_instance_id'],
+      'room_id' => ['room_id'],
+    ],
+  ];
+
   return $schema;
 }
 
@@ -533,4 +1593,38 @@ function dungeoncrawler_content_update_10003() {
   }
 
   return t('Campaign tables update complete: @messages', ['@messages' => implode(' ', $messages)]);
+}
+
+/**
+ * Add campaign-scoped content tables and runtime state tables.
+ */
+function dungeoncrawler_content_update_10004() {
+  $schema = dungeoncrawler_content_schema();
+  $database = \Drupal::database();
+  $messages = [];
+
+  $tables = [
+    'dc_campaign_content_registry',
+    'dc_campaign_loot_tables',
+    'dc_campaign_encounter_templates',
+    'dc_campaign_rooms',
+    'dc_campaign_dungeons',
+    'dc_campaign_encounter_instances',
+    'dc_campaign_room_states',
+    'dc_campaign_item_instances',
+    'dc_campaign_log',
+  ];
+
+  foreach ($tables as $table) {
+    if (!$database->schema()->tableExists($table)) {
+      $database->schema()->createTable($table, $schema[$table]);
+      $messages[] = 'Created ' . $table . ' table.';
+    }
+  }
+
+  if (empty($messages)) {
+    return t('Campaign-scoped content tables already exist.');
+  }
+
+  return t('Campaign-scoped content update complete: @messages', ['@messages' => implode(' ', $messages)]);
 }

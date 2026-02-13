@@ -41,14 +41,15 @@ class CombatCalculator {
    * TODO: Implement MAP calculation
    */
   public function calculateMultipleAttackPenalty(int $attackNumber, bool $isAgile = FALSE): int {
-    // PSEUDOCODE:
-    // if ($attackNumber === 1) return 0;
-    // if ($isAgile) {
-    //   return $attackNumber === 2 ? -4 : -8;
-    // }
-    // return $attackNumber === 2 ? -5 : -10;
-    
-    throw new \Exception('Not yet implemented - see MAP rules');
+    if ($attackNumber <= 1) {
+      return 0;
+    }
+
+    if ($isAgile) {
+      return $attackNumber === 2 ? -4 : -8;
+    }
+
+    return $attackNumber === 2 ? -5 : -10;
   }
 
   /**
@@ -77,15 +78,31 @@ class CombatCalculator {
    * TODO: Implement degree of success logic
    */
   public function calculateDegreeOfSuccess(int $result, int $dc, ?int $naturalRoll = NULL): string {
-    // PSEUDOCODE:
-    // 1. Check for natural 20 → critical success
-    // 2. Check for natural 1 → critical failure
-    // 3. Check if result >= DC + 10 → critical success
-    // 4. Check if result < DC - 10 → critical failure
-    // 5. Check if result >= DC → success
-    // 6. Otherwise → failure
-    
-    throw new \Exception('Not yet implemented - see degrees of success rules');
+    $difference = $result - $dc;
+
+    if ($difference >= 10) {
+      $degree = 'critical_success';
+    }
+    elseif ($difference >= 0) {
+      $degree = 'success';
+    }
+    elseif ($difference <= -10) {
+      $degree = 'critical_failure';
+    }
+    else {
+      $degree = 'failure';
+    }
+
+    if ($naturalRoll !== NULL) {
+      if ($naturalRoll === 20) {
+        $degree = $this->bumpDegree($degree, 1);
+      }
+      elseif ($naturalRoll === 1) {
+        $degree = $this->bumpDegree($degree, -1);
+      }
+    }
+
+    return $degree;
   }
 
   /**
@@ -105,15 +122,13 @@ class CombatCalculator {
    * TODO: Implement attack bonus calculation
    */
   public function calculateAttackBonus(array $attackData): int {
-    // PSEUDOCODE:
-    // 1. Sum ability modifier
-    // 2. Add proficiency bonus
-    // 3. Add level
-    // 4. Add item bonus
-    // 5. Add other bonuses
-    // 6. Return total
-    
-    throw new \Exception('Not yet implemented - see attack bonus design');
+    $ability = (int) ($attackData['ability_modifier'] ?? 0);
+    $proficiency = (int) ($attackData['proficiency_bonus'] ?? 0);
+    $level = (int) ($attackData['level'] ?? 0);
+    $item = (int) ($attackData['item_bonus'] ?? 0);
+    $other = (int) ($attackData['other_bonuses'] ?? 0);
+
+    return $ability + $proficiency + $level + $item + $other;
   }
 
   /**
@@ -130,10 +145,33 @@ class CombatCalculator {
    * TODO: Implement spell DC calculation
    */
   public function calculateSpellSaveDC(array $casterData): int {
-    // PSEUDOCODE:
-    // return 10 + ability_mod + proficiency + level + item_bonus;
-    
-    throw new \Exception('Not yet implemented - see spell DC design');
+    $ability = (int) ($casterData['ability_modifier'] ?? 0);
+    $proficiency = (int) ($casterData['proficiency_bonus'] ?? 0);
+    $level = (int) ($casterData['level'] ?? 0);
+    $item = (int) ($casterData['item_bonus'] ?? 0);
+    $other = (int) ($casterData['other_bonuses'] ?? 0);
+
+    return 10 + $ability + $proficiency + $level + $item + $other;
+  }
+
+  /**
+   * Shift success degree up or down one step.
+   */
+  protected function bumpDegree(string $degree, int $steps): string {
+    $order = [
+      'critical_failure',
+      'failure',
+      'success',
+      'critical_success',
+    ];
+
+    $currentIndex = array_search($degree, $order, TRUE);
+    if ($currentIndex === FALSE) {
+      return $degree;
+    }
+
+    $newIndex = max(0, min(count($order) - 1, $currentIndex + $steps));
+    return $order[$newIndex];
   }
 
 }

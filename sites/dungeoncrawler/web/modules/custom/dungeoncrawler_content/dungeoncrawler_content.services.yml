@@ -26,3 +26,35 @@ services:
   dungeoncrawler_content.content_generator:
     class: Drupal\dungeoncrawler_content\Service\ContentGenerator
     arguments: ['@dungeoncrawler_content.content_query']
+
+  dungeoncrawler_content.campaign_content:
+    class: Drupal\dungeoncrawler_content\Service\CampaignContentService
+    arguments: ['@database', '@dungeoncrawler_content.content_registry', '@logger.factory']
+
+  # Combat services wiring (implementation to be filled in).
+  dungeoncrawler_content.combat_encounter_store:
+    class: Drupal\dungeoncrawler_content\Service\CombatEncounterStore
+    arguments: ['@database']
+
+  dungeoncrawler_content.hp_manager:
+    class: Drupal\dungeoncrawler_content\Service\HPManager
+    arguments: ['@database', '@dungeoncrawler_content.condition_manager']
+
+  dungeoncrawler_content.condition_manager:
+    class: Drupal\dungeoncrawler_content\Service\ConditionManager
+    arguments: ['@database']
+
+  dungeoncrawler_content.state_manager:
+    class: Drupal\dungeoncrawler_content\Service\StateManager
+    arguments: ['@database', '@cache.default']
+
+  dungeoncrawler_content.combat_calculator:
+    class: Drupal\dungeoncrawler_content\Service\CombatCalculator
+
+  dungeoncrawler_content.action_processor:
+    class: Drupal\dungeoncrawler_content\Service\ActionProcessor
+    arguments: ['@dungeoncrawler_content.combat_calculator', '@dungeoncrawler_content.hp_manager', '@dungeoncrawler_content.condition_manager', '@logger.factory', '@dungeoncrawler_content.combat_encounter_store']
+
+  dungeoncrawler_content.combat_engine:
+    class: Drupal\dungeoncrawler_content\Service\CombatEngine
+    arguments: ['@database', '@dungeoncrawler_content.state_manager', '@dungeoncrawler_content.action_processor', '@dungeoncrawler_content.combat_encounter_store', '@dungeoncrawler_content.hp_manager']

@@ -5,6 +5,7 @@
 
 // Import ECS modules
 import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, EntityType, RenderSystem, MovementComponent, StatsComponent, MovementSystem, MovementMode, ActionsComponent, ActionType, ActionCost, CombatComponent, Team, TurnManagementSystem, CombatState, CombatSystem, AttackResult } from './ecs/index.js';
+import combatApi from './hexmap-api.js';
 
 // Ensure Drupal and once are available
 /* global Drupal, once, PIXI */
@@ -47,7 +48,15 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         entityActions: document.getElementById('entity-actions'),
         entityMovement: document.getElementById('entity-movement'),
         selectedObjectType: document.getElementById('selected-object-type'),
-        zoomLevel: document.getElementById('zoom-level')
+        zoomLevel: document.getElementById('zoom-level'),
+        hexDetailRoom: document.getElementById('hex-detail-room'),
+        hexDetailTerrain: document.getElementById('hex-detail-terrain'),
+        hexDetailElevation: document.getElementById('hex-detail-elevation'),
+        hexDetailLighting: document.getElementById('hex-detail-lighting'),
+        hexDetailPassability: document.getElementById('hex-detail-passability'),
+        hexDetailObjects: document.getElementById('hex-detail-objects'),
+        hexDetailEntities: document.getElementById('hex-detail-entities'),
+        hexDetailConnection: document.getElementById('hex-detail-connection')
       };
     }
 
@@ -206,6 +215,51 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         const zoomPercent = Math.round(scale * 100);
         this.elements.zoomLevel.textContent = `${zoomPercent}%`;
       }
+    }
+
+    /**
+     * Update hovered hex detail panel.
+     * @param {Object|null} details - Detail payload for the hovered hex.
+     */
+    updateHexDetails(details) {
+      const fallback = {
+        room: 'None',
+        terrain: 'Unknown',
+        elevation: '-',
+        lighting: 'Unknown',
+        passability: 'Unknown',
+        objects: 'None',
+        entities: 'None',
+        connection: 'None'
+      };
+
+      const payload = details ? {
+        room: details.roomName || fallback.room,
+        terrain: details.terrain || fallback.terrain,
+        elevation: Number.isFinite(details.elevationFt) ? `${details.elevationFt} ft` : fallback.elevation,
+        lighting: details.lighting || fallback.lighting,
+        passability: details.passability || fallback.passability,
+        objects: Array.isArray(details.objects) && details.objects.length ? details.objects.join(', ') : fallback.objects,
+        entities: Array.isArray(details.entities) && details.entities.length ? details.entities.join(', ') : fallback.entities,
+        connection: details.connection || fallback.connection
+      } : fallback;
+
+      const map = {
+        hexDetailRoom: payload.room,
+        hexDetailTerrain: payload.terrain,
+        hexDetailElevation: payload.elevation,
+        hexDetailLighting: payload.lighting,
+        hexDetailPassability: payload.passability,
+        hexDetailObjects: payload.objects,
+        hexDetailEntities: payload.entities,
+        hexDetailConnection: payload.connection
+      };
+
+      Object.entries(map).forEach(([key, value]) => {
+        if (this.elements[key]) {
+          this.elements[key].textContent = value;
+        }
+      });
     }
   }
 
@@ -565,6 +619,12 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       }
 
       this.deselectEntity();
+
+      // End any existing combat before wiping entities so turn order resets cleanly.
+      if (this.turnManagementSystem) {
+        this.turnManagementSystem.endCombat();
+      }
+
       this.entityManager.removeAllEntities();
       this.uiManager.hideEntityInfo();
       this.uiManager.updateCurrentTurn('-', null, false);
@@ -593,6 +653,9 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       const combat = entity.getComponent('CombatComponent');
       if (combat && combat.isPlayerTeam()) {
         this.selectEntity(entity);
+      } else if (combat && !combat.isPlayerTeam()) {
+        // Basic AI: let non-player entities take their turn automatically.
+        this.runNpcTurn(entity);
       }
     },
     
@@ -845,6 +908,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       const { q, r } = hex.hexData;
       this.uiManager.updateHoveredHex(q, r);
       this.uiManager.updateHoveredObject(this.getObjectLabelAtHex(q, r));
+      this.uiManager.updateHexDetails(this.getHexDetail(q, r));
     },
 
     /**
@@ -859,6 +923,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       this.stateManager.set('hoveredHex', null);
       this.uiManager.updateHoveredHex(null, null);
       this.uiManager.updateHoveredObject('None');
+      this.uiManager.updateHexDetails(null);
     },
 
     /**
@@ -966,7 +1031,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
      * @param {string} spriteKey - Optional sprite key
      * @returns {Entity} Created entity
      */
-    createEntityObject: function (q, r, entityType, name, spriteKey = null) {
+    createEntityObject: function (q, r, entityType, name, spriteKey = null, options = {}) {
       // Check if entity already exists at this position
       const existingEntities = this.entityManager.getEntitiesWith('PositionComponent');
       for (const entity of existingEntities) {
@@ -988,33 +1053,72 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       
       // Add components based on entity type
       if (entityType === EntityType.CREATURE || entityType === EntityType.PLAYER_CHARACTER || entityType === EntityType.NPC) {
+        const statsConfig = options.stats || {};
+        const movementSpeed = options.movementSpeed ?? statsConfig.speed ?? 30;
+        const actionsPerTurn = options.actionsPerTurn ?? 3;
+
         // Add stats
         const stats = new StatsComponent({ 
-          speed: 30, 
-          maxHp: 20,
-          perception: 0
+          speed: movementSpeed,
+          maxHp: statsConfig.maxHp ?? 20,
+          currentHp: statsConfig.currentHp ?? statsConfig.maxHp ?? 20,
+          ac: statsConfig.ac ?? 10,
+          perception: statsConfig.perception ?? 0
         });
         entity.addComponent('StatsComponent', stats);
         
         // Add movement
-        const movement = new MovementComponent(30);
+        const movement = new MovementComponent(movementSpeed);
         entity.addComponent('MovementComponent', movement);
         
         // Add actions (3-action economy)
-        const actions = new ActionsComponent(3);
+        const actions = new ActionsComponent(actionsPerTurn);
         entity.addComponent('ActionsComponent', actions);
         
         // Add combat
-        const team = entityType === EntityType.PLAYER_CHARACTER ? Team.PLAYER : Team.ENEMY;
+        const team = this.resolveTeamPreference(options.team, entityType);
         const combat = new CombatComponent({ 
           team: team,
-          initiativeBonus: 0
+          initiativeBonus: statsConfig.initiative_bonus ?? options.initiativeBonus ?? 0,
+          attackBonus: statsConfig.attack_bonus ?? 0
         });
         entity.addComponent('CombatComponent', combat);
+      } else if (entityType === EntityType.ITEM || entityType === EntityType.OBSTACLE) {
+        // Items/furniture should be targetable but not join initiative.
+        const statsConfig = options.stats || {};
+        const stats = new StatsComponent({
+          speed: 0,
+          maxHp: statsConfig.maxHp ?? 10,
+          currentHp: statsConfig.currentHp ?? statsConfig.maxHp ?? 10,
+          ac: statsConfig.ac ?? 10,
+          perception: statsConfig.perception ?? 0
+        });
+        entity.addComponent('StatsComponent', stats);
       }
       
       console.log(`Created entity "${name}" (${entityType}) at (${q}, ${r})`);
       return entity;
+    },
+
+    /**
+     * Resolve team preference to CombatComponent team value.
+     */
+    resolveTeamPreference: function (teamPreference, entityType) {
+      const normalized = teamPreference ? String(teamPreference).toLowerCase() : null;
+      if (normalized === 'player') {
+        return Team.PLAYER;
+      }
+      if (normalized === 'ally') {
+        return Team.ALLY;
+      }
+      if (normalized === 'neutral') {
+        return Team.NEUTRAL;
+      }
+      if (normalized === 'enemy') {
+        return Team.ENEMY;
+      }
+
+      return entityType === EntityType.PLAYER_CHARACTER ? Team.PLAYER : Team.ENEMY;
     },
     
     /**
@@ -1137,26 +1241,142 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     /**
      * Start combat encounter.
      */
-    startCombat: function () {
+    serializeCombatantsForApi: function () {
+      if (!this.entityManager) {
+        return [];
+      }
+
+      const entities = this.entityManager.getEntitiesWith('IdentityComponent', 'CombatComponent');
+      return entities.map((entity) => {
+        const identity = entity.getComponent('IdentityComponent');
+        const combat = entity.getComponent('CombatComponent');
+        const stats = entity.getComponent('StatsComponent');
+
+        return {
+          entityId: entity.id,
+          name: identity?.name || `Entity ${entity.id}`,
+          team: combat?.team,
+          initiative: combat?.getInitiative ? combat.getInitiative() : null,
+          initiative_bonus: combat?.initiativeBonus,
+          perception: stats?.perception,
+          ac: stats?.ac,
+          hp: stats?.currentHp,
+          max_hp: stats?.maxHp,
+        };
+      });
+    },
+
+    startCombat: async function (options = {}) {
       console.log('Starting combat...');
-      this.turnManagementSystem.startCombat();
+
+      const payload = {
+        campaignId: this.config?.campaignId,
+        roomId: this.stateManager.get('activeRoomId'),
+        entities: this.serializeCombatantsForApi(),
+        ...options
+      };
+
+      try {
+        const serverState = await combatApi.startCombat(payload);
+
+        // If backend returns a serialized encounter, hydrate client; otherwise fall back to local logic.
+        if (serverState && typeof this.turnManagementSystem.hydrateFromServer === 'function') {
+          if (serverState.encounter_id) {
+            this.stateManager.set('encounterId', serverState.encounter_id);
+          }
+          this.turnManagementSystem.hydrateFromServer(serverState);
+          return;
+        }
+        if (serverState && serverState.encounter_id) {
+          this.stateManager.set('encounterId', serverState.encounter_id);
+        }
+      } catch (err) {
+        console.warn('Combat start via API failed, falling back to client system.', err);
+      }
+
+      this.turnManagementSystem.startCombat(options);
     },
     
     /**
      * End current turn.
      */
-    endTurn: function () {
+    endTurn: async function () {
       console.log('Ending turn...');
+
+      const currentTurn = this.turnManagementSystem?.getCurrentTurn?.();
+      const payload = {
+        encounterId: this.stateManager.get('encounterId'),
+        participantId: currentTurn?.entityId
+      };
+
+      try {
+        const serverState = await combatApi.endTurn(payload);
+        if (serverState && typeof this.turnManagementSystem.hydrateFromServer === 'function') {
+          if (serverState.encounter_id) {
+            this.stateManager.set('encounterId', serverState.encounter_id);
+          }
+          this.turnManagementSystem.hydrateFromServer(serverState);
+          return;
+        }
+        if (serverState && serverState.encounter_id) {
+          this.stateManager.set('encounterId', serverState.encounter_id);
+        }
+      } catch (err) {
+        console.warn('Turn end via API failed, falling back to client system.', err);
+      }
+
       this.turnManagementSystem.endTurn();
     },
     
     /**
      * End combat encounter.
      */
-    endCombat: function () {
+    endCombat: async function () {
       console.log('Ending combat...');
+
+      const payload = {
+        encounterId: this.stateManager.get('encounterId')
+      };
+
+      try {
+        await combatApi.endCombat(payload);
+      } catch (err) {
+        console.warn('Combat end via API failed, falling back to client system.', err);
+      }
+
       this.turnManagementSystem.endCombat();
+      this.stateManager.set('encounterId', null);
       this.deselectEntity();
+    },
+
+    /**
+     * Free-action talk interface hook for AI conversation integration.
+     * @param {Entity} speaker - Speaking entity
+     * @param {string} message - Utterance content
+     */
+    performTalk: function (speaker, message) {
+      if (!speaker || !message) {
+        return;
+      }
+
+      const actions = speaker.getComponent('ActionsComponent');
+      if (actions) {
+        actions.spendActions(ActionCost.FREE, 'Talk');
+      }
+
+      const identity = speaker.getComponent('IdentityComponent');
+      const combat = speaker.getComponent('CombatComponent');
+
+      // Emit an event for downstream ai_conversation listeners.
+      window.dispatchEvent(new CustomEvent('dungeoncrawler:talk', {
+        detail: {
+          entityId: speaker.id,
+          name: identity?.name || `Entity ${speaker.id}`,
+          team: combat?.team || null,
+          roomId: this.activeRoomId || null,
+          message: message
+        }
+      }));
     },
 
     /**
@@ -1189,6 +1409,166 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
           this.uiManager.updateCurrentTurn(name, actions, actions.hasReactionAvailable());
         }
       }
+    },
+
+    /**
+     * Get all hostile, alive targets for an entity, sorted by distance.
+     * @param {Entity} actor
+     * @returns {Array<{target: Entity, distance: number}>}
+     */
+    getHostileTargets: function (actor) {
+      const actorCombat = actor.getComponent('CombatComponent');
+      const actorPos = actor.getComponent('PositionComponent');
+      if (!actorCombat || !actorPos) {
+        return [];
+      }
+
+      const candidates = this.entityManager.getEntitiesWith('CombatComponent', 'StatsComponent', 'PositionComponent');
+      const hostileTargets = [];
+
+      candidates.forEach((candidate) => {
+        if (candidate.id === actor.id) {
+          return;
+        }
+
+        const targetCombat = candidate.getComponent('CombatComponent');
+        const targetStats = candidate.getComponent('StatsComponent');
+        const targetPos = candidate.getComponent('PositionComponent');
+
+        if (!targetCombat || !targetPos || !targetStats?.isAlive()) {
+          return;
+        }
+
+        if (!actorCombat.isHostileTo(targetCombat)) {
+          return;
+        }
+
+        const distance = this.movementSystem.hexDistance(actorPos.q, actorPos.r, targetPos.q, targetPos.r);
+        hostileTargets.push({ target: candidate, distance });
+      });
+
+      hostileTargets.sort((a, b) => a.distance - b.distance);
+      return hostileTargets;
+    },
+
+    /**
+     * Choose the next step toward a target using pathfinding.
+     * Moves up to available movement within one stride.
+     * @param {Entity} actor
+     * @param {Entity} target
+     * @returns {{q:number,r:number}|null}
+     */
+    getNextStepToward: function (actor, target) {
+      const pos = actor.getComponent('PositionComponent');
+      const movement = actor.getComponent('MovementComponent');
+      const targetPos = target.getComponent('PositionComponent');
+
+      if (!pos || !movement || !targetPos) {
+        return null;
+      }
+
+      // Find a reachable neighbor adjacent to target (avoid standing on target hex)
+      const neighborOptions = this.movementSystem.hexDirections
+        .map((dir) => ({ q: targetPos.q + dir.q, r: targetPos.r + dir.r }))
+        .filter(({ q, r }) => this.movementSystem.getTerrainCost(q, r) !== Infinity);
+
+      // Choose the neighbor with shortest distance to actor
+      neighborOptions.sort((a, b) => {
+        const da = this.movementSystem.hexDistance(pos.q, pos.r, a.q, a.r);
+        const db = this.movementSystem.hexDistance(pos.q, pos.r, b.q, b.r);
+        return da - db;
+      });
+
+      if (!neighborOptions.length) {
+        return null;
+      }
+
+      const strideBudget = Math.floor(movement.movementRemaining / movement.hexMovementCost);
+      const destination = neighborOptions.find((option) => {
+        const path = this.movementSystem.findPath(pos.q, pos.r, option.q, option.r, strideBudget);
+        return path && path.length > 1;
+      });
+
+      if (!destination) {
+        return null;
+      }
+
+      // Step as far as possible toward the destination within stride budget
+      const path = this.movementSystem.findPath(pos.q, pos.r, destination.q, destination.r, strideBudget);
+      if (!path || path.length < 2) {
+        return null;
+      }
+
+      // Move to the furthest reachable hex in this stride (path length limited by strideBudget)
+      const steps = Math.min(path.length - 1, strideBudget);
+      return path[steps];
+    },
+
+    /**
+     * Very basic NPC AI: stride toward nearest hostile, attack when adjacent, then end turn.
+     * @param {Entity} actor - Non-player entity taking its turn
+     */
+    runNpcTurn: function (actor) {
+      const combat = actor.getComponent('CombatComponent');
+      if (!combat || combat.isPlayerTeam()) {
+        return;
+      }
+
+      const actions = actor.getComponent('ActionsComponent');
+      const movement = actor.getComponent('MovementComponent');
+      const stats = actor.getComponent('StatsComponent');
+      const pos = actor.getComponent('PositionComponent');
+
+      if (!actions || !stats || !pos) {
+        this.turnManagementSystem.endTurn();
+        return;
+      }
+
+      // Simple loop over remaining actions: stride if not adjacent, attack if adjacent.
+      while (actions.actionsRemaining > 0) {
+        const targets = this.getHostileTargets(actor);
+        if (!targets.length) {
+          break;
+        }
+
+        const { target, distance } = targets[0];
+        const targetPos = target.getComponent('PositionComponent');
+        if (!targetPos) {
+          break;
+        }
+
+        if (distance <= 1) {
+          // Adjacent: attack
+          const result = this.combatSystem.attack(actor, target);
+          if (!result) {
+            break;
+          }
+          continue;
+        }
+
+        // Need to move closer
+        if (!movement || movement.movementRemaining < movement.hexMovementCost) {
+          break;
+        }
+
+        // Spend one action to stride
+        if (!actions.spendActions(ActionCost.ONE, 'Stride')) {
+          break;
+        }
+
+        const nextStep = this.getNextStepToward(actor, target);
+        if (!nextStep) {
+          break;
+        }
+
+        const moved = this.movementSystem.moveEntity(actor, nextStep.q, nextStep.r);
+        if (!moved) {
+          break;
+        }
+      }
+
+      // End turn after AI finishes its allotted actions/movement
+      this.turnManagementSystem.endTurn();
     },
     
     /**
@@ -1596,19 +1976,39 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
           return;
         }
 
+        const rawType = entity?.entity_type ? String(entity.entity_type).toLowerCase() : '';
         let entityType = EntityType.OBSTACLE;
-        if (entity.entity_type === 'creature') {
+        if (rawType === 'creature') {
           entityType = EntityType.CREATURE;
-        } else if (entity.entity_type === 'item') {
+        } else if (rawType === 'player_character' || rawType === 'player') {
+          entityType = EntityType.PLAYER_CHARACTER;
+        } else if (rawType === 'npc') {
+          entityType = EntityType.NPC;
+        } else if (rawType === 'item') {
           entityType = EntityType.ITEM;
         }
 
+        const metadata = entity?.state?.metadata || {};
         const contentId = entity?.entity_ref?.content_id;
         const objectDefinition = this.getObjectDefinition(contentId);
-        const entityName = objectDefinition?.label ||
-          (contentId ? String(contentId).replace(/[_-]+/g, ' ') : String(entity.entity_type || 'entity'));
-        this.createEntityObject(q, r, entityType, entityName, null);
+        const entityName = metadata.display_name || metadata.name || entity?.display_name ||
+          objectDefinition?.label || (contentId ? String(contentId).replace(/[_-]+/g, ' ') : String(entity.entity_type || 'entity'));
+
+        const options = {
+          team: metadata.team,
+          stats: metadata.stats || {},
+          movementSpeed: metadata.movement_speed,
+          actionsPerTurn: metadata.actions_per_turn,
+          initiativeBonus: metadata.initiative_bonus
+        };
+
+        this.createEntityObject(q, r, entityType, entityName, null, options);
       });
+
+      // Automatically enter initiative for the active room so every area is treated as a live encounter.
+      if (this.turnManagementSystem) {
+        this.startCombat({ force: true });
+      }
     },
 
     /**
@@ -1667,6 +2067,152 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       const stackable = (typeof metadata.stackable === 'boolean') ? metadata.stackable : Boolean(objectDefinition?.stackable);
 
       return { movable, passable, stackable };
+    },
+
+    /**
+     * Describe passability text for a hex.
+     */
+    describePassability: function (obstacleProfile, inActiveRoom) {
+      if (obstacleProfile) {
+        if (!obstacleProfile.passable && !obstacleProfile.movable) {
+          return 'Impassable (fixed)';
+        }
+        if (!obstacleProfile.passable && obstacleProfile.movable) {
+          return 'Impassable (movable)';
+        }
+        if (obstacleProfile.passable && obstacleProfile.movable) {
+          return 'Passable (movable)';
+        }
+        return 'Passable';
+      }
+
+      return inActiveRoom ? 'Open floor' : 'Outside active room';
+    },
+
+    /**
+     * Describe entities at a hex (live ECS first, then payload fallback).
+     */
+    describeEntitiesAtHex: function (q, r) {
+      const labels = [];
+
+      if (this.entityManager) {
+        const liveEntities = this.entityManager.getEntitiesWith('PositionComponent', 'IdentityComponent', 'CombatComponent');
+        liveEntities.forEach((entity) => {
+          const pos = entity.getComponent('PositionComponent');
+          if (pos?.q !== q || pos?.r !== r) {
+            return;
+          }
+          const identity = entity.getComponent('IdentityComponent');
+          const combat = entity.getComponent('CombatComponent');
+          const teamLabel = combat?.team ? ` (${combat.team})` : '';
+          labels.push(`${identity?.name || 'Entity'}${teamLabel}`);
+        });
+      }
+
+      if (labels.length) {
+        return labels;
+      }
+
+      const payloadEntities = Array.isArray(this.dungeonData?.entities) ? this.dungeonData.entities : [];
+      const fallback = payloadEntities.filter((candidate) => {
+        if (!candidate?.placement || candidate.placement.room_id !== this.activeRoomId) {
+          return false;
+        }
+        const hex = candidate.placement.hex;
+        return hex && Number(hex.q) === q && Number(hex.r) === r;
+      });
+
+      fallback.forEach((candidate) => {
+        const metadata = candidate?.state?.metadata || {};
+        const displayName = metadata.display_name || metadata.name;
+        if (displayName) {
+          labels.push(displayName);
+          return;
+        }
+        const contentId = candidate?.entity_ref?.content_id;
+        labels.push(contentId ? String(contentId).replace(/[_-]+/g, ' ') : String(candidate.entity_type || 'entity'));
+      });
+
+      return labels;
+    },
+
+    /**
+     * Describe objects on a hex from room payload and object definitions.
+     */
+    describeObjectsAtHex: function (hex, q, r) {
+      const labels = [];
+
+      if (hex && Array.isArray(hex.objects)) {
+        hex.objects.forEach((object) => {
+          if (object?.label) {
+            labels.push(object.label);
+          } else if (object?.object_id) {
+            labels.push(String(object.object_id).replace(/[_-]+/g, ' '));
+          }
+        });
+      }
+
+      const obstacleLabel = this.getObstacleMobilityAtHex(q, r) ? this.getObjectLabelAtHex(q, r) : null;
+      if (obstacleLabel) {
+        labels.push(obstacleLabel);
+      }
+
+      return labels;
+    },
+
+    /**
+     * Describe connection metadata for a hex if present.
+     */
+    describeConnectionAtHex: function (q, r) {
+      const connections = Array.isArray(this.dungeonData?.connections) ? this.dungeonData.connections : [];
+      if (!connections.length) {
+        return null;
+      }
+
+      const match = connections.find((connection) => {
+        const fromHex = connection?.from_hex;
+        const toHex = connection?.to_hex;
+        return (fromHex && Number(fromHex.q) === q && Number(fromHex.r) === r) ||
+               (toHex && Number(toHex.q) === q && Number(toHex.r) === r);
+      });
+
+      if (!match) {
+        return null;
+      }
+
+      const targetRoom = match.to_room === this.activeRoomId ? match.from_room : match.to_room;
+      const status = [];
+      status.push(match.is_passable ? 'passable' : 'blocked');
+      if (match.is_discovered) {
+        status.push('discovered');
+      }
+
+      return `${match.type || 'connection'} -> ${targetRoom || 'unknown'} (${status.join(', ')})`;
+    },
+
+    /**
+     * Build a detail payload for the hovered hex.
+     */
+    getHexDetail: function (q, r) {
+      const room = this.getActiveRoomData();
+      if (!room) {
+        return null;
+      }
+
+      const hex = Array.isArray(room.hexes) ? room.hexes.find((candidate) => Number(candidate.q) === q && Number(candidate.r) === r) : null;
+      const inRoom = Boolean(hex);
+      const obstacleProfile = this.getObstacleMobilityAtHex(q, r);
+
+      return {
+        roomName: inRoom ? room.name : `${room.name} (outside footprint)` ,
+        terrain: room.terrain?.type || 'unknown',
+        elevationFt: inRoom && Number.isFinite(Number(hex?.elevation_ft)) ? Number(hex.elevation_ft) : null,
+        lighting: room.lighting?.level || 'unknown',
+        passability: this.describePassability(obstacleProfile, inRoom),
+        objects: this.describeObjectsAtHex(hex, q, r),
+        entities: this.describeEntitiesAtHex(q, r),
+        connection: this.describeConnectionAtHex(q, r)
+      };
     },
 
     /**

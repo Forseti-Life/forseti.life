@@ -6,6 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Drupal\dungeoncrawler_content\Service\CombatEncounterStore;
 
 /**
  * Combat action and turn management controller.
@@ -34,11 +35,19 @@ class CombatActionController extends ControllerBase {
   protected $combatEngine;
 
   /**
+   * Combat encounter store.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\CombatEncounterStore
+   */
+  protected $store;
+
+  /**
    * Constructor.
    */
-  public function __construct($action_processor, $combat_engine) {
+  public function __construct($action_processor, $combat_engine, CombatEncounterStore $store) {
     $this->actionProcessor = $action_processor;
     $this->combatEngine = $combat_engine;
+    $this->store = $store;
   }
 
   /**
@@ -47,7 +56,8 @@ class CombatActionController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('dungeoncrawler_content.action_processor'),
-      $container->get('dungeoncrawler_content.combat_engine')
+      $container->get('dungeoncrawler_content.combat_engine'),
+      $container->get('dungeoncrawler_content.combat_encounter_store')
     );
   }
 
@@ -65,22 +75,26 @@ class CombatActionController extends ControllerBase {
    * @see /docs/dungeoncrawler/issues/combat-api-endpoints.md#get-current-turn
    */
   public function getCurrentTurn($encounter_id) {
-    // TODO: Implement current turn retrieval
-    // 1. Load encounter
-    // 2. Get current_turn_participant_id
-    // 3. Load participant with stats
-    // 4. Get actions_remaining, reaction_available
-    // 5. Get current_map_penalty
-    // 6. Get active conditions
-    // 7. Return participant state
-    
+    $encounter = $this->store->loadEncounter((int) $encounter_id);
+    if (!$encounter) {
+      return new JsonResponse(['error' => 'Encounter not found'], 404);
+    }
+
+    $turn_index = (int) ($encounter['turn_index'] ?? 0);
+    $participants = $encounter['participants'] ?? [];
+    $current = $participants[$turn_index] ?? NULL;
+
+    if (!$current) {
+      return new JsonResponse(['error' => 'No participants'], 400);
+    }
+
     return new JsonResponse([
-      'participant_id' => 0,
-      'name' => '',
-      'actions_remaining' => 3,
-      'reaction_available' => TRUE,
-      'current_map_penalty' => 0,
-      'active_conditions' => [],
+      'participant_id' => (int) $current['id'],
+      'name' => $current['name'] ?? '',
+      'actions_remaining' => (int) ($current['actions_remaining'] ?? 0),
+      'attacks_this_turn' => (int) ($current['attacks_this_turn'] ?? 0),
+      'turn_index' => $turn_index,
+      'current_round' => (int) ($encounter['current_round'] ?? 1),
     ]);
   }
 
@@ -101,26 +115,10 @@ class CombatActionController extends ControllerBase {
    * @see /docs/dungeoncrawler/issues/combat-state-machine.md (Turn States)
    */
   public function startTurn($encounter_id, $participant_id) {
-    // TODO: Implement turn start
-    // 1. Verify it's this participant's turn
-    // 2. Grant 3 actions + 1 reaction
-    // 3. Reset MAP to 0, attacks_this_turn to 0
-    // 4. Process start-of-turn effects:
-    //    - Roll recovery check if dying
-    //    - Decrement frightened by 1
-    //    - Check for stunned/slowed (reduces actions)
-    //    - Check for quickened (grants extra action)
-    // 5. Transition turn_state to 'awaiting_action'
-    // 6. Log start-of-turn effects
-    // 7. Return available actions and effects processed
-    
-    return new JsonResponse([
-      'participant_id' => $participant_id,
-      'turn_state' => 'awaiting_action',
-      'actions_remaining' => 3,
-      'reaction_available' => TRUE,
-      'start_of_turn_effects' => [],
-    ]);
+    $result = $this->combatEngine->startTurn((int) $encounter_id, (int) $participant_id);
+    $status_code = ($result['status'] ?? 'error') === 'ok' ? 200 : 400;
+
+    return new JsonResponse($result, $status_code);
   }
 
   /**
@@ -139,22 +137,10 @@ class CombatActionController extends ControllerBase {
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#endturn
    */
   public function endTurn($encounter_id, $participant_id) {
-    // TODO: Implement turn end
-    // 1. Apply persistent damage (with flat check DC 15)
-    // 2. Remove "until end of turn" effects
-    // 3. Decrement turn-based condition durations
-    // 4. Process end-of-turn abilities (regeneration, etc.)
-    // 5. Log end-of-turn effects
-    // 6. Advance to next participant in initiative order
-    // 7. If last participant: endRound()
-    // 8. Return next turn participant info
-    
-    return new JsonResponse([
-      'participant_id' => $participant_id,
-      'turn_ended' => TRUE,
-      'end_of_turn_effects' => [],
-      'next_turn' => [],
-    ]);
+    $result = $this->combatEngine->endTurn((int) $encounter_id, (int) $participant_id);
+    $status_code = ($result['status'] ?? 'error') === 'ok' ? 200 : 400;
+
+    return new JsonResponse($result, $status_code);
   }
 
   /**
@@ -253,14 +239,19 @@ class CombatActionController extends ControllerBase {
     // 9. Check for triggered reactions
     // 10. Return action result and updated state
     
-    return new JsonResponse([
-      'action_id' => 0,
-      'action_type' => '',
-      'success' => TRUE,
-      'result' => [],
-      'reactions_triggered' => [],
-      'participant_state' => [],
-    ]);
+      $data = json_decode($request->getContent(), TRUE) ?: [];
+      $participant_id = (int) ($data['participant_id'] ?? 0);
+      $action_type = $data['action_type'] ?? NULL;
+      $action_data = $data['action_data'] ?? [];
+
+      if (!$participant_id || !$action_type) {
+        return new JsonResponse(['error' => 'Missing participant_id or action_type'], 400);
+      }
+
+      $result = $this->actionProcessor->executeAction((int) $encounter_id, $participant_id, $action_type, $action_data);
+      $status_code = ($result['status'] ?? 'error') === 'ok' ? 200 : 400;
+
+      return new JsonResponse($result, $status_code);
   }
 
   /**

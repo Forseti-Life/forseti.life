@@ -112,7 +112,12 @@ export class CombatSystem extends System {
     // Get Multiple Attack Penalty if ActionsComponent exists
     let mapPenalty = 0;
     if (attackerActions) {
-      mapPenalty = attackerActions.makeAttack();
+      const mapResult = attackerActions.makeAttack();
+      if (mapResult === null) {
+        console.warn('No actions remaining to attack');
+        return null;
+      }
+      mapPenalty = mapResult;
     }
     
     // Roll attack (d20)

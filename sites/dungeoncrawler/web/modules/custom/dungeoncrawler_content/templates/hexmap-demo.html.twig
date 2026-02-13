@@ -87,6 +87,20 @@
       </div>
     </div>
 
+    <div class="info-panel">
+      <h3>{{ 'Hex Details'|t }}</h3>
+      <div class="info-content">
+        <p><strong>{{ 'Room:'|t }}</strong> <span id="hex-detail-room">{{ 'None'|t }}</span></p>
+        <p><strong>{{ 'Terrain:'|t }}</strong> <span id="hex-detail-terrain">{{ 'Unknown'|t }}</span></p>
+        <p><strong>{{ 'Elevation:'|t }}</strong> <span id="hex-detail-elevation">-</span></p>
+        <p><strong>{{ 'Lighting:'|t }}</strong> <span id="hex-detail-lighting">{{ 'Unknown'|t }}</span></p>
+        <p><strong>{{ 'Passability:'|t }}</strong> <span id="hex-detail-passability">{{ 'Unknown'|t }}</span></p>
+        <p><strong>{{ 'Objects:'|t }}</strong> <span id="hex-detail-objects">{{ 'None'|t }}</span></p>
+        <p><strong>{{ 'Entities:'|t }}</strong> <span id="hex-detail-entities">{{ 'None'|t }}</span></p>
+        <p><strong>{{ 'Connection:'|t }}</strong> <span id="hex-detail-connection">{{ 'None'|t }}</span></p>
+      </div>
+    </div>
+
     {% if launch_context and (launch_context.campaign_id or launch_context.room_id or launch_context.dungeon_level_id or launch_context.map_id) %}
       <div class="info-panel">
         <h3>{{ 'Launch Context'|t }}</h3>

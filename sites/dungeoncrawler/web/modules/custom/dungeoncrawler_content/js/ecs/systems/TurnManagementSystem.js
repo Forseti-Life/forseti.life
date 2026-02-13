@@ -60,10 +60,16 @@ export class TurnManagementSystem extends System {
   /**
    * Start combat encounter.
    */
-  startCombat() {
+  startCombat(options = {}) {
+    const { force = false } = options;
+
     if (this.combatState !== CombatState.INACTIVE) {
-      console.warn('Combat already in progress');
-      return;
+      if (!force) {
+        console.warn('Combat already in progress');
+        return;
+      }
+      // Reset current combat before forcing a new one
+      this.endCombat();
     }
     
     console.log('Starting combat...');
@@ -225,14 +231,23 @@ export class TurnManagementSystem extends System {
     // Mark turn start
     combat.startTurn();
     
+    const maybeAutoEndTurn = () => {
+      if (this.shouldAutoEndTurn(entity)) {
+        this.endTurn();
+      }
+    };
+
     // Restore actions
     if (actions) {
       actions.startTurn();
+      // Auto-end turn only when both actions and movement are spent
+      actions.setOnActionsDepleted(maybeAutoEndTurn);
     }
-    
+
     // Restore movement
     if (movement) {
       movement.restoreMovement();
+      movement.setOnMovementDepleted(maybeAutoEndTurn);
     }
     
     const name = identity ? identity.name : `Entity ${entity.id}`;
@@ -267,7 +282,13 @@ export class TurnManagementSystem extends System {
     combat.endTurn();
     
     if (actions) {
+      // Clear depletion hook to avoid cross-turn firing
+      actions.setOnActionsDepleted(null);
       actions.endTurn();
+    }
+
+    if (movement) {
+      movement.setOnMovementDepleted(null);
     }
     
     const identity = entity.getComponent('IdentityComponent');
@@ -363,6 +384,21 @@ export class TurnManagementSystem extends System {
    */
   isCombatActive() {
     return this.combatState === CombatState.IN_PROGRESS;
+  }
+
+  /**
+   * Determine whether the active entity has exhausted actions and movement.
+   * @param {Entity} entity
+   * @returns {boolean}
+   */
+  shouldAutoEndTurn(entity) {
+    const actions = entity.getComponent('ActionsComponent');
+    const movement = entity.getComponent('MovementComponent');
+
+    const actionsSpent = !actions || actions.actionsRemaining <= 0;
+    const movementSpent = !movement || movement.movementRemaining <= 0;
+
+    return actionsSpent && movementSpent;
   }
   
   /**

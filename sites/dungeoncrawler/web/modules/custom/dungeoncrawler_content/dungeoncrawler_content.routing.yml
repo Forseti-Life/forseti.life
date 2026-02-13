@@ -328,4 +328,45 @@ dungeoncrawler_content.api.character_start_turn:
   options:
     _format: json
 
+# Combat encounter lifecycle (hexmap integration)
+dungeoncrawler_content.api.combat_start:
+  path: '/api/combat/start'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::start'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.combat_end_turn:
+  path: '/api/combat/end-turn'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::endTurn'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.combat_end:
+  path: '/api/combat/end'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::end'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.combat_attack:
+  path: '/api/combat/attack'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::attack'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
 

@@ -55,6 +55,9 @@ export class MovementComponent extends Component {
       [MovementMode.BURROW]: 0,
       [MovementMode.CLIMB]: 0
     };
+
+    // Optional hook when movement hits zero
+    this.onMovementDepleted = null;
   }
   
   /**
@@ -96,6 +99,11 @@ export class MovementComponent extends Component {
   consumeMovement(cost) {
     if (this.movementRemaining >= cost) {
       this.movementRemaining -= cost;
+
+      if (this.movementRemaining <= 0 && typeof this.onMovementDepleted === 'function') {
+        this.onMovementDepleted();
+      }
+
       return true;
     }
     return false;
@@ -108,6 +116,14 @@ export class MovementComponent extends Component {
     this.movementRemaining = this.movementModes[this.movementMode];
     this.canMove = true;
     this.path = [];
+  }
+
+  /**
+   * Register a callback invoked when movement depletes.
+   * @param {Function|null} callback
+   */
+  setOnMovementDepleted(callback) {
+    this.onMovementDepleted = callback;
   }
   
   /**

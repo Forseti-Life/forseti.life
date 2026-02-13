@@ -3,6 +3,7 @@
 namespace Drupal\dungeoncrawler_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Database\Connection;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -13,8 +14,10 @@ class HexMapController extends ControllerBase {
 
   protected RequestStack $requestStack;
 
-  public function __construct(RequestStack $request_stack) {
+  protected Connection $database;
+  public function __construct(RequestStack $request_stack, Connection $database) {
     $this->requestStack = $request_stack;
+    $this->database = $database;
   }
 
   /**
@@ -23,6 +26,7 @@ class HexMapController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('request_stack'),
+      $container->get('database'),
     );
   }
 
@@ -46,7 +50,7 @@ class HexMapController extends ControllerBase {
       'start_r' => (int) ($query->get('start_r') ?? 0),
     ];
 
-    $dungeon_payload = $this->loadExampleDungeonPayload($launch_context);
+    $dungeon_payload = $this->loadDungeonPayload($launch_context);
 
     return [
       '#theme' => 'hexmap_demo',
@@ -79,7 +83,29 @@ class HexMapController extends ControllerBase {
    * @return array
    *   Normalized dungeon payload.
    */
-  protected function loadExampleDungeonPayload(array $launch_context): array {
+  protected function loadDungeonPayload(array $launch_context): array {
+    $campaign_id = $launch_context['campaign_id'] ?? 0;
+
+    if ($campaign_id > 0) {
+      $query = $this->database->select('dc_campaign_dungeons', 'd')
+        ->fields('d', ['dungeon_data'])
+        ->condition('campaign_id', $campaign_id);
+
+      // If caller supplied a map_id use it as dungeon_id selector when present.
+      if (!empty($launch_context['map_id'])) {
+        $query->condition('dungeon_id', $launch_context['map_id']);
+      }
+
+      $raw = $query->range(0, 1)->execute()->fetchField();
+      if ($raw !== FALSE) {
+        $decoded = json_decode($raw, TRUE);
+        if (is_array($decoded)) {
+          return $this->normalizeDungeonPayload($decoded, $launch_context);
+        }
+      }
+    }
+
+    // Fallback to example payload when no campaign data is available.
     $example_path = dirname(__DIR__, 2) . '/config/examples/tavern-entrance-dungeon.json';
     $decoded = $this->readJsonFile($example_path);
     if (!is_array($decoded)) {
@@ -88,9 +114,17 @@ class HexMapController extends ControllerBase {
 
     $obstacle_catalog_path = dirname(__DIR__, 2) . '/config/examples/tavern-obstacle-objects.json';
     $obstacle_catalog = $this->readJsonFile($obstacle_catalog_path);
+    $decoded['object_definitions'] = $obstacle_catalog['objects'] ?? [];
 
+    return $this->normalizeDungeonPayload($decoded, $launch_context);
+  }
+
+  /**
+   * Normalize a dungeon payload to the hexmap-ready shape.
+   */
+  protected function normalizeDungeonPayload(array $decoded, array $launch_context): array {
     $object_definitions = [];
-    foreach (($obstacle_catalog['objects'] ?? []) as $object_definition) {
+    foreach (($decoded['object_definitions'] ?? []) as $object_definition) {
       if (!is_array($object_definition) || empty($object_definition['object_id'])) {
         continue;
       }
