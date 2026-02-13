@@ -577,13 +577,13 @@ The following cron jobs are required for background queue processing on the prod
 
 ```bash
 # Resume GenAI parsing queue (text extraction and JSON parsing)
-*/5 * * * * /var/www/html/stlouisintegration/scripts/run_job_hunter_queue.sh
+*/5 * * * * /var/www/html/forseti/scripts/run_job_hunter_queue.sh
 
 # Job posting parsing queue (extracts job details, skills, keywords via AI)
-*/5 * * * * cd /var/www/html/stlouisintegration && vendor/bin/drush queue:run job_hunter_job_posting_parsing --time-limit=240 2>&1 | logger -t job_hunter_queue
+*/5 * * * * cd /var/www/html/forseti && vendor/bin/drush queue:run job_hunter_job_posting_parsing --time-limit=240 2>&1 | logger -t job_hunter_queue
 
 # Resume tailoring queue (generates tailored resumes via AI)
-*/5 * * * * cd /var/www/html/stlouisintegration && flock -n /tmp/jh_tailoring.lock vendor/bin/drush queue:run job_hunter_resume_tailoring --time-limit=240 >> /var/log/drupal/tailoring_queue.log 2>&1
+*/5 * * * * cd /var/www/html/forseti && flock -n /tmp/jh_tailoring.lock vendor/bin/drush queue:run job_hunter_resume_tailoring --time-limit=240 >> /var/log/drupal/tailoring_queue.log 2>&1
 ```
 
 **Queue Workers:**
@@ -626,7 +626,7 @@ The following cron jobs are required for background queue processing on the prod
 
 ### Getting Help
 For technical issues, feature requests, and development questions:
-- **Project Repository:** https://github.com/keithaumiller/stlouisintegration.com
+- **Project Repository:** https://github.com/keithaumiller/forseti.life
 - **Issue Tracking:** GitHub Issues for bug reports and feature requests
 - **Development Discussions:** GitHub Discussions for architecture and implementation questions
 
