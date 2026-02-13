@@ -2,6 +2,21 @@
 
 **Last Updated:** February 6, 2026
 
+## 📚 Documentation
+
+This module has comprehensive documentation organized for different audiences:
+
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete architecture design and development guidelines (developers, architects)
+- **[INSTALL.md](INSTALL.md)** - Installation and setup guide (administrators, developers)
+- **[docs/](docs/)** - Organized documentation library:
+  - [docs/README.md](docs/README.md) - Documentation index and navigation
+  - [docs/FAQ.md](docs/FAQ.md) - Frequently asked questions
+  - [docs/PROCESS_FLOW.md](docs/PROCESS_FLOW.md) - Detailed workflow diagrams
+  - [docs/SUBMISSION_PROCESS.md](docs/SUBMISSION_PROCESS.md) - Application submission guide
+  - And more specialized documentation files
+
+**Quick Start:** New developers should read ARCHITECTURE.md first, then INSTALL.md, then explore the docs/ directory.
+
 ## Overview
 A comprehensive AI-powered Drupal module that automates the entire job application process using Generative AI. This system analyzes user resumes, scrapes job postings from employer websites, tailors applications using AI, and automatically submits applications across multiple employer platforms.
 

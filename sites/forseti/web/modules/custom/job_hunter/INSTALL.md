@@ -25,7 +25,7 @@ Following **Drupal 11 administrative patterns**, all content is managed through 
 ## System Requirements & Installation
 
 ### Prerequisites
-- **Drupal 11.2+** (Latest stable version recommended)
+- **Drupal 10 or 11** (Latest stable version recommended - module supports both Drupal 10 and 11)
 - **PHP 8.1+** (PHP 8.3 recommended for optimal performance) 
 - **MySQL 8.0+** or **PostgreSQL 13+**
 - **Composer** for dependency management

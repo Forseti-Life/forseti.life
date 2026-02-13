@@ -2,8 +2,10 @@
 
 **Last Updated:** February 6, 2026
 
+> **📁 Documentation Note:** This is the comprehensive architecture reference document. For a condensed architecture overview, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). For the complete documentation index, see [docs/README.md](docs/README.md).
+
 ## Overview
-This document outlines the architecture for the Job Application Automation module, designed to provide AI-powered job application automation for users of the St. Louis Integration website. The system leverages Generative AI to analyze resumes, tailor applications to specific job descriptions, and automate the submission process across multiple employer platforms.
+This document outlines the architecture for the Job Application Automation module, designed to provide AI-powered job application automation for users of the forseti.life website. The system leverages Generative AI to analyze resumes, tailor applications to specific job descriptions, and automate the submission process across multiple employer platforms.
 
 **⚠️ IMPORTANT: This document must be read and understood before beginning any development work on this module.**
 
