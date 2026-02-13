@@ -2,6 +2,7 @@
 
 namespace Drupal\job_hunter\Controller;
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\job_hunter\Service\CloudTalentSolutionService;
@@ -32,16 +33,26 @@ class GoogleJobsSearchController extends ControllerBase {
   protected $cloudTalentService;
 
   /**
+   * The cache backend.
+   *
+   * @var \Drupal\Core\Cache\CacheBackendInterface
+   */
+  protected $cache;
+
+  /**
    * Constructs a GoogleJobsSearchController object.
    *
    * @param \Drupal\Core\Database\Connection $database
    *   The database connection.
    * @param \Drupal\job_hunter\Service\CloudTalentSolutionService $cloud_talent_service
    *   The Cloud Talent Solution service.
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+   *   The cache backend.
    */
-  public function __construct(Connection $database, CloudTalentSolutionService $cloud_talent_service) {
+  public function __construct(Connection $database, CloudTalentSolutionService $cloud_talent_service, CacheBackendInterface $cache) {
     $this->database = $database;
     $this->cloudTalentService = $cloud_talent_service;
+    $this->cache = $cache;
   }
 
   /**
@@ -50,7 +61,8 @@ class GoogleJobsSearchController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('database'),
-      $container->get('job_hunter.cloud_talent_solution')
+      $container->get('job_hunter.cloud_talent_solution'),
+      $container->get('cache.data')
     );
   }
 
@@ -86,16 +98,37 @@ class GoogleJobsSearchController extends ControllerBase {
   public function apiSearch(Request $request) {
     try {
       // Get search parameters from request
-      $query = $request->query->get('q', '');
+      $query = trim($request->query->get('q', ''));
       $location = $request->query->get('location', '');
       $page_token = $request->query->get('page_token', '');
-      $page_size = $request->query->get('page_size', 10);
+      $page_size = (int) $request->query->get('page_size', 10);
       $employment_types = $request->query->get('employment_types', '');
 
+      // Validate query parameter
       if (empty($query)) {
         return new JsonResponse([
           'error' => 'Search query is required',
         ], 400);
+      }
+
+      if (strlen($query) < 2) {
+        return new JsonResponse([
+          'error' => 'Search query must be at least 2 characters',
+        ], 400);
+      }
+
+      if (strlen($query) > 500) {
+        return new JsonResponse([
+          'error' => 'Search query is too long (max 500 characters)',
+        ], 400);
+      }
+
+      // Validate page size parameter
+      if ($page_size < 1) {
+        $page_size = 10;
+      }
+      if ($page_size > 100) {
+        $page_size = 100;
       }
 
       // Perform search via Cloud Talent Solution
@@ -113,7 +146,23 @@ class GoogleJobsSearchController extends ControllerBase {
         $params['employment_types'] = explode(',', $employment_types);
       }
 
-      $results = $this->cloudTalentService->searchJobs($params);
+      // Generate cache key from search parameters
+      $cache_key = 'job_hunter:google_search:' . md5(json_encode($params));
+      $cache_tags = ['job_hunter:google_search'];
+
+      // Check cache first
+      $cached = $this->cache->get($cache_key);
+      if ($cached && !empty($cached->data)) {
+        $results = $cached->data;
+      }
+      else {
+        // Perform search
+        $results = $this->cloudTalentService->searchJobs($params);
+
+        // Cache results for 1 hour
+        $expire = time() + 3600;
+        $this->cache->set($cache_key, $results, $expire, $cache_tags);
+      }
 
       // Check which jobs are already imported
       $job_names = array_column(array_column($results['jobs'], 'job'), 'name');
@@ -174,7 +223,7 @@ class GoogleJobsSearchController extends ControllerBase {
       }
 
       $job_data = $content['job_data'];
-      $user_id = \Drupal::currentUser()->id();
+      $user_id = $this->currentUser()->id();
 
       // Import the job
       $job_id = $this->cloudTalentService->importJob($job_data, $user_id);
@@ -223,7 +272,7 @@ class GoogleJobsSearchController extends ControllerBase {
         ], 400);
       }
 
-      $user_id = \Drupal::currentUser()->id();
+      $user_id = $this->currentUser()->id();
       $imported = [];
       $skipped = [];
       $errors = [];
