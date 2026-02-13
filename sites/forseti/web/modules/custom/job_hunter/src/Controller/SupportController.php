@@ -9,6 +9,7 @@ use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Mail\MailManagerInterface;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -46,6 +47,13 @@ class SupportController extends ControllerBase {
   protected $mailManager;
 
   /**
+   * The date formatter service.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatterInterface
+   */
+  protected $dateFormatter;
+
+  /**
    * Constructs a SupportController object.
    *
    * @param \Drupal\Core\Session\AccountInterface $current_user
@@ -56,17 +64,21 @@ class SupportController extends ControllerBase {
    *   The form builder service.
    * @param \Drupal\Core\Mail\MailManagerInterface $mail_manager
    *   The mail manager service.
+   * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
+   *   The date formatter service.
    */
   public function __construct(
     AccountInterface $current_user,
     EntityTypeManagerInterface $entity_type_manager,
     FormBuilderInterface $form_builder,
-    MailManagerInterface $mail_manager
+    MailManagerInterface $mail_manager,
+    DateFormatterInterface $date_formatter
   ) {
     $this->currentUser = $current_user;
     $this->entityTypeManager = $entity_type_manager;
     $this->formBuilder = $form_builder;
     $this->mailManager = $mail_manager;
+    $this->dateFormatter = $date_formatter;
   }
 
   /**
@@ -77,7 +89,8 @@ class SupportController extends ControllerBase {
       $container->get('current_user'),
       $container->get('entity_type.manager'),
       $container->get('form_builder'),
-      $container->get('plugin.manager.mail')
+      $container->get('plugin.manager.mail'),
+      $container->get('date.formatter')
     );
   }
 
@@ -209,7 +222,7 @@ class SupportController extends ControllerBase {
       
       $build['requests_table'][$node->id()] = [
         'date' => [
-          '#markup' => \Drupal::service('date.formatter')->format($node->getCreatedTime(), 'short'),
+          '#markup' => $this->dateFormatter->format($node->getCreatedTime(), 'short'),
         ],
         'user' => [
           '#markup' => $user_name,
