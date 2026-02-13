@@ -3,9 +3,14 @@
 namespace Drupal\job_hunter\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Database\Connection;
+use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
+use Drupal\Core\Session\AccountProxyInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Controller for company and job requirement management.
@@ -14,16 +19,147 @@ class CompanyController extends ControllerBase {
   use JobHunterControllerTrait;
 
   /**
+   * Valid job status values.
+   */
+  const VALID_JOB_STATUSES = ['active', 'archived', 'applied', 'interviewing', 'rejected', 'offered'];
+
+  /**
+   * Valid AI extraction status values.
+   */
+  const VALID_AI_STATUSES = ['pending', 'queued', 'processing', 'completed', 'failed'];
+
+  /**
+   * Valid tailoring status values.
+   */
+  const VALID_TAILORING_STATUSES = ['pending', 'queued', 'processing', 'completed', 'failed'];
+
+  /**
+   * The database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $database;
+
+  /**
+   * The current user.
+   *
+   * @var \Drupal\Core\Session\AccountProxyInterface
+   */
+  protected $currentUser;
+
+  /**
+   * The request stack.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
+  protected $requestStack;
+
+  /**
+   * The form builder.
+   *
+   * @var \Drupal\Core\Form\FormBuilderInterface
+   */
+  protected $formBuilder;
+
+  /**
+   * Constructs a CompanyController object.
+   *
+   * @param \Drupal\Core\Database\Connection $database
+   *   The database connection.
+   * @param \Drupal\Core\Session\AccountProxyInterface $current_user
+   *   The current user.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
+   *   The request stack.
+   * @param \Drupal\Core\Form\FormBuilderInterface $form_builder
+   *   The form builder.
+   */
+  public function __construct(Connection $database, AccountProxyInterface $current_user, RequestStack $request_stack, FormBuilderInterface $form_builder) {
+    $this->database = $database;
+    $this->currentUser = $current_user;
+    $this->requestStack = $request_stack;
+    $this->formBuilder = $form_builder;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('database'),
+      $container->get('current_user'),
+      $container->get('request_stack'),
+      $container->get('form_builder')
+    );
+  }
+
+  /**
+   * Safely decode JSON with error handling and logging.
+   *
+   * @param string|null $json
+   *   The JSON string to decode.
+   * @param string $context
+   *   Context for logging (e.g., 'job requirements', 'tailored resume').
+   * @param int|null $id
+   *   Optional ID for logging context.
+   *
+   * @return array|null
+   *   The decoded array or NULL on failure.
+   */
+  protected function safeJsonDecode($json, $context = 'data', $id = NULL) {
+    if (empty($json)) {
+      return NULL;
+    }
+
+    $decoded = json_decode($json, TRUE);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+      $log_params = ['@context' => $context, '@error' => json_last_error_msg()];
+      if ($id !== NULL) {
+        $log_params['@id'] = $id;
+        $this->getLogger('job_hunter')->warning(
+          'Invalid JSON in @context @id: @error',
+          $log_params
+        );
+      }
+      else {
+        $this->getLogger('job_hunter')->warning(
+          'Invalid JSON in @context: @error',
+          $log_params
+        );
+      }
+      return NULL;
+    }
+
+    return $decoded;
+  }
+
+  /**
    * List all companies.
+   * 
+   * Note: The fields() call and groupBy() calls must be kept in sync.
+   * If you add or remove fields, update both locations.
    */
   public function listCompanies() {
-    $database = \Drupal::database();
-    
-    // Get all companies
-    $query = $database->select('jobhunter_companies', 'c')
-      ->fields('c')
-      ->orderBy('name', 'ASC');
-    $companies = $query->execute()->fetchAll();
+    try {
+      // Get all companies with job count in a single query (fixed N+1 issue)
+      $query = $this->database->select('jobhunter_companies', 'c');
+      // Note: Fields listed here must match the GROUP BY clauses below
+      $query->fields('c', ['id', 'name', 'industry', 'location', 'active']);
+      $query->leftJoin('jobhunter_job_requirements', 'j', 'c.id = j.company_id');
+      $query->addExpression('COUNT(j.id)', 'job_count');
+      // GROUP BY all non-aggregated fields from the SELECT clause
+      $query->groupBy('c.id');
+      $query->groupBy('c.name');
+      $query->groupBy('c.industry');
+      $query->groupBy('c.location');
+      $query->groupBy('c.active');
+      $query->orderBy('c.name', 'ASC');
+      $companies = $query->execute()->fetchAll();
+    }
+    catch (\Exception $e) {
+      $this->messenger()->addError($this->t('Unable to load companies. Please try again.'));
+      $this->getLogger('job_hunter')->error('Failed to load companies: @error', ['@error' => $e->getMessage()]);
+      $companies = [];
+    }
     
     // Build table
     $header = [
@@ -37,17 +173,12 @@ class CompanyController extends ControllerBase {
     
     $rows = [];
     foreach ($companies as $company) {
-      // Count jobs for this company
-      $job_count = $database->select('jobhunter_job_requirements', 'j')
-        ->condition('company_id', $company->id)
-        ->countQuery()
-        ->execute()
-        ->fetchField();
+      $job_count = $company->job_count ?? 0;
       
       $rows[] = [
         $company->name,
-        $company->industry ?: $this->t('N/A'),
-        $company->location ?: $this->t('N/A'),
+        $company->industry ?? $this->t('N/A'),
+        $company->location ?? $this->t('N/A'),
         $company->active ? $this->t('Yes') : $this->t('No'),
         $job_count,
         [
@@ -65,9 +196,6 @@ class CompanyController extends ControllerBase {
               'delete' => [
                 'title' => $this->t('Delete'),
                 'url' => Url::fromRoute('job_hunter.company_delete', ['company_id' => $company->id]),
-                'attributes' => [
-                  'onclick' => 'return confirm("Are you sure you want to delete this company and all its jobs?");',
-                ],
               ],
             ],
           ],
@@ -77,7 +205,9 @@ class CompanyController extends ControllerBase {
     
     $content = [
       'header' => [
-        '#markup' => '<h2>' . $this->t('Companies') . '</h2>',
+        '#type' => 'html_tag',
+        '#tag' => 'h2',
+        '#value' => $this->t('Companies'),
       ],
       'add_button' => [
         '#type' => 'link',
@@ -101,19 +231,26 @@ class CompanyController extends ControllerBase {
    * Delete a company.
    */
   public function deleteCompany($company_id) {
-    $database = \Drupal::database();
-    
-    // Delete all jobs for this company first
-    $database->delete('jobhunter_job_requirements')
-      ->condition('company_id', $company_id)
-      ->execute();
-    
-    // Delete the company
-    $database->delete('jobhunter_companies')
-      ->condition('id', $company_id)
-      ->execute();
-    
-    $this->messenger()->addMessage($this->t('Company and all associated jobs have been deleted.'));
+    try {
+      // Delete all jobs for this company first
+      $this->database->delete('jobhunter_job_requirements')
+        ->condition('company_id', $company_id)
+        ->execute();
+      
+      // Delete the company
+      $this->database->delete('jobhunter_companies')
+        ->condition('id', $company_id)
+        ->execute();
+      
+      $this->messenger()->addMessage($this->t('Company and all associated jobs have been deleted.'));
+    }
+    catch (\Exception $e) {
+      $this->messenger()->addError($this->t('Failed to delete company. Please try again.'));
+      $this->getLogger('job_hunter')->error('Failed to delete company @id: @error', [
+        '@id' => $company_id,
+        '@error' => $e->getMessage(),
+      ]);
+    }
     
     return new RedirectResponse(Url::fromRoute('job_hunter.companies_list')->toString());
   }
@@ -122,51 +259,69 @@ class CompanyController extends ControllerBase {
    * List all job requirements.
    */
   public function listJobs() {
-    $database = \Drupal::database();
-    $current_user_id = \Drupal::currentUser()->id();
-    $request = \Drupal::request();
+    $current_user_id = $this->currentUser->id();
+    $request = $this->requestStack->getCurrentRequest();
     
-    // Get filter parameters
+    // Get filter parameters with validation
     $filter_company = $request->query->get('company', '');
     $filter_status = $request->query->get('status', '');
     $filter_ai_status = $request->query->get('ai_status', '');
     $filter_tailoring = $request->query->get('tailoring', '');
     
-    // Get all jobs with company names and tailoring status
-    $query = $database->select('jobhunter_job_requirements', 'j')
-      ->fields('j');
-    $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
-    $query->addField('c', 'name', 'company_name');
-    // Join tailored resumes for current user
-    $query->leftJoin('jobhunter_tailored_resumes', 'tr', 'j.id = tr.job_id AND tr.uid = :uid', [':uid' => $current_user_id]);
-    $query->addField('tr', 'tailoring_status');
-    $query->addField('tr', 'tailored_resume_json');
-    $query->addField('tr', 'pdf_path');
-    
-    // Apply filters
-    if (!empty($filter_company)) {
-      $query->condition('c.name', '%' . $database->escapeLike($filter_company) . '%', 'LIKE');
+    // Validate filter values using class constants
+    if ($filter_status && !in_array($filter_status, self::VALID_JOB_STATUSES)) {
+      $filter_status = '';
     }
-    if (!empty($filter_status)) {
-      $query->condition('j.status', $filter_status);
+    if ($filter_ai_status && !in_array($filter_ai_status, self::VALID_AI_STATUSES)) {
+      $filter_ai_status = '';
     }
-    if (!empty($filter_ai_status)) {
-      $query->condition('j.ai_extraction_status', $filter_ai_status);
-    }
-    if (!empty($filter_tailoring)) {
-      $query->condition('tr.tailoring_status', $filter_tailoring);
+    if ($filter_tailoring && !in_array($filter_tailoring, self::VALID_TAILORING_STATUSES)) {
+      $filter_tailoring = '';
     }
     
-    $query->orderBy('c.name', 'ASC');
-    $query->orderBy('j.job_title', 'ASC');
-    $jobs = $query->execute()->fetchAll();
-    
-    // Get distinct companies for filter dropdown
-    $companies_query = $database->select('jobhunter_companies', 'c')
-      ->fields('c', ['name'])
-      ->distinct()
-      ->orderBy('name', 'ASC');
-    $companies = $companies_query->execute()->fetchCol();
+    try {
+      // Get all jobs with company names and tailoring status
+      $query = $this->database->select('jobhunter_job_requirements', 'j')
+        ->fields('j');
+      $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
+      $query->addField('c', 'name', 'company_name');
+      // Join tailored resumes for current user
+      $query->leftJoin('jobhunter_tailored_resumes', 'tr', 'j.id = tr.job_id AND tr.uid = :uid', [':uid' => $current_user_id]);
+      $query->addField('tr', 'tailoring_status');
+      $query->addField('tr', 'tailored_resume_json');
+      $query->addField('tr', 'pdf_path');
+      
+      // Apply filters
+      if (!empty($filter_company)) {
+        $query->condition('c.name', '%' . $this->database->escapeLike($filter_company) . '%', 'LIKE');
+      }
+      if (!empty($filter_status)) {
+        $query->condition('j.status', $filter_status);
+      }
+      if (!empty($filter_ai_status)) {
+        $query->condition('j.ai_extraction_status', $filter_ai_status);
+      }
+      if (!empty($filter_tailoring)) {
+        $query->condition('tr.tailoring_status', $filter_tailoring);
+      }
+      
+      $query->orderBy('c.name', 'ASC');
+      $query->orderBy('j.job_title', 'ASC');
+      $jobs = $query->execute()->fetchAll();
+      
+      // Get distinct companies for filter dropdown
+      $companies_query = $this->database->select('jobhunter_companies', 'c')
+        ->fields('c', ['name'])
+        ->distinct()
+        ->orderBy('name', 'ASC');
+      $companies = $companies_query->execute()->fetchCol();
+    }
+    catch (\Exception $e) {
+      $this->messenger()->addError($this->t('Unable to load jobs. Please try again.'));
+      $this->getLogger('job_hunter')->error('Failed to load jobs: @error', ['@error' => $e->getMessage()]);
+      $jobs = [];
+      $companies = [];
+    }
     
     // Build table
     $header = [
@@ -180,10 +335,11 @@ class CompanyController extends ControllerBase {
     
     $rows = [];
     foreach ($jobs as $job) {
-      // Parse extracted JSON for better title display
-      $extracted = $job->extracted_json ? json_decode($job->extracted_json, TRUE) : NULL;
-      $job_title = ($extracted['position']['title'] ?? $job->job_title) ?: 'Job #' . $job->id;
-      $company_name = ($extracted['company']['name'] ?? $job->company_name) ?: 'Unknown';
+      // Parse extracted JSON for better title display using helper method
+      $extracted = $this->safeJsonDecode($job->extracted_json, 'job requirements', $job->id);
+      // Use extracted title if available, fall back to job_title, then to a default
+      $job_title = $extracted['position']['title'] ?? ($job->job_title ?? 'Job #' . $job->id);
+      $company_name = $extracted['company']['name'] ?? ($job->company_name ?? 'Unknown');
       
       // Determine AI parsing status
       $has_raw_text = !empty($job->raw_posting_text);
@@ -269,9 +425,6 @@ class CompanyController extends ControllerBase {
               'delete' => [
                 'title' => $this->t('Delete'),
                 'url' => Url::fromRoute('job_hunter.job_delete', ['job_id' => $job->id]),
-                'attributes' => [
-                  'onclick' => 'return confirm("Are you sure you want to delete this job?");',
-                ],
               ],
             ],
           ],
@@ -388,14 +541,21 @@ class CompanyController extends ControllerBase {
    * Delete a job requirement.
    */
   public function deleteJob($job_id) {
-    $database = \Drupal::database();
-    
-    // Delete the job
-    $database->delete('jobhunter_job_requirements')
-      ->condition('id', $job_id)
-      ->execute();
-    
-    $this->messenger()->addMessage($this->t('Job requirement has been deleted.'));
+    try {
+      // Delete the job
+      $this->database->delete('jobhunter_job_requirements')
+        ->condition('id', $job_id)
+        ->execute();
+      
+      $this->messenger()->addMessage($this->t('Job requirement has been deleted.'));
+    }
+    catch (\Exception $e) {
+      $this->messenger()->addError($this->t('Failed to delete job. Please try again.'));
+      $this->getLogger('job_hunter')->error('Failed to delete job @id: @error', [
+        '@id' => $job_id,
+        '@error' => $e->getMessage(),
+      ]);
+    }
     
     return new RedirectResponse(Url::fromRoute('job_hunter.jobs_list')->toString());
   }
@@ -404,25 +564,33 @@ class CompanyController extends ControllerBase {
    * View a job requirement with all extracted data.
    */
   public function viewJob($job_id) {
-    $database = \Drupal::database();
-    
-    // Load the job
-    $job = $database->select('jobhunter_job_requirements', 'j')
-      ->fields('j')
-      ->condition('id', $job_id)
-      ->execute()
-      ->fetchObject();
+    try {
+      // Load the job
+      $job = $this->database->select('jobhunter_job_requirements', 'j')
+        ->fields('j')
+        ->condition('id', $job_id)
+        ->execute()
+        ->fetchObject();
+    }
+    catch (\Exception $e) {
+      $this->messenger()->addError($this->t('Unable to load job. Please try again.'));
+      $this->getLogger('job_hunter')->error('Failed to load job @id: @error', [
+        '@id' => $job_id,
+        '@error' => $e->getMessage(),
+      ]);
+      return new RedirectResponse(Url::fromRoute('job_hunter.jobs_list')->toString());
+    }
     
     if (!$job) {
       $this->messenger()->addError($this->t('Job not found.'));
       return new RedirectResponse(Url::fromRoute('job_hunter.jobs_list')->toString());
     }
     
-    // Parse JSON data
-    $extracted = $job->extracted_json ? json_decode($job->extracted_json, TRUE) : NULL;
-    $skills = $job->skills_required_json ? json_decode($job->skills_required_json, TRUE) : NULL;
-    $keywords = $job->keywords_json ? json_decode($job->keywords_json, TRUE) : NULL;
-    $duplicates = !empty($job->potential_duplicates_json) ? json_decode($job->potential_duplicates_json, TRUE) : [];
+    // Parse JSON data using helper method
+    $extracted = $this->safeJsonDecode($job->extracted_json, 'job extracted data', $job_id);
+    $skills = $this->safeJsonDecode($job->skills_required_json, 'job skills', $job_id);
+    $keywords = $this->safeJsonDecode($job->keywords_json, 'job keywords', $job_id);
+    $duplicates = $this->safeJsonDecode($job->potential_duplicates_json, 'potential duplicates', $job_id) ?? [];
     
     // Build the content
     $content = [];
@@ -461,8 +629,8 @@ class CompanyController extends ControllerBase {
     }
     
     // Check if user has a tailored resume for this job
-    $current_user = \Drupal::currentUser();
-    $tailored_resume = $database->select('jobhunter_tailored_resumes', 'tr')
+    $current_user = $this->currentUser;
+    $tailored_resume = $this->database->select('jobhunter_tailored_resumes', 'tr')
       ->fields('tr', ['id', 'tailoring_status', 'pdf_path'])
       ->condition('uid', $current_user->id())
       ->condition('job_id', $job_id)
@@ -768,9 +936,7 @@ class CompanyController extends ControllerBase {
    */
   public function editJobForm($job_id) {
     // Build the form
-    $form = \Drupal::formBuilder()->getForm('Drupal\job_hunter\Form\JobRequirementForm', $job_id);
-
-    return $this->wrapWithNavigation($form);
+    $form = $this->formBuilder->getForm('Drupal\job_hunter\Form\JobRequirementForm', $job_id);
 
     return $this->wrapWithNavigation($form);
   }
@@ -779,44 +945,50 @@ class CompanyController extends ControllerBase {
    * Combined job view and resume tailoring page.
    */
   public function jobTailoring($job_id) {
-    $database = \Drupal::database();
-    
-    // Get current user
-    $user = $this->entityTypeManager->getStorage('user')->load($this->currentUser->id());
-    
-    // Load the job
-    $job = $database->select('jobhunter_job_requirements', 'j')
-      ->fields('j')
-      ->condition('id', $job_id)
-      ->execute()
-      ->fetchObject();
+    try {
+      // Get current user
+      $user = $this->entityTypeManager->getStorage('user')->load($this->currentUser->id());
+      
+      // Load the job
+      $job = $this->database->select('jobhunter_job_requirements', 'j')
+        ->fields('j')
+        ->condition('id', $job_id)
+        ->execute()
+        ->fetchObject();
+    }
+    catch (\Exception $e) {
+      $this->messenger()->addError($this->t('Unable to load job. Please try again.'));
+      $this->getLogger('job_hunter')->error('Failed to load job @id: @error', [
+        '@id' => $job_id,
+        '@error' => $e->getMessage(),
+      ]);
+      return new RedirectResponse(Url::fromRoute('job_hunter.jobs_list')->toString());
+    }
     
     if (!$job) {
       $this->messenger()->addError($this->t('Job not found.'));
       return new RedirectResponse(Url::fromRoute('job_hunter.jobs_list')->toString());
     }
     
-    // Parse JSON data
-    $extracted = $job->extracted_json ? json_decode($job->extracted_json, TRUE) : [];
-    $skills = $job->skills_required_json ? json_decode($job->skills_required_json, TRUE) : [];
-    $keywords = $job->keywords_json ? json_decode($job->keywords_json, TRUE) : [];
+    // Parse JSON data using helper method
+    $extracted = $this->safeJsonDecode($job->extracted_json, 'job extracted data', $job_id) ?? [];
+    $skills = $this->safeJsonDecode($job->skills_required_json, 'job skills', $job_id) ?? [];
+    $keywords = $this->safeJsonDecode($job->keywords_json, 'job keywords', $job_id) ?? [];
     
     // Load user's tailored resume for this job (if exists)
-    $tailored_record = $database->select('jobhunter_tailored_resumes', 'tr')
+    $tailored_record = $this->database->select('jobhunter_tailored_resumes', 'tr')
       ->fields('tr')
       ->condition('uid', $user->id())
       ->condition('job_id', $job_id)
       ->execute()
       ->fetchObject();
     
-    $tailored = $tailored_record && $tailored_record->tailored_resume_json 
-      ? json_decode($tailored_record->tailored_resume_json, TRUE) 
-      : NULL;
+    $tailored = $tailored_record ? $this->safeJsonDecode($tailored_record->tailored_resume_json, 'tailored resume', $job_id) : NULL;
     $tailoring_status = $tailored_record ? $tailored_record->tailoring_status : 'pending';
     
     // Fix stuck queued/processing status
     if ($tailored_record && in_array($tailoring_status, ['queued', 'processing'])) {
-      $queue_item = $database->select('queue', 'q')
+      $queue_item = $this->database->select('queue', 'q')
         ->fields('q', ['item_id'])
         ->condition('name', 'job_hunter_resume_tailoring')
         ->condition('data', '%"job_id":' . $job_id . '%', 'LIKE')
@@ -825,7 +997,7 @@ class CompanyController extends ControllerBase {
       
       if (!$queue_item) {
         $new_status = $tailored ? 'completed' : 'pending';
-        $database->update('jobhunter_tailored_resumes')
+        $this->database->update('jobhunter_tailored_resumes')
           ->fields(['tailoring_status' => $new_status])
           ->condition('uid', $user->id())
           ->condition('job_id', $job_id)
@@ -839,7 +1011,7 @@ class CompanyController extends ControllerBase {
     $pdf_generated = $tailored_record && !empty($tailored_record->pdf_generated) ? $tailored_record->pdf_generated : NULL;
 
     // Get PDF history for this job
-    $pdf_history = $database->select('jobhunter_pdf_history', 'ph')
+    $pdf_history = $this->database->select('jobhunter_pdf_history', 'ph')
       ->fields('ph')
       ->condition('uid', $user->id())
       ->condition('job_id', $job_id)
@@ -848,7 +1020,7 @@ class CompanyController extends ControllerBase {
       ->fetchAll();
 
     // Load user's job seeker profile
-    $job_seeker_profile = $database->select('jobhunter_job_seeker', 'js')
+    $job_seeker_profile = $this->database->select('jobhunter_job_seeker', 'js')
       ->fields('js')
       ->condition('uid', $user->id())
       ->execute()
@@ -856,7 +1028,7 @@ class CompanyController extends ControllerBase {
     
     $profile_json = [];
     if ($job_seeker_profile && !empty($job_seeker_profile->consolidated_profile_json)) {
-      $profile_json = json_decode($job_seeker_profile->consolidated_profile_json, TRUE) ?: [];
+      $profile_json = $this->safeJsonDecode($job_seeker_profile->consolidated_profile_json, 'job seeker profile', $user->id()) ?? [];
     }
 
     // Calculate skills gap
@@ -912,7 +1084,7 @@ class CompanyController extends ControllerBase {
    */
   public function addForm($company_id = NULL) {
     // Build the form
-    $form = \Drupal::formBuilder()->getForm('Drupal\job_hunter\Form\CompanyForm', $company_id);
+    $form = $this->formBuilder->getForm('Drupal\job_hunter\Form\CompanyForm', $company_id);
 
     return $this->wrapWithNavigation($form);
   }
@@ -922,7 +1094,7 @@ class CompanyController extends ControllerBase {
    */
   public function bulkImportForm() {
     // Build the form
-    $form = \Drupal::formBuilder()->getForm('Drupal\job_hunter\Form\BulkCompanyImportForm');
+    $form = $this->formBuilder->getForm('Drupal\job_hunter\Form\BulkCompanyImportForm');
 
     return $this->wrapWithNavigation($form);
   }
