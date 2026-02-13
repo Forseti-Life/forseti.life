@@ -38,7 +38,7 @@
     
     <div class="hexmap-object-palette">
       <h3>{{ 'Object Palette'|t }}</h3>
-      <p class="palette-instructions">{{ 'Click an object type, then click a hex to place it. Click and drag placed objects to move them.'|t }}</p>
+      <p class="palette-instructions">{{ 'Click an object type, then click a hex to place it. Click entities to select and move them.'|t }}</p>
       <div class="object-buttons">
         <button id="place-creature" class="btn btn-object" data-type="creature">{{ '🐉 Creature'|t }}</button>
         <button id="place-item" class="btn btn-object" data-type="item">{{ '📦 Item'|t }}</button>
@@ -47,6 +47,28 @@
         <button id="clear-objects" class="btn btn-danger">{{ 'Clear All Objects'|t }}</button>
       </div>
       <p id="selected-object-type" class="selected-type">{{ 'Selected: None'|t }}</p>
+    </div>
+    
+    <div class="hexmap-combat-controls">
+      <h3>{{ 'Combat Controls'|t }}</h3>
+      <div id="combat-controls" class="combat-buttons">
+        <button id="start-combat" class="btn btn-success">{{ '⚔️ Start Combat'|t }}</button>
+        <button id="end-turn" class="btn btn-primary" style="display:none;">{{ '➡️ End Turn'|t }}</button>
+        <button id="end-combat" class="btn btn-warning" style="display:none;">{{ '🛑 End Combat'|t }}</button>
+      </div>
+      
+      <div id="initiative-tracker" class="initiative-tracker" style="display:none;">
+        <div class="tracker-header">
+          <h4>{{ 'Initiative Order'|t }}</h4>
+          <span id="current-round" class="round-display">{{ 'Round 0'|t }}</span>
+        </div>
+        <div id="current-turn" class="current-turn-display">
+          {{ 'No active turn'|t }}
+        </div>
+        <div id="initiative-list" class="initiative-list">
+          <!-- Initiative order will be populated here -->
+        </div>
+      </div>
     </div>
   </div>
 
@@ -70,9 +92,12 @@
         <li>{{ 'Click a hex to select it'|t }}</li>
         <li>{{ 'Drag the map to pan around'|t }}</li>
         <li>{{ 'Scroll to zoom in/out'|t }}</li>
-        <li>{{ 'Hover to see hex coordinates'|t }}</li>
-        <li>{{ 'Use Object Palette to place game objects'|t }}</li>
-        <li>{{ 'Drag objects to move them between hexes'|t }}</li>
+        <li>{{ 'Use Object Palette to place creatures and items'|t }}</li>
+        <li>{{ 'Click creatures to select them'|t }}</li>
+        <li>{{ 'Blue overlay shows movement range'|t }}</li>
+        <li>{{ 'Click blue hex to move selected creature'|t }}</li>
+        <li><strong>{{ 'Combat:'|t }}</strong> {{ 'Start Combat to roll initiative'|t }}</li>
+        <li>{{ 'Actions on your turn: Move, Attack, End Turn'|t }}</li>
       </ul>
     </div>
   </div>

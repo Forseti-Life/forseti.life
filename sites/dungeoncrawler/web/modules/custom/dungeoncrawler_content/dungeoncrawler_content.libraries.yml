@@ -148,6 +148,7 @@ hexmap:
     js/ecs/systems/RenderSystem.js: { type: module }
     js/ecs/systems/MovementSystem.js: { type: module }
     js/ecs/systems/TurnManagementSystem.js: { type: module }
+    js/ecs/systems/CombatSystem.js: { type: module }
     # ECS Index
     js/ecs/index.js: { type: module }
     # Main hexmap (loads ECS as module)

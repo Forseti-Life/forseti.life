@@ -4,7 +4,7 @@
  */
 
 // Import ECS modules
-import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, EntityType, RenderSystem, MovementComponent, StatsComponent, MovementSystem, MovementMode, ActionsComponent, ActionType, ActionCost, CombatComponent, Team, TurnManagementSystem, CombatState } from './ecs/index.js';
+import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, EntityType, RenderSystem, MovementComponent, StatsComponent, MovementSystem, MovementMode, ActionsComponent, ActionType, ActionCost, CombatComponent, Team, TurnManagementSystem, CombatState, CombatSystem, AttackResult } from './ecs/index.js';
 
 // Ensure Drupal and once are available
 /* global Drupal, once, PIXI */
@@ -37,6 +37,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     renderSystem: null,
     movementSystem: null,
     turnManagementSystem: null,
+    combatSystem: null,
     
     // Movement and selection
     selectedEntity: null,
@@ -45,6 +46,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     
     // Combat state
     combatActive: false,
+    attackTarget: null,
 
     attach: function (context, settings) {
       const container = once('hexmap-init', '#hexmap-canvas-container', context);
@@ -89,6 +91,18 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       // Create movement system
       this.movementSystem = new MovementSystem(this.entityManager);
       this.entityManager.addSystem(this.movementSystem);
+      
+      // Create combat system
+      this.combatSystem = new CombatSystem(this.entityManager);
+      this.entityManager.addSystem(this.combatSystem);
+      
+      // Set up combat callbacks
+      this.combatSystem.onAttack(function(attackData) {
+        self.onAttackPerformed(attackData);
+      });
+      this.combatSystem.onDamage(function(damageData) {
+        self.onDamageDealt(damageData);
+      });
       
       // Create turn management system
       this.turnManagementSystem = new TurnManagementSystem(this.entityManager);
@@ -452,12 +466,24 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         return;
       }
       
-      // Mode 2: Check if clicking on an entity to select it
+      // Mode 2: Check if clicking on an entity
       const entitiesAtPos = this.entityManager.getEntitiesWith('PositionComponent', 'IdentityComponent');
       for (const entity of entitiesAtPos) {
         const pos = entity.getComponent('PositionComponent');
         if (pos.q === q && pos.r === r) {
-          // Check if entity has MovementComponent (can be selected)
+          // Check if this is an attack action (selected entity + hostile target)
+          if (this.selectedEntity && entity.id !== this.selectedEntity.id) {
+            const attackerCombat = this.selectedEntity.getComponent('CombatComponent');
+            const targetCombat = entity.getComponent('CombatComponent');
+            
+            if (attackerCombat && targetCombat && attackerCombat.isHostileTo(targetCombat)) {
+              // Attempt attack
+              this.performAttack(this.selectedEntity, entity);
+              return;
+            }
+          }
+          
+          // Otherwise select the entity if it has MovementComponent
           if (entity.hasComponent('MovementComponent')) {
             this.selectEntity(entity);
             return;
@@ -772,6 +798,92 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         if (endTurnBtn) endTurnBtn.style.display = 'inline-block';
         if (endCombatBtn) endCombatBtn.style.display = 'inline-block';
         if (initiativeTracker) initiativeTracker.style.display = 'block';
+      }
+    },
+    
+    /**
+     * Perform attack action.
+     * @param {Entity} attacker - Attacking entity
+     * @param {Entity} target - Target entity
+     */
+    performAttack: function (attacker, target) {
+      // Check if it's the attacker's turn (if combat is active)
+      if (this.combatActive && this.turnManagementSystem) {
+        if (!this.turnManagementSystem.isEntityTurn(attacker)) {
+          console.warn('Not your turn!');
+          return;
+        }
+      }
+      
+      // Attempt attack via combat system
+      const attackData = this.combatSystem.attack(attacker, target);
+      
+      if (attackData) {
+        console.log('Attack executed successfully');
+        
+        // Refresh UI after attack
+        const actions = attacker.getComponent('ActionsComponent');
+        if (actions) {
+          const currentTurnDiv = document.getElementById('current-turn');
+          if (currentTurnDiv) {
+            const identity = attacker.getComponent('IdentityComponent');
+            const name = identity ? identity.name : `Entity ${attacker.id}`;
+            let html = `<strong>${name}</strong> ${actions.getActionDisplay()}`;
+            if (actions.hasReactionAvailable()) {
+              html += ' ⚡';
+            }
+            currentTurnDiv.innerHTML = html;
+          }
+        }
+      }
+    },
+    
+    /**
+     * Callback when attack is performed.
+     * @param {Object} attackData - Attack data
+     */
+    onAttackPerformed: function (attackData) {
+      const attackerName = attackData.attacker.getComponent('IdentityComponent')?.name || 'Attacker';
+      const targetName = attackData.target.getComponent('IdentityComponent')?.name || 'Target';
+      
+      let message = `${attackerName} attacks ${targetName}: `;
+      
+      if (attackData.result === AttackResult.CRITICAL_HIT) {
+        message += `💥 CRITICAL HIT! `;
+      } else if (attackData.result === AttackResult.HIT) {
+        message += `✓ Hit! `;
+      } else if (attackData.result === AttackResult.MISS) {
+        message += `✗ Miss! `;
+      } else if (attackData.result === AttackResult.CRITICAL_MISS) {
+        message += `❌ Critical Miss! `;
+      }
+      
+      if (attackData.damage > 0) {
+        message += `${attackData.damage} damage`;
+      }
+      
+      console.log(message);
+      
+      // Could add floating damage numbers or attack animations here
+    },
+    
+    /**
+     * Callback when damage is dealt.
+     * @param {Object} damageData - Damage data
+     */
+    onDamageDealt: function (damageData) {
+      const targetName = damageData.target.getComponent('IdentityComponent')?.name || 'Target';
+      
+      console.log(`${targetName}: ${damageData.remainingHp}/${damageData.maxHp} HP`);
+      
+      if (damageData.defeated) {
+        console.log(`${targetName} has been defeated!`);
+        
+        // Update sprite to show defeated state (could add death animation)
+        const render = damageData.target.getComponent('RenderComponent');
+        if (render && render.sprite) {
+          render.sprite.alpha = 0.5; // Make semi-transparent
+        }
       }
     },
 

@@ -22,3 +22,4 @@ export { CombatComponent, Team } from './components/CombatComponent.js';
 export { RenderSystem } from './systems/RenderSystem.js';
 export { MovementSystem } from './systems/MovementSystem.js';
 export { TurnManagementSystem, CombatState } from './systems/TurnManagementSystem.js';
+export { CombatSystem, AttackResult } from './systems/CombatSystem.js';
