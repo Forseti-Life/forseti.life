@@ -141,4 +141,108 @@ class SchemaLoader {
     ];
   }
 
+  /**
+   * Get class data by class ID.
+   *
+   * @param string $classId
+   *   Class identifier (e.g., 'fighter', 'wizard', 'rogue').
+   *
+   * @return array
+   *   Class data including hit_points, key_ability, proficiencies.
+   *
+   * @see docs/dungeoncrawler/issues/issue-testing-strategy-design.md
+   *   Section: "Mock Service Designs" - SchemaLoader Service
+   *
+   * @see docs/dungeoncrawler/testing/fixtures/schemas/classes_test.json
+   *   Example class data structure
+   *
+   * @see docs/dungeoncrawler/issues/issue-1-character-class-hp-design.md
+   *   Original design for class HP lookup
+   *
+   * TODO: Implement schema loading from step 2 schema for class data
+   */
+  public function getClassData(string $classId): array {
+    // PSEUDOCODE:
+    // 1. Load step 2 schema (character_options_step2.json)
+    // 2. Extract classes array
+    // 3. Find class by ID
+    // 4. Validate structure
+    // 5. Return class data with hit_points
+    
+    throw new \Exception('Not yet implemented - see issue-1-character-class-hp-design.md');
+  }
+
+  /**
+   * Get ancestry data by ancestry ID.
+   *
+   * @param string $ancestryId
+   *   Ancestry identifier (e.g., 'human', 'elf', 'dwarf').
+   *
+   * @return array
+   *   Ancestry data including HP bonus, size, speed, ability boosts.
+   *
+   * @see docs/dungeoncrawler/testing/fixtures/schemas/ancestries_test.json
+   *   Example ancestry data structure
+   *
+   * TODO: Implement ancestry schema loading from step 1 schema
+   */
+  public function getAncestryData(string $ancestryId): array {
+    // PSEUDOCODE:
+    // 1. Load step 1 schema (character_options_step1.json)
+    // 2. Extract ancestries array
+    // 3. Find ancestry by ID
+    // 4. Return ancestry data
+    
+    throw new \Exception('Not yet implemented - see testing strategy design');
+  }
+
+  /**
+   * Get background data by background ID.
+   *
+   * @param string $backgroundId
+   *   Background identifier (e.g., 'warrior', 'scholar').
+   *
+   * @return array
+   *   Background data including ability boosts, skill training.
+   *
+   * @see docs/dungeoncrawler/testing/fixtures/schemas/backgrounds_test.json
+   *   Example background data structure
+   *
+   * TODO: Implement background schema loading
+   */
+  public function getBackgroundData(string $backgroundId): array {
+    // PSEUDOCODE:
+    // 1. Load appropriate schema file
+    // 2. Find background by ID
+    // 3. Return background data
+    
+    throw new \Exception('Not yet implemented - see testing strategy design');
+  }
+
+  /**
+   * Validate schema structure.
+   *
+   * @param array $schema
+   *   Schema data to validate.
+   * @param string $schemaType
+   *   Type of schema (classes, ancestries, backgrounds).
+   *
+   * @return bool
+   *   TRUE if valid, FALSE otherwise.
+   *
+   * @see docs/dungeoncrawler/issues/issue-testing-strategy-design.md
+   *   Section: "Mock Service Designs" for validation patterns
+   *
+   * TODO: Implement schema validation based on type
+   */
+  public function validateSchemaStructure(array $schema, string $schemaType): bool {
+    // PSEUDOCODE:
+    // 1. Check required fields based on schema type
+    // 2. Validate data types
+    // 3. Check for required nested structures
+    // 4. Return validation result
+    
+    throw new \Exception('Not yet implemented - see schema validation design');
+  }
+
 }
