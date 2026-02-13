@@ -5,6 +5,9 @@
 ## Overview
 A comprehensive AI-powered Drupal module that automates the entire job application process using Generative AI. This system analyzes user resumes, scrapes job postings from employer websites, tailors applications using AI, and automatically submits applications across multiple employer platforms.
 
+## Maintenance Notes
+- 2026-02-13: Controllers must not redeclare typed properties that exist on ControllerBase (e.g., entityTypeManager) to avoid PHP fatal errors in Drupal 11.
+
 ## ⚠️ CRITICAL: Read Architecture First
 **Before any development work begins, all developers MUST read and understand the complete [ARCHITECTURE.md](ARCHITECTURE.md) document.** This system involves complex AI integration, automated web scraping, credential management, and multi-platform submission automation that requires thorough understanding of the architecture before implementation.
 

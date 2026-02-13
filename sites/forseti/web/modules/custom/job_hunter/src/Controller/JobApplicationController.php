@@ -59,13 +59,6 @@ class JobApplicationController extends ControllerBase {
   protected SearchAggregatorService $searchAggregator;
 
   /**
-   * The entity type manager.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
-   */
-  protected EntityTypeManagerInterface $entityTypeManager;
-
-  /**
    * The user profile service.
    *
    * @var \Drupal\job_hunter\Service\UserProfileService
