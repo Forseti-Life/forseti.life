@@ -442,7 +442,13 @@ class CharacterCreationStepForm extends FormBase {
         $ancestry_hp = $ancestry_data['hp'];
       }
     }
-    $class_hp = 8; // Default, TODO: get from class data
+    $class_hp = 8; // Default fallback
+    if (!empty($schema_data['class'])) {
+      $class_data = CharacterManager::CLASSES[strtolower($schema_data['class'])] ?? NULL;
+      if ($class_data) {
+        $class_hp = $class_data['hp'];
+      }
+    }
     $max_hp = $ancestry_hp + $class_hp + $con_mod + (($level - 1) * ($class_hp + $con_mod));
 
     // Structure hit_points
