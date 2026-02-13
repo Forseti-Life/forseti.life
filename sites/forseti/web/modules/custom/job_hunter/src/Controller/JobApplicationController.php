@@ -231,63 +231,15 @@ class JobApplicationController extends ControllerBase {
                    <p class="flow-description">Streamlined process from profile setup to application tracking.</p>',
     ];
     
-    // Step 1: Profile Setup
+    // Step 1: Application Submission
     $build['step1'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['phase-section', 'phase-profile']],
-      'content' => [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['phase-content']],
-        '#value' => '<div class="step-indicator">Step 1</div>
-                     <div class="phase-info">
-                       <h3>Upload Resume & Clean Up Profile</h3>
-                       <p>Import your resume, parse it with AI, and refine your consolidated profile.</p>
-                     </div>
-                     <div class="phase-stat">
-                       <div class="stat-number">' . $profile_completion . '%</div>
-                       <div class="stat-label">Profile Complete</div>
-                     </div>
-                     <div class="phase-actions">
-                       <a href="' . $user_edit_url->toString() . '" class="phase-button primary">Edit Profile</a>
-                     </div>',
-      ],
-    ];
-    
-    // Step 2: Job Discovery & Management
-    $build['step2'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['phase-section', 'phase-discovery']],
-      'content' => [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['phase-content']],
-        '#value' => '<div class="step-indicator">Step 2</div>
-                     <div class="phase-info">
-                       <h3>Job Discovery & Management</h3>
-                       <p>Add jobs manually, search using AI, or paste job postings. Generate tailored resumes for each position.</p>
-                     </div>
-                     <div class="phase-stat">
-                       <div class="stat-number">' . $saved_jobs . '</div>
-                       <div class="stat-label">Jobs Saved</div>
-                       <div class="stat-sublabel">' . $target_companies . ' companies tracked</div>
-                     </div>
-                     <div class="phase-actions">
-                       <a href="' . $job_paste_url->toString() . '" class="phase-button primary">+ Add Job Posting</a>
-                       <a href="/jobhunter/job-discovery" class="phase-button">Search Jobs</a>
-                     </div>',
-      ],
-    ];
-    
-    // Step 3: Application Submission
-    $build['step3'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-submission', 'disabled']],
       'content' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
         '#attributes' => ['class' => ['phase-content']],
-        '#value' => '<div class="step-indicator">Step 3</div>
+        '#value' => '<div class="step-indicator">Step 1</div>
                      <div class="phase-info">
                        <h3>Application Submission</h3>
                        <p>Auto-apply to jobs with tailored resumes and cover letters.</p>
@@ -303,15 +255,15 @@ class JobApplicationController extends ControllerBase {
       ],
     ];
     
-    // Step 4: Interview & Follow-up
-    $build['step4'] = [
+    // Step 2: Interview & Follow-up
+    $build['step2'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-interview', 'disabled']],
       'content' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
         '#attributes' => ['class' => ['phase-content']],
-        '#value' => '<div class="step-indicator">Step 4</div>
+        '#value' => '<div class="step-indicator">Step 2</div>
                      <div class="phase-info">
                        <h3>Interview & Follow-up</h3>
                        <p>Track application status, schedule interviews, and manage follow-ups.</p>
@@ -327,15 +279,15 @@ class JobApplicationController extends ControllerBase {
       ],
     ];
     
-    // Step 5: Analytics & Optimization
-    $build['step5'] = [
+    // Step 3: Analytics & Optimization
+    $build['step3'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-analytics', 'disabled']],
       'content' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
         '#attributes' => ['class' => ['phase-content']],
-        '#value' => '<div class="step-indicator">Step 5</div>
+        '#value' => '<div class="step-indicator">Step 3</div>
                      <div class="phase-info">
                        <h3>Analytics & Optimization</h3>
                        <p>Measure success rates, identify patterns, and optimize your strategy.</p>

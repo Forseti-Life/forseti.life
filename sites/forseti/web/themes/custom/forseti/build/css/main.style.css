@@ -261,6 +261,10 @@ a.link-cyan:hover {
   color: #00d4ff;
 }
 
+.hidden {
+  display: none !important;
+}
+
 /**
  * Variables
  * Variables should follow the $component-state-property-size formula for
@@ -521,6 +525,10 @@ a.link-cyan:hover {
   background: rgba(0, 212, 255, 0.1);
   border: 1px solid #00d4ff;
   color: #00d4ff;
+}
+
+.hidden {
+  display: none !important;
 }
 
 :root,
@@ -12836,6 +12844,10 @@ a.link-cyan:hover {
   color: #00d4ff;
 }
 
+.hidden {
+  display: none !important;
+}
+
 .forseti-navbar {
   background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%) !important;
   border-bottom: 2px solid #00d4ff;
@@ -15323,6 +15335,32 @@ details.form-wrapper .fieldset-wrapper {
   box-shadow: 0 4px 8px rgba(66, 153, 225, 0.4);
 }
 .btn-search .btn-icon {
+  font-size: 1.2em;
+}
+
+.btn-add-job {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1.05em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(72, 187, 120, 0.3);
+  text-decoration: none;
+}
+.btn-add-job:hover {
+  -webkit-transform: translateY(-2px);
+          transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(72, 187, 120, 0.4);
+  text-decoration: none;
+}
+.btn-add-job .btn-icon {
   font-size: 1.2em;
 }
 

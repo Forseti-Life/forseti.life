@@ -171,6 +171,33 @@
   }
 }
 
+.btn-add-job {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1.05em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(72, 187, 120, 0.3);
+  text-decoration: none;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(72, 187, 120, 0.4);
+    text-decoration: none;
+  }
+
+  .btn-icon {
+    font-size: 1.2em;
+  }
+}
+
 .btn-advanced {
   background: #f7fafc;
   color: #4a5568;
