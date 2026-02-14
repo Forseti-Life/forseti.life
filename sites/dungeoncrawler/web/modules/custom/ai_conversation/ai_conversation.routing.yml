@@ -151,3 +151,13 @@ ai_conversation.api_get_stats:
     _method: 'GET'
     _format: 'json'
     conversation_id: \d+
+
+ai_conversation.api_copilot_issue_create:
+  path: '/api/ai-conversation/copilot/issue'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\CopilotIssueController::createIssue'
+    _title: 'Create GitHub issue and assign to Copilot'
+  requirements:
+    _permission: 'use ai conversation'
+    _method: 'POST'
+    _format: 'json'

@@ -1,0 +1,7 @@
+dungeoncrawler_tester.dashboard:
+  path: '/dungeoncrawler/testing'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::dashboard'
+    _title: 'Dungeon Crawler Testing Dashboard'
+  requirements:
+    _permission: 'administer site configuration'

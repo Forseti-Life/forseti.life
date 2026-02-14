@@ -62,4 +62,124 @@ class CampaignControllerTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(403);
   }
 
+  /**
+   * Tests tavern entrance - negative case (non-existent campaign).
+   */
+  public function testTavernEntranceNonExistentCampaign(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/campaigns/99999/tavernentrance');
+    $this->assertSession()->statusCodeEquals(404);
+  }
+
+  /**
+   * Tests tavern entrance - negative case (other user's campaign).
+   */
+  public function testTavernEntranceOwnershipCheck(): void {
+    // Create two users
+    $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $other_user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+
+    // Create a campaign for owner
+    $database = \Drupal::database();
+    $campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $owner->id(),
+        'name' => 'Owner Campaign',
+        'status' => 'draft',
+        'campaign_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // Try to access as other_user
+    $this->drupalLogin($other_user);
+    $this->drupalGet("/campaigns/{$campaign_id}/tavernentrance");
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Tests select character - negative case (non-existent character).
+   */
+  public function testSelectCharacterNonExistentCharacter(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    // Create a real campaign
+    $database = \Drupal::database();
+    $campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $user->id(),
+        'name' => 'Test Campaign',
+        'status' => 'draft',
+        'campaign_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // Try to select non-existent character
+    $this->drupalGet("/campaigns/{$campaign_id}/select-character/99999");
+    $this->assertSession()->statusCodeEquals(404);
+  }
+
+  /**
+   * Tests select character - negative case (other user's character).
+   */
+  public function testSelectCharacterOwnershipCheck(): void {
+    $campaign_owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $character_owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
+
+    // Create campaign for campaign_owner
+    $database = \Drupal::database();
+    $campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $campaign_owner->id(),
+        'name' => 'Test Campaign',
+        'status' => 'draft',
+        'campaign_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // Create character for character_owner
+    $character_id = $database->insert('dc_characters')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'user_id' => $character_owner->id(),
+        'name' => 'Test Character',
+        'class' => 'fighter',
+        'race' => 'human',
+        'level' => 1,
+        'experience' => 0,
+        'status' => 1,
+        'character_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // Try to select character_owner's character as campaign_owner
+    $this->drupalLogin($campaign_owner);
+    $this->drupalGet("/campaigns/{$campaign_id}/select-character/{$character_id}");
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Tests select character - negative case (non-existent campaign).
+   */
+  public function testSelectCharacterNonExistentCampaign(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/campaigns/99999/select-character/1');
+    $this->assertSession()->statusCodeEquals(404);
+  }
+
 }

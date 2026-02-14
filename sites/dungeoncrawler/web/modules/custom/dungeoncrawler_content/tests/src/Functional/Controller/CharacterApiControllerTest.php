@@ -3,6 +3,7 @@
 namespace Drupal\Tests\dungeoncrawler_content\Functional\Controller;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestFixtureTrait;
 
 /**
  * Tests CharacterApiController functionality.
@@ -12,6 +13,8 @@ use Drupal\Tests\BrowserTestBase;
  * @group api
  */
 class CharacterApiControllerTest extends BrowserTestBase {
+
+  use TestFixtureTrait;
 
   /**
    * {@inheritdoc}
@@ -30,10 +33,37 @@ class CharacterApiControllerTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['create dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/character/save', [], [], [], ['Content-Type' => 'application/json']);
-    // May return 400/422 without valid data, but route should exist
-    $this->assertSession()->statusCodeNotEquals(404);
-    $this->assertSession()->statusCodeNotEquals(405);
+    // Load character fixture and prepare payload.
+    $character_data = $this->loadCharacterFixture('level_1_fighter');
+    $payload = json_encode([
+      'character' => $character_data,
+    ]);
+
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/character/save'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      $payload
+    );
+
+    $status_code = $this->getSession()->getStatusCode();
+    // Route should exist (not 404) and method should be allowed (not 405).
+    $this->assertNotEquals(404, $status_code, 'Route should exist');
+    $this->assertNotEquals(405, $status_code, 'Method should be allowed');
+
+    // If successful, assert response body.
+    if ($status_code === 200) {
+      $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+      $this->assertIsArray($response, 'Response should be JSON');
+      $this->assertArrayHasKey('success', $response, 'Response should have success field');
+      
+      if ($response['success']) {
+        $this->assertArrayHasKey('character_id', $response, 'Response should contain character_id');
+        $this->assertIsNumeric($response['character_id'], 'Character ID should be numeric');
+      }
+    }
   }
 
   /**
@@ -45,6 +75,15 @@ class CharacterApiControllerTest extends BrowserTestBase {
 
     $this->drupalPost('/api/character/save', [], [], [], ['Content-Type' => 'application/json']);
     $this->assertSession()->statusCodeEquals(403);
+    
+    // Assert error response structure.
+    $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+    if ($response) {
+      $this->assertIsArray($response, 'Response should be JSON');
+      $this->assertArrayHasKey('success', $response, 'Response should have success field');
+      $this->assertFalse($response['success'], 'Success should be false');
+      $this->assertArrayHasKey('error', $response, 'Response should contain error message');
+    }
   }
 
   /**

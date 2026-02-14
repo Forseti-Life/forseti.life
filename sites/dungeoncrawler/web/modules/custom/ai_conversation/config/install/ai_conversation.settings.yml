@@ -107,3 +107,5 @@ max_recent_messages: 20
 summary_frequency: 10
 max_tokens_before_summary: 6000
 debug_logging: false
+copilot_token: ''
+copilot_default_repo: 'keithaumiller/forseti.life'

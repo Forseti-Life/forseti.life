@@ -3,7 +3,8 @@
 namespace Drupal\Tests\dungeoncrawler_content\Functional\Routes;
 
 use Drupal\Tests\BrowserTestBase;
-use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestDataBuilderTrait;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestDataFactoryTrait;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestFixtureTrait;
 
 /**
  * Tests API routes in the dungeon crawler module.
@@ -14,7 +15,8 @@ use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestDataBuilderTrait;
  */
 class ApiRoutesTest extends BrowserTestBase {
 
-  use TestDataBuilderTrait;
+  use TestDataFactoryTrait;
+  use TestFixtureTrait;
 
   /**
    * {@inheritdoc}
@@ -30,20 +32,37 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests character save API route - positive case.
    */
   public function testCharacterSaveApiRoutePositive(): void {
-    $user = $this->createTestUser(['create dungeoncrawler characters']);
+    $user = $this->drupalCreateUser(['create dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // POST request with valid data
-    $this->drupalPost('/api/character/save', [], [], [], ['Content-Type' => 'application/json']);
-    // May return 400/422 without valid data, but route exists
+    // Load character fixture and POST valid data.
+    $character_data = $this->loadCharacterFixture('level_1_fighter');
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/character/save'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      json_encode(['character' => $character_data])
+    );
+
+    // Route should exist (not 404).
     $this->assertSession()->statusCodeNotEquals(404);
+    
+    $status_code = $this->getSession()->getStatusCode();
+    // If successful, validate response structure.
+    if ($status_code === 200) {
+      $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+      $this->assertIsArray($response, 'Response should be JSON');
+      $this->assertArrayHasKey('success', $response, 'Response should have success key');
+    }
   }
 
   /**
    * Tests character save API route - negative case (GET method not allowed).
    */
   public function testCharacterSaveApiRouteNegative(): void {
-    $user = $this->createTestUser(['create dungeoncrawler characters']);
+    $user = $this->drupalCreateUser(['create dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/character/save');
@@ -55,20 +74,33 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests character load API route - positive case.
    */
   public function testCharacterLoadApiRoutePositive(): void {
-    $user = $this->createTestUser();
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     // GET request
     $this->drupalGet('/api/character/load/1', ['query' => ['_format' => 'json']]);
-    // May return 403/404 without valid character
-    $this->assertSession()->statusCodeNotEquals(405);
+    
+    $status_code = $this->getSession()->getStatusCode();
+    // Method should be allowed (not 405).
+    $this->assertNotEquals(405, $status_code, 'GET method should be allowed');
+    
+    // If successful, validate response structure.
+    if ($status_code === 200) {
+      $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+      $this->assertIsArray($response, 'Response should be JSON');
+      $this->assertArrayHasKey('success', $response, 'Response should have success field');
+      
+      if ($response['success']) {
+        $this->assertArrayHasKey('character', $response, 'Response should contain character data');
+      }
+    }
   }
 
   /**
    * Tests character load API route - negative case (non-numeric ID).
    */
   public function testCharacterLoadApiRouteNegative(): void {
-    $user = $this->createTestUser();
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/character/load/invalid');
@@ -79,19 +111,32 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests character state API route - positive case.
    */
   public function testCharacterStateApiRoutePositive(): void {
-    $user = $this->createTestUser();
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/character/1/state', ['query' => ['_format' => 'json']]);
-    // May return 403/404 without valid character
-    $this->assertSession()->statusCodeNotEquals(405);
+    
+    $status_code = $this->getSession()->getStatusCode();
+    // Method should be allowed (not 405).
+    $this->assertNotEquals(405, $status_code, 'GET method should be allowed');
+    
+    // If successful, validate response structure.
+    if ($status_code === 200) {
+      $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+      $this->assertIsArray($response, 'Response should be JSON');
+      $this->assertArrayHasKey('success', $response, 'Response should have success field');
+      
+      if ($response['success']) {
+        $this->assertArrayHasKey('state', $response, 'Response should contain state');
+      }
+    }
   }
 
   /**
    * Tests character state API route - negative case (POST not allowed).
    */
   public function testCharacterStateApiRouteNegative(): void {
-    $user = $this->createTestUser();
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/character/1/state', [], []);
@@ -103,29 +148,57 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests character summary API route - positive case.
    */
   public function testCharacterSummaryApiRoutePositive(): void {
-    $user = $this->createTestUser();
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/character/1/summary', ['query' => ['_format' => 'json']]);
-    $this->assertSession()->statusCodeNotEquals(405);
+    
+    $status_code = $this->getSession()->getStatusCode();
+    // Method should be allowed (not 405).
+    $this->assertNotEquals(405, $status_code, 'GET method should be allowed');
+    
+    // If successful, validate response structure.
+    if ($status_code === 200) {
+      $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+      $this->assertIsArray($response, 'Response should be JSON');
+      $this->assertArrayHasKey('success', $response, 'Response should have success field');
+    }
   }
 
   /**
    * Tests character state update API route - positive case.
    */
   public function testCharacterStateUpdateApiRoutePositive(): void {
-    $user = $this->createTestUser();
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/character/1/update', [], [], [], ['Content-Type' => 'application/json']);
-    $this->assertSession()->statusCodeNotEquals(404);
+    $update_payload = json_encode(['hp' => 10, 'conditions' => []]);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/character/1/update'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      $update_payload
+    );
+
+    $status_code = $this->getSession()->getStatusCode();
+    // Route should exist (not 404).
+    $this->assertNotEquals(404, $status_code, 'Route should exist');
+    
+    // If successful, validate response structure.
+    if ($status_code === 200) {
+      $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+      $this->assertIsArray($response, 'Response should be JSON');
+      $this->assertArrayHasKey('success', $response, 'Response should have success field');
+    }
   }
 
   /**
    * Tests character state update API route - negative case (GET not allowed).
    */
   public function testCharacterStateUpdateApiRouteNegative(): void {
-    $user = $this->createTestUser();
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/character/1/update');
@@ -136,7 +209,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests combat start API route - positive case.
    */
   public function testCombatStartApiRoutePositive(): void {
-    $user = $this->createTestUser();
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/combat/start', [], [], [], ['Content-Type' => 'application/json']);
@@ -147,7 +220,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests combat start API route - negative case (GET not allowed).
    */
   public function testCombatStartApiRouteNegative(): void {
-    $user = $this->createTestUser();
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/combat/start');
@@ -158,7 +231,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests combat end turn API route - positive case.
    */
   public function testCombatEndTurnApiRoutePositive(): void {
-    $user = $this->createTestUser();
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/combat/end-turn', [], [], [], ['Content-Type' => 'application/json']);
@@ -169,7 +242,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests combat end API route - positive case.
    */
   public function testCombatEndApiRoutePositive(): void {
-    $user = $this->createTestUser();
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/combat/end', [], [], [], ['Content-Type' => 'application/json']);
@@ -180,7 +253,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests combat attack API route - positive case.
    */
   public function testCombatAttackApiRoutePositive(): void {
-    $user = $this->createTestUser();
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/combat/attack', [], [], [], ['Content-Type' => 'application/json']);
@@ -192,6 +265,114 @@ class ApiRoutesTest extends BrowserTestBase {
    */
   public function testApiRoutesNegativeNoAuth(): void {
     $this->drupalGet('/api/character/load/1');
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Tests character summary API - negative case (POST not allowed).
+   */
+  public function testCharacterSummaryPostNotAllowed(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalPost('/api/character/1/summary', [], [], [], ['Content-Type' => 'application/json']);
+    $this->assertSession()->statusCodeEquals(405);
+  }
+
+  /**
+   * Tests combat end turn API - negative case (GET not allowed).
+   */
+  public function testCombatEndTurnGetNotAllowed(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/api/combat/end-turn');
+    $this->assertSession()->statusCodeEquals(405);
+  }
+
+  /**
+   * Tests combat end API - negative case (GET not allowed).
+   */
+  public function testCombatEndGetNotAllowed(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/api/combat/end');
+    $this->assertSession()->statusCodeEquals(405);
+  }
+
+  /**
+   * Tests combat attack API - negative case (GET not allowed).
+   */
+  public function testCombatAttackGetNotAllowed(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/api/combat/attack');
+    $this->assertSession()->statusCodeEquals(405);
+  }
+
+  /**
+   * Tests character load API - negative case (accessing other user's character).
+   */
+  public function testCharacterLoadOwnershipDenied(): void {
+    // Create two users
+    $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $other_user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+
+    // Create a character owned by the first user
+    $database = \Drupal::database();
+    $character_id = $database->insert('dc_characters')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'user_id' => $owner->id(),
+        'name' => 'Owner Character',
+        'class' => 'fighter',
+        'race' => 'human',
+        'level' => 1,
+        'experience' => 0,
+        'status' => 1,
+        'character_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // Login as the other user and try to load the character
+    $this->drupalLogin($other_user);
+    $this->drupalGet("/api/character/load/{$character_id}", ['query' => ['_format' => 'json']]);
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Tests character state API - negative case (accessing other user's character).
+   */
+  public function testCharacterStateOwnershipDenied(): void {
+    // Create two users
+    $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $other_user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+
+    // Create a character owned by the first user
+    $database = \Drupal::database();
+    $character_id = $database->insert('dc_characters')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'user_id' => $owner->id(),
+        'name' => 'Owner Character',
+        'class' => 'fighter',
+        'race' => 'human',
+        'level' => 1,
+        'experience' => 0,
+        'status' => 1,
+        'character_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // Login as the other user and try to access character state
+    $this->drupalLogin($other_user);
+    $this->drupalGet("/api/character/{$character_id}/state", ['query' => ['_format' => 'json']]);
     $this->assertSession()->statusCodeEquals(403);
   }
 

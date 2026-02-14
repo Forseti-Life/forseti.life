@@ -8,6 +8,12 @@
 
 The AI Conversation module provides a sophisticated conversational AI interface powered by AWS Bedrock and Claude 3.5 Sonnet. It features an intelligent **rolling summary system** that allows for unlimited conversation length while maintaining context efficiency and managing token costs.
 
+### Copilot issue automation
+- API: POST `/api/ai-conversation/copilot/issue`
+- Purpose: Create a GitHub issue and (by default) assign to `copilot`.
+- Auth: Use module settings (Copilot token) or env var `GITHUB_TOKEN_COPILOT`/`GITHUB_TOKEN` with repo access and Copilot entitlement.
+- Payload: `title` (string), `body` (string), optional `labels` (array), `repo` (defaults to `keithaumiller/forseti.life`), `assignees` or `assign_to_copilot` flag.
+
 ## Complete Workflow
 
 ### 🎯 **Node-Based Architecture**
