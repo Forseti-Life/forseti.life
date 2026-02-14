@@ -18,6 +18,15 @@ dungeoncrawler_content.dashboard:
   requirements:
     _permission: 'access content overview'
 
+# Admin testing home (locked to admins)
+dungeoncrawler_content.testing_home:
+  path: '/admin/dungeoncrawler/testing'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\TestingDashboardController::dashboard'
+    _title: 'Dungeon Crawler Testing'
+  requirements:
+    _permission: 'administer dungeoncrawler content'
+
 # ==============================================================================
 # PUBLIC PAGES
 # ==============================================================================
@@ -61,6 +70,14 @@ dungeoncrawler_content.credits:
     _title: 'Credits & Attribution'
   requirements:
     _access: 'TRUE'  # Public information page
+
+dungeoncrawler_content.controller_architecture:
+  path: '/architecture/controllers'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\ControllerArchitectureController::overview'
+    _title: 'Controller Architecture'
+  requirements:
+    _permission: 'access content'
 
 # ==============================================================================
 # DEMO/TESTING ROUTES
@@ -218,6 +235,55 @@ dungeoncrawler_content.api.character_state:
   options:
     _format: json
 
+# Dungeon state endpoints
+dungeoncrawler_content.api.dungeon_state_get:
+  path: '/api/dungeon/{dungeon_id}/state'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\DungeonStateController::getState'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    dungeon_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.dungeon_state_set:
+  path: '/api/dungeon/{dungeon_id}/state'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\DungeonStateController::setState'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    dungeon_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+# Campaign state endpoints
+dungeoncrawler_content.api.campaign_state_get:
+  path: '/api/campaign/{campaign_id}/state'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignStateController::getState'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\\d+'
+  options:
+    _format: json
+
+# Room state endpoints
+dungeoncrawler_content.api.room_state_get:
+  path: '/api/dungeon/{dungeon_id}/room/{room_id}/state'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\RoomStateController::getState'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    dungeon_id: '[A-Za-z0-9_-]+'
+    room_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
 dungeoncrawler_content.api.character_summary:
   path: '/api/character/{character_id}/summary'
   defaults:
@@ -369,6 +435,26 @@ dungeoncrawler_content.api.combat_attack:
   options:
     _format: json
 
+dungeoncrawler_content.api.combat_get:
+  path: '/api/combat/get'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::get'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.combat_set:
+  path: '/api/combat/set'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::set'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
 # ==============================================================================
 # TESTING ROUTES
 # ==============================================================================
@@ -381,3 +467,53 @@ dungeoncrawler_content.testing:
   requirements:
     _access: 'TRUE'
 
+# Campaign entity lifecycle endpoints
+dungeoncrawler_content.api.entity_spawn:
+  path: '/api/campaign/{campaign_id}/entity/spawn'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignEntityController::spawnEntity'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.entity_move:
+  path: '/api/campaign/{campaign_id}/entity/{instance_id}/move'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignEntityController::moveEntity'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    instance_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.entity_despawn:
+  path: '/api/campaign/{campaign_id}/entity/{instance_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignEntityController::despawnEntity'
+  methods: [DELETE]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    instance_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.entities_list:
+  path: '/api/campaign/{campaign_id}/entities'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignEntityController::listEntities'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json

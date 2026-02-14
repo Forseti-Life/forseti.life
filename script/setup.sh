@@ -1816,6 +1816,14 @@ if [ ! -f "vendor/bin/drush" ]; then
 fi
 
 # ------------------------------------------------------------------------------
+# 6.3.1 PHPUnit Installation (for backend functional tests)
+# ------------------------------------------------------------------------------
+if [ ! -f "vendor/bin/phpunit" ]; then
+    print_status "Installing PHPUnit for Dungeon Crawler..."
+    /usr/bin/php8.3 /usr/local/bin/composer require --dev phpunit/phpunit:^10 --no-interaction -W
+fi
+
+# ------------------------------------------------------------------------------
 # 6.4 Essential Modules
 # ------------------------------------------------------------------------------
 if [ ! -d "web/modules/contrib/admin_toolbar" ]; then

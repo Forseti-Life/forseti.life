@@ -100,7 +100,7 @@ class CombatEncounterApiController extends ControllerBase {
       return new JsonResponse(['error' => 'encounterId is required'], 400);
     }
 
-    $encounter = $this->loadEncounter($encounter_id);
+      $encounter = $this->autoPlayNonPlayerTurns($this->loadEncounter($encounter_id));
     if (!$encounter) {
       return new JsonResponse(['error' => 'Encounter not found'], 404);
     }
@@ -123,7 +123,7 @@ class CombatEncounterApiController extends ControllerBase {
     $encounter['turn_index'] = $next_index;
 
     $this->encounterStore->updateEncounter($encounter_id, $fields);
-    $encounter = $this->loadEncounter($encounter_id);
+    $encounter = $this->autoPlayNonPlayerTurns($this->loadEncounter($encounter_id));
 
     return new JsonResponse($this->buildEncounterResponse($encounter));
   }
@@ -148,6 +148,74 @@ class CombatEncounterApiController extends ControllerBase {
       'encounter_id' => $encounter_id,
       'ended' => TRUE,
     ]);
+  }
+
+  /**
+   * Get encounter state for a given encounterId.
+   */
+  public function get(Request $request): JsonResponse {
+    $data = json_decode($request->getContent(), TRUE) ?: [];
+    $encounter_id = $data['encounterId'] ?? NULL;
+
+    if (!$encounter_id) {
+      return new JsonResponse(['error' => 'encounterId is required'], 400);
+    }
+
+    $encounter = $this->loadEncounter((int) $encounter_id);
+    if (!$encounter) {
+      return new JsonResponse(['error' => 'Encounter not found'], 404);
+    }
+
+    return new JsonResponse($this->buildEncounterResponse($encounter));
+  }
+
+  /**
+   * Replace encounter state (turn index/status/participants) with optimistic lock.
+   */
+  public function set(Request $request): JsonResponse {
+    $data = json_decode($request->getContent(), TRUE) ?: [];
+    $encounter_id = $data['encounterId'] ?? NULL;
+    if (!$encounter_id) {
+      return new JsonResponse(['error' => 'encounterId is required'], 400);
+    }
+
+    $encounter = $this->loadEncounter((int) $encounter_id);
+    if (!$encounter) {
+      return new JsonResponse(['error' => 'Encounter not found'], 404);
+    }
+
+    $expected_version = isset($data['expectedVersion']) ? (int) $data['expectedVersion'] : NULL;
+    $current_version = (int) ($encounter['updated'] ?? 0);
+    if ($expected_version !== NULL && $expected_version !== $current_version) {
+      return new JsonResponse([
+        'error' => 'Version conflict',
+        'currentVersion' => $current_version,
+        'state' => $this->buildEncounterResponse($encounter),
+      ], 409);
+    }
+
+    // Core fields update
+    $fields = [];
+    if (isset($data['turn_index'])) {
+      $fields['turn_index'] = (int) $data['turn_index'];
+    }
+    if (isset($data['current_round'])) {
+      $fields['current_round'] = (int) $data['current_round'];
+    }
+    if (!empty($data['status'])) {
+      $fields['status'] = $data['status'];
+    }
+    if ($fields) {
+      $this->encounterStore->updateEncounter((int) $encounter_id, $fields);
+    }
+
+    // Replace participants when provided
+    if (!empty($data['participants']) && is_array($data['participants'])) {
+      $this->encounterStore->saveParticipants((int) $encounter_id, $data['participants']);
+    }
+
+    $fresh = $this->loadEncounter((int) $encounter_id);
+    return new JsonResponse($this->buildEncounterResponse($fresh));
   }
 
   /**
@@ -218,8 +286,6 @@ class CombatEncounterApiController extends ControllerBase {
   protected function normalizeParticipants(array $entities): array {
     $participants = [];
 
-    $random = new Random();
-
     foreach ($entities as $index => $entity) {
       $entity_id = $entity['entityId'] ?? $entity['id'] ?? $index + 1;
       $name = $entity['name'] ?? "Entity {$entity_id}";
@@ -228,7 +294,7 @@ class CombatEncounterApiController extends ControllerBase {
       $initiative = $entity['initiative'] ?? NULL;
       $initiative_roll = NULL;
       if ($initiative === NULL) {
-        $roll = $random->randomInt(1, 20);
+        $roll = random_int(1, 20);
         $bonus = (int) ($entity['perception'] ?? 0) + (int) ($entity['initiative_bonus'] ?? 0);
         $initiative = $roll + $bonus;
         $initiative_roll = $roll;
@@ -289,6 +355,7 @@ class CombatEncounterApiController extends ControllerBase {
       'status' => $encounter['status'],
       'current_round' => $encounter['current_round'],
       'turn_index' => $turn_index,
+      'version' => (int) ($encounter['updated'] ?? 0),
       'initiative_order' => $initiative_order,
       'participants' => $normalized_participants,
       'current_participant' => $current_participant,
@@ -307,6 +374,78 @@ class CombatEncounterApiController extends ControllerBase {
    */
   protected function loadEncounter(int $encounter_id): ?array {
     return $this->encounterStore->loadEncounter($encounter_id);
+  }
+
+  /**
+   * Run a minimal server-side NPC loop: each non-player gets one swing at the first alive player.
+   * Advances turn index until we hit a player or exhaust participants.
+   */
+  protected function autoPlayNonPlayerTurns(?array $encounter): ?array {
+    if (!$encounter) {
+      return NULL;
+    }
+
+    $limit = max(1, count($encounter['participants'] ?? []));
+    for ($i = 0; $i < $limit; $i++) {
+      $participants = $encounter['participants'] ?? [];
+      $turn_index = (int) ($encounter['turn_index'] ?? 0);
+      $current = $participants[$turn_index] ?? NULL;
+
+      if (!$current || ($current['team'] ?? 'player') === 'player' || !empty($current['is_defeated'])) {
+        break;
+      }
+
+      // Pick first alive player target.
+      $target_idx = $this->findFirstAlivePlayerIndex($participants);
+      if ($target_idx !== NULL) {
+        $target = $participants[$target_idx];
+        $damage = random_int(1, 6);
+        $hp_before = $target['hp'] ?? NULL;
+        $hp_after = $hp_before !== NULL ? max(0, $hp_before - $damage) : NULL;
+
+        $this->encounterStore->updateParticipant((int) $target['id'], [
+          'hp' => $hp_after,
+          'is_defeated' => ($hp_after !== NULL && $hp_after <= 0) ? 1 : 0,
+        ]);
+
+        $this->encounterStore->logDamage([
+          'encounter_id' => $encounter['id'],
+          'participant_id' => (int) $target['id'],
+          'amount' => $damage,
+          'damage_type' => 'bludgeoning',
+          'source' => $current['entity_ref'] ?? $current['entity_id'] ?? NULL,
+          'hp_before' => $hp_before,
+          'hp_after' => $hp_after,
+        ]);
+
+        $encounter = $this->loadEncounter((int) $encounter['id']);
+      }
+
+      // Advance turn index and round.
+      $next_index = $this->findNextTurnIndex($encounter['participants'] ?? [], (int) $encounter['turn_index']);
+      $fields = ['turn_index' => $next_index];
+      if ($next_index <= $encounter['turn_index']) {
+        $fields['current_round'] = (int) $encounter['current_round'] + 1;
+        $encounter['current_round'] = $fields['current_round'];
+      }
+      $encounter['turn_index'] = $next_index;
+      $this->encounterStore->updateEncounter((int) $encounter['id'], $fields);
+      $encounter = $this->loadEncounter((int) $encounter['id']);
+    }
+
+    return $encounter;
+  }
+
+  /**
+   * Find first alive player participant.
+   */
+  protected function findFirstAlivePlayerIndex(array $participants): ?int {
+    foreach ($participants as $idx => $participant) {
+      if (($participant['team'] ?? NULL) === 'player' && empty($participant['is_defeated'])) {
+        return $idx;
+      }
+    }
+    return NULL;
   }
 
   /**

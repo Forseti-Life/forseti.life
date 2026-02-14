@@ -15,6 +15,12 @@ services:
     tags:
       - { name: access_check, applies_to: _character_access }
 
+  dungeoncrawler_content.campaign_access_check:
+    class: Drupal\dungeoncrawler_content\Access\CampaignAccessCheck
+    arguments: ['@database']
+    tags:
+      - { name: access_check, applies_to: _campaign_access }
+
   dungeoncrawler_content.content_registry:
     class: Drupal\dungeoncrawler_content\Service\ContentRegistry
     arguments: ['@database', '@logger.factory']
@@ -58,3 +64,19 @@ services:
   dungeoncrawler_content.combat_engine:
     class: Drupal\dungeoncrawler_content\Service\CombatEngine
     arguments: ['@database', '@dungeoncrawler_content.state_manager', '@dungeoncrawler_content.action_processor', '@dungeoncrawler_content.combat_encounter_store', '@dungeoncrawler_content.hp_manager']
+
+  dungeoncrawler_content.dungeon_state_service:
+    class: Drupal\dungeoncrawler_content\Service\DungeonStateService
+    arguments: ['@database', '@logger.factory']
+
+  dungeoncrawler_content.campaign_state_service:
+    class: Drupal\dungeoncrawler_content\Service\CampaignStateService
+    arguments: ['@database', '@logger.factory']
+
+  dungeoncrawler_content.room_state_service:
+    class: Drupal\dungeoncrawler_content\Service\RoomStateService
+    arguments: ['@database', '@logger.factory']
+
+  dungeoncrawler_content.state_validation_service:
+    class: Drupal\dungeoncrawler_content\Service\StateValidationService
+    arguments: ['@logger.factory']
