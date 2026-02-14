@@ -14,14 +14,8 @@
 - Follow-up issues to be opened are staged in [issues_todo.md](../../../issues_todo.md) (workflow implementation, data-backed functional assertions, negative/authorization coverage, shared builders, and content-backed smoke tests).
 
 ## Running tests
-Use the PHPUnit config shipped with the module:
 
-```bash
-cd sites/dungeoncrawler
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml
-```
-
-See [tests/TESTING_MODULE_README.md](tests/TESTING_MODULE_README.md) for commands by suite, groups, and file-level runs.
+For complete run instructions, test suites, groups, and examples, see **[tests/README.md](tests/README.md)** - the canonical testing guide.
 
 ## Notes
 - Tests enable `dungeoncrawler_content`; this module only houses the test code and config.
