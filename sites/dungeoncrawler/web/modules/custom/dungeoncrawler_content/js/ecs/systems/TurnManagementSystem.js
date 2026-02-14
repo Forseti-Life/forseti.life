@@ -39,6 +39,7 @@ export class TurnManagementSystem extends System {
     this.onTurnChangeCallback = null;
     this.onRoundChangeCallback = null;
     this.onCombatStateChangeCallback = null;
+    this.serverHydrated = false; // true when using server-authoritative turn order
   }
   
   /**
@@ -87,6 +88,12 @@ export class TurnManagementSystem extends System {
     
     // Roll initiative for all combatants
     this.rollInitiative();
+
+    if (this.initiativeOrder.length === 0) {
+      console.warn('No combatants available; combat will not start');
+      this.endCombat();
+      return;
+    }
     
     // Start first round
     this.startRound();
@@ -144,6 +151,33 @@ export class TurnManagementSystem extends System {
    * Start a new round.
    */
   startRound() {
+    const activeOrder = this.initiativeOrder.filter((entityId) => {
+      const entity = this.entityManager.getEntity(entityId);
+      if (!entity) {
+        return false;
+      }
+
+      const combat = entity.getComponent('CombatComponent');
+      const stats = entity.getComponent('StatsComponent');
+      if (!combat) {
+        return false;
+      }
+
+      const defeated = combat.isDefeated || (stats && !stats.isAlive());
+      return !defeated;
+    });
+
+    if (activeOrder.length === 0) {
+      console.warn('No active combatants remain; ending combat');
+      this.endCombat();
+      return;
+    }
+
+    if (activeOrder.length !== this.initiativeOrder.length) {
+      this.initiativeOrder = activeOrder;
+      this.currentTurnIndex = -1;
+    }
+
     this.currentRound++;
     this.currentTurnIndex = -1;
     
@@ -277,6 +311,7 @@ export class TurnManagementSystem extends System {
     
     const combat = entity.getComponent('CombatComponent');
     const actions = entity.getComponent('ActionsComponent');
+    const movement = entity.getComponent('MovementComponent');
     
     // Mark turn end
     combat.endTurn();
@@ -384,6 +419,36 @@ export class TurnManagementSystem extends System {
    */
   isCombatActive() {
     return this.combatState === CombatState.IN_PROGRESS;
+  }
+
+  /**
+   * Hydrate turn state from a server payload (server-authoritative mode).
+   * Expects shape similar to CombatEncounterApiController::buildEncounterResponse().
+   * @param {Object} serverState
+   */
+  hydrateFromServer(serverState = {}) {
+    const order = Array.isArray(serverState.initiative_order)
+      ? serverState.initiative_order.map((entry) => entry.entity_id)
+      : [];
+
+    this.initiativeOrder = order;
+    this.currentTurnIndex = Number.isInteger(serverState.turn_index) ? serverState.turn_index : 0;
+    this.currentRound = Number.isInteger(serverState.current_round) ? serverState.current_round : 1;
+    this.combatState = CombatState.IN_PROGRESS;
+    this.serverHydrated = true;
+
+    const currentEntity = this.getCurrentTurnEntity();
+    if (currentEntity && this.onTurnChangeCallback) {
+      this.onTurnChangeCallback(currentEntity, this.currentTurnIndex, this.initiativeOrder.length);
+    }
+
+    if (this.onRoundChangeCallback) {
+      this.onRoundChangeCallback(this.currentRound);
+    }
+
+    if (this.onCombatStateChangeCallback) {
+      this.onCombatStateChangeCallback(this.combatState);
+    }
   }
 
   /**

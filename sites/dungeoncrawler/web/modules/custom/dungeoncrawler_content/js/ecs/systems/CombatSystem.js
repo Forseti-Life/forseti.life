@@ -304,17 +304,8 @@ export class CombatSystem extends System {
       console.warn(`Cannot attack: ${check.reason}`);
       return null;
     }
-    
-    // Spend action
-    const actions = attacker.getComponent('ActionsComponent');
-    if (actions) {
-      if (!actions.spendActions(ActionCost.ONE, 'Strike')) {
-        console.warn('Failed to spend action for attack');
-        return null;
-      }
-    }
-    
-    // Perform attack
+
+    // Perform attack (consumes actions inside makeAttack via ActionsComponent.makeAttack)
     return this.makeAttack(attacker, target);
   }
   

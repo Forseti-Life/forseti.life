@@ -126,6 +126,45 @@ class CharacterStateService {
   }
 
   /**
+   * Replace and persist full character state with optional optimistic lock.
+   *
+   * @param string $character_id
+   *   Character ID.
+   * @param array $state
+   *   Incoming state payload (must contain basicInfo and metadata.version).
+   * @param int|null $expected_version
+   *   When provided, enforces optimistic locking against current version.
+   *
+   * @return array
+   *   Fresh state after persistence.
+   *
+   * @throws \InvalidArgumentException
+   *   On version conflict or invalid payload.
+   */
+  public function setState(string $character_id, array $state, ?int $expected_version = NULL): array {
+    // Load current for version + ownership sanity.
+    $current = $this->getState($character_id);
+    $current_version = (int) ($current['metadata']['version'] ?? 0);
+
+    if ($expected_version !== NULL && $expected_version !== $current_version) {
+      throw new \InvalidArgumentException('Version conflict', 409);
+    }
+
+    // Ensure immutable identifiers stay aligned.
+    $state['characterId'] = (string) $character_id;
+    $state['userId'] = $current['userId'];
+
+    // Basic required shapes to avoid null column updates.
+    $state['basicInfo'] = $state['basicInfo'] ?? $current['basicInfo'];
+    $state['metadata'] = $state['metadata'] ?? [];
+
+    $this->saveState($character_id, $state);
+
+    // Return fresh state with new version after save.
+    return $this->getState($character_id);
+  }
+
+  /**
    * Update hit points.
    * 
    * @param string $character_id

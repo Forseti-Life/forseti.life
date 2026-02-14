@@ -47,6 +47,7 @@ class CombatEncounterStore {
       $this->database->insert('combat_participants')
         ->fields([
           'encounter_id' => $encounter_id,
+          'entity_id' => (int) ($participant['entity_id'] ?? ($participant['id'] ?? 0)),
           'entity_ref' => $participant['entity_ref'] ?? NULL,
           'name' => $participant['name'] ?? 'Entity',
           'team' => $participant['team'] ?? NULL,
@@ -93,7 +94,7 @@ class CombatEncounterStore {
       ->orderBy('initiative_roll', 'DESC')
       ->orderBy('name', 'ASC')
       ->execute()
-      ->fetchAllAssoc('id', \\PDO::FETCH_ASSOC);
+      ->fetchAllAssoc('id', \PDO::FETCH_ASSOC);
 
     $encounter['participants'] = array_values($participants);
     $encounter['encounter_id'] = $encounter['id'];
@@ -141,6 +142,7 @@ class CombatEncounterStore {
       $this->database->insert('combat_participants')
         ->fields([
           'encounter_id' => $encounter_id,
+          'entity_id' => (int) ($participant['entity_id'] ?? ($participant['id'] ?? 0)),
           'entity_ref' => $participant['entity_ref'] ?? NULL,
           'name' => $participant['name'] ?? 'Entity',
           'team' => $participant['team'] ?? NULL,
@@ -159,6 +161,12 @@ class CombatEncounterStore {
         ])
         ->execute();
     }
+
+    // Bump encounter updated to signal a new version of state.
+    $this->database->update('combat_encounters')
+      ->fields(['updated' => time()])
+      ->condition('id', $encounter_id)
+      ->execute();
 
     return TRUE;
   }
@@ -240,7 +248,7 @@ class CombatEncounterStore {
       ->condition('participant_id', $participant_id)
       ->isNull('removed_at_round')
       ->execute()
-      ->fetchAllAssoc('id', \\PDO::FETCH_ASSOC) ?: [];
+      ->fetchAllAssoc('id', \PDO::FETCH_ASSOC) ?: [];
   }
 
   /**
