@@ -28,6 +28,11 @@ class TestingDashboardController extends ControllerBase {
   private string $defaultRepo = 'keithaumiller/forseti.life';
 
   /**
+   * Base path for documentation relative to module path.
+   */
+  private string $docsRelativePath = '../../../../docs/dungeoncrawler';
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
@@ -87,7 +92,7 @@ class TestingDashboardController extends ControllerBase {
    */
   private function buildDocumentationSection(): array {
     $moduleBasePath = \Drupal::service('extension.list.module')->getPath('dungeoncrawler_tester');
-    $docsBasePath = dirname(dirname(dirname(dirname($moduleBasePath)))) . '/docs/dungeoncrawler';
+    $docsBasePath = $moduleBasePath . '/' . $this->docsRelativePath;
     
     $links = [
       Link::fromTextAndUrl(
@@ -122,7 +127,7 @@ class TestingDashboardController extends ControllerBase {
 
     return [
       '#theme' => 'item_list',
-      '#title' => $this->t('📚 Test Documentation'),
+      '#title' => $this->t('Test Documentation'),
       '#items' => $links,
       '#attributes' => ['class' => ['documentation-links']],
     ];
@@ -195,7 +200,9 @@ class TestingDashboardController extends ControllerBase {
       '#type' => 'container',
       '#attributes' => ['class' => ['test-commands']],
       'title' => [
-        '#markup' => '<h2>' . $this->t('🚀 Quick Test Commands') . '</h2>',
+        '#type' => 'html_tag',
+        '#tag' => 'h2',
+        '#value' => $this->t('Quick Test Commands'),
       ],
       'description' => [
         '#markup' => '<p>' . $this->t('Copy and paste these commands to run different test suites:') . '</p>',
