@@ -369,4 +369,15 @@ dungeoncrawler_content.api.combat_attack:
   options:
     _format: json
 
+# ==============================================================================
+# TESTING ROUTES
+# ==============================================================================
+
+dungeoncrawler_content.testing:
+  path: '/testing'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\TestingPageController::index'
+    _title: 'Testing Page'
+  requirements:
+    _access: 'TRUE'
 
