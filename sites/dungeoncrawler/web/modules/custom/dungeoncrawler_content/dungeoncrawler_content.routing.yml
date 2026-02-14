@@ -257,6 +257,7 @@ dungeoncrawler_content.api.campaign_state_get:
   methods: [GET]
   requirements:
     _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
     campaign_id: '\\d+'
   options:
     _format: json
@@ -293,6 +294,7 @@ dungeoncrawler_content.api.campaign_state_set:
   methods: [POST]
   requirements:
     _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
     campaign_id: '\\d+'
   options:
     _format: json
@@ -469,3 +471,54 @@ dungeoncrawler_content.api.combat_set:
     _format: json
 
 
+
+# Campaign entity lifecycle endpoints
+dungeoncrawler_content.api.entity_spawn:
+  path: '/api/campaign/{campaign_id}/entity/spawn'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignEntityController::spawnEntity'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.entity_move:
+  path: '/api/campaign/{campaign_id}/entity/{instance_id}/move'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignEntityController::moveEntity'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    instance_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.entity_despawn:
+  path: '/api/campaign/{campaign_id}/entity/{instance_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignEntityController::despawnEntity'
+  methods: [DELETE]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    instance_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.entities_list:
+  path: '/api/campaign/{campaign_id}/entities'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignEntityController::listEntities'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json

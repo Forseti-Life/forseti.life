@@ -4,6 +4,7 @@ namespace Drupal\dungeoncrawler_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\dungeoncrawler_content\Service\CampaignStateService;
+use Drupal\dungeoncrawler_content\Service\StateValidationService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,14 +15,20 @@ use Symfony\Component\HttpFoundation\Request;
 class CampaignStateController extends ControllerBase {
 
   private CampaignStateService $campaignStateService;
+  private StateValidationService $validationService;
 
-  public function __construct(CampaignStateService $campaign_state_service) {
+  public function __construct(
+    CampaignStateService $campaign_state_service,
+    StateValidationService $validation_service
+  ) {
     $this->campaignStateService = $campaign_state_service;
+    $this->validationService = $validation_service;
   }
 
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('dungeoncrawler_content.campaign_state_service')
+      $container->get('dungeoncrawler_content.campaign_state_service'),
+      $container->get('dungeoncrawler_content.state_validation_service')
     );
   }
 
@@ -60,6 +67,16 @@ class CampaignStateController extends ControllerBase {
 
     if (!is_array($state_payload)) {
       return new JsonResponse(['success' => FALSE, 'error' => 'Missing state payload'], 400);
+    }
+
+    // Validate state payload against schema.
+    $validation = $this->validationService->validateCampaignState($state_payload);
+    if (!$validation['valid']) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'error' => 'Invalid state payload',
+        'validation_errors' => $validation['errors'],
+      ], 400);
     }
 
     try {
