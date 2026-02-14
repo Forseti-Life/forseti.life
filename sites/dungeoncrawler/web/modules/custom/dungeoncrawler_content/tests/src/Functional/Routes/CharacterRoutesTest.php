@@ -155,4 +155,122 @@ class CharacterRoutesTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(403);
   }
 
+  /**
+   * Tests character edit - negative case (editing other user's character).
+   */
+  public function testCharacterEditOwnershipDenied(): void {
+    // Create two users
+    $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $other_user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+
+    // Create a character owned by the first user
+    $database = \Drupal::database();
+    $character_id = $database->insert('dc_characters')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'user_id' => $owner->id(),
+        'name' => 'Owner Character',
+        'class' => 'fighter',
+        'race' => 'human',
+        'level' => 1,
+        'experience' => 0,
+        'status' => 1,
+        'character_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // Login as the other user and try to edit the character
+    $this->drupalLogin($other_user);
+    $this->drupalGet("/characters/{$character_id}/edit");
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Tests character delete - negative case (deleting other user's character).
+   */
+  public function testCharacterDeleteOwnershipDenied(): void {
+    // Create two users
+    $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $other_user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+
+    // Create a character owned by the first user
+    $database = \Drupal::database();
+    $character_id = $database->insert('dc_characters')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'user_id' => $owner->id(),
+        'name' => 'Owner Character',
+        'class' => 'fighter',
+        'race' => 'human',
+        'level' => 1,
+        'experience' => 0,
+        'status' => 1,
+        'character_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // Login as the other user and try to delete the character
+    $this->drupalLogin($other_user);
+    $this->drupalGet("/characters/{$character_id}/delete");
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Tests character view - negative case (viewing other user's character).
+   */
+  public function testCharacterViewOwnershipDenied(): void {
+    // Create two users
+    $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $other_user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+
+    // Create a character owned by the first user
+    $database = \Drupal::database();
+    $character_id = $database->insert('dc_characters')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'user_id' => $owner->id(),
+        'name' => 'Owner Character',
+        'class' => 'fighter',
+        'race' => 'human',
+        'level' => 1,
+        'experience' => 0,
+        'status' => 1,
+        'character_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // Login as the other user and try to view the character
+    $this->drupalLogin($other_user);
+    $this->drupalGet("/characters/{$character_id}");
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Tests character edit - negative case (non-existent character).
+   */
+  public function testCharacterEditNonExistent(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/characters/99999/edit');
+    $this->assertSession()->statusCodeEquals(404);
+  }
+
+  /**
+   * Tests character delete - negative case (non-existent character).
+   */
+  public function testCharacterDeleteNonExistent(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/characters/99999/delete');
+    $this->assertSession()->statusCodeEquals(404);
+  }
+
 }
