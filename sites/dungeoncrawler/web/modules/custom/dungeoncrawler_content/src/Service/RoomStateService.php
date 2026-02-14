@@ -132,6 +132,11 @@ class RoomStateService {
     if (!empty($visible_ids) && isset($contents['entities']) && is_array($contents['entities'])) {
       $contents['entities'] = array_values(array_filter($contents['entities'], function ($ent) use ($visible_ids) {
         // Check hex visibility.
+        // Multiple naming conventions supported for flexibility:
+        // - hex_id: snake_case (database convention)
+        // - hexId: camelCase (API/frontend convention)
+        // - position.hexId: nested structure
+        // - state.hexId: state-embedded location
         $hex_ref = $ent['hex_id'] ?? $ent['hexId'] ?? $ent['position']['hexId'] ?? $ent['state']['hexId'] ?? NULL;
         $in_visible_hex = $hex_ref === NULL || in_array($hex_ref, $visible_ids, TRUE);
         

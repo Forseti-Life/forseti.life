@@ -516,20 +516,25 @@ POST /api/campaign/123/entity/spawn
 ```
 
 2. **Player Succeeds Perception Check, Mark Detected:**
+
+Note: To update entity state, you would typically fetch the entity, modify its stateData, and then use the move endpoint to update location or spawn a new corrected instance. For in-place state updates without location change, you could re-spawn with the same location but updated state, or implement a dedicated PATCH endpoint for state updates.
+
+For this example, we'll update via the entity's stateData by moving it:
 ```bash
-POST /api/campaign/123/entity/spawn
+# First, retrieve the entity to get current state
+GET /api/campaign/123/entities?instanceId=goblin-scout-1
+
+# Then update by moving to same location with detected flag
+# (In practice, you'd implement a PATCH endpoint or update via room state)
+# For now, the client would track detection state in room state or re-spawn
+
+# Alternative: Update room state to mark goblin as detected
+POST /api/dungeon/dungeon-001/room/room-3/state
 {
-  "type": "npc",
-  "instanceId": "goblin-scout-1-detected",
-  "characterId": 456,
-  "locationType": "room",
-  "locationRef": "room-3",
-  "stateData": {
-    "hexId": "hex-5",
-    "hp": 8,
-    "maxHp": 8,
-    "detected": true,
-    "hidden": false
+  "campaignId": 123,
+  "state": {
+    "dungeonId": "dungeon-001",
+    "detectedEntities": ["goblin-scout-1"]
   }
 }
 ```

@@ -111,14 +111,6 @@ class DungeonStateController extends ControllerBase {
       return new JsonResponse(['success' => FALSE, 'error' => 'Missing state payload'], 400);
     }
 
-    // Basic validation: state_payload should be an object.
-    if (empty($state_payload) || !is_array($state_payload)) {
-      return new JsonResponse([
-        'success' => FALSE,
-        'error' => 'State payload must be a non-empty object',
-      ], 400);
-    }
-
     try {
       $updated = $this->dungeonStateService->setState($dungeon_id, $state_payload, $expected_version, $campaign_id);
       return new JsonResponse([
