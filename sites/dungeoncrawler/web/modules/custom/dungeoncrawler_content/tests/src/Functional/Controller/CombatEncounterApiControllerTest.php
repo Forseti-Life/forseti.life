@@ -3,6 +3,7 @@
 namespace Drupal\Tests\dungeoncrawler_content\Functional\Controller;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestDataFactoryTrait;
 
 /**
  * Tests CombatEncounterApiController functionality.
@@ -12,6 +13,8 @@ use Drupal\Tests\BrowserTestBase;
  * @group api
  */
 class CombatEncounterApiControllerTest extends BrowserTestBase {
+
+  use TestDataFactoryTrait;
 
   /**
    * {@inheritdoc}
@@ -30,10 +33,39 @@ class CombatEncounterApiControllerTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/combat/start', [], [], [], ['Content-Type' => 'application/json']);
-    // May return 400/422 without valid data
-    $this->assertSession()->statusCodeNotEquals(404);
-    $this->assertSession()->statusCodeNotEquals(405);
+    // Create test combat encounter payload.
+    $combat_payload = json_encode([
+      'encounter_id' => 'test_encounter_1',
+      'participants' => [
+        ['type' => 'character', 'id' => 1],
+        ['type' => 'npc', 'id' => 101],
+      ],
+    ]);
+
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/combat/start'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      $combat_payload
+    );
+
+    $status_code = $this->getSession()->getStatusCode();
+    // Route should exist (not 404) and method allowed (not 405).
+    $this->assertNotEquals(404, $status_code, 'Route should exist');
+    $this->assertNotEquals(405, $status_code, 'Method should be allowed');
+    
+    // If successful, validate response structure.
+    if ($status_code === 200) {
+      $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+      $this->assertIsArray($response, 'Response should be JSON');
+      $this->assertArrayHasKey('success', $response, 'Response should have success field');
+      
+      if ($response['success']) {
+        $this->assertArrayHasKey('combat_id', $response, 'Response should contain combat_id');
+      }
+    }
   }
 
   /**
@@ -42,6 +74,14 @@ class CombatEncounterApiControllerTest extends BrowserTestBase {
   public function testCombatStartApiNegative(): void {
     $this->drupalPost('/api/combat/start', [], [], [], ['Content-Type' => 'application/json']);
     $this->assertSession()->statusCodeEquals(403);
+    
+    // Assert error response structure.
+    $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+    if ($response) {
+      $this->assertIsArray($response, 'Response should be JSON');
+      $this->assertArrayHasKey('success', $response, 'Response should have success field');
+      $this->assertFalse($response['success'], 'Success should be false');
+    }
   }
 
   /**
