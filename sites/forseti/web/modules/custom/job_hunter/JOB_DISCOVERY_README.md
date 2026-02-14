@@ -110,6 +110,6 @@ If the actual scraping fails (due to network issues, rate limiting, etc.), the s
 
 Remember to clear Drupal cache after deployment:
 ```bash
-cd /workspaces/stlouisintegration.com/drupal
+cd /var/www/html/forseti
 ./vendor/bin/drush cache:rebuild
 ```

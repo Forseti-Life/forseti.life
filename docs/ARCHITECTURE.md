@@ -66,10 +66,10 @@ This document describes the complete infrastructure architecture for the Forseti
 **Apache:**
 ```apache
 <VirtualHost *:80>
-    ServerName stlouisintegration.com
-    DocumentRoot /var/www/html/stlouisintegration/web
+    ServerName forseti.life
+    DocumentRoot /var/www/html/forseti/web
 
-    <Directory /var/www/html/stlouisintegration/web>
+    <Directory /var/www/html/forseti/web>
         Options -Indexes +FollowSymLinks
         AllowOverride All
         Require all granted
@@ -80,17 +80,17 @@ This document describes the complete infrastructure architecture for the Forseti
     Header set X-Frame-Options "SAMEORIGIN"
     Header set X-XSS-Protection "1; mode=block"
     
-    ErrorLog ${APACHE_LOG_DIR}/stlouis-error.log
-    CustomLog ${APACHE_LOG_DIR}/stlouis-access.log combined
+    ErrorLog ${APACHE_LOG_DIR}/forseti-error.log
+    CustomLog ${APACHE_LOG_DIR}/forseti-access.log combined
 </VirtualHost>
 
 <VirtualHost *:443>
-    ServerName stlouisintegration.com
-    DocumentRoot /var/www/html/stlouisintegration/web
+    ServerName forseti.life
+    DocumentRoot /var/www/html/forseti/web
 
     SSLEngine on
-    SSLCertificateFile /etc/ssl/certs/stlouis.crt
-    SSLCertificateKeyFile /etc/ssl/private/stlouis.key
+    SSLCertificateFile /etc/ssl/certs/forseti.crt
+    SSLCertificateKeyFile /etc/ssl/private/forseti.key
 
     # Additional SSL configuration
     SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1
@@ -299,7 +299,7 @@ CREATE INDEX idx_incident_count ON amisafe_h3_aggregations(incident_count);
 ### Backup Locations
 
 ```
-/var/backups/stlouisintegration/
+/var/backups/forseti/
 ├── daily/
 │   ├── backup-20251201-000000.sql.gz
 │   ├── backup-20251202-000000.sql.gz
@@ -361,7 +361,7 @@ CREATE INDEX idx_incident_count ON amisafe_h3_aggregations(incident_count);
 
 **REST API Endpoints:**
 ```
-https://stlouisintegration.com/api/amisafe/
+https://forseti.life/api/amisafe/
 ├── risk-level          # Location risk assessment
 ├── aggregated          # H3 hexagon crime data
 ├── incidents           # Individual crime records
