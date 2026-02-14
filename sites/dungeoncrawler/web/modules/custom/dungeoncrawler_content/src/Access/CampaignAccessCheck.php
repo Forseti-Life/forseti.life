@@ -64,7 +64,7 @@ class CampaignAccessCheck implements AccessInterface {
     }
 
     // Check if user owns the campaign.
-    if ($campaign['uid'] == $account->id()) {
+    if ($campaign['uid'] === $account->id()) {
       return AccessResult::allowed()
         ->cachePerPermissions()
         ->cachePerUser()

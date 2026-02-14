@@ -249,11 +249,19 @@ class RoomStateService {
    *   Hex reference or NULL if not found.
    */
   private function extractHexReference(array $entity): ?string {
-    return $entity['hex_id'] 
-      ?? $entity['hexId'] 
-      ?? $entity['position']['hexId'] 
-      ?? $entity['state']['hexId'] 
-      ?? NULL;
+    if (!empty($entity['hex_id'])) {
+      return $entity['hex_id'];
+    }
+    if (!empty($entity['hexId'])) {
+      return $entity['hexId'];
+    }
+    if (isset($entity['position']) && is_array($entity['position']) && !empty($entity['position']['hexId'])) {
+      return $entity['position']['hexId'];
+    }
+    if (isset($entity['state']) && is_array($entity['state']) && !empty($entity['state']['hexId'])) {
+      return $entity['state']['hexId'];
+    }
+    return NULL;
   }
 
   /**

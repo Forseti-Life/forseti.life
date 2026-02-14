@@ -118,7 +118,7 @@ class CampaignEntityController extends ControllerBase {
           'type' => $type,
           'location_type' => $location_type,
           'location_ref' => $location_ref,
-          'state_data' => json_encode($state_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+          'state_data' => json_encode($state_data, JSON_UNESCAPED_UNICODE),
           'created' => time(),
           'updated' => time(),
         ])
