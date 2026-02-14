@@ -51,8 +51,8 @@ class CreditsControllerTest extends BrowserTestBase {
     $cache_control = $this->getSession()->getResponseHeader('Cache-Control');
     $this->assertNotNull($cache_control, 'Cache-Control header should be present');
     
-    // Verify max-age is set (should be 3600).
-    $this->assertStringContainsString('max-age', $cache_control);
+    // Verify max-age is 3600 as configured in controller.
+    $this->assertStringContainsString('max-age=3600', $cache_control);
     
     // Page should be publicly accessible without authentication.
     $this->assertSession()->statusCodeNotEquals(403);
