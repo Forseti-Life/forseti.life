@@ -31,7 +31,11 @@ class HomeControllerTest extends BrowserTestBase {
 
     $this->drupalGet('/home');
     $this->assertSession()->statusCodeEquals(200);
+    
+    // Verify expected content structure (not just generic text).
     $this->assertSession()->pageTextContains('Start Your Adventure');
+    $this->assertSession()->linkExists('Start Your Adventure');
+    $this->assertSession()->linkExists('Learn More');
   }
 
   /**
@@ -40,18 +44,29 @@ class HomeControllerTest extends BrowserTestBase {
   public function testHomePageDisplayPositiveAnonymous(): void {
     $this->drupalGet('/home');
     $this->assertSession()->statusCodeEquals(200);
+    
+    // Verify expected content structure for anonymous users.
     $this->assertSession()->pageTextContains('Sign In to Start');
+    $this->assertSession()->linkExists('Sign In to Start');
+    $this->assertSession()->linkExists('Learn How It Works');
   }
 
   /**
-   * Tests home page caching - negative case (ensure cache is configured).
+   * Tests home page caching - validate cache headers.
    */
-  public function testHomePageCachingNegative(): void {
+  public function testHomePageCacheHeaders(): void {
     $this->drupalGet('/home');
     $this->assertSession()->statusCodeEquals(200);
     
-    // Verify page is accessible (negative test would be if cache fails)
+    // Verify cache headers are properly configured.
     $this->assertSession()->responseHeaderExists('X-Drupal-Cache-Contexts');
+    
+    // Home page should have cache max-age of 3600 (1 hour) per controller.
+    $cache_control = $this->getSession()->getResponseHeader('Cache-Control');
+    $this->assertNotNull($cache_control, 'Cache-Control header should be present');
+    
+    // Verify max-age is set (should be 3600 for authenticated context).
+    $this->assertStringContainsString('max-age', $cache_control);
   }
 
 }
