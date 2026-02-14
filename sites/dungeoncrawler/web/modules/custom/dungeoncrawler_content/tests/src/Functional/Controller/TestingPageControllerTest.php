@@ -48,9 +48,10 @@ class TestingPageControllerTest extends BrowserTestBase {
   public function testTestingPageCachingNegative(): void {
     $this->drupalGet('/testing');
     $this->assertSession()->statusCodeEquals(200);
-    
-    // Testing page should have max-age 0
-    $this->assertSession()->responseHeaderExists('Cache-Control');
+
+    // Testing page should have max-age 0 (no caching)
+    $cacheControl = $this->getSession()->getResponseHeader('Cache-Control');
+    $this->assertStringContainsString('max-age=0', $cacheControl ?: '');
   }
 
 }

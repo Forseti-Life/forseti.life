@@ -112,15 +112,15 @@ cd /home/runner/work/forseti.life/forseti.life/sites/dungeoncrawler
 
 The testing module covers:
 
-### Routes (23 routes tested)
-- 5 Public routes
+### Routes (24 routes tested)
+- 6 Public routes
 - 2 Admin routes
 - 8 Character management routes
 - 5 Campaign routes
 - 11 API endpoints
 - 2 Demo routes
 
-### Controllers (19 controllers tested)
+### Controllers (20 controllers tested)
 - 7 Public page controllers
 - 4 Character management controllers
 - 2 Campaign controllers

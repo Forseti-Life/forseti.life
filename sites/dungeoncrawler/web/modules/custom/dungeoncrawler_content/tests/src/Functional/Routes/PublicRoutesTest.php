@@ -111,6 +111,9 @@ class PublicRoutesTest extends BrowserTestBase {
 
   /**
    * Tests testing page route - positive case.
+   *
+   * Note: This test verifies the route exists and is accessible.
+   * TestingPageControllerTest provides more detailed controller-specific tests.
    */
   public function testTestingPageRoutePositive(): void {
     $this->drupalGet('/testing');
