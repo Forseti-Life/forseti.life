@@ -268,4 +268,112 @@ class ApiRoutesTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(403);
   }
 
+  /**
+   * Tests character summary API - negative case (POST not allowed).
+   */
+  public function testCharacterSummaryPostNotAllowed(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalPost('/api/character/1/summary', [], [], [], ['Content-Type' => 'application/json']);
+    $this->assertSession()->statusCodeEquals(405);
+  }
+
+  /**
+   * Tests combat end turn API - negative case (GET not allowed).
+   */
+  public function testCombatEndTurnGetNotAllowed(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/api/combat/end-turn');
+    $this->assertSession()->statusCodeEquals(405);
+  }
+
+  /**
+   * Tests combat end API - negative case (GET not allowed).
+   */
+  public function testCombatEndGetNotAllowed(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/api/combat/end');
+    $this->assertSession()->statusCodeEquals(405);
+  }
+
+  /**
+   * Tests combat attack API - negative case (GET not allowed).
+   */
+  public function testCombatAttackGetNotAllowed(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/api/combat/attack');
+    $this->assertSession()->statusCodeEquals(405);
+  }
+
+  /**
+   * Tests character load API - negative case (accessing other user's character).
+   */
+  public function testCharacterLoadOwnershipDenied(): void {
+    // Create two users
+    $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $other_user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+
+    // Create a character owned by the first user
+    $database = \Drupal::database();
+    $character_id = $database->insert('dc_characters')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'user_id' => $owner->id(),
+        'name' => 'Owner Character',
+        'class' => 'fighter',
+        'race' => 'human',
+        'level' => 1,
+        'experience' => 0,
+        'status' => 1,
+        'character_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // Login as the other user and try to load the character
+    $this->drupalLogin($other_user);
+    $this->drupalGet("/api/character/load/{$character_id}", ['query' => ['_format' => 'json']]);
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Tests character state API - negative case (accessing other user's character).
+   */
+  public function testCharacterStateOwnershipDenied(): void {
+    // Create two users
+    $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $other_user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+
+    // Create a character owned by the first user
+    $database = \Drupal::database();
+    $character_id = $database->insert('dc_characters')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'user_id' => $owner->id(),
+        'name' => 'Owner Character',
+        'class' => 'fighter',
+        'race' => 'human',
+        'level' => 1,
+        'experience' => 0,
+        'status' => 1,
+        'character_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // Login as the other user and try to access character state
+    $this->drupalLogin($other_user);
+    $this->drupalGet("/api/character/{$character_id}/state", ['query' => ['_format' => 'json']]);
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
 }

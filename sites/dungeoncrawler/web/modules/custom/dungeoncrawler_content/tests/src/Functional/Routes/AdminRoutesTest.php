@@ -72,4 +72,34 @@ class AdminRoutesTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(403);
   }
 
+  /**
+   * Tests settings route - negative case (user with insufficient permissions).
+   */
+  public function testSettingsRouteInsufficientPermissions(): void {
+    $user = $this->drupalCreateUser(['access content overview']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/admin/config/content/dungeoncrawler');
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Tests dashboard route - negative case (user with wrong permission).
+   */
+  public function testDashboardRouteWrongPermission(): void {
+    $user = $this->drupalCreateUser(['administer site configuration']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/admin/content/dungeoncrawler');
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Tests settings route - negative case (anonymous user).
+   */
+  public function testSettingsRouteAnonymous(): void {
+    $this->drupalGet('/admin/config/content/dungeoncrawler');
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
 }
