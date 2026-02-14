@@ -207,12 +207,17 @@ class StateValidationService {
     $actual_type = gettype($value);
 
     // Map PHP types to JSON Schema types.
+    // For arrays: check if keys are sequential integers starting from 0.
+    $is_sequential_array = is_array($value) && (
+      empty($value) || array_keys($value) === range(0, count($value) - 1)
+    );
+    
     $type_map = [
       'boolean' => 'boolean',
       'integer' => 'integer',
       'double' => 'number',
       'string' => 'string',
-      'array' => array_values($value) === $value ? 'array' : 'object',
+      'array' => $is_sequential_array ? 'array' : 'object',
       'NULL' => 'null',
     ];
 

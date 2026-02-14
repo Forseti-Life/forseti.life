@@ -132,54 +132,20 @@ class RoomStateService {
     if (!empty($visible_ids) && isset($contents['entities']) && is_array($contents['entities'])) {
       $contents['entities'] = array_values(array_filter($contents['entities'], function ($ent) use ($visible_ids) {
         // Check hex visibility.
-        // Multiple naming conventions supported for flexibility:
-        // - hex_id: snake_case (database convention)
-        // - hexId: camelCase (API/frontend convention)
-        // - position.hexId: nested structure
-        // - state.hexId: state-embedded location
-        $hex_ref = $ent['hex_id'] ?? $ent['hexId'] ?? $ent['position']['hexId'] ?? $ent['state']['hexId'] ?? NULL;
+        $hex_ref = $this->extractHexReference($ent);
         $in_visible_hex = $hex_ref === NULL || in_array($hex_ref, $visible_ids, TRUE);
         
         if (!$in_visible_hex) {
           return FALSE;
         }
 
-        // Check if entity is hidden/trap and not detected.
-        $entity_type = $ent['type'] ?? '';
-        $is_hidden = !empty($ent['hidden']) || !empty($ent['state']['hidden']);
-        $is_detected = !empty($ent['detected']) || !empty($ent['state']['detected']);
-
-        // Traps are hidden by default unless detected.
-        if ($entity_type === 'trap' && !$is_detected) {
-          return FALSE;
-        }
-
-        // Hidden entities are not shown unless detected.
-        if ($is_hidden && !$is_detected) {
-          return FALSE;
-        }
-
-        return TRUE;
+        return $this->shouldShowEntity($ent);
       }));
     }
     elseif (isset($contents['entities']) && is_array($contents['entities'])) {
       // Even without visibility filtering, apply detection rules.
       $contents['entities'] = array_values(array_filter($contents['entities'], function ($ent) {
-        $entity_type = $ent['type'] ?? '';
-        $is_hidden = !empty($ent['hidden']) || !empty($ent['state']['hidden']);
-        $is_detected = !empty($ent['detected']) || !empty($ent['state']['detected']);
-
-        // Traps are hidden by default unless detected.
-        if ($entity_type === 'trap' && !$is_detected) {
-          return FALSE;
-        }
-
-        // Hidden entities are not shown unless detected.
-        if ($is_hidden && !$is_detected) {
-          return FALSE;
-        }
-
-        return TRUE;
+        return $this->shouldShowEntity($ent);
       }));
     }
 
@@ -265,6 +231,56 @@ class RoomStateService {
 
     // Return fresh combined view with static room data.
     return $this->getState($campaign_id, $room_id);
+  }
+
+  /**
+   * Extract hex reference from entity data.
+   *
+   * Supports multiple naming conventions:
+   * - hex_id: snake_case (database convention)
+   * - hexId: camelCase (API/frontend convention)
+   * - position.hexId: nested structure
+   * - state.hexId: state-embedded location
+   *
+   * @param array $entity
+   *   Entity data array.
+   *
+   * @return string|null
+   *   Hex reference or NULL if not found.
+   */
+  private function extractHexReference(array $entity): ?string {
+    return $entity['hex_id'] 
+      ?? $entity['hexId'] 
+      ?? $entity['position']['hexId'] 
+      ?? $entity['state']['hexId'] 
+      ?? NULL;
+  }
+
+  /**
+   * Determine if entity should be shown based on detection rules.
+   *
+   * @param array $entity
+   *   Entity data array.
+   *
+   * @return bool
+   *   TRUE if entity should be visible, FALSE otherwise.
+   */
+  private function shouldShowEntity(array $entity): bool {
+    $entity_type = $entity['type'] ?? '';
+    $is_hidden = !empty($entity['hidden']) || !empty($entity['state']['hidden']);
+    $is_detected = !empty($entity['detected']) || !empty($entity['state']['detected']);
+
+    // Traps are hidden by default unless detected.
+    if ($entity_type === 'trap' && !$is_detected) {
+      return FALSE;
+    }
+
+    // Hidden entities are not shown unless detected.
+    if ($is_hidden && !$is_detected) {
+      return FALSE;
+    }
+
+    return TRUE;
   }
 
 }
