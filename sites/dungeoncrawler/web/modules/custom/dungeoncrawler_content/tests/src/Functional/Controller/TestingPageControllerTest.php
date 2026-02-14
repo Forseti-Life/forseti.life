@@ -28,30 +28,27 @@ class TestingPageControllerTest extends BrowserTestBase {
   public function testTestingPageDisplayPositive(): void {
     $this->drupalGet('/testing');
     $this->assertSession()->statusCodeEquals(200);
+    
+    // Verify expected content structure/blocks.
     $this->assertSession()->pageTextContains('Testing Page');
     $this->assertSession()->pageTextContains('This is a test page stub');
+    $this->assertSession()->pageTextContains('dungeon crawler module');
   }
 
   /**
-   * Tests testing page public access - negative case (should be public).
+   * Tests testing page cache headers - should have max-age=0.
    */
-  public function testTestingPagePublicAccessNegative(): void {
-    // Testing page should be publicly accessible
+  public function testTestingPageCacheHeaders(): void {
     $this->drupalGet('/testing');
+    $this->assertSession()->statusCodeEquals(200);
+
+    // Testing page should have max-age 0 (no caching) per controller.
+    $cache_control = $this->getSession()->getResponseHeader('Cache-Control');
+    $this->assertNotNull($cache_control, 'Cache-Control header should be present');
+    $this->assertStringContainsString('max-age=0', $cache_control);
+    
+    // Page should be publicly accessible.
     $this->assertSession()->statusCodeNotEquals(403);
-    $this->assertSession()->statusCodeEquals(200);
-  }
-
-  /**
-   * Tests testing page caching - negative case (should not cache).
-   */
-  public function testTestingPageCachingNegative(): void {
-    $this->drupalGet('/testing');
-    $this->assertSession()->statusCodeEquals(200);
-
-    // Testing page should have max-age 0 (no caching)
-    $cacheControl = $this->getSession()->getResponseHeader('Cache-Control');
-    $this->assertStringContainsString('max-age=0', $cacheControl ?: '');
   }
 
 }

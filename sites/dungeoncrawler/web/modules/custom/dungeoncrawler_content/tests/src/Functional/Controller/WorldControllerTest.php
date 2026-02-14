@@ -28,17 +28,38 @@ class WorldControllerTest extends BrowserTestBase {
   public function testWorldPageDisplayPositive(): void {
     $this->drupalGet('/world');
     $this->assertSession()->statusCodeEquals(200);
+    
+    // Verify expected content structure/blocks.
     $this->assertSession()->pageTextContains('The Living Dungeon');
+    
+    // Verify key lore sections exist.
+    $this->assertSession()->pageTextContains('The Endless Depths');
+    $this->assertSession()->pageTextContains('AI-Born Creatures');
+    $this->assertSession()->pageTextContains('Procedural Treasures');
+    $this->assertSession()->pageTextContains('Dynamic Quests');
+    $this->assertSession()->pageTextContains('The Hex Realm');
+    $this->assertSession()->pageTextContains('Living History');
+    
+    // Verify CTA button.
+    $this->assertSession()->linkExists('View Campaigns');
   }
 
   /**
-   * Tests world page public access - negative case (permission check).
+   * Tests world page cache headers.
    */
-  public function testWorldPagePublicAccessNegative(): void {
-    // Negative test: page should NOT require authentication
+  public function testWorldPageCacheHeaders(): void {
     $this->drupalGet('/world');
-    $this->assertSession()->statusCodeNotEquals(403);
     $this->assertSession()->statusCodeEquals(200);
+    
+    // Verify cache headers are properly configured.
+    $this->assertSession()->responseHeaderExists('X-Drupal-Cache-Contexts');
+    
+    // World page should be cacheable as a public content page.
+    $cache_control = $this->getSession()->getResponseHeader('Cache-Control');
+    $this->assertNotNull($cache_control, 'Cache-Control header should be present');
+    
+    // Page should be publicly accessible without authentication.
+    $this->assertSession()->statusCodeNotEquals(403);
   }
 
 }
