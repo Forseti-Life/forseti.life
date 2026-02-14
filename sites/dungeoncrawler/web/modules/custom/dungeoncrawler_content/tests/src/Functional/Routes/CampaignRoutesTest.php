@@ -114,7 +114,7 @@ class CampaignRoutesTest extends BrowserTestBase {
   public function testCampaignRouteNegativeAnonymous(): void {
     $this->drupalGet('/campaigns');
     $this->assertSession()->statusCodeEquals(403);
-    
+
     // Also test campaign creation
     $this->drupalGet('/campaigns/create');
     $this->assertSession()->statusCodeEquals(403);
