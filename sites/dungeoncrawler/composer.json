@@ -32,6 +32,11 @@
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "Drupal\\dungeoncrawler_content\\": "web/modules/custom/dungeoncrawler_content/src"
+        }
+    },
     "config": {
         "allow-plugins": {
             "composer/installers": true,

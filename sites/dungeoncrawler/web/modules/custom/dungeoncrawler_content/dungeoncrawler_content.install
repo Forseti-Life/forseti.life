@@ -58,11 +58,29 @@ function dungeoncrawler_content_schema() {
         'default' => '',
         'description' => 'PF2e class (Fighter, Rogue, Wizard, etc.).',
       ],
+      'type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'pc',
+        'description' => 'Entity type: pc, npc, obstacle, trap, hazard.',
+      ],
       'character_data' => [
         'type' => 'text',
         'size' => 'big',
         'not null' => TRUE,
         'description' => 'Full PF2e character sheet as JSON.',
+      ],
+      'default_character_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Default state payload for this character/library entry.',
+      ],
+      'default_locations' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Optional JSON array of default placement locations.',
       ],
       'portrait' => [
         'type' => 'varchar',
@@ -1195,7 +1213,21 @@ function dungeoncrawler_content_schema() {
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
-        'description' => 'Character ID.',
+        'description' => 'Library character ID.',
+      ],
+      'instance_id' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Runtime instance identifier scoped to campaign.',
+      ],
+      'type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'pc',
+        'description' => 'pc, npc, obstacle, trap, hazard.',
       ],
       'uid' => [
         'type' => 'int',
@@ -1211,6 +1243,26 @@ function dungeoncrawler_content_schema() {
         'default' => 'player',
         'description' => 'Party role in campaign.',
       ],
+      'state_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Campaign-scoped runtime state JSON.',
+      ],
+      'location_type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'global',
+        'description' => 'Placement scope: global, dungeon, room, inventory, stash, creature.',
+      ],
+      'location_ref' => [
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Reference id for the placement (room id, dungeon id, holder id).',
+      ],
       'is_active' => [
         'type' => 'int',
         'size' => 'tiny',
@@ -1224,14 +1276,21 @@ function dungeoncrawler_content_schema() {
         'default' => 0,
         'description' => 'Joined timestamp.',
       ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Last updated timestamp for optimistic locking.',
+      ],
     ],
     'primary key' => ['id'],
     'unique keys' => [
-      'campaign_character' => ['campaign_id', 'character_id'],
+      'campaign_instance' => ['campaign_id', 'instance_id'],
     ],
     'indexes' => [
       'campaign_id' => ['campaign_id'],
       'character_id' => ['character_id'],
+      'type' => ['type'],
       'uid' => ['uid'],
     ],
   ];
@@ -1622,6 +1681,130 @@ function dungeoncrawler_content_update_10004() {
     }
   }
 
+
+    /**
+     * Unify entity storage across characters, NPCs, obstacles, traps, and hazards.
+     *
+     * - Adds type/default data to dc_characters for library defaults.
+     * - Expands dc_campaign_characters to hold per-campaign runtime instances and locations.
+     * - Backfills existing rows with sensible defaults and instance ids.
+     */
+    function dungeoncrawler_content_update_10005() {
+      $schema = dungeoncrawler_content_schema();
+      $database = \Drupal::database();
+      $schema_handler = $database->schema();
+      $messages = [];
+
+      // dc_characters: add polymorphic type + defaults.
+      $character_fields = ['type', 'default_character_data', 'default_locations'];
+      foreach ($character_fields as $field) {
+        if (!$schema_handler->fieldExists('dc_characters', $field)) {
+          $schema_handler->addField('dc_characters', $field, $schema['dc_characters']['fields'][$field]);
+          $messages[] = "Added dc_characters.$field";
+        }
+      }
+      if (!$schema_handler->indexExists('dc_characters', 'type')) {
+        $schema_handler->addIndex('dc_characters', 'type', ['type']);
+      }
+
+      // Backfill type/defaults for existing characters.
+      $database->update('dc_characters')
+        ->fields(['type' => 'pc'])
+        ->isNull('type')
+        ->execute();
+      $database->update('dc_characters')
+        ->fields(['type' => 'pc'])
+        ->condition('type', '')
+        ->execute();
+      // When no default_character_data set, mirror current character_data as a starting point.
+      if ($schema_handler->fieldExists('dc_characters', 'default_character_data')) {
+        $char_query = $database->select('dc_characters', 'c')
+          ->fields('c', ['id', 'character_data', 'default_character_data']);
+        $char_query->isNull('default_character_data');
+        $char_rows = $char_query->execute();
+
+        // Also cover empty-string defaults; do a second pass if needed.
+        $char_rows_empty = $database->select('dc_characters', 'c')
+          ->fields('c', ['id', 'character_data', 'default_character_data'])
+          ->condition('default_character_data', '')
+          ->execute();
+
+        $combined_rows = array_merge(iterator_to_array($char_rows), iterator_to_array($char_rows_empty));
+        $seen = [];
+        foreach ($combined_rows as $row) {
+          if (in_array($row->id, $seen, TRUE)) {
+            continue;
+          }
+          $seen[] = $row->id;
+          $database->update('dc_characters')
+            ->fields(['default_character_data' => $row->character_data])
+            ->condition('id', $row->id)
+            ->execute();
+        }
+      }
+
+      // dc_campaign_characters: add runtime instance fields.
+      $campaign_fields = ['instance_id', 'type', 'state_data', 'location_type', 'location_ref', 'updated'];
+      foreach ($campaign_fields as $field) {
+        if (!$schema_handler->fieldExists('dc_campaign_characters', $field)) {
+          $schema_handler->addField('dc_campaign_characters', $field, $schema['dc_campaign_characters']['fields'][$field]);
+          $messages[] = "Added dc_campaign_characters.$field";
+        }
+      }
+
+      // Drop old unique key and add the new instance-based unique key.
+      if ($schema_handler->indexExists('dc_campaign_characters', 'campaign_character')) {
+        $schema_handler->dropUniqueKey('dc_campaign_characters', 'campaign_character');
+      }
+      if (!$schema_handler->indexExists('dc_campaign_characters', 'campaign_instance')) {
+        $schema_handler->addUniqueKey('dc_campaign_characters', 'campaign_instance', ['campaign_id', 'instance_id']);
+      }
+      if (!$schema_handler->indexExists('dc_campaign_characters', 'type')) {
+        $schema_handler->addIndex('dc_campaign_characters', 'type', ['type']);
+      }
+
+      // Build a lookup of library character types for backfill.
+      $types = [];
+      $char_results = $database->select('dc_characters', 'c')
+        ->fields('c', ['id', 'type'])
+        ->execute();
+      foreach ($char_results as $row) {
+        $types[$row->id] = $row->type ?? 'pc';
+      }
+
+      // Backfill campaign rows with instance ids and defaults.
+      $now = time();
+      $campaign_rows = $database->select('dc_campaign_characters', 'cc')
+        ->fields('cc')
+        ->execute();
+
+      foreach ($campaign_rows as $row) {
+        $instance_id = !empty($row->instance_id) ? $row->instance_id : ('char_' . $row->character_id);
+        $type = $types[$row->character_id] ?? 'pc';
+        $state_data = $row->state_data ?? '{}';
+        $location_type = $row->location_type ?? 'global';
+        $location_ref = $row->location_ref ?? '';
+        $updated = $row->updated ?? $now;
+
+        $database->update('dc_campaign_characters')
+          ->fields([
+            'instance_id' => $instance_id,
+            'type' => $type,
+            'state_data' => $state_data,
+            'location_type' => $location_type,
+            'location_ref' => $location_ref,
+            'updated' => $updated,
+          ])
+          ->condition('id', $row->id)
+          ->execute();
+      }
+
+      if (empty($messages)) {
+        $messages[] = 'Schema already up to date.';
+      }
+
+      return t('Unified entity model update complete: @messages', ['@messages' => implode(' ', $messages)]);
+    }
   if (empty($messages)) {
     return t('Campaign-scoped content tables already exist.');
   }

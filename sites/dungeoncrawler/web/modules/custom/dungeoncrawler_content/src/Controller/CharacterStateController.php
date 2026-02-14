@@ -53,7 +53,7 @@ class CharacterStateController extends ControllerBase {
    * 
    * @see docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md#1-get-character-state
    */
-  public function getState(string $character_id): JsonResponse {
+  public function getState(string $character_id, Request $request): JsonResponse {
     try {
       // Verify user has access to character
       if (!$this->hasCharacterAccess($character_id)) {
@@ -62,8 +62,10 @@ class CharacterStateController extends ControllerBase {
           'error' => 'Access denied',
         ], 403);
       }
+      $campaign_id = $request->query->getInt('campaignId') ?: NULL;
+      $instance_id = $request->query->get('instanceId') ?: NULL;
       
-      $state = $this->characterStateService->getState($character_id);
+      $state = $this->characterStateService->getState($character_id, $campaign_id, $instance_id);
       
       return new JsonResponse([
         'success' => TRUE,
@@ -127,6 +129,8 @@ class CharacterStateController extends ControllerBase {
     }
 
     $expected_version = isset($data['expectedVersion']) ? (int) $data['expectedVersion'] : NULL;
+    $campaign_id = isset($data['campaignId']) ? (int) $data['campaignId'] : NULL;
+    $instance_id = $data['instanceId'] ?? NULL;
     $state_payload = $data['state'] ?? NULL;
 
     if (!is_array($state_payload)) {
@@ -134,7 +138,7 @@ class CharacterStateController extends ControllerBase {
     }
 
     try {
-      $updated = $this->characterStateService->setState($character_id, $state_payload, $expected_version);
+      $updated = $this->characterStateService->setState($character_id, $state_payload, $expected_version, $campaign_id, $instance_id);
 
       return new JsonResponse([
         'success' => TRUE,
@@ -147,7 +151,7 @@ class CharacterStateController extends ControllerBase {
       return new JsonResponse([
         'success' => FALSE,
         'error' => $e->getMessage(),
-        'currentVersion' => $this->characterStateService->getState($character_id)['metadata']['version'] ?? 0,
+        'currentVersion' => $this->characterStateService->getState($character_id, $campaign_id, $instance_id)['metadata']['version'] ?? 0,
       ], $code);
     }
     catch (\Exception $e) {
