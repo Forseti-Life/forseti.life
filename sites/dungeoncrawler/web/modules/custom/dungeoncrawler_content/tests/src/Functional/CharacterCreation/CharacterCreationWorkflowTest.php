@@ -15,8 +15,6 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  *   Section: "Functional Tests" - Character Creation Workflow Tests
  *
  * Test Coverage: All critical user paths
- *
- * TODO: Implement functional tests per design document
  */
 #[RunTestsInSeparateProcesses]
 class CharacterCreationWorkflowTest extends BrowserTestBase {
