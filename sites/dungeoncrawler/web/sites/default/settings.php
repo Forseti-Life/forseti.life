@@ -514,6 +514,14 @@ $settings['update_free_access'] = FALSE;
  */
 # $settings['file_public_path'] = 'sites/default/files';
 
+// Use writable paths during PHPUnit runs to avoid permission issues on
+// shared mounts.
+if (getenv('SIMPLETEST_BASE_URL')) {
+  $settings['file_public_path'] = 'sites/simpletest/files';
+  $settings['file_private_path'] = 'sites/simpletest/private';
+  $settings['file_temp_path'] = 'sites/simpletest/temp';
+}
+
 /**
  * Additional public file schemes:
  *

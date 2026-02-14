@@ -6,6 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\dungeoncrawler_content\Access\CampaignAccessCheck;
 use Drupal\dungeoncrawler_content\Service\DungeonStateService;
+use Drupal\dungeoncrawler_content\Service\StateValidationService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,22 +19,26 @@ class DungeonStateController extends ControllerBase {
   private DungeonStateService $dungeonStateService;
   private CampaignAccessCheck $campaignAccessCheck;
   private AccountInterface $currentUser;
+  private StateValidationService $validationService;
 
   public function __construct(
     DungeonStateService $dungeon_state_service,
     CampaignAccessCheck $campaign_access_check,
-    AccountInterface $current_user
+    AccountInterface $current_user,
+    StateValidationService $validation_service
   ) {
     $this->dungeonStateService = $dungeon_state_service;
     $this->campaignAccessCheck = $campaign_access_check;
     $this->currentUser = $current_user;
+    $this->validationService = $validation_service;
   }
 
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('dungeoncrawler_content.dungeon_state_service'),
       $container->get('dungeoncrawler_content.campaign_access_check'),
-      $container->get('current_user')
+      $container->get('current_user'),
+      $container->get('dungeoncrawler_content.state_validation_service')
     );
   }
 
@@ -111,6 +116,16 @@ class DungeonStateController extends ControllerBase {
       return new JsonResponse(['success' => FALSE, 'error' => 'Missing state payload'], 400);
     }
 
+    // Validate dungeon state payload against schema.
+    $validation = $this->validationService->validateDungeonState($state_payload);
+    if (!$validation['valid']) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'error' => 'Invalid state payload',
+        'validation_errors' => $validation['errors'],
+      ], 400);
+    }
+
     try {
       $updated = $this->dungeonStateService->setState($dungeon_id, $state_payload, $expected_version, $campaign_id);
       return new JsonResponse([
@@ -121,7 +136,7 @@ class DungeonStateController extends ControllerBase {
     }
     catch (\InvalidArgumentException $e) {
       $code = $e->getCode() === 409 ? 409 : 400;
-      $current = $this->dungeonStateService->getState($dungeon_id);
+      $current = $this->dungeonStateService->getState($dungeon_id, $campaign_id);
       return new JsonResponse([
         'success' => FALSE,
         'error' => $e->getMessage(),

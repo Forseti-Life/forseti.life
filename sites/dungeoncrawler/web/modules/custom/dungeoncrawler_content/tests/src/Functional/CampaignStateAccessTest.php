@@ -66,13 +66,7 @@ class CampaignStateAccessTest extends BrowserTestBase {
       ],
     ];
 
-    $response = $this->drupalPost(
-      "/api/campaign/{$campaign_id}/state",
-      json_encode($state_payload),
-      ['Content-Type' => 'application/json']
-    );
-    
-    $result = json_decode($response, TRUE);
+    $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/state", $state_payload);
     $this->assertTrue($result['success']);
     $this->assertEquals(2, $result['version']);
   }
@@ -118,13 +112,7 @@ class CampaignStateAccessTest extends BrowserTestBase {
       'state' => ['created_by' => $other_user->id(), 'started' => TRUE, 'progress' => []],
     ];
 
-    $response = $this->drupalPost(
-      "/api/campaign/{$campaign_id}/state",
-      json_encode($state_payload),
-      ['Content-Type' => 'application/json']
-    );
-    
-    $result = json_decode($response, TRUE);
+    $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/state", $state_payload);
     $this->assertFalse($result['success']);
     $this->assertStringContainsString('Access denied', $result['error']);
   }
@@ -164,6 +152,24 @@ class CampaignStateAccessTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(200);
     $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
     $this->assertTrue($response['success']);
+  }
+
+  /**
+   * Issue a JSON request with the given method and payload.
+   */
+  private function requestJson(string $method, string $path, ?array $payload = NULL): array {
+    $body = $payload !== NULL ? json_encode($payload) : NULL;
+    $this->getSession()->getDriver()->getClient()->request(
+      $method,
+      $this->buildUrl($path),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      $body
+    );
+
+    $content = $this->getSession()->getPage()->getContent();
+    return json_decode($content, TRUE) ?? [];
   }
 
 }

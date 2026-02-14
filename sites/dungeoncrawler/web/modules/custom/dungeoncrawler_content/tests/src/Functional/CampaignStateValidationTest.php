@@ -60,13 +60,7 @@ class CampaignStateValidationTest extends BrowserTestBase {
       ],
     ];
 
-    $response = $this->drupalPost(
-      "/api/campaign/{$campaign_id}/state",
-      json_encode($valid_payload),
-      ['Content-Type' => 'application/json']
-    );
-    
-    $result = json_decode($response, TRUE);
+    $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/state", $valid_payload);
     $this->assertTrue($result['success'], 'Valid payload should be accepted');
     $this->assertEquals(2, $result['version']);
   }
@@ -104,13 +98,7 @@ class CampaignStateValidationTest extends BrowserTestBase {
       ],
     ];
 
-    $response = $this->drupalPost(
-      "/api/campaign/{$campaign_id}/state",
-      json_encode($invalid_payload),
-      ['Content-Type' => 'application/json']
-    );
-    
-    $result = json_decode($response, TRUE);
+    $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/state", $invalid_payload);
     $this->assertFalse($result['success'], 'Invalid payload should be rejected');
     $this->assertStringContainsString('Invalid state payload', $result['error']);
     $this->assertNotEmpty($result['validation_errors']);
@@ -141,13 +129,7 @@ class CampaignStateValidationTest extends BrowserTestBase {
       ->execute();
 
     // Send invalid JSON.
-    $response = $this->drupalPost(
-      "/api/campaign/{$campaign_id}/state",
-      '{invalid json}',
-      ['Content-Type' => 'application/json']
-    );
-    
-    $result = json_decode($response, TRUE);
+    $result = $this->requestRaw('POST', "/api/campaign/{$campaign_id}/state", '{invalid json}');
     $this->assertFalse($result['success']);
     $this->assertStringContainsString('Invalid JSON', $result['error']);
   }
@@ -181,15 +163,33 @@ class CampaignStateValidationTest extends BrowserTestBase {
       'expectedVersion' => 1,
     ];
 
-    $response = $this->drupalPost(
-      "/api/campaign/{$campaign_id}/state",
-      json_encode($invalid_payload),
-      ['Content-Type' => 'application/json']
-    );
-    
-    $result = json_decode($response, TRUE);
+    $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/state", $invalid_payload);
     $this->assertFalse($result['success']);
     $this->assertStringContainsString('Missing state payload', $result['error']);
+  }
+
+  /**
+   * Issue a JSON request with the given method and payload array.
+   */
+  private function requestJson(string $method, string $path, array $payload): array {
+    return $this->requestRaw($method, $path, json_encode($payload));
+  }
+
+  /**
+   * Issue a JSON request with raw body content.
+   */
+  private function requestRaw(string $method, string $path, string $body): array {
+    $this->getSession()->getDriver()->getClient()->request(
+      $method,
+      $this->buildUrl($path),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      $body
+    );
+
+    $content = $this->getSession()->getPage()->getContent();
+    return json_decode($content, TRUE) ?? [];
   }
 
 }

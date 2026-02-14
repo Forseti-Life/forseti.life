@@ -109,9 +109,8 @@ class StateValidationService {
   private function validateAgainstSchemaFile(array $data, string $schema_path): array {
     // Check if schema file exists.
     if (!file_exists($schema_path)) {
-      $this->logger->warning('Schema file not found: {path}', ['path' => $schema_path]);
-      // Return valid if schema doesn't exist (permissive fallback).
-      return ['valid' => TRUE, 'errors' => []];
+      $this->logger->error('Schema file not found: {path}', ['path' => $schema_path]);
+      return ['valid' => FALSE, 'errors' => ["Schema file not found: {$schema_path}"]];
     }
 
     // Load schema.
@@ -120,7 +119,7 @@ class StateValidationService {
     
     if (!is_array($schema)) {
       $this->logger->error('Invalid schema file: {path}', ['path' => $schema_path]);
-      return ['valid' => TRUE, 'errors' => []];
+      return ['valid' => FALSE, 'errors' => ["Invalid schema file: {$schema_path}"]];
     }
 
     // Perform basic validation.

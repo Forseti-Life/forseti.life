@@ -57,13 +57,7 @@ class EntityLifecycleTest extends BrowserTestBase {
       ],
     ];
 
-    $response = $this->drupalPost(
-      "/api/campaign/{$campaign_id}/entity/spawn",
-      json_encode($spawn_payload),
-      ['Content-Type' => 'application/json']
-    );
-    
-    $result = json_decode($response, TRUE);
+    $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/entity/spawn", $spawn_payload);
     $this->assertTrue($result['success'], 'Entity spawn should succeed');
     $this->assertEquals('test-goblin-1', $result['data']['instanceId']);
     $this->assertEquals('npc', $result['data']['type']);
@@ -83,13 +77,7 @@ class EntityLifecycleTest extends BrowserTestBase {
       'locationRef' => 'room-2',
     ];
 
-    $response = $this->drupalPost(
-      "/api/campaign/{$campaign_id}/entity/test-goblin-1/move",
-      json_encode($move_payload),
-      ['Content-Type' => 'application/json']
-    );
-    
-    $result = json_decode($response, TRUE);
+    $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/entity/test-goblin-1/move", $move_payload);
     $this->assertTrue($result['success'], 'Entity move should succeed');
     $this->assertEquals('room-2', $result['data']['locationRef']);
 
@@ -100,14 +88,7 @@ class EntityLifecycleTest extends BrowserTestBase {
     $this->assertEquals('test-goblin-1', $list_result['data'][0]['instanceId']);
 
     // 5. Despawn entity.
-    $response = $this->drupalPost(
-      "/api/campaign/{$campaign_id}/entity/test-goblin-1",
-      '',
-      ['Content-Type' => 'application/json'],
-      'DELETE'
-    );
-    
-    $result = json_decode($response, TRUE);
+    $result = $this->requestJson('DELETE', "/api/campaign/{$campaign_id}/entity/test-goblin-1");
     $this->assertTrue($result['success'], 'Entity despawn should succeed');
 
     // 6. Verify entity no longer exists.
@@ -146,23 +127,11 @@ class EntityLifecycleTest extends BrowserTestBase {
       'stateData' => [],
     ];
 
-    $response = $this->drupalPost(
-      "/api/campaign/{$campaign_id}/entity/spawn",
-      json_encode($spawn_payload),
-      ['Content-Type' => 'application/json']
-    );
-    
-    $result = json_decode($response, TRUE);
+    $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/entity/spawn", $spawn_payload);
     $this->assertTrue($result['success']);
 
     // Try to spawn another entity with same instanceId.
-    $response = $this->drupalPost(
-      "/api/campaign/{$campaign_id}/entity/spawn",
-      json_encode($spawn_payload),
-      ['Content-Type' => 'application/json']
-    );
-    
-    $result = json_decode($response, TRUE);
+    $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/entity/spawn", $spawn_payload);
     $this->assertFalse($result['success'], 'Duplicate instanceId should fail');
     $this->assertStringContainsString('already exists', $result['error']);
   }
@@ -194,13 +163,7 @@ class EntityLifecycleTest extends BrowserTestBase {
       'locationRef' => 'room-2',
     ];
 
-    $response = $this->drupalPost(
-      "/api/campaign/{$campaign_id}/entity/non-existent/move",
-      json_encode($move_payload),
-      ['Content-Type' => 'application/json']
-    );
-    
-    $result = json_decode($response, TRUE);
+    $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/entity/non-existent/move", $move_payload);
     $this->assertFalse($result['success']);
     $this->assertStringContainsString('not found', $result['error']);
   }
@@ -235,15 +198,27 @@ class EntityLifecycleTest extends BrowserTestBase {
       'stateData' => [],
     ];
 
-    $response = $this->drupalPost(
-      "/api/campaign/{$campaign_id}/entity/spawn",
-      json_encode($spawn_payload),
-      ['Content-Type' => 'application/json']
-    );
-    
-    $result = json_decode($response, TRUE);
+    $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/entity/spawn", $spawn_payload);
     $this->assertFalse($result['success']);
     $this->assertStringContainsString('Invalid type', $result['error']);
+  }
+
+  /**
+   * Issue a JSON request with the given method and payload.
+   */
+  private function requestJson(string $method, string $path, ?array $payload = NULL): array {
+    $body = $payload !== NULL ? json_encode($payload) : NULL;
+    $this->getSession()->getDriver()->getClient()->request(
+      $method,
+      $this->buildUrl($path),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      $body
+    );
+
+    $content = $this->getSession()->getPage()->getContent();
+    return json_decode($content, TRUE) ?? [];
   }
 
 }
