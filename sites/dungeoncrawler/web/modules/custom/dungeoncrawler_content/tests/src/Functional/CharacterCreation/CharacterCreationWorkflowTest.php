@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\Tests\dungeoncrawler_content\Functional;
+namespace Drupal\Tests\dungeoncrawler_content\Functional\CharacterCreation;
 
 use Drupal\Tests\BrowserTestBase;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
