@@ -3,6 +3,8 @@
 namespace Drupal\Tests\dungeoncrawler_content\Functional;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestDataFactoryTrait;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestFixtureTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
@@ -13,6 +15,9 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  */
 #[RunTestsInSeparateProcesses]
 class EntityLifecycleTest extends BrowserTestBase {
+
+  use TestDataFactoryTrait;
+  use TestFixtureTrait;
 
   /**
    * {@inheritdoc}
@@ -31,63 +36,64 @@ class EntityLifecycleTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => '{}',
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    // Create a campaign using factory.
+    $campaign_id = $this->createTestCampaign(['uid' => $user->id()]);
 
-    // 1. Spawn an NPC entity.
+    // Load entity fixture and create spawn data.
+    $fixture = $this->loadFixture('entities/goblin_warrior.json');
     $spawn_payload = [
-      'type' => 'npc',
+      'type' => $fixture['type'],
       'instanceId' => 'test-goblin-1',
-      'characterId' => 999,
-      'locationType' => 'room',
-      'locationRef' => 'room-1',
-      'stateData' => [
-        'hp' => 8,
-        'maxHp' => 8,
-        'hexId' => 'hex-5',
-      ],
+      'characterId' => $fixture['characterId'],
+      'locationType' => $fixture['locationType'],
+      'locationRef' => $fixture['locationRef'],
+      'stateData' => $fixture['stateData'],
     ];
 
+    // 1. Spawn an NPC entity.
     $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/entity/spawn", $spawn_payload);
     $this->assertTrue($result['success'], 'Entity spawn should succeed');
-    $this->assertEquals('test-goblin-1', $result['data']['instanceId']);
-    $this->assertEquals('npc', $result['data']['type']);
-    $this->assertEquals('room-1', $result['data']['locationRef']);
+    $this->assertArrayHasKey('data', $result, 'Response should contain data');
+    
+    // Assert spawn response fields.
+    $this->assertEquals('test-goblin-1', $result['data']['instanceId'], 'Instance ID should match');
+    $this->assertEquals('npc', $result['data']['type'], 'Type should be npc');
+    $this->assertEquals('room-1', $result['data']['locationRef'], 'Location should be room-1');
+    $this->assertArrayHasKey('stateData', $result['data'], 'Response should contain stateData');
+    
+    // Assert entity state fields.
+    $state = $result['data']['stateData'];
+    $this->assertEquals(8, $state['hp'], 'HP should match fixture');
+    $this->assertEquals(8, $state['maxHp'], 'Max HP should match fixture');
+    $this->assertEquals('hex-5', $state['hexId'], 'Hex ID should match');
+    $this->assertEquals('Goblin Warrior', $state['name'], 'Name should match');
+    $this->assertEquals(1, $state['level'], 'Level should be 1');
 
     // 2. List entities in room-1.
     $this->drupalGet("/api/campaign/{$campaign_id}/entities?locationType=room&locationRef=room-1");
     $this->assertSession()->statusCodeEquals(200);
     $list_result = json_decode($this->getSession()->getPage()->getContent(), TRUE);
-    $this->assertTrue($list_result['success']);
-    $this->assertEquals(1, $list_result['count']);
-    $this->assertEquals('test-goblin-1', $list_result['data'][0]['instanceId']);
+    $this->assertTrue($list_result['success'], 'Entity list should succeed');
+    $this->assertEquals(1, $list_result['count'], 'Should have 1 entity');
+    $this->assertIsArray($list_result['data'], 'Data should be an array');
+    $this->assertEquals('test-goblin-1', $list_result['data'][0]['instanceId'], 'Entity should be in list');
+    $this->assertEquals('npc', $list_result['data'][0]['type'], 'Type should be npc');
 
     // 3. Move entity to room-2.
-    $move_payload = [
-      'locationType' => 'room',
-      'locationRef' => 'room-2',
-    ];
+    $move_payload = $this->createEntityMoveData(['locationRef' => 'room-2']);
 
     $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/entity/test-goblin-1/move", $move_payload);
     $this->assertTrue($result['success'], 'Entity move should succeed');
-    $this->assertEquals('room-2', $result['data']['locationRef']);
+    $this->assertArrayHasKey('data', $result, 'Response should contain data');
+    $this->assertEquals('room-2', $result['data']['locationRef'], 'Location should be updated');
+    $this->assertEquals('test-goblin-1', $result['data']['instanceId'], 'Instance ID should remain');
 
     // 4. Verify entity is now in room-2.
     $this->drupalGet("/api/campaign/{$campaign_id}/entities?locationType=room&locationRef=room-2");
     $list_result = json_decode($this->getSession()->getPage()->getContent(), TRUE);
-    $this->assertEquals(1, $list_result['count']);
-    $this->assertEquals('test-goblin-1', $list_result['data'][0]['instanceId']);
+    $this->assertTrue($list_result['success'], 'List should succeed');
+    $this->assertEquals(1, $list_result['count'], 'Should have 1 entity in room-2');
+    $this->assertEquals('test-goblin-1', $list_result['data'][0]['instanceId'], 'Entity should be in room-2');
 
     // 5. Despawn entity.
     $result = $this->requestJson('DELETE', "/api/campaign/{$campaign_id}/entity/test-goblin-1");
@@ -96,7 +102,8 @@ class EntityLifecycleTest extends BrowserTestBase {
     // 6. Verify entity no longer exists.
     $this->drupalGet("/api/campaign/{$campaign_id}/entities");
     $list_result = json_decode($this->getSession()->getPage()->getContent(), TRUE);
-    $this->assertEquals(0, $list_result['count']);
+    $this->assertTrue($list_result['success'], 'List should succeed');
+    $this->assertEquals(0, $list_result['count'], 'Should have 0 entities after despawn');
   }
 
   /**
@@ -106,36 +113,22 @@ class EntityLifecycleTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => '{}',
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    // Create a campaign using factory.
+    $campaign_id = $this->createTestCampaign(['uid' => $user->id()]);
 
-    // Spawn first entity.
-    $spawn_payload = [
-      'type' => 'npc',
+    // Spawn first entity using factory.
+    $spawn_payload = $this->createEntitySpawnData([
       'instanceId' => 'duplicate-test',
-      'locationType' => 'room',
-      'locationRef' => 'room-1',
-      'stateData' => [],
-    ];
+    ]);
 
     $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/entity/spawn", $spawn_payload);
-    $this->assertTrue($result['success']);
+    $this->assertTrue($result['success'], 'First spawn should succeed');
 
     // Try to spawn another entity with same instanceId.
     $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/entity/spawn", $spawn_payload);
     $this->assertFalse($result['success'], 'Duplicate instanceId should fail');
-    $this->assertStringContainsString('already exists', $result['error']);
+    $this->assertArrayHasKey('error', $result, 'Response should contain error');
+    $this->assertStringContainsString('already exists', $result['error'], 'Error should mention entity exists');
   }
 
   /**
@@ -145,29 +138,16 @@ class EntityLifecycleTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => '{}',
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    // Create a campaign using factory.
+    $campaign_id = $this->createTestCampaign(['uid' => $user->id()]);
 
     // Try to move non-existent entity.
-    $move_payload = [
-      'locationType' => 'room',
-      'locationRef' => 'room-2',
-    ];
+    $move_payload = $this->createEntityMoveData();
 
     $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/entity/non-existent/move", $move_payload);
-    $this->assertFalse($result['success']);
-    $this->assertStringContainsString('not found', $result['error']);
+    $this->assertFalse($result['success'], 'Move should fail for non-existent entity');
+    $this->assertArrayHasKey('error', $result, 'Response should contain error');
+    $this->assertStringContainsString('not found', $result['error'], 'Error should mention not found');
   }
 
   /**
@@ -177,32 +157,19 @@ class EntityLifecycleTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => '{}',
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    // Create a campaign using factory.
+    $campaign_id = $this->createTestCampaign(['uid' => $user->id()]);
 
-    // Try to spawn entity with invalid type.
-    $spawn_payload = [
+    // Try to spawn entity with invalid type using factory.
+    $spawn_payload = $this->createEntitySpawnData([
       'type' => 'invalid_type',
       'instanceId' => 'test-invalid',
-      'locationType' => 'room',
-      'locationRef' => 'room-1',
-      'stateData' => [],
-    ];
+    ]);
 
     $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/entity/spawn", $spawn_payload);
-    $this->assertFalse($result['success']);
-    $this->assertStringContainsString('Invalid type', $result['error']);
+    $this->assertFalse($result['success'], 'Invalid type should fail');
+    $this->assertArrayHasKey('error', $result, 'Response should contain error');
+    $this->assertStringContainsString('Invalid type', $result['error'], 'Error should mention invalid type');
   }
 
   /**

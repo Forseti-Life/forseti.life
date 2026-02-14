@@ -3,6 +3,8 @@
 namespace Drupal\Tests\dungeoncrawler_content\Functional\Routes;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestDataFactoryTrait;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestFixtureTrait;
 
 /**
  * Tests API routes in the dungeon crawler module.
@@ -12,6 +14,9 @@ use Drupal\Tests\BrowserTestBase;
  * @group api
  */
 class ApiRoutesTest extends BrowserTestBase {
+
+  use TestDataFactoryTrait;
+  use TestFixtureTrait;
 
   /**
    * {@inheritdoc}
@@ -30,10 +35,27 @@ class ApiRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['create dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // POST request with valid data
-    $this->drupalPost('/api/character/save', [], [], [], ['Content-Type' => 'application/json']);
-    // May return 400/422 without valid data, but route exists
+    // Load character fixture and POST valid data.
+    $character_data = $this->loadCharacterFixture('level_1_fighter');
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/character/save'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      json_encode(['character' => $character_data])
+    );
+
+    // Route should exist (not 404).
     $this->assertSession()->statusCodeNotEquals(404);
+    
+    $status_code = $this->getSession()->getStatusCode();
+    // If successful, validate response structure.
+    if ($status_code === 200) {
+      $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+      $this->assertIsArray($response, 'Response should be JSON');
+      $this->assertArrayHasKey('success', $response, 'Response should have success key');
+    }
   }
 
   /**

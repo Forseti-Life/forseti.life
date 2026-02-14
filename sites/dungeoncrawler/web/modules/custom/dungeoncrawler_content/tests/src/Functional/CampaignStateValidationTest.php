@@ -3,6 +3,8 @@
 namespace Drupal\Tests\dungeoncrawler_content\Functional;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestDataFactoryTrait;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestFixtureTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
@@ -13,6 +15,9 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  */
 #[RunTestsInSeparateProcesses]
 class CampaignStateValidationTest extends BrowserTestBase {
+
+  use TestDataFactoryTrait;
+  use TestFixtureTrait;
 
   /**
    * {@inheritdoc}
@@ -31,40 +36,27 @@ class CampaignStateValidationTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => json_encode([
-          'state' => ['created_by' => $user->id(), 'started' => TRUE, 'progress' => []],
-          'state_meta' => ['version' => 1, 'updatedAt' => date('c')],
-        ]),
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    // Create a campaign using factory.
+    $campaign_id = $this->createTestCampaign(['uid' => $user->id()]);
 
-    // Valid state payload.
+    // Load and use campaign state fixture.
+    $fixture = $this->loadFixture('campaigns/active_campaign_state.json');
     $valid_payload = [
       'expectedVersion' => 1,
-      'state' => [
-        'created_by' => $user->id(),
-        'started' => TRUE,
-        'progress' => [
-          ['type' => 'dungeon_entered', 'timestamp' => time()],
-        ],
-        'active_hex' => 'q0r0',
-        'metadata' => ['test' => 'value'],
-      ],
+      'state' => $fixture['state'],
     ];
 
     $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/state", $valid_payload);
     $this->assertTrue($result['success'], 'Valid payload should be accepted');
-    $this->assertEquals(2, $result['version']);
+    $this->assertEquals(2, $result['version'], 'Version should increment');
+    $this->assertArrayHasKey('state', $result, 'Response should contain state');
+    
+    // Assert specific state fields were preserved.
+    $this->assertEquals($fixture['state']['active_hex'], $result['state']['active_hex'], 'Active hex should match');
+    $this->assertEquals($fixture['state']['party_gold'], $result['state']['party_gold'], 'Party gold should match');
+    $this->assertCount(3, $result['state']['progress'], 'Progress should have 3 entries');
+    $this->assertIsArray($result['state']['active_quests'], 'Active quests should be an array');
+    $this->assertContains('goblin_caves', $result['state']['active_quests'], 'Should contain goblin_caves quest');
   }
 
   /**
@@ -74,22 +66,8 @@ class CampaignStateValidationTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => json_encode([
-          'state' => ['created_by' => $user->id(), 'started' => TRUE, 'progress' => []],
-          'state_meta' => ['version' => 1, 'updatedAt' => date('c')],
-        ]),
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    // Create a campaign using factory.
+    $campaign_id = $this->createTestCampaign(['uid' => $user->id()]);
 
     // Invalid payload - missing required 'started' field.
     $invalid_payload = [
@@ -102,8 +80,10 @@ class CampaignStateValidationTest extends BrowserTestBase {
 
     $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/state", $invalid_payload);
     $this->assertFalse($result['success'], 'Invalid payload should be rejected');
-    $this->assertStringContainsString('Invalid state payload', $result['error']);
-    $this->assertNotEmpty($result['validation_errors']);
+    $this->assertArrayHasKey('error', $result, 'Response should contain error');
+    $this->assertStringContainsString('Invalid state payload', $result['error'], 'Error should mention invalid payload');
+    $this->assertArrayHasKey('validation_errors', $result, 'Should contain validation errors');
+    $this->assertNotEmpty($result['validation_errors'], 'Validation errors should not be empty');
   }
 
   /**
@@ -113,27 +93,14 @@ class CampaignStateValidationTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => json_encode([
-          'state' => ['created_by' => $user->id(), 'started' => TRUE, 'progress' => []],
-          'state_meta' => ['version' => 1, 'updatedAt' => date('c')],
-        ]),
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    // Create a campaign using factory.
+    $campaign_id = $this->createTestCampaign(['uid' => $user->id()]);
 
     // Send invalid JSON.
     $result = $this->requestRaw('POST', "/api/campaign/{$campaign_id}/state", '{invalid json}');
-    $this->assertFalse($result['success']);
-    $this->assertStringContainsString('Invalid JSON', $result['error']);
+    $this->assertFalse($result['success'], 'Invalid JSON should be rejected');
+    $this->assertArrayHasKey('error', $result, 'Response should contain error');
+    $this->assertStringContainsString('Invalid JSON', $result['error'], 'Error should mention invalid JSON');
   }
 
   /**
@@ -143,22 +110,8 @@ class CampaignStateValidationTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => json_encode([
-          'state' => ['created_by' => $user->id(), 'started' => TRUE, 'progress' => []],
-          'state_meta' => ['version' => 1, 'updatedAt' => date('c')],
-        ]),
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    // Create a campaign using factory.
+    $campaign_id = $this->createTestCampaign(['uid' => $user->id()]);
 
     // Payload without state field.
     $invalid_payload = [
@@ -166,8 +119,9 @@ class CampaignStateValidationTest extends BrowserTestBase {
     ];
 
     $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/state", $invalid_payload);
-    $this->assertFalse($result['success']);
-    $this->assertStringContainsString('Missing state payload', $result['error']);
+    $this->assertFalse($result['success'], 'Missing state should be rejected');
+    $this->assertArrayHasKey('error', $result, 'Response should contain error');
+    $this->assertStringContainsString('Missing state payload', $result['error'], 'Error should mention missing state');
   }
 
   /**
