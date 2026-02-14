@@ -257,6 +257,7 @@ dungeoncrawler_content.api.campaign_state_get:
   methods: [GET]
   requirements:
     _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
     campaign_id: '\\d+'
   options:
     _format: json
@@ -293,6 +294,7 @@ dungeoncrawler_content.api.campaign_state_set:
   methods: [POST]
   requirements:
     _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
     campaign_id: '\\d+'
   options:
     _format: json

@@ -3,6 +3,8 @@
 namespace Drupal\dungeoncrawler_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\dungeoncrawler_content\Access\CampaignAccessCheck;
 use Drupal\dungeoncrawler_content\Service\DungeonStateService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -14,14 +16,24 @@ use Symfony\Component\HttpFoundation\Request;
 class DungeonStateController extends ControllerBase {
 
   private DungeonStateService $dungeonStateService;
+  private CampaignAccessCheck $campaignAccessCheck;
+  private AccountInterface $currentUser;
 
-  public function __construct(DungeonStateService $dungeon_state_service) {
+  public function __construct(
+    DungeonStateService $dungeon_state_service,
+    CampaignAccessCheck $campaign_access_check,
+    AccountInterface $current_user
+  ) {
     $this->dungeonStateService = $dungeon_state_service;
+    $this->campaignAccessCheck = $campaign_access_check;
+    $this->currentUser = $current_user;
   }
 
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('dungeoncrawler_content.dungeon_state_service')
+      $container->get('dungeoncrawler_content.dungeon_state_service'),
+      $container->get('dungeoncrawler_content.campaign_access_check'),
+      $container->get('current_user')
     );
   }
 
@@ -37,6 +49,15 @@ class DungeonStateController extends ControllerBase {
       ], 400);
     }
     $campaign_id = (int) $campaign_id;
+
+    // Check campaign access.
+    $access = $this->campaignAccessCheck->access($this->currentUser, $campaign_id);
+    if (!$access->isAllowed()) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'error' => 'Access denied to campaign',
+      ], 403);
+    }
 
     try {
       $state = $this->dungeonStateService->getState($dungeon_id, $campaign_id);
@@ -69,6 +90,15 @@ class DungeonStateController extends ControllerBase {
       return new JsonResponse(['success' => FALSE, 'error' => 'campaignId is required'], 400);
     }
     $campaign_id = (int) $data['campaignId'];
+
+    // Check campaign access.
+    $access = $this->campaignAccessCheck->access($this->currentUser, $campaign_id);
+    if (!$access->isAllowed()) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'error' => 'Access denied to campaign',
+      ], 403);
+    }
 
     if (isset($state_payload['dungeonId']) && (string) $state_payload['dungeonId'] !== (string) $dungeon_id) {
       return new JsonResponse([
