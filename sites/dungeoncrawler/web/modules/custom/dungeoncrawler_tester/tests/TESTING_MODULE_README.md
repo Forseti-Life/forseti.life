@@ -2,15 +2,16 @@
 
 ## Overview
 
-This testing module exercises the Dungeon Crawler module with route/controller functional tests and a `/testing` stub page. Unit/kernel coverage is planned; current focus is access, routing, and basic content assertions.
+This testing module exercises the Dungeon Crawler module with route/controller functional tests and a testing dashboard. Unit/kernel coverage is planned; current focus is access, routing, and basic content assertions.
 
-## Testing Page
+## Testing Dashboard
 
-The testing page is a simple stub page that can be used for manual testing and validation.
+The testing dashboard provides stagegates for release readiness and surfaces GitHub issues tagged with ci-failure or testing-defect labels.
 
-**URL:** `/testing`
-**Access:** Public (no authentication required)
-**Controller:** `TestingPageController`
+**URL:** `/dungeoncrawler/testing`
+**Access:** Requires `administer site configuration` permission
+**Controller:** `TestingDashboardController`
+**Purpose:** Release stagegates and issue surfacing for testing workflow
 
 ## Test Structure
 
@@ -18,7 +19,7 @@ The testing page is a simple stub page that can be used for manual testing and v
 
 Route tests validate that all defined routes work correctly with proper access control:
 
-1. **PublicRoutesTest** - Tests public-facing routes (home, world, about, credits, how-to-play, testing)
+1. **PublicRoutesTest** - Tests public-facing routes (home, world, about, credits, how-to-play)
 2. **AdminRoutesTest** - Tests admin routes (settings, dashboard)
 3. **CharacterRoutesTest** - Tests character management routes (list, create, view, edit, delete)
 4. **CampaignRoutesTest** - Tests campaign routes (list, create, tavern entrance, select character)
@@ -46,7 +47,7 @@ Controller tests validate the behavior of individual controllers:
 15. **CombatEncounterApiControllerTest** - Tests combat encounter API
 16. **DungeonControllerTest** - Tests dungeon functionality
 17. **HexMapControllerTest** - Tests hex map demo
-18. **TestingPageControllerTest** - Tests the testing page itself
+18. **TestingPageControllerTest** - Tests the testing dashboard controller
 
 ## Test Cases
 
@@ -110,15 +111,16 @@ cd /home/keithaumiller/forseti.life/sites/dungeoncrawler
 The testing module covers:
 
 ### Routes
-- Public (home, world, about, credits, how-to-play, testing)
-- Admin (dashboard, settings)
+- Public (home, world, about, credits, how-to-play)
+- Admin (dashboard, settings, testing dashboard)
 - Character (list, CRUD, creation flow)
 - Campaign (list, create, selection flow)
 - API endpoints (character + combat)
-- Demo routes (hex map / testing)
+- Demo routes (hex map)
 
 ### Controllers
-- Public page controllers (home, about, world, credits, how-to-play, testing)
+- Public page controllers (home, about, world, credits, how-to-play)
+- Testing dashboard controller
 - Character management controllers
 - Campaign controllers
 - Combat controllers
