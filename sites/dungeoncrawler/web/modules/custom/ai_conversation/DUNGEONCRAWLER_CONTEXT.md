@@ -194,7 +194,7 @@ When players ask about the technical architecture:
 - `src/Controller/HexMapController.php` - Map controller
 - `js/hexmap.js` - PixiJS rendering logic
 - `templates/hexmap-demo.html.twig` - Map template
-- `dungeoncrawler_content.routing.yml` - Route definitions (line 87-93)
+- `dungeoncrawler_content.routing.yml` - Route definitions (search for `hexmap_demo`)
 
 ---
 
