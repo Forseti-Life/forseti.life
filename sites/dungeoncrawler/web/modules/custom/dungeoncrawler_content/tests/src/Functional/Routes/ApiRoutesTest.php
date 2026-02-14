@@ -79,8 +79,21 @@ class ApiRoutesTest extends BrowserTestBase {
 
     // GET request
     $this->drupalGet('/api/character/load/1', ['query' => ['_format' => 'json']]);
-    // May return 403/404 without valid character
-    $this->assertSession()->statusCodeNotEquals(405);
+    
+    $status_code = $this->getSession()->getStatusCode();
+    // Method should be allowed (not 405).
+    $this->assertNotEquals(405, $status_code, 'GET method should be allowed');
+    
+    // If successful, validate response structure.
+    if ($status_code === 200) {
+      $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+      $this->assertIsArray($response, 'Response should be JSON');
+      $this->assertArrayHasKey('success', $response, 'Response should have success field');
+      
+      if ($response['success']) {
+        $this->assertArrayHasKey('character', $response, 'Response should contain character data');
+      }
+    }
   }
 
   /**
@@ -102,8 +115,21 @@ class ApiRoutesTest extends BrowserTestBase {
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/character/1/state', ['query' => ['_format' => 'json']]);
-    // May return 403/404 without valid character
-    $this->assertSession()->statusCodeNotEquals(405);
+    
+    $status_code = $this->getSession()->getStatusCode();
+    // Method should be allowed (not 405).
+    $this->assertNotEquals(405, $status_code, 'GET method should be allowed');
+    
+    // If successful, validate response structure.
+    if ($status_code === 200) {
+      $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+      $this->assertIsArray($response, 'Response should be JSON');
+      $this->assertArrayHasKey('success', $response, 'Response should have success field');
+      
+      if ($response['success']) {
+        $this->assertArrayHasKey('state', $response, 'Response should contain state');
+      }
+    }
   }
 
   /**
@@ -126,7 +152,17 @@ class ApiRoutesTest extends BrowserTestBase {
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/character/1/summary', ['query' => ['_format' => 'json']]);
-    $this->assertSession()->statusCodeNotEquals(405);
+    
+    $status_code = $this->getSession()->getStatusCode();
+    // Method should be allowed (not 405).
+    $this->assertNotEquals(405, $status_code, 'GET method should be allowed');
+    
+    // If successful, validate response structure.
+    if ($status_code === 200) {
+      $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+      $this->assertIsArray($response, 'Response should be JSON');
+      $this->assertArrayHasKey('success', $response, 'Response should have success field');
+    }
   }
 
   /**
@@ -136,8 +172,26 @@ class ApiRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/character/1/update', [], [], [], ['Content-Type' => 'application/json']);
-    $this->assertSession()->statusCodeNotEquals(404);
+    $update_payload = json_encode(['hp' => 10, 'conditions' => []]);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/character/1/update'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      $update_payload
+    );
+
+    $status_code = $this->getSession()->getStatusCode();
+    // Route should exist (not 404).
+    $this->assertNotEquals(404, $status_code, 'Route should exist');
+    
+    // If successful, validate response structure.
+    if ($status_code === 200) {
+      $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+      $this->assertIsArray($response, 'Response should be JSON');
+      $this->assertArrayHasKey('success', $response, 'Response should have success field');
+    }
   }
 
   /**
