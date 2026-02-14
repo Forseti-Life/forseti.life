@@ -3,6 +3,7 @@
 namespace Drupal\Tests\dungeoncrawler_content\Functional\Routes;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestDataBuilderTrait;
 
 /**
  * Tests API routes in the dungeon crawler module.
@@ -12,6 +13,8 @@ use Drupal\Tests\BrowserTestBase;
  * @group api
  */
 class ApiRoutesTest extends BrowserTestBase {
+
+  use TestDataBuilderTrait;
 
   /**
    * {@inheritdoc}
@@ -27,7 +30,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests character save API route - positive case.
    */
   public function testCharacterSaveApiRoutePositive(): void {
-    $user = $this->drupalCreateUser(['create dungeoncrawler characters']);
+    $user = $this->createTestUser(['create dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     // POST request with valid data
@@ -40,7 +43,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests character save API route - negative case (GET method not allowed).
    */
   public function testCharacterSaveApiRouteNegative(): void {
-    $user = $this->drupalCreateUser(['create dungeoncrawler characters']);
+    $user = $this->createTestUser(['create dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/character/save');
@@ -52,7 +55,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests character load API route - positive case.
    */
   public function testCharacterLoadApiRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     // GET request
@@ -65,7 +68,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests character load API route - negative case (non-numeric ID).
    */
   public function testCharacterLoadApiRouteNegative(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/character/load/invalid');
@@ -76,7 +79,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests character state API route - positive case.
    */
   public function testCharacterStateApiRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/character/1/state', ['query' => ['_format' => 'json']]);
@@ -88,7 +91,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests character state API route - negative case (POST not allowed).
    */
   public function testCharacterStateApiRouteNegative(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/character/1/state', [], []);
@@ -100,7 +103,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests character summary API route - positive case.
    */
   public function testCharacterSummaryApiRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/character/1/summary', ['query' => ['_format' => 'json']]);
@@ -111,7 +114,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests character state update API route - positive case.
    */
   public function testCharacterStateUpdateApiRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/character/1/update', [], [], [], ['Content-Type' => 'application/json']);
@@ -122,7 +125,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests character state update API route - negative case (GET not allowed).
    */
   public function testCharacterStateUpdateApiRouteNegative(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/character/1/update');
@@ -133,7 +136,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests combat start API route - positive case.
    */
   public function testCombatStartApiRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/combat/start', [], [], [], ['Content-Type' => 'application/json']);
@@ -144,7 +147,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests combat start API route - negative case (GET not allowed).
    */
   public function testCombatStartApiRouteNegative(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/combat/start');
@@ -155,7 +158,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests combat end turn API route - positive case.
    */
   public function testCombatEndTurnApiRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/combat/end-turn', [], [], [], ['Content-Type' => 'application/json']);
@@ -166,7 +169,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests combat end API route - positive case.
    */
   public function testCombatEndApiRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/combat/end', [], [], [], ['Content-Type' => 'application/json']);
@@ -177,7 +180,7 @@ class ApiRoutesTest extends BrowserTestBase {
    * Tests combat attack API route - positive case.
    */
   public function testCombatAttackApiRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/combat/attack', [], [], [], ['Content-Type' => 'application/json']);

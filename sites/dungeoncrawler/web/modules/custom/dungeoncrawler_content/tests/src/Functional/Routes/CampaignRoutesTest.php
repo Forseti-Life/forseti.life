@@ -3,6 +3,7 @@
 namespace Drupal\Tests\dungeoncrawler_content\Functional\Routes;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestDataBuilderTrait;
 
 /**
  * Tests campaign routes in the dungeon crawler module.
@@ -11,6 +12,8 @@ use Drupal\Tests\BrowserTestBase;
  * @group routes
  */
 class CampaignRoutesTest extends BrowserTestBase {
+
+  use TestDataBuilderTrait;
 
   /**
    * {@inheritdoc}
@@ -26,7 +29,7 @@ class CampaignRoutesTest extends BrowserTestBase {
    * Tests campaigns list route - positive case.
    */
   public function testCampaignsListRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalGet('/campaigns');
@@ -46,7 +49,7 @@ class CampaignRoutesTest extends BrowserTestBase {
    * Tests campaign create route - positive case.
    */
   public function testCampaignCreateRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalGet('/campaigns/create');
@@ -66,7 +69,7 @@ class CampaignRoutesTest extends BrowserTestBase {
    * Tests campaign tavern entrance route - positive case.
    */
   public function testCampaignTavernEntranceRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     // Note: This will fail without a real campaign
@@ -78,7 +81,7 @@ class CampaignRoutesTest extends BrowserTestBase {
    * Tests campaign tavern entrance route - negative case (non-numeric ID).
    */
   public function testCampaignTavernEntranceRouteNegative(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalGet('/campaigns/invalid/tavernentrance');
@@ -89,7 +92,7 @@ class CampaignRoutesTest extends BrowserTestBase {
    * Tests campaign select character route - positive case.
    */
   public function testCampaignSelectCharacterRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     // Note: This will fail without real campaign and character
@@ -101,7 +104,7 @@ class CampaignRoutesTest extends BrowserTestBase {
    * Tests campaign select character route - negative case (invalid IDs).
    */
   public function testCampaignSelectCharacterRouteNegative(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalGet('/campaigns/invalid/select-character/invalid');

@@ -3,6 +3,7 @@
 namespace Drupal\Tests\dungeoncrawler_content\Functional\Routes;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestDataBuilderTrait;
 
 /**
  * Tests admin routes in the dungeon crawler module.
@@ -11,6 +12,8 @@ use Drupal\Tests\BrowserTestBase;
  * @group routes
  */
 class AdminRoutesTest extends BrowserTestBase {
+
+  use TestDataBuilderTrait;
 
   /**
    * {@inheritdoc}
@@ -26,7 +29,7 @@ class AdminRoutesTest extends BrowserTestBase {
    * Tests settings route - positive case.
    */
   public function testSettingsRoutePositive(): void {
-    $user = $this->drupalCreateUser(['administer site configuration']);
+    $user = $this->createTestUser(['administer site configuration']);
     $this->drupalLogin($user);
 
     $this->drupalGet('/admin/config/content/dungeoncrawler');
@@ -47,7 +50,7 @@ class AdminRoutesTest extends BrowserTestBase {
    * Tests dashboard route - positive case.
    */
   public function testDashboardRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access content overview']);
+    $user = $this->createTestUser(['access content overview']);
     $this->drupalLogin($user);
 
     $this->drupalGet('/admin/content/dungeoncrawler');

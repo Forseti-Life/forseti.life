@@ -3,6 +3,7 @@
 namespace Drupal\Tests\dungeoncrawler_content\Functional\Routes;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestDataBuilderTrait;
 
 /**
  * Tests character management routes in the dungeon crawler module.
@@ -11,6 +12,8 @@ use Drupal\Tests\BrowserTestBase;
  * @group routes
  */
 class CharacterRoutesTest extends BrowserTestBase {
+
+  use TestDataBuilderTrait;
 
   /**
    * {@inheritdoc}
@@ -26,7 +29,7 @@ class CharacterRoutesTest extends BrowserTestBase {
    * Tests characters list route - positive case.
    */
   public function testCharactersListRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalGet('/characters');
@@ -46,7 +49,7 @@ class CharacterRoutesTest extends BrowserTestBase {
    * Tests character creation route - positive case.
    */
   public function testCharacterCreationRoutePositive(): void {
-    $user = $this->drupalCreateUser(['create dungeoncrawler characters']);
+    $user = $this->createTestUser(['create dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     $this->drupalGet('/characters/create');
@@ -58,7 +61,7 @@ class CharacterRoutesTest extends BrowserTestBase {
    * Tests character creation route - negative case (no permission).
    */
   public function testCharacterCreationRouteNegative(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalGet('/characters/create');
@@ -69,7 +72,7 @@ class CharacterRoutesTest extends BrowserTestBase {
    * Tests character step route - positive case.
    */
   public function testCharacterStepRoutePositive(): void {
-    $user = $this->drupalCreateUser(['create dungeoncrawler characters']);
+    $user = $this->createTestUser(['create dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     $this->drupalGet('/characters/create/step/1');
@@ -80,7 +83,7 @@ class CharacterRoutesTest extends BrowserTestBase {
    * Tests character step route - negative case (invalid step).
    */
   public function testCharacterStepRouteNegative(): void {
-    $user = $this->drupalCreateUser(['create dungeoncrawler characters']);
+    $user = $this->createTestUser(['create dungeoncrawler characters']);
     $this->drupalLogin($user);
 
     // Try with non-numeric step
@@ -92,7 +95,7 @@ class CharacterRoutesTest extends BrowserTestBase {
    * Tests character view route - positive case (with valid character).
    */
   public function testCharacterViewRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     // Note: This will fail without a real character, but tests the route exists
@@ -105,7 +108,7 @@ class CharacterRoutesTest extends BrowserTestBase {
    * Tests character view route - negative case (non-numeric ID).
    */
   public function testCharacterViewRouteNegative(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalGet('/characters/invalid');
@@ -116,7 +119,7 @@ class CharacterRoutesTest extends BrowserTestBase {
    * Tests character edit route - positive case.
    */
   public function testCharacterEditRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     // Note: This will fail without a real character
@@ -128,7 +131,7 @@ class CharacterRoutesTest extends BrowserTestBase {
    * Tests character edit route - negative case (non-numeric ID).
    */
   public function testCharacterEditRouteNegative(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     $this->drupalGet('/characters/invalid/edit');
@@ -139,7 +142,7 @@ class CharacterRoutesTest extends BrowserTestBase {
    * Tests character delete route - positive case.
    */
   public function testCharacterDeleteRoutePositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $user = $this->createTestUser();
     $this->drupalLogin($user);
 
     // Note: This will fail without a real character
