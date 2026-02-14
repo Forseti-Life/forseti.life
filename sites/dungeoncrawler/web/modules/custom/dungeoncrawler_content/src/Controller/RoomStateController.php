@@ -125,6 +125,14 @@ class RoomStateController extends ControllerBase {
       return new JsonResponse(['success' => FALSE, 'error' => 'roomId in state must match path'], 400);
     }
 
+    // Basic validation: state_payload should be a non-empty object.
+    if (empty($state_payload)) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'error' => 'State payload must be a non-empty object',
+      ], 400);
+    }
+
     try {
       $updated = $this->roomStateService->setState($campaign_id, $room_id, $dungeon_id, $state_payload, $expected_version);
       // Also enforce returned state matches path IDs.
