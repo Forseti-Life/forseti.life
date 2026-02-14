@@ -18,7 +18,7 @@ class DungeonStateController extends ControllerBase {
 
   private DungeonStateService $dungeonStateService;
   private CampaignAccessCheck $campaignAccessCheck;
-  private AccountInterface $currentUser;
+  protected $currentUser;
   private StateValidationService $validationService;
 
   public function __construct(

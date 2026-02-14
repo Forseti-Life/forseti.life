@@ -18,6 +18,15 @@ dungeoncrawler_content.dashboard:
   requirements:
     _permission: 'access content overview'
 
+# Admin testing home (locked to admins)
+dungeoncrawler_content.testing_home:
+  path: '/admin/dungeoncrawler/testing'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\TestingDashboardController::dashboard'
+    _title: 'Dungeon Crawler Testing'
+  requirements:
+    _permission: 'administer dungeoncrawler content'
+
 # ==============================================================================
 # PUBLIC PAGES
 # ==============================================================================

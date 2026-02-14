@@ -11,6 +11,13 @@ dungeoncrawler_content.dashboard:
   route_name: dungeoncrawler_content.dashboard
   parent: system.admin_content
 
+dungeoncrawler_content.testing_admin:
+  title: 'Dungeon Crawler Testing'
+  description: 'Testing dashboard for admins.'
+  route_name: dungeoncrawler_content.testing_home
+  parent: system.admin_config_development
+  weight: 5
+
 # Main navigation menu links
 dungeoncrawler_content.menu.play:
   title: 'Play'
@@ -53,6 +60,13 @@ dungeoncrawler_content.menu.about:
   route_name: dungeoncrawler_content.about
   menu_name: main
   weight: 40
+
+dungeoncrawler_content.menu.testing:
+  title: 'Testing'
+  description: 'Admin-only testing dashboard'
+  route_name: dungeoncrawler_content.testing_home
+  menu_name: main
+  weight: 90
 
 # Footer menu links
 dungeoncrawler_content.footer.about:

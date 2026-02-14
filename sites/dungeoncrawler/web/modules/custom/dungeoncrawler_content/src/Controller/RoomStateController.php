@@ -18,7 +18,7 @@ class RoomStateController extends ControllerBase {
 
   private RoomStateService $roomStateService;
   private CampaignAccessCheck $campaignAccessCheck;
-  private AccountInterface $currentUser;
+  protected $currentUser;
   private StateValidationService $validationService;
 
   public function __construct(

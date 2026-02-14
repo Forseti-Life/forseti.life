@@ -17,7 +17,7 @@ class CampaignEntityController extends ControllerBase {
 
   private Connection $database;
   private CampaignAccessCheck $campaignAccessCheck;
-  private AccountInterface $currentUser;
+  protected $currentUser;
 
   public function __construct(
     Connection $database,

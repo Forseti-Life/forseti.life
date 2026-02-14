@@ -60,16 +60,6 @@
     </report>
   </coverage>
   
-  <!-- Test Groups -->
-  <groups>
-    <include>
-      <group>character-creation</group>
-      <group>combat</group>
-      <group>pf2e-rules</group>
-      <group>api</group>
-    </include>
-  </groups>
-  
   <!-- PHP Environment -->
   <php>
     <!-- Drupal test database -->
@@ -79,10 +69,12 @@
     <env name="SIMPLETEST_BASE_URL" value="http://localhost:8080"/>
     
     <!-- Simpletest file storage -->
-    <env name="SIMPLETEST_FILE" value="/home/keithaumiller/forseti.life/sites/dungeoncrawler/web/sites/simpletest"/>
+    <env name="SIMPLETEST_FILE" value="/tmp/dungeoncrawler-simpletest"/>
+    <env name="SIMPLETEST_FILES" value="/tmp/dungeoncrawler-simpletest"/>
+    <env name="SIMPLETEST_FILES_DIRECTORY" value="/tmp/dungeoncrawler-simpletest"/>
 
     <!-- Browser output directory -->
-    <env name="BROWSERTEST_OUTPUT_DIRECTORY" value="/home/keithaumiller/forseti.life/sites/dungeoncrawler/web/sites/simpletest/browser_output"/>
+    <env name="BROWSERTEST_OUTPUT_DIRECTORY" value="/tmp/dungeoncrawler-simpletest/browser_output"/>
     
     <!-- Memory limit -->
     <ini name="memory_limit" value="512M"/>

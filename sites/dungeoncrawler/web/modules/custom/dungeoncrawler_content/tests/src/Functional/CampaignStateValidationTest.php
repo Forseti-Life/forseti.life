@@ -3,6 +3,7 @@
 namespace Drupal\Tests\dungeoncrawler_content\Functional;
 
 use Drupal\Tests\BrowserTestBase;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests campaign state schema validation.
@@ -10,6 +11,7 @@ use Drupal\Tests\BrowserTestBase;
  * @group dungeoncrawler_content
  * @group api
  */
+#[RunTestsInSeparateProcesses]
 class CampaignStateValidationTest extends BrowserTestBase {
 
   /**
