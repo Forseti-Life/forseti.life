@@ -73,6 +73,36 @@ class RoomStateService {
       $contents = [];
     }
 
+    // Fetch runtime entity instances for this room.
+    $entities_query = $this->database->select('dc_campaign_characters', 'e')
+      ->fields('e', ['instance_id', 'type', 'character_id', 'state_data'])
+      ->condition('campaign_id', $campaign_id)
+      ->condition('location_type', 'room')
+      ->condition('location_ref', $room_id)
+      ->execute();
+
+    $runtime_entities = [];
+    while ($entity = $entities_query->fetchAssoc()) {
+      $entity_state = json_decode($entity['state_data'] ?? '{}', TRUE);
+      if (!is_array($entity_state)) {
+        $entity_state = [];
+      }
+
+      $runtime_entities[] = [
+        'instanceId' => $entity['instance_id'],
+        'type' => $entity['type'],
+        'characterId' => (int) $entity['character_id'],
+        'state' => $entity_state,
+      ];
+    }
+
+    // Merge runtime entities with static contents (keep contents_data as template).
+    // Runtime entities take precedence and are added to the entities array.
+    if (!isset($contents['entities'])) {
+      $contents['entities'] = [];
+    }
+    $contents['entities'] = array_merge($contents['entities'], $runtime_entities);
+
     // Limit layout hexes to those currently visible/LOS to the player to avoid leaking fogged areas.
     $visible_ids = [];
     if (isset($state['visibleHexIds']) && is_array($state['visibleHexIds'])) {
@@ -96,10 +126,55 @@ class RoomStateService {
         return $hex_ref === NULL || in_array($hex_ref, $visible_ids, TRUE);
       }));
     }
+
+    // Filter entities to only those in visible hexes or without location.
+    // Also filter hidden/trap entities unless they are detected.
     if (!empty($visible_ids) && isset($contents['entities']) && is_array($contents['entities'])) {
       $contents['entities'] = array_values(array_filter($contents['entities'], function ($ent) use ($visible_ids) {
-        $hex_ref = $ent['hex_id'] ?? $ent['hexId'] ?? $ent['position']['hexId'] ?? NULL;
-        return $hex_ref === NULL || in_array($hex_ref, $visible_ids, TRUE);
+        // Check hex visibility.
+        $hex_ref = $ent['hex_id'] ?? $ent['hexId'] ?? $ent['position']['hexId'] ?? $ent['state']['hexId'] ?? NULL;
+        $in_visible_hex = $hex_ref === NULL || in_array($hex_ref, $visible_ids, TRUE);
+        
+        if (!$in_visible_hex) {
+          return FALSE;
+        }
+
+        // Check if entity is hidden/trap and not detected.
+        $entity_type = $ent['type'] ?? '';
+        $is_hidden = !empty($ent['hidden']) || !empty($ent['state']['hidden']);
+        $is_detected = !empty($ent['detected']) || !empty($ent['state']['detected']);
+
+        // Traps are hidden by default unless detected.
+        if ($entity_type === 'trap' && !$is_detected) {
+          return FALSE;
+        }
+
+        // Hidden entities are not shown unless detected.
+        if ($is_hidden && !$is_detected) {
+          return FALSE;
+        }
+
+        return TRUE;
+      }));
+    }
+    elseif (isset($contents['entities']) && is_array($contents['entities'])) {
+      // Even without visibility filtering, apply detection rules.
+      $contents['entities'] = array_values(array_filter($contents['entities'], function ($ent) {
+        $entity_type = $ent['type'] ?? '';
+        $is_hidden = !empty($ent['hidden']) || !empty($ent['state']['hidden']);
+        $is_detected = !empty($ent['detected']) || !empty($ent['state']['detected']);
+
+        // Traps are hidden by default unless detected.
+        if ($entity_type === 'trap' && !$is_detected) {
+          return FALSE;
+        }
+
+        // Hidden entities are not shown unless detected.
+        if ($is_hidden && !$is_detected) {
+          return FALSE;
+        }
+
+        return TRUE;
       }));
     }
 
