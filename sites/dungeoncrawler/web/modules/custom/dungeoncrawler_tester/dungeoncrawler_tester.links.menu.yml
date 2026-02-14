@@ -1,0 +1,13 @@
+dungeoncrawler_tester.dashboard_menu:
+  title: 'Dungeon Crawler Testing Dashboard'
+  description: 'Stagegates, test flow, and CI failure tracking'
+  route_name: dungeoncrawler_tester.dashboard
+  parent: system.admin_reports
+  weight: 20
+
+dungeoncrawler_tester.dashboard_main:
+  title: 'Testing Dashboard'
+  description: 'Dungeon Crawler testing stagegates and issue status'
+  route_name: dungeoncrawler_tester.dashboard
+  menu_name: main
+  weight: 50

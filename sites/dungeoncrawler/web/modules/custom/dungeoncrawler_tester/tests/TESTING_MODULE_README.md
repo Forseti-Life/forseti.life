@@ -2,10 +2,7 @@
 
 ## Overview
 
-This testing module provides comprehensive test coverage for the Dungeon Crawler module, including:
-- A testing page stub accessible at `/testing`
-- Positive and negative test cases for all routes
-- Positive and negative test cases for all controllers
+This testing module exercises the Dungeon Crawler module with route/controller functional tests and a `/testing` stub page. Unit/kernel coverage is planned; current focus is access, routing, and basic content assertions.
 
 ## Testing Page
 
@@ -73,7 +70,7 @@ Each test file includes:
 ### Run All Tests
 
 ```bash
-cd /home/runner/work/forseti.life/forseti.life/sites/dungeoncrawler
+cd /home/keithaumiller/forseti.life/sites/dungeoncrawler
 ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml
 ```
 
@@ -112,21 +109,20 @@ cd /home/runner/work/forseti.life/forseti.life/sites/dungeoncrawler
 
 The testing module covers:
 
-### Routes (24 routes tested)
-- 6 Public routes
-- 2 Admin routes
-- 8 Character management routes
-- 5 Campaign routes
-- 11 API endpoints
-- 2 Demo routes
+### Routes
+- Public (home, world, about, credits, how-to-play, testing)
+- Admin (dashboard, settings)
+- Character (list, CRUD, creation flow)
+- Campaign (list, create, selection flow)
+- API endpoints (character + combat)
+- Demo routes (hex map / testing)
 
-### Controllers (20 controllers tested)
-- 7 Public page controllers
-- 4 Character management controllers
-- 2 Campaign controllers
-- 4 Combat controllers
-- 1 Admin controller
-- 1 Testing controller
+### Controllers
+- Public page controllers (home, about, world, credits, how-to-play, testing)
+- Character management controllers
+- Campaign controllers
+- Combat controllers
+- Admin controller
 
 ## Notes
 

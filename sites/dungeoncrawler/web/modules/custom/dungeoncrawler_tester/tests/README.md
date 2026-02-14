@@ -52,7 +52,7 @@ cd sites/dungeoncrawler
 
 ### Single Test File
 ```bash
-./vendor/bin/phpunit web/modules/custom/dungeoncrawler_content/tests/src/Unit/Service/CharacterCalculatorTest.php
+./vendor/bin/phpunit web/modules/custom/dungeoncrawler_tester/tests/src/Unit/Service/CharacterCalculatorTest.php
 ```
 
 ### With Coverage Report
@@ -63,20 +63,18 @@ cd sites/dungeoncrawler
 
 ## 📊 Test Status
 
-**Current State:** 🚧 Stub files created based on design document
+**Current State:** 🚧 Functional route/controller coverage is implemented; unit tests remain stubbed with `markTestIncomplete()`.
 
-All test files are currently stubs with `markTestIncomplete()` placeholders. Each stub includes:
-- Pseudocode showing what needs to be implemented
-- References to design documentation
-- Links to test fixtures and PF2e reference data
-- PHPDoc with coverage annotations
+- Functional tests exercise route existence, access control, and basic content for public/admin/API endpoints.
+- Unit tests outline calculators and PF2e rules but are not yet implemented.
+- Fixtures for characters, schemas, and PF2e references are ready for unit test data providers.
 
 **Next Steps:**
-1. Implement service layer (CharacterCalculator, SchemaLoader, CombatCalculator)
-2. Implement unit tests for services
-3. Implement integration tests for storage/API
-4. Implement functional tests for user workflows
-5. Run tests and achieve coverage targets (80-90%)
+1. Implement unit tests for calculators and PF2e rules (use existing fixtures + data providers).
+2. Add kernel/integration coverage where database interactions are needed.
+3. Expand functional tests to assert rendered data, not only status codes.
+4. Wire up CI for the tester module using this phpunit.xml.
+5. Track coverage vs. targets (80-90%).
 
 ## 🎯 Coverage Targets
 
@@ -109,23 +107,16 @@ All fixtures include expected results for validation.
 
 ## 🧪 Test Types
 
-### Unit Tests (80%)
-- Fast, isolated tests
-- No database operations
-- Use mock services
-- Test individual methods
+### Unit Tests (planned)
+- Isolated calculators and rules; use fixtures + data providers.
+- Currently stubbed with `markTestIncomplete()`.
 
-### Integration Tests (15%)
-- Test service interactions
-- Use test database
-- Verify database operations
-- Test configuration loading
+### Functional Tests (implemented)
+- BrowserTestBase for controllers and routes.
+- Validate route availability, access control, and basic page content.
 
-### Functional Tests (5%)
-- Full Drupal environment
-- Simulated browser
-- Test user workflows
-- End-to-end validation
+### Kernel/Integration Tests (planned)
+- For database-backed flows and service wiring; not yet implemented.
 
 ## 🎮 PF2e Rules Testing
 
@@ -147,24 +138,18 @@ All PF2e tests reference official rulebook page numbers and test fixture data.
 
 ## 🛠️ Implementation Status
 
-### ✅ Complete (Stubs)
-- [x] Test directory structure
-- [x] PHPUnit configuration
-- [x] Test fixtures (characters, schemas, PF2e reference)
-- [x] Service stubs (CharacterCalculator, CombatCalculator, SchemaLoader)
-- [x] Exception hierarchy
-- [x] Unit test stubs
-- [x] Functional test stubs
-- [x] Test trait stubs
+### ✅ Complete
+- [x] Test directory structure and phpunit configuration
+- [x] Fixtures for characters, schemas, PF2e reference
+- [x] Functional route/controller coverage (access + basic content)
+- [x] Trait scaffolding for fixtures
 
-### 🚧 TODO (Implementation)
-- [ ] Implement service layer methods
-- [ ] Implement unit tests
-- [ ] Implement integration tests
-- [ ] Implement functional tests
-- [ ] Achieve 80-90% coverage
-- [ ] Set up CI/CD (see design doc)
-- [ ] Add performance tests (see design doc)
+### 🚧 TODO
+- [ ] Implement unit tests and data providers for calculators/rules
+- [ ] Add kernel/integration coverage where persistence is involved
+- [ ] Strengthen functional assertions with real content data
+- [ ] Achieve 80-90% coverage and wire CI to this module
+- [ ] Add performance and load-focused checks (per design doc)
 
 ## 📖 Resources
 

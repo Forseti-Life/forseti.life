@@ -54,18 +54,15 @@ class CombatCalculatorTest extends UnitTestCase {
    * TODO: Implement MAP tests
    */
   public function testMultipleAttackPenalty(): void {
-    $this->markTestIncomplete('Not yet implemented - see MAP rules');
-    
-    // PSEUDOCODE:
     // Normal weapons
-    // $this->assertEquals(0, $this->calculator->calculateMultipleAttackPenalty(1, FALSE));
-    // $this->assertEquals(-5, $this->calculator->calculateMultipleAttackPenalty(2, FALSE));
-    // $this->assertEquals(-10, $this->calculator->calculateMultipleAttackPenalty(3, FALSE));
-    //
+    $this->assertSame(0, $this->calculator->calculateMultipleAttackPenalty(1, FALSE));
+    $this->assertSame(-5, $this->calculator->calculateMultipleAttackPenalty(2, FALSE));
+    $this->assertSame(-10, $this->calculator->calculateMultipleAttackPenalty(3, FALSE));
+
     // Agile weapons
-    // $this->assertEquals(0, $this->calculator->calculateMultipleAttackPenalty(1, TRUE));
-    // $this->assertEquals(-4, $this->calculator->calculateMultipleAttackPenalty(2, TRUE));
-    // $this->assertEquals(-8, $this->calculator->calculateMultipleAttackPenalty(3, TRUE));
+    $this->assertSame(0, $this->calculator->calculateMultipleAttackPenalty(1, TRUE));
+    $this->assertSame(-4, $this->calculator->calculateMultipleAttackPenalty(2, TRUE));
+    $this->assertSame(-8, $this->calculator->calculateMultipleAttackPenalty(3, TRUE));
   }
 
   /**
@@ -86,13 +83,10 @@ class CombatCalculatorTest extends UnitTestCase {
    * TODO: Implement degree of success tests
    */
   public function testCalculateDegreeOfSuccess(): void {
-    $this->markTestIncomplete('Not yet implemented - see degrees of success rules');
-    
-    // PSEUDOCODE:
-    // $this->assertEquals('critical_success', $this->calculator->calculateDegreeOfSuccess(25, 15, 20));
-    // $this->assertEquals('success', $this->calculator->calculateDegreeOfSuccess(15, 15, NULL));
-    // $this->assertEquals('failure', $this->calculator->calculateDegreeOfSuccess(14, 15, NULL));
-    // $this->assertEquals('critical_failure', $this->calculator->calculateDegreeOfSuccess(5, 15, 1));
+    $this->assertSame('critical_success', $this->calculator->calculateDegreeOfSuccess(25, 15, 20));
+    $this->assertSame('success', $this->calculator->calculateDegreeOfSuccess(15, 15, NULL));
+    $this->assertSame('failure', $this->calculator->calculateDegreeOfSuccess(14, 15, NULL));
+    $this->assertSame('critical_failure', $this->calculator->calculateDegreeOfSuccess(5, 15, 1));
   }
 
   /**
@@ -103,7 +97,15 @@ class CombatCalculatorTest extends UnitTestCase {
    * TODO: Implement attack bonus tests
    */
   public function testCalculateAttackBonus(): void {
-    $this->markTestIncomplete('Not yet implemented - see attack bonus design');
+    $result = $this->calculator->calculateAttackBonus([
+      'ability_modifier' => 4,
+      'proficiency_bonus' => 2,
+      'level' => 1,
+      'item_bonus' => 1,
+      'other_bonuses' => 0,
+    ]);
+
+    $this->assertSame(8, $result);
   }
 
   /**
@@ -114,7 +116,15 @@ class CombatCalculatorTest extends UnitTestCase {
    * TODO: Implement spell DC tests
    */
   public function testCalculateSpellSaveDC(): void {
-    $this->markTestIncomplete('Not yet implemented - see spell DC design');
+    $result = $this->calculator->calculateSpellSaveDC([
+      'ability_modifier' => 4,
+      'proficiency_bonus' => 2,
+      'level' => 1,
+      'item_bonus' => 1,
+      'other_bonuses' => 0,
+    ]);
+
+    $this->assertSame(18, $result);
   }
 
 }

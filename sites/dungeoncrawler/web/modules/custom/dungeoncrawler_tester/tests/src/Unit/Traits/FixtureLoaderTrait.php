@@ -38,19 +38,21 @@ trait FixtureLoaderTrait {
    * TODO: Implement fixture loading
    */
   protected function loadFixture(string $fixturePath): array {
-    // PSEUDOCODE:
-    // $fullPath = __DIR__ . '/../../fixtures/' . $fixturePath;
-    // if (!file_exists($fullPath)) {
-    //   throw new \Exception("Fixture not found: $fixturePath");
-    // }
-    // $content = file_get_contents($fullPath);
-    // $data = json_decode($content, TRUE);
-    // if (json_last_error() !== JSON_ERROR_NONE) {
-    //   throw new \Exception("Invalid JSON in fixture: $fixturePath");
-    // }
-    // return $data;
-    
-    throw new \Exception('Not yet implemented - see fixture loader trait design');
+    $fixturesRoot = dirname(__DIR__, 3) . '/fixtures/';
+    $fullPath = $fixturesRoot . ltrim($fixturePath, '/');
+
+    if (!is_file($fullPath)) {
+      throw new \RuntimeException("Fixture not found: {$fixturePath}");
+    }
+
+    $content = file_get_contents($fullPath);
+    $data = json_decode($content, TRUE);
+
+    if (json_last_error() !== JSON_ERROR_NONE) {
+      throw new \RuntimeException("Invalid JSON in fixture {$fixturePath}: " . json_last_error_msg());
+    }
+
+    return $data;
   }
 
   /**
@@ -65,10 +67,15 @@ trait FixtureLoaderTrait {
    * TODO: Implement character fixture getter
    */
   protected function getTestCharacterData(string $type = 'fighter'): array {
-    // PSEUDOCODE:
-    // return $this->loadFixture("characters/level_1_{$type}.json");
-    
-    throw new \Exception('Not yet implemented - see fixture loader trait design');
+    $type = strtolower($type);
+    $map = [
+      'fighter' => 'characters/level_1_fighter.json',
+      'wizard' => 'characters/level_1_wizard.json',
+      'rogue' => 'characters/level_5_rogue.json',
+    ];
+
+    $fixture = $map[$type] ?? $map['fighter'];
+    return $this->loadFixture($fixture);
   }
 
   /**
@@ -80,10 +87,7 @@ trait FixtureLoaderTrait {
    * TODO: Implement PF2e reference data getter
    */
   protected function getPF2eReferenceData(): array {
-    // PSEUDOCODE:
-    // return $this->loadFixture('pf2e_reference/core_mechanics.json');
-    
-    throw new \Exception('Not yet implemented - see fixture loader trait design');
+    return $this->loadFixture('pf2e_reference/core_mechanics.json');
   }
 
 }

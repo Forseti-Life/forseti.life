@@ -156,6 +156,49 @@ class AIConversationSettingsForm extends ConfigFormBase {
       '#required' => TRUE,
     ];
 
+    $copilot_config_token = $config->get('copilot_token');
+    $copilot_env_token = getenv('GITHUB_TOKEN_COPILOT') ?: getenv('GITHUB_TOKEN');
+    $copilot_status = [];
+
+    if (!empty($copilot_config_token)) {
+      $copilot_status[] = $this->t('Using Copilot token from configuration.');
+    }
+    elseif (!empty($copilot_env_token)) {
+      $copilot_status[] = $this->t('Using Copilot token from environment (GITHUB_TOKEN_COPILOT or GITHUB_TOKEN).');
+    }
+    else {
+      $copilot_status[] = $this->t('No Copilot token found. Issue creation/assignment will fail.');
+    }
+
+    $form['copilot_settings'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('GitHub Copilot Integration'),
+      '#description' => $this->t('Configure defaults for creating and assigning issues to Copilot.'),
+    ];
+
+    $form['copilot_settings']['copilot_status'] = [
+      '#type' => 'item',
+      '#title' => $this->t('Current Copilot token source'),
+      '#markup' => '<div class="messages messages--status"><ul><li>' . implode('</li><li>', $copilot_status) . '</li></ul></div>',
+    ];
+
+    $form['copilot_settings']['copilot_default_repo'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Default GitHub repository'),
+      '#default_value' => $config->get('copilot_default_repo') ?: 'keithaumiller/forseti.life',
+      '#description' => $this->t('Target repository for auto-created issues (owner/repo).'),
+      '#required' => TRUE,
+    ];
+
+    $form['copilot_settings']['copilot_token'] = [
+      '#type' => 'password',
+      '#title' => $this->t('Copilot GitHub token'),
+      '#default_value' => '',
+      '#description' => $this->t('Leave empty to keep the stored value or rely on environment variables (GITHUB_TOKEN_COPILOT or GITHUB_TOKEN). Must have repo access and Copilot entitlement.'),
+      '#attributes' => ['autocomplete' => 'off'],
+      '#required' => FALSE,
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -179,7 +222,13 @@ class AIConversationSettingsForm extends ConfigFormBase {
       ->set('max_tokens', $form_state->getValue('max_tokens'))
       ->set('max_recent_messages', $form_state->getValue('max_recent_messages'))
       ->set('summary_frequency', $form_state->getValue('summary_frequency'))
+      ->set('copilot_default_repo', trim((string) $form_state->getValue('copilot_default_repo')))
       ->save();
+
+    $copilot_token = $form_state->getValue('copilot_token');
+    if ($copilot_token !== NULL && $copilot_token !== '') {
+      $config->set('copilot_token', trim((string) $copilot_token))->save();
+    }
 
     parent::submitForm($form, $form_state);
   }

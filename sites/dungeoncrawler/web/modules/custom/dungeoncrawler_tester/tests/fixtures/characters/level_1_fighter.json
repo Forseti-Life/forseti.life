@@ -43,12 +43,14 @@
       "ancestry_bonus": 0,
       "other": 0
     },
-    "armor_class": 18,
+    "armor_class": 21,
     "ac_breakdown": {
       "base": 10,
       "dex_modifier": 2,
       "armor": 4,
       "shield": 2,
+      "proficiency": 2,
+      "level": 1,
       "other": 0
     }
   },
@@ -87,8 +89,8 @@
       "formula": "10 (class) + 3 (CON mod) + 0 (ancestry)"
     },
     "ac_calculation": {
-      "expected": 18,
-      "formula": "10 + 2 (DEX) + 4 (armor) + 2 (shield)"
+      "expected": 21,
+      "formula": "10 + 2 (DEX) + 4 (armor) + 2 (shield) + 2 (proficiency) + 1 (level)"
     },
     "attack_bonus": {
       "melee": 8,

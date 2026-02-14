@@ -4,6 +4,7 @@ namespace Drupal\Tests\dungeoncrawler_tester\Unit\Service;
 
 use Drupal\Tests\UnitTestCase;
 use Drupal\dungeoncrawler_content\Service\CharacterCalculator;
+use Drupal\Tests\dungeoncrawler_tester\Unit\Traits\FixtureLoaderTrait;
 
 /**
  * Tests for CharacterCalculator service.
@@ -20,6 +21,8 @@ use Drupal\dungeoncrawler_content\Service\CharacterCalculator;
  * TODO: Implement tests per design document
  */
 class CharacterCalculatorTest extends UnitTestCase {
+
+  use FixtureLoaderTrait;
 
   /**
    * The character calculator service.
@@ -47,17 +50,18 @@ class CharacterCalculatorTest extends UnitTestCase {
    * TODO: Implement test
    */
   public function testCalculateHPForFighterWithSixteenConstitution(): void {
-    $this->markTestIncomplete('Not yet implemented - see testing strategy design');
-    
-    // PSEUDOCODE:
-    // $characterData = [
-    //   'class' => 'fighter',
-    //   'class_hp' => 10,
-    //   'abilities' => ['constitution' => 16],
-    //   'ancestry_hp_bonus' => 0,
-    // ];
-    // $result = $this->calculator->calculateHP($characterData);
-    // $this->assertEquals(13, $result['total']);
+    $fighter = $this->getTestCharacterData('fighter');
+
+    $result = $this->calculator->calculateHP([
+      'class_hp' => $fighter['class']['hp'],
+      'level' => $fighter['level'],
+      'abilities' => [
+        'constitution' => $fighter['ability_scores']['constitution'],
+      ],
+      'ancestry_hp_bonus' => $fighter['ancestry']['hp_bonus'],
+    ]);
+
+    $this->assertSame($fighter['calculated_stats']['max_hp'], $result['total']);
   }
 
   /**
@@ -72,11 +76,8 @@ class CharacterCalculatorTest extends UnitTestCase {
    * TODO: Implement test with data provider
    */
   public function testCalculateAbilityModifier(int $score, int $expectedModifier): void {
-    $this->markTestIncomplete('Not yet implemented - see PF2e Core Rulebook pp. 20-21');
-    
-    // PSEUDOCODE:
-    // $modifier = $this->calculator->calculateAbilityModifier($score);
-    // $this->assertEquals($expectedModifier, $modifier);
+    $modifier = $this->calculator->calculateAbilityModifier($score);
+    $this->assertSame($expectedModifier, $modifier);
   }
 
   /**
@@ -110,11 +111,8 @@ class CharacterCalculatorTest extends UnitTestCase {
    * TODO: Implement boost rule tests
    */
   public function testApplyAbilityBoost(): void {
-    $this->markTestIncomplete('Not yet implemented - see ability boost rules');
-    
-    // PSEUDOCODE:
-    // $this->assertEquals(12, $this->calculator->applyAbilityBoost(10));
-    // $this->assertEquals(19, $this->calculator->applyAbilityBoost(18));
+    $this->assertSame(12, $this->calculator->applyAbilityBoost(10));
+    $this->assertSame(19, $this->calculator->applyAbilityBoost(18));
   }
 
   /**
@@ -126,7 +124,7 @@ class CharacterCalculatorTest extends UnitTestCase {
    * TODO: Implement proficiency tests
    */
   public function testCalculateProficiencyBonus(string $rank, int $level, int $expected): void {
-    $this->markTestIncomplete('Not yet implemented - see proficiency rules');
+    $this->assertSame($expected, $this->calculator->calculateProficiencyBonus($rank, $level));
   }
 
   /**
@@ -153,7 +151,19 @@ class CharacterCalculatorTest extends UnitTestCase {
    * TODO: Implement AC tests
    */
   public function testCalculateArmorClass(): void {
-    $this->markTestIncomplete('Not yet implemented - see AC calculation design');
+    $fighter = $this->getTestCharacterData('fighter');
+
+    $result = $this->calculator->calculateArmorClass([
+      'abilities' => [
+        'dexterity' => $fighter['ability_scores']['dexterity'],
+      ],
+      'armor_bonus' => $fighter['calculated_stats']['ac_breakdown']['armor'],
+      'shield_bonus' => $fighter['calculated_stats']['ac_breakdown']['shield'],
+      'proficiency_rank' => 'trained',
+      'level' => $fighter['level'],
+    ]);
+
+    $this->assertSame($fighter['calculated_stats']['armor_class'], $result['total']);
   }
 
 }

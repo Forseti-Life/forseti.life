@@ -32,3 +32,9 @@ ai_conversation.settings:
     debug_logging:
       type: boolean
       label: 'Enable debug logging'
+    copilot_token:
+      type: string
+      label: 'GitHub Copilot token'
+    copilot_default_repo:
+      type: string
+      label: 'Default GitHub repository for issue creation'
