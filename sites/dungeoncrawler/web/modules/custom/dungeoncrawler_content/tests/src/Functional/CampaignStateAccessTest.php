@@ -3,6 +3,8 @@
 namespace Drupal\Tests\dungeoncrawler_content\Functional;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\JsonRequestTrait;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestDataBuilderTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
@@ -13,6 +15,9 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  */
 #[RunTestsInSeparateProcesses]
 class CampaignStateAccessTest extends BrowserTestBase {
+
+  use JsonRequestTrait;
+  use TestDataBuilderTrait;
 
   /**
    * {@inheritdoc}
@@ -29,25 +34,11 @@ class CampaignStateAccessTest extends BrowserTestBase {
    */
   public function testCampaignOwnerAccess() {
     // Create a user with dungeoncrawler permissions.
-    $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $owner = $this->createTestUser();
     $this->drupalLogin($owner);
 
     // Create a campaign owned by this user.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $owner->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => json_encode([
-          'state' => ['created_by' => $owner->id(), 'started' => TRUE, 'progress' => []],
-          'state_meta' => ['version' => 1, 'updatedAt' => date('c')],
-        ]),
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    $campaign_id = $this->createTestCampaignWithState($owner);
 
     // Test GET /api/campaign/{id}/state - should succeed.
     $this->drupalGet("/api/campaign/{$campaign_id}/state");
@@ -78,25 +69,11 @@ class CampaignStateAccessTest extends BrowserTestBase {
    */
   public function testNonOwnerDenied() {
     // Create owner and another user.
-    $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
-    $other_user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $owner = $this->createTestUser();
+    $other_user = $this->createTestUser();
 
     // Create a campaign owned by owner.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $owner->id(),
-        'name' => 'Owner Campaign',
-        'status' => 'active',
-        'campaign_data' => json_encode([
-          'state' => ['created_by' => $owner->id(), 'started' => TRUE, 'progress' => []],
-          'state_meta' => ['version' => 1, 'updatedAt' => date('c')],
-        ]),
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    $campaign_id = $this->createTestCampaignWithState($owner);
 
     // Login as other_user and try to access.
     $this->drupalLogin($other_user);
@@ -124,28 +101,11 @@ class CampaignStateAccessTest extends BrowserTestBase {
    */
   public function testAdminAccess() {
     // Create owner and admin.
-    $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
-    $admin = $this->drupalCreateUser([
-      'access dungeoncrawler characters',
-      'administer dungeoncrawler content',
-    ]);
+    $owner = $this->createTestUser();
+    $admin = $this->createTestUser(['administer dungeoncrawler content']);
 
     // Create a campaign owned by owner.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $owner->id(),
-        'name' => 'Owner Campaign',
-        'status' => 'active',
-        'campaign_data' => json_encode([
-          'state' => ['created_by' => $owner->id(), 'started' => TRUE, 'progress' => []],
-          'state_meta' => ['version' => 1, 'updatedAt' => date('c')],
-        ]),
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    $campaign_id = $this->createTestCampaignWithState($owner);
 
     // Login as admin and access should succeed.
     $this->drupalLogin($admin);
@@ -154,24 +114,6 @@ class CampaignStateAccessTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(200);
     $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
     $this->assertTrue($response['success']);
-  }
-
-  /**
-   * Issue a JSON request with the given method and payload.
-   */
-  private function requestJson(string $method, string $path, ?array $payload = NULL): array {
-    $body = $payload !== NULL ? json_encode($payload) : NULL;
-    $this->getSession()->getDriver()->getClient()->request(
-      $method,
-      $this->buildUrl($path),
-      [],
-      [],
-      ['CONTENT_TYPE' => 'application/json'],
-      $body
-    );
-
-    $content = $this->getSession()->getPage()->getContent();
-    return json_decode($content, TRUE) ?? [];
   }
 
 }

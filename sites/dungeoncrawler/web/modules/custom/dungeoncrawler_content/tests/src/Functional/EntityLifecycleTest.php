@@ -3,6 +3,8 @@
 namespace Drupal\Tests\dungeoncrawler_content\Functional;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\JsonRequestTrait;
+use Drupal\Tests\dungeoncrawler_content\Functional\Traits\TestDataBuilderTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
@@ -13,6 +15,9 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  */
 #[RunTestsInSeparateProcesses]
 class EntityLifecycleTest extends BrowserTestBase {
+
+  use JsonRequestTrait;
+  use TestDataBuilderTrait;
 
   /**
    * {@inheritdoc}
@@ -28,22 +33,8 @@ class EntityLifecycleTest extends BrowserTestBase {
    * Test entity spawn, move, and despawn workflow.
    */
   public function testEntityLifecycle() {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
-    $this->drupalLogin($user);
-
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => '{}',
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    $setup = $this->setupUserWithCampaign();
+    $campaign_id = $setup['campaign_id'];
 
     // 1. Spawn an NPC entity.
     $spawn_payload = [
@@ -103,22 +94,8 @@ class EntityLifecycleTest extends BrowserTestBase {
    * Test spawning entity with duplicate instanceId fails.
    */
   public function testDuplicateInstanceIdFails() {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
-    $this->drupalLogin($user);
-
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => '{}',
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    $setup = $this->setupUserWithCampaign();
+    $campaign_id = $setup['campaign_id'];
 
     // Spawn first entity.
     $spawn_payload = [
@@ -142,22 +119,8 @@ class EntityLifecycleTest extends BrowserTestBase {
    * Test moving non-existent entity returns 404.
    */
   public function testMoveNonExistentEntity() {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
-    $this->drupalLogin($user);
-
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => '{}',
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    $setup = $this->setupUserWithCampaign();
+    $campaign_id = $setup['campaign_id'];
 
     // Try to move non-existent entity.
     $move_payload = [
@@ -174,22 +137,8 @@ class EntityLifecycleTest extends BrowserTestBase {
    * Test entity type validation.
    */
   public function testInvalidEntityType() {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
-    $this->drupalLogin($user);
-
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => '{}',
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    $setup = $this->setupUserWithCampaign();
+    $campaign_id = $setup['campaign_id'];
 
     // Try to spawn entity with invalid type.
     $spawn_payload = [
@@ -203,24 +152,6 @@ class EntityLifecycleTest extends BrowserTestBase {
     $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/entity/spawn", $spawn_payload);
     $this->assertFalse($result['success']);
     $this->assertStringContainsString('Invalid type', $result['error']);
-  }
-
-  /**
-   * Issue a JSON request with the given method and payload.
-   */
-  private function requestJson(string $method, string $path, ?array $payload = NULL): array {
-    $body = $payload !== NULL ? json_encode($payload) : NULL;
-    $this->getSession()->getDriver()->getClient()->request(
-      $method,
-      $this->buildUrl($path),
-      [],
-      [],
-      ['CONTENT_TYPE' => 'application/json'],
-      $body
-    );
-
-    $content = $this->getSession()->getPage()->getContent();
-    return json_decode($content, TRUE) ?? [];
   }
 
 }
