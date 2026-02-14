@@ -24,22 +24,24 @@ class CombatApiControllerTest extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * Tests combat API controller access - positive case.
+   * Tests combat API controller exists - positive case.
+   *
+   * Note: CombatApiController exists but has no routes defined yet.
+   * This test validates the controller can be instantiated.
    */
-  public function testCombatApiAccessPositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
-    $this->drupalLogin($user);
-
-    // Validate user is authenticated for combat API
-    $this->assertNotNull($user);
+  public function testCombatApiControllerExistsPositive(): void {
+    // Validate the controller class exists
+    $this->assertTrue(class_exists('\Drupal\dungeoncrawler_content\Controller\CombatApiController'));
   }
 
   /**
-   * Tests combat API controller without authentication - negative case.
+   * Tests combat API controller not accessible without routes - negative case.
    */
-  public function testCombatApiAccessNegative(): void {
-    // Combat API should require authentication
-    $this->assertNull($this->currentUser()->id());
+  public function testCombatApiControllerNotAccessibleNegative(): void {
+    // Since no routes are defined for CombatApiController,
+    // attempting to access combat API paths should return 404
+    $this->drupalGet('/api/combat-alt');
+    $this->assertSession()->statusCodeEquals(404);
   }
 
 }

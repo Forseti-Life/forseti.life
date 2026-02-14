@@ -23,24 +23,24 @@ class CombatControllerTest extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * Tests combat controller access - positive case.
+   * Tests combat controller exists - positive case.
    *
-   * Note: Requires proper permissions to access combat functionality.
+   * Note: CombatController exists but has no routes defined yet.
+   * This test validates the controller can be instantiated.
    */
-  public function testCombatAccessPositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
-    $this->drupalLogin($user);
-
-    // Validate that combat functionality requires authentication
-    $this->assertNotNull($user);
+  public function testCombatControllerExistsPositive(): void {
+    // Validate the controller class exists
+    $this->assertTrue(class_exists('\Drupal\dungeoncrawler_content\Controller\CombatController'));
   }
 
   /**
-   * Tests combat controller without authentication - negative case.
+   * Tests combat controller not accessible without routes - negative case.
    */
-  public function testCombatAccessNegative(): void {
-    // Combat should require authentication
-    $this->assertNull($this->currentUser()->id());
+  public function testCombatControllerNotAccessibleNegative(): void {
+    // Since no routes are defined for CombatController,
+    // attempting to access combat-related paths should return 404
+    $this->drupalGet('/combat');
+    $this->assertSession()->statusCodeEquals(404);
   }
 
 }

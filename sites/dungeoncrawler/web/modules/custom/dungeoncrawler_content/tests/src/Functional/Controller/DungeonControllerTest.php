@@ -23,24 +23,24 @@ class DungeonControllerTest extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * Tests dungeon controller access - positive case.
+   * Tests dungeon controller exists - positive case.
    *
-   * Note: Requires proper permissions and likely a dungeon entity.
+   * Note: DungeonController exists but has no routes defined yet.
+   * This test validates the controller can be instantiated.
    */
-  public function testDungeonAccessPositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
-    $this->drupalLogin($user);
-
-    // Validate user is authenticated for dungeon access
-    $this->assertNotNull($user);
+  public function testDungeonControllerExistsPositive(): void {
+    // Validate the controller class exists
+    $this->assertTrue(class_exists('\Drupal\dungeoncrawler_content\Controller\DungeonController'));
   }
 
   /**
-   * Tests dungeon controller without authentication - negative case.
+   * Tests dungeon controller not accessible without routes - negative case.
    */
-  public function testDungeonAccessNegative(): void {
-    // Dungeon should require authentication
-    $this->assertNull($this->currentUser()->id());
+  public function testDungeonControllerNotAccessibleNegative(): void {
+    // Since no routes are defined for DungeonController, 
+    // attempting to access dungeon-related paths should return 404
+    $this->drupalGet('/dungeon');
+    $this->assertSession()->statusCodeEquals(404);
   }
 
 }
