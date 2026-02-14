@@ -1,0 +1,249 @@
+<?php
+
+namespace Drupal\Tests\dungeoncrawler_content\Functional;
+
+use Drupal\Tests\BrowserTestBase;
+
+/**
+ * Tests entity lifecycle API (spawn/move/despawn).
+ *
+ * @group dungeoncrawler_content
+ * @group api
+ */
+class EntityLifecycleTest extends BrowserTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
+  protected static $modules = ['dungeoncrawler_content'];
+
+  /**
+   * Test entity spawn, move, and despawn workflow.
+   */
+  public function testEntityLifecycle() {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    // Create a campaign.
+    $database = \Drupal::database();
+    $campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $user->id(),
+        'name' => 'Test Campaign',
+        'status' => 'active',
+        'campaign_data' => '{}',
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // 1. Spawn an NPC entity.
+    $spawn_payload = [
+      'type' => 'npc',
+      'instanceId' => 'test-goblin-1',
+      'characterId' => 999,
+      'locationType' => 'room',
+      'locationRef' => 'room-1',
+      'stateData' => [
+        'hp' => 8,
+        'maxHp' => 8,
+        'hexId' => 'hex-5',
+      ],
+    ];
+
+    $response = $this->drupalPost(
+      "/api/campaign/{$campaign_id}/entity/spawn",
+      json_encode($spawn_payload),
+      ['Content-Type' => 'application/json']
+    );
+    
+    $result = json_decode($response, TRUE);
+    $this->assertTrue($result['success'], 'Entity spawn should succeed');
+    $this->assertEquals('test-goblin-1', $result['data']['instanceId']);
+    $this->assertEquals('npc', $result['data']['type']);
+    $this->assertEquals('room-1', $result['data']['locationRef']);
+
+    // 2. List entities in room-1.
+    $this->drupalGet("/api/campaign/{$campaign_id}/entities?locationType=room&locationRef=room-1");
+    $this->assertSession()->statusCodeEquals(200);
+    $list_result = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+    $this->assertTrue($list_result['success']);
+    $this->assertEquals(1, $list_result['count']);
+    $this->assertEquals('test-goblin-1', $list_result['data'][0]['instanceId']);
+
+    // 3. Move entity to room-2.
+    $move_payload = [
+      'locationType' => 'room',
+      'locationRef' => 'room-2',
+    ];
+
+    $response = $this->drupalPost(
+      "/api/campaign/{$campaign_id}/entity/test-goblin-1/move",
+      json_encode($move_payload),
+      ['Content-Type' => 'application/json']
+    );
+    
+    $result = json_decode($response, TRUE);
+    $this->assertTrue($result['success'], 'Entity move should succeed');
+    $this->assertEquals('room-2', $result['data']['locationRef']);
+
+    // 4. Verify entity is now in room-2.
+    $this->drupalGet("/api/campaign/{$campaign_id}/entities?locationType=room&locationRef=room-2");
+    $list_result = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+    $this->assertEquals(1, $list_result['count']);
+    $this->assertEquals('test-goblin-1', $list_result['data'][0]['instanceId']);
+
+    // 5. Despawn entity.
+    $response = $this->drupalPost(
+      "/api/campaign/{$campaign_id}/entity/test-goblin-1",
+      '',
+      ['Content-Type' => 'application/json'],
+      'DELETE'
+    );
+    
+    $result = json_decode($response, TRUE);
+    $this->assertTrue($result['success'], 'Entity despawn should succeed');
+
+    // 6. Verify entity no longer exists.
+    $this->drupalGet("/api/campaign/{$campaign_id}/entities");
+    $list_result = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+    $this->assertEquals(0, $list_result['count']);
+  }
+
+  /**
+   * Test spawning entity with duplicate instanceId fails.
+   */
+  public function testDuplicateInstanceIdFails() {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    // Create a campaign.
+    $database = \Drupal::database();
+    $campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $user->id(),
+        'name' => 'Test Campaign',
+        'status' => 'active',
+        'campaign_data' => '{}',
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // Spawn first entity.
+    $spawn_payload = [
+      'type' => 'npc',
+      'instanceId' => 'duplicate-test',
+      'locationType' => 'room',
+      'locationRef' => 'room-1',
+      'stateData' => [],
+    ];
+
+    $response = $this->drupalPost(
+      "/api/campaign/{$campaign_id}/entity/spawn",
+      json_encode($spawn_payload),
+      ['Content-Type' => 'application/json']
+    );
+    
+    $result = json_decode($response, TRUE);
+    $this->assertTrue($result['success']);
+
+    // Try to spawn another entity with same instanceId.
+    $response = $this->drupalPost(
+      "/api/campaign/{$campaign_id}/entity/spawn",
+      json_encode($spawn_payload),
+      ['Content-Type' => 'application/json']
+    );
+    
+    $result = json_decode($response, TRUE);
+    $this->assertFalse($result['success'], 'Duplicate instanceId should fail');
+    $this->assertStringContainsString('already exists', $result['error']);
+  }
+
+  /**
+   * Test moving non-existent entity returns 404.
+   */
+  public function testMoveNonExistentEntity() {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    // Create a campaign.
+    $database = \Drupal::database();
+    $campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $user->id(),
+        'name' => 'Test Campaign',
+        'status' => 'active',
+        'campaign_data' => '{}',
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // Try to move non-existent entity.
+    $move_payload = [
+      'locationType' => 'room',
+      'locationRef' => 'room-2',
+    ];
+
+    $response = $this->drupalPost(
+      "/api/campaign/{$campaign_id}/entity/non-existent/move",
+      json_encode($move_payload),
+      ['Content-Type' => 'application/json']
+    );
+    
+    $result = json_decode($response, TRUE);
+    $this->assertFalse($result['success']);
+    $this->assertStringContainsString('not found', $result['error']);
+  }
+
+  /**
+   * Test entity type validation.
+   */
+  public function testInvalidEntityType() {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    // Create a campaign.
+    $database = \Drupal::database();
+    $campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $user->id(),
+        'name' => 'Test Campaign',
+        'status' => 'active',
+        'campaign_data' => '{}',
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    // Try to spawn entity with invalid type.
+    $spawn_payload = [
+      'type' => 'invalid_type',
+      'instanceId' => 'test-invalid',
+      'locationType' => 'room',
+      'locationRef' => 'room-1',
+      'stateData' => [],
+    ];
+
+    $response = $this->drupalPost(
+      "/api/campaign/{$campaign_id}/entity/spawn",
+      json_encode($spawn_payload),
+      ['Content-Type' => 'application/json']
+    );
+    
+    $result = json_decode($response, TRUE);
+    $this->assertFalse($result['success']);
+    $this->assertStringContainsString('Invalid type', $result['error']);
+  }
+
+}
