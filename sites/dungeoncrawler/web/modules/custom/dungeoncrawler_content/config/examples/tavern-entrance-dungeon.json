@@ -763,6 +763,86 @@
       },
       "created_at": "2026-02-13T00:00:00Z",
       "updated_at": "2026-02-13T00:00:00Z"
+    },
+    {
+      "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000009",
+      "entity_type": "player_character",
+      "entity_ref": {
+        "content_type": "player_character",
+        "content_id": "party_leader_demo",
+        "version": "1.0.0"
+      },
+      "placement": {
+        "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+        "hex": {
+          "q": 0,
+          "r": 0
+        },
+        "spawn_type": "player"
+      },
+      "state": {
+        "active": true,
+        "destroyed": false,
+        "disabled": false,
+        "hidden": false,
+        "collected": false,
+        "hit_points": null,
+        "inventory": [],
+        "metadata": {
+          "display_name": "Party Leader",
+          "team": "player",
+          "stats": {
+            "maxHp": 22,
+            "currentHp": 22,
+            "ac": 19,
+            "speed": 25,
+            "perception": 6,
+            "initiative_bonus": 6
+          }
+        }
+      },
+      "created_at": "2026-02-13T00:00:00Z",
+      "updated_at": "2026-02-13T00:00:00Z"
+    },
+    {
+      "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000010",
+      "entity_type": "npc",
+      "entity_ref": {
+        "content_type": "creature",
+        "content_id": "gribbles_rindsworth",
+        "version": "1.0.0"
+      },
+      "placement": {
+        "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+        "hex": {
+          "q": 1,
+          "r": 0
+        },
+        "spawn_type": "npc"
+      },
+      "state": {
+        "active": true,
+        "destroyed": false,
+        "disabled": false,
+        "hidden": false,
+        "collected": false,
+        "hit_points": null,
+        "inventory": [],
+        "metadata": {
+          "display_name": "Gribbles Rindsworth",
+          "team": "enemy",
+          "stats": {
+            "maxHp": 16,
+            "currentHp": 16,
+            "ac": 18,
+            "speed": 25,
+            "perception": 5,
+            "initiative_bonus": 5
+          }
+        }
+      },
+      "created_at": "2026-02-13T00:00:00Z",
+      "updated_at": "2026-02-13T00:00:00Z"
     }
   ],
   "generation_rules": {

@@ -12,6 +12,13 @@ For a Pathfinder 2E character management system with exponential growth potentia
 
 ## Core Design Principles
 
+### Drupal DungeonCrawler: Library vs Campaign vs Runtime
+- **Library (authoritative content)**: Shared tables that ship with the module (`dungeoncrawler_content_registry`, `dungeoncrawler_content_loot_tables`, `dungeoncrawler_content_encounter_templates`) remain immutable and versionable.
+- **Campaign copies (per-campaign edits)**: New campaign-scoped mirrors let each campaign fork library assets without mutating the base: `dc_campaign_content_registry`, `dc_campaign_loot_tables`, `dc_campaign_encounter_templates`, `dc_campaign_rooms`, `dc_campaign_dungeons`. Each row tracks `campaign_id` and optional `source_*` back to the library for provenance.
+- **Runtime state (play session data)**: Active play is kept separate so resets/rollbacks do not affect definitions: `dc_campaign_encounter_instances`, `dc_campaign_room_states`, `dc_campaign_item_instances`, `dc_campaign_log`. Instances point to campaign-scoped definitions, not the library, to keep snapshots stable.
+- **Upgrade path**: Update hook `dungeoncrawler_content_update_10004()` creates the campaign and runtime tables alongside existing 10001–10003 content installs.
+- **Service entrypoint**: `dungeoncrawler_content.campaign_content` copies library rows into campaign tables on-demand (registry content, loot tables, encounter templates) and reads campaign-scoped JSON safely, so controllers should call it instead of touching library tables directly.
+
 ### When to Use Relational Tables
 ✅ **Use relational tables for:**
 - Data that is frequently queried

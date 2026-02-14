@@ -25,7 +25,7 @@ Following **Drupal 11 administrative patterns**, all content is managed through 
 ## System Requirements & Installation
 
 ### Prerequisites
-- **Drupal 11.2+** (Latest stable version recommended)
+- **Drupal 10 or 11** (Latest stable version recommended - module supports both Drupal 10 and 11)
 - **PHP 8.1+** (PHP 8.3 recommended for optimal performance) 
 - **MySQL 8.0+** or **PostgreSQL 13+**
 - **Composer** for dependency management
@@ -33,18 +33,18 @@ Following **Drupal 11 administrative patterns**, all content is managed through 
 ### Production Server Information
 
 **Current Production Environment:**
-- **Server**: AWS EC2 instance (ip-172-16-4-59)
+- **Server**: AWS EC2 instance
 - **Operating System**: Ubuntu 24.04.1 LTS (Linux 6.14.0-1013-aws)
 - **Architecture**: x86_64
-- **Web Root**: `/var/www/html/stlouisintegration/`
-- **Drupal Root**: `/var/www/html/stlouisintegration/web/`
+- **Web Root**: `/var/www/html/forseti/`
+- **Drupal Root**: `/var/www/html/forseti/web/`
 - **Web Server User**: `www-data`
 - **SSH User**: `ubuntu`
 
 **Production Drush Commands:**
 ```bash
 # Navigate to Drupal root
-cd /var/www/html/stlouisintegration
+cd /var/www/html/forseti
 
 # Run database updates (requires www-data user)
 sudo -u www-data ./vendor/bin/drush updatedb -y

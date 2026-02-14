@@ -3,7 +3,7 @@
  * Job Discovery JavaScript functionality
  */
 
-(function ($, Drupal, once) {
+(function ($, Drupal, drupalSettings, once) {
   'use strict';
 
   /**
@@ -50,7 +50,11 @@
     $.ajax({
       url: '/job-discovery/search',
       method: 'POST',
-      data: searchData,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': drupalSettings.csrf_token || ''
+      },
+      data: JSON.stringify(searchData),
       dataType: 'json',
 
       success: function(response) {
@@ -151,7 +155,7 @@
     const $results = $('#discovery-results');
     const $resultsContainer = $('#results-container');
     
-    $resultsContainer.html('<div class="error-results"><div class="alert alert-danger"><strong>Error:</strong> ' + errorMessage + '</div></div>');
+    $resultsContainer.html('<div class="error-results"><div class="alert alert-danger"><strong>Error:</strong> ' + Drupal.jobHunter.escapeHtml(errorMessage) + '</div></div>');
     
     // Show results section
     $results.show();
@@ -204,28 +208,31 @@
     if (job.jobType) tags.push(job.jobType);
     
     const tagsHTML = tags.length > 0 ? 
-      '<div class="job-tags">' + tags.map(tag => '<span class="job-tag">' + tag + '</span>').join('') + '</div>' : '';
+      '<div class="job-tags">' + tags.map(tag => '<span class="job-tag">' + Drupal.jobHunter.escapeHtml(tag) + '</span>').join('') + '</div>' : '';
+    
+    const safeUrl = Drupal.jobHunter.sanitizeUrl(job.url);
+    const safeJobId = Drupal.jobHunter.escapeHtml(job.jobId);
     
     return `
       <div class="job-result">
         <div class="job-title">
-          <a href="${job.url}" target="_blank" rel="noopener noreferrer">${job.title}</a>
+          <a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${Drupal.jobHunter.escapeHtml(job.title)}</a>
         </div>
         <div class="job-location">
-          <i class="fas fa-map-marker-alt"></i> ${job.location}
+          <i class="fas fa-map-marker-alt"></i> ${Drupal.jobHunter.escapeHtml(job.location)}
         </div>
         <div class="job-description">
-          ${job.description}
+          ${Drupal.jobHunter.escapeHtml(job.description)}
         </div>
         ${tagsHTML}
         <div class="job-actions">
-          <a href="${job.url}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
+          <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
             <i class="fas fa-external-link-alt"></i> View Job
           </a>
-          <button class="btn btn-outline-secondary btn-sm save-job-btn" data-job-id="${job.jobId}">
+          <button class="btn btn-outline-secondary btn-sm save-job-btn" data-job-id="${safeJobId}">
             <i class="fas fa-bookmark"></i> Save Job
           </button>
-          <span class="job-id">Job ID: ${job.jobId}</span>
+          <span class="job-id">Job ID: ${safeJobId}</span>
         </div>
       </div>
     `;
@@ -254,6 +261,20 @@
       return;
     }
     
+    // Validate URL before sending to backend
+    const sanitizedUrl = Drupal.jobHunter.sanitizeUrl(jobData.url);
+    if (sanitizedUrl === '#') {
+      console.error('Invalid URL for job:', jobData.url);
+      Drupal.announce('Error: Job has invalid URL', 'assertive');
+      return;
+    }
+    
+    // Create sanitized copy of job data
+    const sanitizedJobData = {
+      ...jobData,
+      url: sanitizedUrl
+    };
+    
     // Show loading state
     $btn.html('<i class="fas fa-spinner fa-spin"></i> Saving...').prop('disabled', true);
     
@@ -261,8 +282,11 @@
     $.ajax({
       url: '/job-discovery/save',
       method: 'POST',
-      data: JSON.stringify(jobData),
-      contentType: 'application/json',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': drupalSettings.csrf_token || ''
+      },
+      data: JSON.stringify(sanitizedJobData),
       dataType: 'json',
       success: function(response) {
         if (response.success) {
@@ -298,4 +322,4 @@
     });
   });
 
-})(jQuery, Drupal, once);
+})(jQuery, Drupal, drupalSettings, once);

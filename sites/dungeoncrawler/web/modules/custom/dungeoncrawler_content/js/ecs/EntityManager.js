@@ -128,6 +128,13 @@ export class EntityManager {
   }
 
   /**
+   * Backwards-compatible alias for clear().
+   */
+  removeAllEntities() {
+    this.clear();
+  }
+
+  /**
    * Invalidate query cache (call when entities change).
    */
   invalidateQueryCache() {

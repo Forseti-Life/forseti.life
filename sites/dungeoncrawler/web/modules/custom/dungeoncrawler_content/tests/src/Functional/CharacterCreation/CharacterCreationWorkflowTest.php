@@ -3,6 +3,7 @@
 namespace Drupal\Tests\dungeoncrawler_content\Functional;
 
 use Drupal\Tests\BrowserTestBase;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Tests character creation workflow.
@@ -17,6 +18,7 @@ use Drupal\Tests\BrowserTestBase;
  *
  * TODO: Implement functional tests per design document
  */
+#[RunTestsInSeparateProcesses]
 class CharacterCreationWorkflowTest extends BrowserTestBase {
 
   /**

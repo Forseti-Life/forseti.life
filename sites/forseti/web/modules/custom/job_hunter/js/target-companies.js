@@ -3,7 +3,7 @@
  * Target Companies page interactions.
  */
 
-(function (Drupal, once) {
+(function (Drupal, drupalSettings, once) {
   'use strict';
 
   /**
@@ -38,12 +38,14 @@
    */
   window.addCompanyQuick = function (btn) {
     const companyName = btn.getAttribute('data-company');
-    const formData = new FormData();
-    formData.append('company_name', companyName);
     
     fetch('/jobhunter/companies/add-quick', {
       method: 'POST',
-      body: formData
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': drupalSettings.csrf_token || ''
+      },
+      body: JSON.stringify({ company_name: companyName })
     })
       .then(function (response) {
         return response.json();
@@ -83,4 +85,4 @@
     }
   };
 
-})(Drupal, once);
+})(Drupal, drupalSettings, once);

@@ -514,6 +514,17 @@ $settings['update_free_access'] = FALSE;
  */
 # $settings['file_public_path'] = 'sites/default/files';
 
+// Use writable paths during PHPUnit runs to avoid permission issues on
+// shared mounts.
+if (getenv('SIMPLETEST_BASE_URL')) {
+  $simpletest_root = getenv('SIMPLETEST_FILES_DIRECTORY') ?: '/tmp/dungeoncrawler-simpletest';
+
+  $settings['file_public_path'] = $simpletest_root . '/files';
+  $settings['file_private_path'] = $simpletest_root . '/private';
+  $settings['file_temp_path'] = $simpletest_root . '/temp';
+  $settings['simpletest.files_directory'] = $simpletest_root;
+}
+
 /**
  * Additional public file schemes:
  *

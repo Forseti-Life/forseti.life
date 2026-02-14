@@ -2,137 +2,179 @@
 
 **File:** `ResumeController.php`  
 **Size:** 467 lines  
-**Status:** ⚠️ **NEEDS REFACTORING**
+**Status:** ✅ **APPROVED WITH MINOR IMPROVEMENTS**
 
 ---
 
 ## Executive Summary
 
-This controller handles resume-related operations including upload, processing, and tailoring. It's a medium-sized controller (467 lines) that deals with file uploads and sensitive user data. It exhibits typical architectural issues (service locator, no DI) plus specific security concerns around file handling.
+This controller handles PDF generation and download operations for resumes. It's a well-structured controller (467 lines) that generates tailored resume PDFs, manages PDF history, and handles secure downloads. The controller already uses constructor dependency injection and implements basic security measures.
 
-**Critical Issues:**
-- 🔴 **Security:** File upload handling requires careful review
-- 🔴 **Architecture:** Service locator pattern, no constructor DI
-- 🟠 **File Handling:** Insufficient validation of uploaded files
-- 🟠 **Performance:** Large files may cause memory issues
+**Issues Identified:**
+- 🟠 **Security:** Content-Disposition header encoding and file read limits needed
+- 🟠 **Architecture:** Partial service locator usage for FileSystem and Time services
+- 🟡 **Performance:** Large PDF files loaded entirely into memory
+- 🟡 **Code Quality:** Some code duplication in filename generation
 
 ---
 
 ## Security Analysis
 
-### 1. 🔴 File Upload Validation
+### 1. 🟠 Content-Disposition Header Encoding
 
-**Critical Issue:** File uploads require strict validation.
+**Issue (Lines 211, 437):** Filename inserted directly into Content-Disposition header without proper encoding.
 
-**Checks Required:**
-1. **File size limits:**
-   ```php
-   $max_size = 5 * 1024 * 1024; // 5MB
-   if ($_FILES['resume']['size'] > $max_size) {
-     throw new \Exception($this->t('File is too large. Maximum size is 5MB.'));
-   }
-   ```
-
-2. **File type validation:**
-   ```php
-   $allowed_types = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-   $mime_type = mime_content_type($_FILES['resume']['tmp_name']);
-   
-   if (!in_array($mime_type, $allowed_types, TRUE)) {
-     throw new \Exception($this->t('Only PDF and DOCX files are allowed.'));
-   }
-   ```
-
-3. **Extension validation (whitelist only):**
-   ```php
-   $pathinfo = pathinfo($_FILES['resume']['name']);
-   $allowed_extensions = ['pdf', 'doc', 'docx'];
-   
-   if (!isset($pathinfo['extension']) || !in_array(strtolower($pathinfo['extension']), $allowed_extensions, TRUE)) {
-     throw new \Exception($this->t('Invalid file extension.'));
-   }
-   ```
-
-4. **Filename sanitization:**
-   ```php
-   // Never trust the original filename
-   $filename = 'resume_' . \Drupal::currentUser()->id() . '_' . time() . '.' . $pathinfo['extension'];
-   // Sanitize for filesystem
-   $filename = \Drupal\Component\Utility\Html::escape($filename);
-   ```
-
-### 2. 🔴 Path Traversal Protection
-
-**Issue:** If file is stored with user-provided names, path traversal attacks are possible.
-
-**Vulnerable Pattern:**
+**Current Code:**
 ```php
-// DON'T DO THIS
-$filepath = $upload_dir . '/' . $user_provided_filename;
+$response->headers->set('Content-Disposition', 'attachment; filename="' . $pdfRecord['filename'] . '"');
 ```
 
-**Safe Pattern:**
+**Recommendation:**
 ```php
-// DO THIS
-$filename = 'resume_' . $uid . '_' . time() . '.pdf';
-$filepath = $upload_dir . '/' . $filename;
-// Ensure path is within upload_dir
-$real_path = realpath($filepath);
-if (strpos($real_path, realpath($upload_dir)) !== 0) {
-  throw new \Exception('Invalid file path');
+// Use RFC 5987 encoding for filenames with special characters
+$encodedFilename = rawurlencode($filename);
+$response->headers->set('Content-Disposition', 
+  'attachment; filename="' . addslashes($filename) . '"; ' .
+  "filename*=UTF-8''" . $encodedFilename
+);
+```
+
+### 2. 🟠 File Read Memory Limits
+
+**Issue (Line 207):** `file_get_contents()` loads entire PDF into memory without size limits.
+
+**Current Code:**
+```php
+$pdfContent = file_get_contents($realPath);
+```
+
+**Recommendation:**
+```php
+// Check file size before reading
+$fileSize = filesize($realPath);
+$maxSize = 10 * 1024 * 1024; // 10MB limit
+
+if ($fileSize > $maxSize) {
+  throw new \Exception('PDF file too large to download');
+}
+
+$pdfContent = file_get_contents($realPath);
+```
+
+### 3. ✅ Access Control (PROPERLY IMPLEMENTED)
+
+**Lines 194-196, 246-251:** User ownership verification is correctly implemented:
+```php
+if ((int) $pdfRecord['uid'] !== $userId) {
+  throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException('Access denied.');
 }
 ```
 
-### 3. ⚠️ File Access Control
+### 4. ✅ Secure File Storage (PROPERLY IMPLEMENTED)
 
-**Issue:** Ensure users can only access their own resumes.
-
-**Recommendation:**
+**Line 126:** Files are stored in private directory outside web root:
 ```php
-public function downloadResume($resume_id) {
-  $uid = \Drupal::currentUser()->id();
-  
-  // Get resume data
-  $resume = $this->database->select('jobhunter_resumes')
-    ->fields('resume')
-    ->condition('id', $resume_id)
-    ->condition('uid', $uid)  // Ensure user owns resume
-    ->execute()
-    ->fetchAssoc();
-  
-  if (!$resume) {
-    throw new AccessDeniedHttpException('Resume not found');
-  }
-  
-  // Serve file
-  return $this->serveFile($resume['pdf_path']);
+$directory = 'private://job_hunter/resumes/' . $userId . '/tailoredresumes';
+```
+
+### 5. ✅ Filename Sanitization (PROPERLY IMPLEMENTED)
+
+**Lines 454-465:** Dedicated `sanitizeFilename()` method properly sanitizes filenames:
+```php
+protected function sanitizeFilename(string $string): string {
+  $string = preg_replace('/[^a-zA-Z0-9\s\-_]/', '', $string);
+  $string = preg_replace('/\s+/', '_', $string);
+  $string = substr($string, 0, 50);
+  return rtrim($string, '_');
 }
 ```
 
-### 4. ⚠️ Sensitive Data Exposure
+---
 
-**Issue:** If resume contains sensitive data and is stored improperly.
+## Architecture Analysis
 
-**Recommendation:**
-- Store resumes outside the web root
-- Encrypt sensitive fields in database
-- Don't expose internal file paths in URLs
+### 1. ✅ Constructor Dependency Injection (PROPERLY IMPLEMENTED)
 
-### 5. ⚠️ Temporary File Cleanup
+**Lines 39-42:** Controller properly uses constructor injection for core dependencies:
+```php
+public function __construct(Connection $database, ResumePdfService $pdf_service) {
+  $this->database = $database;
+  $this->pdfService = $pdf_service;
+}
+```
 
-**Issue:** Uploaded files in temporary directory may not be cleaned up on error.
+### 2. 🟠 Partial Service Locator Usage
+
+**Issue:** FileSystem and Time services accessed via service locator instead of DI.
+
+**Lines 128, 200, 255:**
+```php
+$fileSystem = \Drupal::service('file_system');
+```
+
+**Lines 145, 158:**
+```php
+\Drupal::time()->getRequestTime()
+```
 
 **Recommendation:**
 ```php
-$temp_path = $_FILES['resume']['tmp_name'];
-try {
-  // Validate and process
-  $this->validateFile($temp_path);
-} finally {
-  // Always clean up temp file
-  if (file_exists($temp_path)) {
-    unlink($temp_path);
+class ResumeController extends ControllerBase {
+  
+  protected Connection $database;
+  protected ResumePdfService $pdfService;
+  protected FileSystemInterface $fileSystem;
+  protected TimeInterface $time;
+  
+  public function __construct(
+    Connection $database, 
+    ResumePdfService $pdf_service,
+    FileSystemInterface $file_system,
+    TimeInterface $time
+  ) {
+    $this->database = $database;
+    $this->pdfService = $pdf_service;
+    $this->fileSystem = $file_system;
+    $this->time = $time;
   }
+  
+  public static function create(ContainerInterface $container): static {
+    return new static(
+      $container->get('database'),
+      $container->get('job_hunter.resume_pdf_service'),
+      $container->get('file_system'),
+      $container->get('datetime.time')
+    );
+  }
+}
+```
+
+### 3. 🟡 Code Duplication
+
+**Issue:** Filename generation logic is duplicated in three places (lines 105-114, 355-363, 383-384).
+
+**Recommendation:**
+```php
+protected function generateFilename(
+  array $content, 
+  ?string $companyName = NULL, 
+  ?string $jobTitle = NULL,
+  bool $includeTimestamp = FALSE
+): string {
+  $name = $content['contact_info']['full_name'] ?? 'Resume';
+  $filename = $this->sanitizeFilename($name);
+  
+  if ($companyName) {
+    $filename .= '_' . $this->sanitizeFilename($companyName);
+  }
+  if ($jobTitle) {
+    $filename .= '_' . $this->sanitizeFilename($jobTitle);
+  }
+  if ($includeTimestamp) {
+    $filename .= '_' . date('Ymd_His');
+  }
+  
+  return $filename . '.pdf';
 }
 ```
 
@@ -140,277 +182,194 @@ try {
 
 ## Performance Analysis
 
-### 1. 🔴 Large File Handling
+### 1. 🟡 Large PDF File Handling
 
-**Issue:** Processing large resume files (especially if generating PDFs) in the request/response cycle is problematic.
+**Issue (Line 207):** Entire PDF loaded into memory with `file_get_contents()`.
+
+**Current Code:**
+```php
+$pdfContent = file_get_contents($realPath);
+```
+
+**Recommendation (for very large PDFs):**
+```php
+// For streaming large files
+$response = new BinaryFileResponse($realPath);
+$response->headers->set('Content-Type', 'application/pdf');
+$response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+return $response;
+```
+
+### 2. 🟡 Inefficient Query After Deletion
+
+**Issue (Lines 268-275):** Query for latest PDF happens after deletion, requiring extra database query.
+
+**Current Pattern:**
+```php
+// Delete PDF
+$this->database->delete('jobhunter_pdf_history')
+  ->condition('id', $pdf_id)
+  ->execute();
+
+// Then query for latest
+$latestPdf = $this->database->select('jobhunter_pdf_history', 'ph')
+  ->fields('ph', ['filepath', 'created'])
+  // ... rest of query
+```
 
 **Recommendation:**
 ```php
-// For large files, use queue processing
-$queue = \Drupal::queue('job_hunter_resume_process');
-$queue->createItem([
-  'uid' => $uid,
-  'file_path' => $filepath,
-  'operation' => 'parse_content',
-]);
+// Query for latest before deletion
+$latestPdf = $this->database->select('jobhunter_pdf_history', 'ph')
+  ->fields('ph', ['filepath', 'created'])
+  ->condition('uid', $userId)
+  ->condition('job_id', $pdfRecord['job_id'])
+  ->condition('id', $pdf_id, '!=') // Exclude current PDF
+  ->orderBy('created', 'DESC')
+  ->range(0, 1)
+  ->execute()
+  ->fetchAssoc();
 
-// Return immediately
-return $this->redirect('job_hunter.resumes_list');
-```
-
-### 2. ⚠️ No Caching of Resume Data
-
-**Finding:** If resume is frequently accessed/displayed, should be cached.
-
-**Recommendation:**
-```php
-$cache_key = 'job_hunter:resume:' . $resume_id;
-if ($cached = \Drupal::cache('data')->get($cache_key)) {
-  return $cached->data;
-}
-
-// Load resume data
-$resume = $this->loadResume($resume_id);
-
-\Drupal::cache('data')->set($cache_key, $resume, \Drupal\Core\Cache\CacheBackendInterface::CACHE_PERMANENT, ['job_hunter:resumes']);
-```
-
-### 3. ⚠️ Memory Usage with File Reading
-
-**Issue:** If reading entire large files into memory.
-
-**Recommendation:**
-```php
-// For large files, read in chunks
-$file_handle = fopen($filepath, 'r');
-while (!feof($file_handle)) {
-  $chunk = fread($file_handle, 8192); // 8KB chunks
-  // Process chunk
-}
-fclose($file_handle);
-```
-
----
-
-## Code Organization
-
-### 1. ⚠️ Service Locator Pattern
-
-**Finding:** Services accessed via `\Drupal::database()`, `\Drupal::currentUser()` instead of constructor injection.
-
-**Recommendation:**
-```php
-class ResumeController extends ControllerBase {
-  
-  protected $database;
-  protected $currentUser;
-  protected $fileSystem;
-  protected $logger;
-  
-  public function __construct(
-    DatabaseConnection $database,
-    AccountProxyInterface $currentUser,
-    FileSystemInterface $fileSystem,
-    LoggerInterface $logger
-  ) {
-    $this->database = $database;
-    $this->currentUser = $currentUser;
-    $this->fileSystem = $fileSystem;
-    $this->logger = $logger;
-  }
-  
-  public static function create(ContainerInterface $container) {
-    return new static(
-      $container->get('database'),
-      $container->get('current_user'),
-      $container->get('file_system'),
-      $container->get('logger.factory')->get('job_hunter')
-    );
-  }
-```
-
-### 2. 🟡 Large Controller
-
-**Issue:** 467 lines suggests multiple responsibilities.
-
-**Recommendation:** Split into:
-- `ResumeUploadController` - Handle uploads
-- `ResumeDisplayController` - Show resume details
-- `ResumeTailorController` - Tailoring operations
-
-Or extract file handling to `ResumeFileService`.
-
-### 3. 🟡 Service Extraction
-
-**Recommendation:** Create `ResumeProcessingService`:
-```php
-class ResumeProcessingService {
-  // Validate file
-  public function validateUpload($file_path, $uid);
-  
-  // Extract text from resume
-  public function extractContent($file_path);
-  
-  // Parse structure
-  public function parseResume($content);
-  
-  // Store securely
-  public function storeResume($file_path, $data, $uid);
-}
+// Then delete
+$this->database->delete('jobhunter_pdf_history')
+  ->condition('id', $pdf_id)
+  ->execute();
 ```
 
 ---
 
 ## Error Handling
 
-### 1. 🟠 Limited Exception Handling
+### 1. 🟡 Inconsistent Error Response Formats
 
-**Issue:** File operations can fail. No comprehensive error handling.
+**Issue:** Some methods throw exceptions while others return JSON error responses.
 
-**Recommendation:**
+**Lines 190-196 (throws exception):**
 ```php
-try {
-  $file_path = $this->storeUploadedFile($file);
-  $content = $this->extractResume($file_path);
-  $parsed = $this->parseResume($content);
-  $this->saveToDatabase($parsed, $uid);
-} catch (FileException $e) {
-  \Drupal::logger('job_hunter')->error('Resume file error: @error', ['@error' => $e->getMessage()]);
-  $this->messenger()->addError($this->t('Could not save resume file. Please try again.'));
-  return $this->redirect('job_hunter.upload_resume');
-} catch (ParseException $e) {
-  \Drupal::logger('job_hunter')->error('Resume parsing error: @error', ['@error' => $e->getMessage()]);
-  $this->messenger()->addError($this->t('Could not parse resume. File may be corrupted.'));
-  return $this->redirect('job_hunter.upload_resume');
-} catch (\Exception $e) {
-  \Drupal::logger('job_hunter')->critical('Unexpected resume error: @error', ['@error' => $e->getMessage()]);
-  $this->messenger()->addError($this->t('An unexpected error occurred.'));
-  return $this->redirect('job_hunter.upload_resume');
+if (!$pdfRecord) {
+  throw new NotFoundHttpException('PDF not found.');
 }
 ```
 
-### 2. ⚠️ Validation Error Messages
+**Lines 239-243 (returns JSON):**
+```php
+if (!$pdfRecord) {
+  return new JsonResponse(['success' => FALSE, 'message' => 'PDF not found.'], 404);
+}
+```
 
-**Issue:** File validation errors may not be user-friendly.
+**Recommendation:** Use consistent approach - exceptions for download endpoints, JSON for API endpoints.
+
+### 2. 🟡 Silent File Deletion Failure
+
+**Issue (Line 259):** `unlink()` may fail silently without logging.
+
+**Current Code:**
+```php
+if ($realPath && file_exists($realPath)) {
+  unlink($realPath);
+}
+```
 
 **Recommendation:**
 ```php
-$errors = [];
-if (!$this->isValidFileType($file)) {
-  $errors[] = $this->t('Resume must be a PDF or Word document.');
-}
-if ($file['size'] > 5 * 1024 * 1024) {
-  $errors[] = $this->t('Resume file is too large (max 5MB).');
-}
-if (!empty($errors)) {
-  foreach ($errors as $error) {
-    $this->messenger()->addError($error);
+if ($realPath && file_exists($realPath)) {
+  if (!unlink($realPath)) {
+    \Drupal::logger('job_hunter')->warning('Failed to delete PDF file: @path', ['@path' => $realPath]);
   }
-  return $this->redirect('job_hunter.upload_resume');
 }
+```
+
+### 3. 🟡 Missing Error Logging
+
+**Issue:** No logging of important operations (PDF generation, deletion, access denials).
+
+**Recommendation:**
+```php
+// Log successful operations
+\Drupal::logger('job_hunter')->info('PDF generated for user @uid, job @job_id', [
+  '@uid' => $userId,
+  '@job_id' => $job_id,
+]);
+
+// Log access denials
+\Drupal::logger('job_hunter')->warning('User @uid attempted to access PDF @pdf_id', [
+  '@uid' => $userId,
+  '@pdf_id' => $pdf_id,
+]);
 ```
 
 ---
 
-## Database Operations
+## Code Quality
 
-### 1. ⚠️ Transaction Safety
+### 1. ✅ Type Hints (PROPERLY USED)
 
-**Issue:** If uploading and saving to database, should be atomic.
-
-**Recommendation:**
+Controller methods use proper type hints for parameters and return types:
 ```php
-$transaction = $this->database->startTransaction();
-try {
-  // Save file
-  $filepath = $this->saveFile($file);
-  
-  // Save to database
-  $result = $this->database->insert('jobhunter_resumes')
-    ->fields([
-      'uid' => $uid,
-      'filename' => $filename,
-      'filepath' => $filepath,
-      'created' => time(),
-    ])
-    ->execute();
-  
-  if (!$result) {
-    throw new \Exception('Failed to save resume to database');
-  }
-} catch (\Exception $e) {
-  $transaction->rollBack();
-  // Clean up file
-  if (file_exists($filepath)) {
-    unlink($filepath);
-  }
-  throw $e;
-}
+public function generateTailoredPdf(int $job_id): JsonResponse
+public function downloadPdfById(int $pdf_id): Response
 ```
 
-### 2. ⚠️ Old Resume Cleanup
+### 2. ✅ Documentation
 
-**Issue:** When user uploads new resume, should old ones be cleaned up?
+Methods have proper DocBlocks explaining purpose and parameters.
+
+### 3. 🟡 Magic Numbers
+
+**Line 460:** Maximum filename length (50) is hardcoded.
 
 **Recommendation:**
 ```php
-// Before saving new resume, delete old ones
-$old_resumes = $this->database->select('jobhunter_resumes')
-  ->fields('resumes', ['id', 'filepath'])
-  ->condition('uid', $uid)
-  ->execute()
-  ->fetchAll();
+private const MAX_FILENAME_LENGTH = 50;
 
-foreach ($old_resumes as $old_resume) {
-  // Delete file
-  if (file_exists($old_resume->filepath)) {
-    unlink($old_resume->filepath);
-  }
-  
-  // Delete from database
-  $this->database->delete('jobhunter_resumes')
-    ->condition('id', $old_resume->id)
-    ->execute();
-}
+$string = substr($string, 0, self::MAX_FILENAME_LENGTH);
 ```
 
 ---
 
 ## Testing Recommendations
 
-1. **File Upload Tests:**
-   - Valid PDF upload
-   - Valid DOCX upload
-   - Oversized file rejection
-   - Invalid file type rejection
-   - Path traversal attempt rejection
-   - Filename with special characters
+1. **PDF Generation Tests:**
+   - Generate PDF for job with tailored resume
+   - Generate PDF with missing tailored resume (fallback to base)
+   - Handle invalid JSON in tailored resume
+   - Verify filename sanitization with special characters
+   - Test with very long names (>50 chars)
 
 2. **Security Tests:**
-   - Users cannot access other users' resumes
-   - Uploaded files are not executable
-   - Files are stored outside web root
-   - Temporary files are cleaned up
+   - User cannot access another user's PDF
+   - User cannot download PDF they don't own
+   - User cannot delete PDF they don't own
+   - Verify files stored in private directory
+   - Test Content-Disposition header encoding
 
 3. **Error Handling Tests:**
-   - Disk full scenario
-   - File permission errors
-   - Database connection failure during save
+   - PDF generation failure (ResumePdfService returns NULL)
+   - File save failure
+   - Missing PDF file on disk
+   - Database query failures
+
+4. **PDF Deletion Tests:**
+   - Delete PDF updates tailored_resumes table correctly
+   - Delete last PDF clears tailored_resumes path
+   - Delete middle PDF updates to latest remaining
 
 ---
 
-## Specific Code Issues Checklist
+## Validated Implementation Checklist
 
-- [ ] Is file size validated before processing?
-- [ ] Is file type validated by content, not just extension?
-- [ ] Are uploaded files stored outside web root?
-- [ ] Are filenames sanitized and unique?
-- [ ] Are users restricted to their own resumes?
-- [ ] Are temporary files cleaned up on error?
-- [ ] Are database operations transactional?
-- [ ] Is file processing queued for large files?
-- [ ] Are all file operations logged?
-- [ ] Is sensitive data encrypted?
+- [x] Are files stored outside web root? (private://)
+- [x] Are filenames sanitized? (sanitizeFilename() method)
+- [x] Are users restricted to their own PDFs? (uid checks)
+- [x] Is constructor DI used? (database, pdfService)
+- [x] Are proper type hints used?
+- [x] Is access control implemented?
+- [ ] Is file size checked before reading?
+- [ ] Is Content-Disposition header properly encoded?
+- [ ] Are FileSystem/Time services injected?
+- [ ] Are file operations logged?
+- [ ] Is error handling consistent?
 
 ---
 
@@ -418,42 +377,40 @@ foreach ($old_resumes as $old_resume) {
 
 | Priority | Issue | Recommendation |
 |----------|-------|-----------------|
-| 🔴 CRITICAL | File validation missing | Implement strict file type/size validation |
-| 🔴 CRITICAL | Path traversal risk | Sanitize filenames, validate paths |
-| 🔴 CRITICAL | Access control missing | Verify user owns resume before serving |
-| 🟠 HIGH | Service locator pattern | Use constructor injection |
-| 🟠 HIGH | No transaction safety | Wrap upload+save in transaction |
-| 🟠 HIGH | Large file handling | Use queue for processing |
-| 🟡 MEDIUM | No caching | Cache resume data |
-| 🟡 MEDIUM | Limited logging | Log all file operations |
-| 🟡 MEDIUM | Large controller | Split into smaller classes |
+| 🟠 HIGH | Content-Disposition encoding | Add RFC 5987 encoding for special chars |
+| 🟠 HIGH | File size limits | Check file size before loading into memory |
+| 🟠 HIGH | Service locator usage | Inject FileSystem and Time services |
+| 🟡 MEDIUM | Code duplication | Extract filename generation to method |
+| 🟡 MEDIUM | Missing logging | Log PDF operations and access denials |
+| 🟡 MEDIUM | Inconsistent errors | Standardize error response format |
+| 🟡 MEDIUM | Magic numbers | Use constants for max filename length |
+| 🟡 LOW | Query optimization | Fetch latest PDF before deletion |
 
 ---
 
 ## Estimated Effort
 
-- **File validation & security:** 2-3 hours
-- **Constructor DI & refactoring:** 1-2 hours
-- **Transaction safety & cleanup:** 1 hour
-- **Service extraction:** 1-2 hours
-- **Error handling improvements:** 1 hour
-- **Add tests:** 2-3 hours
+- **Security improvements (encoding, size limits):** 1-2 hours
+- **Dependency injection refactoring:** 1 hour
+- **Code quality (duplication, constants):** 1 hour
+- **Logging improvements:** 30 minutes
+- **Testing:** 2-3 hours
 
-**Total Estimated Effort:** 8-12 hours
+**Total Estimated Effort:** 5-7 hours
 
 ---
 
 ## Implementation Order
 
-1. **First (Security):** File validation and access control
-2. **Second (Stability):** Transaction safety and error handling
-3. **Third (Maintainability):** Constructor DI and service extraction
-4. **Fourth (Performance):** Caching and queue processing
-5. **Fifth (Quality):** Comprehensive testing
+1. **First (Security):** Content-Disposition encoding and file size limits
+2. **Second (Architecture):** Inject FileSystem and Time services
+3. **Third (Code Quality):** Extract filename generation, add constants
+4. **Fourth (Observability):** Add logging for operations
+5. **Fifth (Testing):** Add comprehensive tests
 
 ---
 
 **Review Confidence:** HIGH  
-**Last Updated:** 2024  
-**Reviewer Notes:** File upload handling is critical security area. Must implement strict validation and access controls.
+**Last Updated:** 2026-02-13  
+**Reviewer Notes:** Controller is well-structured with proper DI, access control, and secure file storage. Minor improvements needed for header encoding, service injection, and logging.
 

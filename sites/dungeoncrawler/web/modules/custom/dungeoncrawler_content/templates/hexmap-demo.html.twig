@@ -49,31 +49,64 @@
       <p id="selected-object-type" class="selected-type">{{ 'Selected: None'|t }}</p>
     </div>
     
-    <div class="hexmap-combat-controls">
-      <h3>{{ 'Combat Controls'|t }}</h3>
-      <div id="combat-controls" class="combat-buttons">
-        <button id="start-combat" class="btn btn-success">{{ '⚔️ Start Combat'|t }}</button>
-        <button id="end-turn" class="btn btn-primary" style="display:none;">{{ '➡️ End Turn'|t }}</button>
-        <button id="end-combat" class="btn btn-warning" style="display:none;">{{ '🛑 End Combat'|t }}</button>
-      </div>
-      
-      <div id="initiative-tracker" class="initiative-tracker" style="display:none;">
-        <div class="tracker-header">
-          <h4>{{ 'Initiative Order'|t }}</h4>
-          <span id="current-round" class="round-display">{{ 'Round 0'|t }}</span>
+  </div>
+
+  <div class="hexmap-stage">
+    <div id="hexmap-canvas-container" class="hexmap-canvas-wrapper">
+      <!-- PixiJS canvas will be inserted here -->
+
+      <div id="turn-hud" class="turn-hud">
+        <div class="turn-hud__row">
+          <span id="turn-owner" class="pill pill-strong">{{ 'No active combat'|t }}</span>
+          <span id="current-round" class="pill pill-round">{{ 'Round 0'|t }}</span>
         </div>
-        <div id="current-turn" class="current-turn-display">
-          {{ 'No active turn'|t }}
+
+        <div id="current-turn" class="turn-hud__name">{{ 'No active turn'|t }}</div>
+
+        <div class="turn-hud__meta">
+          <span id="turn-action-summary" class="chip chip-strong">{{ 'Actions: -'|t }}</span>
+          <span id="turn-move-summary" class="chip">{{ 'Movement: -'|t }}</span>
+          <span id="turn-reaction" class="chip chip-ghost">{{ 'Reaction: ready'|t }}</span>
         </div>
-        <div id="initiative-list" class="initiative-list">
-          <!-- Initiative order will be populated here -->
+
+        <div id="turn-action-chips" class="turn-hud__actions">
+          <span class="chip chip-ghost">{{ 'Move'|t }}</span>
+          <span class="chip chip-ghost">{{ 'Strike'|t }}</span>
+          <span class="chip chip-ghost">{{ 'Cast / Skill'|t }}</span>
+          <span class="chip chip-end">{{ 'End Turn'|t }}</span>
+        </div>
+
+        <div id="combat-controls" class="turn-hud__controls">
+          <button id="start-combat" class="btn btn-success">{{ '⚔️ Start Combat'|t }}</button>
+          <button id="end-combat" class="btn btn-warning" style="display:none;">{{ '🛑 End Combat'|t }}</button>
+        </div>
+
+        <div id="initiative-tracker" class="initiative-tracker" style="display:none;">
+          <div class="tracker-header">
+            <h4>{{ 'Initiative Order'|t }}</h4>
+          </div>
+          <div class="initiative-list" id="initiative-list">
+            <!-- Initiative order will be populated here -->
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div id="hexmap-canvas-container" class="hexmap-canvas-wrapper">
-    <!-- PixiJS canvas will be inserted here -->
+    <div id="action-footer" class="action-footer">
+      <div class="action-footer__toggle" id="action-footer-toggle">{{ 'Actions ▾'|t }}</div>
+
+      <div class="action-section" data-section="controls">
+        <div class="action-section__header"><span>{{ 'Actions'|t }}</span><span class="action-section__chevron">▾</span></div>
+        <div class="action-section__body">
+          <div class="action-buttons" id="action-menu">
+            <button id="action-move" class="btn btn-ghost">{{ 'Move'|t }}</button>
+            <button id="action-attack" class="btn btn-primary">{{ 'Attack'|t }}</button>
+            <button id="end-turn" class="btn btn-primary" style="display:none;">{{ 'End Turn'|t }}</button>
+          </div>
+          <p id="action-instruction" class="action-instruction">{{ 'Select a hostile target to attack.'|t }}</p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="hexmap-info">
@@ -84,6 +117,20 @@
         <p><strong>{{ 'Hovered Hex:'|t }}</strong> <span id="hovered-hex">{{ 'None'|t }}</span></p>
         <p><strong>{{ 'Hovered Object:'|t }}</strong> <span id="hovered-object">{{ 'None'|t }}</span></p>
         <p><strong>{{ 'Zoom Level:'|t }}</strong> <span id="zoom-level">100%</span></p>
+      </div>
+    </div>
+
+    <div class="info-panel">
+      <h3>{{ 'Hex Details'|t }}</h3>
+      <div class="info-content">
+        <p><strong>{{ 'Room:'|t }}</strong> <span id="hex-detail-room">{{ 'None'|t }}</span></p>
+        <p><strong>{{ 'Terrain:'|t }}</strong> <span id="hex-detail-terrain">{{ 'Unknown'|t }}</span></p>
+        <p><strong>{{ 'Elevation:'|t }}</strong> <span id="hex-detail-elevation">-</span></p>
+        <p><strong>{{ 'Lighting:'|t }}</strong> <span id="hex-detail-lighting">{{ 'Unknown'|t }}</span></p>
+        <p><strong>{{ 'Passability:'|t }}</strong> <span id="hex-detail-passability">{{ 'Unknown'|t }}</span></p>
+        <p><strong>{{ 'Objects:'|t }}</strong> <span id="hex-detail-objects">{{ 'None'|t }}</span></p>
+        <p><strong>{{ 'Entities:'|t }}</strong> <span id="hex-detail-entities">{{ 'None'|t }}</span></p>
+        <p><strong>{{ 'Connection:'|t }}</strong> <span id="hex-detail-connection">{{ 'None'|t }}</span></p>
       </div>
     </div>
 
@@ -150,6 +197,49 @@
         <li>{{ 'Click blue hex to move selected creature'|t }}</li>
         <li><strong>{{ 'Combat:'|t }}</strong> {{ 'Start Combat to roll initiative'|t }}</li>
         <li>{{ 'Actions on your turn: Move, Attack, End Turn'|t }}</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="character-sheet">
+    <div class="character-sheet__header">
+      <div>
+        <p class="eyebrow">{{ 'Character Sheet'|t }}</p>
+        <h2 id="char-name">{{ 'Select a character'|t }}</h2>
+        <p id="char-type" class="muted">{{ 'Type —'|t }}</p>
+      </div>
+      <div class="character-badges">
+        <span id="char-team" class="pill pill-muted">{{ 'Team —'|t }}</span>
+        <span id="char-level" class="pill pill-strong">{{ 'Lvl —'|t }}</span>
+      </div>
+    </div>
+
+    <div class="character-sheet__stats">
+      <div class="stat-card">
+        <p class="label">{{ 'HP'|t }}</p>
+        <p id="char-hp" class="stat-value">-</p>
+      </div>
+      <div class="stat-card">
+        <p class="label">{{ 'AC'|t }}</p>
+        <p id="char-ac" class="stat-value">-</p>
+      </div>
+      <div class="stat-card">
+        <p class="label">{{ 'Speed'|t }}</p>
+        <p id="char-speed" class="stat-value">-</p>
+      </div>
+      <div class="stat-card">
+        <p class="label">{{ 'Actions'|t }}</p>
+        <p id="char-actions" class="stat-value">-</p>
+      </div>
+    </div>
+
+    <div class="character-sheet__inventory">
+      <div class="inventory-header">
+        <h4>{{ 'Inventory'|t }}</h4>
+        <p class="muted">{{ 'Quick view only; wiring to full sheet is in progress.'|t }}</p>
+      </div>
+      <ul id="char-inventory" class="inventory-list">
+        <li class="inventory-empty">{{ 'No items loaded yet'|t }}</li>
       </ul>
     </div>
   </div>

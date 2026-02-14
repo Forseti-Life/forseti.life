@@ -3,15 +3,95 @@
 namespace Drupal\job_hunter\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Database\Connection;
+use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * Controller for Job Hunter home page.
  */
 class JobHunterHomeController extends ControllerBase {
   use JobHunterControllerTrait;
+
+  /**
+   * Maximum number of queue items to process per run.
+   */
+  private const MAX_QUEUE_ITEMS_PER_RUN = 10;
+
+  /**
+   * Maximum retry attempts before suspending a queue item.
+   */
+  private const MAX_RETRY_ATTEMPTS = 3;
+
+  /**
+   * Maximum processing time in seconds for queue processing.
+   */
+  private const QUEUE_PROCESSING_TIMEOUT = 30;
+
+  /**
+   * The database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $database;
+
+  /**
+   * The queue factory service.
+   *
+   * @var \Drupal\Core\Queue\QueueFactory
+   */
+  protected $queueFactory;
+
+  /**
+   * The state service.
+   *
+   * @var \Drupal\Core\State\StateInterface
+   */
+  protected $state;
+
+  /**
+   * The logger service.
+   *
+   * @var \Psr\Log\LoggerInterface
+   */
+  protected $logger;
+
+  /**
+   * Constructs a JobHunterHomeController object.
+   *
+   * @param \Drupal\Core\Database\Connection $database
+   *   The database connection.
+   * @param \Drupal\Core\Queue\QueueFactory $queue_factory
+   *   The queue factory service.
+   * @param \Drupal\Core\State\StateInterface $state
+   *   The state service.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   The logger service.
+   */
+  public function __construct(Connection $database, QueueFactory $queue_factory, StateInterface $state, LoggerInterface $logger) {
+    $this->database = $database;
+    $this->queueFactory = $queue_factory;
+    $this->state = $state;
+    $this->logger = $logger;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('database'),
+      $container->get('queue'),
+      $container->get('state'),
+      $container->get('logger.factory')->get('job_hunter')
+    );
+  }
 
   /**
    * Queue definitions with display names and descriptions.
@@ -114,11 +194,10 @@ class JobHunterHomeController extends ControllerBase {
    *   Array of queue status information.
    */
   protected function getQueueStatus(): array {
-    $queue_factory = \Drupal::service('queue');
     $status = [];
 
     foreach (self::QUEUE_DEFINITIONS as $queue_id => $info) {
-      $queue = $queue_factory->get($queue_id);
+      $queue = $this->queueFactory->get($queue_id);
       $status[$queue_id] = [
         'id' => $queue_id,
         'name' => $info['name'],
@@ -132,13 +211,72 @@ class JobHunterHomeController extends ControllerBase {
   }
 
   /**
+   * Validates and returns a queue ID.
+   *
+   * @param mixed $queue_id
+   *   The queue ID to validate.
+   *
+   * @return string
+   *   The validated queue ID.
+   *
+   * @throws \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
+   *   If the queue ID is invalid.
+   */
+  private function validateQueueId($queue_id): string {
+    if (!is_string($queue_id) || empty($queue_id)) {
+      throw new BadRequestHttpException('Invalid queue ID: must be a non-empty string');
+    }
+
+    if (!isset(self::QUEUE_DEFINITIONS[$queue_id])) {
+      throw new BadRequestHttpException('Unknown queue ID');
+    }
+
+    return $queue_id;
+  }
+
+  /**
+   * Validates and returns an item ID.
+   *
+   * @param mixed $item_id
+   *   The item ID to validate.
+   *
+   * @return int
+   *   The validated item ID.
+   *
+   * @throws \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
+   *   If the item ID is invalid.
+   */
+  private function validateItemId($item_id): int {
+    $id = filter_var($item_id, FILTER_VALIDATE_INT);
+    if ($id === FALSE) {
+      throw new BadRequestHttpException('Invalid item ID: must be an integer');
+    }
+    if ($id < 1) {
+      throw new BadRequestHttpException('Invalid item ID: must be greater than zero');
+    }
+    return $id;
+  }
+
+  /**
    * AJAX endpoint to run a specific queue.
    *
+   * This endpoint is intended for admin use only. Normally, queue processing
+   * should happen via Drupal cron. This method is provided for manual testing
+   * and diagnostics.
+   *
    * @param \Symfony\Component\HttpFoundation\Request $request
-   *   The request object.
+   *   The HTTP request containing 'queue_id' parameter.
    *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
-   *   JSON response with results.
+   *   JSON response with format:
+   *   - success: bool - Whether processing succeeded
+   *   - message: string - Human-readable result message
+   *   - processed: int - Number of items processed
+   *   - queue_id: string - The queue that was processed
+   *   - remaining: int - Number of items still in queue
+   *
+   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
+   *   If user lacks 'administer job application automation' permission.
    */
   public function runQueueAjax(Request $request): JsonResponse {
     // Check permission
@@ -149,16 +287,8 @@ class JobHunterHomeController extends ControllerBase {
       ], 403);
     }
 
-    $queue_id = $request->request->get('queue_id');
-    
-    if (!$queue_id || !isset(self::QUEUE_DEFINITIONS[$queue_id])) {
-      return new JsonResponse([
-        'success' => FALSE,
-        'message' => 'Invalid queue ID',
-      ], 400);
-    }
-
     try {
+      $queue_id = $this->validateQueueId($request->request->get('queue_id'));
       $processed = $this->processQueue($queue_id);
       
       return new JsonResponse([
@@ -166,11 +296,17 @@ class JobHunterHomeController extends ControllerBase {
         'message' => "Processed {$processed} items from " . self::QUEUE_DEFINITIONS[$queue_id]['name'],
         'processed' => $processed,
         'queue_id' => $queue_id,
-        'remaining' => \Drupal::service('queue')->get($queue_id)->numberOfItems(),
+        'remaining' => $this->queueFactory->get($queue_id)->numberOfItems(),
       ]);
     }
+    catch (BadRequestHttpException $e) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => $e->getMessage(),
+      ], 400);
+    }
     catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Queue processing error: @error', ['@error' => $e->getMessage()]);
+      $this->logger->error('Queue processing error: @error', ['@error' => $e->getMessage()]);
       return new JsonResponse([
         'success' => FALSE,
         'message' => 'Error: ' . $e->getMessage(),
@@ -179,13 +315,20 @@ class JobHunterHomeController extends ControllerBase {
   }
 
   /**
-   * AJAX endpoint to run all queues.
+   * AJAX endpoint to run all queues in logical order.
+   *
+   * Processes all Job Hunter queues sequentially in dependency order.
+   * This is an admin-only endpoint for manual queue management.
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The request object.
    *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
-   *   JSON response with results.
+   *   JSON response with format:
+   *   - success: bool - Whether processing succeeded
+   *   - message: string - Summary of results
+   *   - total_processed: int - Total items processed across all queues
+   *   - results: array - Per-queue results with processed counts or errors
    */
   public function runAllQueuesAjax(Request $request): JsonResponse {
     // Check permission
@@ -215,7 +358,7 @@ class JobHunterHomeController extends ControllerBase {
         $total_processed += $processed;
         $results[$queue_id] = [
           'processed' => $processed,
-          'remaining' => \Drupal::service('queue')->get($queue_id)->numberOfItems(),
+          'remaining' => $this->queueFactory->get($queue_id)->numberOfItems(),
         ];
       }
       catch (\Exception $e) {
@@ -236,8 +379,13 @@ class JobHunterHomeController extends ControllerBase {
   /**
    * AJAX endpoint to get current queue status.
    *
+   * Returns status information for all Job Hunter queues including item counts.
+   * Available to all authenticated users (read-only).
+   *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
-   *   JSON response with queue status.
+   *   JSON response with format:
+   *   - success: bool - Always TRUE for authenticated users
+   *   - queues: array - Status for each queue including name, description, and item count
    */
   public function getQueueStatusAjax(): JsonResponse {
     // Allow any authenticated user to view queue status
@@ -256,6 +404,15 @@ class JobHunterHomeController extends ControllerBase {
 
   /**
    * Get recent queue activity logs (AJAX endpoint).
+   *
+   * Returns the last 20 queue-related log entries from the watchdog table.
+   * Admin-only for security (may contain sensitive debugging information).
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with format:
+   *   - success: bool - Whether request succeeded
+   *   - logs: array - Log entries with timestamp, message, and type (error/warning/info)
+   *   - message: string - Error message if access denied
    */
   public function getQueueLogsAjax(): JsonResponse {
     // Admin only for detailed logs
@@ -263,10 +420,8 @@ class JobHunterHomeController extends ControllerBase {
       return new JsonResponse(['success' => FALSE, 'message' => 'Access denied'], 403);
     }
 
-    $database = \Drupal::database();
-    
     // Get last 20 queue-related log entries
-    $query = $database->select('watchdog', 'w')
+    $query = $this->database->select('watchdog', 'w')
       ->fields('w', ['wid', 'timestamp', 'type', 'severity', 'message', 'variables'])
       ->condition('type', 'job_hunter')
       ->orderBy('timestamp', 'DESC')
@@ -311,40 +466,57 @@ class JobHunterHomeController extends ControllerBase {
    *   The queue ID.
    * @param int $max_items
    *   Maximum items to process.
+   * @param int $timeout
+   *   Maximum execution time in seconds.
    *
    * @return int
    *   Number of items processed.
    */
-  protected function processQueue(string $queue_id, int $max_items = 10): int {
+  protected function processQueue(string $queue_id, int $max_items = self::MAX_QUEUE_ITEMS_PER_RUN, int $timeout = self::QUEUE_PROCESSING_TIMEOUT): int {
     // Check if queue processing is paused
-    $state = \Drupal::state();
-    if ($state->get('job_hunter.queue_paused', FALSE)) {
-      \Drupal::logger('job_hunter')->notice('Queue processing is paused. Skipping @queue', ['@queue' => $queue_id]);
+    if ($this->state->get('job_hunter.queue_paused', FALSE)) {
+      $this->logger->notice('Queue processing is paused. Skipping @queue', ['@queue' => $queue_id]);
       return 0;
     }
 
-    $queue_factory = \Drupal::service('queue');
+    $start_time = microtime(TRUE);
     $queue_worker_manager = \Drupal::service('plugin.manager.queue_worker');
-    $database = \Drupal::database();
     
-    $queue = $queue_factory->get($queue_id);
+    $queue = $this->queueFactory->get($queue_id);
     $worker = $queue_worker_manager->createInstance($queue_id);
     
     $processed = 0;
     
     while ($processed < $max_items && ($item = $queue->claimItem())) {
+      // Check timeout
+      $elapsed = microtime(TRUE) - $start_time;
+      if ($elapsed > $timeout) {
+        $this->logger->notice(
+          'Queue @queue processing timeout after @elapsed seconds. Processed @count items.',
+          [
+            '@queue' => $queue_id,
+            '@elapsed' => round($elapsed, 2),
+            '@count' => $processed,
+          ]
+        );
+        break;
+      }
+
       $item_key = md5(serialize($item->data));
       
       // Get retry count for this item
-      $retry_count = $state->get("job_hunter.queue_retry.{$queue_id}.{$item_key}", 0);
+      $retry_count = $this->state->get("job_hunter.queue_retry.{$queue_id}.{$item_key}", 0);
       
       // Check if item has exceeded retry limit
-      if ($retry_count >= 3) {
+      if ($retry_count >= self::MAX_RETRY_ATTEMPTS) {
         // Suspend this item
         $this->suspendQueueItemInternal($queue_id, $item, $retry_count);
         $queue->deleteItem($item);
-        $state->delete("job_hunter.queue_retry.{$queue_id}.{$item_key}");
-        \Drupal::logger('job_hunter')->warning('Queue item suspended after 3 failed attempts in @queue', ['@queue' => $queue_id]);
+        $this->state->delete("job_hunter.queue_retry.{$queue_id}.{$item_key}");
+        $this->logger->warning('Queue item suspended after @max failed attempts in @queue', [
+          '@max' => self::MAX_RETRY_ATTEMPTS,
+          '@queue' => $queue_id,
+        ]);
         continue;
       }
       
@@ -352,19 +524,20 @@ class JobHunterHomeController extends ControllerBase {
         $worker->processItem($item->data);
         $queue->deleteItem($item);
         // Clear retry count on success
-        $state->delete("job_hunter.queue_retry.{$queue_id}.{$item_key}");
+        $this->state->delete("job_hunter.queue_retry.{$queue_id}.{$item_key}");
         $processed++;
       }
       catch (\Exception $e) {
         // Increment retry count
         $retry_count++;
-        $state->set("job_hunter.queue_retry.{$queue_id}.{$item_key}", $retry_count);
+        $this->state->set("job_hunter.queue_retry.{$queue_id}.{$item_key}", $retry_count);
         
         // Release item back to queue on failure
         $queue->releaseItem($item);
-        \Drupal::logger('job_hunter')->error('Queue @queue item failed (attempt @attempt/3): @error', [
+        $this->logger->error('Queue @queue item failed (attempt @attempt/@max): @error', [
           '@queue' => $queue_id,
           '@attempt' => $retry_count,
+          '@max' => self::MAX_RETRY_ATTEMPTS,
           '@error' => $e->getMessage(),
         ]);
         // Continue to next item
@@ -376,11 +549,20 @@ class JobHunterHomeController extends ControllerBase {
 
   /**
    * Suspend a queue item after max retries (internal helper).
+   *
+   * Stores failed queue item data in the suspended items table for later
+   * manual review or retry. Called automatically when a queue item exceeds
+   * MAX_RETRY_ATTEMPTS.
+   *
+   * @param string $queue_id
+   *   The queue ID where the item failed.
+   * @param object $item
+   *   The queue item object containing data to suspend.
+   * @param int $retry_count
+   *   Number of retry attempts that were made.
    */
   private function suspendQueueItemInternal(string $queue_id, $item, int $retry_count) {
-    $database = \Drupal::database();
-    
-    $database->insert('jobhunter_queue_suspended')
+    $this->database->insert('jobhunter_queue_suspended')
       ->fields([
         'queue_name' => $queue_id,
         'item_data' => serialize($item->data),
@@ -579,6 +761,18 @@ class JobHunterHomeController extends ControllerBase {
 
   /**
    * Get a preview of queue item data.
+   *
+   * Extracts relevant information from queue item data for display in the
+   * queue management interface. Handles different queue types with varying
+   * data structures.
+   *
+   * @param object $data
+   *   The queue item data object.
+   * @param string $queue_name
+   *   The name of the queue (currently unused but available for future logic).
+   *
+   * @return array
+   *   Preview data array with keys like 'user', 'file', 'company', etc.
    */
   private function getQueueItemPreview($data, $queue_name) {
     $preview = [];
@@ -617,6 +811,18 @@ class JobHunterHomeController extends ControllerBase {
 
   /**
    * Delete a queue item (AJAX endpoint).
+   *
+   * Permanently removes an item from the active queue. This is an admin-only
+   * operation for manual queue management. Use with caution as deleted items
+   * cannot be recovered.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The HTTP request containing 'item_id' and 'queue_name' parameters.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   JSON response with format:
+   *   - success: bool - Whether deletion succeeded
+   *   - message: string - Result message
    */
   public function deleteQueueItem(Request $request) {
     // Check admin permission
@@ -627,61 +833,66 @@ class JobHunterHomeController extends ControllerBase {
       ], 403);
     }
 
-    // Handle JSON request body
-    $content = $request->getContent();
-    if ($content) {
-      $data = json_decode($content, TRUE);
-      $item_id = $data['item_id'] ?? NULL;
-      $queue_name = $data['queue_name'] ?? NULL;
-    } else {
-      $item_id = $request->request->get('item_id');
-      $queue_name = $request->request->get('queue_name');
-    }
-    
-    if (!$item_id || !$queue_name) {
-      return new JsonResponse(['success' => false, 'message' => 'Missing parameters'], 400);
-    }
-    
-    \Drupal::logger('job_hunter')->info('🔧 Queue Management: Attempting to delete queue item @item_id from queue @queue', [
-      '@item_id' => $item_id,
-      '@queue' => $queue_name,
-    ]);
-    
     try {
-      $database = \Drupal::database();
-      $deleted = $database->delete('queue')
-        ->condition('item_id', $item_id)
-        ->condition('name', $queue_name)
+      // Handle JSON request body
+      $content = $request->getContent();
+      if ($content) {
+        $data = json_decode($content, TRUE);
+        $item_id = $data['item_id'] ?? NULL;
+        $queue_name = $data['queue_name'] ?? NULL;
+      } else {
+        $item_id = $request->request->get('item_id');
+        $queue_name = $request->request->get('queue_name');
+      }
+      
+      // Validate inputs
+      $validated_item_id = $this->validateItemId($item_id);
+      $validated_queue_name = $this->validateQueueId($queue_name);
+      
+      $this->logger->info('🔧 Queue Management: Attempting to delete queue item @item_id from queue @queue', [
+        '@item_id' => $validated_item_id,
+        '@queue' => $validated_queue_name,
+      ]);
+      
+      $deleted = $this->database->delete('queue')
+        ->condition('item_id', $validated_item_id)
+        ->condition('name', $validated_queue_name)
         ->execute();
       
       if ($deleted) {
-        \Drupal::logger('job_hunter')->info('✅ Queue Management: Successfully deleted queue item @item_id from queue @queue', [
-          '@item_id' => $item_id,
-          '@queue' => $queue_name,
+        $this->logger->info('✅ Queue Management: Successfully deleted queue item @item_id from queue @queue', [
+          '@item_id' => $validated_item_id,
+          '@queue' => $validated_queue_name,
         ]);
         
         return new JsonResponse([
-          'success' => true,
+          'success' => TRUE,
           'message' => 'Queue item deleted successfully',
         ]);
       } else {
-        \Drupal::logger('job_hunter')->warning('⚠️ Queue Management: Queue item @item_id not found in queue @queue', [
-          '@item_id' => $item_id,
-          '@queue' => $queue_name,
+        $this->logger->warning('⚠️ Queue Management: Queue item @item_id not found in queue @queue', [
+          '@item_id' => $validated_item_id,
+          '@queue' => $validated_queue_name,
         ]);
         return new JsonResponse([
-          'success' => false,
+          'success' => FALSE,
           'message' => 'Queue item not found',
         ], 404);
       }
-    } catch (\Exception $e) {
-      \Drupal::logger('job_hunter')->error('Error deleting queue item @item_id: @error', [
-        '@item_id' => $item_id,
+    }
+    catch (BadRequestHttpException $e) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => $e->getMessage(),
+      ], 400);
+    }
+    catch (\Exception $e) {
+      $this->logger->error('Error deleting queue item: @error', [
         '@error' => $e->getMessage(),
       ]);
       
       return new JsonResponse([
-        'success' => false,
+        'success' => FALSE,
         'message' => 'Error deleting queue item: ' . $e->getMessage(),
       ], 500);
     }

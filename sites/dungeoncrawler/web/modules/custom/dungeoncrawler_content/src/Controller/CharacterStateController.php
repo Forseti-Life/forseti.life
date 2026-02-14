@@ -53,7 +53,7 @@ class CharacterStateController extends ControllerBase {
    * 
    * @see docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md#1-get-character-state
    */
-  public function getState(string $character_id): JsonResponse {
+  public function getState(string $character_id, Request $request): JsonResponse {
     try {
       // Verify user has access to character
       if (!$this->hasCharacterAccess($character_id)) {
@@ -62,8 +62,10 @@ class CharacterStateController extends ControllerBase {
           'error' => 'Access denied',
         ], 403);
       }
+      $campaign_id = $request->query->getInt('campaignId') ?: NULL;
+      $instance_id = $request->query->get('instanceId') ?: NULL;
       
-      $state = $this->characterStateService->getState($character_id);
+      $state = $this->characterStateService->getState($character_id, $campaign_id, $instance_id);
       
       return new JsonResponse([
         'success' => TRUE,
@@ -117,20 +119,47 @@ class CharacterStateController extends ControllerBase {
    * @see docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md#2-update-character-state-batch
    */
   public function updateState(string $character_id, Request $request): JsonResponse {
-    // TODO: Implement
-    // - Parse operations array from request body
-    // - Verify user has update permission
-    // - Apply each operation
-    // - Handle version conflicts (return 409)
-    // - Return new version
+    if (!$this->hasCharacterAccess($character_id)) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Access denied'], 403);
+    }
+
     $data = json_decode($request->getContent(), TRUE);
-    
-    return new JsonResponse([
-      'success' => TRUE,
-      'version' => 1,
-      'appliedOperations' => 0,
-      'conflicts' => [],
-    ]);
+    if (!is_array($data)) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Invalid JSON'], 400);
+    }
+
+    $expected_version = isset($data['expectedVersion']) ? (int) $data['expectedVersion'] : NULL;
+    $campaign_id = isset($data['campaignId']) ? (int) $data['campaignId'] : NULL;
+    $instance_id = $data['instanceId'] ?? NULL;
+    $state_payload = $data['state'] ?? NULL;
+
+    if (!is_array($state_payload)) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Missing state payload'], 400);
+    }
+
+    try {
+      $updated = $this->characterStateService->setState($character_id, $state_payload, $expected_version, $campaign_id, $instance_id);
+
+      return new JsonResponse([
+        'success' => TRUE,
+        'data' => $updated,
+        'version' => $updated['metadata']['version'] ?? 0,
+      ]);
+    }
+    catch (\InvalidArgumentException $e) {
+      $code = $e->getCode() === 409 ? 409 : 400;
+      return new JsonResponse([
+        'success' => FALSE,
+        'error' => $e->getMessage(),
+        'currentVersion' => $this->characterStateService->getState($character_id, $campaign_id, $instance_id)['metadata']['version'] ?? 0,
+      ], $code);
+    }
+    catch (\Exception $e) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'error' => $e->getMessage(),
+      ], 500);
+    }
   }
 
   /**

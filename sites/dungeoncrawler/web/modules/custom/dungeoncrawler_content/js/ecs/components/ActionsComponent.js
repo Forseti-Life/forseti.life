@@ -56,6 +56,9 @@ export class ActionsComponent extends Component {
     
     // Bonus/penalty to action count
     this.actionBonus = 0; // e.g., Haste gives +1
+
+    // Optional hook when actions hit zero
+    this.onActionsDepleted = null;
   }
   
   /**
@@ -119,6 +122,11 @@ export class ActionsComponent extends Component {
       type: cost >= 2 ? ActionType.ACTIVITY : ActionType.ACTION,
       timestamp: Date.now()
     });
+
+    // Trigger depletion hook once we hit zero or below
+    if (this.actionsRemaining <= 0 && typeof this.onActionsDepleted === 'function') {
+      this.onActionsDepleted();
+    }
     
     return true;
   }
@@ -128,6 +136,11 @@ export class ActionsComponent extends Component {
    * @returns {number} - MAP penalty to apply to this attack
    */
   makeAttack() {
+    // Attacks cost one action; abort if unavailable
+    if (!this.spendActions(ActionCost.ONE, 'Attack')) {
+      return null;
+    }
+
     const currentMAP = this.mapPenalty;
     this.attacksMadeThisTurn++;
     
@@ -198,6 +211,14 @@ export class ActionsComponent extends Component {
       display += i < this.actionsRemaining ? filled : empty;
     }
     return display;
+  }
+
+  /**
+   * Register a callback invoked when actions deplete.
+   * @param {Function|null} callback
+   */
+  setOnActionsDepleted(callback) {
+    this.onActionsDepleted = callback;
   }
   
   /**

@@ -5,6 +5,12 @@ global-styling:
   dependencies:
     - core/drupal
 
+utils:
+  js:
+    js/utils.js: {}
+  dependencies:
+    - core/drupal
+
 home-page:
   css:
     theme:
@@ -75,6 +81,7 @@ job_discovery:
     - core/drupal.ajax
     - core/once
     - job_hunter/job-hunter-home
+    - job_hunter/utils
 
 tailor_resume:
   css:
@@ -98,6 +105,7 @@ queue-controls:
   dependencies:
     - core/drupal
     - core/jquery
+    - job_hunter/utils
 
 company-research:
   css:
@@ -153,6 +161,13 @@ google_jobs_integration:
     - core/drupal
     - core/jquery
     - core/once
+
+job-application-dashboard:
+  css:
+    theme:
+      css/job-application-dashboard.css: {}
+  dependencies:
+    - core/drupal
 
 opportunity-management:
   css:

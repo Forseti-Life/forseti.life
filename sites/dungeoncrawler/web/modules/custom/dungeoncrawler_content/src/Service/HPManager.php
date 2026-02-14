@@ -25,8 +25,54 @@ class HPManager {
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#applydamage
    */
   public function applyDamage($participant_id, $damage, $damage_type, $source, $encounter_id) {
-    // TODO: Apply to temp HP, then current HP, check death/dying
-    return ['final_damage' => 0, 'new_hp' => 0, 'new_status' => ''];
+    $participant = $this->loadParticipant($participant_id);
+    if (!$participant) {
+      return ['final_damage' => 0, 'new_hp' => 0, 'new_status' => 'not_found'];
+    }
+
+    $now = time();
+    $base_hp = (int) ($participant['hp'] ?? 0);
+    $max_hp = (int) ($participant['max_hp'] ?? 0);
+    $damage = max(0, (int) $damage);
+    $new_hp = $base_hp - $damage;
+    $is_defeated = $new_hp <= 0 ? 1 : (int) ($participant['is_defeated'] ?? 0);
+
+    $txn = $this->database->startTransaction();
+
+    $this->database->update('combat_participants')
+      ->fields([
+        'hp' => $new_hp,
+        'is_defeated' => $is_defeated,
+        'updated' => $now,
+      ])
+      ->condition('id', $participant_id)
+      ->execute();
+
+    $this->database->insert('combat_damage_log')
+      ->fields([
+        'encounter_id' => $encounter_id,
+        'participant_id' => $participant_id,
+        'amount' => $damage,
+        'damage_type' => $damage_type,
+        'source' => is_string($source) ? $source : json_encode($source),
+        'hp_before' => $base_hp,
+        'hp_after' => $new_hp,
+        'created' => $now,
+      ])
+      ->execute();
+
+    if ($is_defeated) {
+      $this->conditionManager->applyCondition($participant_id, 'dying', 1, ['type' => 'encounter', 'remaining' => NULL], $source, $encounter_id);
+    }
+
+    $death_state = $this->checkDeathCondition($participant_id, $encounter_id, $new_hp, $max_hp);
+
+    return [
+      'final_damage' => $damage,
+      'new_hp' => $new_hp,
+      'new_status' => $death_state['is_dead'] ? 'dead' : ($is_defeated ? 'defeated' : 'active'),
+      'death_reason' => $death_state['death_reason'],
+    ];
   }
 
   /**
@@ -35,8 +81,30 @@ class HPManager {
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#applyhealing
    */
   public function applyHealing($participant_id, $healing, $source, $encounter_id) {
-    // TODO: Increase current_hp (cap at max), remove dying if applicable
-    return ['healing_applied' => 0, 'new_hp' => 0];
+    $participant = $this->loadParticipant($participant_id);
+    if (!$participant) {
+      return ['healing_applied' => 0, 'new_hp' => 0];
+    }
+
+    $now = time();
+    $base_hp = (int) ($participant['hp'] ?? 0);
+    $max_hp = (int) ($participant['max_hp'] ?? $base_hp);
+    $healing = max(0, (int) $healing);
+    $new_hp = $max_hp > 0 ? min($base_hp + $healing, $max_hp) : $base_hp + $healing;
+
+    $this->database->update('combat_participants')
+      ->fields([
+        'hp' => $new_hp,
+        'is_defeated' => $new_hp > 0 ? 0 : (int) ($participant['is_defeated'] ?? 0),
+        'updated' => $now,
+      ])
+      ->condition('id', $participant_id)
+      ->execute();
+
+    return [
+      'healing_applied' => $new_hp - $base_hp,
+      'new_hp' => $new_hp,
+    ];
   }
 
   /**
@@ -54,9 +122,16 @@ class HPManager {
    *
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#checkdeathcondition
    */
-  public function checkDeathCondition($participant_id, $encounter_id) {
-    // TODO: Check HP <= -max_hp or dying >= 4
-    return ['is_dead' => FALSE, 'death_reason' => ''];
+  public function checkDeathCondition($participant_id, $encounter_id, ?int $hp_override = NULL, ?int $max_hp_override = NULL) {
+    $participant = $this->loadParticipant($participant_id);
+    if (!$participant) {
+      return ['is_dead' => FALSE, 'death_reason' => ''];
+    }
+
+    $hp = $hp_override ?? (int) ($participant['hp'] ?? 0);
+    $max_hp = $max_hp_override ?? (int) ($participant['max_hp'] ?? 0);
+
+    return $this->evaluateDeath($hp, $max_hp);
   }
 
   /**
@@ -77,6 +152,23 @@ class HPManager {
   public function stabilizeCharacter($participant_id, $encounter_id) {
     // TODO: Remove dying, add wounded, set HP to 1
     return TRUE;
+  }
+
+  protected function loadParticipant($participant_id): ?array {
+    $record = $this->database->select('combat_participants', 'p')
+      ->fields('p')
+      ->condition('id', $participant_id)
+      ->execute()
+      ->fetchAssoc();
+
+    return $record ?: NULL;
+  }
+
+  protected function evaluateDeath(int $hp, int $max_hp): array {
+    if ($max_hp > 0 && $hp <= -1 * $max_hp) {
+      return ['is_dead' => TRUE, 'death_reason' => 'hp_threshold'];
+    }
+    return ['is_dead' => FALSE, 'death_reason' => ''];
   }
 
 }

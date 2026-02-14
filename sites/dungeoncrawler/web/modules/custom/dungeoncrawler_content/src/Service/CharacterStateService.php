@@ -37,7 +37,7 @@ class CharacterStateService {
    * 
    * @see docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md#characterstate-object
    */
-  public function getState(string $character_id): array {
+  public function getState(string $character_id, ?int $campaign_id = NULL, ?string $instance_id = NULL): array {
     $record = $this->database->select('dc_characters', 'c')
       ->fields('c')
       ->condition('id', $character_id)
@@ -48,81 +48,182 @@ class CharacterStateService {
       throw new \InvalidArgumentException("Character not found: {$character_id}");
     }
 
-    // Parse character_data JSON
+    // Parse library payloads (defaults + overrides).
     $character_data = json_decode($record->character_data, TRUE) ?? [];
+    $default_data = json_decode($record->default_character_data ?? '', TRUE);
+    if (!is_array($default_data)) {
+      $default_data = [];
+    }
+    $merged_library = array_replace_recursive($default_data, $character_data);
     
-    // Build CharacterState structure
-    $state = [
-      'characterId' => (string) $record->id,
-      'userId' => (string) $record->uid,
-      'campaignId' => $character_data['campaignId'] ?? NULL,
-      
-      'basicInfo' => [
-        'name' => $record->name,
-        'level' => (int) $record->level,
-        'experiencePoints' => $character_data['experiencePoints'] ?? 0,
-        'ancestry' => $record->ancestry,
-        'heritage' => $character_data['heritage'] ?? '',
-        'background' => $character_data['background'] ?? '',
-        'class' => $record->class,
-        'alignment' => $character_data['alignment'] ?? '',
-        'deity' => $character_data['deity'] ?? NULL,
-        'age' => $character_data['age'] ?? NULL,
-        'appearance' => $character_data['appearance'] ?? NULL,
-        'personality' => $character_data['personality'] ?? NULL,
-      ],
-      
-      'abilities' => $character_data['abilities'] ?? [
-        'strength' => 10,
-        'dexterity' => 10,
-        'constitution' => 10,
-        'intelligence' => 10,
-        'wisdom' => 10,
-        'charisma' => 10,
-      ],
-      
-      'resources' => $character_data['resources'] ?? [
-        'hitPoints' => [
-          'current' => $character_data['hitPoints']['current'] ?? 0,
-          'max' => $character_data['hitPoints']['max'] ?? 0,
-          'temporary' => 0,
+    $type = $record->type ?? ($merged_library['type'] ?? 'pc');
+
+    // Build CharacterState structure. For PCs we hydrate the sheet; for other types
+    // (npc/obstacle/trap/hazard) we expose the full library payload under npcDefinition/statePayload.
+    if ($type === 'pc') {
+      $state = [
+        'characterId' => (string) $record->id,
+        'userId' => (string) $record->uid,
+        'campaignId' => $merged_library['campaignId'] ?? NULL,
+        'instanceId' => $merged_library['instanceId'] ?? NULL,
+        'type' => $type,
+
+        'basicInfo' => [
+          'name' => $merged_library['basicInfo']['name'] ?? $record->name,
+          'level' => (int) ($merged_library['basicInfo']['level'] ?? $record->level),
+          'experiencePoints' => $merged_library['basicInfo']['experiencePoints'] ?? ($merged_library['experiencePoints'] ?? 0),
+          'ancestry' => $merged_library['basicInfo']['ancestry'] ?? $record->ancestry,
+          'heritage' => $merged_library['basicInfo']['heritage'] ?? ($merged_library['heritage'] ?? ''),
+          'background' => $merged_library['basicInfo']['background'] ?? ($merged_library['background'] ?? ''),
+          'class' => $merged_library['basicInfo']['class'] ?? $record->class,
+          'alignment' => $merged_library['basicInfo']['alignment'] ?? ($merged_library['alignment'] ?? ''),
+          'deity' => $merged_library['basicInfo']['deity'] ?? ($merged_library['deity'] ?? NULL),
+          'age' => $merged_library['basicInfo']['age'] ?? ($merged_library['age'] ?? NULL),
+          'appearance' => $merged_library['basicInfo']['appearance'] ?? ($merged_library['appearance'] ?? NULL),
+          'personality' => $merged_library['basicInfo']['personality'] ?? ($merged_library['personality'] ?? NULL),
         ],
-        'heroPoints' => ['current' => 1, 'max' => 3],
-      ],
-      
-      'defenses' => $character_data['defenses'] ?? [],
-      'conditions' => $character_data['conditions'] ?? [],
-      'actions' => $character_data['actions'] ?? [
-        'threeActionEconomy' => [
-          'actionsRemaining' => 3,
-          'reactionAvailable' => TRUE,
+
+        'abilities' => $merged_library['abilities'] ?? [
+          'strength' => 10,
+          'dexterity' => 10,
+          'constitution' => 10,
+          'intelligence' => 10,
+          'wisdom' => 10,
+          'charisma' => 10,
         ],
-        'availableActions' => [],
-      ],
-      'spells' => $character_data['spells'] ?? [],
-      'skills' => $character_data['skills'] ?? [],
-      'inventory' => $character_data['inventory'] ?? [
-        'worn' => ['weapons' => [], 'accessories' => []],
-        'carried' => [],
-        'currency' => ['cp' => 0, 'sp' => 0, 'gp' => 0, 'pp' => 0],
-        'totalBulk' => 0,
-        'encumbrance' => 'unencumbered',
-      ],
-      'features' => $character_data['features'] ?? [
-        'ancestryFeatures' => [],
-        'classFeatures' => [],
-        'feats' => [],
-      ],
-      
-      'metadata' => [
-        'createdAt' => date('c', $record->created),
-        'updatedAt' => date('c', $record->changed),
-        'lastSyncedAt' => date('c'),
-        'version' => $character_data['version'] ?? 0,
-      ],
-    ];
+
+        'resources' => $merged_library['resources'] ?? [
+          'hitPoints' => [
+            'current' => $merged_library['hitPoints']['current'] ?? 0,
+            'max' => $merged_library['hitPoints']['max'] ?? 0,
+            'temporary' => 0,
+          ],
+          'heroPoints' => ['current' => 1, 'max' => 3],
+        ],
+
+        'defenses' => $merged_library['defenses'] ?? [],
+        'conditions' => $merged_library['conditions'] ?? [],
+        'actions' => $merged_library['actions'] ?? [
+          'threeActionEconomy' => [
+            'actionsRemaining' => 3,
+            'reactionAvailable' => TRUE,
+          ],
+          'availableActions' => [],
+        ],
+        'spells' => $merged_library['spells'] ?? [],
+        'skills' => $merged_library['skills'] ?? [],
+        'inventory' => $merged_library['inventory'] ?? [
+          'worn' => ['weapons' => [], 'accessories' => []],
+          'carried' => [],
+          'currency' => ['cp' => 0, 'sp' => 0, 'gp' => 0, 'pp' => 0],
+          'totalBulk' => 0,
+          'encumbrance' => 'unencumbered',
+        ],
+        'features' => $merged_library['features'] ?? [
+          'ancestryFeatures' => [],
+          'classFeatures' => [],
+          'feats' => [],
+        ],
+
+        'metadata' => [
+          'createdAt' => date('c', $record->created),
+          'updatedAt' => date('c', $record->changed),
+          'lastSyncedAt' => date('c'),
+          'version' => $merged_library['version'] ?? 0,
+        ],
+      ];
+    }
+    else {
+      // Non-PC entities: return the full library payload under npcDefinition so NPC/obstacle/trap/hazard
+      // structures (including influence/relationship frameworks) are preserved end-to-end.
+      $npc_definition = $merged_library;
+      $state = [
+        'characterId' => (string) $record->id,
+        'userId' => (string) $record->uid,
+        'campaignId' => $merged_library['campaignId'] ?? NULL,
+        'instanceId' => $merged_library['instanceId'] ?? NULL,
+        'type' => $type,
+        'npcDefinition' => $npc_definition,
+        'metadata' => [
+          'createdAt' => date('c', $record->created),
+          'updatedAt' => date('c', $record->changed),
+          'lastSyncedAt' => date('c'),
+          'version' => $merged_library['version'] ?? 0,
+        ],
+      ];
+    }
+
+    // If campaign runtime state exists, layer it over the library defaults.
+    $campaign_row = $this->loadCampaignCharacter($campaign_id, $instance_id, (int) $character_id);
+    if ($campaign_row) {
+      $campaign_state = json_decode($campaign_row['state_data'] ?? '', TRUE);
+      if (is_array($campaign_state) && !empty($campaign_state)) {
+        $state = array_replace_recursive($state, $campaign_state);
+      }
+
+      $state['campaignId'] = (string) $campaign_row['campaign_id'];
+      $state['instanceId'] = $campaign_row['instance_id'];
+      $state['location'] = [
+        'type' => $campaign_row['location_type'] ?? 'global',
+        'ref' => $campaign_row['location_ref'] ?? '',
+      ];
+      $state['metadata']['version'] = (int) ($campaign_row['updated'] ?? 0);
+      $state['metadata']['updatedAt'] = $campaign_row['updated'] ? date('c', (int) $campaign_row['updated']) : date('c');
+    }
 
     return $state;
+  }
+
+  /**
+   * Replace and persist full character state with optional optimistic lock.
+   *
+   * @param string $character_id
+   *   Character ID.
+   * @param array $state
+   *   Incoming state payload (must contain basicInfo and metadata.version).
+   * @param int|null $expected_version
+   *   When provided, enforces optimistic locking against current version.
+   *
+   * @return array
+   *   Fresh state after persistence.
+   *
+   * @throws \InvalidArgumentException
+   *   On version conflict or invalid payload.
+   */
+  public function setState(string $character_id, array $state, ?int $expected_version = NULL, ?int $campaign_id = NULL, ?string $instance_id = NULL): array {
+    // Prefer campaign-scoped runtime row when available.
+    $campaign_row = $this->loadCampaignCharacter($campaign_id, $instance_id, (int) $character_id);
+
+    if ($campaign_row) {
+      $current_version = (int) ($campaign_row['updated'] ?? 0);
+      if ($expected_version !== NULL && $expected_version !== $current_version) {
+        throw new \InvalidArgumentException('Version conflict', 409);
+      }
+
+      $state['characterId'] = (string) $character_id;
+      $state['campaignId'] = (string) $campaign_row['campaign_id'];
+      $state['instanceId'] = $campaign_row['instance_id'];
+
+      $this->saveState($character_id, $state, $campaign_row);
+      return $this->getState($character_id, (int) $campaign_row['campaign_id'], $campaign_row['instance_id']);
+    }
+
+    // Library-only fallback (PCs not attached to a campaign yet).
+    $current = $this->getState($character_id);
+    $current_version = (int) ($current['metadata']['version'] ?? 0);
+
+    if ($expected_version !== NULL && $expected_version !== $current_version) {
+      throw new \InvalidArgumentException('Version conflict', 409);
+    }
+
+    $state['characterId'] = (string) $character_id;
+    $state['userId'] = $current['userId'];
+    $state['basicInfo'] = $state['basicInfo'] ?? $current['basicInfo'];
+    $state['metadata'] = $state['metadata'] ?? [];
+
+    $this->saveState($character_id, $state, NULL);
+
+    return $this->getState($character_id);
   }
 
   /**
@@ -638,34 +739,107 @@ class CharacterStateService {
    * 
    * @return void
    */
-  protected function saveState(string $character_id, array $state): void {
-    // Extract fields for columns
-    $name = $state['basicInfo']['name'];
-    $level = $state['basicInfo']['level'];
-    $ancestry = $state['basicInfo']['ancestry'];
-    $class = $state['basicInfo']['class'];
-    
-    // Increment version for optimistic locking
+  protected function saveState(string $character_id, array $state, ?array $campaign_row = NULL): void {
+    $campaign_row = $campaign_row ?? $this->loadCampaignCharacter(NULL, NULL, (int) $character_id);
+    $now = time();
+
+    $type = $state['type'] ?? ($campaign_row['type'] ?? 'pc');
+
+    // Extract fields for columns with fallbacks for non-PC entities.
+    if ($type === 'pc') {
+      $name = $state['basicInfo']['name'] ?? '';
+      $level = $state['basicInfo']['level'] ?? 0;
+      $ancestry = $state['basicInfo']['ancestry'] ?? '';
+      $class = $state['basicInfo']['class'] ?? '';
+    }
+    else {
+      $npc_def = $state['npcDefinition'] ?? [];
+      $name = $npc_def['id'] ?? ($state['basicInfo']['name'] ?? '');
+      $level = $npc_def['level'] ?? ($state['basicInfo']['level'] ?? 0);
+      $ancestry = $state['basicInfo']['ancestry'] ?? '';
+      $class = $state['basicInfo']['class'] ?? '';
+    }
+
+    if ($campaign_row) {
+      // Campaign-scoped runtime record
+      $state['metadata']['version'] = $now;
+      $state['metadata']['updatedAt'] = date('c', $now);
+      $state['characterId'] = (string) $character_id;
+      $state['campaignId'] = (string) $campaign_row['campaign_id'];
+      $state['instanceId'] = $campaign_row['instance_id'];
+
+      $this->database->update('dc_campaign_characters')
+        ->fields([
+          'state_data' => json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+          'updated' => $now,
+          'type' => $type,
+        ])
+        ->condition('id', $campaign_row['id'])
+        ->execute();
+
+      // Keep library basics in sync for PCs/NPCs.
+      $character_data = $state;
+      unset($character_data['characterId']);
+      unset($character_data['userId']);
+      $this->database->update('dc_characters')
+        ->fields([
+          'name' => $name,
+          'level' => $level,
+          'ancestry' => $ancestry,
+          'class' => $class,
+          'type' => $type,
+          'character_data' => json_encode($character_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+          'changed' => $now,
+        ])
+        ->condition('id', $character_id)
+        ->execute();
+
+      return;
+    }
+
+    // Library-only record
     $state['metadata']['version'] = ($state['metadata']['version'] ?? 0) + 1;
     $state['metadata']['updatedAt'] = date('c');
-    
-    // Prepare character_data JSON (remove fields stored in columns)
+
     $character_data = $state;
     unset($character_data['characterId']);
     unset($character_data['userId']);
-    
-    // Update database
+
     $this->database->update('dc_characters')
       ->fields([
         'name' => $name,
         'level' => $level,
         'ancestry' => $ancestry,
         'class' => $class,
+        'type' => $type,
         'character_data' => json_encode($character_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
-        'changed' => time(),
+        'changed' => $now,
       ])
       ->condition('id', $character_id)
       ->execute();
+  }
+
+  /**
+   * Load a campaign-scoped character row if it exists.
+   */
+  private function loadCampaignCharacter(?int $campaign_id, ?string $instance_id, int $character_id): ?array {
+    $query = $this->database->select('dc_campaign_characters', 'cc')
+      ->fields('cc', ['id', 'campaign_id', 'character_id', 'instance_id', 'type', 'state_data', 'location_type', 'location_ref', 'updated'])
+      ->condition('character_id', $character_id);
+
+    if ($campaign_id !== NULL) {
+      $query->condition('campaign_id', $campaign_id);
+    }
+
+    if ($instance_id !== NULL) {
+      $query->condition('instance_id', $instance_id);
+    }
+
+    $query->orderBy('updated', 'DESC');
+    $query->range(0, 1);
+
+    $row = $query->execute()->fetchAssoc();
+    return $row ?: NULL;
   }
 
 }

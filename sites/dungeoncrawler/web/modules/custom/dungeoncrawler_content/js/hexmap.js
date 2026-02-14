@@ -5,6 +5,7 @@
 
 // Import ECS modules
 import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, EntityType, RenderSystem, MovementComponent, StatsComponent, MovementSystem, MovementMode, ActionsComponent, ActionType, ActionCost, CombatComponent, Team, TurnManagementSystem, CombatState, CombatSystem, AttackResult } from './ecs/index.js';
+import combatApi from './hexmap-api.js';
 
 // Ensure Drupal and once are available
 /* global Drupal, once, PIXI */
@@ -19,7 +20,95 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
   class UIManager {
     constructor() {
       this.elements = {};
+      this.ensureActionFooter();
+      this.setupActionFooterToggle();
       this.cacheElements();
+    }
+
+    /**
+     * Ensure the action footer exists in the DOM even if the template is missing it.
+     */
+    ensureActionFooter() {
+      if (document.getElementById('action-footer')) {
+        return;
+      }
+
+      const host = document.getElementById('hexmap-canvas-container') || document.body;
+      const footer = document.createElement('div');
+      footer.id = 'action-footer';
+      footer.className = 'action-footer';
+
+      footer.innerHTML = `
+        <div class="action-footer__toggle" id="action-footer-toggle">Actions ▾</div>
+        <div class="action-section" data-section="controls">
+          <div class="action-section__header"><span>Actions</span><span class="action-section__chevron">▾</span></div>
+          <div class="action-section__body">
+            <div class="action-buttons" id="action-menu">
+              <button id="action-move" class="btn btn-ghost">Move</button>
+              <button id="action-attack" class="btn btn-primary">Attack</button>
+              <button id="end-turn" class="btn btn-primary" style="display:none;">End Turn</button>
+            </div>
+            <p id="action-instruction" class="action-instruction">Select a hostile target to attack.</p>
+          </div>
+        </div>`;
+
+      host.appendChild(footer);
+
+      const toggle = footer.querySelector('#action-footer-toggle');
+    }
+
+    setupActionFooterToggle() {
+      const footer = document.getElementById('action-footer');
+      if (!footer) {
+        return;
+      }
+
+      const toggle = footer.querySelector('#action-footer-toggle');
+      if (toggle && toggle.dataset.bound !== 'true') {
+        toggle.dataset.bound = 'true';
+        toggle.addEventListener('click', () => {
+          const collapsed = footer.classList.toggle('collapsed');
+          toggle.textContent = collapsed ? 'Actions ▸' : 'Actions ▾';
+        });
+      }
+
+      const sections = footer.querySelectorAll('.action-section');
+      sections.forEach((section) => {
+        const header = section.querySelector('.action-section__header');
+        const body = section.querySelector('.action-section__body');
+        if (!header || !body || header.dataset.bound === 'true') {
+          return;
+        }
+        header.dataset.bound = 'true';
+        header.addEventListener('click', () => {
+          const collapsed = section.classList.toggle('collapsed');
+          const chevron = section.querySelector('.action-section__chevron');
+          if (chevron) {
+            chevron.textContent = collapsed ? '▸' : '▾';
+          }
+        });
+      });
+
+      this.applyInitialSectionState(footer, sections);
+    }
+
+    applyInitialSectionState(footer, sections) {
+      if (!footer || footer.dataset.initialStateApplied === 'true') {
+        return;
+      }
+
+      const isMobile = window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+      if (isMobile && sections && sections.length) {
+        sections.forEach((section) => {
+          section.classList.add('collapsed');
+          const chevron = section.querySelector('.action-section__chevron');
+          if (chevron) {
+            chevron.textContent = '▸';
+          }
+        });
+      }
+
+      footer.dataset.initialStateApplied = 'true';
     }
 
     /**
@@ -30,7 +119,8 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         hoveredHex: document.getElementById('hovered-hex'),
         hoveredObject: document.getElementById('hovered-object'),
         selectedHex: document.getElementById('selected-hex'),
-        currentTurn: document.getElementById('current-turn'),
+      actionInstruction: document.getElementById('action-instruction'),
+      actionMenu: document.getElementById('action-menu'),
         currentRound: document.getElementById('current-round'),
         initiativeList: document.getElementById('initiative-list'),
         combatControls: document.getElementById('combat-controls'),
@@ -47,7 +137,39 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         entityActions: document.getElementById('entity-actions'),
         entityMovement: document.getElementById('entity-movement'),
         selectedObjectType: document.getElementById('selected-object-type'),
-        zoomLevel: document.getElementById('zoom-level')
+        zoomLevel: document.getElementById('zoom-level'),
+        hexDetailRoom: document.getElementById('hex-detail-room'),
+        hexDetailTerrain: document.getElementById('hex-detail-terrain'),
+        hexDetailElevation: document.getElementById('hex-detail-elevation'),
+        hexDetailLighting: document.getElementById('hex-detail-lighting'),
+        hexDetailPassability: document.getElementById('hex-detail-passability'),
+        hexDetailObjects: document.getElementById('hex-detail-objects'),
+        hexDetailEntities: document.getElementById('hex-detail-entities'),
+        hexDetailConnection: document.getElementById('hex-detail-connection'),
+
+        // Turn clarity HUD
+        turnHud: document.getElementById('turn-hud'),
+        turnOwner: document.getElementById('turn-owner'),
+        turnActionSummary: document.getElementById('turn-action-summary'),
+        turnMoveSummary: document.getElementById('turn-move-summary'),
+        turnReaction: document.getElementById('turn-reaction'),
+        turnActionChips: document.getElementById('turn-action-chips'),
+        actionInstruction: document.getElementById('action-instruction'),
+        actionMenu: document.getElementById('action-menu'),
+        actionMoveBtn: document.getElementById('action-move'),
+        actionAttackBtn: document.getElementById('action-attack'),
+        endTurnBtn: document.getElementById('end-turn'),
+
+        // Character sheet panel
+        characterName: document.getElementById('char-name'),
+        characterType: document.getElementById('char-type'),
+        characterTeam: document.getElementById('char-team'),
+        characterLevel: document.getElementById('char-level'),
+        characterHp: document.getElementById('char-hp'),
+        characterAc: document.getElementById('char-ac'),
+        characterSpeed: document.getElementById('char-speed'),
+        characterActions: document.getElementById('char-actions'),
+        characterInventory: document.getElementById('char-inventory')
       };
     }
 
@@ -81,16 +203,127 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     /**
      * Update current turn display.
      */
-    updateCurrentTurn(name, actions, hasReaction) {
+    updateCurrentTurn(name, actions, movement, hasReaction, team = null, isPlayersTurn = false) {
       if (this.elements.currentTurn) {
-        let html = `<strong>${name}</strong>`;
-        if (actions) {
-          html += ` ${actions.getActionDisplay()}`;
-          if (hasReaction) {
-            html += ' ⚡';
-          }
+        const turnLabel = isPlayersTurn ? 'Your turn' : (team ? `${team} turn` : 'Turn');
+        const reactionBadge = hasReaction ? '<span class="pill pill-positive">Reaction ready</span>' : '<span class="pill pill-muted">Reaction spent</span>';
+        this.elements.currentTurn.innerHTML = `
+          <div class="turn-name">${name}</div>
+          <div class="turn-sub">
+            <span class="pill pill-strong">${turnLabel}</span>
+            ${reactionBadge}
+          </div>`;
+      }
+
+      if (this.elements.turnOwner) {
+        this.elements.turnOwner.textContent = isPlayersTurn ? 'Your turn' : (team ? `${team} turn` : 'Awaiting combat');
+      }
+
+      const maxActions = actions ? actions.maxActions + (actions.actionBonus || 0) : null;
+      if (this.elements.turnActionSummary) {
+        const remaining = actions ? `${actions.actionsRemaining}/${maxActions} actions` : 'Actions: -';
+        this.elements.turnActionSummary.textContent = remaining;
+      }
+
+      if (this.elements.turnMoveSummary) {
+        const moveText = movement && Number.isFinite(movement.movementRemaining)
+          ? `${movement.movementRemaining} ft left`
+          : 'Movement: -';
+        this.elements.turnMoveSummary.textContent = moveText;
+      }
+
+      if (this.elements.turnReaction) {
+        this.elements.turnReaction.textContent = hasReaction ? 'Reaction ready' : 'Reaction spent';
+        this.elements.turnReaction.classList.toggle('pill-positive', !!hasReaction);
+        this.elements.turnReaction.classList.toggle('pill-muted', !hasReaction);
+      }
+
+      if (this.elements.turnActionChips) {
+        const canAct = actions ? actions.actionsRemaining > 0 : false;
+        const moveLeft = movement ? movement.movementRemaining > 0 : false;
+        this.elements.turnActionChips.innerHTML = `
+          <span class="chip ${moveLeft ? 'chip-live' : 'chip-dim'}">Move</span>
+          <span class="chip ${canAct ? 'chip-live' : 'chip-dim'}">Strike</span>
+          <span class="chip ${canAct ? 'chip-live' : 'chip-dim'}">Cast / Skill</span>
+          <span class="chip chip-end">End Turn</span>`;
+      }
+
+      if (this.elements.actionInstruction) {
+        if (!isPlayersTurn) {
+          this.elements.actionInstruction.textContent = 'Watching enemy turn...';
+        } else if (actions && actions.actionsRemaining > 0) {
+          this.elements.actionInstruction.textContent = 'Select a hostile target to attack or click a blue hex to move.';
+        } else if (movement && movement.movementRemaining > 0) {
+          this.elements.actionInstruction.textContent = 'Move to a blue hex, then end turn.';
+        } else {
+          this.elements.actionInstruction.textContent = 'No actions left — end your turn.';
         }
-        this.elements.currentTurn.innerHTML = html;
+      }
+
+      this.renderActionButtons(actions, movement, isPlayersTurn);
+    }
+
+    /**
+     * Update action mode buttons and instruction text.
+     */
+    updateActionMode(mode, { canAct = false, moveLeft = 0, isPlayersTurn = false } = {}) {
+      const { actionMoveBtn, actionAttackBtn, actionInstruction } = this.elements;
+
+      const setActive = (btn, active) => {
+        if (!btn) return;
+        btn.classList.toggle('btn-active', !!active);
+      };
+
+      setActive(actionMoveBtn, mode === 'move');
+      setActive(actionAttackBtn, mode === 'attack');
+
+      if (actionMoveBtn) {
+        actionMoveBtn.title = isPlayersTurn
+          ? (moveLeft > 0 ? `${moveLeft} ft remaining` : 'No movement left')
+          : 'Not your turn';
+      }
+      if (actionAttackBtn) {
+        actionAttackBtn.title = isPlayersTurn
+          ? (canAct ? 'Click an enemy to attack' : 'No actions remaining')
+          : 'Not your turn';
+      }
+
+      if (actionInstruction) {
+        if (!isPlayersTurn) {
+          actionInstruction.textContent = 'Watching enemy turn...';
+        } else if (mode === 'move') {
+          actionInstruction.textContent = moveLeft > 0 ? `Click a blue hex to move (${moveLeft} ft left).` : 'No movement left; switch to attack or end turn.';
+        } else {
+          actionInstruction.textContent = canAct ? 'Select a hostile target to attack.' : 'No actions remaining; move or end turn.';
+        }
+      }
+    }
+
+    renderActionButtons(actions, movement, isPlayersTurn) {
+      const { actionMoveBtn, actionAttackBtn, endTurnBtn } = this.elements;
+      const maxActions = actions ? actions.maxActions + (actions.actionBonus || 0) : null;
+      const actionsRemaining = actions ? actions.actionsRemaining : 0;
+      const canAct = !!(isPlayersTurn && actions && actions.canAct !== false && actionsRemaining > 0);
+      const canMove = !!(isPlayersTurn && movement && Number.isFinite(movement.movementRemaining) && movement.movementRemaining > 0);
+
+      if (actionMoveBtn) {
+        const moveLabel = movement && Number.isFinite(movement.movementRemaining)
+          ? `Move (${movement.movementRemaining} ft)`
+          : 'Move';
+        actionMoveBtn.textContent = moveLabel;
+        actionMoveBtn.classList.toggle('btn-disabled', !canMove);
+      }
+
+      if (actionAttackBtn) {
+        const attackLabel = maxActions !== null
+          ? `Attack (${actionsRemaining}/${maxActions})`
+          : 'Attack';
+        actionAttackBtn.textContent = attackLabel;
+        actionAttackBtn.classList.toggle('btn-disabled', !canAct);
+      }
+
+      if (endTurnBtn) {
+        endTurnBtn.classList.toggle('btn-disabled', !isPlayersTurn);
       }
     }
 
@@ -139,6 +372,13 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       if (this.elements.initiativeTracker) {
         this.elements.initiativeTracker.style.display = isInactive ? 'none' : 'block';
       }
+
+      if (this.elements.turnHud) {
+        this.elements.turnHud.classList.toggle('hud-inactive', isInactive);
+      }
+      if (this.elements.turnOwner) {
+        this.elements.turnOwner.textContent = isInactive ? 'No active combat' : 'Active encounter';
+      }
     }
 
     /**
@@ -171,12 +411,35 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         this.elements.entityAc.textContent = stats?.ac || '-';
       }
       if (this.elements.entityActions) {
-        this.elements.entityActions.textContent = actions ? actions.getActionDisplay() : '-';
+        this.elements.entityActions.textContent = actions ? actions.getActionDisplay?.() || `${actions.actionsRemaining}/${actions.maxActions ?? actions.actionsRemaining} actions` : '-';
       }
-      if (this.elements.entityMovement) {
-        this.elements.entityMovement.textContent = movement ?
-          `${movement.movementRemaining}/${movement.movementSpeed} ft` : '-';
-      }
+
+      if (this.elements.characterType) {
+          this.elements.characterType.textContent = identity?.entityType || '-';
+        }
+        if (this.elements.characterTeam) {
+          this.elements.characterTeam.textContent = combat?.team || '-';
+        }
+        if (this.elements.characterLevel) {
+          const level = stats?.level || stats?.lvl;
+          this.elements.characterLevel.textContent = level ? `Lvl ${level}` : 'Lvl —';
+        }
+        if (this.elements.characterHp) {
+          this.elements.characterHp.textContent = stats ? `${stats.currentHp}/${stats.maxHp}` : '-';
+        }
+        if (this.elements.characterAc) {
+          this.elements.characterAc.textContent = stats?.ac || '-';
+        }
+        if (this.elements.characterSpeed) {
+          this.elements.characterSpeed.textContent = movement ? `${movement.movementSpeed} ft` : '-';
+        }
+        if (this.elements.characterActions) {
+          this.elements.characterActions.textContent = actions ? actions.getActionDisplay() : '-';
+        }
+        if (this.elements.characterInventory) {
+          // Placeholder until inventory wiring is implemented; keep the list readable.
+          this.elements.characterInventory.innerHTML = '<li class="inventory-empty">Inventory not loaded in this demo</li>';
+        }
     }
 
     /**
@@ -207,6 +470,51 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         this.elements.zoomLevel.textContent = `${zoomPercent}%`;
       }
     }
+
+    /**
+     * Update hovered hex detail panel.
+     * @param {Object|null} details - Detail payload for the hovered hex.
+     */
+    updateHexDetails(details) {
+      const fallback = {
+        room: 'None',
+        terrain: 'Unknown',
+        elevation: '-',
+        lighting: 'Unknown',
+        passability: 'Unknown',
+        objects: 'None',
+        entities: 'None',
+        connection: 'None'
+      };
+
+      const payload = details ? {
+        room: details.roomName || fallback.room,
+        terrain: details.terrain || fallback.terrain,
+        elevation: Number.isFinite(details.elevationFt) ? `${details.elevationFt} ft` : fallback.elevation,
+        lighting: details.lighting || fallback.lighting,
+        passability: details.passability || fallback.passability,
+        objects: Array.isArray(details.objects) && details.objects.length ? details.objects.join(', ') : fallback.objects,
+        entities: Array.isArray(details.entities) && details.entities.length ? details.entities.join(', ') : fallback.entities,
+        connection: details.connection || fallback.connection
+      } : fallback;
+
+      const map = {
+        hexDetailRoom: payload.room,
+        hexDetailTerrain: payload.terrain,
+        hexDetailElevation: payload.elevation,
+        hexDetailLighting: payload.lighting,
+        hexDetailPassability: payload.passability,
+        hexDetailObjects: payload.objects,
+        hexDetailEntities: payload.entities,
+        hexDetailConnection: payload.connection
+      };
+
+      Object.entries(map).forEach(([key, value]) => {
+        if (this.elements[key]) {
+          this.elements[key].textContent = value;
+        }
+      });
+    }
   }
 
   /**
@@ -228,6 +536,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         
         // Combat state
         combatActive: false,
+        serverCombatMode: false,
         attackTarget: null,
         
         // Drag state
@@ -289,6 +598,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         movementRange: null,
         movementRangeOverlay: null,
         combatActive: false,
+        serverCombatMode: false,
         attackTarget: null,
         draggedObject: null,
         assetsLoaded: false,
@@ -526,6 +836,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         })
       );
 
+
       this.uiManager.updateSelectedObjectType(this.stateManager.get('selectedObjectType'));
     },
 
@@ -565,9 +876,15 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       }
 
       this.deselectEntity();
+
+      // End any existing combat before wiping entities so turn order resets cleanly.
+      if (this.turnManagementSystem) {
+        this.turnManagementSystem.endCombat();
+      }
+
       this.entityManager.removeAllEntities();
       this.uiManager.hideEntityInfo();
-      this.uiManager.updateCurrentTurn('-', null, false);
+      this.uiManager.updateCurrentTurn('-', null, null, false, null, false);
       this.uiManager.updateInitiativeTracker([]);
       console.log('Cleared all ECS entities');
     },
@@ -581,16 +898,22 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     onTurnChange: function (entity, turnIndex, totalTurns) {
       const identity = entity.getComponent('IdentityComponent');
       const actions = entity.getComponent('ActionsComponent');
+      const movement = entity.getComponent('MovementComponent');
+      const combat = entity.getComponent('CombatComponent');
       const name = identity ? identity.name : `Entity ${entity.id}`;
+      const isPlayersTurn = combat?.isPlayerTeam ? combat.isPlayerTeam() : (combat?.team === Team.PLAYER || combat?.team === 'player');
       
       console.log(`Turn change: ${name} (${turnIndex + 1}/${totalTurns})`);
       
       // Update UI via UIManager
-      this.uiManager.updateCurrentTurn(name, actions, actions?.hasReactionAvailable());
+      this.uiManager.updateCurrentTurn(name, actions, movement, actions?.hasReactionAvailable(), combat?.team, isPlayersTurn);
       this.uiManager.updateInitiativeTracker(this.turnManagementSystem.getInitiativeOrder());
+      const moveLeft = movement ? movement.movementRemaining : 0;
+      const canAct = actions ? actions.actionsRemaining > 0 : false;
+      const actionMode = this.stateManager.get('actionMode') || 'attack';
+      this.uiManager.updateActionMode(actionMode, { canAct, moveLeft, isPlayersTurn });
       
-      // Auto-select entity on their turn (if player controlled)
-      const combat = entity.getComponent('CombatComponent');
+      // Auto-select entity on their turn (if player controlled). NPCs are resolved server-side.
       if (combat && combat.isPlayerTeam()) {
         this.selectEntity(entity);
       }
@@ -603,6 +926,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     onRoundChange: function (roundNumber) {
       console.log(`Round ${roundNumber} started`);
       this.uiManager.updateRound(roundNumber);
+      this.stateManager.set('actionMode', 'attack');
     },
     
     /**
@@ -638,6 +962,13 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       this.gridContainer = new PIXI.Container();
       this.objectContainer = new PIXI.Container();
       this.uiContainer = new PIXI.Container();
+
+      // Keep overlay layers deterministic; ui sits on top of sprites.
+      this.app.stage.sortableChildren = true;
+      this.hexContainer.zIndex = 10;
+      this.gridContainer.zIndex = 20;
+      this.objectContainer.zIndex = 30;
+      this.uiContainer.zIndex = 40;
       
       // Add layers in order: hexes (terrain), grid (coords), objects (sprites), ui (overlays)
       this.app.stage.addChild(this.hexContainer);
@@ -845,6 +1176,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       const { q, r } = hex.hexData;
       this.uiManager.updateHoveredHex(q, r);
       this.uiManager.updateHoveredObject(this.getObjectLabelAtHex(q, r));
+      this.uiManager.updateHexDetails(this.getHexDetail(q, r));
     },
 
     /**
@@ -859,6 +1191,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       this.stateManager.set('hoveredHex', null);
       this.uiManager.updateHoveredHex(null, null);
       this.uiManager.updateHoveredObject('None');
+      this.uiManager.updateHexDetails(null);
     },
 
     /**
@@ -910,11 +1243,18 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         const pos = entity.getComponent('PositionComponent');
         if (pos.q === q && pos.r === r) {
           // Check if this is an attack action (selected entity + hostile target)
-          if (selectedEntity && entity.id !== selectedEntity.id) {
+              if (selectedEntity && entity.id !== selectedEntity.id) {
             const attackerCombat = selectedEntity.getComponent('CombatComponent');
             const targetCombat = entity.getComponent('CombatComponent');
+                const actionMode = this.stateManager.get('actionMode') || 'attack';
             
-            if (attackerCombat && targetCombat && attackerCombat.isHostileTo(targetCombat)) {
+                if (actionMode === 'attack' && attackerCombat && targetCombat && attackerCombat.isHostileTo(targetCombat)) {
+              const canAttackCheck = this.combatSystem.canAttack(selectedEntity, entity);
+              console.info('Click attack check', { actorId: selectedEntity.id, targetId: entity.id, mode: actionMode, check: canAttackCheck });
+              if (!canAttackCheck.canAttack) {
+                console.warn('Cannot attack target', canAttackCheck.reason);
+                return;
+              }
               // Attempt attack
               this.performAttack(selectedEntity, entity);
               return;
@@ -930,16 +1270,38 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       }
       
       // Mode 3: Move selected entity
-      const movementRange = this.stateManager.get('movementRange');
+      const actionMode = this.stateManager.get('actionMode') || 'attack';
+      let movementRange = this.stateManager.get('movementRange');
+
+      // If we lost the cached range (e.g., after switching modes), rebuild so clicks still work.
+      if (selectedEntity && actionMode === 'move' && (!movementRange || movementRange.size === 0)) {
+        this.showMovementRange(selectedEntity);
+        movementRange = this.stateManager.get('movementRange');
+      }
+
       if (selectedEntity && movementRange) {
         const hexKey = `${q}_${r}`;
         if (movementRange.has(hexKey)) {
+          if (actionMode !== 'move') {
+            // Require explicit move mode to avoid accidental moves while targeting.
+            this.uiManager.updateActionMode('attack', { canAct: true, moveLeft: 0, isPlayersTurn: true });
+            return;
+          }
           // Try to move entity
           const success = this.movementSystem.moveEntity(selectedEntity, q, r);
           if (success) {
             console.log(`Moved entity to (${q}, ${r})`);
             // Refresh movement range after move
             this.showMovementRange(selectedEntity);
+            const actions = selectedEntity.getComponent('ActionsComponent');
+            const movementComp = selectedEntity.getComponent('MovementComponent');
+            const combat = selectedEntity.getComponent('CombatComponent');
+            const identity = selectedEntity.getComponent('IdentityComponent');
+            const name = identity ? identity.name : `Entity ${selectedEntity.id}`;
+            const isPlayersTurn = combat?.isPlayerTeam ? combat.isPlayerTeam() : (combat?.team === Team.PLAYER || combat?.team === 'player');
+            if (actions && movementComp) {
+              this.uiManager.updateCurrentTurn(name, actions, movementComp, actions.hasReactionAvailable(), combat?.team, isPlayersTurn);
+            }
           }
           return;
         }
@@ -966,7 +1328,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
      * @param {string} spriteKey - Optional sprite key
      * @returns {Entity} Created entity
      */
-    createEntityObject: function (q, r, entityType, name, spriteKey = null) {
+    createEntityObject: function (q, r, entityType, name, spriteKey = null, options = {}) {
       // Check if entity already exists at this position
       const existingEntities = this.entityManager.getEntitiesWith('PositionComponent');
       for (const entity of existingEntities) {
@@ -988,33 +1350,72 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       
       // Add components based on entity type
       if (entityType === EntityType.CREATURE || entityType === EntityType.PLAYER_CHARACTER || entityType === EntityType.NPC) {
+        const statsConfig = options.stats || {};
+        const movementSpeed = options.movementSpeed ?? statsConfig.speed ?? 30;
+        const actionsPerTurn = options.actionsPerTurn ?? 3;
+
         // Add stats
         const stats = new StatsComponent({ 
-          speed: 30, 
-          maxHp: 20,
-          perception: 0
+          speed: movementSpeed,
+          maxHp: statsConfig.maxHp ?? 20,
+          currentHp: statsConfig.currentHp ?? statsConfig.maxHp ?? 20,
+          ac: statsConfig.ac ?? 10,
+          perception: statsConfig.perception ?? 0
         });
         entity.addComponent('StatsComponent', stats);
         
         // Add movement
-        const movement = new MovementComponent(30);
+        const movement = new MovementComponent(movementSpeed);
         entity.addComponent('MovementComponent', movement);
         
         // Add actions (3-action economy)
-        const actions = new ActionsComponent(3);
+        const actions = new ActionsComponent(actionsPerTurn);
         entity.addComponent('ActionsComponent', actions);
         
         // Add combat
-        const team = entityType === EntityType.PLAYER_CHARACTER ? Team.PLAYER : Team.ENEMY;
+        const team = this.resolveTeamPreference(options.team, entityType);
         const combat = new CombatComponent({ 
           team: team,
-          initiativeBonus: 0
+          initiativeBonus: statsConfig.initiative_bonus ?? options.initiativeBonus ?? 0,
+          attackBonus: statsConfig.attack_bonus ?? 0
         });
         entity.addComponent('CombatComponent', combat);
+      } else if (entityType === EntityType.ITEM || entityType === EntityType.OBSTACLE) {
+        // Items/furniture should be targetable but not join initiative.
+        const statsConfig = options.stats || {};
+        const stats = new StatsComponent({
+          speed: 0,
+          maxHp: statsConfig.maxHp ?? 10,
+          currentHp: statsConfig.currentHp ?? statsConfig.maxHp ?? 10,
+          ac: statsConfig.ac ?? 10,
+          perception: statsConfig.perception ?? 0
+        });
+        entity.addComponent('StatsComponent', stats);
       }
       
       console.log(`Created entity "${name}" (${entityType}) at (${q}, ${r})`);
       return entity;
+    },
+
+    /**
+     * Resolve team preference to CombatComponent team value.
+     */
+    resolveTeamPreference: function (teamPreference, entityType) {
+      const normalized = teamPreference ? String(teamPreference).toLowerCase() : null;
+      if (normalized === 'player') {
+        return Team.PLAYER;
+      }
+      if (normalized === 'ally') {
+        return Team.ALLY;
+      }
+      if (normalized === 'neutral') {
+        return Team.NEUTRAL;
+      }
+      if (normalized === 'enemy') {
+        return Team.ENEMY;
+      }
+
+      return entityType === EntityType.PLAYER_CHARACTER ? Team.PLAYER : Team.ENEMY;
     },
     
     /**
@@ -1029,6 +1430,8 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       }
       
       this.stateManager.set('selectedEntity', entity);
+      // Default to attack mode when a new player entity is selected
+      this.stateManager.set('actionMode', 'attack');
       
       // Check if entity can move
       const movement = entity.getComponent('MovementComponent');
@@ -1053,6 +1456,15 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       
       // Show entity info panel via UIManager
       this.uiManager.showEntityInfo(entity);
+
+      const actions = entity.getComponent('ActionsComponent');
+      const combat = entity.getComponent('CombatComponent');
+      const isPlayersTurn = combat?.isPlayerTeam ? combat.isPlayerTeam() : (combat?.team === Team.PLAYER || combat?.team === 'player');
+      this.uiManager.updateActionMode('attack', {
+        canAct: actions ? actions.actionsRemaining > 0 : false,
+        moveLeft: movement ? movement.movementRemaining : 0,
+        isPlayersTurn
+      });
     },
     
     /**
@@ -1090,6 +1502,13 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       // Calculate movement range
       const movementRange = this.movementSystem.calculateMovementRange(entity);
       this.stateManager.set('movementRange', movementRange);
+
+      const movement = entity.getComponent('MovementComponent');
+      console.info('Range: movement range calculated', {
+        entityId: entity.id,
+        movementRemaining: movement?.movementRemaining,
+        reachable: movementRange.size
+      });
       
       // Create overlay graphics
       const movementRangeOverlay = new PIXI.Graphics();
@@ -1117,6 +1536,11 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         movementRangeOverlay.endFill();
       });
       
+      // Ensure the overlay never intercepts clicks.
+      movementRangeOverlay.interactive = false;
+      movementRangeOverlay.eventMode = 'none';
+      movementRangeOverlay.zIndex = 9000;
+
       this.uiContainer.addChild(movementRangeOverlay);
       this.stateManager.set('movementRangeOverlay', movementRangeOverlay);
     },
@@ -1133,30 +1557,220 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       }
       this.stateManager.set('movementRange', null);
     },
+
+    /**
+     * Show hostile targets for attack mode.
+     * @param {Entity} actor
+     */
+    showAttackTargets: function (actor) {
+      this.hideAttackTargets();
+      const targets = this.getHostileTargets(actor);
+      const overlay = new PIXI.Container();
+      overlay.zIndex = 9001;
+
+      targets.forEach(({ target }) => {
+        const posComp = target.getComponent('PositionComponent');
+        if (!posComp) return;
+        const pos = this.axialToPixel(posComp.q, posComp.r, this.config.hexSize);
+        const radius = this.config.hexSize * 0.9;
+
+        const ring = new PIXI.Graphics();
+        ring.beginFill(0xef4444, 0.15);
+        ring.lineStyle(2, 0xf97316, 0.9);
+        ring.drawCircle(0, 0, radius * 0.6);
+        ring.endFill();
+        ring.x = pos.x;
+        ring.y = pos.y;
+        ring.targetId = target.id;
+        ring.eventMode = 'static';
+        ring.interactive = true;
+        ring.cursor = 'pointer';
+
+        ring.on('pointertap', () => {
+          const currentActionMode = this.stateManager.get('actionMode');
+          const attacker = this.stateManager.get('selectedEntity') || actor;
+          if (currentActionMode !== 'attack') {
+            console.warn('Tap ignored: not in attack mode');
+            return;
+          }
+          const targetEntity = this.entityManager.getEntity(ring.targetId);
+          const canAttackCheck = targetEntity ? this.combatSystem.canAttack(attacker, targetEntity) : { canAttack: false, reason: 'Target missing' };
+          console.info('Overlay attack tap', { attackerId: attacker?.id, targetId: ring.targetId, check: canAttackCheck });
+          if (!canAttackCheck.canAttack) {
+            return;
+          }
+          this.performAttack(attacker, targetEntity);
+        });
+
+        overlay.addChild(ring);
+      });
+
+      // Allow pointer events only on target rings so movement clicks pass through elsewhere.
+      overlay.eventMode = 'passive';
+
+      this.uiContainer.addChild(overlay);
+      this.stateManager.set('attackTargetsOverlay', overlay);
+
+      console.info('Range: attack targets highlighted', {
+        actorId: actor.id,
+        targets: targets.map(({ target }) => target.id)
+      });
+    },
+
+    /**
+     * Hide attack target overlay.
+     */
+    hideAttackTargets: function () {
+      const overlay = this.stateManager.get('attackTargetsOverlay');
+      if (overlay) {
+        this.uiContainer.removeChild(overlay);
+        overlay.destroy({ children: true });
+        this.stateManager.set('attackTargetsOverlay', null);
+      }
+    },
     
     /**
      * Start combat encounter.
      */
-    startCombat: function () {
-      console.log('Starting combat...');
-      this.turnManagementSystem.startCombat();
+    serializeCombatantsForApi: function () {
+      if (!this.entityManager) {
+        return [];
+      }
+
+      const entities = this.entityManager.getEntitiesWith('IdentityComponent', 'CombatComponent');
+      return entities.map((entity) => {
+        const identity = entity.getComponent('IdentityComponent');
+        const combat = entity.getComponent('CombatComponent');
+        const stats = entity.getComponent('StatsComponent');
+
+        return {
+          entityId: entity.id,
+          name: identity?.name || `Entity ${entity.id}`,
+          team: combat?.team,
+          initiative: combat?.getInitiative ? combat.getInitiative() : null,
+          initiative_bonus: combat?.initiativeBonus,
+          perception: stats?.perception,
+          ac: stats?.ac,
+          hp: stats?.currentHp,
+          max_hp: stats?.maxHp,
+        };
+      });
+    },
+
+    startCombat: async function (options = {}) {
+      console.log('Starting combat (server authoritative)...');
+
+      const payload = {
+        campaignId: this.config?.campaignId,
+        roomId: this.stateManager.get('activeRoomId'),
+        entities: this.serializeCombatantsForApi(),
+        ...options
+      };
+
+      try {
+        const serverState = await combatApi.startCombat(payload);
+        if (!serverState) {
+          console.error('Combat start returned no state; aborting client start.');
+          return;
+        }
+
+        if (serverState.encounter_id) {
+          this.stateManager.set('encounterId', serverState.encounter_id);
+        }
+
+        if (typeof this.turnManagementSystem.hydrateFromServer === 'function') {
+          this.stateManager.set('serverCombatMode', true);
+          this.turnManagementSystem.hydrateFromServer(serverState);
+          this.syncSelectedToCurrentTurn();
+        }
+      } catch (err) {
+        console.error('Combat start via API failed; client will not fall back.', err);
+      }
     },
     
     /**
      * End current turn.
      */
-    endTurn: function () {
-      console.log('Ending turn...');
-      this.turnManagementSystem.endTurn();
+    endTurn: async function () {
+      console.log('Ending turn (server authoritative)...');
+
+      const currentTurn = this.turnManagementSystem?.getCurrentTurn?.();
+      const payload = {
+        encounterId: this.stateManager.get('encounterId'),
+        participantId: currentTurn?.entityId
+      };
+
+      try {
+        const serverState = await combatApi.endTurn(payload);
+        if (!serverState) {
+          console.error('End turn returned no state; keeping current client view.');
+          return;
+        }
+
+        if (serverState.encounter_id) {
+          this.stateManager.set('encounterId', serverState.encounter_id);
+        }
+
+        if (typeof this.turnManagementSystem.hydrateFromServer === 'function') {
+          this.stateManager.set('serverCombatMode', true);
+          this.turnManagementSystem.hydrateFromServer(serverState);
+          this.syncSelectedToCurrentTurn();
+        }
+      } catch (err) {
+        console.error('Turn end via API failed; client will not fall back.', err);
+      }
     },
     
     /**
      * End combat encounter.
      */
-    endCombat: function () {
-      console.log('Ending combat...');
+    endCombat: async function () {
+      console.log('Ending combat (server authoritative)...');
+
+      const payload = {
+        encounterId: this.stateManager.get('encounterId')
+      };
+
+      try {
+        await combatApi.endCombat(payload);
+      } catch (err) {
+        console.error('Combat end via API failed; client will not fall back.', err);
+        return;
+      }
+
       this.turnManagementSystem.endCombat();
+      this.stateManager.set('encounterId', null);
       this.deselectEntity();
+    },
+
+    /**
+     * Free-action talk interface hook for AI conversation integration.
+     * @param {Entity} speaker - Speaking entity
+     * @param {string} message - Utterance content
+     */
+    performTalk: function (speaker, message) {
+      if (!speaker || !message) {
+        return;
+      }
+
+      const actions = speaker.getComponent('ActionsComponent');
+      if (actions) {
+        actions.spendActions(ActionCost.FREE, 'Talk');
+      }
+
+      const identity = speaker.getComponent('IdentityComponent');
+      const combat = speaker.getComponent('CombatComponent');
+
+      // Emit an event for downstream ai_conversation listeners.
+      window.dispatchEvent(new CustomEvent('dungeoncrawler:talk', {
+        detail: {
+          entityId: speaker.id,
+          name: identity?.name || `Entity ${speaker.id}`,
+          team: combat?.team || null,
+          roomId: this.activeRoomId || null,
+          message: message
+        }
+      }));
     },
 
     /**
@@ -1164,32 +1778,83 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
      * @param {Entity} attacker - Attacking entity
      * @param {Entity} target - Target entity
      */
-    performAttack: function (attacker, target) {
-      // Check if it's the attacker's turn (if combat is active)
+    performAttack: async function (attacker, target) {
       const combatActive = this.stateManager.get('combatActive');
       if (combatActive && this.turnManagementSystem) {
         if (!this.turnManagementSystem.isEntityTurn(attacker)) {
-          console.warn('Not your turn!');
+          console.warn('Not your turn!', { attackerId: attacker?.id, currentTurn: this.turnManagementSystem?.getCurrentTurnEntity?.()?.id });
           return;
         }
       }
-      
-      // Attempt attack via combat system
-      const attackData = this.combatSystem.attack(attacker, target);
-      
-      if (attackData) {
-        console.log('Attack executed successfully');
-        
-        // Refresh UI after attack
-        const actions = attacker.getComponent('ActionsComponent');
-        const identity = attacker.getComponent('IdentityComponent');
-        const name = identity ? identity.name : `Entity ${attacker.id}`;
-        
-        if (actions) {
-          this.uiManager.updateCurrentTurn(name, actions, actions.hasReactionAvailable());
+
+      const payload = {
+        encounterId: this.stateManager.get('encounterId'),
+        attackerId: attacker?.id,
+        targetId: target?.id,
+        action: 'attack'
+      };
+
+      try {
+        const serverState = await combatApi.performAttack(payload);
+        if (!serverState) {
+          console.error('Attack returned no state; keeping current client view.');
+          return;
         }
+
+        if (serverState.encounter_id) {
+          this.stateManager.set('encounterId', serverState.encounter_id);
+        }
+
+        if (typeof this.turnManagementSystem.hydrateFromServer === 'function') {
+          this.stateManager.set('serverCombatMode', true);
+          this.turnManagementSystem.hydrateFromServer(serverState);
+          this.syncSelectedToCurrentTurn();
+        }
+      } catch (err) {
+        console.error('Attack via API failed; client will not fall back.', err);
       }
     },
+
+    /**
+     * Get all hostile, alive targets for an entity, sorted by distance.
+     * @param {Entity} actor
+     * @returns {Array<{target: Entity, distance: number}>}
+     */
+    getHostileTargets: function (actor) {
+      const actorCombat = actor.getComponent('CombatComponent');
+      const actorPos = actor.getComponent('PositionComponent');
+      if (!actorCombat || !actorPos) {
+        return [];
+      }
+
+      const candidates = this.entityManager.getEntitiesWith('CombatComponent', 'StatsComponent', 'PositionComponent');
+      const hostileTargets = [];
+
+      candidates.forEach((candidate) => {
+        if (candidate.id === actor.id) {
+          return;
+        }
+
+        const targetCombat = candidate.getComponent('CombatComponent');
+        const targetStats = candidate.getComponent('StatsComponent');
+        const targetPos = candidate.getComponent('PositionComponent');
+
+        if (!targetCombat || !targetPos || !targetStats?.isAlive()) {
+          return;
+        }
+
+        if (!actorCombat.isHostileTo(targetCombat)) {
+          return;
+        }
+
+        const distance = this.movementSystem.hexDistance(actorPos.q, actorPos.r, targetPos.q, targetPos.r);
+        hostileTargets.push({ target: candidate, distance });
+      });
+
+      hostileTargets.sort((a, b) => a.distance - b.distance);
+      return hostileTargets;
+    },
+
     
     /**
      * Callback when attack is performed.
@@ -1241,6 +1906,22 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
     },
 
     /**
+     * Select the current turn entity (player) after a server hydration so buttons work.
+     */
+    syncSelectedToCurrentTurn: function () {
+      const current = this.turnManagementSystem?.getCurrentTurnEntity?.();
+      if (current) {
+        const combat = current.getComponent('CombatComponent');
+        if (combat && combat.isPlayerTeam && combat.isPlayerTeam()) {
+          this.selectEntity(current);
+          return;
+        }
+      }
+      // If no player current, clear selection.
+      this.deselectEntity();
+    },
+
+    /**
      * Load game assets.
      */
     loadAssets: async function (assetList) {
@@ -1249,6 +1930,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       console.log('Loading assets...');
       
       try {
+          this.syncSelectedToCurrentTurn();
         for (const asset of assetList) {
           await PIXI.Assets.load(asset);
         }
@@ -1366,6 +2048,73 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
         self.startCombat();
       });
       
+      const actionMoveBtn = document.getElementById('action-move');
+      addTrackedListener(actionMoveBtn, 'click', function () {
+        const selected = self.stateManager.get('selectedEntity');
+        const current = self.turnManagementSystem?.getCurrentTurnEntity?.();
+        const actor = selected || current;
+        if (!actor) {
+          console.warn('No actor available to move');
+          return;
+        }
+
+        self.stateManager.set('actionMode', 'move');
+        const actions = actor.getComponent('ActionsComponent');
+        const movement = actor.getComponent('MovementComponent');
+        const combat = actor.getComponent('CombatComponent');
+        const isPlayersTurn = combat?.isPlayerTeam ? combat.isPlayerTeam() : (combat?.team === Team.PLAYER || combat?.team === 'player');
+
+        if (actor !== selected) {
+          self.stateManager.set('selectedEntity', actor);
+          self.uiManager.showEntityInfo(actor);
+        }
+
+        console.info('UI: Move button clicked', {
+          actorId: actor.id,
+          actionsRemaining: actions?.actionsRemaining,
+          movementRemaining: movement?.movementRemaining
+        });
+
+        self.hideAttackTargets?.();
+        self.showMovementRange(actor);
+        self.uiManager.updateActionMode('move', {
+          canAct: actions ? actions.actionsRemaining > 0 : false,
+          moveLeft: movement ? movement.movementRemaining : 0,
+          isPlayersTurn
+        });
+      });
+
+      const actionAttackBtn = document.getElementById('action-attack');
+      addTrackedListener(actionAttackBtn, 'click', function () {
+        const selected = self.stateManager.get('selectedEntity');
+        const current = self.turnManagementSystem?.getCurrentTurnEntity?.();
+        const actor = selected || current;
+        if (!actor) {
+          console.warn('No actor available to attack');
+          return;
+        }
+
+        self.stateManager.set('actionMode', 'attack');
+        const actions = actor.getComponent('ActionsComponent');
+        const movement = actor.getComponent('MovementComponent');
+        const combat = actor.getComponent('CombatComponent');
+        const isPlayersTurn = combat?.isPlayerTeam ? combat.isPlayerTeam() : (combat?.team === Team.PLAYER || combat?.team === 'player');
+
+        console.info('UI: Attack button clicked', {
+          actorId: actor.id,
+          actionsRemaining: actions?.actionsRemaining,
+          movementRemaining: movement?.movementRemaining
+        });
+
+        self.hideMovementRange();
+        self.showAttackTargets?.(actor);
+        self.uiManager.updateActionMode('attack', {
+          canAct: actions ? actions.actionsRemaining > 0 : false,
+          moveLeft: movement ? movement.movementRemaining : 0,
+          isPlayersTurn
+        });
+      });
+
       const endTurnBtn = document.getElementById('end-turn');
       addTrackedListener(endTurnBtn, 'click', function () {
         self.endTurn();
@@ -1596,19 +2345,39 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
           return;
         }
 
+        const rawType = entity?.entity_type ? String(entity.entity_type).toLowerCase() : '';
         let entityType = EntityType.OBSTACLE;
-        if (entity.entity_type === 'creature') {
+        if (rawType === 'creature') {
           entityType = EntityType.CREATURE;
-        } else if (entity.entity_type === 'item') {
+        } else if (rawType === 'player_character' || rawType === 'player') {
+          entityType = EntityType.PLAYER_CHARACTER;
+        } else if (rawType === 'npc') {
+          entityType = EntityType.NPC;
+        } else if (rawType === 'item') {
           entityType = EntityType.ITEM;
         }
 
+        const metadata = entity?.state?.metadata || {};
         const contentId = entity?.entity_ref?.content_id;
         const objectDefinition = this.getObjectDefinition(contentId);
-        const entityName = objectDefinition?.label ||
-          (contentId ? String(contentId).replace(/[_-]+/g, ' ') : String(entity.entity_type || 'entity'));
-        this.createEntityObject(q, r, entityType, entityName, null);
+        const entityName = metadata.display_name || metadata.name || entity?.display_name ||
+          objectDefinition?.label || (contentId ? String(contentId).replace(/[_-]+/g, ' ') : String(entity.entity_type || 'entity'));
+
+        const options = {
+          team: metadata.team,
+          stats: metadata.stats || {},
+          movementSpeed: metadata.movement_speed,
+          actionsPerTurn: metadata.actions_per_turn,
+          initiativeBonus: metadata.initiative_bonus
+        };
+
+        this.createEntityObject(q, r, entityType, entityName, null, options);
       });
+
+      // Automatically enter initiative for the active room so every area is treated as a live encounter.
+      if (this.turnManagementSystem) {
+        this.startCombat({ force: true });
+      }
     },
 
     /**
@@ -1667,6 +2436,152 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
       const stackable = (typeof metadata.stackable === 'boolean') ? metadata.stackable : Boolean(objectDefinition?.stackable);
 
       return { movable, passable, stackable };
+    },
+
+    /**
+     * Describe passability text for a hex.
+     */
+    describePassability: function (obstacleProfile, inActiveRoom) {
+      if (obstacleProfile) {
+        if (!obstacleProfile.passable && !obstacleProfile.movable) {
+          return 'Impassable (fixed)';
+        }
+        if (!obstacleProfile.passable && obstacleProfile.movable) {
+          return 'Impassable (movable)';
+        }
+        if (obstacleProfile.passable && obstacleProfile.movable) {
+          return 'Passable (movable)';
+        }
+        return 'Passable';
+      }
+
+      return inActiveRoom ? 'Open floor' : 'Outside active room';
+    },
+
+    /**
+     * Describe entities at a hex (live ECS first, then payload fallback).
+     */
+    describeEntitiesAtHex: function (q, r) {
+      const labels = [];
+
+      if (this.entityManager) {
+        const liveEntities = this.entityManager.getEntitiesWith('PositionComponent', 'IdentityComponent', 'CombatComponent');
+        liveEntities.forEach((entity) => {
+          const pos = entity.getComponent('PositionComponent');
+          if (pos?.q !== q || pos?.r !== r) {
+            return;
+          }
+          const identity = entity.getComponent('IdentityComponent');
+          const combat = entity.getComponent('CombatComponent');
+          const teamLabel = combat?.team ? ` (${combat.team})` : '';
+          labels.push(`${identity?.name || 'Entity'}${teamLabel}`);
+        });
+      }
+
+      if (labels.length) {
+        return labels;
+      }
+
+      const payloadEntities = Array.isArray(this.dungeonData?.entities) ? this.dungeonData.entities : [];
+      const fallback = payloadEntities.filter((candidate) => {
+        if (!candidate?.placement || candidate.placement.room_id !== this.activeRoomId) {
+          return false;
+        }
+        const hex = candidate.placement.hex;
+        return hex && Number(hex.q) === q && Number(hex.r) === r;
+      });
+
+      fallback.forEach((candidate) => {
+        const metadata = candidate?.state?.metadata || {};
+        const displayName = metadata.display_name || metadata.name;
+        if (displayName) {
+          labels.push(displayName);
+          return;
+        }
+        const contentId = candidate?.entity_ref?.content_id;
+        labels.push(contentId ? String(contentId).replace(/[_-]+/g, ' ') : String(candidate.entity_type || 'entity'));
+      });
+
+      return labels;
+    },
+
+    /**
+     * Describe objects on a hex from room payload and object definitions.
+     */
+    describeObjectsAtHex: function (hex, q, r) {
+      const labels = [];
+
+      if (hex && Array.isArray(hex.objects)) {
+        hex.objects.forEach((object) => {
+          if (object?.label) {
+            labels.push(object.label);
+          } else if (object?.object_id) {
+            labels.push(String(object.object_id).replace(/[_-]+/g, ' '));
+          }
+        });
+      }
+
+      const obstacleLabel = this.getObstacleMobilityAtHex(q, r) ? this.getObjectLabelAtHex(q, r) : null;
+      if (obstacleLabel) {
+        labels.push(obstacleLabel);
+      }
+
+      return labels;
+    },
+
+    /**
+     * Describe connection metadata for a hex if present.
+     */
+    describeConnectionAtHex: function (q, r) {
+      const connections = Array.isArray(this.dungeonData?.connections) ? this.dungeonData.connections : [];
+      if (!connections.length) {
+        return null;
+      }
+
+      const match = connections.find((connection) => {
+        const fromHex = connection?.from_hex;
+        const toHex = connection?.to_hex;
+        return (fromHex && Number(fromHex.q) === q && Number(fromHex.r) === r) ||
+               (toHex && Number(toHex.q) === q && Number(toHex.r) === r);
+      });
+
+      if (!match) {
+        return null;
+      }
+
+      const targetRoom = match.to_room === this.activeRoomId ? match.from_room : match.to_room;
+      const status = [];
+      status.push(match.is_passable ? 'passable' : 'blocked');
+      if (match.is_discovered) {
+        status.push('discovered');
+      }
+
+      return `${match.type || 'connection'} -> ${targetRoom || 'unknown'} (${status.join(', ')})`;
+    },
+
+    /**
+     * Build a detail payload for the hovered hex.
+     */
+    getHexDetail: function (q, r) {
+      const room = this.getActiveRoomData();
+      if (!room) {
+        return null;
+      }
+
+      const hex = Array.isArray(room.hexes) ? room.hexes.find((candidate) => Number(candidate.q) === q && Number(candidate.r) === r) : null;
+      const inRoom = Boolean(hex);
+      const obstacleProfile = this.getObstacleMobilityAtHex(q, r);
+
+      return {
+        roomName: inRoom ? room.name : `${room.name} (outside footprint)` ,
+        terrain: room.terrain?.type || 'unknown',
+        elevationFt: inRoom && Number.isFinite(Number(hex?.elevation_ft)) ? Number(hex.elevation_ft) : null,
+        lighting: room.lighting?.level || 'unknown',
+        passability: this.describePassability(obstacleProfile, inRoom),
+        objects: this.describeObjectsAtHex(hex, q, r),
+        entities: this.describeEntitiesAtHex(q, r),
+        connection: this.describeConnectionAtHex(q, r)
+      };
     },
 
     /**

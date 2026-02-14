@@ -179,13 +179,13 @@ Comprehensive overview of:
 
 **Daily Backups** - Automated via Backup and Migrate module
 - Source: Default Database
-- Destination: `/var/backups/stlouisintegration/daily`
+- Destination: `/var/backups/forseti/daily`
 - Retention: 7 days
 - Schedule: Every 24 hours (86400 seconds)
 
 **Weekly Backups** - Full site backup
 - Source: Entire Site (database + files)
-- Destination: `/var/backups/stlouisintegration/weekly`
+- Destination: `/var/backups/forseti/weekly`
 - Retention: 20 weeks
 - Schedule: Every 7 days (604800 seconds)
 
@@ -220,7 +220,7 @@ Comprehensive overview of:
 
 **Via Command Line:**
 ```bash
-cd /var/www/html/stlouisintegration
+cd /var/www/html/forseti
 
 # Database backup
 ./vendor/bin/drush sql:dump --result-file=../backup-$(date +%Y%m%d-%H%M%S).sql
@@ -233,15 +233,15 @@ tar -czf ../backup-full-$(date +%Y%m%d-%H%M%S).tar.gz .
 
 **Database Restoration:**
 ```bash
-cd /var/www/html/stlouisintegration
+cd /var/www/html/forseti
 
 # For compressed backups (.gz)
-gunzip -c /var/backups/stlouisintegration/daily/backup-TIMESTAMP.sql.gz | \
+gunzip -c /var/backups/forseti/daily/backup-TIMESTAMP.sql.gz | \
   sudo -u www-data ./vendor/bin/drush sql:cli
 
 # For regular SQL files
 sudo -u www-data ./vendor/bin/drush sql:cli < \
-  /var/backups/stlouisintegration/daily/backup-TIMESTAMP.sql
+  /var/backups/forseti/daily/backup-TIMESTAMP.sql
 ```
 
 **Full Site Restoration:**
@@ -249,11 +249,11 @@ sudo -u www-data ./vendor/bin/drush sql:cli < \
 cd /var/www/html
 
 # Extract full site backup
-sudo tar -xzf /var/backups/stlouisintegration/weekly/backup-TIMESTAMP.tar.gz
+sudo tar -xzf /var/backups/forseti/weekly/backup-TIMESTAMP.tar.gz
 
 # Fix permissions
-sudo chown -R www-data:www-data stlouisintegration/
-sudo chmod -R 755 stlouisintegration/
+sudo chown -R www-data:www-data forseti/
+sudo chmod -R 755 forseti/
 ```
 
 **Through Drupal Interface:**
@@ -272,7 +272,7 @@ Check backup status using the monitoring script:
 Verify backup integrity:
 ```bash
 # Verify compressed backups
-gunzip -t /var/backups/stlouisintegration/daily/*.sql.gz
+gunzip -t /var/backups/forseti/daily/*.sql.gz
 
 # Test restoration (dry run)
 gunzip -c backup.sql.gz | head -100
@@ -334,8 +334,8 @@ cd drupal/web
 # Export database structure and content
 ../vendor/bin/drush sql:dump --result-file=../database_backup.sql
 
-# Build production theme assets
-cd themes/custom/stlouisintegration
+# Build production theme assets (if custom theme exists)
+cd themes/custom/forseti
 npm run production
 ```
 
@@ -354,8 +354,8 @@ git add .
 git commit -m "Production deployment preparation"
 git push origin main
 
-# Asset building
-cd themes/custom/stlouisintegration
+# Asset building (if custom theme exists)
+cd themes/custom/forseti
 npm install --production
 npm run production  # Creates optimized CSS/JS
 ```
@@ -566,14 +566,14 @@ If issues arise after deployment:
 ```bash
 # 1. Restore from backup
 cd /var/www/html
-sudo tar -xzf /var/backups/stlouisintegration/weekly/backup-TIMESTAMP.tar.gz
+sudo tar -xzf /var/backups/forseti/weekly/backup-TIMESTAMP.tar.gz
 
 # 2. Restore database
 sudo -u www-data drupal/vendor/bin/drush sql:cli < backup-TIMESTAMP.sql
 
 # 3. Fix permissions
-sudo chown -R www-data:www-data stlouisintegration/
-sudo chmod -R 755 stlouisintegration/
+sudo chown -R www-data:www-data forseti/
+sudo chmod -R 755 forseti/
 
 # 4. Clear caches
 cd drupal/web
@@ -605,13 +605,13 @@ cd /var/www/html/drupal/web
 - **Backup Status**: `./scripts/backup-status.sh`
 - **Security Hardening**: `./scripts/production-security-hardening.sh`
 - **Deployment Scripts**: `/scripts/database/`
-- **Configuration**: `/sites/stlouisintegration/config/sync/`
+- **Configuration**: `/sites/forseti/config/sync/`
 
 For additional documentation:
-- **AmISafe Mobile**: `/amisafe-mobile/README.md`
+- **Forseti Mobile**: `/forseti-mobile/README.md`
 - **H3 Geolocation**: `/h3-geolocation/README.md`
 - **Database Exports**: `/database-exports/README.md`
 
 ---
 
-**Last Updated**: December 2025
+**Last Updated**: February 2026
