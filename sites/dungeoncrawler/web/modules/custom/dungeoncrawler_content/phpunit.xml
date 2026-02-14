@@ -72,7 +72,7 @@
     <env name="SIMPLETEST_FILE" value="/tmp/dungeoncrawler-simpletest"/>
     <env name="SIMPLETEST_FILES" value="/tmp/dungeoncrawler-simpletest"/>
     <env name="SIMPLETEST_FILES_DIRECTORY" value="/tmp/dungeoncrawler-simpletest"/>
-
+    
     <!-- Browser output directory -->
     <env name="BROWSERTEST_OUTPUT_DIRECTORY" value="/tmp/dungeoncrawler-simpletest/browser_output"/>
     

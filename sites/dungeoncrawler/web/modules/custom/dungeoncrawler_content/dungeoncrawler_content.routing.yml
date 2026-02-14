@@ -284,30 +284,6 @@ dungeoncrawler_content.api.room_state_get:
   options:
     _format: json
 
-dungeoncrawler_content.api.room_state_set:
-  path: '/api/dungeon/{dungeon_id}/room/{room_id}/state'
-  defaults:
-    _controller: '\Drupal\dungeoncrawler_content\Controller\RoomStateController::setState'
-  methods: [POST]
-  requirements:
-    _permission: 'access dungeoncrawler characters'
-    dungeon_id: '[A-Za-z0-9_-]+'
-    room_id: '[A-Za-z0-9_-]+'
-  options:
-    _format: json
-
-dungeoncrawler_content.api.campaign_state_set:
-  path: '/api/campaign/{campaign_id}/state'
-  defaults:
-    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignStateController::setState'
-  methods: [POST]
-  requirements:
-    _permission: 'access dungeoncrawler characters'
-    _campaign_access: 'TRUE'
-    campaign_id: '\\d+'
-  options:
-    _format: json
-
 dungeoncrawler_content.api.character_summary:
   path: '/api/character/{character_id}/summary'
   defaults:
@@ -479,7 +455,17 @@ dungeoncrawler_content.api.combat_set:
   options:
     _format: json
 
+# ==============================================================================
+# TESTING ROUTES
+# ==============================================================================
 
+dungeoncrawler_content.testing:
+  path: '/testing'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\TestingPageController::index'
+    _title: 'Testing Page'
+  requirements:
+    _access: 'TRUE'
 
 # Campaign entity lifecycle endpoints
 dungeoncrawler_content.api.entity_spawn:
