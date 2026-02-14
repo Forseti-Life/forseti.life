@@ -1,4 +1,4 @@
-# Dungeon Crawler Testing Module
+# Dungeon Crawler Testing Module (tester package)
 
 ## Overview
 
@@ -74,38 +74,38 @@ Each test file includes:
 
 ```bash
 cd /home/runner/work/forseti.life/forseti.life/sites/dungeoncrawler
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_content/phpunit.xml
+./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml
 ```
 
 ### Run Route Tests Only
 
 ```bash
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_content/phpunit.xml tests/src/Functional/Routes/
+./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Routes/
 ```
 
 ### Run Controller Tests Only
 
 ```bash
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_content/phpunit.xml tests/src/Functional/Controller/
+./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Controller/
 ```
 
 ### Run Specific Test File
 
 ```bash
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_content/phpunit.xml tests/src/Functional/Routes/PublicRoutesTest.php
+./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Routes/PublicRoutesTest.php
 ```
 
 ### Run Tests by Group
 
 ```bash
 # Run all route tests
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_content/phpunit.xml --group routes
+./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group routes
 
 # Run all controller tests
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_content/phpunit.xml --group controller
+./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group controller
 
 # Run all API tests
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_content/phpunit.xml --group api
+./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group api
 ```
 
 ## Test Coverage

@@ -1,6 +1,6 @@
-# Dungeon Crawler Content Module - Tests
+# Dungeon Crawler Tester - Tests
 
-Comprehensive test suite for the Dungeon Crawler content module.
+Comprehensive test suite targeting the Dungeon Crawler content module (tests live in the dungeoncrawler_tester module).
 
 ## 📚 Documentation
 
@@ -14,22 +14,13 @@ Comprehensive test suite for the Dungeon Crawler content module.
 ```
 tests/
 ├── src/
-│   ├── Unit/                    # Unit tests (80% of suite, 90% coverage target)
-│   │   ├── Service/             # Service layer tests
-│   │   ├── PF2eRules/           # PF2e rules validation
-│   │   └── Traits/              # Reusable test traits
-│   ├── Kernel/                  # Integration tests (15% of suite)
-│   │   ├── Storage/             # Database integration
-│   │   └── Api/                 # API integration
-│   ├── Functional/              # Browser tests (5% of suite)
-│   │   ├── CharacterCreation/   # Character creation flows
-│   │   └── Dashboard/           # Dashboard functionality
-│   └── FunctionalJavascript/    # JavaScript interaction tests
+│   ├── Unit/                    # Unit tests (service calculators, traits)
+│   └── Functional/              # Browser tests (routes + controllers)
 ├── fixtures/                    # Test data files
 │   ├── characters/              # Character test data
 │   ├── schemas/                 # Schema test data
 │   └── pf2e_reference/          # PF2e reference data
-├── phpunit.xml                  # PHPUnit configuration
+├── phpunit.xml                  # PHPUnit configuration (in module root)
 └── README.md                    # This file
 ```
 
@@ -38,7 +29,7 @@ tests/
 ### All Tests
 ```bash
 cd sites/dungeoncrawler
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_content/phpunit.xml
+./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml
 ```
 
 ### Specific Test Suite
