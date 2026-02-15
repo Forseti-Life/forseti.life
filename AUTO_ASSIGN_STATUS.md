@@ -114,6 +114,6 @@ gh pr view 103 --json assignees
 - No errors or issues detected in the implementation
 
 ## Related Files
-- `.github/workflows/auto-assign-copilot.yml` - Main workflow file
-- `.github/copilot.yml` - Copilot configuration
-- `AUTO_ASSIGN_STATUS.md` - This status report
+- `.github/workflows/auto-assign-copilot.yml` - Main workflow file (created in this PR)
+- `.github/copilot.yml` - Existing Copilot configuration (for permissions)
+- `AUTO_ASSIGN_STATUS.md` - This status report (created in this PR)
