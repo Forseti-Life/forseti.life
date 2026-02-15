@@ -22,12 +22,15 @@ The testing dashboard provides a centralized location for developers to:
 - URL: `/dungeoncrawler/testing`
 - Permission required: `administer site configuration`
 - Menu location: Reports > Dungeon Crawler Testing Dashboard
+- Navigation entry: `Documentation Home` appears under the Testing Dashboard menu item.
 
 The dashboard includes:
 - **Test Documentation**: Links to all testing READMEs, strategy docs, and issue lists
+- **Documentation Home**: `DOCUMENTATION_HOME.md` is the canonical index for tester documentation.
 - **Quick Test Commands**: Copy/paste commands for running different test suites
 - **Release Testing Stagegates**: Testing workflow and checklist
 - **GitHub Issues**: Live feed of CI failures and testing defects
+- **Docs link handling**: Documentation links resolve to internal Drupal documentation pages (no direct `.md` links); only the testing issues query links to GitHub.
 - **Robust logging**: Dashboard form now lazy-loads logger service to avoid cache-induced initialization errors during command submissions.
 - **Serialization-safe DI**: Dashboard form lazy-loads all injected services (state, date formatter, stage definitions, queue, uuid) to survive form cache serialization.
 
@@ -36,6 +39,9 @@ The dashboard includes:
 - If a stage fails, the queue worker will try to open a GitHub issue and pause the stage.
 - Configure via `/admin/config/development/dungeoncrawler-tester` (preferred), `ai_conversation.settings` (`github_repo`, `github_token`), or env vars `TESTER_GITHUB_REPO`, `TESTER_GITHUB_TOKEN` (format: `owner/repo`). The default repo, if left blank, will fall back to `keithaumiller/forseti.life`.
 - Existing linked issues are respected; no new issue is opened if `issue_number` is already present in stage state.
+- Copilot assignment is performed as a second API step after issue creation, trying `@copilot`, `Copilot`, then `copilot` identifiers for compatibility.
+- If GitHub REST assignment does not attach Copilot, the worker falls back to `gh issue edit --add-assignee "@copilot"`.
+- If assignment fails, the module logs GitHub API error details on the `dungeoncrawler_tester` channel to support root-cause debugging.
 - Settings form route uses `dungeoncrawler_tester.settings`; if the page fails to load after route changes, rebuild caches (`drush cr`).
 
 ### Getting a GitHub token (for issue creation)

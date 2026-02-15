@@ -5,6 +5,70 @@ dungeoncrawler_tester.dashboard:
     _title: 'Dungeon Crawler Testing Dashboard'
   requirements:
     _permission: 'administer site configuration'
+
+dungeoncrawler_tester.documentation_home:
+  path: '/dungeoncrawler/testing/documentation-home'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::documentationHome'
+    _title: 'Tester Documentation Home'
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.docs_module_readme:
+  path: '/dungeoncrawler/testing/documentation/module-readme'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsModuleReadme'
+    _title: 'Module README'
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.docs_testing_module_readme:
+  path: '/dungeoncrawler/testing/documentation/testing-module-readme'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsTestingModuleReadme'
+    _title: 'Testing Module README'
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.docs_tests_readme:
+  path: '/dungeoncrawler/testing/documentation/tests-readme'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsTestsReadme'
+    _title: 'Tests README'
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.docs_strategy_design:
+  path: '/dungeoncrawler/testing/documentation/strategy-design'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsStrategyDesign'
+    _title: 'Testing Strategy Design'
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.docs_quick_start:
+  path: '/dungeoncrawler/testing/documentation/quick-start'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsQuickStart'
+    _title: 'Testing Quick Start Guide'
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.docs_issues_directory:
+  path: '/dungeoncrawler/testing/documentation/issues-directory'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsIssuesDirectory'
+    _title: 'Testing Issues Directory'
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.docs_issue_automation:
+  path: '/dungeoncrawler/testing/documentation/issue-automation'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsIssueAutomation'
+    _title: 'Copilot Issue Automation'
+  requirements:
+    _permission: 'administer site configuration'
   
 dungeoncrawler_tester.queue_management:
   path: '/dungeoncrawler/testing/queue-management'

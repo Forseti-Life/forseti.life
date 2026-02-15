@@ -19,6 +19,13 @@ dungeoncrawler_tester.settings_under_dashboard:
   parent: dungeoncrawler_tester.dashboard_menu
   weight: 21
 
+dungeoncrawler_tester.docs_under_dashboard:
+  title: 'Documentation Home'
+  description: 'Canonical entry point for tester documentation.'
+  route_name: dungeoncrawler_tester.documentation_home
+  parent: dungeoncrawler_tester.dashboard_menu
+  weight: 22
+
 dungeoncrawler_tester.settings_under_dashboard_main:
   title: 'Tester settings'
   description: 'Configure GitHub repo/token for tester automation.'
@@ -40,3 +47,10 @@ dungeoncrawler_tester.dashboard_main_home:
   route_name: dungeoncrawler_tester.dashboard
   parent: dungeoncrawler_tester.dashboard_main
   weight: 90
+
+dungeoncrawler_tester.dashboard_main_docs:
+  title: 'Documentation Home'
+  description: 'Canonical entry point for tester documentation.'
+  route_name: dungeoncrawler_tester.documentation_home
+  parent: dungeoncrawler_tester.dashboard_main
+  weight: 91

@@ -264,27 +264,77 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
    *   GitHub token.
    */
   private function assignCopilotToIssue(string $repo, int $issue_number, string $token): void {
+    $copilot_identifiers = ['@copilot', 'Copilot', 'copilot'];
+    $last_error = NULL;
+
+    foreach ($copilot_identifiers as $identifier) {
+      try {
+        $response = $this->httpClient->request('POST', "https://api.github.com/repos/{$repo}/issues/{$issue_number}/assignees", [
+          'headers' => [
+            'Authorization' => 'token ' . $token,
+            'Accept' => 'application/vnd.github+json',
+            'User-Agent' => 'dungeoncrawler-tester',
+          ],
+          'json' => [
+            'assignees' => [$identifier],
+          ],
+          'timeout' => 10,
+        ]);
+
+        $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
+        $assigned = array_map(static fn(array $assignee): string => strtolower((string) ($assignee['login'] ?? '')), $payload['assignees'] ?? []);
+        if (in_array('copilot', $assigned, TRUE)) {
+          $this->logger->notice('Assigned Copilot to issue #@number using identifier "@identifier".', [
+            '@number' => $issue_number,
+            '@identifier' => $identifier,
+          ]);
+          return;
+        }
+
+        $last_error = 'GitHub response did not include Copilot in assignees.';
+      }
+      catch (\Throwable $e) {
+        $last_error = $e->getMessage();
+        if (method_exists($e, 'getResponse') && $e->getResponse()) {
+          $error_body = trim((string) $e->getResponse()->getBody());
+          if ($error_body !== '') {
+            $last_error .= ' | API: ' . mb_strimwidth($error_body, 0, 500, '…');
+          }
+        }
+      }
+    }
+
     try {
-      $this->httpClient->request('POST', "https://api.github.com/repos/{$repo}/issues/{$issue_number}/assignees", [
-        'headers' => [
-          'Authorization' => 'token ' . $token,
-          'Accept' => 'application/vnd.github+json',
-          'User-Agent' => 'dungeoncrawler-tester',
-        ],
-        'json' => [
-          'assignees' => ['copilot'],
-        ],
-        'timeout' => 10,
+      $process = new Process([
+        'gh',
+        'issue',
+        'edit',
+        (string) $issue_number,
+        '--repo',
+        $repo,
+        '--add-assignee',
+        '@copilot',
       ]);
-      
-      $this->logger->notice('Assigned @copilot to issue #@number to trigger agent.', ['@number' => $issue_number]);
+      $process->setTimeout(20);
+      $process->run();
+
+      if ($process->isSuccessful()) {
+        $this->logger->notice('Assigned Copilot to issue #@number using GitHub CLI fallback.', [
+          '@number' => $issue_number,
+        ]);
+        return;
+      }
+
+      $last_error = trim($process->getErrorOutput() ?: $process->getOutput()) ?: 'gh issue edit failed without output.';
     }
     catch (\Throwable $e) {
-      $this->logger->warning('Could not assign @copilot to issue #@number: @msg', [
-        '@number' => $issue_number,
-        '@msg' => $e->getMessage(),
-      ]);
+      $last_error = 'GitHub CLI fallback failed: ' . $e->getMessage();
     }
+
+    $this->logger->warning('Could not assign Copilot to issue #@number after trying all identifiers: @msg', [
+      '@number' => $issue_number,
+      '@msg' => $last_error ?: 'Unknown error',
+    ]);
   }
 
 }

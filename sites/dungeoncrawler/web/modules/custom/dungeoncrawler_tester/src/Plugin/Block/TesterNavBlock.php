@@ -25,23 +25,23 @@ class TesterNavBlock extends BlockBase {
     $links = [
       [
         'title' => $this->t('Tester README (module overview)'),
-        'uri' => 'https://github.com/keithaumiller/forseti.life/blob/main/sites/dungeoncrawler/web/modules/custom/dungeoncrawler_tester/README.md',
+        'route' => 'dungeoncrawler_tester.docs_module_readme',
       ],
       [
         'title' => $this->t('Test instructions (suite & commands)'),
-        'uri' => 'https://github.com/keithaumiller/forseti.life/blob/main/sites/dungeoncrawler/web/modules/custom/dungeoncrawler_tester/tests/TESTING_MODULE_README.md',
+        'route' => 'dungeoncrawler_tester.docs_testing_module_readme',
       ],
       [
         'title' => $this->t('Test suite structure (tests/README)'),
-        'uri' => 'https://github.com/keithaumiller/forseti.life/blob/main/sites/dungeoncrawler/web/modules/custom/dungeoncrawler_tester/tests/README.md',
+        'route' => 'dungeoncrawler_tester.docs_tests_readme',
       ],
       [
         'title' => $this->t('Issue queue'),
-        'uri' => 'https://github.com/keithaumiller/forseti.life/issues',
+        'uri' => 'https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting',
       ],
       [
         'title' => $this->t('Copilot issue API (docs)'),
-        'uri' => 'https://github.com/keithaumiller/forseti.life/blob/main/sites/dungeoncrawler/web/modules/custom/ai_conversation/README.md#copilot-issue-automation',
+        'route' => 'dungeoncrawler_tester.docs_issue_automation',
       ],
     ];
 
