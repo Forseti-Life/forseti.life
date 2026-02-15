@@ -300,15 +300,15 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
         'commands' => [
           [
             'label' => $this->t('Routes'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'tests/src/Functional/Routes/'],
+            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'web/modules/custom/dungeoncrawler_tester/tests/src/Functional/Routes/'],
             'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Routes/',
+            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml web/modules/custom/dungeoncrawler_tester/tests/src/Functional/Routes/',
           ],
           [
             'label' => $this->t('Controllers'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'tests/src/Functional/Controller/'],
+            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'web/modules/custom/dungeoncrawler_tester/tests/src/Functional/Controller/'],
             'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Controller/',
+            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml web/modules/custom/dungeoncrawler_tester/tests/src/Functional/Controller/',
           ],
           [
             'label' => $this->t('API group'),
