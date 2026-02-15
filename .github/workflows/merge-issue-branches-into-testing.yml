@@ -31,7 +31,7 @@ jobs:
           git fetch origin testing
           git switch -C testing origin/testing
 
-          prs=$(gh pr list --state open --assignee copilot --json number,title,headRefName,baseRefName \
+          prs=$(gh pr list --state open --json number,title,headRefName,baseRefName,isDraft \
             --jq '.[] | @base64')
 
           if [ -z "$prs" ]; then
@@ -52,6 +52,11 @@ jobs:
             meta=$(gh pr view "$number" --json isDraft,reviewRequests --jq '{isDraft,reviewRequests:[.reviewRequests[].login]}')
             is_draft=$(echo "$meta" | jq -r '.isDraft')
             copilot_requested=$(echo "$meta" | jq -r '.reviewRequests[]? | ascii_downcase' | grep -x "copilot" || true)
+
+            if [ -z "$copilot_requested" ]; then
+              echo "Skipping PR #$number ($head -> $base): no Copilot review request."
+              continue
+            fi
 
             if [ "$is_draft" = "true" ] && [ -n "$copilot_requested" ]; then
               echo "PR #$number is draft but Copilot is requested; marking ready."
