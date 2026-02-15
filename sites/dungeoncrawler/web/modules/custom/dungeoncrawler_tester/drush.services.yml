@@ -1,0 +1,6 @@
+services:
+  dungeoncrawler_tester.commands:
+    class: Drupal\dungeoncrawler_tester\Commands\TestingQueueCommands
+    arguments: ['@queue', '@plugin.manager.queue_worker', '@lock', '@logger.factory']
+    tags:
+      - { name: drush.command }

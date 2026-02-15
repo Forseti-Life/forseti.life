@@ -9,7 +9,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\Process\Process;
 
 /**
  * Single dashboard form handling all stage runs.
@@ -174,57 +173,36 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       '@parents' => implode('/', $trigger['#parents'] ?? []),
     ]);
 
-    $args = $cmd['args'];
-    $cwd = $cmd['cwd'] ?? NULL;
-    $display_cmd = $cmd['display'] ?? implode(' ', $args);
+    $display_cmd = $cmd['display'] ?? implode(' ', $cmd['args'] ?? []);
+    $job_id = \Drupal::service('uuid')->generate();
 
-    $this->getLogger('dungeoncrawler_tester')->notice('Stage @stage starting: @cmd', [
+    $this->storeRun($stage_id, [
+      'job_id' => $job_id,
+      'command' => $display_cmd,
+      'status' => 'pending',
+      'exit_code' => NULL,
+      'started' => NULL,
+      'ended' => NULL,
+      'duration' => NULL,
+      'output' => '',
+    ]);
+
+    // Enqueue for background processing.
+    $queue = \Drupal::queue('dungeoncrawler_tester_runs');
+    $queue->createItem([
+      'job_id' => $job_id,
+      'stage_id' => $stage_id,
+      'args' => $cmd['args'],
+      'cwd' => $cmd['cwd'] ?? NULL,
+      'display' => $display_cmd,
+    ]);
+
+    $this->messenger()->addStatus($this->t('Queued stage @stage run. Job: @job', ['@stage' => $stage_id, '@job' => $job_id]));
+    $this->getLogger('dungeoncrawler_tester')->notice('Stage @stage queued: @cmd (job @job)', [
       '@stage' => $stage_id,
       '@cmd' => $display_cmd,
+      '@job' => $job_id,
     ]);
-
-    $start = microtime(TRUE);
-    $exit_code = -1;
-    $output = '';
-    try {
-      $process = new Process($args, $cwd, NULL, NULL, 1200);
-      $process->run();
-      $exit_code = $process->getExitCode();
-      $output = trim($process->getOutput() . "\n" . $process->getErrorOutput());
-    }
-    catch (\Throwable $e) {
-      $exit_code = -1;
-      $output = 'Process failed: ' . $e->getMessage();
-      $this->getLogger('dungeoncrawler_tester')->error('Stage @stage exception: @msg', [
-        '@stage' => $stage_id,
-        '@msg' => $e->getMessage(),
-      ]);
-    }
-    $end = microtime(TRUE);
-
-    $run_data = [
-      'command' => $display_cmd,
-      'exit_code' => $exit_code,
-      'started' => (int) $start,
-      'ended' => (int) $end,
-      'duration' => $end - $start,
-      'output' => mb_strimwidth($output, 0, 4000, "\n…"),
-    ];
-    $this->storeRun($stage_id, $run_data);
-
-    $this->getLogger('dungeoncrawler_tester')->notice('Stage @stage finished (exit @code, duration @duration s). Output head: @head', [
-      '@stage' => $stage_id,
-      '@code' => $exit_code,
-      '@duration' => sprintf('%.2f', $end - $start),
-      '@head' => mb_substr($output, 0, 200),
-    ]);
-
-    if ($exit_code === 0) {
-      $this->messenger()->addStatus($this->t('Stage @stage run succeeded.', ['@stage' => $stage_id]));
-    }
-    else {
-      $this->messenger()->addError($this->t('Stage @stage run failed (exit @code).', ['@stage' => $stage_id, '@code' => $exit_code]));
-    }
 
     // Rebuild to refresh the last-run block and scroll back to the stage.
     $form_state->setRebuild(TRUE);
@@ -239,7 +217,8 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       $this->state = \Drupal::state();
     }
     $runs = $this->state->get('dungeoncrawler_tester.runs', []);
-    $runs[$stage_id] = $data;
+    $current = $runs[$stage_id] ?? [];
+    $runs[$stage_id] = array_merge($current, $data);
     $this->state->set('dungeoncrawler_tester.runs', $runs);
   }
 
@@ -264,10 +243,15 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
         ],
       ];
     }
-
-    $status = $run['exit_code'] === 0 ? $this->t('Passed') : $this->t('Failed');
-    $time = $this->dateFormatter->format($run['ended'], 'short');
-    $duration = isset($run['duration']) ? sprintf('%.1fs', $run['duration']) : '';
+    $status_key = $run['status'] ?? (isset($run['exit_code']) ? ($run['exit_code'] === 0 ? 'succeeded' : 'failed') : 'unknown');
+    $status_label = [
+      'pending' => $this->t('Pending'),
+      'running' => $this->t('Running'),
+      'succeeded' => $this->t('Passed'),
+      'failed' => $this->t('Failed'),
+    ][$status_key] ?? $this->t('Unknown');
+    $time = !empty($run['ended']) ? $this->dateFormatter->format($run['ended'], 'short') : $this->t('in progress');
+    $duration = isset($run['duration']) && $run['duration'] !== NULL ? sprintf('%.1fs', $run['duration']) : '';
 
     return [
       '#type' => 'container',
@@ -278,7 +262,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
         '#value' => $this->t('Last run'),
       ],
       'content' => [
-        '#markup' => '<p><strong>' . $status . '</strong> · ' . $time . ' · ' . $duration . '</p>',
+        '#markup' => '<p><strong>' . $status_label . '</strong> · ' . $time . ' ' . ($duration ? '· ' . $duration : '') . '</p>',
       ],
       'log' => [
         '#type' => 'html_tag',
