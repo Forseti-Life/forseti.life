@@ -29,8 +29,7 @@ jobs:
           set -eo pipefail
 
           git fetch origin testing
-          git checkout testing
-          git reset --hard origin/testing
+          git switch -C testing origin/testing
 
           prs=$(gh pr list --state open --json number,title,headRefName,baseRefName,isDraft,assignees \
             --jq '.[] | select(.isDraft|not) | select(any(.assignees[]?; .login=="copilot")) | @base64')
