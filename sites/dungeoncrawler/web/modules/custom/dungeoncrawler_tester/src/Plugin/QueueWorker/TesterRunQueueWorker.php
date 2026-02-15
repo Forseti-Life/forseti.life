@@ -237,8 +237,13 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
 
       $payload = json_decode((string) $response->getBody(), TRUE);
       if (!empty($payload['number'])) {
-        $this->logger->notice('Opened GitHub issue #@number for stage @stage failure.', ['@number' => $payload['number'], '@stage' => $stage_id]);
-        return (int) $payload['number'];
+        $issue_number = (int) $payload['number'];
+        $this->logger->notice('Opened GitHub issue #@number for stage @stage failure.', ['@number' => $issue_number, '@stage' => $stage_id]);
+        
+        // Assign @copilot to trigger the agent (must be done after creation)
+        $this->assignCopilotToIssue($repo, $issue_number, $token);
+        
+        return $issue_number;
       }
     }
     catch (\Throwable $e) {
@@ -246,6 +251,40 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
     }
 
     return NULL;
+  }
+
+  /**
+   * Assign @copilot to an issue to trigger the Copilot agent.
+   * 
+   * @param string $repo
+   *   Repository in format owner/repo.
+   * @param int $issue_number
+   *   Issue number.
+   * @param string $token
+   *   GitHub token.
+   */
+  private function assignCopilotToIssue(string $repo, int $issue_number, string $token): void {
+    try {
+      $this->httpClient->request('POST', "https://api.github.com/repos/{$repo}/issues/{$issue_number}/assignees", [
+        'headers' => [
+          'Authorization' => 'token ' . $token,
+          'Accept' => 'application/vnd.github+json',
+          'User-Agent' => 'dungeoncrawler-tester',
+        ],
+        'json' => [
+          'assignees' => ['copilot'],
+        ],
+        'timeout' => 10,
+      ]);
+      
+      $this->logger->notice('Assigned @copilot to issue #@number to trigger agent.', ['@number' => $issue_number]);
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Could not assign @copilot to issue #@number: @msg', [
+        '@number' => $issue_number,
+        '@msg' => $e->getMessage(),
+      ]);
+    }
   }
 
 }
