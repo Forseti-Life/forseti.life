@@ -8,6 +8,7 @@ Comprehensive test suite targeting the Dungeon Crawler content module (tests liv
 - [Testing Strategy Design Document](../../../../docs/dungeoncrawler/issues/issue-testing-strategy-design.md)
 - [Testing Quick Start Guide](../../../../docs/dungeoncrawler/testing/README.md)
 - [Documentation Index](../../../../docs/dungeoncrawler/issues/testing-strategy-index.md)
+- [Automated Testing Process Flow](../PROCESS_FLOW.md)
 
 ## 🏗️ Structure
 

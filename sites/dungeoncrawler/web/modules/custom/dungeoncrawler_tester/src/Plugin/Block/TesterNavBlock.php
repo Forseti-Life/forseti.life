@@ -24,24 +24,28 @@ class TesterNavBlock extends BlockBase {
 
     $links = [
       [
-        'title' => $this->t('Tester README (module overview)'),
-        'route' => 'dungeoncrawler_tester.docs_module_readme',
+        'title' => $this->t('Getting Started'),
+        'route' => 'dungeoncrawler_tester.docs_getting_started',
       ],
       [
-        'title' => $this->t('Test instructions (suite & commands)'),
-        'route' => 'dungeoncrawler_tester.docs_testing_module_readme',
+        'title' => $this->t('Test Execution Playbook'),
+        'route' => 'dungeoncrawler_tester.docs_execution_playbook',
       ],
       [
-        'title' => $this->t('Test suite structure (tests/README)'),
-        'route' => 'dungeoncrawler_tester.docs_tests_readme',
+        'title' => $this->t('Failure Triage and Issue Workflow'),
+        'route' => 'dungeoncrawler_tester.docs_failure_triage',
+      ],
+      [
+        'title' => $this->t('Automated Testing Process Flow'),
+        'route' => 'dungeoncrawler_tester.docs_process_flow',
       ],
       [
         'title' => $this->t('Issue queue'),
         'uri' => 'https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting',
       ],
       [
-        'title' => $this->t('Copilot issue API (docs)'),
-        'route' => 'dungeoncrawler_tester.docs_issue_automation',
+        'title' => $this->t('Documentation Home'),
+        'route' => 'dungeoncrawler_tester.documentation_home',
       ],
     ];
 

@@ -178,15 +178,16 @@ class TestingDashboardController extends ControllerBase {
    */
   public function documentationHome(): array {
     $coreLinks = [
-      Link::fromTextAndUrl($this->t('Module README page'), Url::fromRoute('dungeoncrawler_tester.docs_module_readme')),
-      Link::fromTextAndUrl($this->t('Testing Module README page'), Url::fromRoute('dungeoncrawler_tester.docs_testing_module_readme')),
-      Link::fromTextAndUrl($this->t('Tests README (canonical run guide) page'), Url::fromRoute('dungeoncrawler_tester.docs_tests_readme')),
+      Link::fromTextAndUrl($this->t('Getting Started'), Url::fromRoute('dungeoncrawler_tester.docs_getting_started')),
+      Link::fromTextAndUrl($this->t('Test Execution Playbook'), Url::fromRoute('dungeoncrawler_tester.docs_execution_playbook')),
+      Link::fromTextAndUrl($this->t('Failure Triage and Issue Workflow'), Url::fromRoute('dungeoncrawler_tester.docs_failure_triage')),
+      Link::fromTextAndUrl($this->t('Automated Testing Process Flow'), Url::fromRoute('dungeoncrawler_tester.docs_process_flow')),
     ];
 
     $strategyLinks = [
-      Link::fromTextAndUrl($this->t('Testing Strategy Design page'), Url::fromRoute('dungeoncrawler_tester.docs_strategy_design')),
-      Link::fromTextAndUrl($this->t('Testing Quick Start Guide page'), Url::fromRoute('dungeoncrawler_tester.docs_quick_start')),
-      Link::fromTextAndUrl($this->t('Testing Issues Directory page'), Url::fromRoute('dungeoncrawler_tester.docs_issues_directory')),
+      Link::fromTextAndUrl($this->t('Legacy: Module README page'), Url::fromRoute('dungeoncrawler_tester.docs_module_readme')),
+      Link::fromTextAndUrl($this->t('Legacy: Testing Module README page'), Url::fromRoute('dungeoncrawler_tester.docs_testing_module_readme')),
+      Link::fromTextAndUrl($this->t('Legacy: Tests README page'), Url::fromRoute('dungeoncrawler_tester.docs_tests_readme')),
     ];
 
     $liveLinks = [
@@ -235,7 +236,7 @@ class TestingDashboardController extends ControllerBase {
             'core_title' => [
               '#type' => 'html_tag',
               '#tag' => 'h3',
-              '#value' => $this->t('Core Module Documentation'),
+              '#value' => $this->t('Standard Testing Documentation'),
             ],
             'core_list' => [
               '#theme' => 'item_list',
@@ -248,7 +249,7 @@ class TestingDashboardController extends ControllerBase {
             'strategy_title' => [
               '#type' => 'html_tag',
               '#tag' => 'h3',
-              '#value' => $this->t('Testing Strategy and Guides'),
+              '#value' => $this->t('Legacy Route Aliases (Compatibility)'),
             ],
             'strategy_list' => [
               '#theme' => 'item_list',
@@ -274,142 +275,133 @@ class TestingDashboardController extends ControllerBase {
   }
 
   /**
-   * Render module README summary page.
+   * Render consolidated getting started documentation page.
    */
-  public function docsModuleReadme(): array {
+  public function docsGettingStarted(): array {
     return $this->buildDocPage(
-      $this->t('Module README'),
-      $this->t('Overview of the tester module role and dashboard capabilities.'),
+      $this->t('Getting Started'),
+      $this->t('Standard onboarding path for the Dungeon Crawler testing module.'),
       [
-        $this->t('Purpose: this module contains the testing harness and functional test suite for Dungeon Crawler content.'),
-        $this->t('Dashboard: /dungeoncrawler/testing provides quick test commands, stagegates, and issue surfacing.'),
-        $this->t('Dependencies: relies on dungeoncrawler_content and tester services.'),
-        $this->t('Automation: failed stages can open GitHub issues and attempt Copilot assignment.'),
+        $this->t('Scope: this module owns test harnesses, test suites, and testing dashboard integrations.'),
+        $this->t('Entry points: start at /dungeoncrawler/testing for dashboard controls and linked documentation.'),
+        $this->t('Prerequisites: tester settings configured with repository/token when failure issue automation is needed.'),
+        $this->t('First run: execute focused tests first, then broader suites as confidence increases.'),
       ],
       [
-        Link::fromTextAndUrl($this->t('Testing Module README page'), Url::fromRoute('dungeoncrawler_tester.docs_testing_module_readme')),
-        Link::fromTextAndUrl($this->t('Tests README page'), Url::fromRoute('dungeoncrawler_tester.docs_tests_readme')),
+        Link::fromTextAndUrl($this->t('Test Execution Playbook'), Url::fromRoute('dungeoncrawler_tester.docs_execution_playbook')),
+        Link::fromTextAndUrl($this->t('Failure Triage and Issue Workflow'), Url::fromRoute('dungeoncrawler_tester.docs_failure_triage')),
       ]
     );
   }
 
   /**
-   * Render testing module README summary page.
+   * Render consolidated test execution playbook.
    */
-  public function docsTestingModuleReadme(): array {
+  public function docsExecutionPlaybook(): array {
     return $this->buildDocPage(
-      $this->t('Testing Module README'),
-      $this->t('How to run grouped suites and work with the dedicated testing module.'),
+      $this->t('Test Execution Playbook'),
+      $this->t('Standard structure for planning and running test stages.'),
       [
-        $this->t('Run targeted suites for API, functional, and route coverage.'),
-        $this->t('Use group-focused commands to speed local debugging.'),
-        $this->t('Check workflow expectations before changing stage definitions.'),
-        $this->t('Use the dashboard queue controls for stage run/pause/resume scenarios.'),
-      ],
-      [
-        Link::fromTextAndUrl($this->t('Tests README page'), Url::fromRoute('dungeoncrawler_tester.docs_tests_readme')),
-        Link::fromTextAndUrl($this->t('Testing Quick Start Guide page'), Url::fromRoute('dungeoncrawler_tester.docs_quick_start')),
-      ]
-    );
-  }
-
-  /**
-   * Render tests README summary page.
-   */
-  public function docsTestsReadme(): array {
-    return $this->buildDocPage(
-      $this->t('Tests README'),
-      $this->t('Canonical run guide for local and CI-aligned test execution.'),
-      [
-        $this->t('Run all tests from the dungeoncrawler site root with the module phpunit configuration.'),
-        $this->t('Use targeted suites to validate changed areas quickly before full runs.'),
-        $this->t('Prefer dashboard command snippets for copy/paste-safe execution.'),
-        $this->t('Capture failing output and link issue IDs when queue automation pauses a stage.'),
+        $this->t('Plan by stage: pre-commit checks, focused functional coverage, then full confidence runs.'),
+        $this->t('Use dashboard command snippets to keep local runs aligned with expected workflows.'),
+        $this->t('On failure, capture output and stage context before rerunning to preserve root-cause evidence.'),
+        $this->t('Use queue management to pause, resume, and verify stage progression intentionally.'),
       ],
       [
         Link::fromTextAndUrl($this->t('Testing Dashboard'), Url::fromRoute('dungeoncrawler_tester.dashboard')),
-        Link::fromTextAndUrl($this->t('Testing Strategy Design page'), Url::fromRoute('dungeoncrawler_tester.docs_strategy_design')),
+        Link::fromTextAndUrl($this->t('Tester Queue Management'), Url::fromRoute('dungeoncrawler_tester.queue_management')),
       ]
     );
   }
 
   /**
-   * Render testing strategy design summary page.
+   * Render consolidated failure triage and issue workflow page.
    */
-  public function docsStrategyDesign(): array {
+  public function docsFailureTriage(): array {
     return $this->buildDocPage(
-      $this->t('Testing Strategy Design'),
-      $this->t('Testing strategy and stagegate design intent for release verification.'),
+      $this->t('Failure Triage and Issue Workflow'),
+      $this->t('Standard response flow for failed stages and GitHub issue automation.'),
       [
-        $this->t('Stagegates separate pre-commit, pre-release, and release confidence checks.'),
-        $this->t('Each stage should produce actionable failure output and deterministic pass criteria.'),
-        $this->t('Failures should pause progression, create/attach issue context, and support resume.'),
-        $this->t('Strategy design aligns local commands with CI behavior to reduce drift.'),
+        $this->t('Triage sequence: identify failing stage, inspect output, validate reproducibility, and scope impact.'),
+        $this->t('Issue lifecycle: open issue on failure, attach stage context, and track remediation until stage pass.'),
+        $this->t('Assignment behavior: Copilot assignment attempts API identifiers then CLI fallback for compatibility.'),
+        $this->t('Operational controls: keep labels consistent for CI failures, testing defects, and program defects.'),
       ],
       [
-        Link::fromTextAndUrl($this->t('Testing Quick Start Guide page'), Url::fromRoute('dungeoncrawler_tester.docs_quick_start')),
-        Link::fromTextAndUrl($this->t('Testing Issues Directory page'), Url::fromRoute('dungeoncrawler_tester.docs_issues_directory')),
-      ]
-    );
-  }
-
-  /**
-   * Render quick start summary page.
-   */
-  public function docsQuickStart(): array {
-    return $this->buildDocPage(
-      $this->t('Testing Quick Start Guide'),
-      $this->t('Fast path for running validation commands and checking queue/state results.'),
-      [
-        $this->t('Start with the dashboard to choose the minimal stage(s) needed for your change.'),
-        $this->t('Use focused test commands first, then escalate to broader suites.'),
-        $this->t('If a stage fails, inspect logs and linked issue metadata before rerunning.'),
-        $this->t('Use queue controls to resume from the correct stage after fixes.'),
-      ],
-      [
-        Link::fromTextAndUrl($this->t('Testing Dashboard'), Url::fromRoute('dungeoncrawler_tester.dashboard')),
-        Link::fromTextAndUrl($this->t('Queue Management'), Url::fromRoute('dungeoncrawler_tester.queue_management')),
-      ]
-    );
-  }
-
-  /**
-   * Render testing issues directory summary page.
-   */
-  public function docsIssuesDirectory(): array {
-    return $this->buildDocPage(
-      $this->t('Testing Issues Directory'),
-      $this->t('Issue triage and tracking entry points for testing and CI defects.'),
-      [
-        $this->t('Use labels to separate CI failures, testing defects, and program defects.'),
-        $this->t('Link queue-created issues back to the failing stage state.'),
-        $this->t('Prioritize flaky-failure cleanup before broad release runs.'),
-        $this->t('Keep issue bodies concise with reproduction steps and expected outcomes.'),
-      ],
-      [
+        Link::fromTextAndUrl($this->t('Tester Settings'), Url::fromRoute('dungeoncrawler_tester.settings')),
         Link::fromTextAndUrl($this->t('GitHub Issues (testing-related)'), Url::fromUri('https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting')),
       ]
     );
   }
 
   /**
-   * Render Copilot issue automation summary page.
+   * Render process flow documentation page.
    */
-  public function docsIssueAutomation(): array {
+  public function docsProcessFlow(): array {
     return $this->buildDocPage(
-      $this->t('Copilot Issue Automation'),
-      $this->t('Reference for automatic issue creation and assignment behavior in tester stage failures.'),
+      $this->t('Automated Testing Process Flow'),
+      $this->t('Operational flow with synchronous/asynchronous subprocesses, timing windows, and blocking gates.'),
       [
-        $this->t('When a stage fails, the queue worker can create a GitHub issue and persist the issue number in stage state.'),
-        $this->t('Repository/token resolve from tester settings first, then ai_conversation settings, then environment fallbacks.'),
-        $this->t('Copilot assignment attempts GitHub REST identifiers first, then CLI fallback with @copilot for compatibility.'),
-        $this->t('Assignment and API failures are logged on the dungeoncrawler_tester channel for debugging.'),
+        $this->t('Synchronous surfaces: dashboard queue actions and in-worker state transitions.'),
+        $this->t('Asynchronous surfaces: stage auto-enqueue cadence and queue worker command execution.'),
+        $this->t('Timing controls: 3600s enqueue interval gate, 1800s command timeout, 10s GitHub API timeout, 20s CLI fallback timeout.'),
+        $this->t('Blocking gates: inactive stage, open issue lock, pending/running lock, failed-stage auto-pause.'),
+        $this->t('Canonical source file: PROCESS_FLOW.md in this module; update it with code changes affecting flow behavior.'),
       ],
       [
-        Link::fromTextAndUrl($this->t('Tester Settings'), Url::fromRoute('dungeoncrawler_tester.settings')),
-        Link::fromTextAndUrl($this->t('Testing Issues Directory page'), Url::fromRoute('dungeoncrawler_tester.docs_issues_directory')),
+        Link::fromTextAndUrl($this->t('Failure Triage and Issue Workflow'), Url::fromRoute('dungeoncrawler_tester.docs_failure_triage')),
+        Link::fromTextAndUrl($this->t('Tester Queue Management'), Url::fromRoute('dungeoncrawler_tester.queue_management')),
       ]
     );
+  }
+
+  /**
+   * Legacy route alias for module overview docs.
+   */
+  public function docsModuleReadme(): array {
+    return $this->docsGettingStarted();
+  }
+
+  /**
+   * Legacy route alias for testing module guide docs.
+   */
+  public function docsTestingModuleReadme(): array {
+    return $this->docsGettingStarted();
+  }
+
+  /**
+   * Legacy route alias for tests README docs.
+   */
+  public function docsTestsReadme(): array {
+    return $this->docsExecutionPlaybook();
+  }
+
+  /**
+   * Legacy route alias for strategy design docs.
+   */
+  public function docsStrategyDesign(): array {
+    return $this->docsExecutionPlaybook();
+  }
+
+  /**
+   * Legacy route alias for quick start docs.
+   */
+  public function docsQuickStart(): array {
+    return $this->docsExecutionPlaybook();
+  }
+
+  /**
+   * Legacy route alias for issues directory docs.
+   */
+  public function docsIssuesDirectory(): array {
+    return $this->docsFailureTriage();
+  }
+
+  /**
+   * Legacy route alias for issue automation docs.
+   */
+  public function docsIssueAutomation(): array {
+    return $this->docsFailureTriage();
   }
 
   /**
@@ -607,32 +599,24 @@ class TestingDashboardController extends ControllerBase {
         Url::fromRoute('dungeoncrawler_tester.documentation_home')
       )->toRenderable(),
       Link::fromTextAndUrl(
-        $this->t('Module README page'),
-        Url::fromRoute('dungeoncrawler_tester.docs_module_readme')
+        $this->t('Getting Started'),
+        Url::fromRoute('dungeoncrawler_tester.docs_getting_started')
       )->toRenderable(),
       Link::fromTextAndUrl(
-        $this->t('Testing Module README page'),
-        Url::fromRoute('dungeoncrawler_tester.docs_testing_module_readme')
+        $this->t('Test Execution Playbook'),
+        Url::fromRoute('dungeoncrawler_tester.docs_execution_playbook')
       )->toRenderable(),
       Link::fromTextAndUrl(
-        $this->t('Tests README page'),
-        Url::fromRoute('dungeoncrawler_tester.docs_tests_readme')
+        $this->t('Failure Triage and Issue Workflow'),
+        Url::fromRoute('dungeoncrawler_tester.docs_failure_triage')
       )->toRenderable(),
       Link::fromTextAndUrl(
-        $this->t('Testing Strategy Design page'),
-        Url::fromRoute('dungeoncrawler_tester.docs_strategy_design')
+        $this->t('Automated Testing Process Flow'),
+        Url::fromRoute('dungeoncrawler_tester.docs_process_flow')
       )->toRenderable(),
       Link::fromTextAndUrl(
-        $this->t('Testing Quick Start Guide page'),
-        Url::fromRoute('dungeoncrawler_tester.docs_quick_start')
-      )->toRenderable(),
-      Link::fromTextAndUrl(
-        $this->t('Testing Issues Directory page'),
-        Url::fromRoute('dungeoncrawler_tester.docs_issues_directory')
-      )->toRenderable(),
-      Link::fromTextAndUrl(
-        $this->t('Copilot Issue Automation page'),
-        Url::fromRoute('dungeoncrawler_tester.docs_issue_automation')
+        $this->t('Tester Queue Management'),
+        Url::fromRoute('dungeoncrawler_tester.queue_management')
       )->toRenderable(),
       Link::fromTextAndUrl(
         $this->t('GitHub Issues (testing-related)'),

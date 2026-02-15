@@ -25,7 +25,7 @@ The testing dashboard provides a centralized location for developers to:
 - Navigation entry: `Documentation Home` appears under the Testing Dashboard menu item.
 
 The dashboard includes:
-- **Test Documentation**: Links to all testing READMEs, strategy docs, and issue lists
+- **Test Documentation**: Consolidated structure with Getting Started, Execution Playbook, and Failure Triage workflow pages
 - **Documentation Home**: `DOCUMENTATION_HOME.md` is the canonical index for tester documentation.
 - **Quick Test Commands**: Copy/paste commands for running different test suites
 - **Release Testing Stagegates**: Testing workflow and checklist
@@ -34,6 +34,15 @@ The dashboard includes:
 - **Theme compliance**: Documentation pages render with the theme-standard Bootstrap layout (`container` + `row/col`) and `card card-dungeoncrawler` sections for visual consistency.
 - **Robust logging**: Dashboard form now lazy-loads logger service to avoid cache-induced initialization errors during command submissions.
 - **Serialization-safe DI**: Dashboard form lazy-loads all injected services (state, date formatter, stage definitions, queue, uuid) to survive form cache serialization.
+
+### Standard testing documentation structure
+
+- `Getting Started` (`/dungeoncrawler/testing/documentation/getting-started`)
+- `Test Execution Playbook` (`/dungeoncrawler/testing/documentation/execution-playbook`)
+- `Failure Triage and Issue Workflow` (`/dungeoncrawler/testing/documentation/failure-triage`)
+- `Automated Testing Process Flow` (`/dungeoncrawler/testing/documentation/process-flow`) - rendered process-flow page
+- Source of truth: `PROCESS_FLOW.md` (canonical sync/async timing and blocking-gates documentation)
+- Legacy documentation routes remain available as compatibility aliases and map to these consolidated pages.
 
 ### GitHub issue automation (failures)
 
