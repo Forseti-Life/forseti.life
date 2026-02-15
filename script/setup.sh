@@ -2254,6 +2254,31 @@ fi
 
 print_status "✅ STEP 6 COMPLETE: Dungeon Crawler sub-site setup finished"
 
+# ------------------------------------------------------------------------------
+# 7. BACKGROUND TASKS - Schedule Drupal cron for Dungeon Crawler
+# ------------------------------------------------------------------------------
+print_step "7. BACKGROUND TASKS - Scheduling Drupal cron"
+
+if ! command -v crontab >/dev/null 2>&1; then
+    print_status "Installing cron package..."
+    sudo apt install -y cron
+fi
+
+if command -v systemctl >/dev/null 2>&1; then
+    sudo systemctl enable --now cron 2>/dev/null || true
+else
+    sudo service cron start 2>/dev/null || true
+fi
+
+CRON_MARKER="# forseti-dungeoncrawler-cron"
+CRON_CMD="cd $DC_PROJECT_DIR/web && DRUSH_OPTIONS_URI=http://localhost drush cron >/dev/null 2>&1 $CRON_MARKER"
+
+CURRENT_CRON=$(crontab -l 2>/dev/null | grep -v "$CRON_MARKER" || true)
+NEW_CRON=$(printf "%s\n%s\n" "$CURRENT_CRON" "*/30 * * * * $CRON_CMD")
+echo "$NEW_CRON" | crontab -
+
+print_status "✅ Drupal cron scheduled every 30 minutes (marker: $CRON_MARKER)"
+
 # ==============================================================================
 # COMPLETION MESSAGE
 # ==============================================================================
