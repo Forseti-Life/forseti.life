@@ -88,7 +88,7 @@ class CharacterCalculatorTest extends UnitTestCase {
    *
    * TODO: Add data from PF2e reference
    */
-  public function abilityModifierProvider(): array {
+  public static function abilityModifierProvider(): array {
     return [
       'Score 10' => [10, 0],
       'Score 18' => [18, 4],
@@ -134,7 +134,7 @@ class CharacterCalculatorTest extends UnitTestCase {
    *
    * TODO: Add proficiency data
    */
-  public function proficiencyProvider(): array {
+  public static function proficiencyProvider(): array {
     return [
       'Untrained level 1' => ['untrained', 1, 1],
       'Trained level 1' => ['trained', 1, 3],
