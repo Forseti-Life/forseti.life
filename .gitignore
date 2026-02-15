@@ -101,6 +101,11 @@ drupal/web/sites/default/files/*
 # Testing results
 testing/results/
 
+# Drupal/PHPUnit test runtime artifacts
+**/.phpunit.result.cache
+sites/*/web/sites/simpletest/
+sites/*/web/sites/*/simpletest/
+
 # OS generated files
 *~
 .fuse_hidden*

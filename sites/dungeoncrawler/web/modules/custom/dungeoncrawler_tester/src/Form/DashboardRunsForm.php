@@ -127,23 +127,11 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
             '#tag' => 'p',
             '#value' => $this->t('Runs the primary command for each active/runnable stage gate in sequence.'),
           ],
-          'coverage' => [
-            '#type' => 'container',
-            '#attributes' => ['class' => ['stage-test-coverage']],
-            'title' => [
-              '#type' => 'html_tag',
-              '#tag' => 'h5',
-              '#value' => $this->t('Coverage'),
-            ],
-            'details' => [
-              '#theme' => 'item_list',
-              '#items' => [
-                $this->t('Focus: Runs each active stage gate primary command end-to-end.'),
-                $this->t('Covers: Unit, functional routes/controllers/API, UI smoke, workflow, fixtures, and CI coverage gate checks.'),
-                $this->t('Does not cover: Manual sign-off review steps and any paused/blocked stage gates.'),
-              ],
-            ],
-          ],
+          'coverage' => $this->buildCoverageSection([
+            $this->t('Focus: Runs each active stage gate primary command end-to-end.'),
+            $this->t('Covers: Unit, functional routes/controllers/API, UI smoke, workflow, fixtures, and CI coverage gate checks.'),
+            $this->t('Does not cover: Manual sign-off review steps and any paused/blocked stage gates.'),
+          ]),
           'run' => [
             '#type' => 'submit',
             '#value' => $this->t('Run Regression Suite'),
@@ -175,6 +163,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       $run = $runs[$stage_id] ?? NULL;
       $stage_state = $stage_states[$stage_id] ?? [];
       $block_reason = $this->getBlockReason($stage_state);
+      $is_stage_runnable = $this->isStageRunnable($stage_state);
 
       $form[$stage_id] = [
         '#type' => 'container',
@@ -207,51 +196,14 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       ];
 
       foreach ($stage['commands'] as $index => $cmd) {
-        $test_description = $cmd['description'] ?? $cmd['display'] ?? '';
-        $coverage = $this->buildCoverageItems($stage_id, $cmd);
-        $form[$stage_id]['tests']['test_' . $index] = [
-          '#type' => 'details',
-          '#title' => $cmd['label'],
-          '#open' => FALSE,
-          '#attributes' => ['class' => ['stage-test-item']],
-          'description' => [
-            '#type' => 'html_tag',
-            '#tag' => 'p',
-            '#value' => $test_description,
-          ],
-          'display' => [
-            '#type' => 'html_tag',
-            '#tag' => 'pre',
-            '#value' => $cmd['display'],
-            '#attributes' => ['class' => ['command-snippet']],
-          ],
-          'coverage' => [
-            '#type' => 'container',
-            '#attributes' => ['class' => ['stage-test-coverage']],
-            'title' => [
-              '#type' => 'html_tag',
-              '#tag' => 'h5',
-              '#value' => $this->t('Coverage'),
-            ],
-            'details' => [
-              '#theme' => 'item_list',
-              '#items' => $coverage,
-            ],
-          ],
-          'run' => [
-            '#type' => 'submit',
-            '#value' => $this->t('Run'),
-            '#name' => $stage_id . '_run_' . $index,
-            '#stage_id' => $stage_id,
-            '#command_meta' => $cmd,
-            '#submit' => ['::submitCommand'],
-            '#limit_validation_errors' => [],
-            '#disabled' => !$this->isStageRunnable($stage_state) || $regression_batch_active,
-            '#attributes' => (!$this->isStageRunnable($stage_state) || $regression_batch_active)
-              ? ['title' => $block_reason ?: (string) $this->t('Regression batch is active. Stage runs are temporarily locked.')]
-              : [],
-          ],
-        ];
+        $form[$stage_id]['tests']['test_' . $index] = $this->buildStageTestItem(
+          $stage_id,
+          $index,
+          $cmd,
+          $is_stage_runnable,
+          $block_reason,
+          $regression_batch_active,
+        );
       }
 
       // Hidden fields to keep context.
@@ -612,6 +564,66 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
         '#tag' => 'pre',
         '#value' => $run['output'] ?? '',
         '#attributes' => ['class' => ['command-snippet', 'command-log']],
+      ],
+    ];
+  }
+
+  /**
+   * Build the reusable coverage block shown in test accordion items.
+   */
+  private function buildCoverageSection(array $items): array {
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['stage-test-coverage']],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h5',
+        '#value' => $this->t('Coverage'),
+      ],
+      'details' => [
+        '#theme' => 'item_list',
+        '#items' => $items,
+      ],
+    ];
+  }
+
+  /**
+   * Build a stage command accordion item.
+   */
+  private function buildStageTestItem(string $stage_id, int $index, array $cmd, bool $is_stage_runnable, ?string $block_reason, bool $regression_batch_active): array {
+    $test_description = $cmd['description'] ?? $cmd['display'] ?? '';
+    $coverage = $this->buildCoverageItems($stage_id, $cmd);
+    $is_disabled = !$is_stage_runnable || $regression_batch_active;
+
+    return [
+      '#type' => 'details',
+      '#title' => $cmd['label'],
+      '#open' => FALSE,
+      '#attributes' => ['class' => ['stage-test-item']],
+      'description' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $test_description,
+      ],
+      'display' => [
+        '#type' => 'html_tag',
+        '#tag' => 'pre',
+        '#value' => $cmd['display'],
+        '#attributes' => ['class' => ['command-snippet']],
+      ],
+      'coverage' => $this->buildCoverageSection($coverage),
+      'run' => [
+        '#type' => 'submit',
+        '#value' => $this->t('Run'),
+        '#name' => $stage_id . '_run_' . $index,
+        '#stage_id' => $stage_id,
+        '#command_meta' => $cmd,
+        '#submit' => ['::submitCommand'],
+        '#limit_validation_errors' => [],
+        '#disabled' => $is_disabled,
+        '#attributes' => $is_disabled
+          ? ['title' => $block_reason ?: (string) $this->t('Regression batch is active. Stage runs are temporarily locked.')]
+          : [],
       ],
     ];
   }
