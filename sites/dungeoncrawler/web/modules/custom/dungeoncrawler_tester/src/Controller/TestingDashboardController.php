@@ -106,21 +106,18 @@ class TestingDashboardController extends ControllerBase {
    * Render the testing dashboard.
    */
   public function dashboard(): array {
-    $settings = $this->configFactory->get('ai_conversation.settings');
-    $repo = $settings->get('copilot_default_repo') ?: $this->defaultRepo;
-    $token = $settings->get('copilot_token') ?: (getenv('GITHUB_TOKEN_COPILOT') ?: getenv('GITHUB_TOKEN'));
+    $aiSettings = $this->configFactory->get('ai_conversation.settings');
+    $testerSettings = $this->configFactory->get('dungeoncrawler_tester.settings');
 
-    $issueSections = [
-      'ci_failures' => $this->t('Recent CI / test failures (ci-failure)'),
-      'testing_defects' => $this->t('Testing defects (testing-defect)'),
-      'program_defects' => $this->t('Program defects (program-defect)'),
-    ];
+    $repo = $aiSettings->get('copilot_default_repo')
+      ?: $aiSettings->get('github_repo')
+      ?: $testerSettings->get('github_repo')
+      ?: (getenv('TESTER_GITHUB_REPO') ?: $this->defaultRepo);
 
-    $issues = [];
-    foreach ($issueSections as $key => $label) {
-      $issues[$key] = $this->fetchIssues($repo, $token, $key);
-      $issues[$key]['label'] = $label;
-    }
+    $token = $aiSettings->get('copilot_token')
+      ?: $aiSettings->get('github_token')
+      ?: $testerSettings->get('github_token')
+      ?: (getenv('GITHUB_TOKEN_COPILOT') ?: (getenv('GITHUB_TOKEN') ?: getenv('TESTER_GITHUB_TOKEN')));
 
     $queue_items = $this->loadQueueItems();
     $queue_status = $this->getQueueStatus();
@@ -142,20 +139,10 @@ class TestingDashboardController extends ControllerBase {
           '#queue_status' => $queue_status,
         ],
       ],
-      'thetest_callout' => $this->buildTheTestCallout(),
-      'flow' => $this->buildProcessFlowSection(),
       'flow_tracking' => $this->buildLifecycleTrackingSection($repo, $token, $queue_status),
       'stages' => $this->formBuilder()->getForm(DashboardRunsForm::class),
       'overview' => $this->buildCapabilitiesSection(),
       'documentation' => $this->buildDocumentationSection(),
-      'roadmap' => $this->buildRoadmapSection(),
-      'issues' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['dungeoncrawler-testing-issues']],
-        'ci' => $this->renderIssueList($issues['ci_failures']),
-        'testing_defects' => $this->renderIssueList($issues['testing_defects']),
-        'program_defects' => $this->renderIssueList($issues['program_defects']),
-      ],
       '#attached' => [
         'library' => [
           'dungeoncrawler_tester/dashboard',

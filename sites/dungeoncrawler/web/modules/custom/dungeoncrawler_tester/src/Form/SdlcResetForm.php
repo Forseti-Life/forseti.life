@@ -20,7 +20,7 @@ class SdlcResetForm extends FormBase {
 
   public function __construct(
     private readonly StateInterface $state,
-    private readonly ConfigFactoryInterface $configFactory,
+    private readonly ConfigFactoryInterface $settingsConfigFactory,
     private readonly ClientInterface $httpClient,
     private readonly Connection $database,
     private readonly LoggerInterface $logger,
@@ -206,7 +206,7 @@ class SdlcResetForm extends FormBase {
       '@queue' => $clearedQueueItems,
     ]));
 
-    $this->setRedirect('dungeoncrawler_tester.dashboard');
+    $form_state->setRedirect('dungeoncrawler_tester.dashboard');
   }
 
   /**
@@ -240,11 +240,11 @@ class SdlcResetForm extends FormBase {
    * Resolve GitHub repo and token from settings/env fallback chain.
    */
   private function getRepoToken(): array {
-    $testerConfig = $this->configFactory->get('dungeoncrawler_tester.settings');
+    $testerConfig = $this->settingsConfigFactory->get('dungeoncrawler_tester.settings');
     $repo = (string) ($testerConfig->get('github_repo') ?: '');
     $token = (string) ($testerConfig->get('github_token') ?: '');
 
-    $aiConfig = $this->configFactory->get('ai_conversation.settings');
+    $aiConfig = $this->settingsConfigFactory->get('ai_conversation.settings');
     $repo = $repo ?: (string) ($aiConfig->get('github_repo') ?: $aiConfig->get('copilot_default_repo') ?: '');
     $token = $token ?: (string) ($aiConfig->get('github_token') ?: $aiConfig->get('copilot_token') ?: '');
 
