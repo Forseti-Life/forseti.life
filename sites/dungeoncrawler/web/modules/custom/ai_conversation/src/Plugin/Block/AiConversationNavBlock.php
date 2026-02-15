@@ -7,11 +7,11 @@ use Drupal\Core\Link;
 use Drupal\Core\Url;
 
 /**
- * Provides a navigation block for AI Conversation / testing utilities.
+ * Provides a navigation block for AI Conversation utilities.
  *
  * @Block(
  *   id = "ai_conversation_nav_block",
- *   admin_label = @Translation("AI Conversation / Testing Navigation")
+ *   admin_label = @Translation("AI Conversation Navigation")
  * )
  */
 class AiConversationNavBlock extends BlockBase {
@@ -39,10 +39,6 @@ class AiConversationNavBlock extends BlockBase {
         'title' => $this->t('Fetch Node 10 Content'),
         'route' => 'ai_conversation.get_node10',
       ],
-      'tester_dashboard' => [
-        'title' => $this->t('Testing Dashboard (Dungeon Crawler)'),
-        'route' => 'dungeoncrawler_tester.dashboard',
-      ],
       'chat' => [
         'title' => $this->t('Start AI Chat'),
         'route' => 'ai_conversation.start_chat',
@@ -59,7 +55,7 @@ class AiConversationNavBlock extends BlockBase {
 
     return [
       '#theme' => 'item_list',
-      '#title' => $this->t('AI Conversation / Testing Navigation'),
+      '#title' => $this->t('AI Conversation Navigation'),
       '#items' => $items,
       '#attributes' => ['class' => ['ai-conversation-nav-block']],
     ];

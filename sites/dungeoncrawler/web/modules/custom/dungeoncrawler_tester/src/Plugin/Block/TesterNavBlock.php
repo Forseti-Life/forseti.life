@@ -7,11 +7,11 @@ use Drupal\Core\Link;
 use Drupal\Core\Url;
 
 /**
- * Provides a navigation block for the Dungeon Crawler tester module.
+ * Provides a documentation & utilities block for the Dungeon Crawler tester module.
  *
  * @Block(
  *   id = "dungeoncrawler_tester_nav_block",
- *   admin_label = @Translation("Dungeon Crawler Tester Navigation")
+ *   admin_label = @Translation("Dungeon Crawler Tester Documentation")
  * )
  */
 class TesterNavBlock extends BlockBase {
@@ -26,10 +26,6 @@ class TesterNavBlock extends BlockBase {
       [
         'title' => $this->t('Tester README (module overview)'),
         'uri' => 'https://github.com/keithaumiller/forseti.life/blob/main/sites/dungeoncrawler/web/modules/custom/dungeoncrawler_tester/README.md',
-      ],
-      [
-        'title' => $this->t('Testing Dashboard (stagegates)'),
-        'route' => 'dungeoncrawler_tester.dashboard',
       ],
       [
         'title' => $this->t('Test instructions (suite & commands)'),
@@ -60,7 +56,7 @@ class TesterNavBlock extends BlockBase {
 
     return [
       '#theme' => 'item_list',
-      '#title' => $this->t('Dungeon Crawler Tester Navigation'),
+      '#title' => $this->t('Testing Documentation & Utilities'),
       '#items' => $items,
       '#attributes' => ['class' => ['dungeoncrawler-tester-nav-block']],
     ];
