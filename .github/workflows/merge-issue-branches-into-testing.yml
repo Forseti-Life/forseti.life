@@ -31,6 +31,9 @@ jobs:
           git fetch origin testing
           git switch -C testing origin/testing
 
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
           prs=$(gh pr list --state open --json number,title,headRefName,baseRefName,isDraft \
             --jq '.[] | @base64')
 
