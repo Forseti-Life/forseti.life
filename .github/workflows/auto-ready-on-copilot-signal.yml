@@ -57,10 +57,13 @@ jobs:
           body_lc=$(echo "${body:-}" | tr 'A-Z' 'a-z')
           keyword_lc=$(echo "$READY_KEYWORD" | tr 'A-Z' 'a-z')
 
-          if [ "$author_lc" != "copilot" ]; then
-            echo "Author is not Copilot; skipping."
-            exit 0
-          fi
+          case "$author_lc" in
+            copilot|copilot-swe-agent[bot]|github-copilot[bot]) ;;
+            *)
+              echo "Author is not a Copilot automation account; skipping."
+              exit 0
+              ;;
+          esac
 
           if ! echo "$body_lc" | grep -Fq "$keyword_lc"; then
             echo "Keyword '$READY_KEYWORD' not present; skipping."

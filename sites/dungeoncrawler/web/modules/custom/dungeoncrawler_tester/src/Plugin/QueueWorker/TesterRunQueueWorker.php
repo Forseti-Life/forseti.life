@@ -23,6 +23,13 @@ use Symfony\Component\Process\Process;
 class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPluginInterface {
 
   /**
+   * Default max open Copilot-assigned issues before throttling.
+   *
+   * 0 disables throttling.
+   */
+  private const DEFAULT_COPILOT_MAX_OPEN = 0;
+
+  /**
    * State storage for run metadata.
    */
   private StateInterface $state;
@@ -180,22 +187,7 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
     $states = $this->state->get('dungeoncrawler_tester.stage_state', []);
     $current = $states[$stage_id] ?? [];
 
-    $tester_config = $this->configFactory->get('dungeoncrawler_tester.settings');
-    $repo = $tester_config->get('github_repo');
-    $token = $tester_config->get('github_token');
-    $assignee = $tester_config->get('github_assignee');
-
-    // Fall back to ai_conversation settings or environment variables if unset.
-    if (!$repo || !$token) {
-      $ai_config = $this->configFactory->get('ai_conversation.settings');
-      $repo = $repo ?: $ai_config->get('github_repo');
-      $token = $token ?: $ai_config->get('github_token');
-      $assignee = $assignee ?: $ai_config->get('github_assignee');
-    }
-
-    $repo = $repo ?: getenv('TESTER_GITHUB_REPO');
-    $token = $token ?: getenv('TESTER_GITHUB_TOKEN');
-    $assignee = $assignee ?: getenv('TESTER_GITHUB_ASSIGNEE');
+    ['repo' => $repo, 'token' => $token, 'assignee' => $assignee] = $this->resolveGithubContext();
     if (!$repo || !$token) {
       return NULL;
     }
@@ -219,13 +211,7 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
       }
 
       $title = sprintf('[Tester] %s failed in stage %s (exit %d)', $test_case, $stage_id, $exit_code);
-      $body = "Automated failure capture from DungeonCrawler tester.\n\n";
-      $body .= "- Stage: " . $stage_id . "\n";
-      $body .= "- Test case: " . $test_case . "\n";
-      $body .= "- Command: " . $display . "\n";
-      $body .= "- Exit code: " . $exit_code . "\n\n";
-      $body .= "Latest output (truncated):\n\n";
-      $body .= "```\n" . mb_strimwidth($output, 0, 3000, "\n…") . "\n```\n";
+      $body = $this->buildFailureIssueBody($stage_id, $test_case, $display, $exit_code, $output);
 
       $issue_data = [
         'title' => $title,
@@ -256,19 +242,14 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
           $existing_issue_numbers[] = $issue_number;
           $created_issue_numbers[] = $issue_number;
 
-          $created_labels = array_values(array_filter(array_map(
-            static fn(array $label): string => strtolower(trim((string) ($label['name'] ?? ''))),
-            is_array($payload['labels'] ?? NULL) ? $payload['labels'] : []
-          )));
-
           $this->logger->notice('Opened GitHub issue #@number for test case @test in stage @stage failure.', [
             '@number' => $issue_number,
             '@test' => $test_case,
             '@stage' => $stage_id,
           ]);
 
-          // Assign @copilot only when issue is explicitly Copilot-ready and cap allows.
-          $this->maybeAssignCopilotToIssue($repo, $issue_number, $token, $created_labels);
+          // Assign @copilot to trigger coding-agent automation.
+          $this->maybeAssignCopilotToIssue($repo, $issue_number, $token);
         }
       }
       catch (\Throwable $e) {
@@ -305,44 +286,64 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
   }
 
   /**
+   * Resolve repo/token/assignee with tester -> ai config -> env fallback chain.
+   */
+  private function resolveGithubContext(): array {
+    $tester_config = $this->configFactory->get('dungeoncrawler_tester.settings');
+    $repo = (string) ($tester_config->get('github_repo') ?: '');
+    $token = (string) ($tester_config->get('github_token') ?: '');
+    $assignee = (string) ($tester_config->get('github_assignee') ?: '');
+
+    if ($repo === '' || $token === '') {
+      $ai_config = $this->configFactory->get('ai_conversation.settings');
+      $repo = $repo !== '' ? $repo : (string) ($ai_config->get('github_repo') ?: '');
+      $token = $token !== '' ? $token : (string) ($ai_config->get('github_token') ?: '');
+      $assignee = $assignee !== '' ? $assignee : (string) ($ai_config->get('github_assignee') ?: '');
+    }
+
+    $env_repo = getenv('TESTER_GITHUB_REPO');
+    $env_token = getenv('TESTER_GITHUB_TOKEN');
+    $env_assignee = getenv('TESTER_GITHUB_ASSIGNEE');
+
+    $repo = $repo !== '' ? $repo : (string) ($env_repo !== FALSE ? $env_repo : '');
+    $token = $token !== '' ? $token : (string) ($env_token !== FALSE ? $env_token : '');
+    $assignee = $assignee !== '' ? $assignee : (string) ($env_assignee !== FALSE ? $env_assignee : '');
+
+    return [
+      'repo' => $repo,
+      'token' => $token,
+      'assignee' => $assignee,
+    ];
+  }
+
+  /**
+   * Build standardized issue body with explicit Copilot execution guidance.
+   */
+  private function buildFailureIssueBody(string $stage_id, string $test_case, string $display, int $exit_code, string $output): string {
+    $body = "Automated failure capture from DungeonCrawler tester.\n\n";
+    $body .= "- Stage: " . $stage_id . "\n";
+    $body .= "- Test case: " . $test_case . "\n";
+    $body .= "- Command: " . $display . "\n";
+    $body .= "- Exit code: " . $exit_code . "\n\n";
+    $body .= "Copilot task:\n";
+    $body .= "1) Reproduce locally using the command above.\n";
+    $body .= "2) Implement the minimal fix for this failure.\n";
+    $body .= "3) Open a PR with a clear summary and include 'ready-for-testing' in the Copilot completion message.\n\n";
+    $body .= "Latest output (truncated):\n\n";
+    $body .= "```\n" . mb_strimwidth($output, 0, 3000, "\n…") . "\n```\n";
+    return $body;
+  }
+
+  /**
    * Conditionally assign Copilot to a newly created issue.
    */
-  private function maybeAssignCopilotToIssue(string $repo, int $issue_number, string $token, array $issue_labels): void {
+  private function maybeAssignCopilotToIssue(string $repo, int $issue_number, string $token): void {
     $tester_config = $this->configFactory->get('dungeoncrawler_tester.settings');
-
-    $configured_label = $tester_config->get('copilot_assignment_required_label');
-    if ($configured_label === NULL) {
-      $env_label = getenv('TESTER_COPILOT_REQUIRED_LABEL');
-      $required_label = trim((string) ($env_label !== FALSE ? $env_label : 'copilot-ready'));
-    }
-    else {
-      $required_label = trim((string) $configured_label);
-    }
-
-    if ($required_label !== '') {
-      $normalized = array_values(array_unique(array_map(static fn(string $label): string => strtolower(trim($label)), $issue_labels)));
-      if (!in_array(strtolower($required_label), $normalized, TRUE)) {
-        $this->postIssueComment(
-          $repo,
-          $issue_number,
-          $token,
-          sprintf(
-            "Copilot auto-assignment skipped: required label '%s' is missing. Add the label and re-run assignment when this issue is ready for implementation.",
-            $required_label
-          )
-        );
-        $this->logger->notice('Skipped Copilot auto-assignment for issue #@number: missing required label "@label".', [
-          '@number' => $issue_number,
-          '@label' => $required_label,
-        ]);
-        return;
-      }
-    }
 
     $configured_max_open = $tester_config->get('copilot_assignment_max_open');
     if ($configured_max_open === NULL) {
       $env_max_open = getenv('TESTER_COPILOT_MAX_OPEN');
-      $max_open = (int) ($env_max_open !== FALSE ? $env_max_open : 2);
+      $max_open = (int) ($env_max_open !== FALSE ? $env_max_open : self::DEFAULT_COPILOT_MAX_OPEN);
     }
     else {
       $max_open = (int) $configured_max_open;
