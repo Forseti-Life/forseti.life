@@ -88,9 +88,41 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     $definitions = $this->getStageDefinitions()->getDefinitions();
     $runs = $this->getState()->get('dungeoncrawler_tester.runs', []);
     $stage_states = $this->getState()->get('dungeoncrawler_tester.stage_state', []);
+    $regression_stage_id = 'regression_suite';
+    $regression_run = $runs[$regression_stage_id] ?? NULL;
+    $regression_in_progress = in_array($regression_run['status'] ?? '', ['pending', 'running'], TRUE);
 
     $form['#tree'] = TRUE;
     $form['#attributes']['class'][] = 'stage-grid';
+
+    $form[$regression_stage_id] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['stage-card'], 'id' => 'stage-' . $regression_stage_id],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h3',
+        '#value' => $this->t('Regression Test Suite'),
+      ],
+      'desc' => [
+        '#markup' => '<p>' . $this->t('Runs the full tester module PHPUnit configuration as a single regression command.') . '</p>',
+      ],
+      'command' => [
+        '#type' => 'html_tag',
+        '#tag' => 'pre',
+        '#value' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml',
+        '#attributes' => ['class' => ['command-snippet']],
+      ],
+      'run' => [
+        '#type' => 'submit',
+        '#value' => $this->t('Run Regression Suite'),
+        '#name' => 'run_regression_suite',
+        '#submit' => ['::submitRegressionSuite'],
+        '#limit_validation_errors' => [],
+        '#disabled' => $regression_in_progress,
+        '#attributes' => $regression_in_progress ? ['title' => (string) $this->t('Regression run is already pending or running.')] : [],
+      ],
+      'last_run' => $this->buildRunStatus($regression_run),
+    ];
 
     foreach ($definitions as $stage) {
       $stage_id = $stage['id'];
@@ -306,6 +338,57 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     ]);
 
     // Rebuild to refresh the last-run block and scroll back to the stage.
+    $form_state->setRebuild(TRUE);
+    $form_state->setRedirectUrl(Url::fromRoute('<current>', [], ['fragment' => 'stage-' . $stage_id]));
+  }
+
+  /**
+   * Submit handler for dashboard-wide regression test suite run.
+   */
+  public function submitRegressionSuite(array &$form, FormStateInterface $form_state): void {
+    $stage_id = 'regression_suite';
+    $runs = $this->getState()->get('dungeoncrawler_tester.runs', []);
+    $existing = $runs[$stage_id] ?? [];
+    $existing_status = $existing['status'] ?? '';
+
+    if (in_array($existing_status, ['pending', 'running'], TRUE)) {
+      $this->messenger()->addWarning($this->t('Regression suite is already queued or running.'));
+      return;
+    }
+
+    $job_id = $this->getUuid()->generate();
+    $display_cmd = 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml';
+
+    $this->storeRun($stage_id, [
+      'job_id' => $job_id,
+      'command' => $display_cmd,
+      'status' => 'pending',
+      'exit_code' => NULL,
+      'started' => NULL,
+      'ended' => NULL,
+      'duration' => NULL,
+      'output' => '',
+    ]);
+
+    $queue = $this->getQueueFactory()->get('dungeoncrawler_tester_runs');
+    $queue->createItem([
+      'job_id' => $job_id,
+      'stage_id' => $stage_id,
+      'args' => [
+        './vendor/bin/phpunit',
+        '--configuration',
+        'web/modules/custom/dungeoncrawler_tester/phpunit.xml',
+      ],
+      'cwd' => 'sites/dungeoncrawler',
+      'display' => $display_cmd,
+    ]);
+
+    $this->messenger()->addStatus($this->t('Queued regression suite run. Job: @job', ['@job' => $job_id]));
+    $this->getLogger('dungeoncrawler_tester')->notice('Regression suite queued: @cmd (job @job)', [
+      '@cmd' => $display_cmd,
+      '@job' => $job_id,
+    ]);
+
     $form_state->setRebuild(TRUE);
     $form_state->setRedirectUrl(Url::fromRoute('<current>', [], ['fragment' => 'stage-' . $stage_id]));
   }
