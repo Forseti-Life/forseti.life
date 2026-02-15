@@ -2,137 +2,294 @@
 
 Canonical process-flow reference for `dungeoncrawler_tester` automation.
 
-## Scope
+## Purpose
 
-This document describes:
-- Synchronous request/response steps
-- Asynchronous subprocesses and their cadence
-- Timing constraints and timeouts
-- Blocking and pause gates that stop progression
+This document provides a timeline-first analysis of:
+- Cron-triggered subprocesses
+- Queue scheduling and execution cadence
+- Sync vs async boundaries
+- Blocking and pause points
+- Timing budgets and worst-case windows
 
-## Components
+## Methodology Used
 
-- `StageAutoEnqueueService` (sensor + lever): periodic enqueue of due stages
-- `TesterRunQueueWorker` (processor + lever): executes stage command, records state, opens issues
-- Dashboard queue endpoints (sensor + lever): operator-triggered queue run/status/log requests
-- Drupal state keys (processor memory): run metadata, stage state, issue linkage
+This analysis follows the required state-machine methodology:
+1. Core components: States, Events, Transitions, Actions
+2. Async risk analysis: race conditions, out-of-order events, retries/recovery
+3. Transition table for concrete process behavior
+4. Analysis workflow: happy path, edge cases, illegal transitions
+5. Deterministic vs non-deterministic classification
 
-## End-to-End Flow
+## Runtime Components
 
-### 1) Stage scheduling (asynchronous)
+- `dungeoncrawler_tester_cron()`
+  - Calls issue synchronization (`StageIssueSyncService::syncIssues(TRUE, TRUE)`)
+  - Calls stage auto-enqueue (`StageAutoEnqueueService::enqueueDueStages(3600)`)
+- `StageAutoEnqueueService`
+  - Evaluates eligibility and enqueues jobs in `dungeoncrawler_tester_runs`
+- `TesterRunQueueWorker`
+  - Claims queue items and executes test commands via Symfony Process
+- `StageIssueSyncService`
+  - Polls linked GitHub issues and auto-resumes closed issues
+- `QueueManagementController` and Drush command
+  - Manual queue processing paths (`runQueueAjax`, `dungeoncrawler_tester:run-queue`)
 
-Source: `src/Service/StageAutoEnqueueService.php`
+## 1) Core Components
 
-1. Scheduler inspects stage definitions and stage state.
-2. A stage is eligible only if:
-   - stage is active (`active != FALSE`)
-   - no open linked issue (`issue_status != open`)
-   - run status is not `pending`/`running`
-   - interval window elapsed (`intervalSeconds`, default 3600s)
-3. Eligible stage command is enqueued in `dungeoncrawler_tester_runs`.
-4. Run state is set to `pending` immediately to prevent duplicate enqueue.
+### States
 
-Timing:
-- Default auto-enqueue cadence gate: `3600s` per stage.
+- `INACTIVE`
+- `READY`
+- `PENDING`
+- `RUNNING`
+- `SUCCEEDED`
+- `FAILED`
+- `ISSUE_OPEN`
+- `RESUMED`
 
-Blocking points:
-- Inactive stage blocks enqueue.
-- Open issue blocks enqueue.
-- Pending/running status blocks enqueue.
+### Events (Triggers)
 
-### 2) Queue execution (asynchronous worker, blocking per item)
+- `CronTick`
+- `IssueSyncClosedDetected`
+- `EnqueueEligibilityPassed`
+- `WorkerClaimedItem`
+- `CommandSucceeded`
+- `CommandFailed`
+- `IssueCreateSucceeded`
+- `IssueCreateFailed`
+- `ManualQueueRunRequested`
+- `TimeoutOccurred`
 
-Source: `src/Plugin/QueueWorker/TesterRunQueueWorker.php`
+### Transitions
 
-1. Queue worker pulls one item.
-2. Metadata validation occurs (`stage_id`, `job_id`, command args).
-3. Run state transitions to `running`.
-4. Command executes via Symfony Process.
-5. Run state updates with `succeeded` or `failed`, duration, output excerpt.
+- `READY -> PENDING` on enqueue eligibility
+- `PENDING -> RUNNING` on worker claim
+- `RUNNING -> SUCCEEDED` on successful command
+- `RUNNING -> FAILED` on command failure
+- `FAILED -> ISSUE_OPEN/INACTIVE` when issue creation succeeds
+- `FAILED -> INACTIVE` when issue creation fails
+- `ISSUE_OPEN -> RESUMED -> READY` when issue closes and sync applies
 
-Timing:
-- Process timeout: `1800s` hard limit per queue item.
+### Actions (Side Effects)
 
-Blocking points:
-- Worker thread is blocked while command runs (synchronous inside worker).
-- Invalid queue metadata short-circuits processing for that item.
+- Queue item creation
+- Run metadata persistence
+- Command execution with timeout
+- Issue creation/assignment attempts
+- Stage pause/reactivation and failure metadata updates
 
-### 3) Failure handling and stage pause (synchronous within worker)
+## 2) Async Reliability: Why It Is Critical
 
-Source: `src/Plugin/QueueWorker/TesterRunQueueWorker.php`
+### Race conditions
 
-When status is `failed`:
-1. Worker attempts issue creation (if not already linked and token/repo available).
-2. Worker updates stage state:
-   - `active = FALSE`
-   - sets failure reason/excerpt
-   - stores issue number/status when available
+- Pending/running gate prevents duplicate enqueue of same stage.
+- Queue claim semantics ensure one worker owns one item at a time.
+- Drush queue runner lock prevents duplicate runner execution.
 
-Blocking points:
-- Stage becomes paused (`active = FALSE`), preventing future auto-enqueue until manual remediation/reactivation.
-- Existing linked issue prevents creation of a second issue for same stage state.
+### Out-of-order events
 
-### 4) GitHub issue automation subprocess (mixed sync network calls)
+- Cron runs issue sync before enqueue, reducing stale-open-state progression.
+- Open issue gate blocks enqueue until correct stage state is reached.
+- Invalid payloads do not advance state.
 
-Source: `src/Plugin/QueueWorker/TesterRunQueueWorker.php`
+### Reliability and retries
 
-1. POST create issue to GitHub REST API.
-2. Attempt Copilot assignment via REST assignee identifiers:
-   - `@copilot`, `Copilot`, `copilot`
-3. If REST assignment does not attach Copilot, fallback to CLI:
-   - `gh issue edit --add-assignee @copilot`
+- Persistent state keys (`runs`, `stage_state`, `auto_enqueue_last`) define restart point.
+- Failure paths preserve forensic data (output excerpts, timestamps, exit codes).
+- Timeout budgets cap hanging subprocesses/network calls.
 
-Timing:
-- GitHub REST request timeout: `10s` per call.
-- CLI fallback timeout: `20s`.
+## 3) State Transition Table (Tester Automation)
 
-Blocking points:
-- Network/API latency blocks worker until timeout/success.
-- Assignment failures do not block stage pause, but do affect automation handoff quality.
+| Current State | Event (Trigger) | New State | Action Performed |
+|---|---|---|---|
+| READY | EnqueueEligibilityPassed | PENDING | Create queue item and persist pending metadata |
+| PENDING | WorkerClaimedItem | RUNNING | Mark run as running and start command process |
+| RUNNING | CommandSucceeded | SUCCEEDED | Persist success result and clear failure metadata |
+| RUNNING | CommandFailed | FAILED | Persist failure output and enter failure branch |
+| FAILED | IssueCreateSucceeded | ISSUE_OPEN / INACTIVE | Link issue and pause stage |
+| FAILED | IssueCreateFailed | INACTIVE | Pause stage without issue linkage |
+| ISSUE_OPEN | IssueSyncClosedDetected | RESUMED -> READY | Reactivate stage and clear failure state |
 
-### 5) Operator control loop (synchronous UI/API requests)
+## Cadence Inputs
 
-Sources:
-- `dungeoncrawler_tester.routing.yml` queue routes
-- Queue management controller/forms
+### Cron cadence
 
-1. Operator uses dashboard to run queue/status/log actions.
-2. Request/response is synchronous from browser perspective.
-3. Underlying queue work remains asynchronous and state-driven.
+- `automated_cron.settings.yml`: `interval: 10800` seconds (3 hours)
+- Effective cron invocation can be earlier/later depending on site traffic or external cron setup
 
-Blocking points:
-- If stage remains inactive or issue-open, scheduler will not auto-enqueue that stage.
-- Resume requires explicit remediation flow (fix + rerun + state progression).
+### Stage enqueue cadence
 
-## State Model and Gates
+- `enqueueDueStages(3600)`: each stage must wait at least 3600 seconds before re-enqueue
 
-Primary state keys:
-- `dungeoncrawler_tester.runs`
-- `dungeoncrawler_tester.stage_state`
-- `dungeoncrawler_tester.auto_enqueue_last`
+### Queue-worker timing
 
-Gate summary:
-- **Gate A (enqueue gate)**: active + no open issue + not pending/running + interval elapsed.
-- **Gate B (execution gate)**: valid queue item metadata.
-- **Gate C (failure gate)**: failed run forces stage inactive and optionally links issue.
-- **Gate D (re-entry gate)**: remediation must clear/resolve paused conditions before natural re-enqueue.
+- Queue worker annotation: `cron = {"time" = 60}`
+- Per-item test command timeout: 1800 seconds
+- GitHub API timeout: 10 seconds per call
+- Issue sync fetch timeout: 8 seconds per issue call
+- Copilot CLI fallback timeout: 20 seconds
 
-## Timing and Blocking Matrix
+## Timeline View
 
-| Segment | Type | Typical Trigger | Timeout/Cadence | Blocking Behavior |
-|---|---|---|---|---|
-| Auto-enqueue scan | Async scheduled | service invocation/cron | 3600s interval gate (default) | Non-eligible stage skipped |
-| Queue item command run | Async worker | queue item available | 1800s timeout | Worker blocks for command duration |
-| GitHub issue create | Sync network call inside worker | failed stage | 10s timeout | Worker blocks until response/timeout |
-| Copilot REST assign | Sync network call inside worker | issue created | 10s per attempt | Worker blocks per attempt |
-| Copilot CLI fallback | Local subprocess inside worker | REST attach not confirmed | 20s timeout | Worker blocks for CLI call |
-| Dashboard queue action | Sync HTTP request | user action | request lifecycle | UI waits for response; queue may continue async |
+### Lane A: Scheduler/cron lane (asynchronous)
 
-## Recommended Update Policy
+T+0: cron tick enters `dungeoncrawler_tester_cron()`
 
-When automation behavior changes, update this file in the same PR as code changes affecting:
-- Stage eligibility rules
-- Queue timeouts/cadence
-- Failure pause logic
-- GitHub issue/assignment behavior
-- Dashboard queue control behavior
+1. `syncIssues(TRUE, TRUE)` runs first
+   - If linked issue is closed: stage is re-enabled (`active=TRUE`), failure metadata cleared, linkage optionally removed
+2. `enqueueDueStages(3600)` runs second
+   - Eligible stages are enqueued and marked `pending`
+
+T+Δ: cron exits
+
+Blocking notes:
+- No long-running stage commands here, but GitHub issue sync calls can add latency per linked issue.
+- If token missing, sync is skipped (non-fatal) and logged.
+
+### Lane B: Queue execution lane (asynchronous worker with synchronous internals)
+
+T+Q0: queue item claimed
+
+1. Validate payload (`stage_id`, `job_id`, command args)
+2. Mark run `running`
+3. Execute command (`Process::run()`) with 1800s timeout
+4. Persist run outcome (`succeeded` / `failed`, output excerpt, duration)
+5. On failure, attempt issue creation and assignment
+6. Update stage state
+   - Failure path: `active=FALSE`, failure reason/excerpt, optional issue linkage
+   - Success path: clear failure metadata
+
+T+Q1: item deleted or released depending on result
+
+Blocking notes:
+- Worker is blocked for full command runtime.
+- GitHub network calls add synchronous tail latency on failure path.
+
+### Lane C: Operator/manual lane (synchronous entry points)
+
+Entry points:
+- Dashboard AJAX: `/dungeoncrawler/testing/queue/run`
+- Drush: `dungeoncrawler_tester:run-queue --limit=N`
+
+Behavior:
+- Request starts sync path, but processed items still use queue worker flow per item.
+- Manual run can accelerate processing between cron ticks.
+
+Blocking notes:
+- Controller `processQueue()` timeout guard is 60 seconds for AJAX processing loop.
+- Drush runner uses lock `dungeoncrawler_tester.queue_runner` to prevent concurrent runners.
+
+## Gate-by-Gate Blocking Map
+
+### Gate G1: Enqueue eligibility gate
+
+A stage is skipped unless all are true:
+- `active != FALSE`
+- no open issue (`issue_number` absent or `issue_status != open`)
+- last run status not `pending`/`running`
+- now - `auto_enqueue_last[stage]` >= 3600
+
+Effect:
+- Prevents duplicate jobs and enforces cooldown cadence.
+
+### Gate G2: Queue payload validity gate
+
+Required:
+- `stage_id`, `job_id`, command args
+
+Effect:
+- Invalid item is logged and dropped.
+
+### Gate G3: Failure pause gate
+
+Condition:
+- command exit code != 0
+
+Effect:
+- Stage forced inactive and progression blocked until issue lifecycle/remediation clears conditions.
+
+### Gate G4: Issue-linked re-entry gate
+
+Condition:
+- stage has open linked issue
+
+Effect:
+- Auto-enqueue path blocks stage until closure sync or manual state cleanup.
+
+## Timing Matrix (Timeline-Oriented)
+
+| Phase | Lane | Type | Trigger | Duration / Budget | Blocking Scope |
+|---|---|---|---|---|---|
+| Cron issue sync | Scheduler | Async trigger, sync internals | cron tick | per issue call up to 8s | cron execution thread |
+| Cron auto-enqueue | Scheduler | Async trigger, sync internals | cron tick | usually sub-second to seconds | cron execution thread |
+| Stage cooldown check | Scheduler | Sync check | per stage | 3600s eligibility window | stage remains queued/skipped |
+| Queue claim + execute | Queue | Async worker, sync command | queue item available | up to 1800s per item | worker slot/thread |
+| Failure GitHub create | Queue | Sync network call | failed item | up to 10s | worker slot/thread |
+| Copilot assign REST | Queue | Sync network call | issue created | up to 10s per attempt | worker slot/thread |
+| Copilot assign CLI fallback | Queue | Local subprocess | REST not attached | up to 20s | worker slot/thread |
+| Dashboard manual run loop | Operator | Sync request | user action | up to 60s processing loop | HTTP request thread |
+
+## Worst-Case Latency Windows
+
+### Detection-to-enqueue window
+
+If relying only on automated cron:
+- Up to cron interval (10800s) to next cron invocation
+- plus stage cooldown remainder (up to 3600s)
+
+Practical upper window (coarse):
+- up to ~4 hours in low-traffic or delayed-cron conditions
+
+### Enqueue-to-result window
+
+- Queue wait time (depends on backlog)
+- plus up to 1800s command runtime
+- plus failure-path issue/assignment tail (network + CLI fallback)
+
+## Observability Points
+
+- Queue run status in `dungeoncrawler_tester.runs`
+- Stage gate state in `dungeoncrawler_tester.stage_state`
+- Auto-enqueue timestamps in `dungeoncrawler_tester.auto_enqueue_last`
+- Watchdog channel: `dungeoncrawler_tester`
+
+## Update Protocol
+
+Update this file whenever any of the following changes:
+- Cron interval assumptions or scheduler path
+- Enqueue cadence (`enqueueDueStages` interval)
+- Queue timeouts, lock behavior, processing limits
+- Failure/issue sync logic and stage gating rules
+- GitHub issue automation timeouts or assignment fallback behavior
+
+## 4) How Analysis Was Conducted
+
+1. Enumerated effective statuses from state keys and queue lifecycle.
+2. Mapped happy path from READY to SUCCEEDED.
+3. Mapped edge cases for failures, issue-open locks, and timeouts.
+4. Declared illegal transitions explicitly.
+5. Classified deterministic vs non-deterministic segments.
+
+## Illegal Transitions
+
+- `SUCCEEDED -> RUNNING` without a new enqueue event.
+- `INACTIVE/ISSUE_OPEN -> PENDING` while open issue lock remains.
+- `PENDING -> SUCCEEDED` without `RUNNING` execution.
+- `RUNNING -> READY` without terminal command outcome.
+
+## 5) Deterministic vs Non-Deterministic
+
+### Deterministic
+
+- Core queue lifecycle order (`READY -> PENDING -> RUNNING -> terminal state`).
+- Enqueue gate checks and lock checks.
+
+### Non-deterministic
+
+- External cron invocation timing.
+- GitHub API/assignment response behavior.
+- Network latency and timeout branches.
+
+Testing implication:
+- Deterministic paths are good candidates for strict transition tests.
+- Non-deterministic paths require richer logging/assertion envelopes and timeout-branch tests.

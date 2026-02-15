@@ -46,6 +46,22 @@ dungeoncrawler_tester.docs_process_flow:
   requirements:
     _permission: 'administer site configuration'
 
+dungeoncrawler_tester.docs_sdlc_process_flow:
+  path: '/dungeoncrawler/testing/documentation/sdlc-process-flow'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsSdlcProcessFlow'
+    _title: 'SDLC Process Flow'
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.docs_release_process_flow:
+  path: '/dungeoncrawler/testing/documentation/release-process-flow'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsReleaseProcessFlow'
+    _title: 'Release Process Flow'
+  requirements:
+    _permission: 'administer site configuration'
+
 dungeoncrawler_tester.docs_module_readme:
   path: '/dungeoncrawler/testing/documentation/module-readme'
   defaults:

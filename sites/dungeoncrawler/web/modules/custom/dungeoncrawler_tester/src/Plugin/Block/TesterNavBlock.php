@@ -40,6 +40,14 @@ class TesterNavBlock extends BlockBase {
         'route' => 'dungeoncrawler_tester.docs_process_flow',
       ],
       [
+        'title' => $this->t('SDLC Process Flow'),
+        'route' => 'dungeoncrawler_tester.docs_sdlc_process_flow',
+      ],
+      [
+        'title' => $this->t('Release Process Flow'),
+        'route' => 'dungeoncrawler_tester.docs_release_process_flow',
+      ],
+      [
         'title' => $this->t('Issue queue'),
         'uri' => 'https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting',
       ],

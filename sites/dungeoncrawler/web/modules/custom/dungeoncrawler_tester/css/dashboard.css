@@ -20,6 +20,7 @@
 .dungeoncrawler-testing-dashboard .test-commands,
 .dungeoncrawler-testing-dashboard .dashboard-capabilities,
 .dungeoncrawler-testing-dashboard .dashboard-roadmap,
+.dungeoncrawler-testing-dashboard .dashboard-flow-tracking,
 .dungeoncrawler-testing-dashboard .dashboard-stagegates,
 .dungeoncrawler-testing-dashboard .dungeoncrawler-testing-issues,
 .dungeoncrawler-testing-dashboard .issue-card {
@@ -79,9 +80,28 @@
 .dungeoncrawler-testing-dashboard .dashboard-stagegates .item-list,
 .dungeoncrawler-testing-dashboard .dashboard-capabilities .item-list,
 .dungeoncrawler-testing-dashboard .dashboard-roadmap .item-list,
+.dungeoncrawler-testing-dashboard .dashboard-flow-tracking .item-list,
 .dungeoncrawler-testing-dashboard .documentation-links .item-list,
 .dungeoncrawler-testing-dashboard .issue-card .item-list {
   margin: 0;
+}
+
+.dungeoncrawler-testing-dashboard .dashboard-flow-tracking .flow-status-card {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+  margin-bottom: 0.85rem;
+}
+
+.dungeoncrawler-testing-dashboard .dashboard-flow-tracking .flow-status-card:last-child {
+  margin-bottom: 0;
+}
+
+.dungeoncrawler-testing-dashboard .dashboard-flow-tracking p {
+  margin: 0.35rem 0 0.55rem;
+  color: #475569;
 }
 
 .dungeoncrawler-testing-dashboard .stage-state-badge {
