@@ -256,14 +256,19 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
           $existing_issue_numbers[] = $issue_number;
           $created_issue_numbers[] = $issue_number;
 
+          $created_labels = array_values(array_filter(array_map(
+            static fn(array $label): string => strtolower(trim((string) ($label['name'] ?? ''))),
+            is_array($payload['labels'] ?? NULL) ? $payload['labels'] : []
+          )));
+
           $this->logger->notice('Opened GitHub issue #@number for test case @test in stage @stage failure.', [
             '@number' => $issue_number,
             '@test' => $test_case,
             '@stage' => $stage_id,
           ]);
 
-          // Assign @copilot to trigger the agent (must be done after creation).
-          $this->assignCopilotToIssue($repo, $issue_number, $token);
+          // Assign @copilot only when issue is explicitly Copilot-ready and cap allows.
+          $this->maybeAssignCopilotToIssue($repo, $issue_number, $token, $created_labels);
         }
       }
       catch (\Throwable $e) {
@@ -297,6 +302,127 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
     }
 
     return NULL;
+  }
+
+  /**
+   * Conditionally assign Copilot to a newly created issue.
+   */
+  private function maybeAssignCopilotToIssue(string $repo, int $issue_number, string $token, array $issue_labels): void {
+    $tester_config = $this->configFactory->get('dungeoncrawler_tester.settings');
+
+    $configured_label = $tester_config->get('copilot_assignment_required_label');
+    if ($configured_label === NULL) {
+      $env_label = getenv('TESTER_COPILOT_REQUIRED_LABEL');
+      $required_label = trim((string) ($env_label !== FALSE ? $env_label : 'copilot-ready'));
+    }
+    else {
+      $required_label = trim((string) $configured_label);
+    }
+
+    if ($required_label !== '') {
+      $normalized = array_values(array_unique(array_map(static fn(string $label): string => strtolower(trim($label)), $issue_labels)));
+      if (!in_array(strtolower($required_label), $normalized, TRUE)) {
+        $this->postIssueComment(
+          $repo,
+          $issue_number,
+          $token,
+          sprintf(
+            "Copilot auto-assignment skipped: required label '%s' is missing. Add the label and re-run assignment when this issue is ready for implementation.",
+            $required_label
+          )
+        );
+        $this->logger->notice('Skipped Copilot auto-assignment for issue #@number: missing required label "@label".', [
+          '@number' => $issue_number,
+          '@label' => $required_label,
+        ]);
+        return;
+      }
+    }
+
+    $configured_max_open = $tester_config->get('copilot_assignment_max_open');
+    if ($configured_max_open === NULL) {
+      $env_max_open = getenv('TESTER_COPILOT_MAX_OPEN');
+      $max_open = (int) ($env_max_open !== FALSE ? $env_max_open : 2);
+    }
+    else {
+      $max_open = (int) $configured_max_open;
+    }
+
+    if ($max_open > 0) {
+      $open_count = $this->countOpenCopilotAssignedIssues($repo, $token);
+      if ($open_count >= $max_open) {
+        $this->postIssueComment(
+          $repo,
+          $issue_number,
+          $token,
+          sprintf(
+            'Copilot auto-assignment skipped: open Copilot-assigned issues (%d) reached configured cap (%d). Re-try after active Copilot queue decreases.',
+            $open_count,
+            $max_open
+          )
+        );
+        $this->logger->warning('Skipped Copilot auto-assignment for issue #@number: open Copilot-assigned issues (@count) reached cap (@cap).', [
+          '@number' => $issue_number,
+          '@count' => $open_count,
+          '@cap' => $max_open,
+        ]);
+        return;
+      }
+    }
+
+    $this->assignCopilotToIssue($repo, $issue_number, $token);
+  }
+
+  /**
+   * Post a comment to a GitHub issue.
+   */
+  private function postIssueComment(string $repo, int $issue_number, string $token, string $message): void {
+    try {
+      $this->httpClient->request('POST', "https://api.github.com/repos/{$repo}/issues/{$issue_number}/comments", [
+        'headers' => [
+          'Authorization' => 'token ' . $token,
+          'Accept' => 'application/vnd.github+json',
+          'User-Agent' => 'dungeoncrawler-tester',
+        ],
+        'json' => [
+          'body' => $message,
+        ],
+        'timeout' => 10,
+      ]);
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Could not post assignment-skip comment to issue #@number: @msg', [
+        '@number' => $issue_number,
+        '@msg' => $e->getMessage(),
+      ]);
+    }
+  }
+
+  /**
+   * Count open issues currently assigned to Copilot in a repository.
+   */
+  private function countOpenCopilotAssignedIssues(string $repo, string $token): int {
+    try {
+      $query = rawurlencode('repo:' . $repo . ' is:issue is:open assignee:Copilot');
+      $response = $this->httpClient->request('GET', "https://api.github.com/search/issues?q={$query}&per_page=1", [
+        'headers' => [
+          'Authorization' => 'token ' . $token,
+          'Accept' => 'application/vnd.github+json',
+          'User-Agent' => 'dungeoncrawler-tester',
+        ],
+        'timeout' => 10,
+      ]);
+
+      $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
+      return (int) ($payload['total_count'] ?? 0);
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Could not determine open Copilot-assigned issue count for @repo: @msg', [
+        '@repo' => $repo,
+        '@msg' => $e->getMessage(),
+      ]);
+      return 0;
+    }
   }
 
   /**

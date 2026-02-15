@@ -8,3 +8,9 @@ dungeoncrawler_tester.settings:
     github_token:
       type: string
       label: 'GitHub token'
+    copilot_assignment_required_label:
+      type: string
+      label: 'Required label for Copilot assignment'
+    copilot_assignment_max_open:
+      type: integer
+      label: 'Max open Copilot-assigned issues for auto-assignment'

@@ -141,7 +141,6 @@ class TestingDashboardController extends ControllerBase {
       ],
       'flow_tracking' => $this->buildLifecycleTrackingSection($repo, $token, $queue_status),
       'stages' => $this->formBuilder()->getForm(DashboardRunsForm::class),
-      'overview' => $this->buildCapabilitiesSection(),
       'documentation' => $this->buildDocumentationSection(),
       '#attached' => [
         'library' => [
@@ -1645,32 +1644,6 @@ class TestingDashboardController extends ControllerBase {
     }
 
     return (string) $this->t('Assemble candidate PR set for the next release window.');
-  }
-
-  /**
-   * Build concise capabilities overview for the dashboard.
-   */
-  private function buildCapabilitiesSection(): array {
-    $items = [
-      $this->t('Dashboard lives at /dungeoncrawler/testing (administer site configuration).'),
-      $this->t('Sections: stagegates, documentation links, quick test commands, GitHub issue surfacing.'),
-      $this->t('Issue surfacing pulls ci-failure, testing-defect, and program-defect labels using ai_conversation token (or env token fallback).'),
-      $this->t('Tester navigation block links to tester README, testing guides, and issue queue.'),
-    ];
-
-    return [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['dashboard-capabilities']],
-      'title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h3',
-        '#value' => $this->t('Current Capabilities'),
-      ],
-      'list' => [
-        '#theme' => 'item_list',
-        '#items' => $items,
-      ],
-    ];
   }
 
   /**

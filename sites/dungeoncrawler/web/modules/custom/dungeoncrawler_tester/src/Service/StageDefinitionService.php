@@ -75,6 +75,19 @@ class StageDefinitionService {
         ],
       ],
       [
+        'id' => 'ui-smoke',
+        'title' => $this->t('UI smoke test (/hexmap)'),
+        'description' => $this->t('Hex map UI stage-gate checks: action buttons, movement, attack, and map controls.'),
+        'commands' => [
+          [
+            'label' => $this->t('Hexmap UI stage-gate suite'),
+            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'tests/src/Functional/Controller/HexMapUiStageGateTest.php'],
+            'cwd' => $root,
+            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Controller/HexMapUiStageGateTest.php',
+          ],
+        ],
+      ],
+      [
         'id' => 'character-workflow',
         'title' => $this->t('Character creation workflow'),
         'description' => $this->t('8-step wizard, validation, persistence.'),

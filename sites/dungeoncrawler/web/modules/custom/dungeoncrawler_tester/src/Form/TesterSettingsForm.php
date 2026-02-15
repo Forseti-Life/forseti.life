@@ -63,6 +63,24 @@ class TesterSettingsForm extends ConfigFormBase {
       '#default_value' => FALSE,
     ];
 
+    $form['copilot_assignment_required_label'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Copilot assignment required label'),
+      '#description' => $this->t('Copilot auto-assignment only runs when this label is present on the created issue. Leave empty to disable label gating. Default: <code>copilot-ready</code>.'),
+      '#default_value' => $config->get('copilot_assignment_required_label') ?: 'copilot-ready',
+      '#required' => FALSE,
+    ];
+
+    $form['copilot_assignment_max_open'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Copilot assignment max open issues'),
+      '#description' => $this->t('Maximum number of open issues already assigned to Copilot before new auto-assignment is skipped. Set to 0 to disable this cap. Default: 2.'),
+      '#default_value' => (int) ($config->get('copilot_assignment_max_open') ?? 2),
+      '#min' => 0,
+      '#step' => 1,
+      '#required' => FALSE,
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -74,6 +92,11 @@ class TesterSettingsForm extends ConfigFormBase {
     $repo = trim((string) $form_state->getValue('github_repo'));
     if ($repo !== '' && !str_contains($repo, '/')) {
       $form_state->setErrorByName('github_repo', $this->t('Repository must be in the format owner/repo.'));
+    }
+
+    $max_open = $form_state->getValue('copilot_assignment_max_open');
+    if ($max_open !== NULL && $max_open !== '' && ((int) $max_open) < 0) {
+      $form_state->setErrorByName('copilot_assignment_max_open', $this->t('Max open issues must be 0 or greater.'));
     }
   }
 
@@ -95,6 +118,12 @@ class TesterSettingsForm extends ConfigFormBase {
     elseif ($new_token !== '') {
       $config->set('github_token', $new_token);
     }
+
+    $required_label = trim((string) $form_state->getValue('copilot_assignment_required_label'));
+    $config->set('copilot_assignment_required_label', $required_label);
+
+    $max_open = (int) $form_state->getValue('copilot_assignment_max_open');
+    $config->set('copilot_assignment_max_open', max(0, $max_open));
 
     // If neither clear nor new token provided, keep existing token value.
     $config->save();

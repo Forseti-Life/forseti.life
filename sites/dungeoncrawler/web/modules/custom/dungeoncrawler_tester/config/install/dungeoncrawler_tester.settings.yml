@@ -1,2 +1,4 @@
 github_repo: ''
 github_token: ''
+copilot_assignment_required_label: 'copilot-ready'
+copilot_assignment_max_open: 2

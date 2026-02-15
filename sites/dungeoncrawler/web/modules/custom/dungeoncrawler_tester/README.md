@@ -51,6 +51,9 @@ The dashboard includes:
 - Existing linked issues are respected; no new issue is opened if `issue_number` is already present in stage state.
 - Copilot assignment is performed as a second API step after issue creation, trying `@copilot`, `Copilot`, then `copilot` identifiers for compatibility.
 - If GitHub REST assignment does not attach Copilot, the worker falls back to `gh issue edit --add-assignee "@copilot"`.
+- Copilot assignment is now guarded by tester settings:
+	- `copilot_assignment_required_label` (default `copilot-ready`): assignment only runs when this label is on the issue.
+	- `copilot_assignment_max_open` (default `2`): assignment is skipped when open Copilot-assigned issue count reaches the cap.
 - If assignment fails, the module logs GitHub API error details on the `dungeoncrawler_tester` channel to support root-cause debugging.
 - Settings form route uses `dungeoncrawler_tester.settings`; if the page fails to load after route changes, rebuild caches (`drush cr`).
 
