@@ -315,6 +315,11 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
         '--add-assignee',
         '@copilot',
       ]);
+      $env = array_merge($_ENV, [
+        'GH_TOKEN' => $token,
+        'GITHUB_TOKEN' => $token,
+      ]);
+      $process->setEnv($env);
       $process->setTimeout(20);
       $process->run();
 
