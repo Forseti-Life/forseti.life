@@ -112,20 +112,54 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       'desc' => [
         '#markup' => '<p>' . $this->t('Queues the primary command of each active/runnable stage gate from StageDefinitionService.') . '</p>',
       ],
-      'run' => [
-        '#type' => 'submit',
-        '#value' => $this->t('Run Regression Suite'),
-        '#name' => 'run_regression_suite',
-        '#submit' => ['::submitRegressionSuite'],
-        '#limit_validation_errors' => [],
-        '#disabled' => $regression_batch_active || $non_regression_in_progress,
-        '#attributes' => ($regression_batch_active || $non_regression_in_progress)
-          ? [
-            'title' => $regression_batch_active
-              ? (string) $this->t('Regression batch is already queued/running.')
-              : (string) $this->t('Another stage run is pending/running: @stages', ['@stages' => implode(', ', $non_regression_in_progress_stages)]),
-          ]
-          : [],
+      'tests' => [
+        '#type' => 'details',
+        '#title' => $this->t('Tests'),
+        '#open' => FALSE,
+        '#attributes' => ['class' => ['stage-tests-accordion']],
+        'test_0' => [
+          '#type' => 'details',
+          '#title' => $this->t('Regression stage-gate batch'),
+          '#open' => FALSE,
+          '#attributes' => ['class' => ['stage-test-item']],
+          'description' => [
+            '#type' => 'html_tag',
+            '#tag' => 'p',
+            '#value' => $this->t('Runs the primary command for each active/runnable stage gate in sequence.'),
+          ],
+          'coverage' => [
+            '#type' => 'container',
+            '#attributes' => ['class' => ['stage-test-coverage']],
+            'title' => [
+              '#type' => 'html_tag',
+              '#tag' => 'h5',
+              '#value' => $this->t('Coverage'),
+            ],
+            'details' => [
+              '#theme' => 'item_list',
+              '#items' => [
+                $this->t('Focus: Runs each active stage gate primary command end-to-end.'),
+                $this->t('Covers: Unit, functional routes/controllers/API, UI smoke, workflow, fixtures, and CI coverage gate checks.'),
+                $this->t('Does not cover: Manual sign-off review steps and any paused/blocked stage gates.'),
+              ],
+            ],
+          ],
+          'run' => [
+            '#type' => 'submit',
+            '#value' => $this->t('Run Regression Suite'),
+            '#name' => 'run_regression_suite',
+            '#submit' => ['::submitRegressionSuite'],
+            '#limit_validation_errors' => [],
+            '#disabled' => $regression_batch_active || $non_regression_in_progress,
+            '#attributes' => ($regression_batch_active || $non_regression_in_progress)
+              ? [
+                'title' => $regression_batch_active
+                  ? (string) $this->t('Regression batch is already queued/running.')
+                  : (string) $this->t('Another stage run is pending/running: @stages', ['@stages' => implode(', ', $non_regression_in_progress_stages)]),
+              ]
+              : [],
+          ],
+        ],
       ],
       'status' => [
         '#type' => 'html_tag',
@@ -165,23 +199,44 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
         '#markup' => '<p>' . $stage['description'] . '</p>',
       ];
 
-      $form[$stage_id]['commands'] = [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['stage-command-list']],
+      $form[$stage_id]['tests'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Tests'),
+        '#open' => FALSE,
+        '#attributes' => ['class' => ['stage-tests-accordion']],
       ];
 
       foreach ($stage['commands'] as $index => $cmd) {
-        $form[$stage_id]['commands']['cmd_' . $index] = [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['stage-command']],
-          'label' => [
-            '#markup' => '<strong>' . $cmd['label'] . '</strong>',
+        $test_description = $cmd['description'] ?? $cmd['display'] ?? '';
+        $coverage = $this->buildCoverageItems($stage_id, $cmd);
+        $form[$stage_id]['tests']['test_' . $index] = [
+          '#type' => 'details',
+          '#title' => $cmd['label'],
+          '#open' => FALSE,
+          '#attributes' => ['class' => ['stage-test-item']],
+          'description' => [
+            '#type' => 'html_tag',
+            '#tag' => 'p',
+            '#value' => $test_description,
           ],
           'display' => [
             '#type' => 'html_tag',
             '#tag' => 'pre',
             '#value' => $cmd['display'],
             '#attributes' => ['class' => ['command-snippet']],
+          ],
+          'coverage' => [
+            '#type' => 'container',
+            '#attributes' => ['class' => ['stage-test-coverage']],
+            'title' => [
+              '#type' => 'html_tag',
+              '#tag' => 'h5',
+              '#value' => $this->t('Coverage'),
+            ],
+            'details' => [
+              '#theme' => 'item_list',
+              '#items' => $coverage,
+            ],
           ],
           'run' => [
             '#type' => 'submit',
@@ -190,7 +245,6 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
             '#stage_id' => $stage_id,
             '#command_meta' => $cmd,
             '#submit' => ['::submitCommand'],
-            // No validation gates; just run.
             '#limit_validation_errors' => [],
             '#disabled' => !$this->isStageRunnable($stage_state) || $regression_batch_active,
             '#attributes' => (!$this->isStageRunnable($stage_state) || $regression_batch_active)
@@ -663,6 +717,93 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       }
     }
     return NULL;
+  }
+
+  /**
+   * Build coverage notes for a stage gate command.
+   */
+  private function buildCoverageItems(string $stage_id, array $cmd): array {
+    $args = $cmd['args'] ?? [];
+    $display = (string) ($cmd['display'] ?? implode(' ', $args));
+    $haystack = strtolower(implode(' ', $args) . ' ' . $display);
+
+    $focus = $this->t('Runs targeted stage-gate checks for this section.');
+    $covers = [];
+    $does_not_cover = [];
+
+    if (empty($args)) {
+      $focus = $this->t('Manual release sign-off review step.');
+      $covers[] = $this->t('Open GitHub blocker triage for ci-failure/testing-defect issues');
+      $does_not_cover[] = $this->t('Automated PHPUnit execution');
+    }
+    elseif (str_contains($haystack, '--testsuite=unit') || str_contains($haystack, '--testsuite unit')) {
+      $focus = $this->t('Fast unit-level logic validation.');
+      $covers[] = $this->t('Unit tests in the tester module');
+      $does_not_cover[] = $this->t('Browser/route/controller UI flows');
+    }
+    elseif (str_contains($haystack, 'thetestpagetest.php')) {
+      $focus = $this->t('TheTest toggle and failure-signal path validation.');
+      $covers[] = $this->t('/thetest functional behavior');
+      $does_not_cover[] = $this->t('Broader route/controller suites');
+    }
+    elseif (str_contains($haystack, 'tests/src/functional/routes/')) {
+      $focus = $this->t('Functional route accessibility and response checks.');
+      $covers[] = $this->t('Route-level functional tests');
+      $does_not_cover[] = $this->t('Most controller-specific rendering assertions');
+    }
+    elseif (str_contains($haystack, 'tests/src/functional/controller/')) {
+      $focus = $this->t('Controller rendering and interaction checks.');
+      $covers[] = $this->t('Controller functional tests, including UI-facing pages');
+      $does_not_cover[] = $this->t('Standalone unit/service tests');
+    }
+    elseif (str_contains($haystack, '--group=api')) {
+      $focus = $this->t('API endpoint and payload behavior by @group api.');
+      $covers[] = $this->t('API-group functional tests across route/controller files');
+      $does_not_cover[] = $this->t('Non-API functional/UI checks');
+    }
+    elseif (str_contains($haystack, 'hexmapuistagegatetest.php')) {
+      $focus = $this->t('Hex map UI smoke coverage.');
+      $covers[] = $this->t('Action controls, movement/attack UI, map controls, and hex detail panels');
+      $does_not_cover[] = $this->t('Non-/hexmap gameplay and backend-only logic');
+    }
+    elseif (str_contains($haystack, '--group=character-creation')) {
+      $focus = $this->t('Character creation workflow validations.');
+      $covers[] = $this->t('Wizard flow, validation, and character creation outcomes');
+      $does_not_cover[] = $this->t('General non-workflow route/controller checks');
+    }
+    elseif (str_contains($haystack, 'campaignstateaccesstest.php') || str_contains($haystack, 'campaignstatevalidationtest.php') || str_contains($haystack, 'entitylifecycletest.php')) {
+      $focus = $this->t('Entity/campaign lifecycle and state integrity checks.');
+      $covers[] = $this->t('Campaign state access, validation, and entity lifecycle scenarios');
+      $does_not_cover[] = $this->t('UI-focused stage-gate checks');
+    }
+    elseif (str_contains($haystack, '--group=pf2e-rules')) {
+      $focus = $this->t('PF2e fixture and rules-reference consistency checks.');
+      $covers[] = $this->t('PF2e rules and fixture validation groups');
+      $does_not_cover[] = $this->t('General route/controller interaction tests');
+    }
+    elseif (str_contains($haystack, '--coverage-html')) {
+      $focus = $this->t('Full PHPUnit CI quality gate with coverage output.');
+      $covers[] = $this->t('Unit and functional suites configured in phpunit.xml');
+      $covers[] = $this->t('Coverage report generation to tests/coverage');
+      $does_not_cover[] = $this->t('Manual release sign-off checks');
+    }
+
+    if ($stage_id === 'functional-routes' && str_contains($haystack, '--group=api')) {
+      $covers[] = $this->t('API assertions that cross-cut route and controller domains');
+    }
+
+    $items = [
+      $this->t('Focus: @focus', ['@focus' => $focus]),
+    ];
+
+    if (!empty($covers)) {
+      $items[] = $this->t('Covers: @covers', ['@covers' => implode('; ', $covers)]);
+    }
+    if (!empty($does_not_cover)) {
+      $items[] = $this->t('Does not cover: @scope', ['@scope' => implode('; ', $does_not_cover)]);
+    }
+
+    return $items;
   }
 
 }
