@@ -28,6 +28,11 @@ class TestingDashboardController extends ControllerBase {
   private string $defaultRepo = 'keithaumiller/forseti.life';
 
   /**
+   * Base path for documentation relative to module path.
+   */
+  private string $docsRelativePath = '../../../../docs/dungeoncrawler';
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
@@ -60,11 +65,14 @@ class TestingDashboardController extends ControllerBase {
     $process = $this->buildProcessFlow();
 
     return [
-      '#theme' => 'item_list',
-      '#title' => $this->t('Release Testing Stagegates'),
-      '#items' => $process,
-      '#attached' => [
-        'library' => [],
+      '#type' => 'container',
+      '#attributes' => ['class' => ['dungeoncrawler-testing-dashboard']],
+      'documentation' => $this->buildDocumentationSection(),
+      'commands' => $this->buildTestCommandsSection(),
+      'stagegates' => [
+        '#theme' => 'item_list',
+        '#title' => $this->t('Release Testing Stagegates'),
+        '#items' => $process,
       ],
       'issues' => [
         '#type' => 'container',
@@ -72,6 +80,137 @@ class TestingDashboardController extends ControllerBase {
         'ci' => $this->renderIssueList($issues['ci_failures']),
         'testing_defects' => $this->renderIssueList($issues['testing_defects']),
         'program_defects' => $this->renderIssueList($issues['program_defects']),
+      ],
+      '#attached' => [
+        'library' => [],
+      ],
+    ];
+  }
+
+  /**
+   * Build documentation links section.
+   */
+  private function buildDocumentationSection(): array {
+    $moduleBasePath = \Drupal::service('extension.list.module')->getPath('dungeoncrawler_tester');
+    $docsBasePath = $moduleBasePath . '/' . $this->docsRelativePath;
+    
+    $links = [
+      Link::fromTextAndUrl(
+        $this->t('Module README'),
+        Url::fromUri('base:' . $moduleBasePath . '/README.md')
+      )->toRenderable(),
+      Link::fromTextAndUrl(
+        $this->t('Testing Module README'),
+        Url::fromUri('base:' . $moduleBasePath . '/tests/TESTING_MODULE_README.md')
+      )->toRenderable(),
+      Link::fromTextAndUrl(
+        $this->t('Tests README'),
+        Url::fromUri('base:' . $moduleBasePath . '/tests/README.md')
+      )->toRenderable(),
+      Link::fromTextAndUrl(
+        $this->t('Testing Strategy Design'),
+        Url::fromUri('base:' . $docsBasePath . '/issues/issue-testing-strategy-design.md')
+      )->toRenderable(),
+      Link::fromTextAndUrl(
+        $this->t('Testing Quick Start Guide'),
+        Url::fromUri('base:' . $docsBasePath . '/testing/README.md')
+      )->toRenderable(),
+      Link::fromTextAndUrl(
+        $this->t('Testing Issues Directory'),
+        Url::fromUri('base:' . $docsBasePath . '/issues/')
+      )->toRenderable(),
+      Link::fromTextAndUrl(
+        $this->t('GitHub Issues (testing-related)'),
+        Url::fromUri('https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting')
+      )->toRenderable(),
+    ];
+
+    return [
+      '#theme' => 'item_list',
+      '#title' => $this->t('Test Documentation'),
+      '#items' => $links,
+      '#attributes' => ['class' => ['documentation-links']],
+    ];
+  }
+
+  /**
+   * Build test commands section.
+   */
+  private function buildTestCommandsSection(): array {
+    $commands = [
+      [
+        'title' => $this->t('Run All Tests'),
+        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml',
+      ],
+      [
+        'title' => $this->t('Unit Tests Only'),
+        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --testsuite=unit',
+      ],
+      [
+        'title' => $this->t('Functional Tests Only'),
+        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --testsuite=functional',
+      ],
+      [
+        'title' => $this->t('Route Tests'),
+        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Routes/',
+      ],
+      [
+        'title' => $this->t('Controller Tests'),
+        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Controller/',
+      ],
+      [
+        'title' => $this->t('API Tests'),
+        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --group=api',
+      ],
+      [
+        'title' => $this->t('Campaign/Entity Tests'),
+        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/CampaignStateAccessTest.php tests/src/Functional/CampaignStateValidationTest.php tests/src/Functional/EntityLifecycleTest.php',
+      ],
+      [
+        'title' => $this->t('Character Creation Workflow'),
+        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --group=character-creation',
+      ],
+      [
+        'title' => $this->t('PF2e Rules Validation'),
+        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --group=pf2e-rules',
+      ],
+      [
+        'title' => $this->t('With Coverage Report'),
+        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --coverage-html tests/coverage',
+      ],
+    ];
+
+    $items = [];
+    foreach ($commands as $cmd) {
+      $items[] = [
+        '#type' => 'container',
+        'title' => [
+          '#markup' => '<strong>' . $cmd['title'] . '</strong>',
+        ],
+        'command' => [
+          '#type' => 'html_tag',
+          '#tag' => 'pre',
+          '#value' => $cmd['command'],
+          '#attributes' => ['class' => ['command-snippet']],
+        ],
+      ];
+    }
+
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['test-commands']],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h2',
+        '#value' => $this->t('Quick Test Commands'),
+      ],
+      'description' => [
+        '#markup' => '<p>' . $this->t('Copy and paste these commands to run different test suites:') . '</p>',
+      ],
+      'commands' => [
+        '#theme' => 'item_list',
+        '#items' => $items,
+        '#attributes' => ['class' => ['command-list']],
       ],
     ];
   }
