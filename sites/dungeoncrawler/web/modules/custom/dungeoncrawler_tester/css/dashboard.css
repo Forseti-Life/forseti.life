@@ -1,0 +1,148 @@
+
+.dungeoncrawler-testing-dashboard {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: 1fr;
+  align-items: start;
+  color: #0f172a;
+}
+
+.dungeoncrawler-testing-dashboard .dashboard-flow {
+  grid-column: 1 / -1;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 1.1rem 1.2rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.dungeoncrawler-testing-dashboard .documentation-links,
+.dungeoncrawler-testing-dashboard .test-commands,
+.dungeoncrawler-testing-dashboard .dashboard-capabilities,
+.dungeoncrawler-testing-dashboard .dashboard-roadmap,
+.dungeoncrawler-testing-dashboard .dashboard-stagegates,
+.dungeoncrawler-testing-dashboard .dungeoncrawler-testing-issues,
+.dungeoncrawler-testing-dashboard .issue-card {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 1.1rem 1.2rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.dungeoncrawler-testing-dashboard .stage-grid {
+  grid-column: 1 / -1;
+}
+
+.dungeoncrawler-testing-dashboard .stage-card {
+  color: #0f172a;
+  letter-spacing: 0.01em;
+}
+
+.dungeoncrawler-testing-dashboard .command-snippet {
+  margin: 0.35rem 0 0.8rem;
+  padding: 0.6rem 0.75rem;
+  background: #0b1727;
+  color: #e2e8f0;
+.dungeoncrawler-testing-dashboard .command-log {
+  margin-top: 0.35rem;
+  max-height: 320px;
+  overflow: auto;
+}
+  border-radius: 4px;
+  font-family: Menlo, Consolas, "Courier New", monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.dungeoncrawler-testing-dashboard .command-list {
+  margin: 0;
+}
+
+.dungeoncrawler-testing-dashboard .dungeoncrawler-testing-issues .item-list {
+  margin-bottom: 0.75rem;
+}
+
+.dungeoncrawler-testing-dashboard .messages--error {
+  background: #fff1f2;
+  color: #b42318;
+  border: 1px solid #fecdca;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+}
+
+.dungeoncrawler-testing-dashboard .item-list__item {
+  line-height: 1.5;
+}
+
+.dungeoncrawler-testing-dashboard .dashboard-stagegates .item-list,
+.dungeoncrawler-testing-dashboard .dashboard-capabilities .item-list,
+.dungeoncrawler-testing-dashboard .dashboard-roadmap .item-list,
+.dungeoncrawler-testing-dashboard .documentation-links .item-list,
+.dungeoncrawler-testing-dashboard .issue-card .item-list {
+  margin: 0;
+}
+
+.dungeoncrawler-testing-dashboard h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.02rem;
+  color: #0f172a;
+}
+
+.dungeoncrawler-testing-dashboard .dashboard-flow p {
+  margin: 0.5rem 0 0;
+  color: #475569;
+}
+
+.dungeoncrawler-testing-dashboard .stage-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+.dungeoncrawler-testing-dashboard .stage-card {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.dungeoncrawler-testing-dashboard .stage-card h3 {
+  margin: 0 0 0.35rem;
+}
+
+.dungeoncrawler-testing-dashboard .stage-card p {
+  margin: 0 0 0.6rem;
+  color: #475569;
+}
+
+.dungeoncrawler-testing-dashboard .stage-command-list {
+  margin: 0 0 0.6rem;
+}
+
+.dungeoncrawler-testing-dashboard .stage-command {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem;
+}
+
+.dungeoncrawler-testing-dashboard .stage-command-form .form-submit {
+  margin-top: 0.35rem;
+}
+
+.dungeoncrawler-testing-dashboard .stage-reports {
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.dungeoncrawler-testing-dashboard .stage-reports h4 {
+  margin: 0 0 0.25rem;
+  font-size: 0.98rem;
+}
+
+.dungeoncrawler-testing-dashboard .command-list .item-list__item {
+  list-style: none;
+}

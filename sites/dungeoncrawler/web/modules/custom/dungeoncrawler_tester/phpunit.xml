@@ -4,7 +4,7 @@
 
   Usage:
     cd sites/dungeoncrawler
-    ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml
+    ./vendor/bin/phpunit -c web/modules/custom/dungeoncrawler_tester/phpunit.xml
 
   Suites:
     - unit: Isolated service/unit coverage
