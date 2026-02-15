@@ -4,7 +4,13 @@
 
 This testing module exercises the Dungeon Crawler module with route/controller functional tests and a testing dashboard. Unit/kernel coverage is planned; current focus is access, routing, and basic content assertions.
 
+<<<<<<< HEAD
 ## Testing Dashboard
+=======
+**For complete run instructions, test suites, groups, and examples, see [README.md](README.md) - the canonical testing guide.**
+
+## Testing Page
+>>>>>>> origin/main
 
 The testing dashboard provides stagegates for release readiness and surfaces GitHub issues tagged with ci-failure or testing-defect labels.
 
@@ -68,46 +74,15 @@ Each test file includes:
 
 ## Running Tests
 
-### Run All Tests
-
-```bash
-cd /home/keithaumiller/forseti.life/sites/dungeoncrawler
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml
-```
-
-### Run Route Tests Only
-
-```bash
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Routes/
-```
-
-### Run Controller Tests Only
-
-```bash
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Controller/
-```
-
-### Run Specific Test File
-
-```bash
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Routes/PublicRoutesTest.php
-```
-
-### Run Tests by Group
-
-```bash
-# Run all route tests
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group routes
-
-# Run all controller tests
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group controller
-
-# Run all API tests
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group api
-```
+See [README.md](README.md) for complete run instructions including:
+- All tests / specific test suites
+- Test groups (routes, controllers, API, PF2e rules)
+- Single test files
+- Coverage reports
 
 ## Test Coverage
 
+<<<<<<< HEAD
 The testing module covers:
 
 ### Routes
@@ -125,6 +100,9 @@ The testing module covers:
 - Campaign controllers
 - Combat controllers
 - Admin controller
+=======
+See [README.md](README.md) for detailed coverage targets, test structure, and status.
+>>>>>>> origin/main
 
 ## Notes
 

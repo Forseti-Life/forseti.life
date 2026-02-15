@@ -8,20 +8,36 @@
 - PHPUnit configuration tuned for Drupal functional tests.
 - Comprehensive functional test suite (routes + controllers).
 - Testing module README with run commands and grouping.
+- **Testing Dashboard** - A web-based dashboard for quick access to test documentation, commands, and CI status.
+
+## Testing Dashboard
+
+The testing dashboard provides a centralized location for developers to:
+- Access all test documentation and guides
+- View and copy test commands for quick execution
+- Monitor CI failures and testing-related issues
+- Review release testing stagegates
+
+**Access the dashboard:**
+- URL: `/dungeoncrawler/testing`
+- Permission required: `administer site configuration`
+- Menu location: Reports > Dungeon Crawler Testing Dashboard
+
+The dashboard includes:
+- **Test Documentation**: Links to all testing READMEs, strategy docs, and issue lists
+- **Quick Test Commands**: Copy/paste commands for running different test suites
+- **Release Testing Stagegates**: Testing workflow and checklist
+- **GitHub Issues**: Live feed of CI failures and testing defects
 
 ## Current review status
 - First-pass review completed for inventory (unit + functional suites). Functional workflow test remains stubbed.
 - Follow-up issues to be opened are staged in [issues_todo.md](../../../issues_todo.md) (workflow implementation, data-backed functional assertions, negative/authorization coverage, shared builders, and content-backed smoke tests).
 
 ## Running tests
-Use the PHPUnit config shipped with the module:
 
-```bash
-cd sites/dungeoncrawler
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml
-```
+For complete run instructions, test suites, groups, and examples, see **[tests/README.md](tests/README.md)** - the canonical testing guide.
 
-See [tests/TESTING_MODULE_README.md](tests/TESTING_MODULE_README.md) for commands by suite, groups, and file-level runs.
+**Quick tip**: Visit the Testing Dashboard at `/dungeoncrawler/testing` for a complete list of test commands with copy/paste functionality.
 
 ## Notes
 - Tests enable `dungeoncrawler_content`; this module only houses the test code and config.
