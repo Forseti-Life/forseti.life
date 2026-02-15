@@ -197,49 +197,78 @@ class TestingDashboardController extends ControllerBase {
       Link::fromTextAndUrl($this->t('GitHub Issues (testing-related)'), Url::fromUri('https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting')),
     ];
 
+    $coreItems = $this->renderLinkItems($coreLinks);
+    $strategyItems = $this->renderLinkItems($strategyLinks);
+    $liveItems = $this->renderLinkItems($liveLinks);
+
     return [
       '#type' => 'container',
-      '#attributes' => ['class' => ['documentation-links', 'tester-documentation-home']],
+      '#attributes' => ['class' => ['container', 'py-4', 'tester-documentation-home']],
       '#cache' => [
         'contexts' => ['user.permissions'],
         'max-age' => self::GITHUB_CACHE_TTL,
       ],
-      'title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h2',
-        '#value' => $this->t('Tester Documentation Home'),
-      ],
-      'intro' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => $this->t('Central entry point for all Dungeon Crawler tester documentation, testing strategy references, and live workflow links.'),
-      ],
-      'core_title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h3',
-        '#value' => $this->t('Core Module Documentation'),
-      ],
-      'core_list' => [
-        '#theme' => 'item_list',
-        '#items' => array_map(static fn($link) => $link->toRenderable(), $coreLinks),
-      ],
-      'strategy_title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h3',
-        '#value' => $this->t('Testing Strategy and Guides'),
-      ],
-      'strategy_list' => [
-        '#theme' => 'item_list',
-        '#items' => array_map(static fn($link) => $link->toRenderable(), $strategyLinks),
-      ],
-      'live_title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h3',
-        '#value' => $this->t('Live Workflow Links'),
-      ],
-      'live_list' => [
-        '#theme' => 'item_list',
-        '#items' => array_map(static fn($link) => $link->toRenderable(), $liveLinks),
+      'row' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['row', 'justify-content-center']],
+        'col' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['col-lg-10']],
+          'header_card' => [
+            '#type' => 'container',
+            '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'p-4', 'mb-4']],
+            'title' => [
+              '#type' => 'html_tag',
+              '#tag' => 'h2',
+              '#value' => $this->t('Tester Documentation Home'),
+            ],
+            'intro' => [
+              '#type' => 'html_tag',
+              '#tag' => 'p',
+              '#attributes' => ['class' => ['text-muted-light', 'mb-0']],
+              '#value' => $this->t('Central entry point for all Dungeon Crawler tester documentation, testing strategy references, and live workflow links.'),
+            ],
+          ],
+          'core_card' => [
+            '#type' => 'container',
+            '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'p-4', 'mb-4']],
+            'core_title' => [
+              '#type' => 'html_tag',
+              '#tag' => 'h3',
+              '#value' => $this->t('Core Module Documentation'),
+            ],
+            'core_list' => [
+              '#theme' => 'item_list',
+              '#items' => $coreItems,
+            ],
+          ],
+          'strategy_card' => [
+            '#type' => 'container',
+            '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'p-4', 'mb-4']],
+            'strategy_title' => [
+              '#type' => 'html_tag',
+              '#tag' => 'h3',
+              '#value' => $this->t('Testing Strategy and Guides'),
+            ],
+            'strategy_list' => [
+              '#theme' => 'item_list',
+              '#items' => $strategyItems,
+            ],
+          ],
+          'live_card' => [
+            '#type' => 'container',
+            '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'p-4']],
+            'live_title' => [
+              '#type' => 'html_tag',
+              '#tag' => 'h3',
+              '#value' => $this->t('Live Workflow Links'),
+            ],
+            'live_list' => [
+              '#theme' => 'item_list',
+              '#items' => $liveItems,
+            ],
+          ],
+        ],
       ],
     ];
   }
@@ -396,47 +425,97 @@ class TestingDashboardController extends ControllerBase {
    *   Related links as Link objects.
    */
   private function buildDocPage(string $title, string $intro, array $items, array $relatedLinks = []): array {
-    $related = [];
-    foreach ($relatedLinks as $link) {
-      $related[] = $link->toRenderable();
-    }
+    $related = $this->renderLinkItems($relatedLinks);
 
-    $related[] = Link::fromTextAndUrl(
+    $backToHome = Link::fromTextAndUrl(
       $this->t('Back to Documentation Home'),
       Url::fromRoute('dungeoncrawler_tester.documentation_home')
-    )->toRenderable();
+    );
+    $related = array_merge($related, $this->renderLinkItems([$backToHome]));
+
+    $itemMarkup = [];
+    foreach ($items as $item) {
+      $itemMarkup[] = ['#markup' => $item];
+    }
 
     return [
       '#type' => 'container',
-      '#attributes' => ['class' => ['documentation-links', 'tester-documentation-page']],
+      '#attributes' => ['class' => ['container', 'py-4', 'tester-documentation-page']],
       '#cache' => [
         'contexts' => ['user.permissions'],
         'max-age' => self::GITHUB_CACHE_TTL,
       ],
-      'title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h2',
-        '#value' => $title,
-      ],
-      'intro' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => $intro,
-      ],
-      'items' => [
-        '#theme' => 'item_list',
-        '#items' => $items,
-      ],
-      'related_title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h3',
-        '#value' => $this->t('Related Links'),
-      ],
-      'related' => [
-        '#theme' => 'item_list',
-        '#items' => $related,
+      'row' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['row', 'justify-content-center']],
+        'col' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['col-lg-10']],
+          'summary_card' => [
+            '#type' => 'container',
+            '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'p-4', 'mb-4']],
+            'title' => [
+              '#type' => 'html_tag',
+              '#tag' => 'h2',
+              '#value' => $title,
+            ],
+            'intro' => [
+              '#type' => 'html_tag',
+              '#tag' => 'p',
+              '#attributes' => ['class' => ['text-muted-light', 'mb-0']],
+              '#value' => $intro,
+            ],
+          ],
+          'details_card' => [
+            '#type' => 'container',
+            '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'p-4', 'mb-4']],
+            'items_title' => [
+              '#type' => 'html_tag',
+              '#tag' => 'h3',
+              '#value' => $this->t('Key Points'),
+            ],
+            'items' => [
+              '#theme' => 'item_list',
+              '#items' => $itemMarkup,
+            ],
+          ],
+          'related_card' => [
+            '#type' => 'container',
+            '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'p-4']],
+            'related_title' => [
+              '#type' => 'html_tag',
+              '#tag' => 'h3',
+              '#value' => $this->t('Related Links'),
+            ],
+            'related' => [
+              '#theme' => 'item_list',
+              '#items' => $related,
+            ],
+          ],
+        ],
       ],
     ];
+  }
+
+  /**
+   * Convert links to themed render arrays.
+   *
+   * @param array $links
+   *   Array of Link objects.
+   *
+   * @return array
+   *   Renderable link items.
+   */
+  private function renderLinkItems(array $links): array {
+    $items = [];
+
+    foreach ($links as $link) {
+      $render = $link->toRenderable();
+      $render['#attributes']['class'][] = 'link-cyan';
+      $items[] = $render;
+    }
+
+    return $items;
   }
 
   /**
