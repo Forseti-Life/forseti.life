@@ -49,12 +49,13 @@ jobs:
             head=$(echo "$data" | jq -r '.headRefName')
             base=$(echo "$data" | jq -r '.baseRefName')
 
-            meta=$(gh pr view "$number" --json isDraft,reviewRequests --jq '{isDraft,reviewRequests:[.reviewRequests[].login]}')
+            meta=$(gh pr view "$number" --json isDraft,reviewRequests,assignees --jq '{isDraft,reviewRequests:[.reviewRequests[].login],assignees:[.assignees[].login]}')
             is_draft=$(echo "$meta" | jq -r '.isDraft')
             copilot_requested=$(echo "$meta" | jq -r '.reviewRequests[]? | ascii_downcase' | grep -x "copilot" || true)
+            copilot_assigned=$(echo "$meta" | jq -r '.assignees[]? | ascii_downcase' | grep -x "copilot" || true)
 
-            if [ -z "$copilot_requested" ]; then
-              echo "Skipping PR #$number ($head -> $base): no Copilot review request."
+            if [ -z "$copilot_requested" ] && [ -z "$copilot_assigned" ]; then
+              echo "Skipping PR #$number ($head -> $base): no Copilot review request or assignment."
               continue
             fi
 
