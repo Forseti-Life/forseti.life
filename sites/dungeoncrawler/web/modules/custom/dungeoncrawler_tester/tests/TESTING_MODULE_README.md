@@ -4,6 +4,8 @@
 
 This testing module exercises the Dungeon Crawler module with route/controller functional tests and a `/testing` stub page. Unit/kernel coverage is planned; current focus is access, routing, and basic content assertions.
 
+**For complete run instructions, test suites, groups, and examples, see [README.md](README.md) - the canonical testing guide.**
+
 ## Testing Page
 
 The testing page is a simple stub page that can be used for manual testing and validation.
@@ -67,62 +69,15 @@ Each test file includes:
 
 ## Running Tests
 
-### Run All Tests
-
-```bash
-cd /home/keithaumiller/forseti.life/sites/dungeoncrawler
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml
-```
-
-### Run Route Tests Only
-
-```bash
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Routes/
-```
-
-### Run Controller Tests Only
-
-```bash
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Controller/
-```
-
-### Run Specific Test File
-
-```bash
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Routes/PublicRoutesTest.php
-```
-
-### Run Tests by Group
-
-```bash
-# Run all route tests
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group routes
-
-# Run all controller tests
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group controller
-
-# Run all API tests
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group api
-```
+See [README.md](README.md) for complete run instructions including:
+- All tests / specific test suites
+- Test groups (routes, controllers, API, PF2e rules)
+- Single test files
+- Coverage reports
 
 ## Test Coverage
 
-The testing module covers:
-
-### Routes
-- Public (home, world, about, credits, how-to-play, testing)
-- Admin (dashboard, settings)
-- Character (list, CRUD, creation flow)
-- Campaign (list, create, selection flow)
-- API endpoints (character + combat)
-- Demo routes (hex map / testing)
-
-### Controllers
-- Public page controllers (home, about, world, credits, how-to-play, testing)
-- Character management controllers
-- Campaign controllers
-- Combat controllers
-- Admin controller
+See [README.md](README.md) for detailed coverage targets, test structure, and status.
 
 ## Notes
 

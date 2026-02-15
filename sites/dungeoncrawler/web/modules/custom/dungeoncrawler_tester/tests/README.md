@@ -48,11 +48,29 @@ cd sites/dungeoncrawler
 
 # Character creation tests
 ./vendor/bin/phpunit --group=character-creation
+
+# Route tests
+./vendor/bin/phpunit --group=routes
+
+# Controller tests
+./vendor/bin/phpunit --group=controller
+
+# API tests
+./vendor/bin/phpunit --group=api
 ```
 
 ### Single Test File
 ```bash
 ./vendor/bin/phpunit web/modules/custom/dungeoncrawler_tester/tests/src/Unit/Service/CharacterCalculatorTest.php
+```
+
+### Specific Test Directory
+```bash
+# Route tests only
+./vendor/bin/phpunit web/modules/custom/dungeoncrawler_tester/tests/src/Functional/Routes/
+
+# Controller tests only
+./vendor/bin/phpunit web/modules/custom/dungeoncrawler_tester/tests/src/Functional/Controller/
 ```
 
 ### With Coverage Report
