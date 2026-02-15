@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: write
-  pull-requests: read
+  pull-requests: write
 
 concurrency:
   group: merge-issue-branches-into-testing
@@ -31,11 +31,11 @@ jobs:
           git fetch origin testing
           git switch -C testing origin/testing
 
-          prs=$(gh pr list --state open --json number,title,headRefName,baseRefName,isDraft,assignees \
-            --jq '.[] | select(.isDraft|not) | select(any(.assignees[]?; .login=="copilot")) | @base64')
+          prs=$(gh pr list --state open --assignee copilot --json number,title,headRefName,baseRefName \
+            --jq '.[] | @base64')
 
           if [ -z "$prs" ]; then
-            echo "No ready PRs assigned to copilot."
+            echo "No open PRs assigned to copilot."
             exit 0
           fi
 
@@ -48,6 +48,21 @@ jobs:
             title=$(echo "$data" | jq -r '.title')
             head=$(echo "$data" | jq -r '.headRefName')
             base=$(echo "$data" | jq -r '.baseRefName')
+
+            meta=$(gh pr view "$number" --json isDraft,reviewRequests --jq '{isDraft,reviewRequests:[.reviewRequests[].login]}')
+            is_draft=$(echo "$meta" | jq -r '.isDraft')
+            copilot_requested=$(echo "$meta" | jq -r '.reviewRequests[]? | ascii_downcase' | grep -x "copilot" || true)
+
+            if [ "$is_draft" = "true" ] && [ -n "$copilot_requested" ]; then
+              echo "PR #$number is draft but Copilot is requested; marking ready."
+              gh pr ready "$number"
+              is_draft="false"
+            fi
+
+            if [ "$is_draft" = "true" ]; then
+              echo "Skipping draft PR #$number ($head -> $base): $title"
+              continue
+            fi
 
             echo "Processing PR #$number ($head -> $base): $title"
             git fetch origin "$head"
