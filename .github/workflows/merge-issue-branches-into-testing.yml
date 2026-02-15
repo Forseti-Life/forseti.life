@@ -1,0 +1,70 @@
+name: Merge issue branches into testing
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: merge-issue-branches-into-testing
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Merge copilot-assigned PR branches into testing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eo pipefail
+
+          git fetch origin testing
+          git checkout testing
+          git reset --hard origin/testing
+
+          prs=$(gh pr list --state open --json number,title,headRefName,baseRefName,isDraft,assignees \
+            --jq '.[] | select(.isDraft|not) | select(any(.assignees[]?; .login=="copilot")) | @base64')
+
+          if [ -z "$prs" ]; then
+            echo "No ready PRs assigned to copilot."
+            exit 0
+          fi
+
+          merged=0
+          decode() { echo "$1" | base64 --decode; }
+
+          for pr in $prs; do
+            data=$(decode "$pr")
+            number=$(echo "$data" | jq -r '.number')
+            title=$(echo "$data" | jq -r '.title')
+            head=$(echo "$data" | jq -r '.headRefName')
+            base=$(echo "$data" | jq -r '.baseRefName')
+
+            echo "Processing PR #$number ($head -> $base): $title"
+            git fetch origin "$head"
+
+            if git merge --no-ff "origin/$head" -m "Merge PR #$number into testing: $title"; then
+              merged=1
+              echo "Merged #$number from $head"
+            else
+              git merge --abort || true
+              echo "::warning::Merge conflict for #$number ($head); skipped"
+            fi
+          done
+
+          if [ "$merged" -eq 1 ]; then
+            git push origin testing
+            echo "Pushed updates to testing."
+          else
+            echo "No merges applied; testing unchanged."
+          fi
