@@ -67,6 +67,7 @@ applyTo: '**'
 **AFTER FILE EDITING**:
 1. **Re-read README.md** in the affected directory to verify it reflects current state
 2. **Update README.md** after all changes made to ensure currentness
+3. **Mandatory cache rebuild**: Run `drush cr` immediately after editing CSS/SCSS, Twig templates, theme assets, menu links, or routing definitions to ensure changes are visible.
 
 **POST-EDIT REVIEW PROTOCOL**:
 - **Always reread this instructions file** after every file edit to maintain guideline adherence
@@ -207,7 +208,7 @@ drwxr-xr-x  9 www-data www-data  4096 Nov 25 16:29 stlouisintegration
 
 
 Skip giving "Immediate Fix:" solutions
-Always generate the commit commands for the code changes after changes are generated and applied to the workspace. Do not include curl commands, testing commands, or push commands - just commit commands
+Always generate the commit and push commands for the code changes after changes are generated and applied to the workspace. Do not include curl commands or testing commands.
 Always highlight which file is recomended to update.
 Always include the ARCHITECTURE.md and README.md files in the context.
 

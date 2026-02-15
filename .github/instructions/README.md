@@ -72,6 +72,8 @@ The `instructions.md` file serves as the primary reference for AI-assisted devel
 2. **Re-read** after file edits to maintain guideline adherence
 3. **Include ARCHITECTURE.md** when working on module development
 4. **Read README.md** in target directories before file modifications
+5. **Run `drush cr`** after edits to CSS/SCSS, Twig templates, theme assets, menu links, or routing definitions to surface changes.
+6. **Include push commands** when providing VCS instructions (commit + push), omitting curl/testing commands.
 
 ### For Human Developers
 
