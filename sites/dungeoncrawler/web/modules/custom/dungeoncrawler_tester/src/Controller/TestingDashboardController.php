@@ -4,7 +4,9 @@ namespace Drupal\dungeoncrawler_tester\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Link;
+use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_tester\Form\DashboardRunsForm;
@@ -31,6 +33,16 @@ class TestingDashboardController extends ControllerBase {
   protected StateInterface $state;
 
   /**
+   * Queue factory for reading queue status/items.
+   */
+  protected QueueFactory $queueFactory;
+
+  /**
+   * Database connection for watchdog reads.
+   */
+  protected Connection $database;
+
+  /**
    * Default repository for issue lookups.
    */
   private string $defaultRepo = 'keithaumiller/forseti.life';
@@ -48,6 +60,8 @@ class TestingDashboardController extends ControllerBase {
     $instance->httpClient = $container->get('http_client');
     $instance->configFactory = $container->get('config.factory');
     $instance->state = $container->get('state');
+    $instance->queueFactory = $container->get('queue');
+    $instance->database = $container->get('database');
     return $instance;
   }
 
@@ -71,9 +85,22 @@ class TestingDashboardController extends ControllerBase {
       $issues[$key]['label'] = $label;
     }
 
+    $queue_items = $this->loadQueueItems();
+    $queue_status = $this->getQueueStatus();
+
     return [
       '#type' => 'container',
       '#attributes' => ['class' => ['dungeoncrawler-testing-dashboard']],
+      'queue' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['dungeoncrawler-queue-embedded']],
+        'ui' => [
+          '#theme' => 'dungeoncrawler_tester_queue_management',
+          '#queue_items' => $queue_items,
+          '#queue_status' => $queue_status,
+        ],
+      ],
+      'thetest_callout' => $this->buildTheTestCallout(),
       'flow' => $this->buildProcessFlowSection(),
       'stages' => $this->formBuilder()->getForm(DashboardRunsForm::class),
       'overview' => $this->buildCapabilitiesSection(),
@@ -87,7 +114,20 @@ class TestingDashboardController extends ControllerBase {
         'program_defects' => $this->renderIssueList($issues['program_defects']),
       ],
       '#attached' => [
-        'library' => ['dungeoncrawler_tester/dashboard'],
+        'library' => [
+          'dungeoncrawler_tester/dashboard',
+          'dungeoncrawler_tester/queue-management',
+        ],
+        'drupalSettings' => [
+          'dungeoncrawlerTester' => [
+            'csrfToken' => \Drupal::csrfToken()->get('rest'),
+            'routes' => [
+              'run' => Url::fromRoute('dungeoncrawler_tester.queue_run')->toString(),
+              'status' => Url::fromRoute('dungeoncrawler_tester.queue_status')->toString(),
+              'logs' => Url::fromRoute('dungeoncrawler_tester.queue_logs')->toString(),
+            ],
+          ],
+        ],
       ],
     ];
   }
@@ -139,6 +179,31 @@ class TestingDashboardController extends ControllerBase {
         '#theme' => 'item_list',
         '#items' => $items,
       ],
+    ];
+  }
+
+  /**
+   * Highlight the /thetest flip hook for automation verification.
+   */
+  private function buildTheTestCallout(): array {
+    $link = Link::fromTextAndUrl(
+      $this->t('Open /thetest page'),
+      Url::fromRoute('dungeoncrawler_tester.thetest')
+    )->toRenderable();
+    $link['#attributes']['class'][] = 'queue-link';
+
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['thetest-callout']],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h2',
+        '#value' => $this->t('Automation flip test (/thetest)'),
+      ],
+      'body' => [
+        '#markup' => '<p>' . $this->t('This page drives the pre-commit stage “Pre-commit: thetest toggle”. The code currently emits TEST:FAIL until the constant in TheTestController is flipped to pass. Use this to validate auto-pause, issue linking, and resume flows.') . '</p>',
+      ],
+      'cta' => $link,
     ];
   }
 
@@ -357,6 +422,69 @@ class TestingDashboardController extends ControllerBase {
     catch (GuzzleException $e) {
       return ['items' => [], 'error' => $this->t('GitHub request failed: @m', ['@m' => $e->getMessage()])];
     }
+  }
+
+  /**
+   * Load active queue items for display.
+   */
+  private function loadQueueItems(): array {
+    $queue_items = [];
+
+    $query = $this->database->select('queue', 'q')
+      ->fields('q', ['item_id', 'data', 'expire', 'created'])
+      ->condition('name', 'dungeoncrawler_tester_runs');
+    $results = $query->execute()->fetchAll();
+
+    foreach ($results as $row) {
+      $data = unserialize($row->data);
+      $preview = $this->getQueueItemPreview($data);
+      $queue_items[] = [
+        'item_id' => $row->item_id,
+        'queue_name' => 'dungeoncrawler_tester_runs',
+        'queue_label' => $this->t('Testing Runs'),
+        'created' => $row->created,
+        'expire' => $row->expire,
+        'data' => $data,
+        'data_preview' => $preview,
+      ];
+    }
+
+    usort($queue_items, fn($a, $b) => $b['created'] <=> $a['created']);
+    return $queue_items;
+  }
+
+  private function getQueueItemPreview($data): array {
+    $preview = [];
+    if (is_array($data)) {
+      if (!empty($data['stage_id'])) {
+        $preview['stage'] = $data['stage_id'];
+      }
+      if (!empty($data['display'])) {
+        $preview['command'] = $data['display'];
+      }
+      if (!empty($data['job_id'])) {
+        $preview['job_id'] = $data['job_id'];
+      }
+    }
+    return $preview;
+  }
+
+  /**
+   * Build queue status for UI.
+   */
+  private function getQueueStatus(): array {
+    $queue_id = 'dungeoncrawler_tester_runs';
+    $queue = $this->queueFactory->get($queue_id);
+
+    return [
+      $queue_id => [
+        'id' => $queue_id,
+        'name' => $this->t('Testing Runs'),
+        'description' => $this->t('Background execution of dashboard run jobs.'),
+        'icon' => '🧪',
+        'items' => $queue->numberOfItems(),
+      ],
+    ];
   }
 
   /**

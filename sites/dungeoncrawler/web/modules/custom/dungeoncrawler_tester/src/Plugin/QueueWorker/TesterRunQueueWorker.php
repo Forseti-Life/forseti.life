@@ -4,8 +4,10 @@ namespace Drupal\dungeoncrawler_tester\Plugin\QueueWorker;
 
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
-use Drupal\Core\State\StateInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\State\StateInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use GuzzleHttp\ClientInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Process\Process;
 
@@ -30,10 +32,22 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
    */
   private $logger;
 
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, StateInterface $state, LoggerChannelFactoryInterface $logger_factory) {
+  /**
+   * HTTP client for GitHub API calls.
+   */
+  private ClientInterface $httpClient;
+
+  /**
+   * Config factory to read repo/token settings.
+   */
+  private ConfigFactoryInterface $configFactory;
+
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, StateInterface $state, LoggerChannelFactoryInterface $logger_factory, ClientInterface $http_client, ConfigFactoryInterface $config_factory) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->state = $state;
     $this->logger = $logger_factory->get('dungeoncrawler_tester');
+    $this->httpClient = $http_client;
+    $this->configFactory = $config_factory;
   }
 
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): static {
@@ -43,6 +57,8 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
       $plugin_definition,
       $container->get('state'),
       $container->get('logger.factory'),
+      $container->get('http_client'),
+      $container->get('config.factory'),
     );
   }
 
@@ -98,6 +114,13 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
       'output' => mb_strimwidth($output, 0, 4000, "\n…"),
     ]);
 
+    // Auto-pause on failure to prevent further runs until triaged.
+    $issue_number = NULL;
+    if ($status === 'failed') {
+      $issue_number = $this->maybeCreateIssue($stage_id, $display, $exit_code, $output);
+    }
+    $this->updateStageState($stage_id, $status, $exit_code, $output, $end, $issue_number);
+
     $this->logger->notice('Queue job @job finished (stage @stage, exit @code, duration @duration s)', [
       '@job' => $job_id,
       '@stage' => $stage_id,
@@ -122,6 +145,101 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
     $current = $runs[$stage_id] ?? [];
     $runs[$stage_id] = array_merge($current, $data);
     $this->state->set('dungeoncrawler_tester.runs', $runs);
+  }
+
+  /**
+   * Auto-pause a stage on failure, and clear pause on success if no issue linked.
+   */
+  private function updateStageState(string $stage_id, string $status, int $exit_code, string $output, float $ended, ?int $issue_number = NULL): void {
+    $states = $this->state->get('dungeoncrawler_tester.stage_state', []);
+    $current = $states[$stage_id] ?? [];
+
+    if ($status === 'failed') {
+      $excerpt = mb_strimwidth($output, 0, 600, '…');
+      $current['active'] = FALSE;
+      $current['failure_reason'] = sprintf('Failed at %s (exit %d)', date('Y-m-d H:i', (int) $ended), $exit_code);
+      $current['failure_excerpt'] = $excerpt;
+      if ($issue_number) {
+        $current['issue_number'] = $issue_number;
+        $current['issue_status'] = 'open';
+      }
+    }
+    else {
+      // On success, clear failure reason but keep any issue linkage and explicit pauses.
+      unset($current['failure_reason'], $current['failure_excerpt']);
+    }
+
+    $states[$stage_id] = $current;
+    $this->state->set('dungeoncrawler_tester.stage_state', $states);
+  }
+
+  /**
+   * Create a GitHub issue for a failure if repo and token are configured.
+   */
+  private function maybeCreateIssue(string $stage_id, string $display, int $exit_code, string $output): ?int {
+    $states = $this->state->get('dungeoncrawler_tester.stage_state', []);
+    $current = $states[$stage_id] ?? [];
+
+    // Skip if already linked or auto-issue explicitly disabled.
+    if (!empty($current['issue_number'])) {
+      return NULL;
+    }
+
+    $tester_config = $this->configFactory->get('dungeoncrawler_tester.settings');
+    $repo = $tester_config->get('github_repo');
+    $token = $tester_config->get('github_token');
+    $assignee = $tester_config->get('github_assignee');
+
+    // Fall back to ai_conversation settings or environment variables if unset.
+    if (!$repo || !$token) {
+      $ai_config = $this->configFactory->get('ai_conversation.settings');
+      $repo = $repo ?: $ai_config->get('github_repo');
+      $token = $token ?: $ai_config->get('github_token');
+      $assignee = $assignee ?: $ai_config->get('github_assignee');
+    }
+
+    $repo = $repo ?: getenv('TESTER_GITHUB_REPO');
+    $token = $token ?: getenv('TESTER_GITHUB_TOKEN');
+    $assignee = $assignee ?: getenv('TESTER_GITHUB_ASSIGNEE') ?: 'copilot';
+    if (!$repo || !$token) {
+      return NULL;
+    }
+
+    $title = sprintf('[Tester] Stage %s failed (exit %d)', $stage_id, $exit_code);
+    $body = "Automated failure capture from DungeonCrawler tester.\n\n";
+    $body .= "- Stage: " . $stage_id . "\n";
+    $body .= "- Command: " . $display . "\n";
+    $body .= "- Exit code: " . $exit_code . "\n\n";
+    $body .= "Latest output (truncated):\n\n";
+    $body .= "```\n" . mb_strimwidth($output, 0, 3000, "\n…") . "\n```\n";
+
+    try {
+      $response = $this->httpClient->request('POST', "https://api.github.com/repos/{$repo}/issues", [
+        'headers' => [
+          'Authorization' => 'token ' . $token,
+          'Accept' => 'application/vnd.github+json',
+          'User-Agent' => 'dungeoncrawler-tester',
+        ],
+        'json' => [
+          'title' => $title,
+          'body' => $body,
+          'labels' => ['automated', 'tester'],
+          'assignees' => [$assignee],
+        ],
+        'timeout' => 10,
+      ]);
+
+      $payload = json_decode((string) $response->getBody(), TRUE);
+      if (!empty($payload['number'])) {
+        $this->logger->notice('Opened GitHub issue #@number for stage @stage failure.', ['@number' => $payload['number'], '@stage' => $stage_id]);
+        return (int) $payload['number'];
+      }
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Could not auto-create GitHub issue for stage @stage: @msg', ['@stage' => $stage_id, '@msg' => $e->getMessage()]);
+    }
+
+    return NULL;
   }
 
 }

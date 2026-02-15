@@ -1,0 +1,29 @@
+<?php
+
+/**
+ * Implements hook_theme().
+ */
+function dungeoncrawler_tester_theme($existing, $type, $theme, $path) {
+  return [
+    'dungeoncrawler_tester_queue_management' => [
+      'render element' => 'elements',
+      'template' => 'dungeoncrawler-tester-queue-management',
+      'path' => $path . '/templates',
+    ],
+    'dungeoncrawler_tester_thetest' => [
+      'variables' => [
+        'status' => NULL,
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_cron().
+ */
+function dungeoncrawler_tester_cron() {
+  // Auto-resume and unlink tests whose attached issue is closed.
+  \Drupal::service('dungeoncrawler_tester.stage_issue_sync')->syncIssues(TRUE, TRUE);
+  // Auto-enqueue active stages hourly if not already queued.
+  \Drupal::service('dungeoncrawler_tester.stage_auto_enqueue')->enqueueDueStages(3600);
+}

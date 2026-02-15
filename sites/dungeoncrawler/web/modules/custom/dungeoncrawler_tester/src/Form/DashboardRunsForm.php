@@ -3,11 +3,16 @@
 namespace Drupal\dungeoncrawler_tester\Form;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
+use Drupal\dungeoncrawler_tester\Service\StageDefinitionService;
+use Drupal\Component\Uuid\UuidInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -18,23 +23,50 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
   /**
    * State storage.
    */
-  private ?StateInterface $state = NULL;
+  private StateInterface $state;
 
   /**
    * Date formatter service.
    */
-  private ?DateFormatterInterface $dateFormatter = NULL;
+  private DateFormatterInterface $dateFormatter;
 
-  public function __construct(?StateInterface $state = NULL, ?DateFormatterInterface $dateFormatter = NULL) {
-    // Fallback for non-container instantiation paths.
-    $this->state = $state ?: \Drupal::state();
-    $this->dateFormatter = $dateFormatter ?: \Drupal::service('date.formatter');
+  /**
+   * Stage definitions provider.
+   */
+  private StageDefinitionService $stageDefinitions;
+
+  /**
+   * Queue factory for tester runs.
+   */
+  private QueueFactory $queueFactory;
+
+  /**
+   * UUID generator.
+   */
+  private UuidInterface $uuid;
+
+  /**
+   * Logger channel.
+   */
+  private LoggerChannelInterface $logger;
+
+  public function __construct(StateInterface $state, DateFormatterInterface $dateFormatter, StageDefinitionService $stageDefinitions, QueueFactory $queueFactory, UuidInterface $uuid, LoggerChannelFactoryInterface $loggerFactory) {
+    $this->state = $state;
+    $this->dateFormatter = $dateFormatter;
+    $this->stageDefinitions = $stageDefinitions;
+    $this->queueFactory = $queueFactory;
+    $this->uuid = $uuid;
+    $this->logger = $loggerFactory->get('dungeoncrawler_tester');
   }
 
   public static function create(ContainerInterface $container): static {
     $instance = new static(
       $container->get('state'),
-      $container->get('date.formatter')
+      $container->get('date.formatter'),
+      $container->get('dungeoncrawler_tester.stage_definitions'),
+      $container->get('queue'),
+      $container->get('uuid'),
+      $container->get('logger.factory'),
     );
     return $instance;
   }
@@ -50,11 +82,9 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    if (!$this->state) {
-      $this->state = \Drupal::state();
-    }
-    $definitions = $this->getStageDefinitions();
+    $definitions = $this->stageDefinitions->getDefinitions();
     $runs = $this->state->get('dungeoncrawler_tester.runs', []);
+    $stage_states = $this->state->get('dungeoncrawler_tester.stage_state', []);
 
     $form['#tree'] = TRUE;
     $form['#attributes']['class'][] = 'stage-grid';
@@ -62,11 +92,22 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     foreach ($definitions as $stage) {
       $stage_id = $stage['id'];
       $run = $runs[$stage_id] ?? NULL;
+      $stage_state = $stage_states[$stage_id] ?? [];
+      $block_reason = $this->getBlockReason($stage_state);
 
       $form[$stage_id] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['stage-card'], 'id' => 'stage-' . $stage_id],
       ];
+
+      if ($block_reason) {
+        $form[$stage_id]['state_badge'] = [
+          '#type' => 'html_tag',
+          '#tag' => 'div',
+          '#value' => $block_reason,
+          '#attributes' => ['class' => ['stage-state-badge', 'is-blocked']],
+        ];
+      }
 
       $form[$stage_id]['title'] = [
         '#type' => 'html_tag',
@@ -104,6 +145,8 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
             '#submit' => ['::submitCommand'],
             // No validation gates; just run.
             '#limit_validation_errors' => [],
+            '#disabled' => !$this->isStageRunnable($stage_state),
+            '#attributes' => $block_reason ? ['title' => $block_reason] : [],
           ],
         ];
       }
@@ -119,6 +162,57 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       ];
 
       $form[$stage_id]['last_run'] = $this->buildRunStatus($run);
+
+      // Inline stage controls (pause/resume, issue link) so admins can manage gating.
+      $form[$stage_id]['controls'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Stage controls'),
+        '#open' => FALSE,
+        'active' => [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Active (allowed to run)'),
+          '#default_value' => $stage_state['active'] ?? TRUE,
+        ],
+        'auto_resume' => [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Auto-resume when linked issue closes'),
+          '#default_value' => $stage_state['auto_resume'] ?? FALSE,
+        ],
+        'failure_reason' => [
+          '#type' => 'item',
+          '#title' => $this->t('Last failure'),
+          '#markup' => !empty($stage_state['failure_reason']) ? $stage_state['failure_reason'] : $this->t('None'),
+          '#description' => !empty($stage_state['failure_excerpt']) ? '<pre class="command-snippet command-log">' . $stage_state['failure_excerpt'] . '</pre>' : '',
+        ],
+        'issue_number' => [
+          '#type' => 'textfield',
+          '#title' => $this->t('Linked issue # (blocks if open)'),
+          '#default_value' => $stage_state['issue_number'] ?? '',
+          '#size' => 10,
+        ],
+        'issue_status' => [
+          '#type' => 'select',
+          '#title' => $this->t('Issue status'),
+          '#options' => [
+            'open' => $this->t('Open'),
+            'closed' => $this->t('Closed'),
+          ],
+          '#default_value' => $stage_state['issue_status'] ?? 'open',
+          '#states' => [
+            'visible' => [
+              ':input[name="' . $stage_id . '[controls][issue_number]"]' => ['filled' => TRUE],
+            ],
+          ],
+        ],
+        'save' => [
+          '#type' => 'submit',
+          '#value' => $this->t('Save stage controls'),
+          '#name' => $stage_id . '_save_controls',
+          '#stage_id' => $stage_id,
+          '#submit' => ['::submitStageControls'],
+          '#limit_validation_errors' => [[$stage_id, 'controls']],
+        ],
+      ];
     }
 
     // Keep the action on the same page, anchor back to last clicked stage.
@@ -138,11 +232,15 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
    * Submit handler for any stage command.
    */
   public function submitCommand(array &$form, FormStateInterface $form_state): void {
-    if (!$this->state) {
-      $this->state = \Drupal::state();
-    }
     $trigger = $form_state->getTriggeringElement();
     $stage_id = $trigger['#stage_id'] ?? ($trigger['#parents'][0] ?? '');
+
+    $stage_state = $this->getStageState($stage_id);
+    if (!$this->isStageRunnable($stage_state)) {
+      $reason = $this->getBlockReason($stage_state) ?: $this->t('Stage is paused.');
+      $this->messenger()->addWarning($reason);
+      return;
+    }
 
     // Retrieve command meta either from the button or from stored value.
     $cmd = $trigger['#command_meta'] ?? NULL;
@@ -166,7 +264,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     }
 
     // Trace that the submit actually fired.
-    $this->getLogger('dungeoncrawler_tester')->notice('Dashboard run triggered', [
+    $this->logger->notice('Dashboard run triggered', [
       '@stage' => $stage_id,
       '@cmd' => $cmd['display'] ?? implode(' ', $cmd['args'] ?? []),
       '@trigger' => $trigger['#name'] ?? 'unknown',
@@ -174,7 +272,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     ]);
 
     $display_cmd = $cmd['display'] ?? implode(' ', $cmd['args'] ?? []);
-    $job_id = \Drupal::service('uuid')->generate();
+    $job_id = $this->uuid->generate();
 
     $this->storeRun($stage_id, [
       'job_id' => $job_id,
@@ -188,7 +286,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     ]);
 
     // Enqueue for background processing.
-    $queue = \Drupal::queue('dungeoncrawler_tester_runs');
+    $queue = $this->queueFactory->get('dungeoncrawler_tester_runs');
     $queue->createItem([
       'job_id' => $job_id,
       'stage_id' => $stage_id,
@@ -198,7 +296,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     ]);
 
     $this->messenger()->addStatus($this->t('Queued stage @stage run. Job: @job', ['@stage' => $stage_id, '@job' => $job_id]));
-    $this->getLogger('dungeoncrawler_tester')->notice('Stage @stage queued: @cmd (job @job)', [
+    $this->logger->notice('Stage @stage queued: @cmd (job @job)', [
       '@stage' => $stage_id,
       '@cmd' => $display_cmd,
       '@job' => $job_id,
@@ -210,12 +308,48 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
   }
 
   /**
+   * Submit handler for per-stage control updates (active/issue linkage).
+   */
+  public function submitStageControls(array &$form, FormStateInterface $form_state): void {
+    $trigger = $form_state->getTriggeringElement();
+    $stage_id = $trigger['#stage_id'] ?? ($trigger['#parents'][0] ?? '');
+    if (!$stage_id) {
+      $this->messenger()->addError($this->t('Unable to determine stage for controls update.'));
+      return;
+    }
+
+    $values = $form_state->getValues();
+    $controls = $values[$stage_id]['controls'] ?? [];
+
+    $active = !empty($controls['active']);
+    $issue_number_raw = trim((string) ($controls['issue_number'] ?? ''));
+    $issue_number = $issue_number_raw === '' ? NULL : (int) $issue_number_raw;
+    $issue_status = $issue_number ? ($controls['issue_status'] ?? 'open') : NULL;
+
+    $this->saveStageState($stage_id, [
+      'active' => $active,
+      'auto_resume' => !empty($controls['auto_resume']),
+      'issue_number' => $issue_number,
+      'issue_status' => $issue_status,
+      // Clearing failure markers when saving controls is useful after manual triage.
+      'failure_reason' => NULL,
+      'failure_excerpt' => NULL,
+    ]);
+
+    $msg = $active ? $this->t('Stage @stage is active.', ['@stage' => $stage_id]) : $this->t('Stage @stage paused.', ['@stage' => $stage_id]);
+    if ($issue_number) {
+      $msg .= ' ' . $this->t('Linked issue: #@n (@s).', ['@n' => $issue_number, '@s' => $issue_status]);
+    }
+
+    $this->messenger()->addStatus($msg);
+    $form_state->setRebuild(TRUE);
+    $form_state->setRedirectUrl(Url::fromRoute('<current>', [], ['fragment' => 'stage-' . $stage_id]));
+  }
+
+  /**
    * Persist last run metadata per stage.
    */
   private function storeRun(string $stage_id, array $data): void {
-    if (!$this->state) {
-      $this->state = \Drupal::state();
-    }
     $runs = $this->state->get('dungeoncrawler_tester.runs', []);
     $current = $runs[$stage_id] ?? [];
     $runs[$stage_id] = array_merge($current, $data);
@@ -226,9 +360,6 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
    * Render last run status block.
    */
   private function buildRunStatus(?array $run): array {
-    if (!$this->dateFormatter) {
-      $this->dateFormatter = \Drupal::service('date.formatter');
-    }
     if (!$run) {
       return [
         '#type' => 'container',
@@ -274,117 +405,62 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
   }
 
   /**
-   * Stage definitions.
+   * Fetch per-stage state with defaults.
    */
-  private function getStageDefinitions(): array {
-    $root = dirname(\Drupal::root());
+  private function getStageState(string $stage_id): array {
+    if (!$this->state) {
+      $this->state = \Drupal::state();
+    }
+    $states = $this->state->get('dungeoncrawler_tester.stage_state', []);
+    return $states[$stage_id] ?? [];
+  }
 
-    return [
-      [
-        'id' => 'precommit',
-        'title' => $this->t('Pre-commit: lint/format + unit'),
-        'description' => $this->t('Keep fast checks green before pushing.'),
-        'commands' => [
-          [
-            'label' => $this->t('Unit suite'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', '--testsuite=unit'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --testsuite=unit',
-          ],
-        ],
-      ],
-      [
-        'id' => 'functional-routes',
-        'title' => $this->t('Functional routes/controllers'),
-        'description' => $this->t('Public, admin, character, campaign, API endpoints.'),
-        'commands' => [
-          [
-            'label' => $this->t('Routes'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'tests/src/Functional/Routes/'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Routes/',
-          ],
-          [
-            'label' => $this->t('Controllers'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'tests/src/Functional/Controller/'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Controller/',
-          ],
-          [
-            'label' => $this->t('API group'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', '--group=api'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group=api',
-          ],
-        ],
-      ],
-      [
-        'id' => 'character-workflow',
-        'title' => $this->t('Character creation workflow'),
-        'description' => $this->t('8-step wizard, validation, persistence.'),
-        'commands' => [
-          [
-            'label' => $this->t('Workflow group'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', '--group=character-creation'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group=character-creation',
-          ],
-        ],
-      ],
-      [
-        'id' => 'entity-campaign',
-        'title' => $this->t('Entity/campaign APIs'),
-        'description' => $this->t('State validation, access, lifecycle.'),
-        'commands' => [
-          [
-            'label' => $this->t('Entity lifecycle trio'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'tests/src/Functional/CampaignStateAccessTest.php', 'tests/src/Functional/CampaignStateValidationTest.php', 'tests/src/Functional/EntityLifecycleTest.php'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/CampaignStateAccessTest.php tests/src/Functional/CampaignStateValidationTest.php tests/src/Functional/EntityLifecycleTest.php',
-          ],
-        ],
-      ],
-      [
-        'id' => 'fixtures',
-        'title' => $this->t('Cross-check fixtures'),
-        'description' => $this->t('PF2e reference + character fixtures up to date.'),
-        'commands' => [
-          [
-            'label' => $this->t('PF2e rules group'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', '--group=pf2e-rules'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group=pf2e-rules',
-          ],
-        ],
-      ],
-      [
-        'id' => 'ci-gate',
-        'title' => $this->t('CI gate'),
-        'description' => $this->t('All suites green; failures auto-filed.'),
-        'commands' => [
-          [
-            'label' => $this->t('Full suite with coverage'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', '--coverage-html', 'tests/coverage'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --coverage-html tests/coverage',
-          ],
-        ],
-      ],
-      [
-        'id' => 'signoff',
-        'title' => $this->t('Release sign-off'),
-        'description' => $this->t('No open ci-failure/testing-defect blocking issues.'),
-        'commands' => [
-          [
-            'label' => $this->t('Review open defects'),
-            'args' => [],
-            'cwd' => $root,
-            'display' => 'Open GitHub issues (ci-failure, testing-defect)',
-            'link' => 'https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Aci-failure+label%3Atesting-defect',
-          ],
-        ],
-      ],
-    ];
+  /**
+   * Persist per-stage state.
+   */
+  private function saveStageState(string $stage_id, array $data): void {
+    if (!$this->state) {
+      $this->state = \Drupal::state();
+    }
+    $states = $this->state->get('dungeoncrawler_tester.stage_state', []);
+    $current = $states[$stage_id] ?? [];
+    $states[$stage_id] = array_merge($current, $data);
+    $this->state->set('dungeoncrawler_tester.stage_state', $states);
+  }
+
+  /**
+   * Determine if a stage is allowed to run.
+   */
+  private function isStageRunnable(array $stage_state): bool {
+    if (array_key_exists('active', $stage_state) && !$stage_state['active']) {
+      return FALSE;
+    }
+    if (!empty($stage_state['issue_number'])) {
+      $status = $stage_state['issue_status'] ?? 'open';
+      if ($status !== 'closed') {
+        return FALSE;
+      }
+    }
+    return TRUE;
+  }
+
+  /**
+   * Human-friendly block reason for UI/messaging.
+   */
+  private function getBlockReason(array $stage_state): ?string {
+    if (array_key_exists('active', $stage_state) && !$stage_state['active']) {
+      if (!empty($stage_state['failure_reason'])) {
+        return $this->t('Stage paused after failure: @r', ['@r' => $stage_state['failure_reason']]);
+      }
+      return $this->t('Stage is paused.');
+    }
+    if (!empty($stage_state['issue_number'])) {
+      $status = $stage_state['issue_status'] ?? 'open';
+      if ($status !== 'closed') {
+        return $this->t('Blocked by issue #@n (@s).', ['@n' => $stage_state['issue_number'], '@s' => $status]);
+      }
+    }
+    return NULL;
   }
 
 }

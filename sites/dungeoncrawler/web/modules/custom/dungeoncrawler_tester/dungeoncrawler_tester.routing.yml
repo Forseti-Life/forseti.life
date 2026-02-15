@@ -5,3 +5,51 @@ dungeoncrawler_tester.dashboard:
     _title: 'Dungeon Crawler Testing Dashboard'
   requirements:
     _permission: 'administer site configuration'
+  
+dungeoncrawler_tester.queue_management:
+  path: '/dungeoncrawler/testing/queue-management'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\QueueManagementController::queueManagement'
+    _title: 'Testing Queue Management'
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.queue_run:
+  path: '/dungeoncrawler/testing/queue/run'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\QueueManagementController::runQueueAjax'
+  methods: [POST]
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.queue_status:
+  path: '/dungeoncrawler/testing/queue/status'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\QueueManagementController::getQueueStatusAjax'
+  methods: [GET]
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.queue_logs:
+  path: '/dungeoncrawler/testing/queue/logs'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\QueueManagementController::getQueueLogsAjax'
+  methods: [GET]
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.settings:
+  path: '/admin/config/development/dungeoncrawler-tester'
+  defaults:
+    _form: '\Drupal\dungeoncrawler_tester\Form\TesterSettingsForm'
+    _title: 'Dungeon Crawler tester settings'
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.thetest:
+  path: '/thetest'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TheTestController::page'
+    _title: 'The Test'
+  requirements:
+    _permission: 'access content'

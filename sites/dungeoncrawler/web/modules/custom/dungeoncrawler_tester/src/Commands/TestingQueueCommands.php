@@ -4,6 +4,7 @@ namespace Drupal\dungeoncrawler_tester\Commands;
 
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Queue\QueueWorkerManagerInterface;
 use Drush\Commands\DrushCommands;
@@ -26,16 +27,16 @@ class TestingQueueCommands extends DrushCommands {
   protected LockBackendInterface $lock;
 
   /**
-   * @var \Drupal\Core\Logger\LoggerChannelInterface
+   * Logger channel for tester messages.
    */
-  protected $logger;
+  private LoggerChannelInterface $dcLogger;
 
   public function __construct(QueueFactory $queueFactory, QueueWorkerManagerInterface $queueManager, LockBackendInterface $lock, LoggerChannelFactoryInterface $loggerFactory) {
     parent::__construct();
     $this->queueFactory = $queueFactory;
     $this->queueManager = $queueManager;
     $this->lock = $lock;
-    $this->logger = $loggerFactory->get('dungeoncrawler_tester');
+    $this->dcLogger = $loggerFactory->get('dungeoncrawler_tester');
   }
 
   /**
@@ -53,7 +54,7 @@ class TestingQueueCommands extends DrushCommands {
     }
 
     if (!$this->lock->acquire('dungeoncrawler_tester.queue_runner', 30)) {
-      $this->logger->warning('Queue runner already active; skipping.');
+      $this->dcLogger->warning('Queue runner already active; skipping.');
       $this->output()->writeln('Queue runner already active; skipping.');
       return;
     }
@@ -70,12 +71,12 @@ class TestingQueueCommands extends DrushCommands {
           $processed++;
         }
         catch (\Throwable $e) {
-          $this->logger->error('Queue item failed: @msg', ['@msg' => $e->getMessage()]);
+          $this->dcLogger->error('Queue item failed: @msg', ['@msg' => $e->getMessage()]);
           $queue->releaseItem($item);
           break;
         }
       }
-      $this->logger->notice('Queue runner processed @count item(s).', ['@count' => $processed]);
+      $this->dcLogger->notice('Queue runner processed @count item(s).', ['@count' => $processed]);
       $this->output()->writeln(sprintf('Processed %d item(s).', $processed));
     }
     finally {

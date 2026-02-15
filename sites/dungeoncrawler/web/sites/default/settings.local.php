@@ -43,3 +43,5 @@ $settings['container_yamls'][] = DRUPAL_ROOT . '/sites/development.services.yml'
 $settings['skip_permissions_hardening'] = TRUE;
 $config['system.performance']['css']['preprocess'] = FALSE;
 $config['system.performance']['js']['preprocess'] = FALSE;
+$config['system.mail']['interface']['default'] = 'test_mail_collector';
+ini_set('sendmail_path', '/bin/true');

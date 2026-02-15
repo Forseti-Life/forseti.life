@@ -61,13 +61,6 @@ dungeoncrawler_content.menu.about:
   menu_name: main
   weight: 40
 
-dungeoncrawler_content.menu.testing:
-  title: 'Testing'
-  description: 'Admin-only testing dashboard'
-  route_name: dungeoncrawler_content.testing_home
-  menu_name: main
-  weight: 90
-
 # Footer menu links
 dungeoncrawler_content.footer.about:
   title: 'About'

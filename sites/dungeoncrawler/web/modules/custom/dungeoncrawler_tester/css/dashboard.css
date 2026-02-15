@@ -44,15 +44,16 @@
   padding: 0.6rem 0.75rem;
   background: #0b1727;
   color: #e2e8f0;
-.dungeoncrawler-testing-dashboard .command-log {
-  margin-top: 0.35rem;
-  max-height: 320px;
-  overflow: auto;
-}
   border-radius: 4px;
   font-family: Menlo, Consolas, "Courier New", monospace;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+.dungeoncrawler-testing-dashboard .command-log {
+  margin-top: 0.35rem;
+  max-height: 320px;
+  overflow: auto;
 }
 
 .dungeoncrawler-testing-dashboard .command-list {
@@ -81,6 +82,86 @@
 .dungeoncrawler-testing-dashboard .documentation-links .item-list,
 .dungeoncrawler-testing-dashboard .issue-card .item-list {
   margin: 0;
+}
+
+.dungeoncrawler-testing-dashboard .stage-state-badge {
+  display: inline-block;
+  margin: 0 0 0.4rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  font-weight: 700;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecdd3;
+}
+
+.dungeoncrawler-testing-dashboard .stage-state-badge.is-blocked {
+  background: #fff7ed;
+  color: #9a3412;
+  border-color: #fed7aa;
+}
+
+.dungeoncrawler-testing-dashboard .stage-card .details__summary {
+  font-weight: 600;
+}
+
+.dungeoncrawler-testing-dashboard .queue-management-callout {
+  grid-column: 1 / -1;
+  background: linear-gradient(120deg, #0f172a, #1e293b);
+  color: #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem 1.4rem;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dungeoncrawler-testing-dashboard .thetest-callout {
+  grid-column: 1 / -1;
+  background: #ecfeff;
+  border: 1px solid #bae6fd;
+  color: #0f172a;
+  border-radius: 12px;
+  padding: 1.1rem 1.2rem;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.dungeoncrawler-testing-dashboard .thetest-callout h2 {
+  margin: 0 0 0.35rem;
+}
+
+.dungeoncrawler-testing-dashboard .thetest-callout p {
+  margin: 0;
+  color: #0f172a;
+}
+
+.dungeoncrawler-testing-dashboard .queue-management-callout h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.2rem;
+}
+
+.dungeoncrawler-testing-dashboard .queue-management-callout p {
+  margin: 0;
+  color: #cbd5e1;
+}
+
+.dungeoncrawler-testing-dashboard .queue-link {
+  display: inline-block;
+  padding: 0.55rem 0.95rem;
+  background: #f59e0b;
+  color: #0f172a;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+}
+
+.dungeoncrawler-testing-dashboard .queue-link:hover,
+.dungeoncrawler-testing-dashboard .queue-link:focus {
+  background: #fbbf24;
+  color: #0f172a;
 }
 
 .dungeoncrawler-testing-dashboard h3 {
