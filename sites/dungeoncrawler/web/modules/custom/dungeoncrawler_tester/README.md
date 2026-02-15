@@ -29,6 +29,25 @@ The dashboard includes:
 - **Release Testing Stagegates**: Testing workflow and checklist
 - **GitHub Issues**: Live feed of CI failures and testing defects
 
+### GitHub issue automation (failures)
+
+- If a stage fails, the queue worker will try to open a GitHub issue and pause the stage.
+- Configure via `/admin/config/development/dungeoncrawler-tester` (preferred), `ai_conversation.settings` (`github_repo`, `github_token`), or env vars `TESTER_GITHUB_REPO`, `TESTER_GITHUB_TOKEN` (format: `owner/repo`). The default repo, if left blank, will fall back to `keithaumiller/forseti.life`.
+- Existing linked issues are respected; no new issue is opened if `issue_number` is already present in stage state.
+- Settings form route uses `dungeoncrawler_tester.settings`; if the page fails to load after route changes, rebuild caches (`drush cr`).
+
+### Getting a GitHub token (for issue creation)
+
+1) Visit https://github.com/settings/tokens and create a **Fine-grained token** or **classic token** with scope `repo` (issue creation only requires `public_repo` on classic tokens).
+2) Set the token in `/admin/config/development/dungeoncrawler-tester` (preferred) or export `TESTER_GITHUB_TOKEN` in the environment.
+3) Set the repository to `keithaumiller/forseti.life` (default) or another `owner/repo`. If left blank, the system will use `keithaumiller/forseti.life`.
+
+### GitHub issue automation (failures)
+
+- If a stage fails, the queue worker will try to open a GitHub issue and pause the stage.
+- Configure repo/token via `ai_conversation.settings` (`github_repo`, `github_token`) or env vars `TESTER_GITHUB_REPO`, `TESTER_GITHUB_TOKEN` (format: `owner/repo`).
+- Existing linked issues are respected; no new issue is opened if `issue_number` is already present in stage state.
+
 ## Current review status
 - First-pass review completed for inventory (unit + functional suites). Functional workflow test remains stubbed.
 - Follow-up issues to be opened are staged in [issues_todo.md](../../../issues_todo.md) (workflow implementation, data-backed functional assertions, negative/authorization coverage, shared builders, and content-backed smoke tests).
