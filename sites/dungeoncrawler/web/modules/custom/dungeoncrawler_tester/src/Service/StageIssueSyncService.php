@@ -50,21 +50,42 @@ class StageIssueSyncService {
     $unlinkedCount = 0;
 
     foreach ($states as $stage_id => $state) {
-      if (empty($state['issue_number'])) {
+      $linked_issue_numbers = [];
+      if (!empty($state['issue_numbers']) && is_array($state['issue_numbers'])) {
+        $linked_issue_numbers = array_values(array_unique(array_filter(array_map('intval', $state['issue_numbers']))));
+      }
+      if (!empty($state['issue_number'])) {
+        $linked_issue_numbers[] = (int) $state['issue_number'];
+      }
+      $linked_issue_numbers = array_values(array_unique(array_filter($linked_issue_numbers)));
+
+      if (empty($linked_issue_numbers)) {
         continue;
       }
 
       $linkedCount++;
 
-      $issue = $this->fetchIssue($repo, $token, (int) $state['issue_number']);
-      if (!$issue) {
-        continue;
+      $open_issues = [];
+      foreach ($linked_issue_numbers as $issue_number) {
+        $issue = $this->fetchIssue($repo, $token, $issue_number);
+        if (!$issue) {
+          $open_issues[] = $issue_number;
+          continue;
+        }
+        $isClosed = ($issue['state'] ?? '') === 'closed';
+        if (!$isClosed) {
+          $open_issues[] = $issue_number;
+        }
       }
 
-      $isClosed = ($issue['state'] ?? '') === 'closed';
-      $states[$stage_id]['issue_status'] = $isClosed ? 'closed' : 'open';
+      $all_closed = empty($open_issues);
+      $states[$stage_id]['issue_status'] = $all_closed ? 'closed' : 'open';
+      $states[$stage_id]['issue_numbers'] = $linked_issue_numbers;
+      if (!empty($linked_issue_numbers)) {
+        $states[$stage_id]['issue_number'] = (int) $linked_issue_numbers[0];
+      }
 
-      if ($isClosed) {
+      if ($all_closed) {
         $updated = TRUE;
         $closedCount++;
         $wasActive = !empty($state['active']);
@@ -74,7 +95,7 @@ class StageIssueSyncService {
         unset($states[$stage_id]['failure_reason'], $states[$stage_id]['failure_excerpt']);
 
         if ($unlinkOnClose) {
-          unset($states[$stage_id]['issue_number'], $states[$stage_id]['issue_status']);
+          unset($states[$stage_id]['issue_number'], $states[$stage_id]['issue_status'], $states[$stage_id]['issue_numbers'], $states[$stage_id]['issue_test_cases']);
           $unlinkedCount++;
         }
 
@@ -84,7 +105,7 @@ class StageIssueSyncService {
           }
           $this->logger->notice('Stage @stage auto-resumed after issue closure (#@issue).', [
             '@stage' => $stage_id,
-            '@issue' => $state['issue_number'],
+            '@issue' => implode(',', $linked_issue_numbers),
           ]);
         }
       }

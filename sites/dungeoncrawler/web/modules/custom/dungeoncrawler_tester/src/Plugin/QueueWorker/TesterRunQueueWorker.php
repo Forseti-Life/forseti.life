@@ -180,11 +180,6 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
     $states = $this->state->get('dungeoncrawler_tester.stage_state', []);
     $current = $states[$stage_id] ?? [];
 
-    // Skip if already linked or auto-issue explicitly disabled.
-    if (!empty($current['issue_number'])) {
-      return NULL;
-    }
-
     $tester_config = $this->configFactory->get('dungeoncrawler_tester.settings');
     $repo = $tester_config->get('github_repo');
     $token = $tester_config->get('github_token');
@@ -205,52 +200,125 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
       return NULL;
     }
 
-    $title = sprintf('[Tester] Stage %s failed (exit %d)', $stage_id, $exit_code);
-    $body = "Automated failure capture from DungeonCrawler tester.\n\n";
-    $body .= "- Stage: " . $stage_id . "\n";
-    $body .= "- Command: " . $display . "\n";
-    $body .= "- Exit code: " . $exit_code . "\n\n";
-    $body .= "Latest output (truncated):\n\n";
-    $body .= "```\n" . mb_strimwidth($output, 0, 3000, "\n…") . "\n```\n";
+    $existing_issue_map = is_array($current['issue_test_cases'] ?? NULL) ? $current['issue_test_cases'] : [];
+    $existing_issue_numbers = is_array($current['issue_numbers'] ?? NULL) ? $current['issue_numbers'] : [];
+    if (!empty($current['issue_number'])) {
+      $existing_issue_numbers[] = (int) $current['issue_number'];
+    }
+    $existing_issue_numbers = array_values(array_unique(array_filter(array_map('intval', $existing_issue_numbers))));
 
-    $issue_data = [
-      'title' => $title,
-      'body' => $body,
-      'labels' => ['automated', 'tester'],
-    ];
-    
-    // Only add assignees if a valid assignee is configured
-    if (!empty($assignee)) {
-      $issue_data['assignees'] = [$assignee];
+    $failed_test_cases = $this->extractFailedTestCases($output);
+    if (empty($failed_test_cases)) {
+      $failed_test_cases = [$stage_id . '::UnknownFailure'];
     }
 
-    try {
-      $response = $this->httpClient->request('POST', "https://api.github.com/repos/{$repo}/issues", [
-        'headers' => [
-          'Authorization' => 'token ' . $token,
-          'Accept' => 'application/vnd.github+json',
-          'User-Agent' => 'dungeoncrawler-tester',
-        ],
-        'json' => $issue_data,
-        'timeout' => 10,
-      ]);
+    $created_issue_numbers = [];
+    foreach ($failed_test_cases as $test_case) {
+      if (isset($existing_issue_map[$test_case]) && !empty($existing_issue_map[$test_case])) {
+        continue;
+      }
 
-      $payload = json_decode((string) $response->getBody(), TRUE);
-      if (!empty($payload['number'])) {
-        $issue_number = (int) $payload['number'];
-        $this->logger->notice('Opened GitHub issue #@number for stage @stage failure.', ['@number' => $issue_number, '@stage' => $stage_id]);
-        
-        // Assign @copilot to trigger the agent (must be done after creation)
-        $this->assignCopilotToIssue($repo, $issue_number, $token);
-        
-        return $issue_number;
+      $title = sprintf('[Tester] %s failed in stage %s (exit %d)', $test_case, $stage_id, $exit_code);
+      $body = "Automated failure capture from DungeonCrawler tester.\n\n";
+      $body .= "- Stage: " . $stage_id . "\n";
+      $body .= "- Test case: " . $test_case . "\n";
+      $body .= "- Command: " . $display . "\n";
+      $body .= "- Exit code: " . $exit_code . "\n\n";
+      $body .= "Latest output (truncated):\n\n";
+      $body .= "```\n" . mb_strimwidth($output, 0, 3000, "\n…") . "\n```\n";
+
+      $issue_data = [
+        'title' => $title,
+        'body' => $body,
+        'labels' => ['automated', 'tester'],
+      ];
+
+      // Only add assignees if a valid assignee is configured.
+      if (!empty($assignee)) {
+        $issue_data['assignees'] = [$assignee];
+      }
+
+      try {
+        $response = $this->httpClient->request('POST', "https://api.github.com/repos/{$repo}/issues", [
+          'headers' => [
+            'Authorization' => 'token ' . $token,
+            'Accept' => 'application/vnd.github+json',
+            'User-Agent' => 'dungeoncrawler-tester',
+          ],
+          'json' => $issue_data,
+          'timeout' => 10,
+        ]);
+
+        $payload = json_decode((string) $response->getBody(), TRUE);
+        if (!empty($payload['number'])) {
+          $issue_number = (int) $payload['number'];
+          $existing_issue_map[$test_case] = $issue_number;
+          $existing_issue_numbers[] = $issue_number;
+          $created_issue_numbers[] = $issue_number;
+
+          $this->logger->notice('Opened GitHub issue #@number for test case @test in stage @stage failure.', [
+            '@number' => $issue_number,
+            '@test' => $test_case,
+            '@stage' => $stage_id,
+          ]);
+
+          // Assign @copilot to trigger the agent (must be done after creation).
+          $this->assignCopilotToIssue($repo, $issue_number, $token);
+        }
+      }
+      catch (\Throwable $e) {
+        $this->logger->warning('Could not auto-create GitHub issue for test case @test in stage @stage: @msg', [
+          '@test' => $test_case,
+          '@stage' => $stage_id,
+          '@msg' => $e->getMessage(),
+        ]);
       }
     }
-    catch (\Throwable $e) {
-      $this->logger->warning('Could not auto-create GitHub issue for stage @stage: @msg', ['@stage' => $stage_id, '@msg' => $e->getMessage()]);
+
+    if (!empty($existing_issue_numbers) || !empty($existing_issue_map)) {
+      $states = $this->state->get('dungeoncrawler_tester.stage_state', []);
+      $stage_state = $states[$stage_id] ?? [];
+      $stage_state['issue_numbers'] = array_values(array_unique(array_filter(array_map('intval', $existing_issue_numbers))));
+      $stage_state['issue_test_cases'] = $existing_issue_map;
+      if (!empty($stage_state['issue_numbers'])) {
+        $stage_state['issue_number'] = (int) $stage_state['issue_numbers'][0];
+        $stage_state['issue_status'] = 'open';
+      }
+      $states[$stage_id] = $stage_state;
+      $this->state->set('dungeoncrawler_tester.stage_state', $states);
+    }
+
+    if (!empty($created_issue_numbers)) {
+      return (int) $created_issue_numbers[0];
+    }
+
+    if (!empty($existing_issue_numbers)) {
+      return (int) $existing_issue_numbers[0];
     }
 
     return NULL;
+  }
+
+  /**
+   * Extract failed PHPUnit test case identifiers from process output.
+   */
+  private function extractFailedTestCases(string $output): array {
+    if ($output === '') {
+      return [];
+    }
+
+    $matches = [];
+    preg_match_all('/^\s*\d+\)\s+([A-Za-z0-9_\\\\]+::[A-Za-z0-9_]+)/m', $output, $matches);
+
+    $cases = [];
+    foreach ($matches[1] ?? [] as $test_case) {
+      $normalized = trim((string) $test_case);
+      if ($normalized !== '') {
+        $cases[$normalized] = TRUE;
+      }
+    }
+
+    return array_keys($cases);
   }
 
   /**

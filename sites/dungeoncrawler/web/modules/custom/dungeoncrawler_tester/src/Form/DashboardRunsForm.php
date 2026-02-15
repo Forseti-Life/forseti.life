@@ -89,8 +89,14 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     $runs = $this->getState()->get('dungeoncrawler_tester.runs', []);
     $stage_states = $this->getState()->get('dungeoncrawler_tester.stage_state', []);
     $regression_stage_id = 'regression_suite';
-    $regression_run = $runs[$regression_stage_id] ?? NULL;
-    $regression_in_progress = in_array($regression_run['status'] ?? '', ['pending', 'running'], TRUE);
+    $regression_batch_active = (bool) $this->getState()->get('dungeoncrawler_tester.regression_batch_active', FALSE);
+    $non_regression_in_progress_stages = $this->getInProgressStageIds($runs, NULL);
+    $non_regression_in_progress = !empty($non_regression_in_progress_stages);
+
+    if ($regression_batch_active && !$non_regression_in_progress) {
+      $this->getState()->set('dungeoncrawler_tester.regression_batch_active', FALSE);
+      $regression_batch_active = FALSE;
+    }
 
     $form['#tree'] = TRUE;
     $form['#attributes']['class'][] = 'stage-grid';
@@ -104,13 +110,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
         '#value' => $this->t('Regression Test Suite'),
       ],
       'desc' => [
-        '#markup' => '<p>' . $this->t('Runs the full tester module PHPUnit configuration as a single regression command.') . '</p>',
-      ],
-      'command' => [
-        '#type' => 'html_tag',
-        '#tag' => 'pre',
-        '#value' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml',
-        '#attributes' => ['class' => ['command-snippet']],
+        '#markup' => '<p>' . $this->t('Queues the primary command of each active/runnable stage gate from StageDefinitionService.') . '</p>',
       ],
       'run' => [
         '#type' => 'submit',
@@ -118,10 +118,22 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
         '#name' => 'run_regression_suite',
         '#submit' => ['::submitRegressionSuite'],
         '#limit_validation_errors' => [],
-        '#disabled' => $regression_in_progress,
-        '#attributes' => $regression_in_progress ? ['title' => (string) $this->t('Regression run is already pending or running.')] : [],
+        '#disabled' => $regression_batch_active || $non_regression_in_progress,
+        '#attributes' => ($regression_batch_active || $non_regression_in_progress)
+          ? [
+            'title' => $regression_batch_active
+              ? (string) $this->t('Regression batch is already queued/running.')
+              : (string) $this->t('Another stage run is pending/running: @stages', ['@stages' => implode(', ', $non_regression_in_progress_stages)]),
+          ]
+          : [],
       ],
-      'last_run' => $this->buildRunStatus($regression_run),
+      'status' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $regression_batch_active
+          ? $this->t('Regression batch status: running (stage-gate commands queued).')
+          : $this->t('Regression batch status: idle.'),
+      ],
     ];
 
     foreach ($definitions as $stage) {
@@ -180,8 +192,10 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
             '#submit' => ['::submitCommand'],
             // No validation gates; just run.
             '#limit_validation_errors' => [],
-            '#disabled' => !$this->isStageRunnable($stage_state),
-            '#attributes' => $block_reason ? ['title' => $block_reason] : [],
+            '#disabled' => !$this->isStageRunnable($stage_state) || $regression_batch_active,
+            '#attributes' => (!$this->isStageRunnable($stage_state) || $regression_batch_active)
+              ? ['title' => $block_reason ?: (string) $this->t('Regression batch is active. Stage runs are temporarily locked.')]
+              : [],
           ],
         ];
       }
@@ -270,6 +284,12 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     $trigger = $form_state->getTriggeringElement();
     $stage_id = $trigger['#stage_id'] ?? ($trigger['#parents'][0] ?? '');
 
+    $regression_batch_active = (bool) $this->getState()->get('dungeoncrawler_tester.regression_batch_active', FALSE);
+    if ($regression_batch_active) {
+      $this->messenger()->addWarning($this->t('Regression batch is active. Stage runs are temporarily locked.'));
+      return;
+    }
+
     $stage_state = $this->getStageState($stage_id);
     if (!$this->isStageRunnable($stage_state)) {
       $reason = $this->getBlockReason($stage_state) ?: $this->t('Stage is paused.');
@@ -348,49 +368,101 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
   public function submitRegressionSuite(array &$form, FormStateInterface $form_state): void {
     $stage_id = 'regression_suite';
     $runs = $this->getState()->get('dungeoncrawler_tester.runs', []);
-    $existing = $runs[$stage_id] ?? [];
-    $existing_status = $existing['status'] ?? '';
-
-    if (in_array($existing_status, ['pending', 'running'], TRUE)) {
-      $this->messenger()->addWarning($this->t('Regression suite is already queued or running.'));
+    $regression_batch_active = (bool) $this->getState()->get('dungeoncrawler_tester.regression_batch_active', FALSE);
+    if ($regression_batch_active) {
+      $this->messenger()->addWarning($this->t('Regression batch is already queued or running.'));
       return;
     }
 
-    $job_id = $this->getUuid()->generate();
-    $display_cmd = 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml';
+    $in_progress = $this->getInProgressStageIds($runs, NULL);
+    if (!empty($in_progress)) {
+      $this->messenger()->addWarning($this->t('Cannot queue regression while stage runs are pending/running: @stages', ['@stages' => implode(', ', $in_progress)]));
+      return;
+    }
 
-    $this->storeRun($stage_id, [
-      'job_id' => $job_id,
-      'command' => $display_cmd,
-      'status' => 'pending',
-      'exit_code' => NULL,
-      'started' => NULL,
-      'ended' => NULL,
-      'duration' => NULL,
-      'output' => '',
-    ]);
-
+    $definitions = $this->getStageDefinitions()->getDefinitions();
+    $stage_states = $this->getState()->get('dungeoncrawler_tester.stage_state', []);
     $queue = $this->getQueueFactory()->get('dungeoncrawler_tester_runs');
-    $queue->createItem([
-      'job_id' => $job_id,
-      'stage_id' => $stage_id,
-      'args' => [
-        './vendor/bin/phpunit',
-        '--configuration',
-        'web/modules/custom/dungeoncrawler_tester/phpunit.xml',
-      ],
-      'cwd' => 'sites/dungeoncrawler',
-      'display' => $display_cmd,
-    ]);
 
-    $this->messenger()->addStatus($this->t('Queued regression suite run. Job: @job', ['@job' => $job_id]));
-    $this->getLogger('dungeoncrawler_tester')->notice('Regression suite queued: @cmd (job @job)', [
-      '@cmd' => $display_cmd,
-      '@job' => $job_id,
+    $queued_stage_ids = [];
+    foreach ($definitions as $stage) {
+      $current_stage_id = $stage['id'] ?? '';
+      if ($current_stage_id === '' || $current_stage_id === $stage_id) {
+        continue;
+      }
+
+      $stage_state = $stage_states[$current_stage_id] ?? [];
+      if (!$this->isStageRunnable($stage_state)) {
+        continue;
+      }
+
+      $primary = $stage['commands'][0] ?? NULL;
+      if (!$primary || empty($primary['args'])) {
+        continue;
+      }
+
+      $job_id = $this->getUuid()->generate();
+      $display_cmd = $primary['display'] ?? implode(' ', $primary['args']);
+
+      $this->storeRun($current_stage_id, [
+        'job_id' => $job_id,
+        'command' => $display_cmd,
+        'status' => 'pending',
+        'exit_code' => NULL,
+        'started' => NULL,
+        'ended' => NULL,
+        'duration' => NULL,
+        'output' => '',
+      ]);
+
+      $queue->createItem([
+        'job_id' => $job_id,
+        'stage_id' => $current_stage_id,
+        'args' => $primary['args'],
+        'cwd' => $primary['cwd'] ?? NULL,
+        'display' => $display_cmd,
+      ]);
+
+      $queued_stage_ids[] = $current_stage_id;
+    }
+
+    if (empty($queued_stage_ids)) {
+      $this->messenger()->addWarning($this->t('No active/runnable stage-gate commands were eligible for regression queueing.'));
+      return;
+    }
+
+    $this->getState()->set('dungeoncrawler_tester.regression_batch_active', TRUE);
+    $this->messenger()->addStatus($this->t('Queued regression batch for @count stage gate(s): @stages', [
+      '@count' => count($queued_stage_ids),
+      '@stages' => implode(', ', $queued_stage_ids),
+    ]));
+    $this->getLogger('dungeoncrawler_tester')->notice('Regression batch queued for @count stage gate(s): @stages', [
+      '@count' => count($queued_stage_ids),
+      '@stages' => implode(', ', $queued_stage_ids),
     ]);
 
     $form_state->setRebuild(TRUE);
     $form_state->setRedirectUrl(Url::fromRoute('<current>', [], ['fragment' => 'stage-' . $stage_id]));
+  }
+
+  /**
+   * Return stage ids that are currently pending/running.
+   */
+  private function getInProgressStageIds(array $runs, ?string $excludeStageId = NULL): array {
+    $stageIds = [];
+
+    foreach ($runs as $stageId => $run) {
+      if ($excludeStageId !== NULL && $stageId === $excludeStageId) {
+        continue;
+      }
+
+      $status = $run['status'] ?? '';
+      if (in_array($status, ['pending', 'running'], TRUE)) {
+        $stageIds[] = (string) $stageId;
+      }
+    }
+
+    return $stageIds;
   }
 
   /**

@@ -114,11 +114,22 @@ class SdlcResetForm extends FormBase {
     $issueToStages = [];
 
     foreach ($stageStates as $stageId => $state) {
-      $hasOpenIssue = !empty($state['issue_number']) && (($state['issue_status'] ?? 'open') === 'open');
-      if ($hasOpenIssue) {
-        $issueNumber = (int) $state['issue_number'];
-        $issueNumbers[$issueNumber] = TRUE;
-        $issueToStages[$issueNumber][] = $stageId;
+      $hasOpenStatus = (($state['issue_status'] ?? 'open') === 'open');
+      if (!$hasOpenStatus) {
+        continue;
+      }
+
+      $linkedIssueNumbers = [];
+      if (!empty($state['issue_numbers']) && is_array($state['issue_numbers'])) {
+        $linkedIssueNumbers = array_values(array_unique(array_filter(array_map('intval', $state['issue_numbers']))));
+      }
+      if (!empty($state['issue_number'])) {
+        $linkedIssueNumbers[] = (int) $state['issue_number'];
+      }
+
+      foreach (array_values(array_unique(array_filter($linkedIssueNumbers))) as $issueNumber) {
+        $issueNumbers[(int) $issueNumber] = TRUE;
+        $issueToStages[(int) $issueNumber][] = $stageId;
       }
     }
 
