@@ -30,6 +30,7 @@ class StageDefinitionService {
         'commands' => [
           [
             'label' => $this->t('Unit suite'),
+            'description' => $this->t('Runs the fast unit test suite to catch core logic regressions before commit.'),
             'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', '--testsuite=unit'],
             'cwd' => $root,
             'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --testsuite=unit',
@@ -43,6 +44,7 @@ class StageDefinitionService {
         'commands' => [
           [
             'label' => $this->t('TheTest page functional'),
+            'description' => $this->t('Validates tester dashboard/thetest toggle behavior and failure signaling path.'),
             'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'tests/src/Functional/TheTestPageTest.php'],
             'cwd' => $root,
             'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/TheTestPageTest.php',
@@ -56,18 +58,21 @@ class StageDefinitionService {
         'commands' => [
           [
             'label' => $this->t('Routes'),
+            'description' => $this->t('Checks route access/status behavior for functional route coverage.'),
             'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'tests/src/Functional/Routes/'],
             'cwd' => $root,
             'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Routes/',
           ],
           [
             'label' => $this->t('Controllers'),
+            'description' => $this->t('Validates controller page responses, content rendering, and access behavior.'),
             'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'tests/src/Functional/Controller/'],
             'cwd' => $root,
             'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Controller/',
           ],
           [
             'label' => $this->t('API group'),
+            'description' => $this->t('Runs API-group tests for endpoint and payload behavior.'),
             'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', '--group=api'],
             'cwd' => $root,
             'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group=api',
@@ -81,6 +86,7 @@ class StageDefinitionService {
         'commands' => [
           [
             'label' => $this->t('Hexmap UI stage-gate suite'),
+            'description' => $this->t('Runs /hexmap UI smoke coverage for controls, movement, attack, and map UI signals.'),
             'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'tests/src/Functional/Controller/HexMapUiStageGateTest.php'],
             'cwd' => $root,
             'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/Controller/HexMapUiStageGateTest.php',
@@ -94,6 +100,7 @@ class StageDefinitionService {
         'commands' => [
           [
             'label' => $this->t('Workflow group'),
+            'description' => $this->t('Exercises character creation workflow scenarios and validation rules.'),
             'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', '--group=character-creation'],
             'cwd' => $root,
             'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group=character-creation',
@@ -107,6 +114,7 @@ class StageDefinitionService {
         'commands' => [
           [
             'label' => $this->t('Entity lifecycle trio'),
+            'description' => $this->t('Validates campaign state access, state validation, and entity lifecycle behavior.'),
             'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'tests/src/Functional/CampaignStateAccessTest.php', 'tests/src/Functional/CampaignStateValidationTest.php', 'tests/src/Functional/EntityLifecycleTest.php'],
             'cwd' => $root,
             'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/CampaignStateAccessTest.php tests/src/Functional/CampaignStateValidationTest.php tests/src/Functional/EntityLifecycleTest.php',
@@ -120,6 +128,7 @@ class StageDefinitionService {
         'commands' => [
           [
             'label' => $this->t('PF2e rules group'),
+            'description' => $this->t('Checks PF2e fixture and rules-reference consistency assertions.'),
             'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', '--group=pf2e-rules'],
             'cwd' => $root,
             'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --group=pf2e-rules',
@@ -133,6 +142,7 @@ class StageDefinitionService {
         'commands' => [
           [
             'label' => $this->t('Full suite with coverage'),
+            'description' => $this->t('Runs full PHPUnit coverage pass used as the CI quality gate.'),
             'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', '--coverage-html', 'tests/coverage'],
             'cwd' => $root,
             'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --coverage-html tests/coverage',
@@ -146,6 +156,7 @@ class StageDefinitionService {
         'commands' => [
           [
             'label' => $this->t('Review open defects'),
+            'description' => $this->t('Manual release sign-off check: review open blocking defects in GitHub before release.'),
             'args' => [],
             'cwd' => $root,
             'display' => 'Open GitHub issues (ci-failure, testing-defect)',

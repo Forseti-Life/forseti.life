@@ -8,6 +8,7 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\State\StateInterface;
+use Drupal\dungeoncrawler_tester\Service\StageDefinitionService;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
@@ -23,6 +24,7 @@ class SdlcResetForm extends FormBase {
     private readonly ConfigFactoryInterface $settingsConfigFactory,
     private readonly ClientInterface $httpClient,
     private readonly Connection $database,
+    private readonly StageDefinitionService $stageDefinitions,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -35,6 +37,7 @@ class SdlcResetForm extends FormBase {
       $container->get('config.factory'),
       $container->get('http_client'),
       $container->get('database'),
+      $container->get('dungeoncrawler_tester.stage_definitions'),
       $container->get('logger.factory')->get('dungeoncrawler_tester'),
     );
   }
@@ -62,7 +65,9 @@ class SdlcResetForm extends FormBase {
       '#theme' => 'item_list',
       '#items' => [
         $this->t('Linked open issues to close: @count', ['@count' => $preview['open_issues']]),
-        $this->t('Stages to reset to active: @count', ['@count' => $preview['stages']]),
+        $this->t('Defined stages to reset to active: @count', ['@count' => $preview['defined_stages']]),
+        $this->t('Historical stage-state records to clean: @count', ['@count' => $preview['historical_stage_states']]),
+        $this->t('Total stage-state entries to reset: @count', ['@count' => $preview['total_stage_states']]),
         $this->t('Queued tester items to clear: @count', ['@count' => $preview['queue_items']]),
       ],
     ];
@@ -225,6 +230,22 @@ class SdlcResetForm extends FormBase {
    */
   private function getResetPreviewStats(): array {
     $stageStates = $this->state->get('dungeoncrawler_tester.stage_state', []);
+    $definedStageIds = array_values(array_map(
+      static fn(array $definition): string => (string) ($definition['id'] ?? ''),
+      $this->stageDefinitions->getDefinitions()
+    ));
+    $definedStageIds = array_values(array_filter($definedStageIds));
+    $definedStageIdSet = array_fill_keys($definedStageIds, TRUE);
+
+    $definedStageStateCount = 0;
+    foreach (array_keys($stageStates) as $stageId) {
+      if (isset($definedStageIdSet[(string) $stageId])) {
+        $definedStageStateCount++;
+      }
+    }
+
+    $totalStageStateCount = count($stageStates);
+    $historicalStageStateCount = max(0, $totalStageStateCount - $definedStageStateCount);
 
     $openIssues = [];
     foreach ($stageStates as $state) {
@@ -242,7 +263,9 @@ class SdlcResetForm extends FormBase {
 
     return [
       'open_issues' => count($openIssues),
-      'stages' => count($stageStates),
+      'defined_stages' => $definedStageStateCount,
+      'historical_stage_states' => $historicalStageStateCount,
+      'total_stage_states' => $totalStageStateCount,
       'queue_items' => $queueItems,
     ];
   }
