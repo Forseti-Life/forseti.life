@@ -6,7 +6,10 @@
 function dungeoncrawler_tester_theme($existing, $type, $theme, $path) {
   return [
     'dungeoncrawler_tester_queue_management' => [
-      'render element' => 'elements',
+      'variables' => [
+        'queue_items' => [],
+        'queue_status' => [],
+      ],
       'template' => 'dungeoncrawler-tester-queue-management',
       'path' => $path . '/templates',
     ],

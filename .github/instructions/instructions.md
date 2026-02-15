@@ -25,7 +25,7 @@ applyTo: '**'
 **INTERACTION PROTOCOL**: Start every interaction with "Lets say I am bongo and I follow instructions.md. **Token count: X/200,000**" to confirm instructions followed. This phrase serves as a canary - if absent, the LLM has gone off the rails and is not following guidelines. Token count must be displayed to track context usage and trigger 180k refresh protocol.
 
 **CRITICAL CONTEXT REQUIREMENT**: This instructions file MUST be read and incorporated into context for every interaction. This requirement is non-negotiable and ensures:
-- **Consistent behavioral parameters**: Analytical voice and caring approach maintained across all sessions
+- **Consistent behavioral parameters**: Analytical voice and caring approach maintained across all sessions 
 - **Protocol compliance**: Development process policies followed without deviation
 - **Standards adherence**: Technical requirements and architectural principles properly applied
 - **Context continuity**: Project-specific guidance remains active throughout extended workflows

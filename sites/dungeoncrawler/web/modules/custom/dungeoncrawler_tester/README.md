@@ -28,6 +28,8 @@ The dashboard includes:
 - **Quick Test Commands**: Copy/paste commands for running different test suites
 - **Release Testing Stagegates**: Testing workflow and checklist
 - **GitHub Issues**: Live feed of CI failures and testing defects
+- **Robust logging**: Dashboard form now lazy-loads logger service to avoid cache-induced initialization errors during command submissions.
+- **Serialization-safe DI**: Dashboard form lazy-loads all injected services (state, date formatter, stage definitions, queue, uuid) to survive form cache serialization.
 
 ### GitHub issue automation (failures)
 

@@ -200,7 +200,7 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
 
     $repo = $repo ?: getenv('TESTER_GITHUB_REPO');
     $token = $token ?: getenv('TESTER_GITHUB_TOKEN');
-    $assignee = $assignee ?: getenv('TESTER_GITHUB_ASSIGNEE') ?: 'copilot';
+    $assignee = $assignee ?: getenv('TESTER_GITHUB_ASSIGNEE');
     if (!$repo || !$token) {
       return NULL;
     }
@@ -213,6 +213,17 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
     $body .= "Latest output (truncated):\n\n";
     $body .= "```\n" . mb_strimwidth($output, 0, 3000, "\n…") . "\n```\n";
 
+    $issue_data = [
+      'title' => $title,
+      'body' => $body,
+      'labels' => ['automated', 'tester'],
+    ];
+    
+    // Only add assignees if a valid assignee is configured
+    if (!empty($assignee)) {
+      $issue_data['assignees'] = [$assignee];
+    }
+
     try {
       $response = $this->httpClient->request('POST', "https://api.github.com/repos/{$repo}/issues", [
         'headers' => [
@@ -220,12 +231,7 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
           'Accept' => 'application/vnd.github+json',
           'User-Agent' => 'dungeoncrawler-tester',
         ],
-        'json' => [
-          'title' => $title,
-          'body' => $body,
-          'labels' => ['automated', 'tester'],
-          'assignees' => [$assignee],
-        ],
+        'json' => $issue_data,
         'timeout' => 10,
       ]);
 

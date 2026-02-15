@@ -3,6 +3,7 @@
 namespace Drupal\dungeoncrawler_tester\Form;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
@@ -20,35 +21,37 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class DashboardRunsForm extends FormBase implements ContainerInjectionInterface {
 
+  use DependencySerializationTrait;
+
   /**
    * State storage.
    */
-  private StateInterface $state;
+  private ?StateInterface $state = NULL;
 
   /**
    * Date formatter service.
    */
-  private DateFormatterInterface $dateFormatter;
+  private ?DateFormatterInterface $dateFormatter = NULL;
 
   /**
    * Stage definitions provider.
    */
-  private StageDefinitionService $stageDefinitions;
+  private ?StageDefinitionService $stageDefinitions = NULL;
 
   /**
    * Queue factory for tester runs.
    */
-  private QueueFactory $queueFactory;
+  private ?QueueFactory $queueFactory = NULL;
 
   /**
    * UUID generator.
    */
-  private UuidInterface $uuid;
+  private ?UuidInterface $uuid = NULL;
 
   /**
    * Logger channel.
    */
-  private LoggerChannelInterface $logger;
+  private ?LoggerChannelInterface $logger = NULL;
 
   public function __construct(StateInterface $state, DateFormatterInterface $dateFormatter, StageDefinitionService $stageDefinitions, QueueFactory $queueFactory, UuidInterface $uuid, LoggerChannelFactoryInterface $loggerFactory) {
     $this->state = $state;
@@ -82,9 +85,9 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $definitions = $this->stageDefinitions->getDefinitions();
-    $runs = $this->state->get('dungeoncrawler_tester.runs', []);
-    $stage_states = $this->state->get('dungeoncrawler_tester.stage_state', []);
+    $definitions = $this->getStageDefinitions()->getDefinitions();
+    $runs = $this->getState()->get('dungeoncrawler_tester.runs', []);
+    $stage_states = $this->getState()->get('dungeoncrawler_tester.stage_state', []);
 
     $form['#tree'] = TRUE;
     $form['#attributes']['class'][] = 'stage-grid';
@@ -264,7 +267,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     }
 
     // Trace that the submit actually fired.
-    $this->logger->notice('Dashboard run triggered', [
+    $this->getLogger('dungeoncrawler_tester')->notice('Dashboard run triggered', [
       '@stage' => $stage_id,
       '@cmd' => $cmd['display'] ?? implode(' ', $cmd['args'] ?? []),
       '@trigger' => $trigger['#name'] ?? 'unknown',
@@ -272,7 +275,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     ]);
 
     $display_cmd = $cmd['display'] ?? implode(' ', $cmd['args'] ?? []);
-    $job_id = $this->uuid->generate();
+    $job_id = $this->getUuid()->generate();
 
     $this->storeRun($stage_id, [
       'job_id' => $job_id,
@@ -286,7 +289,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     ]);
 
     // Enqueue for background processing.
-    $queue = $this->queueFactory->get('dungeoncrawler_tester_runs');
+    $queue = $this->getQueueFactory()->get('dungeoncrawler_tester_runs');
     $queue->createItem([
       'job_id' => $job_id,
       'stage_id' => $stage_id,
@@ -296,7 +299,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     ]);
 
     $this->messenger()->addStatus($this->t('Queued stage @stage run. Job: @job', ['@stage' => $stage_id, '@job' => $job_id]));
-    $this->logger->notice('Stage @stage queued: @cmd (job @job)', [
+    $this->getLogger('dungeoncrawler_tester')->notice('Stage @stage queued: @cmd (job @job)', [
       '@stage' => $stage_id,
       '@cmd' => $display_cmd,
       '@job' => $job_id,
@@ -350,10 +353,10 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
    * Persist last run metadata per stage.
    */
   private function storeRun(string $stage_id, array $data): void {
-    $runs = $this->state->get('dungeoncrawler_tester.runs', []);
+    $runs = $this->getState()->get('dungeoncrawler_tester.runs', []);
     $current = $runs[$stage_id] ?? [];
     $runs[$stage_id] = array_merge($current, $data);
-    $this->state->set('dungeoncrawler_tester.runs', $runs);
+    $this->getState()->set('dungeoncrawler_tester.runs', $runs);
   }
 
   /**
@@ -381,7 +384,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       'succeeded' => $this->t('Passed'),
       'failed' => $this->t('Failed'),
     ][$status_key] ?? $this->t('Unknown');
-    $time = !empty($run['ended']) ? $this->dateFormatter->format($run['ended'], 'short') : $this->t('in progress');
+    $time = !empty($run['ended']) ? $this->getDateFormatter()->format($run['ended'], 'short') : $this->t('in progress');
     $duration = isset($run['duration']) && $run['duration'] !== NULL ? sprintf('%.1fs', $run['duration']) : '';
 
     return [
@@ -408,24 +411,68 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
    * Fetch per-stage state with defaults.
    */
   private function getStageState(string $stage_id): array {
+    $states = $this->getState()->get('dungeoncrawler_tester.stage_state', []);
+    return $states[$stage_id] ?? [];
+  }
+
+  /**
+   * Lazy-load state service.
+   */
+  private function getState(): StateInterface {
     if (!$this->state) {
       $this->state = \Drupal::state();
     }
-    $states = $this->state->get('dungeoncrawler_tester.stage_state', []);
-    return $states[$stage_id] ?? [];
+    return $this->state;
+  }
+
+  /**
+   * Lazy-load date formatter service.
+   */
+  private function getDateFormatter(): DateFormatterInterface {
+    if (!$this->dateFormatter) {
+      $this->dateFormatter = \Drupal::service('date.formatter');
+    }
+    return $this->dateFormatter;
+  }
+
+  /**
+   * Lazy-load stage definitions service.
+   */
+  private function getStageDefinitions(): StageDefinitionService {
+    if (!$this->stageDefinitions) {
+      $this->stageDefinitions = \Drupal::service('dungeoncrawler_tester.stage_definitions');
+    }
+    return $this->stageDefinitions;
+  }
+
+  /**
+   * Lazy-load queue factory service.
+   */
+  private function getQueueFactory(): QueueFactory {
+    if (!$this->queueFactory) {
+      $this->queueFactory = \Drupal::service('queue');
+    }
+    return $this->queueFactory;
+  }
+
+  /**
+   * Lazy-load UUID service.
+   */
+  private function getUuid(): UuidInterface {
+    if (!$this->uuid) {
+      $this->uuid = \Drupal::service('uuid');
+    }
+    return $this->uuid;
   }
 
   /**
    * Persist per-stage state.
    */
   private function saveStageState(string $stage_id, array $data): void {
-    if (!$this->state) {
-      $this->state = \Drupal::state();
-    }
-    $states = $this->state->get('dungeoncrawler_tester.stage_state', []);
+    $states = $this->getState()->get('dungeoncrawler_tester.stage_state', []);
     $current = $states[$stage_id] ?? [];
     $states[$stage_id] = array_merge($current, $data);
-    $this->state->set('dungeoncrawler_tester.stage_state', $states);
+    $this->getState()->set('dungeoncrawler_tester.stage_state', $states);
   }
 
   /**

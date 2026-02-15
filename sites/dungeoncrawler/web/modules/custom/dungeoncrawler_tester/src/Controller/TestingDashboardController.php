@@ -5,13 +5,17 @@ namespace Drupal\dungeoncrawler_tester\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Link;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_tester\Form\DashboardRunsForm;
+use Drupal\dungeoncrawler_tester\Service\StageDefinitionService;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Process\Process;
 
@@ -43,6 +47,26 @@ class TestingDashboardController extends ControllerBase {
   protected Connection $database;
 
   /**
+   * Date formatter service.
+   */
+  protected DateFormatterInterface $dateFormatter;
+
+  /**
+   * Stage definitions service.
+   */
+  protected StageDefinitionService $stageDefinitions;
+
+  /**
+   * Module extension list service.
+   */
+  protected ModuleExtensionList $moduleExtensionList;
+
+  /**
+   * Logger channel.
+   */
+  protected LoggerInterface $logger;
+
+  /**
    * Default repository for issue lookups.
    */
   private string $defaultRepo = 'keithaumiller/forseti.life';
@@ -51,6 +75,26 @@ class TestingDashboardController extends ControllerBase {
    * Base path for documentation relative to module path.
    */
   private string $docsRelativePath = '../../../../docs/dungeoncrawler';
+
+  /**
+   * GitHub API timeout in seconds.
+   */
+  private const GITHUB_API_TIMEOUT = 10;
+
+  /**
+   * Maximum issues to fetch per request.
+   */
+  private const GITHUB_MAX_ISSUES = 10;
+
+  /**
+   * Maximum queue items to display.
+   */
+  private const MAX_QUEUE_ITEMS = 50;
+
+  /**
+   * GitHub API cache TTL in seconds (10 minutes).
+   */
+  private const GITHUB_CACHE_TTL = 600;
 
   /**
    * {@inheritdoc}
@@ -62,6 +106,10 @@ class TestingDashboardController extends ControllerBase {
     $instance->state = $container->get('state');
     $instance->queueFactory = $container->get('queue');
     $instance->database = $container->get('database');
+    $instance->dateFormatter = $container->get('date.formatter');
+    $instance->stageDefinitions = $container->get('dungeoncrawler_tester.stage_definitions');
+    $instance->moduleExtensionList = $container->get('extension.list.module');
+    $instance->logger = $container->get('logger.factory')->get('dungeoncrawler_tester');
     return $instance;
   }
 
@@ -91,6 +139,11 @@ class TestingDashboardController extends ControllerBase {
     return [
       '#type' => 'container',
       '#attributes' => ['class' => ['dungeoncrawler-testing-dashboard']],
+      '#cache' => [
+        'tags' => ['dungeoncrawler_tester.dashboard', 'dungeoncrawler_tester.queue'],
+        'contexts' => ['user.permissions'],
+        'max-age' => self::GITHUB_CACHE_TTL,
+      ],
       'queue' => [
         '#type' => 'container',
         '#attributes' => ['class' => ['dungeoncrawler-queue-embedded']],
@@ -133,10 +186,14 @@ class TestingDashboardController extends ControllerBase {
   }
 
   /**
-   * Build the top-level process flow that anchors the page layout.
+   * Build concise process flow for stagegate overview.
    */
   private function buildProcessFlowSection(): array {
-    $process = $this->buildProcessFlow();
+    $definitions = $this->stageDefinitions->getDefinitions();
+    $items = [];
+    foreach ($definitions as $stage) {
+      $items[] = $stage['title'] ?? $stage['id'];
+    }
 
     return [
       '#type' => 'container',
@@ -148,7 +205,7 @@ class TestingDashboardController extends ControllerBase {
       ],
       'list' => [
         '#theme' => 'item_list',
-        '#items' => $process,
+        '#items' => $items,
       ],
       'note' => [
         '#markup' => '<p>' . $this->t('Each stage below includes run buttons (commands) and a reports placeholder.') . '</p>',
@@ -211,7 +268,7 @@ class TestingDashboardController extends ControllerBase {
    * Build documentation links section.
    */
   private function buildDocumentationSection(): array {
-    $moduleBasePath = \Drupal::service('extension.list.module')->getPath('dungeoncrawler_tester');
+    $moduleBasePath = $this->moduleExtensionList->getPath('dungeoncrawler_tester');
     $docsBasePath = $moduleBasePath . '/' . $this->docsRelativePath;
     
     $links = [
@@ -370,19 +427,7 @@ class TestingDashboardController extends ControllerBase {
   }
 
   /**
-   * Build stagegate process flow top-to-bottom.
-   */
-  private function buildProcessFlow(): array {
-    $definitions = $this->getStageDefinitions();
-    $items = [];
-    foreach ($definitions as $stage) {
-      $items[] = $stage['flow'];
-    }
-    return $items;
-  }
-
-  /**
-   * Fetch issues with specific label filters.
+   * Fetch issues with specific label filters (with caching).
    */
   private function fetchIssues(string $repo, ?string $token, string $kind): array {
     $labelMap = [
@@ -392,11 +437,20 @@ class TestingDashboardController extends ControllerBase {
     ];
 
     $label = $labelMap[$kind] ?? 'ci-failure';
-    $url = "https://api.github.com/repos/{$repo}/issues?state=open&labels=" . urlencode($label) . "&per_page=10";
-
+    
     if (!$token) {
+      $this->logger->warning('No GitHub token configured for issue fetching.');
       return ['items' => [], 'error' => $this->t('No GitHub token configured.')];
     }
+
+    // Check cache first
+    $cache_key = 'dungeoncrawler_tester.github_issues.' . $repo . '.' . $label;
+    $cache = \Drupal::cache()->get($cache_key);
+    if ($cache && !empty($cache->data)) {
+      return $cache->data;
+    }
+
+    $url = "https://api.github.com/repos/{$repo}/issues?state=open&labels=" . urlencode($label) . "&per_page=" . self::GITHUB_MAX_ISSUES;
 
     try {
       $response = $this->httpClient->request('GET', $url, [
@@ -405,7 +459,7 @@ class TestingDashboardController extends ControllerBase {
           'Accept' => 'application/vnd.github+json',
           'User-Agent' => 'dungeoncrawler-tester-dashboard',
         ],
-        'timeout' => 10,
+        'timeout' => self::GITHUB_API_TIMEOUT,
       ]);
       $status = $response->getStatusCode();
       if ($status >= 200 && $status < 300) {
@@ -414,25 +468,42 @@ class TestingDashboardController extends ControllerBase {
         foreach ($data as $issue) {
           $items[] = Link::fromTextAndUrl($issue['title'], Url::fromUri($issue['html_url']))->toRenderable();
         }
-        return ['items' => $items, 'error' => NULL];
+        $result = ['items' => $items, 'error' => NULL];
+        
+        // Cache successful response
+        \Drupal::cache()->set($cache_key, $result, time() + self::GITHUB_CACHE_TTL);
+        
+        return $result;
       }
 
-      return ['items' => [], 'error' => $this->t('GitHub responded with status @s', ['@s' => $status])];
+      $error_msg = $this->t('GitHub responded with status @s', ['@s' => $status]);
+      $this->logger->error('GitHub API returned non-200 status: @status for @url', [
+        '@status' => $status,
+        '@url' => $url,
+      ]);
+      return ['items' => [], 'error' => $error_msg];
     }
     catch (GuzzleException $e) {
-      return ['items' => [], 'error' => $this->t('GitHub request failed: @m', ['@m' => $e->getMessage()])];
+      $error_msg = $this->t('GitHub request failed: @m', ['@m' => $e->getMessage()]);
+      $this->logger->error('GitHub API request failed: @message for @url', [
+        '@message' => $e->getMessage(),
+        '@url' => $url,
+      ]);
+      return ['items' => [], 'error' => $error_msg];
     }
   }
 
   /**
-   * Load active queue items for display.
+   * Load active queue items for display (limited).
    */
   private function loadQueueItems(): array {
     $queue_items = [];
 
     $query = $this->database->select('queue', 'q')
       ->fields('q', ['item_id', 'data', 'expire', 'created'])
-      ->condition('name', 'dungeoncrawler_tester_runs');
+      ->condition('name', 'dungeoncrawler_tester_runs')
+      ->orderBy('created', 'DESC')
+      ->range(0, self::MAX_QUEUE_ITEMS);
     $results = $query->execute()->fetchAll();
 
     foreach ($results as $row) {
@@ -488,134 +559,6 @@ class TestingDashboardController extends ControllerBase {
   }
 
   /**
-   * Shared stage definitions with flow labels and command metadata.
-   */
-  public function getStageDefinitions(): array {
-    $root = $this->getProjectRoot();
-
-    return [
-      [
-        'id' => 'precommit',
-        'flow' => $this->t('Pre-commit: lint/format + unit (CharacterCalculator, CombatCalculator)'),
-        'title' => $this->t('Pre-commit: lint/format + unit'),
-        'description' => $this->t('Keep fast checks green before pushing.'),
-        'commands' => [
-          [
-            'label' => $this->t('Unit suite'),
-            'args' => ['./vendor/bin/phpunit', '--testsuite=unit'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --testsuite=unit',
-          ],
-        ],
-      ],
-      [
-        'id' => 'functional-routes',
-        'flow' => $this->t('Functional routes/controllers: public, admin, character, campaign, API endpoints'),
-        'title' => $this->t('Functional routes/controllers'),
-        'description' => $this->t('Public, admin, character, campaign, API endpoints.'),
-        'commands' => [
-          [
-            'label' => $this->t('Routes'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'web/modules/custom/dungeoncrawler_tester/tests/src/Functional/Routes/'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml web/modules/custom/dungeoncrawler_tester/tests/src/Functional/Routes/',
-          ],
-          [
-            'label' => $this->t('Controllers'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'web/modules/custom/dungeoncrawler_tester/tests/src/Functional/Controller/'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml web/modules/custom/dungeoncrawler_tester/tests/src/Functional/Controller/',
-          ],
-          [
-            'label' => $this->t('API group'),
-            'args' => ['./vendor/bin/phpunit', '--group=api'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --group=api',
-          ],
-        ],
-      ],
-      [
-        'id' => 'character-workflow',
-        'flow' => $this->t('Character creation workflow: 8-step wizard, validation, persistence (see workflow tests)'),
-        'title' => $this->t('Character creation workflow'),
-        'description' => $this->t('8-step wizard, validation, persistence.'),
-        'commands' => [
-          [
-            'label' => $this->t('Workflow group'),
-            'args' => ['./vendor/bin/phpunit', '--group=character-creation'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --group=character-creation',
-          ],
-        ],
-      ],
-      [
-        'id' => 'entity-campaign',
-        'flow' => $this->t('Entity/campaign APIs: state validation/access, entity lifecycle'),
-        'title' => $this->t('Entity/campaign APIs'),
-        'description' => $this->t('State validation, access, lifecycle.'),
-        'commands' => [
-          [
-            'label' => $this->t('Entity lifecycle trio'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'web/modules/custom/dungeoncrawler_tester/tests/src/Functional/CampaignStateAccessTest.php', 'web/modules/custom/dungeoncrawler_tester/tests/src/Functional/CampaignStateValidationTest.php', 'web/modules/custom/dungeoncrawler_tester/tests/src/Functional/EntityLifecycleTest.php'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml web/modules/custom/dungeoncrawler_tester/tests/src/Functional/CampaignStateAccessTest.php web/modules/custom/dungeoncrawler_tester/tests/src/Functional/CampaignStateValidationTest.php web/modules/custom/dungeoncrawler_tester/tests/src/Functional/EntityLifecycleTest.php',
-          ],
-        ],
-      ],
-      [
-        'id' => 'fixtures',
-        'flow' => $this->t('Cross-check fixtures: PF2e reference + character fixtures up to date'),
-        'title' => $this->t('Cross-check fixtures'),
-        'description' => $this->t('PF2e reference + character fixtures up to date.'),
-        'commands' => [
-          [
-            'label' => $this->t('PF2e rules group'),
-            'args' => ['./vendor/bin/phpunit', '--group=pf2e-rules'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --group=pf2e-rules',
-          ],
-        ],
-      ],
-      [
-        'id' => 'ci-gate',
-        'flow' => $this->t('CI gate: all suites green; failures auto-filed to GitHub (ci-failure label)'),
-        'title' => $this->t('CI gate'),
-        'description' => $this->t('All suites green; failures auto-filed.'),
-        'commands' => [
-          [
-            'label' => $this->t('Full suite with coverage'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', '--coverage-html', 'tests/coverage'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --coverage-html tests/coverage',
-          ],
-        ],
-      ],
-      [
-        'id' => 'signoff',
-        'flow' => $this->t('Release sign-off: no open ci-failure/testing-defect blocking issues'),
-        'title' => $this->t('Release sign-off'),
-        'description' => $this->t('No open ci-failure/testing-defect blocking issues.'),
-        'commands' => [
-          [
-            'label' => $this->t('Review open defects'),
-            'args' => [],
-            'cwd' => $root,
-            'display' => 'Open GitHub issues (ci-failure, testing-defect)',
-            'link' => 'https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Aci-failure+label%3Atesting-defect',
-          ],
-        ],
-      ],
-    ];
-  }
-
-  /**
-   * Get project root (Drupal web root parent).
-   */
-  private function getProjectRoot(): string {
-    return dirname(\Drupal::root());
-  }
-
-  /**
    * Fetch last run metadata for a stage.
    */
   private function getLastRun(string $stage_id): ?array {
@@ -643,7 +586,7 @@ class TestingDashboardController extends ControllerBase {
     }
 
     $status = $run['exit_code'] === 0 ? $this->t('Passed') : $this->t('Failed');
-    $time = $this->dateFormatter()->format($run['ended'], 'short');
+    $time = $this->dateFormatter->format($run['ended'], 'short');
     $duration = isset($run['duration']) ? sprintf('%.1fs', $run['duration']) : '';
 
     return [
