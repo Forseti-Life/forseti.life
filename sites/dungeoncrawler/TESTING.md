@@ -16,10 +16,20 @@
    mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS drupal_test;"
    ```
 
-4. **Ensure the simpletest directory is writable:**
+4. **Ensure the simpletest directory is writable by the test runner:**
+   
+   PHPUnit tests create temporary test sites in `web/sites/simpletest/`. The directory must be writable by the user running the tests.
+   
    ```bash
-   chmod 777 web/sites/simpletest
+   # For command-line test execution by current user
+   chmod 755 web/sites/simpletest
+   
+   # If running tests as web server user (e.g., via CI/CD)
+   # sudo chown -R www-data:www-data web/sites/simpletest
+   # chmod 775 web/sites/simpletest
    ```
+   
+   **Note:** Tests should only be run in development environments, never on production servers.
 
 ## Running Tests
 
