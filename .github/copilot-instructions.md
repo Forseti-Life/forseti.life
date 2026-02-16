@@ -72,7 +72,7 @@ This is a multi-site Drupal workspace featuring:
 **React Native Configuration**:
 - Use documented version combinations: AGP 8.0.2 + Gradle 8.0.1 + Kotlin 1.8.22
 - Apply patches via patch-package for node_modules modifications
-- Use automated setup script: `/script/setup-forseti-mobile-dev.sh`
+- Use automated setup script: `./script/setup-forseti-mobile-dev.sh`
 
 **Build Commands**:
 - Debug APK: `./gradlew assembleDebug`
@@ -142,7 +142,7 @@ mysql -u drupal_user -p
 **Environment Setup**:
 ```bash
 # Complete setup (first time)
-/script/setup-forseti-mobile-dev.sh
+./script/setup-forseti-mobile-dev.sh
 
 # From forseti-mobile directory
 cd forseti-mobile
@@ -159,13 +159,13 @@ cd forseti-mobile/android
 
 ```bash
 # After workspace restart (fastest)
-./scripts/quick-start.sh
+./script/quick-start.sh
 
 # Complete multi-site setup (first time)
-./scripts/complete-setup.sh
+./script/setup.sh
 
 # Verify setup
-./scripts/verify-setup.sh
+./script/verify-setup.sh
 ```
 
 ## Testing & Quality
@@ -213,8 +213,8 @@ cd forseti-mobile/android
 - `forseti-mobile/FEATURE_STATUS.md` - Feature implementation status
 
 ### Setup & Scripts
-- `script/README.md` - Setup scripts documentation
-- `script/setup-forseti-mobile-dev.sh` - Automated mobile dev environment
+- `./script/README.md` - Setup scripts documentation
+- `./script/setup-forseti-mobile-dev.sh` - Automated mobile dev environment
 
 ## Important Notes
 
