@@ -40,10 +40,6 @@
   margin-bottom: 0;
 }
 
-.dungeoncrawler-testing-dashboard .stage-grid {
-  grid-column: 1 / -1;
-}
-
 .dungeoncrawler-testing-dashboard .stage-card {
   color: #0f172a;
   letter-spacing: 0.01em;

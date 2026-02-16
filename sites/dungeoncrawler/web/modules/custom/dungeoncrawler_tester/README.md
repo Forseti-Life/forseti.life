@@ -35,6 +35,7 @@ The dashboard includes:
 - **Theme compliance**: Documentation pages render with the theme-standard Bootstrap layout (`container` + `row/col`) and `card card-dungeoncrawler` sections for visual consistency.
 - **Robust logging**: Dashboard form now lazy-loads logger service to avoid cache-induced initialization errors during command submissions.
 - **Serialization-safe DI**: Dashboard form lazy-loads all injected services (state, date formatter, stage definitions, queue, uuid) to survive form cache serialization.
+- **Dashboard CSS maintenance**: Removed a duplicate `.stage-grid` selector block in `css/dashboard.css` to keep layout rules single-sourced and easier to maintain.
 
 ### Standard testing documentation structure
 
