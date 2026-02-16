@@ -74,6 +74,12 @@ The dashboard includes:
 
 ## Running tests
 
+**Quick Start:**
+```bash
+cd sites/dungeoncrawler
+./tests/run-tests.sh
+```
+
 For complete run instructions, test suites, groups, and examples, see **[tests/README.md](tests/README.md)** - the canonical testing guide.
 
 **Quick tip**: Visit the Testing Dashboard at `/dungeoncrawler/testing` for a complete list of test commands with copy/paste functionality.
