@@ -2,4 +2,4 @@
 /.gitattributes
 /.phpunit.cache
 /vendor
-/phpunit.xml
+/phpunit.xmlphpunit.phar
