@@ -61,6 +61,8 @@ final class TestEnvironmentSetup implements Extension {
     else {
       chmod($simpletestDir, 0777);
     }
+    // Ensure the directory has full write permissions for test subdirectories
+    chmod($simpletestDir, 0777);
 
     // Ensure default site files directory exists
     // Uses 0775 as this may persist beyond test execution
