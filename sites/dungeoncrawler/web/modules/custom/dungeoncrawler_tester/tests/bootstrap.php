@@ -46,5 +46,6 @@ if (!chmod($simpletest_dir, 0775)) {
   throw new \RuntimeException("Failed to set permissions on simpletest directory: $simpletest_dir");
 }
 
-// Include the standard Drupal test bootstrap
-require __DIR__ . '/../../../../core/tests/bootstrap.php';
+// Now include Drupal's core test bootstrap which will handle the rest of the
+// initialization.
+require_once DRUPAL_ROOT . '/core/tests/bootstrap.php';
