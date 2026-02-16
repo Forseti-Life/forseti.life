@@ -24,9 +24,21 @@ bash prepare-test-env.sh
 ```
 
 This script:
-- Creates and sets proper permissions (777) for `web/sites/simpletest/` directory
+- Creates and sets proper permissions for `web/sites/simpletest/` directory (default: 777 for CI/testing)
 - Creates the `/tmp/dungeoncrawler-simpletest/` directory for test files
 - Cleans any stale test directories from previous runs
+
+### Permission Options
+
+By default, the script uses 777 permissions (suitable for CI/development). For more restricted environments:
+
+```bash
+# Use 775 permissions instead
+TEST_DIR_PERMISSIONS=775 bash prepare-test-env.sh
+
+# Ensure your user is in the web server group
+sudo usermod -a -G www-data $USER
+```
 
 ### Why is this needed?
 
