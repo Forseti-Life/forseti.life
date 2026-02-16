@@ -33,6 +33,8 @@ final class TestEnvironmentSetup implements Extension {
 
     // Ensure simpletest directory in web root exists and is writable
     // Note: This path is relative to where phpunit is run from (sites/dungeoncrawler)
+    // Using 0777 permissions as recommended in phpunit.xml for CI/testing environments.
+    // These are temporary test directories that are cleaned after test runs.
     $simpletestDir = 'web/sites/simpletest';
     if (!is_dir($simpletestDir)) {
       mkdir($simpletestDir, 0777, TRUE);

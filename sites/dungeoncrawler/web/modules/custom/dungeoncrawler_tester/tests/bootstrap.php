@@ -16,7 +16,11 @@
 // umask(0) results in:
 // - Files created with 0666 permissions (rw-rw-rw-)
 // - Directories created with 0777 permissions (rwxrwxrwx)
-// This ensures that the test runner can always write to test directories.
+//
+// Note: This is appropriate for CI/testing environments where test directories are
+// temporary and cleaned after test runs. For production environments, use umask(0002)
+// and ensure the user is in the web server group.
+// See phpunit.xml line 101-106 for more details.
 umask(0);
 
 // Define the path to Composer's autoloader.
@@ -36,6 +40,7 @@ if (!defined('DRUPAL_ROOT')) {
 // Ensure the simpletest directory exists and is writable.
 // This is required for Drupal's BrowserTestBase which creates temporary
 // test site directories under sites/simpletest/.
+// Using 0777 permissions as recommended in phpunit.xml (line 101) for CI/testing.
 $simpletest_dir = __DIR__ . '/../../../../sites/simpletest';
 if (!is_dir($simpletest_dir)) {
   if (!mkdir($simpletest_dir, 0777, TRUE)) {
