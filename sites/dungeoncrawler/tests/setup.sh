@@ -15,11 +15,11 @@ SIMPLETEST_DIR="$PROJECT_ROOT/web/sites/simpletest"
 if [ ! -d "$SIMPLETEST_DIR" ]; then
     echo "Creating simpletest directory: $SIMPLETEST_DIR"
     mkdir -p "$SIMPLETEST_DIR"
+    chmod 775 "$SIMPLETEST_DIR"
+    echo "✓ Simpletest directory created: $SIMPLETEST_DIR"
+else
+    echo "✓ Simpletest directory already exists: $SIMPLETEST_DIR"
 fi
-
-# Ensure it's writable
-chmod 775 "$SIMPLETEST_DIR"
-echo "✓ Simpletest directory is ready: $SIMPLETEST_DIR"
 
 # Ensure vendor dependencies are installed
 if [ ! -f "$PROJECT_ROOT/vendor/bin/phpunit" ]; then

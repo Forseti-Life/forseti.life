@@ -115,7 +115,7 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
     $this->logger->notice('Queue job @job started for stage @stage: @cmd', ['@job' => $job_id, '@stage' => $stage_id, '@cmd' => $display]);
 
     // Ensure simpletest directory exists for PHPUnit functional tests.
-    if ($cwd && str_contains($display, 'phpunit')) {
+    if ($cwd && stripos($display, 'phpunit') !== FALSE) {
       $simpletest_dir = $cwd . '/web/sites/simpletest';
       if (!is_dir($simpletest_dir)) {
         mkdir($simpletest_dir, 0775, TRUE);
