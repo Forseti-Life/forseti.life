@@ -1,0 +1,4 @@
+# Ignore all test site directories created by PHPUnit functional tests
+*
+# Keep this .gitignore file
+!.gitignore
