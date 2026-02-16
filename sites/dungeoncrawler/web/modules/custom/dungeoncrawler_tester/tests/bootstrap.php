@@ -5,8 +5,8 @@
  * Custom PHPUnit bootstrap for dungeoncrawler_tester module.
  *
  * This bootstrap file ensures that PHPUnit tests can locate the correct
- * Composer autoloader and sets DRUPAL_ROOT appropriately for a Composer-based
- * Drupal installation where the web root is in a subdirectory.
+ * Composer autoloader, sets DRUPAL_ROOT appropriately, and ensures proper
+ * file permissions for test site creation.
  */
 
 // Define the path to Composer's autoloader.
