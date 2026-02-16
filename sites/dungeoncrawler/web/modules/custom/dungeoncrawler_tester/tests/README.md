@@ -25,6 +25,32 @@ tests/
 └── README.md                    # This file
 ```
 
+## ⚙️ Prerequisites
+
+Before running tests, ensure:
+
+1. **Composer dependencies are installed:**
+   ```bash
+   cd sites/dungeoncrawler
+   composer install
+   ```
+
+2. **Test directories have proper permissions:**
+   - The `web/sites/simpletest` directory must be writable
+   - The custom bootstrap (`tests/bootstrap.php`) automatically ensures this
+   - If tests fail with "Failed to open settings.php" errors, manually run:
+     ```bash
+     chmod 775 web/sites/simpletest
+     ```
+
+3. **Database is configured:**
+   - Set `SIMPLETEST_DB` in phpunit.xml or as an environment variable
+   - Example: `mysql://user:pass@localhost:3306/database`
+
+4. **Web server is accessible:**
+   - Set `SIMPLETEST_BASE_URL` to your local development URL
+   - Example: `http://localhost:8080`
+
 ## 🚀 Running Tests
 
 ### Initial Setup
