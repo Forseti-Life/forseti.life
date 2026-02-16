@@ -56,8 +56,13 @@ if (!is_dir($simpletest_dir)) {
   }
 }
 // Ensure the directory is writable.
-if (!chmod($simpletest_dir, 0775)) {
-  throw new \RuntimeException("Failed to set permissions on simpletest directory: $simpletest_dir");
+// Try to set permissions, but don't fail if chmod() returns false -
+// in some environments (CI, containers, restrictive filesystems), chmod()
+// may fail even when the directory has correct permissions and is usable.
+// Only fail if the directory is genuinely not writable.
+@chmod($simpletest_dir, 0775);
+if (!is_writable($simpletest_dir)) {
+  throw new \RuntimeException("Simpletest directory is not writable: $simpletest_dir");
 }
 
 // Now include Drupal's core test bootstrap which will handle the rest of the
