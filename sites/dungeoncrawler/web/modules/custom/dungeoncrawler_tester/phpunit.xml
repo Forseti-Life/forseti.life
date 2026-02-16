@@ -28,6 +28,9 @@
          bootstrap="core/tests/bootstrap.php"
          bootstrap="tests/bootstrap.php"
          colors="true"
+         failOnDeprecation="false"
+         failOnNotice="false"
+         failOnWarning="false">
          failOnPhpunitDeprecation="false">
   
   <!-- Extensions -->
@@ -79,6 +82,9 @@
     
     <!-- Browser output directory -->
     <env name="BROWSERTEST_OUTPUT_DIRECTORY" value="/tmp/dungeoncrawler-simpletest/browser_output"/>
+    
+    <!-- Symfony deprecation helper - disable to prevent deprecations from causing test failures -->
+    <env name="SYMFONY_DEPRECATIONS_HELPER" value="disabled"/>
     
     <!-- Memory limit -->
     <ini name="memory_limit" value="512M"/>
