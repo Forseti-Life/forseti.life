@@ -3,6 +3,11 @@ dashboard:
   css:
     theme:
       css/dashboard.css: {}
+  js:
+    js/dead-value-actions.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
 
 queue-management:
   version: 1.x
