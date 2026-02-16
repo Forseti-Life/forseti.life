@@ -280,22 +280,28 @@ class QueueManagementController extends ControllerBase {
     $worker = $this->queueManager->createInstance($queue_id);
     $processed = 0;
 
-    while ($processed < $max_items && ($item = $queue->claimItem())) {
-      $elapsed = microtime(TRUE) - $start;
-      if ($elapsed > $timeout) {
-        $this->getLogger('dungeoncrawler_tester')->warning('Queue processing timed out after @s seconds', ['@s' => round($elapsed, 2)]);
-        break;
+    $this->state->set('dungeoncrawler_tester.manual_queue_runner', TRUE);
+    try {
+      while ($processed < $max_items && ($item = $queue->claimItem())) {
+        $elapsed = microtime(TRUE) - $start;
+        if ($elapsed > $timeout) {
+          $this->getLogger('dungeoncrawler_tester')->warning('Queue processing timed out after @s seconds', ['@s' => round($elapsed, 2)]);
+          break;
+        }
+        try {
+          $worker->processItem($item->data);
+          $queue->deleteItem($item);
+          $processed++;
+        }
+        catch (\Throwable $e) {
+          $this->getLogger('dungeoncrawler_tester')->error('Queue item failed: @msg', ['@msg' => $e->getMessage()]);
+          $queue->releaseItem($item);
+          break;
+        }
       }
-      try {
-        $worker->processItem($item->data);
-        $queue->deleteItem($item);
-        $processed++;
-      }
-      catch (\Throwable $e) {
-        $this->getLogger('dungeoncrawler_tester')->error('Queue item failed: @msg', ['@msg' => $e->getMessage()]);
-        $queue->releaseItem($item);
-        break;
-      }
+    }
+    finally {
+      $this->state->set('dungeoncrawler_tester.manual_queue_runner', FALSE);
     }
 
     return $processed;

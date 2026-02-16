@@ -73,6 +73,13 @@ class TesterSettingsForm extends ConfigFormBase {
       '#required' => FALSE,
     ];
 
+    $form['cron_agents_enabled'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enable tester cron agents'),
+      '#description' => $this->t('When unchecked, tester cron automation is paused (issue sync + stage auto-enqueue). Manual dashboard/queue actions remain available.'),
+      '#default_value' => (bool) ($config->get('cron_agents_enabled') ?? TRUE),
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -113,6 +120,8 @@ class TesterSettingsForm extends ConfigFormBase {
 
     $max_open = (int) $form_state->getValue('copilot_assignment_max_open');
     $config->set('copilot_assignment_max_open', max(0, $max_open));
+
+    $config->set('cron_agents_enabled', (bool) $form_state->getValue('cron_agents_enabled'));
 
     // If neither clear nor new token provided, keep existing token value.
     $config->save();
