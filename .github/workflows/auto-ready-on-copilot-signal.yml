@@ -23,6 +23,7 @@ jobs:
         env:
           READY_KEYWORD: ${{ env.READY_KEYWORD }}
           EVENT_NAME: ${{ github.event_name }}
+          ISSUE_HAS_PR: ${{ github.event.issue.pull_request.html_url || '' }}
           COMMENT_BODY: ${{ github.event.comment.body || '' }}
           COMMENT_AUTHOR: ${{ github.event.comment.user.login || '' }}
           REVIEW_BODY: ${{ github.event.review.body || '' }}
@@ -41,6 +42,11 @@ jobs:
 
           if [ -z "$pr_number" ]; then
             echo "No PR number found; skipping."
+            exit 0
+          fi
+
+          if [ "$EVENT_NAME" = "issue_comment" ] && [ -z "$ISSUE_HAS_PR" ]; then
+            echo "Comment is on an issue (not a PR); skipping."
             exit 0
           fi
 

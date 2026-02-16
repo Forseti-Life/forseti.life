@@ -506,6 +506,9 @@ class SdlcResetForm extends FormBase {
       'dungeoncrawler_tester.github_issues.' . $repo . '.program-defect',
       'dungeoncrawler_tester.github_open_prs.' . $repo,
       'dungeoncrawler_tester.github_open_testing_issue_numbers.' . $repo,
+      'dungeoncrawler_tester.github_pr_automation_stats.' . $repo,
+      'dungeoncrawler_tester.github_workflow_summary.' . $repo . '.auto-ready-on-copilot-signal.yml',
+      'dungeoncrawler_tester.github_workflow_summary.' . $repo . '.merge-issue-branches-into-testing.yml',
     ];
 
     foreach ($issuesCacheKeys as $key) {
