@@ -114,3 +114,4 @@ sites/forseti/web/sites/simpletest/*
 .directory
 .Trash-*
 .nfs*
+sites/dungeoncrawler/web/sites/simpletest/*
