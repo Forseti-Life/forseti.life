@@ -1,0 +1,6 @@
+# Ignore all test run directories (numeric IDs)
+# These are created dynamically by PHPUnit during test execution
+*/
+
+# Keep this .gitignore file itself
+!.gitignore
