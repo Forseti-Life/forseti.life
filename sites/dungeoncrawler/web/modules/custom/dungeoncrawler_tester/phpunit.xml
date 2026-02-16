@@ -21,11 +21,11 @@
     The module's bootstrap.php includes Drupal core's bootstrap.php.
 
   Test Failure Configuration:
-    All fail* flags are set to false to prevent warnings, deprecations, and
-    other non-critical issues from causing test failures. This allows the test
-    suite to focus on actual test failures rather than code style warnings.
+    failOnDeprecation, failOnNotice, and failOnWarning are set to false to
+    prevent PHPUnit deprecations and warnings from failing the test suite.
     These warnings should be addressed in future updates but should not block
-    the test suite from passing.
+    the test suite from passing. Risky, incomplete, and skipped test flags
+    remain enabled to maintain test quality.
 --> 
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
@@ -33,10 +33,7 @@
          colors="true"
          failOnDeprecation="false"
          failOnNotice="false"
-         failOnWarning="false"
-         failOnRisky="false"
-         failOnIncomplete="false"
-         failOnSkipped="false">
+         failOnWarning="false">
   
   <!-- Extensions -->
   <extensions>
