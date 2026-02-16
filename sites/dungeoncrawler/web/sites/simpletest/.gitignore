@@ -1,0 +1,5 @@
+# Ignore all test site directories created by PHPUnit functional tests
+*
+# But keep this directory structure
+!.gitignore
+!README.md

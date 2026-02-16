@@ -1,5 +1,9 @@
 # Example GitHub Actions Workflow for Testing
 # This is a DESIGN EXAMPLE - not for immediate use
+#
+# IMPORTANT: All phpunit commands must be run from the web/ directory
+# to ensure relative paths resolve correctly. This prevents "Failed to 
+# open settings.php" errors during functional tests.
 
 name: Dungeon Crawler Test Suite
 
@@ -66,9 +70,9 @@ jobs:
       
       - name: Run Unit Tests
         run: |
-          cd sites/dungeoncrawler
-          ./vendor/bin/phpunit \
-            --configuration phpunit.xml \
+          cd sites/dungeoncrawler/web
+          ../vendor/bin/phpunit \
+            --configuration modules/custom/dungeoncrawler_tester/phpunit.xml \
             --testsuite=unit \
             --coverage-clover coverage.xml \
             --log-junit test-results.xml
@@ -142,9 +146,9 @@ jobs:
       
       - name: Run Functional Tests
         run: |
-          cd sites/dungeoncrawler
-          ./vendor/bin/phpunit \
-            --configuration phpunit.xml \
+          cd sites/dungeoncrawler/web
+          ../vendor/bin/phpunit \
+            --configuration modules/custom/dungeoncrawler_tester/phpunit.xml \
             --testsuite=functional \
             --log-junit functional-results.xml
       
@@ -228,9 +232,9 @@ jobs:
       
       - name: Run PF2e Rules Tests
         run: |
-          cd sites/dungeoncrawler
-          ./vendor/bin/phpunit \
-            --configuration phpunit.xml \
+          cd sites/dungeoncrawler/web
+          ../vendor/bin/phpunit \
+            --configuration modules/custom/dungeoncrawler_tester/phpunit.xml \
             --testsuite=unit \
             --group=pf2e-rules \
             --testdox

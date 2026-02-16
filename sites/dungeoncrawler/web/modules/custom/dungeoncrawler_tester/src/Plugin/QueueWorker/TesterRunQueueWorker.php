@@ -84,6 +84,28 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
       return;
     }
 
+    $stage_states = $this->state->get('dungeoncrawler_tester.stage_state', []);
+    $stage_state = is_array($stage_states[$stage_id] ?? NULL) ? $stage_states[$stage_id] : [];
+    if (!$this->isStageRunnable($stage_state)) {
+      $reason = $this->describeStageBlockReason($stage_state);
+      $this->updateRun($stage_id, [
+        'job_id' => $job_id,
+        'command' => $display,
+        'status' => 'failed',
+        'exit_code' => -2,
+        'started' => time(),
+        'ended' => time(),
+        'duration' => 0,
+        'output' => 'Skipped queue execution: ' . $reason,
+      ]);
+      $this->logger->notice('Queue job @job skipped for stage @stage: @reason', [
+        '@job' => $job_id,
+        '@stage' => $stage_id,
+        '@reason' => $reason,
+      ]);
+      return;
+    }
+
     $this->updateRun($stage_id, [
       'job_id' => $job_id,
       'command' => $display,
@@ -91,6 +113,15 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
       'started' => time(),
     ]);
     $this->logger->notice('Queue job @job started for stage @stage: @cmd', ['@job' => $job_id, '@stage' => $stage_id, '@cmd' => $display]);
+
+    // Ensure simpletest directory exists for PHPUnit functional tests.
+    if ($cwd && stripos($display, 'phpunit') !== FALSE) {
+      $simpletest_dir = $cwd . '/web/sites/simpletest';
+      if (!is_dir($simpletest_dir)) {
+        mkdir($simpletest_dir, 0775, TRUE);
+        $this->logger->info('Created simpletest directory for PHPUnit: @dir', ['@dir' => $simpletest_dir]);
+      }
+    }
 
     $start = microtime(TRUE);
     $exit_code = -1;
@@ -187,17 +218,22 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
     $states = $this->state->get('dungeoncrawler_tester.stage_state', []);
     $current = $states[$stage_id] ?? [];
 
+    $existing_issue_numbers = $this->getLinkedIssueNumbers($current);
+    $has_open_linked_issues = !empty($existing_issue_numbers) && (($current['issue_status'] ?? 'open') === 'open');
+    if ($has_open_linked_issues) {
+      $this->logger->notice('Issue creation skipped for stage @stage: existing open linked issue(s): @issues', [
+        '@stage' => $stage_id,
+        '@issues' => implode(', ', $existing_issue_numbers),
+      ]);
+      return (int) $existing_issue_numbers[0];
+    }
+
     ['repo' => $repo, 'token' => $token, 'assignee' => $assignee] = $this->resolveGithubContext();
     if (!$repo || !$token) {
       return NULL;
     }
 
     $existing_issue_map = is_array($current['issue_test_cases'] ?? NULL) ? $current['issue_test_cases'] : [];
-    $existing_issue_numbers = is_array($current['issue_numbers'] ?? NULL) ? $current['issue_numbers'] : [];
-    if (!empty($current['issue_number'])) {
-      $existing_issue_numbers[] = (int) $current['issue_number'];
-    }
-    $existing_issue_numbers = array_values(array_unique(array_filter(array_map('intval', $existing_issue_numbers))));
 
     $failed_test_cases = $this->extractFailedTestCases($output);
     if (empty($failed_test_cases)) {
@@ -446,6 +482,61 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
     }
 
     return array_keys($cases);
+  }
+
+  /**
+   * Determine if a stage can run based on active + linked issue state.
+   */
+  private function isStageRunnable(array $stage_state): bool {
+    if (array_key_exists('active', $stage_state) && $stage_state['active'] === FALSE) {
+      return FALSE;
+    }
+
+    $linked_issue_numbers = $this->getLinkedIssueNumbers($stage_state);
+    if (!empty($linked_issue_numbers)) {
+      $status = (string) ($stage_state['issue_status'] ?? 'open');
+      if ($status !== 'closed') {
+        return FALSE;
+      }
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * Build a readable queue-skip reason for blocked stages.
+   */
+  private function describeStageBlockReason(array $stage_state): string {
+    if (array_key_exists('active', $stage_state) && $stage_state['active'] === FALSE) {
+      return 'stage is paused';
+    }
+
+    $linked_issue_numbers = $this->getLinkedIssueNumbers($stage_state);
+    if (!empty($linked_issue_numbers)) {
+      $status = (string) ($stage_state['issue_status'] ?? 'open');
+      if ($status !== 'closed') {
+        if (count($linked_issue_numbers) === 1) {
+          return 'blocked by open issue #' . $linked_issue_numbers[0];
+        }
+        return 'blocked by ' . count($linked_issue_numbers) . ' open linked issues';
+      }
+    }
+
+    return 'blocked by stage state';
+  }
+
+  /**
+   * Normalize linked issue numbers from legacy and multi-issue fields.
+   */
+  private function getLinkedIssueNumbers(array $stage_state): array {
+    $numbers = [];
+    if (!empty($stage_state['issue_numbers']) && is_array($stage_state['issue_numbers'])) {
+      $numbers = array_values(array_unique(array_filter(array_map('intval', $stage_state['issue_numbers']))));
+    }
+    if (!empty($stage_state['issue_number'])) {
+      $numbers[] = (int) $stage_state['issue_number'];
+    }
+    return array_values(array_unique(array_filter($numbers)));
   }
 
   /**

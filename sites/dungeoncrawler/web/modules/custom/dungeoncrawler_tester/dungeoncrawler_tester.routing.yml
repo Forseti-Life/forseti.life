@@ -150,6 +150,22 @@ dungeoncrawler_tester.queue_logs:
   requirements:
     _permission: 'administer site configuration'
 
+dungeoncrawler_tester.queue_item_delete:
+  path: '/dungeoncrawler/testing/queue/item/delete'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\QueueManagementController::deleteQueueItemAjax'
+  methods: [POST]
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.queue_item_rerun:
+  path: '/dungeoncrawler/testing/queue/item/rerun'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\QueueManagementController::rerunQueueItemAjax'
+  methods: [POST]
+  requirements:
+    _permission: 'administer site configuration'
+
 dungeoncrawler_tester.settings:
   path: '/admin/config/development/dungeoncrawler-tester'
   defaults:
