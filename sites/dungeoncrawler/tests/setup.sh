@@ -22,10 +22,13 @@ chmod 775 "$SIMPLETEST_DIR"
 echo "✓ Simpletest directory is ready: $SIMPLETEST_DIR"
 
 # Ensure vendor dependencies are installed
-if [ ! -d "$PROJECT_ROOT/vendor" ]; then
+if [ ! -f "$PROJECT_ROOT/vendor/bin/phpunit" ]; then
     echo "Installing composer dependencies..."
     cd "$PROJECT_ROOT"
     composer install --no-interaction
+    echo "✓ Composer dependencies installed"
+else
+    echo "✓ Composer dependencies already installed"
 fi
 
 echo "✓ Test environment setup complete!"
