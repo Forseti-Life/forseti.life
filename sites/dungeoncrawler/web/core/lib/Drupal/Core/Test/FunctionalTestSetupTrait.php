@@ -78,7 +78,12 @@ trait FunctionalTestSetupTrait {
     // installation.
     // Not using File API; a potential error must trigger a PHP warning.
     $directory = DRUPAL_ROOT . '/' . $this->siteDirectory;
-    copy(DRUPAL_ROOT . '/core/assets/scaffold/files/default.settings.php', $directory . '/settings.php');
+    $source_file = DRUPAL_ROOT . '/core/assets/scaffold/files/default.settings.php';
+    $dest_file = $directory . '/settings.php';
+    
+    if (!copy($source_file, $dest_file)) {
+      throw new \RuntimeException("Failed to copy settings file from '$source_file' to '$dest_file'. Ensure the directory '$directory' exists and is writable.");
+    }
 
     // The public file system path is created during installation. Additionally,
     // during tests:
@@ -197,6 +202,12 @@ trait FunctionalTestSetupTrait {
   protected function writeSettings(array $settings) {
     include_once DRUPAL_ROOT . '/core/includes/install.inc';
     $filename = $this->siteDirectory . '/settings.php';
+    
+    // Ensure the settings file exists before attempting to modify it.
+    if (!file_exists($filename)) {
+      throw new \RuntimeException("Settings file '$filename' does not exist. It should have been created by prepareSettings(). Current working directory: " . getcwd());
+    }
+    
     // The system runtime_requirements hook removes write permissions from
     // settings.php whenever it is invoked.
     // Not using File API; a potential error must trigger a PHP warning.
@@ -213,7 +224,7 @@ trait FunctionalTestSetupTrait {
    *   The value of the parameter.
    */
   protected function setContainerParameter($name, $value) {
-    $filename = $this->siteDirectory . '/services.yml';
+    $filename = DRUPAL_ROOT . '/' . $this->siteDirectory . '/services.yml';
     chmod($filename, 0666);
 
     $services = Yaml::decode(file_get_contents($filename));

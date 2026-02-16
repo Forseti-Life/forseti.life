@@ -1,0 +1,11 @@
+# Ignore all test site directories created by PHPUnit/Drupal functional tests
+*
+# But keep this .gitignore file
+!.gitignore
+# And keep a .gitkeep to ensure the directory exists
+!.gitkeep
+# Ignore all test site directories created by PHPUnit functional tests
+*
+# But keep this directory structure
+!.gitignore
+!README.md
