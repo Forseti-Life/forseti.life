@@ -3,12 +3,21 @@
   PHPUnit configuration for Dungeon Crawler tester module.
 
   Usage:
-    cd sites/dungeoncrawler
-    ./vendor/bin/phpunit -c web/modules/custom/dungeoncrawler_tester/phpunit.xml
+    cd sites/dungeoncrawler/web
+    ../vendor/bin/phpunit -c modules/custom/dungeoncrawler_tester/phpunit.xml
+
+  IMPORTANT: Tests must be run from the web/ directory (DRUPAL_ROOT) to ensure
+  that relative paths used by Drupal's test framework resolve correctly. Running
+  from any other directory will cause "Failed to open settings.php" errors.
 
   Suites:
     - unit: Isolated service/unit coverage
     - functional: Browser tests for controllers/routes/workflows
+
+  Bootstrap:
+    Uses custom tests/bootstrap.php to ensure the sites/simpletest directory
+    exists and is writable before running tests. This is required for Drupal's
+    BrowserTestBase which creates temporary test site directories.
 
   Note: failOnPhpunitDeprecation is set to false to allow tests to pass
   despite PHPUnit 11 deprecation warnings. These warnings should be addressed
@@ -16,9 +25,18 @@
 --> 
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
+         bootstrap="core/tests/bootstrap.php"
          bootstrap="tests/bootstrap.php"
          colors="true"
+         failOnDeprecation="false"
+         failOnNotice="false"
+         failOnWarning="false">
          failOnPhpunitDeprecation="false">
+  
+  <!-- Extensions -->
+  <extensions>
+    <bootstrap class="Drupal\Tests\dungeoncrawler_tester\Extension\TestEnvironmentSetup"/>
+  </extensions>
   
   <!-- Test Suites -->
   <testsuites>
@@ -57,16 +75,29 @@
     <!-- Base URL for functional tests -->
     <env name="SIMPLETEST_BASE_URL" value="http://localhost:8080"/>
     
-    <!-- Simpletest file storage -->
-    <env name="SIMPLETEST_FILE" value="/tmp/dungeoncrawler-simpletest"/>
-    <env name="SIMPLETEST_FILES" value="/tmp/dungeoncrawler-simpletest"/>
-    <env name="SIMPLETEST_FILES_DIRECTORY" value="/tmp/dungeoncrawler-simpletest"/>
-    
     <!-- Browser output directory -->
-    <env name="BROWSERTEST_OUTPUT_DIRECTORY" value="/tmp/dungeoncrawler-simpletest/browser_output"/>
+    <env name="BROWSERTEST_OUTPUT_DIRECTORY" value="../../../sites/simpletest/browser_output"/>
+    
+    <!-- Symfony deprecation helper - disable to prevent deprecations from causing test failures -->
+    <env name="SYMFONY_DEPRECATIONS_HELPER" value="disabled"/>
     
     <!-- Memory limit -->
     <ini name="memory_limit" value="512M"/>
+    
+    <!--
+      IMPORTANT: Functional tests also require write access to web/sites/simpletest/
+      This directory stores temporary test site configurations (settings.php).
+      
+      For local/CI testing environments, use 777 permissions:
+        chmod 777 web/sites/simpletest
+      
+      For more restricted environments, use 775 and ensure your user is in the web server group:
+        sudo usermod -a -G www-data $USER
+        chmod 775 web/sites/simpletest
+      
+      The directory contents are gitignored and should be cleaned after test runs.
+      Use the prepare-test-env.sh script to automate this setup.
+    -->
   </php>
   
 </phpunit>
