@@ -1,3 +1,11 @@
+# Ignore all test site directories created by PHPUnit functional tests
+*
+# Keep this .gitignore file
+# Ignore all test run directories (numeric IDs)
+# These are created dynamically by PHPUnit during test execution
+*/
+
+# Keep this .gitignore file itself
 # Ignore all test site directories created by PHPUnit/Drupal functional tests
 *
 # But keep this .gitignore file
