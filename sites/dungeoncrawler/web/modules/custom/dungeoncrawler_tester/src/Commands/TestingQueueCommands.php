@@ -60,7 +60,9 @@ class TestingQueueCommands extends DrushCommands {
       $limit = 1;
     }
 
-    if (!$this->lock->acquire('dungeoncrawler_tester.queue_runner', 30)) {
+    $lockLeaseSeconds = $this->calculateLockLeaseSeconds($limit);
+
+    if (!$this->lock->acquire('dungeoncrawler_tester.queue_runner', $lockLeaseSeconds)) {
       $this->dcLogger->warning('Queue runner already active; skipping.');
       $this->output()->writeln('Queue runner already active; skipping.');
       return;
@@ -95,6 +97,13 @@ class TestingQueueCommands extends DrushCommands {
     finally {
       $this->lock->release('dungeoncrawler_tester.queue_runner');
     }
+  }
+
+  /**
+   * Calculate a queue-runner lock lease that scales with batch size.
+   */
+  private function calculateLockLeaseSeconds(int $limit): int {
+    return max(300, min(1800, $limit * 90));
   }
 
 }

@@ -38,7 +38,7 @@ dungeoncrawler_tester.settings_under_dashboard_main:
   description: 'Configure GitHub repo/token for tester automation.'
   route_name: dungeoncrawler_tester.settings
   parent: dungeoncrawler_tester.dashboard_main
-  weight: 91
+  weight: 93
 
 dungeoncrawler_tester.dashboard_main:
   title: 'Testing Dashboard'

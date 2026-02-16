@@ -8,7 +8,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\State\StateInterface;
 
 /**
- * Admin form to toggle /thetest status.
+ * Admin form to toggle /dungeoncrawler/testing/thetest status.
  */
 class TheTestToggleForm extends FormBase {
 

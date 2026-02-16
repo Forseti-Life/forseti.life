@@ -2,13 +2,34 @@
 
 namespace Drupal\dungeoncrawler_tester\Form;
 
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Settings form for Dungeon Crawler tester.
  */
 class TesterSettingsForm extends ConfigFormBase {
+
+  /**
+   * State key for sensitive GitHub token storage.
+   */
+  private const TOKEN_STATE_KEY = 'dungeoncrawler_tester.github_token';
+
+  /**
+   * State API for non-exported secret storage.
+   */
+  protected StateInterface $state;
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container): static {
+    $instance = parent::create($container);
+    $instance->state = $container->get('state');
+    return $instance;
+  }
 
   /**
    * {@inheritdoc}
@@ -29,7 +50,9 @@ class TesterSettingsForm extends ConfigFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $config = $this->config('dungeoncrawler_tester.settings');
-    $has_token = (bool) $config->get('github_token');
+    $stored_token = trim((string) $this->state->get(self::TOKEN_STATE_KEY, ''));
+    $legacy_config_token = trim((string) ($config->get('github_token') ?: ''));
+    $has_token = $stored_token !== '' || $legacy_config_token !== '';
 
     $form['help'] = [
       '#type' => 'details',
@@ -50,8 +73,8 @@ class TesterSettingsForm extends ConfigFormBase {
       '#type' => 'password',
       '#title' => $this->t('GitHub token'),
       '#description' => $has_token
-        ? $this->t('Token is stored. Enter a new token to replace, or check "Clear stored token" to remove. If empty, the tester will fall back to ai_conversation settings or the TESTER_GITHUB_TOKEN environment variable.')
-        : $this->t('Enter a token with permission to create issues in the configured repository. If left empty, the tester will fall back to ai_conversation settings or the TESTER_GITHUB_TOKEN environment variable.'),
+        ? $this->t('Token is stored in private state (not config export). Enter a new token to replace, or check "Clear stored token" to remove. If empty, the tester will fall back to ai_conversation settings or the TESTER_GITHUB_TOKEN environment variable.')
+        : $this->t('Enter a token with permission to create issues in the configured repository. Saved tokens are stored in private state (not config export). If left empty, the tester will fall back to ai_conversation settings or the TESTER_GITHUB_TOKEN environment variable.'),
       '#default_value' => '',
       '#attributes' => ['autocomplete' => 'new-password'],
     ];
@@ -112,18 +135,20 @@ class TesterSettingsForm extends ConfigFormBase {
     $new_token = trim((string) $form_state->getValue('github_token'));
 
     if ($clear_token) {
-      $config->set('github_token', '');
+      $this->state->delete(self::TOKEN_STATE_KEY);
     }
     elseif ($new_token !== '') {
-      $config->set('github_token', $new_token);
+      $this->state->set(self::TOKEN_STATE_KEY, $new_token);
     }
+
+    // Ensure token is not persisted in exported config.
+    $config->set('github_token', '');
 
     $max_open = (int) $form_state->getValue('copilot_assignment_max_open');
     $config->set('copilot_assignment_max_open', max(0, $max_open));
 
     $config->set('cron_agents_enabled', (bool) $form_state->getValue('cron_agents_enabled'));
 
-    // If neither clear nor new token provided, keep existing token value.
     $config->save();
 
     parent::submitForm($form, $form_state);

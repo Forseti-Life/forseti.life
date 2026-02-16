@@ -7,12 +7,14 @@ use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\State\StateInterface;
 use Drush\Commands\DrushCommands;
 use Drupal\dungeoncrawler_tester\Service\StageIssueSyncService;
+use Drupal\dungeoncrawler_tester\Service\StageDefinitionService;
 
 class StageControlCommands extends DrushCommands {
 
   public function __construct(
     private StateInterface $state,
     private StageIssueSyncService $issueSync,
+    private StageDefinitionService $stageDefinitions,
     LoggerChannelFactoryInterface $loggerFactory,
   ) {
     parent::__construct();
@@ -32,6 +34,7 @@ class StageControlCommands extends DrushCommands {
    * @usage drush dctr:stage-pause precommit
    */
   public function pause(string $stage_id): void {
+    $this->assertValidStageId($stage_id);
     $this->saveState($stage_id, ['active' => FALSE]);
     $this->output()->writeln("Paused stage {$stage_id}.");
   }
@@ -44,6 +47,7 @@ class StageControlCommands extends DrushCommands {
    * @usage drush dctr:stage-resume precommit
    */
   public function resume(string $stage_id): void {
+    $this->assertValidStageId($stage_id);
     $this->saveState($stage_id, ['active' => TRUE]);
     $this->output()->writeln("Resumed stage {$stage_id}.");
   }
@@ -56,6 +60,7 @@ class StageControlCommands extends DrushCommands {
    * @usage drush dctr:stage-link precommit 123
    */
   public function linkIssue(string $stage_id, int $issue_number, array $options = ['status' => 'open']): void {
+    $this->assertValidStageId($stage_id);
     $status = $options['status'] ?? 'open';
     $this->saveState($stage_id, [
       'issue_number' => $issue_number,
@@ -72,6 +77,7 @@ class StageControlCommands extends DrushCommands {
    * @usage drush dctr:stage-unlink precommit
    */
   public function unlinkIssue(string $stage_id): void {
+    $this->assertValidStageId($stage_id);
     $this->saveState($stage_id, [
       'issue_number' => NULL,
       'issue_status' => NULL,
@@ -102,6 +108,21 @@ class StageControlCommands extends DrushCommands {
     $current = $states[$stage_id] ?? [];
     $states[$stage_id] = array_merge($current, $data);
     $this->state->set('dungeoncrawler_tester.stage_state', $states);
+  }
+
+  /**
+   * Ensure a stage identifier exists in the configured stage definitions.
+   */
+  private function assertValidStageId(string $stage_id): void {
+    $validStageIds = array_values(array_filter(array_map(
+      static fn(array $definition): ?string => $definition['id'] ?? NULL,
+      $this->stageDefinitions->getDefinitions(),
+    )));
+
+    if (!in_array($stage_id, $validStageIds, TRUE)) {
+      $validList = implode(', ', $validStageIds);
+      throw new \InvalidArgumentException("Unknown stage id '{$stage_id}'. Valid stage ids: {$validList}");
+    }
   }
 
 }

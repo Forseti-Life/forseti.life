@@ -3,6 +3,7 @@
 namespace Drupal\dungeoncrawler_tester\Controller;
 
 use Drupal\Component\Uuid\UuidInterface;
+use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Queue\QueueFactory;
@@ -34,6 +35,7 @@ class QueueManagementController extends ControllerBase {
     private QueueWorkerManagerInterface $queueManager,
     private StateInterface $state,
     private Connection $database,
+    private CsrfTokenGenerator $csrfToken,
     private UuidInterface $uuid,
   ) {}
 
@@ -43,6 +45,7 @@ class QueueManagementController extends ControllerBase {
       $container->get('plugin.manager.queue_worker'),
       $container->get('state'),
       $container->get('database'),
+      $container->get('csrf_token'),
       $container->get('uuid'),
     );
   }
@@ -64,7 +67,7 @@ class QueueManagementController extends ControllerBase {
         ],
         'drupalSettings' => [
           'dungeoncrawlerTester' => [
-            'csrfToken' => \Drupal::csrfToken()->get('rest'),
+            'csrfToken' => $this->csrfToken->get('rest'),
             'routes' => [
               'run' => Url::fromRoute('dungeoncrawler_tester.queue_run')->toString(),
               'status' => Url::fromRoute('dungeoncrawler_tester.queue_status')->toString(),
@@ -144,7 +147,7 @@ class QueueManagementController extends ControllerBase {
     $rows = $query->execute()->fetchAll();
     $logs = [];
     foreach ($rows as $row) {
-      $vars = @unserialize($row->variables) ?: [];
+      $vars = $this->safeUnserializeArray($row->variables);
       $message = strtr($row->message, $vars);
       $logs[] = [
         'timestamp' => $row->timestamp,
@@ -341,10 +344,7 @@ class QueueManagementController extends ControllerBase {
     $results = $query->execute()->fetchAll();
 
     foreach ($results as $row) {
-      $data = @unserialize($row->data);
-      if (!is_array($data)) {
-        $data = [];
-      }
+      $data = $this->safeUnserializeArray($row->data);
       $preview = $this->getQueueItemPreview($data);
       $queue_items[] = [
         'item_id' => $row->item_id,
@@ -377,10 +377,7 @@ class QueueManagementController extends ControllerBase {
       return NULL;
     }
 
-    $data = @unserialize($row->data);
-    if (!is_array($data)) {
-      $data = [];
-    }
+    $data = $this->safeUnserializeArray($row->data);
 
     return [
       'item_id' => (int) $row->item_id,
@@ -425,6 +422,40 @@ class QueueManagementController extends ControllerBase {
       }
     }
     return $preview;
+  }
+
+  /**
+   * Safely decode a serialized payload into an array.
+   */
+  private function safeUnserializeArray(mixed $value): array {
+    $decoded = $this->safeUnserializeValue($value);
+    return is_array($decoded) ? $decoded : [];
+  }
+
+  /**
+   * Safely decode serialized values without allowing object instantiation.
+   */
+  private function safeUnserializeValue(mixed $value): mixed {
+    if (!is_string($value) || $value === '') {
+      return NULL;
+    }
+
+    set_error_handler(static function (): bool {
+      return TRUE;
+    });
+
+    try {
+      $decoded = unserialize($value, ['allowed_classes' => FALSE]);
+    }
+    finally {
+      restore_error_handler();
+    }
+
+    if ($decoded === FALSE && $value !== 'b:0;') {
+      return NULL;
+    }
+
+    return $decoded;
   }
 
   /**

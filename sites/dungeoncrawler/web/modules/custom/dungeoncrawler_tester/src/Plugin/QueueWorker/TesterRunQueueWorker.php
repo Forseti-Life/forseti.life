@@ -124,9 +124,28 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
     // Ensure simpletest directory exists for PHPUnit functional tests.
     if ($cwd && stripos($display, 'phpunit') !== FALSE) {
       $simpletest_dir = $cwd . '/web/sites/simpletest';
-      if (!is_dir($simpletest_dir)) {
-        mkdir($simpletest_dir, 0775, TRUE);
-        $this->logger->info('Created simpletest directory for PHPUnit: @dir', ['@dir' => $simpletest_dir]);
+      $simpletestError = $this->ensureSimpletestDirectory($simpletest_dir);
+      if ($simpletestError !== NULL) {
+        $failureOutput = 'Simpletest directory preparation failed: ' . $simpletestError;
+        $failureEnded = microtime(TRUE);
+
+        $this->updateRun($stage_id, [
+          'job_id' => $job_id,
+          'command' => $display,
+          'status' => 'failed',
+          'exit_code' => -3,
+          'started' => $this->getExisting($stage_id, 'started') ?? time(),
+          'ended' => (int) $failureEnded,
+          'duration' => 0,
+          'output' => $failureOutput,
+        ]);
+        $this->updateStageState($stage_id, 'failed', -3, $failureOutput, $failureEnded, NULL);
+        $this->logger->error('Queue job @job failed before execution (stage @stage): @msg', [
+          '@job' => $job_id,
+          '@stage' => $stage_id,
+          '@msg' => $failureOutput,
+        ]);
+        return;
       }
     }
 
@@ -172,6 +191,30 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
       '@code' => $exit_code,
       '@duration' => sprintf('%.2f', $end - $start),
     ]);
+  }
+
+  /**
+   * Ensure simpletest directory exists and is writable.
+   */
+  private function ensureSimpletestDirectory(string $simpletestDir): ?string {
+    if (!is_dir($simpletestDir)) {
+      $created = @mkdir($simpletestDir, 0775, TRUE);
+      if (!$created && !is_dir($simpletestDir)) {
+        $lastError = error_get_last();
+        $reason = is_array($lastError) && !empty($lastError['message'])
+          ? (string) $lastError['message']
+          : 'unknown filesystem error';
+        return "Could not create {$simpletestDir} ({$reason})";
+      }
+
+      $this->logger->info('Created simpletest directory for PHPUnit: @dir', ['@dir' => $simpletestDir]);
+    }
+
+    if (!is_writable($simpletestDir)) {
+      return "Directory is not writable: {$simpletestDir}";
+    }
+
+    return NULL;
   }
 
   /**

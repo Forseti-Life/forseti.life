@@ -2,6 +2,7 @@
 
 namespace Drupal\dungeoncrawler_tester\Form;
 
+use Drupal\Component\Utility\Html;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
@@ -238,8 +239,8 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
         'failure_reason' => [
           '#type' => 'item',
           '#title' => $this->t('Last failure'),
-          '#markup' => !empty($stage_state['failure_reason']) ? $stage_state['failure_reason'] : $this->t('None'),
-          '#description' => !empty($stage_state['failure_excerpt']) ? '<pre class="command-snippet command-log">' . $stage_state['failure_excerpt'] . '</pre>' : '',
+          '#markup' => !empty($stage_state['failure_reason']) ? Html::escape((string) $stage_state['failure_reason']) : (string) $this->t('None'),
+          '#description' => !empty($stage_state['failure_excerpt']) ? '<pre class="command-snippet command-log">' . Html::escape((string) $stage_state['failure_excerpt']) . '</pre>' : '',
         ],
         'issue_number' => [
           '#type' => 'textfield',
@@ -817,7 +818,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     }
     elseif (str_contains($haystack, 'thetestpagetest.php')) {
       $focus = $this->t('TheTest toggle and failure-signal path validation.');
-      $covers[] = $this->t('/thetest functional behavior');
+      $covers[] = $this->t('/dungeoncrawler/testing/thetest functional behavior');
       $does_not_cover[] = $this->t('Broader route/controller suites');
     }
     elseif (str_contains($haystack, 'tests/src/functional/routes/')) {

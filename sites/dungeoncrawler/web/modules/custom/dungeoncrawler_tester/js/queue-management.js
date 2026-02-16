@@ -1,4 +1,4 @@
-(function (Drupal, drupalSettings) {
+(function (Drupal, drupalSettings, once) {
   'use strict';
 
   const settings = drupalSettings.dungeoncrawlerTester || {};
@@ -11,67 +11,68 @@
 
   Drupal.behaviors.dungeoncrawlerQueueManagement = {
     attach: function (context) {
-      if (context.__dcQueueInit) {
-        return;
-      }
-      context.__dcQueueInit = true;
+      once('dungeoncrawlerQueueManagement', '.dc-queue-page', context).forEach((page) => {
+        const runBtn = page.querySelector('.btn-run-all');
+        const refreshBtn = page.querySelector('.btn-refresh');
+        const refreshLogsBtn = page.querySelector('.btn-refresh-logs');
+        const autoToggle = page.querySelector('#dc-auto-refresh');
 
-      const runBtn = context.querySelector('.btn-run-all');
-      const refreshBtn = context.querySelector('.btn-refresh');
-      const refreshLogsBtn = context.querySelector('.btn-refresh-logs');
-      const autoToggle = context.querySelector('#dc-auto-refresh');
-
-      if (runBtn) {
-        runBtn.addEventListener('click', () => runQueue());
-      }
-      if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => refreshStatus());
-      }
-      if (refreshLogsBtn) {
-        refreshLogsBtn.addEventListener('click', () => refreshLogs());
-      }
-
-      context.addEventListener('click', (event) => {
-        const target = event.target.closest('[data-action="delete-item"], [data-action="rerun-item"]');
-        if (!target) {
-          return;
+        if (runBtn) {
+          runBtn.addEventListener('click', () => runQueue());
+        }
+        if (refreshBtn) {
+          refreshBtn.addEventListener('click', () => refreshStatus());
+        }
+        if (refreshLogsBtn) {
+          refreshLogsBtn.addEventListener('click', () => refreshLogs());
         }
 
-        const action = target.getAttribute('data-action');
-        const itemId = Number(target.getAttribute('data-item-id') || 0);
-        if (!itemId) {
-          showMessage('Queue item id is missing.', 'error');
-          return;
-        }
+        page.addEventListener('click', (event) => {
+          const target = event.target.closest('[data-action="delete-item"], [data-action="rerun-item"]');
+          if (!target) {
+            return;
+          }
 
-        if (action === 'delete-item') {
-          queueItemAction('delete', itemId, target);
-          return;
-        }
+          const action = target.getAttribute('data-action');
+          const itemId = Number(target.getAttribute('data-item-id') || 0);
+          if (!itemId) {
+            showMessage('Queue item id is missing.', 'error');
+            return;
+          }
 
-        if (action === 'rerun-item') {
-          queueItemAction('rerun', itemId, target);
-        }
-      });
+          if (action === 'delete-item') {
+            queueItemAction('delete', itemId, target);
+            return;
+          }
 
-      if (autoToggle) {
-        autoToggle.addEventListener('change', () => {
-          if (autoToggle.checked) {
-            startAutoRefresh();
-          } else {
-            stopAutoRefresh();
+          if (action === 'rerun-item') {
+            queueItemAction('rerun', itemId, target);
           }
         });
-      }
 
-      // Initial loads
-      refreshStatus();
-      refreshLogs();
-      startAutoRefresh();
+        if (autoToggle) {
+          autoToggle.addEventListener('change', () => {
+            if (autoToggle.checked) {
+              startAutoRefresh();
+            } else {
+              stopAutoRefresh();
+            }
+          });
+        }
+
+        refreshStatus();
+        refreshLogs();
+        startAutoRefresh();
+      });
     }
   };
 
   function runQueue() {
+    if (!endpoints.run) {
+      showMessage('Queue run endpoint is not configured.', 'error');
+      return;
+    }
+
     setStatus('running');
     fetch(endpoints.run, {
       method: 'POST',
@@ -139,6 +140,11 @@
   }
 
   function refreshStatus() {
+    if (!endpoints.status) {
+      showMessage('Queue status endpoint is not configured.', 'error');
+      return;
+    }
+
     setStatusText('Refreshing…', true);
     fetch(endpoints.status)
       .then(r => r.json())
@@ -178,6 +184,11 @@
   }
 
   function refreshLogs() {
+    if (!endpoints.logs) {
+      showMessage('Queue logs endpoint is not configured.', 'error');
+      return;
+    }
+
     setStatusText('Refreshing…', true);
     fetch(endpoints.logs)
       .then(r => r.json())
@@ -305,4 +316,4 @@
     updateCountdown(countdownSeconds);
   }
 
-})(Drupal, drupalSettings);
+})(Drupal, drupalSettings, once);

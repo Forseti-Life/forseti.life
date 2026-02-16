@@ -3,8 +3,11 @@
 namespace Drupal\dungeoncrawler_tester\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a documentation & utilities block for the Dungeon Crawler tester module.
@@ -14,7 +17,28 @@ use Drupal\Core\Url;
  *   admin_label = @Translation("Dungeon Crawler Tester Documentation")
  * )
  */
-class TesterNavBlock extends BlockBase {
+class TesterNavBlock extends BlockBase implements ContainerFactoryPluginInterface {
+
+  public function __construct(
+    array $configuration,
+    $plugin_id,
+    $plugin_definition,
+    private ConfigFactoryInterface $configFactory,
+  ) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): static {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('config.factory'),
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -49,7 +73,7 @@ class TesterNavBlock extends BlockBase {
       ],
       [
         'title' => $this->t('Issue queue'),
-        'uri' => 'https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting',
+        'uri' => $this->buildIssueQueueUri(),
       ],
       [
         'title' => $this->t('Documentation Home'),
@@ -72,6 +96,24 @@ class TesterNavBlock extends BlockBase {
       '#items' => $items,
       '#attributes' => ['class' => ['dungeoncrawler-tester-nav-block']],
     ];
+  }
+
+  /**
+   * Build repository-aware issue queue URI.
+   */
+  private function buildIssueQueueUri(): string {
+    $testerRepo = trim((string) $this->configFactory->get('dungeoncrawler_tester.settings')->get('github_repo'));
+    $aiRepo = trim((string) $this->configFactory->get('ai_conversation.settings')->get('github_repo'));
+    $envRepo = trim((string) getenv('TESTER_GITHUB_REPO'));
+
+    $repo = $testerRepo !== ''
+      ? $testerRepo
+      : ($aiRepo !== ''
+        ? $aiRepo
+        : ($envRepo !== '' ? $envRepo : 'keithaumiller/forseti.life'));
+
+    $query = rawurlencode("repo:{$repo} is:issue is:open label:testing");
+    return "https://github.com/issues?q={$query}";
   }
 
 }

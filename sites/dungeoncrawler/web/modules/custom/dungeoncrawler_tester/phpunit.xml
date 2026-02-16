@@ -79,8 +79,11 @@
   
   <!-- PHP Environment -->
   <php>
-    <!-- Drupal test database -->
-    <env name="SIMPLETEST_DB" value="mysql://drupal_user:drupal_secure_password@127.0.0.1:3306/dungeoncrawler_dev"/>
+    <!--
+      Drupal test database.
+      Must be provided by your local/CI environment, for example:
+      export SIMPLETEST_DB='mysql://user:pass@127.0.0.1:3306/database'
+    -->
     
     <!-- Base URL for functional tests -->
     <env name="SIMPLETEST_BASE_URL" value="http://localhost:8080"/>

@@ -44,7 +44,7 @@ Before running tests, ensure:
      ```
 
 3. **Database is configured:**
-   - Set `SIMPLETEST_DB` in phpunit.xml or as an environment variable
+   - Set `SIMPLETEST_DB` as an environment variable (local shell or CI secret)
    - Example: `mysql://user:pass@localhost:3306/database`
 
 4. **Web server is accessible:**

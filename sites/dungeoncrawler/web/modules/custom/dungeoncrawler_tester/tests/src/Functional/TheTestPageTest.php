@@ -5,7 +5,7 @@ namespace Drupal\Tests\dungeoncrawler_tester\Functional;
 use Drupal\Tests\BrowserTestBase;
 
 /**
- * Functional test for /thetest automation toggle.
+ * Functional test for /dungeoncrawler/testing/thetest automation toggle.
  */
 class TheTestPageTest extends BrowserTestBase {
 
@@ -20,8 +20,8 @@ class TheTestPageTest extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   public function testTheTestPasses(): void {
-    // Anonymous can view /thetest by route permission.
-    $this->drupalGet('/thetest');
+    // Anonymous can view /dungeoncrawler/testing/thetest by route permission.
+    $this->drupalGet('/dungeoncrawler/testing/thetest');
     $this->assertSession()->statusCodeEquals(200);
 
     // Expect the page to report PASS. If the controller constant is set to fail,

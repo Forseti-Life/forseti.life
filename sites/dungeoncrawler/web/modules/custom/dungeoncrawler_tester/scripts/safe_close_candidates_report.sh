@@ -36,13 +36,13 @@ while IFS= read -r issue_number; do
   [[ -n "$issue_number" ]] || continue
   OPEN_ISSUES["$issue_number"]=1
 done < <(
-  gh api "repos/${REPO}/issues" -f state=open -f per_page=100 \
+  gh api --paginate "repos/${REPO}/issues" -f state=open -f per_page=100 \
     --jq '.[] | select(.pull_request == null) | .number'
 )
 
 # Open and closed PR snapshots.
-OPEN_PRS_JSON="$(gh api "repos/${REPO}/pulls" -f state=open -f per_page=100)"
-CLOSED_PRS_JSON="$(gh api "repos/${REPO}/pulls" -f state=closed -f per_page=100)"
+OPEN_PRS_JSON="$(gh api --paginate "repos/${REPO}/pulls" -f state=open -f per_page=100 | jq -s 'add')"
+CLOSED_PRS_JSON="$(gh api --paginate "repos/${REPO}/pulls" -f state=closed -f per_page=100 | jq -s 'add')"
 
 printf '# Safe-Close Candidates Report\n\n'
 printf -- '- Repo: `%s`\n' "$REPO"
@@ -95,7 +95,7 @@ printf '\n'
 # Category 3: Open issues already marked for non-action resolution.
 printf '## 3) Open issues with non-action labels (duplicate/invalid/wontfix)\n\n'
 NON_ACTION_QUERY="repo:${REPO} is:issue is:open (label:duplicate OR label:invalid OR label:wontfix)"
-NON_ACTION_JSON="$(gh api search/issues -f q="$NON_ACTION_QUERY" -f per_page=100)"
+NON_ACTION_JSON="$(gh api --paginate search/issues -f q="$NON_ACTION_QUERY" -f per_page=100 | jq -s '{items: [.[].items[]]}')"
 NON_ACTION_COUNT="$(printf '%s' "$NON_ACTION_JSON" | jq '.items | length')"
 if [[ "$NON_ACTION_COUNT" -eq 0 ]]; then
   printf -- '- None\n'
@@ -138,7 +138,7 @@ printf '\n'
 # Category 5: Stale unassigned testing/defect issues.
 printf '## 5) Stale unassigned testing issues (operational noise candidates)\n\n'
 STALE_TESTING_QUERY="repo:${REPO} is:issue is:open no:assignee updated:<${CUTOFF_DATE} (label:testing OR label:testing-defect OR label:ci-failure OR label:program-defect OR label:tester)"
-STALE_TESTING_JSON="$(gh api search/issues -f q="$STALE_TESTING_QUERY" -f per_page=100)"
+STALE_TESTING_JSON="$(gh api --paginate search/issues -f q="$STALE_TESTING_QUERY" -f per_page=100 | jq -s '{items: [.[].items[]]}')"
 STALE_TESTING_COUNT="$(printf '%s' "$STALE_TESTING_JSON" | jq '.items | length')"
 if [[ "$STALE_TESTING_COUNT" -eq 0 ]]; then
   printf -- '- None\n'

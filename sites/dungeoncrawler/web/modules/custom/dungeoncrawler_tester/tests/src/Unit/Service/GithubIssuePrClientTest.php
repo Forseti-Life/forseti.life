@@ -5,6 +5,7 @@ namespace Drupal\Tests\dungeoncrawler_tester\Unit\Service;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\Tests\UnitTestCase;
 use Drupal\dungeoncrawler_tester\Service\GithubIssuePrClient;
 use GuzzleHttp\ClientInterface;
@@ -34,6 +35,11 @@ class GithubIssuePrClientTest extends UnitTestCase {
   protected LoggerChannelInterface $logger;
 
   /**
+   * @var \Drupal\Core\State\StateInterface
+   */
+  protected StateInterface $state;
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
@@ -42,11 +48,21 @@ class GithubIssuePrClientTest extends UnitTestCase {
     $this->configFactory = $this->createMock(ConfigFactoryInterface::class);
     $this->loggerFactory = $this->createMock(LoggerChannelFactoryInterface::class);
     $this->logger = $this->createMock(LoggerChannelInterface::class);
+    $this->state = $this->createMock(StateInterface::class);
 
     $this->loggerFactory
       ->method('get')
       ->with('dungeoncrawler_tester')
       ->willReturn($this->logger);
+
+    $emptyConfig = $this->createMock(\Drupal\Core\Config\ImmutableConfig::class);
+    $emptyConfig
+      ->method('get')
+      ->willReturn('');
+
+    $this->configFactory
+      ->method('get')
+      ->willReturn($emptyConfig);
 
     $this->clearStateFiles();
   }
@@ -77,6 +93,7 @@ class GithubIssuePrClientTest extends UnitTestCase {
     $client = new GithubIssuePrClient(
       $httpClient,
       $this->configFactory,
+      $this->state,
       $this->loggerFactory,
     );
 
@@ -121,6 +138,7 @@ class GithubIssuePrClientTest extends UnitTestCase {
     $client = new GithubIssuePrClient(
       $httpClient,
       $this->configFactory,
+      $this->state,
       $this->loggerFactory,
     );
 
@@ -149,11 +167,14 @@ class GithubIssuePrClientTest extends UnitTestCase {
    */
   private function clearStateFiles(): void {
     $tmp = rtrim(sys_get_temp_dir(), '/\\');
-    $paths = [
-      $tmp . DIRECTORY_SEPARATOR . 'dungeoncrawler_tester_github_mutation_dedupe.json',
-      $tmp . DIRECTORY_SEPARATOR . 'dungeoncrawler_tester_github_cooldown.json',
-      $tmp . DIRECTORY_SEPARATOR . 'dungeoncrawler_tester_github_mutation.lock',
-    ];
+    $paths = array_merge(
+      glob($tmp . DIRECTORY_SEPARATOR . 'dungeoncrawler_tester_github_*') ?: [],
+      [
+        $tmp . DIRECTORY_SEPARATOR . 'dungeoncrawler_tester_github_mutation_dedupe.json',
+        $tmp . DIRECTORY_SEPARATOR . 'dungeoncrawler_tester_github_cooldown.json',
+        $tmp . DIRECTORY_SEPARATOR . 'dungeoncrawler_tester_github_mutation.lock',
+      ],
+    );
 
     foreach ($paths as $path) {
       if (is_file($path)) {

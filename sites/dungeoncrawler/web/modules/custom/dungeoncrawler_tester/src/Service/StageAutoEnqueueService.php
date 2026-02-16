@@ -4,6 +4,7 @@ namespace Drupal\dungeoncrawler_tester\Service;
 
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\State\StateInterface;
 use Drupal\Component\Uuid\UuidInterface;
@@ -16,6 +17,7 @@ class StageAutoEnqueueService {
   public function __construct(
     private readonly QueueFactory $queueFactory,
     private readonly StateInterface $state,
+    private readonly LockBackendInterface $lock,
     LoggerChannelFactoryInterface $loggerFactory,
     private readonly UuidInterface $uuid,
     private readonly StageDefinitionService $definitions,
@@ -35,6 +37,13 @@ class StageAutoEnqueueService {
    *   Minimum seconds between automatic enqueues per stage.
    */
   public function enqueueDueStages(int $intervalSeconds = 3600): void {
+    $lockName = 'dungeoncrawler_tester.auto_enqueue';
+    if (!$this->lock->acquire($lockName, 120.0)) {
+      $this->logger->notice('Skipped auto-enqueue pass: another process is already enqueuing stages.');
+      return;
+    }
+
+    try {
     $stageStates = $this->state->get('dungeoncrawler_tester.stage_state', []);
     $runs = $this->state->get('dungeoncrawler_tester.runs', []);
     $last = $this->state->get('dungeoncrawler_tester.auto_enqueue_last', []);
@@ -103,6 +112,10 @@ class StageAutoEnqueueService {
       $this->state->set('dungeoncrawler_tester.runs', $runs);
       $this->state->set('dungeoncrawler_tester.auto_enqueue_last', $last);
       $this->logger->notice('Auto-enqueued @count stage(s) for tester runs.', ['@count' => $enqueued]);
+    }
+    }
+    finally {
+      $this->lock->release($lockName);
     }
   }
 

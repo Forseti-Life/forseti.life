@@ -107,7 +107,7 @@ chmod 775 sites/dungeoncrawler/web/sites/simpletest
 
 **Symptom**: Tests fail with database connection errors.
 
-**Solution**: Verify the `SIMPLETEST_DB` environment variable in phpunit.xml points to a valid MySQL/MariaDB database with proper credentials.
+**Solution**: Verify the `SIMPLETEST_DB` environment variable (from your shell or CI secret) points to a valid MySQL/MariaDB database with proper credentials.
 
 ## CI/CD Integration
 

@@ -47,6 +47,47 @@ class StageIssueSyncService {
     $closedCount = 0;
     $resumedCount = 0;
     $unlinkedCount = 0;
+    $issueFetchFailures = [];
+
+    $allLinkedIssueNumbers = [];
+    foreach ($states as $state) {
+      if (!empty($state['issue_numbers']) && is_array($state['issue_numbers'])) {
+        foreach ($state['issue_numbers'] as $issueNumber) {
+          $number = (int) $issueNumber;
+          if ($number > 0) {
+            $allLinkedIssueNumbers[$number] = TRUE;
+          }
+        }
+      }
+      if (!empty($state['issue_number'])) {
+        $number = (int) $state['issue_number'];
+        if ($number > 0) {
+          $allLinkedIssueNumbers[$number] = TRUE;
+        }
+      }
+    }
+
+    $openIssueNumbers = [];
+    if (!empty($allLinkedIssueNumbers)) {
+      $url = "https://api.github.com/repos/{$repo}/issues?state=open&per_page=100";
+      $openIssuesResponse = $this->githubClient->requestJson($url, (string) $token, [], TRUE);
+      if (!empty($openIssuesResponse['error'])) {
+        $this->logger->warning('Issue sync could not preload open issues for @repo: @error', [
+          '@repo' => $repo,
+          '@error' => (string) $openIssuesResponse['error'],
+        ]);
+      }
+      else {
+        foreach (($openIssuesResponse['items'] ?? []) as $item) {
+          $number = (int) ($item['number'] ?? 0);
+          if ($number > 0) {
+            $openIssueNumbers[$number] = TRUE;
+          }
+        }
+      }
+    }
+
+    $issueStateCache = [];
 
     foreach ($states as $stage_id => $state) {
       $linked_issue_numbers = [];
@@ -66,12 +107,29 @@ class StageIssueSyncService {
 
       $open_issues = [];
       foreach ($linked_issue_numbers as $issue_number) {
-        $issue = $this->githubClient->getIssue($repo, (int) $issue_number, (string) $token);
-        if (!$issue) {
+        if (!empty($openIssueNumbers[$issue_number])) {
           $open_issues[] = $issue_number;
           continue;
         }
-        $isClosed = ($issue['state'] ?? '') === 'closed';
+
+        if (!array_key_exists($issue_number, $issueStateCache)) {
+          $issue = $this->githubClient->getIssue($repo, (int) $issue_number, (string) $token);
+          if (!$issue) {
+            $issueStateCache[$issue_number] = NULL;
+            $issueFetchFailures[$issue_number] = TRUE;
+          }
+          else {
+            $issueStateCache[$issue_number] = (string) ($issue['state'] ?? '');
+          }
+        }
+
+        $issueState = $issueStateCache[$issue_number];
+        if ($issueState === NULL) {
+          $open_issues[] = $issue_number;
+          continue;
+        }
+
+        $isClosed = $issueState === 'closed';
         if (!$isClosed) {
           $open_issues[] = $issue_number;
         }
@@ -122,6 +180,25 @@ class StageIssueSyncService {
     else {
       $this->logger->info('Issue sync completed. Linked: @linked, closed: 0. No updates applied.', [
         '@linked' => $linkedCount,
+      ]);
+    }
+
+    $failureNumbers = array_keys($issueFetchFailures);
+    $this->state->set('dungeoncrawler_tester.issue_sync_last', [
+      'timestamp' => time(),
+      'repo' => $repo,
+      'linked_stages' => $linkedCount,
+      'closed_stages' => $closedCount,
+      'resumed_stages' => $resumedCount,
+      'unlinked_stages' => $unlinkedCount,
+      'issue_fetch_failure_count' => count($failureNumbers),
+      'issue_fetch_failures' => $failureNumbers,
+    ]);
+
+    if (!empty($failureNumbers)) {
+      $this->logger->warning('Issue sync completed with @count issue fetch failure(s): @issues', [
+        '@count' => count($failureNumbers),
+        '@issues' => implode(', ', $failureNumbers),
       ]);
     }
   }

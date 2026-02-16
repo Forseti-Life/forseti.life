@@ -20,6 +20,7 @@ dungeoncrawler_tester.dead_value_close:
     _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::closeDeadValueAjax'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer site configuration'
 
 dungeoncrawler_tester.bulk_close_query_run:
@@ -28,6 +29,7 @@ dungeoncrawler_tester.bulk_close_query_run:
     _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::runBulkCloseQueryAjax'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer site configuration'
 
 dungeoncrawler_tester.documentation_home:
@@ -156,6 +158,7 @@ dungeoncrawler_tester.queue_run:
     _controller: '\Drupal\dungeoncrawler_tester\Controller\QueueManagementController::runQueueAjax'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer site configuration'
 
 dungeoncrawler_tester.queue_status:
@@ -180,6 +183,7 @@ dungeoncrawler_tester.queue_item_delete:
     _controller: '\Drupal\dungeoncrawler_tester\Controller\QueueManagementController::deleteQueueItemAjax'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer site configuration'
 
 dungeoncrawler_tester.queue_item_rerun:
@@ -188,6 +192,7 @@ dungeoncrawler_tester.queue_item_rerun:
     _controller: '\Drupal\dungeoncrawler_tester\Controller\QueueManagementController::rerunQueueItemAjax'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer site configuration'
 
 dungeoncrawler_tester.settings:
@@ -199,7 +204,7 @@ dungeoncrawler_tester.settings:
     _permission: 'administer site configuration'
 
 dungeoncrawler_tester.thetest:
-  path: '/thetest'
+  path: '/dungeoncrawler/testing/thetest'
   defaults:
     _controller: '\Drupal\dungeoncrawler_tester\Controller\TheTestController::page'
     _title: 'The Test'

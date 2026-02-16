@@ -33,6 +33,21 @@ The dashboard includes:
 - **Issue/PR Report Workflow**: `/dungeoncrawler/testing/issue-pr-report` now documents process and decision logic for low-to-high PR triage, no-op/superseded close decisions, and verification expectations.
 - **Docs link handling**: Documentation links resolve to internal Drupal documentation pages (no direct `.md` links); only the testing issues query links to GitHub.
 - **Theme compliance**: Documentation pages render with the theme-standard Bootstrap layout (`container` + `row/col`) and `card card-dungeoncrawler` sections for visual consistency.
+- **TheTest route scope**: The automation flip page now lives at `/dungeoncrawler/testing/thetest` to avoid generic root-path collisions and improve discoverability.
+- **TheTest status source**: PASS/FAIL status now comes from tester state (`dungeoncrawler_tester.thetest_status`) with optional env override (`TESTER_THETEST_STATUS=pass|fail`), not a hard-coded controller constant.
+- **Secret token storage**: Tester settings now store `github_token` in Drupal state (`dungeoncrawler_tester.github_token`) instead of exported module config to reduce accidental token exposure.
+- **POST route hardening**: Mutative tester AJAX routes require CSRF validation in routing requirements.
+- **Stage command validation**: Drush stage-control commands now validate stage IDs against defined stage definitions before writing state.
+- **Queue lock lease strategy**: Manual queue-run command now uses a batch-size-aware lock lease instead of a fixed 30-second window to reduce concurrent-run collisions.
+- **Failure-text sanitization**: Dashboard stage-control failure reason/excerpt rendering now escapes dynamic state-derived strings before output in `#markup`/`#description` paths.
+- **Payload decode hardening**: Queue/watchdog serialized payload reads now use safe decode helpers with `allowed_classes=false` and invalid-payload fallback handling.
+- **Controller DI hardening**: Tester controllers now use injected cache/CSRF services instead of static `\Drupal::...` lookups for queue/dashboard AJAX settings and cache paths.
+- **Repo-aware nav links**: Tester navigation block now builds the GitHub issue queue link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`).
+- **Repo-aware sign-off link**: Stage definitions now build the release sign-off defect link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`) instead of a hard-coded repository URL.
+- **Filesystem diagnostics**: Queue worker now validates simpletest directory creation/writability and surfaces explicit failure diagnostics in run/state output when setup fails.
+- **Temp-state isolation**: GitHub client cooldown/dedupe/lock files now include repository-scoped namespaces to reduce cross-site/process collisions on shared hosts.
+- **Auto-enqueue serialization**: Stage auto-enqueue now uses a cross-process lock guard to prevent duplicate queueing under concurrent cron invocations.
+- **Issue-sync efficiency/observability**: Stage issue sync now preloads open issues via a paginated bulk read, deduplicates fallback per-issue checks, and writes last-run diagnostics/fetch-failure details to state (`dungeoncrawler_tester.issue_sync_last`).
 - **Robust logging**: Dashboard form now lazy-loads logger service to avoid cache-induced initialization errors during command submissions.
 - **Serialization-safe DI**: Dashboard form lazy-loads all injected services (state, date formatter, stage definitions, queue, uuid) to survive form cache serialization.
 - **Dashboard CSS maintenance**: Removed a duplicate `.stage-grid` selector block in `css/dashboard.css` to keep layout rules single-sourced and easier to maintain.
@@ -49,7 +64,7 @@ The dashboard includes:
 ### GitHub issue automation (failures)
 
 - If a stage fails, the queue worker will try to open a GitHub issue and pause the stage.
-- Configure via `/admin/config/development/dungeoncrawler-tester` (preferred), `ai_conversation.settings` (`github_repo`, `github_token`), or env vars `TESTER_GITHUB_REPO`, `TESTER_GITHUB_TOKEN` (format: `owner/repo`). The default repo, if left blank, will fall back to `keithaumiller/forseti.life`.
+- Configure via `/admin/config/development/dungeoncrawler-tester` (preferred; repo in config, token in private state), `ai_conversation.settings` (`github_repo`, `github_token`), or env vars `TESTER_GITHUB_REPO`, `TESTER_GITHUB_TOKEN` (format: `owner/repo`). The default repo, if left blank, will fall back to `keithaumiller/forseti.life`.
 - Existing linked issues are respected; no new issue is opened if `issue_number` is already present in stage state.
 - Copilot assignment is performed as a second API step after issue creation, trying `@copilot`, `Copilot`, then `copilot` identifiers for compatibility.
 - If GitHub REST assignment does not attach Copilot, the worker falls back to `gh issue edit --add-assignee "@copilot"`.
@@ -61,14 +76,8 @@ The dashboard includes:
 ### Getting a GitHub token (for issue creation)
 
 1) Visit https://github.com/settings/tokens and create a **Fine-grained token** or **classic token** with scope `repo` (issue creation only requires `public_repo` on classic tokens).
-2) Set the token in `/admin/config/development/dungeoncrawler-tester` (preferred) or export `TESTER_GITHUB_TOKEN` in the environment.
+2) Set the token in `/admin/config/development/dungeoncrawler-tester` (stored in private state, not config export) or export `TESTER_GITHUB_TOKEN` in the environment.
 3) Set the repository to `keithaumiller/forseti.life` (default) or another `owner/repo`. If left blank, the system will use `keithaumiller/forseti.life`.
-
-### GitHub issue automation (failures)
-
-- If a stage fails, the queue worker will try to open a GitHub issue and pause the stage.
-- Configure repo/token via `ai_conversation.settings` (`github_repo`, `github_token`) or env vars `TESTER_GITHUB_REPO`, `TESTER_GITHUB_TOKEN` (format: `owner/repo`).
-- Existing linked issues are respected; no new issue is opened if `issue_number` is already present in stage state.
 
 ## Current review status
 - First-pass review completed for inventory (unit + functional suites). Functional workflow test remains stubbed.
@@ -192,9 +201,9 @@ The custom bootstrap handles this automatically, but manual intervention may be 
 
 ## Dashboard / Testing Page
 
-Access the testing dashboard at: `/testing`
+Access the testing dashboard at: `/dungeoncrawler/testing`
 
-This page provides a simple stub for manual testing and validation.
+This page provides the primary testing workflow hub for documentation, stagegates, commands, and issue triage.
 
 ## Content Module Documentation
 

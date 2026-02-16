@@ -1,7 +1,7 @@
 services:
   dungeoncrawler_tester.github_issue_pr_client:
     class: Drupal\dungeoncrawler_tester\Service\GithubIssuePrClient
-    arguments: ['@http_client', '@config.factory', '@logger.factory']
+    arguments: ['@http_client', '@config.factory', '@state', '@logger.factory']
 
   Drupal\dungeoncrawler_tester\Service\GithubIssuePrClientInterface:
     alias: dungeoncrawler_tester.github_issue_pr_client
@@ -11,7 +11,7 @@ services:
     arguments: ['@state', '@dungeoncrawler_tester.github_issue_pr_client', '@logger.factory']
   dungeoncrawler_tester.stage_definitions:
     class: Drupal\dungeoncrawler_tester\Service\StageDefinitionService
-    arguments: ['@string_translation', '%app.root%']
+    arguments: ['@string_translation', '%app.root%', '@config.factory']
   dungeoncrawler_tester.stage_auto_enqueue:
     class: Drupal\dungeoncrawler_tester\Service\StageAutoEnqueueService
-    arguments: ['@queue', '@state', '@logger.factory', '@uuid', '@dungeoncrawler_tester.stage_definitions']
+    arguments: ['@queue', '@state', '@lock', '@logger.factory', '@uuid', '@dungeoncrawler_tester.stage_definitions']

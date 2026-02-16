@@ -2,6 +2,7 @@
 
 namespace Drupal\dungeoncrawler_tester\Service;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 
@@ -12,7 +13,11 @@ class StageDefinitionService {
 
   use StringTranslationTrait;
 
-  public function __construct(TranslationInterface $translation, private readonly string $appRoot) {
+  public function __construct(
+    TranslationInterface $translation,
+    private readonly string $appRoot,
+    private readonly ConfigFactoryInterface $configFactory,
+  ) {
     $this->stringTranslation = $translation;
   }
 
@@ -40,7 +45,7 @@ class StageDefinitionService {
       [
         'id' => 'precommit-thetest',
         'title' => $this->t('Pre-commit: thetest toggle'),
-        'description' => $this->t('Functional check for /thetest page (requires code edit to flip pass/fail).'),
+        'description' => $this->t('Functional check for /dungeoncrawler/testing/thetest page (status controlled by tester state/env override).'),
         'commands' => [
           [
             'label' => $this->t('TheTest page functional'),
@@ -160,11 +165,42 @@ class StageDefinitionService {
             'args' => [],
             'cwd' => $root,
             'display' => 'Open GitHub issues (ci-failure, testing-defect)',
-            'link' => 'https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Aci-failure+label%3Atesting-defect',
+            'link' => $this->buildSignoffIssuesLink(),
           ],
         ],
       ],
     ];
+  }
+
+  /**
+   * Build repository-aware URL for release sign-off defects.
+   */
+  private function buildSignoffIssuesLink(): string {
+    $repo = $this->resolveGithubRepo();
+    $query = rawurlencode('is:issue is:open label:ci-failure label:testing-defect');
+    return "https://github.com/{$repo}/issues?q={$query}";
+  }
+
+  /**
+   * Resolve GitHub repository with config/env fallback.
+   */
+  private function resolveGithubRepo(): string {
+    $testerRepo = trim((string) $this->configFactory->get('dungeoncrawler_tester.settings')->get('github_repo'));
+    if ($testerRepo !== '') {
+      return $testerRepo;
+    }
+
+    $aiRepo = trim((string) $this->configFactory->get('ai_conversation.settings')->get('github_repo'));
+    if ($aiRepo !== '') {
+      return $aiRepo;
+    }
+
+    $envRepo = trim((string) getenv('TESTER_GITHUB_REPO'));
+    if ($envRepo !== '') {
+      return $envRepo;
+    }
+
+    return 'keithaumiller/forseti.life';
   }
 
 }

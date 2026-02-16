@@ -2,6 +2,8 @@
 
 namespace Drupal\dungeoncrawler_tester\Controller;
 
+use Drupal\Core\Access\CsrfTokenGenerator;
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
@@ -89,6 +91,16 @@ class TestingDashboardController extends ControllerBase {
   protected GithubIssuePrClientInterface $githubClient;
 
   /**
+   * Cache backend for dashboard query caching.
+   */
+  protected CacheBackendInterface $cacheBackend;
+
+  /**
+   * CSRF token generator for dashboard AJAX settings.
+   */
+  protected CsrfTokenGenerator $csrfToken;
+
+  /**
    * Default repository for issue lookups.
    */
   private string $defaultRepo = 'keithaumiller/forseti.life';
@@ -125,6 +137,8 @@ class TestingDashboardController extends ControllerBase {
     $instance->dateFormatter = $container->get('date.formatter');
     $instance->stageDefinitions = $container->get('dungeoncrawler_tester.stage_definitions');
     $instance->githubClient = $container->get('dungeoncrawler_tester.github_issue_pr_client');
+    $instance->cacheBackend = $container->get('cache.default');
+    $instance->csrfToken = $container->get('csrf_token');
     $instance->logger = $container->get('logger.factory')->get('dungeoncrawler_tester');
     return $instance;
   }
@@ -189,7 +203,7 @@ class TestingDashboardController extends ControllerBase {
         ],
         'drupalSettings' => [
           'dungeoncrawlerTester' => [
-            'csrfToken' => \Drupal::csrfToken()->get('rest'),
+            'csrfToken' => $this->csrfToken->get('rest'),
             'routes' => [
               'run' => Url::fromRoute('dungeoncrawler_tester.queue_run')->toString(),
               'status' => Url::fromRoute('dungeoncrawler_tester.queue_status')->toString(),
@@ -513,7 +527,7 @@ class TestingDashboardController extends ControllerBase {
         ],
         'drupalSettings' => [
           'dungeoncrawlerTester' => [
-            'csrfToken' => \Drupal::csrfToken()->get('rest'),
+            'csrfToken' => $this->csrfToken->get('rest'),
             'routes' => [
               'deadClose' => $this->safeRouteUrl('dungeoncrawler_tester.dead_value_close', '/dungeoncrawler/testing/issue-pr-report/dead-value-close'),
               'bulkCloseQuery' => $this->safeRouteUrl('dungeoncrawler_tester.bulk_close_query_run', '/dungeoncrawler/testing/issue-pr-report/bulk-close-query-run'),
@@ -2719,11 +2733,11 @@ class TestingDashboardController extends ControllerBase {
   }
 
   /**
-   * Highlight the /thetest flip hook for automation verification.
+   * Highlight the /dungeoncrawler/testing/thetest flip hook for automation verification.
    */
   private function buildTheTestCallout(): array {
     $link = Link::fromTextAndUrl(
-      $this->t('Open /thetest page'),
+      $this->t('Open /dungeoncrawler/testing/thetest page'),
       Url::fromRoute('dungeoncrawler_tester.thetest')
     )->toRenderable();
     $link['#attributes']['class'][] = 'queue-link';
@@ -2734,10 +2748,10 @@ class TestingDashboardController extends ControllerBase {
       'title' => [
         '#type' => 'html_tag',
         '#tag' => 'h2',
-        '#value' => $this->t('Automation flip test (/thetest)'),
+        '#value' => $this->t('Automation flip test (/dungeoncrawler/testing/thetest)'),
       ],
       'body' => [
-        '#markup' => '<p>' . $this->t('This page drives the pre-commit stage “Pre-commit: thetest toggle”. The code currently emits TEST:FAIL until the constant in TheTestController is flipped to pass. Use this to validate auto-pause, issue linking, and resume flows.') . '</p>',
+        '#markup' => '<p>' . $this->t('This page drives the pre-commit stage “Pre-commit: thetest toggle”. Status is controlled by tester state (and optional `TESTER_THETEST_STATUS` env override), so you can switch PASS/FAIL without editing source code. Use this to validate auto-pause, issue linking, and resume flows.') . '</p>',
       ],
       'cta' => $link,
     ];
@@ -2929,7 +2943,7 @@ class TestingDashboardController extends ControllerBase {
 
     // Check cache first
     $cache_key = 'dungeoncrawler_tester.github_issues.' . $repo . '.' . $label;
-    $cache = \Drupal::cache()->get($cache_key);
+    $cache = $this->cacheBackend->get($cache_key);
     if ($cache && !empty($cache->data)) {
       return $cache->data;
     }
@@ -2951,7 +2965,7 @@ class TestingDashboardController extends ControllerBase {
     }
 
     $result = ['items' => $items, 'error' => NULL];
-    \Drupal::cache()->set($cache_key, $result, time() + self::GITHUB_CACHE_TTL);
+    $this->cacheBackend->set($cache_key, $result, time() + self::GITHUB_CACHE_TTL);
     return $result;
   }
 
@@ -2969,7 +2983,7 @@ class TestingDashboardController extends ControllerBase {
 
     $cache_key = 'dungeoncrawler_tester.github_open_prs.' . $repo;
     if ($useCache) {
-      $cache = \Drupal::cache()->get($cache_key);
+      $cache = $this->cacheBackend->get($cache_key);
       if ($cache && !empty($cache->data)) {
         return $cache->data;
       }
@@ -3001,7 +3015,7 @@ class TestingDashboardController extends ControllerBase {
       'error' => NULL,
     ];
     if ($useCache) {
-      \Drupal::cache()->set($cache_key, $result, time() + self::GITHUB_CACHE_TTL);
+      $this->cacheBackend->set($cache_key, $result, time() + self::GITHUB_CACHE_TTL);
     }
 
     return $result;
@@ -3020,7 +3034,7 @@ class TestingDashboardController extends ControllerBase {
 
     $cacheKey = 'dungeoncrawler_tester.github_workflow_summary.' . $repo . '.' . $workflowFile;
     if ($useCache) {
-      $cache = \Drupal::cache()->get($cacheKey);
+      $cache = $this->cacheBackend->get($cacheKey);
       if ($cache && !empty($cache->data) && is_array($cache->data)) {
         return $cache->data;
       }
@@ -3051,7 +3065,7 @@ class TestingDashboardController extends ControllerBase {
     ];
 
     if ($useCache) {
-      \Drupal::cache()->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+      $this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
     }
 
     return $result;
@@ -3075,7 +3089,7 @@ class TestingDashboardController extends ControllerBase {
 
     $cacheKey = 'dungeoncrawler_tester.github_pr_automation_stats.' . $repo;
     if ($useCache) {
-      $cache = \Drupal::cache()->get($cacheKey);
+      $cache = $this->cacheBackend->get($cacheKey);
       if ($cache && !empty($cache->data) && is_array($cache->data)) {
         return $cache->data;
       }
@@ -3156,7 +3170,7 @@ class TestingDashboardController extends ControllerBase {
     ];
 
     if ($useCache) {
-      \Drupal::cache()->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+      $this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
     }
 
     return $result;
@@ -3172,7 +3186,7 @@ class TestingDashboardController extends ControllerBase {
 
     $cache_key = 'dungeoncrawler_tester.github_open_testing_issue_numbers.' . $repo;
     if ($useCache) {
-      $cache = \Drupal::cache()->get($cache_key);
+      $cache = $this->cacheBackend->get($cache_key);
       if ($cache && !empty($cache->data) && is_array($cache->data)) {
         return $cache->data;
       }
@@ -3207,7 +3221,7 @@ class TestingDashboardController extends ControllerBase {
 
     $numbers = array_values(array_map('intval', array_keys($issueNumbers)));
     if ($useCache) {
-      \Drupal::cache()->set($cache_key, $numbers, time() + self::GITHUB_CACHE_TTL);
+      $this->cacheBackend->set($cache_key, $numbers, time() + self::GITHUB_CACHE_TTL);
     }
 
     return $numbers;
@@ -3227,7 +3241,7 @@ class TestingDashboardController extends ControllerBase {
     $results = $query->execute()->fetchAll();
 
     foreach ($results as $row) {
-      $data = unserialize($row->data);
+      $data = $this->safeUnserializeArray($row->data);
       $preview = $this->getQueueItemPreview($data);
       $queue_items[] = [
         'item_id' => $row->item_id,
@@ -3258,6 +3272,32 @@ class TestingDashboardController extends ControllerBase {
       }
     }
     return $preview;
+  }
+
+  /**
+   * Safely decode a serialized payload into an array.
+   */
+  private function safeUnserializeArray(mixed $value): array {
+    if (!is_string($value) || $value === '') {
+      return [];
+    }
+
+    set_error_handler(static function (): bool {
+      return TRUE;
+    });
+
+    try {
+      $decoded = unserialize($value, ['allowed_classes' => FALSE]);
+    }
+    finally {
+      restore_error_handler();
+    }
+
+    if (!is_array($decoded)) {
+      return [];
+    }
+
+    return $decoded;
   }
 
   /**
@@ -3390,7 +3430,7 @@ class TestingDashboardController extends ControllerBase {
 
     $cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.open_issues.' . $repo;
     if ($useCache) {
-      $cache = \Drupal::cache()->get($cacheKey);
+      $cache = $this->cacheBackend->get($cacheKey);
       if ($cache && !empty($cache->data) && is_array($cache->data)) {
         return $cache->data;
       }
@@ -3439,7 +3479,7 @@ class TestingDashboardController extends ControllerBase {
 
     $result = ['items' => $items, 'error' => NULL];
     if ($useCache) {
-      \Drupal::cache()->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+      $this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
     }
     return $result;
   }
@@ -3454,7 +3494,7 @@ class TestingDashboardController extends ControllerBase {
 
     $cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.open_prs.' . $repo;
     if ($useCache) {
-      $cache = \Drupal::cache()->get($cacheKey);
+      $cache = $this->cacheBackend->get($cacheKey);
       if ($cache && !empty($cache->data) && is_array($cache->data)) {
         return $cache->data;
       }
@@ -3489,7 +3529,7 @@ class TestingDashboardController extends ControllerBase {
 
     $result = ['items' => $items, 'error' => NULL];
     if ($useCache) {
-      \Drupal::cache()->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+      $this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
     }
     return $result;
   }
@@ -3504,7 +3544,7 @@ class TestingDashboardController extends ControllerBase {
 
     $cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.closed_prs.' . $repo;
     if ($useCache) {
-      $cache = \Drupal::cache()->get($cacheKey);
+      $cache = $this->cacheBackend->get($cacheKey);
       if ($cache && !empty($cache->data) && is_array($cache->data)) {
         return $cache->data;
       }
@@ -3532,7 +3572,7 @@ class TestingDashboardController extends ControllerBase {
 
     $result = ['items' => $items, 'error' => NULL];
     if ($useCache) {
-      \Drupal::cache()->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+      $this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
     }
 
     return $result;
@@ -3548,7 +3588,7 @@ class TestingDashboardController extends ControllerBase {
 
     $cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.issue_timeline_links.' . $repo . '.' . $issueNumber;
     if ($useCache) {
-      $cache = \Drupal::cache()->get($cacheKey);
+      $cache = $this->cacheBackend->get($cacheKey);
       if ($cache && !empty($cache->data) && is_array($cache->data)) {
         return $cache->data;
       }
@@ -3588,7 +3628,7 @@ class TestingDashboardController extends ControllerBase {
 
     $result = array_values(array_map('intval', array_keys($linkedPrNumbers)));
     if ($useCache) {
-      \Drupal::cache()->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+      $this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
     }
 
     return $result;

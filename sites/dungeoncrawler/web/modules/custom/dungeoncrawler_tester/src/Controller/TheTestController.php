@@ -3,23 +3,33 @@
 namespace Drupal\dungeoncrawler_tester\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\State\StateInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Simple toggle page for automation validation.
  */
 class TheTestController extends ControllerBase {
 
-  /**
-   * Hardcoded status; flip to 'pass' in code to satisfy the functional test.
-   * The intent is to require a code edit (not UI input) to change the outcome.
-   */
-  private const STATUS = 'fail';
+  public function __construct(
+    private StateInterface $state,
+  ) {}
 
   /**
-   * Render the /thetest page.
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container): static {
+    return new static(
+      $container->get('state'),
+    );
+  }
+
+  /**
+   * Render the /dungeoncrawler/testing/thetest page.
    */
   public function page(): array {
-    $text = self::STATUS === 'fail' ? $this->t('TEST:FAIL') : $this->t('TEST:PASS');
+    $status = $this->resolveStatus();
+    $text = $status === 'fail' ? $this->t('TEST:FAIL') : $this->t('TEST:PASS');
 
     $build = [
       '#type' => 'container',
@@ -36,6 +46,19 @@ class TheTestController extends ControllerBase {
     ];
 
     return $build;
+  }
+
+  /**
+   * Resolve TheTest status from env override, then state, then default.
+   */
+  private function resolveStatus(): string {
+    $envStatus = strtolower((string) getenv('TESTER_THETEST_STATUS'));
+    if (in_array($envStatus, ['pass', 'fail'], TRUE)) {
+      return $envStatus;
+    }
+
+    $status = strtolower((string) $this->state->get('dungeoncrawler_tester.thetest_status', 'pass'));
+    return in_array($status, ['pass', 'fail'], TRUE) ? $status : 'pass';
   }
 
 }

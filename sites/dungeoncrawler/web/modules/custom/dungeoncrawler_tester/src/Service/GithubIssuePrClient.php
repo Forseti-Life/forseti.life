@@ -5,6 +5,7 @@ namespace Drupal\dungeoncrawler_tester\Service;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\Core\State\StateInterface;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use Psr\Http\Message\ResponseInterface;
@@ -13,6 +14,16 @@ use Psr\Http\Message\ResponseInterface;
  * Thin GitHub API client for issue/PR operations.
  */
 class GithubIssuePrClient implements GithubIssuePrClientInterface {
+
+  /**
+   * State key for tester GitHub token.
+   */
+  private const TOKEN_STATE_KEY = 'dungeoncrawler_tester.github_token';
+
+  /**
+   * Default repository fallback used for context and local state namespacing.
+   */
+  private const DEFAULT_REPO = 'keithaumiller/forseti.life';
 
   /**
    * Minimum delay between serialized mutative API requests.
@@ -72,6 +83,7 @@ class GithubIssuePrClient implements GithubIssuePrClientInterface {
   public function __construct(
     private readonly ClientInterface $httpClient,
     private readonly ConfigFactoryInterface $configFactory,
+    private readonly StateInterface $state,
     LoggerChannelFactoryInterface $loggerFactory,
   ) {
     $this->logger = $loggerFactory->get('dungeoncrawler_tester');
@@ -84,8 +96,12 @@ class GithubIssuePrClient implements GithubIssuePrClientInterface {
     $testerConfig = $this->configFactory->get('dungeoncrawler_tester.settings');
     $repo = (string) ($testerConfig->get('github_repo') ?: '');
 
+    $stateToken = trim((string) $this->state->get(self::TOKEN_STATE_KEY, ''));
+    $legacyConfigToken = trim((string) ($testerConfig->get('github_token') ?: ''));
+
     $tokenCandidates = [
-      (string) ($testerConfig->get('github_token') ?: ''),
+      $stateToken,
+      $legacyConfigToken,
     ];
 
     $aiConfig = $this->configFactory->get('ai_conversation.settings');
@@ -97,7 +113,7 @@ class GithubIssuePrClient implements GithubIssuePrClientInterface {
     $tokenCandidates[] = (string) ($aiConfig->get('copilot_token') ?: '');
 
     if ($repo === '') {
-      $repo = (string) (getenv('TESTER_GITHUB_REPO') ?: 'keithaumiller/forseti.life');
+      $repo = (string) (getenv('TESTER_GITHUB_REPO') ?: self::DEFAULT_REPO);
     }
 
     $tokenCandidates[] = (string) (getenv('TESTER_GITHUB_TOKEN') ?: '');
@@ -517,7 +533,7 @@ class GithubIssuePrClient implements GithubIssuePrClientInterface {
    * Execute operation under a cross-process mutation lock.
    */
   private function withMutationLock(callable $operation): ?ResponseInterface {
-    $lockPath = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . self::MUTATION_LOCK_FILE;
+    $lockPath = $this->getTempStatePath(self::MUTATION_LOCK_FILE);
     $handle = @fopen($lockPath, 'c+');
 
     if ($handle === FALSE) {
@@ -752,7 +768,7 @@ class GithubIssuePrClient implements GithubIssuePrClientInterface {
    * Get cooldown state file path.
    */
   private function getCooldownStatePath(): string {
-    return rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . self::COOLDOWN_STATE_FILE;
+    return $this->getTempStatePath(self::COOLDOWN_STATE_FILE);
   }
 
   /**
@@ -842,7 +858,42 @@ class GithubIssuePrClient implements GithubIssuePrClientInterface {
    * Get mutation dedupe state file path.
    */
   private function getMutationDedupeStatePath(): string {
-    return rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . self::MUTATION_DEDUPE_STATE_FILE;
+    return $this->getTempStatePath(self::MUTATION_DEDUPE_STATE_FILE);
+  }
+
+  /**
+   * Build a namespaced temp-state file path for this repository context.
+   */
+  private function getTempStatePath(string $baseFilename): string {
+    return rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . $this->getNamespacedStateFilename($baseFilename);
+  }
+
+  /**
+   * Create a repository-scoped file name from a base state/lock file name.
+   */
+  private function getNamespacedStateFilename(string $baseFilename): string {
+    $namespace = $this->getStateNamespace();
+    $dotPos = strrpos($baseFilename, '.');
+
+    if ($dotPos === FALSE) {
+      return $baseFilename . '_' . $namespace;
+    }
+
+    $name = substr($baseFilename, 0, $dotPos);
+    $ext = substr($baseFilename, $dotPos + 1);
+    return $name . '_' . $namespace . '.' . $ext;
+  }
+
+  /**
+   * Build a stable repository-derived namespace for local temp state files.
+   */
+  private function getStateNamespace(): string {
+    $repo = strtolower(trim((string) ($this->resolveContext()['repo'] ?? self::DEFAULT_REPO)));
+    if ($repo === '') {
+      $repo = self::DEFAULT_REPO;
+    }
+
+    return substr(sha1($repo), 0, 12);
   }
 
   /**
