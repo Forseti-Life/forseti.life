@@ -35,8 +35,10 @@ final class TestEnvironmentSetup implements Extension {
     // Note: This path is relative to where phpunit is run from (sites/dungeoncrawler)
     $simpletestDir = 'web/sites/simpletest';
     if (!is_dir($simpletestDir)) {
-      mkdir($simpletestDir, 0775, TRUE);
+      mkdir($simpletestDir, 0777, TRUE);
     }
+    // Ensure the directory has full write permissions for test subdirectories
+    chmod($simpletestDir, 0777);
 
     // Ensure default site files directory exists
     $defaultFilesDir = 'web/sites/default/files';
