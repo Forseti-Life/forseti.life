@@ -14,6 +14,11 @@
     - unit: Isolated service/unit coverage
     - functional: Browser tests for controllers/routes/workflows
 
+  Bootstrap:
+    Uses custom tests/bootstrap.php to ensure the sites/simpletest directory
+    exists and is writable before running tests. This is required for Drupal's
+    BrowserTestBase which creates temporary test site directories.
+
   Note: failOnPhpunitDeprecation is set to false to allow tests to pass
   despite PHPUnit 11 deprecation warnings. These warnings should be addressed
   in a future update when migrating to newer PHPUnit/Drupal versions.
@@ -21,6 +26,7 @@
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
          bootstrap="core/tests/bootstrap.php"
+         bootstrap="tests/bootstrap.php"
          colors="true"
          failOnPhpunitDeprecation="false">
   
