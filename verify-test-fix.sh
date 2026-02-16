@@ -87,16 +87,18 @@ echo "Step 3: Checking MySQL database..."
 if command -v mysql &> /dev/null; then
   pass "MySQL client available"
   
-  # Test database connection (using credentials from phpunit.xml)
-  # Use MYSQL_PWD environment variable to avoid password in process list
-  if MYSQL_PWD=drupal_secure_password mysql -h 127.0.0.1 -u drupal_user -e "USE dungeoncrawler_dev; SELECT 1;" &> /dev/null; then
+  # Test database connection (using test credentials from phpunit.xml)
+  # Note: These are test credentials from phpunit.xml, not production passwords
+  DB_PASSWORD="drupal_secure_password"
+  if MYSQL_PWD="$DB_PASSWORD" mysql -h 127.0.0.1 -u drupal_user -e "USE dungeoncrawler_dev; SELECT 1;" &> /dev/null; then
     pass "MySQL database 'dungeoncrawler_dev' is accessible"
   else
     warn "Cannot connect to MySQL database 'dungeoncrawler_dev'"
     echo "  To set up the database, run:"
     echo "    mysql -e \"CREATE DATABASE IF NOT EXISTS dungeoncrawler_dev;\""
-    echo "    mysql -e \"CREATE USER IF NOT EXISTS 'drupal_user'@'127.0.0.1' IDENTIFIED BY 'drupal_secure_password';\""
+    echo "    mysql -e \"CREATE USER IF NOT EXISTS 'drupal_user'@'127.0.0.1' IDENTIFIED BY '<your_password>';\""
     echo "    mysql -e \"GRANT ALL PRIVILEGES ON dungeoncrawler_dev.* TO 'drupal_user'@'127.0.0.1'; FLUSH PRIVILEGES;\""
+    echo "  Note: Replace <your_password> with the password from phpunit.xml (SIMPLETEST_DB)"
   fi
 else
   warn "MySQL client not available"
