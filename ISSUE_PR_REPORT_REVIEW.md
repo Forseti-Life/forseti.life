@@ -213,6 +213,42 @@ The issue-pr-report implementation successfully provides:
 
 **Recommendation**: APPROVE for operational use in PR triage workflows.
 
+## Testing Coverage
+
+### Functional Tests Added
+
+**Location**: `tests/src/Functional/Controller/TestingDashboardControllerTest.php`
+
+Two new test methods added to validate the issue-pr-report functionality:
+
+1. **`testIssuePrReportDisplay()`**
+   - Verifies route returns 200 status for authorized users
+   - Confirms "Process & Decision Logic" section is rendered
+   - Validates "Triage Steps" content is present
+   - Validates "Decision Rules" content is present
+   - Confirms issue list sections are rendered
+
+2. **`testIssuePrReportAccessNegative()`**
+   - Verifies anonymous users cannot access (403)
+   - Verifies regular users without permissions cannot access (403)
+   - Ensures proper access control
+
+### Test Execution
+
+To run the new tests:
+
+```bash
+cd sites/dungeoncrawler
+./vendor/bin/phpunit --filter TestingDashboardControllerTest
+```
+
+Or specifically for the new issue-pr-report tests:
+
+```bash
+cd sites/dungeoncrawler
+./vendor/bin/phpunit --filter testIssuePrReport
+```
+
 ## Sign-off
 
 - [x] Triage steps match operational expectations
@@ -220,3 +256,5 @@ The issue-pr-report implementation successfully provides:
 - [x] Wording for reviewer/operator handoff is clear
 - [x] Implementation matches documentation
 - [x] Safety measures are in place
+- [x] Functional tests added for route and display
+- [x] Access control properly tested
