@@ -23,15 +23,6 @@ if (!defined('DRUPAL_ROOT')) {
   define('DRUPAL_ROOT', dirname(__DIR__, 4));
 }
 
-// Now include Drupal's core test bootstrap which will handle the rest of the
-// initialization.
-require_once DRUPAL_ROOT . '/core/tests/bootstrap.php';
- * Custom bootstrap for Dungeon Crawler tests.
- *
- * This bootstrap file ensures proper file permissions for test site creation
- * by setting an appropriate umask before loading Drupal's test bootstrap.
- */
-
 // Set umask to ensure created files and directories are readable/writable.
 // This fixes "Failed to open settings.php" errors in functional tests where
 // test site directories and files are created with overly restrictive permissions.
@@ -56,5 +47,6 @@ if (!chmod($simpletest_dir, 0775)) {
   throw new \RuntimeException("Failed to set permissions on simpletest directory: $simpletest_dir");
 }
 
-// Include the standard Drupal test bootstrap
-require __DIR__ . '/../../../../core/tests/bootstrap.php';
+// Now include Drupal's core test bootstrap which will handle the rest of the
+// initialization.
+require_once DRUPAL_ROOT . '/core/tests/bootstrap.php';
