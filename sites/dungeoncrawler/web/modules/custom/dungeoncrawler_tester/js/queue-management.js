@@ -30,6 +30,30 @@
       if (refreshLogsBtn) {
         refreshLogsBtn.addEventListener('click', () => refreshLogs());
       }
+
+      context.addEventListener('click', (event) => {
+        const target = event.target.closest('[data-action="delete-item"], [data-action="rerun-item"]');
+        if (!target) {
+          return;
+        }
+
+        const action = target.getAttribute('data-action');
+        const itemId = Number(target.getAttribute('data-item-id') || 0);
+        if (!itemId) {
+          showMessage('Queue item id is missing.', 'error');
+          return;
+        }
+
+        if (action === 'delete-item') {
+          queueItemAction('delete', itemId, target);
+          return;
+        }
+
+        if (action === 'rerun-item') {
+          queueItemAction('rerun', itemId, target);
+        }
+      });
+
       if (autoToggle) {
         autoToggle.addEventListener('change', () => {
           if (autoToggle.checked) {
@@ -67,6 +91,50 @@
       .catch(err => {
         setStatus('idle');
         showMessage('Error running queue: ' + err.message, 'error');
+      });
+  }
+
+  function queueItemAction(action, itemId, buttonEl) {
+    const endpoint = action === 'delete' ? endpoints.delete : endpoints.rerun;
+    if (!endpoint) {
+      showMessage('Queue action endpoint is not configured.', 'error');
+      return;
+    }
+
+    if (action === 'delete' && !window.confirm(`Delete queue item #${itemId}?`)) {
+      return;
+    }
+
+    if (buttonEl) {
+      buttonEl.disabled = true;
+    }
+
+    fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': token,
+      },
+      body: JSON.stringify({ item_id: itemId }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        showMessage(data.message || 'Queue action completed.', data.success ? 'success' : 'error');
+        if (data.success) {
+          window.setTimeout(() => window.location.reload(), 300);
+          return;
+        }
+        if (data.stale) {
+          window.setTimeout(() => window.location.reload(), 300);
+        }
+      })
+      .catch(err => {
+        showMessage('Error processing queue item: ' + err.message, 'error');
+      })
+      .finally(() => {
+        if (buttonEl) {
+          buttonEl.disabled = false;
+        }
       });
   }
 

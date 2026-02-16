@@ -19,6 +19,17 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class SdlcResetForm extends FormBase {
 
+  /**
+   * Labels treated as testing issues during SDLC reset closure.
+   */
+  private const RESET_TESTING_LABELS = [
+    'testing',
+    'testing-defect',
+    'ci-failure',
+    'program-defect',
+    'tester',
+  ];
+
   public function __construct(
     private readonly StateInterface $state,
     private readonly ConfigFactoryInterface $settingsConfigFactory,
@@ -54,6 +65,27 @@ class SdlcResetForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $preview = $this->getResetPreviewStats();
+    $isReady = $preview['open_issues'] === 0
+      && $preview['queue_items'] === 0
+      && $preview['historical_stage_states'] === 0
+      && $preview['total_stage_states'] === $preview['expected_defined_stages'];
+
+    $pendingReasons = [];
+    if ($preview['open_issues'] > 0) {
+      $pendingReasons[] = $this->t('Open linked tester issues exist (@count).', ['@count' => $preview['open_issues']]);
+    }
+    if ($preview['queue_items'] > 0) {
+      $pendingReasons[] = $this->t('Queued tester items remain (@count).', ['@count' => $preview['queue_items']]);
+    }
+    if ($preview['historical_stage_states'] > 0) {
+      $pendingReasons[] = $this->t('Historical stage-state records are present (@count).', ['@count' => $preview['historical_stage_states']]);
+    }
+    if ($preview['total_stage_states'] !== $preview['expected_defined_stages']) {
+      $pendingReasons[] = $this->t('Stage-state entries (@total) do not match current defined stage count (@defined).', [
+        '@total' => $preview['total_stage_states'],
+        '@defined' => $preview['expected_defined_stages'],
+      ]);
+    }
 
     $form['description'] = [
       '#type' => 'html_tag',
@@ -61,14 +93,48 @@ class SdlcResetForm extends FormBase {
       '#value' => $this->t('Closes all currently linked open tester issues with an SDLC reset note, then resets queue and stage state to ready-to-run.'),
     ];
 
+    $form['readiness'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['sdlc-reset-readiness', $isReady ? 'is-ready' : 'is-pending'],
+      ],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h4',
+        '#value' => $isReady
+          ? $this->t('Ready to start Testing')
+          : $this->t('Pending Previous Run'),
+      ],
+      'summary' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $isReady
+          ? $this->t('Environment is clean for a fresh release test run.')
+          : $this->t('Cleanup is still required before starting a fresh release run.'),
+      ],
+    ];
+
+    if (!$isReady && !empty($pendingReasons)) {
+      $form['readiness']['pending_reasons'] = [
+        '#theme' => 'item_list',
+        '#items' => $pendingReasons,
+      ];
+    }
+
     $form['preview'] = [
       '#theme' => 'item_list',
       '#items' => [
-        $this->t('Linked open issues to close: @count', ['@count' => $preview['open_issues']]),
-        $this->t('Defined stages to reset to active: @count', ['@count' => $preview['defined_stages']]),
-        $this->t('Historical stage-state records to clean: @count', ['@count' => $preview['historical_stage_states']]),
-        $this->t('Total stage-state entries to reset: @count', ['@count' => $preview['total_stage_states']]),
-        $this->t('Queued tester items to clear: @count', ['@count' => $preview['queue_items']]),
+        $this->t('Linked open issues to close: @count (target for ready state: 0)', ['@count' => $preview['open_issues']]),
+        $this->t('Defined stages to reset to active: @count (target for ready state: @target)', [
+          '@count' => $preview['defined_stages'],
+          '@target' => $preview['expected_defined_stages'],
+        ]),
+        $this->t('Historical stage-state records to clean: @count (target for ready state: 0)', ['@count' => $preview['historical_stage_states']]),
+        $this->t('Total stage-state entries to reset: @count (target for ready state: @target)', [
+          '@count' => $preview['total_stage_states'],
+          '@target' => $preview['expected_defined_stages'],
+        ]),
+        $this->t('Queued tester items to clear: @count (target for ready state: 0)', ['@count' => $preview['queue_items']]),
       ],
     ];
 
@@ -143,6 +209,13 @@ class SdlcResetForm extends FormBase {
     $failedIssueNumbers = [];
     $closedIssueNumbers = [];
 
+    if ($token) {
+      $labelIssueNumbers = $this->fetchOpenTestingIssueNumbers($repo, $token);
+      foreach ($labelIssueNumbers as $issueNumber) {
+        $issueNumbers[(int) $issueNumber] = TRUE;
+      }
+    }
+
     if (!empty($issueNumbers) && !$token && !$forceLocalReset) {
       $this->messenger()->addError($this->t('Reset aborted: GitHub token is missing and linked issues cannot be closed. Enable force local reset only if you intentionally want local state reset without closing GitHub issues.'));
       return;
@@ -170,7 +243,19 @@ class SdlcResetForm extends FormBase {
       return;
     }
 
-    foreach ($stageStates as $stageId => $state) {
+    $definedStageIds = array_values(array_map(
+      static fn(array $definition): string => (string) ($definition['id'] ?? ''),
+      $this->stageDefinitions->getDefinitions()
+    ));
+    $definedStageIds = array_values(array_filter($definedStageIds));
+
+    // Rebuild stage state to current definitions only:
+    // - removes historical/dynamic stage IDs from previous runs,
+    // - backfills newly defined stage IDs,
+    // - leaves a clean ready-to-run baseline.
+    $normalizedStageStates = [];
+    foreach ($definedStageIds as $stageId) {
+      $state = $stageStates[$stageId] ?? [];
       $state['active'] = TRUE;
 
       $issueNumber = isset($state['issue_number']) ? (int) $state['issue_number'] : 0;
@@ -180,11 +265,17 @@ class SdlcResetForm extends FormBase {
         unset($state['issue_number'], $state['issue_status']);
       }
 
-      unset($state['failure_reason'], $state['failure_excerpt']);
-      $stageStates[$stageId] = $state;
+      unset(
+        $state['issue_numbers'],
+        $state['issue_test_cases'],
+        $state['failure_reason'],
+        $state['failure_excerpt']
+      );
+
+      $normalizedStageStates[$stageId] = $state;
     }
 
-    $this->state->set('dungeoncrawler_tester.stage_state', $stageStates);
+    $this->state->set('dungeoncrawler_tester.stage_state', $normalizedStageStates);
     $this->state->set('dungeoncrawler_tester.runs', []);
     $this->state->set('dungeoncrawler_tester.auto_enqueue_last', []);
 
@@ -196,7 +287,7 @@ class SdlcResetForm extends FormBase {
     Cache::invalidateTags(['dungeoncrawler_tester.dashboard', 'dungeoncrawler_tester.queue']);
 
     if (!$token && !empty($issueNumbers) && $forceLocalReset) {
-      $this->messenger()->addWarning($this->t('SDLC reset forced without GitHub closure. Linked issues may still be open remotely.'));
+      $this->messenger()->addWarning($this->t('SDLC reset forced without GitHub closure. Linked/testing issues may still be open remotely.'));
     }
 
     if ($failed > 0 && $forceLocalReset) {
@@ -249,9 +340,20 @@ class SdlcResetForm extends FormBase {
 
     $openIssues = [];
     foreach ($stageStates as $state) {
-      $hasOpenIssue = !empty($state['issue_number']) && (($state['issue_status'] ?? 'open') === 'open');
+      $linkedIssueNumbers = [];
+      if (!empty($state['issue_numbers']) && is_array($state['issue_numbers'])) {
+        $linkedIssueNumbers = array_values(array_unique(array_filter(array_map('intval', $state['issue_numbers']))));
+      }
+      if (!empty($state['issue_number'])) {
+        $linkedIssueNumbers[] = (int) $state['issue_number'];
+      }
+      $linkedIssueNumbers = array_values(array_unique(array_filter($linkedIssueNumbers)));
+
+      $hasOpenIssue = !empty($linkedIssueNumbers) && (($state['issue_status'] ?? 'open') === 'open');
       if ($hasOpenIssue) {
-        $openIssues[(int) $state['issue_number']] = TRUE;
+        foreach ($linkedIssueNumbers as $issueNumber) {
+          $openIssues[(int) $issueNumber] = TRUE;
+        }
       }
     }
 
@@ -264,6 +366,7 @@ class SdlcResetForm extends FormBase {
     return [
       'open_issues' => count($openIssues),
       'defined_stages' => $definedStageStateCount,
+      'expected_defined_stages' => count($definedStageIds),
       'historical_stage_states' => $historicalStageStateCount,
       'total_stage_states' => $totalStageStateCount,
       'queue_items' => $queueItems,
@@ -335,6 +438,65 @@ class SdlcResetForm extends FormBase {
   }
 
   /**
+   * Fetch open testing-related issue numbers by label.
+   */
+  private function fetchOpenTestingIssueNumbers(string $repo, string $token): array {
+    $headers = [
+      'Authorization' => "Bearer {$token}",
+      'Accept' => 'application/vnd.github+json',
+      'User-Agent' => 'dungeoncrawler-tester-sdlc-reset',
+    ];
+
+    $issueNumbers = [];
+
+    foreach (self::RESET_TESTING_LABELS as $label) {
+      $url = "https://api.github.com/repos/{$repo}/issues?state=open&labels=" . rawurlencode($label) . '&per_page=100';
+
+      try {
+        $response = $this->httpClient->request('GET', $url, [
+          'headers' => $headers,
+          'timeout' => 10,
+        ]);
+
+        $status = $response->getStatusCode();
+        if ($status < 200 || $status >= 300) {
+          continue;
+        }
+
+        $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
+        foreach ($payload as $item) {
+          if (!is_array($item)) {
+            continue;
+          }
+
+          if (!empty($item['pull_request'])) {
+            continue;
+          }
+
+          $number = (int) ($item['number'] ?? 0);
+          if ($number > 0) {
+            $issueNumbers[$number] = TRUE;
+          }
+        }
+      }
+      catch (GuzzleException $e) {
+        $this->logger->warning('Failed loading open issues for label @label during SDLC reset: @message', [
+          '@label' => $label,
+          '@message' => $e->getMessage(),
+        ]);
+      }
+      catch (\Throwable $e) {
+        $this->logger->warning('Unexpected issue-fetch error for label @label during SDLC reset: @message', [
+          '@label' => $label,
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+
+    return array_values(array_map('intval', array_keys($issueNumbers)));
+  }
+
+  /**
    * Invalidate GitHub-derived dashboard cache entries after reset.
    */
   private function clearGithubDashboardCaches(string $repo): void {
@@ -342,6 +504,8 @@ class SdlcResetForm extends FormBase {
       'dungeoncrawler_tester.github_issues.' . $repo . '.ci-failure',
       'dungeoncrawler_tester.github_issues.' . $repo . '.testing-defect',
       'dungeoncrawler_tester.github_issues.' . $repo . '.program-defect',
+      'dungeoncrawler_tester.github_open_prs.' . $repo,
+      'dungeoncrawler_tester.github_open_testing_issue_numbers.' . $repo,
     ];
 
     foreach ($issuesCacheKeys as $key) {

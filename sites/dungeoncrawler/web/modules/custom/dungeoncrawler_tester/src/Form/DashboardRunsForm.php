@@ -86,11 +86,12 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $definitions = $this->getStageDefinitions()->getDefinitions();
+    $definedStageIds = array_values(array_filter(array_map(static fn(array $stage): string => (string) ($stage['id'] ?? ''), $definitions)));
     $runs = $this->getState()->get('dungeoncrawler_tester.runs', []);
     $stage_states = $this->getState()->get('dungeoncrawler_tester.stage_state', []);
     $regression_stage_id = 'regression_suite';
     $regression_batch_active = (bool) $this->getState()->get('dungeoncrawler_tester.regression_batch_active', FALSE);
-    $non_regression_in_progress_stages = $this->getInProgressStageIds($runs, NULL);
+    $non_regression_in_progress_stages = $this->getInProgressStageIds($runs, NULL, $definedStageIds);
     $non_regression_in_progress = !empty($non_regression_in_progress_stages);
 
     if ($regression_batch_active && !$non_regression_in_progress) {
@@ -115,13 +116,13 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       'tests' => [
         '#type' => 'details',
         '#title' => $this->t('Tests'),
-        '#open' => FALSE,
-        '#attributes' => ['class' => ['stage-tests-accordion']],
+        '#open' => TRUE,
+        '#attributes' => ['class' => ['stage-tests-accordion'], 'id' => 'stage-' . $regression_stage_id . '-tests'],
         'test_0' => [
           '#type' => 'details',
           '#title' => $this->t('Regression stage-gate batch'),
-          '#open' => FALSE,
-          '#attributes' => ['class' => ['stage-test-item']],
+          '#open' => TRUE,
+          '#attributes' => ['class' => ['stage-test-item'], 'id' => 'stage-' . $regression_stage_id . '-test-0'],
           'description' => [
             '#type' => 'html_tag',
             '#tag' => 'p',
@@ -136,6 +137,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
             '#type' => 'submit',
             '#value' => $this->t('Run Regression Suite'),
             '#name' => 'run_regression_suite',
+            '#fragment' => 'stage-' . $regression_stage_id . '-test-0',
             '#submit' => ['::submitRegressionSuite'],
             '#limit_validation_errors' => [],
             '#disabled' => $regression_batch_active || $non_regression_in_progress,
@@ -191,8 +193,8 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       $form[$stage_id]['tests'] = [
         '#type' => 'details',
         '#title' => $this->t('Tests'),
-        '#open' => FALSE,
-        '#attributes' => ['class' => ['stage-tests-accordion']],
+        '#open' => TRUE,
+        '#attributes' => ['class' => ['stage-tests-accordion'], 'id' => 'stage-' . $stage_id . '-tests'],
       ];
 
       foreach ($stage['commands'] as $index => $cmd) {
@@ -333,6 +335,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     ]);
 
     $display_cmd = $cmd['display'] ?? implode(' ', $cmd['args'] ?? []);
+    $fragment = (string) ($trigger['#fragment'] ?? ('stage-' . $stage_id));
     $job_id = $this->getUuid()->generate();
 
     $this->storeRun($stage_id, [
@@ -363,9 +366,8 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       '@job' => $job_id,
     ]);
 
-    // Rebuild to refresh the last-run block and scroll back to the stage.
-    $form_state->setRebuild(TRUE);
-    $form_state->setRedirectUrl(Url::fromRoute('<current>', [], ['fragment' => 'stage-' . $stage_id]));
+    // Redirect back to the clicked run item.
+    $form_state->setRedirectUrl(Url::fromRoute('<current>', [], ['fragment' => $fragment]));
   }
 
   /**
@@ -373,6 +375,8 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
    */
   public function submitRegressionSuite(array &$form, FormStateInterface $form_state): void {
     $stage_id = 'regression_suite';
+    $trigger = $form_state->getTriggeringElement();
+    $fragment = (string) ($trigger['#fragment'] ?? ('stage-' . $stage_id . '-test-0'));
     $runs = $this->getState()->get('dungeoncrawler_tester.runs', []);
     $regression_batch_active = (bool) $this->getState()->get('dungeoncrawler_tester.regression_batch_active', FALSE);
     if ($regression_batch_active) {
@@ -380,17 +384,20 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       return;
     }
 
-    $in_progress = $this->getInProgressStageIds($runs, NULL);
+    $definitions = $this->getStageDefinitions()->getDefinitions();
+    $definedStageIds = array_values(array_filter(array_map(static fn(array $stage): string => (string) ($stage['id'] ?? ''), $definitions)));
+    $in_progress = $this->getInProgressStageIds($runs, NULL, $definedStageIds);
     if (!empty($in_progress)) {
       $this->messenger()->addWarning($this->t('Cannot queue regression while stage runs are pending/running: @stages', ['@stages' => implode(', ', $in_progress)]));
       return;
     }
 
-    $definitions = $this->getStageDefinitions()->getDefinitions();
     $stage_states = $this->getState()->get('dungeoncrawler_tester.stage_state', []);
     $queue = $this->getQueueFactory()->get('dungeoncrawler_tester_runs');
 
     $queued_stage_ids = [];
+    $skipped_blocked_stage_ids = [];
+    $skipped_no_command_stage_ids = [];
     foreach ($definitions as $stage) {
       $current_stage_id = $stage['id'] ?? '';
       if ($current_stage_id === '' || $current_stage_id === $stage_id) {
@@ -399,11 +406,13 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
 
       $stage_state = $stage_states[$current_stage_id] ?? [];
       if (!$this->isStageRunnable($stage_state)) {
+        $skipped_blocked_stage_ids[] = $current_stage_id;
         continue;
       }
 
       $primary = $stage['commands'][0] ?? NULL;
       if (!$primary || empty($primary['args'])) {
+        $skipped_no_command_stage_ids[] = $current_stage_id;
         continue;
       }
 
@@ -442,23 +451,43 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       '@count' => count($queued_stage_ids),
       '@stages' => implode(', ', $queued_stage_ids),
     ]));
+
+    if (!empty($skipped_blocked_stage_ids)) {
+      $this->messenger()->addWarning($this->t('Skipped blocked stage gate(s): @stages', [
+        '@stages' => implode(', ', $skipped_blocked_stage_ids),
+      ]));
+    }
+
+    if (!empty($skipped_no_command_stage_ids)) {
+      $this->messenger()->addWarning($this->t('Skipped stage gate(s) without runnable primary command: @stages', [
+        '@stages' => implode(', ', $skipped_no_command_stage_ids),
+      ]));
+    }
+
     $this->getLogger('dungeoncrawler_tester')->notice('Regression batch queued for @count stage gate(s): @stages', [
       '@count' => count($queued_stage_ids),
       '@stages' => implode(', ', $queued_stage_ids),
     ]);
 
-    $form_state->setRebuild(TRUE);
-    $form_state->setRedirectUrl(Url::fromRoute('<current>', [], ['fragment' => 'stage-' . $stage_id]));
+    $form_state->setRedirectUrl(Url::fromRoute('<current>', [], ['fragment' => $fragment]));
   }
 
   /**
    * Return stage ids that are currently pending/running.
    */
-  private function getInProgressStageIds(array $runs, ?string $excludeStageId = NULL): array {
+  private function getInProgressStageIds(array $runs, ?string $excludeStageId = NULL, ?array $allowedStageIds = NULL): array {
     $stageIds = [];
+    $allowedSet = NULL;
+    if (is_array($allowedStageIds)) {
+      $allowedSet = array_fill_keys(array_values(array_filter(array_map('strval', $allowedStageIds))), TRUE);
+    }
 
     foreach ($runs as $stageId => $run) {
       if ($excludeStageId !== NULL && $stageId === $excludeStageId) {
+        continue;
+      }
+
+      if ($allowedSet !== NULL && !isset($allowedSet[(string) $stageId])) {
         continue;
       }
 
@@ -499,6 +528,14 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       'failure_reason' => NULL,
       'failure_excerpt' => NULL,
     ]);
+
+    if ($issue_number === NULL) {
+      $states = $this->getState()->get('dungeoncrawler_tester.stage_state', []);
+      if (!empty($states[$stage_id]) && is_array($states[$stage_id])) {
+        unset($states[$stage_id]['issue_numbers'], $states[$stage_id]['issue_test_cases']);
+        $this->getState()->set('dungeoncrawler_tester.stage_state', $states);
+      }
+    }
 
     $msg = $active ? $this->t('Stage @stage is active.', ['@stage' => $stage_id]) : $this->t('Stage @stage paused.', ['@stage' => $stage_id]);
     if ($issue_number) {
@@ -598,7 +635,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     return [
       '#type' => 'details',
       '#title' => $cmd['label'],
-      '#open' => FALSE,
+      '#open' => TRUE,
       '#attributes' => ['class' => ['stage-test-item']],
       'description' => [
         '#type' => 'html_tag',
@@ -616,14 +653,18 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
         '#type' => 'submit',
         '#value' => $this->t('Run'),
         '#name' => $stage_id . '_run_' . $index,
+        '#fragment' => 'stage-' . $stage_id . '-test-' . $index,
         '#stage_id' => $stage_id,
         '#command_meta' => $cmd,
         '#submit' => ['::submitCommand'],
         '#limit_validation_errors' => [],
         '#disabled' => $is_disabled,
-        '#attributes' => $is_disabled
-          ? ['title' => $block_reason ?: (string) $this->t('Regression batch is active. Stage runs are temporarily locked.')]
-          : [],
+        '#attributes' => array_merge(
+          ['id' => 'stage-' . $stage_id . '-run-' . $index],
+          $is_disabled
+            ? ['title' => $block_reason ?: (string) $this->t('Regression batch is active. Stage runs are temporarily locked.')]
+            : []
+        ),
       ],
     ];
   }
@@ -703,8 +744,10 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     if (array_key_exists('active', $stage_state) && !$stage_state['active']) {
       return FALSE;
     }
-    if (!empty($stage_state['issue_number'])) {
-      $status = $stage_state['issue_status'] ?? 'open';
+    $hasLinkedIssue = !empty($stage_state['issue_number'])
+      || (!empty($stage_state['issue_numbers']) && is_array($stage_state['issue_numbers']));
+    if ($hasLinkedIssue) {
+      $status = (string) ($stage_state['issue_status'] ?? 'open');
       if ($status !== 'closed') {
         return FALSE;
       }
@@ -722,10 +765,22 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       }
       return $this->t('Stage is paused.');
     }
+    $issueNumbers = [];
+    if (!empty($stage_state['issue_numbers']) && is_array($stage_state['issue_numbers'])) {
+      $issueNumbers = array_values(array_unique(array_filter(array_map('intval', $stage_state['issue_numbers']))));
+    }
     if (!empty($stage_state['issue_number'])) {
-      $status = $stage_state['issue_status'] ?? 'open';
+      $issueNumbers[] = (int) $stage_state['issue_number'];
+    }
+    $issueNumbers = array_values(array_unique(array_filter($issueNumbers)));
+
+    if (!empty($issueNumbers)) {
+      $status = (string) ($stage_state['issue_status'] ?? 'open');
       if ($status !== 'closed') {
-        return $this->t('Blocked by issue #@n (@s).', ['@n' => $stage_state['issue_number'], '@s' => $status]);
+        if (count($issueNumbers) === 1) {
+          return $this->t('Blocked by issue #@n (@s).', ['@n' => $issueNumbers[0], '@s' => $status]);
+        }
+        return $this->t('Blocked by @count linked issues (@s).', ['@count' => count($issueNumbers), '@s' => $status]);
       }
     }
     return NULL;

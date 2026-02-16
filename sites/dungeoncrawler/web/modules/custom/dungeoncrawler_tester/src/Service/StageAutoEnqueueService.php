@@ -54,7 +54,9 @@ class StageAutoEnqueueService {
 
       $state = $stageStates[$stageId] ?? [];
       $isActive = $state['active'] ?? TRUE;
-      $hasIssue = !empty($state['issue_number']) && (($state['issue_status'] ?? 'open') === 'open');
+      $hasLinkedIssue = !empty($state['issue_number'])
+        || (!empty($state['issue_numbers']) && is_array($state['issue_numbers']));
+      $hasIssue = $hasLinkedIssue && (($state['issue_status'] ?? 'open') === 'open');
       if (!$isActive || $hasIssue) {
         continue;
       }

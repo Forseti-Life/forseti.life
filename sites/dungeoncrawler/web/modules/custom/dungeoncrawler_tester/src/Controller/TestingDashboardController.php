@@ -25,6 +25,17 @@ use Symfony\Component\Process\Process;
 class TestingDashboardController extends ControllerBase {
 
   /**
+   * Labels treated as testing issues for lifecycle status.
+   */
+  private const TESTING_ISSUE_LABELS = [
+    'testing',
+    'testing-defect',
+    'ci-failure',
+    'program-defect',
+    'tester',
+  ];
+
+  /**
    * HTTP client for GitHub API calls.
    *
    * @var \GuzzleHttp\ClientInterface
@@ -154,6 +165,8 @@ class TestingDashboardController extends ControllerBase {
               'run' => Url::fromRoute('dungeoncrawler_tester.queue_run')->toString(),
               'status' => Url::fromRoute('dungeoncrawler_tester.queue_status')->toString(),
               'logs' => Url::fromRoute('dungeoncrawler_tester.queue_logs')->toString(),
+              'delete' => Url::fromRoute('dungeoncrawler_tester.queue_item_delete')->toString(),
+              'rerun' => Url::fromRoute('dungeoncrawler_tester.queue_item_rerun')->toString(),
             ],
           ],
         ],
@@ -1412,16 +1425,45 @@ class TestingDashboardController extends ControllerBase {
    */
   private function buildLifecycleTrackingSection(string $repo, ?string $token, array $queue_status): array {
     $stageStates = $this->state->get('dungeoncrawler_tester.stage_state', []);
+    $definedStageIds = array_values(array_map(
+      static fn(array $definition): string => (string) ($definition['id'] ?? ''),
+      $this->stageDefinitions->getDefinitions()
+    ));
+    $definedStageIds = array_values(array_filter($definedStageIds));
+    $definedStageIdSet = array_fill_keys($definedStageIds, TRUE);
+
+    $normalizedStageStates = [];
+    foreach ($stageStates as $stageId => $state) {
+      if (!isset($definedStageIdSet[(string) $stageId])) {
+        continue;
+      }
+      if (!is_array($state)) {
+        $state = [];
+      }
+      $normalizedStageStates[(string) $stageId] = $state;
+    }
+
     $runs = $this->state->get('dungeoncrawler_tester.runs', []);
     $queueItems = (int) ($queue_status['dungeoncrawler_tester_runs']['items'] ?? 0);
 
-    $openLinkedIssues = 0;
+    $openLinkedIssues = [];
     $blockedStages = 0;
-    foreach ($stageStates as $state) {
-      $hasOpenIssue = !empty($state['issue_number']) && (($state['issue_status'] ?? 'open') === 'open');
+    foreach ($normalizedStageStates as $state) {
+      $linkedIssueNumbers = [];
+      if (!empty($state['issue_numbers']) && is_array($state['issue_numbers'])) {
+        $linkedIssueNumbers = array_values(array_unique(array_filter(array_map('intval', $state['issue_numbers']))));
+      }
+      if (!empty($state['issue_number'])) {
+        $linkedIssueNumbers[] = (int) $state['issue_number'];
+      }
+      $linkedIssueNumbers = array_values(array_unique(array_filter($linkedIssueNumbers)));
+
+      $hasOpenIssue = !empty($linkedIssueNumbers) && (($state['issue_status'] ?? 'open') === 'open');
       $isInactive = array_key_exists('active', $state) && $state['active'] === FALSE;
       if ($hasOpenIssue) {
-        $openLinkedIssues++;
+        foreach ($linkedIssueNumbers as $issueNumber) {
+          $openLinkedIssues[(int) $issueNumber] = TRUE;
+        }
       }
       if ($hasOpenIssue || $isInactive) {
         $blockedStages++;
@@ -1432,7 +1474,8 @@ class TestingDashboardController extends ControllerBase {
     $runningRuns = 0;
     $passedRuns = 0;
     $failedRuns = 0;
-    foreach ($runs as $run) {
+    foreach ($definedStageIds as $stageId) {
+      $run = $runs[$stageId] ?? [];
       $status = $run['status'] ?? '';
       if ($status === 'pending') {
         $pendingRuns++;
@@ -1451,9 +1494,18 @@ class TestingDashboardController extends ControllerBase {
       }
     }
 
-    $prSummary = $this->fetchOpenPullRequestSummary($repo, $token);
+    $prSummary = $this->fetchOpenPullRequestSummary($repo, $token, FALSE);
     $openPrs = (int) ($prSummary['open_count'] ?? 0);
     $draftPrs = (int) ($prSummary['draft_count'] ?? 0);
+
+    $openTestingIssues = [];
+    foreach ($this->fetchOpenTestingIssueNumbers($repo, $token, FALSE) as $issueNumber) {
+      $openTestingIssues[(int) $issueNumber] = TRUE;
+    }
+    foreach (array_keys($openLinkedIssues) as $issueNumber) {
+      $openTestingIssues[(int) $issueNumber] = TRUE;
+    }
+    $openIssueCount = count($openTestingIssues);
 
     $signals = [
       'open_prs' => $openPrs,
@@ -1463,7 +1515,7 @@ class TestingDashboardController extends ControllerBase {
       'running_runs' => $runningRuns,
       'passed_runs' => $passedRuns,
       'failed_runs' => $failedRuns,
-      'open_linked_issues' => $openLinkedIssues,
+      'open_linked_issues' => $openIssueCount,
       'blocked_stages' => $blockedStages,
     ];
 
@@ -1481,7 +1533,7 @@ class TestingDashboardController extends ControllerBase {
       $this->t('Runs pending/running: @pending/@running', ['@pending' => $pendingRuns, '@running' => $runningRuns]),
       $this->t('Latest run outcomes (tracked): pass @pass / fail @fail', ['@pass' => $passedRuns, '@fail' => $failedRuns]),
       $this->t('Blocked stages: @count', ['@count' => $blockedStages]),
-      $this->t('Open linked blocker issues: @count', ['@count' => $openLinkedIssues]),
+      $this->t('Open testing issues: @count', ['@count' => $openIssueCount]),
     ];
 
     if (!empty($prSummary['error'])) {
@@ -1538,7 +1590,7 @@ class TestingDashboardController extends ControllerBase {
         'checkpoint' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Open issue count: @count', ['@count' => $openLinkedIssues]),
+          '#value' => $this->t('Open issue count: @count', ['@count' => $openIssueCount]),
         ],
         'reset_form' => $this->formBuilder()->getForm(SdlcResetForm::class),
         'link' => Link::fromTextAndUrl($this->t('View SDLC Process Flow'), Url::fromRoute('dungeoncrawler_tester.docs_sdlc_process_flow'))->toRenderable(),
@@ -1908,7 +1960,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Fetch open pull request summary (with caching).
    */
-  private function fetchOpenPullRequestSummary(string $repo, ?string $token): array {
+  private function fetchOpenPullRequestSummary(string $repo, ?string $token, bool $useCache = TRUE): array {
     if (!$token) {
       return [
         'open_count' => 0,
@@ -1918,9 +1970,11 @@ class TestingDashboardController extends ControllerBase {
     }
 
     $cache_key = 'dungeoncrawler_tester.github_open_prs.' . $repo;
-    $cache = \Drupal::cache()->get($cache_key);
-    if ($cache && !empty($cache->data)) {
-      return $cache->data;
+    if ($useCache) {
+      $cache = \Drupal::cache()->get($cache_key);
+      if ($cache && !empty($cache->data)) {
+        return $cache->data;
+      }
     }
 
     $url = "https://api.github.com/repos/{$repo}/pulls?state=open&per_page=100";
@@ -1951,7 +2005,9 @@ class TestingDashboardController extends ControllerBase {
           'draft_count' => $draft,
           'error' => NULL,
         ];
-        \Drupal::cache()->set($cache_key, $result, time() + self::GITHUB_CACHE_TTL);
+        if ($useCache) {
+          \Drupal::cache()->set($cache_key, $result, time() + self::GITHUB_CACHE_TTL);
+        }
         return $result;
       }
 
@@ -1969,6 +2025,72 @@ class TestingDashboardController extends ControllerBase {
         'error' => $this->t('GitHub PR request failed: @m', ['@m' => $e->getMessage()]),
       ];
     }
+  }
+
+  /**
+   * Fetch open testing-related issue numbers across known labels.
+   */
+  private function fetchOpenTestingIssueNumbers(string $repo, ?string $token, bool $useCache = TRUE): array {
+    if (!$token) {
+      return [];
+    }
+
+    $cache_key = 'dungeoncrawler_tester.github_open_testing_issue_numbers.' . $repo;
+    if ($useCache) {
+      $cache = \Drupal::cache()->get($cache_key);
+      if ($cache && !empty($cache->data) && is_array($cache->data)) {
+        return $cache->data;
+      }
+    }
+
+    $headers = [
+      'Authorization' => "Bearer {$token}",
+      'Accept' => 'application/vnd.github+json',
+      'User-Agent' => 'dungeoncrawler-tester-dashboard',
+    ];
+
+    $issueNumbers = [];
+
+    foreach (self::TESTING_ISSUE_LABELS as $label) {
+      $url = "https://api.github.com/repos/{$repo}/issues?state=open&labels=" . rawurlencode($label) . '&per_page=' . self::GITHUB_MAX_ISSUES;
+
+      try {
+        $response = $this->httpClient->request('GET', $url, [
+          'headers' => $headers,
+          'timeout' => self::GITHUB_API_TIMEOUT,
+        ]);
+
+        $status = $response->getStatusCode();
+        if ($status < 200 || $status >= 300) {
+          continue;
+        }
+
+        $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
+        foreach ($payload as $item) {
+          if (!is_array($item) || !empty($item['pull_request'])) {
+            continue;
+          }
+
+          $number = (int) ($item['number'] ?? 0);
+          if ($number > 0) {
+            $issueNumbers[$number] = TRUE;
+          }
+        }
+      }
+      catch (GuzzleException $e) {
+        $this->logger->warning('Failed loading open issues for label @label: @message', [
+          '@label' => $label,
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+
+    $numbers = array_values(array_map('intval', array_keys($issueNumbers)));
+    if ($useCache) {
+      \Drupal::cache()->set($cache_key, $numbers, time() + self::GITHUB_CACHE_TTL);
+    }
+
+    return $numbers;
   }
 
   /**
