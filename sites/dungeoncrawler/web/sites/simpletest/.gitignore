@@ -1,6 +1,5 @@
-# Ignore all test run directories (numeric IDs)
-# These are created dynamically by PHPUnit during test execution
-*/
-
-# Keep this .gitignore file itself
+# Ignore all test site directories created by PHPUnit functional tests
+*
+# But keep this directory structure
 !.gitignore
+!README.md
