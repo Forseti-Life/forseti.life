@@ -2,6 +2,19 @@
 
 This directory contains tests that are run directly from the `sites/dungeoncrawler` root, outside of the main testing module structure.
 
+## Setup
+
+Before running tests for the first time, run the setup script to ensure the test environment is properly configured:
+
+```bash
+cd sites/dungeoncrawler
+./tests/setup.sh
+```
+
+This script will:
+- Create the `web/sites/simpletest/` directory with proper permissions
+- Install composer dependencies if needed
+
 ## Purpose
 
 These tests are primarily used for automated test runs that reference test files directly by path, rather than through PHPUnit test suites.
@@ -47,6 +60,19 @@ Drupal functional tests (BrowserTestBase) create temporary test sites in `web/si
 ```
 Exception: Failed to open 'sites/simpletest/*/settings.php'. Verify the file permissions.
 ```
+## Setup
+
+Before running tests for the first time, you need to set up the test environment:
+
+```bash
+# From the sites/dungeoncrawler directory
+./tests/setup-test-environment.sh
+```
+
+This script will:
+- Create necessary temporary directories for test file storage
+- Set appropriate permissions on simpletest directories
+- Ensure default site directories exist
 
 ## Running Tests
 
@@ -56,8 +82,8 @@ From the `sites/dungeoncrawler` directory:
 # Run the specific test file
 ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/TheTestPageTest.php
 
-# Run all tests with coverage
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --coverage-html tests/coverage
+# Run all tests
+./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml
 ```
 
 ## Troubleshooting

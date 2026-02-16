@@ -27,6 +27,41 @@ tests/
 
 ## 🚀 Running Tests
 
+### First-Time Setup
+
+Before running tests for the first time, ensure the test environment is properly configured:
+
+```bash
+cd sites/dungeoncrawler
+./tests/setup.sh
+```
+
+This creates the required `web/sites/simpletest/` directory and installs composer dependencies.
+### Recommended: Use the Test Runner Script
+
+The easiest way to run tests is using the wrapper script, which automatically sets up the environment:
+
+```bash
+cd sites/dungeoncrawler
+./tests/run-tests.sh                      # Run all tests
+./tests/run-tests.sh --testsuite=unit     # Run only unit tests
+./tests/run-tests.sh --coverage-html tests/coverage  # With coverage
+```
+
+### Manual Setup (if not using run-tests.sh)
+
+If running tests manually, first run the setup script to create necessary directories:
+
+```bash
+cd sites/dungeoncrawler
+./tests/setup-test-environment.sh
+```
+
+This script creates:
+- `/tmp/dungeoncrawler-simpletest/` - Temporary file storage for tests
+- `/tmp/dungeoncrawler-simpletest/browser_output/` - Browser test output directory
+- Ensures `web/sites/simpletest/` has proper permissions for test site creation
+
 ### All Tests
 ```bash
 cd sites/dungeoncrawler

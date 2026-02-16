@@ -1,2 +1,5 @@
 /.editorconfig
 /.gitattributes
+/.phpunit.cache
+/vendor
+/phpunit.xml
