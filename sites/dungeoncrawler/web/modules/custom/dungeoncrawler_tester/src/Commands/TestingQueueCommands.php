@@ -7,6 +7,7 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Queue\QueueWorkerManagerInterface;
+use Drupal\Core\State\StateInterface;
 use Drush\Commands\DrushCommands;
 
 class TestingQueueCommands extends DrushCommands {
@@ -31,12 +32,18 @@ class TestingQueueCommands extends DrushCommands {
    */
   private LoggerChannelInterface $dcLogger;
 
-  public function __construct(QueueFactory $queueFactory, QueueWorkerManagerInterface $queueManager, LockBackendInterface $lock, LoggerChannelFactoryInterface $loggerFactory) {
+  /**
+   * State service for manual queue-run marker.
+   */
+  protected StateInterface $state;
+
+  public function __construct(QueueFactory $queueFactory, QueueWorkerManagerInterface $queueManager, LockBackendInterface $lock, LoggerChannelFactoryInterface $loggerFactory, StateInterface $state) {
     parent::__construct();
     $this->queueFactory = $queueFactory;
     $this->queueManager = $queueManager;
     $this->lock = $lock;
     $this->dcLogger = $loggerFactory->get('dungeoncrawler_tester');
+    $this->state = $state;
   }
 
   /**
@@ -64,17 +71,23 @@ class TestingQueueCommands extends DrushCommands {
 
     $processed = 0;
     try {
-      while ($processed < $limit && ($item = $queue->claimItem())) {
-        try {
-          $worker->processItem($item->data);
-          $queue->deleteItem($item);
-          $processed++;
+      $this->state->set('dungeoncrawler_tester.manual_queue_runner', TRUE);
+      try {
+        while ($processed < $limit && ($item = $queue->claimItem())) {
+          try {
+            $worker->processItem($item->data);
+            $queue->deleteItem($item);
+            $processed++;
+          }
+          catch (\Throwable $e) {
+            $this->dcLogger->error('Queue item failed: @msg', ['@msg' => $e->getMessage()]);
+            $queue->releaseItem($item);
+            break;
+          }
         }
-        catch (\Throwable $e) {
-          $this->dcLogger->error('Queue item failed: @msg', ['@msg' => $e->getMessage()]);
-          $queue->releaseItem($item);
-          break;
-        }
+      }
+      finally {
+        $this->state->set('dungeoncrawler_tester.manual_queue_runner', FALSE);
       }
       $this->dcLogger->notice('Queue runner processed @count item(s).', ['@count' => $processed]);
       $this->output()->writeln(sprintf('Processed %d item(s).', $processed));

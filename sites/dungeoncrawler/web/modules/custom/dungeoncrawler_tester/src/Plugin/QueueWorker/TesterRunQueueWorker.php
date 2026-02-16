@@ -3,6 +3,7 @@
 namespace Drupal\dungeoncrawler_tester\Plugin\QueueWorker;
 
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Queue\SuspendQueueException;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\State\StateInterface;
@@ -73,6 +74,12 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
    * {@inheritdoc}
    */
   public function processItem($data): void {
+    $cronAgentsEnabled = (bool) ($this->configFactory->get('dungeoncrawler_tester.settings')->get('cron_agents_enabled') ?? TRUE);
+    $manualQueueRunner = (bool) $this->state->get('dungeoncrawler_tester.manual_queue_runner', FALSE);
+    if (!$cronAgentsEnabled && !$manualQueueRunner) {
+      throw new SuspendQueueException('Tester cron agents are paused by configuration.');
+    }
+
     $stage_id = $data['stage_id'] ?? NULL;
     $job_id = $data['job_id'] ?? NULL;
     $args = $data['args'] ?? [];
