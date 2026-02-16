@@ -205,7 +205,7 @@ trait FunctionalTestSetupTrait {
     
     // Ensure the settings file exists before attempting to modify it.
     if (!file_exists($filename)) {
-      throw new \RuntimeException("Settings file '$filename' does not exist. It should have been created by prepareSettings().");
+      throw new \RuntimeException("Settings file '$filename' does not exist. It should have been created by prepareSettings(). Current working directory: " . getcwd());
     }
     
     // The system runtime_requirements hook removes write permissions from
