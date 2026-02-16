@@ -24,7 +24,7 @@ BROWSER_OUTPUT_DIR="/tmp/dungeoncrawler-simpletest/browser_output"
 
 echo -e "${YELLOW}Creating simpletest directories...${NC}"
 mkdir -p "$BROWSER_OUTPUT_DIR"
-chmod -R 777 "$SIMPLETEST_DIR"
+chmod -R 755 "$SIMPLETEST_DIR"
 echo -e "${GREEN}✓${NC} Created and configured: $SIMPLETEST_DIR"
 
 # Ensure sites/simpletest directory exists and is writable

@@ -35,7 +35,7 @@ echo -e "${YELLOW}Running PHPUnit tests...${NC}"
 
 # Check if vendor/bin/phpunit exists
 if [ ! -f "./vendor/bin/phpunit" ]; then
-    echo -e "${YELLOW}Warning: ./vendor/bin/phpunit not found.${NC}"
+    echo -e "${RED}Error: ./vendor/bin/phpunit not found.${NC}"
     echo -e "${YELLOW}Please run 'composer install' first.${NC}"
     exit 1
 fi
