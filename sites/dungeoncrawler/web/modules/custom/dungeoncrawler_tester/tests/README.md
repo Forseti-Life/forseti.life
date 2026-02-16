@@ -27,6 +27,16 @@ tests/
 
 ## 🚀 Running Tests
 
+### First-Time Setup
+
+Before running tests for the first time, ensure the test environment is properly configured:
+
+```bash
+cd sites/dungeoncrawler
+./tests/setup.sh
+```
+
+This creates the required `web/sites/simpletest/` directory and installs composer dependencies.
 ### Recommended: Use the Test Runner Script
 
 The easiest way to run tests is using the wrapper script, which automatically sets up the environment:
