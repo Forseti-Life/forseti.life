@@ -2,6 +2,19 @@
 
 This directory contains tests that are run directly from the `sites/dungeoncrawler` root, outside of the main testing module structure.
 
+## Setup
+
+Before running tests for the first time, run the setup script to ensure the test environment is properly configured:
+
+```bash
+cd sites/dungeoncrawler
+./tests/setup.sh
+```
+
+This script will:
+- Create the `web/sites/simpletest/` directory with proper permissions
+- Install composer dependencies if needed
+
 ## Purpose
 
 These tests are primarily used for automated test runs that reference test files directly by path, rather than through PHPUnit test suites.

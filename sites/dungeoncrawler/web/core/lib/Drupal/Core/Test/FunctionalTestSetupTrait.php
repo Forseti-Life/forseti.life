@@ -196,7 +196,7 @@ trait FunctionalTestSetupTrait {
    */
   protected function writeSettings(array $settings) {
     include_once DRUPAL_ROOT . '/core/includes/install.inc';
-    $filename = $this->siteDirectory . '/settings.php';
+    $filename = DRUPAL_ROOT . '/' . $this->siteDirectory . '/settings.php';
     // The system runtime_requirements hook removes write permissions from
     // settings.php whenever it is invoked.
     // Not using File API; a potential error must trigger a PHP warning.
@@ -213,7 +213,7 @@ trait FunctionalTestSetupTrait {
    *   The value of the parameter.
    */
   protected function setContainerParameter($name, $value) {
-    $filename = $this->siteDirectory . '/services.yml';
+    $filename = DRUPAL_ROOT . '/' . $this->siteDirectory . '/services.yml';
     chmod($filename, 0666);
 
     $services = Yaml::decode(file_get_contents($filename));
