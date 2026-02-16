@@ -40,7 +40,7 @@ Before running tests, ensure:
    - The custom bootstrap (`tests/bootstrap.php`) automatically ensures this
    - If tests fail with "Failed to open settings.php" errors, manually run:
      ```bash
-     chmod 777 web/sites/simpletest
+     chmod 775 web/sites/simpletest
      ```
 
 3. **Database is configured:**
