@@ -9,12 +9,24 @@ This file is also the backup tracker when CLI interface access is denied for cre
 
 ## Active Issues
 
+### dungeoncrawler_tester
+
+#### config
+
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
 |---|---|---|---|---|---|---|
 | DCT-0001 | Review file config/install/dungeoncrawler_tester.settings.yml for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0002 | Review file config/schema/dungeoncrawler_tester.schema.yml for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### css
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCT-0003 | Review file css/dashboard.css for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0004 | Review file css/queue-management.css for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### root docs/meta
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCT-0005 | Review file DOCUMENTATION_HOME.md for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0006 | Review file drush.services.yml for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0007 | Review file dungeoncrawler_tester.info.yml for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
@@ -23,12 +35,28 @@ This file is also the backup tracker when CLI interface access is denied for cre
 | DCT-0010 | Review file dungeoncrawler_tester.module for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0011 | Review file dungeoncrawler_tester.routing.yml for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0012 | Review file dungeoncrawler_tester.services.yml for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### js
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCT-0013 | Review file js/dead-value-actions.js for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0014 | Review file js/queue-management.js for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### root docs/meta
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCT-0015 | Review file phpunit.xml for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0016 | Review file PROCESS_FLOW.md for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0017 | Review file README.md for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### scripts
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCT-0018 | Review file scripts/safe_close_candidates_report.sh for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### src
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCT-0019 | Review file src/Commands/StageControlCommands.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0020 | Review file src/Commands/TestingQueueCommands.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0021 | Review file src/Controller/QueueManagementController.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
@@ -47,8 +75,20 @@ This file is also the backup tracker when CLI interface access is denied for cre
 | DCT-0034 | Review file src/Service/StageAutoEnqueueService.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0035 | Review file src/Service/StageDefinitionService.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0036 | Review file src/Service/StageIssueSyncService.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### templates
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCT-0037 | Review file templates/dungeoncrawler-tester-queue-management.html.twig for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### root docs/meta
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCT-0038 | Review file TESTING.md for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### tests
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCT-0039 | Review file tests/bootstrap.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0040 | Review file tests/fixtures/characters/level_1_fighter.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0041 | Review file tests/fixtures/characters/level_1_wizard.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
@@ -97,8 +137,22 @@ This file is also the backup tracker when CLI interface access is denied for cre
 | DCT-0084 | Review file tests/src/Unit/Service/GithubIssuePrClientTest.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0085 | Review file tests/src/Unit/Traits/FixtureLoaderTrait.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCT-0086 | Review file tests/TESTING_MODULE_README.md for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+### dungeoncrawler_content
+
+#### root docs/meta
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCC-0001 | Review file API_DOCUMENTATION.md for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### characters
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCC-0002 | Review file characters/gribbles-rindsworth.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### config
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCC-0003 | Review file config/examples/level-1-goblin-warrens.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0004 | Review file config/examples/tavern-entrance-dungeon.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0005 | Review file config/examples/tavern-obstacle-objects.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
@@ -125,10 +179,18 @@ This file is also the backup tracker when CLI interface access is denied for cre
 | DCC-0026 | Review file config/schemas/README.md for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0027 | Review file config/schemas/room.schema.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0028 | Review file config/schemas/trap.schema.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### content
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCC-0029 | Review file content/creatures/goblin_warrior.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0030 | Review file content/items/healing_potion_minor.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0031 | Review file content/items/longsword.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0032 | Review file content/traps/arrow_trap_simple.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### css
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCC-0033 | Review file css/character-creation.css for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0034 | Review file css/character-sheet.css for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0035 | Review file css/character-steps.css for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
@@ -136,6 +198,10 @@ This file is also the backup tracker when CLI interface access is denied for cre
 | DCC-0037 | Review file css/dungeoncrawler-content.css for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0038 | Review file css/game-cards.css for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0039 | Review file css/hexmap.css for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### root docs/meta
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCC-0040 | Review file dungeoncrawler_content.info.yml for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0041 | Review file dungeoncrawler_content.install for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0042 | Review file dungeoncrawler_content.libraries.yml for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
@@ -147,6 +213,10 @@ This file is also the backup tracker when CLI interface access is denied for cre
 | DCC-0048 | Review file ENHANCED_CHARACTER_SHEET_STUBS.md for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0049 | Review file HEXMAP_ARCHITECTURE.md for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0050 | Review file IMPLEMENTATION_SUMMARY.md for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### js
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCC-0051 | Review file js/character-creation-schema.js for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0052 | Review file js/character-creation.js for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0053 | Review file js/character-sheet.js for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
@@ -179,8 +249,16 @@ This file is also the backup tracker when CLI interface access is denied for cre
 | DCC-0080 | Review file js/hexmap-api.js for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0081 | Review file js/hexmap.js for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0082 | Review file js/types/character-state.types.ts for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### root docs/meta
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCC-0083 | Review file phpunit.xml for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0084 | Review file README.md for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### src
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCC-0085 | Review file src/Access/CampaignAccessCheck.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0086 | Review file src/Access/CharacterAccessCheck.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0087 | Review file src/Controller/AboutController.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
@@ -249,6 +327,10 @@ This file is also the backup tracker when CLI interface access is denied for cre
 | DCC-0150 | Review file src/Service/SchemaLoader.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0151 | Review file src/Service/StateManager.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0152 | Review file src/Service/StateValidationService.php for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### templates
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCC-0153 | Review file templates/campaign-list.html.twig for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0154 | Review file templates/campaign-tavernentrance.html.twig for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0155 | Review file templates/character-class-card.html.twig for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
@@ -269,6 +351,10 @@ This file is also the backup tracker when CLI interface access is denied for cre
 | DCC-0170 | Review file templates/hexmap-demo.html.twig for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0171 | Review file templates/item-card.html.twig for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0172 | Review file templates/management-form-page.html.twig for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+#### tests
+
+| ID | Title | Current Status | Owner | Created | Last Updated | Notes |
+|---|---|---|---|---|---|---|
 | DCC-0173 | Review file tests/fixtures/campaigns/active_campaign_state.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0174 | Review file tests/fixtures/campaigns/basic_campaign_state.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0175 | Review file tests/fixtures/characters/level_1_fighter.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
