@@ -30,6 +30,11 @@
          colors="true"
          failOnPhpunitDeprecation="false">
   
+  <!-- Extensions -->
+  <extensions>
+    <bootstrap class="Drupal\Tests\dungeoncrawler_tester\Extension\TestEnvironmentSetup"/>
+  </extensions>
+  
   <!-- Test Suites -->
   <testsuites>
     <testsuite name="unit">
