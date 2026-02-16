@@ -3,3 +3,4 @@
 /.phpunit.cache
 /vendor
 /phpunit.xml
+/phpunit.phar

@@ -8,8 +8,8 @@
  * Composer autoloader and sets DRUPAL_ROOT appropriately for a Composer-based
  * Drupal installation where the web root is in a subdirectory.
  *
- * It also ensures proper file permissions for test site creation by setting
- * an appropriate umask before loading Drupal's test bootstrap.
+ * It also sets proper file permissions for test site creation to prevent
+ * "Failed to open settings.php" errors in functional tests.
  */
 
 // Define the path to Composer's autoloader.
