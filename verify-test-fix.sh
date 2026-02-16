@@ -88,7 +88,8 @@ if command -v mysql &> /dev/null; then
   pass "MySQL client available"
   
   # Test database connection (using credentials from phpunit.xml)
-  if mysql -h 127.0.0.1 -u drupal_user -pdrupal_secure_password -e "USE dungeoncrawler_dev; SELECT 1;" &> /dev/null; then
+  # Use MYSQL_PWD environment variable to avoid password in process list
+  if MYSQL_PWD=drupal_secure_password mysql -h 127.0.0.1 -u drupal_user -e "USE dungeoncrawler_dev; SELECT 1;" &> /dev/null; then
     pass "MySQL database 'dungeoncrawler_dev' is accessible"
   else
     warn "Cannot connect to MySQL database 'dungeoncrawler_dev'"
