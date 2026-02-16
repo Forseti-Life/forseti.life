@@ -21,6 +21,7 @@
 .dungeoncrawler-testing-dashboard .dashboard-capabilities,
 .dungeoncrawler-testing-dashboard .dashboard-roadmap,
 .dungeoncrawler-testing-dashboard .dashboard-flow-tracking,
+.dungeoncrawler-testing-dashboard .dashboard-cron-agents,
 .dungeoncrawler-testing-dashboard .dashboard-stagegates,
 .dungeoncrawler-testing-dashboard .dungeoncrawler-testing-issues,
 .dungeoncrawler-testing-dashboard .issue-card {
@@ -29,6 +30,14 @@
   border-radius: 10px;
   padding: 1.1rem 1.2rem;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.dungeoncrawler-testing-dashboard .dashboard-cron-agents {
+  grid-column: 1 / -1;
+}
+
+.dungeoncrawler-testing-dashboard .messages--warning {
+  margin-bottom: 0;
 }
 
 .dungeoncrawler-testing-dashboard .stage-grid {
@@ -246,4 +255,35 @@
 
 .dungeoncrawler-testing-dashboard .command-list .item-list__item {
   list-style: none;
+}
+
+.tester-issue-pr-report .item-list {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.tester-issue-pr-report .item-list > .item-list__item {
+  margin-bottom: 0.75rem;
+}
+
+.tester-issue-pr-report .issue-report-item h3 {
+  margin: 0 0 0.45rem;
+}
+
+.tester-issue-pr-report .issue-report-item h4 {
+  margin: 0.65rem 0 0.25rem;
+  font-size: 0.95rem;
+}
+
+.tester-issue-pr-report .issue-report-pr-item {
+  margin-bottom: 0.45rem;
+}
+
+.tester-issue-pr-report .issue-report-actions {
+  margin-top: 0.4rem;
+}
+
+.tester-issue-pr-report .text-muted-light,
+.tester-issue-pr-report .issue-report-item p {
+  color: #334155;
 }
