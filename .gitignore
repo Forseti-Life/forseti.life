@@ -105,6 +105,8 @@ testing/results/
 **/.phpunit.result.cache
 sites/*/web/sites/simpletest/
 sites/*/web/sites/*/simpletest/
+sites/dungeoncrawler/web/sites/simpletest/*
+sites/forseti/web/sites/simpletest/*
 
 # OS generated files
 *~
