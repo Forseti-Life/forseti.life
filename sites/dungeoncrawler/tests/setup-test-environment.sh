@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Setup script for DungeonCrawler PHPUnit tests
 # This script prepares the test environment by creating necessary directories
