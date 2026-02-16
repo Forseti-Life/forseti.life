@@ -42,25 +42,6 @@ require_once DRUPAL_ROOT . '/core/tests/bootstrap.php';
 // This allows both the test runner and web server to read/write test files.
 umask(0002);
 
-// Ensure the simpletest directory exists and has proper permissions.
-// 0777 is required here because:
-// - Drupal's test runner creates subdirectories dynamically with random IDs
-// - The web server process needs full access to create/modify test sites
-// - This directory only contains temporary test data, not production code
-// - The directory is cleaned up after tests complete
-$simpletest_dir = __DIR__ . '/../../../../sites/simpletest';
-if (!file_exists($simpletest_dir)) {
-  mkdir($simpletest_dir, 0777, TRUE);
-}
-elseif (is_dir($simpletest_dir)) {
-  chmod($simpletest_dir, 0777);
-}
-
-// Load Drupal's standard test bootstrap.
- * This file runs before the standard Drupal test bootstrap to ensure
- * the test environment is properly set up.
- */
-
 // Ensure the simpletest directory exists and is writable.
 // This is required for Drupal's BrowserTestBase which creates temporary
 // test site directories under sites/simpletest/.

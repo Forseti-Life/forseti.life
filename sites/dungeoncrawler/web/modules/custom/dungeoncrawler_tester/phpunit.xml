@@ -18,14 +18,17 @@
     Uses custom tests/bootstrap.php to ensure the sites/simpletest directory
     exists and is writable before running tests. This is required for Drupal's
     BrowserTestBase which creates temporary test site directories.
+    The module's bootstrap.php includes Drupal core's bootstrap.php.
 
-  Note: failOnPhpunitDeprecation is set to false to allow tests to pass
-  despite PHPUnit 11 deprecation warnings. These warnings should be addressed
-  in a future update when migrating to newer PHPUnit/Drupal versions.
+  Test Failure Configuration:
+    failOnDeprecation, failOnNotice, and failOnWarning are set to false to
+    prevent PHPUnit deprecations and warnings from failing the test suite.
+    These warnings should be addressed in future updates but should not block
+    the test suite from passing. Risky, incomplete, and skipped test flags
+    remain enabled to maintain test quality.
 --> 
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
-         bootstrap="core/tests/bootstrap.php"
          bootstrap="tests/bootstrap.php"
          colors="true"
          failOnDeprecation="false"
@@ -59,13 +62,20 @@
     </exclude>
   </source>
   
-  <!-- Code Coverage -->
+  <!--
+    Code Coverage disabled - requires pcov or xdebug extension
+    
+    To enable code coverage, install one of:
+    - pecl install pcov (recommended, faster)
+    - pecl install xdebug (full debugging features)
+    
   <coverage>
     <report>
       <html outputDirectory="tests/coverage/html"/>
       <text outputFile="tests/coverage/coverage.txt"/>
     </report>
   </coverage>
+  -->
   
   <!-- PHP Environment -->
   <php>
