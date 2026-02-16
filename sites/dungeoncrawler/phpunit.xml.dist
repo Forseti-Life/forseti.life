@@ -35,10 +35,13 @@
   <!-- PHP Environment -->
   <php>
     <!-- Drupal test database -->
-    <env name="SIMPLETEST_DB" value="mysql://drupal_user:drupal_secure_password@127.0.0.1:3306/dungeoncrawler_dev"/>
+    <!-- Example: mysql://username:password@localhost/database_name -->
+    <!-- Set this to your local database connection string -->
+    <env name="SIMPLETEST_DB" value="mysql://db_user:db_password@localhost/db_name"/>
     
     <!-- Base URL for functional tests -->
-    <env name="SIMPLETEST_BASE_URL" value="http://localhost:8080"/>
+    <!-- Set this to your local Drupal site URL -->
+    <env name="SIMPLETEST_BASE_URL" value="http://localhost"/>
     
     <!-- Simpletest file storage -->
     <env name="BROWSERTEST_OUTPUT_DIRECTORY" value="/tmp/dungeoncrawler-simpletest/browser_output"/>
