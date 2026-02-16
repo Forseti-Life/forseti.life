@@ -33,7 +33,7 @@
          colors="true"
          failOnDeprecation="false"
          failOnNotice="false"
-         failOnWarning="false">
+         failOnWarning="false"
          failOnPhpunitDeprecation="false">
   
   <!-- Extensions -->
