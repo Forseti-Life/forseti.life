@@ -67,6 +67,14 @@
     
     <!-- Memory limit -->
     <ini name="memory_limit" value="512M"/>
+    
+    <!--
+      IMPORTANT: Functional tests also require write access to web/sites/simpletest/
+      This directory stores temporary test site configurations (settings.php).
+      Ensure the directory exists and has 777 permissions:
+        chmod 777 web/sites/simpletest
+      The directory contents are gitignored and should be cleaned after test runs.
+    -->
   </php>
   
 </phpunit>
