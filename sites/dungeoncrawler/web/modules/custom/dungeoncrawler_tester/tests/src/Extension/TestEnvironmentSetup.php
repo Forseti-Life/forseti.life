@@ -24,29 +24,25 @@ final class TestEnvironmentSetup implements Extension {
     $browserOutputDir = $tmpDir . '/browser_output';
     
     if (!is_dir($tmpDir)) {
-      mkdir($tmpDir, 0777, TRUE);
-      chmod($tmpDir, 0777);
+      mkdir($tmpDir, 0775, TRUE);
     }
     
     if (!is_dir($browserOutputDir)) {
-      mkdir($browserOutputDir, 0777, TRUE);
-      chmod($browserOutputDir, 0777);
+      mkdir($browserOutputDir, 0775, TRUE);
     }
 
     // Ensure simpletest directory in web root exists and is writable
     // Note: This path is relative to where phpunit is run from (sites/dungeoncrawler)
     $simpletestDir = 'web/sites/simpletest';
     if (!is_dir($simpletestDir)) {
-      mkdir($simpletestDir, 0777, TRUE);
+      mkdir($simpletestDir, 0775, TRUE);
     }
-    chmod($simpletestDir, 0777);
 
     // Ensure default site files directory exists
     $defaultFilesDir = 'web/sites/default/files';
     if (!is_dir($defaultFilesDir)) {
-      mkdir($defaultFilesDir, 0777, TRUE);
+      mkdir($defaultFilesDir, 0775, TRUE);
     }
-    chmod($defaultFilesDir, 0777);
   }
 
 }
