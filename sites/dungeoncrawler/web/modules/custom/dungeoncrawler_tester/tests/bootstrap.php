@@ -45,7 +45,7 @@ if (!defined('DRUPAL_ROOT')) {
 // Set umask to ensure created files and directories are readable/writable.
 // This fixes "Failed to open settings.php" errors in functional tests where
 // test site directories and files are created with overly restrictive permissions.
-// 
+//
 // umask(0002) results in:
 // - Files created with 0664 permissions (rw-rw-r--)
 // - Directories created with 0775 permissions (rwxrwxr-x)
