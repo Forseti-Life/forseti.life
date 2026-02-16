@@ -155,7 +155,7 @@ This is appropriate for testing environments where the test runner and web serve
 ## Next Steps
 
 1. Ensure `composer install` succeeds in the CI environment
-2. Run the test suite to verify all 170 tests pass
+2. Run the test suite to verify all tests pass (157 were failing, likely more tests exist)
 3. Add these tests to the CI/CD pipeline if not already present
 4. Consider adding a pre-commit hook to validate phpunit.xml syntax
 
