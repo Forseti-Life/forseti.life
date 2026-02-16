@@ -37,6 +37,7 @@ Before running tests, ensure:
 
 2. **Test directories have proper permissions:**
    - The `web/sites/simpletest` directory must be writable
+   - Bootstrap uses a deterministic `umask(0002)` model for test-created files/dirs
    - The custom bootstrap (`tests/bootstrap.php`) automatically ensures this
    - If tests fail with "Failed to open settings.php" errors, manually run:
      ```bash
@@ -53,28 +54,17 @@ Before running tests, ensure:
 
 ## 🚀 Running Tests
 
-### Initial Setup
+### First-Time Setup (Canonical)
 
-Before running tests for the first time, run the setup script to prepare the test environment:
-```bash
-cd sites/dungeoncrawler
-./setup-tests.sh
-```
-
-This script will:
-- Ensure the `web/sites/simpletest` directory exists and is writable
-- Create the `/tmp/dungeoncrawler-simpletest` directory for test file storage
-- Clean up any leftover test site directories
-### First-Time Setup
-
-Before running tests for the first time, ensure the test environment is properly configured:
+Before running tests for the first time, use the canonical setup script:
 
 ```bash
 cd sites/dungeoncrawler
 ./tests/setup.sh
 ```
 
-This creates the required `web/sites/simpletest/` directory and installs composer dependencies.
+This ensures `web/sites/simpletest/` exists with writable permissions and installs composer dependencies when needed.
+
 ### Recommended: Use the Test Runner Script
 
 The easiest way to run tests is using the wrapper script, which automatically sets up the environment:
@@ -88,17 +78,14 @@ cd sites/dungeoncrawler
 
 ### Manual Setup (if not using run-tests.sh)
 
-If running tests manually, first run the setup script to create necessary directories:
+If running tests manually, run setup once first:
 
 ```bash
 cd sites/dungeoncrawler
-./tests/setup-test-environment.sh
+./tests/setup.sh
 ```
 
-This script creates:
-- `/tmp/dungeoncrawler-simpletest/` - Temporary file storage for tests
-- `/tmp/dungeoncrawler-simpletest/browser_output/` - Browser test output directory
-- Ensures `web/sites/simpletest/` has proper permissions for test site creation
+Legacy helper scripts (`./setup-tests.sh`, `./tests/setup-test-environment.sh`) may still be present for compatibility, but `./tests/setup.sh` is the documented source of truth.
 
 ### All Tests
 ```bash

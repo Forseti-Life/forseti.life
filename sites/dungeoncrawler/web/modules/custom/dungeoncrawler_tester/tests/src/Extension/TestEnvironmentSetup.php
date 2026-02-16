@@ -14,7 +14,7 @@ use PHPUnit\TextUI\Configuration\Configuration;
  * directories for Drupal's BrowserTestBase exist and are writable.
  *
  * Security Note: This extension uses 0777 permissions for test directories
- * (/tmp and sites/simpletest) to ensure compatibility across different CI
+ * (system temp dir and sites/simpletest) to ensure compatibility across different CI
  * environments where the test runner and web server may run as different users.
  * These are temporary test directories that are:
  * - Created only during test execution
@@ -28,48 +28,42 @@ use PHPUnit\TextUI\Configuration\Configuration;
 final class TestEnvironmentSetup implements Extension {
 
   /**
+   * Ensure a directory exists and has expected permissions.
+   */
+  private function ensureDirectory(string $path, int $permissions): void {
+    if (!is_dir($path)) {
+      if (!@mkdir($path, $permissions, TRUE) && !is_dir($path)) {
+        throw new \RuntimeException(sprintf('Failed to create test directory: %s', $path));
+      }
+    }
+
+    if (!@chmod($path, $permissions) && !is_writable($path)) {
+      throw new \RuntimeException(sprintf('Failed to set permissions on test directory: %s', $path));
+    }
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function bootstrap(Configuration $configuration, Facade $facade, ParameterCollection $parameters): void {
-    // Create temporary directories for simpletest
-    // Uses 0777 for test directories to ensure CI compatibility across different
-    // user contexts (test runner, web server, etc.)
-    $tmpDir = '/tmp/dungeoncrawler-simpletest';
+    // Create temporary directories for simpletest.
+    // Use system temp directory for portability across environments.
+    $tmpBase = rtrim(sys_get_temp_dir(), '/\\');
+    $tmpDir = $tmpBase . '/dungeoncrawler-simpletest';
     $browserOutputDir = $tmpDir . '/browser_output';
-    
-    if (!is_dir($tmpDir)) {
-      mkdir($tmpDir, 0777, TRUE);
-    }
-    else {
-      chmod($tmpDir, 0777);
-    }
-    
-    if (!is_dir($browserOutputDir)) {
-      mkdir($browserOutputDir, 0777, TRUE);
-    }
-    else {
-      chmod($browserOutputDir, 0777);
-    }
+    $this->ensureDirectory($tmpDir, 0777);
+    $this->ensureDirectory($browserOutputDir, 0777);
 
     // Ensure simpletest directory in web root exists and is writable
     // Note: This path is relative to where phpunit is run from (sites/dungeoncrawler)
     // Uses 0777 to match CI test environment expectations
     $simpletestDir = 'web/sites/simpletest';
-    if (!is_dir($simpletestDir)) {
-      mkdir($simpletestDir, 0777, TRUE);
-    }
-    else {
-      chmod($simpletestDir, 0777);
-    }
-    // Ensure the directory has full write permissions for test subdirectories
-    chmod($simpletestDir, 0777);
+    $this->ensureDirectory($simpletestDir, 0777);
 
     // Ensure default site files directory exists
     // Uses 0775 as this may persist beyond test execution
     $defaultFilesDir = 'web/sites/default/files';
-    if (!is_dir($defaultFilesDir)) {
-      mkdir($defaultFilesDir, 0775, TRUE);
-    }
+    $this->ensureDirectory($defaultFilesDir, 0775);
   }
 
 }
