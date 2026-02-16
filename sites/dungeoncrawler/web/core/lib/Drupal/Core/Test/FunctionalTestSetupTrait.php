@@ -224,7 +224,7 @@ trait FunctionalTestSetupTrait {
    *   The value of the parameter.
    */
   protected function setContainerParameter($name, $value) {
-    $filename = $this->siteDirectory . '/services.yml';
+    $filename = DRUPAL_ROOT . '/' . $this->siteDirectory . '/services.yml';
     chmod($filename, 0666);
 
     $services = Yaml::decode(file_get_contents($filename));

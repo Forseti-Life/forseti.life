@@ -1498,6 +1498,10 @@ class TestingDashboardController extends ControllerBase {
     $openPrs = (int) ($prSummary['open_count'] ?? 0);
     $draftPrs = (int) ($prSummary['draft_count'] ?? 0);
 
+    $prAutomation = $this->fetchPrAutomationStats($repo, $token, FALSE);
+    $latestAutoReadyRun = $this->fetchWorkflowRunSummary($repo, $token, 'auto-ready-on-copilot-signal.yml', FALSE);
+    $latestMergeRun = $this->fetchWorkflowRunSummary($repo, $token, 'merge-issue-branches-into-testing.yml', FALSE);
+
     $openTestingIssues = [];
     foreach ($this->fetchOpenTestingIssueNumbers($repo, $token, FALSE) as $issueNumber) {
       $openTestingIssues[(int) $issueNumber] = TRUE;
@@ -1539,6 +1543,23 @@ class TestingDashboardController extends ControllerBase {
     if (!empty($prSummary['error'])) {
       $signalItems[] = $this->t('PR signal warning: @msg', ['@msg' => $prSummary['error']]);
     }
+
+    if (!empty($prAutomation['error'])) {
+      $signalItems[] = $this->t('PR automation signal warning: @msg', ['@msg' => $prAutomation['error']]);
+    }
+
+    $workflowStatusItems = [];
+    $workflowStatusItems[] = $this->formatWorkflowSummaryLine($this->t('Auto-ready workflow'), $latestAutoReadyRun);
+    $workflowStatusItems[] = $this->formatWorkflowSummaryLine($this->t('Merge-to-testing workflow'), $latestMergeRun);
+
+    $automationMetricItems = [
+      $this->t('Copilot-managed open PRs: @count', ['@count' => (int) ($prAutomation['copilot_open_prs'] ?? 0)]),
+      $this->t('Eligible to auto-merge into testing now: @count', ['@count' => (int) ($prAutomation['eligible_now'] ?? 0)]),
+      $this->t('Skipped now (draft/base/check-state): @count', ['@count' => (int) ($prAutomation['skipped_now'] ?? 0)]),
+      $this->t('Skipped drafts: @count', ['@count' => (int) ($prAutomation['skipped_draft'] ?? 0)]),
+      $this->t('Skipped non-main base: @count', ['@count' => (int) ($prAutomation['skipped_non_main'] ?? 0)]),
+      $this->t('Skipped unclean/unknown merge state: @count', ['@count' => (int) ($prAutomation['skipped_merge_state'] ?? 0)]),
+    ];
 
     return [
       '#type' => 'container',
@@ -1608,7 +1629,60 @@ class TestingDashboardController extends ControllerBase {
           '#items' => $signalItems,
         ],
       ],
+      'pr_automation_card' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['flow-status-card']],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => $this->t('PR Automation Status'),
+        ],
+        'workflow_items' => [
+          '#theme' => 'item_list',
+          '#items' => $workflowStatusItems,
+        ],
+        'metrics_items' => [
+          '#theme' => 'item_list',
+          '#items' => $automationMetricItems,
+        ],
+        'note' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#attributes' => ['class' => ['text-muted-light']],
+          '#value' => $this->t('Auto-merge automation merges eligible Copilot-managed PR heads into testing (not main). Main-branch PR merges remain manual unless explicitly executed.'),
+        ],
+      ],
     ];
+  }
+
+  /**
+   * Build a one-line workflow status summary.
+   */
+  private function formatWorkflowSummaryLine(string $label, array $summary): string {
+    if (!empty($summary['error'])) {
+      return (string) $this->t('@label: unavailable (@error)', [
+        '@label' => $label,
+        '@error' => (string) $summary['error'],
+      ]);
+    }
+
+    if (empty($summary['latest'])) {
+      return (string) $this->t('@label: no runs found', ['@label' => $label]);
+    }
+
+    $latest = is_array($summary['latest']) ? $summary['latest'] : [];
+    $status = (string) ($latest['status'] ?? 'unknown');
+    $conclusion = (string) ($latest['conclusion'] ?? 'n/a');
+    $event = (string) ($latest['event'] ?? 'unknown');
+    $updated = (string) ($latest['updated_at'] ?? 'unknown');
+
+    return (string) $this->t('@label: @status / @conclusion (event: @event, updated: @updated)', [
+      '@label' => $label,
+      '@status' => $status,
+      '@conclusion' => $conclusion,
+      '@event' => $event,
+      '@updated' => $updated,
+    ]);
   }
 
   /**
@@ -2023,6 +2097,200 @@ class TestingDashboardController extends ControllerBase {
         'open_count' => 0,
         'draft_count' => 0,
         'error' => $this->t('GitHub PR request failed: @m', ['@m' => $e->getMessage()]),
+      ];
+    }
+  }
+
+  /**
+   * Fetch latest workflow run summary by workflow file.
+   */
+  private function fetchWorkflowRunSummary(string $repo, ?string $token, string $workflowFile, bool $useCache = TRUE): array {
+    if (!$token) {
+      return [
+        'latest' => NULL,
+        'error' => (string) $this->t('No GitHub token configured.'),
+      ];
+    }
+
+    $cacheKey = 'dungeoncrawler_tester.github_workflow_summary.' . $repo . '.' . $workflowFile;
+    if ($useCache) {
+      $cache = \Drupal::cache()->get($cacheKey);
+      if ($cache && !empty($cache->data) && is_array($cache->data)) {
+        return $cache->data;
+      }
+    }
+
+    $url = "https://api.github.com/repos/{$repo}/actions/workflows/{$workflowFile}/runs?per_page=1";
+
+    try {
+      $response = $this->httpClient->request('GET', $url, [
+        'headers' => [
+          'Authorization' => "Bearer {$token}",
+          'Accept' => 'application/vnd.github+json',
+          'User-Agent' => 'dungeoncrawler-tester-dashboard',
+        ],
+        'timeout' => self::GITHUB_API_TIMEOUT,
+      ]);
+
+      $status = $response->getStatusCode();
+      if ($status < 200 || $status >= 300) {
+        return [
+          'latest' => NULL,
+          'error' => (string) $this->t('GitHub workflow API status: @status', ['@status' => $status]),
+        ];
+      }
+
+      $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
+      $run = $payload['workflow_runs'][0] ?? NULL;
+
+      $result = [
+        'latest' => is_array($run) ? [
+          'status' => (string) ($run['status'] ?? ''),
+          'conclusion' => (string) ($run['conclusion'] ?? ''),
+          'event' => (string) ($run['event'] ?? ''),
+          'updated_at' => (string) ($run['updated_at'] ?? ''),
+          'html_url' => (string) ($run['html_url'] ?? ''),
+        ] : NULL,
+        'error' => NULL,
+      ];
+
+      if ($useCache) {
+        \Drupal::cache()->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+      }
+
+      return $result;
+    }
+    catch (GuzzleException $e) {
+      return [
+        'latest' => NULL,
+        'error' => (string) $this->t('GitHub workflow request failed: @m', ['@m' => $e->getMessage()]),
+      ];
+    }
+  }
+
+  /**
+   * Estimate live PR automation eligibility counts for merge-into-testing.
+   */
+  private function fetchPrAutomationStats(string $repo, ?string $token, bool $useCache = TRUE): array {
+    if (!$token) {
+      return [
+        'copilot_open_prs' => 0,
+        'eligible_now' => 0,
+        'skipped_now' => 0,
+        'skipped_draft' => 0,
+        'skipped_non_main' => 0,
+        'skipped_merge_state' => 0,
+        'error' => (string) $this->t('No GitHub token configured.'),
+      ];
+    }
+
+    $cacheKey = 'dungeoncrawler_tester.github_pr_automation_stats.' . $repo;
+    if ($useCache) {
+      $cache = \Drupal::cache()->get($cacheKey);
+      if ($cache && !empty($cache->data) && is_array($cache->data)) {
+        return $cache->data;
+      }
+    }
+
+    $url = "https://api.github.com/repos/{$repo}/pulls?state=open&per_page=100";
+
+    try {
+      $response = $this->httpClient->request('GET', $url, [
+        'headers' => [
+          'Authorization' => "Bearer {$token}",
+          'Accept' => 'application/vnd.github+json',
+          'User-Agent' => 'dungeoncrawler-tester-dashboard',
+        ],
+        'timeout' => self::GITHUB_API_TIMEOUT,
+      ]);
+
+      $status = $response->getStatusCode();
+      if ($status < 200 || $status >= 300) {
+        return [
+          'copilot_open_prs' => 0,
+          'eligible_now' => 0,
+          'skipped_now' => 0,
+          'skipped_draft' => 0,
+          'skipped_non_main' => 0,
+          'skipped_merge_state' => 0,
+          'error' => (string) $this->t('GitHub PR API status: @status', ['@status' => $status]),
+        ];
+      }
+
+      $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
+
+      $copilotOpenPrs = 0;
+      $eligibleNow = 0;
+      $skippedDraft = 0;
+      $skippedNonMain = 0;
+      $skippedMergeState = 0;
+
+      foreach ($payload as $pr) {
+        if (!is_array($pr)) {
+          continue;
+        }
+
+        $assignees = array_map(
+          static fn(array $a): string => strtolower((string) ($a['login'] ?? '')),
+          is_array($pr['assignees'] ?? NULL) ? $pr['assignees'] : []
+        );
+        $reviewers = array_map(
+          static fn(array $a): string => strtolower((string) ($a['login'] ?? '')),
+          is_array($pr['requested_reviewers'] ?? NULL) ? $pr['requested_reviewers'] : []
+        );
+
+        $copilotInvolved = in_array('copilot', $assignees, TRUE) || in_array('copilot', $reviewers, TRUE);
+        if (!$copilotInvolved) {
+          continue;
+        }
+
+        $copilotOpenPrs++;
+
+        if (!empty($pr['draft'])) {
+          $skippedDraft++;
+          continue;
+        }
+
+        $baseRef = (string) ($pr['base']['ref'] ?? '');
+        if ($baseRef !== 'main') {
+          $skippedNonMain++;
+          continue;
+        }
+
+        $mergeState = strtolower((string) ($pr['mergeable_state'] ?? 'unknown'));
+        if (!in_array($mergeState, ['clean', 'has_hooks'], TRUE)) {
+          $skippedMergeState++;
+          continue;
+        }
+
+        $eligibleNow++;
+      }
+
+      $result = [
+        'copilot_open_prs' => $copilotOpenPrs,
+        'eligible_now' => $eligibleNow,
+        'skipped_now' => max(0, $copilotOpenPrs - $eligibleNow),
+        'skipped_draft' => $skippedDraft,
+        'skipped_non_main' => $skippedNonMain,
+        'skipped_merge_state' => $skippedMergeState,
+        'error' => NULL,
+      ];
+
+      if ($useCache) {
+        \Drupal::cache()->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+      }
+
+      return $result;
+    }
+    catch (GuzzleException $e) {
+      return [
+        'copilot_open_prs' => 0,
+        'eligible_now' => 0,
+        'skipped_now' => 0,
+        'skipped_draft' => 0,
+        'skipped_non_main' => 0,
+        'skipped_merge_state' => 0,
+        'error' => (string) $this->t('GitHub PR request failed: @m', ['@m' => $e->getMessage()]),
       ];
     }
   }
