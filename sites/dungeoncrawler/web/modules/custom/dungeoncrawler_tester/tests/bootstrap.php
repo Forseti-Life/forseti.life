@@ -67,10 +67,6 @@ if (!chmod($simpletest_dir, 0777)) {
   throw new \RuntimeException("Failed to set permissions on simpletest directory: $simpletest_dir");
 }
 
-<<<<<<< copilot/fix-campaign-state-validation-test-one-more-time
 // Include the standard Drupal test bootstrap which will handle the rest of the
-=======
-// Now include Drupal's core test bootstrap which will handle the rest of the
->>>>>>> main
 // initialization.
 require_once DRUPAL_ROOT . '/core/tests/bootstrap.php';
