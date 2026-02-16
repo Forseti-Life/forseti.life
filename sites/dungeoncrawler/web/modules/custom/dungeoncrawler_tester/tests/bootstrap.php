@@ -11,10 +11,15 @@
 // Ensure the simpletest directory exists and is writable.
 $simpletest_dir = __DIR__ . '/../../../../sites/simpletest';
 if (!is_dir($simpletest_dir)) {
-  mkdir($simpletest_dir, 0775, TRUE);
+  if (!mkdir($simpletest_dir, 0775, TRUE)) {
+    throw new \RuntimeException("Failed to create simpletest directory: $simpletest_dir");
+  }
 }
 // Ensure the directory is writable.
-chmod($simpletest_dir, 0775);
+if (!chmod($simpletest_dir, 0775)) {
+  // Log warning but don't fail - directory might already have correct permissions
+  error_log("Warning: Could not set permissions on simpletest directory: $simpletest_dir");
+}
 
 // Include Drupal core's bootstrap.
 require __DIR__ . '/../../../../core/tests/bootstrap.php';
