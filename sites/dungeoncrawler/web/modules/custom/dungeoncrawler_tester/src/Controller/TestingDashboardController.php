@@ -44,6 +44,16 @@ class TestingDashboardController extends ControllerBase {
   ];
 
   /**
+   * Staleness cutoff (days) for bulk stale-issue cleanup query.
+   */
+  private const BULK_STALE_DAYS = 60;
+
+  /**
+   * Standard close comment for bulk no-action cleanup.
+   */
+  private const BULK_CLOSE_COMMENT = 'Bulk close from testing issue/PR report: no additional implementation action required.';
+
+  /**
    * HTTP client for GitHub API calls.
    *
    * @var \GuzzleHttp\ClientInterface
@@ -490,6 +500,8 @@ class TestingDashboardController extends ControllerBase {
       $metaItems[] = $this->t('PR fetch warning: @msg', ['@msg' => (string) $prPayload['error']]);
     }
 
+    $bulkQuerySection = $this->buildBulkCloseQuerySection($repo, $issues, $prs, $tokenCandidates);
+
     return [
       '#type' => 'container',
       '#attributes' => ['class' => ['tester-issue-pr-report', 'dungeoncrawler-testing-dashboard']],
@@ -506,10 +518,12 @@ class TestingDashboardController extends ControllerBase {
             'csrfToken' => \Drupal::csrfToken()->get('rest'),
             'routes' => [
               'deadClose' => Url::fromRoute('dungeoncrawler_tester.dead_value_close')->toString(),
+              'bulkCloseQuery' => Url::fromRoute('dungeoncrawler_tester.bulk_close_query_run')->toString(),
             ],
           ],
         ],
       ],
+      'bulk_queries' => $bulkQuerySection,
       'intro' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
@@ -547,6 +561,485 @@ class TestingDashboardController extends ControllerBase {
         '#empty' => $this->t('No orphaned open PRs found.'),
       ],
     ];
+  }
+
+  /**
+   * Build top-of-page bulk-close query section.
+   */
+  private function buildBulkCloseQuerySection(string $repo, array $issues, array $prs, array $tokenCandidates): array {
+    $definitions = $this->buildBulkCloseQueryDefinitions($repo, $issues, $prs, $tokenCandidates);
+
+    $cards = [];
+    foreach ($definitions as $definition) {
+      $cards[] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['issue-card', 'issue-report-item', 'bulk-query-card']],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => (string) ($definition['title'] ?? ''),
+        ],
+        'summary' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#attributes' => ['class' => ['text-muted-light']],
+          '#value' => (string) ($definition['summary'] ?? ''),
+        ],
+        'query_title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => (string) $this->t('Query'),
+        ],
+        'query' => [
+          '#type' => 'html_tag',
+          '#tag' => 'pre',
+          '#attributes' => ['class' => ['command-snippet']],
+          '#value' => (string) ($definition['query'] ?? ''),
+        ],
+        'impact_title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => (string) $this->t('Expected Impact'),
+        ],
+        'impact' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#attributes' => ['class' => ['text-muted-light']],
+          '#value' => (string) ($definition['expected_impact'] ?? ''),
+        ],
+        'actions' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['issue-report-actions']],
+          'run' => [
+            '#type' => 'html_tag',
+            '#tag' => 'button',
+            '#attributes' => [
+              'type' => 'button',
+              'class' => ['button', 'button--small', 'dc-bulk-query-run-btn'],
+              'data-query-id' => (string) ($definition['id'] ?? ''),
+              'data-query-title' => (string) ($definition['title'] ?? ''),
+            ],
+            '#value' => (string) $this->t('Run close query'),
+          ],
+        ],
+      ];
+    }
+
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['bulk-close-queries']],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h2',
+        '#value' => $this->t('Bulk Close Queries (No-Action Candidates)'),
+      ],
+      'help' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#attributes' => ['class' => ['text-muted-light']],
+        '#value' => $this->t('Run these review-safe queries to bulk close stale/no-action issue and PR candidates. Validate results in GitHub after each run.'),
+      ],
+      'cards' => [
+        '#theme' => 'item_list',
+        '#items' => $cards,
+      ],
+    ];
+  }
+
+  /**
+   * Build bulk-close query definitions with live expected impact counts.
+   */
+  private function buildBulkCloseQueryDefinitions(string $repo, array $issues, array $prs, array $tokenCandidates): array {
+    $openIssueNumbers = [];
+    foreach ($issues as $issue) {
+      $issueNumber = (int) ($issue['number'] ?? 0);
+      if ($issueNumber > 0) {
+        $openIssueNumbers[$issueNumber] = TRUE;
+      }
+    }
+
+    $deadValueCandidates = $this->collectDeadValuePrCandidates($repo, $prs, $tokenCandidates, $openIssueNumbers);
+    $mergedLinkedIssues = $this->collectOpenIssuesReferencedByMergedPrs($repo, $issues, $tokenCandidates);
+    $nonActionIssues = $this->collectNonActionOpenIssues($issues);
+    $openPrsClosedRefs = $this->collectOpenPrsReferencingOnlyClosedIssues($prs, $openIssueNumbers);
+    $staleTestingIssues = $this->collectStaleUnassignedTestingIssues($issues);
+    $staleCutoffDate = date('Y-m-d', strtotime('-' . self::BULK_STALE_DAYS . ' days'));
+
+    return [
+      [
+        'id' => 'dead_value_prs',
+        'title' => (string) $this->t('Dead-value PRs (no diff from main)'),
+        'summary' => (string) $this->t('Closes open PRs that have zero changed files and zero additions/deletions against main.'),
+        'query' => 'is:pr is:open base:main changed-files:0',
+        'expected_impact' => (string) $this->t('Will close @count PR(s). Linked open issues referenced in PR text will also be closed when present.', ['@count' => count($deadValueCandidates)]),
+      ],
+      [
+        'id' => 'issues_resolved_by_merged_pr',
+        'title' => (string) $this->t('Open issues referenced by merged PRs'),
+        'summary' => (string) $this->t('Closes open issues that are already referenced by merged pull requests.'),
+        'query' => 'is:issue is:open linked:pr + merged PR reference check',
+        'expected_impact' => (string) $this->t('Will close @count open issue(s) that appear already resolved by merged code.', ['@count' => count($mergedLinkedIssues)]),
+      ],
+      [
+        'id' => 'non_action_labeled_issues',
+        'title' => (string) $this->t('Open issues labeled duplicate/invalid/wontfix'),
+        'summary' => (string) $this->t('Closes open issues already labeled as non-action outcomes.'),
+        'query' => 'is:issue is:open (label:duplicate OR label:invalid OR label:wontfix)',
+        'expected_impact' => (string) $this->t('Will close @count issue(s) with non-action resolution labels.', ['@count' => count($nonActionIssues)]),
+      ],
+      [
+        'id' => 'open_prs_with_only_closed_issue_refs',
+        'title' => (string) $this->t('Open PRs referencing only closed issues'),
+        'summary' => (string) $this->t('Closes open PRs whose referenced issue numbers are all already closed.'),
+        'query' => 'is:pr is:open "fixes #" + all referenced issues closed',
+        'expected_impact' => (string) $this->t('Will close @count PR(s) with only closed issue references.', ['@count' => count($openPrsClosedRefs)]),
+      ],
+      [
+        'id' => 'stale_unassigned_testing_issues',
+        'title' => (string) $this->t('Stale unassigned testing issues'),
+        'summary' => (string) $this->t('Closes stale, unassigned testing-defect operational issues that have no active owner.'),
+        'query' => 'is:issue is:open no:assignee updated:<' . $staleCutoffDate . ' (label:testing OR label:testing-defect OR label:ci-failure OR label:program-defect OR label:tester)',
+        'expected_impact' => (string) $this->t('Will close @count stale issue(s) with no assignee and testing-defect labels.', ['@count' => count($staleTestingIssues)]),
+      ],
+    ];
+  }
+
+  /**
+   * AJAX: run one bulk-close query and execute close mutations.
+   */
+  public function runBulkCloseQueryAjax(Request $request): JsonResponse {
+    if (!$this->currentUser()->hasPermission('administer site configuration')) {
+      return new JsonResponse(['success' => FALSE, 'message' => 'Access denied'], 403);
+    }
+
+    $payload = json_decode((string) $request->getContent(), TRUE);
+    if (!is_array($payload)) {
+      $payload = [];
+    }
+
+    $queryId = trim((string) ($payload['query_id'] ?? ''));
+    if ($queryId === '') {
+      return new JsonResponse(['success' => FALSE, 'message' => 'Missing query id.'], 400);
+    }
+
+    $githubContext = $this->resolveGitHubContext();
+    $repo = $githubContext['repo'];
+    $token = $githubContext['token'];
+    $tokenCandidates = $githubContext['token_candidates'] ?? [];
+
+    if (!$token || empty($tokenCandidates)) {
+      return new JsonResponse(['success' => FALSE, 'message' => 'GitHub token is not configured.'], 400);
+    }
+
+    $issuePayload = $this->fetchOpenIssuesForReport($repo, $tokenCandidates, FALSE);
+    $prPayload = $this->fetchOpenPullRequestsForReport($repo, $tokenCandidates, FALSE);
+    $issues = $issuePayload['items'] ?? [];
+    $prs = $prPayload['items'] ?? [];
+
+    $openIssueNumbers = [];
+    foreach ($issues as $issue) {
+      $issueNumber = (int) ($issue['number'] ?? 0);
+      if ($issueNumber > 0) {
+        $openIssueNumbers[$issueNumber] = TRUE;
+      }
+    }
+
+    $result = [
+      'prs_closed' => 0,
+      'issues_closed' => 0,
+      'errors' => [],
+    ];
+
+    switch ($queryId) {
+      case 'dead_value_prs':
+        $candidates = $this->collectDeadValuePrCandidates($repo, $prs, $tokenCandidates, $openIssueNumbers);
+        foreach ($candidates as $candidate) {
+          $prNumber = (int) ($candidate['pr_number'] ?? 0);
+          if ($prNumber <= 0) {
+            continue;
+          }
+
+          $prCommented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$prNumber}/comments", $token, ['body' => self::DEAD_VALUE_COMMENT]);
+          $prClosed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $token, ['state' => 'closed']);
+          if ($prCommented && $prClosed) {
+            $result['prs_closed']++;
+          }
+          else {
+            $result['errors'][] = "PR #{$prNumber}";
+          }
+
+          foreach ($candidate['issue_numbers'] ?? [] as $issueNumber) {
+            $issueNumber = (int) $issueNumber;
+            if ($issueNumber <= 0) {
+              continue;
+            }
+            $issueCommented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/comments", $token, ['body' => self::DEAD_VALUE_COMMENT]);
+            $issueClosed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}", $token, ['state' => 'closed']);
+            if ($issueCommented && $issueClosed) {
+              $result['issues_closed']++;
+            }
+            else {
+              $result['errors'][] = "Issue #{$issueNumber}";
+            }
+          }
+        }
+        break;
+
+      case 'issues_resolved_by_merged_pr':
+        $issueNumbers = $this->collectOpenIssuesReferencedByMergedPrs($repo, $issues, $tokenCandidates);
+        foreach ($issueNumbers as $issueNumber) {
+          $issueCommented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/comments", $token, ['body' => self::BULK_CLOSE_COMMENT]);
+          $issueClosed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}", $token, ['state' => 'closed']);
+          if ($issueCommented && $issueClosed) {
+            $result['issues_closed']++;
+          }
+          else {
+            $result['errors'][] = "Issue #{$issueNumber}";
+          }
+        }
+        break;
+
+      case 'non_action_labeled_issues':
+        $issueNumbers = $this->collectNonActionOpenIssues($issues);
+        foreach ($issueNumbers as $issueNumber) {
+          $issueCommented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/comments", $token, ['body' => self::BULK_CLOSE_COMMENT]);
+          $issueClosed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}", $token, ['state' => 'closed']);
+          if ($issueCommented && $issueClosed) {
+            $result['issues_closed']++;
+          }
+          else {
+            $result['errors'][] = "Issue #{$issueNumber}";
+          }
+        }
+        break;
+
+      case 'open_prs_with_only_closed_issue_refs':
+        $prNumbers = $this->collectOpenPrsReferencingOnlyClosedIssues($prs, $openIssueNumbers);
+        foreach ($prNumbers as $prNumber) {
+          $prCommented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$prNumber}/comments", $token, ['body' => self::BULK_CLOSE_COMMENT]);
+          $prClosed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $token, ['state' => 'closed']);
+          if ($prCommented && $prClosed) {
+            $result['prs_closed']++;
+          }
+          else {
+            $result['errors'][] = "PR #{$prNumber}";
+          }
+        }
+        break;
+
+      case 'stale_unassigned_testing_issues':
+        $issueNumbers = $this->collectStaleUnassignedTestingIssues($issues);
+        foreach ($issueNumbers as $issueNumber) {
+          $issueCommented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/comments", $token, ['body' => self::BULK_CLOSE_COMMENT]);
+          $issueClosed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}", $token, ['state' => 'closed']);
+          if ($issueCommented && $issueClosed) {
+            $result['issues_closed']++;
+          }
+          else {
+            $result['errors'][] = "Issue #{$issueNumber}";
+          }
+        }
+        break;
+
+      default:
+        return new JsonResponse(['success' => FALSE, 'message' => 'Unknown bulk query id.'], 400);
+    }
+
+    $errorCount = count($result['errors']);
+    $message = "Bulk query complete. Closed {$result['prs_closed']} PR(s) and {$result['issues_closed']} issue(s).";
+    if ($errorCount > 0) {
+      $message .= " {$errorCount} item(s) had errors; check logs.";
+    }
+
+    return new JsonResponse([
+      'success' => TRUE,
+      'message' => $message,
+      'prs_closed' => $result['prs_closed'],
+      'issues_closed' => $result['issues_closed'],
+      'errors' => $result['errors'],
+    ]);
+  }
+
+  /**
+   * Collect dead-value PR candidates and referenced open issues.
+   */
+  private function collectDeadValuePrCandidates(string $repo, array $prs, array $tokenCandidates, array $openIssueNumbers): array {
+    $candidates = [];
+
+    foreach ($prs as $pr) {
+      $prNumber = (int) ($pr['number'] ?? 0);
+      if ($prNumber <= 0) {
+        continue;
+      }
+
+      $details = $this->fetchPullRequestDetails($repo, $tokenCandidates, $prNumber);
+      if (empty($details)) {
+        continue;
+      }
+
+      $normalized = [
+        'base_ref' => (string) ($details['base']['ref'] ?? ''),
+        'changed_files' => (int) ($details['changed_files'] ?? 0),
+        'additions' => (int) ($details['additions'] ?? 0),
+        'deletions' => (int) ($details['deletions'] ?? 0),
+      ];
+
+      if (!$this->isDeadValuePr($normalized)) {
+        continue;
+      }
+
+      $issueRefs = [];
+      $refs = $this->extractIssueReferencesFromPr([
+        'title' => (string) ($details['title'] ?? ''),
+        'body' => (string) ($details['body'] ?? ''),
+      ]);
+      foreach ($refs as $issueNumber) {
+        if (!empty($openIssueNumbers[$issueNumber])) {
+          $issueRefs[$issueNumber] = TRUE;
+        }
+      }
+
+      $candidates[] = [
+        'pr_number' => $prNumber,
+        'issue_numbers' => array_values(array_map('intval', array_keys($issueRefs))),
+      ];
+    }
+
+    return $candidates;
+  }
+
+  /**
+   * Collect open issue numbers referenced by merged PRs.
+   */
+  private function collectOpenIssuesReferencedByMergedPrs(string $repo, array $issues, array $tokenCandidates): array {
+    $openIssueNumbers = [];
+    foreach ($issues as $issue) {
+      $issueNumber = (int) ($issue['number'] ?? 0);
+      if ($issueNumber > 0) {
+        $openIssueNumbers[$issueNumber] = TRUE;
+      }
+    }
+
+    $payload = $this->fetchClosedPullRequestsForReport($repo, $tokenCandidates, FALSE);
+    $closedPrs = $payload['items'] ?? [];
+    $candidates = [];
+
+    foreach ($closedPrs as $pr) {
+      if (empty($pr['merged_at'])) {
+        continue;
+      }
+      $refs = $this->extractIssueReferencesFromPr($pr);
+      foreach ($refs as $issueNumber) {
+        if (!empty($openIssueNumbers[$issueNumber])) {
+          $candidates[$issueNumber] = TRUE;
+        }
+      }
+    }
+
+    return array_values(array_map('intval', array_keys($candidates)));
+  }
+
+  /**
+   * Collect open issue numbers already marked duplicate/invalid/wontfix.
+   */
+  private function collectNonActionOpenIssues(array $issues): array {
+    $candidates = [];
+    $nonActionLabels = ['duplicate', 'invalid', 'wontfix'];
+
+    foreach ($issues as $issue) {
+      $issueNumber = (int) ($issue['number'] ?? 0);
+      if ($issueNumber <= 0) {
+        continue;
+      }
+
+      $labels = array_map(static fn(string $label): string => strtolower(trim($label)), (array) ($issue['labels'] ?? []));
+      if (!empty(array_intersect($labels, $nonActionLabels))) {
+        $candidates[$issueNumber] = TRUE;
+      }
+    }
+
+    return array_values(array_map('intval', array_keys($candidates)));
+  }
+
+  /**
+   * Collect open PR numbers where every referenced issue is already closed.
+   */
+  private function collectOpenPrsReferencingOnlyClosedIssues(array $prs, array $openIssueNumbers): array {
+    $candidates = [];
+
+    foreach ($prs as $pr) {
+      $prNumber = (int) ($pr['number'] ?? 0);
+      if ($prNumber <= 0) {
+        continue;
+      }
+
+      $refs = $this->extractIssueReferencesFromPr($pr);
+      if (empty($refs)) {
+        continue;
+      }
+
+      $allClosed = TRUE;
+      foreach ($refs as $issueNumber) {
+        if (!empty($openIssueNumbers[$issueNumber])) {
+          $allClosed = FALSE;
+          break;
+        }
+      }
+
+      if ($allClosed) {
+        $candidates[$prNumber] = TRUE;
+      }
+    }
+
+    return array_values(array_map('intval', array_keys($candidates)));
+  }
+
+  /**
+   * Collect stale unassigned testing-related open issues.
+   */
+  private function collectStaleUnassignedTestingIssues(array $issues): array {
+    $candidates = [];
+
+    foreach ($issues as $issue) {
+      $issueNumber = (int) ($issue['number'] ?? 0);
+      if ($issueNumber <= 0) {
+        continue;
+      }
+
+      $assignees = (array) ($issue['assignees'] ?? []);
+      $labels = array_map(static fn(string $label): string => strtolower(trim($label)), (array) ($issue['labels'] ?? []));
+      $staleDays = (int) ($issue['stale_days'] ?? 0);
+
+      if (!empty($assignees)) {
+        continue;
+      }
+      if ($staleDays < self::BULK_STALE_DAYS) {
+        continue;
+      }
+      if (empty(array_intersect($labels, self::TESTING_ISSUE_LABELS))) {
+        continue;
+      }
+
+      $candidates[$issueNumber] = TRUE;
+    }
+
+    return array_values(array_map('intval', array_keys($candidates)));
+  }
+
+  /**
+   * Fetch full PR details by number.
+   */
+  private function fetchPullRequestDetails(string $repo, array $tokenCandidates, int $prNumber): ?array {
+    if ($prNumber <= 0) {
+      return NULL;
+    }
+
+    $response = $this->requestGitHubJsonWithFallback("https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $tokenCandidates, [], FALSE);
+    if (!empty($response['error']) || !is_array($response['items'])) {
+      return NULL;
+    }
+
+    return $response['items'];
   }
 
   /**
@@ -3028,6 +3521,50 @@ class TestingDashboardController extends ControllerBase {
     if ($useCache) {
       \Drupal::cache()->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
     }
+    return $result;
+  }
+
+  /**
+   * Fetch closed pull requests for merged-reference analysis.
+   */
+  private function fetchClosedPullRequestsForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
+    if (empty($tokenCandidates)) {
+      return ['items' => [], 'error' => (string) $this->t('No GitHub token configured.')];
+    }
+
+    $cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.closed_prs.' . $repo;
+    if ($useCache) {
+      $cache = \Drupal::cache()->get($cacheKey);
+      if ($cache && !empty($cache->data) && is_array($cache->data)) {
+        return $cache->data;
+      }
+    }
+
+    $url = "https://api.github.com/repos/{$repo}/pulls?state=closed&per_page=100";
+    $response = $this->requestGitHubJsonWithFallback($url, $tokenCandidates, [], TRUE);
+    if (!empty($response['error'])) {
+      return ['items' => [], 'error' => $response['error']];
+    }
+
+    $items = [];
+    foreach ($response['items'] as $pr) {
+      if (!is_array($pr)) {
+        continue;
+      }
+
+      $items[] = [
+        'number' => (int) ($pr['number'] ?? 0),
+        'title' => (string) ($pr['title'] ?? ''),
+        'body' => (string) ($pr['body'] ?? ''),
+        'merged_at' => (string) ($pr['merged_at'] ?? ''),
+      ];
+    }
+
+    $result = ['items' => $items, 'error' => NULL];
+    if ($useCache) {
+      \Drupal::cache()->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+    }
+
     return $result;
   }
 

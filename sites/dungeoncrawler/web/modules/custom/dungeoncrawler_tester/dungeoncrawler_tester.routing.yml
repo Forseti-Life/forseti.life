@@ -22,6 +22,14 @@ dungeoncrawler_tester.dead_value_close:
   requirements:
     _permission: 'administer site configuration'
 
+dungeoncrawler_tester.bulk_close_query_run:
+  path: '/dungeoncrawler/testing/issue-pr-report/bulk-close-query-run'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::runBulkCloseQueryAjax'
+  methods: [POST]
+  requirements:
+    _permission: 'administer site configuration'
+
 dungeoncrawler_tester.documentation_home:
   path: '/dungeoncrawler/testing/documentation-home'
   defaults:
