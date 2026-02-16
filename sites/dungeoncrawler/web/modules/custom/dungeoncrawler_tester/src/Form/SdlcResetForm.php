@@ -30,6 +30,11 @@ class SdlcResetForm extends FormBase {
     'tester',
   ];
 
+  /**
+   * PR merge states treated as failed for reset closure.
+   */
+  private const FAILED_PR_STATES = ['unstable', 'blocked', 'dirty'];
+
   public function __construct(
     private readonly StateInterface $state,
     private readonly ConfigFactoryInterface $settingsConfigFactory,
@@ -87,6 +92,9 @@ class SdlcResetForm extends FormBase {
       ]);
     }
 
+    [$repo, $token] = $this->getRepoToken();
+    $failedPrs = $token ? $this->fetchFailedOpenPullRequestNumbers($repo, $token) : [];
+
     $form['description'] = [
       '#type' => 'html_tag',
       '#tag' => 'p',
@@ -125,6 +133,7 @@ class SdlcResetForm extends FormBase {
       '#theme' => 'item_list',
       '#items' => [
         $this->t('Linked open issues to close: @count (target for ready state: 0)', ['@count' => $preview['open_issues']]),
+        $this->t('Open failed PRs eligible to close: @count (target for ready state: 0)', ['@count' => count($failedPrs)]),
         $this->t('Defined stages to reset to active: @count (target for ready state: @target)', [
           '@count' => $preview['defined_stages'],
           '@target' => $preview['expected_defined_stages'],
@@ -149,6 +158,15 @@ class SdlcResetForm extends FormBase {
       '#title' => $this->t('Force local reset even if issue closure fails'),
       '#description' => $this->t('Use only for emergency recovery. This can create state drift if GitHub issues stay open.'),
       '#default_value' => FALSE,
+    ];
+
+    $form['close_failed_prs'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Also close open PRs in failed state'),
+      '#description' => $this->t('Closes open PRs on copilot/* branches whose merge state is one of: @states.', [
+        '@states' => implode(', ', self::FAILED_PR_STATES),
+      ]),
+      '#default_value' => TRUE,
     ];
 
     $form['actions'] = [
@@ -179,6 +197,7 @@ class SdlcResetForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     [$repo, $token] = $this->getRepoToken();
     $forceLocalReset = (bool) $form_state->getValue('force_local_reset');
+    $closeFailedPrs = (bool) $form_state->getValue('close_failed_prs');
 
     $stageStates = $this->state->get('dungeoncrawler_tester.stage_state', []);
     $issueNumbers = [];
@@ -208,6 +227,9 @@ class SdlcResetForm extends FormBase {
     $failed = 0;
     $failedIssueNumbers = [];
     $closedIssueNumbers = [];
+    $closedPrs = 0;
+    $failedPrs = 0;
+    $failedPrNumbers = [];
 
     if ($token) {
       $labelIssueNumbers = $this->fetchOpenTestingIssueNumbers($repo, $token);
@@ -218,6 +240,11 @@ class SdlcResetForm extends FormBase {
 
     if (!empty($issueNumbers) && !$token && !$forceLocalReset) {
       $this->messenger()->addError($this->t('Reset aborted: GitHub token is missing and linked issues cannot be closed. Enable force local reset only if you intentionally want local state reset without closing GitHub issues.'));
+      return;
+    }
+
+    if ($closeFailedPrs && !$token && !$forceLocalReset) {
+      $this->messenger()->addError($this->t('Reset aborted: GitHub token is missing and failed PRs cannot be closed. Disable PR closure or enable force local reset.'));
       return;
     }
 
@@ -254,6 +281,29 @@ class SdlcResetForm extends FormBase {
     // - backfills newly defined stage IDs,
     // - leaves a clean ready-to-run baseline.
     $normalizedStageStates = [];
+
+    if ($closeFailedPrs && $token) {
+      $failedOpenPrNumbers = $this->fetchFailedOpenPullRequestNumbers($repo, $token);
+      foreach ($failedOpenPrNumbers as $prNumber) {
+        $ok = $this->closePullRequestWithResetNote($repo, $token, $prNumber);
+        if ($ok) {
+          $closedPrs++;
+        }
+        else {
+          $failedPrs++;
+          $failedPrNumbers[] = $prNumber;
+        }
+      }
+    }
+
+    if ($failedPrs > 0 && !$forceLocalReset) {
+      $this->messenger()->addError($this->t('Reset aborted after PR close failures. @failed PR(s) could not be closed. No local reset changes were applied.', ['@failed' => $failedPrs]));
+      $this->logger->warning('SDLC reset aborted due to PR close failures. Failed PRs: @prs', [
+        '@prs' => implode(', ', $failedPrNumbers),
+      ]);
+      return;
+    }
+
     foreach ($definedStageIds as $stageId) {
       $state = $stageStates[$stageId] ?? [];
       $state['active'] = TRUE;
@@ -290,6 +340,10 @@ class SdlcResetForm extends FormBase {
       $this->messenger()->addWarning($this->t('SDLC reset forced without GitHub closure. Linked/testing issues may still be open remotely.'));
     }
 
+    if ($closeFailedPrs && !$token && $forceLocalReset) {
+      $this->messenger()->addWarning($this->t('SDLC reset forced without GitHub closure. Failed PRs may still be open remotely.'));
+    }
+
     if ($failed > 0 && $forceLocalReset) {
       $this->messenger()->addWarning($this->t('Forced local reset completed with @failed issue close failure(s). Remaining open issue numbers: @issues', [
         '@failed' => $failed,
@@ -297,19 +351,30 @@ class SdlcResetForm extends FormBase {
       ]));
     }
 
+    if ($failedPrs > 0 && $forceLocalReset) {
+      $this->messenger()->addWarning($this->t('Forced local reset completed with @failed PR close failure(s). Remaining open PR numbers: @prs', [
+        '@failed' => $failedPrs,
+        '@prs' => implode(', ', $failedPrNumbers),
+      ]));
+    }
+
     $account = $this->currentUser();
-    $this->logger->notice('SDLC reset executed by uid @uid (@name). Issues closed: @closed. Issue close failures: @failed. Queue items cleared: @queue. Force local reset: @force.', [
+    $this->logger->notice('SDLC reset executed by uid @uid (@name). Issues closed: @closed. Issue close failures: @failed. Failed-state PRs closed: @prs_closed. PR close failures: @prs_failed. Queue items cleared: @queue. Force local reset: @force.', [
       '@uid' => $account->id(),
       '@name' => $account->getAccountName(),
       '@closed' => $closed,
       '@failed' => $failed,
+      '@prs_closed' => $closedPrs,
+      '@prs_failed' => $failedPrs,
       '@queue' => $clearedQueueItems,
       '@force' => $forceLocalReset ? 'yes' : 'no',
     ]);
 
-    $this->messenger()->addStatus($this->t('SDLC reset completed. Issues closed: @closed. Issue close failures: @failed. Queue items cleared: @queue. Test states reset to ready.', [
+    $this->messenger()->addStatus($this->t('SDLC reset completed. Issues closed: @closed. Issue close failures: @failed. Failed-state PRs closed: @prs_closed. PR close failures: @prs_failed. Queue items cleared: @queue. Test states reset to ready.', [
       '@closed' => $closed,
       '@failed' => $failed,
+      '@prs_closed' => $closedPrs,
+      '@prs_failed' => $failedPrs,
       '@queue' => $clearedQueueItems,
     ]));
 
@@ -494,6 +559,110 @@ class SdlcResetForm extends FormBase {
     }
 
     return array_values(array_map('intval', array_keys($issueNumbers)));
+  }
+
+  /**
+   * Return open PR numbers currently considered failed by merge state.
+   */
+  private function fetchFailedOpenPullRequestNumbers(string $repo, string $token): array {
+    $url = "https://api.github.com/repos/{$repo}/pulls?state=open&per_page=100";
+
+    try {
+      $response = $this->httpClient->request('GET', $url, [
+        'headers' => [
+          'Authorization' => "Bearer {$token}",
+          'Accept' => 'application/vnd.github+json',
+          'User-Agent' => 'dungeoncrawler-tester-sdlc-reset',
+        ],
+        'timeout' => 10,
+      ]);
+
+      $status = $response->getStatusCode();
+      if ($status < 200 || $status >= 300) {
+        return [];
+      }
+
+      $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
+      $failedPrs = [];
+      foreach ($payload as $pull) {
+        if (!is_array($pull)) {
+          continue;
+        }
+
+        $headRef = (string) ($pull['head']['ref'] ?? '');
+        if (!str_starts_with($headRef, 'copilot/')) {
+          continue;
+        }
+
+        $mergeableState = strtolower((string) ($pull['mergeable_state'] ?? ''));
+        if (in_array($mergeableState, self::FAILED_PR_STATES, TRUE)) {
+          $number = (int) ($pull['number'] ?? 0);
+          if ($number > 0) {
+            $failedPrs[] = $number;
+          }
+        }
+      }
+
+      return array_values(array_unique(array_filter(array_map('intval', $failedPrs))));
+    }
+    catch (GuzzleException $e) {
+      $this->logger->warning('Failed loading open PRs during SDLC reset: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Unexpected PR-load error during SDLC reset: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    return [];
+  }
+
+  /**
+   * Close an open pull request and add a reset note comment.
+   */
+  private function closePullRequestWithResetNote(string $repo, string $token, int $prNumber): bool {
+    $commentUrl = "https://api.github.com/repos/{$repo}/issues/{$prNumber}/comments";
+    $prUrl = "https://api.github.com/repos/{$repo}/pulls/{$prNumber}";
+
+    try {
+      $headers = [
+        'Authorization' => "Bearer {$token}",
+        'Accept' => 'application/vnd.github+json',
+        'User-Agent' => 'dungeoncrawler-tester-sdlc-reset',
+      ];
+
+      $this->httpClient->request('POST', $commentUrl, [
+        'headers' => $headers,
+        'json' => [
+          'body' => 'Closing pull request as part of SDLC reset initiated from tester dashboard because it is in failed state. Re-open or recreate if still actionable after reset.',
+        ],
+        'timeout' => 10,
+      ]);
+
+      $this->httpClient->request('PATCH', $prUrl, [
+        'headers' => $headers,
+        'json' => ['state' => 'closed'],
+        'timeout' => 10,
+      ]);
+
+      return TRUE;
+    }
+    catch (GuzzleException $e) {
+      $this->logger->warning('Failed closing PR #@pr during SDLC reset: @message', [
+        '@pr' => $prNumber,
+        '@message' => $e->getMessage(),
+      ]);
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Unexpected SDLC reset close error for PR #@pr: @message', [
+        '@pr' => $prNumber,
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    return FALSE;
   }
 
   /**
