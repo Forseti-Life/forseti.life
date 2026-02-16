@@ -78,6 +78,17 @@ For complete run instructions, test suites, groups, and examples, see **[tests/R
 
 **Quick tip**: Visit the Testing Dashboard at `/dungeoncrawler/testing` for a complete list of test commands with copy/paste functionality.
 
+### Test Environment Setup
+
+The test suite uses a custom bootstrap (`tests/bootstrap.php`) that ensures the `web/sites/simpletest` directory exists with proper permissions before running tests. This is required for Drupal's BrowserTestBase, which creates temporary test site directories during functional test execution.
+
+If you encounter permission errors like "Failed to open 'sites/simpletest/XXXXXX/settings.php'", verify that:
+1. The `web/sites/simpletest` directory exists
+2. The directory has write permissions (chmod 775 or 777)
+3. The web server user has access to create subdirectories
+
+The custom bootstrap handles this automatically, but manual intervention may be needed in restricted environments.
+
 ## Notes
 - Tests enable `dungeoncrawler_content`; this module only houses the test code and config.
 - No content types, controllers, or assets are defined here—those stay in the main content module.
@@ -87,7 +98,8 @@ For complete run instructions, test suites, groups, and examples, see **[tests/R
 | --- | --- | --- |
 | [README.md](README.md) | Module overview and usage notes | Reviewed |
 | [dungeoncrawler_tester.info.yml](dungeoncrawler_tester.info.yml) | Module metadata and dependency on dungeoncrawler_content | Reviewed |
-| [phpunit.xml](phpunit.xml) | PHPUnit configuration (suites, coverage, env) | Updated |
+| [phpunit.xml](phpunit.xml) | PHPUnit configuration (suites, coverage, env, custom bootstrap) | Updated |
+| [tests/bootstrap.php](tests/bootstrap.php) | Custom bootstrap ensuring simpletest directory permissions | New |
 | [tests/README.md](tests/README.md) | Test suite structure and quick commands | Updated |
 | [tests/TESTING_MODULE_README.md](tests/TESTING_MODULE_README.md) | Detailed test instructions and grouping | Updated |
 | [tests/fixtures/characters/level_1_fighter.json](tests/fixtures/characters/level_1_fighter.json) | Character fixture: level 1 fighter | Updated |
