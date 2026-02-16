@@ -9,8 +9,6 @@
  * Drupal installation where the web root is in a subdirectory.
  */
 
-use Drupal\TestTools\PhpUnitCompatibility\PhpUnit9\TestCompatibilityTrait;
-
 // Define the path to Composer's autoloader.
 // When running from sites/dungeoncrawler, the vendor directory is at the
 // project root, not in the web directory.

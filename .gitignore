@@ -111,4 +111,5 @@ sites/*/web/sites/*/simpletest/
 .fuse_hidden*
 .directory
 .Trash-*
-.nfs*sites/dungeoncrawler/web/sites/simpletest/*
+.nfs*
+sites/dungeoncrawler/web/sites/simpletest/*
