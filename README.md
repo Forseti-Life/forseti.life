@@ -34,6 +34,7 @@ The `/docs/` directory contains comprehensive product, market, and technical doc
 
 | Section | Status | Description | Quick Link |
 |---------|--------|-------------|------------|
+| **🛠️ Issue Tracker** | 🟢 Active | Repository-level Open/Closed issue log | [View →](./Issues.md) |
 | **📋 Product Docs** | 🟢 Live Beta | Lean Startup product management | [View →](./docs/product/) |
 | **🎯 Process Flow** | 🟢 Complete | End-to-end validation roadmap | [View →](./docs/product/process-flow-validation.md) |
 | **👤 User Journey** | 🟢 Active | Sarah persona journey mapping | [View →](./docs/product/user-journey/) |

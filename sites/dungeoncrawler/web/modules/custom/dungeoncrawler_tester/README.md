@@ -100,6 +100,44 @@ The custom bootstrap handles this automatically, but manual intervention may be 
 - Tests enable `dungeoncrawler_content`; this module only houses the test code and config.
 - No content types, controllers, or assets are defined here—those stay in the main content module.
 
+## GitHub client architecture (centralized)
+
+- A thin integration layer now exists at [src/Service/GithubIssuePrClient.php](src/Service/GithubIssuePrClient.php) with contract [src/Service/GithubIssuePrClientInterface.php](src/Service/GithubIssuePrClientInterface.php).
+- This service centralizes GitHub context resolution (`repo` + token fallback chain) and core issue/PR request methods.
+- The client now enforces mutative request serialization with a cross-process lock and a minimum 1-second spacing between POST/PATCH/PUT/DELETE operations.
+- The client now applies rate-limit retry handling for 403/429 responses, honoring `Retry-After` and `X-RateLimit-Reset`, with exponential backoff + jitter fallback.
+- The client now includes a mutative circuit breaker: repeated 403/429 rate-limit failures trigger a temporary cooldown window that pauses further mutative automation attempts.
+- The client now adds mutation dedupe guards for repeated issue/PR close and comment operations, suppressing duplicate mutative calls within a short time window.
+- Migration slices completed:
+	- [src/Service/StageIssueSyncService.php](src/Service/StageIssueSyncService.php)
+	- [src/Form/SdlcResetForm.php](src/Form/SdlcResetForm.php)
+	- [src/Form/DeadValueCloseForm.php](src/Form/DeadValueCloseForm.php)
+	- [src/Plugin/QueueWorker/TesterRunQueueWorker.php](src/Plugin/QueueWorker/TesterRunQueueWorker.php) for GitHub issue create/comment/assign/search flows
+	- [src/Controller/TestingDashboardController.php](src/Controller/TestingDashboardController.php) for centralized GitHub context resolution + mutation + read/list helper paths
+	now consume the centralized client instead of direct `http_client` + local config/token resolution logic.
+- Remaining direct GitHub callsites are minimal and mostly internal legacy helper surface that can be removed in a cleanup pass; operational read/mutation flows now route through the centralized client.
+
+## GitHub rate-limit runbook
+
+- Core limits reference (subject to GitHub policy updates):
+	- Unauthenticated REST: 60 requests/hour per IP.
+	- Authenticated REST: 5,000 requests/hour per user/token.
+	- Authenticated GraphQL: 5,000 points/hour.
+	- GitHub Actions `GITHUB_TOKEN`: 1,000 requests/hour per repository (15,000/hour for Enterprise Cloud resources).
+	- GitHub App installations: baseline 5,000/hour, scalable up to 12,500/hour (15,000/hour on Enterprise Cloud).
+- Check current limits from CLI:
+	- `gh api rate_limit`
+- Secondary rate-limit handling expectations:
+	- Honor `Retry-After` and `X-RateLimit-Reset` before retrying.
+	- Use exponential backoff and avoid high-frequency polling loops.
+	- Prefer conditional/cached reads and max page sizes to reduce repetitive calls.
+	- Keep mutative operations serialized to avoid anti-spam triggering.
+- Recovery workflow when mutative cooldown is active:
+	1. Review recent `dungeoncrawler_tester` logs for repeated 403/429 failures.
+	2. Wait for cooldown to expire; avoid restarting high-frequency mutation loops.
+	3. Verify quota with `gh api rate_limit` before resuming manual or automated runs.
+	4. Resume stage/queue processing and confirm normal mutation success in logs.
+
 ## File Inventory
 | File | Purpose | First pass |
 | --- | --- | --- |
@@ -148,6 +186,7 @@ The custom bootstrap handles this automatically, but manual intervention may be 
 | [tests/src/Functional/Routes/PublicRoutesTest.php](tests/src/Functional/Routes/PublicRoutesTest.php) | Functional: public routes | Reviewed |
 | [tests/src/Unit/Service/CharacterCalculatorTest.php](tests/src/Unit/Service/CharacterCalculatorTest.php) | Unit: character calculator | Updated |
 | [tests/src/Unit/Service/CombatCalculatorTest.php](tests/src/Unit/Service/CombatCalculatorTest.php) | Unit: combat calculator | Updated |
+| [tests/src/Unit/Service/GithubIssuePrClientTest.php](tests/src/Unit/Service/GithubIssuePrClientTest.php) | Unit: GitHub client dedupe/idempotency guards | New |
 | [tests/src/Unit/Traits/FixtureLoaderTrait.php](tests/src/Unit/Traits/FixtureLoaderTrait.php) | Shared fixture helper trait | Updated |
 
 ## Dashboard / Testing Page

@@ -13,14 +13,14 @@ use Drupal\Core\Url;
 use Drupal\dungeoncrawler_tester\Form\CronAgentsControlForm;
 use Drupal\dungeoncrawler_tester\Form\DashboardRunsForm;
 use Drupal\dungeoncrawler_tester\Form\SdlcResetForm;
+use Drupal\dungeoncrawler_tester\Service\GithubIssuePrClientInterface;
 use Drupal\dungeoncrawler_tester\Service\StageDefinitionService;
-use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Process\Process;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Testing dashboard with stagegates and GitHub failure surfacing.
@@ -54,13 +54,6 @@ class TestingDashboardController extends ControllerBase {
   private const BULK_CLOSE_COMMENT = 'Bulk close from testing issue/PR report: no additional implementation action required.';
 
   /**
-   * HTTP client for GitHub API calls.
-   *
-   * @var \GuzzleHttp\ClientInterface
-   */
-  protected ClientInterface $httpClient;
-
-  /**
    * State service for persisting last run metadata.
    */
   protected StateInterface $state;
@@ -89,6 +82,11 @@ class TestingDashboardController extends ControllerBase {
    * Logger channel.
    */
   protected LoggerInterface $logger;
+
+  /**
+   * Centralized GitHub issue/PR client.
+   */
+  protected GithubIssuePrClientInterface $githubClient;
 
   /**
    * Default repository for issue lookups.
@@ -120,13 +118,13 @@ class TestingDashboardController extends ControllerBase {
    */
   public static function create(ContainerInterface $container): static {
     $instance = new static();
-    $instance->httpClient = $container->get('http_client');
     $instance->configFactory = $container->get('config.factory');
     $instance->state = $container->get('state');
     $instance->queueFactory = $container->get('queue');
     $instance->database = $container->get('database');
     $instance->dateFormatter = $container->get('date.formatter');
     $instance->stageDefinitions = $container->get('dungeoncrawler_tester.stage_definitions');
+    $instance->githubClient = $container->get('dungeoncrawler_tester.github_issue_pr_client');
     $instance->logger = $container->get('logger.factory')->get('dungeoncrawler_tester');
     return $instance;
   }
@@ -517,8 +515,8 @@ class TestingDashboardController extends ControllerBase {
           'dungeoncrawlerTester' => [
             'csrfToken' => \Drupal::csrfToken()->get('rest'),
             'routes' => [
-              'deadClose' => Url::fromRoute('dungeoncrawler_tester.dead_value_close')->toString(),
-              'bulkCloseQuery' => Url::fromRoute('dungeoncrawler_tester.bulk_close_query_run')->toString(),
+              'deadClose' => $this->safeRouteUrl('dungeoncrawler_tester.dead_value_close', '/dungeoncrawler/testing/issue-pr-report/dead-value-close'),
+              'bulkCloseQuery' => $this->safeRouteUrl('dungeoncrawler_tester.bulk_close_query_run', '/dungeoncrawler/testing/issue-pr-report/bulk-close-query-run'),
             ],
           ],
         ],
@@ -562,6 +560,23 @@ class TestingDashboardController extends ControllerBase {
         '#empty' => $this->t('No orphaned open PRs found.'),
       ],
     ];
+  }
+
+  /**
+   * Build a URL from route name with a safe path fallback.
+   */
+  private function safeRouteUrl(string $routeName, string $fallbackPath): string {
+    try {
+      return Url::fromRoute($routeName)->toString();
+    }
+    catch (RouteNotFoundException $exception) {
+      $this->logger->warning('Missing route @route while building dashboard URL. Falling back to @path. Error: @message', [
+        '@route' => $routeName,
+        '@path' => $fallbackPath,
+        '@message' => $exception->getMessage(),
+      ]);
+      return Url::fromUserInput($fallbackPath)->toString();
+    }
   }
 
   /**
@@ -2364,6 +2379,11 @@ class TestingDashboardController extends ControllerBase {
     $runs = $this->state->get('dungeoncrawler_tester.runs', []);
     $queueItems = (int) ($queue_status['dungeoncrawler_tester_runs']['items'] ?? 0);
 
+    $openTestingIssueSet = [];
+    foreach ($this->fetchOpenTestingIssueNumbers($repo, $token, FALSE) as $issueNumber) {
+      $openTestingIssueSet[(int) $issueNumber] = TRUE;
+    }
+
     $openLinkedIssues = [];
     $blockedStages = 0;
     foreach ($normalizedStageStates as $state) {
@@ -2376,13 +2396,24 @@ class TestingDashboardController extends ControllerBase {
       }
       $linkedIssueNumbers = array_values(array_unique(array_filter($linkedIssueNumbers)));
 
-      $hasOpenIssue = !empty($linkedIssueNumbers) && (($state['issue_status'] ?? 'open') === 'open');
-      $isInactive = array_key_exists('active', $state) && $state['active'] === FALSE;
-      if ($hasOpenIssue) {
-        foreach ($linkedIssueNumbers as $issueNumber) {
-          $openLinkedIssues[(int) $issueNumber] = TRUE;
+      $hasOpenIssue = FALSE;
+      if (!empty($linkedIssueNumbers) && (($state['issue_status'] ?? 'open') === 'open')) {
+        if ($token) {
+          foreach ($linkedIssueNumbers as $issueNumber) {
+            if (isset($openTestingIssueSet[(int) $issueNumber])) {
+              $openLinkedIssues[(int) $issueNumber] = TRUE;
+              $hasOpenIssue = TRUE;
+            }
+          }
+        }
+        else {
+          foreach ($linkedIssueNumbers as $issueNumber) {
+            $openLinkedIssues[(int) $issueNumber] = TRUE;
+          }
+          $hasOpenIssue = TRUE;
         }
       }
+      $isInactive = array_key_exists('active', $state) && $state['active'] === FALSE;
       if ($hasOpenIssue || $isInactive) {
         $blockedStages++;
       }
@@ -2420,10 +2451,7 @@ class TestingDashboardController extends ControllerBase {
     $latestAutoReadyRun = $this->fetchWorkflowRunSummary($repo, $token, 'auto-ready-on-copilot-signal.yml', FALSE);
     $latestMergeRun = $this->fetchWorkflowRunSummary($repo, $token, 'merge-issue-branches-into-testing.yml', FALSE);
 
-    $openTestingIssues = [];
-    foreach ($this->fetchOpenTestingIssueNumbers($repo, $token, FALSE) as $issueNumber) {
-      $openTestingIssues[(int) $issueNumber] = TRUE;
-    }
+    $openTestingIssues = $openTestingIssueSet;
     foreach (array_keys($openLinkedIssues) as $issueNumber) {
       $openTestingIssues[(int) $issueNumber] = TRUE;
     }
@@ -2908,45 +2936,23 @@ class TestingDashboardController extends ControllerBase {
 
     $url = "https://api.github.com/repos/{$repo}/issues?state=open&labels=" . urlencode($label) . "&per_page=" . self::GITHUB_MAX_ISSUES;
 
-    try {
-      $response = $this->httpClient->request('GET', $url, [
-        'headers' => [
-          'Authorization' => "Bearer {$token}",
-          'Accept' => 'application/vnd.github+json',
-          'User-Agent' => 'dungeoncrawler-tester-dashboard',
-        ],
-        'timeout' => self::GITHUB_API_TIMEOUT,
-      ]);
-      $status = $response->getStatusCode();
-      if ($status >= 200 && $status < 300) {
-        $data = json_decode((string) $response->getBody(), TRUE) ?: [];
-        $items = [];
-        foreach ($data as $issue) {
-          $items[] = Link::fromTextAndUrl($issue['title'], Url::fromUri($issue['html_url']))->toRenderable();
-        }
-        $result = ['items' => $items, 'error' => NULL];
-        
-        // Cache successful response
-        \Drupal::cache()->set($cache_key, $result, time() + self::GITHUB_CACHE_TTL);
-        
-        return $result;
-      }
+    $response = $this->requestGitHubJsonWithFallback($url, [$token], [], FALSE);
+    if (!empty($response['error'])) {
+      return ['items' => [], 'error' => (string) $response['error']];
+    }
 
-      $error_msg = $this->t('GitHub responded with status @s', ['@s' => $status]);
-      $this->logger->error('GitHub API returned non-200 status: @status for @url', [
-        '@status' => $status,
-        '@url' => $url,
-      ]);
-      return ['items' => [], 'error' => $error_msg];
+    $data = is_array($response['items']) ? $response['items'] : [];
+    $items = [];
+    foreach ($data as $issue) {
+      if (!is_array($issue) || empty($issue['title']) || empty($issue['html_url'])) {
+        continue;
+      }
+      $items[] = Link::fromTextAndUrl((string) $issue['title'], Url::fromUri((string) $issue['html_url']))->toRenderable();
     }
-    catch (GuzzleException $e) {
-      $error_msg = $this->t('GitHub request failed: @m', ['@m' => $e->getMessage()]);
-      $this->logger->error('GitHub API request failed: @message for @url', [
-        '@message' => $e->getMessage(),
-        '@url' => $url,
-      ]);
-      return ['items' => [], 'error' => $error_msg];
-    }
+
+    $result = ['items' => $items, 'error' => NULL];
+    \Drupal::cache()->set($cache_key, $result, time() + self::GITHUB_CACHE_TTL);
+    return $result;
   }
 
   /**
@@ -2971,52 +2977,34 @@ class TestingDashboardController extends ControllerBase {
 
     $url = "https://api.github.com/repos/{$repo}/pulls?state=open&per_page=100";
 
-    try {
-      $response = $this->httpClient->request('GET', $url, [
-        'headers' => [
-          'Authorization' => "Bearer {$token}",
-          'Accept' => 'application/vnd.github+json',
-          'User-Agent' => 'dungeoncrawler-tester-dashboard',
-        ],
-        'timeout' => self::GITHUB_API_TIMEOUT,
-      ]);
+    $response = $this->requestGitHubJsonWithFallback($url, [$token], [], FALSE);
+    if (!empty($response['error'])) {
+      return [
+        'open_count' => 0,
+        'draft_count' => 0,
+        'error' => (string) $response['error'],
+      ];
+    }
 
-      $status = $response->getStatusCode();
-      if ($status >= 200 && $status < 300) {
-        $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
-        $open = count($payload);
-        $draft = 0;
-        foreach ($payload as $pr) {
-          if (!empty($pr['draft'])) {
-            $draft++;
-          }
-        }
-
-        $result = [
-          'open_count' => $open,
-          'draft_count' => $draft,
-          'error' => NULL,
-        ];
-        if ($useCache) {
-          \Drupal::cache()->set($cache_key, $result, time() + self::GITHUB_CACHE_TTL);
-        }
-        return $result;
+    $payload = is_array($response['items']) ? $response['items'] : [];
+    $open = count($payload);
+    $draft = 0;
+    foreach ($payload as $pr) {
+      if (!empty($pr['draft'])) {
+        $draft++;
       }
+    }
 
-      return [
-        'open_count' => 0,
-        'draft_count' => 0,
-        'error' => $this->t('GitHub PR API status: @status', ['@status' => $status]),
-      ];
+    $result = [
+      'open_count' => $open,
+      'draft_count' => $draft,
+      'error' => NULL,
+    ];
+    if ($useCache) {
+      \Drupal::cache()->set($cache_key, $result, time() + self::GITHUB_CACHE_TTL);
     }
-    catch (GuzzleException $e) {
-      $this->logger->warning('GitHub open PR fetch failed: @message', ['@message' => $e->getMessage()]);
-      return [
-        'open_count' => 0,
-        'draft_count' => 0,
-        'error' => $this->t('GitHub PR request failed: @m', ['@m' => $e->getMessage()]),
-      ];
-    }
+
+    return $result;
   }
 
   /**
@@ -3040,50 +3028,33 @@ class TestingDashboardController extends ControllerBase {
 
     $url = "https://api.github.com/repos/{$repo}/actions/workflows/{$workflowFile}/runs?per_page=1";
 
-    try {
-      $response = $this->httpClient->request('GET', $url, [
-        'headers' => [
-          'Authorization' => "Bearer {$token}",
-          'Accept' => 'application/vnd.github+json',
-          'User-Agent' => 'dungeoncrawler-tester-dashboard',
-        ],
-        'timeout' => self::GITHUB_API_TIMEOUT,
-      ]);
-
-      $status = $response->getStatusCode();
-      if ($status < 200 || $status >= 300) {
-        return [
-          'latest' => NULL,
-          'error' => (string) $this->t('GitHub workflow API status: @status', ['@status' => $status]),
-        ];
-      }
-
-      $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
-      $run = $payload['workflow_runs'][0] ?? NULL;
-
-      $result = [
-        'latest' => is_array($run) ? [
-          'status' => (string) ($run['status'] ?? ''),
-          'conclusion' => (string) ($run['conclusion'] ?? ''),
-          'event' => (string) ($run['event'] ?? ''),
-          'updated_at' => (string) ($run['updated_at'] ?? ''),
-          'html_url' => (string) ($run['html_url'] ?? ''),
-        ] : NULL,
-        'error' => NULL,
-      ];
-
-      if ($useCache) {
-        \Drupal::cache()->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
-      }
-
-      return $result;
-    }
-    catch (GuzzleException $e) {
+    $response = $this->requestGitHubJsonWithFallback($url, [$token], [], FALSE);
+    if (!empty($response['error'])) {
       return [
         'latest' => NULL,
-        'error' => (string) $this->t('GitHub workflow request failed: @m', ['@m' => $e->getMessage()]),
+        'error' => (string) $response['error'],
       ];
     }
+
+    $payload = is_array($response['items']) ? $response['items'] : [];
+    $run = $payload['workflow_runs'][0] ?? NULL;
+
+    $result = [
+      'latest' => is_array($run) ? [
+        'status' => (string) ($run['status'] ?? ''),
+        'conclusion' => (string) ($run['conclusion'] ?? ''),
+        'event' => (string) ($run['event'] ?? ''),
+        'updated_at' => (string) ($run['updated_at'] ?? ''),
+        'html_url' => (string) ($run['html_url'] ?? ''),
+      ] : NULL,
+      'error' => NULL,
+    ];
+
+    if ($useCache) {
+      \Drupal::cache()->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+    }
+
+    return $result;
   }
 
   /**
@@ -3112,95 +3083,8 @@ class TestingDashboardController extends ControllerBase {
 
     $url = "https://api.github.com/repos/{$repo}/pulls?state=open&per_page=100";
 
-    try {
-      $response = $this->httpClient->request('GET', $url, [
-        'headers' => [
-          'Authorization' => "Bearer {$token}",
-          'Accept' => 'application/vnd.github+json',
-          'User-Agent' => 'dungeoncrawler-tester-dashboard',
-        ],
-        'timeout' => self::GITHUB_API_TIMEOUT,
-      ]);
-
-      $status = $response->getStatusCode();
-      if ($status < 200 || $status >= 300) {
-        return [
-          'copilot_open_prs' => 0,
-          'eligible_now' => 0,
-          'skipped_now' => 0,
-          'skipped_draft' => 0,
-          'skipped_non_main' => 0,
-          'skipped_merge_state' => 0,
-          'error' => (string) $this->t('GitHub PR API status: @status', ['@status' => $status]),
-        ];
-      }
-
-      $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
-
-      $copilotOpenPrs = 0;
-      $eligibleNow = 0;
-      $skippedDraft = 0;
-      $skippedNonMain = 0;
-      $skippedMergeState = 0;
-
-      foreach ($payload as $pr) {
-        if (!is_array($pr)) {
-          continue;
-        }
-
-        $assignees = array_map(
-          static fn(array $a): string => strtolower((string) ($a['login'] ?? '')),
-          is_array($pr['assignees'] ?? NULL) ? $pr['assignees'] : []
-        );
-        $reviewers = array_map(
-          static fn(array $a): string => strtolower((string) ($a['login'] ?? '')),
-          is_array($pr['requested_reviewers'] ?? NULL) ? $pr['requested_reviewers'] : []
-        );
-
-        $copilotInvolved = in_array('copilot', $assignees, TRUE) || in_array('copilot', $reviewers, TRUE);
-        if (!$copilotInvolved) {
-          continue;
-        }
-
-        $copilotOpenPrs++;
-
-        if (!empty($pr['draft'])) {
-          $skippedDraft++;
-          continue;
-        }
-
-        $baseRef = (string) ($pr['base']['ref'] ?? '');
-        if ($baseRef !== 'main') {
-          $skippedNonMain++;
-          continue;
-        }
-
-        $mergeState = strtolower((string) ($pr['mergeable_state'] ?? 'unknown'));
-        if (!in_array($mergeState, ['clean', 'has_hooks'], TRUE)) {
-          $skippedMergeState++;
-          continue;
-        }
-
-        $eligibleNow++;
-      }
-
-      $result = [
-        'copilot_open_prs' => $copilotOpenPrs,
-        'eligible_now' => $eligibleNow,
-        'skipped_now' => max(0, $copilotOpenPrs - $eligibleNow),
-        'skipped_draft' => $skippedDraft,
-        'skipped_non_main' => $skippedNonMain,
-        'skipped_merge_state' => $skippedMergeState,
-        'error' => NULL,
-      ];
-
-      if ($useCache) {
-        \Drupal::cache()->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
-      }
-
-      return $result;
-    }
-    catch (GuzzleException $e) {
+    $response = $this->requestGitHubJsonWithFallback($url, [$token], [], FALSE);
+    if (!empty($response['error'])) {
       return [
         'copilot_open_prs' => 0,
         'eligible_now' => 0,
@@ -3208,9 +3092,74 @@ class TestingDashboardController extends ControllerBase {
         'skipped_draft' => 0,
         'skipped_non_main' => 0,
         'skipped_merge_state' => 0,
-        'error' => (string) $this->t('GitHub PR request failed: @m', ['@m' => $e->getMessage()]),
+        'error' => (string) $response['error'],
       ];
     }
+
+    $payload = is_array($response['items']) ? $response['items'] : [];
+
+    $copilotOpenPrs = 0;
+    $eligibleNow = 0;
+    $skippedDraft = 0;
+    $skippedNonMain = 0;
+    $skippedMergeState = 0;
+
+    foreach ($payload as $pr) {
+      if (!is_array($pr)) {
+        continue;
+      }
+
+      $assignees = array_map(
+        static fn(array $a): string => strtolower((string) ($a['login'] ?? '')),
+        is_array($pr['assignees'] ?? NULL) ? $pr['assignees'] : []
+      );
+      $reviewers = array_map(
+        static fn(array $a): string => strtolower((string) ($a['login'] ?? '')),
+        is_array($pr['requested_reviewers'] ?? NULL) ? $pr['requested_reviewers'] : []
+      );
+
+      $copilotInvolved = in_array('copilot', $assignees, TRUE) || in_array('copilot', $reviewers, TRUE);
+      if (!$copilotInvolved) {
+        continue;
+      }
+
+      $copilotOpenPrs++;
+
+      if (!empty($pr['draft'])) {
+        $skippedDraft++;
+        continue;
+      }
+
+      $baseRef = (string) ($pr['base']['ref'] ?? '');
+      if ($baseRef !== 'main') {
+        $skippedNonMain++;
+        continue;
+      }
+
+      $mergeState = strtolower((string) ($pr['mergeable_state'] ?? 'unknown'));
+      if (!in_array($mergeState, ['clean', 'has_hooks'], TRUE)) {
+        $skippedMergeState++;
+        continue;
+      }
+
+      $eligibleNow++;
+    }
+
+    $result = [
+      'copilot_open_prs' => $copilotOpenPrs,
+      'eligible_now' => $eligibleNow,
+      'skipped_now' => max(0, $copilotOpenPrs - $eligibleNow),
+      'skipped_draft' => $skippedDraft,
+      'skipped_non_main' => $skippedNonMain,
+      'skipped_merge_state' => $skippedMergeState,
+      'error' => NULL,
+    ];
+
+    if ($useCache) {
+      \Drupal::cache()->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+    }
+
+    return $result;
   }
 
   /**
@@ -3229,45 +3178,30 @@ class TestingDashboardController extends ControllerBase {
       }
     }
 
-    $headers = [
-      'Authorization' => "Bearer {$token}",
-      'Accept' => 'application/vnd.github+json',
-      'User-Agent' => 'dungeoncrawler-tester-dashboard',
-    ];
-
     $issueNumbers = [];
 
     foreach (self::TESTING_ISSUE_LABELS as $label) {
       $url = "https://api.github.com/repos/{$repo}/issues?state=open&labels=" . rawurlencode($label) . '&per_page=' . self::GITHUB_MAX_ISSUES;
 
-      try {
-        $response = $this->httpClient->request('GET', $url, [
-          'headers' => $headers,
-          'timeout' => self::GITHUB_API_TIMEOUT,
+      $response = $this->requestGitHubJsonWithFallback($url, [$token], [], FALSE);
+      if (!empty($response['error'])) {
+        $this->logger->warning('Failed loading open issues for label @label: @message', [
+          '@label' => $label,
+          '@message' => (string) $response['error'],
         ]);
+        continue;
+      }
 
-        $status = $response->getStatusCode();
-        if ($status < 200 || $status >= 300) {
+      $payload = is_array($response['items']) ? $response['items'] : [];
+      foreach ($payload as $item) {
+        if (!is_array($item) || !empty($item['pull_request'])) {
           continue;
         }
 
-        $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
-        foreach ($payload as $item) {
-          if (!is_array($item) || !empty($item['pull_request'])) {
-            continue;
-          }
-
-          $number = (int) ($item['number'] ?? 0);
-          if ($number > 0) {
-            $issueNumbers[$number] = TRUE;
-          }
+        $number = (int) ($item['number'] ?? 0);
+        if ($number > 0) {
+          $issueNumbers[$number] = TRUE;
         }
-      }
-      catch (GuzzleException $e) {
-        $this->logger->warning('Failed loading open issues for label @label: @message', [
-          '@label' => $label,
-          '@message' => $e->getMessage(),
-        ]);
       }
     }
 
@@ -3434,27 +3368,13 @@ class TestingDashboardController extends ControllerBase {
    * Resolve GitHub repo/token from existing tester settings precedence.
    */
   private function resolveGitHubContext(): array {
-    $aiSettings = $this->configFactory->get('ai_conversation.settings');
-    $testerSettings = $this->configFactory->get('dungeoncrawler_tester.settings');
-
-    $repo = $aiSettings->get('copilot_default_repo')
-      ?: $aiSettings->get('github_repo')
-      ?: $testerSettings->get('github_repo')
-      ?: (getenv('TESTER_GITHUB_REPO') ?: $this->defaultRepo);
-
-    $tokenCandidates = [
-      (string) ($aiSettings->get('copilot_token') ?? ''),
-      (string) ($aiSettings->get('github_token') ?? ''),
-      (string) ($testerSettings->get('github_token') ?? ''),
-      (string) (getenv('GITHUB_TOKEN_COPILOT') ?: ''),
-      (string) (getenv('GITHUB_TOKEN') ?: ''),
-      (string) (getenv('TESTER_GITHUB_TOKEN') ?: ''),
-    ];
-    $tokenCandidates = array_values(array_unique(array_filter(array_map('trim', $tokenCandidates))));
+    $context = $this->githubClient->resolveContext();
+    $repo = (string) ($context['repo'] ?? $this->defaultRepo);
+    $tokenCandidates = array_values((array) ($context['token_candidates'] ?? []));
     $token = $tokenCandidates[0] ?? NULL;
 
     return [
-      'repo' => (string) $repo,
+      'repo' => $repo,
       'token' => $token ? (string) $token : NULL,
       'token_candidates' => $tokenCandidates,
     ];
@@ -3678,140 +3598,14 @@ class TestingDashboardController extends ControllerBase {
    * Execute a GitHub API JSON request and normalize response shape.
    */
   private function requestGitHubJson(string $url, ?string $token, array $extraHeaders = []): array {
-    if (!$token) {
-      return ['items' => [], 'error' => (string) $this->t('No GitHub token configured.')];
-    }
-
-    try {
-      $headers = [
-        'Authorization' => "Bearer {$token}",
-        'Accept' => 'application/vnd.github+json',
-        'User-Agent' => 'dungeoncrawler-tester-dashboard',
-      ];
-      foreach ($extraHeaders as $name => $value) {
-        $headers[(string) $name] = (string) $value;
-      }
-
-      return $this->requestGitHubJsonInternal($url, $headers, FALSE);
-    }
-    catch (GuzzleException $e) {
-      return [
-        'items' => [],
-        'error' => (string) $this->t('GitHub request failed: @message', ['@message' => $e->getMessage()]),
-      ];
-    }
+    return $this->githubClient->requestJson($url, $token, $extraHeaders, FALSE);
   }
 
   /**
    * Execute GitHub JSON request with token failover.
    */
   private function requestGitHubJsonWithFallback(string $url, array $tokenCandidates, array $extraHeaders = [], bool $paginate = FALSE): array {
-    if (empty($tokenCandidates)) {
-      return ['items' => [], 'error' => (string) $this->t('No GitHub token configured.')];
-    }
-
-    $lastError = (string) $this->t('GitHub request failed.');
-    foreach ($tokenCandidates as $tokenCandidate) {
-      $headers = [
-        'Authorization' => "Bearer {$tokenCandidate}",
-        'Accept' => 'application/vnd.github+json',
-        'User-Agent' => 'dungeoncrawler-tester-dashboard',
-      ];
-      foreach ($extraHeaders as $name => $value) {
-        $headers[(string) $name] = (string) $value;
-      }
-
-      $response = $this->requestGitHubJsonInternal($url, $headers, $paginate);
-      if (empty($response['error'])) {
-        return $response;
-      }
-
-      $lastError = (string) $response['error'];
-      if (stripos($lastError, 'rate limit') === FALSE) {
-        continue;
-      }
-    }
-
-    return [
-      'items' => [],
-      'error' => $lastError,
-    ];
-  }
-
-  /**
-   * Execute GitHub JSON request with optional pagination.
-   */
-  private function requestGitHubJsonInternal(string $url, array $headers, bool $paginate = FALSE): array {
-    try {
-      $items = [];
-      $nextUrl = $url;
-      $pages = 0;
-
-      while ($nextUrl !== '' && $nextUrl !== NULL) {
-        $response = $this->httpClient->request('GET', $nextUrl, [
-          'headers' => $headers,
-          'timeout' => self::GITHUB_API_TIMEOUT,
-        ]);
-
-        $status = $response->getStatusCode();
-        if ($status < 200 || $status >= 300) {
-          return [
-            'items' => [],
-            'error' => (string) $this->t('GitHub API status: @status', ['@status' => $status]),
-          ];
-        }
-
-        $payload = json_decode((string) $response->getBody(), TRUE);
-        if (is_array($payload) && array_is_list($payload)) {
-          $items = array_merge($items, $payload);
-        }
-        else {
-          return [
-            'items' => is_array($payload) ? $payload : [],
-            'error' => NULL,
-          ];
-        }
-
-        $pages++;
-        if (!$paginate || $pages >= 20) {
-          break;
-        }
-
-        $nextUrl = $this->extractNextLink((string) $response->getHeaderLine('Link'));
-      }
-
-      return [
-        'items' => $items,
-        'error' => NULL,
-      ];
-    }
-    catch (GuzzleException $e) {
-      return [
-        'items' => [],
-        'error' => (string) $this->t('GitHub request failed: @message', ['@message' => $e->getMessage()]),
-      ];
-    }
-  }
-
-  /**
-   * Extract next-page URL from GitHub Link header.
-   */
-  private function extractNextLink(string $linkHeader): ?string {
-    if ($linkHeader === '') {
-      return NULL;
-    }
-
-    foreach (explode(',', $linkHeader) as $part) {
-      if (stripos($part, 'rel="next"') === FALSE) {
-        continue;
-      }
-
-      if (preg_match('/<([^>]+)>/', $part, $matches) === 1) {
-        return (string) ($matches[1] ?? NULL);
-      }
-    }
-
-    return NULL;
+    return $this->githubClient->requestJsonWithFallback($url, $tokenCandidates, $extraHeaders, $paginate);
   }
 
   /**
@@ -3982,27 +3776,13 @@ class TestingDashboardController extends ControllerBase {
    * Execute a GitHub mutation request with JSON payload.
    */
   private function requestGitHubMutation(string $method, string $url, string $token, array $json): bool {
-    try {
-      $response = $this->httpClient->request($method, $url, [
-        'headers' => [
-          'Authorization' => "Bearer {$token}",
-          'Accept' => 'application/vnd.github+json',
-          'User-Agent' => 'dungeoncrawler-tester-dashboard',
-        ],
-        'json' => $json,
-        'timeout' => self::GITHUB_API_TIMEOUT,
-      ]);
-
-      $status = $response->getStatusCode();
-      return $status >= 200 && $status < 300;
-    }
-    catch (GuzzleException $e) {
-      $this->logger->error('Dead-value close mutation failed for @url: @message', [
+    $ok = $this->githubClient->mutate($method, $url, $json, $token, self::GITHUB_API_TIMEOUT);
+    if (!$ok) {
+      $this->logger->error('Dead-value close mutation failed for @url.', [
         '@url' => $url,
-        '@message' => $e->getMessage(),
       ]);
-      return FALSE;
     }
+    return $ok;
   }
 
 }

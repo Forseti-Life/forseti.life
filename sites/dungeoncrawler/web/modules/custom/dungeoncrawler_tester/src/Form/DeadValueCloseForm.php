@@ -2,11 +2,9 @@
 
 namespace Drupal\dungeoncrawler_tester\Form;
 
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\GuzzleException;
+use Drupal\dungeoncrawler_tester\Service\GithubIssuePrClientInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -20,14 +18,8 @@ class DeadValueCloseForm extends FormBase {
    */
   private const DEAD_VALUE_COMMENT = 'Dead value: this PR has no diff from main and no changed files. Closing this PR and associated issue.';
 
-  /**
-   * Default repo fallback.
-   */
-  private const DEFAULT_REPO = 'keithaumiller/forseti.life';
-
   public function __construct(
-    private readonly ClientInterface $httpClient,
-    private readonly ConfigFactoryInterface $configFactoryService,
+    private readonly GithubIssuePrClientInterface $githubClient,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -36,8 +28,7 @@ class DeadValueCloseForm extends FormBase {
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('http_client'),
-      $container->get('config.factory'),
+      $container->get('dungeoncrawler_tester.github_issue_pr_client'),
       $container->get('logger.factory')->get('dungeoncrawler_tester'),
     );
   }
@@ -124,22 +115,13 @@ class DeadValueCloseForm extends FormBase {
    * Resolve GitHub repo/token from existing settings precedence.
    */
   private function resolveGitHubContext(): array {
-    $aiSettings = $this->configFactoryService->get('ai_conversation.settings');
-    $testerSettings = $this->configFactoryService->get('dungeoncrawler_tester.settings');
-
-    $repo = $aiSettings->get('copilot_default_repo')
-      ?: $aiSettings->get('github_repo')
-      ?: $testerSettings->get('github_repo')
-      ?: (getenv('TESTER_GITHUB_REPO') ?: self::DEFAULT_REPO);
-
-    $token = $aiSettings->get('copilot_token')
-      ?: $aiSettings->get('github_token')
-      ?: $testerSettings->get('github_token')
-      ?: (getenv('GITHUB_TOKEN_COPILOT') ?: (getenv('GITHUB_TOKEN') ?: getenv('TESTER_GITHUB_TOKEN')));
+    $context = $this->githubClient->resolveContext();
+    $repo = (string) ($context['repo'] ?? 'keithaumiller/forseti.life');
+    $token = $context['token'] ?? NULL;
 
     return [
-      'repo' => (string) $repo,
-      'token' => $token ? (string) $token : NULL,
+      'repo' => $repo,
+      'token' => is_string($token) && $token !== '' ? $token : NULL,
     ];
   }
 
@@ -147,27 +129,14 @@ class DeadValueCloseForm extends FormBase {
    * Perform a GitHub API request with JSON payload.
    */
   private function request(string $method, string $url, string $token, array $json = []): bool {
-    try {
-      $response = $this->httpClient->request($method, $url, [
-        'headers' => [
-          'Authorization' => 'Bearer ' . $token,
-          'Accept' => 'application/vnd.github+json',
-          'User-Agent' => 'dungeoncrawler-tester-dashboard',
-        ],
-        'json' => $json,
-        'timeout' => 10,
-      ]);
-
-      $status = $response->getStatusCode();
-      return $status >= 200 && $status < 300;
-    }
-    catch (GuzzleException $e) {
-      $this->logger->error('Dead-value close request failed for @url: @message', [
+    $ok = $this->githubClient->mutate($method, $url, $json, $token, 10);
+    if (!$ok) {
+      $this->logger->error('Dead-value close request failed for @url.', [
         '@url' => $url,
-        '@message' => $e->getMessage(),
       ]);
-      return FALSE;
     }
+
+    return $ok;
   }
 
 }

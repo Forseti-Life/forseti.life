@@ -287,3 +287,102 @@
 .tester-issue-pr-report .issue-report-item p {
   color: #334155;
 }
+
+.dungeoncrawler-testing-dashboard .unit-suite-coverage-details {
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.dungeoncrawler-testing-dashboard .unit-suite-coverage-details h5 {
+  margin: 0 0 0.35rem;
+  font-size: 0.94rem;
+  color: #0f172a;
+}
+
+.dungeoncrawler-testing-dashboard .unit-suite-coverage-details .text-muted-light {
+  margin: 0 0 0.55rem;
+  color: #475569;
+}
+
+.dungeoncrawler-testing-dashboard .unit-suite-status-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.dungeoncrawler-testing-dashboard .unit-suite-status-table th,
+.dungeoncrawler-testing-dashboard .unit-suite-status-table td {
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.dungeoncrawler-testing-dashboard .unit-suite-status-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.dungeoncrawler-testing-dashboard .unit-suite-status-table th {
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 700;
+  text-align: left;
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.dungeoncrawler-testing-dashboard .unit-suite-status-table .unit-test-case-cell {
+  font-family: Menlo, Consolas, "Courier New", monospace;
+  font-size: 0.86rem;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.dungeoncrawler-testing-dashboard .unit-suite-status-table .unit-test-status-cell {
+  width: 16rem;
+}
+
+.dungeoncrawler-testing-dashboard .unit-suite-status-table .unit-test-status {
+  display: inline-block;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  background: #f8fafc;
+  color: #334155 !important;
+  background-color: #f8fafc !important;
+}
+
+.dungeoncrawler-testing-dashboard .unit-suite-status-table .unit-test-status.is-passed {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
+  background-color: #f0fdf4 !important;
+  color: #166534 !important;
+}
+
+.dungeoncrawler-testing-dashboard .unit-suite-status-table .unit-test-status.is-failed {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #9f1239;
+  background-color: #fff1f2 !important;
+  color: #9f1239 !important;
+}
+
+.dungeoncrawler-testing-dashboard .unit-suite-status-table .unit-test-status.is-no-run,
+.dungeoncrawler-testing-dashboard .unit-suite-status-table .unit-test-status.is-unknown {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  background-color: #f8fafc !important;
+  color: #334155 !important;
+}

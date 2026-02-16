@@ -630,9 +630,10 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
   private function buildStageTestItem(string $stage_id, int $index, array $cmd, bool $is_stage_runnable, ?string $block_reason, bool $regression_batch_active): array {
     $test_description = $cmd['description'] ?? $cmd['display'] ?? '';
     $coverage = $this->buildCoverageItems($stage_id, $cmd);
+    $unitSuiteDetails = $this->isUnitSuiteCommand($cmd) ? $this->buildUnitSuiteCoverageDetails($stage_id) : [];
     $is_disabled = !$is_stage_runnable || $regression_batch_active;
 
-    return [
+    $item = [
       '#type' => 'details',
       '#title' => $cmd['label'],
       '#open' => TRUE,
@@ -667,6 +668,12 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
         ),
       ],
     ];
+
+    if (!empty($unitSuiteDetails)) {
+      $item['unit_suite_details'] = $unitSuiteDetails;
+    }
+
+    return $item;
   }
 
   /**
@@ -871,6 +878,194 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
     }
 
     return $items;
+  }
+
+  /**
+   * Determine whether a command represents the unit suite.
+   */
+  private function isUnitSuiteCommand(array $cmd): bool {
+    $args = $cmd['args'] ?? [];
+    $display = (string) ($cmd['display'] ?? implode(' ', $args));
+    $haystack = strtolower(implode(' ', $args) . ' ' . $display);
+    return str_contains($haystack, '--testsuite=unit') || str_contains($haystack, '--testsuite unit');
+  }
+
+  /**
+   * Build detailed unit-suite test coverage with last-run status.
+   */
+  private function buildUnitSuiteCoverageDetails(string $stage_id): array {
+    $testCases = $this->discoverUnitSuiteTestCases();
+    if (empty($testCases)) {
+      return [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['unit-suite-coverage-details']],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h5',
+          '#value' => $this->t('Unit suite tests and last run status'),
+        ],
+        'empty' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('No unit test cases discovered under tests/src/Unit.'),
+        ],
+      ];
+    }
+
+    $runs = $this->getState()->get('dungeoncrawler_tester.runs', []);
+    $run = is_array($runs[$stage_id] ?? NULL) ? $runs[$stage_id] : [];
+    $runStatus = (string) ($run['status'] ?? '');
+    $runExitCode = $run['exit_code'] ?? NULL;
+    $runEnded = !empty($run['ended']) ? $this->getDateFormatter()->format((int) $run['ended'], 'short') : (string) $this->t('No run yet');
+    $runOutput = (string) ($run['output'] ?? '');
+
+    $failedCases = $this->extractFailedTestCasesFromOutput($runOutput);
+    $failedCaseSet = array_fill_keys($failedCases, TRUE);
+
+    $runSucceeded = ($runStatus === 'succeeded') || ((int) $runExitCode === 0 && $runExitCode !== NULL);
+    $runFailed = ($runStatus === 'failed') || (($runExitCode !== NULL) && ((int) $runExitCode !== 0));
+
+    $rows = [];
+    foreach ($testCases as $testCase) {
+      $status = (string) $this->t('No run yet');
+      $statusClass = 'is-no-run';
+      if ($runSucceeded) {
+        $status = (string) $this->t('Passed');
+        $statusClass = 'is-passed';
+      }
+      elseif ($runFailed) {
+        if (isset($failedCaseSet[$testCase])) {
+          $status = (string) $this->t('Failed');
+          $statusClass = 'is-failed';
+        }
+        elseif (!empty($failedCaseSet)) {
+          $status = (string) $this->t('Passed');
+          $statusClass = 'is-passed';
+        }
+        else {
+          $status = (string) $this->t('Unknown (run failed before per-test results)');
+          $statusClass = 'is-unknown';
+        }
+      }
+
+      $rows[] = [
+        [
+          'data' => $testCase,
+          'class' => ['unit-test-case-cell'],
+        ],
+        [
+          'data' => [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#value' => $status,
+            '#attributes' => ['class' => ['unit-test-status', $statusClass]],
+          ],
+          'class' => ['unit-test-status-cell'],
+        ],
+      ];
+    }
+
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['unit-suite-coverage-details']],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h5',
+        '#value' => $this->t('Unit suite tests and last run status'),
+      ],
+      'meta' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#attributes' => ['class' => ['text-muted-light']],
+        '#value' => $this->t('Last unit-stage run: @when', ['@when' => $runEnded]),
+      ],
+      'table' => [
+        '#type' => 'table',
+        '#attributes' => ['class' => ['unit-suite-status-table']],
+        '#header' => [
+          $this->t('Test case'),
+          $this->t('Last run status'),
+        ],
+        '#rows' => $rows,
+        '#empty' => $this->t('No unit tests discovered.'),
+      ],
+    ];
+  }
+
+  /**
+   * Discover fully-qualified unit test case method names.
+   */
+  private function discoverUnitSuiteTestCases(): array {
+    $moduleRoot = dirname(__DIR__, 2);
+    $unitRoot = $moduleRoot . '/tests/src/Unit';
+    if (!is_dir($unitRoot)) {
+      return [];
+    }
+
+    $testCases = [];
+    $iterator = new \RecursiveIteratorIterator(
+      new \RecursiveDirectoryIterator($unitRoot, \FilesystemIterator::SKIP_DOTS)
+    );
+
+    foreach ($iterator as $fileInfo) {
+      if (!$fileInfo->isFile() || !str_ends_with($fileInfo->getFilename(), 'Test.php')) {
+        continue;
+      }
+
+      $contents = @file_get_contents($fileInfo->getPathname());
+      if ($contents === FALSE) {
+        continue;
+      }
+
+      $namespace = '';
+      $className = '';
+
+      if (preg_match('/namespace\s+([^;]+);/', $contents, $namespaceMatch)) {
+        $namespace = trim((string) ($namespaceMatch[1] ?? ''));
+      }
+      if (preg_match('/class\s+([A-Za-z0-9_]+)\s+extends\s+/', $contents, $classMatch)) {
+        $className = trim((string) ($classMatch[1] ?? ''));
+      }
+      if ($className === '') {
+        continue;
+      }
+
+      $fqcn = $namespace !== '' ? $namespace . '\\' . $className : $className;
+      if (preg_match_all('/public\s+function\s+(test[A-Za-z0-9_]+)\s*\(/', $contents, $methodMatches)) {
+        foreach ($methodMatches[1] as $methodName) {
+          $method = trim((string) $methodName);
+          if ($method !== '') {
+            $testCases[] = $fqcn . '::' . $method;
+          }
+        }
+      }
+    }
+
+    $testCases = array_values(array_unique($testCases));
+    sort($testCases);
+    return $testCases;
+  }
+
+  /**
+   * Extract failed PHPUnit test case identifiers from run output.
+   */
+  private function extractFailedTestCasesFromOutput(string $output): array {
+    if ($output === '') {
+      return [];
+    }
+
+    $matches = [];
+    preg_match_all('/^\s*\d+\)\s+([A-Za-z0-9_\\\\]+::[A-Za-z0-9_]+)/m', $output, $matches);
+
+    $cases = [];
+    foreach ($matches[1] ?? [] as $testCase) {
+      $normalized = trim((string) $testCase);
+      if ($normalized !== '') {
+        $cases[$normalized] = TRUE;
+      }
+    }
+
+    return array_keys($cases);
   }
 
 }

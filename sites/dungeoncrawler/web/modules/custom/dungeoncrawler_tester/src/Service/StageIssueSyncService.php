@@ -2,11 +2,9 @@
 
 namespace Drupal\dungeoncrawler_tester\Service;
 
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\State\StateInterface;
-use GuzzleHttp\ClientInterface;
 
 /**
  * Synchronizes linked GitHub issues and stage state.
@@ -15,8 +13,7 @@ class StageIssueSyncService {
 
   public function __construct(
     private readonly StateInterface $state,
-    private readonly ClientInterface $httpClient,
-    private readonly ConfigFactoryInterface $configFactory,
+    private readonly GithubIssuePrClientInterface $githubClient,
     LoggerChannelFactoryInterface $loggerFactory,
   ) {
     $this->logger = $loggerFactory->get('dungeoncrawler_tester');
@@ -37,7 +34,9 @@ class StageIssueSyncService {
       return;
     }
 
-    [$repo, $token] = $this->getRepoToken();
+    $githubContext = $this->githubClient->resolveContext();
+    $repo = (string) ($githubContext['repo'] ?? '');
+    $token = $githubContext['token'] ?? NULL;
     if (!$token) {
       $this->logger->warning('Issue sync skipped: missing GitHub token.');
       return;
@@ -67,7 +66,7 @@ class StageIssueSyncService {
 
       $open_issues = [];
       foreach ($linked_issue_numbers as $issue_number) {
-        $issue = $this->fetchIssue($repo, $token, $issue_number);
+        $issue = $this->githubClient->getIssue($repo, (int) $issue_number, (string) $token);
         if (!$issue) {
           $open_issues[] = $issue_number;
           continue;
@@ -125,53 +124,6 @@ class StageIssueSyncService {
         '@linked' => $linkedCount,
       ]);
     }
-  }
-
-  /**
-   * Determine repository and token for GitHub calls.
-   */
-  private function getRepoToken(): array {
-    $testerConfig = $this->configFactory->get('dungeoncrawler_tester.settings');
-    $repo = $testerConfig->get('github_repo');
-    $token = $testerConfig->get('github_token');
-
-    $aiConfig = $this->configFactory->get('ai_conversation.settings');
-    $repo = $repo ?: $aiConfig->get('github_repo');
-    $repo = $repo ?: $aiConfig->get('copilot_default_repo');
-    $token = $token ?: $aiConfig->get('github_token');
-    $token = $token ?: $aiConfig->get('copilot_token');
-
-    $repo = $repo ?: getenv('TESTER_GITHUB_REPO') ?: 'keithaumiller/forseti.life';
-    $token = $token ?: (getenv('TESTER_GITHUB_TOKEN') ?: (getenv('GITHUB_TOKEN_COPILOT') ?: getenv('GITHUB_TOKEN')));
-
-    return [$repo, $token];
-  }
-
-  /**
-   * Fetch an issue payload from GitHub.
-   */
-  private function fetchIssue(string $repo, string $token, int $number): ?array {
-    $url = "https://api.github.com/repos/{$repo}/issues/{$number}";
-
-    try {
-      $resp = $this->httpClient->request('GET', $url, [
-        'headers' => [
-          'Authorization' => "Bearer {$token}",
-          'Accept' => 'application/vnd.github+json',
-          'User-Agent' => 'dungeoncrawler-tester-issues-sync',
-        ],
-        'timeout' => 8,
-      ]);
-
-      if ($resp->getStatusCode() >= 200 && $resp->getStatusCode() < 300) {
-        return json_decode((string) $resp->getBody(), TRUE) ?: NULL;
-      }
-    }
-    catch (\Throwable $e) {
-      $this->logger->warning('Issue sync failed: @msg', ['@msg' => $e->getMessage()]);
-    }
-
-    return NULL;
   }
 
 }

@@ -3,14 +3,12 @@
 namespace Drupal\dungeoncrawler_tester\Form;
 
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\State\StateInterface;
+use Drupal\dungeoncrawler_tester\Service\GithubIssuePrClientInterface;
 use Drupal\dungeoncrawler_tester\Service\StageDefinitionService;
-use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\GuzzleException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -37,8 +35,7 @@ class SdlcResetForm extends FormBase {
 
   public function __construct(
     private readonly StateInterface $state,
-    private readonly ConfigFactoryInterface $settingsConfigFactory,
-    private readonly ClientInterface $httpClient,
+    private readonly GithubIssuePrClientInterface $githubClient,
     private readonly Connection $database,
     private readonly StageDefinitionService $stageDefinitions,
     private readonly LoggerInterface $logger,
@@ -50,8 +47,7 @@ class SdlcResetForm extends FormBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('state'),
-      $container->get('config.factory'),
-      $container->get('http_client'),
+      $container->get('dungeoncrawler_tester.github_issue_pr_client'),
       $container->get('database'),
       $container->get('dungeoncrawler_tester.stage_definitions'),
       $container->get('logger.factory')->get('dungeoncrawler_tester'),
@@ -385,6 +381,8 @@ class SdlcResetForm extends FormBase {
    * Build a quick impact preview for the reset action.
    */
   private function getResetPreviewStats(): array {
+    [$repo, $token] = $this->getRepoToken();
+
     $stageStates = $this->state->get('dungeoncrawler_tester.stage_state', []);
     $definedStageIds = array_values(array_map(
       static fn(array $definition): string => (string) ($definition['id'] ?? ''),
@@ -403,6 +401,13 @@ class SdlcResetForm extends FormBase {
     $totalStageStateCount = count($stageStates);
     $historicalStageStateCount = max(0, $totalStageStateCount - $definedStageStateCount);
 
+    $openTestingIssueSet = [];
+    if (!empty($token)) {
+      foreach ($this->fetchOpenTestingIssueNumbers($repo, $token) as $issueNumber) {
+        $openTestingIssueSet[(int) $issueNumber] = TRUE;
+      }
+    }
+
     $openIssues = [];
     foreach ($stageStates as $state) {
       $linkedIssueNumbers = [];
@@ -416,8 +421,17 @@ class SdlcResetForm extends FormBase {
 
       $hasOpenIssue = !empty($linkedIssueNumbers) && (($state['issue_status'] ?? 'open') === 'open');
       if ($hasOpenIssue) {
-        foreach ($linkedIssueNumbers as $issueNumber) {
-          $openIssues[(int) $issueNumber] = TRUE;
+        if (!empty($token)) {
+          foreach ($linkedIssueNumbers as $issueNumber) {
+            if (isset($openTestingIssueSet[(int) $issueNumber])) {
+              $openIssues[(int) $issueNumber] = TRUE;
+            }
+          }
+        }
+        else {
+          foreach ($linkedIssueNumbers as $issueNumber) {
+            $openIssues[(int) $issueNumber] = TRUE;
+          }
         }
       }
     }
@@ -442,18 +456,11 @@ class SdlcResetForm extends FormBase {
    * Resolve GitHub repo and token from settings/env fallback chain.
    */
   private function getRepoToken(): array {
-    $testerConfig = $this->settingsConfigFactory->get('dungeoncrawler_tester.settings');
-    $repo = (string) ($testerConfig->get('github_repo') ?: '');
-    $token = (string) ($testerConfig->get('github_token') ?: '');
-
-    $aiConfig = $this->settingsConfigFactory->get('ai_conversation.settings');
-    $repo = $repo ?: (string) ($aiConfig->get('github_repo') ?: $aiConfig->get('copilot_default_repo') ?: '');
-    $token = $token ?: (string) ($aiConfig->get('github_token') ?: $aiConfig->get('copilot_token') ?: '');
-
-    $repo = $repo ?: (string) (getenv('TESTER_GITHUB_REPO') ?: 'keithaumiller/forseti.life');
-    $token = $token ?: (string) (getenv('TESTER_GITHUB_TOKEN') ?: (getenv('GITHUB_TOKEN_COPILOT') ?: getenv('GITHUB_TOKEN') ?: ''));
-
-    return [$repo, $token];
+    $context = $this->githubClient->resolveContext();
+    return [
+      (string) ($context['repo'] ?? 'keithaumiller/forseti.life'),
+      (string) ($context['token'] ?? ''),
+    ];
   }
 
   /**
@@ -463,98 +470,38 @@ class SdlcResetForm extends FormBase {
     $commentUrl = "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/comments";
     $issueUrl = "https://api.github.com/repos/{$repo}/issues/{$issueNumber}";
 
-    try {
-      $headers = [
-        'Authorization' => "Bearer {$token}",
-        'Accept' => 'application/vnd.github+json',
-        'User-Agent' => 'dungeoncrawler-tester-sdlc-reset',
-      ];
+    $commented = $this->githubClient->mutate('POST', $commentUrl, [
+      'body' => 'Closing issue as part of SDLC reset initiated from tester dashboard. This item should be re-opened or recreated if still actionable after reset.',
+    ], $token, 10);
 
-      $this->httpClient->request('POST', $commentUrl, [
-        'headers' => $headers,
-        'json' => [
-          'body' => 'Closing issue as part of SDLC reset initiated from tester dashboard. This item should be re-opened or recreated if still actionable after reset.',
-        ],
-        'timeout' => 10,
-      ]);
-
-      $this->httpClient->request('PATCH', $issueUrl, [
-        'headers' => $headers,
-        'json' => ['state' => 'closed'],
-        'timeout' => 10,
-      ]);
-
-      return TRUE;
-    }
-    catch (GuzzleException $e) {
-      $this->logger->warning('Failed closing issue #@issue during SDLC reset: @message', [
-        '@issue' => $issueNumber,
-        '@message' => $e->getMessage(),
-      ]);
-    }
-    catch (\Throwable $e) {
-      $this->logger->warning('Unexpected SDLC reset close error for issue #@issue: @message', [
-        '@issue' => $issueNumber,
-        '@message' => $e->getMessage(),
-      ]);
+    if (!$commented) {
+      return FALSE;
     }
 
-    return FALSE;
+    return $this->githubClient->mutate('PATCH', $issueUrl, ['state' => 'closed'], $token, 10);
   }
 
   /**
    * Fetch open testing-related issue numbers by label.
    */
   private function fetchOpenTestingIssueNumbers(string $repo, string $token): array {
-    $headers = [
-      'Authorization' => "Bearer {$token}",
-      'Accept' => 'application/vnd.github+json',
-      'User-Agent' => 'dungeoncrawler-tester-sdlc-reset',
-    ];
-
     $issueNumbers = [];
 
     foreach (self::RESET_TESTING_LABELS as $label) {
-      $url = "https://api.github.com/repos/{$repo}/issues?state=open&labels=" . rawurlencode($label) . '&per_page=100';
-
-      try {
-        $response = $this->httpClient->request('GET', $url, [
-          'headers' => $headers,
-          'timeout' => 10,
-        ]);
-
-        $status = $response->getStatusCode();
-        if ($status < 200 || $status >= 300) {
+      $payload = $this->githubClient->listOpenIssuesByLabel($repo, $label, $token, 100);
+      foreach ($payload as $item) {
+        if (!is_array($item)) {
           continue;
         }
 
-        $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
-        foreach ($payload as $item) {
-          if (!is_array($item)) {
-            continue;
-          }
-
-          if (!empty($item['pull_request'])) {
-            continue;
-          }
-
-          $number = (int) ($item['number'] ?? 0);
-          if ($number > 0) {
-            $issueNumbers[$number] = TRUE;
-          }
+        if (!empty($item['pull_request'])) {
+          continue;
         }
-      }
-      catch (GuzzleException $e) {
-        $this->logger->warning('Failed loading open issues for label @label during SDLC reset: @message', [
-          '@label' => $label,
-          '@message' => $e->getMessage(),
-        ]);
-      }
-      catch (\Throwable $e) {
-        $this->logger->warning('Unexpected issue-fetch error for label @label during SDLC reset: @message', [
-          '@label' => $label,
-          '@message' => $e->getMessage(),
-        ]);
+
+        $number = (int) ($item['number'] ?? 0);
+        if ($number > 0) {
+          $issueNumbers[$number] = TRUE;
+        }
       }
     }
 
@@ -565,58 +512,28 @@ class SdlcResetForm extends FormBase {
    * Return open PR numbers currently considered failed by merge state.
    */
   private function fetchFailedOpenPullRequestNumbers(string $repo, string $token): array {
-    $url = "https://api.github.com/repos/{$repo}/pulls?state=open&per_page=100";
-
-    try {
-      $response = $this->httpClient->request('GET', $url, [
-        'headers' => [
-          'Authorization' => "Bearer {$token}",
-          'Accept' => 'application/vnd.github+json',
-          'User-Agent' => 'dungeoncrawler-tester-sdlc-reset',
-        ],
-        'timeout' => 10,
-      ]);
-
-      $status = $response->getStatusCode();
-      if ($status < 200 || $status >= 300) {
-        return [];
+    $payload = $this->githubClient->listOpenPullRequests($repo, $token, 100);
+    $failedPrs = [];
+    foreach ($payload as $pull) {
+      if (!is_array($pull)) {
+        continue;
       }
 
-      $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
-      $failedPrs = [];
-      foreach ($payload as $pull) {
-        if (!is_array($pull)) {
-          continue;
-        }
-
-        $headRef = (string) ($pull['head']['ref'] ?? '');
-        if (!str_starts_with($headRef, 'copilot/')) {
-          continue;
-        }
-
-        $mergeableState = strtolower((string) ($pull['mergeable_state'] ?? ''));
-        if (in_array($mergeableState, self::FAILED_PR_STATES, TRUE)) {
-          $number = (int) ($pull['number'] ?? 0);
-          if ($number > 0) {
-            $failedPrs[] = $number;
-          }
-        }
+      $headRef = (string) ($pull['head']['ref'] ?? '');
+      if (!str_starts_with($headRef, 'copilot/')) {
+        continue;
       }
 
-      return array_values(array_unique(array_filter(array_map('intval', $failedPrs))));
-    }
-    catch (GuzzleException $e) {
-      $this->logger->warning('Failed loading open PRs during SDLC reset: @message', [
-        '@message' => $e->getMessage(),
-      ]);
-    }
-    catch (\Throwable $e) {
-      $this->logger->warning('Unexpected PR-load error during SDLC reset: @message', [
-        '@message' => $e->getMessage(),
-      ]);
+      $mergeableState = strtolower((string) ($pull['mergeable_state'] ?? ''));
+      if (in_array($mergeableState, self::FAILED_PR_STATES, TRUE)) {
+        $number = (int) ($pull['number'] ?? 0);
+        if ($number > 0) {
+          $failedPrs[] = $number;
+        }
+      }
     }
 
-    return [];
+    return array_values(array_unique(array_filter(array_map('intval', $failedPrs))));
   }
 
   /**
@@ -626,43 +543,15 @@ class SdlcResetForm extends FormBase {
     $commentUrl = "https://api.github.com/repos/{$repo}/issues/{$prNumber}/comments";
     $prUrl = "https://api.github.com/repos/{$repo}/pulls/{$prNumber}";
 
-    try {
-      $headers = [
-        'Authorization' => "Bearer {$token}",
-        'Accept' => 'application/vnd.github+json',
-        'User-Agent' => 'dungeoncrawler-tester-sdlc-reset',
-      ];
+    $commented = $this->githubClient->mutate('POST', $commentUrl, [
+      'body' => 'Closing pull request as part of SDLC reset initiated from tester dashboard because it is in failed state. Re-open or recreate if still actionable after reset.',
+    ], $token, 10);
 
-      $this->httpClient->request('POST', $commentUrl, [
-        'headers' => $headers,
-        'json' => [
-          'body' => 'Closing pull request as part of SDLC reset initiated from tester dashboard because it is in failed state. Re-open or recreate if still actionable after reset.',
-        ],
-        'timeout' => 10,
-      ]);
-
-      $this->httpClient->request('PATCH', $prUrl, [
-        'headers' => $headers,
-        'json' => ['state' => 'closed'],
-        'timeout' => 10,
-      ]);
-
-      return TRUE;
-    }
-    catch (GuzzleException $e) {
-      $this->logger->warning('Failed closing PR #@pr during SDLC reset: @message', [
-        '@pr' => $prNumber,
-        '@message' => $e->getMessage(),
-      ]);
-    }
-    catch (\Throwable $e) {
-      $this->logger->warning('Unexpected SDLC reset close error for PR #@pr: @message', [
-        '@pr' => $prNumber,
-        '@message' => $e->getMessage(),
-      ]);
+    if (!$commented) {
+      return FALSE;
     }
 
-    return FALSE;
+    return $this->githubClient->mutate('PATCH', $prUrl, ['state' => 'closed'], $token, 10);
   }
 
   /**

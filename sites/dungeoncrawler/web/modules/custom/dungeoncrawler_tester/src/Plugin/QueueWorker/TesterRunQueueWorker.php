@@ -8,7 +8,7 @@ use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use GuzzleHttp\ClientInterface;
+use Drupal\dungeoncrawler_tester\Service\GithubIssuePrClientInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Process\Process;
 
@@ -41,20 +41,20 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
   private $logger;
 
   /**
-   * HTTP client for GitHub API calls.
+   * Centralized GitHub issue/PR client.
    */
-  private ClientInterface $httpClient;
+  private GithubIssuePrClientInterface $githubClient;
 
   /**
    * Config factory to read repo/token settings.
    */
   private ConfigFactoryInterface $configFactory;
 
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, StateInterface $state, LoggerChannelFactoryInterface $logger_factory, ClientInterface $http_client, ConfigFactoryInterface $config_factory) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, StateInterface $state, LoggerChannelFactoryInterface $logger_factory, GithubIssuePrClientInterface $github_client, ConfigFactoryInterface $config_factory) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->state = $state;
     $this->logger = $logger_factory->get('dungeoncrawler_tester');
-    $this->httpClient = $http_client;
+    $this->githubClient = $github_client;
     $this->configFactory = $config_factory;
   }
 
@@ -65,7 +65,7 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
       $plugin_definition,
       $container->get('state'),
       $container->get('logger.factory'),
-      $container->get('http_client'),
+      $container->get('dungeoncrawler_tester.github_issue_pr_client'),
       $container->get('config.factory'),
     );
   }
@@ -268,17 +268,7 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
       }
 
       try {
-        $response = $this->httpClient->request('POST', "https://api.github.com/repos/{$repo}/issues", [
-          'headers' => [
-            'Authorization' => 'token ' . $token,
-            'Accept' => 'application/vnd.github+json',
-            'User-Agent' => 'dungeoncrawler-tester',
-          ],
-          'json' => $issue_data,
-          'timeout' => 10,
-        ]);
-
-        $payload = json_decode((string) $response->getBody(), TRUE);
+        $payload = $this->githubClient->createIssue($repo, $issue_data, $token);
         if (!empty($payload['number'])) {
           $issue_number = (int) $payload['number'];
           $existing_issue_map[$test_case] = $issue_number;
@@ -332,24 +322,15 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
    * Resolve repo/token/assignee with tester -> ai config -> env fallback chain.
    */
   private function resolveGithubContext(): array {
+    $context = $this->githubClient->resolveContext();
+    $repo = (string) ($context['repo'] ?? '');
+    $token = (string) ($context['token'] ?? '');
+
     $tester_config = $this->configFactory->get('dungeoncrawler_tester.settings');
-    $repo = (string) ($tester_config->get('github_repo') ?: '');
-    $token = (string) ($tester_config->get('github_token') ?: '');
     $assignee = (string) ($tester_config->get('github_assignee') ?: '');
 
-    if ($repo === '' || $token === '') {
-      $ai_config = $this->configFactory->get('ai_conversation.settings');
-      $repo = $repo !== '' ? $repo : (string) ($ai_config->get('github_repo') ?: '');
-      $token = $token !== '' ? $token : (string) ($ai_config->get('github_token') ?: '');
-      $assignee = $assignee !== '' ? $assignee : (string) ($ai_config->get('github_assignee') ?: '');
-    }
-
-    $env_repo = getenv('TESTER_GITHUB_REPO');
-    $env_token = getenv('TESTER_GITHUB_TOKEN');
     $env_assignee = getenv('TESTER_GITHUB_ASSIGNEE');
 
-    $repo = $repo !== '' ? $repo : (string) ($env_repo !== FALSE ? $env_repo : '');
-    $token = $token !== '' ? $token : (string) ($env_token !== FALSE ? $env_token : '');
     $assignee = $assignee !== '' ? $assignee : (string) ($env_assignee !== FALSE ? $env_assignee : '');
 
     return [
@@ -421,23 +402,12 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
    * Post a comment to a GitHub issue.
    */
   private function postIssueComment(string $repo, int $issue_number, string $token, string $message): void {
-    try {
-      $this->httpClient->request('POST', "https://api.github.com/repos/{$repo}/issues/{$issue_number}/comments", [
-        'headers' => [
-          'Authorization' => 'token ' . $token,
-          'Accept' => 'application/vnd.github+json',
-          'User-Agent' => 'dungeoncrawler-tester',
-        ],
-        'json' => [
-          'body' => $message,
-        ],
-        'timeout' => 10,
-      ]);
-    }
-    catch (\Throwable $e) {
+    $url = "https://api.github.com/repos/{$repo}/issues/{$issue_number}/comments";
+    $ok = $this->githubClient->mutate('POST', $url, ['body' => $message], $token, 10);
+    if (!$ok) {
       $this->logger->warning('Could not post assignment-skip comment to issue #@number: @msg', [
         '@number' => $issue_number,
-        '@msg' => $e->getMessage(),
+        '@msg' => 'GitHub request failed.',
       ]);
     }
   }
@@ -447,18 +417,8 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
    */
   private function countOpenCopilotAssignedIssues(string $repo, string $token): int {
     try {
-      $query = rawurlencode('repo:' . $repo . ' is:issue is:open assignee:Copilot');
-      $response = $this->httpClient->request('GET', "https://api.github.com/search/issues?q={$query}&per_page=1", [
-        'headers' => [
-          'Authorization' => 'token ' . $token,
-          'Accept' => 'application/vnd.github+json',
-          'User-Agent' => 'dungeoncrawler-tester',
-        ],
-        'timeout' => 10,
-      ]);
-
-      $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
-      return (int) ($payload['total_count'] ?? 0);
+      $query = 'repo:' . $repo . ' is:issue is:open assignee:Copilot';
+      return $this->githubClient->searchIssuesTotalCount($query, $token);
     }
     catch (\Throwable $e) {
       $this->logger->warning('Could not determine open Copilot-assigned issue count for @repo: @msg', [
@@ -562,19 +522,7 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
 
     foreach ($copilot_identifiers as $identifier) {
       try {
-        $response = $this->httpClient->request('POST', "https://api.github.com/repos/{$repo}/issues/{$issue_number}/assignees", [
-          'headers' => [
-            'Authorization' => 'token ' . $token,
-            'Accept' => 'application/vnd.github+json',
-            'User-Agent' => 'dungeoncrawler-tester',
-          ],
-          'json' => [
-            'assignees' => [$identifier],
-          ],
-          'timeout' => 10,
-        ]);
-
-        $payload = json_decode((string) $response->getBody(), TRUE) ?: [];
+        $payload = $this->githubClient->addIssueAssignees($repo, $issue_number, [$identifier], $token) ?: [];
         $assigned = array_map(static fn(array $assignee): string => strtolower((string) ($assignee['login'] ?? '')), $payload['assignees'] ?? []);
         if (in_array('copilot', $assigned, TRUE)) {
           $this->logger->notice('Assigned Copilot to issue #@number using identifier "@identifier".', [

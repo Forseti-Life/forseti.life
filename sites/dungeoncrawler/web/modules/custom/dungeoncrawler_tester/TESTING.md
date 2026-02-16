@@ -43,6 +43,13 @@ cd sites/dungeoncrawler/web
 ../vendor/bin/phpunit -c modules/custom/dungeoncrawler_tester/phpunit.xml modules/custom/dungeoncrawler_tester/tests/src/Functional/CampaignStateAccessTest.php
 ```
 
+### Run GitHub Client Rate-Limit/Dedupe Unit Test
+
+```bash
+cd sites/dungeoncrawler/web
+../vendor/bin/phpunit -c modules/custom/dungeoncrawler_tester/phpunit.xml modules/custom/dungeoncrawler_tester/tests/src/Unit/Service/GithubIssuePrClientTest.php
+```
+
 ## Test Suites
 
 ### Unit Tests
@@ -59,6 +66,18 @@ cd sites/dungeoncrawler/web
   - Sufficient memory (512M configured)
 
 ## Troubleshooting
+
+### GitHub API Rate-Limit Recovery (Tester Automation)
+
+When tester automation logs repeated GitHub `403`/`429` responses:
+
+1. Check current rate limits:
+  ```bash
+  gh api rate_limit
+  ```
+2. Confirm `Retry-After` / `X-RateLimit-Reset` values in logs and wait accordingly.
+3. Avoid manually re-triggering mutation-heavy loops until cooldown expires.
+4. Re-run the focused unit test (`GithubIssuePrClientTest`) plus targeted stage flow once limits recover.
 
 ### "Failed to open settings.php" Error
 
