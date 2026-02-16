@@ -27,9 +27,20 @@ tests/
 
 ## 🚀 Running Tests
 
-### First Time Setup
+### Recommended: Use the Test Runner Script
 
-Before running tests for the first time, run the setup script to create necessary directories:
+The easiest way to run tests is using the wrapper script, which automatically sets up the environment:
+
+```bash
+cd sites/dungeoncrawler
+./tests/run-tests.sh                      # Run all tests
+./tests/run-tests.sh --testsuite=unit     # Run only unit tests
+./tests/run-tests.sh --coverage-html tests/coverage  # With coverage
+```
+
+### Manual Setup (if not using run-tests.sh)
+
+If running tests manually, first run the setup script to create necessary directories:
 
 ```bash
 cd sites/dungeoncrawler
