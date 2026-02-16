@@ -2,25 +2,31 @@
 
 /**
  * @file
- * Custom PHPUnit bootstrap for dungeoncrawler_tester module.
+ * Custom bootstrap for Dungeon Crawler tests.
  *
  * This bootstrap file ensures that PHPUnit tests can locate the correct
  * Composer autoloader and sets DRUPAL_ROOT appropriately for a Composer-based
  * Drupal installation where the web root is in a subdirectory.
- * 
- * It also sets proper file permissions for test site creation to prevent
- * "Failed to open settings.php" errors in functional tests.
+ *
+ * This bootstrap file also ensures proper file permissions for test site
+ * creation by setting an appropriate umask before loading Drupal's test
+ * bootstrap.
  */
 
-// Set umask to ensure created files and directories are readable/writable.
-// This fixes "Failed to open settings.php" errors in functional tests where
-// test site directories and files are created with overly restrictive permissions.
+// Set umask to 0 to ensure created files and directories have the most permissive
+// permissions possible. This fixes "Failed to open settings.php" errors in functional
+// tests where test site directories and files are created with overly restrictive
+// permissions.
 // 
-// umask(0002) results in:
-// - Files created with 0664 permissions (rw-rw-r--)
-// - Directories created with 0775 permissions (rwxrwxr-x)
-// This allows both the test runner and web server to read/write test files.
-umask(0002);
+// umask(0) results in:
+// - Files created with 0666 permissions (rw-rw-rw-)
+// - Directories created with 0777 permissions (rwxrwxrwx)
+//
+// Note: This is appropriate for CI/testing environments where test directories are
+// temporary and cleaned after test runs. For production environments, use umask(0002)
+// and ensure the user is in the web server group.
+// See phpunit.xml line 101-106 for more details.
+umask(0);
 
 // Define the path to Composer's autoloader.
 // When running from sites/dungeoncrawler, the vendor directory is at the
@@ -39,7 +45,7 @@ if (!defined('DRUPAL_ROOT')) {
 // Set umask to ensure created files and directories are readable/writable.
 // This fixes "Failed to open settings.php" errors in functional tests where
 // test site directories and files are created with overly restrictive permissions.
-// 
+//
 // umask(0002) results in:
 // - Files created with 0664 permissions (rw-rw-r--)
 // - Directories created with 0775 permissions (rwxrwxr-x)
@@ -49,22 +55,18 @@ umask(0002);
 // Ensure the simpletest directory exists and is writable.
 // This is required for Drupal's BrowserTestBase which creates temporary
 // test site directories under sites/simpletest/.
+// Using 0777 permissions as recommended in phpunit.xml (line 101) for CI/testing.
 $simpletest_dir = __DIR__ . '/../../../../sites/simpletest';
 if (!is_dir($simpletest_dir)) {
-  if (!mkdir($simpletest_dir, 0775, TRUE)) {
+  if (!mkdir($simpletest_dir, 0777, TRUE)) {
     throw new \RuntimeException("Failed to create simpletest directory: $simpletest_dir");
   }
 }
-// Ensure the directory is writable.
-// Try to set permissions, but don't fail if chmod() returns false -
-// in some environments (CI, containers, restrictive filesystems), chmod()
-// may fail even when the directory has correct permissions and is usable.
-// Only fail if the directory is genuinely not writable.
-@chmod($simpletest_dir, 0775);
-if (!is_writable($simpletest_dir)) {
-  throw new \RuntimeException("Simpletest directory is not writable: $simpletest_dir");
+// Ensure the directory has full write permissions.
+if (!chmod($simpletest_dir, 0777)) {
+  throw new \RuntimeException("Failed to set permissions on simpletest directory: $simpletest_dir");
 }
 
-// Now include Drupal's core test bootstrap which will handle the rest of the
+// Include the standard Drupal test bootstrap which will handle the rest of the
 // initialization.
 require_once DRUPAL_ROOT . '/core/tests/bootstrap.php';

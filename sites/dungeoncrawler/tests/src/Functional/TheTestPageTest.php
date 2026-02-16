@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\Tests\Functional;
+namespace Drupal\Tests\dungeoncrawler_tester\Functional;
 
 use Drupal\Tests\BrowserTestBase;
 

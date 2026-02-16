@@ -53,6 +53,55 @@
           }
         });
       });
+
+      const bulkEndpoint = settings?.routes?.bulkCloseQuery;
+      if (!bulkEndpoint) {
+        return;
+      }
+
+      once('dc-bulk-query-run', '.dc-bulk-query-run-btn', context).forEach((button) => {
+        button.addEventListener('click', async () => {
+          const queryId = button.getAttribute('data-query-id') || '';
+          const queryTitle = button.getAttribute('data-query-title') || 'bulk query';
+          if (!queryId) {
+            return;
+          }
+
+          if (!window.confirm(`Run \"${queryTitle}\" now? This will close matching open issues/PRs.`)) {
+            return;
+          }
+
+          button.disabled = true;
+          const originalText = button.textContent;
+          button.textContent = 'Running...';
+
+          try {
+            const response = await fetch(bulkEndpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': settings?.csrfToken || '',
+              },
+              body: JSON.stringify({
+                query_id: queryId,
+              }),
+            });
+
+            const data = await response.json();
+            if (!response.ok || !data?.success) {
+              throw new Error(data?.message || 'Bulk query run failed.');
+            }
+
+            Drupal.announce(data.message || 'Bulk query complete.');
+            window.location.reload();
+          }
+          catch (error) {
+            button.disabled = false;
+            button.textContent = originalText;
+            Drupal.announce(error.message || 'Bulk query run failed.');
+          }
+        });
+      });
     },
   };
 })(Drupal, once, drupalSettings);
