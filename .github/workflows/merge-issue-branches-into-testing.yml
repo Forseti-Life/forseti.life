@@ -34,7 +34,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          prs=$(gh pr list --state open --json number,title,headRefName,baseRefName,isDraft \
+          prs=$(gh pr list --state open --json number,title,headRefName,baseRefName,isDraft,mergeStateStatus \
             --jq '.[] | @base64')
 
           if [ -z "$prs" ]; then
@@ -51,25 +51,48 @@ jobs:
             title=$(echo "$data" | jq -r '.title')
             head=$(echo "$data" | jq -r '.headRefName')
             base=$(echo "$data" | jq -r '.baseRefName')
+            merge_state=$(echo "$data" | jq -r '.mergeStateStatus')
 
-            meta=$(gh pr view "$number" --json isDraft,reviewRequests,assignees --jq '{isDraft,reviewRequests:[.reviewRequests[].login],assignees:[.assignees[].login]}')
+            meta=$(gh pr view "$number" --json isDraft,reviewRequests,assignees,reviewDecision,statusCheckRollup --jq '{isDraft,reviewDecision,reviewRequests:[.reviewRequests[].login],assignees:[.assignees[].login],statusCheckRollup:.statusCheckRollup}')
             is_draft=$(echo "$meta" | jq -r '.isDraft')
+            review_decision=$(echo "$meta" | jq -r '.reviewDecision // ""')
             copilot_requested=$(echo "$meta" | jq -r '.reviewRequests[]? | ascii_downcase' | grep -x "copilot" || true)
             copilot_assigned=$(echo "$meta" | jq -r '.assignees[]? | ascii_downcase' | grep -x "copilot" || true)
+            failing_checks=$(echo "$meta" | jq -r '[.statusCheckRollup[]? | select((.conclusion // "") | ascii_downcase | test("failure|cancelled|timed_out|action_required|stale"))] | length')
+            pending_checks=$(echo "$meta" | jq -r '[.statusCheckRollup[]? | select((.status // "") | ascii_downcase | test("queued|in_progress|pending"))] | length')
+
+            if [ "$base" != "main" ]; then
+              echo "Skipping PR #$number ($head -> $base): base is not main."
+              continue
+            fi
 
             if [ -z "$copilot_requested" ] && [ -z "$copilot_assigned" ]; then
               echo "Skipping PR #$number ($head -> $base): no Copilot review request or assignment."
               continue
             fi
 
-            if [ "$is_draft" = "true" ] && [ -n "$copilot_requested" ]; then
-              echo "PR #$number is draft but Copilot is requested; marking ready."
-              gh pr ready "$number"
-              is_draft="false"
-            fi
-
             if [ "$is_draft" = "true" ]; then
               echo "Skipping draft PR #$number ($head -> $base): $title"
+              continue
+            fi
+
+            if [ "$merge_state" != "CLEAN" ] && [ "$merge_state" != "HAS_HOOKS" ]; then
+              echo "Skipping PR #$number ($head -> $base): mergeStateStatus=$merge_state"
+              continue
+            fi
+
+            if [ "$review_decision" = "CHANGES_REQUESTED" ]; then
+              echo "Skipping PR #$number ($head -> $base): review decision is CHANGES_REQUESTED"
+              continue
+            fi
+
+            if [ "$failing_checks" -gt 0 ]; then
+              echo "Skipping PR #$number ($head -> $base): failing checks detected ($failing_checks)"
+              continue
+            fi
+
+            if [ "$pending_checks" -gt 0 ]; then
+              echo "Skipping PR #$number ($head -> $base): pending checks detected ($pending_checks)"
               continue
             fi
 
