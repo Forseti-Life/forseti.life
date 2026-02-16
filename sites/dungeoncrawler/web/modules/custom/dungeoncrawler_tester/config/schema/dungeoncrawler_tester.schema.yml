@@ -11,3 +11,6 @@ dungeoncrawler_tester.settings:
     copilot_assignment_max_open:
       type: integer
       label: 'Max open Copilot-assigned issues for auto-assignment'
+    cron_agents_enabled:
+      type: boolean
+      label: 'Enable tester cron agents'

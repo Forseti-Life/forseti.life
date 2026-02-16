@@ -36,6 +36,16 @@ if (!defined('DRUPAL_ROOT')) {
   define('DRUPAL_ROOT', dirname(__DIR__, 4));
 }
 
+// Set umask to ensure created files and directories are readable/writable.
+// This fixes "Failed to open settings.php" errors in functional tests where
+// test site directories and files are created with overly restrictive permissions.
+// 
+// umask(0002) results in:
+// - Files created with 0664 permissions (rw-rw-r--)
+// - Directories created with 0775 permissions (rwxrwxr-x)
+// This allows both the test runner and web server to read/write test files.
+umask(0002);
+
 // Ensure the simpletest directory exists and is writable.
 // This is required for Drupal's BrowserTestBase which creates temporary
 // test site directories under sites/simpletest/.
