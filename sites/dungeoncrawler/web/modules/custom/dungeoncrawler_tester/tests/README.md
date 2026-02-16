@@ -27,6 +27,19 @@ tests/
 
 ## 🚀 Running Tests
 
+### Initial Setup
+
+Before running tests for the first time, run the setup script to prepare the test environment:
+```bash
+cd sites/dungeoncrawler
+./setup-tests.sh
+```
+
+This script will:
+- Ensure the `web/sites/simpletest` directory exists and is writable
+- Create the `/tmp/dungeoncrawler-simpletest` directory for test file storage
+- Clean up any leftover test site directories
+
 ### All Tests
 ```bash
 cd sites/dungeoncrawler
