@@ -7,7 +7,7 @@
  * This bootstrap file ensures that PHPUnit tests can locate the correct
  * Composer autoloader and sets DRUPAL_ROOT appropriately for a Composer-based
  * Drupal installation where the web root is in a subdirectory.
- * 
+ *
  * It also ensures proper file permissions for test site creation by setting
  * an appropriate umask before loading Drupal's test bootstrap.
  */
@@ -29,7 +29,7 @@ if (!defined('DRUPAL_ROOT')) {
 // Set umask to ensure created files and directories are readable/writable.
 // This fixes "Failed to open settings.php" errors in functional tests where
 // test site directories and files are created with overly restrictive permissions.
-// 
+//
 // umask(0002) results in:
 // - Files created with 0664 permissions (rw-rw-r--)
 // - Directories created with 0775 permissions (rwxrwxr-x)

@@ -149,7 +149,7 @@ The syntax errors have been fixed. Tests should now be able to start execution i
 
 ---
 
-**Date**: 2026-02-16  
-**Author**: GitHub Copilot  
+**Date**: 2026-02-16
+**Author**: GitHub Copilot
 **Issue**: [Tester] CharacterListControllerTest::testCharacterListEmptyPositive failed in stage ci-gate (exit 2)
 **PR Branch**: copilot/fix-character-list-test-failure-yet-again
