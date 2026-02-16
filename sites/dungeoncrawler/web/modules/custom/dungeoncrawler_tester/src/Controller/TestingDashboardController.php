@@ -530,6 +530,7 @@ class TestingDashboardController extends ControllerBase {
         '#attributes' => ['class' => ['text-muted-light']],
         '#value' => $this->t('Open issue-first report with linked PRs, blockers, and next steps. Uses existing GitHub repo issue/pull endpoints already used by dashboard signals.'),
       ],
+      'decision_logic' => $this->buildIssuePrReportDecisionLogicSection(),
       'meta' => [
         '#theme' => 'item_list',
         '#items' => $metaItems,
@@ -559,6 +560,55 @@ class TestingDashboardController extends ControllerBase {
         '#theme' => 'item_list',
         '#items' => $orphanedItems,
         '#empty' => $this->t('No orphaned open PRs found.'),
+      ],
+    ];
+  }
+
+  /**
+   * Build process and decision logic guidance for issue-pr-report triage.
+   */
+  private function buildIssuePrReportDecisionLogicSection(): array {
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['issue-pr-report-decision-logic', 'issue-report-item']],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h3',
+        '#value' => $this->t('Process & Decision Logic'),
+      ],
+      'summary' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#attributes' => ['class' => ['text-muted-light']],
+        '#value' => $this->t('Use this sequence to review open PRs from lowest number upward and make consistent close/keep decisions.'),
+      ],
+      'steps_title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h4',
+        '#value' => $this->t('Triage Steps'),
+      ],
+      'steps' => [
+        '#theme' => 'item_list',
+        '#items' => [
+          (string) $this->t('Process PRs in ascending number order to keep operational cleanup deterministic.'),
+          (string) $this->t('Inspect PR state, draft status, merge state, linked issues, checks, and changed files before mutation.'),
+          (string) $this->t('Treat no-file-change PRs as no-op candidates; close PRs with rationale comments and keep/open linked issues for separate issue triage when needed.'),
+          (string) $this->t('Use bulk close queries only for review-safe classes (for example dead-value PRs, merged-resolution issues, and explicit non-action labels).'),
+          (string) $this->t('After each close action, verify resulting PR/issue state via GitHub API before proceeding to the next item.'),
+        ],
+      ],
+      'decisions_title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h4',
+        '#value' => $this->t('Decision Rules'),
+      ],
+      'decisions' => [
+        '#theme' => 'item_list',
+        '#items' => [
+          (string) $this->t('Close PR + linked issue when the PR is clearly superseded and linked issue scope is already resolved by merged code.'),
+          (string) $this->t('Close PR only when the PR is a no-op (no file changes) but linked issue still needs independent review.'),
+          (string) $this->t('Keep PR open when there is actionable code and unresolved blockers (failing checks, unresolved conflicts, or missing review signal).'),
+        ],
       ],
     ];
   }

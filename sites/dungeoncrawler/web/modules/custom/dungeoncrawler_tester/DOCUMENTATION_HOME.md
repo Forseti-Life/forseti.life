@@ -23,6 +23,7 @@ This is the canonical entry point for all tester module documentation.
 
 - [Documentation Home](/dungeoncrawler/testing/documentation-home)
 - [Testing Dashboard](/dungeoncrawler/testing)
+- [Issue/PR Report](/dungeoncrawler/testing/issue-pr-report) — operational triage page with documented close-decision logic.
 
 ## Live Tracking
 
