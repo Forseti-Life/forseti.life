@@ -6,6 +6,14 @@ dungeoncrawler_tester.dashboard:
   requirements:
     _permission: 'administer site configuration'
 
+dungeoncrawler_tester.issue_pr_report:
+  path: '/dungeoncrawler/testing/issue-pr-report'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::issuePrReport'
+    _title: 'Open Issues and PR Report'
+  requirements:
+    _permission: 'administer site configuration'
+
 dungeoncrawler_tester.documentation_home:
   path: '/dungeoncrawler/testing/documentation-home'
   defaults:
