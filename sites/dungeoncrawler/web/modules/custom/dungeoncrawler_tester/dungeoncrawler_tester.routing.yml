@@ -14,6 +14,14 @@ dungeoncrawler_tester.issue_pr_report:
   requirements:
     _permission: 'administer site configuration'
 
+dungeoncrawler_tester.dead_value_close:
+  path: '/dungeoncrawler/testing/issue-pr-report/dead-value-close'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::closeDeadValueAjax'
+  methods: [POST]
+  requirements:
+    _permission: 'administer site configuration'
+
 dungeoncrawler_tester.documentation_home:
   path: '/dungeoncrawler/testing/documentation-home'
   defaults:
