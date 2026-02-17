@@ -191,22 +191,32 @@ PF2e-compatible environmental hazards (simple and complex). Unlike traps, hazard
 - Added array validation (uniqueItems) to prevent duplicates
 - Enhanced validation constraints aligned with PF2e rules (levels -1 to 25, DCs 0-50)
 - Improved consistency with trap.schema.json structure
+- Structured effect field with attack_bonus, damage, save_dc, area, conditions_applied
+- Structured disable field with named skill properties (thievery_dc, arcana_dc, etc.)
+- Added is_triggered state tracking field
+- Added reusable definitions section (hex_coordinate)
+- Added comprehensive examples (simple and complex hazards)
+- Capped actions_per_round at 4 for realistic complex hazards
 
 **Defines:**
 - Simple hazards: One-time dangers (falling rocks, collapsing floors)
 - Complex hazards: Ongoing threats that act in initiative order
 - Physical stats: AC, hardness, HP, saves, immunities, resistances, weaknesses
-- Detection and disabling: Stealth DC, disable skill DCs
-- State tracking: is_active, is_detected, is_disabled, is_destroyed
-- Hex placement: Coordinates for map-based hazards
+- Detection and disabling: Stealth DC, structured disable skill DCs
+- State tracking: is_active, is_detected, is_triggered, is_disabled, is_destroyed
+- Hex placement: Coordinates for map-based hazards via reusable hex_coordinate definition
 - Rarity classification: common, uncommon, rare, unique
 
 **Key Features:**
+- Structured effect object (attack rolls, damage dice, saving throws, conditions, area of effect)
+- Structured disable object with named PF2e skills (Thievery, Athletics, Arcana, Religion, Crafting)
 - Supports both string and structured object format for reset mechanics
 - Optional initiative_modifier and routine for complex hazards
 - Full PF2e save support (Fortitude, Reflex, Will)
 - Strict validation with additionalProperties: false
 - Comprehensive constraints aligned with PF2e rules
+- Complete examples demonstrating simple and complex hazard patterns
+
 
 #### `hexmap.schema.json`
 Hex-based dungeon map with fog of war and terrain using axial coordinates (q, r) for flat-top hex positioning.
