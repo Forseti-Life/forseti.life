@@ -27,7 +27,6 @@
 
   Drupal.behaviors.characterStep4 = {
     attach: function (context, settings) {
-      const $form = $('#step-4-form', context);
       const $errorMessage = $('#error-message');
       const $nextButton = $('#next-button');
       const $selectedClass = $('#selected-class');
