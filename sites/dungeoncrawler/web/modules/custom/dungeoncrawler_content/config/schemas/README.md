@@ -31,7 +31,7 @@ JSON Schemas serve multiple purposes:
 | Schema File | Purpose | Versioned | Lines | Primary Use |
 |-------------|---------|-----------|-------|-------------|
 | `character.schema.json` | Complete PF2e character | ✓ | 564 | `dc_characters.character_data` |
-| `character_options_step[1-8].json` | Character creation wizard | ✗ | 298-501 | Character creation UI |
+| `character_options_step[1-8].json` | Character creation wizard | Partial | 298-535 | Character creation UI |
 | `campaign.schema.json` | Campaign state & progress | ✓ | 137 | `dc_campaigns.campaign_data` |
 | `creature.schema.json` | Monsters, NPCs, beasts | ✓ | 1101 | Entity spawning |
 | `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 298 | Level generation |
@@ -64,13 +64,13 @@ Complete Pathfinder 2E character data structure stored in the `dc_characters` ta
 Character creation wizard options and validation rules for each of the 8 steps:
 
 1. **Step 1**: Name & Concept
-2. **Step 2**: Ancestry & Heritage
+2. **Step 2**: Ancestry & Heritage (v1.0.0)
 3. **Step 3**: Background
 4. **Step 4**: Class
 5. **Step 5**: Ability Scores
-6. **Step 6**: Alignment & Deity
+6. **Step 6**: Alignment & Deity (versioned)
 7. **Step 7**: Equipment
-8. **Step 8**: Finishing Touches
+8. **Step 8**: Finishing Touches (versioned)
 
 **Defines:**
 - Available options at each step
@@ -78,6 +78,14 @@ Character creation wizard options and validation rules for each of the 8 steps:
 - Help text and examples
 - Navigation rules
 - Error messages
+
+**Recent improvements to Step 2 (2026-02-17):**
+- Added schema versioning (v1.0.0) for migration compatibility
+- Added step-level validation object for consistency with other steps
+- Expanded heritages_by_ancestry schema to document all 14 PF2e ancestries
+- Added comprehensive examples section showing recommended ancestry/heritage combinations
+- Enhanced documentation noting which ancestries have implemented heritages vs placeholders
+- Improved consistency with other character creation step schemas
 
 ### Dungeon Schemas
 
@@ -520,6 +528,7 @@ This directory may contain historical completion/summary markdown files (e.g., `
 Schemas with `schema_version` field (migration-ready):
 - ✓ `campaign.schema.json`
 - ✓ `character.schema.json`
+- ✓ `character_options_step2.json` (v1.0.0)
 - ✓ `character_options_step6.json`
 - ✓ `character_options_step8.json`
 - ✓ `creature.schema.json`
@@ -534,9 +543,8 @@ Schemas with `schema_version` field (migration-ready):
 - ✓ `trap.schema.json`
 
 Schemas pending versioning:
-- `character_options_step[1-5,7].json` (UI-only schemas - lower priority)
+- `character_options_step[1,3-5,7].json` (UI-only schemas - lower priority)
 - `obstacle.schema.json` (needs versioning for production use)
-- `obstacle_object_catalog.schema.json` (needs versioning for production use)
 - `room.schema.json` (needs versioning for production use)
 
 ### Adding New Properties

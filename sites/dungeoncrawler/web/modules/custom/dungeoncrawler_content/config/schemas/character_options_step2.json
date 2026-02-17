@@ -5,6 +5,7 @@
   "description": "Defines available options and validation for selecting character's ancestry and heritage in Pathfinder 2E character creation",
   "type": "object",
   "additionalProperties": false,
+  "schema_version": "1.0.0",
   "$defs": {
     "heritageOption": {
       "type": "object",
@@ -210,7 +211,7 @@
             },
             "heritages_by_ancestry": {
               "type": "object",
-              "description": "Heritage options organized by ancestry",
+              "description": "Heritage options organized by ancestry. Note: Currently only 6 ancestries have heritages implemented in CharacterManager::HERITAGES (Dwarf, Elf, Gnome, Goblin, Halfling, Human). The remaining 8 ancestries use the Human versatile heritage pattern until specific heritages are implemented.",
               "additionalProperties": false,
               "properties": {
                 "Dwarf": {
@@ -260,6 +261,78 @@
                   },
                   "minItems": 1,
                   "maxItems": 1
+                },
+                "Half-Elf": {
+                  "type": "array",
+                  "description": "Half-Elf heritage options (not yet implemented in CharacterManager::HERITAGES)",
+                  "items": {
+                    "$ref": "#/$defs/heritageOption"
+                  },
+                  "minItems": 0,
+                  "maxItems": 4
+                },
+                "Half-Orc": {
+                  "type": "array",
+                  "description": "Half-Orc heritage options (not yet implemented in CharacterManager::HERITAGES)",
+                  "items": {
+                    "$ref": "#/$defs/heritageOption"
+                  },
+                  "minItems": 0,
+                  "maxItems": 4
+                },
+                "Leshy": {
+                  "type": "array",
+                  "description": "Leshy heritage options (not yet implemented in CharacterManager::HERITAGES)",
+                  "items": {
+                    "$ref": "#/$defs/heritageOption"
+                  },
+                  "minItems": 0,
+                  "maxItems": 4
+                },
+                "Orc": {
+                  "type": "array",
+                  "description": "Orc heritage options (not yet implemented in CharacterManager::HERITAGES)",
+                  "items": {
+                    "$ref": "#/$defs/heritageOption"
+                  },
+                  "minItems": 0,
+                  "maxItems": 4
+                },
+                "Catfolk": {
+                  "type": "array",
+                  "description": "Catfolk heritage options (not yet implemented in CharacterManager::HERITAGES)",
+                  "items": {
+                    "$ref": "#/$defs/heritageOption"
+                  },
+                  "minItems": 0,
+                  "maxItems": 4
+                },
+                "Kobold": {
+                  "type": "array",
+                  "description": "Kobold heritage options (not yet implemented in CharacterManager::HERITAGES)",
+                  "items": {
+                    "$ref": "#/$defs/heritageOption"
+                  },
+                  "minItems": 0,
+                  "maxItems": 4
+                },
+                "Ratfolk": {
+                  "type": "array",
+                  "description": "Ratfolk heritage options (not yet implemented in CharacterManager::HERITAGES)",
+                  "items": {
+                    "$ref": "#/$defs/heritageOption"
+                  },
+                  "minItems": 0,
+                  "maxItems": 4
+                },
+                "Tengu": {
+                  "type": "array",
+                  "description": "Tengu heritage options (not yet implemented in CharacterManager::HERITAGES)",
+                  "items": {
+                    "$ref": "#/$defs/heritageOption"
+                  },
+                  "minItems": 0,
+                  "maxItems": 4
                 }
               }
             },
@@ -325,6 +398,35 @@
       },
       "required": ["previous_step", "next_step", "can_go_back", "can_skip"]
     },
+    "validation": {
+      "type": "object",
+      "description": "Step-level validation rules",
+      "additionalProperties": false,
+      "properties": {
+        "step_complete": {
+          "type": "object",
+          "description": "Conditions for step completion",
+          "additionalProperties": false,
+          "properties": {
+            "required_fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": ["ancestry", "heritage"],
+              "description": "Fields that must be completed before advancing"
+            },
+            "error_message": {
+              "type": "string",
+              "default": "You must select both an ancestry and a heritage before continuing.",
+              "description": "Message shown when step validation fails"
+            }
+          },
+          "required": ["required_fields", "error_message"]
+        }
+      },
+      "required": ["step_complete"]
+    },
     "tips": {
       "type": "array",
       "description": "Helpful tips for new players",
@@ -362,7 +464,72 @@
           "text": "Darkvision lets you see in darkness up to 60 feet. Low-light vision lets you see in dim light as if it were bright light."
         }
       ]
+    },
+    "examples": {
+      "type": "array",
+      "description": "Example ancestry and heritage selections for common character archetypes",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "archetype": {
+            "type": "string",
+            "description": "Character archetype name"
+          },
+          "ancestry": {
+            "type": "string",
+            "description": "Recommended ancestry"
+          },
+          "heritage": {
+            "type": "string",
+            "description": "Recommended heritage"
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Why this ancestry/heritage combination suits this archetype"
+          }
+        },
+        "required": ["archetype", "ancestry", "heritage", "rationale"]
+      },
+      "default": [
+        {
+          "archetype": "Durable Tank",
+          "ancestry": "Dwarf",
+          "heritage": "Rock Dwarf",
+          "rationale": "Dwarves get 10 HP and Constitution boost, making them naturally durable. Rock Dwarf heritage extends darkvision to 120 feet for dungeon exploration."
+        },
+        {
+          "archetype": "Nimble Archer",
+          "ancestry": "Elf",
+          "heritage": "Woodland Elf",
+          "rationale": "Elves get Dexterity boost and 30 feet speed. Woodland Elf grants climb speed for tactical positioning and low-light vision for outdoor adventures."
+        },
+        {
+          "archetype": "Sneaky Scout",
+          "ancestry": "Goblin",
+          "heritage": "Snow Goblin",
+          "rationale": "Goblins are Small (bonus to Stealth) with Dexterity and Charisma boosts. Snow Goblin adds cold resistance and darkvision for all-terrain scouting."
+        },
+        {
+          "archetype": "Magical Investigator",
+          "ancestry": "Gnome",
+          "heritage": "Fey-Touched Gnome",
+          "rationale": "Gnomes have Charisma boost and low-light vision. Fey-Touched grants access to First World primal magic for utility and investigation."
+        },
+        {
+          "archetype": "Lucky Support",
+          "ancestry": "Halfling",
+          "heritage": "Gutsy Halfling",
+          "rationale": "Halflings excel at support with Dexterity and Wisdom boosts. Gutsy heritage provides bonus against fear effects, protecting the whole party."
+        },
+        {
+          "archetype": "Versatile Generalist",
+          "ancestry": "Human",
+          "heritage": "Versatile Heritage",
+          "rationale": "Humans get two free ability boosts for any build. Versatile Heritage grants an extra general feat at 1st level for additional customization."
+        }
+      ]
     }
   },
-  "required": ["step", "step_name", "step_description", "fields", "navigation", "tips"]
+  "required": ["step", "step_name", "step_description", "fields", "navigation", "validation", "tips", "examples"]
 }
