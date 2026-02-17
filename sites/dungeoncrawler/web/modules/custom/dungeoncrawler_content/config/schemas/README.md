@@ -120,6 +120,16 @@ Monsters, NPCs, and beasts with PF2e stats and AI personality.
 - Enhanced 25+ property descriptions for clarity
 - Validated against existing creature data (goblin_warrior.json)
 
+**Further improved (2026-02-17, DCC-0016):**
+- Added `uniqueItems: true` to 9 arrays (traits, immunities, senses, languages, spells, catchphrases, preferred_targets, patrol_route, attack/ability traits)
+- Added `minLength: 1` to 24 string properties to prevent empty strings
+- Enhanced enum descriptions for 7 fields (rarity, spell tradition/type, memory sentiment, proficiency, attack type, action cost, loot rarity)
+- Added maximum constraints to 10 numeric fields (HP max/current/temp/hardness, reach, XP, loot quantity, currency ranges)
+- Improved documentation with realistic value ranges and PF2e context
+- All changes fully backward compatible
+- Total: 50 targeted validation improvements
+- See: `REVIEW_SUMMARY_DCC-0016.md`
+
 #### `dungeon_level.schema.json`
 Entire dungeon floor with hexmap, rooms, and encounters.
 
