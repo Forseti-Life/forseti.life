@@ -1,7 +1,15 @@
 services:
+  dungeoncrawler_tester.github_context_resolver:
+    class: Drupal\dungeoncrawler_tester\Service\GithubClientContextResolver
+    arguments: ['@config.factory', '@state']
+
+  dungeoncrawler_tester.github_mutation_state_store:
+    class: Drupal\dungeoncrawler_tester\Service\GithubMutationStateStore
+    arguments: ['@dungeoncrawler_tester.github_context_resolver', '@logger.factory']
+
   dungeoncrawler_tester.github_issue_pr_client:
     class: Drupal\dungeoncrawler_tester\Service\GithubIssuePrClient
-    arguments: ['@http_client', '@config.factory', '@state', '@logger.factory']
+    arguments: ['@http_client', '@dungeoncrawler_tester.github_context_resolver', '@dungeoncrawler_tester.github_mutation_state_store', '@logger.factory']
 
   Drupal\dungeoncrawler_tester\Service\GithubIssuePrClientInterface:
     alias: dungeoncrawler_tester.github_issue_pr_client

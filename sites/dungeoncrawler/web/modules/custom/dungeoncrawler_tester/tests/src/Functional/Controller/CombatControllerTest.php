@@ -23,24 +23,72 @@ class CombatControllerTest extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * Tests combat controller exists - positive case.
-   *
-   * Note: CombatController exists but has no routes defined yet.
-   * This test validates the controller can be instantiated.
+   * Tests combat end-turn endpoint with seeded encounter state.
    */
-  public function testCombatControllerExistsPositive(): void {
-    // Validate the controller class exists
-    $this->assertTrue(class_exists('\Drupal\dungeoncrawler_content\Controller\CombatController'));
+  public function testCombatEndTurnEndpointPositive(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $encounter_id = $this->startEncounterAndGetId();
+    $response = $this->requestJson('POST', '/api/combat/end-turn', ['encounterId' => $encounter_id]);
+
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSame($encounter_id, (int) ($response['encounter_id'] ?? 0));
+    $this->assertArrayHasKey('turn_index', $response);
   }
 
   /**
-   * Tests combat controller not accessible without routes - negative case.
+   * Tests combat end endpoint contract.
    */
-  public function testCombatControllerNotAccessibleNegative(): void {
-    // Since no routes are defined for CombatController,
-    // attempting to access combat-related paths should return 404
-    $this->drupalGet('/combat');
-    $this->assertSession()->statusCodeEquals(404);
+  public function testCombatEndEndpointPositive(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $encounter_id = $this->startEncounterAndGetId();
+    $response = $this->requestJson('POST', '/api/combat/end', ['encounterId' => $encounter_id]);
+
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertTrue(($response['ended'] ?? FALSE) === TRUE);
+    $this->assertSame($encounter_id, (int) ($response['encounter_id'] ?? 0));
+  }
+
+  /**
+   * Tests combat end-turn endpoint requires auth/permission.
+   */
+  public function testCombatEndTurnEndpointNegativeAnonymous(): void {
+    $this->requestJson('POST', '/api/combat/end-turn', ['encounterId' => 123]);
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Start an encounter and return encounter ID.
+   */
+  private function startEncounterAndGetId(): int {
+    $response = $this->requestJson('POST', '/api/combat/start', [
+      'entities' => [
+        ['entityId' => 'hero-1', 'name' => 'Hero', 'initiative' => 18, 'hp' => 20],
+        ['entityId' => 'goblin-1', 'name' => 'Goblin', 'initiative' => 12, 'hp' => 10],
+      ],
+    ]);
+
+    $this->assertSession()->statusCodeEquals(201);
+    return (int) ($response['encounter_id'] ?? 0);
+  }
+
+  /**
+   * Issue JSON request and decode response.
+   */
+  private function requestJson(string $method, string $path, array $payload): array {
+    $this->getSession()->getDriver()->getClient()->request(
+      $method,
+      $this->buildUrl($path),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      json_encode($payload)
+    );
+
+    return json_decode($this->getSession()->getPage()->getContent(), TRUE) ?? [];
   }
 
 }

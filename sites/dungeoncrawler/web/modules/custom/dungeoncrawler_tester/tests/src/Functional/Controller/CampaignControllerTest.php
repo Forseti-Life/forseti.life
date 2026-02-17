@@ -29,9 +29,15 @@ class CampaignControllerTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
+    $this->createCampaignForUser($user->id(), 'Owned Campaign');
+    $other_user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->createCampaignForUser($other_user->id(), 'Other User Campaign');
+
     $this->drupalGet('/campaigns');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->pageTextContains('My Campaigns');
+    $this->assertSession()->pageTextContains('Owned Campaign');
+    $this->assertSession()->pageTextNotContains('Other User Campaign');
   }
 
   /**
@@ -52,6 +58,7 @@ class CampaignControllerTest extends BrowserTestBase {
     $this->drupalGet('/campaigns/create');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->pageTextContains('Create Campaign');
+    $this->assertSession()->elementExists('css', 'input[name="name"]');
   }
 
   /**
@@ -60,6 +67,25 @@ class CampaignControllerTest extends BrowserTestBase {
   public function testCampaignCreationAccessNegative(): void {
     $this->drupalGet('/campaigns/create');
     $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Create a campaign row for controller tests.
+   */
+  private function createCampaignForUser(int $uid, string $name): int {
+    return (int) $this->container->get('database')->insert('dc_campaigns')
+      ->fields([
+        'uuid' => $this->container->get('uuid')->generate(),
+        'uid' => $uid,
+        'name' => $name,
+        'difficulty' => 'normal',
+        'theme' => 'classic',
+        'status' => 'active',
+        'campaign_data' => json_encode(['state' => []]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
   }
 
 }
