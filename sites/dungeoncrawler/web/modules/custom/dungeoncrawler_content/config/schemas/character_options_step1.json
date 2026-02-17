@@ -4,7 +4,7 @@
   "title": "Character Creation Step 1 Options - Name & Concept",
   "description": "Available options and requirements for Step 1 of PF2e character creation: choosing a name and concept.",
   "type": "object",
-  "required": ["step", "step_name", "fields", "validation"],
+  "required": ["step", "step_name", "step_description", "fields", "validation", "navigation", "tips"],
   "properties": {
     "step": {
       "type": "integer",
@@ -18,8 +18,8 @@
     },
     "step_description": {
       "type": "string",
-      "default": "Begin your adventure by choosing your character's name and defining their core concept.",
-      "description": "Instructions shown to the player."
+      "const": "Begin your adventure by choosing your character's name and defining their core concept.",
+      "description": "Instructions displayed to the player."
     },
     "fields": {
       "type": "object",
@@ -37,7 +37,7 @@
             "label": {
               "type": "string",
               "default": "Character Name",
-              "description": "Field label shown to user."
+              "description": "Field label displayed to user."
             },
             "placeholder": {
               "type": "string",
@@ -109,7 +109,7 @@
             "label": {
               "type": "string",
               "default": "Character Concept",
-              "description": "Field label shown to user."
+              "description": "Field label displayed to user."
             },
             "placeholder": {
               "type": "string",
@@ -191,46 +191,40 @@
     },
     "navigation": {
       "type": "object",
+      "description": "Navigation rules for this step",
       "properties": {
-        "can_go_back": {
-          "type": "boolean",
-          "const": false,
-          "description": "Cannot go back from first step."
+        "previous_step": {
+          "type": "null",
+          "description": "No previous step - this is the first step"
         },
         "next_step": {
           "type": "integer",
           "const": 2,
-          "description": "Step to navigate to on completion."
+          "description": "Step to navigate to on completion"
+        },
+        "can_go_back": {
+          "type": "boolean",
+          "const": false,
+          "description": "Cannot go back from first step"
+        },
+        "can_skip": {
+          "type": "boolean",
+          "const": false,
+          "description": "Step cannot be skipped"
         }
-      }
+      },
+      "required": ["previous_step", "next_step", "can_go_back", "can_skip"]
     },
     "tips": {
       "type": "array",
-      "description": "Helpful tips shown to new players.",
+      "description": "Helpful tips for new players",
       "items": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string"
-          },
-          "text": {
-            "type": "string"
-          }
-        }
+        "type": "string"
       },
       "default": [
-        {
-          "title": "Getting Started",
-          "text": "Don't worry too much about your name at this stage - you can always change it later. Focus on creating a character concept that excites you!"
-        },
-        {
-          "title": "Naming Conventions",
-          "text": "Different ancestries have different naming traditions. Dwarves often have clan names, elves prefer flowing melodic names, and goblins love silly-sounding names."
-        },
-        {
-          "title": "Character Concept",
-          "text": "Your concept will guide your choices in ancestry, background, and class. Think about what kind of hero you want to play - brave, cunning, wise, or something else entirely."
-        }
+        "Don't worry too much about your name at this stage - you can always change it later. Focus on creating a character concept that excites you!",
+        "Different ancestries have different naming traditions. Dwarves often have clan names, elves prefer flowing melodic names, and goblins love silly-sounding names.",
+        "Your concept will guide your choices in ancestry, background, and class. Think about what kind of hero you want to play - brave, cunning, wise, or something else entirely."
       ]
     }
   }
