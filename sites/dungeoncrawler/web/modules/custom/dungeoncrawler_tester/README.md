@@ -41,9 +41,7 @@ The dashboard includes:
 - **Open issue import local close-out**: Successful GitHub creations from the import page now automatically update the matching `Issues.md` tracker row from `Open` to `Closed`, refresh `Last Updated`, and append a GitHub issue reference note.
 - **Docs link handling**: Documentation links resolve to internal Drupal documentation pages (no direct `.md` links); only the testing issues query links to GitHub.
 - **Theme compliance**: Documentation pages render with the theme-standard Bootstrap layout (`container` + `row/col`) and `card card-dungeoncrawler` sections for visual consistency.
-- **TheTest route scope**: The automation flip page now lives at `/dungeoncrawler/testing/thetest` to avoid generic root-path collisions and improve discoverability.
-- **TheTest status source**: PASS/FAIL status now comes from tester state (`dungeoncrawler_tester.thetest_status`) with optional env override (`TESTER_THETEST_STATUS=pass|fail`), not a hard-coded controller constant.
-- **Secret token storage**: Tester settings now store `github_token` in Drupal state (`dungeoncrawler_tester.github_token`) instead of exported module config to reduce accidental token exposure.
+- **Dedicated testing navigation menu**: A module-owned menu (`dungeoncrawler_testing`) now contains tester-facing routes and is used as the canonical source for testing navigation links.
 - **POST route hardening**: Mutative tester AJAX routes require CSRF validation in routing requirements.
 - **Stage command validation**: Drush stage-control commands now validate stage IDs against defined stage definitions before writing state.
 - **Queue lock lease strategy**: Manual queue-run command now uses a batch-size-aware lock lease instead of a fixed 30-second window to reduce concurrent-run collisions.

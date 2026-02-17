@@ -13,11 +13,6 @@ function dungeoncrawler_tester_theme($existing, $type, $theme, $path) {
       'template' => 'dungeoncrawler-tester-queue-management',
       'path' => $path . '/templates',
     ],
-    'dungeoncrawler_tester_thetest' => [
-      'variables' => [
-        'status' => NULL,
-      ],
-    ],
   ];
 }
 

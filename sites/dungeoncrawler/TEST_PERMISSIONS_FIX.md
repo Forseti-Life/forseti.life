@@ -17,12 +17,5 @@ When tests run, they will now:
 2. Copy and configure settings files with appropriate permissions
 3. Clean up after themselves
 
-## Testing
-To run the affected tests:
-```bash
-cd sites/dungeoncrawler
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/TheTestPageTest.php
-```
-
 ## Prevention
 The `.gitignore` file already prevents these directories from being tracked. Test artifacts should never be committed to version control.
