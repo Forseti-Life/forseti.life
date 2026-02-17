@@ -6,6 +6,22 @@
 (function ($, Drupal, once) {
   'use strict';
 
+  // Constants
+  const CSS_CLASSES = {
+    CARD: 'alignment-card',
+    SELECTED: 'selected',
+    HIDDEN: 'hidden',
+    GRID: 'alignments-grid'
+  };
+
+  const SELECTORS = {
+    FORM: '#step-6-form',
+    ALIGNMENT_FIELD: '#selected-alignment',
+    ERROR_MSG: '#error-message',
+    GRID: '.alignments-grid',
+    CARD: '.alignment-card'
+  };
+
   // Pathfinder 2E Alignments
   const alignments = {
     'lg': {
@@ -57,79 +73,91 @@
 
   Drupal.behaviors.characterStep6 = {
     attach: function (context, settings) {
-      once('step6-init', '#step-6-form', context).forEach((element) => {
+      once('step6-init', SELECTORS.FORM, context).forEach((element) => {
         const $form = $(element);
-        let selectedAlignment = $('#selected-alignment').val() || '';
+        const $alignmentField = $(SELECTORS.ALIGNMENT_FIELD, context);
+        
+        // Validate required elements exist
+        if ($alignmentField.length === 0) {
+          console.warn('Character Step 6: Missing alignment field');
+          return;
+        }
+
+        const $alignmentsGrid = $(SELECTORS.GRID, context);
+        let selectedAlignment = $alignmentField.val() || '';
 
         // Populate alignments
-        const alignmentsGrid = $('.alignments-grid', context);
-        if (alignmentsGrid.children('.alignment-card').length === 0) {
+        if ($alignmentsGrid.children(SELECTORS.CARD).length === 0) {
           Object.keys(alignments).forEach(function(alignId) {
             const align = alignments[alignId];
             const card = $('<div>')
-              .addClass('alignment-card')
+              .addClass(CSS_CLASSES.CARD)
               .attr('data-alignment', alignId)
-              .html('<h3>' + align.name + '</h3>');
-            alignmentsGrid.append(card);
+              .html(`<h3>${align.name}</h3>`);
+            $alignmentsGrid.append(card);
           });
         }
 
         // Restore previous selection
         if (selectedAlignment) {
-          $('.alignment-card[data-alignment="' + selectedAlignment + '"]').addClass('selected');
+          $(SELECTORS.CARD + `[data-alignment="${selectedAlignment}"]`).addClass(CSS_CLASSES.SELECTED);
         }
 
         // Handle alignment selection
-        once('alignment-click', '.alignment-card', context).forEach((card) => {
+        once('alignment-click', SELECTORS.CARD, context).forEach((card) => {
           $(card).on('click', function() {
             const alignId = $(this).data('alignment');
             
             // Update UI
-            $('.alignment-card').removeClass('selected');
-            $(this).addClass('selected');
+            $(SELECTORS.CARD).removeClass(CSS_CLASSES.SELECTED);
+            $(this).addClass(CSS_CLASSES.SELECTED);
             
             // Update hidden field
             selectedAlignment = alignId;
-            $('#selected-alignment').val(alignId);
+            $alignmentField.val(alignId);
           });
         });
 
         // Handle form submission with AJAX
-        $form.on('submit', function(e) {
-          e.preventDefault();
+        once('step6-submit', SELECTORS.FORM, context).forEach((formEl) => {
+          $(formEl).on('submit', function(e) {
+            e.preventDefault();
 
-          // Validation
-          if (!selectedAlignment) {
-            $('#error-message').text('Please select an alignment.').removeClass('hidden');
-            return;
-          }
+            const $errorMsg = $(SELECTORS.ERROR_MSG);
 
-          // Optional fields - no validation needed for age, deity, gender
-          
-          // Hide error message
-          $('#error-message').addClass('hidden');
-
-          // Prepare form data
-          const formData = $form.serialize();
-          const actionUrl = $form.attr('action');
-
-          // Submit via AJAX
-          $.ajax({
-            url: actionUrl,
-            method: 'POST',
-            data: formData,
-            dataType: 'json',
-            success: function(response) {
-              if (response.success) {
-                window.location.href = response.redirect;
-              } else {
-                $('#error-message').text(response.message || 'Error saving step.').removeClass('hidden');
-              }
-            },
-            error: function(xhr, status, error) {
-              $('#error-message').text('Failed to save. Please try again.').removeClass('hidden');
-              console.error('Save error:', error);
+            // Validation
+            if (!selectedAlignment) {
+              $errorMsg.text('Please select an alignment.').removeClass(CSS_CLASSES.HIDDEN);
+              return;
             }
+
+            // Optional fields - no validation needed for age, deity, gender
+            
+            // Hide error message
+            $errorMsg.addClass(CSS_CLASSES.HIDDEN);
+
+            // Prepare form data
+            const formData = $form.serialize();
+            const actionUrl = $form.attr('action');
+
+            // Submit via AJAX
+            $.ajax({
+              url: actionUrl,
+              method: 'POST',
+              data: formData,
+              dataType: 'json',
+              success: function(response) {
+                if (response.success) {
+                  window.location.href = response.redirect;
+                } else {
+                  $errorMsg.text(response.message || 'Error saving step.').removeClass(CSS_CLASSES.HIDDEN);
+                }
+              },
+              error: function(xhr, status, error) {
+                console.error('Character Step 6 save error:', status, error, xhr.responseJSON);
+                $errorMsg.text('Failed to save. Please try again.').removeClass(CSS_CLASSES.HIDDEN);
+              }
+            });
           });
         });
       });
