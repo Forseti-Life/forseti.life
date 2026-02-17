@@ -16,6 +16,18 @@ use Drupal\Core\Session\AccountProxyInterface;
 class SearchAggregatorService {
 
   /**
+   * Sources that should be persisted to search staging cache.
+   *
+   * @var string[]
+   */
+  protected const CACHEABLE_EXTERNAL_SOURCES = [
+    'Google Jobs',
+    'Adzuna',
+    'USAJobs',
+    'Google Jobs (SerpAPI)',
+  ];
+
+  /**
    * The database connection.
    *
    * @var \Drupal\Core\Database\Connection
@@ -278,6 +290,7 @@ class SearchAggregatorService {
       $staging_query->range(0, 25); // Limit staging results
 
       $staging_rows = $staging_query->execute()->fetchAll();
+      $seen_pending_keys = [];
 
       $this->logger->info('📊 Forseti DB returned @main_count main jobs + @staging_count staging jobs', [
         '@main_count' => count($job_rows),
@@ -321,6 +334,12 @@ class SearchAggregatorService {
             $staging_payload = $decoded;
           }
         }
+
+        $pending_key = $this->buildPendingResultDeduplicationKey($staging_job, $staging_payload);
+        if (isset($seen_pending_keys[$pending_key])) {
+          continue;
+        }
+        $seen_pending_keys[$pending_key] = TRUE;
 
         $posted_timestamp = $staging_timestamp_field === 'created'
           ? ($staging_job->created ?? 0)
@@ -707,7 +726,7 @@ class SearchAggregatorService {
         foreach ($results as $position => $result) {
           try {
             // Only store external API results (not Forseti DB results which are already stored)
-            if (isset($result['source']) && $result['source'] !== 'Forseti Jobs') {
+            if (isset($result['source']) && in_array($result['source'], self::CACHEABLE_EXTERNAL_SOURCES, TRUE)) {
               $this->database->insert('jobhunter_job_search_results')
                 ->fields([
                   'search_query_id' => $search_history_id,
@@ -746,6 +765,31 @@ class SearchAggregatorService {
         '@error' => $e->getMessage(),
       ]);
     }
+  }
+
+  /**
+   * Build a stable deduplication key for pending search rows.
+   *
+   * @param object $staging_job
+   *   Raw staging table row.
+   * @param array $staging_payload
+   *   Decoded job payload.
+   *
+   * @return string
+   *   Stable deduplication key.
+   */
+  protected function buildPendingResultDeduplicationKey(object $staging_job, array $staging_payload): string {
+    $external_id = trim((string) ($staging_job->external_job_id ?? ''));
+    if ($external_id !== '') {
+      return 'external:' . mb_strtolower($external_id);
+    }
+
+    $title = trim((string) ($staging_job->job_title ?? ''));
+    $company = trim((string) ($staging_job->company_name ?? ''));
+    $location = trim((string) ($staging_job->location ?? ''));
+    $url = trim((string) ($staging_payload['url'] ?? ''));
+
+    return 'fallback:' . mb_strtolower($title . '|' . $company . '|' . $location . '|' . $url);
   }
 
   /**
@@ -938,24 +982,29 @@ class SearchAggregatorService {
           continue;
         }
 
-        // Check for duplicates using job_hash
-        $job_hash = $job_data['job_hash'] ?? NULL;
-        if ($job_hash) {
-          $existing = $this->database->select('jobhunter_job_requirements', 'j')
-            ->fields('j', ['id'])
-            ->condition('job_hash', $job_hash)
-            ->execute()
-            ->fetchField();
+        // Map source
+        $source_map = [
+          'Google Jobs' => 'google_cloud',
+          'Adzuna' => 'adzuna',
+          'USAJobs' => 'usajobs',
+          'Google Jobs (SerpAPI)' => 'serpapi',
+        ];
+        $external_source = $source_map[$job_data['source'] ?? ''] ?? 'external_api';
 
-          if ($existing) {
-            // Mark as imported (duplicate)
-            $this->database->update('jobhunter_job_search_results')
-              ->fields(['imported_to_job_id' => $existing, 'imported_at' => time()])
-              ->condition('id', $result->id)
-              ->execute();
-            $skipped++;
-            continue;
-          }
+        $external_job_id = substr((string) ($result->external_job_id ?? ''), 0, 512);
+        $job_url = substr((string) ($job_data['url'] ?? ''), 0, 512);
+
+        // Check for duplicates using stable identifiers.
+        $job_hash = $job_data['job_hash'] ?? NULL;
+        $existing = $this->findExistingImportedJobId($job_hash, $external_job_id, $job_url, $external_source);
+        if ($existing) {
+          // Mark as imported (duplicate)
+          $this->database->update('jobhunter_job_search_results')
+            ->fields(['imported_to_job_id' => $existing, 'imported_at' => time()])
+            ->condition('id', $result->id)
+            ->execute();
+          $skipped++;
+          continue;
         }
 
         // Get or create company
@@ -973,20 +1022,9 @@ class SearchAggregatorService {
           }
         }
 
-        // Map source
-        $source_map = [
-          'Google Jobs' => 'google_cloud',
-          'Adzuna' => 'adzuna',
-          'USAJobs' => 'usajobs',
-          'Google Jobs (SerpAPI)' => 'serpapi',
-        ];
-        $external_source = $source_map[$job_data['source']] ?? 'external_api';
-
         $job_title = substr((string) ($job_data['title'] ?? 'Unknown'), 0, 255);
         $location = substr((string) ($job_data['location'] ?? 'Unknown'), 0, 255);
         $employment_type = substr((string) ($job_data['employment_type'] ?? 'Full-time'), 0, 50);
-        $job_url = substr((string) ($job_data['url'] ?? ''), 0, 512);
-        $external_job_id = substr((string) ($result->external_job_id ?? ''), 0, 512);
         $via = !empty($job_data['via']) ? substr((string) $job_data['via'], 0, 255) : NULL;
         $thumbnail = !empty($job_data['thumbnail']) ? substr((string) $job_data['thumbnail'], 0, 512) : NULL;
         $share_link = !empty($job_data['share_link']) ? substr((string) $job_data['share_link'], 0, 512) : NULL;
@@ -1047,6 +1085,60 @@ class SearchAggregatorService {
         '@error' => $e->getMessage(),
       ]);
     }
+  }
+
+  /**
+   * Resolve existing Forseti job ID from external identifiers.
+   *
+   * @param string|null $job_hash
+   *   Optional canonical job hash.
+   * @param string $external_job_id
+   *   Source job identifier from staging table.
+   * @param string $job_url
+   *   Source job URL.
+   * @param string $external_source
+   *   Normalized external source key.
+   *
+   * @return int|null
+   *   Existing job ID when found.
+   */
+  protected function findExistingImportedJobId(?string $job_hash, string $external_job_id, string $job_url, string $external_source): ?int {
+    if (!empty($job_hash)) {
+      $existing = $this->database->select('jobhunter_job_requirements', 'j')
+        ->fields('j', ['id'])
+        ->condition('job_hash', $job_hash)
+        ->execute()
+        ->fetchField();
+      if (!empty($existing)) {
+        return (int) $existing;
+      }
+    }
+
+    if ($external_job_id !== '') {
+      $existing = $this->database->select('jobhunter_job_requirements', 'j')
+        ->fields('j', ['id'])
+        ->condition('external_source', $external_source)
+        ->condition('external_job_id', $external_job_id)
+        ->execute()
+        ->fetchField();
+      if (!empty($existing)) {
+        return (int) $existing;
+      }
+    }
+
+    if ($job_url !== '') {
+      $existing = $this->database->select('jobhunter_job_requirements', 'j')
+        ->fields('j', ['id'])
+        ->condition('external_source', $external_source)
+        ->condition('job_url', $job_url)
+        ->execute()
+        ->fetchField();
+      if (!empty($existing)) {
+        return (int) $existing;
+      }
+    }
+
+    return NULL;
   }
 
 }

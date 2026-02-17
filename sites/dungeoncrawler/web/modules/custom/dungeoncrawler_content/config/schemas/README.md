@@ -107,11 +107,16 @@ Campaign state payload stored in `dc_campaigns.campaign_data`.
 Monsters, NPCs, and beasts with PF2e stats and AI personality.
 
 **Recently improved (2026-02-17):**
-- Added schema versioning for migration compatibility
-- Enhanced validation with required fields and numeric constraints
-- Added timestamp tracking (created_at, updated_at)
-- Improved pattern validation for damage formulas
-- Added additionalProperties constraints for stricter validation
+- Added `additionalProperties: false` to 13 object definitions for stricter validation
+- Enhanced numeric constraints on movement speeds (land, fly, swim, climb, burrow)
+- Added constraints on skills (modifier range -10 to +50)
+- Added constraints on spells (DC 1-50, attack modifier -5 to +40)
+- Added constraints on lifecycle (wander_radius_rooms 0-50)
+- Added required fields to nested objects (perception, skills, spell_slots, random loot)
+- Added string minLength validation to prevent empty strings in arrays
+- Added missing optional fields (description, source) for real-world data compatibility
+- Enhanced 25+ property descriptions for clarity
+- Validated against existing creature data (goblin_warrior.json)
 
 #### `dungeon_level.schema.json`
 Entire dungeon floor with hexmap, rooms, and encounters.
