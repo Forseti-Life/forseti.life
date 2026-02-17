@@ -9,6 +9,7 @@
       "type": "object",
       "description": "Individual ability score with tracking of boosts and modifiers",
       "required": ["name", "abbreviation", "base", "boosts_applied", "current_value", "modifier"],
+      "additionalProperties": false,
       "properties": {
         "name": {
           "type": "string",
@@ -89,6 +90,7 @@
               "type": "object",
               "description": "Ability score breakdown for all six abilities",
               "required": ["str", "dex", "con", "int", "wis", "cha"],
+              "additionalProperties": false,
               "properties": {
                 "str": {
                   "$ref": "#/$defs/abilityScore",
@@ -212,18 +214,22 @@
             },
             "validation": {
               "type": "object",
+              "description": "Validation rules for free boost selection",
               "properties": {
                 "required": {
                   "type": "boolean",
-                  "const": true
+                  "const": true,
+                  "description": "All 4 free boosts must be assigned"
                 },
                 "min_selections": {
                   "type": "integer",
-                  "const": 4
+                  "const": 4,
+                  "description": "Minimum number of boosts to select"
                 },
                 "max_selections": {
                   "type": "integer",
-                  "const": 4
+                  "const": 4,
+                  "description": "Maximum number of boosts to select"
                 },
                 "allow_duplicates": {
                   "type": "boolean",
@@ -235,11 +241,22 @@
                   "const": true,
                   "description": "No ability can exceed 18 at character creation (base 10 + 4 boosts = 18)"
                 },
-                "error_message": {
-                  "type": "string",
-                  "const": "Please assign all 4 free ability boosts. No ability score can exceed 18."
+                "error_messages": {
+                  "type": "object",
+                  "description": "Validation error messages",
+                  "properties": {
+                    "incomplete_selection": {
+                      "type": "string",
+                      "default": "Please assign all 4 free ability boosts."
+                    },
+                    "ability_cap_exceeded": {
+                      "type": "string",
+                      "default": "No ability score can exceed 18 at character creation."
+                    }
+                  }
                 }
-              }
+              },
+              "required": ["required", "min_selections", "max_selections", "allow_duplicates", "max_ability_18", "error_messages"]
             }
           },
           "required": ["field_type", "label", "required", "options", "help_text", "validation"]
@@ -313,6 +330,33 @@
       },
       "required": ["ancestry_boosts", "background_boosts", "class_boost", "free_boosts"]
     },
+    "validation": {
+      "type": "object",
+      "description": "Step-level validation rules",
+      "properties": {
+        "step_complete": {
+          "type": "object",
+          "description": "Conditions for step completion",
+          "properties": {
+            "required_fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": ["free_boosts"],
+              "description": "Fields that must be completed before advancing"
+            },
+            "error_message": {
+              "type": "string",
+              "default": "You must assign all 4 free ability boosts before continuing.",
+              "description": "Message shown when step validation fails"
+            }
+          },
+          "required": ["required_fields", "error_message"]
+        }
+      },
+      "required": ["step_complete"]
+    },
     "navigation": {
       "type": "object",
       "description": "Navigation rules for this step",
@@ -377,7 +421,8 @@
             "type": "string",
             "description": "Why these scores work for this archetype"
           }
-        }
+        },
+        "required": ["archetype", "class", "final_scores", "rationale"]
       },
       "default": [
         {
@@ -435,5 +480,5 @@
       ]
     }
   },
-  "required": ["step", "step_name", "step_description", "fields", "boost_sources", "navigation", "tips", "examples"]
+  "required": ["step", "step_name", "step_description", "fields", "boost_sources", "validation", "navigation", "tips", "examples"]
 }
