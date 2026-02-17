@@ -34,6 +34,12 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
    - `/characters?campaign_id={id}` switches My Characters into campaign selection mode
    - Character creation preserves `campaign_id` through step redirects
 
+### Game Object Management
+- **Object review interface**: Admin page for reviewing game objects and their attribute previews in one table.
+- **Bundle summary**: Shows object counts by content type to quickly audit coverage.
+- **Object Management Route**:
+   - `/admin/content/dungeoncrawler/objects` - Review objects and attributes
+
 ### Information Pages
 - **World Lore** (`/world`) - Living dungeon background and lore
 - **How to Play** (`/how-to-play`) - Game mechanics and tutorial
@@ -98,6 +104,7 @@ dungeoncrawler_content/
 │   │   ├── CharacterListController.php
 │   │   ├── CharacterViewController.php
 │   │   ├── DashboardController.php
+│   │   ├── GameObjectsController.php
 │   │   ├── HowToPlayController.php
 │   │   └── WorldController.php
 │   ├── Form/
@@ -229,6 +236,7 @@ Both blocks are configured as `status: true` and will be automatically placed wh
 ### Admin Routes
 - `/admin/config/content/dungeoncrawler` - Module settings
 - `/admin/content/dungeoncrawler` - Game content dashboard
+- `/admin/content/dungeoncrawler/objects` - Game object manager (object/attribute review)
 
 ## Permissions
 
