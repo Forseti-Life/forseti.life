@@ -24,7 +24,7 @@ dungeoncrawler_content.game_objects:
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\GameObjectsController::content'
     _title: 'Game Object Manager'
-  methods: [GET]
+  methods: [GET, POST]
   requirements:
     _permission: 'administer dungeoncrawler content'
 

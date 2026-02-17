@@ -35,8 +35,10 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
    - Character creation preserves `campaign_id` through step redirects
 
 ### Game Object Management
-- **Object review interface**: Admin page for reviewing game objects and their attribute previews in one table.
-- **Bundle summary**: Shows object counts by content type to quickly audit coverage.
+- **Table inventory interface**: Admin page inventories all Dungeon Crawler custom tables (`dc_*` and `dungeoncrawler_content_*`) and summarizes what objects they store.
+- **Field inventory**: Per-table field/type/index listing for complete schema visibility.
+- **Row browser and editor**: Browse stored rows and edit all row fields directly from `/dungeoncrawler/objects`.
+- **Theme-safe table contrast**: Dashboard tables explicitly set Bootstrap table variables so dark-theme text/background remains readable, including empty-state rows.
 - **Object Management Route**:
    - `/dungeoncrawler/objects` - Review objects and attributes
 
