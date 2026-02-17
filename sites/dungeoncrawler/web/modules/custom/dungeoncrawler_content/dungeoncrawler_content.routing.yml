@@ -15,6 +15,7 @@ dungeoncrawler_content.dashboard:
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\DashboardController::content'
     _title: 'Game Content Dashboard'
+  methods: [GET]
   requirements:
     _permission: 'access content overview'
 
@@ -24,6 +25,7 @@ dungeoncrawler_content.testing_home:
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\TestingDashboardController::dashboard'
     _title: 'Dungeon Crawler Testing'
+  methods: [GET]
   requirements:
     _permission: 'administer dungeoncrawler content'
 
@@ -36,46 +38,52 @@ dungeoncrawler_content.home:
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\HomeController::index'
     _title: 'Dungeon Crawler Life'
+  methods: [GET]
   requirements:
-    _access: 'TRUE'  # Public homepage
+    _access: 'TRUE'
 
 dungeoncrawler_content.world:
   path: '/world'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\WorldController::index'
     _title: 'The Living Dungeon'
+  methods: [GET]
   requirements:
-    _access: 'TRUE'  # Public information page
+    _access: 'TRUE'
 
 dungeoncrawler_content.how_to_play:
   path: '/how-to-play'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\HowToPlayController::index'
     _title: 'How to Play'
+  methods: [GET]
   requirements:
-    _access: 'TRUE'  # Public information page
+    _access: 'TRUE'
 
 dungeoncrawler_content.about:
   path: '/about'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\AboutController::index'
     _title: 'About Dungeon Crawler Life'
+  methods: [GET]
   requirements:
-    _access: 'TRUE'  # Public information page
+    _access: 'TRUE'
 
 dungeoncrawler_content.credits:
   path: '/credits'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CreditsController::page'
     _title: 'Credits & Attribution'
+  methods: [GET]
   requirements:
-    _access: 'TRUE'  # Public information page
+    _access: 'TRUE'
 
 dungeoncrawler_content.controller_architecture:
   path: '/architecture/controllers'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\ControllerArchitectureController::overview'
     _title: 'Controller Architecture'
+  methods: [GET]
   requirements:
     _permission: 'access content'
 
@@ -89,8 +97,9 @@ dungeoncrawler_content.hexmap_demo:
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\HexMapController::demo'
     _title: 'Hex Map Demo'
+  methods: [GET]
   requirements:
-    _access: 'TRUE'  # Public demo for testing
+    _access: 'TRUE'
 
 # ==============================================================================
 # CHARACTER MANAGEMENT ROUTES
@@ -103,6 +112,7 @@ dungeoncrawler_content.characters:
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterListController::listCharacters'
     _title: 'My Characters'
+  methods: [GET]
   requirements:
     _permission: 'access dungeoncrawler characters'
 
@@ -111,6 +121,7 @@ dungeoncrawler_content.campaigns:
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignController::listCampaigns'
     _title: 'My Campaigns'
+  methods: [GET]
   requirements:
     _permission: 'access dungeoncrawler characters'
 
@@ -119,6 +130,7 @@ dungeoncrawler_content.campaign_create:
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignController::createCampaignPage'
     _title: 'Create Campaign'
+  methods: [GET]
   requirements:
     _permission: 'access dungeoncrawler characters'
 
@@ -127,6 +139,7 @@ dungeoncrawler_content.campaign_tavernentrance:
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignController::tavernEntrance'
     _title: 'Tavern Entrance'
+  methods: [GET]
   requirements:
     _permission: 'access dungeoncrawler characters'
     campaign_id: '\d+'
@@ -135,6 +148,7 @@ dungeoncrawler_content.campaign_select_character:
   path: '/campaigns/{campaign_id}/select-character/{character_id}'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignController::selectCharacter'
+  methods: [POST]
   requirements:
     _permission: 'access dungeoncrawler characters'
     campaign_id: '\d+'
@@ -146,6 +160,7 @@ dungeoncrawler_content.character_creation_wizard:
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterCreationStepController::start'
     _title: 'Create Character'
+  methods: [GET]
   requirements:
     _permission: 'create dungeoncrawler characters'
 
@@ -154,6 +169,7 @@ dungeoncrawler_content.character_step:
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterCreationStepController::step'
     _title: 'Create Character'
+  methods: [GET]
   requirements:
     _permission: 'create dungeoncrawler characters'
     step: '\d+'
@@ -173,6 +189,7 @@ dungeoncrawler_content.character_view:
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterViewController::viewCharacter'
     _title_callback: '\Drupal\dungeoncrawler_content\Controller\CharacterViewController::viewTitle'
+  methods: [GET]
   requirements:
     _character_access: 'TRUE'
     character_id: '\d+'
@@ -203,6 +220,10 @@ dungeoncrawler_content.character_delete:
 # JSON API endpoints for AJAX operations. All require authentication and
 # return JSON responses. CSRF token validation handled in controllers.
 
+# ------------------------------------------------------------------------------
+# Character API Endpoints
+# ------------------------------------------------------------------------------
+
 dungeoncrawler_content.api.character_save:
   path: '/api/character/save'
   defaults:
@@ -224,6 +245,10 @@ dungeoncrawler_content.api.character_load:
   options:
     _format: json
 
+# ------------------------------------------------------------------------------
+# Character State API Endpoints
+# ------------------------------------------------------------------------------
+
 dungeoncrawler_content.api.character_state:
   path: '/api/character/{character_id}/state'
   defaults:
@@ -235,7 +260,10 @@ dungeoncrawler_content.api.character_state:
   options:
     _format: json
 
-# Dungeon state endpoints
+# ------------------------------------------------------------------------------
+# Dungeon State API Endpoints
+# ------------------------------------------------------------------------------
+
 dungeoncrawler_content.api.dungeon_state_get:
   path: '/api/dungeon/{dungeon_id}/state'
   defaults:
@@ -258,7 +286,10 @@ dungeoncrawler_content.api.dungeon_state_set:
   options:
     _format: json
 
-# Campaign state endpoints
+# ------------------------------------------------------------------------------
+# Campaign State API Endpoints
+# ------------------------------------------------------------------------------
+
 dungeoncrawler_content.api.campaign_state_get:
   path: '/api/campaign/{campaign_id}/state'
   defaults:
@@ -267,11 +298,14 @@ dungeoncrawler_content.api.campaign_state_get:
   requirements:
     _permission: 'access dungeoncrawler characters'
     _campaign_access: 'TRUE'
-    campaign_id: '\\d+'
+    campaign_id: '\d+'
   options:
     _format: json
 
-# Room state endpoints
+# ------------------------------------------------------------------------------
+# Room State API Endpoints
+# ------------------------------------------------------------------------------
+
 dungeoncrawler_content.api.room_state_get:
   path: '/api/dungeon/{dungeon_id}/room/{room_id}/state'
   defaults:
@@ -394,7 +428,10 @@ dungeoncrawler_content.api.character_start_turn:
   options:
     _format: json
 
-# Combat encounter lifecycle (hexmap integration)
+# ------------------------------------------------------------------------------
+# Combat Encounter API Endpoints (Hexmap Integration)
+# ------------------------------------------------------------------------------
+
 dungeoncrawler_content.api.combat_start:
   path: '/api/combat/start'
   defaults:
@@ -458,16 +495,21 @@ dungeoncrawler_content.api.combat_set:
 # ==============================================================================
 # TESTING ROUTES
 # ==============================================================================
+# Note: These routes should be restricted in production environments
 
 dungeoncrawler_content.testing:
   path: '/testing'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\TestingPageController::index'
     _title: 'Testing Page'
+  methods: [GET]
   requirements:
     _access: 'TRUE'
 
-# Campaign entity lifecycle endpoints
+# ------------------------------------------------------------------------------
+# Campaign Entity Lifecycle API Endpoints
+# ------------------------------------------------------------------------------
+
 dungeoncrawler_content.api.entity_spawn:
   path: '/api/campaign/{campaign_id}/entity/spawn'
   defaults:
