@@ -66,12 +66,10 @@ export interface CharacterState {
       current: number;
       max: number;
     };
-    spellSlots?: {
-      [level: string]: {
-        current: number;
-        max: number;
-      };
-    };
+    spellSlots?: Record<number, {
+      current: number;
+      max: number;
+    }>;
   };
   
   // Defenses
@@ -228,12 +226,79 @@ export interface Action {
 }
 
 /**
- * Action effect interface.
+ * Base action effect interface.
  */
-export interface ActionEffect {
+interface BaseActionEffect {
   type: 'damage' | 'heal' | 'condition' | 'movement' | 'custom';
-  details: any;
 }
+
+/**
+ * Damage action effect.
+ */
+export interface DamageEffect extends BaseActionEffect {
+  type: 'damage';
+  details: {
+    diceCount: number;
+    diceSize: number;
+    damageType: string;
+    bonus?: number;
+  };
+}
+
+/**
+ * Heal action effect.
+ */
+export interface HealEffect extends BaseActionEffect {
+  type: 'heal';
+  details: {
+    diceCount: number;
+    diceSize: number;
+    bonus?: number;
+  };
+}
+
+/**
+ * Condition action effect.
+ */
+export interface ConditionEffect extends BaseActionEffect {
+  type: 'condition';
+  details: {
+    conditionId: string;
+    duration?: Duration;
+  };
+}
+
+/**
+ * Movement action effect.
+ */
+export interface MovementEffect extends BaseActionEffect {
+  type: 'movement';
+  details: {
+    distance: number;
+    unit: 'feet' | 'squares';
+  };
+}
+
+/**
+ * Custom action effect.
+ */
+export interface CustomEffect extends BaseActionEffect {
+  type: 'custom';
+  details: {
+    description: string;
+    [key: string]: unknown;
+  };
+}
+
+/**
+ * Action effect discriminated union.
+ */
+export type ActionEffect = 
+  | DamageEffect 
+  | HealEffect 
+  | ConditionEffect 
+  | MovementEffect 
+  | CustomEffect;
 
 /**
  * Spell interface.
@@ -266,17 +331,100 @@ export interface PreparedSpell {
 }
 
 /**
- * Item interface.
+ * Weapon properties interface.
  */
-export interface Item {
+export interface WeaponProperties {
+  damage: string;
+  damageType: string;
+  range?: number;
+  traits: string[];
+  group: string;
+}
+
+/**
+ * Armor properties interface.
+ */
+export interface ArmorProperties {
+  armorClass: number;
+  dexCap?: number;
+  checkPenalty: number;
+  speedPenalty: number;
+  strength?: number;
+  group: string;
+  traits: string[];
+}
+
+/**
+ * Consumable properties interface.
+ */
+export interface ConsumableProperties {
+  level: number;
+  uses: number;
+  maxUses: number;
+  effect: string;
+}
+
+/**
+ * Base item interface.
+ */
+interface BaseItem {
   id: string;
   name: string;
-  type: 'weapon' | 'armor' | 'consumable' | 'treasure' | 'tool' | 'other';
   quantity: number;
   bulk: number;
   equipped: boolean;
   description: string;
-  properties?: any;
+}
+
+/**
+ * Weapon item.
+ */
+export interface WeaponItem extends BaseItem {
+  type: 'weapon';
+  properties: WeaponProperties;
+}
+
+/**
+ * Armor item.
+ */
+export interface ArmorItem extends BaseItem {
+  type: 'armor';
+  properties: ArmorProperties;
+}
+
+/**
+ * Consumable item.
+ */
+export interface ConsumableItem extends BaseItem {
+  type: 'consumable';
+  properties: ConsumableProperties;
+}
+
+/**
+ * Generic item (treasure, tool, other).
+ */
+export interface GenericItem extends BaseItem {
+  type: 'treasure' | 'tool' | 'other';
+  properties?: Record<string, unknown>;
+}
+
+/**
+ * Item discriminated union.
+ */
+export type Item = 
+  | WeaponItem 
+  | ArmorItem 
+  | ConsumableItem 
+  | GenericItem;
+
+/**
+ * Remote update interface for WebSocket messages.
+ */
+export interface RemoteUpdate {
+  characterId: string;
+  version: number;
+  timestamp: number;
+  operations: UpdateOperation[];
 }
 
 /**
@@ -304,12 +452,25 @@ export interface Feat {
 }
 
 /**
+ * Update operation type.
+ */
+export type UpdateOperationType = 
+  | 'hitPoints'
+  | 'condition'
+  | 'spell'
+  | 'action'
+  | 'reaction'
+  | 'inventory'
+  | 'experience'
+  | 'resource';
+
+/**
  * Update operation interface.
  */
 export interface UpdateOperation {
-  type: string;
+  type: UpdateOperationType;
   path: string;
-  value: any;
+  value: unknown;
   timestamp: number;
   version: number;
 }
