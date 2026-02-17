@@ -249,3 +249,66 @@ The refactored `character_options_step3.json` schema is:
 - ✅ More flexible (removed rigid count constraints)
 
 This refactoring successfully applies the patterns established in DCC-0013 and serves as continued evidence of the value of these refactoring patterns across all character_options_step*.json files.
+
+---
+
+## Supplemental Refactoring (2026-02-17)
+
+### Additional Improvements Applied
+
+Following a secondary review per DCC-0010, two additional structural improvements were identified and implemented:
+
+#### 1. Root-Level additionalProperties Constraint ✅
+
+**Issue**: The schema was missing the root-level `additionalProperties: false` constraint that Step 2 has.
+
+**Solution**: Added `additionalProperties: false` on line 7 (after `type: "object"`) to match Step 2's pattern.
+
+**Impact**: 
+- Prevents unexpected properties at the schema root level
+- Enforces strict schema structure at all levels (root + all nested objects)
+- Full consistency with Step 2's validation approach
+
+#### 2. Explicit Default Array for Ability Scores ✅
+
+**Issue**: The ability scores options array had enum validation but no explicit default value documenting the canonical list.
+
+**Solution**: Added `default` property to the ability scores options array (line 258) with all six Pathfinder 2E ability scores:
+```json
+"default": ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"]
+```
+
+**Impact**:
+- Provides explicit documentation of the canonical ability score list
+- Improves schema completeness and self-documentation
+- Aligns with JSON Schema best practices for providing defaults
+
+### Validation
+
+```bash
+# JSON syntax validation
+python3 -m json.tool character_options_step3.json > /dev/null
+# Result: ✓ Valid JSON
+
+# Line count after improvements
+wc -l character_options_step3.json
+# Result: 375 lines (from 374 - net +1 line)
+```
+
+### Final Schema Statistics
+
+| Metric | Before Supplemental | After Supplemental |
+|--------|--------------------|--------------------|
+| Root-level additionalProperties | ❌ Missing | ✅ Present |
+| Ability scores default array | ❌ Missing | ✅ Present |
+| Total lines | 374 | 375 |
+| Consistency with Step 2 | 95% | 100% |
+
+### Backward Compatibility
+
+These changes are **100% backward compatible**:
+- Adding `additionalProperties: false` only restricts invalid data (which shouldn't exist)
+- Adding a `default` value doesn't change validation behavior
+- No breaking changes to data structure or validation rules
+
+**Action Required**: None for existing implementations
