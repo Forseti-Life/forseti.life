@@ -266,8 +266,17 @@
           ]
         },
         "ancestry_flaw": {
-          "$ref": "#/$defs/abilityName",
-          "description": "Ability flaw from ancestry (if any) - reduces score by 2. Most ancestries have no flaw, some like Goblin have one.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/abilityName"
+            },
+            {
+              "type": "string",
+              "const": "",
+              "description": "No ancestry flaw"
+            }
+          ],
+          "description": "Ability flaw from ancestry (if any) - reduces score by 2. Most ancestries have no flaw (empty string), some like Goblin have one.",
           "examples": ["Wisdom", "Charisma", ""]
         },
         "background_boosts": {
