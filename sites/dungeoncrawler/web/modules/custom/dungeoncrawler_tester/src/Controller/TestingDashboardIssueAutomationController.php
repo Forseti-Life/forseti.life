@@ -800,8 +800,9 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$issues = (array) ($reportData['issues'] ?? []);
 		$prs = (array) ($reportData['prs'] ?? []);
 
-		if (!$token || empty($tokenCandidates)) {
-			return $this->errorJsonResponse('GitHub token is not configured.', 400);
+		$tokenError = $this->requireGithubTokenCandidatesError($token, $tokenCandidates);
+		if ($tokenError instanceof JsonResponse) {
+			return $tokenError;
 		}
 
 		$openIssueNumbers = [];
@@ -892,8 +893,9 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$githubContext = $this->loadIssueAutomationContext();
 		$repo = (string) ($githubContext['repo'] ?? '');
 		$token = $githubContext['token'] ?? NULL;
-		if (!$token) {
-			return $this->errorJsonResponse('GitHub token is not configured.', 400);
+		$tokenError = $this->requireGithubTokenError($token);
+		if ($tokenError instanceof JsonResponse) {
+			return $tokenError;
 		}
 
 		$prResponse = $this->requestGitHubJson("https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $token);
@@ -952,6 +954,28 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		}
 
 		return $this->errorJsonResponse('Access denied', 403);
+	}
+
+	/**
+	 * Return an error response when GitHub token is missing.
+	 */
+	private function requireGithubTokenError(?string $token): ?JsonResponse {
+		if (!empty($token)) {
+			return NULL;
+		}
+
+		return $this->errorJsonResponse('GitHub token is not configured.', 400);
+	}
+
+	/**
+	 * Return an error response when token/token-candidates are missing.
+	 */
+	private function requireGithubTokenCandidatesError(?string $token, array $tokenCandidates): ?JsonResponse {
+		if (!empty($token) && !empty($tokenCandidates)) {
+			return NULL;
+		}
+
+		return $this->errorJsonResponse('GitHub token is not configured.', 400);
 	}
 
 	/**
