@@ -21,7 +21,7 @@
 ### 2. Data Quality Fixes
 
 #### Fixed Typo in Door Description
-- **Issue:** Line 338 contained "PANTREE" instead of "PANTRY"
+- **Issue:** Door description contained "PANTREE" instead of "PANTRY"
 - **Fix:** Changed to `'KEEPE OUT — GRIBBLES PANTRY'`
 - **Impact:** Maintains thematic consistency (intentionally misspelled "KEEPE" preserved as goblin writing)
 
