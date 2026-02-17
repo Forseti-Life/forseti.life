@@ -26,19 +26,19 @@ dungeoncrawler_tester.docs_under_dashboard:
   parent: dungeoncrawler_tester.dashboard_menu
   weight: 22
 
-dungeoncrawler_tester.issue_pr_report_under_dashboard:
-  title: 'Open Issues/PR Report'
-  description: 'Open issues with linked PRs and orphaned PRs.'
-  route_name: dungeoncrawler_tester.issue_pr_report
-  parent: dungeoncrawler_tester.dashboard_menu
-  weight: 23
-
 dungeoncrawler_tester.import_open_issues_under_dashboard:
   title: 'Import Open Issues'
   description: 'Import open Issues.md tracker rows into GitHub with Copilot assignment.'
   route_name: dungeoncrawler_tester.import_open_issues
   parent: dungeoncrawler_tester.dashboard_menu
-  weight: 24
+  weight: 23
+
+dungeoncrawler_tester.issue_pr_report_under_dashboard:
+  title: 'Open Issues/PR Report'
+  description: 'Open issues with linked PRs and orphaned PRs.'
+  route_name: dungeoncrawler_tester.issue_pr_report
+  parent: dungeoncrawler_tester.import_open_issues_under_dashboard
+  weight: 1
 
 dungeoncrawler_tester.settings_under_dashboard_main:
   title: 'Tester settings'
@@ -69,19 +69,19 @@ dungeoncrawler_tester.dashboard_main_docs:
   parent: dungeoncrawler_tester.dashboard_main
   weight: 91
 
-dungeoncrawler_tester.dashboard_main_issue_pr_report:
-  title: 'Open Issues/PR Report'
-  description: 'Open issues with linked PRs and orphaned PRs.'
-  route_name: dungeoncrawler_tester.issue_pr_report
-  parent: dungeoncrawler_tester.dashboard_main
-  weight: 92
-
 dungeoncrawler_tester.dashboard_main_import_open_issues:
   title: 'Import Open Issues'
   description: 'Import open Issues.md tracker rows into GitHub with Copilot assignment.'
   route_name: dungeoncrawler_tester.import_open_issues
   parent: dungeoncrawler_tester.dashboard_main
-  weight: 94
+  weight: 92
+
+dungeoncrawler_tester.dashboard_main_issue_pr_report:
+  title: 'Open Issues/PR Report'
+  description: 'Open issues with linked PRs and orphaned PRs.'
+  route_name: dungeoncrawler_tester.issue_pr_report
+  parent: dungeoncrawler_tester.dashboard_main_import_open_issues
+  weight: 1
 
 dungeoncrawler_tester.testing_menu_root:
   title: 'Testing Navigation'
@@ -188,17 +188,17 @@ dungeoncrawler_tester.testing_menu_docs_issue_automation:
   parent: dungeoncrawler_tester.testing_menu_documentation
   weight: 14
 
-dungeoncrawler_tester.testing_menu_issue_pr_report:
-  title: 'Open Issues/PR Report'
-  route_name: dungeoncrawler_tester.issue_pr_report
-  parent: dungeoncrawler_tester.testing_menu_root
-  weight: 2
-
 dungeoncrawler_tester.testing_menu_import_open_issues:
   title: 'Import Open Issues'
   route_name: dungeoncrawler_tester.import_open_issues
   parent: dungeoncrawler_tester.testing_menu_root
-  weight: 3
+  weight: 2
+
+dungeoncrawler_tester.testing_menu_issue_pr_report:
+  title: 'Open Issues/PR Report'
+  route_name: dungeoncrawler_tester.issue_pr_report
+  parent: dungeoncrawler_tester.testing_menu_import_open_issues
+  weight: 1
 
 dungeoncrawler_tester.testing_menu_queue_management:
   title: 'Queue Management'
