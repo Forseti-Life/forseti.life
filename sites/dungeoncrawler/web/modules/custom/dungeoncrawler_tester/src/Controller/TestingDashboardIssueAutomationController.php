@@ -781,8 +781,9 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 * AJAX: run one bulk-close query and execute close mutations.
 	 */
 	public function runBulkCloseQueryAjax(Request $request): JsonResponse {
-		if (!$this->currentUser()->hasPermission('administer site configuration')) {
-			return $this->errorJsonResponse('Access denied', 403);
+		$permissionError = $this->requireAdminPermissionError();
+		if ($permissionError instanceof JsonResponse) {
+			return $permissionError;
 		}
 
 		$payload = $this->decodeJsonRequestPayload($request);
@@ -874,8 +875,9 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 * AJAX: close dead-value PR and optionally linked issue without page reload.
 	 */
 	public function closeDeadValueAjax(Request $request): JsonResponse {
-		if (!$this->currentUser()->hasPermission('administer site configuration')) {
-			return $this->errorJsonResponse('Access denied', 403);
+		$permissionError = $this->requireAdminPermissionError();
+		if ($permissionError instanceof JsonResponse) {
+			return $permissionError;
 		}
 
 		$payload = $this->decodeJsonRequestPayload($request);
@@ -939,6 +941,17 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			'success' => FALSE,
 			'message' => $message,
 		], $statusCode);
+	}
+
+	/**
+	 * Return an error response when caller lacks admin permission.
+	 */
+	private function requireAdminPermissionError(): ?JsonResponse {
+		if ($this->currentUser()->hasPermission('administer site configuration')) {
+			return NULL;
+		}
+
+		return $this->errorJsonResponse('Access denied', 403);
 	}
 
 	/**

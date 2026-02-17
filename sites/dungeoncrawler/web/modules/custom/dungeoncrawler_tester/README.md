@@ -66,6 +66,7 @@ The dashboard includes:
 - **Bulk-close list-processing helper extraction**: `runBulkCloseQueryAjax` now delegates repeated issue-number and PR-number close loops to dedicated list helpers, keeping each query case focused on candidate selection.
 - **JSON error-response normalization**: Repeated inline `JsonResponse` error payloads in issue automation AJAX handlers now route through a shared helper to keep error response shape single-sourced.
 - **JSON request payload decode normalization**: Issue automation AJAX handlers now share a dedicated request-payload decode helper (`json_decode` + safe array fallback) to keep request parsing behavior consistent.
+- **Admin permission gate normalization**: Issue automation AJAX handlers now share a dedicated admin-permission guard helper for consistent access-denied response handling.
 - **Repo-aware nav links**: Tester navigation block now builds the GitHub issue queue link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`).
 - **Repo-aware sign-off link**: Stage definitions now build the release sign-off defect link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`) instead of a hard-coded repository URL.
 - **Filesystem diagnostics**: Queue worker now validates simpletest directory creation/writability and surfaces explicit failure diagnostics in run/state output when setup fails.
