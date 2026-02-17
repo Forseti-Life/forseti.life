@@ -6,56 +6,201 @@
   "type": "object",
   "required": ["hazard_id", "name", "level", "complexity"],
   "properties": {
-    "hazard_id": { "type": "string", "format": "uuid" },
-    "name": { "type": "string" },
-    "level": { "type": "integer", "minimum": -1, "maximum": 25 },
-    "complexity": { "type": "string", "enum": ["simple", "complex"] },
-    "traits": { "type": "array", "items": { "type": "string" } },
-    "stealth_dc": { "type": ["integer", "null"], "description": "Null if the hazard is obvious." },
-    "description": { "type": "string" },
+    "hazard_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this hazard."
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name of the hazard.",
+      "examples": ["Collapsing Ceiling", "Poison Gas Trap", "Falling Rocks"]
+    },
+    "level": {
+      "type": "integer",
+      "minimum": -1,
+      "maximum": 25,
+      "description": "PF2e hazard level. Determines DCs and XP reward."
+    },
+    "complexity": {
+      "type": "string",
+      "enum": ["simple", "complex"],
+      "description": "Simple hazards act once; complex hazards act each round."
+    },
+    "rarity": {
+      "type": "string",
+      "enum": ["common", "uncommon", "rare", "unique"],
+      "default": "common",
+      "description": "PF2e rarity classification."
+    },
+    "traits": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "PF2e hazard traits (e.g., ['Magical', 'Trap', 'Environmental'])."
+    },
+    "stealth_dc": {
+      "type": ["integer", "null"],
+      "description": "DC to detect the hazard with Perception. Null if the hazard is obvious."
+    },
+    "description": {
+      "type": "string",
+      "description": "Narrative description of the hazard and its appearance."
+    },
     "disable": {
       "type": "object",
       "additionalProperties": { "type": "integer" },
-      "description": "Skill → DC mapping for disabling."
+      "description": "Skill → DC mapping for disabling (e.g., {'Thievery': 20, 'Athletics': 25})."
     },
-    "ac": { "type": ["integer", "null"] },
-    "hardness": { "type": ["integer", "null"] },
-    "hp": { "type": ["integer", "null"] },
+    "ac": {
+      "type": ["integer", "null"],
+      "description": "Armor Class for targeting the hazard. Null if not targetable."
+    },
+    "hardness": {
+      "type": ["integer", "null"],
+      "description": "Damage reduction when the hazard takes physical damage."
+    },
+    "hp": {
+      "type": ["integer", "null"],
+      "description": "Hit Points. When reduced to 0, the hazard is destroyed."
+    },
+    "broken_threshold": {
+      "type": ["integer", "null"],
+      "description": "HP threshold at which the hazard becomes broken (typically HP/2)."
+    },
     "saves": {
       "type": "object",
       "properties": {
-        "fortitude": { "type": ["integer", "null"] },
-        "reflex": { "type": ["integer", "null"] }
-      }
+        "fortitude": {
+          "type": ["integer", "null"],
+          "description": "Fortitude save modifier."
+        },
+        "reflex": {
+          "type": ["integer", "null"],
+          "description": "Reflex save modifier."
+        },
+        "will": {
+          "type": ["integer", "null"],
+          "description": "Will save modifier."
+        }
+      },
+      "additionalProperties": false
     },
-    "immunities": { "type": "array", "items": { "type": "string" } },
+    "immunities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Damage types and conditions the hazard is immune to."
+    },
+    "resistances": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "value"],
+        "properties": {
+          "type": { "type": "string", "description": "Damage type resisted." },
+          "value": { "type": "integer", "description": "Amount of resistance." }
+        },
+        "additionalProperties": false
+      },
+      "description": "Damage resistances (reduces incoming damage)."
+    },
+    "weaknesses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "value"],
+        "properties": {
+          "type": { "type": "string", "description": "Damage type weakness." },
+          "value": { "type": "integer", "description": "Additional damage taken." }
+        },
+        "additionalProperties": false
+      },
+      "description": "Damage weaknesses (increases incoming damage)."
+    },
     "initiative_modifier": {
       "type": ["integer", "null"],
-      "description": "For complex hazards that roll initiative."
+      "description": "Initiative bonus for complex hazards that roll initiative. Required for complex hazards."
     },
     "actions_per_round": {
       "type": "integer",
+      "minimum": 0,
       "default": 1,
-      "description": "For complex hazards."
+      "description": "Number of actions the complex hazard takes each round."
     },
     "routine": {
       "type": "string",
-      "description": "What the complex hazard does each round."
+      "description": "What the complex hazard does each round in initiative order."
     },
-    "trigger": { "type": "string" },
-    "effect": { "type": "string" },
-    "reset": { "type": "string" },
+    "trigger": {
+      "type": "string",
+      "description": "What activates or triggers the hazard."
+    },
+    "effect": {
+      "type": "string",
+      "description": "The mechanical effect when the hazard is triggered or acts."
+    },
+    "reset": {
+      "type": ["string", "object"],
+      "description": "How and when the hazard resets. Can be a simple string or detailed object.",
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "properties": {
+            "automatic": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether the hazard resets automatically."
+            },
+            "reset_time_minutes": {
+              "type": ["integer", "null"],
+              "description": "Time in minutes before automatic reset."
+            },
+            "conditions": {
+              "type": "string",
+              "description": "Specific conditions required for reset."
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "hexes_affected": {
       "type": "array",
       "items": {
         "type": "object",
+        "required": ["q", "r"],
         "properties": {
-          "q": { "type": "integer" },
-          "r": { "type": "integer" }
-        }
-      }
+          "q": { "type": "integer", "description": "Axial q coordinate." },
+          "r": { "type": "integer", "description": "Axial r coordinate." }
+        },
+        "additionalProperties": false
+      },
+      "description": "Hexmap coordinates affected by this hazard."
     },
-    "is_active": { "type": "boolean", "default": true },
-    "xp_reward": { "type": "integer" }
-  }
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the hazard is currently active and dangerous."
+    },
+    "is_detected": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the party has successfully detected this hazard."
+    },
+    "is_disabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the hazard has been successfully disabled."
+    },
+    "is_destroyed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the hazard has been destroyed (HP reduced to 0)."
+    },
+    "xp_reward": {
+      "type": "integer",
+      "description": "XP awarded for overcoming this hazard. Auto-calculated from level if omitted."
+    }
+  },
+  "additionalProperties": false
 }

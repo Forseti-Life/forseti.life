@@ -85,7 +85,22 @@ Unified placed-entity runtime instance (`creature`, `item`, `obstacle`) with pla
 Combat encounters with creatures, initiative, and tactical state.
 
 #### `hazard.schema.json`
-Environmental hazards and traps.
+PF2e-compatible environmental hazards (simple and complex). Unlike traps, hazards are often ongoing and visible.
+
+**Defines:**
+- Simple hazards: One-time dangers (falling rocks, collapsing floors)
+- Complex hazards: Ongoing threats that act in initiative order
+- Physical stats: AC, hardness, HP, saves, immunities, resistances, weaknesses
+- Detection and disabling: Stealth DC, disable skill DCs
+- State tracking: is_active, is_detected, is_disabled, is_destroyed
+- Hex placement: Coordinates for map-based hazards
+- Rarity classification: common, uncommon, rare, unique
+
+**Key Features:**
+- Supports both string and structured object format for reset mechanics
+- Optional initiative_modifier and routine for complex hazards
+- Full PF2e save support (Fortitude, Reflex, Will)
+- Strict validation with additionalProperties: false
 
 #### `hexmap.schema.json`
 Hexagonal dungeon map with fog of war and terrain.
