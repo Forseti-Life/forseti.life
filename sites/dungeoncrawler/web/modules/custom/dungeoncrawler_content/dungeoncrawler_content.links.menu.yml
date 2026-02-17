@@ -16,6 +16,13 @@ dungeoncrawler_content.dashboard:
   route_name: dungeoncrawler_content.dashboard
   parent: system.admin_content
 
+dungeoncrawler_content.game_objects:
+  title: 'Game Objects'
+  description: 'Review game objects and their attributes.'
+  route_name: dungeoncrawler_content.game_objects
+  parent: dungeoncrawler_content.dashboard
+  weight: 5
+
 dungeoncrawler_content.testing_admin:
   title: 'Dungeon Crawler Testing'
   description: 'Testing dashboard for admins.'
