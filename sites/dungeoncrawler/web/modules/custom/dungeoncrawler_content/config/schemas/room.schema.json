@@ -4,7 +4,7 @@
   "title": "Dungeon Room Schema",
   "description": "A single room in the dungeon. Occupies one or more hexes. AI-generated on first entry and permanent thereafter. Contains terrain, lighting, creatures, items, and environmental effects compatible with PF2e rules.",
   "type": "object",
-  "required": ["room_id", "name", "hexes", "terrain", "lighting", "state"],
+  "required": ["schema_version", "room_id", "name", "hexes", "terrain", "lighting", "state"],
   "properties": {
     "schema_version": {
       "type": "string",
@@ -19,6 +19,8 @@
     },
     "name": {
       "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
       "description": "AI-generated room name. Becomes permanent after first exploration.",
       "examples": ["The Echoey Room What Screams Back", "Fungal Pantry", "Eduardo's Nest"]
     },
@@ -34,6 +36,7 @@
       "type": "array",
       "description": "All hex coordinates this room occupies. A room can span multiple hexes.",
       "minItems": 1,
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "required": ["q", "r"],
@@ -48,6 +51,7 @@
           },
           "terrain_override": {
             "type": "string",
+            "minLength": 1,
             "description": "Per-hex terrain override (e.g., a pit in one hex of a larger room)."
           },
           "elevation_ft": {
@@ -58,6 +62,7 @@
           "objects": {
             "type": "array",
             "description": "Objects placed on this specific hex (furniture, pillars, etc.).",
+            "uniqueItems": true,
             "items": { "$ref": "#/definitions/hex_object" }
           }
         },
@@ -74,7 +79,7 @@
         "entrance", "exit", "stairwell", "crossroads", "dead_end",
         "trap_room", "puzzle_room", "vault_room", "safe_room"
       ],
-      "description": "Functional room type. Affects AI generation parameters."
+      "description": "Functional room type. Affects AI generation parameters and procedural content generation."
     },
     "size_category": {
       "type": "string",
@@ -146,6 +151,7 @@
         "light_sources": {
           "type": "array",
           "description": "Fixed light sources in the room.",
+          "uniqueItems": true,
           "items": {
             "type": "object",
             "properties": {
@@ -188,10 +194,14 @@
     "environmental_effects": {
       "type": "array",
       "description": "Active PF2e environmental effects in this room.",
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
+          "name": { 
+            "type": "string",
+            "minLength": 1
+          },
           "type": {
             "type": "string",
             "enum": ["weather", "magical", "natural", "planar", "curse"]
@@ -212,6 +222,7 @@
     "creatures": {
       "type": "array",
       "description": "Creatures currently in this room. References creature schema.",
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "properties": {
@@ -247,6 +258,7 @@
     "items": {
       "type": "array",
       "description": "Items/loot present in this room.",
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "properties": {
@@ -281,27 +293,41 @@
     "traps": {
       "type": "array",
       "description": "Traps in this room.",
+      "uniqueItems": true,
       "items": { "$ref": "trap.schema.json" }
     },
     "hazards": {
       "type": "array",
       "description": "PF2e hazards (complex or simple) in this room.",
+      "uniqueItems": true,
       "items": { "$ref": "hazard.schema.json" }
     },
     "obstacles": {
       "type": "array",
       "description": "Traversal/combat obstacles in this room. Obstacles are not containers.",
+      "uniqueItems": true,
       "items": { "$ref": "obstacle.schema.json" }
     },
     "interactables": {
       "type": "array",
       "description": "Interactive objects (levers, altars, puzzles, etc.).",
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "properties": {
-          "interactable_id": { "type": "string" },
-          "name": { "type": "string" },
-          "description": { "type": "string" },
+          "interactable_id": { 
+            "type": "string",
+            "minLength": 1
+          },
+          "name": { 
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": { 
+            "type": "string",
+            "minLength": 1
+          },
           "hex": {
             "type": "object",
             "properties": {
@@ -323,7 +349,10 @@
           "skill_check": {
             "type": "object",
             "properties": {
-              "skill": { "type": "string" },
+              "skill": { 
+                "type": "string",
+                "minLength": 1
+              },
               "dc": { 
                 "type": "integer",
                 "minimum": 1,
@@ -380,11 +409,18 @@
         "notes": {
           "type": "array",
           "description": "Player-added notes about this room.",
+          "uniqueItems": true,
           "items": {
             "type": "object",
             "properties": {
-              "author": { "type": "string" },
-              "text": { "type": "string" },
+              "author": { 
+                "type": "string",
+                "minLength": 1
+              },
+              "text": { 
+                "type": "string",
+                "minLength": 1
+              },
               "timestamp": { "type": "string", "format": "date-time" }
             },
             "additionalProperties": false
@@ -403,7 +439,11 @@
         },
         "theme_tags": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": { 
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
           "examples": [["fungal", "organic", "damp"], ["undead", "crypt", "dark"]]
         },
         "difficulty_target": {
@@ -417,19 +457,57 @@
           "maximum": 20,
           "description": "Average party level when this room was generated (PF2e levels 1-20)."
         },
-        "generation_model": { "type": "string" },
-        "generation_timestamp": { "type": "string", "format": "date-time" }
+        "generation_model": { 
+          "type": "string",
+          "minLength": 1,
+          "description": "AI model used for generation (e.g., 'gpt-4', 'claude-3')."
+        },
+        "generation_timestamp": { 
+          "type": "string", 
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when this room was AI-generated."
+        }
       },
       "additionalProperties": false
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Room instance creation timestamp (ISO 8601 format)."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last modification timestamp (ISO 8601 format)."
     }
   },
   "additionalProperties": false,
   "definitions": {
+    "hex_coordinate": {
+      "type": "object",
+      "description": "Axial hex coordinate (q, r) following the cube coordinate system.",
+      "required": ["q", "r"],
+      "properties": {
+        "q": {
+          "type": "integer",
+          "description": "Q-axis coordinate in axial hex system."
+        },
+        "r": {
+          "type": "integer",
+          "description": "R-axis coordinate in axial hex system."
+        }
+      },
+      "additionalProperties": false
+    },
     "hex_object": {
       "type": "object",
       "description": "A physical object placed on a hex (furniture, pillar, debris, etc.).",
       "properties": {
-        "name": { "type": "string" },
+        "name": { 
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
         "type": {
           "type": "string",
           "enum": [
@@ -463,9 +541,88 @@
           "description": "HP threshold at which object becomes broken (typically HP/2)."
         },
         "interactable": { "type": "boolean", "default": false },
-        "description": { "type": "string" }
+        "description": { 
+          "type": "string",
+          "minLength": 1
+        }
       },
       "additionalProperties": false
     }
-  }
+  },
+  "examples": [
+    {
+      "schema_version": "1.0.0",
+      "room_id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "The Echoing Chamber",
+      "description": "A vast chamber with impossibly high ceilings. Strange echoes reverberate from the darkness above, repeating your footsteps seconds after you take them.",
+      "gm_notes": "Players who Listen carefully (DC 18 Perception) notice the echoes don't quite match their movements.",
+      "hexes": [
+        { "q": 0, "r": 0, "elevation_ft": 0 },
+        { "q": 1, "r": 0, "elevation_ft": 0 },
+        { "q": 0, "r": 1, "elevation_ft": 0 },
+        { "q": 1, "r": 1, "elevation_ft": 5, "terrain_override": "raised_platform" }
+      ],
+      "room_type": "chamber",
+      "size_category": "medium",
+      "terrain": {
+        "type": "smooth_stone",
+        "difficult_terrain": false,
+        "greater_difficult_terrain": false,
+        "hazardous_terrain": null,
+        "ceiling_height_ft": 30
+      },
+      "lighting": {
+        "level": "darkness",
+        "light_sources": []
+      },
+      "environmental_effects": [],
+      "creatures": [],
+      "items": [],
+      "traps": [],
+      "hazards": [],
+      "obstacles": [],
+      "interactables": [
+        {
+          "interactable_id": "660e8400-e29b-41d4-a716-446655440001",
+          "name": "Ancient Altar",
+          "description": "A weathered stone altar covered in mysterious runes",
+          "hex": { "q": 1, "r": 1 },
+          "interaction_type": "altar",
+          "skill_check": {
+            "skill": "Religion",
+            "dc": 20
+          },
+          "effect": "Grants a temporary blessing (+1 to saves for 1 hour)",
+          "used": false,
+          "reusable": true
+        }
+      ],
+      "state": {
+        "explored": true,
+        "explored_at": "2026-02-17T14:30:00Z",
+        "explored_by_party": "770e8400-e29b-41d4-a716-446655440002",
+        "cleared": true,
+        "looted": false,
+        "traps_disarmed": false,
+        "visibility": "visible",
+        "notes": [
+          {
+            "author": "Valeria",
+            "text": "Safe room - good for resting",
+            "timestamp": "2026-02-17T14:35:00Z"
+          }
+        ]
+      },
+      "ai_generation": {
+        "prompt_context": "Generate a mysterious chamber suitable for level 3 party",
+        "theme_tags": ["mysterious", "ancient", "echoing"],
+        "difficulty_target": "moderate",
+        "party_level_at_generation": 3,
+        "generation_model": "gpt-4",
+        "generation_timestamp": "2026-02-17T14:25:00Z"
+      },
+      "created_at": "2026-02-17T14:25:00Z",
+      "updated_at": "2026-02-17T14:35:00Z"
+    }
+  ]
 }
