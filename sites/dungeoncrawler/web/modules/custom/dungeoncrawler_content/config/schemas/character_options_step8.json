@@ -300,6 +300,7 @@
         },
         "next_step": {
           "type": "null",
+          "const": null,
           "description": "No next step - this is the final step"
         },
         "can_go_back": {
