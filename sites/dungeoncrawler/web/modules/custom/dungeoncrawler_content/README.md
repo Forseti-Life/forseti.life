@@ -240,7 +240,20 @@ The module includes CSS libraries:
 1. **dungeoncrawler-content** - Base module styles
 2. **game-cards** - Card-based UI components (refactored 2026-02-17)
 3. **character-sheet** - Character sheet display
-4. **character-steps** - Character creation step styling with CSS custom properties
+4. **character-step-base** - Shared character creation step library (refactored 2026-02-17)
+5. **hexmap** - Hex-based game map with PixiJS rendering
+6. **credits** - Credits page styling
+
+### Libraries Architecture (DCC-0042)
+
+The `dungeoncrawler_content.libraries.yml` file was refactored on 2026-02-17 to eliminate duplication and improve performance:
+
+- **character-step-base**: New base library containing shared `character-steps.css` and dependencies
+- All 8 character step libraries (`character-step-1` through `character-step-8`) now depend on `character-step-base`
+- Eliminated 8 duplicate CSS file references (reduced from 8x loading to 1x loading)
+- Removed 56 lines of repeated dependencies
+- ES6 modules in hexmap properly configured with `type: module` (automatically deferred by browsers)
+- Standardized CSS categories to `theme` for module-specific stylesheets
 
 ### Character Steps CSS
 
