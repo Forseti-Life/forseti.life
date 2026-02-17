@@ -216,7 +216,7 @@ No syntax errors detected in dungeoncrawler_content.module
 - ✅ Dead code removal (no functional dependencies)
 - ✅ Documentation improvements (no behavioral changes)
 - ✅ Type hints (PHP enforces correctness)
-- ✅ Default value normalization (templates should handle NULL)
+- ✅ AC default value clarified with inline documentation (kept at meaningful default of 10)
 
 ### Testing Recommendations
 
