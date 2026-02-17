@@ -54,6 +54,7 @@ Located in `navbar_left` region. Menu items (in order):
 3. **World** - Lore and world information (`/world`)
 4. **How to Play** - Game mechanics guide (`/how-to-play`)
 5. **About** - About the game (`/about`)
+6. **DC Administration** - Admin navigation group for Dungeon Crawler management routes (includes **Game Objects**)
 
 #### Footer Menu
 Located in `footer` region. Menu items (in order):

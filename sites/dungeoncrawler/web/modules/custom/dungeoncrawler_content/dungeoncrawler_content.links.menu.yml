@@ -78,6 +78,21 @@ dungeoncrawler_content.menu.about:
   menu_name: main
   weight: 50
 
+dungeoncrawler_content.menu.dc_administration:
+  title: 'DC Administration'
+  description: 'Administrative tools for Dungeon Crawler.'
+  route_name: dungeoncrawler_content.dashboard
+  menu_name: main
+  expanded: true
+  weight: 90
+
+dungeoncrawler_content.menu.dc_administration_game_objects:
+  title: 'Game Objects'
+  description: 'Review game objects and their attributes.'
+  route_name: dungeoncrawler_content.game_objects
+  parent: dungeoncrawler_content.menu.dc_administration
+  weight: 1
+
 # ==============================================================================
 # FOOTER MENU LINKS
 # ==============================================================================
