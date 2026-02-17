@@ -1138,6 +1138,29 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	}
 
 	/**
+	 * Load an issue-report cache payload when available.
+	 */
+	private function getCachedIssueReportArray(string $cacheKey, bool $useCache): ?array {
+		if (!$useCache) {
+			return NULL;
+		}
+
+		$cache = $this->cacheBackend->get($cacheKey);
+		if (!$cache || !is_array($cache->data)) {
+			return NULL;
+		}
+
+		return $cache->data;
+	}
+
+	/**
+	 * Normalize a GitHub JSON response payload to a list of items.
+	 */
+	private function extractGitHubItems(array $response): array {
+		return is_array($response['items'] ?? NULL) ? $response['items'] : [];
+	}
+
+	/**
 	 * Fetch open issues for reporting.
 	 */
 	protected function fetchOpenIssuesForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
@@ -1146,11 +1169,9 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		}
 
 		$cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.open_issues.' . $repo;
-		if ($useCache) {
-			$cache = $this->cacheBackend->get($cacheKey);
-			if ($cache && !empty($cache->data) && is_array($cache->data)) {
-				return $cache->data;
-			}
+		$cached = $this->getCachedIssueReportArray($cacheKey, $useCache);
+		if ($cached !== NULL) {
+			return $cached;
 		}
 
 		$url = "https://api.github.com/repos/{$repo}/issues?state=open&per_page=100";
@@ -1160,7 +1181,8 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		}
 
 		$items = [];
-		foreach ($response['items'] as $issue) {
+		$payload = $this->extractGitHubItems($response);
+		foreach ($payload as $issue) {
 			if (!is_array($issue) || !empty($issue['pull_request'])) {
 				continue;
 			}
@@ -1210,11 +1232,9 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		}
 
 		$cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.open_prs.' . $repo;
-		if ($useCache) {
-			$cache = $this->cacheBackend->get($cacheKey);
-			if ($cache && !empty($cache->data) && is_array($cache->data)) {
-				return $cache->data;
-			}
+		$cached = $this->getCachedIssueReportArray($cacheKey, $useCache);
+		if ($cached !== NULL) {
+			return $cached;
 		}
 
 		$url = "https://api.github.com/repos/{$repo}/pulls?state=open&per_page=100";
@@ -1224,7 +1244,8 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		}
 
 		$items = [];
-		foreach ($response['items'] as $pr) {
+		$payload = $this->extractGitHubItems($response);
+		foreach ($payload as $pr) {
 			if (!is_array($pr)) {
 				continue;
 			}
@@ -1260,11 +1281,9 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		}
 
 		$cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.closed_prs.' . $repo;
-		if ($useCache) {
-			$cache = $this->cacheBackend->get($cacheKey);
-			if ($cache && !empty($cache->data) && is_array($cache->data)) {
-				return $cache->data;
-			}
+		$cached = $this->getCachedIssueReportArray($cacheKey, $useCache);
+		if ($cached !== NULL) {
+			return $cached;
 		}
 
 		$url = "https://api.github.com/repos/{$repo}/pulls?state=closed&per_page=100";
@@ -1274,7 +1293,8 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		}
 
 		$items = [];
-		foreach ($response['items'] as $pr) {
+		$payload = $this->extractGitHubItems($response);
+		foreach ($payload as $pr) {
 			if (!is_array($pr)) {
 				continue;
 			}
@@ -1304,11 +1324,9 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		}
 
 		$cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.issue_timeline_links.' . $repo . '.' . $issueNumber;
-		if ($useCache) {
-			$cache = $this->cacheBackend->get($cacheKey);
-			if ($cache && !empty($cache->data) && is_array($cache->data)) {
-				return $cache->data;
-			}
+		$cached = $this->getCachedIssueReportArray($cacheKey, $useCache);
+		if ($cached !== NULL) {
+			return $cached;
 		}
 
 		$url = "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/timeline?per_page=100";
@@ -1322,7 +1340,8 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		}
 
 		$linkedPrNumbers = [];
-		foreach ($response['items'] as $event) {
+		$payload = $this->extractGitHubItems($response);
+		foreach ($payload as $event) {
 			if (!is_array($event)) {
 				continue;
 			}
