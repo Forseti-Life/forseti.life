@@ -53,6 +53,7 @@ The dashboard includes:
 - **Shared testing-label constant**: `TESTING_ISSUE_LABELS` is now shared from `TestingDashboardController` (protected constant) and reused by focused controllers, removing duplicate label-list definitions.
 - **Legacy private-method pruning**: Unused monolithic private methods (`getLastRun`, `buildRunStatus`, `renderIssueList`) were removed from `TestingDashboardController` after extraction work to reduce dead surface area.
 - **Issue-only request helper extraction**: `requestGitHubJson` now executes from `TestingDashboardIssueAutomationController`; the shared API timeout constant in `TestingDashboardController` was promoted to protected visibility for focused-controller reuse.
+- **Route helper ownership transfer**: `safeRouteUrl` now executes in `TestingDashboardIssueAutomationController` (its only active consumer), and was removed from `TestingDashboardController`.
 - **Repo-aware nav links**: Tester navigation block now builds the GitHub issue queue link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`).
 - **Repo-aware sign-off link**: Stage definitions now build the release sign-off defect link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`) instead of a hard-coded repository URL.
 - **Filesystem diagnostics**: Queue worker now validates simpletest directory creation/writability and surfaces explicit failure diagnostics in run/state output when setup fails.

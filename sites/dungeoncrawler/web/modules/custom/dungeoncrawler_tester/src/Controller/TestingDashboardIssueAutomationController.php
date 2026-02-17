@@ -6,6 +6,7 @@ use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Focused controller surface for issue/PR report and automation routes.
@@ -26,6 +27,23 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 * Staleness cutoff (days) for bulk stale-issue cleanup query.
 	 */
 	private const BULK_STALE_DAYS = 60;
+
+	/**
+	 * Build a URL from route name with a safe path fallback.
+	 */
+	protected function safeRouteUrl(string $routeName, string $fallbackPath): string {
+		try {
+			return Url::fromRoute($routeName)->toString();
+		}
+		catch (RouteNotFoundException $exception) {
+			$this->logger->warning('Missing route @route while building dashboard URL. Falling back to @path. Error: @message', [
+				'@route' => $routeName,
+				'@path' => $fallbackPath,
+				'@message' => $exception->getMessage(),
+			]);
+			return Url::fromUserInput($fallbackPath)->toString();
+		}
+	}
 
 	/**
 	 * Build process and decision logic guidance for issue-pr-report triage.

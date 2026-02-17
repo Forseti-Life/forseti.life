@@ -19,7 +19,6 @@ use Drupal\dungeoncrawler_tester\Service\GithubIssuePrClientInterface;
 use Drupal\dungeoncrawler_tester\Service\StageDefinitionService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Testing dashboard with stagegates and GitHub failure surfacing.
@@ -197,23 +196,6 @@ class TestingDashboardController extends ControllerBase {
         ],
       ],
     ];
-  }
-
-  /**
-   * Build a URL from route name with a safe path fallback.
-   */
-  protected function safeRouteUrl(string $routeName, string $fallbackPath): string {
-    try {
-      return Url::fromRoute($routeName)->toString();
-    }
-    catch (RouteNotFoundException $exception) {
-      $this->logger->warning('Missing route @route while building dashboard URL. Falling back to @path. Error: @message', [
-        '@route' => $routeName,
-        '@path' => $fallbackPath,
-        '@message' => $exception->getMessage(),
-      ]);
-      return Url::fromUserInput($fallbackPath)->toString();
-    }
   }
 
   /**
