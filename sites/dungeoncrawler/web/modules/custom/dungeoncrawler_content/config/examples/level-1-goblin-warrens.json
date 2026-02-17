@@ -1801,7 +1801,8 @@
         "is_alive": true
       },
       "xp_reward": 20,
-      "description": " [Instance #2 - Identical stats to Hunting Spider #1]"
+      "description": "A hunting spider lurking in the webbed nest, identical to its companion.",
+      "_note": "Instance #2 - Identical stats to Hunting Spider #1 for encounter balance"
     },
     {
       "creature_id": "creature-spider-swarm-001",
@@ -2296,7 +2297,7 @@
       "trigger": "A creature moves into the hex containing the cheese shelf or attempts to take cheese",
       "effect": "Creates a loud clattering noise. All creatures within the Fungal Pantry become aware of the intruder. Gribbles (in the Throne Room) is alerted and begins preparing for intruders. The Violet Fungus Guardian makes an immediate Strike against the triggering creature.",
       "reset": "manual (Gribbles resets it personally after each 'cheese inspection')",
-      "state": "active",
+      "is_active": true,
       "xp_reward": 10
     },
     {
@@ -2314,13 +2315,10 @@
         "thievery": 16,
         "perception": 18
       },
-      "ac": null,
-      "hardness": null,
-      "hp": null,
       "trigger": "A creature walks onto the concealed pit cover",
       "effect": "The cover gives way. DC 18 Reflex save or fall 10 feet, taking 1d6 bludgeoning damage and landing prone. The bottom is covered in old cheese rinds, which Gribbles considers 'bonus punishment'.",
       "reset": "Gribbles carefully replaces the canvas cover (takes him about 20 minutes and a lot of grumbling)",
-      "state": "active",
+      "is_active": true,
       "xp_reward": 30
     }
   ],
@@ -2375,7 +2373,8 @@
       },
       "is_locked": false,
       "is_hidden": false,
-      "description": "A rough-hewn staircase spiraling downward into deeper darkness. Spider webs thin out here, replaced by an oppressive silence. The stone changes from natural cave rock to something older, more deliberately carved."
+      "description": "A rough-hewn staircase spiraling downward into deeper darkness. Spider webs thin out here, replaced by an oppressive silence. The stone changes from natural cave rock to something older, more deliberately carved.",
+      "_note": "Destination level 2 is intended for future expansion or connection to deeper dungeon levels"
     }
   ],
   "generation_rules": {
