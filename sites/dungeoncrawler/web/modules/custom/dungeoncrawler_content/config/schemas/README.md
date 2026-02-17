@@ -35,7 +35,7 @@ JSON Schemas serve multiple purposes:
 | `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 299 | Level generation |
 | `encounter.schema.json` | Combat & initiative | ✓ | 355 | Combat engine |
 | `entity_instance.schema.json` | Placed entities (runtime) | ✗ | 264 | Runtime entity management |
-| `hazard.schema.json` | Environmental hazards | ✗ | 206 | PF2e hazards |
+| `hazard.schema.json` | Environmental hazards | ✓ | 249 | PF2e hazards |
 | `hexmap.schema.json` | Hex-based dungeon map | ✓ | 247 | Map structure |
 | `item.schema.json` | Equipment & loot | ✓ | 439 | Inventory system |
 | `obstacle.schema.json` | Map obstacles | ✗ | 78 | Traversal blockers |
@@ -183,6 +183,15 @@ Combat encounters with creatures, initiative, and tactical state.
 #### `hazard.schema.json`
 PF2e-compatible environmental hazards (simple and complex). Unlike traps, hazards are often ongoing and visible.
 
+**Recently improved (2026-02-17):**
+- Added schema versioning for migration compatibility
+- Added timestamp tracking (created_at, updated_at)
+- Added comprehensive numeric constraints (15+ min/max pairs)
+- Added string validation (minLength) to prevent empty strings
+- Added array validation (uniqueItems) to prevent duplicates
+- Enhanced validation constraints aligned with PF2e rules (levels -1 to 25, DCs 0-50)
+- Improved consistency with trap.schema.json structure
+
 **Defines:**
 - Simple hazards: One-time dangers (falling rocks, collapsing floors)
 - Complex hazards: Ongoing threats that act in initiative order
@@ -197,6 +206,7 @@ PF2e-compatible environmental hazards (simple and complex). Unlike traps, hazard
 - Optional initiative_modifier and routine for complex hazards
 - Full PF2e save support (Fortitude, Reflex, Will)
 - Strict validation with additionalProperties: false
+- Comprehensive constraints aligned with PF2e rules
 
 #### `hexmap.schema.json`
 Hex-based dungeon map with fog of war and terrain using axial coordinates (q, r) for flat-top hex positioning.
@@ -428,6 +438,7 @@ Schemas with `schema_version` field (migration-ready):
 - ✓ `creature.schema.json`
 - ✓ `dungeon_level.schema.json`
 - ✓ `encounter.schema.json`
+- ✓ `hazard.schema.json`
 - ✓ `hexmap.schema.json`
 - ✓ `item.schema.json`
 - ✓ `party.schema.json`
@@ -436,7 +447,6 @@ Schemas with `schema_version` field (migration-ready):
 Schemas pending versioning:
 - `character_options_step[1-7].json` (UI-only schemas)
 - `entity_instance.schema.json`
-- `hazard.schema.json`
 - `obstacle.schema.json`
 - `obstacle_object_catalog.schema.json`
 - `room.schema.json`
