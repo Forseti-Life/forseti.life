@@ -1341,6 +1341,17 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	}
 
 	/**
+	 * Build and optionally cache successful issue-report fetch results.
+	 */
+	private function finalizeReportFetchResult(string $cacheKey, bool $useCache, array $items): array {
+		$result = ['items' => $items, 'error' => NULL];
+		if ($useCache) {
+			$this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+		}
+		return $result;
+	}
+
+	/**
 	 * Fetch open issues for reporting.
 	 */
 	protected function fetchOpenIssuesForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
@@ -1396,11 +1407,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			];
 		}
 
-		$result = ['items' => $items, 'error' => NULL];
-		if ($useCache) {
-			$this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
-		}
-		return $result;
+		return $this->finalizeReportFetchResult($cacheKey, $useCache, $items);
 	}
 
 	/**
@@ -1445,11 +1452,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			];
 		}
 
-		$result = ['items' => $items, 'error' => NULL];
-		if ($useCache) {
-			$this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
-		}
-		return $result;
+		return $this->finalizeReportFetchResult($cacheKey, $useCache, $items);
 	}
 
 	/**
@@ -1487,12 +1490,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			];
 		}
 
-		$result = ['items' => $items, 'error' => NULL];
-		if ($useCache) {
-			$this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
-		}
-
-		return $result;
+		return $this->finalizeReportFetchResult($cacheKey, $useCache, $items);
 	}
 
 	/**

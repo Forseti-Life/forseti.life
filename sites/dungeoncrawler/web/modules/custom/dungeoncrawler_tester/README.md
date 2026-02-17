@@ -80,6 +80,7 @@ The dashboard includes:
 - **GitHub URL builder normalization**: Repeated issue/PR/timeline API URL construction now routes through shared repository/issue/pull URL builder helpers in `TestingDashboardIssueAutomationController`.
 - **Report token-missing response normalization**: Issue/PR report fetch methods now share a single helper for the “No GitHub token configured” response payload shape.
 - **Report API-error response normalization**: Issue/PR report fetch methods now share a single helper for GitHub API error payload shaping (`items + error`).
+- **Report success-result finalization normalization**: Issue/PR report fetch methods now share a helper for successful `items` result assembly + optional cache writes.
 - **Repo-aware nav links**: Tester navigation block now builds the GitHub issue queue link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`).
 - **Repo-aware sign-off link**: Stage definitions now build the release sign-off defect link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`) instead of a hard-coded repository URL.
 - **Filesystem diagnostics**: Queue worker now validates simpletest directory creation/writability and surfaces explicit failure diagnostics in run/state output when setup fails.
