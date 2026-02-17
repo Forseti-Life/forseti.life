@@ -578,22 +578,6 @@ class TestingDashboardController extends ControllerBase {
   }
 
   /**
-   * Fetch full PR details by number.
-   */
-  protected function fetchPullRequestDetails(string $repo, array $tokenCandidates, int $prNumber): ?array {
-    if ($prNumber <= 0) {
-      return NULL;
-    }
-
-    $response = $this->requestGitHubJsonWithFallback("https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $tokenCandidates, [], FALSE);
-    if (!empty($response['error']) || !is_array($response['items'])) {
-      return NULL;
-    }
-
-    return $response['items'];
-  }
-
-  /**
    * Build live SDLC/Release flow tracking from current system signals.
    */
   private function buildLifecycleTrackingSection(string $repo, ?string $token, array $queue_status): array {
@@ -1693,116 +1677,6 @@ class TestingDashboardController extends ControllerBase {
    */
   protected function requestGitHubJsonWithFallback(string $url, array $tokenCandidates, array $extraHeaders = [], bool $paginate = FALSE): array {
     return $this->githubClient->requestJsonWithFallback($url, $tokenCandidates, $extraHeaders, $paginate);
-  }
-
-  /**
-   * Extract issue number references from a PR title/body.
-   */
-  protected function extractIssueReferencesFromPr(array $pr): array {
-    $references = [];
-    $text = trim(((string) ($pr['title'] ?? '')) . "\n" . ((string) ($pr['body'] ?? '')));
-    if ($text === '') {
-      return [];
-    }
-
-    preg_match_all('/#(\d+)/', $text, $matches);
-    foreach ($matches[1] ?? [] as $value) {
-      $number = (int) $value;
-      if ($number > 0) {
-        $references[$number] = TRUE;
-      }
-    }
-
-    return array_values(array_map('intval', array_keys($references)));
-  }
-
-  /**
-   * Check whether a PR is already linked in an issue group.
-   */
-  protected function isPrAlreadyLinkedToIssue(array $linkedPrs, array $candidatePr): bool {
-    $candidateNumber = (int) ($candidatePr['number'] ?? 0);
-    if ($candidateNumber <= 0) {
-      return FALSE;
-    }
-
-    foreach ($linkedPrs as $existingPr) {
-      if ((int) ($existingPr['number'] ?? 0) === $candidateNumber) {
-        return TRUE;
-      }
-    }
-
-    return FALSE;
-  }
-
-  /**
-   * Determine blocking conditions for a PR.
-   */
-  protected function describePrBlockers(array $pr): array {
-    $blockers = [];
-
-    if (!empty($pr['draft'])) {
-      $blockers[] = (string) $this->t('Draft PR');
-    }
-
-    $baseRef = (string) ($pr['base_ref'] ?? '');
-    if ($baseRef !== '' && $baseRef !== 'main') {
-      $blockers[] = (string) $this->t('Base branch is @base (expected main)', ['@base' => $baseRef]);
-    }
-
-    $mergeableState = (string) ($pr['mergeable_state'] ?? 'unknown');
-    if ($mergeableState !== '' && $mergeableState !== 'unknown' && !in_array($mergeableState, ['clean', 'has_hooks'], TRUE)) {
-      $blockers[] = (string) $this->t('Merge state is @state', ['@state' => $mergeableState]);
-    }
-
-    return $blockers;
-  }
-
-  /**
-   * Suggest next step for PR progression based on blockers.
-   */
-  protected function suggestPrNextStep(array $pr, array $blockers): string {
-    if (!empty($pr['draft'])) {
-      return (string) $this->t('Move PR out of draft when ready for review.');
-    }
-
-    $baseRef = (string) ($pr['base_ref'] ?? '');
-    if ($baseRef !== '' && $baseRef !== 'main') {
-      return (string) $this->t('Retarget or rebase PR onto main before merge queue checks.');
-    }
-
-    if (!empty($blockers)) {
-      return (string) $this->t('Resolve blockers, rerun checks, and re-evaluate mergeability.');
-    }
-
-    return (string) $this->t('Request/complete review and merge when checks are green.');
-  }
-
-  /**
-   * Determine if PR has no effective code value compared to main.
-   */
-  protected function isDeadValuePr(array $pr): bool {
-    $baseRef = (string) ($pr['base_ref'] ?? '');
-    $changedFiles = (int) ($pr['changed_files'] ?? 0);
-    $additions = (int) ($pr['additions'] ?? 0);
-    $deletions = (int) ($pr['deletions'] ?? 0);
-
-    return $baseRef === 'main'
-      && $changedFiles === 0
-      && $additions === 0
-      && $deletions === 0;
-  }
-
-  /**
-   * Execute a GitHub mutation request with JSON payload.
-   */
-  protected function requestGitHubMutation(string $method, string $url, string $token, array $json): bool {
-    $ok = $this->githubClient->mutate($method, $url, $json, $token, self::GITHUB_API_TIMEOUT);
-    if (!$ok) {
-      $this->logger->error('Dead-value close mutation failed for @url.', [
-        '@url' => $url,
-      ]);
-    }
-    return $ok;
   }
 
 }
