@@ -296,12 +296,21 @@ Reusable obstacle object definitions (label, movable, stackable, movement flags)
 
 **Recently improved (2026-02-17):**
 - Added schema versioning for migration compatibility (schema_version now required)
+- Added `$defs` section with reusable `movement_config` definition for better schema organization
+- Enhanced description field with clearer guidance and additional examples
+- Added optional enrichment fields for more detailed obstacle definitions:
+  - `size`: PF2e size category (tiny, small, medium, large, huge, gargantuan)
+  - `weight`: PF2e Bulk value for weight/portability (L or numeric)
+  - `interaction`: Mechanics for opening, closing, skill DCs (Athletics, Thievery)
+  - `visual`: Rendering metadata (sprite_id, color, rotation)
 - Enhanced validation with improved constraints:
-  - Added minLength: 1 to object_id to prevent empty IDs
+  - Added minLength: 1 to object_id and description to prevent empty values
   - Added maximum: 999 to cost_multiplier for reasonable upper bound
   - Added uniqueItems: true to tags array to prevent duplicate tags
   - Added minLength: 1 to tag items to prevent empty strings
+- All new fields are optional, maintaining full backward compatibility
 - Validates successfully with existing example data (tavern-obstacle-objects.json)
+
 
 #### `party.schema.json`
 Adventuring party with shared resources and exploration state.
