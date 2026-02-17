@@ -200,20 +200,14 @@ dungeoncrawler_tester.testing_menu_import_open_issues:
   parent: dungeoncrawler_tester.testing_menu_root
   weight: 3
 
-dungeoncrawler_tester.testing_menu_queue_management:
-  title: 'Queue Management'
-  route_name: dungeoncrawler_tester.queue_management
-  parent: dungeoncrawler_tester.testing_menu_root
-  weight: 4
-
 dungeoncrawler_tester.testing_menu_settings:
   title: 'Tester Settings'
   route_name: dungeoncrawler_tester.settings
   parent: dungeoncrawler_tester.testing_menu_root
-  weight: 5
+  weight: 4
 
 dungeoncrawler_tester.testing_menu_thetest:
   title: 'The Test'
   route_name: dungeoncrawler_tester.thetest
   parent: dungeoncrawler_tester.testing_menu_root
-  weight: 6
+  weight: 5

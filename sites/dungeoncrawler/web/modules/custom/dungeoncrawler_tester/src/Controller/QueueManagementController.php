@@ -15,7 +15,11 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Queue management UI for the testing module.
+ * Queue management AJAX endpoints for the testing module.
+ * 
+ * This controller provides AJAX endpoints used by the testing dashboard
+ * for queue operations (run, status, logs, delete, rerun).
+ * The queue UI is embedded directly in the testing dashboard.
  */
 class QueueManagementController extends ControllerBase {
 
@@ -48,37 +52,6 @@ class QueueManagementController extends ControllerBase {
       $container->get('csrf_token'),
       $container->get('uuid'),
     );
-  }
-
-  /**
-   * Render the queue management page.
-   */
-  public function queueManagement(): array {
-    $queue_items = $this->loadQueueItems();
-    $queue_status = $this->getQueueStatus();
-
-    return [
-      '#theme' => 'dungeoncrawler_tester_queue_management',
-      '#queue_items' => $queue_items,
-      '#queue_status' => $queue_status,
-      '#attached' => [
-        'library' => [
-          'dungeoncrawler_tester/queue-management',
-        ],
-        'drupalSettings' => [
-          'dungeoncrawlerTester' => [
-            'csrfToken' => $this->csrfToken->get('rest'),
-            'routes' => [
-              'run' => Url::fromRoute('dungeoncrawler_tester.queue_run')->toString(),
-              'status' => Url::fromRoute('dungeoncrawler_tester.queue_status')->toString(),
-              'logs' => Url::fromRoute('dungeoncrawler_tester.queue_logs')->toString(),
-              'delete' => Url::fromRoute('dungeoncrawler_tester.queue_item_delete')->toString(),
-              'rerun' => Url::fromRoute('dungeoncrawler_tester.queue_item_rerun')->toString(),
-            ],
-          ],
-        ],
-      ],
-    ];
   }
 
   /**
