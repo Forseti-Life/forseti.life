@@ -829,24 +829,14 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 						continue;
 					}
 
-					if ($this->closePullRequestWithComment($repo, $token, $prNumber, self::DEAD_VALUE_COMMENT)) {
-						$result['prs_closed']++;
-					}
-					else {
-						$result['errors'][] = "PR #{$prNumber}";
-					}
+					$this->recordCloseOutcome($result, $this->closePullRequestWithComment($repo, $token, $prNumber, self::DEAD_VALUE_COMMENT), 'pr', $prNumber);
 
 					foreach ($candidate['issue_numbers'] ?? [] as $issueNumber) {
 						$issueNumber = (int) $issueNumber;
 						if ($issueNumber <= 0) {
 							continue;
 						}
-						if ($this->closeIssueWithComment($repo, $token, $issueNumber, self::DEAD_VALUE_COMMENT)) {
-							$result['issues_closed']++;
-						}
-						else {
-							$result['errors'][] = "Issue #{$issueNumber}";
-						}
+						$this->recordCloseOutcome($result, $this->closeIssueWithComment($repo, $token, $issueNumber, self::DEAD_VALUE_COMMENT), 'issue', $issueNumber);
 					}
 				}
 				break;
@@ -854,48 +844,28 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			case 'issues_resolved_by_merged_pr':
 				$issueNumbers = $this->collectOpenIssuesReferencedByMergedPrs($repo, $issues, $tokenCandidates);
 				foreach ($issueNumbers as $issueNumber) {
-					if ($this->closeIssueWithComment($repo, $token, $issueNumber, self::BULK_CLOSE_COMMENT)) {
-						$result['issues_closed']++;
-					}
-					else {
-						$result['errors'][] = "Issue #{$issueNumber}";
-					}
+					$this->recordCloseOutcome($result, $this->closeIssueWithComment($repo, $token, $issueNumber, self::BULK_CLOSE_COMMENT), 'issue', (int) $issueNumber);
 				}
 				break;
 
 			case 'non_action_labeled_issues':
 				$issueNumbers = $this->collectNonActionOpenIssues($issues);
 				foreach ($issueNumbers as $issueNumber) {
-					if ($this->closeIssueWithComment($repo, $token, $issueNumber, self::BULK_CLOSE_COMMENT)) {
-						$result['issues_closed']++;
-					}
-					else {
-						$result['errors'][] = "Issue #{$issueNumber}";
-					}
+					$this->recordCloseOutcome($result, $this->closeIssueWithComment($repo, $token, $issueNumber, self::BULK_CLOSE_COMMENT), 'issue', (int) $issueNumber);
 				}
 				break;
 
 			case 'open_prs_with_only_closed_issue_refs':
 				$prNumbers = $this->collectOpenPrsReferencingOnlyClosedIssues($prs, $openIssueNumbers);
 				foreach ($prNumbers as $prNumber) {
-					if ($this->closePullRequestWithComment($repo, $token, $prNumber, self::BULK_CLOSE_COMMENT)) {
-						$result['prs_closed']++;
-					}
-					else {
-						$result['errors'][] = "PR #{$prNumber}";
-					}
+					$this->recordCloseOutcome($result, $this->closePullRequestWithComment($repo, $token, $prNumber, self::BULK_CLOSE_COMMENT), 'pr', (int) $prNumber);
 				}
 				break;
 
 			case 'stale_unassigned_testing_issues':
 				$issueNumbers = $this->collectStaleUnassignedTestingIssues($issues);
 				foreach ($issueNumbers as $issueNumber) {
-					if ($this->closeIssueWithComment($repo, $token, $issueNumber, self::BULK_CLOSE_COMMENT)) {
-						$result['issues_closed']++;
-					}
-					else {
-						$result['errors'][] = "Issue #{$issueNumber}";
-					}
+					$this->recordCloseOutcome($result, $this->closeIssueWithComment($repo, $token, $issueNumber, self::BULK_CLOSE_COMMENT), 'issue', (int) $issueNumber);
 				}
 				break;
 
@@ -1008,6 +978,28 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$closed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $token, ['state' => 'closed']);
 
 		return $commented && $closed;
+	}
+
+	/**
+	 * Record close operation outcome in bulk-close summary counters.
+	 */
+	private function recordCloseOutcome(array &$result, bool $success, string $itemType, int $itemNumber): void {
+		if ($itemNumber <= 0) {
+			return;
+		}
+
+		if ($success) {
+			if ($itemType === 'pr') {
+				$result['prs_closed']++;
+			}
+			else {
+				$result['issues_closed']++;
+			}
+			return;
+		}
+
+		$label = $itemType === 'pr' ? 'PR' : 'Issue';
+		$result['errors'][] = "{$label} #{$itemNumber}";
 	}
 
 	/**
