@@ -21,6 +21,7 @@ This module has comprehensive documentation organized for different audiences:
 A comprehensive AI-powered Drupal module that automates the entire job application process using Generative AI. This system analyzes user resumes, scrapes job postings from employer websites, tailors applications using AI, and automatically submits applications across multiple employer platforms.
 
 ## Maintenance Notes
+- 2026-02-17: Refactored `JobDiscoveryService` end-to-end for schema safety and consistency: centralized logger access, added shared company-field resolver (`name` vs `company_name`), and applied that resolver to saved-job list filtering/sorting and company dropdown queries.
 - 2026-02-17: Unified search auto-imports external API results into `jobhunter_job_requirements`, but now skips duplicates using identifier checks (`job_hash`, then `external_source + external_job_id`, then `external_source + job_url`).
 - 2026-02-17: Prevented duplicate "Forseti Jobs (Pending)" cards by deduplicating staging rows in `SearchAggregatorService::searchForsetiDatabase()` and by only caching true external API sources (`Google Jobs`, `Adzuna`, `USAJobs`, `Google Jobs (SerpAPI)`) in `storeSearchResults()`.
 - 2026-02-17: Fixed `job-search-results.html.twig` to avoid direct Twig `csrf_token()` calls; token is now generated in `JobApplicationController::jobDiscoverySearchResults()` and passed as `save_job_csrf_token` to prevent Twig syntax errors while preserving AJAX save security.

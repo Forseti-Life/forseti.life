@@ -16,6 +16,13 @@ use Drupal\Core\Session\AccountProxyInterface;
 class JobDiscoveryService {
 
   /**
+   * Logger channel name.
+   *
+   * @var string
+   */
+  protected const LOGGER_CHANNEL = 'job_hunter';
+
+  /**
    * The database connection.
    *
    * @var \Drupal\Core\Database\Connection
@@ -146,7 +153,7 @@ class JobDiscoveryService {
       }
     }
     catch (\Exception $e) {
-      $this->loggerFactory->get('job_hunter')->error('Error loading profile for search: @error', [
+      $this->getLogger()->error('Error loading profile for search: @error', [
         '@error' => $e->getMessage(),
       ]);
     }
@@ -202,7 +209,7 @@ class JobDiscoveryService {
       }
     }
     catch (\Exception $e) {
-      $this->loggerFactory->get('job_hunter')->error('Error checking credentials: @error', [
+      $this->getLogger()->error('Error checking credentials: @error', [
         '@error' => $e->getMessage(),
       ]);
     }
@@ -225,7 +232,7 @@ class JobDiscoveryService {
         ->fetchField();
     }
     catch (\Exception $e) {
-      $this->loggerFactory->get('job_hunter')->error('Error counting saved jobs: @error', [
+      $this->getLogger()->error('Error counting saved jobs: @error', [
         '@error' => $e->getMessage(),
       ]);
       return 0;
@@ -247,7 +254,7 @@ class JobDiscoveryService {
         ->fetchField();
     }
     catch (\Exception $e) {
-      $this->loggerFactory->get('job_hunter')->error('Error counting target companies: @error', [
+      $this->getLogger()->error('Error counting target companies: @error', [
         '@error' => $e->getMessage(),
       ]);
       return 0;
@@ -269,13 +276,15 @@ class JobDiscoveryService {
    */
   public function getSavedJobs(array $filters = []): array {
     try {
+      $company_name_field = $this->getCompanyNameField();
+
       $query = $this->database->select('jobhunter_saved_jobs', 'sj');
       $query->innerJoin('jobhunter_job_requirements', 'j', 'sj.job_id = j.id');
       $query->fields('j')
         ->condition('sj.uid', $this->currentUser->id());
       
       $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
-      $query->addField('c', 'name', 'company_name');
+      $query->addField('c', $company_name_field, 'company_name');
       
       // Join tailored resumes for current user.
       $query->leftJoin('jobhunter_tailored_resumes', 'tr', 'j.id = tr.job_id AND tr.uid = :uid', [
@@ -287,7 +296,7 @@ class JobDiscoveryService {
 
       // Apply filters.
       if (!empty($filters['company'])) {
-        $query->condition('c.name', '%' . $this->database->escapeLike($filters['company']) . '%', 'LIKE');
+        $query->condition('c.' . $company_name_field, '%' . $this->database->escapeLike($filters['company']) . '%', 'LIKE');
       }
       if (!empty($filters['status'])) {
         $query->condition('j.status', $filters['status']);
@@ -302,7 +311,7 @@ class JobDiscoveryService {
         $query->condition('tr.tailoring_status', $filters['tailoring']);
       }
 
-      $query->orderBy('c.name', 'ASC');
+      $query->orderBy('c.' . $company_name_field, 'ASC');
       $query->orderBy('j.job_title', 'ASC');
 
       $results = $query->execute()->fetchAll();
@@ -320,7 +329,7 @@ class JobDiscoveryService {
       return $results;
     }
     catch (\Exception $e) {
-      $this->loggerFactory->get('job_hunter')->error('Error fetching saved jobs: @error', [
+      $this->getLogger()->error('Error fetching saved jobs: @error', [
         '@error' => $e->getMessage(),
       ]);
       return [];
@@ -335,22 +344,46 @@ class JobDiscoveryService {
    */
   public function getCompanyNames(): array {
     try {
-      return $this->database->select('jobhunter_saved_jobs', 'sj')
-        ->fields('c', ['name'])
-        ->innerJoin('jobhunter_job_requirements', 'j', 'sj.job_id = j.id')
-        ->innerJoin('jobhunter_companies', 'c', 'j.company_id = c.id')
-        ->condition('sj.uid', $this->currentUser->id())
-        ->distinct()
-        ->orderBy('name', 'ASC')
-        ->execute()
-        ->fetchCol();
+      $company_name_field = $this->getCompanyNameField();
+
+      $query = $this->database->select('jobhunter_saved_jobs', 'sj');
+      $query->innerJoin('jobhunter_job_requirements', 'j', 'sj.job_id = j.id');
+      $query->innerJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
+      $query->addField('c', $company_name_field, 'company_name');
+      $query->condition('sj.uid', $this->currentUser->id());
+      $query->distinct();
+      $query->orderBy('company_name', 'ASC');
+
+      return $query->execute()->fetchCol();
     }
     catch (\Exception $e) {
-      $this->loggerFactory->get('job_hunter')->error('Error fetching company names: @error', [
+      $this->getLogger()->error('Error fetching company names: @error', [
         '@error' => $e->getMessage(),
       ]);
       return [];
     }
+  }
+
+  /**
+   * Resolve company display field from schema.
+   *
+   * @return string
+   *   Company name field key.
+   */
+  protected function getCompanyNameField(): string {
+    return $this->database->schema()->fieldExists('jobhunter_companies', 'name')
+      ? 'name'
+      : 'company_name';
+  }
+
+  /**
+   * Get logger channel instance.
+   *
+   * @return \Psr\Log\LoggerInterface
+   *   Logger instance.
+   */
+  protected function getLogger() {
+    return $this->loggerFactory->get(self::LOGGER_CHANNEL);
   }
 
 }
