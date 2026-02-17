@@ -116,7 +116,7 @@
               },
               "minItems": 16,
               "maxItems": 16,
-              "comment": "Exactly 16 classes from Pathfinder 2E: Alchemist, Barbarian, Bard, Champion, Cleric, Druid, Fighter, Investigator, Monk, Oracle, Ranger, Rogue, Sorcerer, Swashbuckler, Witch, Wizard"
+              "$comment": "Exactly 16 classes from Pathfinder 2E: Alchemist, Barbarian, Bard, Champion, Cleric, Druid, Fighter, Investigator, Monk, Oracle, Ranger, Rogue, Sorcerer, Swashbuckler, Witch, Wizard"
             },
             "help_text": {
               "type": "string",
