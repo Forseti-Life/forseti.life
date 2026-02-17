@@ -19,8 +19,6 @@ use Drupal\dungeoncrawler_tester\Service\GithubIssuePrClientInterface;
 use Drupal\dungeoncrawler_tester\Service\StageDefinitionService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
@@ -28,11 +26,6 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
  * Testing dashboard with stagegates and GitHub failure surfacing.
  */
 class TestingDashboardController extends ControllerBase {
-
-  /**
-   * Standard close comment for dead-value PR cleanup.
-   */
-  private const DEAD_VALUE_COMMENT = 'Dead value: this PR has no diff from main and no changed files. Closing this PR and associated issue.';
 
   /**
    * Labels treated as testing issues for lifecycle status.
@@ -49,11 +42,6 @@ class TestingDashboardController extends ControllerBase {
    * Staleness cutoff (days) for bulk stale-issue cleanup query.
    */
   private const BULK_STALE_DAYS = 60;
-
-  /**
-   * Standard close comment for bulk no-action cleanup.
-   */
-  private const BULK_CLOSE_COMMENT = 'Bulk close from testing issue/PR report: no additional implementation action required.';
 
   /**
    * State service for persisting last run metadata.
@@ -604,112 +592,6 @@ class TestingDashboardController extends ControllerBase {
     }
 
     return $response['items'];
-  }
-
-  /**
-   * Build a shared docs page layout.
-   *
-   * @param string $title
-   *   Page title.
-   * @param string $intro
-   *   Intro text.
-   * @param array $items
-   *   Primary bullet items.
-   * @param array $relatedLinks
-   *   Related links as Link objects.
-   */
-  private function buildDocPage(string $title, string $intro, array $items, array $relatedLinks = []): array {
-    $related = $this->renderLinkItems($relatedLinks);
-
-    $backToHome = Link::fromTextAndUrl(
-      $this->t('Back to Documentation Home'),
-      Url::fromRoute('dungeoncrawler_tester.documentation_home')
-    );
-    $related = array_merge($related, $this->renderLinkItems([$backToHome]));
-
-    $itemMarkup = [];
-    foreach ($items as $item) {
-      $itemMarkup[] = ['#markup' => $item];
-    }
-
-    return [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['container', 'py-4', 'tester-documentation-page']],
-      '#cache' => [
-        'contexts' => ['user.permissions'],
-        'max-age' => self::GITHUB_CACHE_TTL,
-      ],
-      'row' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['row', 'justify-content-center']],
-        'col' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['col-lg-10']],
-          'summary_card' => [
-            '#type' => 'container',
-            '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'p-4', 'mb-4']],
-            'title' => [
-              '#type' => 'html_tag',
-              '#tag' => 'h2',
-              '#value' => $title,
-            ],
-            'intro' => [
-              '#type' => 'html_tag',
-              '#tag' => 'p',
-              '#attributes' => ['class' => ['text-muted-light', 'mb-0']],
-              '#value' => $intro,
-            ],
-          ],
-          'details_card' => [
-            '#type' => 'container',
-            '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'p-4', 'mb-4']],
-            'items_title' => [
-              '#type' => 'html_tag',
-              '#tag' => 'h3',
-              '#value' => $this->t('Key Points'),
-            ],
-            'items' => [
-              '#theme' => 'item_list',
-              '#items' => $itemMarkup,
-            ],
-          ],
-          'related_card' => [
-            '#type' => 'container',
-            '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'p-4']],
-            'related_title' => [
-              '#type' => 'html_tag',
-              '#tag' => 'h3',
-              '#value' => $this->t('Related Links'),
-            ],
-            'related' => [
-              '#theme' => 'item_list',
-              '#items' => $related,
-            ],
-          ],
-        ],
-      ],
-    ];
-  }
-
-  /**
-   * Convert links to themed render arrays.
-   *
-   * @param array $links
-   *   Array of Link objects.
-   *
-   * @return array
-   *   Renderable link items.
-   */
-  private function renderLinkItems(array $links): array {
-    $items = [];
-
-    foreach ($links as $link) {
-      $render = $link->toRenderable();
-      $render['#attributes']['class'][] = 'link-cyan';
-      $items[] = $render;
-    }
-
-    return $items;
   }
 
   /**
