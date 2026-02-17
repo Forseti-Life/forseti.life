@@ -180,7 +180,36 @@ Adventuring party with shared resources and exploration state.
 Individual dungeon rooms with contents and connections.
 
 #### `trap.schema.json`
-Mechanical and magical traps with PF2e difficulty.
+PF2e-compatible traps and snares (simple and complex). Traps are hidden threats that trigger when activated.
+
+**Recently improved (2026-02-17):**
+- Added schema versioning for migration compatibility
+- Enhanced validation with comprehensive numeric constraints (20+ min/max pairs)
+- Added timestamp tracking (created_at, updated_at)
+- Improved pattern validation for damage formulas
+- Added additionalProperties constraints throughout for stricter validation
+- Added rarity and traits fields for PF2e alignment
+- Complete defense system: AC, immunities, resistances, weaknesses
+- Flexible reset mechanics (string or structured object)
+- State tracking: is_detected, is_disabled, is_triggered, is_destroyed
+- Changed hex to hexes_affected array to support multi-hex traps
+
+**Defines:**
+- Simple traps: One-time dangers (dart trap, pit trap)
+- Complex traps: Ongoing threats that act in initiative order
+- Physical stats: AC, hardness, HP, immunities, resistances, weaknesses
+- Detection and disabling: Stealth DC, multiple skill disable DCs
+- Trigger/effect system: Attack rolls, saving throws, damage, conditions
+- Area of effect: Single hex, burst, emanation, cone, line
+- Reset mechanics: Automatic or manual with timing
+- State tracking: Runtime flags for detection, disabling, triggering, destruction
+
+**Key Features:**
+- Supports both string and structured object format for reset mechanics
+- Multiple skill options for disabling (Thievery, Athletics, Arcana, Religion, Crafting)
+- Pattern validation for damage dice notation
+- Full PF2e trait system support
+- Strict validation with additionalProperties: false
 
 ## Schema Standards
 
