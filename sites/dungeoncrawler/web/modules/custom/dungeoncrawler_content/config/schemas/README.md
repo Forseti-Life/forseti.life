@@ -31,7 +31,7 @@ JSON Schemas serve multiple purposes:
 | Schema File | Purpose | Versioned | Lines | Primary Use |
 |-------------|---------|-----------|-------|-------------|
 | `character.schema.json` | Complete PF2e character | ✓ | 564 | `dc_characters.character_data` |
-| `character_options_step[1-8].json` | Character creation wizard | Partial | 298-506 | Character creation UI |
+| `character_options_step[1-8].json` | Character creation wizard | Partial | 298-525 | Character creation UI |
 | `campaign.schema.json` | Campaign state & progress | ✓ | 137 | `dc_campaigns.campaign_data` |
 | `creature.schema.json` | Monsters, NPCs, beasts | ✓ | 1101 | Entity spawning |
 | `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 298 | Level generation |
@@ -86,6 +86,13 @@ Character creation wizard options and validation rules for each of the 8 steps:
 - Added comprehensive examples section showing recommended ancestry/heritage combinations
 - Enhanced documentation noting which ancestries have implemented heritages vs placeholders
 - Improved consistency with other character creation step schemas
+
+**Recent improvements to Step 3 (2026-02-17):**
+- Added minItems: 1 constraint to examples array for validation consistency
+- Completed examples coverage with 9 archetypes (one for each background)
+- Added Noble, Scholar, and Warrior background examples
+- Enhanced documentation showing background suitability for different character types
+- All 9 PF2e backgrounds now have clear usage examples with ability boost recommendations
 
 ### Dungeon Schemas
 
