@@ -210,7 +210,8 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "maxLength": 100
               },
               "uniqueItems": true,
               "description": "Damage types or conditions the creature is immune to (e.g., 'fire', 'poison', 'paralyzed')."
@@ -222,7 +223,8 @@
                 "properties": {
                   "type": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 100
                   },
                   "value": {
                     "type": "integer",
@@ -244,7 +246,8 @@
                 "properties": {
                   "type": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "maxLength": 100
                   },
                   "value": {
                     "type": "integer",
@@ -1086,7 +1089,8 @@
       "properties": {
         "name": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 200
         },
         "action_cost": {
           "type": "string",
@@ -1122,11 +1126,13 @@
         },
         "description": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 2000
         },
         "effect": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 2000
         }
       },
       "required": [
@@ -1180,5 +1186,230 @@
       ],
       "additionalProperties": false
     }
-  }
+  },
+  "examples": [
+    {
+      "schema_version": "1.0.0",
+      "creature_id": "550e8400-e29b-41d4-a716-446655440001",
+      "name": "Goblin Warrior",
+      "level": 1,
+      "creature_type": "humanoid",
+      "traits": ["Goblin", "Humanoid", "Small"],
+      "alignment": "CE",
+      "rarity": "common",
+      "size": "small",
+      "hex_footprint": 1,
+      "pf2e_stats": {
+        "ability_scores": {
+          "strength": { "score": 10, "modifier": 0 },
+          "dexterity": { "score": 16, "modifier": 3 },
+          "constitution": { "score": 12, "modifier": 1 },
+          "intelligence": { "score": 10, "modifier": 0 },
+          "wisdom": { "score": 10, "modifier": 0 },
+          "charisma": { "score": 8, "modifier": -1 }
+        },
+        "hp": {
+          "max": 16,
+          "current": 16,
+          "temporary": 0,
+          "hardness": 0,
+          "immunities": [],
+          "resistances": [],
+          "weaknesses": []
+        },
+        "ac": 17,
+        "saves": {
+          "fortitude": { "modifier": 5 },
+          "reflex": { "modifier": 9 },
+          "will": { "modifier": 4 }
+        },
+        "perception": {
+          "modifier": 5,
+          "senses": ["darkvision"]
+        },
+        "speed": {
+          "land": 25
+        },
+        "attacks": [
+          {
+            "name": "Dogslicer",
+            "type": "melee",
+            "attack_bonus": 7,
+            "damage": "1d6+2",
+            "damage_type": "slashing",
+            "traits": ["Agile", "Backstabber", "Finesse"],
+            "reach_ft": 5
+          },
+          {
+            "name": "Shortbow",
+            "type": "ranged",
+            "attack_bonus": 7,
+            "damage": "1d6",
+            "damage_type": "piercing",
+            "traits": ["Deadly d10"],
+            "range_ft": 60
+          }
+        ],
+        "skills": {
+          "acrobatics": "trained",
+          "stealth": "trained"
+        }
+      },
+      "ai_personality": {
+        "personality_traits": ["cowardly", "aggressive", "tribal"],
+        "goals": ["protect lair", "gather treasure"],
+        "tactics": "Prefers ranged attacks, flees if outnumbered",
+        "dialogue_style": "crude, simple language"
+      },
+      "lifecycle": {
+        "type": "respawning",
+        "respawn_time_minutes": 60
+      },
+      "loot_table": [
+        {
+          "item_id": "dogslicer",
+          "name": "Dogslicer",
+          "drop_chance": 0.5,
+          "quantity_min": 1,
+          "quantity_max": 1,
+          "rarity": "common"
+        },
+        {
+          "item_id": "copper-pieces",
+          "name": "Copper Pieces",
+          "drop_chance": 0.8,
+          "quantity_min": 5,
+          "quantity_max": 15,
+          "rarity": "common"
+        }
+      ],
+      "xp_reward": 15,
+      "description": "A scraggly goblin warrior with mangy hair and yellowed teeth, wearing crude leather armor patched together from various scavenged pieces.",
+      "source": "Pathfinder Bestiary 1",
+      "created_at": "2026-02-17T12:00:00Z",
+      "updated_at": "2026-02-17T12:00:00Z"
+    },
+    {
+      "schema_version": "1.0.0",
+      "creature_id": "550e8400-e29b-41d4-a716-446655440002",
+      "name": "Flamewing",
+      "title": "Guardian of the Ember Halls",
+      "level": 5,
+      "creature_type": "dragon",
+      "traits": ["Dragon", "Fire", "Medium"],
+      "alignment": "N",
+      "rarity": "uncommon",
+      "size": "medium",
+      "hex_footprint": 1,
+      "pf2e_stats": {
+        "ability_scores": {
+          "strength": { "score": 18, "modifier": 4 },
+          "dexterity": { "score": 14, "modifier": 2 },
+          "constitution": { "score": 16, "modifier": 3 },
+          "intelligence": { "score": 10, "modifier": 0 },
+          "wisdom": { "score": 12, "modifier": 1 },
+          "charisma": { "score": 14, "modifier": 2 }
+        },
+        "hp": {
+          "max": 75,
+          "current": 75,
+          "temporary": 0,
+          "hardness": 0,
+          "immunities": ["fire", "paralyzed", "sleep"],
+          "resistances": [
+            { "type": "physical", "value": 5 }
+          ],
+          "weaknesses": [
+            { "type": "cold", "value": 10 }
+          ]
+        },
+        "ac": 22,
+        "saves": {
+          "fortitude": { "modifier": 14, "proficiency": "expert" },
+          "reflex": { "modifier": 11, "proficiency": "trained" },
+          "will": { "modifier": 10, "proficiency": "trained" }
+        },
+        "perception": {
+          "modifier": 12,
+          "senses": ["darkvision", "scent (imprecise) 60 feet"]
+        },
+        "speed": {
+          "land": 30,
+          "fly": 60
+        },
+        "attacks": [
+          {
+            "name": "Jaws",
+            "type": "melee",
+            "attack_bonus": 15,
+            "damage": "2d8+4",
+            "damage_type": "piercing",
+            "traits": [],
+            "reach_ft": 5
+          },
+          {
+            "name": "Claw",
+            "type": "melee",
+            "attack_bonus": 15,
+            "damage": "2d6+4",
+            "damage_type": "slashing",
+            "traits": ["Agile"],
+            "reach_ft": 5
+          }
+        ],
+        "special_abilities": [
+          {
+            "name": "Breath Weapon",
+            "description": "The dragon breathes a 30-foot cone of flame. Creatures in the area take 6d6 fire damage (DC 22 basic Reflex save). The dragon can't use Breath Weapon again for 1d4 rounds."
+          }
+        ],
+        "skills": {
+          "acrobatics": "trained",
+          "athletics": "expert",
+          "intimidation": "trained"
+        },
+        "languages": ["Common", "Draconic"]
+      },
+      "ai_personality": {
+        "personality_traits": ["proud", "territorial", "cunning"],
+        "goals": ["protect treasure hoard", "drive away intruders"],
+        "tactics": "Opens combat with breath weapon, then engages strongest foe in melee. Uses fly speed to maintain tactical advantage.",
+        "dialogue_style": "Imperious and formal, speaks in draconic metaphors"
+      },
+      "lifecycle": {
+        "type": "permanent"
+      },
+      "loot_table": [
+        {
+          "item_id": "dragon-scale",
+          "name": "Flamewing Scale",
+          "drop_chance": 1.0,
+          "quantity_min": 2,
+          "quantity_max": 4,
+          "rarity": "uncommon"
+        },
+        {
+          "item_id": "gold-pieces",
+          "name": "Gold Pieces",
+          "drop_chance": 1.0,
+          "quantity_min": 50,
+          "quantity_max": 100,
+          "rarity": "common"
+        },
+        {
+          "item_id": "magic-ring",
+          "name": "Ring of Fire Resistance",
+          "drop_chance": 0.3,
+          "quantity_min": 1,
+          "quantity_max": 1,
+          "rarity": "rare"
+        }
+      ],
+      "xp_reward": 120,
+      "description": "A magnificent dragon with crimson and gold scales that shimmer like living flame. Its eyes burn with ancient intelligence, and wisps of smoke curl from its nostrils.",
+      "source": "AI-generated",
+      "created_at": "2026-02-17T12:00:00Z",
+      "updated_at": "2026-02-17T12:00:00Z"
+    }
+  ]
 }
