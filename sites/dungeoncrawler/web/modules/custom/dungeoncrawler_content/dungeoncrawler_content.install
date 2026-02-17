@@ -1767,7 +1767,7 @@ function dungeoncrawler_content_update_10005() {
       }
     }
     if (!$schema_handler->indexExists('dc_characters', 'type')) {
-      $schema_handler->addIndex('dc_characters', 'type', ['type'], $schema['dc_characters']);
+      $schema_handler->addIndex('dc_characters', 'type', ['type']);
     }
 
     // Backfill type/defaults for existing characters.
@@ -1824,7 +1824,7 @@ function dungeoncrawler_content_update_10005() {
       $schema_handler->addUniqueKey('dc_campaign_characters', 'campaign_instance', ['campaign_id', 'instance_id']);
     }
     if (!$schema_handler->indexExists('dc_campaign_characters', 'type')) {
-      $schema_handler->addIndex('dc_campaign_characters', 'type', ['type'], $schema['dc_campaign_characters']);
+      $schema_handler->addIndex('dc_campaign_characters', 'type', ['type']);
     }
 
     // Build a lookup of library character types for backfill.
