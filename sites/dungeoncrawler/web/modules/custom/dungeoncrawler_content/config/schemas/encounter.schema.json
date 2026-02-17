@@ -4,7 +4,7 @@
   "title": "Encounter Schema",
   "description": "PF2e-compatible encounter and combat management. Handles initiative, rounds, XP budgets, and encounter difficulty. Supports both combat and social encounters. Note: Runtime data is stored in relational tables (combat_encounters, combat_participants, combat_conditions) while this schema serves as documentation and validation specification.",
   "type": "object",
-  "required": ["encounter_id", "encounter_type", "room_id", "status", "threat_level"],
+  "required": ["encounter_id", "encounter_type", "room_id", "status", "threat_level", "schema_version"],
   "properties": {
     "schema_version": {
       "type": "string",
@@ -29,12 +29,12 @@
     "party_id": { 
       "type": ["string", "null"], 
       "format": "uuid",
-      "description": "Reference to the adventuring party. Optional; some implementations use campaign_id instead."
+      "description": "Reference to the adventuring party. Optional; some implementations use campaign_id instead. At least one of party_id or campaign_id should be provided."
     },
     "campaign_id": { 
       "type": ["string", "null"], 
       "format": "uuid",
-      "description": "Reference to the campaign. Alternative to party_id in some implementations."
+      "description": "Reference to the campaign. Alternative to party_id in some implementations. At least one of party_id or campaign_id should be provided."
     },
     "status": {
       "type": "string",
