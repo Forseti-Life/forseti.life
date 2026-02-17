@@ -936,6 +936,137 @@ class JobApplicationController extends ControllerBase {
   }
 
   /**
+   * Save a searched job into My Jobs from legacy addposting URL.
+   *
+   * Expected query parameter:
+   * - job_id: Base64-encoded JSON payload from search results.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   Redirect to My Jobs after save attempt.
+   */
+  public function addPostingFromSearch(): RedirectResponse {
+    if ($this->currentUser()->isAnonymous()) {
+      $this->messenger()->addError($this->t('You must be logged in to save jobs.'));
+      return new RedirectResponse('/user/login');
+    }
+
+    $request = $this->requestStack->getCurrentRequest();
+    $encoded = (string) $request->query->get('job_id', '');
+    if ($encoded === '') {
+      $this->messenger()->addError($this->t('Missing job payload.'));
+      return new RedirectResponse('/jobhunter/job-discovery');
+    }
+
+    $decoded = base64_decode(strtr($encoded, '-_', '+/'), TRUE);
+    if ($decoded === FALSE) {
+      $decoded = base64_decode($encoded, TRUE);
+    }
+
+    $job_data = $decoded !== FALSE ? json_decode($decoded, TRUE) : NULL;
+    if (!is_array($job_data)) {
+      $this->messenger()->addError($this->t('Invalid job payload.'));
+      return new RedirectResponse('/jobhunter/job-discovery');
+    }
+
+    $schema = $this->database->schema();
+    $title = trim((string) ($job_data['job_title'] ?? $job_data['title'] ?? 'Untitled Job'));
+    $company_name = trim((string) ($job_data['company_name'] ?? $job_data['company'] ?? ''));
+    $location = trim((string) ($job_data['address_city'] ?? $job_data['location'] ?? ''));
+    $description = trim((string) ($job_data['description'] ?? ''));
+    $source_url = trim((string) ($job_data['url'] ?? ''));
+    $external_job_id = trim((string) ($job_data['htidocid'] ?? $job_data['job_id'] ?? ''));
+
+    try {
+      $uid = (int) $this->currentUser()->id();
+      $company_id = NULL;
+
+      if ($company_name !== '') {
+        $existing_company = $this->database->select('jobhunter_companies', 'c')
+          ->fields('c', ['id'])
+          ->condition('name', $company_name)
+          ->execute()
+          ->fetchField();
+
+        if ($existing_company) {
+          $company_id = (int) $existing_company;
+        }
+        else {
+          $company_fields = [
+            'name' => $company_name,
+            'active' => 1,
+            'created' => time(),
+            'updated' => time(),
+          ];
+          if ($schema->fieldExists('jobhunter_companies', 'uid')) {
+            $company_fields['uid'] = $uid;
+          }
+          $company_id = (int) $this->database->insert('jobhunter_companies')
+            ->fields($company_fields)
+            ->execute();
+        }
+      }
+
+      // Prevent duplicate saves for this user when possible.
+      if ($external_job_id !== '' && $schema->fieldExists('jobhunter_job_requirements', 'external_job_id')) {
+        $dup = $this->database->select('jobhunter_job_requirements', 'j')
+          ->fields('j', ['id'])
+          ->condition('j.external_job_id', $external_job_id);
+        if ($schema->fieldExists('jobhunter_job_requirements', 'created_by_user_id')) {
+          $dup->condition('j.created_by_user_id', $uid);
+        }
+        $existing = $dup->execute()->fetchField();
+        if ($existing) {
+          $this->messenger()->addStatus($this->t('Job is already in My Jobs.'));
+          return new RedirectResponse('/jobhunter/my-jobs');
+        }
+      }
+
+      $fields = [
+        'company_id' => $company_id,
+        'job_title' => $title,
+        'job_description' => $description,
+        'location' => $location,
+        'status' => 'active',
+        'created' => time(),
+        'updated' => time(),
+      ];
+
+      if ($schema->fieldExists('jobhunter_job_requirements', 'source_platform')) {
+        $fields['source_platform'] = 'job_discovery';
+      }
+      if ($schema->fieldExists('jobhunter_job_requirements', 'external_source')) {
+        $fields['external_source'] = 'job_discovery';
+      }
+      if ($schema->fieldExists('jobhunter_job_requirements', 'external_job_id')) {
+        $fields['external_job_id'] = $external_job_id;
+      }
+      if ($schema->fieldExists('jobhunter_job_requirements', 'created_by_user_id')) {
+        $fields['created_by_user_id'] = $uid;
+      }
+      if ($schema->fieldExists('jobhunter_job_requirements', 'job_url')) {
+        $fields['job_url'] = $source_url;
+      }
+      if ($schema->fieldExists('jobhunter_job_requirements', 'application_url')) {
+        $fields['application_url'] = $source_url;
+      }
+
+      $this->database->insert('jobhunter_job_requirements')
+        ->fields($fields)
+        ->execute();
+
+      $this->messenger()->addStatus($this->t('Job added to My Jobs.'));
+      return new RedirectResponse('/jobhunter/my-jobs');
+    }
+    catch (\Exception $e) {
+      $this->getLogger('job_hunter')->error('Failed to add posting from search payload: @error', [
+        '@error' => $e->getMessage(),
+      ]);
+      $this->messenger()->addError($this->t('Unable to save this job right now.'));
+      return new RedirectResponse('/jobhunter/job-discovery');
+    }
+  }
+
+  /**
    * My Jobs page - displays user's saved job postings.
    *
    * @return array

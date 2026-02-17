@@ -187,6 +187,10 @@ class SearchAggregatorService {
     // Store search results for analytics
     $this->storeSearchResults($params, $all_results);
 
+    // Immediately import newly cached external results so they become
+    // searchable in Forseti jobs during the same request.
+    $this->importRecentResults();
+
     // Prepare diagnostics if no results
     $diagnostics = [];
     if (empty($all_results)) {
@@ -254,10 +258,12 @@ class SearchAggregatorService {
       $job_rows = $query->execute()->fetchAll();
 
       // Also query staging table for recent unimported results (last 24 hours)
+      $staging_timestamp_field = $this->database->schema()->fieldExists('jobhunter_job_search_results', 'created') ? 'created' : 'retrieved';
       $staging_query = $this->database->select('jobhunter_job_search_results', 's')
         ->fields('s');
       
-      $staging_query->condition('retrieved', time() - 86400, '>='); // Last 24 hours
+      $staging_query->condition($staging_timestamp_field, time() - 86400, '>='); // Last 24 hours
+      $staging_query->isNull('imported_to_job_id');
       
       // Apply same filters to staging results
       if (!empty($params['query'])) {
@@ -268,7 +274,7 @@ class SearchAggregatorService {
         $staging_query->condition('location', '%' . $this->database->escapeLike($params['location']) . '%', 'LIKE');
       }
 
-      $staging_query->orderBy('retrieved', 'DESC');
+      $staging_query->orderBy($staging_timestamp_field, 'DESC');
       $staging_query->range(0, 25); // Limit staging results
 
       $staging_rows = $staging_query->execute()->fetchAll();
@@ -283,8 +289,9 @@ class SearchAggregatorService {
         // Get company name
         $company_name = 'Unknown';
         if (!empty($job->company_id)) {
+          $company_name_field = $this->database->schema()->fieldExists('jobhunter_companies', 'name') ? 'name' : 'company_name';
           $company = $this->database->select('jobhunter_companies', 'c')
-            ->fields('c', ['company_name'])
+            ->fields('c', [$company_name_field])
             ->condition('id', $job->company_id)
             ->execute()
             ->fetchField();
@@ -307,17 +314,29 @@ class SearchAggregatorService {
 
       // Normalize staging table results (pending import)
       foreach ($staging_rows as $staging_job) {
+        $staging_payload = [];
+        if (!empty($staging_job->job_data_json)) {
+          $decoded = json_decode($staging_job->job_data_json, TRUE);
+          if (is_array($decoded)) {
+            $staging_payload = $decoded;
+          }
+        }
+
+        $posted_timestamp = $staging_timestamp_field === 'created'
+          ? ($staging_job->created ?? 0)
+          : ($staging_job->retrieved ?? 0);
+
         $results[] = [
           'id' => 'staging_' . $staging_job->id,
           'title' => $staging_job->job_title ?? 'No title',
           'company' => $staging_job->company_name ?? 'Unknown',
           'location' => $staging_job->location ?? 'Not specified',
-          'employment_type' => 'Not specified',
+          'employment_type' => $staging_payload['employment_type'] ?? 'Not specified',
           'salary_range' => '',
-          'description' => $this->truncateText($staging_job->description ?? '', 200),
+          'description' => $this->truncateText($staging_payload['description'] ?? '', 200),
           'source' => 'Forseti Jobs (Pending)',
-          'posted_date' => !empty($staging_job->retrieved) ? date('M j, Y', $staging_job->retrieved) : 'Unknown',
-          'url' => $staging_job->link ?? '#',
+          'posted_date' => !empty($posted_timestamp) ? date('M j, Y', $posted_timestamp) : 'Unknown',
+          'url' => $staging_payload['url'] ?? '#',
         ];
       }
     }
@@ -692,7 +711,7 @@ class SearchAggregatorService {
               $this->database->insert('jobhunter_job_search_results')
                 ->fields([
                   'search_query_id' => $search_history_id,
-                  'external_job_id' => $result['id'] ?? uniqid('job_'),
+                  'external_job_id' => $this->normalizeExternalJobId($result['id'] ?? uniqid('job_')),
                   'job_title' => substr($result['title'] ?? '', 0, 255),
                   'company_name' => substr($result['company'] ?? '', 0, 255),
                   'location' => substr($result['location'] ?? '', 0, 255),
@@ -868,6 +887,27 @@ class SearchAggregatorService {
   }
 
   /**
+   * Normalize external job IDs to fit schema constraints safely.
+   *
+   * Some providers (notably SerpAPI) return long encoded identifiers that can
+   * exceed VARCHAR(255). This method preserves short IDs and uses a stable hash
+   * for oversized values.
+   *
+   * @param string $external_job_id
+   *   Source-provided external job identifier.
+   *
+   * @return string
+   *   A schema-safe external job ID.
+   */
+  protected function normalizeExternalJobId(string $external_job_id): string {
+    if (strlen($external_job_id) <= 255) {
+      return $external_job_id;
+    }
+
+    return 'hash_' . hash('sha256', $external_job_id);
+  }
+
+  /**
    * Import recent unimported external job results immediately.
    * 
    * This makes external API results immediately searchable in Forseti DB
@@ -921,9 +961,10 @@ class SearchAggregatorService {
         // Get or create company
         $company_id = 1;
         if (!empty($job_data['company'])) {
+          $company_name_field = $this->database->schema()->fieldExists('jobhunter_companies', 'name') ? 'name' : 'company_name';
           $existing_company = $this->database->select('jobhunter_companies', 'c')
             ->fields('c', ['id'])
-            ->condition('company_name', $job_data['company'])
+            ->condition($company_name_field, $job_data['company'])
             ->execute()
             ->fetchField();
 
@@ -941,28 +982,37 @@ class SearchAggregatorService {
         ];
         $external_source = $source_map[$job_data['source']] ?? 'external_api';
 
+        $job_title = substr((string) ($job_data['title'] ?? 'Unknown'), 0, 255);
+        $location = substr((string) ($job_data['location'] ?? 'Unknown'), 0, 255);
+        $employment_type = substr((string) ($job_data['employment_type'] ?? 'Full-time'), 0, 50);
+        $job_url = substr((string) ($job_data['url'] ?? ''), 0, 512);
+        $external_job_id = substr((string) ($result->external_job_id ?? ''), 0, 512);
+        $via = !empty($job_data['via']) ? substr((string) $job_data['via'], 0, 255) : NULL;
+        $thumbnail = !empty($job_data['thumbnail']) ? substr((string) $job_data['thumbnail'], 0, 512) : NULL;
+        $share_link = !empty($job_data['share_link']) ? substr((string) $job_data['share_link'], 0, 512) : NULL;
+
         // Insert into main table
         $new_job_id = $this->database->insert('jobhunter_job_requirements')
           ->fields([
             'company_id' => $company_id,
-            'job_title' => $job_data['title'] ?? 'Unknown',
+            'job_title' => $job_title,
             'job_description' => $job_data['description'] ?? '',
             'requirements' => '',
             'salary_range' => $job_data['salary_range'] ?? 'Not specified',
-            'location' => $job_data['location'] ?? 'Unknown',
-            'remote_option' => (stripos($job_data['location'] ?? '', 'remote') !== FALSE) ? 'remote' : 'onsite',
-            'employment_type' => $job_data['employment_type'] ?? 'Full-time',
-            'job_url' => $job_data['url'] ?? '',
+            'location' => $location,
+            'remote_option' => (stripos((string) ($job_data['location'] ?? ''), 'remote') !== FALSE) ? 'remote' : 'onsite',
+            'employment_type' => $employment_type,
+            'job_url' => $job_url,
             'status' => 'active',
             'created' => time(),
             'updated' => time(),
             'external_source' => $external_source,
-            'external_job_id' => $result->external_job_id,
+            'external_job_id' => $external_job_id,
             'job_hash' => $job_hash,
             'ai_extraction_status' => 'pending',
-            'via' => $job_data['via'] ?? NULL,
-            'thumbnail' => $job_data['thumbnail'] ?? NULL,
-            'share_link' => $job_data['share_link'] ?? NULL,
+            'via' => $via,
+            'thumbnail' => $thumbnail,
+            'share_link' => $share_link,
             'work_from_home' => !empty($job_data['work_from_home']) ? 1 : 0,
             'health_insurance' => !empty($job_data['health_insurance']) ? 1 : 0,
             'dental_coverage' => !empty($job_data['dental_coverage']) ? 1 : 0,

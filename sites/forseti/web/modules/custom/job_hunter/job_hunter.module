@@ -392,9 +392,10 @@ function job_hunter_cron() {
         // Determine company_id (try to match by name or create placeholder)
         $company_id = 1; // Default/unknown company
         if (!empty($job_data['company'])) {
+          $company_name_field = $database->schema()->fieldExists('jobhunter_companies', 'name') ? 'name' : 'company_name';
           $existing_company = $database->select('jobhunter_companies', 'c')
             ->fields('c', ['id'])
-            ->condition('company_name', $job_data['company'])
+            ->condition($company_name_field, $job_data['company'])
             ->execute()
             ->fetchField();
           
@@ -411,30 +412,39 @@ function job_hunter_cron() {
           'Google Jobs (SerpAPI)' => 'serpapi',
         ];
         $external_source = $source_map[$job_data['source']] ?? 'external_api';
+
+        $job_title = substr((string) ($job_data['title'] ?? 'Unknown'), 0, 255);
+        $location = substr((string) ($job_data['location'] ?? 'Unknown'), 0, 255);
+        $employment_type = substr((string) ($job_data['employment_type'] ?? 'Full-time'), 0, 50);
+        $job_url = substr((string) ($job_data['url'] ?? ''), 0, 512);
+        $external_job_id = substr((string) ($result->external_job_id ?? ''), 0, 512);
+        $via = !empty($job_data['via']) ? substr((string) $job_data['via'], 0, 255) : NULL;
+        $thumbnail = !empty($job_data['thumbnail']) ? substr((string) $job_data['thumbnail'], 0, 512) : NULL;
+        $share_link = !empty($job_data['share_link']) ? substr((string) $job_data['share_link'], 0, 512) : NULL;
         
         // Insert into main job_requirements table
         $new_job_id = $database->insert('jobhunter_job_requirements')
           ->fields([
             'company_id' => $company_id,
-            'job_title' => $job_data['title'] ?? 'Unknown',
+            'job_title' => $job_title,
             'job_description' => $job_data['description'] ?? '',
             'requirements' => '',
             'salary_range' => $job_data['salary_range'] ?? 'Not specified',
-            'location' => $job_data['location'] ?? 'Unknown',
-            'remote_option' => (stripos($job_data['location'] ?? '', 'remote') !== FALSE) ? 'remote' : 'onsite',
-            'employment_type' => $job_data['employment_type'] ?? 'Full-time',
-            'job_url' => $job_data['url'] ?? '',
+            'location' => $location,
+            'remote_option' => (stripos((string) ($job_data['location'] ?? ''), 'remote') !== FALSE) ? 'remote' : 'onsite',
+            'employment_type' => $employment_type,
+            'job_url' => $job_url,
             'status' => 'active',
             'created' => time(),
             'updated' => time(),
             'external_source' => $external_source,
-            'external_job_id' => $result->external_job_id,
+            'external_job_id' => $external_job_id,
             'job_hash' => $job_hash,
             'ai_extraction_status' => 'pending',
             // SerpAPI rich metadata fields
-            'via' => $job_data['via'] ?? NULL,
-            'thumbnail' => $job_data['thumbnail'] ?? NULL,
-            'share_link' => $job_data['share_link'] ?? NULL,
+            'via' => $via,
+            'thumbnail' => $thumbnail,
+            'share_link' => $share_link,
             'work_from_home' => !empty($job_data['work_from_home']) ? 1 : 0,
             'health_insurance' => !empty($job_data['health_insurance']) ? 1 : 0,
             'dental_coverage' => !empty($job_data['dental_coverage']) ? 1 : 0,

@@ -285,6 +285,15 @@ job_hunter.save_job:
   options:
     _csrf_token: FALSE
 
+# Job Discovery - Legacy Save Job Link Endpoint (GET)
+job_hunter.addposting:
+  path: '/jobhunter/addposting'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::addPostingFromSearch'
+  requirements:
+    _permission: 'access job hunter'
+  methods: [GET]
+
 # Target Companies Management
 # DISABLED - No longer needed
 # job_hunter.manage_target_companies:
