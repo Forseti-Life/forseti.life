@@ -27,6 +27,16 @@ export const ActionCost = {
 };
 
 /**
+ * Multiple Attack Penalty (MAP) constants.
+ */
+export const MAPConstants = {
+  STANDARD_PENALTY: -5,  // Standard weapon MAP per attack
+  AGILE_PENALTY: -4,     // Agile weapon MAP per attack
+  MIN_BONUS: -3,         // Minimum action bonus allowed
+  MAX_BONUS: 3           // Maximum action bonus allowed
+};
+
+/**
  * ActionsComponent
  * 
  * Manages the 3-action economy for Pathfinder 2e.
@@ -35,9 +45,15 @@ export const ActionCost = {
 export class ActionsComponent extends Component {
   /**
    * @param {number} maxActions - Maximum actions per turn (default 3)
+   * @param {number} mapPenaltyPerAttack - MAP penalty per attack (default -5 for standard weapons)
    */
-  constructor(maxActions = 3) {
+  constructor(maxActions = 3, mapPenaltyPerAttack = MAPConstants.STANDARD_PENALTY) {
     super();
+    
+    // Validate maxActions
+    if (!Number.isInteger(maxActions) || maxActions < 0) {
+      throw new Error(`maxActions must be a non-negative integer, got: ${maxActions}`);
+    }
     
     // Action economy
     this.maxActions = maxActions;
@@ -47,6 +63,7 @@ export class ActionsComponent extends Component {
     // Multiple Attack Penalty (MAP)
     this.attacksMadeThisTurn = 0;
     this.mapPenalty = 0; // Current MAP (-5, -10, etc.)
+    this.mapPenaltyPerAttack = mapPenaltyPerAttack; // Configurable: -5 standard, -4 agile
     
     // Action history this turn
     this.actionHistory = [];
@@ -64,9 +81,19 @@ export class ActionsComponent extends Component {
   /**
    * Check if entity can afford an action.
    * @param {number} cost - Action cost (from ActionCost enum)
-   * @returns {boolean}
+   * @returns {boolean} True if the action can be afforded
+   * 
+   * @example
+   * if (actions.canAfford(ActionCost.ONE)) {
+   *   // Can perform a single action
+   * }
    */
   canAfford(cost) {
+    // Validate cost input
+    if (typeof cost !== 'number') {
+      return false;
+    }
+    
     if (!this.canAct) {
       return false;
     }
@@ -86,7 +113,12 @@ export class ActionsComponent extends Component {
    * Consume actions.
    * @param {number} cost - Action cost
    * @param {string} actionName - Name of action for history
-   * @returns {boolean} - True if actions were consumed
+   * @returns {boolean} True if actions were successfully consumed
+   * 
+   * @example
+   * if (actions.spendActions(ActionCost.TWO, 'Cast Spell')) {
+   *   // Successfully spent 2 actions
+   * }
    */
   spendActions(cost, actionName = 'Unknown') {
     if (!this.canAfford(cost)) {
@@ -133,7 +165,13 @@ export class ActionsComponent extends Component {
   
   /**
    * Record an attack for MAP calculation.
-   * @returns {number} - MAP penalty to apply to this attack
+   * @returns {number|null} MAP penalty to apply to this attack, or null if attack cannot be made
+   * 
+   * @example
+   * const penalty = actions.makeAttack();
+   * if (penalty !== null) {
+   *   const attackRoll = d20() + attackBonus + penalty;
+   * }
    */
   makeAttack() {
     // Attacks cost one action; abort if unavailable
@@ -144,17 +182,15 @@ export class ActionsComponent extends Component {
     const currentMAP = this.mapPenalty;
     this.attacksMadeThisTurn++;
     
-    // Update MAP for next attack
-    // Standard MAP progression: 0, -5, -10
-    // Agile weapons: 0, -4, -8 (can be handled in combat system)
-    this.mapPenalty = this.attacksMadeThisTurn * -5;
+    // Update MAP for next attack using configurable penalty
+    this.mapPenalty = this.attacksMadeThisTurn * this.mapPenaltyPerAttack;
     
     return currentMAP;
   }
   
   /**
    * Get current MAP penalty.
-   * @returns {number}
+   * @returns {number} Current Multiple Attack Penalty
    */
   getCurrentMAP() {
     return this.mapPenalty;
@@ -183,7 +219,7 @@ export class ActionsComponent extends Component {
   
   /**
    * Check if has actions remaining.
-   * @returns {boolean}
+   * @returns {boolean} True if entity has actions remaining
    */
   hasActionsRemaining() {
     return this.actionsRemaining > 0;
@@ -191,7 +227,7 @@ export class ActionsComponent extends Component {
   
   /**
    * Check if has reaction available.
-   * @returns {boolean}
+   * @returns {boolean} True if reaction is available
    */
   hasReactionAvailable() {
     return this.hasReaction;
@@ -199,7 +235,10 @@ export class ActionsComponent extends Component {
   
   /**
    * Get action count with visual representation.
-   * @returns {string} - e.g., "◆◆◇" for 2 actions
+   * @returns {string} Visual representation (e.g., "◆◆◇" for 2 of 3 actions)
+   * 
+   * @example
+   * console.log(actions.getActionDisplay()); // "◆◆◆" (3 actions available)
    */
   getActionDisplay() {
     const filled = '◆'; // Filled diamond (action available)
@@ -215,28 +254,43 @@ export class ActionsComponent extends Component {
 
   /**
    * Register a callback invoked when actions deplete.
-   * @param {Function|null} callback
+   * @param {Function|null} callback - Callback function, or null to clear
    */
   setOnActionsDepleted(callback) {
+    if (callback !== null && typeof callback !== 'function') {
+      throw new Error('Callback must be a function or null');
+    }
     this.onActionsDepleted = callback;
   }
   
   /**
    * Apply status effect that modifies actions.
-   * @param {string} effect - Effect name
-   * @param {number} modifier - Action modifier
+   * @param {string} effect - Effect name (unused currently, for future enhancement)
+   * @param {number} modifier - Action modifier to add
+   * 
+   * @example
+   * actions.applyActionModifier('Haste', 1); // Add 1 action
+   * actions.applyActionModifier('Slow', -1); // Remove 1 action
    */
   applyActionModifier(effect, modifier) {
+    if (typeof modifier !== 'number' || !Number.isFinite(modifier)) {
+      throw new Error(`Action modifier must be a finite number, got: ${modifier}`);
+    }
+    
     this.actionBonus += modifier;
-    // Cap between -3 and +3
-    this.actionBonus = Math.max(-3, Math.min(3, this.actionBonus));
+    // Cap between MIN_BONUS and MAX_BONUS
+    this.actionBonus = Math.max(MAPConstants.MIN_BONUS, Math.min(MAPConstants.MAX_BONUS, this.actionBonus));
   }
   
   /**
    * Prevent entity from taking actions (e.g., stunned, paralyzed).
-   * @param {boolean} canAct - Can entity act?
+   * @param {boolean} canAct - Whether entity can act
    */
   setCanAct(canAct) {
+    if (typeof canAct !== 'boolean') {
+      throw new Error(`canAct must be a boolean, got: ${typeof canAct}`);
+    }
+    
     this.canAct = canAct;
     if (!canAct) {
       this.actionsRemaining = 0;
@@ -245,7 +299,7 @@ export class ActionsComponent extends Component {
   
   /**
    * Serialize component to JSON.
-   * @returns {Object}
+   * @returns {Object} Serialized component data
    */
   toJSON() {
     return {
@@ -255,6 +309,7 @@ export class ActionsComponent extends Component {
       hasReaction: this.hasReaction,
       attacksMadeThisTurn: this.attacksMadeThisTurn,
       mapPenalty: this.mapPenalty,
+      mapPenaltyPerAttack: this.mapPenaltyPerAttack,
       actionHistory: [...this.actionHistory],
       canAct: this.canAct,
       actionBonus: this.actionBonus
@@ -264,10 +319,11 @@ export class ActionsComponent extends Component {
   /**
    * Deserialize component from JSON.
    * @param {Object} data - Serialized data
-   * @returns {ActionsComponent}
+   * @returns {ActionsComponent} Deserialized component instance
    */
   static fromJSON(data) {
-    const component = new ActionsComponent(data.maxActions);
+    const mapPenaltyPerAttack = data.mapPenaltyPerAttack ?? MAPConstants.STANDARD_PENALTY;
+    const component = new ActionsComponent(data.maxActions, mapPenaltyPerAttack);
     component.actionsRemaining = data.actionsRemaining;
     component.hasReaction = data.hasReaction;
     component.attacksMadeThisTurn = data.attacksMadeThisTurn;
