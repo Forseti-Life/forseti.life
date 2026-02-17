@@ -49,7 +49,26 @@ Character creation wizard options and validation rules for each of the 8 steps:
 #### `campaign.schema.json`
 Campaign state payload stored in `dc_campaigns.campaign_data`.
 
-Runtime validation is applied during campaign creation via `SchemaLoader::validateCampaignData()`.
+**Defines:**
+- Campaign ownership (created_by user ID)
+- Campaign status (started flag, progress events)
+- Current location (active_hex in axial coordinates)
+- Timestamps (created_at, updated_at)
+- Custom metadata storage
+
+**Validation:**
+- Runtime validation via `SchemaLoader::validateCampaignData()`
+- schema_version: Semantic versioning pattern (e.g., "1.0.0")
+- active_hex: Axial coordinate format (e.g., "q0r0", "q2r-1")
+- progress events: Required type (string) and timestamp (unix epoch)
+
+**Common Progress Event Types:**
+- `quest_started`, `quest_completed`
+- `location_discovered`
+- `combat_won`, `combat_fled`
+- `item_acquired`
+- `level_up`, `character_death`
+- `milestone_reached`
 
 #### `creature.schema.json`
 Monsters, NPCs, and beasts with PF2e stats and AI personality.
