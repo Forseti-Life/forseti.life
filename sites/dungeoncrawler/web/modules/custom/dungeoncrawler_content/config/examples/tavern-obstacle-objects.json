@@ -125,7 +125,7 @@
       "object_id": "tavern_fireplace",
       "label": "Stone Fireplace",
       "category": "decor",
-      "description": "Large stone fireplace providing warmth and ambient light to the tavern. This is a fixed environmental fixture that cannot be moved or passed through.",
+      "description": "Large stone fireplace providing warmth and ambient light to the tavern. This fixed environmental fixture anchors the tavern's common area.",
       "movable": false,
       "stackable": false,
       "movement": {
@@ -139,7 +139,7 @@
       "object_id": "tavern_rug",
       "label": "Decorative Rug",
       "category": "decor",
-      "description": "Woven floor rug providing decorative warmth to the tavern. This is purely decorative and does not impede movement or hex occupancy in any way.",
+      "description": "Woven floor rug providing decorative warmth to the tavern. Characters can move freely across it without penalty.",
       "movable": false,
       "stackable": false,
       "movement": {

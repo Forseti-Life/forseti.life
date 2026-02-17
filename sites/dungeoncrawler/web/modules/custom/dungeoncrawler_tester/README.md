@@ -32,9 +32,8 @@ The dashboard includes:
 - **Local issue tracking mode**: Tester failure automation now writes issues to repository-root `Issues.md` instead of creating GitHub issues directly.
 - **GitHub integration scope**: GitHub issue API/CLI integration is restricted to `/dungeoncrawler/testing/import-open-issues` for controlled sync from local tracker rows.
 - **Issues.md mutation boundary**: Import/reconcile PHP automation is responsible for removing matching Open local rows only after GitHub open-state confirmation; Copilot/LLM issue-work agents must not directly edit `Issues.md` as part of issue execution.
-- **Dedicated testing navigation menu**: A module-owned menu (`dungeoncrawler_testing`) now contains tester-facing routes and is used as the canonical source for testing navigation links.
-- **Documentation submenu organization**: The dedicated testing menu now groups all documentation links under an expandable `Documentation` parent, with `Documentation Home` included as a child entry.
-- **Testing navigation block**: The `Dungeon Crawler Testing Navigation` block now renders links directly from the dedicated testing menu so all tester pages stay in sync with one menu definition.
+- **Main navigation integration**: Tester navigation now lives under the existing `main` menu (`Testing Dashboard`), so tester routes are incorporated into the primary site navigation.
+- **Documentation submenu organization**: Tester documentation links are grouped under an expandable `Testing Navigation` → `Documentation` hierarchy in the main menu.
 - **Issue/PR Report Workflow**: `/dungeoncrawler/testing/import-open-issues/issue-pr-report` now documents process and decision logic for low-to-high PR triage, no-op/superseded close decisions, and verification expectations.
 - **Issue/PR local-cache reference**: The issue/PR report now includes an explicit local cache management callout for repository-root `Issues.md` and a direct link to `/dungeoncrawler/testing/import-open-issues`.
 - **Issue/PR import status visibility**: The issue/PR report metadata now includes a “Last local import run” line (time/repo/handled-created-skipped-failed/dry-run) sourced from importer-run state.
@@ -55,7 +54,7 @@ The dashboard includes:
 - **Import GitHub action logging visibility**: Import-page GitHub interactions (search hits, issue create success/failure, Copilot assignment outcomes, and local tracker close-out outcomes) are now written to `dungeoncrawler_tester` watchdog logs and included in the same live feed panel.
 - **Docs link handling**: Documentation links resolve to internal Drupal documentation pages (no direct `.md` links); only the testing issues query links to GitHub.
 - **Theme compliance**: Documentation pages render with the theme-standard Bootstrap layout (`container` + `row/col`) and `card card-dungeoncrawler` sections for visual consistency.
-- **Dedicated testing navigation menu**: A module-owned menu (`dungeoncrawler_testing`) now contains tester-facing routes and is used as the canonical source for testing navigation links.
+- **Unified menu source**: Tester-facing links are now managed in `dungeoncrawler_tester.links.menu.yml` under the `main` menu hierarchy.
 - **POST route hardening**: Mutative tester AJAX routes require CSRF validation in routing requirements.
 - **Stage command validation**: Drush stage-control commands now validate stage IDs against defined stage definitions before writing state.
 - **Queue lock lease strategy**: Manual queue-run command now uses a batch-size-aware lock lease instead of a fixed 30-second window to reduce concurrent-run collisions.
@@ -101,7 +100,7 @@ The dashboard includes:
 - **Report token-missing response normalization**: Issue/PR report fetch methods now share a single helper for the “No GitHub token configured” response payload shape.
 - **Report API-error response normalization**: Issue/PR report fetch methods now share a single helper for GitHub API error payload shaping (`items + error`).
 - **Report success-result finalization normalization**: Issue/PR report fetch methods now share a helper for successful `items` result assembly + optional cache writes.
-- **Repo-aware nav links**: Tester navigation block now builds the GitHub issue queue link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`).
+- **Repo-aware nav links**: Tester navigation links now build the GitHub issue queue link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`).
 - **Repo-aware sign-off link**: Stage definitions now build the release sign-off defect link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`) instead of a hard-coded repository URL.
 - **Filesystem diagnostics**: Queue worker now validates simpletest directory creation/writability and surfaces explicit failure diagnostics in run/state output when setup fails.
 - **Temp-state isolation**: GitHub client cooldown/dedupe/lock files now include repository-scoped namespaces to reduce cross-site/process collisions on shared hosts.

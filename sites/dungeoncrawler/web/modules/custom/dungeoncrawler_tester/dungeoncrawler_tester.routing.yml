@@ -14,19 +14,19 @@ dungeoncrawler_tester.thetest:
   requirements:
     _permission: 'administer site configuration'
 
-dungeoncrawler_tester.issue_pr_report:
-  path: '/dungeoncrawler/testing/import-open-issues/issue-pr-report'
-  defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::issuePrReport'
-    _title: 'Open Issues and PR Report'
-  requirements:
-    _permission: 'administer site configuration'
-
 dungeoncrawler_tester.import_open_issues:
   path: '/dungeoncrawler/testing/import-open-issues'
   defaults:
     _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::importOpenIssuesPage'
     _title: 'Import Open Issues from Tracker'
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.issue_pr_report:
+  path: '/dungeoncrawler/testing/import-open-issues/issue-pr-report'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::issuePrReport'
+    _title: 'Open Issues and PR Report'
   requirements:
     _permission: 'administer site configuration'
 

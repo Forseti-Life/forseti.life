@@ -62,40 +62,13 @@ dungeoncrawler_tester.dashboard_main_home:
   parent: dungeoncrawler_tester.dashboard_main
   weight: 90
 
-dungeoncrawler_tester.dashboard_main_docs:
-  title: 'Documentation Home'
-  description: 'Canonical entry point for tester documentation.'
-  route_name: dungeoncrawler_tester.documentation_home
-  parent: dungeoncrawler_tester.dashboard_main
-  weight: 91
-
-dungeoncrawler_tester.dashboard_main_import_open_issues:
-  title: 'Import Open Issues'
-  description: 'Import open Issues.md tracker rows into GitHub with Copilot assignment.'
-  route_name: dungeoncrawler_tester.import_open_issues
-  parent: dungeoncrawler_tester.dashboard_main
-  weight: 92
-
-dungeoncrawler_tester.dashboard_main_issue_pr_report:
-  title: 'Open Issues/PR Report'
-  description: 'Open issues with linked PRs and orphaned PRs.'
-  route_name: dungeoncrawler_tester.issue_pr_report
-  parent: dungeoncrawler_tester.dashboard_main_import_open_issues
-  weight: 1
-
 dungeoncrawler_tester.testing_menu_root:
   title: 'Testing Navigation'
   description: 'Dungeon Crawler tester navigation links.'
   route_name: dungeoncrawler_tester.dashboard
-  menu_name: dungeoncrawler_testing
+  parent: dungeoncrawler_tester.dashboard_main
   expanded: true
-  weight: 0
-
-dungeoncrawler_tester.testing_menu_dashboard:
-  title: 'Dashboard Home'
-  route_name: dungeoncrawler_tester.dashboard
-  parent: dungeoncrawler_tester.testing_menu_root
-  weight: 0
+  weight: 91
 
 dungeoncrawler_tester.testing_menu_documentation:
   title: 'Documentation'

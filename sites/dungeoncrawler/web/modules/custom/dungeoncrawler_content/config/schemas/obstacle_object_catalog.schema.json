@@ -83,10 +83,13 @@
           },
           "description": {
             "type": ["string", "null"],
-            "description": "Human-readable description for tooltips or documentation. Focus on gameplay implications rather than restating property values.",
+            "minLength": 1,
+            "description": "Human-readable description for tooltips or documentation. Should focus on gameplay implications (how it affects movement, combat, or interaction) rather than restating property values. Good descriptions explain the obstacle's purpose and behavior; poor descriptions merely repeat labels or property values.",
             "examples": [
               "Heavy wooden door between tavern and dungeon room. When open, allows passage between areas without movement penalty.",
-              "Movable round tavern table suitable for small gatherings. Can be pushed by players to rearrange the tavern space or create barriers during combat."
+              "Movable round tavern table suitable for small gatherings. Can be pushed by players to rearrange the tavern space or create barriers during combat.",
+              "Fixed wooden bar counter providing a physical barrier for drink service. Cannot be moved or passed through.",
+              "Stack of lightweight tavern stools. Multiple stools can occupy the same space, allowing flexible positioning around tables."
             ]
           },
           "movable": {
@@ -98,32 +101,7 @@
             "description": "Whether multiple instances can share a hex (e.g., stacked stools, crates)."
           },
           "movement": {
-            "type": "object",
-            "required": ["passable", "blocks_movement", "cost_multiplier"],
-            "properties": {
-              "passable": {
-                "type": "boolean",
-                "description": "If true, occupants can share the hex without obstruction (e.g., floor rugs, open doors)."
-              },
-              "blocks_movement": {
-                "type": "boolean",
-                "description": "If true, pathfinding treats this hex as blocked unless interacted with (e.g., closed doors, walls)."
-              },
-              "cost_multiplier": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 999,
-                "default": 1,
-                "description": "Movement cost multiplier for entering this hex (1 = normal, 2 = difficult terrain, 999 = effectively impassable). Used for future pathfinding AI; not currently used in rendering.",
-                "examples": [1, 1.5, 2, 3, 999]
-              }
-            },
-            "additionalProperties": false,
-            "description": "Traversal characteristics for this object.",
-            "examples": [
-              {"passable": true, "blocks_movement": false, "cost_multiplier": 1},
-              {"passable": false, "blocks_movement": true, "cost_multiplier": 999}
-            ]
+            "$ref": "#/$defs/movement_config"
           },
           "tags": {
             "type": "array",
@@ -138,6 +116,75 @@
               ["decor", "floor"],
               ["decor", "fixture", "light_source"]
             ]
+          },
+          "size": {
+            "type": "string",
+            "enum": ["tiny", "small", "medium", "large", "huge", "gargantuan"],
+            "description": "Optional PF2e size category for the obstacle. Helps determine space occupied and interaction mechanics. If omitted, size is determined by placement context.",
+            "examples": ["small", "medium", "large"]
+          },
+          "weight": {
+            "type": "string",
+            "pattern": "^(L|\\d+)$",
+            "description": "Optional PF2e Bulk value indicating weight/portability. 'L' for light bulk, numeric values for standard bulk (1, 2, 5, 10, etc.). Used for determining if an obstacle can be moved or lifted by characters.",
+            "examples": ["L", "1", "2", "5", "10", "20"]
+          },
+          "interaction": {
+            "type": "object",
+            "description": "Optional interaction mechanics for this obstacle object.",
+            "additionalProperties": false,
+            "properties": {
+              "can_open": {
+                "type": "boolean",
+                "description": "Whether this obstacle can be opened (e.g., doors, chests, windows).",
+                "default": false
+              },
+              "can_close": {
+                "type": "boolean",
+                "description": "Whether this obstacle can be closed after being opened.",
+                "default": false
+              },
+              "requires_key": {
+                "type": "boolean",
+                "description": "Whether opening requires a specific key or item.",
+                "default": false
+              },
+              "athletics_dc": {
+                "type": ["integer", "null"],
+                "minimum": 0,
+                "maximum": 50,
+                "description": "Optional Athletics DC to force open, break, or move the obstacle."
+              },
+              "thievery_dc": {
+                "type": ["integer", "null"],
+                "minimum": 0,
+                "maximum": 50,
+                "description": "Optional Thievery DC to pick a lock or disable a mechanism."
+              }
+            }
+          },
+          "visual": {
+            "type": "object",
+            "description": "Optional visual representation metadata for rendering.",
+            "additionalProperties": true,
+            "properties": {
+              "sprite_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Identifier for the visual sprite or asset to render this obstacle."
+              },
+              "color": {
+                "type": "string",
+                "pattern": "^#[0-9A-Fa-f]{6}$",
+                "description": "Hex color code for tinting or theming the obstacle (e.g., '#8B4513' for brown)."
+              },
+              "rotation": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 359,
+                "description": "Default rotation in degrees (0-359) for oriented obstacles like doors or furniture."
+              }
+            }
           }
         },
         "additionalProperties": false,
@@ -193,6 +240,36 @@
     }
   },
   "additionalProperties": false,
+  "$defs": {
+    "movement_config": {
+      "type": "object",
+      "required": ["passable", "blocks_movement", "cost_multiplier"],
+      "additionalProperties": false,
+      "properties": {
+        "passable": {
+          "type": "boolean",
+          "description": "If true, occupants can share the hex without obstruction (e.g., floor rugs, open doors)."
+        },
+        "blocks_movement": {
+          "type": "boolean",
+          "description": "If true, pathfinding treats this hex as blocked unless interacted with (e.g., closed doors, walls)."
+        },
+        "cost_multiplier": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 999,
+          "default": 1,
+          "description": "Movement cost multiplier for entering this hex (1 = normal, 2 = difficult terrain, 999 = effectively impassable). Used for future pathfinding AI; not currently used in rendering.",
+          "examples": [1, 1.5, 2, 3, 999]
+        }
+      },
+      "description": "Traversal characteristics for an obstacle object.",
+      "examples": [
+        {"passable": true, "blocks_movement": false, "cost_multiplier": 1},
+        {"passable": false, "blocks_movement": true, "cost_multiplier": 999}
+      ]
+    }
+  },
   "examples": [
     {
       "$schema": "../schemas/obstacle_object_catalog.schema.json",

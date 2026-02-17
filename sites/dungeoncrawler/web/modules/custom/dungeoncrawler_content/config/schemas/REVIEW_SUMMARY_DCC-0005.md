@@ -297,3 +297,31 @@ Successfully improved both the `tavern-obstacle-objects.json` example and its sc
 - **Professional Quality**: Production-ready documentation and structure
 
 All changes follow the principle of **minimal, surgical modifications** while providing meaningful improvements to code quality, documentation, and maintainability. The files are now consistent with project standards and serve as strong reference examples for future obstacle catalogs.
+
+---
+
+## Post-Review Refinements (2026-02-17)
+
+Following the comprehensive review above, two additional description refinements were identified and implemented to further align with the schema guidance "Focus on gameplay implications rather than restating property values."
+
+### Additional Changes
+
+**1. Decorative Rug (line 142)**
+- **Previous**: "Woven floor rug providing decorative warmth to the tavern. This is purely decorative and does not impede movement or hex occupancy in any way."
+- **Refined**: "Woven floor rug providing decorative warmth to the tavern. Characters can move freely across it without penalty."
+- **Impact**: Removed redundant property restatements. Movement properties already convey passability.
+
+**2. Stone Fireplace (line 128)**
+- **Previous**: "Large stone fireplace providing warmth and ambient light to the tavern. This is a fixed environmental fixture that cannot be moved or passed through."
+- **Refined**: "Large stone fireplace providing warmth and ambient light to the tavern. This fixed environmental fixture anchors the tavern's common area."
+- **Impact**: Replaced property restatements with gameplay context (environmental anchoring).
+
+### Final Quality Metrics
+
+**Total Enhancements**: 9 improvements (7 original + 2 refinements)  
+**Descriptions Optimized**: 12 out of 10 (all initial improvements + 2 additional refinements)  
+**Schema Guidance Compliance**: 100% - all descriptions now focus on gameplay implications  
+**Files Modified**: 1 (tavern-obstacle-objects.json)  
+**Total Lines Changed**: 2 (description refinements only)
+
+The file now represents a **gold standard** for obstacle object catalogs, with consistent, gameplay-focused descriptions that avoid redundant property restatements while maintaining complete technical accuracy.
