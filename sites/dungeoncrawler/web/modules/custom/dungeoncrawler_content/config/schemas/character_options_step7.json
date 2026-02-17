@@ -86,14 +86,14 @@
                     "items": {
                       "type": "object",
                       "properties": {
-                        "id": {"type": "string"},
-                        "name": {"type": "string"},
-                        "cost": {"type": "number", "description": "Cost in gold pieces"},
-                        "bulk": {"type": "number", "description": "Encumbrance value"},
-                        "hands": {"type": "integer", "description": "Number of hands required"},
+                        "id": {"type": "string", "description": "Unique equipment item identifier"},
+                        "name": {"type": "string", "description": "Display name of the item"},
+                        "cost": {"type": "number", "description": "Cost in gold pieces", "minimum": 0},
+                        "bulk": {"type": "number", "description": "Encumbrance value", "minimum": 0, "default": 0},
+                        "hands": {"type": "integer", "description": "Number of hands required", "minimum": 0, "maximum": 2, "default": 1},
                         "damage": {"type": "string", "description": "Damage dice (weapons only)"},
-                        "traits": {"type": "array", "items": {"type": "string"}},
-                        "description": {"type": "string"}
+                        "traits": {"type": "array", "items": {"type": "string"}, "description": "Item traits and properties", "default": []},
+                        "description": {"type": "string", "description": "Item description"}
                       },
                       "required": ["id", "name", "cost"]
                     }
@@ -109,6 +109,7 @@
             },
             "validation": {
               "type": "object",
+              "description": "Validation rules for equipment selection",
               "properties": {
                 "max_cost": {
                   "type": "integer",
@@ -120,9 +121,19 @@
                   "const": true,
                   "description": "Warn if selecting weapons/armor character isn't proficient in"
                 },
-                "error_message": {
-                  "type": "string",
-                  "const": "Your equipment total cannot exceed 15 gp."
+                "error_messages": {
+                  "type": "object",
+                  "description": "Validation error messages",
+                  "properties": {
+                    "max_cost": {
+                      "type": "string",
+                      "default": "Your equipment total cannot exceed 15 gp."
+                    },
+                    "proficiency_warning": {
+                      "type": "string",
+                      "default": "Warning: Your character is not proficient with this item."
+                    }
+                  }
                 }
               }
             }
@@ -149,24 +160,29 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "id": {"type": "string"},
-                  "name": {"type": "string"},
+                  "id": {"type": "string", "description": "Unique preset identifier"},
+                  "name": {"type": "string", "description": "Display name of the preset"},
                   "for_classes": {
                     "type": "array",
+                    "description": "Classes this preset is recommended for",
                     "items": {"type": "string"}
                   },
                   "total_cost": {
                     "type": "number",
+                    "description": "Total cost of all items in preset",
+                    "minimum": 0,
                     "maximum": 15
                   },
                   "items": {
                     "type": "array",
+                    "description": "Items included in this preset",
                     "items": {
                       "type": "object",
                       "properties": {
-                        "item_id": {"type": "string"},
-                        "quantity": {"type": "integer"}
-                      }
+                        "item_id": {"type": "string", "description": "Reference to equipment item"},
+                        "quantity": {"type": "integer", "description": "Number of items", "minimum": 1, "default": 1}
+                      },
+                      "required": ["item_id", "quantity"]
                     }
                   }
                 },
@@ -250,6 +266,31 @@
       },
       "required": ["starting_gold", "equipment_selection", "equipment_presets"]
     },
+    "validation": {
+      "type": "object",
+      "description": "Step-level validation rules",
+      "properties": {
+        "step_complete": {
+          "type": "object",
+          "description": "Conditions for step completion",
+          "properties": {
+            "required_fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [],
+              "description": "No fields strictly required - player can proceed without equipment"
+            },
+            "error_message": {
+              "type": "string",
+              "default": "You can proceed to the next step. Equipment is optional but recommended.",
+              "description": "Message shown to user"
+            }
+          }
+        }
+      }
+    },
     "navigation": {
       "type": "object",
       "description": "Navigation rules for this step",
@@ -293,5 +334,5 @@
       ]
     }
   },
-  "required": ["step", "step_name", "step_description", "fields", "navigation", "tips"]
+  "required": ["step", "step_name", "step_description", "fields", "validation", "navigation", "tips"]
 }
