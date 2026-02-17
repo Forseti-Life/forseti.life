@@ -17,8 +17,8 @@
     },
     "step_description": {
       "type": "string",
-      "const": "Choose your character's background, representing their life before becoming an adventurer. Each background grants ability boosts, a trained skill, a lore skill, and a skill feat.",
-      "description": "Explanation of what happens in this step"
+      "default": "Choose your character's background, representing their life before becoming an adventurer. Each background grants ability boosts, a trained skill, a lore skill, and a skill feat.",
+      "description": "Instructions shown to the player for this step"
     },
     "fields": {
       "type": "object",
@@ -43,6 +43,11 @@
               "const": true,
               "description": "Whether this field is mandatory"
             },
+            "options_source": {
+              "type": "string",
+              "const": "CharacterManager::BACKGROUNDS",
+              "description": "Source constant containing available backgrounds"
+            },
             "options": {
               "type": "array",
               "description": "Available backgrounds from CharacterManager::BACKGROUNDS",
@@ -64,22 +69,27 @@
                   "ability_boosts": {
                     "type": "integer",
                     "const": 2,
-                    "description": "Number of free ability boosts (player choice)"
+                    "description": "Number of free ability boosts (player choice)",
+                    "examples": [2]
                   },
                   "skill": {
                     "type": "string",
-                    "description": "Trained skill granted"
+                    "description": "Trained skill granted by this background (e.g., Religion, Stealth, Performance)",
+                    "examples": ["Religion", "Stealth", "Performance", "Athletics"]
                   },
                   "feat": {
                     "type": "string",
-                    "description": "Skill feat granted"
+                    "description": "Skill feat granted by this background",
+                    "examples": ["Student of the Canon", "Experienced Smuggler", "Fascinating Performance"]
                   },
                   "lore": {
                     "type": "string",
-                    "description": "Lore skill granted"
+                    "description": "Lore skill granted by this background, representing specialized knowledge",
+                    "examples": ["Scribing Lore", "Underworld Lore", "Theater Lore"]
                   }
                 },
-                "required": ["id", "name", "description", "ability_boosts", "skill", "feat", "lore"]
+                "required": ["id", "name", "description", "ability_boosts", "skill", "feat", "lore"],
+                "additionalProperties": false
               },
               "minItems": 9,
               "maxItems": 9,
@@ -186,7 +196,7 @@
               }
             }
           },
-          "required": ["field_type", "label", "required", "options", "help_text", "validation"]
+          "required": ["field_type", "label", "required", "options_source", "options", "help_text", "validation"]
         },
         "background_boosts": {
           "type": "object",
@@ -295,6 +305,30 @@
       },
       "required": ["previous_step", "next_step", "can_go_back", "can_skip"]
     },
+    "boost_sources_produced": {
+      "type": "object",
+      "description": "Documents ability boosts and benefits produced by this step for use in later steps",
+      "properties": {
+        "background_boosts": {
+          "type": "integer",
+          "const": 2,
+          "description": "Two free ability boosts from background selection (used in Step 5 ability score calculations)"
+        },
+        "trained_skill": {
+          "type": "string",
+          "description": "One trained skill granted by the selected background"
+        },
+        "skill_feat": {
+          "type": "string",
+          "description": "One skill feat granted by the selected background"
+        },
+        "lore_skill": {
+          "type": "string",
+          "description": "One lore skill granted by the selected background"
+        }
+      },
+      "required": ["background_boosts", "trained_skill", "skill_feat", "lore_skill"]
+    },
     "tips": {
       "type": "array",
       "description": "Helpful tips for new players",
@@ -309,5 +343,5 @@
       ]
     }
   },
-  "required": ["step", "step_name", "step_description", "fields", "navigation", "tips"]
+  "required": ["step", "step_name", "step_description", "fields", "navigation", "boost_sources_produced", "tips"]
 }
