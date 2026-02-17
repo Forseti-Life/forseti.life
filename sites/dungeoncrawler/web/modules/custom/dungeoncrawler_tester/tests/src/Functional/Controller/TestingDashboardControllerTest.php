@@ -128,7 +128,7 @@ class TestingDashboardControllerTest extends BrowserTestBase {
    */
   public function testIssuePrReportDisplay(): void {
     $this->drupalLogin($this->adminUser);
-    $this->drupalGet('/dungeoncrawler/testing/issue-pr-report');
+    $this->drupalGet('/dungeoncrawler/testing/import-open-issues/issue-pr-report');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->pageTextContains('Process & Decision Logic');
     $this->assertSession()->pageTextContains('Triage Steps');
@@ -142,13 +142,13 @@ class TestingDashboardControllerTest extends BrowserTestBase {
    */
   public function testIssuePrReportAccessNegative(): void {
     // Anonymous user should not access report.
-    $this->drupalGet('/dungeoncrawler/testing/issue-pr-report');
+    $this->drupalGet('/dungeoncrawler/testing/import-open-issues/issue-pr-report');
     $this->assertSession()->statusCodeEquals(403);
     
     // Regular authenticated user without permission should not access.
     $regularUser = $this->drupalCreateUser([]);
     $this->drupalLogin($regularUser);
-    $this->drupalGet('/dungeoncrawler/testing/issue-pr-report');
+    $this->drupalGet('/dungeoncrawler/testing/import-open-issues/issue-pr-report');
     $this->assertSession()->statusCodeEquals(403);
   }
 

@@ -22,7 +22,7 @@ This is the canonical entry point for all tester module documentation.
 ## Supporting References
 
 - [Testing Dashboard](/dungeoncrawler/testing)
-- [Issue/PR Report](/dungeoncrawler/testing/issue-pr-report) — operational triage page with documented close-decision logic.
+- [Issue/PR Report](/dungeoncrawler/testing/import-open-issues/issue-pr-report) — operational triage page with documented close-decision logic.
 
 ## Live Tracking
 
