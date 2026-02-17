@@ -40,11 +40,11 @@ JSON Schemas serve multiple purposes:
 | `hazard.schema.json` | Environmental hazards | ✓ | 476 | PF2e hazards |
 | `hexmap.schema.json` | Hex-based dungeon map | ✓ | 247 | Map structure |
 | `item.schema.json` | Equipment & loot | ✓ | 441 | Inventory system |
-| `obstacle.schema.json` | Map obstacles | ✗ | 194 | Traversal blockers |
-| `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✗ | 221 | Obstacle templates |
+| `obstacle.schema.json` | Map obstacles | ✓ | 231 | Traversal blockers |
+| `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✓ | 224 | Obstacle templates |
 | `party.schema.json` | Adventuring party | ✓ | 441 | Party management |
-| `room.schema.json` | Individual dungeon rooms | ✗ | 471 | Room generation |
-| `trap.schema.json` | Mechanical & magical traps | ✓ | 440 | Trap mechanics |
+| `room.schema.json` | Individual dungeon rooms | ✓ | 471 | Room generation |
+| `trap.schema.json` | Mechanical & magical traps | ✓ | 330 | Trap mechanics |
 
 ## Schema Categories
 
@@ -566,7 +566,7 @@ This enables IDE autocomplete, validation, and inline documentation for JSON dat
 
 ### Directory Cleanup Note
 
-This directory may contain historical completion/summary markdown files (e.g., `DCC-XXXX_COMPLETION.md`, `REVIEW_SUMMARY_DCC-XXXX.md`). These are legacy work-tracking documents and should be moved to a dedicated documentation archive or removed according to the repository's [Work Tracking and Status Policy](.github/instructions/instructions.md). Schema documentation should focus on the JSON schema files themselves.
+This directory previously contained historical completion/summary markdown files (e.g., `DCC-XXXX_COMPLETION.md`, `REVIEW_SUMMARY_DCC-XXXX.md`). These legacy work-tracking documents have been removed in accordance with the repository's Work Tracking and Status Policy (see `.github/instructions/instructions.md`). Per policy, implementation status should be tracked in GitHub Issues, not in separate markdown files. This directory now focuses solely on JSON schema files and this README documentation.
 
 ### Schema Versioning Status
 
@@ -586,6 +586,7 @@ Schemas with `schema_version` field (migration-ready):
 - ✓ `obstacle.schema.json`
 - ✓ `obstacle_object_catalog.schema.json`
 - ✓ `party.schema.json`
+- ✓ `room.schema.json`
 - ✓ `trap.schema.json`
 
 Schemas with versioning (recently added):
@@ -594,9 +595,7 @@ Schemas with versioning (recently added):
 - ✓ `room.schema.json`
 
 Schemas pending versioning:
-- `character_options_step[1,3-5,7].json` (UI-only schemas - lower priority)
-- `obstacle.schema.json` (needs versioning for production use)
-- `room.schema.json` (needs versioning for production use)
+- `character_options_step[1-5,7].json` (UI-only schemas - lower priority)
 
 ### Adding New Properties
 1. Update the appropriate schema file
