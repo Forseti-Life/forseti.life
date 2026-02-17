@@ -161,7 +161,7 @@ class TestingDashboardControllerTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->pageTextContains('Import Open Issues');
     $this->assertSession()->pageTextContains('Synchronize local Open rows from Issues.md to GitHub');
-    
+
     // Verify link to issue-pr-report exists.
     $this->assertSession()->linkExists('View Issue/PR Report →');
     $this->assertSession()->linkByHrefExists('/dungeoncrawler/testing/import-open-issues/issue-pr-report');
