@@ -4,6 +4,13 @@
   "title": "Character Creation Step 4: Class",
   "description": "Defines available options and validation for selecting character's class in Pathfinder 2E character creation",
   "type": "object",
+  "$defs": {
+    "proficiency_rank": {
+      "type": "string",
+      "enum": ["Untrained", "Trained", "Expert", "Master", "Legendary"],
+      "description": "Proficiency rank values for skills, saves, and other abilities"
+    }
+  },
   "properties": {
     "step": {
       "type": "integer",
@@ -45,7 +52,7 @@
             },
             "options": {
               "type": "array",
-              "description": "Available classes from CharacterManager::CLASSES",
+              "description": "Available classes from Pathfinder 2E Core Rulebook and Advanced Player's Guide (16 core classes)",
               "items": {
                 "type": "object",
                 "properties": {
@@ -71,25 +78,22 @@
                   },
                   "proficiencies": {
                     "type": "object",
-                    "description": "Initial proficiency ranks",
+                    "description": "Initial proficiency ranks for saves",
                     "properties": {
                       "perception": {
-                        "type": "string",
-                        "enum": ["Untrained", "Trained", "Expert", "Master", "Legendary"]
+                        "$ref": "#/$defs/proficiency_rank"
                       },
                       "fortitude": {
-                        "type": "string",
-                        "enum": ["Untrained", "Trained", "Expert", "Master", "Legendary"]
+                        "$ref": "#/$defs/proficiency_rank"
                       },
                       "reflex": {
-                        "type": "string",
-                        "enum": ["Untrained", "Trained", "Expert", "Master", "Legendary"]
+                        "$ref": "#/$defs/proficiency_rank"
                       },
                       "will": {
-                        "type": "string",
-                        "enum": ["Untrained", "Trained", "Expert", "Master", "Legendary"]
+                        "$ref": "#/$defs/proficiency_rank"
                       }
-                    }
+                    },
+                    "required": ["perception", "fortitude", "reflex", "will"]
                   },
                   "skills": {
                     "type": "string",
@@ -105,13 +109,14 @@
                   },
                   "spellcasting": {
                     "type": "string",
-                    "description": "Spellcasting tradition and key ability (if applicable)"
+                    "description": "Spellcasting tradition and key ability (optional - only for spellcasting classes)"
                   }
                 },
                 "required": ["id", "name", "description", "hp", "key_ability", "proficiencies", "skills", "trained_skills", "weapons"]
               },
               "minItems": 16,
-              "maxItems": 16
+              "maxItems": 16,
+              "comment": "Exactly 16 classes from Pathfinder 2E: Alchemist, Barbarian, Bard, Champion, Cleric, Druid, Fighter, Investigator, Monk, Oracle, Ranger, Rogue, Sorcerer, Swashbuckler, Witch, Wizard"
             },
             "help_text": {
               "type": "string",
@@ -171,11 +176,11 @@
         "type": "string"
       },
       "default": [
-        "Hit Points (HP) determine how much damage you can take. Higher HP classes are more durable in combat.",
+        "Hit Points (HP) determine how much damage you can take. Higher HP classes (e.g., Fighter: 10, Barbarian: 12) are more durable in combat, while lower HP classes (e.g., Wizard: 6, Sorcerer: 6) are more fragile.",
         "Key Ability is the most important stat for your class. Make sure to boost it with your free ability improvements.",
-        "Spellcasting classes (wizard, cleric, druid, sorcerer, bard, oracle, witch) can cast powerful spells but tend to have lower HP.",
-        "Martial classes (fighter, ranger, barbarian, monk, rogue, swashbuckler) excel in physical combat with weapons.",
-        "Hybrid classes (champion, alchemist, investigator) combine elements of martial and spellcasting roles.",
+        "Spellcasting classes (see class_categories.spellcasters: wizard, cleric, druid, sorcerer, bard, oracle, witch) can cast powerful spells but tend to have lower HP.",
+        "Martial classes (see class_categories.martial: fighter, barbarian, ranger, monk, champion, swashbuckler) excel in physical combat with weapons.",
+        "Skill specialists (see class_categories.skill_specialists: rogue, investigator, alchemist) combine elements of martial and spellcasting roles with exceptional skill versatility.",
         "Consider your party composition - balanced parties with different roles tend to handle challenges better."
       ]
     },
