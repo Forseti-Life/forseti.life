@@ -279,7 +279,7 @@
           "type": ["integer", "null"],
           "minimum": 1,
           "maximum": 50,
-          "description": "PF2e Thievery DC to unlock (1-50 range)."
+          "description": "PF2e Thievery DC to unlock (1-50 range). Null if not locked or no DC required."
         },
         "is_hidden": {
           "type": "boolean",
@@ -290,7 +290,7 @@
           "type": ["integer", "null"],
           "minimum": 1,
           "maximum": 50,
-          "description": "PF2e Perception DC to discover hidden stairway (1-50 range)."
+          "description": "PF2e Perception DC to discover hidden stairway (1-50 range). Null if not hidden or no check required."
         }
       }
     }
