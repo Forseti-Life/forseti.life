@@ -30,9 +30,14 @@ class CharacterStateControllerTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalGet('/api/character/1/state', ['query' => ['_format' => 'json']]);
-    // May return 404 without valid character
-    $this->assertSession()->statusCodeNotEquals(405);
+    $character_id = $this->createCharacterForUser($user->id());
+
+    $this->drupalGet("/api/character/{$character_id}/state", ['query' => ['_format' => 'json']]);
+    $this->assertSession()->statusCodeEquals(200);
+
+    $data = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+    $this->assertTrue(($data['success'] ?? FALSE) === TRUE);
+    $this->assertArrayHasKey('data', $data);
   }
 
   /**
@@ -50,9 +55,23 @@ class CharacterStateControllerTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/character/1/update', [], [], [], ['Content-Type' => 'application/json']);
-    // May return 400/404 without valid data/character
-    $this->assertSession()->statusCodeNotEquals(405);
+    $character_id = $this->createCharacterForUser($user->id());
+
+    $response = $this->requestJson(
+      'POST',
+      "/api/character/{$character_id}/update",
+      [
+        'state' => [
+          'basicInfo' => [
+            'name' => 'Updated Test Character',
+          ],
+        ],
+      ]
+    );
+
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertTrue(($response['success'] ?? FALSE) === TRUE);
+    $this->assertArrayHasKey('data', $response);
   }
 
   /**
@@ -73,8 +92,56 @@ class CharacterStateControllerTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalGet('/api/character/1/summary', ['query' => ['_format' => 'json']]);
-    $this->assertSession()->statusCodeNotEquals(405);
+    $character_id = $this->createCharacterForUser($user->id());
+
+    $this->drupalGet("/api/character/{$character_id}/summary", ['query' => ['_format' => 'json']]);
+    $this->assertSession()->statusCodeEquals(200);
+
+    $data = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+    $this->assertTrue(($data['success'] ?? FALSE) === TRUE);
+    $this->assertArrayHasKey('data', $data);
+    $this->assertSame((string) $character_id, (string) ($data['data']['characterId'] ?? ''));
+  }
+
+  /**
+   * Create a character row for controller tests.
+   */
+  private function createCharacterForUser(int $uid): int {
+    return (int) $this->container->get('database')->insert('dc_characters')
+      ->fields([
+        'uuid' => $this->container->get('uuid')->generate(),
+        'uid' => $uid,
+        'name' => 'State Test Character',
+        'level' => 1,
+        'ancestry' => 'human',
+        'class' => 'fighter',
+        'character_data' => json_encode([
+          'name' => 'State Test Character',
+          'level' => 1,
+          'class' => 'fighter',
+        ]),
+        'status' => 1,
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+  }
+
+  /**
+   * Issue a JSON request and return decoded response.
+   */
+  private function requestJson(string $method, string $path, ?array $payload = NULL): array {
+    $body = $payload !== NULL ? json_encode($payload) : '';
+    $this->getSession()->getDriver()->getClient()->request(
+      $method,
+      $this->buildUrl($path),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      $body
+    );
+
+    return json_decode($this->getSession()->getPage()->getContent(), TRUE) ?? [];
   }
 
 }

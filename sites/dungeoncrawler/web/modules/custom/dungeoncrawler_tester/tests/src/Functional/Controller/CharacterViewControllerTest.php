@@ -31,10 +31,11 @@ class CharacterViewControllerTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Without a real character, this will fail but validates route exists
-    $this->drupalGet('/characters/1');
-    // Could be 404 if character doesn't exist or 403 if no access
-    $this->assertSession()->statusCodeNotEquals(405);
+    $character_id = $this->createCharacterForUser($user->id(), 'View Test Character');
+
+    $this->drupalGet("/characters/{$character_id}");
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->responseContains('View Test Character');
   }
 
   /**
@@ -52,8 +53,48 @@ class CharacterViewControllerTest extends BrowserTestBase {
    * Tests character view without authentication - negative case.
    */
   public function testCharacterViewNegativeNoAuth(): void {
-    $this->drupalGet('/characters/1');
+    $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $character_id = $this->createCharacterForUser($owner->id(), 'Private Character');
+
+    $this->drupalGet("/characters/{$character_id}");
     $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Create a character row for view tests.
+   */
+  private function createCharacterForUser(int $uid, string $name): int {
+    return (int) $this->container->get('database')->insert('dc_characters')
+      ->fields([
+        'uuid' => $this->container->get('uuid')->generate(),
+        'uid' => $uid,
+        'name' => $name,
+        'level' => 1,
+        'ancestry' => 'human',
+        'class' => 'fighter',
+        'character_data' => json_encode([
+          'name' => $name,
+          'level' => 1,
+          'class' => 'fighter',
+          'abilities' => [
+            'str' => 16,
+            'dex' => 12,
+            'con' => 14,
+            'int' => 10,
+            'wis' => 12,
+            'cha' => 8,
+          ],
+          'hit_points' => [
+            'max' => 20,
+            'current' => 20,
+            'temp' => 0,
+          ],
+        ]),
+        'status' => 1,
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
   }
 
 }

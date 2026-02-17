@@ -95,10 +95,10 @@ class CharacterRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Note: This will fail without a real character, but tests the route exists
-    $this->drupalGet('/characters/1');
-    // Will return 403 or 404 depending on character existence and ownership
-    $this->assertSession()->statusCodeNotEquals(200);
+    $character_id = $this->createCharacterForUser($user->id());
+
+    $this->drupalGet("/characters/{$character_id}");
+    $this->assertSession()->statusCodeEquals(200);
   }
 
   /**
@@ -119,9 +119,10 @@ class CharacterRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Note: This will fail without a real character
-    $this->drupalGet('/characters/1/edit');
-    $this->assertSession()->statusCodeNotEquals(200);
+    $character_id = $this->createCharacterForUser($user->id());
+
+    $this->drupalGet("/characters/{$character_id}/edit");
+    $this->assertSession()->statusCodeEquals(200);
   }
 
   /**
@@ -142,9 +143,10 @@ class CharacterRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Note: This will fail without a real character
-    $this->drupalGet('/characters/1/delete');
-    $this->assertSession()->statusCodeNotEquals(200);
+    $character_id = $this->createCharacterForUser($user->id());
+
+    $this->drupalGet("/characters/{$character_id}/delete");
+    $this->assertSession()->statusCodeEquals(200);
   }
 
   /**
@@ -153,6 +155,26 @@ class CharacterRoutesTest extends BrowserTestBase {
   public function testCharacterDeleteRouteNegative(): void {
     $this->drupalGet('/characters/1/delete');
     $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Create a character row for route tests.
+   */
+  private function createCharacterForUser(int $uid): int {
+    return (int) $this->container->get('database')->insert('dc_characters')
+      ->fields([
+        'uuid' => $this->container->get('uuid')->generate(),
+        'uid' => $uid,
+        'name' => 'Route Test Character',
+        'level' => 1,
+        'ancestry' => 'human',
+        'class' => 'fighter',
+        'character_data' => json_encode([]),
+        'status' => 1,
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
   }
 
 }

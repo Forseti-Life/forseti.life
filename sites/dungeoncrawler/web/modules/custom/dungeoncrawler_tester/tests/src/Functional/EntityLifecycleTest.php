@@ -3,6 +3,7 @@
 namespace Drupal\Tests\dungeoncrawler_tester\Functional;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\dungeoncrawler_tester\Functional\Traits\CampaignStateTestTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
@@ -13,6 +14,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  */
 #[RunTestsInSeparateProcesses]
 class EntityLifecycleTest extends BrowserTestBase {
+
+  use CampaignStateTestTrait;
 
   /**
    * {@inheritdoc}
@@ -31,19 +34,7 @@ class EntityLifecycleTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => '{}',
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    $campaign_id = $this->createCampaignForUser($user, 'Test Campaign');
 
     // 1. Spawn an NPC entity.
     $spawn_payload = [
@@ -106,19 +97,7 @@ class EntityLifecycleTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => '{}',
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    $campaign_id = $this->createCampaignForUser($user, 'Test Campaign');
 
     // Spawn first entity.
     $spawn_payload = [
@@ -145,19 +124,7 @@ class EntityLifecycleTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => '{}',
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    $campaign_id = $this->createCampaignForUser($user, 'Test Campaign');
 
     // Try to move non-existent entity.
     $move_payload = [
@@ -177,19 +144,7 @@ class EntityLifecycleTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Create a campaign.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $user->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => '{}',
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    $campaign_id = $this->createCampaignForUser($user, 'Test Campaign');
 
     // Try to spawn entity with invalid type.
     $spawn_payload = [
@@ -203,24 +158,6 @@ class EntityLifecycleTest extends BrowserTestBase {
     $result = $this->requestJson('POST', "/api/campaign/{$campaign_id}/entity/spawn", $spawn_payload);
     $this->assertFalse($result['success']);
     $this->assertStringContainsString('Invalid type', $result['error']);
-  }
-
-  /**
-   * Issue a JSON request with the given method and payload.
-   */
-  private function requestJson(string $method, string $path, ?array $payload = NULL): array {
-    $body = $payload !== NULL ? json_encode($payload) : NULL;
-    $this->getSession()->getDriver()->getClient()->request(
-      $method,
-      $this->buildUrl($path),
-      [],
-      [],
-      ['CONTENT_TYPE' => 'application/json'],
-      $body
-    );
-
-    $content = $this->getSession()->getPage()->getContent();
-    return json_decode($content, TRUE) ?? [];
   }
 
 }

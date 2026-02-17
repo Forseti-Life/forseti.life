@@ -23,29 +23,6 @@ class CharacterCreationStepControllerTest extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * Tests character creation start - positive case.
-   */
-  public function testCharacterCreationStartPositive(): void {
-    $user = $this->drupalCreateUser(['create dungeoncrawler characters']);
-    $this->drupalLogin($user);
-
-    $this->drupalGet('/characters/create');
-    $this->assertSession()->statusCodeEquals(200);
-    $this->assertSession()->pageTextContains('Create Character');
-  }
-
-  /**
-   * Tests character creation access control - negative case.
-   */
-  public function testCharacterCreationAccessControlNegative(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
-    $this->drupalLogin($user);
-
-    $this->drupalGet('/characters/create');
-    $this->assertSession()->statusCodeEquals(403);
-  }
-
-  /**
    * Tests character creation step - positive case.
    */
   public function testCharacterCreationStepPositive(): void {
@@ -54,6 +31,18 @@ class CharacterCreationStepControllerTest extends BrowserTestBase {
 
     $this->drupalGet('/characters/create/step/1');
     $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Create Character');
+  }
+
+  /**
+   * Tests character creation step route access control.
+   */
+  public function testCharacterCreationStepAccessControlNegative(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/characters/create/step/1');
+    $this->assertSession()->statusCodeEquals(403);
   }
 
   /**

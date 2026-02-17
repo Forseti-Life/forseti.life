@@ -69,9 +69,10 @@ class CampaignRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Note: This will fail without a real campaign
-    $this->drupalGet('/campaigns/1/tavernentrance');
-    $this->assertSession()->statusCodeNotEquals(200);
+    $campaign_id = $this->createCampaignForUser($user->id());
+
+    $this->drupalGet("/campaigns/{$campaign_id}/tavernentrance");
+    $this->assertSession()->statusCodeEquals(200);
   }
 
   /**
@@ -92,9 +93,12 @@ class CampaignRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // Note: This will fail without real campaign and character
-    $this->drupalGet('/campaigns/1/select-character/1');
-    $this->assertSession()->statusCodeNotEquals(200);
+    $campaign_id = $this->createCampaignForUser($user->id());
+    $character_id = $this->createCharacterForUser($user->id());
+
+    $this->drupalGet("/campaigns/{$campaign_id}/select-character/{$character_id}");
+    $status = $this->getSession()->getStatusCode();
+    $this->assertContains($status, [200, 302], 'Select-character route should succeed for owned campaign/character.');
   }
 
   /**
@@ -118,6 +122,43 @@ class CampaignRoutesTest extends BrowserTestBase {
     // Also test campaign creation
     $this->drupalGet('/campaigns/create');
     $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Create a campaign row for route tests.
+   */
+  private function createCampaignForUser(int $uid): int {
+    return (int) $this->container->get('database')->insert('dc_campaigns')
+      ->fields([
+        'uuid' => $this->container->get('uuid')->generate(),
+        'uid' => $uid,
+        'name' => 'Route Test Campaign',
+        'status' => 'draft',
+        'campaign_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+  }
+
+  /**
+   * Create a character row for route tests.
+   */
+  private function createCharacterForUser(int $uid): int {
+    return (int) $this->container->get('database')->insert('dc_characters')
+      ->fields([
+        'uuid' => $this->container->get('uuid')->generate(),
+        'uid' => $uid,
+        'name' => 'Route Test Character',
+        'level' => 1,
+        'ancestry' => 'human',
+        'class' => 'fighter',
+        'character_data' => json_encode([]),
+        'status' => 1,
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
   }
 
 }

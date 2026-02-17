@@ -31,6 +31,10 @@ class CharacterCreationControllerTest extends BrowserTestBase {
 
     $this->drupalGet('/characters/create');
     $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Create Character');
+
+    $this->drupalGet('/characters/create/step/1');
+    $this->assertSession()->statusCodeEquals(200);
   }
 
   /**
@@ -41,6 +45,9 @@ class CharacterCreationControllerTest extends BrowserTestBase {
     $this->drupalLogin($user);
 
     $this->drupalGet('/characters/create');
+    $this->assertSession()->statusCodeEquals(403);
+
+    $this->drupalGet('/characters/create/step/1');
     $this->assertSession()->statusCodeEquals(403);
   }
 

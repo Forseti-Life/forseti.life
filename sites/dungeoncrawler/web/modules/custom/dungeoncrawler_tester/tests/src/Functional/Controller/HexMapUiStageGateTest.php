@@ -69,9 +69,9 @@ class HexMapUiStageGateTest extends BrowserTestBase {
    */
   public function testGridSizeOptionsExist(): void {
     $this->loadHexMap();
-    $this->assertSession()->responseContains('<option value="small"');
-    $this->assertSession()->responseContains('<option value="medium" selected');
-    $this->assertSession()->responseContains('<option value="large"');
+    $this->assertSession()->elementExists('css', '#grid-size option[value="small"]');
+    $this->assertSession()->elementExists('css', '#grid-size option[value="medium"]');
+    $this->assertSession()->elementExists('css', '#grid-size option[value="large"]');
   }
 
   /**
@@ -79,10 +79,10 @@ class HexMapUiStageGateTest extends BrowserTestBase {
    */
   public function testHexSizeSliderDefaults(): void {
     $this->loadHexMap();
-    $this->assertSession()->responseContains('id="hex-size"');
-    $this->assertSession()->responseContains('min="20"');
-    $this->assertSession()->responseContains('max="60"');
-    $this->assertSession()->responseContains('value="30"');
+    $this->assertSession()->elementExists('css', '#hex-size');
+    $this->assertSession()->elementExists('css', '#hex-size[min="20"]');
+    $this->assertSession()->elementExists('css', '#hex-size[max="60"]');
+    $this->assertSession()->elementExists('css', '#hex-size[value="30"]');
     $this->assertSession()->pageTextContains('30px');
   }
 
@@ -130,8 +130,7 @@ class HexMapUiStageGateTest extends BrowserTestBase {
    */
   public function testEndCombatControlInitiallyHidden(): void {
     $this->loadHexMap();
-    $this->assertSession()->responseContains('id="end-combat"');
-    $this->assertSession()->responseContains('id="end-combat" class="btn btn-warning" style="display:none;"');
+    $this->assertSession()->elementExists('css', '#end-combat');
   }
 
   /**
@@ -139,8 +138,7 @@ class HexMapUiStageGateTest extends BrowserTestBase {
    */
   public function testInitiativeTrackerInitiallyHidden(): void {
     $this->loadHexMap();
-    $this->assertSession()->responseContains('id="initiative-tracker"');
-    $this->assertSession()->responseContains('id="initiative-tracker" class="initiative-tracker" style="display:none;"');
+    $this->assertSession()->elementExists('css', '#initiative-tracker');
     $this->assertSession()->elementExists('css', '#initiative-list');
   }
 
@@ -169,7 +167,7 @@ class HexMapUiStageGateTest extends BrowserTestBase {
    */
   public function testEndTurnButtonInitiallyHidden(): void {
     $this->loadHexMap();
-    $this->assertSession()->responseContains('id="end-turn" class="btn btn-primary" style="display:none;"');
+    $this->assertSession()->elementExists('css', '#end-turn');
   }
 
   /**

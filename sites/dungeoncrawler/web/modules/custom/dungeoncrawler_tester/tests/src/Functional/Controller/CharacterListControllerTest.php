@@ -29,9 +29,15 @@ class CharacterListControllerTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
+    $this->createCharacterForUser($user->id(), 'Owned Character');
+    $other_user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->createCharacterForUser($other_user->id(), 'Other User Character');
+
     $this->drupalGet('/characters');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->pageTextContains('My Characters');
+    $this->assertSession()->pageTextContains('Owned Character');
+    $this->assertSession()->pageTextNotContains('Other User Character');
   }
 
   /**
@@ -43,15 +49,26 @@ class CharacterListControllerTest extends BrowserTestBase {
   }
 
   /**
-   * Tests character list for user with no characters - positive case.
+   * Create a character row for list tests.
    */
-  public function testCharacterListEmptyPositive(): void {
-    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
-    $this->drupalLogin($user);
-
-    $this->drupalGet('/characters');
-    $this->assertSession()->statusCodeEquals(200);
-    // Should still display page even with no characters
+  private function createCharacterForUser(int $uid, string $name): int {
+    return (int) $this->container->get('database')->insert('dc_characters')
+      ->fields([
+        'uuid' => $this->container->get('uuid')->generate(),
+        'uid' => $uid,
+        'name' => $name,
+        'level' => 1,
+        'ancestry' => 'human',
+        'class' => 'fighter',
+        'character_data' => json_encode([
+          'name' => $name,
+          'hit_points' => ['current' => 20, 'max' => 20],
+        ]),
+        'status' => 1,
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
   }
 
 }

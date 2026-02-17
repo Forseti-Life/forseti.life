@@ -30,10 +30,10 @@ class ApiRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['create dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // POST request with valid data
+    // POST request with JSON content type.
     $this->drupalPost('/api/character/save', [], [], [], ['Content-Type' => 'application/json']);
-    // May return 400/422 without valid data, but route exists
-    $this->assertSession()->statusCodeNotEquals(404);
+    $status = $this->getSession()->getStatusCode();
+    $this->assertContains($status, [200, 201, 400, 422], 'Character save route should use POST contract, not route-missing/method-mismatch responses.');
   }
 
   /**
@@ -55,10 +55,9 @@ class ApiRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    // GET request
     $this->drupalGet('/api/character/load/1', ['query' => ['_format' => 'json']]);
-    // May return 403/404 without valid character
-    $this->assertSession()->statusCodeNotEquals(405);
+    $status = $this->getSession()->getStatusCode();
+    $this->assertContains($status, [200, 403, 404], 'Character load route should allow GET and return contract-level status.');
   }
 
   /**
@@ -80,8 +79,8 @@ class ApiRoutesTest extends BrowserTestBase {
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/character/1/state', ['query' => ['_format' => 'json']]);
-    // May return 403/404 without valid character
-    $this->assertSession()->statusCodeNotEquals(405);
+    $status = $this->getSession()->getStatusCode();
+    $this->assertContains($status, [200, 403, 404], 'Character state route should allow GET and return contract-level status.');
   }
 
   /**
@@ -104,7 +103,8 @@ class ApiRoutesTest extends BrowserTestBase {
     $this->drupalLogin($user);
 
     $this->drupalGet('/api/character/1/summary', ['query' => ['_format' => 'json']]);
-    $this->assertSession()->statusCodeNotEquals(405);
+    $status = $this->getSession()->getStatusCode();
+    $this->assertContains($status, [200, 403, 404], 'Character summary route should allow GET and return contract-level status.');
   }
 
   /**
@@ -115,7 +115,8 @@ class ApiRoutesTest extends BrowserTestBase {
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/character/1/update', [], [], [], ['Content-Type' => 'application/json']);
-    $this->assertSession()->statusCodeNotEquals(404);
+    $status = $this->getSession()->getStatusCode();
+    $this->assertContains($status, [200, 400, 403, 404, 422], 'Character state update route should use POST contract statuses.');
   }
 
   /**
@@ -137,7 +138,8 @@ class ApiRoutesTest extends BrowserTestBase {
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/combat/start', [], [], [], ['Content-Type' => 'application/json']);
-    $this->assertSession()->statusCodeNotEquals(404);
+    $status = $this->getSession()->getStatusCode();
+    $this->assertContains($status, [200, 400, 403, 422], 'Combat start route should use POST contract statuses.');
   }
 
   /**
@@ -159,7 +161,8 @@ class ApiRoutesTest extends BrowserTestBase {
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/combat/end-turn', [], [], [], ['Content-Type' => 'application/json']);
-    $this->assertSession()->statusCodeNotEquals(404);
+    $status = $this->getSession()->getStatusCode();
+    $this->assertContains($status, [200, 400, 403, 404, 422], 'Combat end-turn route should use POST contract statuses.');
   }
 
   /**
@@ -170,7 +173,8 @@ class ApiRoutesTest extends BrowserTestBase {
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/combat/end', [], [], [], ['Content-Type' => 'application/json']);
-    $this->assertSession()->statusCodeNotEquals(404);
+    $status = $this->getSession()->getStatusCode();
+    $this->assertContains($status, [200, 400, 403, 404, 422], 'Combat end route should use POST contract statuses.');
   }
 
   /**
@@ -181,7 +185,8 @@ class ApiRoutesTest extends BrowserTestBase {
     $this->drupalLogin($user);
 
     $this->drupalPost('/api/combat/attack', [], [], [], ['Content-Type' => 'application/json']);
-    $this->assertSession()->statusCodeNotEquals(404);
+    $status = $this->getSession()->getStatusCode();
+    $this->assertContains($status, [200, 400, 403, 404, 422], 'Combat attack route should use POST contract statuses.');
   }
 
   /**
