@@ -17,6 +17,9 @@
 9. [Error Response Format](#error-response-format)
 10. [Examples](#examples)
 11. [Implementation Status](#implementation-status)
+12. [Best Practices](#best-practices)
+13. [Troubleshooting](#troubleshooting)
+14. [Related Documentation](#related-documentation)
 
 ## Overview
 
@@ -124,11 +127,31 @@ Update campaign state with optimistic locking.
 - `409` - Version conflict (returns current version and state)
 
 **Schema Validation:**
+
 The state payload is validated against `campaign.schema.json`:
-- Required fields: `created_by`, `started`, `progress`
-- `created_by` must be integer ≥ 1
-- `started` must be boolean
-- `progress` must be array of event objects with `type` and `timestamp`
+
+| Field | Type | Validation | Description |
+|-------|------|------------|-------------|
+| `created_by` | integer | Required, ≥ 1 | User ID who created the campaign |
+| `started` | boolean | Required | Whether campaign has started |
+| `progress` | array | Required | Array of event objects |
+| `progress[].type` | string | Required | Event type identifier |
+| `progress[].timestamp` | integer | Required | Unix timestamp |
+| `active_hex` | string | Optional | Current hex coordinates (e.g., "q0r0") |
+| `metadata` | object | Optional | Additional campaign metadata |
+
+**Example Valid State:**
+```json
+{
+  "created_by": 1,
+  "started": true,
+  "progress": [
+    {"type": "dungeon_entered", "timestamp": 1234567890}
+  ],
+  "active_hex": "q0r0",
+  "metadata": {}
+}
+```
 
 ---
 
@@ -538,22 +561,58 @@ Trap State:
 
 ## Error Response Format
 
-All error responses follow this format:
+All error responses follow this consistent format:
 
 ```json
 {
   "success": false,
-  "error": "Error message",
-  "validation_errors": ["Field 'x' is required"] // (optional, for validation errors)
+  "error": "Human-readable error message",
+  "validation_errors": ["Specific validation failure 1", "..."] // Optional
 }
 ```
 
-**HTTP Status Codes:**
-- `400` - Bad Request (invalid payload, validation failure)
-- `403` - Forbidden (access denied)
-- `404` - Not Found (resource not found)
-- `409` - Conflict (version mismatch)
-- `500` - Internal Server Error
+### HTTP Status Codes
+
+| Code | Meaning | Common Causes | Example Response |
+|------|---------|---------------|------------------|
+| `400` | Bad Request | Invalid JSON, missing required fields, schema validation failure | `{"success": false, "error": "Missing state payload"}` |
+| `403` | Forbidden | Access denied, not campaign owner | `{"success": false, "error": "Access denied to campaign"}` |
+| `404` | Not Found | Resource doesn't exist | `{"success": false, "error": "Campaign not found"}` |
+| `409` | Conflict | Version mismatch (optimistic locking) | `{"success": false, "error": "Version conflict", "currentVersion": 43}` |
+| `500` | Internal Server Error | Unexpected server error | `{"success": false, "error": "Internal server error"}` |
+
+### Version Conflict Response (409)
+
+When a version conflict occurs, the response includes current state:
+
+```json
+{
+  "success": false,
+  "error": "Version conflict",
+  "currentVersion": 43,
+  "data": {
+    "campaignId": "123",
+    "state": { /* current state */ },
+    "version": 43
+  }
+}
+```
+
+### Validation Error Response (400)
+
+Schema validation failures include detailed error messages:
+
+```json
+{
+  "success": false,
+  "error": "Invalid state payload",
+  "validation_errors": [
+    "Field 'created_by' is required",
+    "Field 'started' must be boolean",
+    "Field 'progress' must be array"
+  ]
+}
+```
 
 ---
 
@@ -667,3 +726,68 @@ Body: {"campaignId": 123, "state": {...}}
 - Campaign state is versioned using optimistic locking
 - Entity instances are scoped to campaigns and can be reused across sessions
 - Contents data in rooms serves as templates; runtime entities override/extend it
+
+---
+
+## Best Practices
+
+### Optimistic Locking
+- Always include `expectedVersion` when updating state to prevent race conditions
+- Handle `409 Conflict` responses by re-fetching current state and retrying
+- Use version numbers from GET responses in subsequent POST requests
+
+### Error Handling
+- Check `success` field in all responses before processing data
+- Log `validation_errors` array for debugging invalid payloads
+- Implement exponential backoff for retry logic on `409` errors
+- Handle `403 Forbidden` by redirecting to authentication or showing access denied message
+
+### Performance
+- Cache campaign state locally and only re-fetch on version conflicts
+- Batch entity operations when spawning multiple entities
+- Use query filters on entity list endpoint to reduce response size
+- Only fetch room state when player enters a new room
+
+### Security
+- Never expose internal IDs or system details in client-side errors
+- Validate all user inputs before making API calls
+- Use CSRF tokens for all POST/DELETE operations
+- Sanitize entity state data to prevent code injection
+
+---
+
+## Troubleshooting
+
+### Issue: "Access denied to campaign" (403)
+**Cause**: User is not the campaign owner  
+**Solution**: Verify campaign ownership via `/api/campaign/{campaign_id}/state` or redirect to campaign list
+
+### Issue: "Version conflict" (409)
+**Cause**: Another client updated state between GET and POST  
+**Solution**: Re-fetch current state, merge changes, and retry with new version
+
+### Issue: "Missing route" error for POST endpoints
+**Cause**: Route not configured in `dungeoncrawler_content.routing.yml`  
+**Solution**: See [Implementation Status](#implementation-status) section for routing configuration
+
+### Issue: Entity not visible in room state
+**Possible Causes**:
+1. Entity hex not in `visibleHexIds` array
+2. Entity has `hidden: true` and not in `detectedEntities` array
+3. Entity despawned or moved to different location
+
+**Solution**: Check room state's `visibleHexIds` and `detectedEntities`, verify entity location via entities list endpoint
+
+### Issue: Schema validation failure
+**Cause**: State payload doesn't match schema requirements  
+**Solution**: Check `validation_errors` array in response, verify required fields and data types
+
+---
+
+## Related Documentation
+
+- **Module README**: `sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/README.md`
+- **Routing Configuration**: `dungeoncrawler_content.routing.yml`
+- **Controller Source**: `src/Controller/` directory
+- **Service Layer**: `src/Service/` directory
+- **Hex Map Architecture**: `HEXMAP_ARCHITECTURE.md`
