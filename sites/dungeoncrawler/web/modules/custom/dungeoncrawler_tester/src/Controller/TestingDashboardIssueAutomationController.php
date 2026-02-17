@@ -414,11 +414,11 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 * Render open issue/PR report grouped by issue with orphaned PR section.
 	 */
 	public function issuePrReport(): array {
-		$reportData = $this->loadIssuePrReportData(FALSE);
-		$repo = (string) ($reportData['repo'] ?? '');
-		$tokenCandidates = (array) ($reportData['token_candidates'] ?? []);
-		$issues = (array) ($reportData['issues'] ?? []);
-		$prs = (array) ($reportData['prs'] ?? []);
+		$reportData = $this->normalizeIssuePrReportData($this->loadIssuePrReportData(FALSE));
+		$repo = $reportData['repo'];
+		$tokenCandidates = $reportData['token_candidates'];
+		$issues = $reportData['issues'];
+		$prs = $reportData['prs'];
 
 		usort($issues, static fn(array $left, array $right): int => ((int) ($left['number'] ?? 0)) <=> ((int) ($right['number'] ?? 0)));
 		usort($prs, static fn(array $left, array $right): int => ((int) ($left['number'] ?? 0)) <=> ((int) ($right['number'] ?? 0)));
@@ -778,12 +778,12 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return $this->errorJsonResponse('Missing query id.', 400);
 		}
 
-		$reportData = $this->loadIssuePrReportData(FALSE);
-		$repo = (string) ($reportData['repo'] ?? '');
-		$token = $reportData['token'] ?? NULL;
-		$tokenCandidates = (array) ($reportData['token_candidates'] ?? []);
-		$issues = (array) ($reportData['issues'] ?? []);
-		$prs = (array) ($reportData['prs'] ?? []);
+		$reportData = $this->normalizeIssuePrReportData($this->loadIssuePrReportData(FALSE));
+		$repo = $reportData['repo'];
+		$token = $reportData['token'];
+		$tokenCandidates = $reportData['token_candidates'];
+		$issues = $reportData['issues'];
+		$prs = $reportData['prs'];
 
 		$tokenError = $this->requireGithubTokenCandidatesError($token, $tokenCandidates);
 		if ($tokenError instanceof JsonResponse) {
@@ -1258,6 +1258,19 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			'token_candidates' => $tokenCandidates,
 			'issues' => $this->extractGitHubItems($issuePayload),
 			'prs' => $this->extractGitHubItems($prPayload),
+		];
+	}
+
+	/**
+	 * Normalize typed access to issue/PR report data payload.
+	 */
+	private function normalizeIssuePrReportData(array $reportData): array {
+		return [
+			'repo' => (string) ($reportData['repo'] ?? ''),
+			'token' => isset($reportData['token']) ? (is_string($reportData['token']) ? $reportData['token'] : NULL) : NULL,
+			'token_candidates' => is_array($reportData['token_candidates'] ?? NULL) ? $reportData['token_candidates'] : [],
+			'issues' => is_array($reportData['issues'] ?? NULL) ? $reportData['issues'] : [],
+			'prs' => is_array($reportData['prs'] ?? NULL) ? $reportData['prs'] : [],
 		];
 	}
 

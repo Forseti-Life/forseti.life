@@ -71,6 +71,7 @@ The dashboard includes:
 - **JSON success-response normalization**: Issue automation AJAX success payloads now route through a shared helper to keep success response shape and message handling single-sourced.
 - **Open-issue number map normalization**: Repeated open-issue lookup-map construction now routes through a shared helper across issue report and bulk-close query paths.
 - **Keyed-number list normalization**: Repeated keyed-set (`[number => TRUE]`) to int-list conversions now route through a shared helper in `TestingDashboardIssueAutomationController`.
+- **Issue-report data accessor normalization**: Entry points now unpack `repo`/`token`/`token_candidates`/`issues`/`prs` via a shared report-data accessor helper instead of repeated per-key casting.
 - **Repo-aware nav links**: Tester navigation block now builds the GitHub issue queue link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`).
 - **Repo-aware sign-off link**: Stage definitions now build the release sign-off defect link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`) instead of a hard-coded repository URL.
 - **Filesystem diagnostics**: Queue worker now validates simpletest directory creation/writability and surfaces explicit failure diagnostics in run/state output when setup fails.
