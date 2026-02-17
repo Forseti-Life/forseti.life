@@ -33,8 +33,8 @@ JSON Schemas serve multiple purposes:
 | `campaign.schema.json` | Campaign state & progress | ✓ | 71 | `dc_campaigns.campaign_data` |
 | `creature.schema.json` | Monsters, NPCs, beasts | ✓ | 994 | Entity spawning |
 | `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 299 | Level generation |
-| `encounter.schema.json` | Combat & initiative | ✓ | 568 | Combat engine |
-| `entity_instance.schema.json` | Placed entities (runtime) | ✗ | 264 | Runtime entity management |
+| `encounter.schema.json` | Combat & initiative | ✓ | 355 | Combat engine |
+| `entity_instance.schema.json` | Placed entities (runtime) | ✓ | 289 | Runtime entity management |
 | `hazard.schema.json` | Environmental hazards | ✓ | 249 | PF2e hazards |
 | `hexmap.schema.json` | Hex-based dungeon map | ✓ | 247 | Map structure |
 | `item.schema.json` | Equipment & loot | ✓ | 439 | Inventory system |
@@ -449,6 +449,7 @@ Schemas with `schema_version` field (migration-ready):
 - ✓ `creature.schema.json`
 - ✓ `dungeon_level.schema.json`
 - ✓ `encounter.schema.json`
+- ✓ `entity_instance.schema.json`
 - ✓ `hazard.schema.json`
 - ✓ `hexmap.schema.json`
 - ✓ `item.schema.json`
@@ -457,7 +458,6 @@ Schemas with `schema_version` field (migration-ready):
 
 Schemas pending versioning:
 - `character_options_step[1-5,7].json` (UI-only schemas)
-- `entity_instance.schema.json`
 - `obstacle.schema.json`
 - `obstacle_object_catalog.schema.json`
 - `room.schema.json`
