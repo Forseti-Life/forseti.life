@@ -15,9 +15,24 @@ use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_theme().
+ *
+ * Defines custom theme templates for dungeon crawler game components.
+ *
+ * @param array $existing
+ *   An array of existing implementations.
+ * @param string $type
+ *   Whether a theme, module, etc. is being processed.
+ * @param string $theme
+ *   The actual name of theme, module, etc. that is being processed.
+ * @param string $path
+ *   The directory path of the theme or module.
+ *
+ * @return array
+ *   An associative array of theme hook definitions.
  */
-function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
+function dungeoncrawler_content_theme(array $existing, string $type, string $theme, string $path): array {
   return [
+    // Game content display cards.
     'dungeon_card' => [
       'variables' => [
         'title' => NULL,
@@ -52,6 +67,8 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
       'template' => 'item-card',
       'path' => $path . '/templates',
     ],
+
+    // Character and campaign management lists.
     'character_list' => [
       'variables' => [
         'characters' => [],
@@ -69,6 +86,8 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
       'template' => 'campaign-list',
       'path' => $path . '/templates',
     ],
+
+    // Campaign entry point - tavern entrance where players select characters.
     'campaign_tavernentrance' => [
       'variables' => [
         'campaign' => [],
@@ -79,6 +98,8 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
       'template' => 'campaign-tavernentrance',
       'path' => $path . '/templates',
     ],
+
+    // Wrapper template for management forms (create/edit pages).
     'management_form_page' => [
       'variables' => [
         'page_title' => NULL,
@@ -90,6 +111,8 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
       'template' => 'management-form-page',
       'path' => $path . '/templates',
     ],
+
+    // Character sheet display with full stats and equipment.
     'character_sheet' => [
       'variables' => [
         'character' => [],
@@ -98,7 +121,7 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
         'class_data' => [],
         'abilities' => [],
         'hp' => [],
-        'ac' => 10,
+        'ac' => NULL,
         'saves' => [],
         'perception' => [],
         'skills' => [],
@@ -117,6 +140,8 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
       'template' => 'character-sheet',
       'path' => $path . '/templates',
     ],
+
+    // Character creation wizard - initial selection interface.
     'character_creation_wizard' => [
       'variables' => [
         'ancestries' => [],
@@ -127,7 +152,10 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
       'template' => 'character-creation-wizard',
       'path' => $path . '/templates',
     ],
-    // Unified schema-driven step template
+
+    // Unified schema-driven step template for character creation workflow.
+    // This template handles all character creation steps with dynamic content
+    // based on step number and schema configuration.
     'character_creation_step' => [
       'variables' => [
         'character_id' => NULL,
@@ -140,84 +168,8 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
       'template' => 'character-creation-step',
       'path' => $path . '/templates',
     ],
-    // Individual step templates (deprecated - kept for backwards compatibility)
-    'character_step_1' => [
-      'variables' => [
-        'character_id' => NULL,
-        'character' => [],
-        'step' => 1,
-      ],
-      'template' => 'character-step-1',
-      'path' => $path . '/templates',
-    ],
-    'character_step_2' => [
-      'variables' => [
-        'character_id' => NULL,
-        'character' => [],
-        'step' => 2,
-        'ancestries' => [],
-      ],
-      'template' => 'character-step-2',
-      'path' => $path . '/templates',
-    ],
-    'character_step_3' => [
-      'variables' => [
-        'character_id' => NULL,
-        'character' => [],
-        'step' => 3,
-        'backgrounds' => [],
-      ],
-      'template' => 'character-step-3',
-      'path' => $path . '/templates',
-    ],
-    'character_step_4' => [
-      'variables' => [
-        'character_id' => NULL,
-        'character' => [],
-        'step' => 4,
-        'classes' => [],
-      ],
-      'template' => 'character-step-4',
-      'path' => $path . '/templates',
-    ],
-    'character_step_5' => [
-      'variables' => [
-        'character_id' => NULL,
-        'character' => [],
-        'step' => 5,
-      ],
-      'template' => 'character-step-5',
-      'path' => $path . '/templates',
-    ],
-    'character_step_6' => [
-      'variables' => [
-        'character_id' => NULL,
-        'character' => [],
-        'step' => 6,
-        'alignments' => [],
-      ],
-      'template' => 'character-step-6',
-      'path' => $path . '/templates',
-    ],
-    'character_step_7' => [
-      'variables' => [
-        'character_id' => NULL,
-        'character' => [],
-        'step' => 7,
-        'equipment' => [],
-      ],
-      'template' => 'character-step-7',
-      'path' => $path . '/templates',
-    ],
-    'character_step_8' => [
-      'variables' => [
-        'character_id' => NULL,
-        'character' => [],
-        'step' => 8,
-      ],
-      'template' => 'character-step-8',
-      'path' => $path . '/templates',
-    ],
+
+    // Hexmap demo interface for dungeon exploration.
     'hexmap_demo' => [
       'variables' => [
         'launch_context' => [],
@@ -226,6 +178,8 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
       'template' => 'hexmap-demo',
       'path' => $path . '/templates',
     ],
+
+    // Credits page displaying contributors and attributions.
     'credits_page' => [
       'variables' => [
         'credits' => [],
@@ -234,30 +188,4 @@ function dungeoncrawler_content_theme($existing, $type, $theme, $path) {
       'path' => $path . '/templates',
     ],
   ];
-}
-
-/**
- * Implements hook_entity_extra_field_info().
- */
-function dungeoncrawler_content_entity_extra_field_info() {
-  $extra = [];
-
-  // Add extra display fields for game content types when they exist.
-  $content_types = ['dungeon', 'character_class', 'quest', 'item'];
-  $node_types = \Drupal::entityTypeManager()
-    ->getStorage('node_type')
-    ->loadMultiple();
-
-  foreach ($content_types as $type) {
-    if (isset($node_types[$type])) {
-      $extra['node'][$type]['display']['game_stats_summary'] = [
-        'label' => t('Game Stats Summary'),
-        'description' => t('A formatted summary of game statistics.'),
-        'weight' => 100,
-        'visible' => TRUE,
-      ];
-    }
-  }
-
-  return $extra;
 }
