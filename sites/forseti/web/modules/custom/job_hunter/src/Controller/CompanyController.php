@@ -667,8 +667,9 @@ class CompanyController extends ControllerBase {
 
     // Job source information and links
     $source_info = [];
-    if (!empty($job->job_url)) {
-      $source_info[] = '<strong>Job URL:</strong> <a href="' . htmlspecialchars($job->job_url) . '" target="_blank" rel="noopener">' . htmlspecialchars($job->job_url) . ' ↗</a>';
+    $original_url = !empty($job->job_url) ? $job->job_url : ($job->application_url ?? '');
+    if (!empty($original_url)) {
+      $source_info[] = '<strong>Job URL:</strong> <a href="' . htmlspecialchars($original_url) . '" target="_blank" rel="noopener">' . htmlspecialchars($original_url) . ' ↗</a>';
     }
     if (!empty($job->external_source)) {
       $source_info[] = '<strong>Source:</strong> ' . htmlspecialchars($job->external_source);

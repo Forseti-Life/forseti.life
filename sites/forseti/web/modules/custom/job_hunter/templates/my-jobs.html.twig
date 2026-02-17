@@ -131,7 +131,7 @@
           
           <tr>
             <td>
-              <a href="/jobhunter/job/{{ job.id }}">{{ job_title }}</a>
+              <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}">{{ job_title }}</a>
             </td>
             <td>{{ company_name }}</td>
             <td>{{ job.status|default('active')|capitalize }}</td>
@@ -212,18 +212,18 @@
                 <a href="/jobhunter/tailor-resume/{{ job.id }}" class="button button--small">
                   {{ tailoring_status == 'completed' ? 'View Tailored'|t : 'Tailor Resume'|t }}
                 </a>
-                <a href="/jobhunter/job/{{ job.id }}" class="button button--small">
+                <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}" class="button button--small">
                   {{ 'View'|t }}
                 </a>
-                <a href="/jobhunter/job/{{ job.id }}/edit" class="button button--small">
+                <a href="{{ path('job_hunter.job_edit', {'job_id': job.id}) }}" class="button button--small">
                   {{ 'Edit'|t }}
                 </a>
                 {% if ai_status == 'failed' and has_raw_text %}
-                  <a href="/jobhunter/job/{{ job.id }}/retry-parsing" class="button button--small button--warning">
+                  <a href="{{ path('job_hunter.job_retry_parsing', {'job_id': job.id}) }}" class="button button--small button--warning">
                     {{ 'Retry Parsing'|t }}
                   </a>
                 {% endif %}
-                <a href="/jobhunter/job/{{ job.id }}/delete" 
+                <a href="{{ path('job_hunter.job_delete', {'job_id': job.id}) }}" 
                    class="button button--small button--danger"
                    onclick="return confirm('{{ 'Are you sure you want to delete this job?'|t }}')">
                   {{ 'Delete'|t }}

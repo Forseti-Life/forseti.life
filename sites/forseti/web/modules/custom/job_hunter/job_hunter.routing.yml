@@ -593,6 +593,14 @@ job_hunter.job_retry_parsing:
     _permission: 'access job hunter'
     job_id: \d+
 
+job_hunter.job_retry_parsing_legacy:
+  path: '/jobhunter/job/{job_id}/retry-parsing'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobPostingController::retryParsing'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: \d+
+
 # DEPRECATED: Old manual add routes removed - use job_hunter.job_paste instead
 # job_hunter.job_add and job_hunter.job_add_for_company have been removed
 # to ensure all job postings go through the AI-powered workflow
@@ -606,8 +614,26 @@ job_hunter.job_edit:
     _permission: 'access job hunter'
     job_id: \d+
 
+job_hunter.job_edit_legacy:
+  path: '/jobhunter/job/{job_id}/edit'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::editJobForm'
+    _title: 'Edit Job Requirement'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: \d+
+
 job_hunter.job_view:
   path: '/jobhunter/jobs/{job_id}'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::viewJob'
+    _title: 'View Job'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: \d+
+
+job_hunter.job_view_legacy:
+  path: '/jobhunter/job/{job_id}'
   defaults:
     _controller: '\Drupal\job_hunter\Controller\CompanyController::viewJob'
     _title: 'View Job'
@@ -626,6 +652,14 @@ job_hunter.job_tailoring:
 
 job_hunter.job_delete:
   path: '/jobhunter/jobs/{job_id}/delete'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::deleteJob'
+  requirements:
+    _permission: 'administer job application automation'
+    job_id: \d+
+
+job_hunter.job_delete_legacy:
+  path: '/jobhunter/job/{job_id}/delete'
   defaults:
     _controller: '\Drupal\job_hunter\Controller\CompanyController::deleteJob'
   requirements:
