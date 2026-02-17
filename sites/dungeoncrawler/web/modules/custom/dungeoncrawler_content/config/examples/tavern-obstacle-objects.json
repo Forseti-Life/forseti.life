@@ -5,7 +5,7 @@
       "object_id": "wooden_tavern_door",
       "label": "Tavern Door",
       "category": "door",
-      "description": "Heavy wooden door between tavern and dungeon room. Passable when open, connects rooms.",
+      "description": "Heavy wooden door between tavern and dungeon room. Passable when open (passable=true), not movable (movable=false), connects rooms.",
       "movable": false,
       "stackable": false,
       "movement": {
@@ -19,7 +19,7 @@
       "object_id": "tavern_bar_counter_a",
       "label": "Bar Counter A",
       "category": "bar",
-      "description": "Fixed wooden bar counter segment (left section). Impassable fixture, cost_multiplier 999 effectively blocks pathfinding.",
+      "description": "Fixed wooden bar counter segment (left section). Impassable fixture (passable=false, movable=false). Note: blocks_movement and cost_multiplier are schema-required but not currently used by rendering code.",
       "movable": false,
       "stackable": false,
       "movement": {
@@ -33,7 +33,7 @@
       "object_id": "tavern_bar_counter_b",
       "label": "Bar Counter B",
       "category": "bar",
-      "description": "Fixed wooden bar counter segment (middle section). Impassable fixture, cost_multiplier 999 effectively blocks pathfinding.",
+      "description": "Fixed wooden bar counter segment (middle section). Impassable fixture (passable=false, movable=false). Note: blocks_movement and cost_multiplier are schema-required but not currently used by rendering code.",
       "movable": false,
       "stackable": false,
       "movement": {
@@ -47,7 +47,7 @@
       "object_id": "tavern_bar_counter_c",
       "label": "Bar Counter C",
       "category": "bar",
-      "description": "Fixed wooden bar counter segment (right section). Impassable fixture, cost_multiplier 999 effectively blocks pathfinding.",
+      "description": "Fixed wooden bar counter segment (right section). Impassable fixture (passable=false, movable=false). Note: blocks_movement and cost_multiplier are schema-required but not currently used by rendering code.",
       "movable": false,
       "stackable": false,
       "movement": {
@@ -61,7 +61,7 @@
       "object_id": "tavern_table_round_a",
       "label": "Round Table A",
       "category": "table",
-      "description": "Moveable round tavern table. Can be pushed by players (movable=true). Impassable but cost_multiplier 2 for potential movement.",
+      "description": "Moveable round tavern table (movable=true, passable=false). Can be pushed by players. Currently, rendering uses only passable/movable/stackable flags; cost_multiplier reserved for future pathfinding.",
       "movable": true,
       "stackable": false,
       "movement": {
@@ -75,7 +75,7 @@
       "object_id": "tavern_table_long_a",
       "label": "Long Table A",
       "category": "table",
-      "description": "Moveable long wooden table. Can be pushed by players (movable=true). Impassable but cost_multiplier 2 for potential movement.",
+      "description": "Moveable long wooden table (movable=true, passable=false). Can be pushed by players. Currently, rendering uses only passable/movable/stackable flags; cost_multiplier reserved for future pathfinding.",
       "movable": true,
       "stackable": false,
       "movement": {
@@ -89,7 +89,7 @@
       "object_id": "tavern_stool_stack_a",
       "label": "Stool Stack",
       "category": "stool",
-      "description": "Stacked stools that can be moved. Passable (entities can share hex) and stackable. cost_multiplier 1.5 indicates slight movement impediment.",
+      "description": "Stacked stools (movable=true, passable=true, stackable=true). Entities can share hex with this object. Unique combination allows flexible positioning.",
       "movable": true,
       "stackable": true,
       "movement": {
@@ -103,7 +103,7 @@
       "object_id": "tavern_crate_stack_a",
       "label": "Crate Stack",
       "category": "crate",
-      "description": "Supply crates stacked near the wall. Moveable and stackable. Impassable but cost_multiplier 3 for potential movement.",
+      "description": "Supply crates (movable=true, passable=false, stackable=true). Blocks hex occupancy but can be pushed. Higher cost_multiplier for future pathfinding complexity.",
       "movable": true,
       "stackable": true,
       "movement": {
@@ -117,7 +117,7 @@
       "object_id": "tavern_fireplace",
       "label": "Stone Fireplace",
       "category": "decor",
-      "description": "Large stone fireplace providing warmth and light. Fixed decor, completely impassable.",
+      "description": "Large stone fireplace (movable=false, passable=false). Provides warmth and light. Fixed environmental decor.",
       "movable": false,
       "stackable": false,
       "movement": {
@@ -131,7 +131,7 @@
       "object_id": "tavern_rug",
       "label": "Decorative Rug",
       "category": "decor",
-      "description": "Woven tavern floor rug. Purely decorative, does not impede movement.",
+      "description": "Woven tavern floor rug (movable=false, passable=true). Purely decorative floor element, does not impede movement or hex occupancy.",
       "movable": false,
       "stackable": false,
       "movement": {
