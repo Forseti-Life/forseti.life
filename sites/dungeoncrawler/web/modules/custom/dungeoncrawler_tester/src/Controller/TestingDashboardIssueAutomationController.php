@@ -51,6 +51,10 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	private const MSG_UNABLE_TO_LOAD_PR_DETAILS = 'Unable to load PR details.';
 	private const MSG_PR_NO_LONGER_DEAD_VALUE = 'PR is no longer dead-value; refresh and review.';
 	private const MSG_CLOSE_WITH_WARNINGS = 'Close action completed with warnings. Check logs for details.';
+	private const HTTP_BAD_REQUEST = 400;
+	private const HTTP_FORBIDDEN = 403;
+	private const HTTP_CONFLICT = 409;
+	private const HTTP_INTERNAL_SERVER_ERROR = 500;
 
 	/**
 	 * Build a URL from route name with a safe path fallback.
@@ -787,7 +791,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 
 		$queryId = trim((string) ($payload['query_id'] ?? ''));
 		if ($queryId === '') {
-			return $this->errorJsonResponse(self::MSG_MISSING_QUERY_ID, 400);
+			return $this->errorJsonResponse(self::MSG_MISSING_QUERY_ID, self::HTTP_BAD_REQUEST);
 		}
 
 		$reportData = $this->normalizeIssuePrReportData($this->loadIssuePrReportData(FALSE));
@@ -845,7 +849,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 				break;
 
 			default:
-				return $this->errorJsonResponse(self::MSG_UNKNOWN_BULK_QUERY_ID, 400);
+				return $this->errorJsonResponse(self::MSG_UNKNOWN_BULK_QUERY_ID, self::HTTP_BAD_REQUEST);
 		}
 
 		$errorCount = count($result['errors']);
@@ -876,7 +880,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$issueNumber = $this->extractPositiveNumber($payload, 'issue_number');
 
 		if ($prNumber <= 0) {
-			return $this->errorJsonResponse(self::MSG_MISSING_PR_NUMBER, 400);
+			return $this->errorJsonResponse(self::MSG_MISSING_PR_NUMBER, self::HTTP_BAD_REQUEST);
 		}
 
 		$githubContext = $this->loadIssueAutomationContext();
@@ -889,7 +893,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 
 		$prResponse = $this->requestGitHubJson("https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $token);
 		if (!empty($prResponse['error']) || !is_array($prResponse['items'])) {
-			return $this->errorJsonResponse(self::MSG_UNABLE_TO_LOAD_PR_DETAILS, 500);
+			return $this->errorJsonResponse(self::MSG_UNABLE_TO_LOAD_PR_DETAILS, self::HTTP_INTERNAL_SERVER_ERROR);
 		}
 
 		$pr = [
@@ -900,7 +904,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		];
 
 		if (!$this->isDeadValuePr($pr)) {
-			return $this->errorJsonResponse(self::MSG_PR_NO_LONGER_DEAD_VALUE, 409);
+			return $this->errorJsonResponse(self::MSG_PR_NO_LONGER_DEAD_VALUE, self::HTTP_CONFLICT);
 		}
 
 		$prClosed = $this->closePullRequestWithComment($repo, $token, $prNumber, self::DEAD_VALUE_COMMENT);
@@ -913,7 +917,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		}
 
 		if (!$prClosed || !$issueCommented || !$issueClosed) {
-			return $this->errorJsonResponse(self::MSG_CLOSE_WITH_WARNINGS, 500);
+			return $this->errorJsonResponse(self::MSG_CLOSE_WITH_WARNINGS, self::HTTP_INTERNAL_SERVER_ERROR);
 		}
 
 		return $this->successJsonResponse(
@@ -951,7 +955,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return NULL;
 		}
 
-		return $this->errorJsonResponse(self::MSG_ACCESS_DENIED, 403);
+		return $this->errorJsonResponse(self::MSG_ACCESS_DENIED, self::HTTP_FORBIDDEN);
 	}
 
 	/**
@@ -962,7 +966,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return NULL;
 		}
 
-		return $this->errorJsonResponse(self::MSG_GITHUB_TOKEN_NOT_CONFIGURED, 400);
+		return $this->errorJsonResponse(self::MSG_GITHUB_TOKEN_NOT_CONFIGURED, self::HTTP_BAD_REQUEST);
 	}
 
 	/**
@@ -973,7 +977,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return NULL;
 		}
 
-		return $this->errorJsonResponse(self::MSG_GITHUB_TOKEN_NOT_CONFIGURED, 400);
+		return $this->errorJsonResponse(self::MSG_GITHUB_TOKEN_NOT_CONFIGURED, self::HTTP_BAD_REQUEST);
 	}
 
 	/**
