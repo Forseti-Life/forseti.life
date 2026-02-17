@@ -847,3 +847,28 @@ function job_hunter_file_delete(Drupal\file\FileInterface $file) {
     }
   }
 }
+
+/**
+ * Implements template_preprocess_company_research_page().
+ */
+function job_hunter_preprocess_company_research_page(&$variables) {
+  $companies = $variables['companies'];
+  
+  // Calculate statistics.
+  $stats = [
+    'total_companies' => count($companies),
+    'active_count' => 0,
+    'total_jobs' => 0,
+    'total_apps' => 0,
+  ];
+  
+  foreach ($companies as $company) {
+    if (!empty($company['active'])) {
+      $stats['active_count']++;
+    }
+    $stats['total_jobs'] += $company['job_count'] ?? 0;
+    $stats['total_apps'] += $company['app_count'] ?? 0;
+  }
+  
+  $variables['stats'] = $stats;
+}
