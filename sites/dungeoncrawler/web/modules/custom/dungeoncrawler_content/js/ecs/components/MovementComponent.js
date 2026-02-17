@@ -17,6 +17,18 @@ export const MovementMode = {
 };
 
 /**
+ * Default movement speed in feet per round.
+ * @const {number}
+ */
+export const DEFAULT_MOVEMENT_SPEED = 30;
+
+/**
+ * Standard hex movement cost in feet.
+ * @const {number}
+ */
+export const DEFAULT_HEX_MOVEMENT_COST = 5;
+
+/**
  * MovementComponent
  * 
  * Stores movement-related data for entities that can move.
@@ -25,9 +37,18 @@ export const MovementMode = {
 export class MovementComponent extends Component {
   /**
    * @param {number} movementSpeed - Base movement speed in feet (typically 25 or 30)
+   * @throws {Error} If movementSpeed is invalid (negative or NaN)
    */
-  constructor(movementSpeed = 30) {
+  constructor(movementSpeed = DEFAULT_MOVEMENT_SPEED) {
     super();
+    
+    // Validate input
+    if (typeof movementSpeed !== 'number' || isNaN(movementSpeed)) {
+      throw new Error('movementSpeed must be a valid number');
+    }
+    if (movementSpeed < 0) {
+      throw new Error('movementSpeed cannot be negative');
+    }
     
     // Can this entity move this turn?
     this.canMove = true;
@@ -45,7 +66,7 @@ export class MovementComponent extends Component {
     this.path = [];
     
     // Movement costs per hex (modified by terrain)
-    this.hexMovementCost = 5; // Standard: 5 feet per hex
+    this.hexMovementCost = DEFAULT_HEX_MOVEMENT_COST;
     
     // Available movement modes with speeds
     this.movementModes = {
@@ -63,8 +84,16 @@ export class MovementComponent extends Component {
   /**
    * Set movement mode and update current budget.
    * @param {string} mode - Movement mode from MovementMode enum
+   * @returns {boolean} True if mode was set, false if unavailable
+   * @throws {Error} If mode is not a valid MovementMode value
    */
   setMovementMode(mode) {
+    // Validate mode is a valid MovementMode value
+    const validModes = Object.values(MovementMode);
+    if (!validModes.includes(mode)) {
+      throw new Error(`Invalid movement mode: ${mode}. Must be one of: ${validModes.join(', ')}`);
+    }
+    
     if (this.movementModes[mode] > 0) {
       this.movementMode = mode;
       this.movementRemaining = this.movementModes[mode];
@@ -86,8 +115,23 @@ export class MovementComponent extends Component {
    * Add or update a movement mode.
    * @param {string} mode - Movement mode
    * @param {number} speed - Speed in feet
+   * @throws {Error} If mode or speed are invalid
    */
   addMovementMode(mode, speed) {
+    // Validate mode
+    const validModes = Object.values(MovementMode);
+    if (!validModes.includes(mode)) {
+      throw new Error(`Invalid movement mode: ${mode}. Must be one of: ${validModes.join(', ')}`);
+    }
+    
+    // Validate speed
+    if (typeof speed !== 'number' || isNaN(speed)) {
+      throw new Error('speed must be a valid number');
+    }
+    if (speed < 0) {
+      throw new Error('speed cannot be negative');
+    }
+    
     this.movementModes[mode] = speed;
   }
   
@@ -95,12 +139,23 @@ export class MovementComponent extends Component {
    * Consume movement budget.
    * @param {number} cost - Movement cost in feet
    * @returns {boolean} - True if movement was consumed, false if insufficient
+   * @throws {Error} If cost is invalid
    */
   consumeMovement(cost) {
+    // Validate cost
+    if (typeof cost !== 'number' || isNaN(cost)) {
+      throw new Error('cost must be a valid number');
+    }
+    if (cost < 0) {
+      throw new Error('cost cannot be negative');
+    }
+    
     if (this.movementRemaining >= cost) {
+      const hadMovement = this.movementRemaining > 0;
       this.movementRemaining -= cost;
 
-      if (this.movementRemaining <= 0 && typeof this.onMovementDepleted === 'function') {
+      // Only trigger callback once when movement hits zero
+      if (hadMovement && this.movementRemaining <= 0 && typeof this.onMovementDepleted === 'function') {
         this.onMovementDepleted();
       }
 
@@ -135,6 +190,56 @@ export class MovementComponent extends Component {
   }
   
   /**
+   * Validate component data.
+   * @returns {boolean} True if component data is valid
+   */
+  validate() {
+    // Check numeric values are valid
+    if (typeof this.movementSpeed !== 'number' || isNaN(this.movementSpeed) || this.movementSpeed < 0) {
+      return false;
+    }
+    if (typeof this.movementRemaining !== 'number' || isNaN(this.movementRemaining) || this.movementRemaining < 0) {
+      return false;
+    }
+    if (typeof this.hexMovementCost !== 'number' || isNaN(this.hexMovementCost) || this.hexMovementCost <= 0) {
+      return false;
+    }
+    
+    // Check movement mode is valid
+    const validModes = Object.values(MovementMode);
+    if (!validModes.includes(this.movementMode)) {
+      return false;
+    }
+    
+    // Check canMove is boolean
+    if (typeof this.canMove !== 'boolean') {
+      return false;
+    }
+    
+    // Check path is an array
+    if (!Array.isArray(this.path)) {
+      return false;
+    }
+    
+    // Check movementModes object has valid structure
+    if (typeof this.movementModes !== 'object' || this.movementModes === null) {
+      return false;
+    }
+    
+    // Validate each movement mode speed
+    for (const [mode, speed] of Object.entries(this.movementModes)) {
+      if (!validModes.includes(mode)) {
+        return false;
+      }
+      if (typeof speed !== 'number' || isNaN(speed) || speed < 0) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  /**
    * Serialize component to JSON.
    * @returns {Object}
    */
@@ -155,15 +260,47 @@ export class MovementComponent extends Component {
    * Deserialize component from JSON.
    * @param {Object} data - Serialized data
    * @returns {MovementComponent}
+   * @throws {Error} If data is invalid or missing required fields
    */
   static fromJSON(data) {
+    // Validate input
+    if (!data || typeof data !== 'object') {
+      throw new Error('fromJSON requires a valid object');
+    }
+    
+    // Validate required fields
+    if (typeof data.movementSpeed !== 'number') {
+      throw new Error('Missing or invalid movementSpeed in data');
+    }
+    if (typeof data.canMove !== 'boolean') {
+      throw new Error('Missing or invalid canMove in data');
+    }
+    if (typeof data.movementRemaining !== 'number') {
+      throw new Error('Missing or invalid movementRemaining in data');
+    }
+    if (typeof data.movementMode !== 'string') {
+      throw new Error('Missing or invalid movementMode in data');
+    }
+    if (typeof data.hexMovementCost !== 'number') {
+      throw new Error('Missing or invalid hexMovementCost in data');
+    }
+    if (!data.movementModes || typeof data.movementModes !== 'object') {
+      throw new Error('Missing or invalid movementModes in data');
+    }
+    
     const component = new MovementComponent(data.movementSpeed);
     component.canMove = data.canMove;
     component.movementRemaining = data.movementRemaining;
     component.movementMode = data.movementMode;
-    component.path = data.path || [];
+    component.path = Array.isArray(data.path) ? data.path : [];
     component.hexMovementCost = data.hexMovementCost;
     component.movementModes = {...data.movementModes};
+    
+    // Validate the resulting component
+    if (!component.validate()) {
+      throw new Error('Deserialized component failed validation');
+    }
+    
     return component;
   }
 }
