@@ -37,7 +37,7 @@ JSON Schemas serve multiple purposes:
 | `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 298 | Level generation |
 | `encounter.schema.json` | Combat & initiative | ✓ | 568 | Combat engine |
 | `entity_instance.schema.json` | Placed entities (runtime) | ✓ | 289 | Runtime entity management |
-| `hazard.schema.json` | Environmental hazards | ✓ | 467 | PF2e hazards |
+| `hazard.schema.json` | Environmental hazards | ✓ | 476 | PF2e hazards |
 | `hexmap.schema.json` | Hex-based dungeon map | ✓ | 247 | Map structure |
 | `item.schema.json` | Equipment & loot | ✓ | 441 | Inventory system |
 | `obstacle.schema.json` | Map obstacles | ✗ | 194 | Traversal blockers |
@@ -188,8 +188,11 @@ PF2e-compatible environmental hazards (simple and complex). Unlike traps, hazard
 **Recently improved (2026-02-17):**
 - Added schema versioning for migration compatibility
 - Added timestamp tracking (created_at, updated_at)
-- Added comprehensive numeric constraints (15+ min/max pairs)
+- Added comprehensive numeric constraints (16 min/max pairs)
 - Added string validation (minLength) to prevent empty strings
+- **Added maxLength constraints to 9 string fields** (name, description, trigger, routine, custom, immunities items, conditions items, effect.description, reset.conditions)
+- **Added maxItems constraint to traits array** (max 10 traits)
+- **Added maximum to reset_time_minutes** (10080 minutes = 1 week)
 - Added array validation (uniqueItems) to prevent duplicates
 - Enhanced validation constraints aligned with PF2e rules (levels -1 to 25, DCs 0-50)
 - Improved consistency with trap.schema.json structure
@@ -199,6 +202,7 @@ PF2e-compatible environmental hazards (simple and complex). Unlike traps, hazard
 - Added reusable definitions section (hex_coordinate)
 - Added comprehensive examples (simple and complex hazards)
 - Capped actions_per_round at 4 for realistic complex hazards
+- Enhanced property descriptions for clarity (initiative_modifier, routine, reset_time_minutes)
 
 **Defines:**
 - Simple hazards: One-time dangers (falling rocks, collapsing floors)
@@ -218,6 +222,7 @@ PF2e-compatible environmental hazards (simple and complex). Unlike traps, hazard
 - Strict validation with additionalProperties: false
 - Comprehensive constraints aligned with PF2e rules
 - Complete examples demonstrating simple and complex hazard patterns
+- Comprehensive string length bounds to prevent storage/rendering issues
 
 
 #### `hexmap.schema.json`
