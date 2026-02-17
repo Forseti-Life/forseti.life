@@ -4,6 +4,7 @@
   "title": "Character Creation Step 4: Class",
   "description": "Defines available options and validation for selecting character's class in Pathfinder 2E character creation",
   "type": "object",
+  "additionalProperties": false,
   "$defs": {
     "proficiency_rank": {
       "type": "string",
@@ -80,6 +81,11 @@
     }
   },
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version for migration compatibility"
+    },
     "step": {
       "type": "integer",
       "const": 4,
@@ -186,7 +192,8 @@
           "description": "Step cannot be skipped"
         }
       },
-      "required": ["previous_step", "next_step", "can_go_back", "can_skip"]
+      "required": ["previous_step", "next_step", "can_go_back", "can_skip"],
+      "additionalProperties": false
     },
     "validation": {
       "type": "object",
@@ -210,10 +217,12 @@
               "description": "Message shown when step validation fails"
             }
           },
-          "required": ["required_fields", "error_message"]
+          "required": ["required_fields", "error_message"],
+          "additionalProperties": false
         }
       },
-      "required": ["step_complete"]
+      "required": ["step_complete"],
+      "additionalProperties": false
     },
     "boost_sources_produced": {
       "type": "object",
@@ -265,7 +274,8 @@
           "examples": ["Arcane spellcasting, Intelligence", "Divine spellcasting, Wisdom", ""]
         }
       },
-      "required": ["hit_points", "key_ability_boost", "proficiencies", "trained_skills", "weapon_proficiencies"]
+      "required": ["hit_points", "key_ability_boost", "proficiencies", "trained_skills", "weapon_proficiencies"],
+      "additionalProperties": false
     },
     "tips": {
       "type": "array",
@@ -410,5 +420,5 @@
       "additionalProperties": false
     }
   },
-  "required": ["step", "step_name", "step_description", "fields", "navigation", "validation", "boost_sources_produced", "tips", "examples", "class_categories"]
+  "required": ["schema_version", "step", "step_name", "step_description", "fields", "navigation", "validation", "boost_sources_produced", "tips", "examples", "class_categories"]
 }
