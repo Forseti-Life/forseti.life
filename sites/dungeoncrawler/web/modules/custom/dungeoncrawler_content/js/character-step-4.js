@@ -1,3 +1,8 @@
+/**
+ * @file
+ * Character Creation Step 4 - Class Selection
+ */
+
 (function ($, Drupal, once) {
   'use strict';
 
@@ -22,6 +27,10 @@
 
   Drupal.behaviors.characterStep4 = {
     attach: function (context, settings) {
+      const $errorMessage = $('#error-message');
+      const $nextButton = $('#next-button');
+      const $selectedClass = $('#selected-class');
+
       // Class card click using event delegation
       once('class-select', '.class-card', context).forEach((element) => {
         $(element).on('click', function() {
@@ -31,7 +40,7 @@
       });
 
       // Pre-select if already chosen
-      const currentClass = $('#selected-class').val();
+      const currentClass = $selectedClass.val();
       if (currentClass) {
         selectClass(currentClass);
       }
@@ -42,15 +51,15 @@
           e.preventDefault();
 
           if (!selectedClass) {
-            $('#error-message').text('Please select a class.').removeClass('hidden').show();
+            $errorMessage.text('Please select a class.').removeClass('hidden').show();
             return;
           }
 
           const formData = $(this).serialize();
           const actionUrl = $(this).attr('action');
 
-          $('#next-button').prop('disabled', true).text('Saving...');
-          $('#error-message').hide().addClass('hidden');
+          $nextButton.prop('disabled', true).text('Saving...');
+          $errorMessage.addClass('hidden').hide();
 
           $.ajax({
             url: actionUrl,
@@ -60,20 +69,20 @@
               if (response.success) {
                 window.location.href = response.redirect;
               } else {
-                $('#error-message')
-                  .text(response.error || response.message || 'An error occurred.')
+                $errorMessage
+                  .text(response.message || 'An error occurred.')
                   .removeClass('hidden')
                   .show();
-                $('#next-button').prop('disabled', false).text('Next Step →');
+                $nextButton.prop('disabled', false).text('Next Step →');
               }
             },
             error: function(xhr) {
               let errorMsg = 'Failed to save. Please try again.';
-              if (xhr.responseJSON && xhr.responseJSON.error) {
-                errorMsg = xhr.responseJSON.error;
+              if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMsg = xhr.responseJSON.message;
               }
-              $('#error-message').text(errorMsg).removeClass('hidden').show();
-              $('#next-button').prop('disabled', false).text('Next Step →');
+              $errorMessage.text(errorMsg).removeClass('hidden').show();
+              $nextButton.prop('disabled', false).text('Next Step →');
             }
           });
         });
