@@ -140,6 +140,7 @@
             },
             "validation": {
               "type": "object",
+              "description": "Validation rules for class selection",
               "properties": {
                 "required": {
                   "type": "boolean",
@@ -150,6 +151,7 @@
                   "const": "Please select a class before continuing."
                 }
               },
+              "required": ["required", "error_message"],
               "additionalProperties": false
             }
           },
@@ -185,6 +187,33 @@
         }
       },
       "required": ["previous_step", "next_step", "can_go_back", "can_skip"]
+    },
+    "validation": {
+      "type": "object",
+      "description": "Step-level validation rules",
+      "properties": {
+        "step_complete": {
+          "type": "object",
+          "description": "Conditions for step completion",
+          "properties": {
+            "required_fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": ["class"],
+              "description": "Fields that must be completed before advancing"
+            },
+            "error_message": {
+              "type": "string",
+              "default": "You must select a class before continuing.",
+              "description": "Message shown when step validation fails"
+            }
+          },
+          "required": ["required_fields", "error_message"]
+        }
+      },
+      "required": ["step_complete"]
     },
     "boost_sources_produced": {
       "type": "object",
@@ -381,5 +410,5 @@
       "additionalProperties": false
     }
   },
-  "required": ["step", "step_name", "step_description", "fields", "navigation", "boost_sources_produced", "tips", "examples", "class_categories"]
+  "required": ["step", "step_name", "step_description", "fields", "navigation", "validation", "boost_sources_produced", "tips", "examples", "class_categories"]
 }
