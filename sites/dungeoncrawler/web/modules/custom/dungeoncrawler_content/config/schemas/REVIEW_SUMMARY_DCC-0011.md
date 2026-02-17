@@ -3,11 +3,12 @@
 **Issue**: DCC-0011  
 **File**: `config/schemas/character_options_step4.json`  
 **Review Date**: 2026-02-17  
+**Last Updated**: 2026-02-17  
 **Status**: Completed
 
 ## Executive Summary
 
-Reviewed and refactored the Character Creation Step 4 (Class) schema to improve consistency with adjacent step schemas (step3, step5), enhance validation capabilities, reduce code duplication, and follow documented schema standards. The schema now includes extracted reusable definitions, stricter validation constraints, output tracking for downstream steps, and comprehensive examples.
+Reviewed and refactored the Character Creation Step 4 (Class) schema to improve consistency with adjacent step schemas (step3, step5, step7), enhance validation capabilities, reduce code duplication, and follow documented schema standards. The schema now includes extracted reusable definitions, stricter validation constraints, output tracking for downstream steps, comprehensive examples, and step-level validation rules.
 
 ## Issues Identified and Resolved
 
@@ -108,6 +109,31 @@ Several numeric fields lacked minimum/maximum constraints aligned with PF2e rule
 - Enhanced descriptions to note "(valid PF2e range: X-Y)"
 - Applied same constraints to `boost_sources_produced` properties for consistency
 
+### 7. Missing Top-Level Validation Property
+**Severity**: Medium  
+**Impact**: Inconsistent with step5 and step7 patterns, reduced clarity of step completion rules
+
+Step5 and step7 both include a top-level `validation` property with `step_complete` rules to document what fields must be filled before proceeding. Step4 lacked this structure.
+
+**Resolution**: 
+- Added top-level `validation` property (lines 189-215) with:
+  - `step_complete` object documenting completion conditions
+  - `required_fields` array specifying `["class"]`
+  - `error_message` for validation failures
+- Added to top-level `required` array (line 413)
+- Matches patterns from step5 (lines 333-359) and step7
+
+### 8. Missing Description on Field-Level Validation
+**Severity**: Low  
+**Impact**: Reduced documentation clarity
+
+The nested validation object within the class field lacked a description property.
+
+**Resolution**: 
+- Added `description: "Validation rules for class selection"` to validation object (line 143)
+- Added explicit `required` array to validation object (line 154)
+- Improves consistency with other field validation blocks
+
 ## Schema Improvements Summary
 
 ### Structural Changes
@@ -115,12 +141,15 @@ Several numeric fields lacked minimum/maximum constraints aligned with PF2e rule
 2. ✅ Added `options_source` field linking to backend constant
 3. ✅ Added `boost_sources_produced` output tracking section
 4. ✅ Added `examples` section with 5 character archetypes
+5. ✅ Added top-level `validation` property with step completion rules
 
 ### Validation Enhancements
 1. ✅ Added `additionalProperties: false` to 6 objects
 2. ✅ Added numeric constraints to `hp` (6-12) and `trained_skills` (2-7)
 3. ✅ Enhanced `proficiencies` validation with `additionalProperties: false`
 4. ✅ Updated `required` arrays throughout
+5. ✅ Added step-level validation rules matching step5/step7 patterns
+6. ✅ Added description to field-level validation object
 
 ### Documentation Improvements
 1. ✅ Enhanced field descriptions with PF2e rule references
@@ -129,15 +158,17 @@ Several numeric fields lacked minimum/maximum constraints aligned with PF2e rule
 
 ## Consistency with Other Schemas
 
-| Pattern | Step 3 | Step 4 (Before) | Step 4 (After) | Step 5 |
-|---------|--------|-----------------|----------------|--------|
-| **$defs section** | ❌ | ✅ Partial | ✅ Complete | ✅ |
-| **additionalProperties** | ✅ | ❌ | ✅ | ✅ |
-| **options_source** | ✅ | ❌ | ✅ | N/A |
-| **boost tracking** | ✅ | ❌ | ✅ | ✅ |
-| **examples section** | ❌ | ❌ | ✅ | ✅ |
-| **Numeric constraints** | ✅ | ⚠️ Partial | ✅ | ✅ |
-| **Overall Consistency** | 67% | 40% | **95%** | 100% |
+| Pattern | Step 3 | Step 4 (Before) | Step 4 (After) | Step 5 | Step 7 |
+|---------|--------|-----------------|----------------|--------|--------|
+| **$defs section** | ❌ | ✅ Partial | ✅ Complete | ✅ | ✅ |
+| **additionalProperties** | ✅ | ❌ | ✅ | ✅ | ✅ |
+| **options_source** | ✅ | ❌ | ✅ | N/A | N/A |
+| **boost tracking** | ✅ | ❌ | ✅ | ✅ | N/A |
+| **examples section** | ❌ | ❌ | ✅ | ✅ | ✅ |
+| **Numeric constraints** | ✅ | ⚠️ Partial | ✅ | ✅ | ✅ |
+| **Step-level validation** | ❌ | ❌ | ✅ | ✅ | ✅ |
+| **Field validation descriptions** | ✅ | ❌ | ✅ | ✅ | ✅ |
+| **Overall Consistency** | 67% | 40% | **100%** | 100% | 100% |
 
 ## Validation Testing
 
@@ -159,16 +190,23 @@ Several numeric fields lacked minimum/maximum constraints aligned with PF2e rule
 
 ## Files Modified
 
-1. **character_options_step4.json**
+1. **character_options_step4.json** (414 lines)
    - Lines 7-80: Expanded `$defs` with `classOption` definition
    - Lines 121-125: Added `options_source` field
    - Lines 126-133: Simplified options array with `$ref`
-   - Lines 147-153: Added `additionalProperties` to validation
-   - Lines 155-156: Added `additionalProperties` to class field
-   - Lines 174-222: Added `boost_sources_produced` section
-   - Lines 224-288: Added `examples` section
-   - Lines 289: Added `additionalProperties` to `class_categories`
-   - Line 295: Updated top-level `required` array
+   - Lines 141-155: Added description and `required` array to field validation object
+   - Lines 157-158: Added `additionalProperties` to class field
+   - Lines 189-215: Added top-level `validation` property with step completion rules
+   - Lines 216-264: Added `boost_sources_produced` section
+   - Lines 266-330: Added `examples` section
+   - Lines 332-410: Enhanced `class_categories` with `additionalProperties`
+   - Line 413: Updated top-level `required` array to include `validation`
+
+2. **REVIEW_SUMMARY_DCC-0011.md**
+   - Updated to document new validation improvements
+   - Added issues #7 and #8 for top-level validation and field descriptions
+   - Updated consistency comparison table to include step7 and new patterns
+   - Improved overall consistency score from 95% to 100%
 
 ## Recommendations for Future Maintenance
 
