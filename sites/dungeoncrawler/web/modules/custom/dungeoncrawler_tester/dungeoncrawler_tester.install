@@ -1,0 +1,20 @@
+<?php
+
+use Drupal\system\Entity\Menu;
+
+/**
+ * Ensure dedicated tester navigation menu exists on existing installs.
+ */
+function dungeoncrawler_tester_update_11001(): void {
+  if (Menu::load('dungeoncrawler_testing') instanceof Menu) {
+    return;
+  }
+
+  $menu = Menu::create([
+    'id' => 'dungeoncrawler_testing',
+    'label' => 'Dungeon Crawler Testing',
+    'description' => 'Navigation menu for Dungeon Crawler tester pages.',
+    'locked' => FALSE,
+  ]);
+  $menu->save();
+}

@@ -7,6 +7,7 @@ ISSUES_FILE="${ISSUES_FILE:-$REPO_ROOT/Issues.md}"
 SITE_DIR="${SITE_DIR:-$REPO_ROOT/sites/dungeoncrawler}"
 DRUSH_BIN="${DRUSH_BIN:-$SITE_DIR/vendor/bin/drush}"
 SLEEP_SECONDS="${SLEEP_SECONDS:-180}"
+BATCH_SIZE="${BATCH_SIZE:-50}"
 GITHUB_REPO="${GITHUB_REPO:-}"
 DRY_RUN="${DRY_RUN:-0}"
 
@@ -15,7 +16,7 @@ usage() {
 Usage: ./script/import-open-issues-to-github.sh [options]
 
 Imports remaining Open rows from Issues.md into GitHub issues using the
-existing Drupal service: dungeoncrawler_tester.github_client.
+existing Drupal service: dungeoncrawler_tester.github_issue_pr_client.
 
 Options:
   --issues-file PATH   Path to Issues.md (default: ./Issues.md)
@@ -23,11 +24,12 @@ Options:
   --drush-bin PATH     Drush binary path (default: <site-dir>/vendor/bin/drush)
   --repo OWNER/NAME    Override GitHub repo (default: resolved from module settings)
   --sleep SECONDS      Delay between created issues (default: 180)
+  --batch-size COUNT   Stop after creating COUNT new issues (default: 50)
   --dry-run            Parse and print what would be created; do not call GitHub
   -h, --help           Show this help
 
 Environment overrides:
-  ISSUES_FILE, SITE_DIR, DRUSH_BIN, GITHUB_REPO, SLEEP_SECONDS, DRY_RUN
+  ISSUES_FILE, SITE_DIR, DRUSH_BIN, GITHUB_REPO, SLEEP_SECONDS, BATCH_SIZE, DRY_RUN
 
 Notes:
   - Issue titles are created as: "<ID> <Title>" for stable dedupe matching.
@@ -58,6 +60,10 @@ while [[ $# -gt 0 ]]; do
       SLEEP_SECONDS="$2"
       shift 2
       ;;
+    --batch-size)
+      BATCH_SIZE="$2"
+      shift 2
+      ;;
     --dry-run)
       DRY_RUN=1
       shift
@@ -86,6 +92,11 @@ fi
 
 if ! [[ "$SLEEP_SECONDS" =~ ^[0-9]+$ ]]; then
   echo "--sleep must be an integer number of seconds." >&2
+  exit 1
+fi
+
+if ! [[ "$BATCH_SIZE" =~ ^[0-9]+$ ]] || [[ "$BATCH_SIZE" -lt 1 ]]; then
+  echo "--batch-size must be an integer greater than 0." >&2
   exit 1
 fi
 
@@ -144,6 +155,7 @@ if [[ ${#open_rows[@]} -eq 0 ]]; then
 fi
 
 echo "Found ${#open_rows[@]} open rows in $ISSUES_FILE"
+echo "Batch target: create up to ${BATCH_SIZE} new issues this run"
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "Running in DRY_RUN mode."
 fi
@@ -151,8 +163,16 @@ fi
 created_count=0
 skipped_count=0
 failed_count=0
+processed_count=0
+batch_limit_reached=0
 
 for row in "${open_rows[@]}"; do
+  if [[ "$created_count" -ge "$BATCH_SIZE" ]]; then
+    batch_limit_reached=1
+    break
+  fi
+
+  processed_count=$((processed_count + 1))
   IFS=$'\t' read -r issue_id issue_title issue_owner issue_created issue_updated issue_notes <<< "$row"
 
   full_title="$issue_id $issue_title"
@@ -177,6 +197,10 @@ EOF
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "[DRY RUN] Would create issue and assign @copilot"
   skipped_count=$((skipped_count + 1))
+  if [[ "$processed_count" -lt "${#open_rows[@]}" ]]; then
+    echo "[$(date '+%H:%M:%S')] Sleeping ${SLEEP_SECONDS}s before next issue..."
+    sleep "$SLEEP_SECONDS"
+  fi
   continue
 fi
 
@@ -322,4 +346,7 @@ sleep "$SLEEP_SECONDS"
 done
 
 echo "---"
-echo "Done. Created: $created_count | Skipped: $skipped_count | Failed: $failed_count"
+if [[ "$batch_limit_reached" -eq 1 ]]; then
+  echo "Batch limit reached (${BATCH_SIZE} created)."
+fi
+echo "Done. Processed: $processed_count | Created: $created_count | Skipped: $skipped_count | Failed: $failed_count"

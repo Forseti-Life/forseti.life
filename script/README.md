@@ -82,10 +82,11 @@ This workspace supports two independent Drupal websites:
 - **verify-setup.sh** - ✅ **Comprehensive verification** of entire multi-site setup
 
 ### Issue Tracker Automation
-- **import-open-issues-to-github.sh** - 🧾 Imports all remaining **Open** rows from `Issues.md` into GitHub using existing Drupal GitHub client services (`dungeoncrawler_tester.github_client`), attempts Copilot assignment (`@copilot`), and throttles creation to one issue every 180 seconds by default.
+- **import-open-issues-to-github.sh** - 🧾 Imports **Open** rows from `Issues.md` into GitHub using existing Drupal GitHub client services (`dungeoncrawler_tester.github_issue_pr_client`), attempts Copilot assignment (`@copilot`), and processes in creation batches (default: stop after 50 new issues per run).
   - Usage: `./import-open-issues-to-github.sh --repo keithaumiller/forseti.life`
   - Dry run: `./import-open-issues-to-github.sh --dry-run`
-  - Options: `--issues-file`, `--site-dir`, `--drush-bin`, `--repo`, `--sleep`
+  - Batch size: `./import-open-issues-to-github.sh --batch-size 50`
+  - Options: `--issues-file`, `--site-dir`, `--drush-bin`, `--repo`, `--sleep`, `--batch-size`
 
 ### Forseti Mobile App Scripts
 - **setup-forseti-mobile-dev.sh** - 📱 **Complete Forseti Mobile development environment** (NEW - Recommended)
