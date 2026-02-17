@@ -257,7 +257,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$candidates = [];
 
 		foreach ($prs as $pr) {
-			$prNumber = (int) ($pr['number'] ?? 0);
+			$prNumber = $this->extractPositiveNumber($pr, 'number');
 			if ($prNumber <= 0) {
 				continue;
 			}
@@ -331,7 +331,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$nonActionLabels = ['duplicate', 'invalid', 'wontfix'];
 
 		foreach ($issues as $issue) {
-			$issueNumber = (int) ($issue['number'] ?? 0);
+			$issueNumber = $this->extractPositiveNumber($issue, 'number');
 			if ($issueNumber <= 0) {
 				continue;
 			}
@@ -352,7 +352,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$candidates = [];
 
 		foreach ($prs as $pr) {
-			$prNumber = (int) ($pr['number'] ?? 0);
+			$prNumber = $this->extractPositiveNumber($pr, 'number');
 			if ($prNumber <= 0) {
 				continue;
 			}
@@ -385,7 +385,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$candidates = [];
 
 		foreach ($issues as $issue) {
-			$issueNumber = (int) ($issue['number'] ?? 0);
+			$issueNumber = $this->extractPositiveNumber($issue, 'number');
 			if ($issueNumber <= 0) {
 				continue;
 			}
@@ -1006,13 +1006,21 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	private function buildOpenIssueNumberMap(array $issues): array {
 		$openIssueNumbers = [];
 		foreach ($issues as $issue) {
-			$issueNumber = (int) ($issue['number'] ?? 0);
+			$issueNumber = $this->extractPositiveNumber($issue, 'number');
 			if ($issueNumber > 0) {
 				$openIssueNumbers[$issueNumber] = TRUE;
 			}
 		}
 
 		return $openIssueNumbers;
+	}
+
+	/**
+	 * Extract a positive integer value from an array key.
+	 */
+	private function extractPositiveNumber(array $item, string $key): int {
+		$value = (int) ($item[$key] ?? 0);
+		return $value > 0 ? $value : 0;
 	}
 
 	/**
