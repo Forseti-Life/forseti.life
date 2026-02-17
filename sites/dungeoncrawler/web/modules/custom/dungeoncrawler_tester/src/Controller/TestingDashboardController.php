@@ -5,7 +5,6 @@ namespace Drupal\dungeoncrawler_tester\Controller;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Link;
 use Drupal\Core\Queue\QueueFactory;
