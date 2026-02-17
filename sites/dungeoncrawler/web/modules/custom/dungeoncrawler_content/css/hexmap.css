@@ -28,7 +28,7 @@
   --accent-dark: #062138;
   --alert: #f59e0b;
   --success: #10b981;
-  --success-dark: #062416;
+  --success-text-dark: #062416;
   
   /* Extended Color Palette (grayscale and semantic colors) */
   --gray-900: #0b0b0b;
@@ -51,7 +51,7 @@
   --primary: #4299e1;
   --primary-dark: #3182ce;
   --success-hover: #38a169;
-  --success-dark-hover: #2f855a;
+  --success-hover-dark: #2f855a;
   
   /* Common Gradients */
   --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -346,7 +346,6 @@
 
 /* Collapsible Rail Sections */
 
-/* Collapsible rail sections */
 .action-footer .action-section {
   flex: 1 1 auto;
   background: rgba(255, 255, 255, 0.04);
@@ -562,7 +561,7 @@
 .pill-positive {
   background: var(--success);
   border: none;
-  color: var(--success-dark);
+  color: var(--success-text-dark);
 }
 
 .pill-muted {
