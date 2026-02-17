@@ -777,13 +777,11 @@
         },
         "home_room_id": {
           "type": "string",
-          "minLength": 1,
-          "description": "Room this creature considers home."
+          "description": "Room this creature considers home. May be empty if not yet assigned."
         },
         "current_room_id": {
           "type": "string",
-          "minLength": 1,
-          "description": "Room the creature is currently in."
+          "description": "Room the creature is currently in. May be empty if not yet placed."
         },
         "patrol_route": {
           "type": "array",
@@ -885,6 +883,14 @@
       "type": "string",
       "format": "date-time",
       "description": "Last modification timestamp."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional flavor text describing the creature."
+    },
+    "source": {
+      "type": "string",
+      "description": "Source book or origin (e.g., 'Pathfinder Bestiary 1', 'AI-generated')."
     }
   },
   "additionalProperties": false,
