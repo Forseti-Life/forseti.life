@@ -8,21 +8,31 @@
   /* Colors */
   --dc-primary: #4ade80;
   --dc-primary-dark: #22c55e;
+  --dc-primary-overlay-light: rgba(74, 222, 128, 0.1);
+  --dc-primary-overlay: rgba(74, 222, 128, 0.15);
+  --dc-primary-glow: rgba(74, 222, 128, 0.3);
   --dc-secondary: #06b6d4;
   --dc-secondary-dark: #0891b2;
+  --dc-secondary-overlay: rgba(6, 182, 212, 0.1);
   --dc-danger: #ef4444;
   --dc-danger-dark: #dc2626;
   --dc-warning: #fbbf24;
   --dc-warning-dark: #f59e0b;
   --dc-success: #10b981;
   --dc-success-dark: #059669;
+  --dc-success-darker: #047857;
   --dc-bg-dark: #1a1a2e;
   --dc-bg-darker: #16213e;
+  --dc-bg-dark-alt: #2a2a2a;
+  --dc-bg-dark-overlay: rgba(0, 0, 0, 0.3);
   --dc-text-light: #e8e8e8;
   --dc-text-muted: #a0a0a0;
   --dc-text-subtle: #b0b0b0;
+  --dc-text-disabled: #666;
   --dc-border-light: rgba(255, 255, 255, 0.1);
   --dc-border-medium: rgba(255, 255, 255, 0.2);
+  --dc-border-hover: rgba(255, 255, 255, 0.3);
+  --dc-border-dark: #3a3a3a;
   --dc-card-bg: rgba(30, 30, 46, 0.9);
   --dc-card-bg-light: rgba(255, 255, 255, 0.05);
   --dc-card-bg-hover: rgba(255, 255, 255, 0.08);
@@ -186,14 +196,14 @@ textarea.form-control {
 
 .card-base:hover {
   border-color: var(--dc-primary);
-  background: rgba(74, 222, 128, 0.1);
+  background: var(--dc-primary-overlay-light);
   transform: translateY(-4px);
 }
 
 .card-base.selected {
   border-color: var(--dc-primary);
-  background: rgba(74, 222, 128, 0.15);
-  box-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
+  background: var(--dc-primary-overlay);
+  box-shadow: 0 0 20px var(--dc-primary-glow);
 }
 
 .card-base h3 {
@@ -230,7 +240,7 @@ textarea.form-control {
 .background-card:hover,
 .class-card:hover {
   border-color: var(--dc-primary);
-  background: rgba(74, 222, 128, 0.1);
+  background: var(--dc-primary-overlay-light);
   transform: translateY(-4px);
 }
 
@@ -238,8 +248,8 @@ textarea.form-control {
 .background-card.selected,
 .class-card.selected {
   border-color: var(--dc-primary);
-  background: rgba(74, 222, 128, 0.15);
-  box-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
+  background: var(--dc-primary-overlay);
+  box-shadow: 0 0 20px var(--dc-primary-glow);
 }
 
 .ancestry-card h3,
@@ -375,7 +385,7 @@ textarea.form-control {
 
 .btn-secondary:hover {
   background: var(--dc-card-bg-hover);
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: var(--dc-border-hover);
 }
 
 /* Ability Boosts */
@@ -400,14 +410,14 @@ textarea.form-control {
 
 .ability-card:hover {
   border-color: var(--dc-primary);
-  background: rgba(74, 222, 128, 0.1);
+  background: var(--dc-primary-overlay-light);
   transform: translateY(-4px);
 }
 
 .ability-card.selected {
   border-color: var(--dc-primary);
-  background: rgba(74, 222, 128, 0.15);
-  box-shadow: 0 0 20px rgba(74, 222, 128, 0.3);
+  background: var(--dc-primary-overlay);
+  box-shadow: 0 0 20px var(--dc-primary-glow);
 }
 
 .ability-card.maxed {
@@ -443,7 +453,7 @@ textarea.form-control {
 .boost-counter {
   margin-top: var(--dc-space-md);
   padding: var(--dc-space-sm);
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--dc-bg-dark-overlay);
   border-radius: var(--dc-radius-sm);
   font-weight: 600;
 }
@@ -458,7 +468,7 @@ textarea.form-control {
   font-size: 1.25rem;
   margin: var(--dc-space-xl) 0;
   padding: var(--dc-space-md);
-  background: rgba(74, 222, 128, 0.1);
+  background: var(--dc-primary-overlay-light);
   border-radius: var(--dc-radius-md);
 }
 
@@ -484,8 +494,8 @@ textarea.form-control {
 }
 
 .alignment-card {
-  background: #2a2a2a;
-  border: 2px solid #3a3a3a;
+  background: var(--dc-bg-dark-alt);
+  border: 2px solid var(--dc-border-dark);
   border-radius: var(--dc-radius-md);
   padding: var(--dc-space-lg);
   text-align: center;
@@ -501,7 +511,7 @@ textarea.form-control {
 
 .alignment-card.selected {
   border-color: var(--dc-secondary);
-  background: rgba(6, 182, 212, 0.1);
+  background: var(--dc-secondary-overlay);
 }
 
 .alignment-card h3 {
@@ -511,8 +521,8 @@ textarea.form-control {
 }
 
 .form-section {
-  background: #2a2a2a;
-  border: 2px solid #3a3a3a;
+  background: var(--dc-bg-dark-alt);
+  border: 2px solid var(--dc-border-dark);
   border-radius: var(--dc-radius-md);
   padding: var(--dc-space-lg);
   margin-bottom: var(--dc-space-lg);
@@ -566,7 +576,7 @@ textarea.form-control {
   color: var(--dc-secondary);
   font-size: 1.3rem;
   margin-bottom: var(--dc-space-md);
-  border-bottom: 2px solid #3a3a3a;
+  border-bottom: 2px solid var(--dc-border-dark);
   padding-bottom: var(--dc-space-sm);
 }
 
@@ -578,8 +588,8 @@ textarea.form-control {
 .equipment-item {
   display: flex;
   align-items: center;
-  background: #2a2a2a;
-  border: 2px solid #3a3a3a;
+  background: var(--dc-bg-dark-alt);
+  border: 2px solid var(--dc-border-dark);
   border-radius: var(--dc-radius-sm);
   padding: var(--dc-space-md);
   transition: var(--dc-transition-fast);
@@ -626,8 +636,8 @@ textarea.form-control {
 }
 
 .selected-equipment {
-  background: #2a2a2a;
-  border: 2px solid #3a3a3a;
+  background: var(--dc-bg-dark-alt);
+  border: 2px solid var(--dc-border-dark);
   border-radius: var(--dc-radius-md);
   padding: var(--dc-space-lg);
   margin-bottom: var(--dc-space-xl);
@@ -647,7 +657,7 @@ textarea.form-control {
 .selected-item {
   display: flex;
   align-items: center;
-  background: rgba(6, 182, 212, 0.1);
+  background: var(--dc-secondary-overlay);
   border: 2px solid var(--dc-secondary);
   border-radius: var(--dc-radius-sm);
   padding: var(--dc-space-md);
@@ -681,7 +691,7 @@ textarea.form-control {
 }
 
 .empty-message {
-  color: #666;
+  color: var(--dc-text-disabled);
   text-align: center;
   font-style: italic;
   padding: var(--dc-space-xl);
@@ -716,10 +726,10 @@ textarea.form-control {
 }
 
 .summary-item {
-  background: #2a2a2a;
+  background: var(--dc-bg-dark-alt);
   padding: var(--dc-space-md);
   border-radius: var(--dc-radius-sm);
-  border: 1px solid #3a3a3a;
+  border: 1px solid var(--dc-border-dark);
 }
 
 .summary-item strong {
@@ -735,7 +745,7 @@ textarea.form-control {
 }
 
 .btn-success:hover {
-  background: linear-gradient(var(--dc-gradient-angle), var(--dc-success-dark) 0%, #047857 100%);
+  background: linear-gradient(var(--dc-gradient-angle), var(--dc-success-dark) 0%, var(--dc-success-darker) 100%);
 }
 
 /* Responsive */

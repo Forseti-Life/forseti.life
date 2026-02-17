@@ -236,10 +236,24 @@ Both blocks are configured as `status: true` and will be automatically placed wh
 
 ## Styling
 
-The module includes three CSS libraries:
+The module includes CSS libraries:
 1. **dungeoncrawler-content** - Base module styles
 2. **game-cards** - Card-based UI components
 3. **character-sheet** - Character sheet display
+4. **character-steps** - Character creation step styling with CSS custom properties
+
+### Character Steps CSS
+
+The `character-steps.css` file uses CSS custom properties (variables) for consistent styling:
+- **Colors**: `--dc-primary`, `--dc-secondary`, `--dc-danger`, `--dc-warning`, `--dc-success`
+- **Spacing**: `--dc-space-xs` through `--dc-space-xl`
+- **Border Radius**: `--dc-radius-sm` through `--dc-radius-xl`
+- **Transitions**: `--dc-transition`, `--dc-transition-fast`
+
+Legacy class names maintained for backward compatibility:
+- `.backgrounds-grid` → use `.background-grid`
+- `.classes-grid` → use `.class-grid`
+- `.abilities-grid` → use `.ability-grid`
 
 All use Bootstrap 5 dark theme styling with fantasy RPG aesthetics.
 
