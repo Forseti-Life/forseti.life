@@ -252,7 +252,7 @@ The `dungeoncrawler_content.libraries.yml` file was refactored on 2026-02-17 to 
 - All 8 character step libraries (`character-step-1` through `character-step-8`) now depend on `character-step-base`
 - Eliminated 8 duplicate CSS file references (reduced from 8x loading to 1x loading)
 - Removed 56 lines of repeated dependencies
-- Added `defer: true` attribute to ES6 modules in hexmap for non-blocking loading
+- ES6 modules in hexmap properly configured with `type: module` (automatically deferred by browsers)
 - Standardized CSS categories to `theme` for module-specific stylesheets
 
 ### Character Steps CSS
