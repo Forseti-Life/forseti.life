@@ -76,6 +76,18 @@
         const normalizedHeritages = parseHeritageData();
 
         /**
+         * Escape HTML special characters to prevent XSS.
+         *
+         * @param {string} str - String to escape
+         * @return {string} HTML-safe string
+         */
+        function escapeHtml(str) {
+          const div = document.createElement('div');
+          div.textContent = str;
+          return div.innerHTML;
+        }
+
+        /**
          * Render HTML for a single heritage card.
          *
          * @param {Object} heritage - Heritage data object
@@ -87,9 +99,13 @@
          */
         function renderHeritageCard(heritage, isSelected) {
           const selectedClass = isSelected ? CSS_CLASSES.SELECTED : '';
-          return `<div class="${CSS_CLASSES.HERITAGE_CARD} ${selectedClass}" data-heritage="${heritage.id}">
-            <h4>${heritage.name}</h4>
-            <p>${heritage.benefit}</p>
+          const safeId = escapeHtml(heritage.id);
+          const safeName = escapeHtml(heritage.name);
+          const safeBenefit = escapeHtml(heritage.benefit);
+          
+          return `<div class="${CSS_CLASSES.HERITAGE_CARD} ${selectedClass}" data-heritage="${safeId}">
+            <h4>${safeName}</h4>
+            <p>${safeBenefit}</p>
           </div>`;
         }
 
