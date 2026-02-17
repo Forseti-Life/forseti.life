@@ -61,7 +61,11 @@
         "type": "object",
         "required": ["character_id", "name", "role"],
         "properties": {
-          "character_id": { "type": "string", "format": "uuid" },
+          "character_id": { 
+            "type": "string", 
+            "format": "uuid",
+            "description": "Unique identifier linking to the character in dc_characters table."
+          },
           "name": { 
             "type": "string",
             "minLength": 1,
@@ -102,8 +106,15 @@
           },
           "spell_slots_remaining": {
             "type": "object",
-            "additionalProperties": { "type": "integer", "minimum": 0 },
-            "description": "Spell rank → remaining slots for casters."
+            "patternProperties": {
+              "^[0-9]$|^10$": { 
+                "type": "integer", 
+                "minimum": 0,
+                "description": "Remaining spell slots for ranks 0-10."
+              }
+            },
+            "additionalProperties": false,
+            "description": "Spell rank → remaining slots for casters (ranks 0-10)."
           },
           "focus_points_remaining": { 
             "type": "integer",
@@ -125,7 +136,8 @@
               "avoid_notice", "defend", "detect_magic", "follow_the_expert",
               "hustle", "investigate", "repeat_a_spell", "scout", "search"
             ],
-            "description": "Active PF2e exploration activity."
+            "description": "Active PF2e exploration activity.",
+            "examples": ["search", "scout", "detect_magic"]
           }
         },
         "additionalProperties": false
@@ -138,10 +150,15 @@
         "type": "object",
         "required": ["item_id", "name", "quantity"],
         "properties": {
-          "item_id": { "type": "string", "format": "uuid" },
+          "item_id": { 
+            "type": "string", 
+            "format": "uuid",
+            "description": "Unique identifier referencing the item in the inventory system."
+          },
           "name": { 
             "type": "string",
             "minLength": 1,
+            "maxLength": 200,
             "description": "Item name."
           },
           "quantity": { "type": "integer", "minimum": 1 },
@@ -152,7 +169,23 @@
           }
         },
         "additionalProperties": false
-      }
+      },
+      "examples": [
+        [
+          {
+            "item_id": "550e8400-e29b-41d4-a716-446655440000",
+            "name": "Healing Potion",
+            "quantity": 3,
+            "carried_by": "660e8400-e29b-41d4-a716-446655440001"
+          },
+          {
+            "item_id": "770e8400-e29b-41d4-a716-446655440002",
+            "name": "Rope (50 ft)",
+            "quantity": 2,
+            "carried_by": null
+          }
+        ]
+      ]
     },
     "currency": {
       "$ref": "#/definitions/currency",
@@ -186,6 +219,7 @@
         "rest_started_at": { "type": ["string", "null"], "format": "date-time" },
         "watch_order": {
           "type": "array",
+          "uniqueItems": true,
           "items": { "type": "string", "format": "uuid" },
           "description": "Character IDs in watch rotation order."
         }
@@ -199,6 +233,7 @@
         "revealed_hexes": {
           "type": "array",
           "description": "List of hex coordinates the party has explored.",
+          "uniqueItems": true,
           "items": {
             "$ref": "#/definitions/hex_position"
           }
@@ -206,11 +241,13 @@
         "revealed_rooms": {
           "type": "array",
           "description": "List of room UUIDs the party has discovered.",
+          "uniqueItems": true,
           "items": { "type": "string", "format": "uuid" }
         },
         "revealed_connections": {
           "type": "array",
           "description": "List of connection UUIDs between rooms the party has found.",
+          "uniqueItems": true,
           "items": { "type": "string", "format": "uuid" }
         },
         "notes": {
@@ -240,7 +277,23 @@
             },
             "additionalProperties": false
           },
-          "description": "Player-placed notes on the map."
+          "description": "Player-placed notes on the map.",
+          "examples": [
+            [
+              {
+                "hex": { "q": 2, "r": 3 },
+                "text": "Heard strange noises from the north",
+                "added_by": "dd0e8400-e29b-41d4-a716-446655440008",
+                "added_at": "2026-02-17T14:20:00Z"
+              },
+              {
+                "hex": { "q": 0, "r": 0 },
+                "text": "Safe room - good for camping",
+                "added_by": "ee0e8400-e29b-41d4-a716-446655440009",
+                "added_at": "2026-02-17T12:15:00Z"
+              }
+            ]
+          ]
         }
       },
       "additionalProperties": false
@@ -269,7 +322,29 @@
           }
         },
         "additionalProperties": false
-      }
+      },
+      "examples": [
+        [
+          {
+            "encounter_id": "880e8400-e29b-41d4-a716-446655440003",
+            "room_id": "990e8400-e29b-41d4-a716-446655440004",
+            "type": "combat",
+            "outcome": "victory",
+            "xp_earned": 120,
+            "loot_gained": ["aa0e8400-e29b-41d4-a716-446655440005"],
+            "timestamp": "2026-02-17T15:30:00Z"
+          },
+          {
+            "encounter_id": "bb0e8400-e29b-41d4-a716-446655440006",
+            "room_id": "cc0e8400-e29b-41d4-a716-446655440007",
+            "type": "trap",
+            "outcome": "bypassed",
+            "xp_earned": 40,
+            "loot_gained": [],
+            "timestamp": "2026-02-17T16:45:00Z"
+          }
+        ]
+      ]
     },
     "total_xp": { "type": "integer", "default": 0, "minimum": 0 },
     "dungeon_stats": {

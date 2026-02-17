@@ -130,6 +130,7 @@
                   }
                 }
               },
+              "uniqueItems": true,
               "description": "Additional damage dice for elemental or other bonus damage."
             }
           }
@@ -380,6 +381,7 @@
               }
             }
           },
+          "uniqueItems": true,
           "description": "Weapon or armor runes etched onto the item."
         }
       }
