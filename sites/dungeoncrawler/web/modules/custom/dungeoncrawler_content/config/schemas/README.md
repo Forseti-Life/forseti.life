@@ -31,7 +31,7 @@ JSON Schemas serve multiple purposes:
 | Schema File | Purpose | Versioned | Lines | Primary Use |
 |-------------|---------|-----------|-------|-------------|
 | `character.schema.json` | Complete PF2e character | ✓ | 564 | `dc_characters.character_data` |
-| `character_options_step[1-8].json` | Character creation wizard | ✗ | 298-501 | Character creation UI |
+| `character_options_step[1-8].json` | Character creation wizard | Partial | 298-535 | Character creation UI |
 | `campaign.schema.json` | Campaign state & progress | ✓ | 137 | `dc_campaigns.campaign_data` |
 | `creature.schema.json` | Monsters, NPCs, beasts | ✓ | 1101 | Entity spawning |
 | `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 298 | Level generation |
@@ -40,10 +40,10 @@ JSON Schemas serve multiple purposes:
 | `hazard.schema.json` | Environmental hazards | ✓ | 467 | PF2e hazards |
 | `hexmap.schema.json` | Hex-based dungeon map | ✓ | 247 | Map structure |
 | `item.schema.json` | Equipment & loot | ✓ | 441 | Inventory system |
-| `obstacle.schema.json` | Map obstacles | ✓ | 231 | Traversal blockers |
-| `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✓ | 230 | Obstacle templates |
-| `party.schema.json` | Adventuring party | ✓ | 450 | Party management |
-| `room.schema.json` | Individual dungeon rooms | ✓ | 628 | Room generation |
+| `obstacle.schema.json` | Map obstacles | ✗ | 194 | Traversal blockers |
+| `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✗ | 221 | Obstacle templates |
+| `party.schema.json` | Adventuring party | ✓ | 441 | Party management |
+| `room.schema.json` | Individual dungeon rooms | ✗ | 471 | Room generation |
 | `trap.schema.json` | Mechanical & magical traps | ✓ | 330 | Trap mechanics |
 
 ## Schema Categories
@@ -64,13 +64,13 @@ Complete Pathfinder 2E character data structure stored in the `dc_characters` ta
 Character creation wizard options and validation rules for each of the 8 steps:
 
 1. **Step 1**: Name & Concept
-2. **Step 2**: Ancestry & Heritage
+2. **Step 2**: Ancestry & Heritage (v1.0.0)
 3. **Step 3**: Background
 4. **Step 4**: Class
 5. **Step 5**: Ability Scores
-6. **Step 6**: Alignment & Deity
+6. **Step 6**: Alignment & Deity (versioned)
 7. **Step 7**: Equipment
-8. **Step 8**: Finishing Touches
+8. **Step 8**: Finishing Touches (versioned)
 
 **Defines:**
 - Available options at each step
@@ -78,6 +78,14 @@ Character creation wizard options and validation rules for each of the 8 steps:
 - Help text and examples
 - Navigation rules
 - Error messages
+
+**Recent improvements to Step 2 (2026-02-17):**
+- Added schema versioning (v1.0.0) for migration compatibility
+- Added step-level validation object for consistency with other steps
+- Expanded heritages_by_ancestry schema to document all 14 PF2e ancestries
+- Added comprehensive examples section showing recommended ancestry/heritage combinations
+- Enhanced documentation noting which ancestries have implemented heritages vs placeholders
+- Improved consistency with other character creation step schemas
 
 ### Dungeon Schemas
 
@@ -265,6 +273,9 @@ Unified traversal/combat obstacles (non-container blockers/modifiers). PF2e-comp
 - Enhanced descriptions with practical examples
 - Improved consistency with trap.schema.json and hazard.schema.json
 - Added top-level additionalProperties: false for stricter validation
+- Added additionalProperties: false to state object for controlled runtime state
+- Simplified damage pattern to match standard PF2e dice notation (XdY+Z format only)
+- Added comprehensive examples demonstrating barricade and magical barrier patterns
 
 **Defines:**
 - Obstacle metadata (name, level, type, rarity, traits)
@@ -282,18 +293,28 @@ Unified traversal/combat obstacles (non-container blockers/modifiers). PF2e-comp
 - Flexible skill check requirements (Athletics, Acrobatics, etc.)
 - State tracking for runtime obstacle management
 - Links to underlying trap/hazard definitions
+- Strict validation with additionalProperties: false throughout
 
 #### `obstacle_object_catalog.schema.json`
 Reusable obstacle object definitions (label, movable, stackable, movement flags) used by placed obstacle instances.
 
 **Recently improved (2026-02-17):**
 - Added schema versioning for migration compatibility (schema_version now required)
+- Added `$defs` section with reusable `movement_config` definition for better schema organization
+- Enhanced description field with clearer guidance and additional examples
+- Added optional enrichment fields for more detailed obstacle definitions:
+  - `size`: PF2e size category (tiny, small, medium, large, huge, gargantuan)
+  - `weight`: PF2e Bulk value for weight/portability (L or numeric)
+  - `interaction`: Mechanics for opening, closing, skill DCs (Athletics, Thievery)
+  - `visual`: Rendering metadata (sprite_id, color, rotation)
 - Enhanced validation with improved constraints:
-  - Added minLength: 1 to object_id to prevent empty IDs
+  - Added minLength: 1 to object_id and description to prevent empty values
   - Added maximum: 999 to cost_multiplier for reasonable upper bound
   - Added uniqueItems: true to tags array to prevent duplicate tags
   - Added minLength: 1 to tag items to prevent empty strings
+- All new fields are optional, maintaining full backward compatibility
 - Validates successfully with existing example data (tavern-obstacle-objects.json)
+
 
 #### `party.schema.json`
 Adventuring party with shared resources and exploration state.
@@ -304,6 +325,9 @@ Adventuring party with shared resources and exploration state.
 - Added `definitions` section with reusable components: `hex_position`, `condition`, `currency`
 - Enhanced validation constraints throughout (minLength, maxLength, minimum values)
 - Added `additionalProperties: false` for stricter validation
+- Added `uniqueItems: true` to 4 arrays (watch_order, revealed_hexes, revealed_rooms, revealed_connections)
+- Enhanced `spell_slots_remaining` with strict pattern validation for ranks 0-10
+- Added comprehensive examples for shared_inventory, encounter_log, fog_of_war notes, and exploration_activity
 - Improved documentation with comprehensive descriptions
 - Validates successfully with test data
 
@@ -529,6 +553,7 @@ This directory may contain historical completion/summary markdown files (e.g., `
 Schemas with `schema_version` field (migration-ready):
 - ✓ `campaign.schema.json`
 - ✓ `character.schema.json`
+- ✓ `character_options_step2.json` (v1.0.0)
 - ✓ `character_options_step6.json`
 - ✓ `character_options_step8.json`
 - ✓ `creature.schema.json`
@@ -538,6 +563,7 @@ Schemas with `schema_version` field (migration-ready):
 - ✓ `hazard.schema.json`
 - ✓ `hexmap.schema.json`
 - ✓ `item.schema.json`
+- ✓ `obstacle.schema.json`
 - ✓ `obstacle_object_catalog.schema.json`
 - ✓ `party.schema.json`
 - ✓ `trap.schema.json`
@@ -548,7 +574,9 @@ Schemas with versioning (recently added):
 - ✓ `room.schema.json`
 
 Schemas pending versioning:
-- `character_options_step[1-5,7].json` (UI-only schemas - lower priority)
+- `character_options_step[1,3-5,7].json` (UI-only schemas - lower priority)
+- `obstacle.schema.json` (needs versioning for production use)
+- `room.schema.json` (needs versioning for production use)
 
 ### Adding New Properties
 1. Update the appropriate schema file
