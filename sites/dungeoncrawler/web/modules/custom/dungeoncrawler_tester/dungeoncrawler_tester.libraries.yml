@@ -19,3 +19,16 @@ queue-management:
   dependencies:
     - core/drupal
     - core/once
+
+import-open-issues-reconcile:
+  version: 1.x
+  css:
+    theme:
+      css/dashboard.css: {}
+      css/queue-management.css: {}
+      css/import-open-issues.css: {}
+  js:
+    js/import-open-issues-reconcile.js: {}
+  dependencies:
+    - core/drupal
+    - core/once

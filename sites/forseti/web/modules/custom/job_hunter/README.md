@@ -21,10 +21,15 @@ This module has comprehensive documentation organized for different audiences:
 A comprehensive AI-powered Drupal module that automates the entire job application process using Generative AI. This system analyzes user resumes, scrapes job postings from employer websites, tailors applications using AI, and automatically submits applications across multiple employer platforms.
 
 ## Maintenance Notes
+- 2026-02-17: Unified search auto-imports external API results into `jobhunter_job_requirements`, but now skips duplicates using identifier checks (`job_hash`, then `external_source + external_job_id`, then `external_source + job_url`).
+- 2026-02-17: Prevented duplicate "Forseti Jobs (Pending)" cards by deduplicating staging rows in `SearchAggregatorService::searchForsetiDatabase()` and by only caching true external API sources (`Google Jobs`, `Adzuna`, `USAJobs`, `Google Jobs (SerpAPI)`) in `storeSearchResults()`.
+- 2026-02-17: Fixed `job-search-results.html.twig` to avoid direct Twig `csrf_token()` calls; token is now generated in `JobApplicationController::jobDiscoverySearchResults()` and passed as `save_job_csrf_token` to prevent Twig syntax errors while preserving AJAX save security.
 - 2026-02-13: Controllers must not redeclare typed properties that exist on ControllerBase (e.g., entityTypeManager) to avoid PHP fatal errors in Drupal 11.
 - 2026-02-17: Added per-job "Have applied" tracking on `/jobhunter/my-jobs` with toggle + applied date persistence (`jobhunter_job_requirements.applied_on_date`).
-- 2026-02-17: External API search results are now imported into `jobhunter_job_requirements` immediately after each unified search, so returned external jobs become searchable in Forseti jobs right away (not only via cron).
 - 2026-02-17: Added schema-safe truncation for imported external metadata (`external_job_id`, URLs, `via`, and related varchar fields) in both immediate and cron import paths to prevent DB length errors.
+- 2026-02-17: Job Search Results "Save Job" now uses AJAX and returns JSON on XHR requests so saves do not navigate away from `/jobhunter/job-discovery/search`.
+- 2026-02-17: "Save Job" now supports fallback lookup by `external_job_id` in `jobhunter_job_search_results.job_data_json` when legacy/base64 payload decoding fails, preserving searched job data recovery.
+- 2026-02-17: `My Jobs` now uses `jobhunter_saved_jobs` (uid↔job_id mapping) so the Forseti jobs catalog (`jobhunter_job_requirements`) stays global while saved jobs remain user-specific.
 
 ## ⚠️ CRITICAL: Read Architecture First
 **Before any development work begins, all developers MUST read and understand the complete [ARCHITECTURE.md](ARCHITECTURE.md) document.** This system involves complex AI integration, automated web scraping, credential management, and multi-platform submission automation that requires thorough understanding of the architecture before implementation.

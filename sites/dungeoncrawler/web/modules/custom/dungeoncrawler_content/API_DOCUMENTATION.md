@@ -4,26 +4,78 @@
 **Last Updated**: 2026-02-17  
 **Status**: Active Development
 
+## Document Changelog
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0 | 2026-02-17 | Initial comprehensive documentation |
+| 1.0.1 | 2026-02-17 | Added Quick Reference table, practical examples, debugging tools, and testing patterns |
+
+## Quick Reference
+
+| Endpoint | Method | Status | Description |
+|----------|--------|--------|-------------|
+| `/api/campaign/{campaign_id}/state` | GET | ✅ | Get campaign state |
+| `/api/campaign/{campaign_id}/state` | POST | ⚠️ | Update campaign state (needs route) |
+| `/api/dungeon/{dungeon_id}/state` | GET | ✅ | Get dungeon state |
+| `/api/dungeon/{dungeon_id}/state` | POST | ✅ | Update dungeon state |
+| `/api/dungeon/{dungeon_id}/room/{room_id}/state` | GET | ✅ | Get room state |
+| `/api/dungeon/{dungeon_id}/room/{room_id}/state` | POST | ⚠️ | Update room state (needs route) |
+| `/api/campaign/{campaign_id}/entity/spawn` | POST | ✅ | Spawn entity |
+| `/api/campaign/{campaign_id}/entity/{instance_id}/move` | POST | ✅ | Move entity |
+| `/api/campaign/{campaign_id}/entity/{instance_id}` | DELETE | ✅ | Despawn entity |
+| `/api/campaign/{campaign_id}/entities` | GET | ✅ | List entities |
+
+**Legend**: ✅ Fully configured | ⚠️ Controller exists, route needs configuration
+
 ## Table of Contents
 
-1. [Overview](#overview)
-2. [Authentication & Authorization](#authentication--authorization)
-3. [Campaign State Endpoints](#campaign-state-endpoints)
-4. [Dungeon State Endpoints](#dungeon-state-endpoints)
-5. [Room State Endpoints](#room-state-endpoints)
-6. [Entity Lifecycle Endpoints](#entity-lifecycle-endpoints)
-7. [Entity Instance Model](#entity-instance-model)
-8. [Visibility & Detection Rules](#visibility--detection-rules)
-9. [Error Response Format](#error-response-format)
-10. [Examples](#examples)
-11. [Implementation Status](#implementation-status)
-12. [Best Practices](#best-practices)
-13. [Troubleshooting](#troubleshooting)
-14. [Related Documentation](#related-documentation)
+1. [Quick Reference](#quick-reference)
+2. [Overview](#overview)
+3. [Authentication & Authorization](#authentication--authorization)
+4. [Campaign State Endpoints](#campaign-state-endpoints)
+5. [Dungeon State Endpoints](#dungeon-state-endpoints)
+6. [Room State Endpoints](#room-state-endpoints)
+7. [Entity Lifecycle Endpoints](#entity-lifecycle-endpoints)
+8. [Entity Instance Model](#entity-instance-model)
+9. [Visibility & Detection Rules](#visibility--detection-rules)
+10. [Error Response Format](#error-response-format)
+11. [Examples](#examples)
+12. [Implementation Status](#implementation-status)
+13. [Best Practices](#best-practices)
+14. [Troubleshooting](#troubleshooting)
+15. [Related Documentation](#related-documentation)
 
 ## Overview
 
-This document describes the campaign/dungeon runtime APIs for managing game state, entities, and visibility rules.
+This document describes the runtime APIs for managing game state, entities, and visibility rules in the Dungeon Crawler campaign system. These APIs enable real-time gameplay by providing state management, entity lifecycle control, and visibility/detection mechanics.
+
+### Key Features
+
+- **Stateful Campaign Management**: Track campaign progress, active locations, and player progression
+- **Dungeon & Room State**: Maintain exploration state, cleared rooms, and current location
+- **Entity Lifecycle**: Spawn, move, and despawn entities (NPCs, obstacles, traps, hazards)
+- **Visibility & Detection**: Implement fog of war and hidden entity mechanics
+- **Optimistic Locking**: Prevent concurrent update conflicts with version-based locking
+- **JSON Responses**: All endpoints return consistent JSON structure with success/error handling
+
+### Architecture
+
+```
+Campaign (Global State)
+└── Dungeons (Instance State)
+    └── Rooms (Local State)
+        ├── Layout (Hexes)
+        ├── Contents (Template)
+        └── Entities (Runtime Instances)
+```
+
+### Use Cases
+
+- **Web Client**: JavaScript/TypeScript frontend for browser-based gameplay
+- **Mobile App**: Native mobile client with offline caching and sync
+- **Game Masters**: Admin tools for managing campaigns and entities
+- **Testing & Debug**: Developer tools for testing game mechanics
 
 ## Authentication & Authorization
 
@@ -74,7 +126,7 @@ Retrieve current campaign state with optimistic locking version.
 
 ### POST `/api/campaign/{campaignId}/state`
 
-**⚠️ Implementation Status**: Controller implemented but route not configured. Add to `dungeoncrawler_content.routing.yml`:
+**⚠️ Implementation Status**: Controller implemented (`CampaignStateController::setState`) but route not configured in `dungeoncrawler_content.routing.yml`. To enable this endpoint, add:
 ```yaml
 dungeoncrawler_content.api.campaign_state_set:
   path: '/api/campaign/{campaign_id}/state'
@@ -290,7 +342,7 @@ Retrieve room state with visibility and detection filtering applied.
 
 ### POST `/api/dungeon/{dungeonId}/room/{roomId}/state`
 
-**⚠️ Implementation Status**: Controller implemented but route not configured. Add to `dungeoncrawler_content.routing.yml`:
+**⚠️ Implementation Status**: Controller implemented (`RoomStateController::setState`) but route not configured in `dungeoncrawler_content.routing.yml`. To enable this endpoint, add:
 ```yaml
 dungeoncrawler_content.api.room_state_set:
   path: '/api/dungeon/{dungeon_id}/room/{room_id}/state'
@@ -618,6 +670,29 @@ Schema validation failures include detailed error messages:
 
 ## Examples
 
+### Quick Start: Basic API Usage
+
+#### 1. Check Campaign State
+```bash
+curl -X GET "https://example.com/api/campaign/123/state" \
+  -H "Cookie: SESS..." \
+  -H "Accept: application/json"
+```
+
+#### 2. Get Dungeon Information
+```bash
+curl -X GET "https://example.com/api/dungeon/dungeon-001/state?campaignId=123" \
+  -H "Cookie: SESS..." \
+  -H "Accept: application/json"
+```
+
+#### 3. Fetch Room State with Visibility
+```bash
+curl -X GET "https://example.com/api/dungeon/dungeon-001/room/room-3/state?campaignId=123" \
+  -H "Cookie: SESS..." \
+  -H "Accept: application/json"
+```
+
 ### Complete Workflow: Spawning and Moving an NPC
 
 1. **Spawn Goblin in Room 3:**
@@ -731,6 +806,61 @@ Body: {"campaignId": 123, "state": {...}}
 
 ## Best Practices
 
+### Client Implementation Guidelines
+
+#### 1. Always Check Response Structure
+```javascript
+async function apiRequest(url, options) {
+  const response = await fetch(url, options);
+  const data = await response.json();
+  
+  if (!data.success) {
+    throw new Error(data.error || 'Request failed');
+  }
+  
+  return data.data;
+}
+```
+
+#### 2. Handle Version Conflicts Gracefully
+```javascript
+async function updateCampaignState(campaignId, newState, expectedVersion) {
+  try {
+    return await apiRequest(`/api/campaign/${campaignId}/state`, {
+      method: 'POST',
+      body: JSON.stringify({ expectedVersion, state: newState }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (error) {
+    if (error.status === 409) {
+      // Fetch current state and retry
+      const current = await getCampaignState(campaignId);
+      const merged = mergeStates(current.state, newState);
+      return updateCampaignState(campaignId, merged, current.version);
+    }
+    throw error;
+  }
+}
+```
+
+#### 3. Validate Before Sending
+```javascript
+function validateCampaignState(state) {
+  const required = ['created_by', 'started', 'progress'];
+  for (const field of required) {
+    if (!(field in state)) {
+      throw new Error(`Missing required field: ${field}`);
+    }
+  }
+  
+  if (!Array.isArray(state.progress)) {
+    throw new Error('progress must be an array');
+  }
+  
+  return true;
+}
+```
+
 ### Optimistic Locking
 - Always include `expectedVersion` when updating state to prevent race conditions
 - Handle `409 Conflict` responses by re-fetching current state and retrying
@@ -744,9 +874,65 @@ Body: {"campaignId": 123, "state": {...}}
 
 ### Performance
 - Cache campaign state locally and only re-fetch on version conflicts
-- Batch entity operations when spawning multiple entities
+- Batch entity operations when spawning multiple entities (use Promise.all for parallel operations)
 - Use query filters on entity list endpoint to reduce response size
 - Only fetch room state when player enters a new room
+- Implement request debouncing for rapid state updates (e.g., during drag operations)
+
+### Rate Limiting & Throttling
+While not currently enforced, clients should implement:
+- **Debounce rapid updates**: Wait 100-300ms after last change before sending state updates
+- **Batch operations**: Group multiple entity spawns into a single operation when possible
+- **Cache responses**: Store GET responses with version numbers to avoid redundant fetches
+- **Exponential backoff**: On 409 conflicts, implement backoff: 100ms, 200ms, 400ms, etc.
+
+### Data Persistence & Caching
+
+#### Recommended Client-Side Storage
+
+```javascript
+// Store campaign state in localStorage with version tracking
+class CampaignStateCache {
+  constructor(campaignId) {
+    this.campaignId = campaignId;
+    this.key = `campaign_${campaignId}_state`;
+  }
+  
+  save(state, version) {
+    const cached = {
+      state,
+      version,
+      timestamp: Date.now(),
+      expiresAt: Date.now() + (5 * 60 * 1000)  // 5 minutes
+    };
+    localStorage.setItem(this.key, JSON.stringify(cached));
+  }
+  
+  load() {
+    const cached = localStorage.getItem(this.key);
+    if (!cached) return null;
+    
+    const data = JSON.parse(cached);
+    if (Date.now() > data.expiresAt) {
+      this.clear();
+      return null;
+    }
+    
+    return data;
+  }
+  
+  clear() {
+    localStorage.removeItem(this.key);
+  }
+}
+```
+
+#### Server-Side Caching Behavior
+
+- **Campaign State**: Cached in database, version incremented on each update
+- **Room State**: Calculated on-demand, visibility filtering applied per request
+- **Entity Lists**: Fresh query each time, filterable for performance
+- **No HTTP Caching**: All API responses have `Cache-Control: no-cache` to ensure freshness
 
 ### Security
 - Never expose internal IDs or system details in client-side errors
@@ -754,9 +940,118 @@ Body: {"campaignId": 123, "state": {...}}
 - Use CSRF tokens for all POST/DELETE operations
 - Sanitize entity state data to prevent code injection
 
+### Common Integration Patterns
+
+#### Pattern 1: Room Entry Flow
+When a player enters a new room:
+```javascript
+// 1. Fetch room state (includes visibility filtering)
+const roomState = await getRoomState(dungeonId, roomId, campaignId);
+
+// 2. Render visible hexes and detected entities
+renderHexMap(roomState.room.layout.hexes);
+renderEntities(roomState.room.contents.entities.filter(e => e.state.detected));
+
+// 3. Allow perception checks for hidden entities
+const hiddenEntities = roomState.room.contents.entities.filter(e => e.hidden && !e.state.detected);
+```
+
+#### Pattern 2: Combat Initialization
+Setting up a combat encounter:
+```javascript
+// 1. Spawn NPCs in the room
+for (const npc of encounterNPCs) {
+  await spawnEntity(campaignId, {
+    type: 'npc',
+    instanceId: `${npc.type}-${npc.index}`,
+    characterId: npc.characterId,
+    locationType: 'room',
+    locationRef: roomId,
+    stateData: { hexId: npc.startingHex, hp: npc.maxHp, detected: false }
+  });
+}
+
+// 2. Update room visibility to include combat area
+await updateRoomState(dungeonId, roomId, {
+  campaignId,
+  expectedVersion: roomState.version,
+  state: {
+    ...roomState.state,
+    visibleHexIds: [...roomState.state.visibleHexIds, ...combatHexes]
+  }
+});
+```
+
+#### Pattern 3: Entity Movement Tracking
+Moving entities between locations:
+```javascript
+// 1. Move entity to new location
+await moveEntity(campaignId, entityInstanceId, {
+  locationType: 'room',
+  locationRef: newRoomId
+});
+
+// 2. Update old room state (remove from tracking)
+await updateRoomState(dungeonId, oldRoomId, {
+  campaignId,
+  expectedVersion: oldRoomVersion,
+  state: { ...oldRoomState, entityCount: oldRoomState.entityCount - 1 }
+});
+
+// 3. Update new room state (add to tracking)
+await updateRoomState(dungeonId, newRoomId, {
+  campaignId,
+  expectedVersion: newRoomVersion,
+  state: { ...newRoomState, entityCount: newRoomState.entityCount + 1 }
+});
+```
+
 ---
 
 ## Troubleshooting
+
+### Debugging Tools
+
+#### Enable Detailed Error Logging
+```javascript
+// Add to your API client
+const DEBUG = true;
+
+function logApiCall(method, url, body, response) {
+  if (!DEBUG) return;
+  
+  console.group(`API ${method} ${url}`);
+  console.log('Request:', body);
+  console.log('Response:', response);
+  console.log('Status:', response.success ? 'SUCCESS' : 'FAILED');
+  console.groupEnd();
+}
+```
+
+#### Validate Response Structure
+```javascript
+function validateApiResponse(response) {
+  if (typeof response !== 'object') {
+    throw new Error('Invalid response: not an object');
+  }
+  
+  if (!('success' in response)) {
+    throw new Error('Invalid response: missing success field');
+  }
+  
+  if (!response.success && !response.error) {
+    throw new Error('Invalid error response: missing error field');
+  }
+  
+  if (response.success && !response.data) {
+    throw new Error('Invalid success response: missing data field');
+  }
+  
+  return true;
+}
+```
+
+### Common Issues
 
 ### Issue: "Access denied to campaign" (403)
 **Cause**: User is not the campaign owner  
@@ -781,6 +1076,89 @@ Body: {"campaignId": 123, "state": {...}}
 ### Issue: Schema validation failure
 **Cause**: State payload doesn't match schema requirements  
 **Solution**: Check `validation_errors` array in response, verify required fields and data types
+
+### Testing API Endpoints
+
+#### Using cURL
+```bash
+# Test GET endpoint with session cookie
+curl -X GET "https://example.com/api/campaign/123/state" \
+  -H "Cookie: SESS123abc..." \
+  -H "Accept: application/json" \
+  -v
+
+# Test POST endpoint with JSON body
+curl -X POST "https://example.com/api/campaign/123/entity/spawn" \
+  -H "Cookie: SESS123abc..." \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "type": "npc",
+    "instanceId": "test-goblin-1",
+    "characterId": 456,
+    "locationType": "room",
+    "locationRef": "room-1",
+    "stateData": {"hexId": "hex-1", "hp": 8}
+  }' \
+  -v
+```
+
+#### Using Browser DevTools
+```javascript
+// Open browser console on authenticated page and run:
+async function testApi() {
+  const response = await fetch('/api/campaign/123/state', {
+    credentials: 'same-origin',
+    headers: { 'Accept': 'application/json' }
+  });
+  const data = await response.json();
+  console.log('Campaign State:', data);
+  return data;
+}
+
+testApi();
+```
+
+#### Automated Testing Pattern
+```javascript
+// Integration test example
+describe('Campaign API', () => {
+  it('should get campaign state', async () => {
+    const response = await fetch(`/api/campaign/${campaignId}/state`, {
+      credentials: 'include'
+    });
+    
+    expect(response.status).toBe(200);
+    
+    const data = await response.json();
+    expect(data.success).toBe(true);
+    expect(data.data).toHaveProperty('campaignId');
+    expect(data.data).toHaveProperty('version');
+  });
+  
+  it('should handle version conflicts', async () => {
+    // Get current state
+    const current = await getCampaignState(campaignId);
+    
+    // Try to update with wrong version
+    const response = await fetch(`/api/campaign/${campaignId}/state`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        expectedVersion: current.version - 1,  // Wrong version
+        state: current.state
+      })
+    });
+    
+    expect(response.status).toBe(409);
+    
+    const data = await response.json();
+    expect(data.success).toBe(false);
+    expect(data.currentVersion).toBe(current.version);
+  });
+});
+```
 
 ---
 

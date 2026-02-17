@@ -34,11 +34,23 @@ The dashboard includes:
 - **Dedicated testing navigation menu**: A module-owned menu (`dungeoncrawler_testing`) now contains tester-facing routes and is used as the canonical source for testing navigation links.
 - **Documentation submenu organization**: The dedicated testing menu now groups all documentation links under an expandable `Documentation` parent, with `Documentation Home` included as a child entry.
 - **Testing navigation block**: The `Dungeon Crawler Testing Navigation` block now renders links directly from the dedicated testing menu so all tester pages stay in sync with one menu definition.
-- **Issue/PR Report Workflow**: `/dungeoncrawler/testing/issue-pr-report` now documents process and decision logic for low-to-high PR triage, no-op/superseded close decisions, and verification expectations.
+- **Issue/PR Report Workflow**: `/dungeoncrawler/testing/import-open-issues/issue-pr-report` now documents process and decision logic for low-to-high PR triage, no-op/superseded close decisions, and verification expectations.
 - **Issue/PR local-cache reference**: The issue/PR report now includes an explicit local cache management callout for repository-root `Issues.md` and a direct link to `/dungeoncrawler/testing/import-open-issues`.
 - **Issue/PR import status visibility**: The issue/PR report metadata now includes a “Last local import run” line (time/repo/handled-created-skipped-failed/dry-run) sourced from importer-run state.
 - **Open issue import page**: `/dungeoncrawler/testing/import-open-issues` now provides a dashboard form that imports Open rows from `Issues.md` into GitHub (batchable, delay selectable as 5/30/180 seconds with default 5, and Copilot assignment-aware).
-- **Open issue import local close-out**: Successful GitHub creations from the import page now automatically update the matching `Issues.md` tracker row from `Open` to `Closed`, refresh `Last Updated`, and append a GitHub issue reference note.
+- **Import metrics summary**: `/dungeoncrawler/testing/import-open-issues` now displays top-of-page metrics for local and GitHub open issues, including local open count, oldest local open issue name, newest GitHub open issue name, and GitHub open issue count.
+- **Import-page theme compliance**: `/dungeoncrawler/testing/import-open-issues` now applies centralized, page-scoped styling aligned to theme color variables (body/secondary/tertiary tokens) to avoid low-contrast text and keep card/log/control presentation consistent with dashboard/theme standards.
+- **Import-page layout refactor**: `/dungeoncrawler/testing/import-open-issues` now uses a cohesive dashboard-aligned composition (header card, responsive metrics+reconcile top grid, dedicated import-runner form card, and unified form control spacing/typography) while preserving existing import/reconcile behavior.
+- **Import workflow commentary**: `/dungeoncrawler/testing/import-open-issues` now includes a top-of-page `Workflow Context` section that explains the intended sequence (run regression/stage-gate tests from `/dungeoncrawler/testing` → log failures to repository-root `Issues.md` → import Open rows into GitHub for Copilot handling) and explicitly warns to respect GitHub throttling/rate limits with controlled batch runs.
+- **Queue-style token centralization**: Shared queue/reconcile styling now resolves colors through theme-aware CSS variables (Bootstrap body/secondary/border/status tokens) in `css/queue-management.css` to reduce hard-coded color drift and improve contrast consistency across light theme variants.
+- **Open issue import local close-out**: Import now removes matching Open `Issues.md` tracker row(s) after GitHub confirmation—both for newly created issues (`create` + issue fetch) and for already-existing open issues confirmed by tracker-ID title prefix match (`DCT-####` / `DCC-####`) in GitHub search results—instead of changing status to `Closed`.
+- **Import write-permission prerequisite**: For local-row removal to succeed, repository-root `Issues.md` must be writable by the Drupal web process user (commonly `www-data` on Apache). Import now logs an explicit warning when file permissions block deletion.
+- **Open issue import run status visibility**: The import page now shows whether an import/reconcile run is currently active (operation, repository, start time), and disables action buttons while a run is active.
+- **GitHub source-of-truth reconcile action**: The import page now includes a reconcile action that compares local Open `Issues.md` rows with open GitHub issues and removes local Open rows already represented in GitHub by tracker ID (`DCT-####` title prefix).
+- **Background reconcile live feed card**: `/dungeoncrawler/testing/import-open-issues` now includes a dedicated reconcile card with queue-management-style controls (run/refresh/refresh-logs, auto-refresh countdown, status/count pills), background tick processing, and a filtered live log feed (`all` / `github` / `deleted` / `warnings`) rendered on-page.
+- **Background reconcile availability notice**: The reconcile card on `/dungeoncrawler/testing/import-open-issues` is currently labeled `In development. Do Not use this form.` to discourage operational use while work is in progress.
+- **Background reconcile technical block**: Reconcile controls are disabled in the UI and reconcile `start/tick` AJAX endpoints now return a disabled/in-development response so the form cannot be used accidentally.
+- **Import GitHub action logging visibility**: Import-page GitHub interactions (search hits, issue create success/failure, Copilot assignment outcomes, and local tracker close-out outcomes) are now written to `dungeoncrawler_tester` watchdog logs and included in the same live feed panel.
 - **Docs link handling**: Documentation links resolve to internal Drupal documentation pages (no direct `.md` links); only the testing issues query links to GitHub.
 - **Theme compliance**: Documentation pages render with the theme-standard Bootstrap layout (`container` + `row/col`) and `card card-dungeoncrawler` sections for visual consistency.
 - **Dedicated testing navigation menu**: A module-owned menu (`dungeoncrawler_testing`) now contains tester-facing routes and is used as the canonical source for testing navigation links.
@@ -244,6 +256,30 @@ The custom bootstrap handles this automatically, but manual intervention may be 
 Access the testing dashboard at: `/dungeoncrawler/testing`
 
 This page provides the primary testing workflow hub for documentation, stagegates, commands, and issue triage.
+
+### Queue Management Integration
+
+The testing dashboard includes **embedded queue management** for background test execution. There is no separate queue management page.
+
+**Queue Management Features**:
+- Real-time queue status monitoring
+- Queue item inspection and management
+- Manual queue execution controls
+- Activity logs from watchdog entries
+- Auto-refresh capability with countdown
+
+**Architecture**:
+- Queue UI is embedded directly in the testing dashboard at `/dungeoncrawler/testing`
+- AJAX endpoints for queue operations:
+  - `/dungeoncrawler/testing/queue/run` - Execute queued items
+  - `/dungeoncrawler/testing/queue/status` - Get queue status
+  - `/dungeoncrawler/testing/queue/logs` - Retrieve activity logs
+  - `/dungeoncrawler/testing/queue/item/delete` - Remove queue item
+  - `/dungeoncrawler/testing/queue/item/rerun` - Re-queue failed item
+- Frontend assets: `queue-management.js` and `queue-management.css`
+- Template: `dungeoncrawler-tester-queue-management.html.twig`
+
+**Note**: The route `/dungeoncrawler/testing/queue-management` does not exist and never existed (confirmed via DCT-0139 investigation). All queue management functionality is integrated into the main dashboard.
 
 ## Content Module Documentation
 

@@ -52,12 +52,10 @@ This file is also the backup tracker when CLI interface access is denied for cre
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
 |---|---|---|---|---|---|---|
-| DCC-0001 | Review file API_DOCUMENTATION.md for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 #### characters
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
 |---|---|---|---|---|---|---|
-| DCC-0002 | Review file characters/gribbles-rindsworth.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 #### config
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
