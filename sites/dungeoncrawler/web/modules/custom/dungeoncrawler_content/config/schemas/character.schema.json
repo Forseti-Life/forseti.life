@@ -53,17 +53,20 @@
     },
     "heritage": {
       "type": "string",
+      "maxLength": 100,
       "description": "Heritage specific to chosen ancestry (e.g., 'ancient-blooded' for Dwarf)."
     },
     "background": {
       "type": "string",
+      "maxLength": 100,
       "description": "Background ID (e.g., 'acolyte', 'criminal', 'noble')."
     },
     "background_boosts": {
       "type": "array",
       "items": {
         "type": "string",
-        "enum": ["str", "dex", "con", "int", "wis", "cha"]
+        "enum": ["str", "dex", "con", "int", "wis", "cha"],
+        "description": "Ability score to boost (str/dex/con/int/wis/cha)."
       },
       "minItems": 2,
       "maxItems": 2,
@@ -79,6 +82,7 @@
     },
     "subclass": {
       "type": "string",
+      "maxLength": 100,
       "description": "Class-specific subclass (e.g., Fighter weapon group, Wizard school, Sorcerer bloodline)."
     },
     "free_boosts": {
@@ -175,6 +179,7 @@
     },
     "deity": {
       "type": "string",
+      "maxLength": 100,
       "description": "Deity worshipped (if any). Required for clerics and champions."
     },
     "age": {
@@ -184,6 +189,7 @@
     },
     "gender": {
       "type": "string",
+      "maxLength": 100,
       "description": "Character's gender identity."
     },
     "size": {
@@ -200,7 +206,10 @@
     "languages": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 50,
+        "description": "Language name (e.g., 'Common', 'Elvish', 'Draconic')."
       },
       "description": "Languages known."
     },
@@ -210,7 +219,8 @@
       "patternProperties": {
         "^[a-z]+(_[a-z]+)*$": {
           "type": "string",
-          "enum": ["untrained", "trained", "expert", "master", "legendary"]
+          "enum": ["untrained", "trained", "expert", "master", "legendary"],
+          "description": "Proficiency rank for this skill."
         }
       },
       "examples": [
@@ -226,6 +236,7 @@
       "type": "array",
       "items": {
         "type": "object",
+        "description": "Single equipment item with quantity and equipped status.",
         "required": ["item_id", "name", "quantity"],
         "properties": {
           "item_id": {
@@ -301,6 +312,7 @@
       "type": "array",
       "items": {
         "type": "object",
+        "description": "Individual feat with acquisition details.",
         "required": ["feat_id", "name", "level_gained", "feat_type"],
         "properties": {
           "feat_id": {
@@ -365,6 +377,7 @@
           "type": "array",
           "items": {
             "type": "object",
+            "description": "Individual spell with rank information.",
             "required": ["spell_id", "name", "rank"],
             "properties": {
               "spell_id": {
@@ -439,6 +452,7 @@
       "type": "array",
       "items": {
         "type": "object",
+        "description": "Active condition with optional value and duration.",
         "required": ["name"],
         "properties": {
           "name": {
@@ -501,6 +515,7 @@
     },
     "ability_boost": {
       "type": "object",
+      "description": "Records a single ability boost with its source and amount.",
       "required": ["source", "ability"],
       "properties": {
         "source": {
