@@ -94,7 +94,7 @@
         },
         "damage_on_enter": {
           "type": ["string", "null"],
-          "description": "Damage dealt when entering obstacle hex (PF2e dice notation).",
+          "description": "Damage dealt when entering obstacle hex (PF2e dice notation). Supports base dice with optional modifier or additional dice (e.g., '1d6', '2d6+3', '1d4+1d6'). Pattern limited to two terms per PF2e standard mechanics.",
           "pattern": "^\\d+d\\d+(\\+\\d+d\\d+|\\+\\d+|-\\d+)?$",
           "examples": ["1d6", "2d6+3", "1d4+1d6", "2d6-2"]
         },
