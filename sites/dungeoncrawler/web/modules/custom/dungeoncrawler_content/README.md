@@ -324,8 +324,18 @@ The refactoring maintains 100% visual consistency while improving code quality:
 
 ### Creating New Services
 1. Define service in `dungeoncrawler_content.services.yml`
-2. Create class in `src/Service/`
+   - Add to appropriate section (Content Management, Access Control, Combat, etc.)
+   - Use proper dependency injection for all dependencies
+   - Follow YAML formatting standards (proper spacing, multi-line for 3+ arguments)
+2. Create class in `src/Service/` or `src/Access/`
+   - Inject dependencies via constructor
+   - Avoid using `\Drupal::` static calls
 3. Use dependency injection in controllers/forms
+
+**Service File Structure**:
+- Header comment explaining purpose and linking to Drupal docs
+- Grouped sections: Content Management, Access Control, Game Content, Combat, Campaign State
+- Proper YAML formatting with consistent indentation
 
 ### Custom Templates
 Place in `templates/` directory following Drupal naming conventions.
