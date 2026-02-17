@@ -4,8 +4,14 @@
   "title": "Entity Instance Schema",
   "description": "Unified placed entity instance for dungeon maps. Canonical runtime list for creatures, items, and obstacles. This is the primary data structure for all placed entities in dungeon levels at runtime, providing a consistent interface for entity lifecycle management (spawn, move, despawn) and mutable state tracking.",
   "type": "object",
-  "required": ["entity_instance_id", "entity_type", "entity_ref", "placement", "state"],
+  "required": ["entity_instance_id", "entity_type", "entity_ref", "placement", "state", "schema_version"],
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version for migration compatibility.",
+      "default": "1.0.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
     "entity_instance_id": {
       "type": "string",
       "format": "uuid",
@@ -168,6 +174,7 @@
   },
   "examples": [
     {
+      "schema_version": "1.0.0",
       "entity_instance_id": "550e8400-e29b-41d4-a716-446655440000",
       "entity_type": "creature",
       "entity_ref": {
@@ -212,6 +219,7 @@
       "updated_at": "2026-02-17T14:00:00Z"
     },
     {
+      "schema_version": "1.0.0",
       "entity_instance_id": "660e8400-e29b-41d4-a716-446655440001",
       "entity_type": "item",
       "entity_ref": {
@@ -244,6 +252,7 @@
       "updated_at": "2026-02-17T09:15:00Z"
     },
     {
+      "schema_version": "1.0.0",
       "entity_instance_id": "770e8400-e29b-41d4-a716-446655440002",
       "entity_type": "obstacle",
       "entity_ref": {

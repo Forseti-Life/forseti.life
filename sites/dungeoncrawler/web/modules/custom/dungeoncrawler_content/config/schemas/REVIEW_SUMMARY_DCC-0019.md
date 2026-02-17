@@ -1,6 +1,6 @@
 # Entity Instance Schema Review Summary (DCC-0019)
 
-**Date**: 2026-02-17  
+**Date**: 2026-02-17 (Updated: 2026-02-17)  
 **Reviewer**: GitHub Copilot  
 **File**: `config/schemas/entity_instance.schema.json`  
 **Status**: ✓ Completed
@@ -10,6 +10,40 @@
 Conducted comprehensive review of `entity_instance.schema.json` by comparing it with other schemas in the repository (campaign, character, creature, item, obstacle, dungeon_level, etc.) to identify opportunities for improvement and ensure consistency with project standards. The entity_instance schema is critical as it serves as the unified runtime representation for all placed entities (creatures, items, obstacles) in dungeon levels.
 
 ## Changes Implemented
+
+### 0. ✓ Added Schema Versioning (Update: 2026-02-17)
+
+**Problem**: The schema lacked versioning for migration compatibility tracking, unlike other major schemas (campaign, character, creature, dungeon_level, encounter, hexmap, item, party, trap). This was noted in README.md under "Schemas pending versioning".
+
+**Solution**: Added `schema_version` field as the first property in the schema (after line 8):
+```json
+"schema_version": {
+  "type": "string",
+  "description": "Schema version for migration compatibility.",
+  "default": "1.0.0",
+  "pattern": "^\\d+\\.\\d+\\.\\d+$"
+}
+```
+
+**Additional Changes**:
+- Added `schema_version` to the required array (line 7)
+- Updated all three examples to include `"schema_version": "1.0.0"`
+- Updated README.md to move entity_instance.schema.json from "pending versioning" to "migration-ready"
+- Updated line count in README.md Quick Reference table from 264 to 289 lines
+- Updated versioning status in README.md Quick Reference table (✗ → ✓)
+
+**Benefits**:
+- Enables tracking schema changes over time
+- Facilitates data migration when breaking changes occur
+- Aligns with all 12 other versioned schemas in the codebase
+- Completes the migration-readiness of entity_instance schema
+- Follows the same pattern as party.schema.json and campaign.schema.json
+
+**Impact**: 
+- Schema is now migration-ready alongside all major schemas
+- No breaking changes to existing data (schema_version has a default value)
+- Examples now demonstrate proper versioning usage
+- Documentation updated to reflect completed versioning
 
 ### 1. ✓ Added `additionalProperties: false` to Root Object
 
@@ -115,6 +149,13 @@ Conducted comprehensive review of `entity_instance.schema.json` by comparing it 
 - Consistent with strict validation pattern across all schemas
 
 ## Summary of Improvements
+
+### Schema Versioning (Added: 2026-02-17)
+- ✅ Added `schema_version` field for migration compatibility
+- ✅ Updated required array to include schema_version
+- ✅ Added schema_version to all 3 examples
+- ✅ Updated README.md versioning status (pending → migration-ready)
+- ✅ Updated README.md Quick Reference table (lines count and ✗ → ✓)
 
 ### Validation Enhancements
 - ✅ Added 6 `additionalProperties: false` constraints to prevent unknown fields
