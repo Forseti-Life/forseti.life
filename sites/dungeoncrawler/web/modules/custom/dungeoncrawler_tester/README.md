@@ -245,6 +245,30 @@ Access the testing dashboard at: `/dungeoncrawler/testing`
 
 This page provides the primary testing workflow hub for documentation, stagegates, commands, and issue triage.
 
+### Queue Management Integration
+
+The testing dashboard includes **embedded queue management** for background test execution. There is no separate queue management page.
+
+**Queue Management Features**:
+- Real-time queue status monitoring
+- Queue item inspection and management
+- Manual queue execution controls
+- Activity logs from watchdog entries
+- Auto-refresh capability with countdown
+
+**Architecture**:
+- Queue UI is embedded directly in the testing dashboard at `/dungeoncrawler/testing`
+- AJAX endpoints for queue operations:
+  - `/dungeoncrawler/testing/queue/run` - Execute queued items
+  - `/dungeoncrawler/testing/queue/status` - Get queue status
+  - `/dungeoncrawler/testing/queue/logs` - Retrieve activity logs
+  - `/dungeoncrawler/testing/queue/item/delete` - Remove queue item
+  - `/dungeoncrawler/testing/queue/item/rerun` - Re-queue failed item
+- Frontend assets: `queue-management.js` and `queue-management.css`
+- Template: `dungeoncrawler-tester-queue-management.html.twig`
+
+**Note**: The route `/dungeoncrawler/testing/queue-management` does not exist and never existed (confirmed via DCT-0139 investigation). All queue management functionality is integrated into the main dashboard.
+
 ## Content Module Documentation
 
 For installation, configuration, routes, permissions, database schema, and other runtime/product details, see the [dungeoncrawler_content module README](../dungeoncrawler_content/README.md).
