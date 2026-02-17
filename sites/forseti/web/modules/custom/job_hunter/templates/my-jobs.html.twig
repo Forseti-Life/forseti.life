@@ -10,6 +10,7 @@
  * - filter_status: Current status filter value
  * - filter_ai_status: Current AI status filter value
  * - filter_tailoring: Current tailoring filter value
+ * - return_url: Current page URL to return to after inline actions
  */
 #}
 
@@ -109,6 +110,7 @@
           <th>{{ 'Job Title'|t }}</th>
           <th>{{ 'Company'|t }}</th>
           <th>{{ 'Status'|t }}</th>
+          <th>{{ 'Have Applied'|t }}</th>
           <th>{{ 'AI Parsed'|t }}</th>
           <th>{{ 'Tailored'|t }}</th>
           <th>{{ 'Actions'|t }}</th>
@@ -125,13 +127,36 @@
           {% set tailoring_status = job.tailoring_status|default(null) %}
           {% set has_tailored_json = job.tailored_resume_json is not empty %}
           {% set has_pdf = job.pdf_path is not empty %}
+          {% set is_applied = job.status|default('active') == 'applied' %}
           
           <tr>
             <td>
-              <a href="/jobhunter/job/{{ job.id }}">{{ job_title }}</a>
+              <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}">{{ job_title }}</a>
             </td>
             <td>{{ company_name }}</td>
             <td>{{ job.status|default('active')|capitalize }}</td>
+            <td>
+              <form method="post" action="{{ path('job_hunter.toggle_job_applied', {'job_id': job.id}) }}" class="applied-toggle-form">
+                <label>
+                  <input
+                    type="checkbox"
+                    name="have_applied"
+                    value="1"
+                    {{ is_applied ? 'checked' : '' }}
+                    onchange="this.form.querySelector('input[name=applied_on_date]').disabled = !this.checked;"
+                  />
+                  {{ 'Have applied'|t }}
+                </label>
+                <input
+                  type="date"
+                  name="applied_on_date"
+                  value="{{ job.applied_on_date|default('') }}"
+                  {{ is_applied ? '' : 'disabled' }}
+                />
+                <input type="hidden" name="return_to" value="{{ return_url }}" />
+                <button type="submit" class="button button--small">{{ 'Update'|t }}</button>
+              </form>
+            </td>
             <td>
               {# AI Status Badge #}
               {% if has_extracted %}
@@ -187,18 +212,18 @@
                 <a href="/jobhunter/tailor-resume/{{ job.id }}" class="button button--small">
                   {{ tailoring_status == 'completed' ? 'View Tailored'|t : 'Tailor Resume'|t }}
                 </a>
-                <a href="/jobhunter/job/{{ job.id }}" class="button button--small">
+                <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}" class="button button--small">
                   {{ 'View'|t }}
                 </a>
-                <a href="/jobhunter/job/{{ job.id }}/edit" class="button button--small">
+                <a href="{{ path('job_hunter.job_edit', {'job_id': job.id}) }}" class="button button--small">
                   {{ 'Edit'|t }}
                 </a>
                 {% if ai_status == 'failed' and has_raw_text %}
-                  <a href="/jobhunter/job/{{ job.id }}/retry-parsing" class="button button--small button--warning">
+                  <a href="{{ path('job_hunter.job_retry_parsing', {'job_id': job.id}) }}" class="button button--small button--warning">
                     {{ 'Retry Parsing'|t }}
                   </a>
                 {% endif %}
-                <a href="/jobhunter/job/{{ job.id }}/delete" 
+                <a href="{{ path('job_hunter.job_delete', {'job_id': job.id}) }}" 
                    class="button button--small button--danger"
                    onclick="return confirm('{{ 'Are you sure you want to delete this job?'|t }}')">
                   {{ 'Delete'|t }}

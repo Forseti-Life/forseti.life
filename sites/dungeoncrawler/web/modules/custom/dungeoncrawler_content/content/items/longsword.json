@@ -1,23 +1,33 @@
 {
-  "content_id": "longsword",
+  "$schema": "../../config/schemas/item.schema.json",
+  "schema_version": "1.0.0",
+  "item_id": "5ad6fca7-ff63-4919-b7ce-59eb41279544",
   "name": "Longsword",
-  "type": "item",
-  "item_category": "weapon",
+  "item_type": "weapon",
   "level": 0,
   "rarity": "common",
+  "traits": ["martial", "sword"],
+  "description": "A standard longsword, common among soldiers and adventurers. This versatile blade can be wielded with one or two hands.",
   "price": {
-    "gold": 1
+    "cp": 0,
+    "sp": 0,
+    "gp": 1,
+    "pp": 0
   },
-  "bulk": 1,
-  "hands": 1,
-  "tags": ["martial", "sword"],
+  "bulk": "1",
+  "hands": "1",
   "weapon_stats": {
-    "damage": "1d8",
-    "damage_type": "slashing",
-    "traits": ["versatile P"],
-    "group": "sword"
+    "category": "martial",
+    "group": "sword",
+    "damage": {
+      "dice_count": 1,
+      "die_size": "d8",
+      "damage_type": "slashing"
+    },
+    "range": null,
+    "reload": null,
+    "weapon_traits": ["versatile P"]
   },
-  "description": "A standard longsword, common among soldiers and adventurers.",
-  "source": "Core Rulebook",
-  "version": "1.0"
+  "created_at": "2026-02-17T14:37:37Z",
+  "updated_at": "2026-02-17T14:37:37Z"
 }

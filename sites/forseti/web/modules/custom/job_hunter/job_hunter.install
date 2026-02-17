@@ -153,6 +153,7 @@ function _job_hunter_create_job_requirements_table() {
       'employment_type' => ['type' => 'varchar', 'length' => 50],
       'job_url' => ['type' => 'varchar', 'length' => 512],
       'status' => ['type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => 'active'],
+      'applied_on_date' => ['type' => 'varchar', 'length' => 10, 'description' => 'Date when user applied to this job (YYYY-MM-DD)'],
       'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
       'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
       // JSON storage fields for job tailoring workflow
@@ -1449,6 +1450,29 @@ function job_hunter_update_9024() {
   }
   
   return t('All SerpAPI metadata columns already exist.');
+}
+
+/**
+ * Add applied tracking column to jobhunter_job_requirements.
+ */
+function job_hunter_update_9025() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->tableExists('jobhunter_job_requirements')) {
+    return t('Table jobhunter_job_requirements does not exist.');
+  }
+
+  if (!$schema->fieldExists('jobhunter_job_requirements', 'applied_on_date')) {
+    $schema->addField('jobhunter_job_requirements', 'applied_on_date', [
+      'type' => 'varchar',
+      'length' => 10,
+      'not null' => FALSE,
+      'description' => 'Date when user applied to this job (YYYY-MM-DD).',
+    ]);
+    return t('Added applied_on_date column to jobhunter_job_requirements table.');
+  }
+
+  return t('applied_on_date column already exists.');
 }
 
 /**
