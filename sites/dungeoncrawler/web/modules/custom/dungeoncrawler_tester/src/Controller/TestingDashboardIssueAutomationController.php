@@ -829,9 +829,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 						continue;
 					}
 
-					$prCommented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$prNumber}/comments", $token, ['body' => self::DEAD_VALUE_COMMENT]);
-					$prClosed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $token, ['state' => 'closed']);
-					if ($prCommented && $prClosed) {
+					if ($this->closePullRequestWithComment($repo, $token, $prNumber, self::DEAD_VALUE_COMMENT)) {
 						$result['prs_closed']++;
 					}
 					else {
@@ -843,9 +841,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 						if ($issueNumber <= 0) {
 							continue;
 						}
-						$issueCommented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/comments", $token, ['body' => self::DEAD_VALUE_COMMENT]);
-						$issueClosed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}", $token, ['state' => 'closed']);
-						if ($issueCommented && $issueClosed) {
+						if ($this->closeIssueWithComment($repo, $token, $issueNumber, self::DEAD_VALUE_COMMENT)) {
 							$result['issues_closed']++;
 						}
 						else {
@@ -858,9 +854,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			case 'issues_resolved_by_merged_pr':
 				$issueNumbers = $this->collectOpenIssuesReferencedByMergedPrs($repo, $issues, $tokenCandidates);
 				foreach ($issueNumbers as $issueNumber) {
-					$issueCommented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/comments", $token, ['body' => self::BULK_CLOSE_COMMENT]);
-					$issueClosed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}", $token, ['state' => 'closed']);
-					if ($issueCommented && $issueClosed) {
+					if ($this->closeIssueWithComment($repo, $token, $issueNumber, self::BULK_CLOSE_COMMENT)) {
 						$result['issues_closed']++;
 					}
 					else {
@@ -872,9 +866,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			case 'non_action_labeled_issues':
 				$issueNumbers = $this->collectNonActionOpenIssues($issues);
 				foreach ($issueNumbers as $issueNumber) {
-					$issueCommented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/comments", $token, ['body' => self::BULK_CLOSE_COMMENT]);
-					$issueClosed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}", $token, ['state' => 'closed']);
-					if ($issueCommented && $issueClosed) {
+					if ($this->closeIssueWithComment($repo, $token, $issueNumber, self::BULK_CLOSE_COMMENT)) {
 						$result['issues_closed']++;
 					}
 					else {
@@ -886,9 +878,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			case 'open_prs_with_only_closed_issue_refs':
 				$prNumbers = $this->collectOpenPrsReferencingOnlyClosedIssues($prs, $openIssueNumbers);
 				foreach ($prNumbers as $prNumber) {
-					$prCommented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$prNumber}/comments", $token, ['body' => self::BULK_CLOSE_COMMENT]);
-					$prClosed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $token, ['state' => 'closed']);
-					if ($prCommented && $prClosed) {
+					if ($this->closePullRequestWithComment($repo, $token, $prNumber, self::BULK_CLOSE_COMMENT)) {
 						$result['prs_closed']++;
 					}
 					else {
@@ -900,9 +890,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			case 'stale_unassigned_testing_issues':
 				$issueNumbers = $this->collectStaleUnassignedTestingIssues($issues);
 				foreach ($issueNumbers as $issueNumber) {
-					$issueCommented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/comments", $token, ['body' => self::BULK_CLOSE_COMMENT]);
-					$issueClosed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}", $token, ['state' => 'closed']);
-					if ($issueCommented && $issueClosed) {
+					if ($this->closeIssueWithComment($repo, $token, $issueNumber, self::BULK_CLOSE_COMMENT)) {
 						$result['issues_closed']++;
 					}
 					else {
@@ -973,19 +961,16 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return new JsonResponse(['success' => FALSE, 'message' => 'PR is no longer dead-value; refresh and review.'], 409);
 		}
 
-		$base = "https://api.github.com/repos/{$repo}";
-
-		$prCommented = $this->requestGitHubMutation('POST', $base . "/issues/{$prNumber}/comments", $token, ['body' => self::DEAD_VALUE_COMMENT]);
-		$prClosed = $this->requestGitHubMutation('PATCH', $base . "/pulls/{$prNumber}", $token, ['state' => 'closed']);
+		$prClosed = $this->closePullRequestWithComment($repo, $token, $prNumber, self::DEAD_VALUE_COMMENT);
 
 		$issueCommented = TRUE;
 		$issueClosed = TRUE;
 		if ($issueNumber > 0 && $issueNumber !== $prNumber) {
-			$issueCommented = $this->requestGitHubMutation('POST', $base . "/issues/{$issueNumber}/comments", $token, ['body' => self::DEAD_VALUE_COMMENT]);
-			$issueClosed = $this->requestGitHubMutation('PATCH', $base . "/issues/{$issueNumber}", $token, ['state' => 'closed']);
+			$issueClosed = $this->closeIssueWithComment($repo, $token, $issueNumber, self::DEAD_VALUE_COMMENT);
+			$issueCommented = $issueClosed;
 		}
 
-		if (!$prCommented || !$prClosed || !$issueCommented || !$issueClosed) {
+		if (!$prClosed || !$issueCommented || !$issueClosed) {
 			return new JsonResponse(['success' => FALSE, 'message' => 'Close action completed with warnings. Check logs for details.'], 500);
 		}
 
@@ -995,6 +980,34 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 				? "Closed dead-value PR #{$prNumber} and issue #{$issueNumber}."
 				: "Closed dead-value PR #{$prNumber}.",
 		]);
+	}
+
+	/**
+	 * Comment on and close an issue.
+	 */
+	private function closeIssueWithComment(string $repo, string $token, int $issueNumber, string $comment): bool {
+		if ($issueNumber <= 0) {
+			return FALSE;
+		}
+
+		$commented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/comments", $token, ['body' => $comment]);
+		$closed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}", $token, ['state' => 'closed']);
+
+		return $commented && $closed;
+	}
+
+	/**
+	 * Comment on and close a pull request.
+	 */
+	private function closePullRequestWithComment(string $repo, string $token, int $prNumber, string $comment): bool {
+		if ($prNumber <= 0) {
+			return FALSE;
+		}
+
+		$commented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$prNumber}/comments", $token, ['body' => $comment]);
+		$closed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $token, ['state' => 'closed']);
+
+		return $commented && $closed;
 	}
 
 	/**
