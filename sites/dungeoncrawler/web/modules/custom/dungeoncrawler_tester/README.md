@@ -69,6 +69,7 @@ The dashboard includes:
 - **Admin permission gate normalization**: Issue automation AJAX handlers now share a dedicated admin-permission guard helper for consistent access-denied response handling.
 - **GitHub token guard normalization**: Issue automation AJAX handlers now share dedicated token/token-candidate guard helpers for consistent “token not configured” error handling.
 - **JSON success-response normalization**: Issue automation AJAX success payloads now route through a shared helper to keep success response shape and message handling single-sourced.
+- **Open-issue number map normalization**: Repeated open-issue lookup-map construction now routes through a shared helper across issue report and bulk-close query paths.
 - **Repo-aware nav links**: Tester navigation block now builds the GitHub issue queue link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`).
 - **Repo-aware sign-off link**: Stage definitions now build the release sign-off defect link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`) instead of a hard-coded repository URL.
 - **Filesystem diagnostics**: Queue worker now validates simpletest directory creation/writability and surfaces explicit failure diagnostics in run/state output when setup fails.

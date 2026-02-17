@@ -202,13 +202,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 * Build bulk-close query definitions with live expected impact counts.
 	 */
 	protected function buildBulkCloseQueryDefinitions(string $repo, array $issues, array $prs, array $tokenCandidates): array {
-		$openIssueNumbers = [];
-		foreach ($issues as $issue) {
-			$issueNumber = (int) ($issue['number'] ?? 0);
-			if ($issueNumber > 0) {
-				$openIssueNumbers[$issueNumber] = TRUE;
-			}
-		}
+		$openIssueNumbers = $this->buildOpenIssueNumberMap($issues);
 
 		$deadValueCandidates = $this->collectDeadValuePrCandidates($repo, $prs, $tokenCandidates, $openIssueNumbers);
 		$mergedLinkedIssues = $this->collectOpenIssuesReferencedByMergedPrs($repo, $issues, $tokenCandidates);
@@ -308,13 +302,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 * Collect open issue numbers referenced by merged PRs.
 	 */
 	protected function collectOpenIssuesReferencedByMergedPrs(string $repo, array $issues, array $tokenCandidates): array {
-		$openIssueNumbers = [];
-		foreach ($issues as $issue) {
-			$issueNumber = (int) ($issue['number'] ?? 0);
-			if ($issueNumber > 0) {
-				$openIssueNumbers[$issueNumber] = TRUE;
-			}
-		}
+		$openIssueNumbers = $this->buildOpenIssueNumberMap($issues);
 
 		$payload = $this->fetchClosedPullRequestsForReport($repo, $tokenCandidates, FALSE);
 		$closedPrs = $payload['items'] ?? [];
@@ -435,10 +423,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		usort($issues, static fn(array $left, array $right): int => ((int) ($left['number'] ?? 0)) <=> ((int) ($right['number'] ?? 0)));
 		usort($prs, static fn(array $left, array $right): int => ((int) ($left['number'] ?? 0)) <=> ((int) ($right['number'] ?? 0)));
 
-		$openIssueNumbers = [];
-		foreach ($issues as $issue) {
-			$openIssueNumbers[(int) ($issue['number'] ?? 0)] = TRUE;
-		}
+		$openIssueNumbers = $this->buildOpenIssueNumberMap($issues);
 
 		$openPrByNumber = [];
 		foreach ($prs as $pr) {
@@ -805,13 +790,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return $tokenError;
 		}
 
-		$openIssueNumbers = [];
-		foreach ($issues as $issue) {
-			$issueNumber = (int) ($issue['number'] ?? 0);
-			if ($issueNumber > 0) {
-				$openIssueNumbers[$issueNumber] = TRUE;
-			}
-		}
+		$openIssueNumbers = $this->buildOpenIssueNumberMap($issues);
 
 		$result = [
 			'prs_closed' => 0,
@@ -1019,6 +998,21 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$closed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $token, ['state' => 'closed']);
 
 		return $commented && $closed;
+	}
+
+	/**
+	 * Build a lookup map of open issue numbers.
+	 */
+	private function buildOpenIssueNumberMap(array $issues): array {
+		$openIssueNumbers = [];
+		foreach ($issues as $issue) {
+			$issueNumber = (int) ($issue['number'] ?? 0);
+			if ($issueNumber > 0) {
+				$openIssueNumbers[$issueNumber] = TRUE;
+			}
+		}
+
+		return $openIssueNumbers;
 	}
 
 	/**
