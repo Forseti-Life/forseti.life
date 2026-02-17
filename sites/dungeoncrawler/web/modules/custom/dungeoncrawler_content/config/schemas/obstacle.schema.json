@@ -38,7 +38,7 @@
     },
     "traits": {
       "type": "array",
-      "items": { 
+      "items": {
         "type": "string",
         "minLength": 1
       },
@@ -123,9 +123,9 @@
         },
         "damage_on_enter": {
           "type": ["string", "null"],
-          "description": "Damage dealt when entering obstacle hex (PF2e dice notation: base dice plus optional modifier or additional dice).",
-          "pattern": "^\\d+d\\d+(\\+\\d+d\\d+|\\+\\d+|-\\d+)?$",
-          "examples": ["1d6", "2d6+3", "1d4+1d6", "2d6-2"]
+          "description": "Damage dealt when entering obstacle hex (PF2e dice notation: base dice plus optional modifier).",
+          "pattern": "^\\d+d\\d+(\\+\\d+)?$",
+          "examples": ["1d6", "2d6+3", "3d10+8"]
         },
         "damage_type": {
           "type": ["string", "null"],
@@ -150,6 +150,7 @@
     "state": {
       "type": "object",
       "description": "Current state of the obstacle instance.",
+      "additionalProperties": false,
       "properties": {
         "active": {
           "type": "boolean",
@@ -171,8 +172,7 @@
           "description": "GM notes or runtime state information.",
           "examples": ["Party bypassed via Athletics check", "Barrier still active, 2 attempts failed"]
         }
-      },
-      "additionalProperties": true
+      }
     },
     "source_ref": {
       "type": ["object", "null"],
@@ -209,12 +209,12 @@
       "description": "Last modification timestamp."
     }
   },
-  "additionalProperties": false,
   "$defs": {
     "hex_coordinate": {
       "type": "object",
       "description": "Axial hex coordinate (q, r) following the cube coordinate system.",
       "required": ["q", "r"],
+      "additionalProperties": false,
       "properties": {
         "q": {
           "type": "integer",
@@ -224,8 +224,86 @@
           "type": "integer",
           "description": "R-axis coordinate in axial hex system."
         }
-      },
-      "additionalProperties": false
+      }
     }
-  }
+  },
+  "examples": [
+    {
+      "schema_version": "1.0.0",
+      "obstacle_id": "d5e6f7a8-b9c0-1234-5678-90abcdef1234",
+      "name": "Boulder",
+      "level": 2,
+      "rarity": "common",
+      "traits": ["Environmental", "Structure"],
+      "obstacle_type": "barricade",
+      "description": "A large boulder blocks the narrow passageway, requiring significant strength to move aside.",
+      "hexes": [
+        { "q": 0, "r": 0 }
+      ],
+      "movement": {
+        "passable": false,
+        "cost_multiplier": 999,
+        "requires_check": true,
+        "check_skill": "Athletics",
+        "check_dc": 18
+      },
+      "combat_effect": {
+        "cover": "standard",
+        "damage_on_enter": null,
+        "damage_type": null,
+        "save_type": null,
+        "save_dc": null
+      },
+      "state": {
+        "active": true,
+        "disabled": false,
+        "destroyed": false,
+        "notes": null
+      },
+      "xp_reward": 20,
+      "created_at": "2026-02-17T12:00:00Z",
+      "updated_at": "2026-02-17T12:00:00Z"
+    },
+    {
+      "schema_version": "1.0.0",
+      "obstacle_id": "e7f8a9b0-c1d2-3456-7890-abcdef123456",
+      "name": "Magical Barrier",
+      "level": 5,
+      "rarity": "uncommon",
+      "traits": ["Magical", "Force"],
+      "obstacle_type": "magical_barrier",
+      "description": "Thick magical energy crackles across this threshold, requiring arcane knowledge to bypass.",
+      "hexes": [
+        { "q": 2, "r": -1 },
+        { "q": 2, "r": 0 }
+      ],
+      "movement": {
+        "passable": true,
+        "cost_multiplier": 3,
+        "requires_check": true,
+        "check_skill": "Arcana",
+        "check_dc": 24
+      },
+      "combat_effect": {
+        "cover": "none",
+        "damage_on_enter": "2d6",
+        "damage_type": "force",
+        "save_type": "fortitude",
+        "save_dc": 22
+      },
+      "state": {
+        "active": true,
+        "disabled": false,
+        "destroyed": false,
+        "notes": "Party attempted bypass, failed first check"
+      },
+      "source_ref": {
+        "content_type": "hazard",
+        "content_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      },
+      "xp_reward": 60,
+      "created_at": "2026-02-17T12:00:00Z",
+      "updated_at": "2026-02-17T14:30:00Z"
+    }
+  ]
 }
