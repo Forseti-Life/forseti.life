@@ -1,12 +1,13 @@
 {
+  "$schema": "../../config/schemas/item.schema.json",
   "schema_version": "1.0.0",
-  "item_id": "17909d3d-0a6c-4dd8-a8c2-cbb454724bf8",
+  "item_id": "5ad6fca7-ff63-4919-b7ce-59eb41279544",
   "name": "Longsword",
   "item_type": "weapon",
   "level": 0,
   "rarity": "common",
-  "traits": [],
-  "description": "A standard longsword, common among soldiers and adventurers.",
+  "traits": ["martial", "sword"],
+  "description": "A standard longsword, common among soldiers and adventurers. This versatile blade can be wielded with one or two hands.",
   "price": {
     "cp": 0,
     "sp": 0,
@@ -27,7 +28,6 @@
     "reload": null,
     "weapon_traits": ["versatile P"]
   },
-  "source": "Core Rulebook",
-  "created_at": 1771339254,
-  "updated_at": 1771339254
+  "created_at": "2026-02-17T14:37:37Z",
+  "updated_at": "2026-02-17T14:37:37Z"
 }
