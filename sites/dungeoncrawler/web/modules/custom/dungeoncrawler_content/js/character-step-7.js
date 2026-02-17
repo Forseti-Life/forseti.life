@@ -9,7 +9,8 @@
   // Configuration constants
   const CONFIG = {
     startingGold: 15,
-    goldPrecision: 1,
+    goldPrecision: 2, // Precision for calculations and display
+    goldDisplayDecimals: 1, // Number of decimal places shown in UI
     errorDisplayDuration: 2000,
     selectors: {
       form: '#step-7-form',
@@ -220,7 +221,7 @@
          * Updates gold remaining display.
          */
         function updateGoldDisplay() {
-          $(CONFIG.selectors.goldRemaining).text(goldRemaining.toFixed(CONFIG.goldPrecision));
+          $(CONFIG.selectors.goldRemaining).text(goldRemaining.toFixed(CONFIG.goldDisplayDecimals));
         }
 
         /**
@@ -245,7 +246,7 @@
 
           // Add item to selection
           selectedItems.push({ ...item, category: category });
-          goldRemaining = roundToDecimals(goldRemaining - item.cost, 2);
+          goldRemaining = roundToDecimals(goldRemaining - item.cost, CONFIG.goldPrecision);
           
           // Update UI
           updateGoldDisplay();
@@ -264,7 +265,7 @@
           }
 
           const item = selectedItems[index];
-          goldRemaining = roundToDecimals(goldRemaining + item.cost, 2);
+          goldRemaining = roundToDecimals(goldRemaining + item.cost, CONFIG.goldPrecision);
           selectedItems.splice(index, 1);
           
           // Update UI
