@@ -205,9 +205,3 @@ dungeoncrawler_tester.testing_menu_settings:
   route_name: dungeoncrawler_tester.settings
   parent: dungeoncrawler_tester.testing_menu_root
   weight: 4
-
-dungeoncrawler_tester.testing_menu_thetest:
-  title: 'The Test'
-  route_name: dungeoncrawler_tester.thetest
-  parent: dungeoncrawler_tester.testing_menu_root
-  weight: 5
