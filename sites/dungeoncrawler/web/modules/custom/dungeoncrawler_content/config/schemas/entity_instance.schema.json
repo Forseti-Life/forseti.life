@@ -19,6 +19,7 @@
     "entity_ref": {
       "type": "object",
       "required": ["content_type", "content_id"],
+      "additionalProperties": false,
       "properties": {
         "content_type": {
           "type": "string",
@@ -38,6 +39,7 @@
     "placement": {
       "type": "object",
       "required": ["room_id", "hex"],
+      "additionalProperties": false,
       "properties": {
         "room_id": {
           "type": "string",
@@ -48,6 +50,7 @@
           "type": "object",
           "description": "Axial hex coordinates for entity placement in the dungeon map.",
           "required": ["q", "r"],
+          "additionalProperties": false,
           "properties": {
             "q": { 
               "type": "integer",
@@ -101,42 +104,35 @@
           "properties": {
             "current": { 
               "type": "integer",
+              "minimum": 0,
               "description": "Current hit points remaining."
             },
             "max": { 
               "type": "integer",
+              "minimum": 1,
               "description": "Maximum hit points."
             }
           },
-          "required": ["current", "max"]
+          "required": ["current", "max"],
+          "additionalProperties": false
         },
         "inventory": {
           "type": "array",
           "description": "Inventory item refs carried by this instance (typically creatures). Each item references content from the item registry.",
+          "uniqueItems": false,
           "items": {
-            "type": "object",
-            "required": ["content_id"],
-            "properties": {
-              "content_id": { 
-                "type": "string",
-                "description": "Registry content_id for the carried item."
-              },
-              "quantity": { 
-                "type": "integer", 
-                "minimum": 1, 
-                "default": 1,
-                "description": "Number of items in this stack."
-              }
-            }
+            "$ref": "#/$defs/inventory_item"
           }
         },
         "metadata": {
           "type": "object",
           "description": "Extensible metadata storage for entity-specific runtime data. Can store any additional properties not covered by the standard schema.",
-          "additionalProperties": true
+          "additionalProperties": {
+            "type": ["string", "number", "boolean", "object", "array", "null"]
+          }
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "created_at": {
       "type": ["string", "null"],
@@ -149,7 +145,27 @@
       "description": "ISO 8601 timestamp when this entity instance was last modified."
     }
   },
-  "additionalProperties": true,
+  "additionalProperties": false,
+  "$defs": {
+    "inventory_item": {
+      "type": "object",
+      "description": "Reference to an item in the item registry with quantity information.",
+      "required": ["content_id"],
+      "properties": {
+        "content_id": { 
+          "type": "string",
+          "description": "Registry content_id for the carried item."
+        },
+        "quantity": { 
+          "type": "integer", 
+          "minimum": 1, 
+          "default": 1,
+          "description": "Number of items in this stack."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
   "examples": [
     {
       "entity_instance_id": "550e8400-e29b-41d4-a716-446655440000",
