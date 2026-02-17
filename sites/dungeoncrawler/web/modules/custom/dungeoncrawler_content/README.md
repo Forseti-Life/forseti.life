@@ -232,8 +232,36 @@ Both blocks are configured as `status: true` and will be automatically placed wh
 
 ## Permissions
 
-- `access content overview` - Required for dashboard access
-- `administer site configuration` - Required for settings
+The module defines a hierarchical permission system for character and content management:
+
+### Admin Permissions (restrict access: true)
+These permissions grant full control and should only be assigned to administrators:
+
+- **`administer dungeoncrawler content`** - Full administrative access to game content, settings, and all characters regardless of ownership. Required for module configuration (`/admin/config/content/dungeoncrawler`) and testing dashboard (`/admin/dungeoncrawler/testing`).
+- **`edit any dungeoncrawler characters`** - Edit any character regardless of ownership. Allows administrators to modify characters for support or testing purposes.
+- **`delete any dungeoncrawler characters`** - Delete any character regardless of ownership. Use with caution as this allows permanent removal of user data.
+
+### User Permissions (restrict access: false)
+Standard permissions for authenticated users to access and manage their own content:
+
+- **`access dungeoncrawler characters`** - View character lists, campaigns, and access game features. Required for basic gameplay and character management. Does not grant access to other users' characters.
+- **`create dungeoncrawler characters`** - Create new characters in the character creation wizard. Includes access to character step forms and save operations.
+- **`edit own dungeoncrawler characters`** - Edit own characters. Access is further restricted by the `CharacterAccessCheck` service to ensure users can only modify their own characters.
+- **`delete own dungeoncrawler characters`** - Delete own characters. Access is further restricted by the `CharacterAccessCheck` service to prevent deletion of characters owned by other users.
+
+### External Permissions
+Required from core Drupal or other modules:
+
+- **`access content overview`** - Required for dashboard access at `/admin/content/dungeoncrawler`
+- **`administer site configuration`** - Required for module settings at `/admin/config/content/dungeoncrawler`
+
+### Access Control Services
+The module implements custom access checkers for ownership-based permissions:
+
+- **`CharacterAccessCheck`** - Validates character ownership for view/edit/delete operations
+- **`CampaignAccessCheck`** - Validates campaign ownership for campaign-related operations
+
+These services work in conjunction with the permission system to ensure users can only access their own resources, unless they have admin permissions.
 
 ## Styling
 
