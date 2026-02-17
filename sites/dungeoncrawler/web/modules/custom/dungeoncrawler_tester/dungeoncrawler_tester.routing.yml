@@ -211,10 +211,4 @@ dungeoncrawler_tester.settings:
   requirements:
     _permission: 'administer site configuration'
 
-dungeoncrawler_tester.thetest:
-  path: '/dungeoncrawler/testing/thetest'
-  defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TheTestController::page'
-    _title: 'The Test'
-  requirements:
-    _permission: 'access content'
+

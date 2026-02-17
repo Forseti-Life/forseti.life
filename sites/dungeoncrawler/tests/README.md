@@ -19,13 +19,6 @@ This script will:
 
 These tests are primarily used for automated test runs that reference test files directly by path, rather than through PHPUnit test suites.
 
-## Test Files
-
-### TheTestPageTest.php
-
-Tests the Dungeon Crawler testing dashboard functionality:
-- Verifies that the testing dashboard page loads successfully for authorized users
-- Ensures that unauthorized users receive appropriate access denied responses
 ## Setting Up the Test Environment
 
 Before running tests, you need to prepare the test environment to ensure proper directory permissions:
@@ -75,14 +68,7 @@ This script will:
 
 ## Running Tests
 
-From the `sites/dungeoncrawler` directory:
-
-```bash
-# Run the specific test file
-./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/TheTestPageTest.php
-```
-
-**Note**: For other functional tests like HexMapUiStageGateTest, use the full module path:
+**Note**: For functional tests like HexMapUiStageGateTest, use the full module path:
 
 ```bash
 # Run tests from the module's test directory

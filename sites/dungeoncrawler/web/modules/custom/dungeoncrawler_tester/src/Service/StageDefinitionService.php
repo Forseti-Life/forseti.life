@@ -43,20 +43,6 @@ class StageDefinitionService {
         ],
       ],
       [
-        'id' => 'precommit-thetest',
-        'title' => $this->t('Pre-commit: thetest toggle'),
-        'description' => $this->t('Functional check for /dungeoncrawler/testing/thetest page (status controlled by tester state/env override).'),
-        'commands' => [
-          [
-            'label' => $this->t('TheTest page functional'),
-            'description' => $this->t('Validates tester dashboard/thetest toggle behavior and failure signaling path.'),
-            'args' => ['./vendor/bin/phpunit', '--configuration', 'web/modules/custom/dungeoncrawler_tester/phpunit.xml', 'tests/src/Functional/TheTestPageTest.php'],
-            'cwd' => $root,
-            'display' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml tests/src/Functional/TheTestPageTest.php',
-          ],
-        ],
-      ],
-      [
         'id' => 'functional-routes',
         'title' => $this->t('Functional routes/controllers'),
         'description' => $this->t('Public, admin, character, campaign, API endpoints.'),
