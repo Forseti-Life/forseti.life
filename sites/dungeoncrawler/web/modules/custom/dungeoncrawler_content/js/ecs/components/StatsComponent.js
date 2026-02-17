@@ -6,6 +6,27 @@
 import { Component } from '../Component.js';
 
 /**
+ * Default values for StatsComponent.
+ */
+const DEFAULTS = {
+  ABILITY_SCORE: 10,
+  MAX_HP: 10,
+  ARMOR_CLASS: 10,
+  SAVE_BONUS: 0,
+  WALK_SPEED: 30,
+  OTHER_SPEED: 0,
+  LEVEL: 1,
+  PROFICIENCY_BONUS: 2,
+  PERCEPTION: 0,
+  TEMP_HP: 0
+};
+
+/**
+ * Valid ability score names.
+ */
+const ABILITY_NAMES = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+
+/**
  * StatsComponent
  * 
  * Stores core statistics for entities including ability scores,
@@ -17,68 +38,97 @@ import { Component } from '../Component.js';
 export class StatsComponent extends Component {
   /**
    * @param {Object} config - Configuration object
+   * @param {number} [config.strength] - Strength ability score
+   * @param {number} [config.dexterity] - Dexterity ability score
+   * @param {number} [config.constitution] - Constitution ability score
+   * @param {number} [config.intelligence] - Intelligence ability score
+   * @param {number} [config.wisdom] - Wisdom ability score
+   * @param {number} [config.charisma] - Charisma ability score
+   * @param {number} [config.maxHp] - Maximum hit points
+   * @param {number} [config.currentHp] - Current hit points
+   * @param {number} [config.ac] - Armor class
+   * @param {number} [config.fortitude] - Fortitude save bonus
+   * @param {number} [config.reflex] - Reflex save bonus
+   * @param {number} [config.will] - Will save bonus
+   * @param {number} [config.speed] - Walking speed in feet
+   * @param {number} [config.flySpeed] - Flying speed in feet
+   * @param {number} [config.swimSpeed] - Swimming speed in feet
+   * @param {number} [config.burrowSpeed] - Burrowing speed in feet
+   * @param {number} [config.climbSpeed] - Climbing speed in feet
+   * @param {number} [config.level] - Character level
+   * @param {number} [config.proficiencyBonus] - Proficiency bonus
+   * @param {number} [config.perception] - Perception bonus
    */
   constructor(config = {}) {
     super();
     
     // Ability Scores (10 is average, modifiers = (score - 10) / 2)
     this.abilities = {
-      strength: config.strength || 10,
-      dexterity: config.dexterity || 10,
-      constitution: config.constitution || 10,
-      intelligence: config.intelligence || 10,
-      wisdom: config.wisdom || 10,
-      charisma: config.charisma || 10
+      strength: config.strength ?? DEFAULTS.ABILITY_SCORE,
+      dexterity: config.dexterity ?? DEFAULTS.ABILITY_SCORE,
+      constitution: config.constitution ?? DEFAULTS.ABILITY_SCORE,
+      intelligence: config.intelligence ?? DEFAULTS.ABILITY_SCORE,
+      wisdom: config.wisdom ?? DEFAULTS.ABILITY_SCORE,
+      charisma: config.charisma ?? DEFAULTS.ABILITY_SCORE
     };
     
     // Hit Points
-    this.maxHp = config.maxHp || 10;
-    this.currentHp = config.currentHp || this.maxHp;
-    this.tempHp = 0;
+    this.maxHp = config.maxHp ?? DEFAULTS.MAX_HP;
+    this.currentHp = config.currentHp ?? this.maxHp;
+    this.tempHp = DEFAULTS.TEMP_HP;
     
     // Armor Class
-    this.ac = config.ac || 10;
+    this.ac = config.ac ?? DEFAULTS.ARMOR_CLASS;
     
     // Saving Throws (total bonus)
     this.saves = {
-      fortitude: config.fortitude || 0,
-      reflex: config.reflex || 0,
-      will: config.will || 0
+      fortitude: config.fortitude ?? DEFAULTS.SAVE_BONUS,
+      reflex: config.reflex ?? DEFAULTS.SAVE_BONUS,
+      will: config.will ?? DEFAULTS.SAVE_BONUS
     };
     
     // Movement Speeds (feet per round)
     this.speeds = {
-      walk: config.speed || 30,
-      fly: config.flySpeed || 0,
-      swim: config.swimSpeed || 0,
-      burrow: config.burrowSpeed || 0,
-      climb: config.climbSpeed || 0
+      walk: config.speed ?? DEFAULTS.WALK_SPEED,
+      fly: config.flySpeed ?? DEFAULTS.OTHER_SPEED,
+      swim: config.swimSpeed ?? DEFAULTS.OTHER_SPEED,
+      burrow: config.burrowSpeed ?? DEFAULTS.OTHER_SPEED,
+      climb: config.climbSpeed ?? DEFAULTS.OTHER_SPEED
     };
     
     // Level and proficiency
-    this.level = config.level || 1;
-    this.proficiencyBonus = config.proficiencyBonus || 2;
+    this.level = config.level ?? DEFAULTS.LEVEL;
+    this.proficiencyBonus = config.proficiencyBonus ?? DEFAULTS.PROFICIENCY_BONUS;
     
     // Perception
-    this.perception = config.perception || 0;
+    this.perception = config.perception ?? DEFAULTS.PERCEPTION;
   }
   
   /**
    * Get ability modifier.
-   * @param {string} ability - Ability name (strength, dexterity, etc.)
-   * @returns {number}
+   * @param {string} ability - Ability name (strength, dexterity, constitution, intelligence, wisdom, charisma)
+   * @returns {number} - Ability modifier
+   * @throws {Error} - If ability name is invalid
    */
   getAbilityModifier(ability) {
-    const score = this.abilities[ability] || 10;
+    if (!ABILITY_NAMES.includes(ability)) {
+      throw new Error(`Invalid ability name: ${ability}. Valid abilities: ${ABILITY_NAMES.join(', ')}`);
+    }
+    const score = this.abilities[ability] ?? DEFAULTS.ABILITY_SCORE;
     return Math.floor((score - 10) / 2);
   }
   
   /**
    * Apply damage to HP.
-   * @param {number} damage - Damage amount
+   * @param {number} damage - Damage amount (must be non-negative)
    * @returns {number} - Actual damage dealt (after temp HP)
+   * @throws {Error} - If damage is negative
    */
   takeDamage(damage) {
+    if (damage < 0) {
+      throw new Error('Damage must be non-negative');
+    }
+    
     let remaining = damage;
     
     // Temp HP absorbs damage first
@@ -98,10 +148,15 @@ export class StatsComponent extends Component {
   
   /**
    * Heal HP.
-   * @param {number} amount - Healing amount
+   * @param {number} amount - Healing amount (must be non-negative)
    * @returns {number} - Actual HP healed
+   * @throws {Error} - If amount is negative
    */
   heal(amount) {
+    if (amount < 0) {
+      throw new Error('Healing amount must be non-negative');
+    }
+    
     const oldHp = this.currentHp;
     this.currentHp = Math.min(this.maxHp, this.currentHp + amount);
     return this.currentHp - oldHp;
@@ -125,10 +180,13 @@ export class StatsComponent extends Component {
   
   /**
    * Get HP percentage.
-   * @returns {number} - 0.0 to 1.0
+   * @returns {number} - Value between 0.0 and 1.0
    */
   getHealthPercentage() {
-    return this.maxHp > 0 ? this.currentHp / this.maxHp : 0;
+    if (this.maxHp <= 0) {
+      return 0;
+    }
+    return this.currentHp / this.maxHp;
   }
   
   /**
