@@ -33,7 +33,7 @@ JSON Schemas serve multiple purposes:
 | `campaign.schema.json` | Campaign state & progress | ✓ | 71 | `dc_campaigns.campaign_data` |
 | `creature.schema.json` | Monsters, NPCs, beasts | ✓ | 994 | Entity spawning |
 | `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 299 | Level generation |
-| `encounter.schema.json` | Combat & initiative | ✓ | 355 | Combat engine |
+| `encounter.schema.json` | Combat & initiative | ✓ | 568 | Combat engine |
 | `entity_instance.schema.json` | Placed entities (runtime) | ✗ | 264 | Runtime entity management |
 | `hazard.schema.json` | Environmental hazards | ✓ | 249 | PF2e hazards |
 | `hexmap.schema.json` | Hex-based dungeon map | ✓ | 247 | Map structure |
