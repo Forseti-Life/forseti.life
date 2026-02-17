@@ -75,6 +75,7 @@ The dashboard includes:
 - **Positive-number extraction normalization**: Repeated issue/PR numeric identifier extraction and `<= 0` guard patterns now reuse a shared helper in `TestingDashboardIssueAutomationController`.
 - **AJAX payload number parsing reuse**: Dead-value close payload/candidate numeric field extraction (`pr_number`, `issue_number`) now reuses the shared positive-number helper instead of inline casts.
 - **Number-sort comparator normalization**: Issue/PR list sorting by numeric `number` now routes through a shared helper instead of repeated inline `usort` lambdas.
+- **AJAX message constant normalization**: Repeated issue-automation AJAX error message strings are now single-sourced as controller constants to reduce drift.
 - **Repo-aware nav links**: Tester navigation block now builds the GitHub issue queue link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`).
 - **Repo-aware sign-off link**: Stage definitions now build the release sign-off defect link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`) instead of a hard-coded repository URL.
 - **Filesystem diagnostics**: Queue worker now validates simpletest directory creation/writability and surfaces explicit failure diagnostics in run/state output when setup fails.

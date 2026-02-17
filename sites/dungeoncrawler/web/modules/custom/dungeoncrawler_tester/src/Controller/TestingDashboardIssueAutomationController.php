@@ -41,6 +41,18 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	private const GITHUB_API_TIMEOUT = 10;
 
 	/**
+	 * Common AJAX error messages.
+	 */
+	private const MSG_ACCESS_DENIED = 'Access denied';
+	private const MSG_MISSING_QUERY_ID = 'Missing query id.';
+	private const MSG_UNKNOWN_BULK_QUERY_ID = 'Unknown bulk query id.';
+	private const MSG_MISSING_PR_NUMBER = 'Missing PR number.';
+	private const MSG_GITHUB_TOKEN_NOT_CONFIGURED = 'GitHub token is not configured.';
+	private const MSG_UNABLE_TO_LOAD_PR_DETAILS = 'Unable to load PR details.';
+	private const MSG_PR_NO_LONGER_DEAD_VALUE = 'PR is no longer dead-value; refresh and review.';
+	private const MSG_CLOSE_WITH_WARNINGS = 'Close action completed with warnings. Check logs for details.';
+
+	/**
 	 * Build a URL from route name with a safe path fallback.
 	 */
 	protected function safeRouteUrl(string $routeName, string $fallbackPath): string {
@@ -775,7 +787,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 
 		$queryId = trim((string) ($payload['query_id'] ?? ''));
 		if ($queryId === '') {
-			return $this->errorJsonResponse('Missing query id.', 400);
+			return $this->errorJsonResponse(self::MSG_MISSING_QUERY_ID, 400);
 		}
 
 		$reportData = $this->normalizeIssuePrReportData($this->loadIssuePrReportData(FALSE));
@@ -833,7 +845,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 				break;
 
 			default:
-				return $this->errorJsonResponse('Unknown bulk query id.', 400);
+				return $this->errorJsonResponse(self::MSG_UNKNOWN_BULK_QUERY_ID, 400);
 		}
 
 		$errorCount = count($result['errors']);
@@ -864,7 +876,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$issueNumber = $this->extractPositiveNumber($payload, 'issue_number');
 
 		if ($prNumber <= 0) {
-			return $this->errorJsonResponse('Missing PR number.', 400);
+			return $this->errorJsonResponse(self::MSG_MISSING_PR_NUMBER, 400);
 		}
 
 		$githubContext = $this->loadIssueAutomationContext();
@@ -877,7 +889,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 
 		$prResponse = $this->requestGitHubJson("https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $token);
 		if (!empty($prResponse['error']) || !is_array($prResponse['items'])) {
-			return $this->errorJsonResponse('Unable to load PR details.', 500);
+			return $this->errorJsonResponse(self::MSG_UNABLE_TO_LOAD_PR_DETAILS, 500);
 		}
 
 		$pr = [
@@ -888,7 +900,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		];
 
 		if (!$this->isDeadValuePr($pr)) {
-			return $this->errorJsonResponse('PR is no longer dead-value; refresh and review.', 409);
+			return $this->errorJsonResponse(self::MSG_PR_NO_LONGER_DEAD_VALUE, 409);
 		}
 
 		$prClosed = $this->closePullRequestWithComment($repo, $token, $prNumber, self::DEAD_VALUE_COMMENT);
@@ -901,7 +913,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		}
 
 		if (!$prClosed || !$issueCommented || !$issueClosed) {
-			return $this->errorJsonResponse('Close action completed with warnings. Check logs for details.', 500);
+			return $this->errorJsonResponse(self::MSG_CLOSE_WITH_WARNINGS, 500);
 		}
 
 		return $this->successJsonResponse(
@@ -939,7 +951,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return NULL;
 		}
 
-		return $this->errorJsonResponse('Access denied', 403);
+		return $this->errorJsonResponse(self::MSG_ACCESS_DENIED, 403);
 	}
 
 	/**
@@ -950,7 +962,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return NULL;
 		}
 
-		return $this->errorJsonResponse('GitHub token is not configured.', 400);
+		return $this->errorJsonResponse(self::MSG_GITHUB_TOKEN_NOT_CONFIGURED, 400);
 	}
 
 	/**
@@ -961,7 +973,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return NULL;
 		}
 
-		return $this->errorJsonResponse('GitHub token is not configured.', 400);
+		return $this->errorJsonResponse(self::MSG_GITHUB_TOKEN_NOT_CONFIGURED, 400);
 	}
 
 	/**
