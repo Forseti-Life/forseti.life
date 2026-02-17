@@ -13,6 +13,9 @@ export class EntityManager {
     
     // Cache for component queries
     this.queryCache = new Map();
+    
+    // Track active entity count for optimization
+    this._activeCount = 0;
   }
 
   /**
@@ -22,9 +25,9 @@ export class EntityManager {
   createEntity() {
     const entity = new Entity(this.nextEntityId++);
     this.entities.set(entity.id, entity);
+    this._activeCount++;
     this.invalidateQueryCache();
     
-    console.log(`Created entity ${entity.id}`);
     return entity;
   }
 
@@ -45,10 +48,12 @@ export class EntityManager {
   removeEntity(id) {
     const entity = this.entities.get(id);
     if (entity) {
+      if (entity.isActive()) {
+        this._activeCount--;
+      }
       entity.destroy();
       this.entities.delete(id);
       this.invalidateQueryCache();
-      console.log(`Removed entity ${id}`);
       return true;
     }
     return false;
@@ -114,7 +119,7 @@ export class EntityManager {
    * @returns {number} Number of active entities
    */
   getEntityCount() {
-    return this.getAllEntities().length;
+    return this._activeCount;
   }
 
   /**
@@ -123,8 +128,8 @@ export class EntityManager {
   clear() {
     this.entities.clear();
     this.nextEntityId = 1;
+    this._activeCount = 0;
     this.invalidateQueryCache();
-    console.log('Cleared all entities');
   }
 
   /**
@@ -144,25 +149,36 @@ export class EntityManager {
   /**
    * Add a system to the manager.
    * @param {System} system - System instance
+   * @throws {TypeError} If system is null or undefined
    */
   addSystem(system) {
+    if (!system) {
+      throw new TypeError('System cannot be null or undefined');
+    }
+    
     this.systems.push(system);
-    this.systems.sort((a, b) => a.priority - b.priority);
-    system.init();
-    console.log(`Added system: ${system.constructor.name}`);
+    this.systems.sort((a, b) => (a.priority || 0) - (b.priority || 0));
+    
+    if (typeof system.init === 'function') {
+      system.init();
+    }
   }
 
   /**
    * Remove a system from the manager.
    * @param {System} system - System instance
+   * @returns {boolean} True if system was removed
    */
   removeSystem(system) {
     const index = this.systems.indexOf(system);
     if (index !== -1) {
       this.systems.splice(index, 1);
-      system.destroy();
-      console.log(`Removed system: ${system.constructor.name}`);
+      if (typeof system.destroy === 'function') {
+        system.destroy();
+      }
+      return true;
     }
+    return false;
   }
 
   /**
@@ -199,17 +215,27 @@ export class EntityManager {
    * Deserialize entities from JSON.
    * @param {object} data - Serialized data
    * @param {object} componentClasses - Map of component name to class
+   * @throws {TypeError} If data is invalid
    */
   fromJSON(data, componentClasses) {
+    if (!data || typeof data !== 'object') {
+      throw new TypeError('Data must be a valid object');
+    }
+    if (!Array.isArray(data.entities)) {
+      throw new TypeError('Data.entities must be an array');
+    }
+    
     this.clear();
-    this.nextEntityId = data.nextEntityId;
+    this.nextEntityId = data.nextEntityId || 1;
 
     for (const entityData of data.entities) {
       const entity = Entity.fromJSON(entityData, componentClasses);
       this.entities.set(entity.id, entity);
+      if (entity.isActive()) {
+        this._activeCount++;
+      }
     }
 
     this.invalidateQueryCache();
-    console.log(`Loaded ${data.entities.length} entities`);
   }
 }
