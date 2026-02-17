@@ -31,6 +31,10 @@ The dashboard includes:
 - **Release Testing Stagegates**: Testing workflow and checklist
 - **GitHub Issues**: Live feed of CI failures and testing defects
 - **Issue/PR Report Workflow**: `/dungeoncrawler/testing/issue-pr-report` now documents process and decision logic for low-to-high PR triage, no-op/superseded close decisions, and verification expectations.
+- **Issue/PR local-cache reference**: The issue/PR report now includes an explicit local cache management callout for repository-root `Issues.md` and a direct link to `/dungeoncrawler/testing/import-open-issues`.
+- **Issue/PR import status visibility**: The issue/PR report metadata now includes a “Last local import run” line (time/repo/handled-created-skipped-failed/dry-run) sourced from importer-run state.
+- **Open issue import page**: `/dungeoncrawler/testing/import-open-issues` now provides a dashboard form that imports Open rows from `Issues.md` into GitHub (batchable, delay selectable as 5/30/180 seconds with default 5, and Copilot assignment-aware).
+- **Open issue import local close-out**: Successful GitHub creations from the import page now automatically update the matching `Issues.md` tracker row from `Open` to `Closed`, refresh `Last Updated`, and append a GitHub issue reference note.
 - **Docs link handling**: Documentation links resolve to internal Drupal documentation pages (no direct `.md` links); only the testing issues query links to GitHub.
 - **Theme compliance**: Documentation pages render with the theme-standard Bootstrap layout (`container` + `row/col`) and `card card-dungeoncrawler` sections for visual consistency.
 - **TheTest route scope**: The automation flip page now lives at `/dungeoncrawler/testing/thetest` to avoid generic root-path collisions and improve discoverability.
