@@ -195,6 +195,7 @@
       "properties": {
         "previous_step": {
           "type": "null",
+          "const": null,
           "description": "No previous step - this is the first step"
         },
         "next_step": {
