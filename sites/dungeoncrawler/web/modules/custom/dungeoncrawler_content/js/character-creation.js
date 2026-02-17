@@ -8,6 +8,32 @@
 (function ($, Drupal) {
   'use strict';
 
+  // Constants
+  const CONSTANTS = {
+    // Ability score defaults and limits
+    DEFAULT_ABILITY_SCORE: 10,
+    MAX_ABILITY_SCORE: 18,
+    ABILITY_BOOST_AMOUNT: 2,
+    ABILITY_BOOST_AT_18: 1,
+    ABILITY_FLAW_AMOUNT: 2,
+    
+    // Character creation defaults
+    STARTING_GOLD: 15,
+    MIN_NAME_LENGTH: 2,
+    FINAL_STEP: 8,
+    
+    // Background boosts
+    REQUIRED_BG_BOOSTS: 2,
+    REQUIRED_FREE_BOOSTS: 4,
+    
+    // Base values for calculations
+    BASE_AC: 10,
+    
+    // API endpoints
+    API_SAVE_CHARACTER: '/api/character/save',
+    API_SESSION_TOKEN: '/session/token'
+  };
+
   // CSRF Token cache
   let csrfToken = null;
 
@@ -21,7 +47,7 @@
     }
 
     try {
-      const response = await fetch('/session/token');
+      const response = await fetch(CONSTANTS.API_SESSION_TOKEN);
       csrfToken = await response.text();
       return csrfToken;
     } catch (error) {
@@ -41,12 +67,12 @@
     background: null,
     class: null,
     abilities: {
-      str: 10,
-      dex: 10,
-      con: 10,
-      int: 10,
-      wis: 10,
-      cha: 10
+      str: CONSTANTS.DEFAULT_ABILITY_SCORE,
+      dex: CONSTANTS.DEFAULT_ABILITY_SCORE,
+      con: CONSTANTS.DEFAULT_ABILITY_SCORE,
+      int: CONSTANTS.DEFAULT_ABILITY_SCORE,
+      wis: CONSTANTS.DEFAULT_ABILITY_SCORE,
+      cha: CONSTANTS.DEFAULT_ABILITY_SCORE
     },
     alignment: '',
     deity: '',
@@ -56,7 +82,7 @@
     personality: '',
     backstory: '',
     equipment: [],
-    gold: 15
+    gold: CONSTANTS.STARTING_GOLD
   };
 
   //Ancestry data
@@ -433,8 +459,8 @@
     switch(step) {
       case 1:
         const name = $('#characterName').val().trim();
-        if (!name || name.length < 2) {
-          alert('Please enter a character name (at least 2 characters).');
+        if (!name || name.length < CONSTANTS.MIN_NAME_LENGTH) {
+          alert('Please enter a character name (at least ' + CONSTANTS.MIN_NAME_LENGTH + ' characters).');
           return false;
         }
         return true;
@@ -451,8 +477,8 @@
           alert('Please select a background.');
           return false;
         }
-        if ($('input[name="bgBoost"]:checked').length !== 2) {
-          alert('Please select exactly 2 ability boosts from your background.');
+        if ($('input[name="bgBoost"]:checked').length !== CONSTANTS.REQUIRED_BG_BOOSTS) {
+          alert('Please select exactly ' + CONSTANTS.REQUIRED_BG_BOOSTS + ' ability boosts from your background.');
           return false;
         }
         return true;
@@ -465,8 +491,8 @@
         return true;
       
       case 5:
-        if ($('input[name="freeBoost"]:checked').length !== 4) {
-          alert('Please select exactly 4 free ability boosts.');
+        if ($('input[name="freeBoost"]:checked').length !== CONSTANTS.REQUIRED_FREE_BOOSTS) {
+          alert('Please select exactly ' + CONSTANTS.REQUIRED_FREE_BOOSTS + ' free ability boosts.');
           return false;
         }
         return true;
@@ -542,7 +568,7 @@
     // Send to API with CSRF token
     getCsrfToken().then(token => {
       $.ajax({
-        url: '/api/character/save',
+        url: CONSTANTS.API_SAVE_CHARACTER,
         method: 'POST',
         contentType: 'application/json',
         headers: {
@@ -656,7 +682,12 @@
 
     // Reset ability scores
     characterData.abilities = {
-      str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10
+      str: CONSTANTS.DEFAULT_ABILITY_SCORE,
+      dex: CONSTANTS.DEFAULT_ABILITY_SCORE,
+      con: CONSTANTS.DEFAULT_ABILITY_SCORE,
+      int: CONSTANTS.DEFAULT_ABILITY_SCORE,
+      wis: CONSTANTS.DEFAULT_ABILITY_SCORE,
+      cha: CONSTANTS.DEFAULT_ABILITY_SCORE
     };
 
     characterData.ancestry = ancestryId;
@@ -705,10 +736,10 @@
     $('input[name="bgBoost"]').on('change', function() {
       const checked = $('input[name="bgBoost"]:checked').length;
       // Limit to 2 selections
-      if (checked > 2) {
+      if (checked > CONSTANTS.REQUIRED_BG_BOOSTS) {
         $(this).prop('checked', false);
       }
-      $('#backgroundNextBtn').prop('disabled', checked !== 2);
+      $('#backgroundNextBtn').prop('disabled', checked !== CONSTANTS.REQUIRED_BG_BOOSTS);
     });
 
     updatePreview();
@@ -756,10 +787,10 @@
       console.error('Invalid ability:', ability);
       return;
     }
-    if (characterData.abilities[ability] < 18) {
-      characterData.abilities[ability] += 2;
+    if (characterData.abilities[ability] < CONSTANTS.MAX_ABILITY_SCORE) {
+      characterData.abilities[ability] += CONSTANTS.ABILITY_BOOST_AMOUNT;
     } else {
-      characterData.abilities[ability] += 1;
+      characterData.abilities[ability] += CONSTANTS.ABILITY_BOOST_AT_18;
     }
   }
 
@@ -772,7 +803,15 @@
       console.error('Invalid ability:', ability);
       return;
     }
-    characterData.abilities[ability] -= 2;
+    characterData.abilities[ability] -= CONSTANTS.ABILITY_FLAW_AMOUNT;
+  }
+
+  /**
+   * Calculate Armor Class (AC).
+   * @returns {number} The calculated AC.
+   */
+  function calculateAC() {
+    return CONSTANTS.BASE_AC + getAbilityModifier(characterData.abilities.dex);
   }
 
   /**
@@ -814,8 +853,8 @@
     hp += getAbilityModifier(characterData.abilities.con);
     $('#previewHp').text(hp);
 
-    // Calculate AC (10 + Dex mod + armor bonus)
-    const ac = 10 + getAbilityModifier(characterData.abilities.dex);
+    // Calculate AC
+    const ac = calculateAC();
     $('#previewAc').text(ac);
 
     // Calculate Perception
@@ -932,21 +971,21 @@
    */
   $(document).on('change', 'input[name="freeBoost"]', function() {
     const checked = $('input[name="freeBoost"]:checked').length;
-    if (checked > 4) {
+    if (checked > CONSTANTS.REQUIRED_FREE_BOOSTS) {
       $(this).prop('checked', false);
       return;
     }
     $('#boostCount').text(checked);
-    $('#abilitiesNextBtn').prop('disabled', checked !== 4);
+    $('#abilitiesNextBtn').prop('disabled', checked !== CONSTANTS.REQUIRED_FREE_BOOSTS);
 
     // Update preview with temporary boosts
     const tempAbilities = {...characterData.abilities};
     $('input[name="freeBoost"]:checked').each(function() {
       const ability = $(this).val();
-      if (tempAbilities[ability] < 18) {
-        tempAbilities[ability] += 2;
+      if (tempAbilities[ability] < CONSTANTS.MAX_ABILITY_SCORE) {
+        tempAbilities[ability] += CONSTANTS.ABILITY_BOOST_AMOUNT;
       } else {
-        tempAbilities[ability] += 1;
+        tempAbilities[ability] += CONSTANTS.ABILITY_BOOST_AT_18;
       }
     });
   });
@@ -961,7 +1000,7 @@
     // Prepare final save data
     const finalData = {
       character_id: characterData.character_id,
-      step: 8,
+      step: CONSTANTS.FINAL_STEP,
       name: characterData.name,
       concept: characterData.concept,
       ancestry: characterData.ancestry,
@@ -971,10 +1010,20 @@
       abilities: characterData.abilities,
       alignment: characterData.alignment,
       deity: characterData.deity,
-      age: characterDa with CSRF token
+      age: characterData.age,
+      gender: characterData.gender,
+      appearance: characterData.appearance,
+      personality: characterData.personality,
+      backstory: characterData.backstory,
+      equipment: characterData.equipment,
+      gold: characterData.gold,
+      wizard_complete: true
+    };
+
+    // Send final save with CSRF token
     getCsrfToken().then(token => {
       $.ajax({
-        url: '/api/character/save',
+        url: CONSTANTS.API_SAVE_CHARACTER,
         method: 'POST',
         data: JSON.stringify(finalData),
         contentType: 'application/json',
@@ -1000,20 +1049,13 @@
       });
     }).catch(error => {
       console.error('Failed to get CSRF token:', error);
-      alert('Error creating character. Please try again.'); if (response.success) {
-          // Redirect to character view page
-          window.location.href = '/characters/' + response.character_id;
-        } else {
-          alert('Error creating character: ' + (response.error || 'Unknown error'));
-        }
-      },
-      error: function(xhr, status, error) {
-        console.error('AJAX error:', error);
-        alert('Error creating character. Please try again.');
-      }
+      alert('Error creating character. Please try again.');
     });
   };
 
+  /**
+   * Generate character summary HTML for final review
+   */
   function generateCharacterSummary() {
     const ancestry = ancestryData[characterData.ancestry];
     const classInfo = classData[characterData.class];
