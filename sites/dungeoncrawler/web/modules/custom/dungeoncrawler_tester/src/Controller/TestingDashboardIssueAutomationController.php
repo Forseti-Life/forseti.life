@@ -950,9 +950,9 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return new JsonResponse(['success' => FALSE, 'message' => 'Missing PR number.'], 400);
 		}
 
-		$githubContext = $this->resolveGitHubContext();
-		$repo = $githubContext['repo'];
-		$token = $githubContext['token'];
+		$githubContext = $this->loadIssueAutomationContext();
+		$repo = (string) ($githubContext['repo'] ?? '');
+		$token = $githubContext['token'] ?? NULL;
 		if (!$token) {
 			return new JsonResponse(['success' => FALSE, 'message' => 'GitHub token is not configured.'], 400);
 		}
@@ -1154,13 +1154,25 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	}
 
 	/**
+	 * Load normalized GitHub context for issue automation actions.
+	 */
+	private function loadIssueAutomationContext(): array {
+		$githubContext = $this->resolveGitHubContext();
+		return [
+			'repo' => (string) ($githubContext['repo'] ?? ''),
+			'token' => $githubContext['token'] ?? NULL,
+			'token_candidates' => is_array($githubContext['token_candidates'] ?? NULL) ? $githubContext['token_candidates'] : [],
+		];
+	}
+
+	/**
 	 * Load GitHub context and fresh issue/PR report payloads.
 	 */
 	private function loadIssuePrReportData(bool $useCache = FALSE): array {
-		$githubContext = $this->resolveGitHubContext();
+		$githubContext = $this->loadIssueAutomationContext();
 		$repo = (string) ($githubContext['repo'] ?? '');
 		$token = $githubContext['token'] ?? NULL;
-		$tokenCandidates = $githubContext['token_candidates'] ?? [];
+		$tokenCandidates = (array) ($githubContext['token_candidates'] ?? []);
 
 		$issuePayload = $this->fetchOpenIssuesForReport($repo, $tokenCandidates, $useCache);
 		$prPayload = $this->fetchOpenPullRequestsForReport($repo, $tokenCandidates, $useCache);
