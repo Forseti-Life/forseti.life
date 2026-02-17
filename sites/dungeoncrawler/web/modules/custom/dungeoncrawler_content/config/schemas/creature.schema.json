@@ -135,6 +135,7 @@
         "perception",
         "speed"
       ],
+      "additionalProperties": false,
       "properties": {
         "ability_scores": {
           "type": "object",
@@ -271,6 +272,10 @@
         },
         "perception": {
           "type": "object",
+          "required": [
+            "modifier"
+          ],
+          "additionalProperties": false,
           "properties": {
             "modifier": {
               "type": "integer",
@@ -280,7 +285,8 @@
             "senses": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1
               },
               "examples": [
                 "darkvision",
@@ -293,48 +299,70 @@
         "speed": {
           "type": "object",
           "description": "Movement speeds in feet.",
+          "required": [
+            "land"
+          ],
+          "additionalProperties": false,
           "properties": {
             "land": {
               "type": "integer",
               "minimum": 0,
-              "default": 25
+              "maximum": 120,
+              "default": 25,
+              "description": "Base land speed in feet. Typical range 5-60 for most creatures."
             },
             "fly": {
               "type": [
                 "integer",
                 "null"
-              ]
+              ],
+              "minimum": 0,
+              "maximum": 200,
+              "description": "Fly speed in feet, or null if creature cannot fly."
             },
             "swim": {
               "type": [
                 "integer",
                 "null"
-              ]
+              ],
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Swim speed in feet, or null if creature has no swim speed."
             },
             "climb": {
               "type": [
                 "integer",
                 "null"
-              ]
+              ],
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Climb speed in feet, or null if creature has no climb speed."
             },
             "burrow": {
               "type": [
                 "integer",
                 "null"
-              ]
+              ],
+              "minimum": 0,
+              "maximum": 60,
+              "description": "Burrow speed in feet, or null if creature cannot burrow."
             }
-          },
-          "required": [
-            "land"
-          ]
+          }
         },
         "skills": {
           "type": "object",
           "additionalProperties": {
             "type": "object",
+            "required": [
+              "modifier"
+            ],
+            "additionalProperties": false,
             "properties": {
               "modifier": {
-                "type": "integer"
+                "type": "integer",
+                "minimum": -10,
+                "maximum": 50,
+                "description": "Skill modifier including ability modifier, proficiency bonus, and any item/circumstance bonuses."
               },
               "proficiency": {
                 "type": "string",
@@ -344,7 +372,8 @@
                   "expert",
                   "master",
                   "legendary"
-                ]
+                ],
+                "description": "Proficiency rank in this skill."
               }
             }
           }
@@ -352,8 +381,15 @@
         "languages": {
           "type": "array",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Languages the creature can speak, understand, or read.",
+          "examples": [
+            ["Common", "Goblin"],
+            ["Draconic", "Common"],
+            []
+          ]
         },
         "attacks": {
           "type": "array",
@@ -393,24 +429,41 @@
               ]
             },
             "dc": {
-              "type": "integer"
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Spell DC for saving throws."
             },
             "attack_modifier": {
-              "type": "integer"
+              "type": "integer",
+              "minimum": -5,
+              "maximum": 40,
+              "description": "Spell attack modifier."
             },
             "spell_slots": {
               "type": "object",
+              "description": "Spell slots by level (keys are spell levels '0' through '10').",
               "additionalProperties": {
                 "type": "object",
+                "required": [
+                  "slots",
+                  "spells"
+                ],
+                "additionalProperties": false,
                 "properties": {
                   "slots": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10,
+                    "description": "Number of spell slots at this level."
                   },
                   "spells": {
                     "type": "array",
                     "items": {
-                      "type": "string"
-                    }
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "description": "List of spell names available at this level."
                   }
                 }
               }
@@ -427,6 +480,7 @@
         "personality_traits",
         "goals"
       ],
+      "additionalProperties": false,
       "properties": {
         "disposition": {
           "type": "string",
@@ -475,29 +529,40 @@
         "fears": {
           "type": "array",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Things this creature fears or avoids."
         },
         "desires": {
           "type": "array",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Things this creature wants or seeks."
         },
         "speech_patterns": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "dialect": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1,
+              "description": "Regional or cultural dialect (e.g., 'Broken Common', 'Courtly Elvish')."
             },
             "catchphrases": {
               "type": "array",
               "items": {
-                "type": "string"
-              }
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Phrases this creature commonly uses."
             },
             "verbal_tics": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1,
+              "description": "Speech quirks or mannerisms (e.g., 'hisses s-sounds', 'ends sentences with \"yes?\"')."
             },
             "formality": {
               "type": "string",
@@ -507,12 +572,14 @@
                 "formal",
                 "archaic",
                 "alien"
-              ]
+              ],
+              "description": "Overall tone and formality level of speech."
             }
           }
         },
         "combat_personality": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "aggression": {
               "type": "string",
@@ -522,7 +589,8 @@
                 "cautious",
                 "aggressive",
                 "berserk"
-              ]
+              ],
+              "description": "How willing the creature is to initiate or escalate combat."
             },
             "tactics": {
               "type": "string",
@@ -533,7 +601,8 @@
                 "tactical",
                 "strategic",
                 "genius"
-              ]
+              ],
+              "description": "Level of strategic thinking in combat."
             },
             "morale": {
               "type": "string",
@@ -543,18 +612,22 @@
                 "steady",
                 "brave",
                 "fanatical"
-              ]
+              ],
+              "description": "Willingness to continue fighting when things go badly."
             },
             "flee_threshold_hp_percent": {
               "type": "number",
               "minimum": 0,
-              "maximum": 100
+              "maximum": 100,
+              "description": "HP percentage below which creature attempts to flee (0-100)."
             },
             "preferred_targets": {
               "type": "array",
               "items": {
-                "type": "string"
-              }
+                "type": "string",
+                "minLength": 1
+              },
+              "description": "Types of enemies this creature prefers to attack (e.g., 'spellcaster', 'weakest', 'leader')."
             },
             "preferred_range": {
               "type": "string",
@@ -563,7 +636,8 @@
                 "ranged",
                 "mixed",
                 "flee"
-              ]
+              ],
+              "description": "Combat range preference."
             }
           }
         },
@@ -606,19 +680,29 @@
         },
         "relationships": {
           "type": "object",
-          "description": "Relationships with other creatures in the dungeon.",
+          "description": "Relationships with other creatures in the dungeon. Keys are creature IDs.",
           "additionalProperties": {
             "type": "object",
+            "required": [
+              "creature_id",
+              "sentiment"
+            ],
+            "additionalProperties": false,
             "properties": {
               "creature_id": {
                 "type": "string",
-                "format": "uuid"
+                "format": "uuid",
+                "description": "UUID of the related creature."
               },
               "name": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1,
+                "description": "Name of the related creature (for convenience)."
               },
               "relationship": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1,
+                "description": "Description of the relationship (e.g., 'brother', 'sworn enemy', 'former master')."
               },
               "sentiment": {
                 "type": "string",
@@ -628,13 +712,10 @@
                   "neutral",
                   "ally",
                   "devoted"
-                ]
+                ],
+                "description": "Overall sentiment toward this creature."
               }
-            },
-            "required": [
-              "creature_id",
-              "sentiment"
-            ]
+            }
           }
         }
       }
@@ -646,6 +727,7 @@
         "spawn_type",
         "is_alive"
       ],
+      "additionalProperties": false,
       "properties": {
         "spawn_type": {
           "type": "string",
@@ -674,13 +756,17 @@
           "type": [
             "string",
             "null"
-          ]
+          ],
+          "format": "uuid",
+          "description": "UUID of the party that killed this creature, or null if not killed or killed by environment."
         },
         "respawn_cooldown_hours": {
           "type": [
             "number",
             "null"
-          ]
+          ],
+          "minimum": 0,
+          "description": "Hours before creature respawns (for respawning spawn_type), or null if not applicable."
         },
         "next_respawn_at": {
           "type": [
@@ -691,39 +777,50 @@
         },
         "home_room_id": {
           "type": "string",
-          "description": "Room this creature considers home."
+          "description": "Room this creature considers home. May be empty if not yet assigned."
         },
         "current_room_id": {
           "type": "string",
-          "description": "Room the creature is currently in."
+          "description": "Room the creature is currently in. May be empty if not yet placed."
         },
         "patrol_route": {
           "type": "array",
           "description": "For wandering creatures: ordered list of room IDs they visit.",
           "items": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           }
         },
         "wander_radius_rooms": {
           "type": "integer",
-          "description": "Maximum rooms from home this creature will wander."
+          "minimum": 0,
+          "maximum": 50,
+          "description": "Maximum rooms from home this creature will wander (0 = stays in home room)."
         }
       }
     },
     "loot_table": {
       "type": "object",
       "description": "What this creature drops on death.",
+      "additionalProperties": false,
       "properties": {
         "guaranteed": {
           "type": "array",
+          "description": "Items that always drop when creature is defeated.",
           "items": {
             "$ref": "#/definitions/loot_entry"
           }
         },
         "random": {
           "type": "array",
+          "description": "Items that may drop based on drop_chance.",
           "items": {
             "type": "object",
+            "required": [
+              "item",
+              "drop_chance"
+            ],
+            "additionalProperties": false,
             "properties": {
               "item": {
                 "$ref": "#/definitions/loot_entry"
@@ -731,7 +828,8 @@
               "drop_chance": {
                 "type": "number",
                 "minimum": 0,
-                "maximum": 1
+                "maximum": 1,
+                "description": "Probability of this item dropping (0.0 to 1.0)."
               }
             }
           }
@@ -785,8 +883,17 @@
       "type": "string",
       "format": "date-time",
       "description": "Last modification timestamp."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional flavor text describing the creature."
+    },
+    "source": {
+      "type": "string",
+      "description": "Source book or origin (e.g., 'Pathfinder Bestiary 1', 'AI-generated')."
     }
   },
+  "additionalProperties": false,
   "definitions": {
     "ability_score": {
       "type": "object",
