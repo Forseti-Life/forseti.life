@@ -12,6 +12,8 @@ This directory contains JSON Schema definitions for all data structures used in 
 - [Schema Standards](#schema-standards)
 - [Usage](#usage)
 - [Maintenance](#maintenance)
+- [Testing](#testing)
+- [Troubleshooting](#troubleshooting)
 - [References](#references)
 - [Contributing](#contributing)
 
@@ -28,21 +30,21 @@ JSON Schemas serve multiple purposes:
 
 | Schema File | Purpose | Versioned | Lines | Primary Use |
 |-------------|---------|-----------|-------|-------------|
-| `character.schema.json` | Complete PF2e character | ✓ | 540 | `dc_characters.character_data` |
-| `character_options_step[1-8].json` | Character creation wizard | ✗ | 232-475 | Character creation UI |
-| `campaign.schema.json` | Campaign state & progress | ✓ | 71 | `dc_campaigns.campaign_data` |
-| `creature.schema.json` | Monsters, NPCs, beasts | ✓ | 994 | Entity spawning |
-| `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 299 | Level generation |
-| `encounter.schema.json` | Combat & initiative | ✓ | 355 | Combat engine |
+| `character.schema.json` | Complete PF2e character | ✓ | 564 | `dc_characters.character_data` |
+| `character_options_step[1-8].json` | Character creation wizard | ✗ | 298-501 | Character creation UI |
+| `campaign.schema.json` | Campaign state & progress | ✓ | 137 | `dc_campaigns.campaign_data` |
+| `creature.schema.json` | Monsters, NPCs, beasts | ✓ | 1101 | Entity spawning |
+| `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 298 | Level generation |
+| `encounter.schema.json` | Combat & initiative | ✓ | 568 | Combat engine |
 | `entity_instance.schema.json` | Placed entities (runtime) | ✓ | 289 | Runtime entity management |
-| `hazard.schema.json` | Environmental hazards | ✓ | 249 | PF2e hazards |
+| `hazard.schema.json` | Environmental hazards | ✓ | 467 | PF2e hazards |
 | `hexmap.schema.json` | Hex-based dungeon map | ✓ | 247 | Map structure |
-| `item.schema.json` | Equipment & loot | ✓ | 439 | Inventory system |
-| `obstacle.schema.json` | Map obstacles | ✗ | 78 | Traversal blockers |
-| `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✗ | 87 | Obstacle templates |
-| `party.schema.json` | Adventuring party | ✗ | 220 | Party management |
-| `room.schema.json` | Individual dungeon rooms | ✗ | 372 | Room generation |
-| `trap.schema.json` | Mechanical & magical traps | ✗ | 77 | Trap mechanics |
+| `item.schema.json` | Equipment & loot | ✓ | 441 | Inventory system |
+| `obstacle.schema.json` | Map obstacles | ✗ | 194 | Traversal blockers |
+| `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✗ | 221 | Obstacle templates |
+| `party.schema.json` | Adventuring party | ✓ | 366 | Party management |
+| `room.schema.json` | Individual dungeon rooms | ✗ | 471 | Room generation |
+| `trap.schema.json` | Mechanical & magical traps | ✓ | 330 | Trap mechanics |
 
 ## Schema Categories
 
@@ -393,18 +395,28 @@ if ($validationResult['valid']) {
 
 ```php
 use JsonSchema\Validator;
+use JsonSchema\Constraints\Constraint;
 
+// Load schema and data
 $validator = new Validator();
 $data = json_decode($character->character_data);
-$schema = json_decode(file_get_contents(__DIR__ . '/schemas/character.schema.json'));
+$schemaPath = __DIR__ . '/schemas/character.schema.json';
+$schema = json_decode(file_get_contents($schemaPath));
 
-$validator->validate($data, $schema);
+// Validate with coercion for type flexibility
+$validator->validate($data, $schema, Constraint::CHECK_MODE_COERCE_TYPES);
+
 if ($validator->isValid()) {
   // Data is valid
+  \Drupal::logger('dungeoncrawler_content')->info('Character data validated successfully');
 } else {
   // Handle validation errors
   foreach ($validator->getErrors() as $error) {
     // Process error: $error['property'], $error['message']
+    \Drupal::logger('dungeoncrawler_content')->error(
+      'Validation error in @property: @message',
+      ['@property' => $error['property'], '@message' => $error['message']]
+    );
   }
 }
 ```
@@ -412,32 +424,55 @@ if ($validator->isValid()) {
 ### Validation in JavaScript
 ```javascript
 import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
 import characterSchema from './schemas/character.schema.json';
 
-const ajv = new Ajv();
+// Initialize Ajv with format support
+const ajv = new Ajv({ allErrors: true });
+addFormats(ajv);
+
 const validate = ajv.compile(characterSchema);
 
 if (validate(characterData)) {
   // Data is valid
+  console.log('Character data is valid');
 } else {
-  console.error(validate.errors);
+  // Log validation errors with details
+  console.error('Validation failed:', validate.errors);
+  validate.errors.forEach(error => {
+    console.error(`  ${error.instancePath}: ${error.message}`);
+  });
 }
 ```
 
 ### VS Code Integration
-Add to `settings.json`:
+Add to `.vscode/settings.json` in your workspace:
 ```json
 {
   "json.schemas": [
     {
       "fileMatch": ["**/character_data/*.json"],
-      "url": "./config/schemas/character.schema.json"
+      "url": "./sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/config/schemas/character.schema.json"
+    },
+    {
+      "fileMatch": ["**/campaign_data/*.json"],
+      "url": "./sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/config/schemas/campaign.schema.json"
+    },
+    {
+      "fileMatch": ["**/creatures/*.json"],
+      "url": "./sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/config/schemas/creature.schema.json"
     }
   ]
 }
 ```
 
+This enables IDE autocomplete, validation, and inline documentation for JSON data files.
+
 ## Maintenance
+
+### Directory Cleanup Note
+
+This directory may contain historical completion/summary markdown files (e.g., `DCC-XXXX_COMPLETION.md`, `REVIEW_SUMMARY_DCC-XXXX.md`). These are legacy work-tracking documents and should be moved to a dedicated documentation archive or removed according to the repository's [Work Tracking and Status Policy](.github/instructions/instructions.md). Schema documentation should focus on the JSON schema files themselves.
 
 ### Schema Versioning Status
 
@@ -457,24 +492,27 @@ Schemas with `schema_version` field (migration-ready):
 - ✓ `trap.schema.json`
 
 Schemas pending versioning:
-- `character_options_step[1-5,7].json` (UI-only schemas)
-- `obstacle.schema.json`
-- `obstacle_object_catalog.schema.json`
-- `room.schema.json`
+- `character_options_step[1-5,7].json` (UI-only schemas - lower priority)
+- `obstacle.schema.json` (needs versioning for production use)
+- `obstacle_object_catalog.schema.json` (needs versioning for production use)
+- `room.schema.json` (needs versioning for production use)
 
 ### Adding New Properties
 1. Update the appropriate schema file
 2. Add description and validation rules
 3. Include default value if applicable
-4. Update this README if adding new schema category
-5. Test with sample data
+4. Test with sample data
+5. Update this README if adding new schema category
+6. Update the Quick Reference table with accurate line counts
 
 ### Breaking Changes
 When making breaking changes:
-1. Version the schema (add `version` property)
-2. Document migration path
-3. Support both old and new formats during transition
-4. Update all references in code
+1. Increment the schema version (following semantic versioning)
+2. Document migration path in schema and README
+3. Update SchemaLoader service if needed
+4. Support both old and new formats during transition period
+5. Update all references in code
+6. Test with existing data to ensure backward compatibility
 
 ### Schema Versioning
 Consider versioning schemas when:
