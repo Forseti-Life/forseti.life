@@ -8,6 +8,7 @@
     "heritageOption": {
       "type": "object",
       "required": ["id", "name", "benefit"],
+      "additionalProperties": false,
       "properties": {
         "id": {
           "type": "string",
