@@ -25,26 +25,28 @@
       "type": "array",
       "description": "Chronologically ordered campaign progress markers/events. Each entry records significant campaign milestones such as quest starts, location discoveries, or combat outcomes.",
       "items": {
-        "type": "object",
-        "required": ["type", "timestamp"],
-        "properties": {
-          "type": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Progress event type identifier. Common values include: 'quest_started', 'quest_completed', 'location_discovered', 'combat_won', 'combat_fled', 'item_acquired', 'level_up', 'character_death', 'milestone_reached'."
+        "$ref": "#/definitions/progress_event"
+      },
+      "examples": [
+        [
+          {
+            "type": "quest_started",
+            "timestamp": 1708200000,
+            "payload": {
+              "quest_id": "dragon_hunt",
+              "quest_name": "Slay the Dragon"
+            }
           },
-          "timestamp": {
-            "type": "integer",
-            "minimum": 0,
-            "description": "Unix timestamp (seconds since epoch) when this event was recorded."
-          },
-          "payload": {
-            "type": ["object", "array", "string", "number", "boolean", "null"],
-            "description": "Optional event-specific details. Structure varies by event type. For 'quest_started': may include quest_id. For 'location_discovered': may include location_id. For 'combat_won': may include encounter_id."
+          {
+            "type": "location_discovered",
+            "timestamp": 1708200300,
+            "payload": {
+              "location_id": "dark_cave",
+              "hex": "q2r-1"
+            }
           }
-        },
-        "additionalProperties": true
-      }
+        ]
+      ]
     },
     "active_hex": {
       "type": "string",
@@ -67,5 +69,69 @@
       "additionalProperties": true
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false,
+  "definitions": {
+    "progress_event": {
+      "type": "object",
+      "description": "A single campaign progress event recording a significant milestone or action.",
+      "required": ["type", "timestamp"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "enum": [
+            "quest_started",
+            "quest_completed",
+            "location_discovered",
+            "combat_won",
+            "combat_fled",
+            "item_acquired",
+            "level_up",
+            "character_death",
+            "milestone_reached",
+            "dungeon_entered",
+            "dungeon_exited",
+            "party_formed",
+            "party_disbanded",
+            "npc_encountered",
+            "treasure_found",
+            "trap_triggered",
+            "puzzle_solved",
+            "boss_defeated"
+          ],
+          "description": "Progress event type identifier. Standardized event types for consistent tracking."
+        },
+        "timestamp": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Unix timestamp (seconds since epoch) when this event was recorded."
+        },
+        "payload": {
+          "type": ["object", "null"],
+          "description": "Optional event-specific details. Structure varies by event type. Examples: {quest_id: 'abc', quest_name: 'Dragon Hunt'}, {location_id: 'xyz', hex: 'q2r-1'}, {encounter_id: '123', xp_awarded: 500}",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "type": "quest_started",
+          "timestamp": 1708200000,
+          "payload": {
+            "quest_id": "dragon_hunt",
+            "quest_name": "Slay the Dragon"
+          }
+        },
+        {
+          "type": "combat_won",
+          "timestamp": 1708200500,
+          "payload": {
+            "encounter_id": "goblin_ambush_1",
+            "xp_awarded": 120,
+            "enemies_defeated": 4
+          }
+        }
+      ]
+    }
+  }
 }
