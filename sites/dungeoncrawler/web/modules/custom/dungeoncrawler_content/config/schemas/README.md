@@ -128,6 +128,24 @@ Reusable obstacle object definitions (label, movable, stackable, movement flags)
 #### `party.schema.json`
 Adventuring party with shared resources and exploration state.
 
+**Recent Improvements (v1.0.0):**
+- Added `schema_version` for migration compatibility
+- Renamed `last_active` → `updated_at` for timestamp consistency
+- Added `definitions` section with reusable components: `hex_position`, `condition`, `currency`
+- Enhanced validation constraints throughout (minLength, maxLength, minimum values)
+- Added `additionalProperties: false` for stricter validation
+- Improved documentation with comprehensive descriptions
+- Validates successfully with test data
+
+**Defines:**
+- Party metadata (name, owner, timestamps)
+- Party members with PF2e conditions, spell slots, hero points, exploration activities
+- Shared inventory and currency (cp, sp, gp, pp)
+- Exploration state (mode, lighting, movement speed, rest tracking)
+- Fog of war tracking (revealed hexes/rooms/connections, player notes)
+- Encounter history log
+- Cumulative dungeon statistics
+
 #### `room.schema.json`
 Individual dungeon rooms with contents and connections.
 
