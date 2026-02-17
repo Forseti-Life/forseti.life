@@ -6,8 +6,39 @@
 (function ($, Drupal, once) {
   'use strict';
 
+  // Configuration constants
+  const CONFIG = {
+    startingGold: 15,
+    goldPrecision: 2, // Precision for internal calculations
+    goldDisplayDecimals: 1, // Number of decimal places shown in UI
+    errorDisplayDuration: 2000,
+    selectors: {
+      form: '#step-7-form',
+      weaponsList: '#weapons-list',
+      armorList: '#armor-list',
+      gearList: '#gear-list',
+      selectedItems: '#selected-items',
+      goldRemaining: '#gold-remaining',
+      errorMessage: '#error-message',
+      selectedEquipmentData: '#selected-equipment-data',
+      remainingGold: '#remaining-gold',
+      addButton: '.btn-add-item',
+      removeButton: '.btn-remove-item'
+    },
+    messages: {
+      insufficientGold: 'Not enough gold!',
+      emptyEquipment: 'No equipment selected',
+      saveFailed: 'Failed to save. Please try again.'
+    },
+    classes: {
+      equipmentItem: 'equipment-item',
+      selectedItem: 'selected-item',
+      hidden: 'hidden'
+    }
+  };
+
   // Starting Equipment Database (Simplified PF2E)
-  const equipment = {
+  const EQUIPMENT = {
     weapons: [
       { id: 'longsword', name: 'Longsword', cost: 1, damage: '1d8' },
       { id: 'shortsword', name: 'Shortsword', cost: 0.9, damage: '1d6' },
@@ -44,141 +75,201 @@
     ]
   };
 
+  /**
+   * Creates an equipment item HTML element.
+   *
+   * @param {Object} item - Equipment item data.
+   * @param {string} category - Category of equipment (weapon, armor, gear).
+   * @param {string} details - Additional details HTML (e.g., damage, AC).
+   * @return {jQuery} jQuery element for the equipment item.
+   */
+  function createEquipmentElement(item, category, details) {
+    const itemEl = $('<div>')
+      .addClass(CONFIG.classes.equipmentItem)
+      .attr('data-id', item.id)
+      .attr('data-cost', item.cost)
+      .attr('data-category', category);
+
+    let html = '<div class="item-name">' + item.name + '</div>';
+    if (details) {
+      html += '<div class="item-details">' + details + '</div>';
+    }
+    html += '<div class="item-cost">' + item.cost + ' gp</div>';
+    html += '<button type="button" class="btn-add-item">Add</button>';
+
+    return itemEl.html(html);
+  }
+
+  /**
+   * Populates an equipment list container with items.
+   *
+   * @param {jQuery} $container - Container element to populate.
+   * @param {Array} items - Array of equipment items.
+   * @param {string} category - Category of equipment.
+   * @param {Function} detailsFormatter - Function to format item details (optional).
+   */
+  function populateEquipmentList($container, items, category, detailsFormatter) {
+    if ($container.find('.' + CONFIG.classes.equipmentItem).length === 0) {
+      $container.empty();
+      items.forEach(function(item) {
+        const details = detailsFormatter ? detailsFormatter(item) : null;
+        const itemEl = createEquipmentElement(item, category, details);
+        $container.append(itemEl);
+      });
+    }
+  }
+
+  /**
+   * Rounds a number to specified decimal places.
+   *
+   * @param {number} value - Value to round.
+   * @param {number} decimals - Number of decimal places.
+   * @return {number} Rounded value.
+   */
+  function roundToDecimals(value, decimals) {
+    const multiplier = Math.pow(10, decimals);
+    return Math.round(value * multiplier) / multiplier;
+  }
+
   Drupal.behaviors.characterStep7 = {
     attach: function (context, settings) {
-      once('step7-init', '#step-7-form', context).forEach((element) => {
+      once('step7-init', CONFIG.selectors.form, context).forEach((element) => {
         const $form = $(element);
-        let goldRemaining = 15;
+        let goldRemaining = CONFIG.startingGold;
         let selectedItems = [];
 
-        // Populate equipment lists
+        /**
+         * Populate all equipment lists.
+         */
         function populateEquipment() {
           // Weapons
-          const weaponsList = $('#weapons-list', context);
-          if (weaponsList.find('.equipment-item').length === 0) {
-            weaponsList.empty();
-            equipment.weapons.forEach(function(item) {
-              const itemEl = $('<div>')
-                .addClass('equipment-item')
-                .attr('data-id', item.id)
-                .attr('data-cost', item.cost)
-                .attr('data-category', 'weapon')
-                .html(
-                  '<div class="item-name">' + item.name + '</div>' +
-                  '<div class="item-details">' + item.damage + ' damage</div>' +
-                  '<div class="item-cost">' + item.cost + ' gp</div>' +
-                  '<button type="button" class="btn-add-item">Add</button>'
-                );
-              weaponsList.append(itemEl);
-            });
-          }
+          const $weaponsList = $(CONFIG.selectors.weaponsList, context);
+          populateEquipmentList($weaponsList, EQUIPMENT.weapons, 'weapon', function(item) {
+            return item.damage + ' damage';
+          });
 
           // Armor
-          const armorList = $('#armor-list', context);
-          if (armorList.find('.equipment-item').length === 0) {
-            armorList.empty();
-            equipment.armor.forEach(function(item) {
-              const itemEl = $('<div>')
-                .addClass('equipment-item')
-                .attr('data-id', item.id)
-                .attr('data-cost', item.cost)
-                .attr('data-category', 'armor')
-                .html(
-                  '<div class="item-name">' + item.name + '</div>' +
-                  '<div class="item-details">' + item.ac + ' AC</div>' +
-                  '<div class="item-cost">' + item.cost + ' gp</div>' +
-                  '<button type="button" class="btn-add-item">Add</button>'
-                );
-              armorList.append(itemEl);
-            });
-          }
+          const $armorList = $(CONFIG.selectors.armorList, context);
+          populateEquipmentList($armorList, EQUIPMENT.armor, 'armor', function(item) {
+            return item.ac + ' AC';
+          });
 
           // Gear
-          const gearList = $('#gear-list', context);
-          if (gearList.find('.equipment-item').length === 0) {
-            gearList.empty();
-            equipment.gear.forEach(function(item) {
-              const itemEl = $('<div>')
-                .addClass('equipment-item')
-                .attr('data-id', item.id)
-                .attr('data-cost', item.cost)
-                .attr('data-category', 'gear')
-                .html(
-                  '<div class="item-name">' + item.name + '</div>' +
-                  '<div class="item-cost">' + item.cost + ' gp</div>' +
-                  '<button type="button" class="btn-add-item">Add</button>'
-                );
-              gearList.append(itemEl);
-            });
-          }
+          const $gearList = $(CONFIG.selectors.gearList, context);
+          populateEquipmentList($gearList, EQUIPMENT.gear, 'gear');
         }
 
-        // Update selected items display
+        /**
+         * Updates the selected items display and form fields.
+         */
         function updateSelectedItems() {
-          const selectedContainer = $('#selected-items', context);
+          const $selectedContainer = $(CONFIG.selectors.selectedItems, context);
           
           if (selectedItems.length === 0) {
-            selectedContainer.html('<p class="empty-message">No equipment selected</p>');
+            $selectedContainer.html('<p class="empty-message">' + CONFIG.messages.emptyEquipment + '</p>');
           } else {
-            selectedContainer.empty();
+            $selectedContainer.empty();
             selectedItems.forEach(function(item, index) {
               const itemEl = $('<div>')
-                .addClass('selected-item')
+                .addClass(CONFIG.classes.selectedItem)
                 .html(
                   '<div class="item-name">' + item.name + '</div>' +
                   '<div class="item-cost">' + item.cost + ' gp</div>' +
                   '<button type="button" class="btn-remove-item" data-index="' + index + '">Remove</button>'
                 );
-              selectedContainer.append(itemEl);
+              $selectedContainer.append(itemEl);
             });
           }
 
-          // Update hidden field
-          $('#selected-equipment-data').val(JSON.stringify(selectedItems));
-          $('#remaining-gold').val(goldRemaining);
+          // Update hidden fields
+          $(CONFIG.selectors.selectedEquipmentData).val(JSON.stringify(selectedItems));
+          $(CONFIG.selectors.remainingGold).val(goldRemaining);
         }
 
-        // Add item to selection
-        function addItem(itemId, category) {
-          let item = null;
-          
-          // Find item in database
+        /**
+         * Shows an error message temporarily.
+         *
+         * @param {string} message - Error message to display.
+         */
+        function showError(message) {
+          const $errorElement = $(CONFIG.selectors.errorMessage);
+          $errorElement.text(message).removeClass(CONFIG.classes.hidden);
+          setTimeout(function() {
+            $errorElement.addClass(CONFIG.classes.hidden);
+          }, CONFIG.errorDisplayDuration);
+        }
+
+        /**
+         * Finds an equipment item by ID and category.
+         *
+         * @param {string} itemId - ID of the item.
+         * @param {string} category - Category (weapon, armor, gear).
+         * @return {Object|null} The found item or null.
+         */
+        function findEquipmentItem(itemId, category) {
           if (category === 'weapon') {
-            item = equipment.weapons.find(w => w.id === itemId);
+            return EQUIPMENT.weapons.find(w => w.id === itemId);
           } else if (category === 'armor') {
-            item = equipment.armor.find(a => a.id === itemId);
+            return EQUIPMENT.armor.find(a => a.id === itemId);
           } else if (category === 'gear') {
-            item = equipment.gear.find(g => g.id === itemId);
+            return EQUIPMENT.gear.find(g => g.id === itemId);
           }
+          return null;
+        }
 
-          if (!item) return;
+        /**
+         * Updates gold remaining display.
+         */
+        function updateGoldDisplay() {
+          $(CONFIG.selectors.goldRemaining).text(goldRemaining.toFixed(CONFIG.goldDisplayDecimals));
+        }
 
-          // Check if affordable
-          if (goldRemaining < item.cost) {
-            $('#error-message').text('Not enough gold!').removeClass('hidden');
-            setTimeout(function() {
-              $('#error-message').addClass('hidden');
-            }, 2000);
+        /**
+         * Adds an item to the selected items list.
+         *
+         * @param {string} itemId - ID of the item to add.
+         * @param {string} category - Category of the item.
+         */
+        function addItem(itemId, category) {
+          const item = findEquipmentItem(itemId, category);
+          
+          if (!item) {
+            console.warn('Item not found:', itemId, category);
             return;
           }
 
-          // Add item
+          // Check if affordable
+          if (goldRemaining < item.cost) {
+            showError(CONFIG.messages.insufficientGold);
+            return;
+          }
+
+          // Add item to selection
           selectedItems.push({ ...item, category: category });
-          goldRemaining = Math.round((goldRemaining - item.cost) * 100) / 100;
+          goldRemaining = roundToDecimals(goldRemaining - item.cost, CONFIG.goldPrecision);
           
           // Update UI
-          $('#gold-remaining').text(goldRemaining.toFixed(1));
+          updateGoldDisplay();
           updateSelectedItems();
         }
 
-        // Remove item from selection
+        /**
+         * Removes an item from the selected items list.
+         *
+         * @param {number} index - Index of the item to remove.
+         */
         function removeItem(index) {
+          if (index < 0 || index >= selectedItems.length) {
+            console.warn('Invalid item index:', index);
+            return;
+          }
+
           const item = selectedItems[index];
-          goldRemaining = Math.round((goldRemaining + item.cost) * 100) / 100;
+          goldRemaining = roundToDecimals(goldRemaining + item.cost, CONFIG.goldPrecision);
           selectedItems.splice(index, 1);
           
           // Update UI
-          $('#gold-remaining').text(goldRemaining.toFixed(1));
+          updateGoldDisplay();
           updateSelectedItems();
         }
 
@@ -187,9 +278,9 @@
         updateSelectedItems();
 
         // Handle add item clicks
-        once('add-item-click', '.btn-add-item', context).forEach((button) => {
+        once('add-item-click', CONFIG.selectors.addButton, context).forEach((button) => {
           $(button).on('click', function() {
-            const $item = $(this).closest('.equipment-item');
+            const $item = $(this).closest('.' + CONFIG.classes.equipmentItem);
             const itemId = $item.data('id');
             const category = $item.data('category');
             addItem(itemId, category);
@@ -197,10 +288,23 @@
         });
 
         // Handle remove item clicks (delegated)
-        $('#selected-items', context).on('click', '.btn-remove-item', function() {
+        $(CONFIG.selectors.selectedItems, context).on('click', CONFIG.selectors.removeButton, function() {
           const index = $(this).data('index');
           removeItem(index);
         });
+
+        /**
+         * Handles AJAX error responses.
+         *
+         * @param {Object} xhr - XMLHttpRequest object.
+         * @param {string} status - Status text.
+         * @param {string} error - Error message.
+         */
+        function handleAjaxError(xhr, status, error) {
+          const $errorElement = $(CONFIG.selectors.errorMessage);
+          $errorElement.text(CONFIG.messages.saveFailed).removeClass(CONFIG.classes.hidden);
+          console.error('Save error:', error);
+        }
 
         // Handle form submission with AJAX
         $form.on('submit', function(e) {
@@ -209,7 +313,7 @@
           // No validation - equipment is optional
           
           // Hide error message
-          $('#error-message').addClass('hidden');
+          $(CONFIG.selectors.errorMessage).addClass(CONFIG.classes.hidden);
 
           // Prepare form data
           const formData = $form.serialize();
@@ -225,13 +329,11 @@
               if (response.success) {
                 window.location.href = response.redirect;
               } else {
-                $('#error-message').text(response.message || 'Error saving step.').removeClass('hidden');
+                const message = response.message || 'Error saving step.';
+                $(CONFIG.selectors.errorMessage).text(message).removeClass(CONFIG.classes.hidden);
               }
             },
-            error: function(xhr, status, error) {
-              $('#error-message').text('Failed to save. Please try again.').removeClass('hidden');
-              console.error('Save error:', error);
-            }
+            error: handleAjaxError
           });
         });
       });
