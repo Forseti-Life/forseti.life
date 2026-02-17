@@ -119,6 +119,17 @@ Hexagonal dungeon map with fog of war and terrain.
 #### `item.schema.json`
 Equipment and magic items (loot/treasure is represented as items).
 
+**Recently improved (2026-02-17):**
+- Added schema versioning for migration compatibility
+- Enhanced validation with comprehensive numeric constraints (35+ min/max pairs)
+- Added timestamp tracking (created_at, updated_at)
+- Improved pattern validation for dice formulas and bulk values
+- Added additionalProperties constraints throughout for stricter validation
+- Added required fields to nested objects (weapon damage, shield stats, etc.)
+- Added uniqueItems constraints to prevent duplicate array entries
+- Comprehensive documentation with examples for complex structures
+
+
 #### `obstacle.schema.json`
 Unified traversal/combat obstacles (non-container blockers/modifiers).
 
