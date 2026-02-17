@@ -397,33 +397,16 @@ class OpenIssuesImportForm extends FormBase {
 
     $existingIssueNumber = $this->findExistingOpenIssueNumberForTracker($repo, $issueId, $token);
     if ($existingIssueNumber > 0) {
-      $removedCount = $this->removeOpenIssueRowsById($issuesFile, [$issueId]);
-      if ($removedCount > 0) {
-        $this->messenger()->addStatus($this->t('Skipped existing open issue: @title (GitHub #@number). Removed @count matching Open row(s) from Issues.md.', [
-          '@title' => $fullTitle,
-          '@number' => (string) $existingIssueNumber,
-          '@count' => (string) $removedCount,
-        ]));
-        $this->loggerChannelFactory->get('dungeoncrawler_tester')->notice(self::IMPORT_LOG_PREFIX . ' github existing-open hit repo=@repo issue_id=@issue_id title="@title" github_issue=@number local_removed=@removed', [
-          '@repo' => $repo,
-          '@issue_id' => $issueId,
-          '@title' => $fullTitle,
-          '@number' => (string) $existingIssueNumber,
-          '@removed' => (string) $removedCount,
-        ]);
-      }
-      else {
-        $this->messenger()->addWarning($this->t('Skipped existing open issue: @title (GitHub #@number), but did not remove matching Open row from Issues.md.', [
-          '@title' => $fullTitle,
-          '@number' => (string) $existingIssueNumber,
-        ]));
-        $this->loggerChannelFactory->get('dungeoncrawler_tester')->warning(self::IMPORT_LOG_PREFIX . ' github existing-open hit repo=@repo issue_id=@issue_id title="@title" github_issue=@number but local removal failed', [
-          '@repo' => $repo,
-          '@issue_id' => $issueId,
-          '@title' => $fullTitle,
-          '@number' => (string) $existingIssueNumber,
-        ]);
-      }
+      $this->messenger()->addStatus($this->t('Skipped existing open issue: @title (GitHub #@number). Local Issues.md row retained by policy.', [
+        '@title' => $fullTitle,
+        '@number' => (string) $existingIssueNumber,
+      ]));
+      $this->loggerChannelFactory->get('dungeoncrawler_tester')->notice(self::IMPORT_LOG_PREFIX . ' github existing-open hit repo=@repo issue_id=@issue_id title="@title" github_issue=@number local_tracker_unchanged=1', [
+        '@repo' => $repo,
+        '@issue_id' => $issueId,
+        '@title' => $fullTitle,
+        '@number' => (string) $existingIssueNumber,
+      ]);
       return ['handled' => 1, 'created' => 0, 'skipped' => 1, 'failed' => 0];
     }
 
@@ -446,12 +429,6 @@ class OpenIssuesImportForm extends FormBase {
     $issueNumber = (int) $payload['number'];
     $assigned = $this->assignCopilot($repo, $issueNumber, $token);
     $confirmedInGithub = $this->confirmGithubIssueExists($repo, $issueNumber, $fullTitle, $token);
-    $removedLocally = FALSE;
-    $removedCount = 0;
-    if ($confirmedInGithub) {
-      $removedCount = $this->removeOpenIssueRowsById($issuesFile, [$issueId]);
-      $removedLocally = $removedCount > 0;
-    }
 
     if ($assigned) {
       $this->messenger()->addStatus($this->t('Created #@number and assigned Copilot for @id.', [
@@ -478,45 +455,23 @@ class OpenIssuesImportForm extends FormBase {
     }
 
     if (!$confirmedInGithub) {
-      $this->messenger()->addWarning($this->t('Created #@number for @id, but could not confirm the issue from GitHub API; local row was not removed.', [
+      $this->messenger()->addWarning($this->t('Created #@number for @id, but could not confirm the issue from GitHub API.', [
         '@number' => (string) $issueNumber,
         '@id' => $issueId,
       ]));
-      $this->loggerChannelFactory->get('dungeoncrawler_tester')->warning(self::IMPORT_LOG_PREFIX . ' github create success but confirmation failed repo=@repo issue_id=@issue_id github_issue=@number; local row retained', [
+      $this->loggerChannelFactory->get('dungeoncrawler_tester')->warning(self::IMPORT_LOG_PREFIX . ' github create success but confirmation failed repo=@repo issue_id=@issue_id github_issue=@number', [
         '@repo' => $repo,
         '@issue_id' => $issueId,
         '@number' => (string) $issueNumber,
       ]);
     }
-    elseif ($removedLocally) {
-      $this->messenger()->addStatus($this->t('Removed @count Open row(s) for @id from Issues.md.', [
-        '@count' => (string) $removedCount,
-        '@id' => $issueId,
-      ]));
-      $this->loggerChannelFactory->get('dungeoncrawler_tester')->notice(self::IMPORT_LOG_PREFIX . ' local tracker row removed issue_id=@issue_id github_issue=@number removed=@count', [
-        '@issue_id' => $issueId,
-        '@number' => (string) $issueNumber,
-        '@count' => (string) $removedCount,
-      ]);
-    }
     else {
-      if (!is_writable($issuesFile)) {
-        $this->messenger()->addWarning($this->t('Created #@number for @id, but Issues.md is not writable by the web process at @file.', [
-          '@number' => (string) $issueNumber,
-          '@id' => $issueId,
-          '@file' => $issuesFile,
-        ]));
-        $this->loggerChannelFactory->get('dungeoncrawler_tester')->warning(self::IMPORT_LOG_PREFIX . ' local tracker removal blocked by file permissions issue_id=@issue_id github_issue=@number file=@file', [
-          '@issue_id' => $issueId,
-          '@number' => (string) $issueNumber,
-          '@file' => $issuesFile,
-        ]);
-      }
-      $this->messenger()->addWarning($this->t('Created #@number for @id, but did not remove matching Open row from Issues.md.', [
+      $this->messenger()->addStatus($this->t('Created #@number for @id. Local Issues.md row retained by policy.', [
         '@number' => (string) $issueNumber,
         '@id' => $issueId,
       ]));
-      $this->loggerChannelFactory->get('dungeoncrawler_tester')->warning(self::IMPORT_LOG_PREFIX . ' local tracker removal failed issue_id=@issue_id github_issue=@number', [
+      $this->loggerChannelFactory->get('dungeoncrawler_tester')->notice(self::IMPORT_LOG_PREFIX . ' github create confirmed repo=@repo issue_id=@issue_id github_issue=@number local_tracker_unchanged=1', [
+        '@repo' => $repo,
         '@issue_id' => $issueId,
         '@number' => (string) $issueNumber,
       ]);

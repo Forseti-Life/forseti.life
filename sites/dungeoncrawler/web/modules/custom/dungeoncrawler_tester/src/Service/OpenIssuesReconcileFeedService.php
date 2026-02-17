@@ -208,22 +208,10 @@ class OpenIssuesReconcileFeedService {
 
       while ($processed < $limit && !empty($pendingIds)) {
         $issueId = array_shift($pendingIds);
-        $removed = $this->localIssuesTracker->removeOpenIssueRowsByIds([$issueId]);
-
-        if ($removed > 0) {
-          $deletedCount += $removed;
-          $this->logger->notice(self::LOG_PREFIX . ' run=@run deleted tracker row @issue_id from Issues.md', [
-            '@run' => $runId,
-            '@issue_id' => $issueId,
-          ]);
-        }
-        else {
-          $failedCount++;
-          $this->logger->warning(self::LOG_PREFIX . ' run=@run could not delete tracker row @issue_id (not open or not writable).', [
-            '@run' => $runId,
-            '@issue_id' => $issueId,
-          ]);
-        }
+        $this->logger->notice(self::LOG_PREFIX . ' run=@run policy retains local tracker row @issue_id (no Issues.md mutation).', [
+          '@run' => $runId,
+          '@issue_id' => $issueId,
+        ]);
 
         $processed++;
       }
