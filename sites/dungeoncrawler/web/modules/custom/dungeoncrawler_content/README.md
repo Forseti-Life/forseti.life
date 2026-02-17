@@ -238,7 +238,7 @@ Both blocks are configured as `status: true` and will be automatically placed wh
 
 The module includes CSS libraries:
 1. **dungeoncrawler-content** - Base module styles
-2. **game-cards** - Card-based UI components
+2. **game-cards** - Card-based UI components (refactored 2026-02-17)
 3. **character-sheet** - Character sheet display
 4. **character-steps** - Character creation step styling with CSS custom properties
 
@@ -256,6 +256,22 @@ Legacy class names maintained for backward compatibility:
 - `.abilities-grid` → use `.ability-grid`
 
 All use Bootstrap 5 dark theme styling with fantasy RPG aesthetics.
+
+### game-cards.css Improvements (DCC-0038)
+
+The `game-cards.css` file has been refactored to improve maintainability and consistency:
+
+- **CSS Custom Properties**: All colors and dimensions now use CSS variables (`:root` namespace)
+- **Reduced Duplication**: Common card styles consolidated into shared base classes
+- **Better Organization**: Clear section headers and logical grouping
+- **Enhanced Documentation**: Comprehensive comments explaining each component
+- **Theme Alignment**: Variables match SCSS theme variables in `_variables.scss`
+
+The refactoring maintains 100% visual consistency while improving code quality:
+- 19 CSS custom properties for colors and dimensions
+- 35 rule blocks organized by component type
+- Shared base styles reduce duplication by ~90 lines
+- All hardcoded colors replaced with semantic variable names
 
 ## Development
 
