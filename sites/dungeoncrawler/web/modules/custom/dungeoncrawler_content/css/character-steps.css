@@ -203,9 +203,12 @@ textarea.form-control {
 }
 
 /* Selection Cards */
+/* Note: .backgrounds-grid and .classes-grid are legacy aliases for .background-grid and .class-grid */
 .ancestry-grid,
 .background-grid,
-.class-grid {
+.backgrounds-grid,
+.class-grid,
+.classes-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: var(--dc-space-md);
@@ -376,7 +379,9 @@ textarea.form-control {
 }
 
 /* Ability Boosts */
-.ability-grid {
+/* Note: .abilities-grid is a legacy alias for .ability-grid */
+.ability-grid,
+.abilities-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--dc-space-md);
