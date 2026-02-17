@@ -2,17 +2,40 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://dungeoncrawler.life/schemas/encounter.schema.json",
   "title": "Encounter Schema",
-  "description": "PF2e-compatible encounter and combat management. Handles initiative, rounds, XP budgets, and encounter difficulty. Supports both combat and social encounters.",
+  "description": "PF2e-compatible encounter and combat management. Handles initiative, rounds, XP budgets, and encounter difficulty. Supports both combat and social encounters. Note: Runtime data is stored in relational tables (combat_encounters, combat_participants, combat_conditions) while this schema serves as documentation and validation specification.",
   "type": "object",
-  "required": ["encounter_id", "encounter_type", "room_id", "status", "threat_level"],
+  "required": ["encounter_id", "encounter_type", "room_id", "status", "threat_level", "schema_version"],
   "properties": {
-    "encounter_id": { "type": "string", "format": "uuid" },
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version for migration compatibility.",
+      "default": "1.0.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "encounter_id": { 
+      "type": "string", 
+      "format": "uuid",
+      "description": "Unique encounter identifier. Schema uses UUID format; database implementation may use integer IDs."
+    },
     "encounter_type": {
       "type": "string",
       "enum": ["combat", "social", "exploration", "puzzle", "skill_challenge", "mixed"]
     },
-    "room_id": { "type": "string", "format": "uuid" },
-    "party_id": { "type": "string", "format": "uuid" },
+    "room_id": { 
+      "type": "string", 
+      "format": "uuid",
+      "description": "Reference to the room where this encounter takes place."
+    },
+    "party_id": { 
+      "type": ["string", "null"], 
+      "format": "uuid",
+      "description": "Reference to the adventuring party. Optional; some implementations use campaign_id instead. At least one of party_id or campaign_id should be provided."
+    },
+    "campaign_id": { 
+      "type": ["string", "null"], 
+      "format": "uuid",
+      "description": "Reference to the campaign. Alternative to party_id in some implementations. At least one of party_id or campaign_id should be provided."
+    },
     "status": {
       "type": "string",
       "enum": ["pending", "active", "paused", "victory", "defeat", "fled", "negotiated"],
@@ -72,23 +95,12 @@
           "max_hp": { "type": "integer" },
           "ac": { "type": "integer" },
           "position": {
-            "type": "object",
-            "properties": {
-              "q": { "type": "integer" },
-              "r": { "type": "integer" }
-            }
+            "$ref": "#/definitions/hex_position"
           },
           "conditions": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "name": { "type": "string" },
-                "value": { "type": ["integer", "null"] },
-                "source": { "type": "string" },
-                "duration_rounds": { "type": ["integer", "null"] },
-                "started_round": { "type": "integer" }
-              }
+              "$ref": "#/definitions/condition"
             }
           },
           "actions_remaining": { "type": "integer", "default": 3 },
@@ -144,30 +156,22 @@
           },
           "target_id": { "type": ["string", "null"], "format": "uuid" },
           "target_hex": {
-            "type": ["object", "null"],
-            "properties": { "q": { "type": "integer" }, "r": { "type": "integer" } }
+            "oneOf": [
+              { "$ref": "#/definitions/hex_position" },
+              { "type": "null" }
+            ]
           },
           "roll": {
-            "type": ["object", "null"],
-            "properties": {
-              "d20": { "type": "integer" },
-              "modifier": { "type": "integer" },
-              "total": { "type": "integer" },
-              "dc": { "type": "integer" },
-              "degree_of_success": {
-                "type": "string",
-                "enum": ["critical_success", "success", "failure", "critical_failure"]
-              }
-            }
+            "oneOf": [
+              { "$ref": "#/definitions/roll_result" },
+              { "type": "null" }
+            ]
           },
           "damage": {
-            "type": ["object", "null"],
-            "properties": {
-              "rolls": { "type": "string", "description": "e.g., '2d6+4'" },
-              "total": { "type": "integer" },
-              "damage_type": { "type": "string" },
-              "applied": { "type": "integer", "description": "After resistances/weaknesses." }
-            }
+            "oneOf": [
+              { "$ref": "#/definitions/damage_result" },
+              { "type": "null" }
+            ]
           },
           "description": { "type": "string" },
           "timestamp": { "type": "string", "format": "date-time" }
@@ -180,8 +184,7 @@
         "type": "object",
         "properties": {
           "hex": {
-            "type": "object",
-            "properties": { "q": { "type": "integer" }, "r": { "type": "integer" } }
+            "$ref": "#/definitions/hex_position"
           },
           "effect": {
             "type": "string",
@@ -241,6 +244,112 @@
           }
         }
       }
+    }
+  },
+  "definitions": {
+    "hex_position": {
+      "type": "object",
+      "required": ["q", "r"],
+      "properties": {
+        "q": { 
+          "type": "integer",
+          "description": "Axial q-coordinate in hexagonal grid system."
+        },
+        "r": { 
+          "type": "integer",
+          "description": "Axial r-coordinate in hexagonal grid system."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Hexagonal grid position using axial coordinates (q, r). Database implementations may use alternative coordinate systems."
+    },
+    "condition": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { 
+          "type": "string",
+          "minLength": 1,
+          "description": "PF2e condition name (e.g., 'Blinded', 'Frightened', 'Dying')."
+        },
+        "value": { 
+          "type": ["integer", "null"],
+          "description": "Numeric value for conditions with levels (e.g., Frightened 2, Dying 3)."
+        },
+        "source": { 
+          "type": "string",
+          "description": "What caused this condition (spell name, ability, etc.)."
+        },
+        "duration_rounds": { 
+          "type": ["integer", "null"],
+          "description": "Duration in combat rounds. Null for permanent conditions."
+        },
+        "started_round": { 
+          "type": "integer",
+          "description": "Combat round when condition was applied."
+        }
+      },
+      "additionalProperties": false
+    },
+    "roll_result": {
+      "type": "object",
+      "required": ["d20", "modifier", "total"],
+      "properties": {
+        "d20": { 
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Natural d20 roll result."
+        },
+        "modifier": { 
+          "type": "integer",
+          "description": "Total modifier applied to the roll."
+        },
+        "total": { 
+          "type": "integer",
+          "description": "Final result (d20 + modifier)."
+        },
+        "dc": { 
+          "type": "integer",
+          "minimum": 1,
+          "description": "Difficulty Class the roll is against."
+        },
+        "degree_of_success": {
+          "type": "string",
+          "enum": ["critical_success", "success", "failure", "critical_failure"],
+          "description": "PF2e degree of success: critical success (≥10 over DC or nat 20), success (≥DC), failure (<DC), critical failure (≥10 under DC or nat 1)."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Result of a d20 roll with PF2e degree of success calculation."
+    },
+    "damage_result": {
+      "type": "object",
+      "required": ["total"],
+      "properties": {
+        "rolls": { 
+          "type": "string",
+          "description": "Damage dice formula (e.g., '2d6+4', '1d8+2d6+3').",
+          "examples": ["2d6+4", "1d8+2d6+3", "3d10+6"]
+        },
+        "total": { 
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total damage rolled before resistances/weaknesses."
+        },
+        "damage_type": { 
+          "type": "string",
+          "description": "Type of damage (slashing, fire, cold, etc.).",
+          "examples": ["slashing", "piercing", "bludgeoning", "fire", "cold", "electricity", "acid", "poison"]
+        },
+        "applied": { 
+          "type": "integer",
+          "minimum": 0,
+          "description": "Actual damage applied after resistances and weaknesses."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Damage roll result with type and resistances/weaknesses applied."
     }
   }
 }
