@@ -1,29 +1,32 @@
 {
-  "content_id": "arrow_trap_simple",
+  "trap_id": "61d7eb57-29cf-4483-aa4b-46e681f46827",
   "name": "Simple Arrow Trap",
-  "type": "trap",
   "level": 1,
-  "rarity": "common",
-  "tags": ["mechanical", "trap"],
+  "type": "mechanical",
+  "complexity": "simple",
   "stealth_dc": 15,
-  "disable_dc": 15,
-  "disable_skills": ["Thievery"],
-  "trigger": {
-    "type": "pressure_plate",
-    "description": "A creature steps on the pressure plate."
+  "disable": {
+    "thievery_dc": 15
   },
+  "trigger": "A creature steps on the pressure plate.",
   "effect": {
-    "type": "attack",
     "attack_bonus": 8,
-    "target": "triggering creature",
-    "damage": "1d8+2 piercing",
-    "save": null
+    "damage": "1d8+2",
+    "damage_type": "piercing",
+    "area": {
+      "type": "single_hex"
+    },
+    "description": "Fires a concealed arrow at the triggering creature"
   },
   "reset": {
-    "type": "manual",
-    "time": "10 minutes"
+    "automatic": false,
+    "reset_time_minutes": 10
   },
-  "description": "A hidden pressure plate triggers a concealed arrow to fire.",
-  "source": "Core Rulebook",
-  "version": "1.0"
+  "hardness": 5,
+  "hp": 20,
+  "broken_threshold": 10,
+  "is_detected": false,
+  "is_disabled": false,
+  "is_triggered": false,
+  "xp_reward": 10
 }

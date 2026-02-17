@@ -1,14 +1,41 @@
 /**
  * @file
  * Base styles for Dungeon Crawler Content module.
+ *
+ * This file provides core styling for module-wide UI elements that don't
+ * belong in specific component libraries (game-cards, character-sheet, etc.).
+ *
+ * Current coverage:
+ * - Game content dashboard (admin table display)
+ *
+ * See also:
+ * - game-cards.css: Dungeon cards, class cards, item cards
+ * - character-sheet.css: Character display and forms
+ * - hexmap.css: Hex grid and game map styles
  */
 
-/* Game content dashboard */
+/* ========================================
+   Game Content Dashboard
+   ======================================== */
+
+/**
+ * Dashboard table used in /admin/content/dungeoncrawler
+ * Displays content type statistics with dark dungeon theme.
+ */
 .game-content-dashboard {
   margin-top: 1rem;
+  background: #2d2d3d;
+  color: #e2e8f0;
 }
 
-.game-content-dashboard th,
+.game-content-dashboard th {
+  padding: 0.75rem;
+  background: #0f0f1a;
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
 .game-content-dashboard td {
   padding: 0.75rem;
+  border-color: rgba(245, 158, 11, 0.1);
 }

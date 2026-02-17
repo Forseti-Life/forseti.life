@@ -227,7 +227,7 @@ class JobApplicationController extends ControllerBase {
     
     // URLs
     $user_edit_url = Url::fromRoute('job_hunter.user_profile_edit');
-    $job_paste_url = Url::fromRoute('job_hunter.job_paste');
+    $job_discovery_url = Url::fromRoute('job_hunter.job_discovery');
     
     // Welcome message
     $build['welcome'] = [
@@ -251,15 +251,61 @@ class JobApplicationController extends ControllerBase {
                    <p class="flow-description">Streamlined process from profile setup to application tracking.</p>',
     ];
     
-    // Step 1: Application Submission
+    // Step 1: Complete Profile
     $build['step1'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['phase-section', 'phase-profile']],
+      'content' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['phase-content']],
+        '#value' => '<div class="step-indicator">Step 1</div>
+                     <div class="phase-info">
+                       <h3>Complete Profile</h3>
+                       <p>Finish your job seeker profile so discovery and tailoring are more accurate.</p>
+                     </div>
+                     <div class="phase-stat">
+                       <div class="stat-number">' . (int) $profile_completion . '%</div>
+                       <div class="stat-label">Profile</div>
+                     </div>
+                     <div class="phase-actions">
+                       <a href="' . $user_edit_url->toString() . '" class="phase-button">My Profile</a>
+                     </div>',
+      ],
+    ];
+    
+    // Step 2: Job Discovery
+    $build['step2'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['phase-section', 'phase-discovery']],
+      'content' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['phase-content']],
+        '#value' => '<div class="step-indicator">Step 2</div>
+                     <div class="phase-info">
+                       <h3>Job Discovery</h3>
+                       <p>Search and save jobs that match your profile and preferences.</p>
+                     </div>
+                     <div class="phase-stat">
+                       <div class="stat-number">' . (int) $saved_jobs . '</div>
+                       <div class="stat-label">Saved Jobs</div>
+                     </div>
+                     <div class="phase-actions">
+                       <a href="' . $job_discovery_url->toString() . '" class="phase-button">Job Discovery</a>
+                     </div>',
+      ],
+    ];
+    
+    // Step 3: Application Submission
+    $build['step3'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-submission', 'disabled']],
       'content' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
         '#attributes' => ['class' => ['phase-content']],
-        '#value' => '<div class="step-indicator">Step 1</div>
+        '#value' => '<div class="step-indicator">Step 3</div>
                      <div class="phase-info">
                        <h3>Application Submission</h3>
                        <p>Auto-apply to jobs with tailored resumes and cover letters.</p>
@@ -274,16 +320,16 @@ class JobApplicationController extends ControllerBase {
                      <div class="coming-soon-badge">Coming Soon</div>',
       ],
     ];
-    
-    // Step 2: Interview & Follow-up
-    $build['step2'] = [
+
+    // Step 4: Interview & Follow-up
+    $build['step4'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-interview', 'disabled']],
       'content' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
         '#attributes' => ['class' => ['phase-content']],
-        '#value' => '<div class="step-indicator">Step 2</div>
+        '#value' => '<div class="step-indicator">Step 4</div>
                      <div class="phase-info">
                        <h3>Interview & Follow-up</h3>
                        <p>Track application status, schedule interviews, and manage follow-ups.</p>
@@ -298,16 +344,16 @@ class JobApplicationController extends ControllerBase {
                      <div class="coming-soon-badge">Coming Soon</div>',
       ],
     ];
-    
-    // Step 3: Analytics & Optimization
-    $build['step3'] = [
+
+    // Step 5: Analytics & Optimization
+    $build['step5'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['phase-section', 'phase-analytics', 'disabled']],
       'content' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
         '#attributes' => ['class' => ['phase-content']],
-        '#value' => '<div class="step-indicator">Step 3</div>
+        '#value' => '<div class="step-indicator">Step 5</div>
                      <div class="phase-info">
                        <h3>Analytics & Optimization</h3>
                        <p>Measure success rates, identify patterns, and optimize your strategy.</p>

@@ -290,6 +290,9 @@ class JobDiscoveryService {
       if (!empty($filters['status'])) {
         $query->condition('j.status', $filters['status']);
       }
+      else {
+        $query->condition('j.status', 'archived', '!=');
+      }
       if (!empty($filters['ai_status'])) {
         $query->condition('j.ai_extraction_status', $filters['ai_status']);
       }
