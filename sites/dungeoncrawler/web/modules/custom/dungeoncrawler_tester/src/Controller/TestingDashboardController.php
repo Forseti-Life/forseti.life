@@ -19,7 +19,6 @@ use Drupal\dungeoncrawler_tester\Service\GithubIssuePrClientInterface;
 use Drupal\dungeoncrawler_tester\Service\StageDefinitionService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\Process\Process;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
@@ -595,34 +594,6 @@ class TestingDashboardController extends ControllerBase {
   }
 
   /**
-   * Build concise process flow for stagegate overview.
-   */
-  private function buildProcessFlowSection(): array {
-    $definitions = $this->stageDefinitions->getDefinitions();
-    $items = [];
-    foreach ($definitions as $stage) {
-      $items[] = $stage['title'] ?? $stage['id'];
-    }
-
-    return [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['dashboard-flow']],
-      'title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h2',
-        '#value' => $this->t('Release Testing Stagegates'),
-      ],
-      'list' => [
-        '#theme' => 'item_list',
-        '#items' => $items,
-      ],
-      'note' => [
-        '#markup' => '<p>' . $this->t('Each stage below includes run buttons (commands) and a reports placeholder.') . '</p>',
-      ],
-    ];
-  }
-
-  /**
    * Build live SDLC/Release flow tracking from current system signals.
    */
   private function buildLifecycleTrackingSection(string $repo, ?string $token, array $queue_status): array {
@@ -988,31 +959,6 @@ class TestingDashboardController extends ControllerBase {
   }
 
   /**
-   * Highlight the /dungeoncrawler/testing/thetest flip hook for automation verification.
-   */
-  private function buildTheTestCallout(): array {
-    $link = Link::fromTextAndUrl(
-      $this->t('Open /dungeoncrawler/testing/thetest page'),
-      Url::fromRoute('dungeoncrawler_tester.thetest')
-    )->toRenderable();
-    $link['#attributes']['class'][] = 'queue-link';
-
-    return [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['thetest-callout']],
-      'title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h2',
-        '#value' => $this->t('Automation flip test (/dungeoncrawler/testing/thetest)'),
-      ],
-      'body' => [
-        '#markup' => '<p>' . $this->t('This page drives the pre-commit stage “Pre-commit: thetest toggle”. Status is controlled by tester state (and optional `TESTER_THETEST_STATUS` env override), so you can switch PASS/FAIL without editing source code. Use this to validate auto-pause, issue linking, and resume flows.') . '</p>',
-      ],
-      'cta' => $link,
-    ];
-  }
-
-  /**
    * Build documentation links section.
    */
   private function buildDocumentationSection(): array {
@@ -1068,160 +1014,6 @@ class TestingDashboardController extends ControllerBase {
         '#items' => $links,
       ],
     ];
-  }
-
-  /**
-   * Build test commands section.
-   */
-  private function buildTestCommandsSection(): array {
-    $commands = [
-      [
-        'title' => $this->t('Run All Tests'),
-        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml',
-      ],
-      [
-        'title' => $this->t('Unit Tests Only'),
-        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --testsuite=unit',
-      ],
-      [
-        'title' => $this->t('Functional Tests Only'),
-        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --testsuite=functional',
-      ],
-      [
-        'title' => $this->t('Route Tests'),
-        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml web/modules/custom/dungeoncrawler_tester/tests/src/Functional/Routes/',
-      ],
-      [
-        'title' => $this->t('Controller Tests'),
-        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml web/modules/custom/dungeoncrawler_tester/tests/src/Functional/Controller/',
-      ],
-      [
-        'title' => $this->t('API Tests'),
-        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --group=api',
-      ],
-      [
-        'title' => $this->t('Campaign/Entity Tests'),
-        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml web/modules/custom/dungeoncrawler_tester/tests/src/Functional/CampaignStateAccessTest.php web/modules/custom/dungeoncrawler_tester/tests/src/Functional/CampaignStateValidationTest.php web/modules/custom/dungeoncrawler_tester/tests/src/Functional/EntityLifecycleTest.php',
-      ],
-      [
-        'title' => $this->t('Character Creation Workflow'),
-        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --group=character-creation',
-      ],
-      [
-        'title' => $this->t('PF2e Rules Validation'),
-        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --group=pf2e-rules',
-      ],
-      [
-        'title' => $this->t('With Coverage Report'),
-        'command' => 'cd sites/dungeoncrawler && ./vendor/bin/phpunit --coverage-html tests/coverage',
-      ],
-    ];
-
-    $items = [];
-    foreach ($commands as $cmd) {
-      $items[] = [
-        '#type' => 'container',
-        'title' => [
-          '#markup' => '<strong>' . $cmd['title'] . '</strong>',
-        ],
-        'command' => [
-          '#type' => 'html_tag',
-          '#tag' => 'pre',
-          '#value' => $cmd['command'],
-          '#attributes' => ['class' => ['command-snippet']],
-        ],
-      ];
-    }
-
-    return [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['test-commands']],
-      'title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h3',
-        '#value' => $this->t('Quick Test Commands'),
-      ],
-      'description' => [
-        '#markup' => '<p>' . $this->t('Copy and paste these commands to run different test suites:') . '</p>',
-      ],
-      'commands' => [
-        '#theme' => 'item_list',
-        '#items' => $items,
-        '#attributes' => ['class' => ['command-list']],
-      ],
-    ];
-  }
-
-  /**
-   * Build roadmap list anchored to the dashboard.
-   */
-  private function buildRoadmapSection(): array {
-    $items = [
-      $this->t('Add kernel and unit suites for service/business logic.'),
-      $this->t('Add integration flows (character + campaign + combat) with real entity fixtures.'),
-      $this->t('Surface CI status and last test run results directly on the dashboard.'),
-      $this->t('Add quick actions (drush/phpunit presets) and environment checks (config status, tokens present).'),
-      $this->t('Add performance and load probes for API endpoints.'),
-    ];
-
-    return [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['dashboard-roadmap']],
-      'title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h3',
-        '#value' => $this->t('Roadmap (Dashboard as Anchor)'),
-      ],
-      'list' => [
-        '#theme' => 'item_list',
-        '#items' => $items,
-      ],
-    ];
-  }
-
-  /**
-   * Fetch issues with specific label filters (with caching).
-   */
-  private function fetchIssues(string $repo, ?string $token, string $kind): array {
-    $labelMap = [
-      'ci_failures' => 'ci-failure',
-      'testing_defects' => 'testing-defect',
-      'program_defects' => 'program-defect',
-    ];
-
-    $label = $labelMap[$kind] ?? 'ci-failure';
-    
-    if (!$token) {
-      $this->logger->warning('No GitHub token configured for issue fetching.');
-      return ['items' => [], 'error' => $this->t('No GitHub token configured.')];
-    }
-
-    // Check cache first
-    $cache_key = 'dungeoncrawler_tester.github_issues.' . $repo . '.' . $label;
-    $cache = $this->cacheBackend->get($cache_key);
-    if ($cache && !empty($cache->data)) {
-      return $cache->data;
-    }
-
-    $url = "https://api.github.com/repos/{$repo}/issues?state=open&labels=" . urlencode($label) . "&per_page=" . self::GITHUB_MAX_ISSUES;
-
-    $response = $this->requestGitHubJsonWithFallback($url, [$token], [], FALSE);
-    if (!empty($response['error'])) {
-      return ['items' => [], 'error' => (string) $response['error']];
-    }
-
-    $data = is_array($response['items']) ? $response['items'] : [];
-    $items = [];
-    foreach ($data as $issue) {
-      if (!is_array($issue) || empty($issue['title']) || empty($issue['html_url'])) {
-        continue;
-      }
-      $items[] = Link::fromTextAndUrl((string) $issue['title'], Url::fromUri((string) $issue['html_url']))->toRenderable();
-    }
-
-    $result = ['items' => $items, 'error' => NULL];
-    $this->cacheBackend->set($cache_key, $result, time() + self::GITHUB_CACHE_TTL);
-    return $result;
   }
 
   /**
