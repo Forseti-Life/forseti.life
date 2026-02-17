@@ -621,11 +621,9 @@ class TestingDashboardController extends ControllerBase {
     }
 
     $cache_key = 'dungeoncrawler_tester.github_open_prs.' . $repo;
-    if ($useCache) {
-      $cache = $this->cacheBackend->get($cache_key);
-      if ($cache && !empty($cache->data)) {
-        return $cache->data;
-      }
+    $cached = $this->getCachedGithubArray($cache_key, $useCache);
+    if ($cached !== NULL) {
+      return $cached;
     }
 
     $url = "https://api.github.com/repos/{$repo}/pulls?state=open&per_page=100";
@@ -672,11 +670,9 @@ class TestingDashboardController extends ControllerBase {
     }
 
     $cacheKey = 'dungeoncrawler_tester.github_workflow_summary.' . $repo . '.' . $workflowFile;
-    if ($useCache) {
-      $cache = $this->cacheBackend->get($cacheKey);
-      if ($cache && !empty($cache->data) && is_array($cache->data)) {
-        return $cache->data;
-      }
+    $cached = $this->getCachedGithubArray($cacheKey, $useCache);
+    if ($cached !== NULL) {
+      return $cached;
     }
 
     $url = "https://api.github.com/repos/{$repo}/actions/workflows/{$workflowFile}/runs?per_page=1";
@@ -727,11 +723,9 @@ class TestingDashboardController extends ControllerBase {
     }
 
     $cacheKey = 'dungeoncrawler_tester.github_pr_automation_stats.' . $repo;
-    if ($useCache) {
-      $cache = $this->cacheBackend->get($cacheKey);
-      if ($cache && !empty($cache->data) && is_array($cache->data)) {
-        return $cache->data;
-      }
+    $cached = $this->getCachedGithubArray($cacheKey, $useCache);
+    if ($cached !== NULL) {
+      return $cached;
     }
 
     $url = "https://api.github.com/repos/{$repo}/pulls?state=open&per_page=100";
@@ -824,11 +818,9 @@ class TestingDashboardController extends ControllerBase {
     }
 
     $cache_key = 'dungeoncrawler_tester.github_open_testing_issue_numbers.' . $repo;
-    if ($useCache) {
-      $cache = $this->cacheBackend->get($cache_key);
-      if ($cache && !empty($cache->data) && is_array($cache->data)) {
-        return $cache->data;
-      }
+    $cached = $this->getCachedGithubArray($cache_key, $useCache);
+    if ($cached !== NULL) {
+      return $cached;
     }
 
     $issueNumbers = [];
@@ -864,6 +856,22 @@ class TestingDashboardController extends ControllerBase {
     }
 
     return $numbers;
+  }
+
+  /**
+   * Load a cached GitHub summary payload when available.
+   */
+  private function getCachedGithubArray(string $cacheKey, bool $useCache): ?array {
+    if (!$useCache) {
+      return NULL;
+    }
+
+    $cache = $this->cacheBackend->get($cacheKey);
+    if (!$cache || !is_array($cache->data)) {
+      return NULL;
+    }
+
+    return $cache->data;
   }
 
   /**
