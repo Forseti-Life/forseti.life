@@ -204,7 +204,7 @@
       "type": "object",
       "description": "Skill proficiencies: untrained, trained, expert, master, legendary.",
       "patternProperties": {
-        "^[a-z_]+$": {
+        "^[a-z]+(_[a-z]+)*$": {
           "type": "string",
           "enum": ["untrained", "trained", "expert", "master", "legendary"]
         }
@@ -402,7 +402,7 @@
           "type": "object",
           "description": "Spell slots per rank.",
           "patternProperties": {
-            "^rank_([0-9]|10)$": {
+            "^rank_(10|[0-9])$": {
               "$ref": "#/definitions/spell_slot"
             }
           },
