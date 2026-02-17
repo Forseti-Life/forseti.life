@@ -6,10 +6,25 @@
   "type": "object",
   "required": ["obstacle_id", "name", "obstacle_type", "movement"],
   "properties": {
-    "obstacle_id": { "type": "string", "format": "uuid" },
-    "name": { "type": "string" },
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version for migration compatibility.",
+      "default": "1.0.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "obstacle_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique obstacle instance identifier."
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name of the obstacle.",
+      "minLength": 1
+    },
     "obstacle_type": {
       "type": "string",
+      "description": "Type of obstacle affecting gameplay mechanics.",
       "enum": [
         "trap",
         "hazard",
@@ -21,47 +36,110 @@
         "custom"
       ]
     },
-    "description": { "type": "string" },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the obstacle for players."
+    },
     "hexes": {
       "type": "array",
+      "description": "List of hexes this obstacle occupies on the map.",
       "minItems": 1,
       "items": {
-        "type": "object",
-        "required": ["q", "r"],
-        "properties": {
-          "q": { "type": "integer" },
-          "r": { "type": "integer" }
-        }
+        "$ref": "#/$defs/hex_coordinate"
       }
     },
     "movement": {
       "type": "object",
+      "description": "Movement rules for this obstacle.",
       "required": ["passable"],
       "properties": {
-        "passable": { "type": "boolean" },
-        "cost_multiplier": { "type": "number", "minimum": 0, "default": 1 },
-        "requires_check": { "type": "boolean", "default": false },
-        "check_skill": { "type": ["string", "null"] },
-        "check_dc": { "type": ["integer", "null"] }
-      }
+        "passable": {
+          "type": "boolean",
+          "description": "Whether characters can pass through this obstacle."
+        },
+        "cost_multiplier": {
+          "type": "number",
+          "description": "Movement cost multiplier (1 = normal, 2 = double cost, etc.).",
+          "minimum": 0,
+          "default": 1
+        },
+        "requires_check": {
+          "type": "boolean",
+          "description": "Whether passing requires a skill check.",
+          "default": false
+        },
+        "check_skill": {
+          "type": ["string", "null"],
+          "description": "PF2e skill required for check (e.g., 'Athletics', 'Acrobatics').",
+          "examples": ["Athletics", "Acrobatics", "Thievery"]
+        },
+        "check_dc": {
+          "type": ["integer", "null"],
+          "description": "DC for the skill check.",
+          "minimum": 1,
+          "maximum": 50
+        }
+      },
+      "additionalProperties": false
     },
     "combat_effect": {
       "type": ["object", "null"],
+      "description": "Combat-related effects of this obstacle.",
       "properties": {
-        "cover": { "type": "string", "enum": ["none", "lesser", "standard", "greater"] },
-        "damage_on_enter": { "type": ["string", "null"], "examples": ["1d6", "2d6+3"] },
-        "damage_type": { "type": ["string", "null"] },
-        "save_type": { "type": ["string", "null"], "enum": ["fortitude", "reflex", "will", null] },
-        "save_dc": { "type": ["integer", "null"] }
-      }
+        "cover": {
+          "type": "string",
+          "description": "PF2e cover bonus provided by this obstacle.",
+          "enum": ["none", "lesser", "standard", "greater"],
+          "default": "none"
+        },
+        "damage_on_enter": {
+          "type": ["string", "null"],
+          "description": "Damage dealt when entering obstacle hex (PF2e dice notation).",
+          "pattern": "^\\d+d\\d+(([+-]\\d+)|([+-]\\d+d\\d+))?$",
+          "examples": ["1d6", "2d6+3", "1d4+1d6"]
+        },
+        "damage_type": {
+          "type": ["string", "null"],
+          "description": "Type of damage dealt (e.g., 'fire', 'acid', 'bludgeoning').",
+          "examples": ["fire", "acid", "bludgeoning", "piercing"]
+        },
+        "save_type": {
+          "type": ["string", "null"],
+          "description": "PF2e save type to avoid or reduce damage.",
+          "enum": ["fortitude", "reflex", "will", null]
+        },
+        "save_dc": {
+          "type": ["integer", "null"],
+          "description": "DC for the saving throw.",
+          "minimum": 1,
+          "maximum": 50
+        }
+      },
+      "additionalProperties": false
     },
     "state": {
       "type": "object",
+      "description": "Current state of the obstacle instance.",
       "properties": {
-        "active": { "type": "boolean", "default": true },
-        "disabled": { "type": "boolean", "default": false },
-        "destroyed": { "type": "boolean", "default": false },
-        "notes": { "type": ["string", "null"] }
+        "active": {
+          "type": "boolean",
+          "description": "Whether the obstacle is currently active and affecting gameplay.",
+          "default": true
+        },
+        "disabled": {
+          "type": "boolean",
+          "description": "Whether the obstacle has been disabled (e.g., trap disarmed).",
+          "default": false
+        },
+        "destroyed": {
+          "type": "boolean",
+          "description": "Whether the obstacle has been destroyed or removed.",
+          "default": false
+        },
+        "notes": {
+          "type": ["string", "null"],
+          "description": "GM notes or runtime state information."
+        }
       },
       "additionalProperties": true
     },
@@ -69,10 +147,48 @@
       "type": ["object", "null"],
       "description": "Optional reference to underlying trap/hazard definition.",
       "properties": {
-        "content_type": { "type": "string", "enum": ["trap", "hazard"] },
-        "content_id": { "type": "string" }
-      }
+        "content_type": {
+          "type": "string",
+          "description": "Type of content this obstacle references.",
+          "enum": ["trap", "hazard"]
+        },
+        "content_id": {
+          "type": "string",
+          "description": "UUID or identifier of the referenced content.",
+          "format": "uuid"
+        }
+      },
+      "required": ["content_type", "content_id"],
+      "additionalProperties": false
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Obstacle instance creation timestamp."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last modification timestamp."
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false,
+  "$defs": {
+    "hex_coordinate": {
+      "type": "object",
+      "description": "Axial hex coordinate (q, r) following the cube coordinate system.",
+      "required": ["q", "r"],
+      "properties": {
+        "q": {
+          "type": "integer",
+          "description": "Q-axis coordinate in axial hex system."
+        },
+        "r": {
+          "type": "integer",
+          "description": "R-axis coordinate in axial hex system."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
 }
