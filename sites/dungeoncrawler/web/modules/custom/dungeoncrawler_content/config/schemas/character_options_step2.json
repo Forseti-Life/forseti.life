@@ -87,7 +87,9 @@
                   },
                   "hp": {
                     "type": "integer",
-                    "description": "Hit points from ancestry",
+                    "minimum": 6,
+                    "maximum": 10,
+                    "description": "Hit points from ancestry (Pathfinder 2E ancestries range from 6-10 HP)",
                     "examples": [8, 6, 10]
                   },
                   "size": {
@@ -97,16 +99,20 @@
                   },
                   "speed": {
                     "type": "integer",
-                    "description": "Base speed in feet",
+                    "minimum": 20,
+                    "maximum": 35,
+                    "description": "Base speed in feet (Pathfinder 2E ancestries range from 20-35 feet)",
                     "examples": [25, 30]
                   },
                   "boosts": {
                     "type": "array",
-                    "description": "Ability boosts granted by this ancestry",
+                    "description": "Ability boosts granted by this ancestry (Pathfinder 2E grants exactly 2 boosts per ancestry)",
                     "items": {
                       "type": "string",
                       "enum": ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma", "Free"]
                     },
+                    "minItems": 2,
+                    "maxItems": 2,
                     "examples": [["Strength", "Constitution"], ["Intelligence", "Free"]]
                   },
                   "flaw": {
@@ -121,6 +127,7 @@
                     "items": {
                       "type": "string"
                     },
+                    "minItems": 1,
                     "examples": [["Common"], ["Common", "Elven"]]
                   },
                   "vision": {
@@ -468,6 +475,7 @@
     "examples": {
       "type": "array",
       "description": "Example ancestry and heritage selections for common character archetypes",
+      "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
