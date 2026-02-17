@@ -12,17 +12,22 @@ Obstacle object catalog defining reusable obstacle types (furniture, fixtures, e
 **Usage:** Loaded by `HexMapController` to provide object definitions for obstacle entities.
 
 **Key Properties:**
-- `movable`: Whether the object can be pushed/moved by players
-- `stackable`: Whether multiple instances can occupy the same hex
-- `movement.passable`: Whether entities can share the hex with the object
-- `movement.blocks_movement`: Whether pathfinding treats the hex as blocked
-- `movement.cost_multiplier`: Movement cost when entering the hex (1 = normal, higher = slower)
+- `movable`: Whether the object can be pushed/moved by players ✅ **Currently Used**
+- `stackable`: Whether multiple instances can occupy the same hex ✅ **Currently Used**
+- `movement.passable`: Whether entities can share the hex with the object ✅ **Currently Used**
+- `movement.blocks_movement`: Whether pathfinding treats the hex as blocked ⏳ **Reserved for Future**
+- `movement.cost_multiplier`: Movement cost when entering the hex (1 = normal, higher = slower) ⏳ **Reserved for Future**
+
+**Implementation Status:**
+The current rendering code (`hexmap.js`) only uses `passable`, `movable`, and `stackable` to determine behavior. The `blocks_movement` and `cost_multiplier` properties are schema-required and reserved for future pathfinding AI implementation.
 
 **Cost Multiplier Guide:**
 - `1.0`: Normal speed (open doors, passable obstacles)
 - `1.5`: Slight impediment (stool stacks, light debris)
 - `2.0-3.0`: Moderate impediment (movable tables, crates)
 - `999`: Effectively impassable (fixed bar counters, walls)
+
+**Note:** Cost multipliers are defined in the schema but not yet used in the current implementation. They are reserved for future pathfinding AI when it's implemented.
 
 ### tavern-entrance-dungeon.json
 Complete dungeon level example featuring a tavern entrance area with bar, furniture, and transition to a dungeon room.

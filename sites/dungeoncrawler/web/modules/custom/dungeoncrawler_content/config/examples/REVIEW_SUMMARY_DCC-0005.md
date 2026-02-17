@@ -2,6 +2,7 @@
 
 **Issue Tracker:** DCC-0005  
 **Reviewed:** 2026-02-17  
+**Updated:** 2026-02-17 (Second Pass)  
 **Status:** ✅ Completed
 
 ## Overview
@@ -139,8 +140,63 @@ Consider adding:
 
 **Recommendation:** Evaluate if entity instance metadata can handle segmentation, eliminating need for separate catalog entries.
 
+## Second Pass Review (2026-02-17)
+
+### Critical Discovery: Unused Schema Properties
+
+**Finding:** After reviewing the JavaScript codebase in `/js/hexmap.js` and related files, discovered that `blocks_movement` and `cost_multiplier` properties are **not currently used** by the rendering or game logic code.
+
+**Code Analysis:**
+- The code only uses three properties: `passable`, `movable`, and `stackable`
+- Found in `hexmap.js` lines 2430-2460: The `getObstacleMobilityAtHex()` function extracts only these three properties
+- The `describePassability()` function (lines 2444-2459) uses only `passable` and `movable` for display logic
+- Visual rendering (lines 2256-2275) uses only `passable` and `movable` combinations for hex styling
+- No references to `blocks_movement` or `cost_multiplier` found in any JavaScript files
+
+**Implications:**
+1. The `blocks_movement` and `cost_multiplier` fields are **forward-looking schema properties** reserved for future pathfinding AI implementation
+2. Current behavior is determined solely by the `passable`, `movable`, and `stackable` flags
+3. Developers might be confused thinking these properties affect current gameplay
+
+### Improvements Implemented
+
+**Updated Descriptions (2026-02-17):**
+All object descriptions were revised to:
+1. Explicitly state the key property values (e.g., "passable=false, movable=true")
+2. Clarify that `blocks_movement` and `cost_multiplier` are schema-required but not currently used
+3. Note that these properties are reserved for future pathfinding implementation
+4. Focus on the three properties that actually control current behavior
+
+**Examples:**
+- Bar counters now say: "Note: blocks_movement and cost_multiplier are schema-required but not currently used by rendering code."
+- Tables now say: "Currently, rendering uses only passable/movable/stackable flags; cost_multiplier reserved for future pathfinding."
+
+### Updated Property Relationship Matrix
+
+Current implementation uses only these combinations:
+
+| passable | movable | stackable | Visual Style | Example Objects |
+|----------|---------|-----------|--------------|-----------------|
+| `true` | `false` | `false` | Green border | Door (open), Rug |
+| `true` | `true` | `true` | Blue border | Stool Stack |
+| `false` | `false` | `false` | Dark red border | Bar Counter, Fireplace |
+| `false` | `true` | `false` | Brown border | Tables |
+| `false` | `true` | `true` | Brown border | Crate Stack |
+
+**Note:** The `blocks_movement` and `cost_multiplier` fields are present in the schema and data but **not yet implemented in the game engine**.
+
+### Backward Compatibility (Second Pass)
+
+- ✅ All existing `object_id` values preserved
+- ✅ All existing property values unchanged  
+- ✅ Only descriptions modified for clarity
+- ✅ JSON remains valid against schema
+- ✅ No breaking changes to data structure or references
+
 ## Conclusion
 
 The refactoring improves the file's usability as an example and educational resource without introducing any breaking changes. The additions make the movement system's semantics more discoverable and provide better templates for future obstacle definitions.
 
-**Status:** Review complete. All improvements implemented and validated.
+**Key Insight:** The discovery that `blocks_movement` and `cost_multiplier` are not yet implemented is crucial documentation for developers. This prevents confusion and sets proper expectations about which properties actually control object behavior in the current system.
+
+**Status:** Review complete. All improvements implemented and validated. Documentation now accurately reflects both current implementation and future-planned features.
