@@ -121,7 +121,9 @@ function dungeoncrawler_content_theme(array $existing, string $type, string $the
         'class_data' => [],
         'abilities' => [],
         'hp' => [],
-        'ac' => NULL,
+        // Default AC of 10 represents baseline unarmored AC in Pathfinder 2e.
+        // Controllers should always calculate and pass the actual value.
+        'ac' => 10,
         'saves' => [],
         'perception' => [],
         'skills' => [],
