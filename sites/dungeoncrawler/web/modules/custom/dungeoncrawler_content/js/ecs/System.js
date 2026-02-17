@@ -138,10 +138,17 @@ export class System {
 
   /**
    * Get entities that this system operates on.
-   * Override in subclasses to specify required components, or use queryEntities().
+   * 
+   * @deprecated Since refactoring DCC-0074. Use queryEntities() directly or set
+   *   this.requiredComponents in your constructor for automatic querying.
+   * 
+   * Migration guide:
+   * - Instead of: const entities = this.getEntities()
+   * - Use: const entities = this.queryEntities('ComponentName1', 'ComponentName2')
+   * - Or set: this.requiredComponents = ['ComponentName1', 'ComponentName2']
+   *   and call: const entities = this.getEntities() (backward compatible)
    * 
    * @returns {Entity[]} Array of entities this system should process
-   * @deprecated Use queryEntities() or getEntitiesWith() directly instead
    */
   getEntities() {
     // Legacy method for backward compatibility
