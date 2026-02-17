@@ -7,7 +7,6 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\State\StateInterface;
@@ -50,11 +49,6 @@ class TestingDashboardController extends ControllerBase {
    * Database connection for watchdog reads.
    */
   protected Connection $database;
-
-  /**
-   * Date formatter service.
-   */
-  protected DateFormatterInterface $dateFormatter;
 
   /**
    * Stage definitions service.
@@ -110,7 +104,6 @@ class TestingDashboardController extends ControllerBase {
     $instance->state = $container->get('state');
     $instance->queueFactory = $container->get('queue');
     $instance->database = $container->get('database');
-    $instance->dateFormatter = $container->get('date.formatter');
     $instance->stageDefinitions = $container->get('dungeoncrawler_tester.stage_definitions');
     $instance->githubClient = $container->get('dungeoncrawler_tester.github_issue_pr_client');
     $instance->cacheBackend = $container->get('cache.default');

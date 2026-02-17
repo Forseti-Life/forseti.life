@@ -2,8 +2,10 @@
 
 namespace Drupal\dungeoncrawler_tester\Controller;
 
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -12,6 +14,11 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
  * Focused controller surface for issue/PR report and automation routes.
  */
 class TestingDashboardIssueAutomationController extends TestingDashboardController {
+
+	/**
+	 * Date formatter for issue report metadata timestamps.
+	 */
+	protected DateFormatterInterface $dateFormatter;
 
 	/**
 	 * Standard close comment for dead-value PR cleanup.
@@ -48,6 +55,15 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			]);
 			return Url::fromUserInput($fallbackPath)->toString();
 		}
+	}
+
+	/**
+	 * {@inheritdoc}
+	 */
+	public static function create(ContainerInterface $container): static {
+		$instance = parent::create($container);
+		$instance->dateFormatter = $container->get('date.formatter');
+		return $instance;
 	}
 
 	/**
