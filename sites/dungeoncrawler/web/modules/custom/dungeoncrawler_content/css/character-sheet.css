@@ -4,17 +4,42 @@
  */
 
 :root {
+  /* Color Palette - Backgrounds */
   --dc-stone: #2d2d3d;
   --dc-deep-cavern: #1a1a2e;
   --dc-abyss: #0f0f1a;
+  
+  /* Color Palette - Accents */
   --dc-torch-gold: #f59e0b;
   --dc-mystic-purple: #7c3aed;
   --dc-blood-red: #dc2626;
+  
+  /* Color Palette - Text */
   --dc-text: #e2e8f0;
   --dc-text-muted: #94a3b8;
+  
+  /* Color Palette - UI Elements */
   --dc-border: #3d3d55;
   --dc-success: #22c55e;
   --dc-danger: #ef4444;
+  
+  /* Border Radius Values */
+  --dc-radius-sm: 4px;
+  --dc-radius-md: 8px;
+  --dc-radius-lg: 12px;
+  
+  /* Spacing Values (commonly used) */
+  --dc-space-xs: 0.25rem;
+  --dc-space-sm: 0.5rem;
+  --dc-space-md: 0.75rem;
+  --dc-space-lg: 1rem;
+  --dc-space-xl: 1.5rem;
+  
+  /* Alpha Variants */
+  --dc-border-alpha-light: rgba(61, 61, 85, 0.3);
+  --dc-border-alpha-medium: rgba(61, 61, 85, 0.5);
+  --dc-gold-glow: rgba(245, 158, 11, 0.15);
+  --dc-gold-focus: rgba(245, 158, 11, 0.2);
 }
 
 /* ===== CHARACTER LIST PAGE ===== */
@@ -51,7 +76,7 @@
   align-items: stretch;
   background: var(--dc-deep-cavern);
   border: 1px solid var(--dc-border);
-  border-radius: 12px;
+  border-radius: var(--dc-radius-lg);
   overflow: hidden;
   text-decoration: none;
   color: var(--dc-text);
@@ -62,9 +87,15 @@
 .dc-character-card:hover {
   border-color: var(--dc-torch-gold);
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.15);
+  box-shadow: 0 4px 20px var(--dc-gold-glow);
   color: var(--dc-text);
   text-decoration: none;
+}
+
+.dc-character-card:focus {
+  outline: 2px solid var(--dc-torch-gold);
+  outline-offset: 2px;
+  border-color: var(--dc-torch-gold);
 }
 
 .dc-character-card--dead {
@@ -116,7 +147,7 @@
   left: 4px;
   font-size: 0.65rem;
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--dc-radius-sm);
   font-weight: 700;
 }
 
@@ -207,7 +238,7 @@
   padding: 4rem 2rem;
   background: var(--dc-deep-cavern);
   border: 1px dashed var(--dc-border);
-  border-radius: 12px;
+  border-radius: var(--dc-radius-lg);
 }
 
 .dc-character-list__empty-icon {
@@ -251,19 +282,19 @@
 /* Header */
 .dc-sheet__header {
   display: flex;
-  gap: 1.5rem;
+  gap: var(--dc-space-xl);
   background: var(--dc-deep-cavern);
   border: 1px solid var(--dc-border);
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
+  border-radius: var(--dc-radius-lg);
+  padding: var(--dc-space-xl);
+  margin-bottom: var(--dc-space-xl);
   flex-wrap: wrap;
 }
 
 .dc-sheet__portrait-wrap {
   width: 120px;
   height: 120px;
-  border-radius: 12px;
+  border-radius: var(--dc-radius-lg);
   overflow: hidden;
   flex-shrink: 0;
   position: relative;
@@ -338,8 +369,8 @@
   text-align: center;
   background: var(--dc-abyss);
   border: 1px solid var(--dc-border);
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
+  border-radius: var(--dc-radius-md);
+  padding: var(--dc-space-sm) var(--dc-space-lg);
   min-width: 70px;
 }
 
@@ -379,9 +410,9 @@
 .dc-sheet__section {
   background: var(--dc-deep-cavern);
   border: 1px solid var(--dc-border);
-  border-radius: 12px;
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1rem;
+  border-radius: var(--dc-radius-lg);
+  padding: 1.25rem var(--dc-space-xl);
+  margin-bottom: var(--dc-space-lg);
 }
 
 .dc-sheet__section-title {
@@ -421,7 +452,7 @@
   text-align: center;
   background: var(--dc-abyss);
   border: 1px solid var(--dc-border);
-  border-radius: 8px;
+  border-radius: var(--dc-radius-md);
   padding: 0.6rem 0.8rem;
   min-width: 72px;
   flex: 1;
@@ -460,9 +491,9 @@
 .dc-sheet__skill {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--dc-space-sm);
   padding: 0.35rem 0;
-  border-bottom: 1px solid rgba(61, 61, 85, 0.5);
+  border-bottom: 1px solid var(--dc-border-alpha-medium);
 }
 
 .dc-sheet__save-name,
@@ -534,7 +565,7 @@
   background: var(--dc-mystic-purple);
   color: #fff;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--dc-radius-sm);
 }
 
 /* Skills Grid */
@@ -557,7 +588,7 @@
   background: var(--dc-stone);
   color: var(--dc-torch-gold);
   padding: 2px 10px;
-  border-radius: 4px;
+  border-radius: var(--dc-radius-sm);
   border: 1px solid var(--dc-border);
 }
 
@@ -580,9 +611,9 @@
 .dc-sheet__feat {
   background: var(--dc-abyss);
   border-left: 3px solid var(--dc-mystic-purple);
-  padding: 0.5rem 0.75rem;
-  margin-bottom: 0.5rem;
-  border-radius: 0 4px 4px 0;
+  padding: var(--dc-space-sm) var(--dc-space-md);
+  margin-bottom: var(--dc-space-sm);
+  border-radius: 0 var(--dc-radius-sm) var(--dc-radius-sm) 0;
   font-size: 0.9rem;
 }
 
@@ -607,9 +638,9 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid rgba(61, 61, 85, 0.5);
+  gap: var(--dc-space-md);
+  padding: var(--dc-space-sm) 0;
+  border-bottom: 1px solid var(--dc-border-alpha-medium);
 }
 
 .dc-sheet__attack-name {
@@ -644,7 +675,7 @@
 /* Equipment */
 .dc-sheet__equipment-item {
   padding: 0.4rem 0;
-  border-bottom: 1px solid rgba(61, 61, 85, 0.3);
+  border-bottom: 1px solid var(--dc-border-alpha-light);
   font-size: 0.9rem;
 }
 
@@ -662,7 +693,7 @@
 .dc-sheet__coin {
   font-weight: 700;
   font-size: 1rem;
-  padding: 0.25rem 0.75rem;
+  padding: var(--dc-space-xs) var(--dc-space-md);
   border-radius: 6px;
   background: var(--dc-abyss);
   border: 1px solid var(--dc-border);
@@ -695,8 +726,8 @@
   font-size: 0.9rem;
   line-height: 1.6;
   background: var(--dc-abyss);
-  padding: 1rem;
-  border-radius: 8px;
+  padding: var(--dc-space-lg);
+  border-radius: var(--dc-radius-md);
   border-left: 3px solid var(--dc-torch-gold);
 }
 
@@ -728,8 +759,8 @@
 .dc-sheet__json-pre {
   background: var(--dc-abyss);
   border: 1px solid var(--dc-border);
-  border-radius: 8px;
-  padding: 1rem;
+  border-radius: var(--dc-radius-md);
+  padding: var(--dc-space-lg);
   overflow-x: auto;
   font-size: 0.75rem;
   line-height: 1.5;
@@ -744,13 +775,18 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.6rem 1.25rem;
-  border-radius: 8px;
+  border-radius: var(--dc-radius-md);
   font-weight: 600;
   font-size: 0.9rem;
   text-decoration: none;
   border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.dc-btn:focus {
+  outline: 2px solid var(--dc-torch-gold);
+  outline-offset: 2px;
 }
 
 .dc-btn-primary {
@@ -843,7 +879,7 @@
   background: var(--dc-abyss);
   border: 1px solid var(--dc-border);
   color: var(--dc-text);
-  border-radius: 8px;
+  border-radius: var(--dc-radius-md);
   padding: 0.6rem 0.85rem;
   width: 100%;
   font-size: 0.95rem;
@@ -854,7 +890,7 @@
 .dc-character-form .form-textarea:focus {
   border-color: var(--dc-torch-gold);
   outline: none;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+  box-shadow: 0 0 0 2px var(--dc-gold-focus);
 }
 
 .dc-character-form .form-actions {

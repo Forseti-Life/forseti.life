@@ -3,23 +3,59 @@
  * Styles for the credits/attribution page.
  */
 
+/* Design System Variables - Aligned with character-sheet.css */
+:root {
+  /* Core theme colors (from dungeoncrawler theme) */
+  --dc-stone: #2d2d3d;
+  --dc-deep-cavern: #1a1a2e;
+  --dc-abyss: #0f0f1a;
+  --dc-torch-gold: #f59e0b;
+  --dc-mystic-purple: #7c3aed;
+  --dc-blood-red: #dc2626;
+  --dc-text: #e2e8f0;
+  --dc-text-muted: #94a3b8;
+  --dc-border: #3d3d55;
+  
+  /* Credits-specific variables */
+  --credits-bg-card: #f7fafc;
+  --credits-bg-light: #edf2f7;
+  --credits-primary: var(--dc-torch-gold);
+  --credits-hover: var(--dc-mystic-purple);
+  --credits-text-dark: #1a202c;
+  --credits-text-normal: #4a5568;
+  --credits-text-muted: #718096;
+  --credits-border-light: #e2e8f0;
+  --credits-border-gray: #cbd5e0;
+  --credits-status-pending: #f6ad55;
+  --credits-status-pending-dark: #ed8936;
+  
+  /* Spacing scale */
+  --space-xs: 10px;
+  --space-sm: 15px;
+  --space-md: 20px;
+  --space-lg: 25px;
+  --space-xl: 30px;
+  --space-2xl: 40px;
+  --space-3xl: 50px;
+}
+
 .credits-container {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: var(--space-2xl) var(--space-md);
 }
 
 .credits-header {
   text-align: center;
-  margin-bottom: 50px;
-  padding-bottom: 30px;
-  border-bottom: 3px solid #667eea;
+  margin-bottom: var(--space-3xl);
+  padding-bottom: var(--space-xl);
+  border-bottom: 3px solid var(--credits-primary);
 }
 
 .credits-header h1 {
-  margin: 0 0 20px 0;
-  color: #1a202c;
+  margin: 0 0 var(--space-md) 0;
+  color: var(--credits-text-dark);
   font-size: 2.5em;
   font-weight: 700;
 }
@@ -27,35 +63,35 @@
 .credits-intro {
   max-width: 800px;
   margin: 0 auto;
-  color: #4a5568;
+  color: var(--credits-text-normal);
   font-size: 1.1em;
   line-height: 1.6;
 }
 
 .credits-content {
-  margin-bottom: 50px;
+  margin-bottom: var(--space-3xl);
 }
 
 /* Credit Categories */
 .credit-category {
-  margin-bottom: 50px;
-  padding: 30px;
+  margin-bottom: var(--space-3xl);
+  padding: var(--space-xl);
   background: white;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--credits-border-light);
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .credit-category h2 {
-  margin: 0 0 25px 0;
+  margin: 0 0 var(--space-lg) 0;
   color: #2d3748;
   font-size: 1.8em;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 12px;
-  border-bottom: 2px solid #e2e8f0;
-  padding-bottom: 15px;
+  border-bottom: 2px solid var(--credits-border-light);
+  padding-bottom: var(--space-sm);
 }
 
 .category-icon {
@@ -64,29 +100,30 @@
 
 .credit-items {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 25px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-lg);
 }
 
 /* Individual Credit Items */
 .credit-item {
-  padding: 20px;
-  background: #f7fafc;
-  border: 1px solid #e2e8f0;
-  border-left: 4px solid #667eea;
+  padding: var(--space-md);
+  background: var(--credits-bg-card);
+  border: 1px solid var(--credits-border-light);
+  border-left: 4px solid var(--credits-primary);
   border-radius: 8px;
-  transition: all 0.3s ease;
+  transition: border-left-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.credit-item:hover {
-  border-left-color: #764ba2;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+.credit-item:hover,
+.credit-item:focus-within {
+  border-left-color: var(--credits-hover);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
   transform: translateY(-2px);
 }
 
 .credit-item.credit-planned {
   opacity: 0.7;
-  border-left-color: #f6ad55;
+  border-left-color: var(--credits-status-pending);
   position: relative;
 }
 
@@ -94,7 +131,7 @@
   position: absolute;
   top: -10px;
   right: 10px;
-  background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
+  background: linear-gradient(135deg, var(--credits-status-pending) 0%, var(--credits-status-pending-dark) 100%);
   color: white;
   padding: 4px 12px;
   border-radius: 12px;
@@ -105,7 +142,7 @@
 }
 
 .credit-name {
-  margin: 0 0 10px 0;
+  margin: 0 0 var(--space-xs) 0;
   font-size: 1.3em;
   font-weight: 600;
   display: flex;
@@ -114,20 +151,28 @@
 }
 
 .credit-name a {
-  color: #667eea;
+  color: var(--credits-primary);
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
-.credit-name a:hover {
-  color: #764ba2;
+.credit-name a:hover,
+.credit-name a:focus {
+  color: var(--credits-hover);
   text-decoration: underline;
+  outline: none;
+}
+
+.credit-name a:focus-visible {
+  outline: 2px solid var(--credits-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .credit-version {
   font-size: 0.7em;
   padding: 3px 8px;
-  background: #667eea;
+  background: var(--credits-primary);
   color: white;
   border-radius: 4px;
   font-weight: 600;
@@ -135,24 +180,24 @@
 
 .credit-creator {
   margin: 5px 0;
-  color: #718096;
+  color: var(--credits-text-muted);
   font-size: 0.95em;
   font-style: italic;
 }
 
 .credit-usage {
-  margin: 10px 0;
-  color: #4a5568;
+  margin: var(--space-xs) 0;
+  color: var(--credits-text-normal);
   font-size: 0.95em;
   line-height: 1.5;
 }
 
 .credit-license {
-  margin: 10px 0 0 0;
-  padding-top: 10px;
-  border-top: 1px solid #e2e8f0;
+  margin: var(--space-xs) 0 0 0;
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--credits-border-light);
   font-size: 0.9em;
-  color: #718096;
+  color: var(--credits-text-muted);
 }
 
 .credit-license strong {
@@ -162,53 +207,54 @@
 /* Empty Categories */
 .credit-empty {
   text-align: center;
-  padding: 40px 30px;
-  background: #f7fafc;
+  padding: var(--space-2xl) var(--space-xl);
+  background: var(--credits-bg-card);
 }
 
 .empty-message {
-  margin: 15px 0 0 0;
-  color: #718096;
+  margin: var(--space-sm) 0 0 0;
+  color: var(--credits-text-muted);
   font-size: 1em;
   font-style: italic;
 }
 
 /* Footer */
 .credits-footer {
-  padding: 40px 30px;
-  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
-  border: 2px solid #e2e8f0;
+  padding: var(--space-2xl) var(--space-xl);
+  background: linear-gradient(135deg, var(--credits-bg-card) 0%, var(--credits-bg-light) 100%);
+  border: 2px solid var(--credits-border-light);
   border-radius: 12px;
   text-align: center;
 }
 
 .credits-footer h2 {
-  margin: 0 0 20px 0;
+  margin: 0 0 var(--space-md) 0;
   color: #2d3748;
   font-size: 1.8em;
 }
 
 .credits-footer p {
-  margin: 15px auto;
+  margin: var(--space-sm) auto;
   max-width: 800px;
-  color: #4a5568;
+  color: var(--credits-text-normal);
   font-size: 1em;
   line-height: 1.6;
 }
 
 .assets-location {
-  margin: 25px auto 15px auto !important;
-  padding: 15px 20px;
+  margin: var(--space-lg) auto var(--space-sm) auto;
+  padding: var(--space-sm) var(--space-md);
   background: white;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid var(--credits-primary);
   border-radius: 6px;
   text-align: left;
+  color: var(--credits-text-normal);
 }
 
 .assets-location code {
   padding: 3px 8px;
-  background: #edf2f7;
-  border: 1px solid #cbd5e0;
+  background: var(--credits-bg-light);
+  border: 1px solid var(--credits-border-gray);
   border-radius: 4px;
   font-family: 'Courier New', monospace;
   font-size: 0.9em;
@@ -216,19 +262,37 @@
 }
 
 .contribute-info a {
-  color: #667eea;
+  color: var(--credits-primary);
   font-weight: 600;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
-.contribute-info a:hover {
-  color: #764ba2;
+.contribute-info a:hover,
+.contribute-info a:focus {
+  color: var(--credits-hover);
   text-decoration: underline;
+  outline: none;
+}
+
+.contribute-info a:focus-visible {
+  outline: 2px solid var(--credits-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .credit-items {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
+  .credits-container {
+    padding: var(--space-xl) var(--space-sm);
+  }
+
   .credits-header h1 {
     font-size: 2em;
   }
@@ -238,7 +302,7 @@
   }
 
   .credit-category {
-    padding: 20px 15px;
+    padding: var(--space-md) var(--space-sm);
   }
 
   .credit-items {
@@ -247,9 +311,5 @@
 
   .credit-category h2 {
     font-size: 1.4em;
-  }
-
-  .assets-location {
-    text-align: center;
   }
 }

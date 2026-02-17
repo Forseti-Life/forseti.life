@@ -32,7 +32,7 @@ JSON Schemas serve multiple purposes:
 | `character_options_step[1-8].json` | Character creation wizard | ✗ | 232-475 | Character creation UI |
 | `campaign.schema.json` | Campaign state & progress | ✓ | 71 | `dc_campaigns.campaign_data` |
 | `creature.schema.json` | Monsters, NPCs, beasts | ✓ | 994 | Entity spawning |
-| `dungeon_level.schema.json` | Complete dungeon floor | ✗ | 208 | Level generation |
+| `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 299 | Level generation |
 | `encounter.schema.json` | Combat & initiative | ✓ | 355 | Combat engine |
 | `entity_instance.schema.json` | Placed entities (runtime) | ✗ | 264 | Runtime entity management |
 | `hazard.schema.json` | Environmental hazards | ✗ | 206 | PF2e hazards |
@@ -115,6 +115,16 @@ Monsters, NPCs, and beasts with PF2e stats and AI personality.
 
 #### `dungeon_level.schema.json`
 Entire dungeon floor with hexmap, rooms, and encounters.
+
+**Recently improved (2026-02-17):**
+- Added schema versioning for migration compatibility
+- Enhanced validation with comprehensive numeric constraints (20+ min/max pairs)
+- Added timestamp tracking (created_at, updated_at)
+- Extracted reusable definitions (hex_coordinate, stairway)
+- Added additionalProperties constraints throughout for stricter validation
+- Added required fields to nested objects (stairway, environmental effects)
+- Added uniqueItems constraints to prevent duplicate array entries
+- Improved PF2e rule alignment for party levels, creature levels, and DCs
 
 Canonical runtime placement in this schema is `entities[]` via `entity_instance.schema.json`.
 
@@ -410,20 +420,20 @@ Schemas with `schema_version` field (migration-ready):
 - ✓ `campaign.schema.json`
 - ✓ `character.schema.json`
 - ✓ `creature.schema.json`
+- ✓ `dungeon_level.schema.json`
 - ✓ `encounter.schema.json`
 - ✓ `hexmap.schema.json`
 - ✓ `item.schema.json`
+- ✓ `party.schema.json`
+- ✓ `trap.schema.json`
 
 Schemas pending versioning:
 - `character_options_step[1-8].json` (UI-only schemas)
-- `dungeon_level.schema.json`
 - `entity_instance.schema.json`
 - `hazard.schema.json`
 - `obstacle.schema.json`
 - `obstacle_object_catalog.schema.json`
-- `party.schema.json`
 - `room.schema.json`
-- `trap.schema.json`
 
 ### Adding New Properties
 1. Update the appropriate schema file
