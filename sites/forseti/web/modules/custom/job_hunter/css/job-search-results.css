@@ -277,6 +277,8 @@
   color: #4a5568;
   line-height: 1.6;
   margin: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Job Card Footer */
@@ -306,6 +308,20 @@
 .btn-save-job:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(72, 187, 120, 0.4);
+}
+
+.btn-save-job.is-saving {
+  background: #718096;
+  box-shadow: none;
+  transform: none;
+  cursor: progress;
+}
+
+.btn-save-job.is-saved {
+  background: #2f855a;
+  box-shadow: none;
+  transform: none;
+  cursor: default;
 }
 
 .btn-view-job {

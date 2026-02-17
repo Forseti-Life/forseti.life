@@ -6,6 +6,7 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_tester\Form\OpenIssuesImportForm;
+use Drupal\dungeoncrawler_tester\Service\OpenIssuesReconcileFeedService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,6 +16,11 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
  * Focused controller surface for issue/PR report and automation routes.
  */
 class TestingDashboardIssueAutomationController extends TestingDashboardController {
+
+	/**
+	 * Background reconcile feed service.
+	 */
+	protected OpenIssuesReconcileFeedService $reconcileFeed;
 
 	/**
 	 * Date formatter for issue report metadata timestamps.
@@ -52,10 +58,12 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	private const MSG_UNABLE_TO_LOAD_PR_DETAILS = 'Unable to load PR details.';
 	private const MSG_PR_NO_LONGER_DEAD_VALUE = 'PR is no longer dead-value; refresh and review.';
 	private const MSG_CLOSE_WITH_WARNINGS = 'Close action completed with warnings. Check logs for details.';
+	private const MSG_RECONCILE_DISABLED = 'Background reconcile is in development and disabled. Do Not use this form.';
 	private const HTTP_BAD_REQUEST = 400;
 	private const HTTP_FORBIDDEN = 403;
 	private const HTTP_CONFLICT = 409;
 	private const HTTP_INTERNAL_SERVER_ERROR = 500;
+	private const RECONCILE_FORM_ENABLED = FALSE;
 
 	/**
 	 * Build a URL from route name with a safe path fallback.
@@ -80,6 +88,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	public static function create(ContainerInterface $container): static {
 		$instance = parent::create($container);
 		$instance->dateFormatter = $container->get('date.formatter');
+		$instance->reconcileFeed = $container->get('dungeoncrawler_tester.open_issues_reconcile_feed');
 		return $instance;
 	}
 
@@ -87,17 +96,521 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 * Render the open-issues import page.
 	 */
 	public function importOpenIssuesPage(): array {
+		$metrics = $this->buildImportOpenIssuesMetrics();
+		$reconcileStatus = $this->reconcileFeed->getStatus();
+		$reconcileDisabled = !self::RECONCILE_FORM_ENABLED;
+		$importForm = $this->formBuilder()->getForm(OpenIssuesImportForm::class);
 		return [
 			'#type' => 'container',
-			'#attributes' => ['class' => ['issue-import-page']],
-			'intro' => [
-				'#type' => 'html_tag',
-				'#tag' => 'p',
-				'#attributes' => ['class' => ['text-muted-light']],
-				'#value' => (string) $this->t('Import open tracker rows from Issues.md into GitHub issues using the tester GitHub client and Copilot assignment flow. Run in small batches to avoid request timeouts.'),
+			'#attributes' => ['class' => ['issue-import-page', 'dungeoncrawler-testing-dashboard']],
+			'header' => [
+				'#type' => 'container',
+				'#attributes' => ['class' => ['issue-import-page-header', 'issue-card', 'issue-report-item']],
+				'title' => [
+					'#type' => 'html_tag',
+					'#tag' => 'h2',
+					'#value' => (string) $this->t('Import Open Issues'),
+				],
+				'subtitle' => [
+					'#type' => 'html_tag',
+					'#tag' => 'p',
+					'#attributes' => ['class' => ['import-muted-text']],
+					'#value' => (string) $this->t('Synchronize local Open rows from Issues.md to GitHub, monitor reconcile status, and review live activity in one place.'),
+				],
 			],
-			'form' => $this->formBuilder()->getForm(OpenIssuesImportForm::class),
+			'workflow_commentary' => [
+				'#type' => 'container',
+				'#attributes' => ['class' => ['issue-card', 'issue-report-item', 'import-workflow-commentary']],
+				'title' => [
+					'#type' => 'html_tag',
+					'#tag' => 'h3',
+					'#value' => (string) $this->t('Workflow Context'),
+				],
+				'overview' => [
+					'#type' => 'html_tag',
+					'#tag' => 'p',
+					'#attributes' => ['class' => ['import-muted-text']],
+					'#value' => (string) $this->t('This page is the GitHub synchronization step in the testing workflow, after regression/stage-gate execution and local issue capture.'),
+				],
+				'steps' => [
+					'#theme' => 'item_list',
+					'#items' => [
+						(string) $this->t('Run regression or stage-gate-specific tests from the parent testing dashboard page (`/dungeoncrawler/testing`).'),
+						(string) $this->t('Allow test automation to log failures into repository-root `Issues.md`.'),
+						(string) $this->t('Use this page to import Open tracker rows into GitHub so they can be worked through Copilot workflows.'),
+					],
+				],
+				'throttle_warning' => [
+					'#type' => 'html_tag',
+					'#tag' => 'p',
+					'#attributes' => ['class' => ['import-throttle-warning']],
+					'#value' => (string) $this->t('Important: respect GitHub throttling/rate limits. Use small batches and avoid rapid repeated runs, or GitHub automation can be paused by rate-limit cooldowns and stop working until recovery.'),
+				],
+			],
+			'top_grid' => [
+				'#type' => 'container',
+				'#attributes' => ['class' => ['import-open-issues-top-grid']],
+				'metrics' => [
+				'#type' => 'container',
+				'#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'issue-card', 'issue-report-item', 'import-open-issues-metrics']],
+				'title' => [
+					'#type' => 'html_tag',
+					'#tag' => 'h3',
+					'#value' => (string) $this->t('Import Metrics'),
+				],
+				'items' => [
+					'#theme' => 'item_list',
+					'#items' => [
+						(string) $this->t('Open issues in Issues.md: @count', ['@count' => (string) ($metrics['issues_md_open_count'] ?? 0)]),
+						(string) $this->t('Oldest open issue name: @name', ['@name' => (string) ($metrics['oldest_open_issue_name'] ?? 'n/a')]),
+						(string) $this->t('Newest open issue name (GitHub): @name', ['@name' => (string) ($metrics['newest_github_open_issue_name'] ?? 'n/a')]),
+						(string) $this->t('Open issues in GitHub: @count', ['@count' => (string) ($metrics['github_open_count'] ?? 'n/a')]),
+					],
+				],
+			],
+				'reconcile_card' => [
+				'#type' => 'container',
+				'#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'issue-card', 'issue-report-item', 'dc-reconcile-card']],
+				'title' => [
+					'#type' => 'html_tag',
+					'#tag' => 'h3',
+					'#value' => (string) $this->t('Background Reconcile (GitHub Source of Truth) — In development. Do Not use this form.'),
+				],
+				'description' => [
+					'#type' => 'html_tag',
+					'#tag' => 'p',
+					'#attributes' => ['class' => ['import-muted-text']],
+					'#value' => (string) $this->t('In development only. Do Not use this form. Runs in background-style ticks, logs each deletion to Drupal logs, and streams filtered reconcile output live below.'),
+				],
+				'controls' => [
+					'#type' => 'container',
+					'#attributes' => ['class' => ['queue-controls', 'dc-reconcile-controls']],
+					'left' => [
+						'#type' => 'container',
+						'#attributes' => ['class' => ['controls-left']],
+						'run' => [
+							'#type' => 'html_tag',
+							'#tag' => 'button',
+							'#attributes' => [
+								'type' => 'button',
+								'class' => ['btn-run-all', 'dc-reconcile-start-btn'],
+								'disabled' => $reconcileDisabled ? 'disabled' : NULL,
+							],
+							'#value' => (string) $this->t('▶️ Run reconcile'),
+						],
+						'refresh' => [
+							'#type' => 'html_tag',
+							'#tag' => 'button',
+							'#attributes' => [
+								'type' => 'button',
+								'class' => ['btn-refresh', 'dc-reconcile-refresh-btn'],
+								'disabled' => $reconcileDisabled ? 'disabled' : NULL,
+							],
+							'#value' => (string) $this->t('🔄 Refresh'),
+						],
+						'refresh_logs' => [
+							'#type' => 'html_tag',
+							'#tag' => 'button',
+							'#attributes' => [
+								'type' => 'button',
+								'class' => ['btn-refresh-logs', 'dc-reconcile-refresh-logs-btn'],
+								'disabled' => $reconcileDisabled ? 'disabled' : NULL,
+							],
+							'#value' => (string) $this->t('📋 Refresh logs'),
+						],
+						'auto' => [
+							'#type' => 'html_tag',
+							'#tag' => 'label',
+							'#attributes' => ['class' => ['toggle']],
+							'#value' => '<input type="checkbox" id="dc-reconcile-auto-refresh"' . ($reconcileDisabled ? ' disabled' : '') . ' checked> <span>Auto-refresh (2s)</span> <span class="refresh-countdown" id="dc-reconcile-auto-refresh-countdown" aria-live="polite"></span>',
+						],
+					],
+					'right' => [
+						'#type' => 'container',
+						'#attributes' => ['class' => ['controls-right']],
+						'pill' => [
+							'#type' => 'html_tag',
+							'#tag' => 'div',
+							'#attributes' => ['class' => ['status-pill', !empty($reconcileStatus['running']) ? 'running' : 'idle']],
+							'#value' => '<span class="dot"></span><span class="text" data-status-text>' . (!empty($reconcileStatus['running']) ? 'Running' : 'Idle') . '</span><span class="last-refresh-inline" id="dc-reconcile-last-refresh-inline">—</span>',
+						],
+						'count' => [
+							'#type' => 'html_tag',
+							'#tag' => 'div',
+							'#attributes' => ['class' => ['count-pill']],
+							'#value' => '<strong data-total-count>' . (string) ($reconcileStatus['pending_count'] ?? 0) . '</strong><span>' . (string) $this->t('pending item(s)') . '</span>',
+						],
+						'meta' => [
+							'#type' => 'html_tag',
+							'#tag' => 'div',
+							'#attributes' => ['class' => ['refresh-meta']],
+							'#value' => '<div>' . (string) $this->t('Status updated') . ' <span id="dc-reconcile-status-updated">—</span></div><div>' . (string) $this->t('Logs updated') . ' <span id="dc-reconcile-logs-updated">—</span></div>',
+						],
+					],
+				],
+				'status' => [
+					'#type' => 'html_tag',
+					'#tag' => 'div',
+					'#attributes' => ['class' => ['import-muted-text', 'dc-reconcile-status-summary'], 'id' => 'dc-reconcile-status'],
+					'#value' => (string) $this->t('Status: @state | Pending: @pending | Deleted: @deleted | Failed: @failed', [
+						'@state' => !empty($reconcileStatus['running']) ? 'Running' : 'Idle',
+						'@pending' => (string) ($reconcileStatus['pending_count'] ?? 0),
+						'@deleted' => (string) ($reconcileStatus['deleted_count'] ?? 0),
+						'@failed' => (string) ($reconcileStatus['failed_count'] ?? 0),
+					]),
+				],
+				'messages' => [
+					'#type' => 'container',
+					'#attributes' => ['class' => ['dc-queue-message'], 'id' => 'dc-reconcile-message', 'hidden' => 'hidden'],
+				],
+				'logs' => [
+					'#type' => 'container',
+					'#attributes' => ['class' => ['log-panel']],
+					'header' => [
+						'#type' => 'container',
+						'#attributes' => ['class' => ['log-header']],
+						'title' => [
+							'#type' => 'html_tag',
+							'#tag' => 'h4',
+							'#value' => (string) $this->t('Live Reconcile Feed'),
+						],
+						'filter_label' => [
+							'#type' => 'html_tag',
+							'#tag' => 'label',
+							'#attributes' => ['for' => 'dc-reconcile-log-filter'],
+							'#value' => (string) $this->t('Filter'),
+						],
+						'filter' => [
+							'#type' => 'html_tag',
+							'#tag' => 'select',
+							'#attributes' => ['id' => 'dc-reconcile-log-filter'],
+							'#value' => '<option value="all" selected>All activity</option><option value="github">GitHub actions</option><option value="deleted">Deletions only</option><option value="warnings">Warnings only</option>',
+						],
+					],
+					'entries' => [
+						'#type' => 'container',
+						'#attributes' => ['class' => ['log-entries'], 'id' => 'dc-reconcile-log-entries'],
+						'empty' => [
+							'#type' => 'html_tag',
+							'#tag' => 'div',
+							'#attributes' => ['class' => ['log-entry']],
+							'#value' => (string) $this->t('Waiting for reconcile activity...'),
+						],
+					],
+				],
+				],
+			],
+			'import_card' => [
+				'#type' => 'container',
+				'#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'issue-card', 'issue-report-item', 'import-open-issues-form-card']],
+				'title' => [
+					'#type' => 'html_tag',
+					'#tag' => 'h3',
+					'#value' => (string) $this->t('Import Runner'),
+				],
+				'description' => [
+					'#type' => 'html_tag',
+					'#tag' => 'p',
+					'#attributes' => ['class' => ['import-muted-text']],
+					'#value' => (string) $this->t('Run small, repeatable import batches with optional dry-run to safely synchronize tracker rows to GitHub issues.'),
+				],
+				'form' => $importForm,
+			],
+			'#attached' => [
+				'library' => [
+					'dungeoncrawler_tester/import-open-issues-reconcile',
+				],
+				'drupalSettings' => [
+					'dungeoncrawlerTesterReconcile' => [
+						'enabled' => self::RECONCILE_FORM_ENABLED,
+						'csrfToken' => $this->csrfToken->get('rest'),
+						'routes' => [
+							'start' => Url::fromRoute('dungeoncrawler_tester.import_open_issues_reconcile_start')->toString(),
+							'tick' => Url::fromRoute('dungeoncrawler_tester.import_open_issues_reconcile_tick')->toString(),
+							'status' => Url::fromRoute('dungeoncrawler_tester.import_open_issues_reconcile_status')->toString(),
+							'logs' => Url::fromRoute('dungeoncrawler_tester.import_open_issues_reconcile_logs')->toString(),
+						],
+					],
+				],
+			],
 		];
+	}
+
+	/**
+	 * Build top-of-page import metrics from Issues.md and GitHub.
+	 */
+	private function buildImportOpenIssuesMetrics(): array {
+		$openRows = $this->loadOpenIssuesMdRowsForMetrics();
+		$oldestOpenName = $this->findOldestOpenIssueName($openRows);
+
+		$context = $this->githubClient->resolveContext();
+		$repo = trim((string) ($context['repo'] ?? 'keithaumiller/forseti.life'));
+		$token = trim((string) ($context['token'] ?? ''));
+
+		$githubIssues = $this->loadOpenGithubIssuesForMetrics($repo, $token);
+		if ($githubIssues === NULL) {
+			return [
+				'issues_md_open_count' => count($openRows),
+				'oldest_open_issue_name' => $oldestOpenName,
+				'newest_github_open_issue_name' => 'n/a',
+				'github_open_count' => 'n/a',
+			];
+		}
+
+		return [
+			'issues_md_open_count' => count($openRows),
+			'oldest_open_issue_name' => $oldestOpenName,
+			'newest_github_open_issue_name' => $this->findNewestGithubOpenIssueName($githubIssues),
+			'github_open_count' => count($githubIssues),
+		];
+	}
+
+	/**
+	 * Load open Issues.md rows for metrics.
+	 *
+	 * @return array<int, array<string, string>>
+	 *   Open rows with id/title/created metadata.
+	 */
+	private function loadOpenIssuesMdRowsForMetrics(): array {
+		$issuesFile = DRUPAL_ROOT . '/../../../Issues.md';
+		$resolved = realpath($issuesFile);
+		$path = $resolved !== FALSE ? $resolved : $issuesFile;
+
+		if (!is_file($path)) {
+			return [];
+		}
+
+		$lines = file($path);
+		if (!is_array($lines) || $lines === []) {
+			return [];
+		}
+
+		$rows = [];
+		foreach ($lines as $line) {
+			$trimmed = rtrim((string) $line, "\r\n");
+			if (!str_starts_with($trimmed, '|')) {
+				continue;
+			}
+
+			$parts = array_map('trim', explode('|', $trimmed));
+			if (count($parts) < 9) {
+				continue;
+			}
+
+			$id = (string) ($parts[1] ?? '');
+			$title = (string) ($parts[2] ?? '');
+			$status = (string) ($parts[3] ?? '');
+			$created = (string) ($parts[5] ?? '');
+
+			if ($id === '' || $id === 'ID' || $id === '---' || preg_match('/^[A-Z]+-\d+$/', $id) !== 1) {
+				continue;
+			}
+			if ($status !== 'Open') {
+				continue;
+			}
+
+			$rows[] = [
+				'id' => $id,
+				'title' => $title,
+				'created' => $created,
+			];
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * Find oldest open issue name from local tracker rows.
+	 *
+	 * @param array<int, array<string, string>> $rows
+	 *   Open Issues.md rows.
+	 */
+	private function findOldestOpenIssueName(array $rows): string {
+		if ($rows === []) {
+			return 'n/a';
+		}
+
+		$oldestTitle = trim((string) ($rows[0]['title'] ?? ''));
+		$oldestTs = NULL;
+		foreach ($rows as $row) {
+			$title = trim((string) ($row['title'] ?? ''));
+			if ($title === '') {
+				continue;
+			}
+
+			$created = trim((string) ($row['created'] ?? ''));
+			$createdTs = $created !== '' ? strtotime($created) : FALSE;
+			if (!is_int($createdTs)) {
+				if ($oldestTitle === '') {
+					$oldestTitle = $title;
+				}
+				continue;
+			}
+
+			if ($oldestTs === NULL || $createdTs < $oldestTs) {
+				$oldestTs = $createdTs;
+				$oldestTitle = $title;
+			}
+		}
+
+		return $oldestTitle !== '' ? $oldestTitle : 'n/a';
+	}
+
+	/**
+	 * Load open GitHub issues for metrics (excluding PRs).
+	 *
+	 * @return array<int, array<string, mixed>>|null
+	 *   Open issue payload items or NULL on fetch error.
+	 */
+	private function loadOpenGithubIssuesForMetrics(string $repo, string $token): ?array {
+		$url = 'https://api.github.com/repos/' . $repo . '/issues?state=open&per_page=100';
+		$response = $this->githubClient->requestJson($url, $token !== '' ? $token : NULL, [], TRUE);
+		if (!empty($response['error'])) {
+			$this->logger->warning('Import metrics: unable to load open GitHub issues for @repo: @error', [
+				'@repo' => $repo,
+				'@error' => (string) ($response['error'] ?? 'unknown error'),
+			]);
+			return NULL;
+		}
+
+		$items = $response['items'] ?? [];
+		if (!is_array($items)) {
+			return [];
+		}
+
+		$issues = [];
+		foreach ($items as $item) {
+			if (!is_array($item) || isset($item['pull_request'])) {
+				continue;
+			}
+			$issues[] = $item;
+		}
+
+		return $issues;
+	}
+
+	/**
+	 * Find newest open GitHub issue name by created_at timestamp.
+	 *
+	 * @param array<int, array<string, mixed>> $issues
+	 *   Open GitHub issues.
+	 */
+	private function findNewestGithubOpenIssueName(array $issues): string {
+		if ($issues === []) {
+			return 'n/a';
+		}
+
+		$newestTitle = 'n/a';
+		$newestTs = NULL;
+		foreach ($issues as $issue) {
+			$title = trim((string) ($issue['title'] ?? ''));
+			if ($title === '') {
+				continue;
+			}
+
+			$createdAt = trim((string) ($issue['created_at'] ?? ''));
+			$createdTs = $createdAt !== '' ? strtotime($createdAt) : FALSE;
+			if (!is_int($createdTs)) {
+				if ($newestTs === NULL && $newestTitle === 'n/a') {
+					$newestTitle = $title;
+				}
+				continue;
+			}
+
+			if ($newestTs === NULL || $createdTs > $newestTs) {
+				$newestTs = $createdTs;
+				$newestTitle = $title;
+			}
+		}
+
+		return $newestTitle;
+	}
+
+	/**
+	 * AJAX: start background reconcile feed run.
+	 */
+	public function startImportOpenIssuesReconcileAjax(Request $request): JsonResponse {
+		if ($permissionError = $this->requireAdminPermissionError()) {
+			return $permissionError;
+		}
+
+		if (!self::RECONCILE_FORM_ENABLED) {
+			return $this->errorJsonResponse(self::MSG_RECONCILE_DISABLED, self::HTTP_CONFLICT);
+		}
+
+		$payload = $this->decodeJsonRequestPayload($request);
+		$repo = trim((string) ($payload['repo'] ?? ''));
+		if ($repo === '') {
+			$context = $this->githubClient->resolveContext();
+			$repo = trim((string) ($context['repo'] ?? 'keithaumiller/forseti.life'));
+		}
+
+		$result = $this->reconcileFeed->startRun($repo);
+		if (empty($result['success'])) {
+			return $this->errorJsonResponse((string) ($result['message'] ?? 'Unable to start reconcile run.'), self::HTTP_BAD_REQUEST);
+		}
+
+		return $this->successJsonResponse((string) ($result['message'] ?? 'Reconcile started.'), [
+			'status' => $result['status'] ?? $this->reconcileFeed->getStatus(),
+		]);
+	}
+
+	/**
+	 * AJAX: process reconcile feed tick.
+	 */
+	public function tickImportOpenIssuesReconcileAjax(Request $request): JsonResponse {
+		if ($permissionError = $this->requireAdminPermissionError()) {
+			return $permissionError;
+		}
+
+		if (!self::RECONCILE_FORM_ENABLED) {
+			return $this->errorJsonResponse(self::MSG_RECONCILE_DISABLED, self::HTTP_CONFLICT);
+		}
+
+		$payload = $this->decodeJsonRequestPayload($request);
+		$limit = (int) ($payload['limit'] ?? 1);
+		$result = $this->reconcileFeed->tick($limit);
+
+		if (empty($result['success'])) {
+			return $this->errorJsonResponse((string) ($result['message'] ?? 'Unable to process reconcile tick.'), self::HTTP_BAD_REQUEST);
+		}
+
+		return $this->successJsonResponse((string) ($result['message'] ?? 'Reconcile tick processed.'), [
+			'status' => $result['status'] ?? $this->reconcileFeed->getStatus(),
+		]);
+	}
+
+	/**
+	 * AJAX: retrieve current reconcile feed status.
+	 */
+	public function getImportOpenIssuesReconcileStatusAjax(): JsonResponse {
+		if ($permissionError = $this->requireAdminPermissionError()) {
+			return $permissionError;
+		}
+
+		return $this->successJsonResponse('Reconcile status loaded.', [
+			'status' => $this->reconcileFeed->getStatus(),
+		]);
+	}
+
+	/**
+	 * AJAX: retrieve filtered reconcile feed logs.
+	 */
+	public function getImportOpenIssuesReconcileLogsAjax(Request $request): JsonResponse {
+		if ($permissionError = $this->requireAdminPermissionError()) {
+			return $permissionError;
+		}
+
+		$contains = strtolower(trim((string) ($request->query->get('contains') ?? 'all')));
+		if (!in_array($contains, ['all', 'github', 'deleted', 'warnings'], TRUE)) {
+			$contains = 'all';
+		}
+
+		$logs = $this->reconcileFeed->getLogs(80, $contains);
+
+		return $this->successJsonResponse('Reconcile logs loaded.', [
+			'logs' => $logs,
+		]);
 	}
 
 	/**

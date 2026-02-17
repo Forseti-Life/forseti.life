@@ -3,6 +3,7 @@
 namespace Drupal\job_hunter\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Link;
@@ -14,6 +15,7 @@ use Drupal\job_hunter\Service\SearchAggregatorService;
 use Drupal\job_hunter\Service\UserProfileService;
 use Drupal\user\Entity\User;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -66,6 +68,13 @@ class JobApplicationController extends ControllerBase {
   protected UserProfileService $userProfileService;
 
   /**
+   * The CSRF token generator.
+   *
+   * @var \Drupal\Core\Access\CsrfTokenGenerator
+   */
+  protected CsrfTokenGenerator $csrfTokenGenerator;
+
+  /**
    * Constructs a JobApplicationController object.
    *
    * @param \Drupal\job_hunter\Service\JobDiscoveryService $job_discovery_service
@@ -82,6 +91,8 @@ class JobApplicationController extends ControllerBase {
    *   The entity type manager.
    * @param \Drupal\job_hunter\Service\UserProfileService $user_profile_service
    *   The user profile service.
+  * @param \Drupal\Core\Access\CsrfTokenGenerator $csrf_token_generator
+  *   The CSRF token generator.
    */
   public function __construct(
     JobDiscoveryService $job_discovery_service,
@@ -90,7 +101,8 @@ class JobApplicationController extends ControllerBase {
     QueueFactory $queue_factory,
     SearchAggregatorService $search_aggregator,
     EntityTypeManagerInterface $entity_type_manager,
-    UserProfileService $user_profile_service
+    UserProfileService $user_profile_service,
+    CsrfTokenGenerator $csrf_token_generator
   ) {
     $this->jobDiscoveryService = $job_discovery_service;
     $this->requestStack = $request_stack;
@@ -99,6 +111,7 @@ class JobApplicationController extends ControllerBase {
     $this->searchAggregator = $search_aggregator;
     $this->entityTypeManager = $entity_type_manager;
     $this->userProfileService = $user_profile_service;
+    $this->csrfTokenGenerator = $csrf_token_generator;
   }
 
   /**
@@ -112,7 +125,8 @@ class JobApplicationController extends ControllerBase {
       $container->get('queue'),
       $container->get('job_hunter.search_aggregator'),
       $container->get('entity_type.manager'),
-      $container->get('job_hunter.user_profile_service')
+      $container->get('job_hunter.user_profile_service'),
+      $container->get('csrf_token')
     );
   }
 
@@ -938,121 +952,107 @@ class JobApplicationController extends ControllerBase {
   /**
    * Save a searched job into My Jobs from legacy addposting URL.
    *
-   * Expected query parameter:
-   * - job_id: Base64-encoded JSON payload from search results.
+    * Expected query parameter:
+    * - job_id: Search result token (e.g. forseti_{id}, staging_{id},
+    *   external ID, or legacy base64 JSON payload).
    *
-   * @return \Symfony\Component\HttpFoundation\RedirectResponse
-   *   Redirect to My Jobs after save attempt.
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse|\Symfony\Component\HttpFoundation\JsonResponse
+   *   Redirect response for normal navigation, or JSON for AJAX requests.
    */
-  public function addPostingFromSearch(): RedirectResponse {
+  public function addPostingFromSearch(): RedirectResponse|JsonResponse {
+    $request = $this->requestStack->getCurrentRequest();
+    $is_ajax = $request->isXmlHttpRequest();
+
+    if ($request->isMethod('POST')) {
+      $csrf_token = (string) $request->request->get('csrf_token', '');
+      if (!$this->csrfTokenGenerator->validate($csrf_token, 'job_hunter.addposting')) {
+        if ($is_ajax) {
+          return new JsonResponse([
+            'success' => FALSE,
+            'message' => (string) $this->t('Security token validation failed. Refresh and try again.'),
+          ], 403);
+        }
+        $this->messenger()->addError($this->t('Security token validation failed. Refresh and try again.'));
+        return new RedirectResponse('/jobhunter/job-discovery/search');
+      }
+    }
+
     if ($this->currentUser()->isAnonymous()) {
+      if ($is_ajax) {
+        return new JsonResponse([
+          'success' => FALSE,
+          'message' => (string) $this->t('You must be logged in to save jobs.'),
+          'redirect' => '/user/login',
+        ], 401);
+      }
       $this->messenger()->addError($this->t('You must be logged in to save jobs.'));
       return new RedirectResponse('/user/login');
     }
 
-    $request = $this->requestStack->getCurrentRequest();
-    $encoded = (string) $request->query->get('job_id', '');
+    $encoded = (string) ($request->request->get('job_id') ?? $request->query->get('job_id', ''));
     if ($encoded === '') {
+      if ($is_ajax) {
+        return new JsonResponse([
+          'success' => FALSE,
+          'message' => (string) $this->t('Missing job payload.'),
+        ], 400);
+      }
       $this->messenger()->addError($this->t('Missing job payload.'));
       return new RedirectResponse('/jobhunter/job-discovery');
     }
 
-    $decoded = base64_decode(strtr($encoded, '-_', '+/'), TRUE);
-    if ($decoded === FALSE) {
-      $decoded = base64_decode($encoded, TRUE);
-    }
-
-    $job_data = $decoded !== FALSE ? json_decode($decoded, TRUE) : NULL;
-    if (!is_array($job_data)) {
-      $this->messenger()->addError($this->t('Invalid job payload.'));
-      return new RedirectResponse('/jobhunter/job-discovery');
-    }
-
-    $schema = $this->database->schema();
-    $title = trim((string) ($job_data['job_title'] ?? $job_data['title'] ?? 'Untitled Job'));
-    $company_name = trim((string) ($job_data['company_name'] ?? $job_data['company'] ?? ''));
-    $location = trim((string) ($job_data['address_city'] ?? $job_data['location'] ?? ''));
-    $description = trim((string) ($job_data['description'] ?? ''));
-    $source_url = trim((string) ($job_data['url'] ?? ''));
-    $external_job_id = trim((string) ($job_data['htidocid'] ?? $job_data['job_id'] ?? ''));
+    $uid = (int) $this->currentUser()->id();
 
     try {
-      $uid = (int) $this->currentUser()->id();
-      $company_id = NULL;
+      $target_job_id = $this->resolveTargetJobIdFromToken($encoded);
 
-      if ($company_name !== '') {
-        $existing_company = $this->database->select('jobhunter_companies', 'c')
-          ->fields('c', ['id'])
-          ->condition('name', $company_name)
-          ->execute()
-          ->fetchField();
-
-        if ($existing_company) {
-          $company_id = (int) $existing_company;
+      if (!$target_job_id) {
+        if ($is_ajax) {
+          return new JsonResponse([
+            'success' => FALSE,
+            'message' => (string) $this->t('Job not found in Forseti jobs yet. Refresh search and try again.'),
+          ], 404);
         }
-        else {
-          $company_fields = [
-            'name' => $company_name,
-            'active' => 1,
-            'created' => time(),
-            'updated' => time(),
-          ];
-          if ($schema->fieldExists('jobhunter_companies', 'uid')) {
-            $company_fields['uid'] = $uid;
-          }
-          $company_id = (int) $this->database->insert('jobhunter_companies')
-            ->fields($company_fields)
-            ->execute();
+        $this->messenger()->addError($this->t('Job not found in Forseti jobs yet. Refresh search and try again.'));
+        return new RedirectResponse('/jobhunter/job-discovery/search');
+      }
+
+      // User-specific save mapping.
+      $existing_mapping = $this->database->select('jobhunter_saved_jobs', 'sj')
+        ->fields('sj', ['id'])
+        ->condition('sj.uid', $uid)
+        ->condition('sj.job_id', $target_job_id)
+        ->execute()
+        ->fetchField();
+
+      if ($existing_mapping) {
+        if ($is_ajax) {
+          return new JsonResponse([
+            'success' => TRUE,
+            'already_saved' => TRUE,
+            'message' => (string) $this->t('Job is already in My Jobs.'),
+          ]);
         }
+        $this->messenger()->addStatus($this->t('Job is already in My Jobs.'));
+        return new RedirectResponse('/jobhunter/my-jobs');
       }
 
-      // Prevent duplicate saves for this user when possible.
-      if ($external_job_id !== '' && $schema->fieldExists('jobhunter_job_requirements', 'external_job_id')) {
-        $dup = $this->database->select('jobhunter_job_requirements', 'j')
-          ->fields('j', ['id'])
-          ->condition('j.external_job_id', $external_job_id);
-        if ($schema->fieldExists('jobhunter_job_requirements', 'created_by_user_id')) {
-          $dup->condition('j.created_by_user_id', $uid);
-        }
-        $existing = $dup->execute()->fetchField();
-        if ($existing) {
-          $this->messenger()->addStatus($this->t('Job is already in My Jobs.'));
-          return new RedirectResponse('/jobhunter/my-jobs');
-        }
-      }
-
-      $fields = [
-        'company_id' => $company_id,
-        'job_title' => $title,
-        'job_description' => $description,
-        'location' => $location,
-        'status' => 'active',
-        'created' => time(),
-        'updated' => time(),
-      ];
-
-      if ($schema->fieldExists('jobhunter_job_requirements', 'source_platform')) {
-        $fields['source_platform'] = 'job_discovery';
-      }
-      if ($schema->fieldExists('jobhunter_job_requirements', 'external_source')) {
-        $fields['external_source'] = 'job_discovery';
-      }
-      if ($schema->fieldExists('jobhunter_job_requirements', 'external_job_id')) {
-        $fields['external_job_id'] = $external_job_id;
-      }
-      if ($schema->fieldExists('jobhunter_job_requirements', 'created_by_user_id')) {
-        $fields['created_by_user_id'] = $uid;
-      }
-      if ($schema->fieldExists('jobhunter_job_requirements', 'job_url')) {
-        $fields['job_url'] = $source_url;
-      }
-      if ($schema->fieldExists('jobhunter_job_requirements', 'application_url')) {
-        $fields['application_url'] = $source_url;
-      }
-
-      $this->database->insert('jobhunter_job_requirements')
-        ->fields($fields)
+      $this->database->insert('jobhunter_saved_jobs')
+        ->fields([
+          'uid' => $uid,
+          'job_id' => $target_job_id,
+          'created' => time(),
+          'updated' => time(),
+        ])
         ->execute();
+
+      if ($is_ajax) {
+        return new JsonResponse([
+          'success' => TRUE,
+          'already_saved' => FALSE,
+          'message' => (string) $this->t('Job added to My Jobs.'),
+        ]);
+      }
 
       $this->messenger()->addStatus($this->t('Job added to My Jobs.'));
       return new RedirectResponse('/jobhunter/my-jobs');
@@ -1061,9 +1061,123 @@ class JobApplicationController extends ControllerBase {
       $this->getLogger('job_hunter')->error('Failed to add posting from search payload: @error', [
         '@error' => $e->getMessage(),
       ]);
+
+      if ($is_ajax) {
+        return new JsonResponse([
+          'success' => FALSE,
+          'message' => (string) $this->t('Unable to save this job right now.'),
+        ], 500);
+      }
+
       $this->messenger()->addError($this->t('Unable to save this job right now.'));
       return new RedirectResponse('/jobhunter/job-discovery');
     }
+  }
+
+  /**
+   * Resolve a Forseti job ID from a search result token.
+   *
+   * @param string $encoded
+   *   Search result token from query string.
+   *
+   * @return int|null
+   *   Forseti job ID or NULL if unresolved.
+   */
+  private function resolveTargetJobIdFromToken(string $encoded): ?int {
+    if (preg_match('/^forseti_(\d+)$/', $encoded, $matches)) {
+      return (int) $matches[1];
+    }
+
+    if (preg_match('/^staging_(\d+)$/', $encoded, $matches)) {
+      $imported_job_id = (int) $this->database->select('jobhunter_job_search_results', 's')
+        ->fields('s', ['imported_to_job_id'])
+        ->condition('s.id', (int) $matches[1])
+        ->execute()
+        ->fetchField();
+      if ($imported_job_id > 0) {
+        return $imported_job_id;
+      }
+    }
+
+    $job_id = $this->findJobIdByExternalId($this->normalizeExternalJobId($encoded));
+    if ($job_id !== NULL) {
+      return $job_id;
+    }
+
+    $job_data = $this->decodeSearchPayloadToken($encoded);
+    if (is_array($job_data)) {
+      $embedded_external_id = trim((string) ($job_data['htidocid'] ?? $job_data['job_id'] ?? $job_data['id'] ?? ''));
+      if ($embedded_external_id !== '') {
+        return $this->findJobIdByExternalId($this->normalizeExternalJobId($embedded_external_id));
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Find Forseti job ID by normalized external job identifier.
+   *
+   * @param string $external_id
+   *   Normalized external identifier.
+   *
+   * @return int|null
+   *   Matching Forseti job ID or NULL.
+   */
+  private function findJobIdByExternalId(string $external_id): ?int {
+    if ($external_id === '') {
+      return NULL;
+    }
+
+    $job_id = (int) $this->database->select('jobhunter_job_requirements', 'j')
+      ->fields('j', ['id'])
+      ->condition('j.external_job_id', $external_id)
+      ->orderBy('j.id', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    return $job_id > 0 ? $job_id : NULL;
+  }
+
+  /**
+   * Decode legacy search payload token if it is base64-encoded JSON.
+   *
+   * @param string $encoded
+   *   Raw token from query string.
+   *
+   * @return array|null
+   *   Decoded payload array or NULL.
+   */
+  private function decodeSearchPayloadToken(string $encoded): ?array {
+    $decoded = base64_decode(strtr($encoded, '-_', '+/'), TRUE);
+    if ($decoded === FALSE) {
+      $decoded = base64_decode($encoded, TRUE);
+    }
+
+    if ($decoded === FALSE) {
+      return NULL;
+    }
+
+    $job_data = json_decode($decoded, TRUE);
+    return is_array($job_data) ? $job_data : NULL;
+  }
+
+  /**
+   * Normalize external job IDs to fit schema constraints safely.
+   *
+   * @param string $external_job_id
+   *   Source-provided external job identifier.
+   *
+   * @return string
+   *   A schema-safe external job ID.
+   */
+  private function normalizeExternalJobId(string $external_job_id): string {
+    if (strlen($external_job_id) <= 255) {
+      return $external_job_id;
+    }
+
+    return 'hash_' . hash('sha256', $external_job_id);
   }
 
   /**
@@ -1128,14 +1242,21 @@ class JobApplicationController extends ControllerBase {
     }
 
     try {
-      $schema = $this->database->schema();
+      $saved_mapping_exists = (bool) $this->database->select('jobhunter_saved_jobs', 'sj')
+        ->fields('sj', ['id'])
+        ->condition('sj.uid', (int) $this->currentUser()->id())
+        ->condition('sj.job_id', $job_id)
+        ->execute()
+        ->fetchField();
+
+      if (!$saved_mapping_exists) {
+        $this->messenger()->addError($this->t('Job not found in your saved jobs.'));
+        return new RedirectResponse($return_to);
+      }
+
       $query = $this->database->select('jobhunter_job_requirements', 'j')
         ->fields('j', ['id', 'status', 'applied_on_date'])
         ->condition('j.id', $job_id);
-
-      if ($schema->fieldExists('jobhunter_job_requirements', 'created_by_user_id')) {
-        $query->condition('j.created_by_user_id', (int) $this->currentUser()->id());
-      }
 
       $job = $query->execute()->fetchObject();
       if (!$job) {

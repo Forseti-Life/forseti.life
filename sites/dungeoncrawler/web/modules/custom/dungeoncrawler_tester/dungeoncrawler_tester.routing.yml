@@ -22,6 +22,38 @@ dungeoncrawler_tester.import_open_issues:
   requirements:
     _permission: 'administer site configuration'
 
+dungeoncrawler_tester.import_open_issues_reconcile_start:
+  path: '/dungeoncrawler/testing/import-open-issues/reconcile/start'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::startImportOpenIssuesReconcileAjax'
+  methods: [POST]
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.import_open_issues_reconcile_tick:
+  path: '/dungeoncrawler/testing/import-open-issues/reconcile/tick'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::tickImportOpenIssuesReconcileAjax'
+  methods: [POST]
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.import_open_issues_reconcile_status:
+  path: '/dungeoncrawler/testing/import-open-issues/reconcile/status'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::getImportOpenIssuesReconcileStatusAjax'
+  methods: [GET]
+  requirements:
+    _permission: 'administer site configuration'
+
+dungeoncrawler_tester.import_open_issues_reconcile_logs:
+  path: '/dungeoncrawler/testing/import-open-issues/reconcile/logs'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::getImportOpenIssuesReconcileLogsAjax'
+  methods: [GET]
+  requirements:
+    _permission: 'administer site configuration'
+
 dungeoncrawler_tester.dead_value_close:
   path: '/dungeoncrawler/testing/import-open-issues/issue-pr-report/dead-value-close'
   defaults:
