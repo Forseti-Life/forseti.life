@@ -3,10 +3,34 @@
 /**
  * @file
  * Install, update, and uninstall functions for Dungeon Crawler Content module.
+ *
+ * This file defines the database schema for the Dungeon Crawler game system,
+ * including character management, combat encounters, campaign tracking, and
+ * procedurally generated content.
+ *
+ * Update Hook Numbering:
+ * - 10001: Initial character table (dc_characters)
+ * - 10002: Game content system tables (registry, loot, encounters)
+ * - 10003: Campaign management tables (campaigns, campaign_characters)
+ * - 10004: Campaign-scoped content tables (rooms, dungeons, instances)
+ * - 10005: Unified entity model (polymorphic character types)
+ *
+ * @see dungeoncrawler_content_schema()
  */
 
 /**
  * Implements hook_schema().
+ *
+ * Defines all database tables used by the Dungeon Crawler Content module.
+ * Tables are organized into logical groups:
+ * - Character/Entity Storage: dc_characters
+ * - Campaign Management: dc_campaigns, dc_campaign_characters
+ * - Combat System: combat_encounters, combat_participants, combat_conditions, etc.
+ * - Content Registry: dungeoncrawler_content_registry, loot_tables, encounter_templates
+ * - Campaign-Scoped Content: dc_campaign_* tables for per-campaign instances
+ *
+ * @return array
+ *   Schema definition array for Database API.
  */
 function dungeoncrawler_content_schema() {
   $schema['dc_characters'] = [
@@ -63,24 +87,24 @@ function dungeoncrawler_content_schema() {
         'length' => 32,
         'not null' => TRUE,
         'default' => 'pc',
-        'description' => 'Entity type: pc, npc, obstacle, trap, hazard.',
+        'description' => 'Entity type (polymorphic): pc (player character), npc (non-player character), obstacle, trap, hazard. Max 32 chars.',
       ],
       'character_data' => [
         'type' => 'text',
         'size' => 'big',
         'not null' => TRUE,
-        'description' => 'Full PF2e character sheet as JSON.',
+        'description' => 'Full PF2e character sheet as JSON (max ~16MB). Contains stats, abilities, inventory, and current state.',
       ],
       'default_character_data' => [
         'type' => 'text',
         'size' => 'big',
         'not null' => FALSE,
-        'description' => 'Default state payload for this character/library entry.',
+        'description' => 'Default state payload for this character/library entry. Used as template for new instances.',
       ],
       'default_locations' => [
         'type' => 'text',
         'not null' => FALSE,
-        'description' => 'Optional JSON array of default placement locations.',
+        'description' => 'Optional JSON array of default placement locations (max ~64KB). Used for spawning entities in campaigns.',
       ],
       'portrait' => [
         'type' => 'varchar',
@@ -94,7 +118,7 @@ function dungeoncrawler_content_schema() {
         'size' => 'tiny',
         'not null' => TRUE,
         'default' => 0,
-        'description' => '0 = draft, 1 = active, -1 = dead/retired.',
+        'description' => 'Character status: 0 = draft/inactive, 1 = active/playable, -1 = dead/retired. Signed tiny int (-128 to 127).',
       ],
       'created' => [
         'type' => 'int',
@@ -288,7 +312,7 @@ function dungeoncrawler_content_schema() {
         'length' => 16,
         'not null' => TRUE,
         'default' => 'setup',
-        'description' => 'setup|active|paused|ended',
+        'description' => 'Encounter status: setup (initializing), active (in progress), paused (temporarily stopped), ended (completed). Max 16 chars.',
       ],
       'current_round' => [
         'type' => 'int',
