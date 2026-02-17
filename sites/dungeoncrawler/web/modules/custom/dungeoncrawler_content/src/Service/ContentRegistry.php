@@ -89,10 +89,17 @@ class ContentRegistry {
         try {
           $content_data = $this->loadJsonFile($file);
           
-          if (!isset($content_data['content_id']) || !isset($content_data['name'])) {
-            $logger->error('Invalid content in @file: missing content_id or name', ['@file' => $file]);
+          // Support both old (content_id) and new schema (creature_id, item_id, etc.)
+          $id_field = $type . '_id';
+          $content_id = $content_data['content_id'] ?? $content_data[$id_field] ?? NULL;
+          
+          if (!$content_id || !isset($content_data['name'])) {
+            $logger->error('Invalid content in @file: missing id or name', ['@file' => $file]);
             continue;
           }
+          
+          // Normalize to content_id for database storage
+          $content_data['content_id'] = $content_id;
           
           // Validate content
           $validation = $this->validateContent($type, $content_data);
@@ -114,10 +121,10 @@ class ContentRegistry {
               'name' => $content_data['name'],
               'level' => $content_data['level'] ?? NULL,
               'rarity' => $content_data['rarity'] ?? NULL,
-              'tags' => isset($content_data['tags']) ? json_encode($content_data['tags']) : NULL,
+              'tags' => isset($content_data['tags']) ? json_encode($content_data['tags']) : (isset($content_data['traits']) ? json_encode($content_data['traits']) : NULL),
               'schema_data' => json_encode($content_data),
               'source_file' => str_replace($this->contentPath . '/', '', $file),
-              'version' => $content_data['version'] ?? '1.0',
+              'version' => $content_data['version'] ?? $content_data['schema_version'] ?? '1.0',
               'updated' => time(),
             ])
             ->expression('created', 'COALESCE(created, :time)', [':time' => time()])
@@ -255,18 +262,21 @@ class ContentRegistry {
     $errors = [];
     
     // Basic validation - check required fields
-    if (empty($content_data['content_id'])) {
-      $errors[] = 'Missing required field: content_id';
+    // Support both old (content_id) and new schema (creature_id, item_id, etc.)
+    $id_field = $content_type . '_id';
+    if (empty($content_data['content_id']) && empty($content_data[$id_field])) {
+      $errors[] = 'Missing required field: content_id or ' . $id_field;
     }
     
     if (empty($content_data['name'])) {
       $errors[] = 'Missing required field: name';
     }
     
-    if (empty($content_data['type'])) {
-      $errors[] = 'Missing required field: type';
-    } elseif ($content_data['type'] !== $content_type) {
-      $errors[] = "Type mismatch: expected '{$content_type}', got '{$content_data['type']}'";
+    // Support both old (type) and new schema (creature_type, item_type, etc.)
+    $type_field = $content_type . '_type';
+    $type_value = $content_data['type'] ?? $content_data[$type_field] ?? NULL;
+    if (empty($type_value)) {
+      $errors[] = 'Missing required field: type or ' . $type_field;
     }
     
     // Type-specific validation
@@ -309,27 +319,54 @@ class ContentRegistry {
       $errors[] = 'Creature level must be between -1 and 25';
     }
     
-    // Abilities validation
-    if (empty($data['abilities']) || !is_array($data['abilities'])) {
-      $errors[] = 'Creature must have abilities array';
-    } else {
+    // Support both old schema (abilities) and new schema (pf2e_stats.ability_scores)
+    $has_old_abilities = !empty($data['abilities']) && is_array($data['abilities']);
+    $has_new_abilities = !empty($data['pf2e_stats']['ability_scores']) && is_array($data['pf2e_stats']['ability_scores']);
+    
+    if (!$has_old_abilities && !$has_new_abilities) {
+      $errors[] = 'Creature must have abilities or pf2e_stats.ability_scores';
+    } elseif ($has_old_abilities) {
+      // Validate old schema
       $required_abilities = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
       foreach ($required_abilities as $ability) {
         if (!isset($data['abilities'][$ability])) {
           $errors[] = "Missing ability: {$ability}";
         }
       }
+    } elseif ($has_new_abilities) {
+      // Validate new schema
+      $required_abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+      foreach ($required_abilities as $ability) {
+        if (!isset($data['pf2e_stats']['ability_scores'][$ability])) {
+          $errors[] = "Missing ability score: {$ability}";
+        }
+      }
     }
     
-    // Stats validation
-    if (empty($data['stats']) || !is_array($data['stats'])) {
-      $errors[] = 'Creature must have stats array';
-    } else {
+    // Support both old schema (stats) and new schema (pf2e_stats)
+    $has_old_stats = !empty($data['stats']) && is_array($data['stats']);
+    $has_new_stats = !empty($data['pf2e_stats']) && is_array($data['pf2e_stats']);
+    
+    if (!$has_old_stats && !$has_new_stats) {
+      $errors[] = 'Creature must have stats or pf2e_stats';
+    } elseif ($has_old_stats) {
+      // Validate old schema
       $required_stats = ['ac', 'hp', 'fortitude', 'reflex', 'will'];
       foreach ($required_stats as $stat) {
         if (!isset($data['stats'][$stat])) {
           $errors[] = "Missing stat: {$stat}";
         }
+      }
+    } elseif ($has_new_stats) {
+      // Validate new schema
+      if (!isset($data['pf2e_stats']['ac'])) {
+        $errors[] = "Missing pf2e_stats.ac";
+      }
+      if (!isset($data['pf2e_stats']['hp'])) {
+        $errors[] = "Missing pf2e_stats.hp";
+      }
+      if (empty($data['pf2e_stats']['saves'])) {
+        $errors[] = "Missing pf2e_stats.saves";
       }
     }
     
