@@ -1,5 +1,23 @@
 # Campaign/Dungeon Runtime API Documentation
 
+**Version**: 1.0  
+**Last Updated**: 2026-02-17  
+**Status**: Active Development
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Authentication & Authorization](#authentication--authorization)
+3. [Campaign State Endpoints](#campaign-state-endpoints)
+4. [Dungeon State Endpoints](#dungeon-state-endpoints)
+5. [Room State Endpoints](#room-state-endpoints)
+6. [Entity Lifecycle Endpoints](#entity-lifecycle-endpoints)
+7. [Entity Instance Model](#entity-instance-model)
+8. [Visibility & Detection Rules](#visibility--detection-rules)
+9. [Error Response Format](#error-response-format)
+10. [Examples](#examples)
+11. [Implementation Status](#implementation-status)
+
 ## Overview
 
 This document describes the campaign/dungeon runtime APIs for managing game state, entities, and visibility rules.
@@ -18,6 +36,8 @@ Non-owners receive **403 Forbidden** responses.
 ## Campaign State Endpoints
 
 ### GET `/api/campaign/{campaignId}/state`
+
+**✓ Implementation Status**: Fully implemented (controller and route configured).
 
 Retrieve current campaign state with optimistic locking version.
 
@@ -50,6 +70,21 @@ Retrieve current campaign state with optimistic locking version.
 ---
 
 ### POST `/api/campaign/{campaignId}/state`
+
+**⚠️ Implementation Status**: Controller implemented but route not configured. Add to `dungeoncrawler_content.routing.yml`:
+```yaml
+dungeoncrawler_content.api.campaign_state_set:
+  path: '/api/campaign/{campaign_id}/state'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignStateController::setState'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+```
 
 Update campaign state with optimistic locking.
 
@@ -101,6 +136,8 @@ The state payload is validated against `campaign.schema.json`:
 
 ### GET `/api/dungeon/{dungeonId}/state?campaignId={campaignId}`
 
+**✓ Implementation Status**: Fully implemented (controller and route configured).
+
 Retrieve dungeon state for a campaign.
 
 **Query Parameters:**
@@ -136,6 +173,8 @@ Retrieve dungeon state for a campaign.
 
 ### POST `/api/dungeon/{dungeonId}/state`
 
+**✓ Implementation Status**: Fully implemented (controller and route configured).
+
 Update dungeon state.
 
 **Request Body:**
@@ -163,6 +202,8 @@ Update dungeon state.
 ## Room State Endpoints
 
 ### GET `/api/dungeon/{dungeonId}/room/{roomId}/state?campaignId={campaignId}`
+
+**✓ Implementation Status**: Fully implemented (controller and route configured).
 
 Retrieve room state with visibility and detection filtering applied.
 
@@ -226,6 +267,21 @@ Retrieve room state with visibility and detection filtering applied.
 
 ### POST `/api/dungeon/{dungeonId}/room/{roomId}/state`
 
+**⚠️ Implementation Status**: Controller implemented but route not configured. Add to `dungeoncrawler_content.routing.yml`:
+```yaml
+dungeoncrawler_content.api.room_state_set:
+  path: '/api/dungeon/{dungeon_id}/room/{room_id}/state'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\RoomStateController::setState'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    dungeon_id: '[A-Za-z0-9_-]+'
+    room_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+```
+
 Update room state.
 
 **Request Body:**
@@ -255,6 +311,8 @@ Update room state.
 ## Entity Lifecycle Endpoints
 
 ### POST `/api/campaign/{campaignId}/entity/spawn`
+
+**✓ Implementation Status**: Fully implemented (controller and route configured).
 
 Spawn a new entity instance in the campaign.
 
@@ -309,6 +367,8 @@ Spawn a new entity instance in the campaign.
 
 ### POST `/api/campaign/{campaignId}/entity/{instanceId}/move`
 
+**✓ Implementation Status**: Fully implemented (controller and route configured).
+
 Move an entity to a new location.
 
 **Request Body:**
@@ -345,6 +405,8 @@ Move an entity to a new location.
 
 ### DELETE `/api/campaign/{campaignId}/entity/{instanceId}`
 
+**✓ Implementation Status**: Fully implemented (controller and route configured).
+
 Despawn (remove) an entity from the campaign.
 
 **Response:**
@@ -362,6 +424,8 @@ Despawn (remove) an entity from the campaign.
 ---
 
 ### GET `/api/campaign/{campaignId}/entities`
+
+**✓ Implementation Status**: Fully implemented (controller and route configured).
 
 List entities in a campaign with optional filtering.
 
@@ -463,11 +527,12 @@ Trap State:
 
 ### Example Workflow
 
-1. **Room Entry**: Client requests room state
-2. **Server Response**: Returns only visible hexes and detected entities
-3. **Perception Check**: Client makes perception check
-4. **Spawn Trap**: If successful, client can mark trap as detected by updating entity state
-5. **Update Room State**: Client updates room state to mark trap location as visible
+1. **Room Entry**: Client requests room state - server returns only visible hexes and detected entities
+2. **Perception Check**: Client makes perception check for hidden entities/traps
+3. **Update Detection**: If successful, client updates room state to mark entities as detected
+4. **State Propagation**: Server returns updated room state with newly detected entities visible
+
+**Note**: Detection state is currently managed in the room state's `visibleHexIds` and entity `detected` flags. A dedicated `detectedEntities` array in room state can track which entities have been discovered.
 
 ---
 
@@ -517,27 +582,24 @@ POST /api/campaign/123/entity/spawn
 
 2. **Player Succeeds Perception Check, Mark Detected:**
 
-Note: To update entity state, you would typically fetch the entity, modify its stateData, and then use the move endpoint to update location or spawn a new corrected instance. For in-place state updates without location change, you could re-spawn with the same location but updated state, or implement a dedicated PATCH endpoint for state updates.
+To update entity detection state, update the room state to include the entity in a `detectedEntities` array:
 
-For this example, we'll update via the entity's stateData by moving it:
 ```bash
-# First, retrieve the entity to get current state
-GET /api/campaign/123/entities?instanceId=goblin-scout-1
-
-# Then update by moving to same location with detected flag
-# (In practice, you'd implement a PATCH endpoint or update via room state)
-# For now, the client would track detection state in room state or re-spawn
-
-# Alternative: Update room state to mark goblin as detected
 POST /api/dungeon/dungeon-001/room/room-3/state
 {
   "campaignId": 123,
+  "expectedVersion": 1234567890,
   "state": {
     "dungeonId": "dungeon-001",
+    "roomId": "room-3",
+    "isCleared": false,
+    "visibleHexIds": ["hex-1", "hex-5"],
     "detectedEntities": ["goblin-scout-1"]
   }
 }
 ```
+
+**Note**: When room state is retrieved, entities in `detectedEntities` will have their `detected` flag set to `true` in the response, making them visible even if they have `hidden: true`.
 
 3. **Goblin Moves to Room 4:**
 ```bash
@@ -551,6 +613,49 @@ POST /api/campaign/123/entity/goblin-scout-1/move
 4. **Goblin is Defeated, Despawn:**
 ```bash
 DELETE /api/campaign/123/entity/goblin-scout-1
+```
+
+---
+
+## Implementation Status
+
+### Fully Implemented Endpoints ✓
+
+**Campaign State**
+- ✅ `GET /api/campaign/{campaign_id}/state` - Get campaign state with versioning
+
+**Dungeon State**
+- ✅ `GET /api/dungeon/{dungeon_id}/state` - Get dungeon state
+- ✅ `POST /api/dungeon/{dungeon_id}/state` - Update dungeon state
+
+**Room State**
+- ✅ `GET /api/dungeon/{dungeon_id}/room/{room_id}/state` - Get room state with visibility filtering
+
+**Entity Lifecycle**
+- ✅ `POST /api/campaign/{campaign_id}/entity/spawn` - Spawn new entity
+- ✅ `POST /api/campaign/{campaign_id}/entity/{instance_id}/move` - Move entity
+- ✅ `DELETE /api/campaign/{campaign_id}/entity/{instance_id}` - Despawn entity
+- ✅ `GET /api/campaign/{campaign_id}/entities` - List entities with filters
+
+### Pending Route Configuration ⚠️
+
+These endpoints have controllers implemented but are **not configured in routing**:
+- ⚠️ `POST /api/campaign/{campaign_id}/state` - Campaign state update (controller: `CampaignStateController::setState`)
+- ⚠️ `POST /api/dungeon/{dungeon_id}/room/{room_id}/state` - Room state update (controller: `RoomStateController::setState`)
+
+**Action Required**: Add route definitions to `dungeoncrawler_content.routing.yml` to enable these endpoints.
+
+### Parameter Naming Convention
+
+The codebase uses **snake_case** for URL parameters in routing:
+- Route parameters: `campaign_id`, `dungeon_id`, `room_id`, `character_id`, `instance_id`
+- Query/body parameters: `campaignId` (camelCase for JSON consistency)
+
+**Example**:
+```
+Route: /api/campaign/{campaign_id}/state
+Query: ?campaignId=123
+Body: {"campaignId": 123, "state": {...}}
 ```
 
 ---
