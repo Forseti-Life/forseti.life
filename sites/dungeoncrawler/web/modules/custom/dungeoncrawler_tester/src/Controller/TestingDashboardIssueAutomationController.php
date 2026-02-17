@@ -1092,6 +1092,13 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	}
 
 	/**
+	 * Execute a GitHub API JSON request and normalize response shape.
+	 */
+	protected function requestGitHubJson(string $url, ?string $token, array $extraHeaders = []): array {
+		return $this->githubClient->requestJson($url, $token, $extraHeaders, FALSE);
+	}
+
+	/**
 	 * Fetch open issues for reporting.
 	 */
 	protected function fetchOpenIssuesForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {

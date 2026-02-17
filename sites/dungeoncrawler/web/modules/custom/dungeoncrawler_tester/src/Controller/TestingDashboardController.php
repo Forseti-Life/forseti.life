@@ -90,7 +90,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * GitHub API timeout in seconds.
    */
-  private const GITHUB_API_TIMEOUT = 10;
+  protected const GITHUB_API_TIMEOUT = 10;
 
   /**
    * Maximum issues to fetch per request.
@@ -1002,13 +1002,6 @@ class TestingDashboardController extends ControllerBase {
       'token' => $token ? (string) $token : NULL,
       'token_candidates' => $tokenCandidates,
     ];
-  }
-
-  /**
-   * Execute a GitHub API JSON request and normalize response shape.
-   */
-  protected function requestGitHubJson(string $url, ?string $token, array $extraHeaders = []): array {
-    return $this->githubClient->requestJson($url, $token, $extraHeaders, FALSE);
   }
 
   /**
