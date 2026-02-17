@@ -1024,16 +1024,16 @@
     {
       "creature_id": "creature-gribbles-001",
       "name": "Gribbles Rindsworth the Magnificent",
+      "creature_type": "humanoid",
       "level": 3,
+      "size": "small",
+      "rarity": "unique",
+      "alignment": "CE",
       "traits": [
         "goblin",
         "humanoid",
         "small"
       ],
-      "alignment": "CE",
-      "size": "small",
-      "creature_type": "humanoid",
-      "rarity": "unique",
       "pf2e_stats": {
         "ability_scores": {
           "strength": {
@@ -1157,7 +1157,7 @@
           "Charismatic \u2014 other goblins genuinely adore him"
         ],
         "combat_personality": {
-          "aggression": 0.4,
+          "aggression": "moderate",
           "preferred_tactics": [
             "sneak_attack",
             "ranged_first",
@@ -1185,7 +1185,8 @@
         "spawn_type": "boss",
         "is_unique": true,
         "respawn_on_death": false,
-        "death_consequence": "The goblin warrens become leaderless. Remaining goblins scatter or become neutral."
+        "death_consequence": "The goblin warrens become leaderless. Remaining goblins scatter or become neutral.",
+        "is_alive": true
       },
       "loot_table": {
         "guaranteed": [
@@ -1217,16 +1218,18 @@
       "xp_reward": 60
     },
     {
+      "creature_id": "creature-goblin-lackey-001",
+      "name": "Skizz (Goblin Warrior)",
+      "creature_type": "humanoid",
       "level": -1,
+      "size": "small",
+      "rarity": "common",
+      "alignment": "CE",
       "traits": [
         "goblin",
         "humanoid",
         "small"
       ],
-      "alignment": "CE",
-      "size": "small",
-      "creature_type": "humanoid",
-      "rarity": "common",
       "pf2e_stats": {
         "ability_scores": {
           "strength": {
@@ -1327,21 +1330,21 @@
         "is_alive": true,
         "respawn_cooldown_hours": null
       },
-      "xp_reward": 10,
-      "creature_id": "creature-goblin-lackey-001",
-      "name": "Skizz (Goblin Warrior)"
+      "xp_reward": 10
     },
     {
+      "creature_id": "creature-goblin-lackey-002",
+      "name": "Blix (Goblin Warrior)",
+      "creature_type": "humanoid",
       "level": -1,
+      "size": "small",
+      "rarity": "common",
+      "alignment": "CE",
       "traits": [
         "goblin",
         "humanoid",
         "small"
       ],
-      "alignment": "CE",
-      "size": "small",
-      "creature_type": "humanoid",
-      "rarity": "common",
       "pf2e_stats": {
         "ability_scores": {
           "strength": {
@@ -1442,22 +1445,20 @@
         "is_alive": true,
         "respawn_cooldown_hours": null
       },
-      "xp_reward": 10,
-      "creature_id": "creature-goblin-lackey-002",
-      "name": "Blix (Goblin Warrior)"
+      "xp_reward": 10
     },
     {
       "creature_id": "creature-violet-fungus-001",
       "name": "Violet Fungus Guardian",
+      "creature_type": "fungus",
       "level": 3,
+      "size": "medium",
+      "rarity": "common",
+      "alignment": "N",
       "traits": [
         "fungus",
         "mindless"
       ],
-      "alignment": "N",
-      "size": "medium",
-      "creature_type": "fungus",
-      "rarity": "common",
       "pf2e_stats": {
         "ability_scores": {
           "strength": {
@@ -1558,14 +1559,16 @@
       "xp_reward": 60
     },
     {
+      "creature_id": "creature-hunting-spider-001",
+      "name": "Hunting Spider",
+      "creature_type": "animal",
       "level": 0,
+      "size": "small",
+      "rarity": "common",
+      "alignment": "N",
       "traits": [
         "animal"
       ],
-      "alignment": "N",
-      "size": "small",
-      "creature_type": "animal",
-      "rarity": "common",
       "pf2e_stats": {
         "ability_scores": {
           "strength": {
@@ -1675,19 +1678,19 @@
         "spawn_type": "permanent",
         "is_alive": true
       },
-      "xp_reward": 20,
-      "creature_id": "creature-hunting-spider-001",
-      "name": "Hunting Spider"
+      "xp_reward": 20
     },
     {
+      "creature_id": "creature-hunting-spider-002",
+      "name": "Hunting Spider",
+      "creature_type": "animal",
       "level": 0,
+      "size": "small",
+      "rarity": "common",
+      "alignment": "N",
       "traits": [
         "animal"
       ],
-      "alignment": "N",
-      "size": "small",
-      "creature_type": "animal",
-      "rarity": "common",
       "pf2e_stats": {
         "ability_scores": {
           "strength": {
@@ -1798,21 +1801,20 @@
         "is_alive": true
       },
       "xp_reward": 20,
-      "creature_id": "creature-hunting-spider-002",
-      "name": "Hunting Spider"
+      "description": " [Instance #2 - Identical stats to Hunting Spider #1]"
     },
     {
       "creature_id": "creature-spider-swarm-001",
       "name": "Spider Swarm",
+      "creature_type": "animal",
       "level": 0,
+      "size": "large",
+      "rarity": "common",
+      "alignment": "N",
       "traits": [
         "animal",
         "swarm"
       ],
-      "alignment": "N",
-      "size": "large",
-      "creature_type": "animal",
-      "rarity": "common",
       "pf2e_stats": {
         "ability_scores": {
           "strength": {
@@ -2142,6 +2144,138 @@
         "duration": "immediate"
       },
       "is_lootable": true
+    },
+    {
+      "item_id": "item-gribbles-shortsword",
+      "name": "Gribbles' Masterwork Shortsword",
+      "item_type": "weapon",
+      "level": 2,
+      "rarity": "uncommon",
+      "traits": [
+        "masterwork",
+        "agile",
+        "finesse",
+        "versatile S"
+      ],
+      "description": "A finely crafted goblin-sized shortsword with an ornate handle depicting cheese wheels. It's surprisingly well-maintained and balanced for a goblin weapon.",
+      "price": {
+        "gp": 35
+      },
+      "bulk": "L",
+      "hands": "1",
+      "weapon_stats": {
+        "category": "martial",
+        "group": "sword",
+        "damage": {
+          "dice_count": 1,
+          "die_size": 6,
+          "damage_type": "piercing"
+        },
+        "critical": {
+          "effect": "The target is flat-footed until the end of your next turn."
+        }
+      },
+      "is_lootable": true
+    },
+    {
+      "item_id": "item-key-to-throne",
+      "name": "Iron Key to the Throne Room",
+      "item_type": "adventuring_gear",
+      "level": 1,
+      "rarity": "uncommon",
+      "traits": [
+        "key"
+      ],
+      "description": "A large iron key on a cheese-scented lanyard. Opens the locked door to Gribbles' Throne Room.",
+      "price": {
+        "gp": 1
+      },
+      "bulk": "-",
+      "is_lootable": true,
+      "usage_notes": "Unlocks the throne room door. Gribbles always keeps this on his person."
+    },
+    {
+      "item_id": "item-gribbles-leather-armor",
+      "name": "Gribbles' Studded Leather Armor",
+      "item_type": "armor",
+      "level": 2,
+      "rarity": "uncommon",
+      "traits": [
+        "light armor",
+        "comfort"
+      ],
+      "description": "Well-worn studded leather armor sized for a goblin. The studs are arranged in a pattern resembling cheese holes. Surprisingly clean and well-maintained.",
+      "price": {
+        "gp": 30
+      },
+      "bulk": "1",
+      "armor_stats": {
+        "category": "light",
+        "ac_bonus": 2,
+        "dex_cap": 3,
+        "check_penalty": -1,
+        "speed_penalty": 0,
+        "strength": 12
+      },
+      "is_lootable": true
+    },
+    {
+      "item_id": "item-cheese-wheel",
+      "name": "Aged Cheese Wheel",
+      "item_type": "consumable",
+      "level": 0,
+      "rarity": "common",
+      "traits": [
+        "consumable",
+        "food"
+      ],
+      "description": "A full wheel of aged cave cheese. Not as refined as Gribbles' prize cheddar, but still edible and nutritious.",
+      "price": {
+        "gp": 1
+      },
+      "bulk": "1",
+      "consumable_stats": {
+        "consumable_type": "tool",
+        "activate": {
+          "actions": "1",
+          "components": [
+            "interact"
+          ]
+        },
+        "effect": "Eating a portion restores 1d4 HP. The entire wheel can provide 4 rations worth of food.",
+        "duration": "instant"
+      },
+      "is_lootable": true
+    },
+    {
+      "item_id": "item-minor-healing-potion",
+      "name": "Minor Healing Potion",
+      "item_type": "potion",
+      "level": 1,
+      "rarity": "common",
+      "traits": [
+        "consumable",
+        "healing",
+        "magical",
+        "potion"
+      ],
+      "description": "A small vial of ruby-red liquid that restores vitality when consumed.",
+      "price": {
+        "gp": 4
+      },
+      "bulk": "L",
+      "consumable_stats": {
+        "consumable_type": "elixir",
+        "activate": {
+          "actions": "1",
+          "components": [
+            "interact"
+          ]
+        },
+        "effect": "Restores 1d8 hit points.",
+        "duration": "instant"
+      },
+      "is_lootable": true
     }
   ],
   "traps": [
@@ -2162,7 +2296,8 @@
       "trigger": "A creature moves into the hex containing the cheese shelf or attempts to take cheese",
       "effect": "Creates a loud clattering noise. All creatures within the Fungal Pantry become aware of the intruder. Gribbles (in the Throne Room) is alerted and begins preparing for intruders. The Violet Fungus Guardian makes an immediate Strike against the triggering creature.",
       "reset": "manual (Gribbles resets it personally after each 'cheese inspection')",
-      "state": "active"
+      "state": "active",
+      "xp_reward": 10
     },
     {
       "trap_id": "trap-throne-pit",
@@ -2185,7 +2320,8 @@
       "trigger": "A creature walks onto the concealed pit cover",
       "effect": "The cover gives way. DC 18 Reflex save or fall 10 feet, taking 1d6 bludgeoning damage and landing prone. The bottom is covered in old cheese rinds, which Gribbles considers 'bonus punishment'.",
       "reset": "Gribbles carefully replaces the canvas cover (takes him about 20 minutes and a lot of grumbling)",
-      "state": "active"
+      "state": "active",
+      "xp_reward": 30
     }
   ],
   "hazards": [
@@ -2290,7 +2426,8 @@
         "goblin_warrior",
         "giant_rat",
         "cave_spider"
-      ]
+      ],
+      "creature_pool_note": "References PF2e Bestiary creature types, not creature_ids in this file. These are template names used for procedural generation."
     }
   },
   "level_state": {
