@@ -29,7 +29,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Labels treated as testing issues for lifecycle status.
    */
-  private const TESTING_ISSUE_LABELS = [
+  protected const TESTING_ISSUE_LABELS = [
     'testing',
     'testing-defect',
     'ci-failure',

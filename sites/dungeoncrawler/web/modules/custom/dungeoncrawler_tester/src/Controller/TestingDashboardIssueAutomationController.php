@@ -23,17 +23,6 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	private const BULK_CLOSE_COMMENT = 'Bulk close from testing issue/PR report: no additional implementation action required.';
 
 	/**
-	 * Labels treated as testing issues for lifecycle status.
-	 */
-	private const TESTING_ISSUE_LABELS = [
-		'testing',
-		'testing-defect',
-		'ci-failure',
-		'program-defect',
-		'tester',
-	];
-
-	/**
 	 * Staleness cutoff (days) for bulk stale-issue cleanup query.
 	 */
 	private const BULK_STALE_DAYS = 60;
