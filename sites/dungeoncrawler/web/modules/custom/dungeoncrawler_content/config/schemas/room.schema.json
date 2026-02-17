@@ -6,6 +6,12 @@
   "type": "object",
   "required": ["room_id", "name", "hexes", "terrain", "lighting", "state"],
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version for migration compatibility.",
+      "default": "1.0.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
     "room_id": {
       "type": "string",
       "format": "uuid",
@@ -32,8 +38,14 @@
         "type": "object",
         "required": ["q", "r"],
         "properties": {
-          "q": { "type": "integer" },
-          "r": { "type": "integer" },
+          "q": { 
+            "type": "integer",
+            "description": "Axial q coordinate for hex position."
+          },
+          "r": { 
+            "type": "integer",
+            "description": "Axial r coordinate for hex position."
+          },
           "terrain_override": {
             "type": "string",
             "description": "Per-hex terrain override (e.g., a pit in one hex of a larger room)."
@@ -48,7 +60,8 @@
             "description": "Objects placed on this specific hex (furniture, pillars, etc.).",
             "items": { "$ref": "#/definitions/hex_object" }
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "room_type": {
@@ -101,16 +114,24 @@
               "type": "string",
               "enum": ["fire", "cold", "acid", "poison", "piercing", "slashing", "bludgeoning", "negative"]
             },
-            "dc": { "type": "integer" },
+            "dc": { 
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "PF2e save DC (typically 1-50 range)."
+            },
             "save_type": { "type": "string", "enum": ["fortitude", "reflex", "will"] }
-          }
+          },
+          "additionalProperties": false
         },
         "ceiling_height_ft": {
           "type": "number",
+          "minimum": 1,
           "default": 10,
           "description": "Ceiling height in feet. Affects flying, reach weapons, and AoE spells."
         }
-      }
+      },
+      "additionalProperties": false
     },
     "lighting": {
       "type": "object",
@@ -135,17 +156,34 @@
               "hex": {
                 "type": "object",
                 "properties": {
-                  "q": { "type": "integer" },
-                  "r": { "type": "integer" }
-                }
+                  "q": { 
+                    "type": "integer",
+                    "description": "Axial q coordinate."
+                  },
+                  "r": { 
+                    "type": "integer",
+                    "description": "Axial r coordinate."
+                  }
+                },
+                "additionalProperties": false
               },
-              "bright_radius_ft": { "type": "number" },
-              "dim_radius_ft": { "type": "number" },
+              "bright_radius_ft": { 
+                "type": "number",
+                "minimum": 0,
+                "description": "Radius of bright light in feet."
+              },
+              "dim_radius_ft": { 
+                "type": "number",
+                "minimum": 0,
+                "description": "Radius of dim light in feet."
+              },
               "permanent": { "type": "boolean", "default": true }
-            }
+            },
+            "additionalProperties": false
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "environmental_effects": {
       "type": "array",
@@ -160,9 +198,15 @@
           },
           "description": { "type": "string" },
           "mechanical_effect": { "type": "string" },
-          "save_dc": { "type": "integer" },
+          "save_dc": { 
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "description": "PF2e save DC (typically 1-50 range)."
+          },
           "save_type": { "type": "string", "enum": ["fortitude", "reflex", "will"] }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "creatures": {
@@ -175,9 +219,16 @@
           "hex": {
             "type": "object",
             "properties": {
-              "q": { "type": "integer" },
-              "r": { "type": "integer" }
-            }
+              "q": { 
+                "type": "integer",
+                "description": "Axial q coordinate."
+              },
+              "r": { 
+                "type": "integer",
+                "description": "Axial r coordinate."
+              }
+            },
+            "additionalProperties": false
           },
           "spawn_type": {
             "type": "string",
@@ -186,9 +237,11 @@
           },
           "respawn_hours": {
             "type": ["number", "null"],
+            "minimum": 0,
             "description": "Hours until respawn (null for permanent creatures)."
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "items": {
@@ -201,15 +254,28 @@
           "hex": {
             "type": "object",
             "properties": {
-              "q": { "type": "integer" },
-              "r": { "type": "integer" }
-            }
+              "q": { 
+                "type": "integer",
+                "description": "Axial q coordinate."
+              },
+              "r": { 
+                "type": "integer",
+                "description": "Axial r coordinate."
+              }
+            },
+            "additionalProperties": false
           },
           "hidden": { "type": "boolean", "default": false },
-          "perception_dc": { "type": "integer", "description": "DC to spot if hidden." },
+          "perception_dc": { 
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "description": "DC to spot if hidden (typically 1-50 range)."
+          },
           "trapped": { "type": "boolean", "default": false },
           "collected": { "type": "boolean", "default": false }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "traps": {
@@ -239,9 +305,16 @@
           "hex": {
             "type": "object",
             "properties": {
-              "q": { "type": "integer" },
-              "r": { "type": "integer" }
-            }
+              "q": { 
+                "type": "integer",
+                "description": "Axial q coordinate."
+              },
+              "r": { 
+                "type": "integer",
+                "description": "Axial r coordinate."
+              }
+            },
+            "additionalProperties": false
           },
           "interaction_type": {
             "type": "string",
@@ -251,13 +324,20 @@
             "type": "object",
             "properties": {
               "skill": { "type": "string" },
-              "dc": { "type": "integer" }
-            }
+              "dc": { 
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 50,
+                "description": "PF2e skill check DC (typically 1-50 range)."
+              }
+            },
+            "additionalProperties": false
           },
           "effect": { "type": "string" },
           "used": { "type": "boolean", "default": false },
           "reusable": { "type": "boolean", "default": false }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "state": {
@@ -306,10 +386,12 @@
               "author": { "type": "string" },
               "text": { "type": "string" },
               "timestamp": { "type": "string", "format": "date-time" }
-            }
+            },
+            "additionalProperties": false
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "ai_generation": {
       "type": "object",
@@ -331,13 +413,17 @@
         },
         "party_level_at_generation": {
           "type": "integer",
-          "description": "Average party level when this room was generated."
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Average party level when this room was generated (PF2e levels 1-20)."
         },
         "generation_model": { "type": "string" },
         "generation_timestamp": { "type": "string", "format": "date-time" }
-      }
+      },
+      "additionalProperties": false
     }
   },
+  "additionalProperties": false,
   "definitions": {
     "hex_object": {
       "type": "object",
@@ -361,12 +447,25 @@
         },
         "blocks_movement": { "type": "boolean", "default": false },
         "blocks_line_of_sight": { "type": "boolean", "default": false },
-        "hardness": { "type": "integer", "description": "PF2e hardness for destructible objects." },
-        "hp": { "type": "integer" },
-        "broken_threshold": { "type": "integer" },
+        "hardness": { 
+          "type": "integer",
+          "minimum": 0,
+          "description": "PF2e hardness for destructible objects."
+        },
+        "hp": { 
+          "type": "integer",
+          "minimum": 1,
+          "description": "Hit points of the object."
+        },
+        "broken_threshold": { 
+          "type": "integer",
+          "minimum": 0,
+          "description": "HP threshold at which object becomes broken (typically HP/2)."
+        },
         "interactable": { "type": "boolean", "default": false },
         "description": { "type": "string" }
-      }
+      },
+      "additionalProperties": false
     }
   }
 }
