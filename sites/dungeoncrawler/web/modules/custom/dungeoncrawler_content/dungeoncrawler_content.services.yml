@@ -1,4 +1,12 @@
+# Service definitions for the Dungeon Crawler Content module.
+#
+# This file defines Drupal services for character management, game content,
+# campaign state, combat system, and access control. Services follow Drupal's
+# dependency injection patterns.
+#
+# @see https://www.drupal.org/docs/drupal-apis/services-and-dependency-injection
 services:
+  # Content Management Services
   dungeoncrawler_content.game_manager:
     class: Drupal\dungeoncrawler_content\Service\GameContentManager
     arguments: ['@entity_type.manager', '@database']
@@ -10,17 +18,20 @@ services:
   dungeoncrawler_content.schema_loader:
     class: Drupal\dungeoncrawler_content\Service\SchemaLoader
 
+  # Access Control Services
   dungeoncrawler_content.character_access_check:
     class: Drupal\dungeoncrawler_content\Access\CharacterAccessCheck
+    arguments: ['@database']
     tags:
-      - { name: access_check, applies_to: _character_access }
+      - {name: access_check, applies_to: _character_access}
 
   dungeoncrawler_content.campaign_access_check:
     class: Drupal\dungeoncrawler_content\Access\CampaignAccessCheck
     arguments: ['@database']
     tags:
-      - { name: access_check, applies_to: _campaign_access }
+      - {name: access_check, applies_to: _campaign_access}
 
+  # Game Content System Services
   dungeoncrawler_content.content_registry:
     class: Drupal\dungeoncrawler_content\Service\ContentRegistry
     arguments: ['@database', '@logger.factory']
@@ -35,16 +46,21 @@ services:
 
   dungeoncrawler_content.campaign_content:
     class: Drupal\dungeoncrawler_content\Service\CampaignContentService
-    arguments: ['@database', '@dungeoncrawler_content.content_registry', '@logger.factory']
+    arguments:
+      - '@database'
+      - '@dungeoncrawler_content.content_registry'
+      - '@logger.factory'
 
-  # Combat services wiring (implementation to be filled in).
+  # Combat System Services
   dungeoncrawler_content.combat_encounter_store:
     class: Drupal\dungeoncrawler_content\Service\CombatEncounterStore
     arguments: ['@database']
 
   dungeoncrawler_content.hp_manager:
     class: Drupal\dungeoncrawler_content\Service\HPManager
-    arguments: ['@database', '@dungeoncrawler_content.condition_manager']
+    arguments:
+      - '@database'
+      - '@dungeoncrawler_content.condition_manager'
 
   dungeoncrawler_content.condition_manager:
     class: Drupal\dungeoncrawler_content\Service\ConditionManager
@@ -59,12 +75,23 @@ services:
 
   dungeoncrawler_content.action_processor:
     class: Drupal\dungeoncrawler_content\Service\ActionProcessor
-    arguments: ['@dungeoncrawler_content.combat_calculator', '@dungeoncrawler_content.hp_manager', '@dungeoncrawler_content.condition_manager', '@logger.factory', '@dungeoncrawler_content.combat_encounter_store']
+    arguments:
+      - '@dungeoncrawler_content.combat_calculator'
+      - '@dungeoncrawler_content.hp_manager'
+      - '@dungeoncrawler_content.condition_manager'
+      - '@logger.factory'
+      - '@dungeoncrawler_content.combat_encounter_store'
 
   dungeoncrawler_content.combat_engine:
     class: Drupal\dungeoncrawler_content\Service\CombatEngine
-    arguments: ['@database', '@dungeoncrawler_content.state_manager', '@dungeoncrawler_content.action_processor', '@dungeoncrawler_content.combat_encounter_store', '@dungeoncrawler_content.hp_manager']
+    arguments:
+      - '@database'
+      - '@dungeoncrawler_content.state_manager'
+      - '@dungeoncrawler_content.action_processor'
+      - '@dungeoncrawler_content.combat_encounter_store'
+      - '@dungeoncrawler_content.hp_manager'
 
+  # Campaign State Services
   dungeoncrawler_content.dungeon_state_service:
     class: Drupal\dungeoncrawler_content\Service\DungeonStateService
     arguments: ['@database', '@logger.factory']

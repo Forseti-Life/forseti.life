@@ -3,6 +3,7 @@
 namespace Drupal\dungeoncrawler_content\Access;
 
 use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\Routing\Route;
@@ -11,6 +12,23 @@ use Symfony\Component\Routing\Route;
  * Checks access for character operations based on ownership.
  */
 class CharacterAccessCheck implements AccessInterface {
+
+  /**
+   * The database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected Connection $database;
+
+  /**
+   * Constructs a CharacterAccessCheck object.
+   *
+   * @param \Drupal\Core\Database\Connection $database
+   *   The database connection.
+   */
+  public function __construct(Connection $database) {
+    $this->database = $database;
+  }
 
   /**
    * Checks access to character based on ownership and permissions.
@@ -35,8 +53,7 @@ class CharacterAccessCheck implements AccessInterface {
     }
 
     // Load character and check ownership.
-    $database = \Drupal::database();
-    $query = $database->select('dungeoncrawler_characters', 'c')
+    $query = $this->database->select('dungeoncrawler_characters', 'c')
       ->fields('c', ['user_id'])
       ->condition('c.id', $character_id)
       ->execute();
