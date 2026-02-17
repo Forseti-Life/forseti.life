@@ -153,19 +153,3 @@
   display: flex;
   align-items: center;
 }
-
-/* Game content dashboard */
-.game-content-dashboard {
-  background: #2d2d3d;
-  color: #e2e8f0;
-}
-
-.game-content-dashboard th {
-  background: #0f0f1a;
-  color: #f59e0b;
-  border-color: rgba(245, 158, 11, 0.2);
-}
-
-.game-content-dashboard td {
-  border-color: rgba(245, 158, 11, 0.1);
-}
