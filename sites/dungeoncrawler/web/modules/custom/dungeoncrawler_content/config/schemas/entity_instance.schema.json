@@ -9,8 +9,8 @@
     "schema_version": {
       "type": "string",
       "description": "Schema version for migration compatibility.",
-      "default": "1.0.0",
-      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "examples": ["1.0.0"]
     },
     "entity_instance_id": {
       "type": "string",
@@ -24,6 +24,7 @@
     },
     "entity_ref": {
       "type": "object",
+      "description": "Reference to the base entity definition in the content registry. Links this instance to its template (creature, item, trap, hazard, or obstacle).",
       "required": ["content_type", "content_id"],
       "additionalProperties": false,
       "properties": {
@@ -34,16 +35,19 @@
         },
         "content_id": {
           "type": "string",
+          "minLength": 1,
           "description": "Registry content_id for base definition."
         },
         "version": {
           "type": ["string", "null"],
-          "description": "Optional version pin for deterministic replay."
+          "pattern": "^(\\d+\\.\\d+\\.\\d+)?$",
+          "description": "Optional version pin for deterministic replay. Must follow semantic versioning (e.g., '1.0.0') if specified."
         }
       }
     },
     "placement": {
       "type": "object",
+      "description": "Physical placement information for this entity instance in the dungeon. Specifies which room and hex coordinate the entity occupies.",
       "required": ["room_id", "hex"],
       "additionalProperties": false,
       "properties": {
@@ -70,7 +74,7 @@
         },
         "spawn_type": {
           "type": ["string", "null"],
-          "enum": ["permanent", "respawning", "wandering", "summoned", "quest", null],
+          "enum": ["permanent", "respawning", "wandering", "summoned", "quest"],
           "description": "Spawn behavior metadata, primarily for creatures."
         }
       }
@@ -78,6 +82,7 @@
     "state": {
       "type": "object",
       "description": "Mutable runtime state overlay for this instance. Tracks lifecycle flags, combat state (hit points), inventory, and extensible metadata.",
+      "additionalProperties": false,
       "properties": {
         "active": { 
           "type": "boolean", 
@@ -125,6 +130,7 @@
         "inventory": {
           "type": "array",
           "description": "Inventory item refs carried by this instance (typically creatures). Each item references content from the item registry.",
+          "default": [],
           "uniqueItems": false,
           "items": {
             "$ref": "#/$defs/inventory_item"
@@ -133,12 +139,12 @@
         "metadata": {
           "type": "object",
           "description": "Extensible metadata storage for entity-specific runtime data. Can store any additional properties not covered by the standard schema.",
+          "default": {},
           "additionalProperties": {
             "type": ["string", "number", "boolean", "object", "array", "null"]
           }
         }
-      },
-      "additionalProperties": false
+      }
     },
     "created_at": {
       "type": ["string", "null"],
@@ -157,9 +163,11 @@
       "type": "object",
       "description": "Reference to an item in the item registry with quantity information.",
       "required": ["content_id"],
+      "additionalProperties": false,
       "properties": {
         "content_id": { 
           "type": "string",
+          "minLength": 1,
           "description": "Registry content_id for the carried item."
         },
         "quantity": { 
@@ -167,9 +175,12 @@
           "minimum": 1, 
           "default": 1,
           "description": "Number of items in this stack."
+        },
+        "version": {
+          "type": ["string", "null"],
+          "description": "Optional version pin for deterministic replay, similar to entity_ref.version."
         }
-      },
-      "additionalProperties": false
+      }
     }
   },
   "examples": [

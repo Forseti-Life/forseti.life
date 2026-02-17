@@ -39,6 +39,7 @@
     "name": {
       "type": "string",
       "minLength": 1,
+      "maxLength": 200,
       "description": "Display name of the hazard.",
       "examples": ["Collapsing Ceiling", "Poison Gas Trap", "Falling Rocks"]
     },
@@ -63,6 +64,7 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 },
       "uniqueItems": true,
+      "maxItems": 10,
       "description": "PF2e hazard traits (e.g., ['Magical', 'Trap', 'Environmental'])."
     },
     "stealth_dc": {
@@ -73,6 +75,7 @@
     },
     "description": {
       "type": "string",
+      "maxLength": 2000,
       "description": "Narrative description of the hazard and its appearance."
     },
     "disable": {
@@ -116,6 +119,7 @@
         },
         "custom": {
           "type": "string",
+          "maxLength": 500,
           "description": "Non-standard disarm method (narrative description)."
         }
       }
@@ -169,7 +173,7 @@
     },
     "immunities": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 },
+      "items": { "type": "string", "minLength": 1, "maxLength": 50 },
       "uniqueItems": true,
       "description": "Damage types and conditions the hazard is immune to."
     },
@@ -203,7 +207,7 @@
       "type": ["integer", "null"],
       "minimum": -10,
       "maximum": 40,
-      "description": "Initiative bonus for complex hazards that roll initiative. Required for complex hazards."
+      "description": "Initiative bonus for complex hazards that roll initiative. Should be provided for complex hazards."
     },
     "actions_per_round": {
       "type": "integer",
@@ -214,10 +218,12 @@
     },
     "routine": {
       "type": "string",
-      "description": "What the complex hazard does each round in initiative order."
+      "maxLength": 1000,
+      "description": "What the complex hazard does each round in initiative order (for complex hazards)."
     },
     "trigger": {
       "type": "string",
+      "maxLength": 1000,
       "description": "What activates or triggers the hazard."
     },
     "effect": {
@@ -256,7 +262,7 @@
         },
         "conditions_applied": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 },
+          "items": { "type": "string", "minLength": 1, "maxLength": 100 },
           "uniqueItems": true,
           "description": "Conditions applied on a failed save (e.g., ['poisoned', 'stunned 1', 'persistent fire 2d6'])."
         },
@@ -280,6 +286,7 @@
         },
         "description": {
           "type": "string",
+          "maxLength": 2000,
           "description": "Narrative description of the hazard's effect."
         }
       }
@@ -301,10 +308,12 @@
             "reset_time_minutes": {
               "type": ["integer", "null"],
               "minimum": 1,
-              "description": "Time in minutes before automatic reset."
+              "maximum": 10080,
+              "description": "Time in minutes before automatic reset (max 1 week = 10080 minutes)."
             },
             "conditions": {
               "type": "string",
+              "maxLength": 500,
               "description": "Specific conditions required for reset."
             }
           }

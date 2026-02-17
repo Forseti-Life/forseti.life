@@ -77,8 +77,10 @@
     "traits": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
+      "uniqueItems": true,
       "description": "PF2e traits (e.g., ['Goblin', 'Humanoid', 'Small'])."
     },
     "alignment": {
@@ -104,7 +106,8 @@
         "rare",
         "unique"
       ],
-      "default": "common"
+      "default": "common",
+      "description": "Rarity of the creature: common (standard encounters), uncommon (special encounters), rare (boss-level), unique (one-of-a-kind NPCs)."
     },
     "size": {
       "type": "string",
@@ -174,27 +177,38 @@
           "properties": {
             "max": {
               "type": "integer",
-              "minimum": 1
+              "minimum": 1,
+              "maximum": 9999,
+              "description": "Maximum hit points. Typical range: 1-500 for most creatures, up to 9999 for mythic bosses."
             },
             "current": {
               "type": "integer",
-              "minimum": 0
+              "minimum": 0,
+              "maximum": 9999,
+              "description": "Current hit points. Can exceed max when temporary HP is applied."
             },
             "temporary": {
               "type": "integer",
               "default": 0,
-              "minimum": 0
+              "minimum": 0,
+              "maximum": 500,
+              "description": "Temporary hit points. Typical range: 0-100."
             },
             "hardness": {
               "type": "integer",
               "default": 0,
-              "minimum": 0
+              "minimum": 0,
+              "maximum": 50,
+              "description": "Physical hardness (for constructs/objects). Typical range: 0-30."
             },
             "immunities": {
               "type": "array",
               "items": {
-                "type": "string"
-              }
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true,
+              "description": "Damage types or conditions the creature is immune to (e.g., 'fire', 'poison', 'paralyzed')."
             },
             "resistances": {
               "type": "array",
@@ -202,7 +216,8 @@
                 "type": "object",
                 "properties": {
                   "type": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1
                   },
                   "value": {
                     "type": "integer",
@@ -223,7 +238,8 @@
                 "type": "object",
                 "properties": {
                   "type": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1
                   },
                   "value": {
                     "type": "integer",
@@ -288,6 +304,7 @@
                 "type": "string",
                 "minLength": 1
               },
+              "uniqueItems": true,
               "examples": [
                 "darkvision",
                 "scent (imprecise) 30 feet",
@@ -384,6 +401,7 @@
             "type": "string",
             "minLength": 1
           },
+          "uniqueItems": true,
           "description": "Languages the creature can speak, understand, or read.",
           "examples": [
             ["Common", "Goblin"],
@@ -417,7 +435,8 @@
                 "divine",
                 "occult",
                 "primal"
-              ]
+              ],
+              "description": "Magical tradition: arcane (wizards/scholars), divine (gods/faith), occult (psychic/esoteric), primal (nature/instinct)."
             },
             "type": {
               "type": "string",
@@ -426,7 +445,8 @@
                 "prepared",
                 "spontaneous",
                 "focus"
-              ]
+              ],
+              "description": "Spellcasting type: innate (racial/natural), prepared (daily selection), spontaneous (known spells), focus (limited pool)."
             },
             "dc": {
               "type": "integer",
@@ -463,6 +483,7 @@
                       "type": "string",
                       "minLength": 1
                     },
+                    "uniqueItems": true,
                     "description": "List of spell names available at this level."
                   }
                 }
@@ -496,7 +517,8 @@
         "personality_traits": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "description": "Core personality descriptors for AI dialogue generation.",
           "examples": [
@@ -515,10 +537,12 @@
               "minLength": 1
             },
             "secondary": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             },
             "tertiary": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             }
           },
           "required": [
@@ -557,6 +581,7 @@
                 "type": "string",
                 "minLength": 1
               },
+              "uniqueItems": true,
               "description": "Phrases this creature commonly uses."
             },
             "verbal_tics": {
@@ -627,6 +652,7 @@
                 "type": "string",
                 "minLength": 1
               },
+              "uniqueItems": true,
               "description": "Types of enemies this creature prefers to attack (e.g., 'spellcaster', 'weakest', 'leader')."
             },
             "preferred_range": {
@@ -663,7 +689,8 @@
                   "neutral",
                   "positive",
                   "very_positive"
-                ]
+                ],
+                "description": "Emotional sentiment of the memory: very_negative (traumatic), negative (unpleasant), neutral, positive (pleasant), very_positive (cherished)."
               },
               "timestamp": {
                 "type": "string",
@@ -789,7 +816,8 @@
           "items": {
             "type": "string",
             "minLength": 1
-          }
+          },
+          "uniqueItems": true
         },
         "wander_radius_rooms": {
           "type": "integer",
@@ -841,28 +869,34 @@
               "type": "array",
               "items": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 0,
+                "maximum": 1000
               },
               "minItems": 2,
-              "maxItems": 2
+              "maxItems": 2,
+              "description": "Copper pieces drop range [min, max]. Typical: [0, 50] for low-level creatures."
             },
             "sp_range": {
               "type": "array",
               "items": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 0,
+                "maximum": 500
               },
               "minItems": 2,
-              "maxItems": 2
+              "maxItems": 2,
+              "description": "Silver pieces drop range [min, max]. Typical: [0, 20] for mid-level creatures."
             },
             "gp_range": {
               "type": "array",
               "items": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 0,
+                "maximum": 1000
               },
               "minItems": 2,
-              "maxItems": 2
+              "maxItems": 2,
+              "description": "Gold pieces drop range [min, max]. Typical: [0, 100] for high-level creatures."
             }
           },
           "additionalProperties": false
@@ -872,7 +906,8 @@
     "xp_reward": {
       "type": "integer",
       "description": "XP awarded for defeating this creature. Auto-calculated from PF2e level if omitted.",
-      "minimum": 0
+      "minimum": 0,
+      "maximum": 50000
     },
     "created_at": {
       "type": "string",
@@ -886,10 +921,12 @@
     },
     "description": {
       "type": "string",
+      "minLength": 1,
       "description": "Optional flavor text describing the creature."
     },
     "source": {
       "type": "string",
+      "minLength": 1,
       "description": "Source book or origin (e.g., 'Pathfinder Bestiary 1', 'AI-generated')."
     }
   },
@@ -931,10 +968,12 @@
             "expert",
             "master",
             "legendary"
-          ]
+          ],
+          "description": "Training rank: untrained (+0), trained (+level+2), expert (+level+4), master (+level+6), legendary (+level+8)."
         },
         "special": {
           "type": "string",
+          "minLength": 1,
           "description": "E.g., '+1 status bonus vs. magic'"
         }
       },
@@ -955,7 +994,8 @@
           "enum": [
             "melee",
             "ranged"
-          ]
+          ],
+          "description": "Attack type: melee (close combat) or ranged (distance combat)."
         },
         "attack_bonus": {
           "type": "integer",
@@ -974,8 +1014,10 @@
         "traits": {
           "type": "array",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
         },
         "range_ft": {
           "type": [
@@ -987,16 +1029,21 @@
         "reach_ft": {
           "type": "integer",
           "default": 5,
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Melee reach in feet. Typical: 5 (medium), 10 (large), 15+ (huge+)."
         },
         "effects": {
           "type": "array",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       },
       "required": [
@@ -1024,29 +1071,36 @@
             "2",
             "3",
             "passive"
-          ]
+          ],
+          "description": "Action cost: free (0 actions), reaction (triggered), 1-3 (actions per turn), passive (always active)."
         },
         "traits": {
           "type": "array",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
         },
         "frequency": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "trigger": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "requirements": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "description": {
           "type": "string",
           "minLength": 1
         },
         "effect": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       },
       "required": [
@@ -1070,7 +1124,9 @@
         "quantity": {
           "type": "integer",
           "default": 1,
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 999,
+          "description": "Number of items to drop. Typical: 1-10 for equipment, 1-100 for consumables."
         },
         "rarity": {
           "type": "string",
@@ -1080,7 +1136,8 @@
             "rare",
             "epic",
             "legendary"
-          ]
+          ],
+          "description": "Item rarity determines drop rates and value. Common (standard loot), uncommon (notable finds), rare (treasure), epic/legendary (boss drops)."
         }
       },
       "anyOf": [

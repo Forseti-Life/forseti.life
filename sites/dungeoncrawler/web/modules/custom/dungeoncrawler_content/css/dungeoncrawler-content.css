@@ -24,18 +24,34 @@
  */
 .game-content-dashboard {
   margin-top: 1rem;
-  background: #2d2d3d;
-  color: #e2e8f0;
+  --bs-table-color: var(--dc-text-primary, #e2e8f0);
+  --bs-table-bg: var(--dc-dungeon-stone, #2d2d3d);
+  --bs-table-border-color: rgba(245, 158, 11, 0.2);
+  --bs-table-striped-color: var(--dc-text-primary, #e2e8f0);
+  --bs-table-striped-bg: rgba(245, 158, 11, 0.08);
+  --bs-table-hover-color: var(--dc-text-primary, #e2e8f0);
+  --bs-table-hover-bg: rgba(245, 158, 11, 0.12);
+  background: var(--dc-dungeon-stone, #2d2d3d);
+  color: var(--dc-text-primary, #e2e8f0);
+}
+
+.game-content-dashboard caption {
+  color: var(--dc-text-secondary, #94a3b8);
 }
 
 .game-content-dashboard th {
   padding: 0.75rem;
-  background: #0f0f1a;
-  color: #f59e0b;
+  background: var(--dc-abyss-dark, #0f0f1a);
+  color: var(--dc-torch-gold, #f59e0b);
   border-color: rgba(245, 158, 11, 0.2);
 }
 
 .game-content-dashboard td {
   padding: 0.75rem;
   border-color: rgba(245, 158, 11, 0.1);
+  color: var(--dc-text-primary, #e2e8f0);
+}
+
+.game-content-dashboard td.empty.message {
+  color: var(--dc-text-primary, #e2e8f0);
 }

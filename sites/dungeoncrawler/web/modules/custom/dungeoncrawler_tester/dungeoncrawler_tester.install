@@ -1,20 +1,9 @@
 <?php
 
-use Drupal\system\Entity\Menu;
-
 /**
- * Ensure dedicated tester navigation menu exists on existing installs.
+ * Legacy update hook kept for compatibility.
+ *
+ * Tester navigation is now unified under the main menu hierarchy.
  */
 function dungeoncrawler_tester_update_11001(): void {
-  if (Menu::load('dungeoncrawler_testing') instanceof Menu) {
-    return;
-  }
-
-  $menu = Menu::create([
-    'id' => 'dungeoncrawler_testing',
-    'label' => 'Dungeon Crawler Testing',
-    'description' => 'Navigation menu for Dungeon Crawler tester pages.',
-    'locked' => FALSE,
-  ]);
-  $menu->save();
 }

@@ -37,13 +37,13 @@ JSON Schemas serve multiple purposes:
 | `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 298 | Level generation |
 | `encounter.schema.json` | Combat & initiative | ✓ | 568 | Combat engine |
 | `entity_instance.schema.json` | Placed entities (runtime) | ✓ | 289 | Runtime entity management |
-| `hazard.schema.json` | Environmental hazards | ✓ | 467 | PF2e hazards |
+| `hazard.schema.json` | Environmental hazards | ✓ | 476 | PF2e hazards |
 | `hexmap.schema.json` | Hex-based dungeon map | ✓ | 247 | Map structure |
 | `item.schema.json` | Equipment & loot | ✓ | 441 | Inventory system |
-| `obstacle.schema.json` | Map obstacles | ✗ | 194 | Traversal blockers |
-| `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✗ | 221 | Obstacle templates |
-| `party.schema.json` | Adventuring party | ✓ | 366 | Party management |
-| `room.schema.json` | Individual dungeon rooms | ✗ | 471 | Room generation |
+| `obstacle.schema.json` | Map obstacles | ✓ | 231 | Traversal blockers |
+| `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✓ | 224 | Obstacle templates |
+| `party.schema.json` | Adventuring party | ✓ | 441 | Party management |
+| `room.schema.json` | Individual dungeon rooms | ✓ | 471 | Room generation |
 | `trap.schema.json` | Mechanical & magical traps | ✓ | 330 | Trap mechanics |
 
 ## Schema Categories
@@ -64,13 +64,13 @@ Complete Pathfinder 2E character data structure stored in the `dc_characters` ta
 Character creation wizard options and validation rules for each of the 8 steps:
 
 1. **Step 1**: Name & Concept
-2. **Step 2**: Ancestry & Heritage
+2. **Step 2**: Ancestry & Heritage (v1.0.0)
 3. **Step 3**: Background
 4. **Step 4**: Class
 5. **Step 5**: Ability Scores
-6. **Step 6**: Alignment & Deity
+6. **Step 6**: Alignment & Deity (versioned)
 7. **Step 7**: Equipment
-8. **Step 8**: Finishing Touches
+8. **Step 8**: Finishing Touches (versioned)
 
 **Defines:**
 - Available options at each step
@@ -78,6 +78,14 @@ Character creation wizard options and validation rules for each of the 8 steps:
 - Help text and examples
 - Navigation rules
 - Error messages
+
+**Recent improvements to Step 2 (2026-02-17):**
+- Added schema versioning (v1.0.0) for migration compatibility
+- Added step-level validation object for consistency with other steps
+- Expanded heritages_by_ancestry schema to document all 14 PF2e ancestries
+- Added comprehensive examples section showing recommended ancestry/heritage combinations
+- Enhanced documentation noting which ancestries have implemented heritages vs placeholders
+- Improved consistency with other character creation step schemas
 
 ### Dungeon Schemas
 
@@ -120,6 +128,16 @@ Monsters, NPCs, and beasts with PF2e stats and AI personality.
 - Enhanced 25+ property descriptions for clarity
 - Validated against existing creature data (goblin_warrior.json)
 
+**Further improved (2026-02-17, DCC-0016):**
+- Added `uniqueItems: true` to 9 arrays (traits, immunities, senses, languages, spells, catchphrases, preferred_targets, patrol_route, attack/ability traits)
+- Added `minLength: 1` to 24 string properties to prevent empty strings
+- Enhanced enum descriptions for 7 fields (rarity, spell tradition/type, memory sentiment, proficiency, attack type, action cost, loot rarity)
+- Added maximum constraints to 10 numeric fields (HP max/current/temp/hardness, reach, XP, loot quantity, currency ranges)
+- Improved documentation with realistic value ranges and PF2e context
+- All changes fully backward compatible
+- Total: 50 targeted validation improvements
+- See: `REVIEW_SUMMARY_DCC-0016.md`
+
 #### `dungeon_level.schema.json`
 Entire dungeon floor with hexmap, rooms, and encounters.
 
@@ -132,6 +150,10 @@ Entire dungeon floor with hexmap, rooms, and encounters.
 - Added required fields to nested objects (stairway, environmental effects)
 - Added uniqueItems constraints to prevent duplicate array entries
 - Improved PF2e rule alignment for party levels, creature levels, and DCs
+- **DCC-0017 (2026-02-17):** Additional validation improvements:
+  - Added `uniqueItems: true` to 9 arrays (rooms, entities, creatures, items, traps, hazards, obstacles, active_encounters, stairways)
+  - Added `minLength: 1` to string fields (name, flavor_text) to prevent empty strings
+  - Added required fields ["min", "max"] to range objects (room_count, secret_rooms, creature_level_range)
 
 Canonical runtime placement in this schema is `entities[]` via `entity_instance.schema.json`.
 
@@ -188,8 +210,11 @@ PF2e-compatible environmental hazards (simple and complex). Unlike traps, hazard
 **Recently improved (2026-02-17):**
 - Added schema versioning for migration compatibility
 - Added timestamp tracking (created_at, updated_at)
-- Added comprehensive numeric constraints (15+ min/max pairs)
+- Added comprehensive numeric constraints (16 min/max pairs)
 - Added string validation (minLength) to prevent empty strings
+- **Added maxLength constraints to 9 string fields** (name, description, trigger, routine, custom, immunities items, conditions items, effect.description, reset.conditions)
+- **Added maxItems constraint to traits array** (max 10 traits)
+- **Added maximum to reset_time_minutes** (10080 minutes = 1 week)
 - Added array validation (uniqueItems) to prevent duplicates
 - Enhanced validation constraints aligned with PF2e rules (levels -1 to 25, DCs 0-50)
 - Improved consistency with trap.schema.json structure
@@ -199,6 +224,7 @@ PF2e-compatible environmental hazards (simple and complex). Unlike traps, hazard
 - Added reusable definitions section (hex_coordinate)
 - Added comprehensive examples (simple and complex hazards)
 - Capped actions_per_round at 4 for realistic complex hazards
+- Enhanced property descriptions for clarity (initiative_modifier, routine, reset_time_minutes)
 
 **Defines:**
 - Simple hazards: One-time dangers (falling rocks, collapsing floors)
@@ -218,6 +244,7 @@ PF2e-compatible environmental hazards (simple and complex). Unlike traps, hazard
 - Strict validation with additionalProperties: false
 - Comprehensive constraints aligned with PF2e rules
 - Complete examples demonstrating simple and complex hazard patterns
+- Comprehensive string length bounds to prevent storage/rendering issues
 
 
 #### `hexmap.schema.json`
@@ -265,6 +292,9 @@ Unified traversal/combat obstacles (non-container blockers/modifiers). PF2e-comp
 - Enhanced descriptions with practical examples
 - Improved consistency with trap.schema.json and hazard.schema.json
 - Added top-level additionalProperties: false for stricter validation
+- Added additionalProperties: false to state object for controlled runtime state
+- Simplified damage pattern to match standard PF2e dice notation (XdY+Z format only)
+- Added comprehensive examples demonstrating barricade and magical barrier patterns
 
 **Defines:**
 - Obstacle metadata (name, level, type, rarity, traits)
@@ -282,18 +312,28 @@ Unified traversal/combat obstacles (non-container blockers/modifiers). PF2e-comp
 - Flexible skill check requirements (Athletics, Acrobatics, etc.)
 - State tracking for runtime obstacle management
 - Links to underlying trap/hazard definitions
+- Strict validation with additionalProperties: false throughout
 
 #### `obstacle_object_catalog.schema.json`
 Reusable obstacle object definitions (label, movable, stackable, movement flags) used by placed obstacle instances.
 
 **Recently improved (2026-02-17):**
 - Added schema versioning for migration compatibility (schema_version now required)
+- Added `$defs` section with reusable `movement_config` definition for better schema organization
+- Enhanced description field with clearer guidance and additional examples
+- Added optional enrichment fields for more detailed obstacle definitions:
+  - `size`: PF2e size category (tiny, small, medium, large, huge, gargantuan)
+  - `weight`: PF2e Bulk value for weight/portability (L or numeric)
+  - `interaction`: Mechanics for opening, closing, skill DCs (Athletics, Thievery)
+  - `visual`: Rendering metadata (sprite_id, color, rotation)
 - Enhanced validation with improved constraints:
-  - Added minLength: 1 to object_id to prevent empty IDs
+  - Added minLength: 1 to object_id and description to prevent empty values
   - Added maximum: 999 to cost_multiplier for reasonable upper bound
   - Added uniqueItems: true to tags array to prevent duplicate tags
   - Added minLength: 1 to tag items to prevent empty strings
+- All new fields are optional, maintaining full backward compatibility
 - Validates successfully with existing example data (tavern-obstacle-objects.json)
+
 
 #### `party.schema.json`
 Adventuring party with shared resources and exploration state.
@@ -304,6 +344,9 @@ Adventuring party with shared resources and exploration state.
 - Added `definitions` section with reusable components: `hex_position`, `condition`, `currency`
 - Enhanced validation constraints throughout (minLength, maxLength, minimum values)
 - Added `additionalProperties: false` for stricter validation
+- Added `uniqueItems: true` to 4 arrays (watch_order, revealed_hexes, revealed_rooms, revealed_connections)
+- Enhanced `spell_slots_remaining` with strict pattern validation for ranks 0-10
+- Added comprehensive examples for shared_inventory, encounter_log, fog_of_war notes, and exploration_activity
 - Improved documentation with comprehensive descriptions
 - Validates successfully with test data
 
@@ -318,6 +361,17 @@ Adventuring party with shared resources and exploration state.
 
 #### `room.schema.json`
 Individual dungeon rooms that occupy one or more hexes. AI-generated on first entry and permanent thereafter.
+
+**Recently improved (2026-02-17):**
+- Added schema versioning for migration compatibility
+- Added timestamp tracking (created_at, updated_at)
+- Added uniqueItems constraints to 11 arrays for data integrity
+- Added minLength validation to prevent empty strings (10+ fields)
+- Added maxLength constraints to name fields for UI compatibility
+- Extracted reusable hex_coordinate definition to avoid duplication
+- Enhanced property descriptions for clarity
+- Added comprehensive room example with realistic data
+- Improved consistency with trap.schema.json, hazard.schema.json, and obstacle.schema.json
 
 **Defines:**
 - Room metadata (UUID, name, AI descriptions, GM notes)
@@ -335,21 +389,19 @@ Individual dungeon rooms that occupy one or more hexes. AI-generated on first en
 - Support for furniture and hex-specific objects
 - Hidden vs visible room features
 - Persistent state after first exploration
+- Strict validation with uniqueItems and minLength constraints
 
 #### `trap.schema.json`
 PF2e-compatible traps and snares (simple and complex). Traps are hidden threats that trigger when activated.
 
 **Recently improved (2026-02-17):**
-- Added schema versioning for migration compatibility
-- Enhanced validation with comprehensive numeric constraints (20+ min/max pairs)
-- Added timestamp tracking (created_at, updated_at)
-- Improved pattern validation for damage formulas
-- Added additionalProperties constraints throughout for stricter validation
-- Added rarity and traits fields for PF2e alignment
-- Complete defense system: AC, immunities, resistances, weaknesses
-- Flexible reset mechanics (string or structured object)
-- State tracking: is_detected, is_disabled, is_triggered, is_destroyed
-- Changed hex to hexes_affected array to support multi-hex traps
+- Added `definitions` section with reusable hex_coordinate component
+- Referenced hex_coordinate definition in hexes_affected array for consistency
+- Added string validation (minLength: 1) to traits array items to prevent empty strings
+- Added maximum value constraints to resistances/weaknesses (max: 30) aligned with hazard.schema
+- Enhanced damage_type description to clarify support for multiple damage types
+- Added comprehensive examples section with simple and complex trap patterns
+- Improved consistency with hazard.schema.json structure and validation patterns
 
 **Defines:**
 - Simple traps: One-time dangers (dart trap, pit trap)
@@ -362,11 +414,15 @@ PF2e-compatible traps and snares (simple and complex). Traps are hidden threats 
 - State tracking: Runtime flags for detection, disabling, triggering, destruction
 
 **Key Features:**
+- Reusable definitions section (hex_coordinate) for schema consistency
 - Supports both string and structured object format for reset mechanics
 - Multiple skill options for disabling (Thievery, Athletics, Arcana, Religion, Crafting)
 - Pattern validation for damage dice notation
 - Full PF2e trait system support
 - Strict validation with additionalProperties: false
+- Comprehensive examples demonstrating simple and complex trap patterns
+- Maximum value constraints aligned with hazard.schema (resistances/weaknesses max: 30)
+- Enhanced damage_type field to support multiple damage types (e.g., "piercing, poison")
 
 ## Schema Standards
 
@@ -510,7 +566,7 @@ This enables IDE autocomplete, validation, and inline documentation for JSON dat
 
 ### Directory Cleanup Note
 
-This directory may contain historical completion/summary markdown files (e.g., `DCC-XXXX_COMPLETION.md`, `REVIEW_SUMMARY_DCC-XXXX.md`). These are legacy work-tracking documents and should be moved to a dedicated documentation archive or removed according to the repository's [Work Tracking and Status Policy](.github/instructions/instructions.md). Schema documentation should focus on the JSON schema files themselves.
+This directory previously contained historical completion/summary markdown files (e.g., `DCC-XXXX_COMPLETION.md`, `REVIEW_SUMMARY_DCC-XXXX.md`). These legacy work-tracking documents have been removed in accordance with the repository's Work Tracking and Status Policy (see `.github/instructions/instructions.md`). Per policy, implementation status should be tracked in GitHub Issues, not in separate markdown files. This directory now focuses solely on JSON schema files and this README documentation.
 
 ### Schema Versioning Status
 
@@ -527,9 +583,16 @@ Schemas with `schema_version` field (migration-ready):
 - ✓ `hazard.schema.json`
 - ✓ `hexmap.schema.json`
 - ✓ `item.schema.json`
+- ✓ `obstacle.schema.json`
 - ✓ `obstacle_object_catalog.schema.json`
 - ✓ `party.schema.json`
+- ✓ `room.schema.json`
 - ✓ `trap.schema.json`
+
+Schemas with versioning (recently added):
+- ✓ `obstacle.schema.json`
+- ✓ `obstacle_object_catalog.schema.json`
+- ✓ `room.schema.json`
 
 Schemas pending versioning:
 - `character_options_step[1-2,4-5,7].json` (UI-only schemas - lower priority)

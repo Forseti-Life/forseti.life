@@ -232,8 +232,19 @@
    ========================================================================== */
 
 .game-content-dashboard {
+  --bs-table-color: var(--dc-text-primary);
+  --bs-table-bg: var(--dc-dungeon-stone);
+  --bs-table-border-color: rgba(245, 158, 11, 0.2);
+  --bs-table-striped-color: var(--dc-text-primary);
+  --bs-table-striped-bg: rgba(245, 158, 11, 0.08);
+  --bs-table-hover-color: var(--dc-text-primary);
+  --bs-table-hover-bg: rgba(245, 158, 11, 0.12);
   background: var(--dc-dungeon-stone);
   color: var(--dc-text-primary);
+}
+
+.game-content-dashboard caption {
+  color: var(--dc-text-secondary);
 }
 
 .game-content-dashboard th {
@@ -244,4 +255,9 @@
 
 .game-content-dashboard td {
   border-color: rgba(245, 158, 11, 0.1);
+  color: var(--dc-text-primary);
+}
+
+.game-content-dashboard td.empty.message {
+  color: var(--dc-text-primary);
 }

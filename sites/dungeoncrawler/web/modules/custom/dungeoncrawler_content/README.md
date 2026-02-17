@@ -34,6 +34,14 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
    - `/characters?campaign_id={id}` switches My Characters into campaign selection mode
    - Character creation preserves `campaign_id` through step redirects
 
+### Game Object Management
+- **Table inventory interface**: Admin page inventories all Dungeon Crawler custom tables (`dc_*` and `dungeoncrawler_content_*`) and summarizes what objects they store.
+- **Field inventory**: Per-table field/type/index listing for complete schema visibility.
+- **Row browser and editor**: Browse stored rows and edit all row fields directly from `/dungeoncrawler/objects`.
+- **Theme-safe table contrast**: Dashboard tables explicitly set Bootstrap table variables so dark-theme text/background remains readable, including empty-state rows.
+- **Object Management Route**:
+   - `/dungeoncrawler/objects` - Review objects and attributes
+
 ### Information Pages
 - **World Lore** (`/world`) - Living dungeon background and lore
 - **How to Play** (`/how-to-play`) - Game mechanics and tutorial
@@ -48,6 +56,7 @@ Located in `navbar_left` region. Menu items (in order):
 3. **World** - Lore and world information (`/world`)
 4. **How to Play** - Game mechanics guide (`/how-to-play`)
 5. **About** - About the game (`/about`)
+6. **DC Administration** - Admin navigation group for Dungeon Crawler management routes (includes **Game Objects**)
 
 #### Footer Menu
 Located in `footer` region. Menu items (in order):
@@ -98,6 +107,7 @@ dungeoncrawler_content/
 │   │   ├── CharacterListController.php
 │   │   ├── CharacterViewController.php
 │   │   ├── DashboardController.php
+│   │   ├── GameObjectsController.php
 │   │   ├── HowToPlayController.php
 │   │   └── WorldController.php
 │   ├── Form/
@@ -229,6 +239,9 @@ Both blocks are configured as `status: true` and will be automatically placed wh
 ### Admin Routes
 - `/admin/config/content/dungeoncrawler` - Module settings
 - `/admin/content/dungeoncrawler` - Game content dashboard
+
+### Management Routes
+- `/dungeoncrawler/objects` - Game object manager (object/attribute review)
 
 ## Permissions
 
