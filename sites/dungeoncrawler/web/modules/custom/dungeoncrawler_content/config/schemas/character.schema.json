@@ -5,6 +5,7 @@
   "description": "Complete character data structure for a PF2e character stored in the dc_characters table character_data JSON column.",
   "type": "object",
   "required": ["step", "name", "level", "ancestry", "class", "abilities"],
+  "additionalProperties": false,
   "properties": {
     "schema_version": {
       "type": "string",
@@ -211,6 +212,7 @@
         "maxLength": 50,
         "description": "Language name (e.g., 'Common', 'Elvish', 'Draconic')."
       },
+      "uniqueItems": true,
       "description": "Languages known."
     },
     "skills": {
@@ -241,6 +243,7 @@
         "properties": {
           "item_id": {
             "type": "string",
+            "minLength": 1,
             "description": "Item identifier."
           },
           "name": {
@@ -317,6 +320,7 @@
         "properties": {
           "feat_id": {
             "type": "string",
+            "minLength": 1,
             "description": "Unique feat identifier."
           },
           "name": {
@@ -382,6 +386,7 @@
             "properties": {
               "spell_id": {
                 "type": "string",
+                "minLength": 1,
                 "description": "Unique spell identifier."
               },
               "name": {
