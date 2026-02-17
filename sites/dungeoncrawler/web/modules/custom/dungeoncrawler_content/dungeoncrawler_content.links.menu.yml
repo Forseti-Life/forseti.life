@@ -1,4 +1,9 @@
-# Admin menu links
+# ==============================================================================
+# ADMIN MENU LINKS
+# ==============================================================================
+# Administrative menu items for managing Dungeon Crawler content and settings.
+# These appear under Configuration and Content sections in the admin menu.
+
 dungeoncrawler_content.admin:
   title: 'Dungeon Crawler Content'
   description: 'Manage Dungeon Crawler game content settings.'
@@ -18,7 +23,12 @@ dungeoncrawler_content.testing_admin:
   parent: system.admin_config_development
   weight: 5
 
-# Main navigation menu links
+# ==============================================================================
+# MAIN NAVIGATION MENU LINKS
+# ==============================================================================
+# Primary navigation for authenticated and public users.
+# Weight determines display order (lower numbers appear first).
+
 dungeoncrawler_content.menu.play:
   title: 'Play'
   description: 'Start your adventure in the living dungeon'
@@ -38,30 +48,35 @@ dungeoncrawler_content.menu.campaigns:
   description: 'View and manage your campaigns'
   route_name: dungeoncrawler_content.campaigns
   menu_name: main
-  weight: 15
+  weight: 20
 
 dungeoncrawler_content.menu.world:
   title: 'World'
   description: 'Explore the living dungeon lore and world information'
   route_name: dungeoncrawler_content.world
   menu_name: main
-  weight: 20
+  weight: 30
 
 dungeoncrawler_content.menu.how_to_play:
   title: 'How to Play'
   description: 'Learn the game mechanics and rules'
   route_name: dungeoncrawler_content.how_to_play
   menu_name: main
-  weight: 30
+  weight: 40
 
 dungeoncrawler_content.menu.about:
   title: 'About'
   description: 'About Dungeon Crawler Life'
   route_name: dungeoncrawler_content.about
   menu_name: main
-  weight: 40
+  weight: 50
 
-# Footer menu links
+# ==============================================================================
+# FOOTER MENU LINKS
+# ==============================================================================
+# Footer navigation providing quick access to information pages.
+# Note: Privacy and Terms routes should be created as dedicated pages.
+
 dungeoncrawler_content.footer.about:
   title: 'About'
   description: 'About Dungeon Crawler Life'
@@ -83,6 +98,8 @@ dungeoncrawler_content.footer.world:
   menu_name: footer
   weight: 20
 
+# TODO: Create dedicated routes for privacy and terms pages
+# Currently pointing to front page as placeholder
 dungeoncrawler_content.footer.privacy:
   title: 'Privacy Policy'
   description: 'Privacy and data protection'
