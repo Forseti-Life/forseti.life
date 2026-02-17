@@ -174,6 +174,15 @@
                   "type": "integer",
                   "const": 5,
                   "description": "Visible rows in textarea"
+                },
+                "error_messages": {
+                  "type": "object",
+                  "properties": {
+                    "max_length": {
+                      "type": "string",
+                      "const": "Physical Appearance cannot exceed 1000 characters."
+                    }
+                  }
                 }
               }
             }
