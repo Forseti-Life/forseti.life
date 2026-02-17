@@ -38,16 +38,6 @@
 ./vendor/bin/phpunit -c phpunit.xml
 ```
 
-### Run a specific test file:
-```bash
-./vendor/bin/phpunit -c phpunit.xml tests/src/Functional/TheTestPageTest.php
-```
-
-### Run a specific test method:
-```bash
-./vendor/bin/phpunit -c phpunit.xml --filter testTestingDashboardPageLoads tests/src/Functional/TheTestPageTest.php
-```
-
 ## Running Module Tests
 
 For module-specific tests, use the module's phpunit.xml:

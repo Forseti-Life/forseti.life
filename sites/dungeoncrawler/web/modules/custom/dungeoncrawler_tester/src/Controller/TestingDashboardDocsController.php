@@ -36,7 +36,6 @@ class TestingDashboardDocsController extends TestingDashboardController {
 
 		$liveLinks = [
 			Link::fromTextAndUrl($this->t('Testing Dashboard'), Url::fromRoute('dungeoncrawler_tester.dashboard')),
-			Link::fromTextAndUrl($this->t('Tester Queue Management'), Url::fromRoute('dungeoncrawler_tester.queue_management')),
 			Link::fromTextAndUrl($this->t('Tester Settings'), Url::fromRoute('dungeoncrawler_tester.settings')),
 			Link::fromTextAndUrl($this->t('Copilot Issue Automation page'), Url::fromRoute('dungeoncrawler_tester.docs_issue_automation')),
 			Link::fromTextAndUrl($this->t('GitHub Issues (testing-related)'), Url::fromUri('https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting')),
@@ -149,11 +148,10 @@ class TestingDashboardDocsController extends TestingDashboardController {
 				$this->t('Plan by stage: pre-commit checks, focused functional coverage, then full confidence runs.'),
 				$this->t('Use dashboard command snippets to keep local runs aligned with expected workflows.'),
 				$this->t('On failure, capture output and stage context before rerunning to preserve root-cause evidence.'),
-				$this->t('Use queue management to pause, resume, and verify stage progression intentionally.'),
+				$this->t('Use the dashboard queue section to pause, resume, and verify stage progression intentionally.'),
 			],
 			[
 				Link::fromTextAndUrl($this->t('Testing Dashboard'), Url::fromRoute('dungeoncrawler_tester.dashboard')),
-				Link::fromTextAndUrl($this->t('Tester Queue Management'), Url::fromRoute('dungeoncrawler_tester.queue_management')),
 			]
 		);
 	}
@@ -299,7 +297,6 @@ class TestingDashboardDocsController extends TestingDashboardController {
 
 		$related = $this->renderLinkItems([
 			Link::fromTextAndUrl($this->t('Failure Triage and Issue Workflow'), Url::fromRoute('dungeoncrawler_tester.docs_failure_triage')),
-			Link::fromTextAndUrl($this->t('Tester Queue Management'), Url::fromRoute('dungeoncrawler_tester.queue_management')),
 			Link::fromTextAndUrl($this->t('Back to Documentation Home'), Url::fromRoute('dungeoncrawler_tester.documentation_home')),
 		]);
 

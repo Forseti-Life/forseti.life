@@ -1,11 +1,13 @@
 {
   "$schema": "../schemas/dungeon_level.schema.json",
+  "schema_version": "1.0.0",
   "level_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   "depth": 1,
   "theme": "goblin_warrens",
   "name": "The Fungal Pantry of Gribbles Rindsworth",
   "flavor_text": "The air grows thick with the pungent aroma of cave mushrooms and... is that cheese? The rough-hewn tunnels ahead are goblin-made, their walls scratched with crude drawings of what appears to be a very small figure wearing an oversized crown and holding a wedge of cheese aloft like a holy relic. Welcome to the domain of Gribbles Rindsworth the Magnificent.",
   "created_at": "2025-01-15T00:00:00Z",
+  "updated_at": "2026-02-17T00:00:00Z",
   "is_persistent": true,
   "hex_map": {
     "map_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
@@ -335,7 +337,7 @@
         "type": "door",
         "is_known": true,
         "is_locked": false,
-        "description": "A crude wooden door with 'KEEPE OUT \u2014 GRIBBLES PANTREE' scratched into it"
+        "description": "A crude wooden door with 'KEEPE OUT \u2014 GRIBBLES PANTRY' scratched into it"
       },
       {
         "connection_id": "conn-003",

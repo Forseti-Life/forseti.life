@@ -74,6 +74,92 @@ class LocalIssuesTrackerService {
   }
 
   /**
+   * Return tracker IDs for currently open rows.
+   *
+   * @return string[]
+   *   Open issue IDs.
+   */
+  public function getOpenIssueIds(): array {
+    $ids = [];
+    foreach ($this->parseIssueRows($this->resolveIssuesFilePath()) as $row) {
+      if (($row['status'] ?? '') !== 'Open') {
+        continue;
+      }
+      $issueId = trim((string) ($row['id'] ?? ''));
+      if ($issueId !== '') {
+        $ids[$issueId] = TRUE;
+      }
+    }
+
+    return array_keys($ids);
+  }
+
+  /**
+   * Remove open tracker rows by ID.
+   *
+   * @param string[] $issueIds
+   *   Tracker IDs to remove.
+   *
+   * @return int
+   *   Number of rows removed.
+   */
+  public function removeOpenIssueRowsByIds(array $issueIds): int {
+    $issuesFile = $this->resolveIssuesFilePath();
+    if (empty($issueIds) || !is_file($issuesFile) || !is_writable($issuesFile)) {
+      return 0;
+    }
+
+    $issueIdMap = [];
+    foreach ($issueIds as $issueId) {
+      $normalized = trim((string) $issueId);
+      if ($normalized !== '') {
+        $issueIdMap[$normalized] = TRUE;
+      }
+    }
+
+    if ($issueIdMap === []) {
+      return 0;
+    }
+
+    $lines = file($issuesFile);
+    if (!is_array($lines) || $lines === []) {
+      return 0;
+    }
+
+    $removed = 0;
+    $kept = [];
+    foreach ($lines as $line) {
+      $trimmed = rtrim((string) $line, "\r\n");
+      if (!str_starts_with($trimmed, '|')) {
+        $kept[] = $line;
+        continue;
+      }
+
+      $parts = array_map('trim', explode('|', $trimmed));
+      if (count($parts) < 9) {
+        $kept[] = $line;
+        continue;
+      }
+
+      $id = (string) ($parts[1] ?? '');
+      $status = (string) ($parts[3] ?? '');
+      if ($status === 'Open' && !empty($issueIdMap[$id])) {
+        $removed++;
+        continue;
+      }
+
+      $kept[] = $line;
+    }
+
+    if ($removed === 0) {
+      return 0;
+    }
+
+    $written = file_put_contents($issuesFile, implode('', $kept));
+    return $written === FALSE ? 0 : $removed;
+  }
+
+  /**
    * Mark a local issue row closed by tracker id.
    */
   public function markClosed(string $issueId, string $appendNote = ''): bool {
