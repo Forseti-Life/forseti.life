@@ -46,10 +46,12 @@
     "fields": {
       "type": "object",
       "description": "Form fields available in this step",
+      "additionalProperties": false,
       "properties": {
         "ancestry": {
           "type": "object",
           "description": "Ancestry selection field",
+          "additionalProperties": false,
           "properties": {
             "field_type": {
               "type": "string",
@@ -140,6 +142,8 @@
             },
             "validation": {
               "type": "object",
+              "description": "Validation rules for ancestry selection",
+              "additionalProperties": false,
               "properties": {
                 "required": {
                   "type": "boolean",
@@ -153,9 +157,11 @@
                       "type": "string",
                       "const": "Please select an ancestry before continuing."
                     }
-                  }
+                  },
+                  "required": ["required"]
                 }
-              }
+              },
+              "required": ["required", "error_messages"]
             }
           },
           "required": ["field_type", "label", "required", "options", "help_text", "validation"]
@@ -163,6 +169,7 @@
         "heritage": {
           "type": "object",
           "description": "Heritage selection field (conditional on ancestry)",
+          "additionalProperties": false,
           "properties": {
             "field_type": {
               "type": "string",
@@ -182,6 +189,7 @@
             "conditional": {
               "type": "object",
               "description": "Field only appears when ancestry is selected. Selected heritage must match the chosen ancestry (validated in heritages_by_ancestry).",
+              "additionalProperties": false,
               "properties": {
                 "depends_on": {
                   "type": "string",
@@ -191,7 +199,8 @@
                   "type": "string",
                   "const": "is_not_empty"
                 }
-              }
+              },
+              "required": ["depends_on", "relationship"]
             },
             "options_source": {
               "type": "string",
@@ -202,6 +211,7 @@
             "heritages_by_ancestry": {
               "type": "object",
               "description": "Heritage options organized by ancestry",
+              "additionalProperties": false,
               "properties": {
                 "Dwarf": {
                   "type": "array",
@@ -260,6 +270,8 @@
             },
             "validation": {
               "type": "object",
+              "description": "Validation rules for heritage selection",
+              "additionalProperties": false,
               "properties": {
                 "required": {
                   "type": "boolean",
@@ -273,9 +285,11 @@
                       "type": "string",
                       "const": "Please select a heritage before continuing."
                     }
-                  }
+                  },
+                  "required": ["required"]
                 }
-              }
+              },
+              "required": ["required", "error_messages"]
             }
           },
           "required": ["field_type", "label", "required", "conditional", "help_text", "validation"]
@@ -286,6 +300,7 @@
     "navigation": {
       "type": "object",
       "description": "Navigation rules for this step",
+      "additionalProperties": false,
       "properties": {
         "previous_step": {
           "type": "integer",
@@ -313,8 +328,10 @@
     "tips": {
       "type": "array",
       "description": "Helpful tips for new players",
+      "minItems": 1,
       "items": {
         "type": "object",
+        "additionalProperties": false,
         "required": ["title", "text"],
         "properties": {
           "title": {
