@@ -291,7 +291,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 
 			$candidates[] = [
 				'pr_number' => $prNumber,
-				'issue_numbers' => array_values(array_map('intval', array_keys($issueRefs))),
+				'issue_numbers' => $this->keySetToIntList($issueRefs),
 			];
 		}
 
@@ -320,7 +320,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			}
 		}
 
-		return array_values(array_map('intval', array_keys($candidates)));
+		return $this->keySetToIntList($candidates);
 	}
 
 	/**
@@ -342,7 +342,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			}
 		}
 
-		return array_values(array_map('intval', array_keys($candidates)));
+		return $this->keySetToIntList($candidates);
 	}
 
 	/**
@@ -375,7 +375,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			}
 		}
 
-		return array_values(array_map('intval', array_keys($candidates)));
+		return $this->keySetToIntList($candidates);
 	}
 
 	/**
@@ -407,7 +407,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			$candidates[$issueNumber] = TRUE;
 		}
 
-		return array_values(array_map('intval', array_keys($candidates)));
+		return $this->keySetToIntList($candidates);
 	}
 
 	/**
@@ -456,7 +456,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			$prNumber = (int) ($pr['number'] ?? 0);
 			$references = [];
 			if ($prNumber > 0 && !empty($strictIssueNumbersByPr[$prNumber])) {
-				$references = array_values(array_map('intval', array_keys($strictIssueNumbersByPr[$prNumber])));
+				$references = $this->keySetToIntList($strictIssueNumbersByPr[$prNumber]);
 			}
 			else {
 				$references = $this->extractIssueReferencesFromPr($pr);
@@ -1016,6 +1016,13 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	}
 
 	/**
+	 * Convert keyed set arrays to integer list values.
+	 */
+	private function keySetToIntList(array $set): array {
+		return array_values(array_map('intval', array_keys($set)));
+	}
+
+	/**
 	 * Record close operation outcome in bulk-close summary counters.
 	 */
 	private function recordCloseOutcome(array &$result, bool $success, string $itemType, int $itemNumber): void {
@@ -1099,7 +1106,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			}
 		}
 
-		return array_values(array_map('intval', array_keys($references)));
+		return $this->keySetToIntList($references);
 	}
 
 	/**
@@ -1456,7 +1463,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			}
 		}
 
-		$result = array_values(array_map('intval', array_keys($linkedPrNumbers)));
+		$result = $this->keySetToIntList($linkedPrNumbers);
 		if ($useCache) {
 			$this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
 		}
