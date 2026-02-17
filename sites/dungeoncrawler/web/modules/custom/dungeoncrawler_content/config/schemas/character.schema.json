@@ -4,8 +4,13 @@
   "title": "Pathfinder 2E Character Schema",
   "description": "Complete character data structure for a PF2e character stored in the dc_characters table character_data JSON column.",
   "type": "object",
-  "required": ["step", "name", "level", "ancestry", "class", "abilities"],
+  "required": ["step", "name", "level", "ancestry", "class", "abilities", "created_at", "updated_at"],
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version for migration compatibility.",
+      "default": "1.0.0"
+    },
     "step": {
       "type": "integer",
       "minimum": 1,
@@ -93,12 +98,39 @@
           },
           "value": {
             "type": "integer",
+            "minimum": 1,
+            "maximum": 2,
             "default": 2,
             "description": "Boost amount (+2 typical, +1 if already 18+)."
           }
-        }
+        },
+        "additionalProperties": false
       },
-      "description": "Tracking of all ability boosts applied to character."
+      "description": "Tracking of all ability boosts applied to character.",
+      "examples": [
+        [
+          {
+            "source": "ancestry",
+            "ability": "str",
+            "value": 2
+          },
+          {
+            "source": "background",
+            "ability": "dex",
+            "value": 2
+          },
+          {
+            "source": "class",
+            "ability": "str",
+            "value": 2
+          },
+          {
+            "source": "level_1",
+            "ability": "int",
+            "value": 2
+          }
+        ]
+      ]
     },
     "abilities": {
       "type": "object",
@@ -151,6 +183,7 @@
     },
     "hit_points": {
       "type": "object",
+      "required": ["max", "current"],
       "properties": {
         "max": {
           "type": "integer",
@@ -159,14 +192,17 @@
         },
         "current": {
           "type": "integer",
-          "description": "Current HP."
+          "minimum": 0,
+          "description": "Current HP. Must not exceed max."
         },
         "temp": {
           "type": "integer",
+          "minimum": 0,
           "default": 0,
           "description": "Temporary HP."
         }
-      }
+      },
+      "description": "Character hit points. Current HP should not exceed max HP."
     },
     "alignment": {
       "type": "string",
@@ -206,39 +242,75 @@
     "skills": {
       "type": "object",
       "description": "Skill proficiencies: untrained, trained, expert, master, legendary.",
-      "additionalProperties": {
-        "type": "string",
-        "enum": ["untrained", "trained", "expert", "master", "legendary"]
-      }
+      "patternProperties": {
+        "^[a-z_]+$": {
+          "type": "string",
+          "enum": ["untrained", "trained", "expert", "master", "legendary"]
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "acrobatics": "trained",
+          "athletics": "expert",
+          "stealth": "trained",
+          "perception": "expert"
+        }
+      ]
     },
     "equipment": {
       "type": "array",
       "items": {
         "type": "object",
+        "required": ["item_id", "name", "quantity"],
         "properties": {
           "item_id": {
             "type": "string",
             "description": "Item identifier."
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "description": "Item name."
           },
           "quantity": {
             "type": "integer",
             "minimum": 1,
-            "default": 1
+            "default": 1,
+            "description": "Number of items."
           },
           "equipped": {
             "type": "boolean",
-            "default": false
+            "default": false,
+            "description": "Whether item is currently equipped."
           },
           "worn": {
             "type": "boolean",
-            "default": false
+            "default": false,
+            "description": "Whether item is worn (armor, clothing)."
           }
-        }
+        },
+        "additionalProperties": false
       },
-      "description": "Character's equipment and inventory."
+      "description": "Character's equipment and inventory.",
+      "examples": [
+        [
+          {
+            "item_id": "longsword-001",
+            "name": "Longsword",
+            "quantity": 1,
+            "equipped": true,
+            "worn": false
+          },
+          {
+            "item_id": "leather-armor-001",
+            "name": "Leather Armor",
+            "quantity": 1,
+            "equipped": false,
+            "worn": true
+          }
+        ]
+      ]
     },
     "gold": {
       "type": "number",
@@ -265,24 +337,48 @@
       "type": "array",
       "items": {
         "type": "object",
+        "required": ["feat_id", "name", "level_gained", "feat_type"],
         "properties": {
           "feat_id": {
-            "type": "string"
+            "type": "string",
+            "description": "Unique feat identifier."
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "description": "Feat name."
           },
           "level_gained": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 1,
+            "maximum": 20,
+            "description": "Character level when feat was gained."
           },
           "feat_type": {
             "type": "string",
-            "enum": ["ancestry", "class", "skill", "general"]
+            "enum": ["ancestry", "class", "skill", "general"],
+            "description": "Category of feat."
           }
-        }
+        },
+        "additionalProperties": false
       },
-      "description": "Feats acquired through leveling."
+      "description": "Feats acquired through leveling.",
+      "examples": [
+        [
+          {
+            "feat_id": "toughness",
+            "name": "Toughness",
+            "level_gained": 1,
+            "feat_type": "general"
+          },
+          {
+            "feat_id": "power-attack",
+            "name": "Power Attack",
+            "level_gained": 1,
+            "feat_type": "class"
+          }
+        ]
+      ]
     },
     "spells": {
       "type": "object",
@@ -298,55 +394,78 @@
         },
         "spell_dc": {
           "type": "integer",
+          "minimum": 10,
           "description": "Spell DC."
         },
         "spells_known": {
           "type": "array",
           "items": {
             "type": "object",
+            "required": ["spell_id", "name", "rank"],
             "properties": {
               "spell_id": {
-                "type": "string"
+                "type": "string",
+                "description": "Unique spell identifier."
               },
               "name": {
-                "type": "string"
+                "type": "string",
+                "minLength": 1,
+                "description": "Spell name."
               },
               "rank": {
                 "type": "integer",
                 "minimum": 0,
-                "maximum": 10
+                "maximum": 10,
+                "description": "Spell rank (0 = cantrip, 1-10 = spell level)."
               }
-            }
-          }
+            },
+            "additionalProperties": false
+          },
+          "description": "List of spells the character knows.",
+          "examples": [
+            [
+              {
+                "spell_id": "detect-magic",
+                "name": "Detect Magic",
+                "rank": 0
+              },
+              {
+                "spell_id": "magic-missile",
+                "name": "Magic Missile",
+                "rank": 1
+              }
+            ]
+          ]
         },
         "spell_slots": {
           "type": "object",
           "description": "Spell slots per rank.",
-          "additionalProperties": {
-            "type": "object",
-            "properties": {
-              "max": {
-                "type": "integer"
-              },
-              "remaining": {
-                "type": "integer"
-              }
+          "patternProperties": {
+            "^rank_[0-9]|10$": {
+              "$ref": "#/definitions/spell_slot"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "focus_points": {
           "type": "object",
+          "required": ["max", "remaining"],
           "properties": {
             "max": {
               "type": "integer",
               "minimum": 0,
               "maximum": 3,
-              "default": 0
+              "default": 0,
+              "description": "Maximum focus points."
             },
             "remaining": {
-              "type": "integer"
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3,
+              "description": "Current focus points remaining."
             }
-          }
+          },
+          "additionalProperties": false
         }
       },
       "description": "Spellcasting data (null if not a spellcaster)."
@@ -355,19 +474,39 @@
       "type": "array",
       "items": {
         "type": "object",
+        "required": ["name"],
         "properties": {
           "name": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "description": "Condition name (e.g., 'Blinded', 'Fatigued', 'Wounded 1')."
           },
           "value": {
-            "type": ["integer", "null"]
+            "type": ["integer", "null"],
+            "description": "Numeric value for conditions with levels (e.g., Wounded 2)."
           },
           "duration": {
-            "type": ["string", "null"]
+            "type": ["string", "null"],
+            "description": "Duration of condition (e.g., '1 round', 'until healed')."
           }
-        }
+        },
+        "additionalProperties": false
       },
-      "description": "Active PF2e conditions."
+      "description": "Active PF2e conditions.",
+      "examples": [
+        [
+          {
+            "name": "Wounded",
+            "value": 1,
+            "duration": "until healed"
+          },
+          {
+            "name": "Fatigued",
+            "value": null,
+            "duration": "until rest"
+          }
+        ]
+      ]
     },
     "hero_points": {
       "type": "integer",
@@ -385,6 +524,51 @@
       "type": "string",
       "format": "date-time",
       "description": "Last modification timestamp."
+    }
+  },
+  "definitions": {
+    "ability_score": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 30,
+      "default": 10,
+      "description": "Character ability score."
+    },
+    "ability_boost": {
+      "type": "object",
+      "required": ["source", "ability"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": ["ancestry", "background", "class", "level_1", "level_5", "level_10", "level_15", "level_20"]
+        },
+        "ability": {
+          "type": "string",
+          "enum": ["str", "dex", "con", "int", "wis", "cha"]
+        },
+        "value": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2,
+          "default": 2
+        }
+      }
+    },
+    "spell_slot": {
+      "type": "object",
+      "required": ["max", "remaining"],
+      "properties": {
+        "max": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum spell slots for this rank."
+        },
+        "remaining": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Remaining spell slots for this rank."
+        }
+      }
     }
   }
 }
