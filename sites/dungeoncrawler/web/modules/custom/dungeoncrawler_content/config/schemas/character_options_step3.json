@@ -4,6 +4,7 @@
   "title": "Character Creation Step 3: Background",
   "description": "Defines available options and validation for selecting character's background in Pathfinder 2E character creation",
   "type": "object",
+  "additionalProperties": false,
   "$defs": {
     "backgroundOption": {
       "type": "object",
@@ -253,7 +254,8 @@
               },
               "minItems": 6,
               "maxItems": 6,
-              "uniqueItems": true
+              "uniqueItems": true,
+              "default": ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"]
             },
             "help_text": {
               "type": "string",
