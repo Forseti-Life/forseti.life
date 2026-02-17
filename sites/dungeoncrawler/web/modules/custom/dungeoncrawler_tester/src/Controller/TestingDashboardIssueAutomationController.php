@@ -1327,11 +1327,18 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	}
 
 	/**
+	 * Build issue-report response shape for missing GitHub token cases.
+	 */
+	private function noGithubTokenReportResult(): array {
+		return ['items' => [], 'error' => (string) $this->t('No GitHub token configured.')];
+	}
+
+	/**
 	 * Fetch open issues for reporting.
 	 */
 	protected function fetchOpenIssuesForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
 		if (empty($tokenCandidates)) {
-			return ['items' => [], 'error' => (string) $this->t('No GitHub token configured.')];
+			return $this->noGithubTokenReportResult();
 		}
 
 		$cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.open_issues.' . $repo;
@@ -1394,7 +1401,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 */
 	protected function fetchOpenPullRequestsForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
 		if (empty($tokenCandidates)) {
-			return ['items' => [], 'error' => (string) $this->t('No GitHub token configured.')];
+			return $this->noGithubTokenReportResult();
 		}
 
 		$cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.open_prs.' . $repo;
@@ -1443,7 +1450,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 */
 	protected function fetchClosedPullRequestsForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
 		if (empty($tokenCandidates)) {
-			return ['items' => [], 'error' => (string) $this->t('No GitHub token configured.')];
+			return $this->noGithubTokenReportResult();
 		}
 
 		$cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.closed_prs.' . $repo;
