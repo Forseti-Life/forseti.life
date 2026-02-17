@@ -86,7 +86,8 @@ dungeoncrawler_content/
 ├── css/
 │   ├── character-sheet.css
 │   ├── dungeoncrawler-content.css
-│   └── game-cards.css
+│   ├── game-cards.css
+│   └── hexmap.css         # Hex map display styles (refactored with design tokens)
 ├── js/
 │   ├── character-sheet.js
 │   └── game-cards.js
@@ -236,12 +237,13 @@ Both blocks are configured as `status: true` and will be automatically placed wh
 
 ## Styling
 
-The module includes three CSS libraries:
+The module includes four CSS libraries:
 1. **dungeoncrawler-content** - Base module styles
 2. **game-cards** - Card-based UI components
 3. **character-sheet** - Character sheet display
+4. **hexmap** - Hex map display with systematic design tokens (81 CSS custom properties)
 
-All use Bootstrap 5 dark theme styling with fantasy RPG aesthetics.
+All use Bootstrap 5 dark theme styling with fantasy RPG aesthetics. The hexmap.css file has been refactored to use a comprehensive design token system including colors, spacing (8-point grid), typography, shadows, and animations.
 
 ## Development
 
