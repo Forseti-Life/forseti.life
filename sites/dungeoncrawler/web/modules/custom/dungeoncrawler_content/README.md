@@ -86,7 +86,8 @@ dungeoncrawler_content/
 ├── css/
 │   ├── character-sheet.css
 │   ├── dungeoncrawler-content.css
-│   └── game-cards.css
+│   ├── game-cards.css
+│   └── hexmap.css         # Hex map display styles (refactored with design tokens)
 ├── js/
 │   ├── character-sheet.js
 │   └── game-cards.js
@@ -268,7 +269,7 @@ Legacy class names maintained for backward compatibility:
 - `.classes-grid` → use `.class-grid`
 - `.abilities-grid` → use `.ability-grid`
 
-All use Bootstrap 5 dark theme styling with fantasy RPG aesthetics.
+All use Bootstrap 5 dark theme styling with fantasy RPG aesthetics. The hexmap.css file has been refactored to use a comprehensive design token system including colors, spacing (8-point grid), typography, shadows, and animations.
 
 ### game-cards.css Improvements (DCC-0038)
 
