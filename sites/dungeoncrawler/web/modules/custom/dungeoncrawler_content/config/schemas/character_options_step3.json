@@ -49,6 +49,11 @@
     }
   },
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version for migration compatibility"
+    },
     "step": {
       "type": "integer",
       "const": 3,
@@ -171,7 +176,7 @@
                   "description": "You spent years studying in libraries, academies, or under mentors.",
                   "ability_boosts": 2,
                   "skill": "Arcana",
-                  "feat": "Assurance",
+                  "feat": "Assurance (Arcana)",
                   "lore": "Academia Lore"
                 },
                 {
@@ -497,5 +502,5 @@
       ]
     }
   },
-  "required": ["step", "step_name", "step_description", "fields", "navigation", "validation", "boost_sources_produced", "tips", "examples"]
+  "required": ["schema_version", "step", "step_name", "step_description", "fields", "navigation", "validation", "boost_sources_produced", "tips", "examples"]
 }

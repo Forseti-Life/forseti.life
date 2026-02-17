@@ -31,7 +31,7 @@ JSON Schemas serve multiple purposes:
 | Schema File | Purpose | Versioned | Lines | Primary Use |
 |-------------|---------|-----------|-------|-------------|
 | `character.schema.json` | Complete PF2e character | ✓ | 564 | `dc_characters.character_data` |
-| `character_options_step[1-8].json` | Character creation wizard | Partial | 298-535 | Character creation UI |
+| `character_options_step[1-8].json` | Character creation wizard | Partial | 298-506 | Character creation UI |
 | `campaign.schema.json` | Campaign state & progress | ✓ | 137 | `dc_campaigns.campaign_data` |
 | `creature.schema.json` | Monsters, NPCs, beasts | ✓ | 1101 | Entity spawning |
 | `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 298 | Level generation |
@@ -573,7 +573,7 @@ This directory previously contained historical completion/summary markdown files
 Schemas with `schema_version` field (migration-ready):
 - ✓ `campaign.schema.json`
 - ✓ `character.schema.json`
-- ✓ `character_options_step2.json` (v1.0.0)
+- ✓ `character_options_step3.json`
 - ✓ `character_options_step6.json`
 - ✓ `character_options_step8.json`
 - ✓ `creature.schema.json`
@@ -595,7 +595,10 @@ Schemas with versioning (recently added):
 - ✓ `room.schema.json`
 
 Schemas pending versioning:
-- `character_options_step[1-5,7].json` (UI-only schemas - lower priority)
+- `character_options_step[1-2,4-5,7].json` (UI-only schemas - lower priority)
+- `obstacle.schema.json` (needs versioning for production use)
+- `obstacle_object_catalog.schema.json` (needs versioning for production use)
+- `room.schema.json` (needs versioning for production use)
 
 ### Adding New Properties
 1. Update the appropriate schema file
