@@ -50,8 +50,8 @@ export interface LevelUpEvent {
  * Implements optimistic updates with rollback on failure.
  */
 export class CharacterStateService {
-  private readonly characterState: CharacterState | null = null;
-  private readonly websocket: WebSocket | null = null;
+  private characterState: CharacterState | null = null;
+  private websocket: WebSocket | null = null;
   private readonly updateQueue: UpdateOperation[] = [];
   private readonly listeners: Map<string, EventCallback[]> = new Map();
   private updateQueueInterval: number | null = null;
