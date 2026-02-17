@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Queue management AJAX endpoints for the testing module.
- * 
+ *
  * This controller provides AJAX endpoints used by the testing dashboard
  * for queue operations (run, status, logs, delete, rerun).
  * The queue UI is embedded directly in the testing dashboard.
