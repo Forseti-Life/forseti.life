@@ -64,11 +64,24 @@
                   "type": "string",
                   "const": "^[0-9a-zA-Z\\s,-]+$",
                   "description": "Alphanumeric with spaces, commas, hyphens"
+                },
+                "error_messages": {
+                  "type": "object",
+                  "properties": {
+                    "max_length": {
+                      "type": "string",
+                      "const": "Age cannot exceed 50 characters."
+                    },
+                    "pattern": {
+                      "type": "string",
+                      "const": "Age must contain only letters, numbers, spaces, commas, and hyphens."
+                    }
+                  }
                 }
               }
             }
           },
-          "required": ["field_type", "label", "required", "help_text"]
+          "required": ["field_type", "label", "required", "help_text", "validation"]
         },
         "gender": {
           "type": "object",
@@ -105,11 +118,20 @@
                 "max_length": {
                   "type": "integer",
                   "const": 100
+                },
+                "error_messages": {
+                  "type": "object",
+                  "properties": {
+                    "max_length": {
+                      "type": "string",
+                      "const": "Gender / Pronouns cannot exceed 100 characters."
+                    }
+                  }
                 }
               }
             }
           },
-          "required": ["field_type", "label", "required", "help_text"]
+          "required": ["field_type", "label", "required", "help_text", "validation"]
         },
         "appearance": {
           "type": "object",
@@ -199,6 +221,15 @@
                   "type": "integer",
                   "const": 5,
                   "description": "Visible rows in textarea"
+                },
+                "error_messages": {
+                  "type": "object",
+                  "properties": {
+                    "max_length": {
+                      "type": "string",
+                      "const": "Personality & Mannerisms cannot exceed 1000 characters."
+                    }
+                  }
                 }
               }
             }
@@ -246,6 +277,15 @@
                   "type": "integer",
                   "const": 10,
                   "description": "Visible rows in textarea"
+                },
+                "error_messages": {
+                  "type": "object",
+                  "properties": {
+                    "max_length": {
+                      "type": "string",
+                      "const": "Backstory cannot exceed 5000 characters."
+                    }
+                  }
                 }
               }
             }
@@ -272,14 +312,70 @@
             "properties": {
               "section_name": {
                 "type": "string",
-                "enum": ["Basic Info", "Ancestry & Heritage", "Background & Class", "Abilities", "Alignment & Deity", "Equipment"]
+                "enum": ["Basic Info", "Ancestry & Heritage", "Background & Class", "Abilities", "Alignment & Deity", "Equipment"],
+                "description": "Name of the summary section"
               },
               "fields": {
                 "type": "object",
-                "description": "Key-value pairs summarizing this section"
+                "description": "Key-value pairs summarizing this section",
+                "additionalProperties": {
+                  "type": "string"
+                }
               }
-            }
-          }
+            },
+            "required": ["section_name", "fields"]
+          },
+          "examples": [
+            [
+              {
+                "section_name": "Basic Info",
+                "fields": {
+                  "Name": "Valeros",
+                  "Concept": "Sword-for-hire seeking redemption"
+                }
+              },
+              {
+                "section_name": "Ancestry & Heritage",
+                "fields": {
+                  "Ancestry": "Human",
+                  "Heritage": "Versatile Heritage"
+                }
+              },
+              {
+                "section_name": "Background & Class",
+                "fields": {
+                  "Background": "Mercenary",
+                  "Class": "Fighter"
+                }
+              },
+              {
+                "section_name": "Abilities",
+                "fields": {
+                  "STR": "18 (+4)",
+                  "DEX": "14 (+2)",
+                  "CON": "16 (+3)",
+                  "INT": "10 (+0)",
+                  "WIS": "12 (+1)",
+                  "CHA": "10 (+0)"
+                }
+              },
+              {
+                "section_name": "Alignment & Deity",
+                "fields": {
+                  "Alignment": "Neutral Good",
+                  "Deity": "None"
+                }
+              },
+              {
+                "section_name": "Equipment",
+                "fields": {
+                  "Weapon": "Longsword",
+                  "Armor": "Chain Mail",
+                  "Shield": "Steel Shield"
+                }
+              }
+            ]
+          ]
         },
         "help_text": {
           "type": "string",
@@ -288,6 +384,30 @@
         }
       },
       "required": ["label", "sections", "help_text"]
+    },
+    "validation": {
+      "type": "object",
+      "description": "Validation rules for completing this step",
+      "properties": {
+        "step_complete": {
+          "type": "object",
+          "properties": {
+            "required_fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [],
+              "description": "All fields are optional - character can be completed with minimal information"
+            },
+            "error_message": {
+              "type": "string",
+              "default": "Please review your character before finalizing.",
+              "description": "Message shown when validation fails"
+            }
+          }
+        }
+      }
     },
     "navigation": {
       "type": "object",
@@ -342,5 +462,5 @@
       ]
     }
   },
-  "required": ["step", "step_name", "step_description", "fields", "character_summary", "navigation", "tips"]
+  "required": ["step", "step_name", "step_description", "fields", "character_summary", "validation", "navigation", "tips"]
 }
