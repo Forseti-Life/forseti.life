@@ -262,6 +262,27 @@ These features exist in the codebase but are commented out per development prior
 - Keyword matching against user preferences
 - Real-time job posting monitoring and change detection
 
+### 🔍 **Company Research Integration** **[✅ INTEGRATED - Feb 2026]**
+- **Automated Company Research** - AI-powered analysis of company career pages, ATS platforms, and authentication methods
+- **Research Status Badges** - Visual indicators showing research completion and data freshness
+- **ATS Platform Detection** - Automatically identifies which Application Tracking System companies use (Workday, Greenhouse, Taleo, etc.)
+- **Automation Readiness Assessment** - Provides readiness levels (Ready/Partial/Manual) for automated application submission
+- **Integrated Workflow** - One-click research from company cards at `/jobhunter/companyresearch`
+- **Smart Caching** - 30-day cache with staleness indicators and manual refresh options
+- **Detailed Research Results** - View complete research data including careers pages, authentication requirements, and CAPTCHA detection
+- **Seamless Module Integration** - Leverages the `company_research` module's AI-powered services
+- **Back Navigation** - Easy return to company research page from research form
+
+#### Using Company Research
+1. Navigate to `/jobhunter/companyresearch` to view all companies
+2. Companies with existing research show badges (✓ Researched or 🔄 Stale Research)
+3. Click "Research Company" button on any company card to initiate research
+4. Review detailed results including ATS platform and automation readiness
+5. Click "View Research" to see complete research details anytime
+6. Research data is automatically cached for 30 days to optimize performance
+
+For technical details on the research process, see [docs/COMPANY_RESEARCH_DESIGN_SUMMARY.md](docs/COMPANY_RESEARCH_DESIGN_SUMMARY.md).
+
 ### 🔐 **Secure Credential Management**
 - Encrypted storage of user login credentials for each employer
 - Credential validation and testing capabilities

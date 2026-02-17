@@ -5,6 +5,7 @@
  *
  * Available variables:
  * - companies: Array of company data with research information
+ * - stats: Aggregated statistics (total_companies, active_count, total_jobs, total_apps)
  */
 #}
 
@@ -20,10 +21,10 @@
       <h2>{{ 'No Companies Yet'|t }}</h2>
       <p>{{ 'Start by importing companies or discovering job opportunities.'|t }}</p>
       <div class="action-buttons">
-        <a href="/jobhunter/bulk-import/companies" class="button button--primary">
+        <a href="{{ path('job_hunter.bulk_import_companies') }}" class="button button--primary">
           {{ 'Import Companies'|t }}
         </a>
-        <a href="/jobhunter/job-discovery" class="button">
+        <a href="{{ path('job_hunter.job_discovery') }}" class="button">
           {{ 'Job Discovery'|t }}
         </a>
       </div>
@@ -31,39 +32,19 @@
   {% else %}
     <div class="company-stats">
       <div class="stat-card">
-        <div class="stat-value">{{ companies|length }}</div>
+        <div class="stat-value">{{ stats.total_companies }}</div>
         <div class="stat-label">{{ 'Total Companies'|t }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">
-          {% set active_count = 0 %}
-          {% for company in companies %}
-            {% if company.active %}
-              {% set active_count = active_count + 1 %}
-            {% endif %}
-          {% endfor %}
-          {{ active_count }}
-        </div>
+        <div class="stat-value">{{ stats.active_count }}</div>
         <div class="stat-label">{{ 'Active Targets'|t }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">
-          {% set total_jobs = 0 %}
-          {% for company in companies %}
-            {% set total_jobs = total_jobs + company.job_count %}
-          {% endfor %}
-          {{ total_jobs }}
-        </div>
+        <div class="stat-value">{{ stats.total_jobs }}</div>
         <div class="stat-label">{{ 'Job Postings'|t }}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value">
-          {% set total_apps = 0 %}
-          {% for company in companies %}
-            {% set total_apps = total_apps + company.app_count %}
-          {% endfor %}
-          {{ total_apps }}
-        </div>
+        <div class="stat-value">{{ stats.total_apps }}</div>
         <div class="stat-label">{{ 'Applications'|t }}</div>
       </div>
     </div>
@@ -73,9 +54,22 @@
         <div class="company-card {% if company.active %}active{% endif %}">
           <div class="company-header">
             <h3>{{ company.name }}</h3>
-            {% if company.active %}
-              <span class="badge badge-active">{{ 'Active Target'|t }}</span>
-            {% endif %}
+            <div class="company-badges">
+              {% if company.active %}
+                <span class="badge badge-active">{{ 'Active Target'|t }}</span>
+              {% endif %}
+              {% if company.has_research %}
+                {% if company.research_stale %}
+                  <span class="badge badge-warning" title="{{ 'Research data is older than 30 days'|t }}">
+                    🔄 {{ 'Stale Research'|t }}
+                  </span>
+                {% else %}
+                  <span class="badge badge-success" title="{{ 'Research completed'|t }}">
+                    ✓ {{ 'Researched'|t }}
+                  </span>
+                {% endif %}
+              {% endif %}
+            </div>
           </div>
 
           <div class="company-info">
@@ -112,6 +106,33 @@
             </div>
           {% endif %}
 
+          {# Display research data if available #}
+          {% if company.has_research %}
+            <div class="research-summary">
+              <strong>{{ 'Research Summary:'|t }}</strong>
+              <div class="research-info">
+                {% if company.ats_platform %}
+                  <div class="research-item">
+                    <span class="research-icon">🏢</span>
+                    <span class="research-label">{{ 'ATS Platform:'|t }}</span>
+                    <span class="research-value">{{ company.ats_platform }}</span>
+                  </div>
+                {% endif %}
+                {% if company.automation_readiness %}
+                  <div class="research-item">
+                    <span class="research-icon">
+                      {% if company.automation_readiness == 'ready' %}🟢
+                      {% elseif company.automation_readiness == 'partial' %}🟡
+                      {% else %}🔴{% endif %}
+                    </span>
+                    <span class="research-label">{{ 'Automation:'|t }}</span>
+                    <span class="research-value">{{ company.automation_readiness|capitalize }}</span>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+
           <div class="company-stats-inline">
             <div class="stat-item">
               <span class="stat-icon">📋</span>
@@ -124,12 +145,24 @@
           </div>
 
           <div class="company-actions">
-            <a href="/jobhunter/companies/{{ company.id }}/edit" class="button button--small">
+            <a href="{{ path('job_hunter.company_edit', {'company_id': company.id}) }}" class="button button--small">
               {{ 'Edit Details'|t }}
             </a>
-            <a href="/jobhunter/job-discovery/company/{{ company.id }}" class="button button--small button--primary">
+            <a href="{{ path('job_hunter.company_job_discovery', {'company': company.id}) }}" class="button button--small button--primary">
               {{ 'Find Jobs'|t }}
             </a>
+            {% if company.has_research %}
+              <a href="{{ path('company_research.results', {'research_id': company.research_id}) }}" class="button button--small button--info">
+                {{ 'View Research'|t }}
+              </a>
+            {% else %}
+              <form action="{{ path('company_research.research_form') }}" method="get" style="display: inline;">
+                <input type="hidden" name="company_name" value="{{ company.name }}">
+                <button type="submit" class="button button--small button--secondary">
+                  🔍 {{ 'Research Company'|t }}
+                </button>
+              </form>
+            {% endif %}
           </div>
         </div>
       {% endfor %}
