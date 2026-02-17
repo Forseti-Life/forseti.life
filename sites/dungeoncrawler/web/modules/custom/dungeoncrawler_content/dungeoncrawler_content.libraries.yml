@@ -99,27 +99,27 @@ hexmap:
     # PixiJS CDN (version locked for stability)
     https://cdn.jsdelivr.net/npm/pixi.js@7.3.2/dist/pixi.min.js: { type: external, minified: true }
     # ECS Core (loaded before hexmap.js)
-    js/ecs/Component.js: { attributes: { type: module, defer: true } }
-    js/ecs/Entity.js: { attributes: { type: module, defer: true } }
-    js/ecs/System.js: { attributes: { type: module, defer: true } }
-    js/ecs/EntityManager.js: { attributes: { type: module, defer: true } }
+    js/ecs/Component.js: { attributes: { type: module } }
+    js/ecs/Entity.js: { attributes: { type: module } }
+    js/ecs/System.js: { attributes: { type: module } }
+    js/ecs/EntityManager.js: { attributes: { type: module } }
     # ECS Components
-    js/ecs/components/PositionComponent.js: { attributes: { type: module, defer: true } }
-    js/ecs/components/RenderComponent.js: { attributes: { type: module, defer: true } }
-    js/ecs/components/IdentityComponent.js: { attributes: { type: module, defer: true } }
-    js/ecs/components/MovementComponent.js: { attributes: { type: module, defer: true } }
-    js/ecs/components/StatsComponent.js: { attributes: { type: module, defer: true } }
-    js/ecs/components/ActionsComponent.js: { attributes: { type: module, defer: true } }
-    js/ecs/components/CombatComponent.js: { attributes: { type: module, defer: true } }
+    js/ecs/components/PositionComponent.js: { attributes: { type: module } }
+    js/ecs/components/RenderComponent.js: { attributes: { type: module } }
+    js/ecs/components/IdentityComponent.js: { attributes: { type: module } }
+    js/ecs/components/MovementComponent.js: { attributes: { type: module } }
+    js/ecs/components/StatsComponent.js: { attributes: { type: module } }
+    js/ecs/components/ActionsComponent.js: { attributes: { type: module } }
+    js/ecs/components/CombatComponent.js: { attributes: { type: module } }
     # ECS Systems
-    js/ecs/systems/RenderSystem.js: { attributes: { type: module, defer: true } }
-    js/ecs/systems/MovementSystem.js: { attributes: { type: module, defer: true } }
-    js/ecs/systems/TurnManagementSystem.js: { attributes: { type: module, defer: true } }
-    js/ecs/systems/CombatSystem.js: { attributes: { type: module, defer: true } }
+    js/ecs/systems/RenderSystem.js: { attributes: { type: module } }
+    js/ecs/systems/MovementSystem.js: { attributes: { type: module } }
+    js/ecs/systems/TurnManagementSystem.js: { attributes: { type: module } }
+    js/ecs/systems/CombatSystem.js: { attributes: { type: module } }
     # ECS Index
-    js/ecs/index.js: { attributes: { type: module, defer: true } }
+    js/ecs/index.js: { attributes: { type: module } }
     # Main hexmap (loads ECS as module)
-    js/hexmap.js: { attributes: { type: module, defer: true } }
+    js/hexmap.js: { attributes: { type: module } }
   css:
     theme:
       css/hexmap.css: {}
