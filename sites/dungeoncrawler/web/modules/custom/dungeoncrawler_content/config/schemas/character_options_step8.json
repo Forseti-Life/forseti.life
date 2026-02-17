@@ -5,6 +5,11 @@
   "description": "Defines options for finalizing character details including age, gender, appearance, personality, and backstory in Pathfinder 2E character creation",
   "type": "object",
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version for migration compatibility"
+    },
     "step": {
       "type": "integer",
       "const": 8,
@@ -62,7 +67,7 @@
                 },
                 "pattern": {
                   "type": "string",
-                  "const": "^[0-9a-zA-Z\\s,-]+$",
+                  "const": "^[0-9a-zA-Z\\s,\\-]+$",
                   "description": "Alphanumeric with spaces, commas, hyphens"
                 },
                 "error_messages": {
@@ -76,9 +81,11 @@
                       "type": "string",
                       "const": "Age must contain only letters, numbers, spaces, commas, and hyphens."
                     }
-                  }
+                  },
+                  "required": ["max_length", "pattern"]
                 }
-              }
+              },
+              "required": ["max_length", "pattern", "error_messages"]
             }
           },
           "required": ["field_type", "label", "required", "help_text", "validation"]
@@ -126,9 +133,11 @@
                       "type": "string",
                       "const": "Gender / Pronouns cannot exceed 100 characters."
                     }
-                  }
+                  },
+                  "required": ["max_length"]
                 }
-              }
+              },
+              "required": ["max_length", "error_messages"]
             }
           },
           "required": ["field_type", "label", "required", "help_text", "validation"]
@@ -182,9 +191,11 @@
                       "type": "string",
                       "const": "Physical Appearance cannot exceed 1000 characters."
                     }
-                  }
+                  },
+                  "required": ["max_length"]
                 }
-              }
+              },
+              "required": ["max_length", "rows", "error_messages"]
             }
           },
           "required": ["field_type", "label", "required", "help_text", "validation"]
@@ -238,9 +249,11 @@
                       "type": "string",
                       "const": "Personality & Mannerisms cannot exceed 1000 characters."
                     }
-                  }
+                  },
+                  "required": ["max_length"]
                 }
-              }
+              },
+              "required": ["max_length", "rows", "error_messages"]
             }
           },
           "required": ["field_type", "label", "required", "help_text", "validation"]
@@ -294,9 +307,11 @@
                       "type": "string",
                       "const": "Backstory cannot exceed 5000 characters."
                     }
-                  }
+                  },
+                  "required": ["max_length"]
                 }
-              }
+              },
+              "required": ["max_length", "rows", "error_messages"]
             }
           },
           "required": ["field_type", "label", "required", "help_text", "validation"]
@@ -332,7 +347,8 @@
                 }
               }
             },
-            "required": ["section_name", "fields"]
+            "required": ["section_name", "fields"],
+            "additionalProperties": false
           },
           "examples": [
             [
@@ -414,9 +430,11 @@
               "default": "Please review your character before finalizing.",
               "description": "Message shown when validation fails"
             }
-          }
+          },
+          "required": ["required_fields", "error_message"]
         }
-      }
+      },
+      "required": ["step_complete"]
     },
     "navigation": {
       "type": "object",
@@ -471,5 +489,5 @@
       ]
     }
   },
-  "required": ["step", "step_name", "step_description", "fields", "character_summary", "validation", "navigation", "tips"]
+  "required": ["schema_version", "step", "step_name", "step_description", "fields", "character_summary", "validation", "navigation", "tips"]
 }
