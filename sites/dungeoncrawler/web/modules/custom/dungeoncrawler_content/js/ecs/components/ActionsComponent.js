@@ -265,8 +265,11 @@ export class ActionsComponent extends Component {
   
   /**
    * Apply status effect that modifies actions.
-   * @param {string} effect - Effect name (unused currently, for future enhancement)
+   * @param {string} effect - Effect name (reserved for future tracking/logging functionality)
    * @param {number} modifier - Action modifier to add
+   * 
+   * Note: The effect parameter is currently unused but retained in the signature
+   * for API stability and future enhancements (e.g., effect tracking, stacking rules).
    * 
    * @example
    * actions.applyActionModifier('Haste', 1); // Add 1 action
