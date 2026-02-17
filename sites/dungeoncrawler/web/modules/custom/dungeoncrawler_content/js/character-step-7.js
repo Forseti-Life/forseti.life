@@ -9,7 +9,7 @@
   // Configuration constants
   const CONFIG = {
     startingGold: 15,
-    goldPrecision: 2, // Precision for calculations and display
+    goldPrecision: 2, // Precision for internal calculations
     goldDisplayDecimals: 1, // Number of decimal places shown in UI
     errorDisplayDuration: 2000,
     selectors: {
