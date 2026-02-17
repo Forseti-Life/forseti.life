@@ -863,9 +863,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			$message .= " {$errorCount} item(s) had errors; check logs.";
 		}
 
-		return new JsonResponse([
-			'success' => TRUE,
-			'message' => $message,
+		return $this->successJsonResponse($message, [
 			'prs_closed' => $result['prs_closed'],
 			'issues_closed' => $result['issues_closed'],
 			'errors' => $result['errors'],
@@ -927,12 +925,21 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return $this->errorJsonResponse('Close action completed with warnings. Check logs for details.', 500);
 		}
 
-		return new JsonResponse([
-			'success' => TRUE,
-			'message' => $issueNumber > 0
+		return $this->successJsonResponse(
+			$issueNumber > 0
 				? "Closed dead-value PR #{$prNumber} and issue #{$issueNumber}."
-				: "Closed dead-value PR #{$prNumber}.",
-		]);
+				: "Closed dead-value PR #{$prNumber}."
+		);
+	}
+
+	/**
+	 * Build a standardized JSON success response payload.
+	 */
+	private function successJsonResponse(string $message, array $extra = []): JsonResponse {
+		return new JsonResponse(array_merge([
+			'success' => TRUE,
+			'message' => $message,
+		], $extra));
 	}
 
 	/**
