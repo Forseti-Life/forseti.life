@@ -218,8 +218,8 @@ class JobDiscoveryService {
    */
   public function getSavedJobsCount(): int {
     try {
-      return (int) $this->database->select('jobhunter_job_requirements', 'j')
-        ->condition('uid', $this->currentUser->id())
+      return (int) $this->database->select('jobhunter_saved_jobs', 'sj')
+        ->condition('sj.uid', $this->currentUser->id())
         ->countQuery()
         ->execute()
         ->fetchField();
@@ -269,8 +269,10 @@ class JobDiscoveryService {
    */
   public function getSavedJobs(array $filters = []): array {
     try {
-      $query = $this->database->select('jobhunter_job_requirements', 'j')
-        ->fields('j');
+      $query = $this->database->select('jobhunter_saved_jobs', 'sj');
+      $query->innerJoin('jobhunter_job_requirements', 'j', 'sj.job_id = j.id');
+      $query->fields('j')
+        ->condition('sj.uid', $this->currentUser->id());
       
       $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
       $query->addField('c', 'name', 'company_name');
@@ -333,8 +335,11 @@ class JobDiscoveryService {
    */
   public function getCompanyNames(): array {
     try {
-      return $this->database->select('jobhunter_companies', 'c')
+      return $this->database->select('jobhunter_saved_jobs', 'sj')
         ->fields('c', ['name'])
+        ->innerJoin('jobhunter_job_requirements', 'j', 'sj.job_id = j.id')
+        ->innerJoin('jobhunter_companies', 'c', 'j.company_id = c.id')
+        ->condition('sj.uid', $this->currentUser->id())
         ->distinct()
         ->orderBy('name', 'ASC')
         ->execute()
