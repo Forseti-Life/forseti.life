@@ -26,6 +26,8 @@
     },
     "name": {
       "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
       "description": "AI-generated room name. Becomes permanent after first exploration.",
       "examples": [
         "The Echoey Room What Screams Back",
@@ -50,6 +52,7 @@
       "type": "array",
       "description": "All hex coordinates this room occupies. A room can span multiple hexes.",
       "minItems": 1,
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "required": [
@@ -71,6 +74,7 @@
           },
           "terrain_override": {
             "type": "string",
+            "minLength": 1,
             "description": "Per-hex terrain override (e.g., a pit in one hex of a larger room)."
           },
           "elevation_ft": {
@@ -127,7 +131,7 @@
         "vault_room",
         "safe_room"
       ],
-      "description": "Functional room type. Affects AI generation parameters."
+      "description": "Functional room type. Affects AI generation parameters and procedural content generation."
     },
     "size_category": {
       "type": "string",
@@ -264,6 +268,7 @@
         "light_sources": {
           "type": "array",
           "description": "Fixed light sources in the room.",
+          "uniqueItems": true,
           "items": {
             "type": "object",
             "properties": {
@@ -324,6 +329,7 @@
     "environmental_effects": {
       "type": "array",
       "description": "Active PF2e environmental effects in this room.",
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "properties": {
@@ -374,6 +380,7 @@
     "creatures": {
       "type": "array",
       "description": "Creatures currently in this room. References creature schema.",
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "properties": {
@@ -425,6 +432,7 @@
     "items": {
       "type": "array",
       "description": "Items/loot present in this room.",
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "properties": {
@@ -495,6 +503,7 @@
     "interactables": {
       "type": "array",
       "description": "Interactive objects (levers, altars, puzzles, etc.).",
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "properties": {
@@ -636,6 +645,7 @@
         "notes": {
           "type": "array",
           "description": "Player-added notes about this room.",
+          "uniqueItems": true,
           "items": {
             "type": "object",
             "properties": {
@@ -730,10 +740,36 @@
         }
       },
       "additionalProperties": false
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Room instance creation timestamp (ISO 8601 format)."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last modification timestamp (ISO 8601 format)."
     }
   },
   "additionalProperties": false,
   "definitions": {
+    "hex_coordinate": {
+      "type": "object",
+      "description": "Axial hex coordinate (q, r) following the cube coordinate system.",
+      "required": ["q", "r"],
+      "properties": {
+        "q": {
+          "type": "integer",
+          "description": "Q-axis coordinate in axial hex system."
+        },
+        "r": {
+          "type": "integer",
+          "description": "R-axis coordinate in axial hex system."
+        }
+      },
+      "additionalProperties": false
+    },
     "hex_object": {
       "type": "object",
       "description": "A physical object placed on a hex (furniture, pillar, debris, etc.).",
@@ -814,5 +850,81 @@
       },
       "additionalProperties": false
     }
-  }
+  },
+  "examples": [
+    {
+      "schema_version": "1.0.0",
+      "room_id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "The Echoing Chamber",
+      "description": "A vast chamber with impossibly high ceilings. Strange echoes reverberate from the darkness above, repeating your footsteps seconds after you take them.",
+      "gm_notes": "Players who Listen carefully (DC 18 Perception) notice the echoes don't quite match their movements.",
+      "hexes": [
+        { "q": 0, "r": 0, "elevation_ft": 0 },
+        { "q": 1, "r": 0, "elevation_ft": 0 },
+        { "q": 0, "r": 1, "elevation_ft": 0 },
+        { "q": 1, "r": 1, "elevation_ft": 5, "terrain_override": "raised_platform" }
+      ],
+      "room_type": "chamber",
+      "size_category": "medium",
+      "terrain": {
+        "type": "smooth_stone",
+        "difficult_terrain": false,
+        "greater_difficult_terrain": false,
+        "hazardous_terrain": null,
+        "ceiling_height_ft": 30
+      },
+      "lighting": {
+        "level": "darkness",
+        "light_sources": []
+      },
+      "environmental_effects": [],
+      "creatures": [],
+      "items": [],
+      "traps": [],
+      "hazards": [],
+      "obstacles": [],
+      "interactables": [
+        {
+          "interactable_id": "660e8400-e29b-41d4-a716-446655440001",
+          "name": "Ancient Altar",
+          "description": "A weathered stone altar covered in mysterious runes",
+          "hex": { "q": 1, "r": 1 },
+          "interaction_type": "altar",
+          "skill_check": {
+            "skill": "Religion",
+            "dc": 20
+          },
+          "effect": "Grants a temporary blessing (+1 to saves for 1 hour)",
+          "used": false,
+          "reusable": true
+        }
+      ],
+      "state": {
+        "explored": true,
+        "explored_at": "2026-02-17T14:30:00Z",
+        "explored_by_party": "770e8400-e29b-41d4-a716-446655440002",
+        "cleared": true,
+        "looted": false,
+        "traps_disarmed": false,
+        "visibility": "visible",
+        "notes": [
+          {
+            "author": "Valeria",
+            "text": "Safe room - good for resting",
+            "timestamp": "2026-02-17T14:35:00Z"
+          }
+        ]
+      },
+      "ai_generation": {
+        "prompt_context": "Generate a mysterious chamber suitable for level 3 party",
+        "theme_tags": ["mysterious", "ancient", "echoing"],
+        "difficulty_target": "moderate",
+        "party_level_at_generation": 3,
+        "generation_model": "gpt-4",
+        "generation_timestamp": "2026-02-17T14:25:00Z"
+      },
+      "created_at": "2026-02-17T14:25:00Z",
+      "updated_at": "2026-02-17T14:35:00Z"
+    }
+  ]
 }

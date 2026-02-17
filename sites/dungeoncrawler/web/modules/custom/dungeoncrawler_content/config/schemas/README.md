@@ -343,6 +343,17 @@ Adventuring party with shared resources and exploration state.
 #### `room.schema.json`
 Individual dungeon rooms that occupy one or more hexes. AI-generated on first entry and permanent thereafter.
 
+**Recently improved (2026-02-17):**
+- Added schema versioning for migration compatibility
+- Added timestamp tracking (created_at, updated_at)
+- Added uniqueItems constraints to 11 arrays for data integrity
+- Added minLength validation to prevent empty strings (10+ fields)
+- Added maxLength constraints to name fields for UI compatibility
+- Extracted reusable hex_coordinate definition to avoid duplication
+- Enhanced property descriptions for clarity
+- Added comprehensive room example with realistic data
+- Improved consistency with trap.schema.json, hazard.schema.json, and obstacle.schema.json
+
 **Defines:**
 - Room metadata (UUID, name, AI descriptions, GM notes)
 - Multi-hex occupation with per-hex terrain overrides
@@ -359,6 +370,7 @@ Individual dungeon rooms that occupy one or more hexes. AI-generated on first en
 - Support for furniture and hex-specific objects
 - Hidden vs visible room features
 - Persistent state after first exploration
+- Strict validation with uniqueItems and minLength constraints
 
 #### `trap.schema.json`
 PF2e-compatible traps and snares (simple and complex). Traps are hidden threats that trigger when activated.
@@ -555,6 +567,11 @@ Schemas with `schema_version` field (migration-ready):
 - ✓ `obstacle_object_catalog.schema.json`
 - ✓ `party.schema.json`
 - ✓ `trap.schema.json`
+
+Schemas with versioning (recently added):
+- ✓ `obstacle.schema.json`
+- ✓ `obstacle_object_catalog.schema.json`
+- ✓ `room.schema.json`
 
 Schemas pending versioning:
 - `character_options_step[1,3-5,7].json` (UI-only schemas - lower priority)
