@@ -95,7 +95,7 @@
         "damage_on_enter": {
           "type": ["string", "null"],
           "description": "Damage dealt when entering obstacle hex (PF2e dice notation).",
-          "pattern": "^\\d+d\\d+(\\+\\d+d\\d+|[-+]\\d+)?$",
+          "pattern": "^\\d+d\\d+(\\+\\d+d\\d+|\\+\\d+|-\\d+)?$",
           "examples": ["1d6", "2d6+3", "1d4+1d6", "2d6-2"]
         },
         "damage_type": {
