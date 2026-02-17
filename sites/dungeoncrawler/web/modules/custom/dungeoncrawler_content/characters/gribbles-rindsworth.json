@@ -1,4 +1,5 @@
 {
+  "schema_version": "1.0.0",
   "step": 8,
   "name": "Gribbles Rindsworth the Magnificent",
   "concept": "Cheese-obsessed goblin rogue with a rat intelligence network, on a quest for the Legendary Cheese",
@@ -25,6 +26,8 @@
   },
   "alignment": "CN",
   "deity": "None (worships cheese conceptually)",
+  "age": "Adult (exact age uncertain)",
+  "gender": "Male",
   "size": "Small",
   "speed": 25,
   "languages": ["Common", "Goblin"],
@@ -127,6 +130,7 @@
     }
   ],
   "hero_points": 1,
+  "appearance": "Small goblin with oversized ears that perk up at the word 'cheese'. Wears a distinctive hat made from aged cheese wrappers. His studded leather armor features tiny brass buttons shaped like cheese wheels. Always carries himself with unwarranted confidence and gesticulates wildly when speaking. Bright, intelligent eyes constantly dart about, assessing threats and opportunities.",
   "personality": "Silly and whimsical but genuinely confident. Talks fast and gesticulates wildly. Unshakably loyal once bribed with snacks. Refers to himself in third person when excited. Has an intelligence network of rats, led by 'Eduardo'. Deep and abiding fear of spiders. Considers cheese a spiritual experience.",
   "backstory": "Gribbles grew up in the undercity, scavenging and developing an improbably refined palate for cheese. He built a small intelligence network of rats led by his most trusted associate, Eduardo, who tipped him off about a Legendary Cheese aged in the Fungal Pantry deep within the dungeon. Gribbles' cousin Blemish was flattened by a trap and now serves as a bookmark — he's fine with it, mostly. Gribbles is on a sacred quest to find the cheese, and he'll partner with any adventurer willing to share a pickle and tolerate his enthusiasm.",
   "_npc_extended": {
