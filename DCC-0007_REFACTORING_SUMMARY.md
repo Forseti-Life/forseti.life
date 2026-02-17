@@ -34,7 +34,9 @@ Analyzed patterns across multiple schema files:
 
 ## Changes Implemented
 
-### 1. Schema Version Validation
+### First Pass: Core Refactoring
+
+#### 1. Schema Version Validation
 **Before:**
 ```json
 "schema_version": {
@@ -56,7 +58,7 @@ Analyzed patterns across multiple schema files:
 
 **Impact**: Now matches campaign.schema.json pattern, enforces semantic versioning format.
 
-### 2. Age Field Type Consistency
+#### 2. Age Field Type Consistency
 **Before:**
 ```json
 "age": {
@@ -76,7 +78,7 @@ Analyzed patterns across multiple schema files:
 
 **Impact**: Eliminates type ambiguity, adds validation constraint, clarifies units.
 
-### 3. additionalProperties Consistency
+#### 3. additionalProperties Consistency
 
 #### Added to Closed Objects:
 1. **abilities** object (str, dex, con, int, wis, cha)
@@ -91,12 +93,12 @@ Analyzed patterns across multiple schema files:
 4. **ability_boost** definition (source, ability, value)
    - Ensures strict boost tracking
 
-#### Removed from Dynamic Objects:
+##### Removed from Dynamic Objects:
 1. **skills** object
    - Uses `patternProperties` for dynamic skill names (acrobatics, athletics, etc.)
    - Removal of `additionalProperties: false` was correct - allows any valid skill
 
-### 4. Documentation Improvements
+#### 4. Documentation Improvements
 
 **Spell Rank Clarification:**
 ```json
@@ -118,17 +120,153 @@ Analyzed patterns across multiple schema files:
 }
 ```
 
+### Second Pass: Enhanced Documentation and Validation (2026-02-17)
+
+After initial refactoring, automated schema analysis identified 11 missing descriptions and 5 unbounded string fields.
+
+#### 5. Added maxLength Constraints to String Fields
+
+All identifier and name fields now have reasonable length limits:
+
+```json
+"heritage": { "type": "string", "maxLength": 100, ... }
+"background": { "type": "string", "maxLength": 100, ... }
+"subclass": { "type": "string", "maxLength": 100, ... }
+"deity": { "type": "string", "maxLength": 100, ... }
+"gender": { "type": "string", "maxLength": 100, ... }
+```
+
+**Impact**: Prevents unbounded string data, improves data consistency, matches patterns in other schemas.
+
+#### 6. Added Descriptions to Array Items
+
+All array item schemas now have descriptive documentation:
+
+```json
+"background_boosts": {
+  "items": {
+    "type": "string",
+    "enum": ["str", "dex", "con", "int", "wis", "cha"],
+    "description": "Ability score to boost (str/dex/con/int/wis/cha)."
+  }
+}
+
+"languages": {
+  "items": {
+    "type": "string",
+    "minLength": 1,
+    "maxLength": 50,
+    "description": "Language name (e.g., 'Common', 'Elvish', 'Draconic')."
+  }
+}
+
+"equipment": {
+  "items": {
+    "type": "object",
+    "description": "Single equipment item with quantity and equipped status.",
+    ...
+  }
+}
+
+"feats": {
+  "items": {
+    "type": "object",
+    "description": "Individual feat with acquisition details.",
+    ...
+  }
+}
+
+"spells_known": {
+  "items": {
+    "type": "object",
+    "description": "Individual spell with rank information.",
+    ...
+  }
+}
+
+"conditions": {
+  "items": {
+    "type": "object",
+    "description": "Active condition with optional value and duration.",
+    ...
+  }
+}
+```
+
+**Impact**: Improves schema documentation, helps developers understand data structures.
+
+#### 7. Enhanced Enum Documentation
+
+```json
+"skills": {
+  "patternProperties": {
+    "^[a-z]+(_[a-z]+)*$": {
+      "type": "string",
+      "enum": ["untrained", "trained", "expert", "master", "legendary"],
+      "description": "Proficiency rank for this skill."
+    }
+  }
+}
+```
+
+**Impact**: Clarifies the meaning of skill proficiency values.
+
+#### 8. Added Definition Descriptions
+
+```json
+"ability_boost": {
+  "type": "object",
+  "description": "Records a single ability boost with its source and amount.",
+  ...
+}
+```
+
+**Impact**: Improves reusable definition documentation.
+
 ## Validation Results
 
-### JSON Syntax
+### First Pass Validation
+
+#### JSON Syntax
 ✅ **Valid**: Confirmed with `python3 -m json.tool`
 
-### Schema Structure
+#### Schema Structure
 Custom validation script results:
 - ✅ **0 errors**
 - ⚠️ **1 expected warning**: skills object intentionally lacks additionalProperties (uses patternProperties)
 
-### CodeQL Security
+#### CodeQL Security
+✅ **No issues**: JSON schema file requires no code analysis
+
+### Second Pass Validation (2026-02-17)
+
+#### JSON Syntax
+✅ **Valid**: Confirmed with `python3 -m json.tool`
+
+#### Schema Completeness Analysis
+Automated analysis results:
+- ✅ **0 missing descriptions** (down from 11)
+- ✅ **0 unbounded string fields** (down from 5 critical fields)
+- ✅ **All array items documented**
+- ✅ **All enum types documented**
+- ✅ **All definitions documented**
+
+#### Specific Verifications
+- ✅ `heritage`: maxLength = 100
+- ✅ `background`: maxLength = 100
+- ✅ `subclass`: maxLength = 100
+- ✅ `deity`: maxLength = 100
+- ✅ `gender`: maxLength = 100
+- ✅ `background_boosts.items`: has description
+- ✅ `languages.items`: has description + validation
+- ✅ `equipment.items`: has description
+- ✅ `feats.items`: has description
+- ✅ `conditions.items`: has description
+- ✅ `spells_known.items`: has description
+- ✅ `skills.patternProperties`: has description
+- ✅ `definitions.ability_boost`: has description
+
+#### CodeQL Security
 ✅ **No issues**: JSON schema file requires no code analysis
 
 ## Impact Assessment
@@ -180,18 +318,37 @@ Consider adding:
 
 ## Files Modified
 
+### Initial Refactoring (First Pass)
 1. `sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/config/schemas/character.schema.json`
    - 10 insertions (+)
    - 6 deletions (-)
    - Net change: +4 lines
+
+### Additional Improvements (Second Pass - 2026-02-17)
+1. `sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/config/schemas/character.schema.json`
+   - 18 insertions (+)
+   - 3 deletions (-)
+   - Net change: +15 lines
+
+**Second Pass Changes:**
+- Added 5 maxLength constraints to unbounded string fields
+- Added 11 missing descriptions to array items and enums
+- Enhanced languages validation with minLength and maxLength
 
 ## Conclusion
 
 Successfully refactored character.schema.json to improve:
 - ✅ Consistency with other schemas (campaign.schema.json pattern)
 - ✅ Type safety (age field, closed objects)
-- ✅ Validation capabilities (schema_version pattern)
-- ✅ Documentation clarity (spell rank, focus points)
+- ✅ Validation capabilities (schema_version pattern, maxLength constraints)
+- ✅ Documentation clarity (spell rank, focus points, array items)
+- ✅ Schema completeness (all array items and enums now documented)
+
+**Second Pass Results:**
+- ✅ 0 missing descriptions remaining
+- ✅ All critical string fields now have maxLength constraints
+- ✅ Improved validation for languages (minLength: 1, maxLength: 50)
+- ✅ Enhanced documentation for array items and definitions
 
 No breaking changes, fully backward compatible, ready for use.
 
