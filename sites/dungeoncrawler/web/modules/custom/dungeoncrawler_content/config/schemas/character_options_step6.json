@@ -197,7 +197,8 @@
               "additionalProperties": false
             }
           },
-          "required": ["field_type", "label", "required", "options", "help_text", "validation"]
+          "required": ["field_type", "label", "required", "options", "help_text", "validation"],
+          "additionalProperties": false
         },
         "deity": {
           "type": "object",
@@ -210,8 +211,8 @@
             },
             "label": {
               "type": "string",
-              "const": "Choose a Deity (Optional)",
-              "description": "Field label"
+              "const": "Choose a Deity (Required for Clerics & Champions)",
+              "description": "Field label indicating conditional requirement"
             },
             "required": {
               "type": "boolean",
@@ -303,7 +304,7 @@
                 "alignment_compatibility": {
                   "type": "boolean",
                   "const": true,
-                  "description": "Character alignment must be within one step of deity alignment on the Law-Chaos and Good-Evil axes. Note: This is a business logic flag; actual validation must be implemented in the application code."
+                  "description": "When enabled, enforces Pathfinder 2E rule: Character alignment must be within one step of deity alignment on both the Law-Chaos axis and Good-Evil axis (e.g., a Neutral Good deity allows LG, NG, CG, LN, N, CN followers)."
                 },
                 "error_message": {
                   "type": "string",
@@ -314,10 +315,12 @@
               "additionalProperties": false
             }
           },
-          "required": ["field_type", "label", "required", "options", "help_text", "validation"]
+          "required": ["field_type", "label", "required", "options", "help_text", "validation"],
+          "additionalProperties": false
         }
       },
-      "required": ["alignment", "deity"]
+      "required": ["alignment", "deity"],
+      "additionalProperties": false
     },
     "navigation": {
       "type": "object",
@@ -344,7 +347,61 @@
           "description": "Step cannot be skipped"
         }
       },
-      "required": ["previous_step", "next_step", "can_go_back", "can_skip"]
+      "required": ["previous_step", "next_step", "can_go_back", "can_skip"],
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "description": "Step-level validation rules enforced before allowing navigation to next step",
+      "properties": {
+        "required_fields": {
+          "type": "array",
+          "description": "Fields that must be completed before advancing",
+          "items": {
+            "type": "string",
+            "enum": ["alignment", "deity"]
+          },
+          "default": ["alignment"]
+        },
+        "conditional_requirements": {
+          "type": "object",
+          "description": "Additional requirements based on previous choices",
+          "properties": {
+            "deity_required_for_classes": {
+              "type": "array",
+              "description": "Classes that must choose a deity",
+              "items": {
+                "type": "string",
+                "enum": ["cleric", "champion"]
+              },
+              "default": ["cleric", "champion"]
+            }
+          },
+          "additionalProperties": false
+        },
+        "error_messages": {
+          "type": "object",
+          "description": "User-facing error messages for validation failures",
+          "properties": {
+            "alignment_missing": {
+              "type": "string",
+              "const": "Please select an alignment before continuing."
+            },
+            "deity_required": {
+              "type": "string",
+              "const": "Clerics and Champions must choose a deity."
+            },
+            "alignment_incompatible": {
+              "type": "string",
+              "const": "Your alignment must be within one step of your deity's alignment."
+            }
+          },
+          "required": ["alignment_missing", "deity_required", "alignment_incompatible"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["required_fields", "conditional_requirements", "error_messages"],
+      "additionalProperties": false
     },
     "tips": {
       "type": "array",
@@ -361,5 +418,6 @@
       ]
     }
   },
-  "required": ["step", "step_name", "step_description", "fields", "navigation", "tips"]
+  "required": ["step", "step_name", "step_description", "fields", "navigation", "validation", "tips"],
+  "additionalProperties": false
 }
