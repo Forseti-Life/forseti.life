@@ -39,8 +39,8 @@ JSON Schemas serve multiple purposes:
 | `hexmap.schema.json` | Hex-based dungeon map | ✓ | 247 | Map structure |
 | `item.schema.json` | Equipment & loot | ✓ | 439 | Inventory system |
 | `obstacle.schema.json` | Map obstacles | ✗ | 78 | Traversal blockers |
-| `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✗ | 87 | Obstacle templates |
-| `party.schema.json` | Adventuring party | ✗ | 220 | Party management |
+| `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✓ | 87 | Obstacle templates |
+| `party.schema.json` | Adventuring party | ✓ | 220 | Party management |
 | `room.schema.json` | Individual dungeon rooms | ✗ | 372 | Room generation |
 | `trap.schema.json` | Mechanical & magical traps | ✗ | 77 | Trap mechanics |
 
@@ -245,6 +245,15 @@ Unified traversal/combat obstacles (non-container blockers/modifiers).
 #### `obstacle_object_catalog.schema.json`
 Reusable obstacle object definitions (label, movable, stackable, movement flags) used by placed obstacle instances.
 
+**Recently improved (2026-02-17):**
+- Added schema versioning for migration compatibility (schema_version now required)
+- Enhanced validation with improved constraints:
+  - Added minLength: 1 to object_id to prevent empty IDs
+  - Added maximum: 999 to cost_multiplier for reasonable upper bound
+  - Added uniqueItems: true to tags array to prevent duplicate tags
+  - Added minLength: 1 to tag items to prevent empty strings
+- Validates successfully with existing example data (tavern-obstacle-objects.json)
+
 #### `party.schema.json`
 Adventuring party with shared resources and exploration state.
 
@@ -442,6 +451,7 @@ Schemas with `schema_version` field (migration-ready):
 - ✓ `hazard.schema.json`
 - ✓ `hexmap.schema.json`
 - ✓ `item.schema.json`
+- ✓ `obstacle_object_catalog.schema.json`
 - ✓ `party.schema.json`
 - ✓ `trap.schema.json`
 
@@ -449,7 +459,6 @@ Schemas pending versioning:
 - `character_options_step[1-5,7].json` (UI-only schemas)
 - `entity_instance.schema.json`
 - `obstacle.schema.json`
-- `obstacle_object_catalog.schema.json`
 - `room.schema.json`
 
 ### Adding New Properties
