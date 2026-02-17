@@ -22,6 +22,9 @@
  * const restored = HealthComponent.fromJSON(json);
  */
 
+// Sentinel value for circular reference detection
+const CIRCULAR_REF = '[Circular]';
+
 export class Component {
   /**
    * Create a new component.
@@ -39,7 +42,8 @@ export class Component {
    * Override in subclasses if you need custom serialization logic.
    * 
    * Default implementation serializes all own properties except 'type' and functions.
-   * Handles nested objects and arrays, but may not handle circular references.
+   * Automatically handles nested objects and arrays. Circular references are detected
+   * and excluded from the output with a console warning.
    * 
    * @returns {Object} Serialized component data (plain object)
    */
@@ -58,7 +62,7 @@ export class Component {
       // Detect circular references
       if (seen.has(obj)) {
         console.warn('Circular reference detected in component serialization');
-        return '[Circular]';
+        return CIRCULAR_REF;
       }
       seen.add(obj);
       
@@ -73,7 +77,7 @@ export class Component {
         if (typeof value !== 'function') {
           const serialized = serialize(value);
           // Only include valid values (skip circular references)
-          if (serialized !== '[Circular]') {
+          if (serialized !== CIRCULAR_REF) {
             result[key] = serialized;
           }
         }
@@ -81,11 +85,12 @@ export class Component {
       return result;
     };
     
+    // Serialize all component properties
     for (const [key, value] of Object.entries(this)) {
       if (key !== 'type' && typeof value !== 'function') {
         const serialized = serialize(value);
         // Only include valid values (skip circular references)
-        if (serialized !== '[Circular]') {
+        if (serialized !== CIRCULAR_REF) {
           data[key] = serialized;
         }
       }
