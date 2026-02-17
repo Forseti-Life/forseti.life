@@ -1,6 +1,18 @@
 /**
  * @file
  * Styles for hex map display.
+ * 
+ * This stylesheet provides the visual styling for the dungeon crawler hex map interface.
+ * It includes styles for the interactive map canvas, turn-based combat UI, character sheets,
+ * initiative tracking, and various game controls.
+ * 
+ * The file uses a comprehensive design token system with CSS custom properties for:
+ * - Colors (semantic color palette with light/dark variants)
+ * - Spacing (8-point grid system)
+ * - Typography (responsive type scale)
+ * - Shadows (elevation system)
+ * - Animations (standardized timing)
+ * - Gradients (reusable gradient patterns)
  */
 
 :root {
@@ -105,16 +117,20 @@
   --shadow-2xl: 0 10px 30px rgba(0, 0, 0, 0.25);
 }
 
+/* ==========================================================================
+   Layout & Container Styles
+   ========================================================================== */
+
 .hexmap-container {
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 20px;
+  padding: var(--space-5);
   font-family: "Montserrat", "Segoe UI", sans-serif;
 }
 
 .hexmap-header {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .hexmap-header h1 {
@@ -128,6 +144,10 @@
   color: var(--gray-500);
   font-size: var(--text-xl);
 }
+
+/* ==========================================================================
+   Form Controls
+   ========================================================================== */
 
 /* Controls */
 .hexmap-controls {
@@ -198,6 +218,10 @@
   font-weight: 600;
 }
 
+/* ==========================================================================
+   Canvas & Game Stage
+   ========================================================================== */
+
 /* Canvas Container */
 .hexmap-canvas-wrapper {
   width: calc(100% - clamp(140px, 12%, 240px));
@@ -221,6 +245,10 @@
   position: relative;
   padding-bottom: 0; /* overlay footer upward into map */
 }
+
+/* ==========================================================================
+   Turn HUD & Combat Interface
+   ========================================================================== */
 
 /* Turn HUD overlay */
 .turn-hud {
@@ -263,6 +291,10 @@
   margin-top: var(--space-2);
 }
 
+/* ==========================================================================
+   Action Footer (Side Rail)
+   ========================================================================== */
+
 .action-footer {
   position: absolute;
   left: 0;
@@ -284,6 +316,8 @@
   box-sizing: border-box;
   font-size: var(--text-xs);
 }
+
+/* Action Footer Toggle & Collapsed State */
 
 .action-footer__toggle {
   width: 100%;
@@ -309,6 +343,8 @@
 .action-footer.collapsed .action-section__body {
   display: none;
 }
+
+/* Collapsible Rail Sections */
 
 /* Collapsible rail sections */
 .action-footer .action-section {
@@ -387,6 +423,10 @@
   width: 100%;
 }
 
+/* ==========================================================================
+   Responsive Design - Mobile & Tablet
+   ========================================================================== */
+
 @media (max-width: 900px) {
   .hexmap-canvas-wrapper {
     width: 100%;
@@ -408,6 +448,10 @@
     box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.35);
   }
 }
+
+/* ==========================================================================
+   UI Components - Pills, Chips, Badges
+   ========================================================================== */
 
 .action-instruction {
   margin: 2px 0 0;
@@ -564,6 +608,10 @@
   opacity: 0.9;
 }
 
+/* ==========================================================================
+   Info Panels & Documentation
+   ========================================================================== */
+
 /* Info Panel */
 .hexmap-info {
   display: grid;
@@ -612,6 +660,10 @@
 .info-panel ul li {
   margin: var(--space-2) 0;
 }
+
+/* ==========================================================================
+   Character Sheet & Stats
+   ========================================================================== */
 
 /* Character sheet below the map */
 .character-sheet {
@@ -713,6 +765,10 @@
   font-style: italic;
 }
 
+/* ==========================================================================
+   Responsive Design - Mobile Layout
+   ========================================================================== */
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .hexmap-controls {
@@ -744,6 +800,10 @@
   }
 }
 
+/* ==========================================================================
+   Loading & State Indicators
+   ========================================================================== */
+
 /* Loading State */
 .hexmap-loading {
   position: absolute;
@@ -755,6 +815,10 @@
   font-weight: 600;
 }
 
+/* ==========================================================================
+   Hex Selection & Interaction Indicators
+   ========================================================================== */
+
 /* Hex Selection Indicator */
 .hex-selected {
   outline: 3px solid #3b82f6;
@@ -765,6 +829,10 @@
   outline: 2px solid #fbbf24;
   outline-offset: 1px;
 }
+
+/* ==========================================================================
+   Object Palette & Editing Tools
+   ========================================================================== */
 
 /* Object Palette */
 .hexmap-object-palette {
@@ -847,6 +915,10 @@
   font-weight: 600;
   font-size: var(--text-md);
 }
+
+/* ==========================================================================
+   Combat Controls & Initiative
+   ========================================================================== */
 
 /* Combat Controls */
 .hexmap-combat-controls {
@@ -1021,6 +1093,10 @@
   color: var(--text);
   font-weight: 600;
 }
+
+/* ==========================================================================
+   Animations & Keyframes
+   ========================================================================== */
 
 @keyframes pulse {
   0%, 100% {
