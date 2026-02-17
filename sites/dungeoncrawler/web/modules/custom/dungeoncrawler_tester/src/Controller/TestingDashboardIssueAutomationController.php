@@ -100,6 +100,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$reconcileStatus = $this->reconcileFeed->getStatus();
 		$reconcileDisabled = !self::RECONCILE_FORM_ENABLED;
 		$importForm = $this->formBuilder()->getForm(OpenIssuesImportForm::class);
+		$issuePrReportUrl = $this->safeRouteUrl('dungeoncrawler_tester.issue_pr_report', '/dungeoncrawler/testing/import-open-issues/issue-pr-report');
 		return [
 			'#type' => 'container',
 			'#attributes' => ['class' => ['issue-import-page', 'dungeoncrawler-testing-dashboard']],
@@ -117,6 +118,14 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 					'#attributes' => ['class' => ['import-muted-text']],
 					'#value' => (string) $this->t('Synchronize local Open rows from Issues.md to GitHub, monitor reconcile status, and review live activity in one place.'),
 				],
+			],
+			'actions' => [
+				'#type' => 'container',
+				'#attributes' => ['class' => ['issue-report-actions']],
+				'issue_pr_report' => Link::fromTextAndUrl(
+					$this->t('View Issue/PR Report →'),
+					Url::fromUserInput($issuePrReportUrl)
+				)->toRenderable(),
 			],
 			'workflow_commentary' => [
 				'#type' => 'container',
