@@ -439,9 +439,11 @@
     "tips": {
       "type": "array",
       "description": "Helpful tips for new players",
+      "minItems": 1,
       "items": {
         "type": "string"
       },
+      "$comment": "Steps 4-8 use simple string tips for brevity, while steps 1-3 use structured objects with title/text properties",
       "default": [
         "Alignment is a roleplaying tool, not a straitjacket. Your character can act in complex ways within their alignment.",
         "Evil alignments are generally not recommended for new players or most campaigns.",
