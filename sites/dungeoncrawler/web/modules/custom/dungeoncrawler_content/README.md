@@ -1,8 +1,8 @@
 # Dungeon Crawler Content Module
 
 **Module Name**: dungeoncrawler_content  
-**Version**: 1.0  
-**Drupal**: 11.x  
+**Version**: 1.0.0  
+**Drupal**: 10.3+ || 11.x  
 **Package**: Dungeon Crawler
 
 ## Overview
