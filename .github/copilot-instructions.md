@@ -216,7 +216,6 @@ cd forseti-mobile/android
 - `/docs/` - Documentation hub with comprehensive guides
 - `sites/forseti/ARCHITECTURE.md` - Drupal architecture details
 - `forseti-mobile/README.md` - React Native mobile app documentation
-- `forseti-mobile/FEATURE_STATUS.md` - Feature implementation status
 
 ### Setup & Scripts
 - `./script/README.md` - Setup scripts documentation
