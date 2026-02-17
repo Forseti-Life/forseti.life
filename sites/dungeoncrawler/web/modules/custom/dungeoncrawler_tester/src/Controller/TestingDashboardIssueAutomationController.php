@@ -426,15 +426,11 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 * Render open issue/PR report grouped by issue with orphaned PR section.
 	 */
 	public function issuePrReport(): array {
-		$githubContext = $this->resolveGitHubContext();
-		$repo = $githubContext['repo'];
-		$tokenCandidates = $githubContext['token_candidates'] ?? [];
-
-		$issuePayload = $this->fetchOpenIssuesForReport($repo, $tokenCandidates, FALSE);
-		$prPayload = $this->fetchOpenPullRequestsForReport($repo, $tokenCandidates, FALSE);
-
-		$issues = $issuePayload['items'] ?? [];
-		$prs = $prPayload['items'] ?? [];
+		$reportData = $this->loadIssuePrReportData(FALSE);
+		$repo = (string) ($reportData['repo'] ?? '');
+		$tokenCandidates = (array) ($reportData['token_candidates'] ?? []);
+		$issues = (array) ($reportData['issues'] ?? []);
+		$prs = (array) ($reportData['prs'] ?? []);
 
 		usort($issues, static fn(array $left, array $right): int => ((int) ($left['number'] ?? 0)) <=> ((int) ($right['number'] ?? 0)));
 		usort($prs, static fn(array $left, array $right): int => ((int) ($left['number'] ?? 0)) <=> ((int) ($right['number'] ?? 0)));
@@ -799,19 +795,16 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return new JsonResponse(['success' => FALSE, 'message' => 'Missing query id.'], 400);
 		}
 
-		$githubContext = $this->resolveGitHubContext();
-		$repo = $githubContext['repo'];
-		$token = $githubContext['token'];
-		$tokenCandidates = $githubContext['token_candidates'] ?? [];
+		$reportData = $this->loadIssuePrReportData(FALSE);
+		$repo = (string) ($reportData['repo'] ?? '');
+		$token = $reportData['token'] ?? NULL;
+		$tokenCandidates = (array) ($reportData['token_candidates'] ?? []);
+		$issues = (array) ($reportData['issues'] ?? []);
+		$prs = (array) ($reportData['prs'] ?? []);
 
 		if (!$token || empty($tokenCandidates)) {
 			return new JsonResponse(['success' => FALSE, 'message' => 'GitHub token is not configured.'], 400);
 		}
-
-		$issuePayload = $this->fetchOpenIssuesForReport($repo, $tokenCandidates, FALSE);
-		$prPayload = $this->fetchOpenPullRequestsForReport($repo, $tokenCandidates, FALSE);
-		$issues = $issuePayload['items'] ?? [];
-		$prs = $prPayload['items'] ?? [];
 
 		$openIssueNumbers = [];
 		foreach ($issues as $issue) {
@@ -1158,6 +1151,27 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 */
 	private function extractGitHubItems(array $response): array {
 		return is_array($response['items'] ?? NULL) ? $response['items'] : [];
+	}
+
+	/**
+	 * Load GitHub context and fresh issue/PR report payloads.
+	 */
+	private function loadIssuePrReportData(bool $useCache = FALSE): array {
+		$githubContext = $this->resolveGitHubContext();
+		$repo = (string) ($githubContext['repo'] ?? '');
+		$token = $githubContext['token'] ?? NULL;
+		$tokenCandidates = $githubContext['token_candidates'] ?? [];
+
+		$issuePayload = $this->fetchOpenIssuesForReport($repo, $tokenCandidates, $useCache);
+		$prPayload = $this->fetchOpenPullRequestsForReport($repo, $tokenCandidates, $useCache);
+
+		return [
+			'repo' => $repo,
+			'token' => $token,
+			'token_candidates' => $tokenCandidates,
+			'issues' => $this->extractGitHubItems($issuePayload),
+			'prs' => $this->extractGitHubItems($prPayload),
+		];
 	}
 
 	/**
