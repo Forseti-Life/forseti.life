@@ -81,7 +81,7 @@ Several properties lacked proper validation constraints.
 - `name`: Added `minLength: 1` to prevent empty names
 - `check_dc`: Added `minimum: 1, maximum: 50` (PF2e standard DC range)
 - `save_dc`: Added `minimum: 1, maximum: 50` (PF2e standard DC range)
-- `damage_on_enter`: Added regex pattern `^\d+d\d+(([+-]\d+)|([+-]\d+d\d+))?$` for PF2e dice notation
+- `damage_on_enter`: Added improved regex pattern `^\d+d\d+(\+\d+d\d+|[+-]\d+)?$` for PF2e dice notation (handles negative modifiers correctly)
 - `cover`: Added `default: "none"` for combat_effect
 - `source_ref.content_id`: Changed to UUID format validation
 
@@ -168,7 +168,7 @@ Complex properties lacked usage examples.
 
 ### Change 5: Enhanced Combat Effects (Lines 85-118)
 **Before**: Basic enum, no pattern validation, no descriptions
-**After**: Regex pattern for damage formulas, detailed descriptions, examples, DC constraints
+**After**: Improved regex pattern for damage formulas (`^\d+d\d+(\+\d+d\d+|[+-]\d+)?$`), detailed descriptions, examples including negative modifiers, DC constraints
 
 ### Change 6: Enhanced State Object (Lines 120-144)
 **Before**: Minimal descriptions
