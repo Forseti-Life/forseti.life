@@ -4,6 +4,49 @@
   "title": "Character Creation Step 3: Background",
   "description": "Defines available options and validation for selecting character's background in Pathfinder 2E character creation",
   "type": "object",
+  "$defs": {
+    "backgroundOption": {
+      "type": "object",
+      "description": "Individual background choice with ID, name, description, and PF2e benefits",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Background identifier"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Background story and context"
+        },
+        "ability_boosts": {
+          "type": "integer",
+          "const": 2,
+          "description": "Number of free ability boosts (player choice)",
+          "examples": [2]
+        },
+        "skill": {
+          "type": "string",
+          "description": "Trained skill granted by this background (e.g., Religion, Stealth, Performance)",
+          "examples": ["Religion", "Stealth", "Performance", "Athletics"]
+        },
+        "feat": {
+          "type": "string",
+          "description": "Skill feat granted by this background",
+          "examples": ["Student of the Canon", "Experienced Smuggler", "Fascinating Performance"]
+        },
+        "lore": {
+          "type": "string",
+          "description": "Lore skill granted by this background, representing specialized knowledge",
+          "examples": ["Scribing Lore", "Underworld Lore", "Theater Lore"]
+        }
+      },
+      "required": ["id", "name", "description", "ability_boosts", "skill", "feat", "lore"],
+      "additionalProperties": false
+    }
+  },
   "properties": {
     "step": {
       "type": "integer",
@@ -52,47 +95,10 @@
               "type": "array",
               "description": "Available backgrounds from CharacterManager::BACKGROUNDS",
               "items": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string",
-                    "description": "Background identifier"
-                  },
-                  "name": {
-                    "type": "string",
-                    "description": "Display name"
-                  },
-                  "description": {
-                    "type": "string",
-                    "description": "Background story and context"
-                  },
-                  "ability_boosts": {
-                    "type": "integer",
-                    "const": 2,
-                    "description": "Number of free ability boosts (player choice)",
-                    "examples": [2]
-                  },
-                  "skill": {
-                    "type": "string",
-                    "description": "Trained skill granted by this background (e.g., Religion, Stealth, Performance)",
-                    "examples": ["Religion", "Stealth", "Performance", "Athletics"]
-                  },
-                  "feat": {
-                    "type": "string",
-                    "description": "Skill feat granted by this background",
-                    "examples": ["Student of the Canon", "Experienced Smuggler", "Fascinating Performance"]
-                  },
-                  "lore": {
-                    "type": "string",
-                    "description": "Lore skill granted by this background, representing specialized knowledge",
-                    "examples": ["Scribing Lore", "Underworld Lore", "Theater Lore"]
-                  }
-                },
-                "required": ["id", "name", "description", "ability_boosts", "skill", "feat", "lore"],
-                "additionalProperties": false
+                "$ref": "#/$defs/backgroundOption"
               },
-              "minItems": 9,
-              "maxItems": 9,
+              "minItems": 1,
+              "uniqueItems": true,
               "default": [
                 {
                   "id": "acolyte",
@@ -184,6 +190,7 @@
             },
             "validation": {
               "type": "object",
+              "description": "Validation rules for background selection",
               "properties": {
                 "required": {
                   "type": "boolean",
@@ -193,10 +200,13 @@
                   "type": "string",
                   "const": "Please select a background before continuing."
                 }
-              }
+              },
+              "required": ["required", "error_message"],
+              "additionalProperties": false
             }
           },
-          "required": ["field_type", "label", "required", "options_source", "options", "help_text", "validation"]
+          "required": ["field_type", "label", "required", "options_source", "options", "help_text", "validation"],
+          "additionalProperties": false
         },
         "background_boosts": {
           "type": "object",
@@ -229,17 +239,21 @@
                   "type": "string",
                   "const": "is_not_empty"
                 }
-              }
+              },
+              "required": ["depends_on", "relationship"],
+              "additionalProperties": false
             },
             "options": {
               "type": "array",
-              "description": "Available ability scores",
+              "description": "Available ability scores for boosts",
               "items": {
                 "type": "string",
-                "enum": ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"]
+                "enum": ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"],
+                "description": "Pathfinder 2E ability score names"
               },
               "minItems": 6,
-              "maxItems": 6
+              "maxItems": 6,
+              "uniqueItems": true
             },
             "help_text": {
               "type": "string",
@@ -248,6 +262,7 @@
             },
             "validation": {
               "type": "object",
+              "description": "Validation rules for ability boost selection",
               "properties": {
                 "required": {
                   "type": "boolean",
@@ -255,11 +270,13 @@
                 },
                 "min_selections": {
                   "type": "integer",
-                  "const": 2
+                  "const": 2,
+                  "description": "Must select exactly 2 ability boosts"
                 },
                 "max_selections": {
                   "type": "integer",
-                  "const": 2
+                  "const": 2,
+                  "description": "Cannot select more than 2 ability boosts"
                 },
                 "must_be_different": {
                   "type": "boolean",
@@ -270,13 +287,17 @@
                   "type": "string",
                   "const": "Please select exactly 2 different ability scores to boost."
                 }
-              }
+              },
+              "required": ["required", "min_selections", "max_selections", "must_be_different", "error_message"],
+              "additionalProperties": false
             }
           },
-          "required": ["field_type", "label", "required", "conditional", "options", "help_text", "validation"]
+          "required": ["field_type", "label", "required", "conditional", "options", "help_text", "validation"],
+          "additionalProperties": false
         }
       },
-      "required": ["background", "background_boosts"]
+      "required": ["background", "background_boosts"],
+      "additionalProperties": false
     },
     "navigation": {
       "type": "object",
@@ -303,7 +324,8 @@
           "description": "Step cannot be skipped"
         }
       },
-      "required": ["previous_step", "next_step", "can_go_back", "can_skip"]
+      "required": ["previous_step", "next_step", "can_go_back", "can_skip"],
+      "additionalProperties": false
     },
     "boost_sources_produced": {
       "type": "object",
@@ -330,7 +352,8 @@
           "examples": ["Scribing Lore", "Underworld Lore", "Theater Lore", "Farming Lore", "Legal Lore", "Mercantile Lore", "Heraldry Lore", "Academia Lore", "Warfare Lore"]
         }
       },
-      "required": ["background_boosts", "trained_skill", "skill_feat", "lore_skill"]
+      "required": ["background_boosts", "trained_skill", "skill_feat", "lore_skill"],
+      "additionalProperties": false
     },
     "tips": {
       "type": "array",

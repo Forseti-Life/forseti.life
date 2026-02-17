@@ -771,11 +771,6 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       $covers[] = $this->t('Unit tests in the tester module');
       $does_not_cover[] = $this->t('Browser/route/controller UI flows');
     }
-    elseif (str_contains($haystack, 'thetestpagetest.php')) {
-      $focus = $this->t('TheTest toggle and failure-signal path validation.');
-      $covers[] = $this->t('/dungeoncrawler/testing/thetest functional behavior');
-      $does_not_cover[] = $this->t('Broader route/controller suites');
-    }
     elseif (str_contains($haystack, 'tests/src/functional/routes/')) {
       $focus = $this->t('Functional route accessibility and response checks.');
       $covers[] = $this->t('Route-level functional tests');

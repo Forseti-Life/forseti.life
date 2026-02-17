@@ -59,11 +59,81 @@
       // Handle save job button clicks
       once('save-job-handler', '.btn-save-job', context).forEach(function (button) {
         button.addEventListener('click', function (e) {
-          // Let the link work normally, but could add AJAX functionality here
-          const jobId = this.href.split('job_id=')[1];
-          if (jobId) {
-            console.log('Saving job:', jobId);
+          e.preventDefault();
+
+          const saveUrl = this.href;
+          const originalText = this.textContent;
+          const csrfToken = this.dataset.csrfToken || '';
+          const parsedUrl = new URL(saveUrl, window.location.origin);
+          const jobId = parsedUrl.searchParams.get('job_id') || '';
+
+          if (!jobId || !csrfToken) {
+            window.location.href = saveUrl;
+            return;
           }
+
+          this.classList.add('is-saving');
+          this.setAttribute('aria-busy', 'true');
+          this.textContent = '⏳ Saving...';
+
+          fetch(saveUrl, {
+            method: 'POST',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'Accept': 'application/json',
+              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+            },
+            credentials: 'same-origin',
+            body: new URLSearchParams({
+              job_id: jobId,
+              csrf_token: csrfToken
+            }).toString()
+          })
+            .then((response) => {
+              if (response.status === 403) {
+                throw new Error('Security token expired');
+              }
+
+              if (response.status === 401) {
+                return response.json().then((payload) => {
+                  if (payload.redirect) {
+                    window.location.href = payload.redirect;
+                    return null;
+                  }
+                  throw new Error(payload.message || 'Login required');
+                });
+              }
+
+              if (!response.ok) {
+                throw new Error('Request failed');
+              }
+
+              return response.json();
+            })
+            .then((payload) => {
+              if (!payload) {
+                return;
+              }
+
+              if (payload.success) {
+                button.classList.remove('is-saving');
+                button.classList.add('is-saved');
+                button.setAttribute('aria-busy', 'false');
+                button.setAttribute('aria-disabled', 'true');
+                button.textContent = payload.already_saved ? '✅ Already Saved' : '✅ Saved';
+                button.style.pointerEvents = 'none';
+                return;
+              }
+
+              throw new Error(payload.message || 'Unable to save');
+            })
+            .catch((error) => {
+              console.error('Save job failed:', error);
+              button.classList.remove('is-saving');
+              button.setAttribute('aria-busy', 'false');
+              button.textContent = originalText;
+              window.alert('Could not save this job right now. Please try again.');
+            });
         });
       });
     }

@@ -25,6 +25,9 @@ A comprehensive AI-powered Drupal module that automates the entire job applicati
 - 2026-02-17: Added per-job "Have applied" tracking on `/jobhunter/my-jobs` with toggle + applied date persistence (`jobhunter_job_requirements.applied_on_date`).
 - 2026-02-17: External API search results are now imported into `jobhunter_job_requirements` immediately after each unified search, so returned external jobs become searchable in Forseti jobs right away (not only via cron).
 - 2026-02-17: Added schema-safe truncation for imported external metadata (`external_job_id`, URLs, `via`, and related varchar fields) in both immediate and cron import paths to prevent DB length errors.
+- 2026-02-17: Job Search Results "Save Job" now uses AJAX and returns JSON on XHR requests so saves do not navigate away from `/jobhunter/job-discovery/search`.
+- 2026-02-17: "Save Job" now supports fallback lookup by `external_job_id` in `jobhunter_job_search_results.job_data_json` when legacy/base64 payload decoding fails, preserving searched job data recovery.
+- 2026-02-17: `My Jobs` now uses `jobhunter_saved_jobs` (uid↔job_id mapping) so the Forseti jobs catalog (`jobhunter_job_requirements`) stays global while saved jobs remain user-specific.
 
 ## ⚠️ CRITICAL: Read Architecture First
 **Before any development work begins, all developers MUST read and understand the complete [ARCHITECTURE.md](ARCHITECTURE.md) document.** This system involves complex AI integration, automated web scraping, credential management, and multi-platform submission automation that requires thorough understanding of the architecture before implementation.

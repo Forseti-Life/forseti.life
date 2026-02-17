@@ -292,7 +292,7 @@ job_hunter.addposting:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::addPostingFromSearch'
   requirements:
     _permission: 'access job hunter'
-  methods: [GET]
+  methods: [GET, POST]
 
 # Target Companies Management
 # DISABLED - No longer needed

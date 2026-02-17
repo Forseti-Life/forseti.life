@@ -35,3 +35,7 @@ services:
   dungeoncrawler_tester.stage_auto_enqueue:
     class: Drupal\dungeoncrawler_tester\Service\StageAutoEnqueueService
     arguments: ['@queue', '@state', '@lock', '@logger.factory', '@uuid', '@dungeoncrawler_tester.stage_definitions']
+
+  dungeoncrawler_tester.open_issues_reconcile_feed:
+    class: Drupal\dungeoncrawler_tester\Service\OpenIssuesReconcileFeedService
+    arguments: ['@state', '@lock', '@database', '@dungeoncrawler_tester.local_issues_tracker', '@dungeoncrawler_tester.github_issue_pr_client', '@logger.factory']

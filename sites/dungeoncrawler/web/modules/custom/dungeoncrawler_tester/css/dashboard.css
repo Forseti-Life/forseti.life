@@ -143,25 +143,6 @@
   gap: 1rem;
 }
 
-.dungeoncrawler-testing-dashboard .thetest-callout {
-  grid-column: 1 / -1;
-  background: #ecfeff;
-  border: 1px solid #bae6fd;
-  color: #0f172a;
-  border-radius: 12px;
-  padding: 1.1rem 1.2rem;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-}
-
-.dungeoncrawler-testing-dashboard .thetest-callout h2 {
-  margin: 0 0 0.35rem;
-}
-
-.dungeoncrawler-testing-dashboard .thetest-callout p {
-  margin: 0;
-  color: #0f172a;
-}
-
 .dungeoncrawler-testing-dashboard .queue-management-callout h2 {
   margin: 0 0 0.35rem;
   font-size: 1.2rem;
