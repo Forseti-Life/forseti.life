@@ -110,7 +110,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * GitHub API cache TTL in seconds (10 minutes).
    */
-  private const GITHUB_CACHE_TTL = 600;
+  protected const GITHUB_CACHE_TTL = 600;
 
   /**
    * {@inheritdoc}

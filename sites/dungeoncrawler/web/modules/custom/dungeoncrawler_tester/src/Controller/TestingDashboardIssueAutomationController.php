@@ -23,11 +23,6 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	private const BULK_CLOSE_COMMENT = 'Bulk close from testing issue/PR report: no additional implementation action required.';
 
 	/**
-	 * GitHub API cache TTL in seconds (10 minutes).
-	 */
-	private const GITHUB_CACHE_TTL = 600;
-
-	/**
 	 * Render open issue/PR report grouped by issue with orphaned PR section.
 	 */
 	public function issuePrReport(): array {
