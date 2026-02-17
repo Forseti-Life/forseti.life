@@ -1375,6 +1375,7 @@ class JobApplicationController extends ControllerBase {
       '#diagnostics' => $search_results['diagnostics'],
       '#pagination' => $search_results['pagination'] ?? [],
       '#current_page' => $search_params['page'],
+      '#save_job_csrf_token' => $this->csrfTokenGenerator->get('job_hunter.addposting'),
       '#attached' => [
         'library' => [
           'job_hunter/job-search-results',

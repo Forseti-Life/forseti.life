@@ -21,6 +21,7 @@ This module has comprehensive documentation organized for different audiences:
 A comprehensive AI-powered Drupal module that automates the entire job application process using Generative AI. This system analyzes user resumes, scrapes job postings from employer websites, tailors applications using AI, and automatically submits applications across multiple employer platforms.
 
 ## Maintenance Notes
+- 2026-02-17: Fixed `job-search-results.html.twig` to avoid direct Twig `csrf_token()` calls; token is now generated in `JobApplicationController::jobDiscoverySearchResults()` and passed as `save_job_csrf_token` to prevent Twig syntax errors while preserving AJAX save security.
 - 2026-02-13: Controllers must not redeclare typed properties that exist on ControllerBase (e.g., entityTypeManager) to avoid PHP fatal errors in Drupal 11.
 - 2026-02-17: Added per-job "Have applied" tracking on `/jobhunter/my-jobs` with toggle + applied date persistence (`jobhunter_job_requirements.applied_on_date`).
 - 2026-02-17: External API search results are now imported into `jobhunter_job_requirements` immediately after each unified search, so returned external jobs become searchable in Forseti jobs right away (not only via cron).
