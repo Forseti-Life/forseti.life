@@ -273,6 +273,9 @@ Unified traversal/combat obstacles (non-container blockers/modifiers). PF2e-comp
 - Enhanced descriptions with practical examples
 - Improved consistency with trap.schema.json and hazard.schema.json
 - Added top-level additionalProperties: false for stricter validation
+- Added additionalProperties: false to state object for controlled runtime state
+- Simplified damage pattern to match standard PF2e dice notation (XdY+Z format only)
+- Added comprehensive examples demonstrating barricade and magical barrier patterns
 
 **Defines:**
 - Obstacle metadata (name, level, type, rarity, traits)
@@ -290,6 +293,7 @@ Unified traversal/combat obstacles (non-container blockers/modifiers). PF2e-comp
 - Flexible skill check requirements (Athletics, Acrobatics, etc.)
 - State tracking for runtime obstacle management
 - Links to underlying trap/hazard definitions
+- Strict validation with additionalProperties: false throughout
 
 #### `obstacle_object_catalog.schema.json`
 Reusable obstacle object definitions (label, movable, stackable, movement flags) used by placed obstacle instances.
@@ -547,6 +551,7 @@ Schemas with `schema_version` field (migration-ready):
 - ✓ `hazard.schema.json`
 - ✓ `hexmap.schema.json`
 - ✓ `item.schema.json`
+- ✓ `obstacle.schema.json`
 - ✓ `obstacle_object_catalog.schema.json`
 - ✓ `party.schema.json`
 - ✓ `trap.schema.json`
