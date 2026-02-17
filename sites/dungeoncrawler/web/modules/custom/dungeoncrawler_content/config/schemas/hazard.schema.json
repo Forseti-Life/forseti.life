@@ -5,7 +5,14 @@
   "description": "PF2e-compatible environmental hazard. Unlike traps, hazards are often ongoing and visible. Includes complex hazards that act in initiative.",
   "type": "object",
   "required": ["hazard_id", "name", "level", "complexity"],
+  "additionalProperties": false,
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version for migration compatibility.",
+      "default": "1.0.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
     "hazard_id": {
       "type": "string",
       "format": "uuid",
@@ -13,6 +20,7 @@
     },
     "name": {
       "type": "string",
+      "minLength": 1,
       "description": "Display name of the hazard.",
       "examples": ["Collapsing Ceiling", "Poison Gas Trap", "Falling Rocks"]
     },
@@ -35,11 +43,14 @@
     },
     "traits": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
       "description": "PF2e hazard traits (e.g., ['Magical', 'Trap', 'Environmental'])."
     },
     "stealth_dc": {
       "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 50,
       "description": "DC to detect the hazard with Perception. Null if the hazard is obvious."
     },
     "description": {
@@ -48,46 +59,64 @@
     },
     "disable": {
       "type": "object",
-      "additionalProperties": { "type": "integer" },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 50
+      },
       "description": "Skill → DC mapping for disabling (e.g., {'Thievery': 20, 'Athletics': 25})."
     },
     "ac": {
       "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 50,
       "description": "Armor Class for targeting the hazard. Null if not targetable."
     },
     "hardness": {
       "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 30,
       "description": "Damage reduction when the hazard takes physical damage."
     },
     "hp": {
       "type": ["integer", "null"],
+      "minimum": 1,
+      "maximum": 300,
       "description": "Hit Points. When reduced to 0, the hazard is destroyed."
     },
     "broken_threshold": {
       "type": ["integer", "null"],
+      "minimum": 1,
       "description": "HP threshold at which the hazard becomes broken (typically HP/2)."
     },
     "saves": {
       "type": "object",
+      "additionalProperties": false,
       "properties": {
         "fortitude": {
           "type": ["integer", "null"],
+          "minimum": -10,
+          "maximum": 40,
           "description": "Fortitude save modifier."
         },
         "reflex": {
           "type": ["integer", "null"],
+          "minimum": -10,
+          "maximum": 40,
           "description": "Reflex save modifier."
         },
         "will": {
           "type": ["integer", "null"],
+          "minimum": -10,
+          "maximum": 40,
           "description": "Will save modifier."
         }
-      },
-      "additionalProperties": false
+      }
     },
     "immunities": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
       "description": "Damage types and conditions the hazard is immune to."
     },
     "resistances": {
@@ -95,11 +124,11 @@
       "items": {
         "type": "object",
         "required": ["type", "value"],
+        "additionalProperties": false,
         "properties": {
-          "type": { "type": "string", "description": "Damage type resisted." },
-          "value": { "type": "integer", "description": "Amount of resistance." }
-        },
-        "additionalProperties": false
+          "type": { "type": "string", "minLength": 1, "description": "Damage type resisted." },
+          "value": { "type": "integer", "minimum": 1, "maximum": 30, "description": "Amount of resistance." }
+        }
       },
       "description": "Damage resistances (reduces incoming damage)."
     },
@@ -108,16 +137,18 @@
       "items": {
         "type": "object",
         "required": ["type", "value"],
+        "additionalProperties": false,
         "properties": {
-          "type": { "type": "string", "description": "Damage type weakness." },
-          "value": { "type": "integer", "description": "Additional damage taken." }
-        },
-        "additionalProperties": false
+          "type": { "type": "string", "minLength": 1, "description": "Damage type weakness." },
+          "value": { "type": "integer", "minimum": 1, "maximum": 30, "description": "Additional damage taken." }
+        }
       },
       "description": "Damage weaknesses (increases incoming damage)."
     },
     "initiative_modifier": {
       "type": ["integer", "null"],
+      "minimum": -10,
+      "maximum": 40,
       "description": "Initiative bonus for complex hazards that roll initiative. Required for complex hazards."
     },
     "actions_per_round": {
@@ -145,6 +176,7 @@
         { "type": "string" },
         {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
             "automatic": {
               "type": "boolean",
@@ -153,14 +185,14 @@
             },
             "reset_time_minutes": {
               "type": ["integer", "null"],
+              "minimum": 1,
               "description": "Time in minutes before automatic reset."
             },
             "conditions": {
               "type": "string",
               "description": "Specific conditions required for reset."
             }
-          },
-          "additionalProperties": false
+          }
         }
       ]
     },
@@ -199,7 +231,18 @@
     },
     "xp_reward": {
       "type": "integer",
+      "minimum": 0,
       "description": "XP awarded for overcoming this hazard. Auto-calculated from level if omitted."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Hazard creation timestamp."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last modification timestamp."
     }
   },
   "additionalProperties": false
