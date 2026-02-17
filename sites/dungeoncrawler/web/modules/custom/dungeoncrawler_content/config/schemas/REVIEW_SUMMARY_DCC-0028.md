@@ -228,11 +228,25 @@ This document details the refactoring of `trap.schema.json` to improve maintaina
 **Solution**: 
 - Added `additionalProperties: false` to effect object
 - Added comprehensive validation to all effect properties
-- Enhanced save_type enum to allow null explicitly
+- Enhanced save_type to properly use `type: ["string", "null"]` with null in enum
 - Added validation to conditions_applied items
 - Added validation to area sub-object
 
 **Impact**: Strict validation of trap effects prevents invalid configurations
+
+### 12. Flexible Disable Skills ✅
+
+**Problem**: Only predefined skill DCs could be used for disabling traps.
+
+**Solution**:
+- Kept standard skill DCs (thievery, athletics, arcana, religion, crafting) as documented properties
+- Added `additionalProperties` with constraints to allow custom skills (e.g., occultism, nature, performance)
+- Applied minimum/maximum constraints (0-50) to additional skill DCs
+
+**Impact**: 
+- Supports standard PF2e skills out of the box
+- Allows custom or unusual skills for unique traps
+- All skill DCs are validated with appropriate constraints
 
 ## File Statistics
 
@@ -311,6 +325,12 @@ python3 -m json.tool trap.schema.json > /dev/null
 
 # Test strict validation
 # Result: ✓ Invalid trap properly rejected (additional properties not allowed)
+
+# Test null save_type handling
+# Result: ✓ Trap with null save_type is valid
+
+# Test custom skill DCs
+# Result: ✓ Trap with additional custom skill DCs is valid
 ```
 
 ## Migration Impact
@@ -425,7 +445,19 @@ The refactored schema now fully complies with all standards documented in the sc
 - ✅ Complex structures include `examples` (4 example sets)
 - ✅ Default values specified where appropriate (6 defaults)
 
-## Conclusion
+## Code Review Feedback
+
+### Initial Review Issues
+1. **save_type enum with null**: Fixed by changing type to `["string", "null"]` to properly handle JSON null values
+2. **disable additionalProperties**: Enhanced to add min/max constraints to additional integer properties while allowing custom skills
+
+### Resolution
+Both issues addressed with:
+- Proper type definition for nullable string fields
+- Constrained additional properties to maintain validation while allowing flexibility
+- Added comprehensive testing for edge cases
+
+All code review feedback has been incorporated and validated.
 
 The refactored `trap.schema.json` schema is:
 - ✅ More maintainable (comprehensive documentation)

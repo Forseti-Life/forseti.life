@@ -64,8 +64,12 @@
     },
     "disable": {
       "type": "object",
-      "description": "How to disable this trap. Skill names map to DCs.",
-      "additionalProperties": { "type": "integer" },
+      "description": "How to disable this trap. Skill names map to DCs. Additional skills can be added beyond the standard ones.",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 50
+      },
       "properties": {
         "thievery_dc": {
           "type": ["integer", "null"],
@@ -137,9 +141,9 @@
           "description": "DC for the saving throw to avoid or reduce the effect."
         },
         "save_type": {
-          "type": "string",
+          "type": ["string", "null"],
           "enum": ["fortitude", "reflex", "will", null],
-          "description": "Type of save required (Fortitude, Reflex, or Will)."
+          "description": "Type of save required (Fortitude, Reflex, or Will). Null if no save is allowed."
         },
         "conditions_applied": {
           "type": "array",
