@@ -119,6 +119,7 @@ function dungeoncrawler_content_schema() {
       'status' => ['status'],
       'ancestry' => ['ancestry'],
       'class' => ['class'],
+      'type' => ['type'],
     ],
   ];
 
@@ -436,6 +437,8 @@ function dungeoncrawler_content_schema() {
       'encounter_lookup' => ['encounter_id'],
       'encounter_team' => ['encounter_id', 'team'],
       'encounter_entity' => ['encounter_id', 'entity_id'],
+      'entity_ref' => ['entity_ref'],
+      'is_defeated' => ['is_defeated'],
     ],
   ];
 
@@ -518,6 +521,7 @@ function dungeoncrawler_content_schema() {
     'indexes' => [
       'participant_active' => ['participant_id', 'removed_at_round'],
       'encounter_lookup' => ['encounter_id'],
+      'condition_type' => ['condition_type'],
     ],
   ];
 
@@ -1292,6 +1296,8 @@ function dungeoncrawler_content_schema() {
       'character_id' => ['character_id'],
       'type' => ['type'],
       'uid' => ['uid'],
+      'location_type' => ['location_type'],
+      'location_ref' => ['location_ref'],
     ],
   ];
 
@@ -1566,6 +1572,7 @@ function dungeoncrawler_content_schema() {
       'log_type' => ['log_type'],
       'encounter_instance_id' => ['encounter_instance_id'],
       'room_id' => ['room_id'],
+      'campaign_created' => ['campaign_id', 'created'],
     ],
   ];
 
@@ -1592,11 +1599,18 @@ function dungeoncrawler_content_uninstall() {
 function dungeoncrawler_content_update_10001() {
   $schema = dungeoncrawler_content_schema();
   $database = \Drupal::database();
-  if (!$database->schema()->tableExists('dc_characters')) {
-    $database->schema()->createTable('dc_characters', $schema['dc_characters']);
-    return t('Created dc_characters table.');
+  
+  try {
+    if (!$database->schema()->tableExists('dc_characters')) {
+      $database->schema()->createTable('dc_characters', $schema['dc_characters']);
+      return t('Created dc_characters table.');
+    }
+    return t('dc_characters table already exists.');
   }
-  return t('dc_characters table already exists.');
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Update 10001 failed: @error', ['@error' => $e->getMessage()]);
+    throw new \Drupal\Core\Utility\UpdateException('Failed to create dc_characters table: ' . $e->getMessage());
+  }
 }
 
 /**
@@ -1607,26 +1621,32 @@ function dungeoncrawler_content_update_10002() {
   $database = \Drupal::database();
   $messages = [];
 
-  if (!$database->schema()->tableExists('dungeoncrawler_content_registry')) {
-    $database->schema()->createTable('dungeoncrawler_content_registry', $schema['dungeoncrawler_content_registry']);
-    $messages[] = 'Created dungeoncrawler_content_registry table.';
-  }
+  try {
+    if (!$database->schema()->tableExists('dungeoncrawler_content_registry')) {
+      $database->schema()->createTable('dungeoncrawler_content_registry', $schema['dungeoncrawler_content_registry']);
+      $messages[] = 'Created dungeoncrawler_content_registry table.';
+    }
 
-  if (!$database->schema()->tableExists('dungeoncrawler_content_loot_tables')) {
-    $database->schema()->createTable('dungeoncrawler_content_loot_tables', $schema['dungeoncrawler_content_loot_tables']);
-    $messages[] = 'Created dungeoncrawler_content_loot_tables table.';
-  }
+    if (!$database->schema()->tableExists('dungeoncrawler_content_loot_tables')) {
+      $database->schema()->createTable('dungeoncrawler_content_loot_tables', $schema['dungeoncrawler_content_loot_tables']);
+      $messages[] = 'Created dungeoncrawler_content_loot_tables table.';
+    }
 
-  if (!$database->schema()->tableExists('dungeoncrawler_content_encounter_templates')) {
-    $database->schema()->createTable('dungeoncrawler_content_encounter_templates', $schema['dungeoncrawler_content_encounter_templates']);
-    $messages[] = 'Created dungeoncrawler_content_encounter_templates table.';
-  }
+    if (!$database->schema()->tableExists('dungeoncrawler_content_encounter_templates')) {
+      $database->schema()->createTable('dungeoncrawler_content_encounter_templates', $schema['dungeoncrawler_content_encounter_templates']);
+      $messages[] = 'Created dungeoncrawler_content_encounter_templates table.';
+    }
 
-  if (empty($messages)) {
-    return t('Game content system tables already exist.');
-  }
+    if (empty($messages)) {
+      return t('Game content system tables already exist.');
+    }
 
-  return t('Game content system update complete: @messages', ['@messages' => implode(' ', $messages)]);
+    return t('Game content system update complete: @messages', ['@messages' => implode(' ', $messages)]);
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Update 10002 failed: @error', ['@error' => $e->getMessage()]);
+    throw new \Drupal\Core\Utility\UpdateException('Failed to create game content system tables: ' . $e->getMessage());
+  }
 }
 
 /**
@@ -1637,25 +1657,31 @@ function dungeoncrawler_content_update_10003() {
   $database = \Drupal::database();
   $messages = [];
 
-  if (!$database->schema()->tableExists('dc_campaigns')) {
-    $database->schema()->createTable('dc_campaigns', $schema['dc_campaigns']);
-    $messages[] = 'Created dc_campaigns table.';
-  }
+  try {
+    if (!$database->schema()->tableExists('dc_campaigns')) {
+      $database->schema()->createTable('dc_campaigns', $schema['dc_campaigns']);
+      $messages[] = 'Created dc_campaigns table.';
+    }
 
-  if (!$database->schema()->tableExists('dc_campaign_characters')) {
-    $database->schema()->createTable('dc_campaign_characters', $schema['dc_campaign_characters']);
-    $messages[] = 'Created dc_campaign_characters table.';
-  }
+    if (!$database->schema()->tableExists('dc_campaign_characters')) {
+      $database->schema()->createTable('dc_campaign_characters', $schema['dc_campaign_characters']);
+      $messages[] = 'Created dc_campaign_characters table.';
+    }
 
-  if (empty($messages)) {
-    return t('Campaign tables already exist.');
-  }
+    if (empty($messages)) {
+      return t('Campaign management tables already exist.');
+    }
 
-  return t('Campaign tables update complete: @messages', ['@messages' => implode(' ', $messages)]);
+    return t('Campaign management update complete: @messages', ['@messages' => implode(' ', $messages)]);
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Update 10003 failed: @error', ['@error' => $e->getMessage()]);
+    throw new \Drupal\Core\Utility\UpdateException('Failed to create campaign management tables: ' . $e->getMessage());
+  }
 }
 
 /**
- * Add campaign-scoped content tables and runtime state tables.
+ * Add campaign-scoped content tables.
  */
 function dungeoncrawler_content_update_10004() {
   $schema = dungeoncrawler_content_schema();
@@ -1674,140 +1700,153 @@ function dungeoncrawler_content_update_10004() {
     'dc_campaign_log',
   ];
 
-  foreach ($tables as $table) {
-    if (!$database->schema()->tableExists($table)) {
-      $database->schema()->createTable($table, $schema[$table]);
-      $messages[] = 'Created ' . $table . ' table.';
+  try {
+    foreach ($tables as $table) {
+      if (!$database->schema()->tableExists($table)) {
+        $database->schema()->createTable($table, $schema[$table]);
+        $messages[] = 'Created ' . $table . ' table.';
+      }
     }
+
+    if (empty($messages)) {
+      return t('Campaign-scoped content tables already exist.');
+    }
+
+    return t('Campaign-scoped content update complete: @messages', ['@messages' => implode(' ', $messages)]);
   }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Update 10004 failed: @error', ['@error' => $e->getMessage()]);
+    throw new \Drupal\Core\Utility\UpdateException('Failed to create campaign-scoped content tables: ' . $e->getMessage());
+  }
+}
 
+/**
+ * Unify entity storage across characters, NPCs, obstacles, traps, and hazards.
+ *
+ * - Adds type/default data to dc_characters for library defaults.
+ * - Expands dc_campaign_characters to hold per-campaign runtime instances and locations.
+ * - Backfills existing rows with sensible defaults and instance ids.
+ */
+function dungeoncrawler_content_update_10005() {
+  $schema = dungeoncrawler_content_schema();
+  $database = \Drupal::database();
+  $schema_handler = $database->schema();
+  $messages = [];
 
-    /**
-     * Unify entity storage across characters, NPCs, obstacles, traps, and hazards.
-     *
-     * - Adds type/default data to dc_characters for library defaults.
-     * - Expands dc_campaign_characters to hold per-campaign runtime instances and locations.
-     * - Backfills existing rows with sensible defaults and instance ids.
-     */
-    function dungeoncrawler_content_update_10005() {
-      $schema = dungeoncrawler_content_schema();
-      $database = \Drupal::database();
-      $schema_handler = $database->schema();
-      $messages = [];
+  try {
+    // dc_characters: add polymorphic type + defaults.
+    $character_fields = ['type', 'default_character_data', 'default_locations'];
+    foreach ($character_fields as $field) {
+      if (!$schema_handler->fieldExists('dc_characters', $field)) {
+        $schema_handler->addField('dc_characters', $field, $schema['dc_characters']['fields'][$field]);
+        $messages[] = "Added dc_characters.$field";
+      }
+    }
+    if (!$schema_handler->indexExists('dc_characters', 'type')) {
+      $schema_handler->addIndex('dc_characters', 'type', ['type'], $schema['dc_characters']);
+    }
 
-      // dc_characters: add polymorphic type + defaults.
-      $character_fields = ['type', 'default_character_data', 'default_locations'];
-      foreach ($character_fields as $field) {
-        if (!$schema_handler->fieldExists('dc_characters', $field)) {
-          $schema_handler->addField('dc_characters', $field, $schema['dc_characters']['fields'][$field]);
-          $messages[] = "Added dc_characters.$field";
+    // Backfill type/defaults for existing characters.
+    $database->update('dc_characters')
+      ->fields(['type' => 'pc'])
+      ->isNull('type')
+      ->execute();
+    $database->update('dc_characters')
+      ->fields(['type' => 'pc'])
+      ->condition('type', '')
+      ->execute();
+
+    // When no default_character_data set, mirror current character_data as a starting point.
+    if ($schema_handler->fieldExists('dc_characters', 'default_character_data')) {
+      $char_query = $database->select('dc_characters', 'c')
+        ->fields('c', ['id', 'character_data', 'default_character_data'])
+        ->isNull('default_character_data');
+      $char_rows = $char_query->execute();
+
+      // Also cover empty-string defaults; do a second pass if needed.
+      $char_rows_empty = $database->select('dc_characters', 'c')
+        ->fields('c', ['id', 'character_data', 'default_character_data'])
+        ->condition('default_character_data', '')
+        ->execute();
+
+      $combined_rows = array_merge(iterator_to_array($char_rows), iterator_to_array($char_rows_empty));
+      $seen = [];
+      foreach ($combined_rows as $row) {
+        if (in_array($row->id, $seen, TRUE)) {
+          continue;
         }
-      }
-      if (!$schema_handler->indexExists('dc_characters', 'type')) {
-        $schema_handler->addIndex('dc_characters', 'type', ['type']);
-      }
-
-      // Backfill type/defaults for existing characters.
-      $database->update('dc_characters')
-        ->fields(['type' => 'pc'])
-        ->isNull('type')
-        ->execute();
-      $database->update('dc_characters')
-        ->fields(['type' => 'pc'])
-        ->condition('type', '')
-        ->execute();
-      // When no default_character_data set, mirror current character_data as a starting point.
-      if ($schema_handler->fieldExists('dc_characters', 'default_character_data')) {
-        $char_query = $database->select('dc_characters', 'c')
-          ->fields('c', ['id', 'character_data', 'default_character_data']);
-        $char_query->isNull('default_character_data');
-        $char_rows = $char_query->execute();
-
-        // Also cover empty-string defaults; do a second pass if needed.
-        $char_rows_empty = $database->select('dc_characters', 'c')
-          ->fields('c', ['id', 'character_data', 'default_character_data'])
-          ->condition('default_character_data', '')
-          ->execute();
-
-        $combined_rows = array_merge(iterator_to_array($char_rows), iterator_to_array($char_rows_empty));
-        $seen = [];
-        foreach ($combined_rows as $row) {
-          if (in_array($row->id, $seen, TRUE)) {
-            continue;
-          }
-          $seen[] = $row->id;
-          $database->update('dc_characters')
-            ->fields(['default_character_data' => $row->character_data])
-            ->condition('id', $row->id)
-            ->execute();
-        }
-      }
-
-      // dc_campaign_characters: add runtime instance fields.
-      $campaign_fields = ['instance_id', 'type', 'state_data', 'location_type', 'location_ref', 'updated'];
-      foreach ($campaign_fields as $field) {
-        if (!$schema_handler->fieldExists('dc_campaign_characters', $field)) {
-          $schema_handler->addField('dc_campaign_characters', $field, $schema['dc_campaign_characters']['fields'][$field]);
-          $messages[] = "Added dc_campaign_characters.$field";
-        }
-      }
-
-      // Drop old unique key and add the new instance-based unique key.
-      if ($schema_handler->indexExists('dc_campaign_characters', 'campaign_character')) {
-        $schema_handler->dropUniqueKey('dc_campaign_characters', 'campaign_character');
-      }
-      if (!$schema_handler->indexExists('dc_campaign_characters', 'campaign_instance')) {
-        $schema_handler->addUniqueKey('dc_campaign_characters', 'campaign_instance', ['campaign_id', 'instance_id']);
-      }
-      if (!$schema_handler->indexExists('dc_campaign_characters', 'type')) {
-        $schema_handler->addIndex('dc_campaign_characters', 'type', ['type']);
-      }
-
-      // Build a lookup of library character types for backfill.
-      $types = [];
-      $char_results = $database->select('dc_characters', 'c')
-        ->fields('c', ['id', 'type'])
-        ->execute();
-      foreach ($char_results as $row) {
-        $types[$row->id] = $row->type ?? 'pc';
-      }
-
-      // Backfill campaign rows with instance ids and defaults.
-      $now = time();
-      $campaign_rows = $database->select('dc_campaign_characters', 'cc')
-        ->fields('cc')
-        ->execute();
-
-      foreach ($campaign_rows as $row) {
-        $instance_id = !empty($row->instance_id) ? $row->instance_id : ('char_' . $row->character_id);
-        $type = $types[$row->character_id] ?? 'pc';
-        $state_data = $row->state_data ?? '{}';
-        $location_type = $row->location_type ?? 'global';
-        $location_ref = $row->location_ref ?? '';
-        $updated = $row->updated ?? $now;
-
-        $database->update('dc_campaign_characters')
-          ->fields([
-            'instance_id' => $instance_id,
-            'type' => $type,
-            'state_data' => $state_data,
-            'location_type' => $location_type,
-            'location_ref' => $location_ref,
-            'updated' => $updated,
-          ])
+        $seen[] = $row->id;
+        $database->update('dc_characters')
+          ->fields(['default_character_data' => $row->character_data])
           ->condition('id', $row->id)
           ->execute();
       }
-
-      if (empty($messages)) {
-        $messages[] = 'Schema already up to date.';
-      }
-
-      return t('Unified entity model update complete: @messages', ['@messages' => implode(' ', $messages)]);
     }
-  if (empty($messages)) {
-    return t('Campaign-scoped content tables already exist.');
-  }
 
-  return t('Campaign-scoped content update complete: @messages', ['@messages' => implode(' ', $messages)]);
+    // dc_campaign_characters: add runtime instance fields.
+    $campaign_fields = ['instance_id', 'type', 'state_data', 'location_type', 'location_ref', 'updated'];
+    foreach ($campaign_fields as $field) {
+      if (!$schema_handler->fieldExists('dc_campaign_characters', $field)) {
+        $schema_handler->addField('dc_campaign_characters', $field, $schema['dc_campaign_characters']['fields'][$field]);
+        $messages[] = "Added dc_campaign_characters.$field";
+      }
+    }
+
+    // Drop old unique key and add the new instance-based unique key.
+    if ($schema_handler->indexExists('dc_campaign_characters', 'campaign_character')) {
+      $schema_handler->dropUniqueKey('dc_campaign_characters', 'campaign_character');
+    }
+    if (!$schema_handler->indexExists('dc_campaign_characters', 'campaign_instance')) {
+      $schema_handler->addUniqueKey('dc_campaign_characters', 'campaign_instance', ['campaign_id', 'instance_id']);
+    }
+    if (!$schema_handler->indexExists('dc_campaign_characters', 'type')) {
+      $schema_handler->addIndex('dc_campaign_characters', 'type', ['type'], $schema['dc_campaign_characters']);
+    }
+
+    // Build a lookup of library character types for backfill.
+    $types = [];
+    $char_results = $database->select('dc_characters', 'c')
+      ->fields('c', ['id', 'type'])
+      ->execute();
+    foreach ($char_results as $row) {
+      $types[(int) $row->id] = $row->type ?? 'pc';
+    }
+
+    // Backfill campaign rows with instance ids and defaults.
+    $now = time();
+    $campaign_rows = $database->select('dc_campaign_characters', 'cc')
+      ->fields('cc')
+      ->execute();
+
+    foreach ($campaign_rows as $row) {
+      $instance_id = !empty($row->instance_id) ? $row->instance_id : ('char_' . $row->character_id);
+      $type = $types[(int) $row->character_id] ?? 'pc';
+      $state_data = $row->state_data ?? '{}';
+      $location_type = $row->location_type ?? 'global';
+      $location_ref = $row->location_ref ?? '';
+      $updated = $row->updated ?? $now;
+
+      $database->update('dc_campaign_characters')
+        ->fields([
+          'instance_id' => $instance_id,
+          'type' => $type,
+          'state_data' => $state_data,
+          'location_type' => $location_type,
+          'location_ref' => $location_ref,
+          'updated' => $updated,
+        ])
+        ->condition('id', $row->id)
+        ->execute();
+    }
+
+    if (empty($messages)) {
+      $messages[] = 'Schema already up to date.';
+    }
+
+    return t('Unified entity model update complete: @messages', ['@messages' => implode(' ', $messages)]);
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Update 10005 failed: @error', ['@error' => $e->getMessage()]);
+    throw new \Drupal\Core\Utility\UpdateException('Failed to apply unified entity model update: ' . $e->getMessage());
+  }
 }
