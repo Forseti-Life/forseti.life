@@ -1,3 +1,8 @@
+/**
+ * @file
+ * Character Creation Step 5: Ability Boosts
+ */
+
 (function ($, Drupal, once) {
   'use strict';
 
@@ -14,10 +19,30 @@
   };
 
   /**
+   * Get total number of selected boosts.
+   */
+  function getTotalBoosts() {
+    return Object.values(selectedBoosts).reduce((a, b) => a + b, 0);
+  }
+
+  /**
+   * Convert selectedBoosts object to array format for storage.
+   */
+  function getBoostArray() {
+    const boostArray = [];
+    Object.keys(selectedBoosts).forEach(function(ability) {
+      for (let i = 0; i < selectedBoosts[ability]; i++) {
+        boostArray.push(ability);
+      }
+    });
+    return boostArray;
+  }
+
+  /**
    * Update boost counters and UI.
    */
   function updateBoostUI() {
-    const totalBoosts = Object.values(selectedBoosts).reduce((a, b) => a + b, 0);
+    const totalBoosts = getTotalBoosts();
     const remaining = MAX_BOOSTS - totalBoosts;
     
     // Update remaining counter
@@ -38,10 +63,10 @@
         $card.removeClass('selected');
       }
       
-      // Max out if at limit
+      // Disable if at per-ability limit or no remaining boosts
       if (boostCount >= MAX_PER_ABILITY) {
         $card.addClass('maxed');
-      } else if (remaining === 0 && boostCount === 0) {
+      } else if (remaining === 0) {
         $card.addClass('maxed');
       } else {
         $card.removeClass('maxed');
@@ -49,18 +74,12 @@
     });
     
     // Update hidden field
-    const boostArray = [];
-    Object.keys(selectedBoosts).forEach(function(ability) {
-      for (let i = 0; i < selectedBoosts[ability]; i++) {
-        boostArray.push(ability);
-      }
-    });
-    $('#selected-boosts').val(JSON.stringify(boostArray));
+    $('#selected-boosts').val(JSON.stringify(getBoostArray()));
     
     // Enable/disable next button
     if (totalBoosts === MAX_BOOSTS) {
       $('#next-button').prop('disabled', false);
-      $('#error-message').removeClass('error-message').addClass('hidden');
+      $('#error-message').addClass('hidden');
     } else {
       $('#next-button').prop('disabled', true);
     }
@@ -70,7 +89,7 @@
    * Toggle ability boost.
    */
   function toggleBoost(ability) {
-    const totalBoosts = Object.values(selectedBoosts).reduce((a, b) => a + b, 0);
+    const totalBoosts = getTotalBoosts();
     
     // If clicking a boosted ability, remove boost
     if (selectedBoosts[ability] > 0) {
@@ -89,10 +108,9 @@
       // Ability card click
       once('ability-select', '.ability-card', context).forEach((element) => {
         $(element).on('click', function() {
-          if (!$(this).hasClass('maxed')) {
-            const ability = $(this).data('ability');
-            toggleBoost(ability);
-          }
+          const ability = $(this).data('ability');
+          // Allow clicking even if maxed to deselect
+          toggleBoost(ability);
         });
       });
 
@@ -102,8 +120,10 @@
         try {
           const boostArray = JSON.parse(existingBoosts);
           boostArray.forEach(function(ability) {
-            if (selectedBoosts[ability] !== undefined) {
+            if (selectedBoosts.hasOwnProperty(ability)) {
               selectedBoosts[ability]++;
+            } else {
+              console.warn('Unknown ability in stored boosts:', ability);
             }
           });
           updateBoostUI();
@@ -117,7 +137,7 @@
         $(element).on('submit', function(e) {
           e.preventDefault();
 
-          const totalBoosts = Object.values(selectedBoosts).reduce((a, b) => a + b, 0);
+          const totalBoosts = getTotalBoosts();
           
           if (totalBoosts !== MAX_BOOSTS) {
             $('#error-message').text(`Please select ${MAX_BOOSTS} ability boosts.`).removeClass('hidden').show();
@@ -133,16 +153,23 @@
             url: actionUrl,
             method: 'POST',
             data: formData,
+            dataType: 'json',
             success: function(response) {
               if (response.success) {
                 window.location.href = response.redirect;
               } else {
-                $('#error-message').text(response.message || 'An error occurred.').removeClass('hidden').show();
+                $('#error-message').text(response.error || response.message || 'An error occurred.').removeClass('hidden').show();
                 $('#next-button').prop('disabled', false).text('Next Step →');
               }
             },
-            error: function() {
-              $('#error-message').text('Failed to save. Please try again.').removeClass('hidden').show();
+            error: function(xhr) {
+              let errorMsg = 'Failed to save. Please try again.';
+              if (xhr.responseJSON && xhr.responseJSON.error) {
+                errorMsg = xhr.responseJSON.error;
+              } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMsg = xhr.responseJSON.message;
+              }
+              $('#error-message').text(errorMsg).removeClass('hidden').show();
               $('#next-button').prop('disabled', false).text('Next Step →');
             }
           });
