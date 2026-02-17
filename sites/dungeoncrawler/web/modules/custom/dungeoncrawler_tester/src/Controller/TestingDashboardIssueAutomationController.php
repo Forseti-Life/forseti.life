@@ -782,7 +782,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 */
 	public function runBulkCloseQueryAjax(Request $request): JsonResponse {
 		if (!$this->currentUser()->hasPermission('administer site configuration')) {
-			return new JsonResponse(['success' => FALSE, 'message' => 'Access denied'], 403);
+			return $this->errorJsonResponse('Access denied', 403);
 		}
 
 		$payload = json_decode((string) $request->getContent(), TRUE);
@@ -792,7 +792,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 
 		$queryId = trim((string) ($payload['query_id'] ?? ''));
 		if ($queryId === '') {
-			return new JsonResponse(['success' => FALSE, 'message' => 'Missing query id.'], 400);
+			return $this->errorJsonResponse('Missing query id.', 400);
 		}
 
 		$reportData = $this->loadIssuePrReportData(FALSE);
@@ -803,7 +803,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$prs = (array) ($reportData['prs'] ?? []);
 
 		if (!$token || empty($tokenCandidates)) {
-			return new JsonResponse(['success' => FALSE, 'message' => 'GitHub token is not configured.'], 400);
+			return $this->errorJsonResponse('GitHub token is not configured.', 400);
 		}
 
 		$openIssueNumbers = [];
@@ -855,7 +855,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 				break;
 
 			default:
-				return new JsonResponse(['success' => FALSE, 'message' => 'Unknown bulk query id.'], 400);
+				return $this->errorJsonResponse('Unknown bulk query id.', 400);
 		}
 
 		$errorCount = count($result['errors']);
@@ -878,7 +878,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 */
 	public function closeDeadValueAjax(Request $request): JsonResponse {
 		if (!$this->currentUser()->hasPermission('administer site configuration')) {
-			return new JsonResponse(['success' => FALSE, 'message' => 'Access denied'], 403);
+			return $this->errorJsonResponse('Access denied', 403);
 		}
 
 		$payload = json_decode((string) $request->getContent(), TRUE);
@@ -890,19 +890,19 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$issueNumber = (int) ($payload['issue_number'] ?? 0);
 
 		if ($prNumber <= 0) {
-			return new JsonResponse(['success' => FALSE, 'message' => 'Missing PR number.'], 400);
+			return $this->errorJsonResponse('Missing PR number.', 400);
 		}
 
 		$githubContext = $this->loadIssueAutomationContext();
 		$repo = (string) ($githubContext['repo'] ?? '');
 		$token = $githubContext['token'] ?? NULL;
 		if (!$token) {
-			return new JsonResponse(['success' => FALSE, 'message' => 'GitHub token is not configured.'], 400);
+			return $this->errorJsonResponse('GitHub token is not configured.', 400);
 		}
 
 		$prResponse = $this->requestGitHubJson("https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $token);
 		if (!empty($prResponse['error']) || !is_array($prResponse['items'])) {
-			return new JsonResponse(['success' => FALSE, 'message' => 'Unable to load PR details.'], 500);
+			return $this->errorJsonResponse('Unable to load PR details.', 500);
 		}
 
 		$pr = [
@@ -913,7 +913,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		];
 
 		if (!$this->isDeadValuePr($pr)) {
-			return new JsonResponse(['success' => FALSE, 'message' => 'PR is no longer dead-value; refresh and review.'], 409);
+			return $this->errorJsonResponse('PR is no longer dead-value; refresh and review.', 409);
 		}
 
 		$prClosed = $this->closePullRequestWithComment($repo, $token, $prNumber, self::DEAD_VALUE_COMMENT);
@@ -926,7 +926,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		}
 
 		if (!$prClosed || !$issueCommented || !$issueClosed) {
-			return new JsonResponse(['success' => FALSE, 'message' => 'Close action completed with warnings. Check logs for details.'], 500);
+			return $this->errorJsonResponse('Close action completed with warnings. Check logs for details.', 500);
 		}
 
 		return new JsonResponse([
@@ -935,6 +935,16 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 				? "Closed dead-value PR #{$prNumber} and issue #{$issueNumber}."
 				: "Closed dead-value PR #{$prNumber}.",
 		]);
+	}
+
+	/**
+	 * Build a standardized JSON error response payload.
+	 */
+	private function errorJsonResponse(string $message, int $statusCode): JsonResponse {
+		return new JsonResponse([
+			'success' => FALSE,
+			'message' => $message,
+		], $statusCode);
 	}
 
 	/**
