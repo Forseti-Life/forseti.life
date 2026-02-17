@@ -510,7 +510,7 @@ This enables IDE autocomplete, validation, and inline documentation for JSON dat
 
 ### Directory Cleanup Note
 
-This directory contains historical completion/summary markdown files (e.g., `DCC-XXXX_COMPLETION.md`, `REVIEW_SUMMARY_DCC-XXXX.md`). These are legacy work-tracking documents that should be removed or archived according to the repository's Work Tracking and Status Policy (see `.github/instructions/instructions.md`). Per policy, implementation status should be tracked in GitHub Issues, not in separate markdown files. Schema documentation should focus on the JSON schema files and this README.
+This directory previously contained historical completion/summary markdown files (e.g., `DCC-XXXX_COMPLETION.md`, `REVIEW_SUMMARY_DCC-XXXX.md`). These legacy work-tracking documents have been removed in accordance with the repository's Work Tracking and Status Policy (see `.github/instructions/instructions.md`). Per policy, implementation status should be tracked in GitHub Issues, not in separate markdown files. This directory now focuses solely on JSON schema files and this README documentation.
 
 ### Schema Versioning Status
 
