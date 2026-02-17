@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://dungeoncrawler.life/schemas/character_options_step1.json",
   "title": "Character Creation Step 1 Options - Name & Concept",
-  "description": "Available options and requirements for Step 1 of PF2e character creation: choosing a name and concept.",
+  "description": "Available options and requirements for Step 1 of PF2e character creation: choosing a name and concept",
   "type": "object",
   "$defs": {
     "validationRule": {
