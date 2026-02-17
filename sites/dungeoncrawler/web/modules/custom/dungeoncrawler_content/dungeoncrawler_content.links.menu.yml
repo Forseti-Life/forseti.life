@@ -81,7 +81,7 @@ dungeoncrawler_content.menu.about:
 dungeoncrawler_content.menu.dc_administration:
   title: 'DC Administration'
   description: 'Administrative tools for Dungeon Crawler.'
-  route_name: <nolink>
+  route_name: dungeoncrawler_content.game_objects
   menu_name: main
   expanded: true
   weight: 90
