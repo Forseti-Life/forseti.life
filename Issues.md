@@ -57,7 +57,7 @@ This file is also the backup tracker when CLI interface access is denied for cre
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
 |---|---|---|---|---|---|---|
-| DCC-0002 | Review file characters/gribbles-rindsworth.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
+| DCC-0002 | Review file characters/gribbles-rindsworth.json for opportunities for improvement and refactoring | Closed | Unassigned | 2026-02-16 | 2026-02-17 | Completed: Added schema_version field (1.0.0), added optional schema fields (age, gender, appearance), enhanced README documentation for _npc_extended conventions and schema_version guidance. File validated successfully against character.schema.json. |
 #### config
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
