@@ -36,15 +36,21 @@ This is a multi-site Drupal workspace featuring:
 3. **Documentation Required**: Update README files after all changes
 4. **Process Over Speed**: Understand systems thoroughly before implementing solutions
 
-### Drupal Development Standards
+### Work Tracking and Status Policy
 
-**Mandatory Approach**:
-- ✅ Use nodes with custom fields for data storage
-- ✅ Use Views module for listings and displays
-- ✅ Use default Drupal forms (/node/add, /node/edit)
-- ✅ Leverage Drupal's form API and validation
-- ❌ Avoid custom controllers (unless for API/automation)
-- ❌ Avoid custom services (extend existing only when necessary)
+- Do not create new `Summary.md` files for work tracking.
+- Do not create new `status.md` files for work tracking.
+- Keep implementation progress, status updates, and completion notes in the corresponding GitHub Issue.
+- Continue updating README/ARCHITECTURE documentation when implementation behavior or policy changes.
+
+### Issues Tracker Mutation Policy (`Issues.md`)
+
+- **Allowed writer paths**: Local Drupal/PHP automation in `dungeoncrawler_tester` (including import/reconcile flows) may read and mutate repository-root `Issues.md` when synchronizing confirmed GitHub issue state.
+- **Required conversion behavior**: For open-row conversion, PHP automation must: identify Open rows in `Issues.md` → create/find matching open GitHub issue → confirm open state via GitHub API → remove matching local Open row(s).
+- **Agent restriction**: Copilot/LLM agents working issue content must not directly edit `Issues.md` as part of issue execution workflow.
+- **Operational exception**: Manual human cleanup edits are allowed when explicitly requested.
+
+### Drupal Development Standards
 
 **Before Developing Modules**:
 1. Read `ARCHITECTURE.md` in the relevant directory

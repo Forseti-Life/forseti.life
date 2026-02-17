@@ -331,6 +331,7 @@ class OpenIssuesImportForm extends FormBase {
         }
       }
 
+      $matchedCount = count($deleteIds);
       $removedCount = $this->removeOpenIssueRowsById($issuesFile, array_keys($deleteIds));
 
       $localOnlyCount = max(0, count($localIssueIds) - count($deleteIds));
@@ -355,7 +356,8 @@ class OpenIssuesImportForm extends FormBase {
       $this->state->set(self::RECONCILE_STATE_KEY, $status);
       Cache::invalidateTags([self::IMPORT_STATUS_CACHE_TAG]);
 
-      $this->messenger()->addStatus($this->t('Reconcile complete. Removed @removed local open row(s) already open in GitHub. Local-only: @local_only. GitHub-only: @github_only.', [
+      $this->messenger()->addStatus($this->t('Reconcile complete. Matched @matched local open row(s) already open in GitHub; removed @removed local row(s). Local-only: @local_only. GitHub-only: @github_only.', [
+        '@matched' => (string) $matchedCount,
         '@removed' => (string) $removedCount,
         '@local_only' => (string) $localOnlyCount,
         '@github_only' => (string) $githubOnlyCount,
@@ -397,15 +399,40 @@ class OpenIssuesImportForm extends FormBase {
 
     $existingIssueNumber = $this->findExistingOpenIssueNumberForTracker($repo, $issueId, $token);
     if ($existingIssueNumber > 0) {
-      $this->messenger()->addStatus($this->t('Skipped existing open issue: @title (GitHub #@number). Local Issues.md row retained by policy.', [
-        '@title' => $fullTitle,
-        '@number' => (string) $existingIssueNumber,
-      ]));
-      $this->loggerChannelFactory->get('dungeoncrawler_tester')->notice(self::IMPORT_LOG_PREFIX . ' github existing-open hit repo=@repo issue_id=@issue_id title="@title" github_issue=@number local_tracker_unchanged=1', [
+      $confirmedExistingOpen = $this->confirmGithubIssueOpen($repo, $existingIssueNumber, $token, $issueId);
+      if (!$confirmedExistingOpen) {
+        $this->messenger()->addWarning($this->t('Found existing GitHub issue #@number for @id, but open-state confirmation failed. Local row kept.', [
+          '@number' => (string) $existingIssueNumber,
+          '@id' => $issueId,
+        ]));
+        $this->loggerChannelFactory->get('dungeoncrawler_tester')->warning(self::IMPORT_LOG_PREFIX . ' github existing-open found but confirmation failed repo=@repo issue_id=@issue_id github_issue=@number', [
+          '@repo' => $repo,
+          '@issue_id' => $issueId,
+          '@number' => (string) $existingIssueNumber,
+        ]);
+        return ['handled' => 1, 'created' => 0, 'skipped' => 1, 'failed' => 0];
+      }
+
+      $removedCount = $this->removeOpenIssueRowsById($issuesFile, [$issueId]);
+      if ($removedCount > 0) {
+        $this->messenger()->addStatus($this->t('Skipped existing open issue: @title (GitHub #@number). Removed local Issues.md row after confirmation.', [
+          '@title' => $fullTitle,
+          '@number' => (string) $existingIssueNumber,
+        ]));
+      }
+      else {
+        $this->messenger()->addWarning($this->t('Skipped existing open issue: @title (GitHub #@number). Could not remove local row from Issues.md.', [
+          '@title' => $fullTitle,
+          '@number' => (string) $existingIssueNumber,
+        ]));
+      }
+
+      $this->loggerChannelFactory->get('dungeoncrawler_tester')->notice(self::IMPORT_LOG_PREFIX . ' github existing-open hit repo=@repo issue_id=@issue_id title="@title" github_issue=@number local_tracker_removed=@removed', [
         '@repo' => $repo,
         '@issue_id' => $issueId,
         '@title' => $fullTitle,
         '@number' => (string) $existingIssueNumber,
+        '@removed' => (string) $removedCount,
       ]);
       return ['handled' => 1, 'created' => 0, 'skipped' => 1, 'failed' => 0];
     }
@@ -428,7 +455,7 @@ class OpenIssuesImportForm extends FormBase {
 
     $issueNumber = (int) $payload['number'];
     $assigned = $this->assignCopilot($repo, $issueNumber, $token);
-    $confirmedInGithub = $this->confirmGithubIssueExists($repo, $issueNumber, $fullTitle, $token);
+    $confirmedInGithub = $this->confirmGithubIssueOpen($repo, $issueNumber, $token, $issueId);
 
     if ($assigned) {
       $this->messenger()->addStatus($this->t('Created #@number and assigned Copilot for @id.', [
@@ -455,7 +482,7 @@ class OpenIssuesImportForm extends FormBase {
     }
 
     if (!$confirmedInGithub) {
-      $this->messenger()->addWarning($this->t('Created #@number for @id, but could not confirm the issue from GitHub API.', [
+      $this->messenger()->addWarning($this->t('Created #@number for @id, but could not confirm open issue state from GitHub API.', [
         '@number' => (string) $issueNumber,
         '@id' => $issueId,
       ]));
@@ -466,14 +493,25 @@ class OpenIssuesImportForm extends FormBase {
       ]);
     }
     else {
-      $this->messenger()->addStatus($this->t('Created #@number for @id. Local Issues.md row retained by policy.', [
-        '@number' => (string) $issueNumber,
-        '@id' => $issueId,
-      ]));
-      $this->loggerChannelFactory->get('dungeoncrawler_tester')->notice(self::IMPORT_LOG_PREFIX . ' github create confirmed repo=@repo issue_id=@issue_id github_issue=@number local_tracker_unchanged=1', [
+      $removedCount = $this->removeOpenIssueRowsById($issuesFile, [$issueId]);
+      if ($removedCount > 0) {
+        $this->messenger()->addStatus($this->t('Created #@number for @id and confirmed open in GitHub. Removed local Issues.md row.', [
+          '@number' => (string) $issueNumber,
+          '@id' => $issueId,
+        ]));
+      }
+      else {
+        $this->messenger()->addWarning($this->t('Created #@number for @id and confirmed open in GitHub, but could not remove local Issues.md row.', [
+          '@number' => (string) $issueNumber,
+          '@id' => $issueId,
+        ]));
+      }
+
+      $this->loggerChannelFactory->get('dungeoncrawler_tester')->notice(self::IMPORT_LOG_PREFIX . ' github create confirmed repo=@repo issue_id=@issue_id github_issue=@number local_tracker_removed=@removed', [
         '@repo' => $repo,
         '@issue_id' => $issueId,
         '@number' => (string) $issueNumber,
+        '@removed' => (string) $removedCount,
       ]);
     }
 
@@ -817,9 +855,9 @@ class OpenIssuesImportForm extends FormBase {
   }
 
   /**
-   * Confirm a newly created GitHub issue exists before local row removal.
+   * Confirm a GitHub issue is open and linked to the expected tracker id.
    */
-  private function confirmGithubIssueExists(string $repo, int $issueNumber, string $expectedTitle, string $token): bool {
+  private function confirmGithubIssueOpen(string $repo, int $issueNumber, string $token, string $trackerId = ''): bool {
     if ($issueNumber <= 0) {
       return FALSE;
     }
@@ -830,8 +868,21 @@ class OpenIssuesImportForm extends FormBase {
     }
 
     $confirmedNumber = (int) ($issue['number'] ?? 0);
-    $confirmedTitle = trim((string) ($issue['title'] ?? ''));
-    return $confirmedNumber === $issueNumber && $confirmedTitle === $expectedTitle;
+    if ($confirmedNumber !== $issueNumber) {
+      return FALSE;
+    }
+
+    $state = strtolower(trim((string) ($issue['state'] ?? '')));
+    if ($state !== 'open') {
+      return FALSE;
+    }
+
+    if ($trackerId === '') {
+      return TRUE;
+    }
+
+    $title = trim((string) ($issue['title'] ?? ''));
+    return preg_match('/^' . preg_quote($trackerId, '/') . '\\b/', $title) === 1;
   }
 
   /**

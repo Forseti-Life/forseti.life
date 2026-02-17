@@ -31,6 +31,7 @@ The dashboard includes:
 - **Release Testing Stagegates**: Testing workflow and checklist
 - **Local issue tracking mode**: Tester failure automation now writes issues to repository-root `Issues.md` instead of creating GitHub issues directly.
 - **GitHub integration scope**: GitHub issue API/CLI integration is restricted to `/dungeoncrawler/testing/import-open-issues` for controlled sync from local tracker rows.
+- **Issues.md mutation boundary**: Import/reconcile PHP automation is responsible for removing matching Open local rows only after GitHub open-state confirmation; Copilot/LLM issue-work agents must not directly edit `Issues.md` as part of issue execution.
 - **Dedicated testing navigation menu**: A module-owned menu (`dungeoncrawler_testing`) now contains tester-facing routes and is used as the canonical source for testing navigation links.
 - **Documentation submenu organization**: The dedicated testing menu now groups all documentation links under an expandable `Documentation` parent, with `Documentation Home` included as a child entry.
 - **Testing navigation block**: The `Dungeon Crawler Testing Navigation` block now renders links directly from the dedicated testing menu so all tester pages stay in sync with one menu definition.

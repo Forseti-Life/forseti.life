@@ -28,6 +28,8 @@ The `instructions.md` file serves as the primary reference for AI-assisted devel
 - **Development Process Policy**: No quick fixes mandate, proper diagnostic procedures
 - **AI Persona Guidelines**: Technical analytical approach with caring professionalism
 - **Context Requirements**: Mandatory file inclusions for every interaction
+- **Issues.md Mutation Policy**: PHP tester automation may remove confirmed-converted Open rows; Copilot/LLM issue-work agents must not directly edit `Issues.md`
+- **Status Tracking Policy**: Do not create `Summary.md`/`status.md`; keep implementation status in GitHub Issues and use README/ARCHITECTURE for durable documentation
 
 #### Technology Stack Documentation
 - **LAMP Stack Configuration**: Complete Linux, Apache, MySQL, PHP environment details
