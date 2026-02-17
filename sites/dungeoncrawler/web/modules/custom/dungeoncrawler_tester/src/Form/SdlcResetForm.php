@@ -7,7 +7,7 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\State\StateInterface;
-use Drupal\dungeoncrawler_tester\Service\GithubIssuePrClientInterface;
+use Drupal\dungeoncrawler_tester\Service\SdlcResetService;
 use Drupal\dungeoncrawler_tester\Service\StageDefinitionService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -17,25 +17,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class SdlcResetForm extends FormBase {
 
-  /**
-   * Labels treated as testing issues during SDLC reset closure.
-   */
-  private const RESET_TESTING_LABELS = [
-    'testing',
-    'testing-defect',
-    'ci-failure',
-    'program-defect',
-    'tester',
-  ];
-
-  /**
-   * PR merge states treated as failed for reset closure.
-   */
-  private const FAILED_PR_STATES = ['unstable', 'blocked', 'dirty'];
-
   public function __construct(
     private readonly StateInterface $state,
-    private readonly GithubIssuePrClientInterface $githubClient,
+    private readonly SdlcResetService $resetService,
     private readonly Connection $database,
     private readonly StageDefinitionService $stageDefinitions,
     private readonly LoggerInterface $logger,
@@ -47,7 +31,7 @@ class SdlcResetForm extends FormBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('state'),
-      $container->get('dungeoncrawler_tester.github_issue_pr_client'),
+      $container->get('dungeoncrawler_tester.sdlc_reset_service'),
       $container->get('database'),
       $container->get('dungeoncrawler_tester.stage_definitions'),
       $container->get('logger.factory')->get('dungeoncrawler_tester'),
@@ -65,7 +49,7 @@ class SdlcResetForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
-    $preview = $this->getResetPreviewStats();
+    $preview = $this->resetService->getResetPreviewStats();
     $isReady = $preview['open_issues'] === 0
       && $preview['queue_items'] === 0
       && $preview['historical_stage_states'] === 0
@@ -88,8 +72,8 @@ class SdlcResetForm extends FormBase {
       ]);
     }
 
-    [$repo, $token] = $this->getRepoToken();
-    $failedPrs = $token ? $this->fetchFailedOpenPullRequestNumbers($repo, $token) : [];
+    [$repo, $token] = $this->resetService->getRepoToken();
+    $failedPrs = $token ? $this->resetService->fetchFailedOpenPullRequestNumbers($repo, $token) : [];
 
     $form['description'] = [
       '#type' => 'html_tag',
@@ -159,9 +143,7 @@ class SdlcResetForm extends FormBase {
     $form['close_failed_prs'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Also close open PRs in failed state'),
-      '#description' => $this->t('Closes open PRs on copilot/* branches whose merge state is one of: @states.', [
-        '@states' => implode(', ', self::FAILED_PR_STATES),
-      ]),
+      '#description' => $this->t('Closes open PRs on copilot/* branches currently in failed merge states.'),
       '#default_value' => TRUE,
     ];
 
@@ -191,33 +173,12 @@ class SdlcResetForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    [$repo, $token] = $this->getRepoToken();
+    [$repo, $token] = $this->resetService->getRepoToken();
     $forceLocalReset = (bool) $form_state->getValue('force_local_reset');
     $closeFailedPrs = (bool) $form_state->getValue('close_failed_prs');
 
     $stageStates = $this->state->get('dungeoncrawler_tester.stage_state', []);
-    $issueNumbers = [];
-    $issueToStages = [];
-
-    foreach ($stageStates as $stageId => $state) {
-      $hasOpenStatus = (($state['issue_status'] ?? 'open') === 'open');
-      if (!$hasOpenStatus) {
-        continue;
-      }
-
-      $linkedIssueNumbers = [];
-      if (!empty($state['issue_numbers']) && is_array($state['issue_numbers'])) {
-        $linkedIssueNumbers = array_values(array_unique(array_filter(array_map('intval', $state['issue_numbers']))));
-      }
-      if (!empty($state['issue_number'])) {
-        $linkedIssueNumbers[] = (int) $state['issue_number'];
-      }
-
-      foreach (array_values(array_unique(array_filter($linkedIssueNumbers))) as $issueNumber) {
-        $issueNumbers[(int) $issueNumber] = TRUE;
-        $issueToStages[(int) $issueNumber][] = $stageId;
-      }
-    }
+    $issueNumbers = $this->resetService->collectOpenIssueNumbers($stageStates, $repo, $token);
 
     $closed = 0;
     $failed = 0;
@@ -227,35 +188,22 @@ class SdlcResetForm extends FormBase {
     $failedPrs = 0;
     $failedPrNumbers = [];
 
-    if ($token) {
-      $labelIssueNumbers = $this->fetchOpenTestingIssueNumbers($repo, $token);
-      foreach ($labelIssueNumbers as $issueNumber) {
-        $issueNumbers[(int) $issueNumber] = TRUE;
-      }
-    }
-
-    if (!empty($issueNumbers) && !$token && !$forceLocalReset) {
+    if (!empty($issueNumbers) && $token === '' && !$forceLocalReset) {
       $this->messenger()->addError($this->t('Reset aborted: GitHub token is missing and linked issues cannot be closed. Enable force local reset only if you intentionally want local state reset without closing GitHub issues.'));
       return;
     }
 
-    if ($closeFailedPrs && !$token && !$forceLocalReset) {
+    if ($closeFailedPrs && $token === '' && !$forceLocalReset) {
       $this->messenger()->addError($this->t('Reset aborted: GitHub token is missing and failed PRs cannot be closed. Disable PR closure or enable force local reset.'));
       return;
     }
 
-    if (!empty($issueNumbers) && $token) {
-      foreach (array_keys($issueNumbers) as $issueNumber) {
-        $ok = $this->closeIssueWithResetNote($repo, $token, $issueNumber);
-        if ($ok) {
-          $closed++;
-          $closedIssueNumbers[] = $issueNumber;
-        }
-        else {
-          $failed++;
-          $failedIssueNumbers[] = $issueNumber;
-        }
-      }
+    if (!empty($issueNumbers) && $token !== '') {
+      $issueResult = $this->resetService->closeIssues($repo, $token, $issueNumbers);
+      $closed = (int) $issueResult['closed'];
+      $failed = (int) $issueResult['failed'];
+      $closedIssueNumbers = $issueResult['closed_numbers'];
+      $failedIssueNumbers = $issueResult['failed_numbers'];
     }
 
     if ($failed > 0 && !$forceLocalReset) {
@@ -266,30 +214,12 @@ class SdlcResetForm extends FormBase {
       return;
     }
 
-    $definedStageIds = array_values(array_map(
-      static fn(array $definition): string => (string) ($definition['id'] ?? ''),
-      $this->stageDefinitions->getDefinitions()
-    ));
-    $definedStageIds = array_values(array_filter($definedStageIds));
-
-    // Rebuild stage state to current definitions only:
-    // - removes historical/dynamic stage IDs from previous runs,
-    // - backfills newly defined stage IDs,
-    // - leaves a clean ready-to-run baseline.
-    $normalizedStageStates = [];
-
-    if ($closeFailedPrs && $token) {
-      $failedOpenPrNumbers = $this->fetchFailedOpenPullRequestNumbers($repo, $token);
-      foreach ($failedOpenPrNumbers as $prNumber) {
-        $ok = $this->closePullRequestWithResetNote($repo, $token, $prNumber);
-        if ($ok) {
-          $closedPrs++;
-        }
-        else {
-          $failedPrs++;
-          $failedPrNumbers[] = $prNumber;
-        }
-      }
+    if ($closeFailedPrs && $token !== '') {
+      $failedOpenPrNumbers = $this->resetService->fetchFailedOpenPullRequestNumbers($repo, $token);
+      $prResult = $this->resetService->closePullRequests($repo, $token, $failedOpenPrNumbers);
+      $closedPrs = (int) $prResult['closed'];
+      $failedPrs = (int) $prResult['failed'];
+      $failedPrNumbers = $prResult['failed_numbers'];
     }
 
     if ($failedPrs > 0 && !$forceLocalReset) {
@@ -300,43 +230,13 @@ class SdlcResetForm extends FormBase {
       return;
     }
 
-    foreach ($definedStageIds as $stageId) {
-      $state = $stageStates[$stageId] ?? [];
-      $state['active'] = TRUE;
+    $clearedQueueItems = $this->resetService->applyLocalReset($stageStates, $closedIssueNumbers, $forceLocalReset, $repo);
 
-      $issueNumber = isset($state['issue_number']) ? (int) $state['issue_number'] : 0;
-      $isClosedByReset = $issueNumber > 0 && in_array($issueNumber, $closedIssueNumbers, TRUE);
-
-      if ($forceLocalReset || $issueNumber === 0 || $isClosedByReset) {
-        unset($state['issue_number'], $state['issue_status']);
-      }
-
-      unset(
-        $state['issue_numbers'],
-        $state['issue_test_cases'],
-        $state['failure_reason'],
-        $state['failure_excerpt']
-      );
-
-      $normalizedStageStates[$stageId] = $state;
-    }
-
-    $this->state->set('dungeoncrawler_tester.stage_state', $normalizedStageStates);
-    $this->state->set('dungeoncrawler_tester.runs', []);
-    $this->state->set('dungeoncrawler_tester.auto_enqueue_last', []);
-
-    $clearedQueueItems = $this->database->delete('queue')
-      ->condition('name', 'dungeoncrawler_tester_runs')
-      ->execute();
-
-    $this->clearGithubDashboardCaches($repo);
-    Cache::invalidateTags(['dungeoncrawler_tester.dashboard', 'dungeoncrawler_tester.queue']);
-
-    if (!$token && !empty($issueNumbers) && $forceLocalReset) {
+    if ($token === '' && !empty($issueNumbers) && $forceLocalReset) {
       $this->messenger()->addWarning($this->t('SDLC reset forced without GitHub closure. Linked/testing issues may still be open remotely.'));
     }
 
-    if ($closeFailedPrs && !$token && $forceLocalReset) {
+    if ($closeFailedPrs && $token === '' && $forceLocalReset) {
       $this->messenger()->addWarning($this->t('SDLC reset forced without GitHub closure. Failed PRs may still be open remotely.'));
     }
 
@@ -375,205 +275,6 @@ class SdlcResetForm extends FormBase {
     ]));
 
     $form_state->setRedirect('dungeoncrawler_tester.dashboard');
-  }
-
-  /**
-   * Build a quick impact preview for the reset action.
-   */
-  private function getResetPreviewStats(): array {
-    [$repo, $token] = $this->getRepoToken();
-
-    $stageStates = $this->state->get('dungeoncrawler_tester.stage_state', []);
-    $definedStageIds = array_values(array_map(
-      static fn(array $definition): string => (string) ($definition['id'] ?? ''),
-      $this->stageDefinitions->getDefinitions()
-    ));
-    $definedStageIds = array_values(array_filter($definedStageIds));
-    $definedStageIdSet = array_fill_keys($definedStageIds, TRUE);
-
-    $definedStageStateCount = 0;
-    foreach (array_keys($stageStates) as $stageId) {
-      if (isset($definedStageIdSet[(string) $stageId])) {
-        $definedStageStateCount++;
-      }
-    }
-
-    $totalStageStateCount = count($stageStates);
-    $historicalStageStateCount = max(0, $totalStageStateCount - $definedStageStateCount);
-
-    $openTestingIssueSet = [];
-    if (!empty($token)) {
-      foreach ($this->fetchOpenTestingIssueNumbers($repo, $token) as $issueNumber) {
-        $openTestingIssueSet[(int) $issueNumber] = TRUE;
-      }
-    }
-
-    $openIssues = [];
-    foreach ($stageStates as $state) {
-      $linkedIssueNumbers = [];
-      if (!empty($state['issue_numbers']) && is_array($state['issue_numbers'])) {
-        $linkedIssueNumbers = array_values(array_unique(array_filter(array_map('intval', $state['issue_numbers']))));
-      }
-      if (!empty($state['issue_number'])) {
-        $linkedIssueNumbers[] = (int) $state['issue_number'];
-      }
-      $linkedIssueNumbers = array_values(array_unique(array_filter($linkedIssueNumbers)));
-
-      $hasOpenIssue = !empty($linkedIssueNumbers) && (($state['issue_status'] ?? 'open') === 'open');
-      if ($hasOpenIssue) {
-        if (!empty($token)) {
-          foreach ($linkedIssueNumbers as $issueNumber) {
-            if (isset($openTestingIssueSet[(int) $issueNumber])) {
-              $openIssues[(int) $issueNumber] = TRUE;
-            }
-          }
-        }
-        else {
-          foreach ($linkedIssueNumbers as $issueNumber) {
-            $openIssues[(int) $issueNumber] = TRUE;
-          }
-        }
-      }
-    }
-
-    $queueItems = (int) $this->database->select('queue', 'q')
-      ->condition('name', 'dungeoncrawler_tester_runs')
-      ->countQuery()
-      ->execute()
-      ->fetchField();
-
-    return [
-      'open_issues' => count($openIssues),
-      'defined_stages' => $definedStageStateCount,
-      'expected_defined_stages' => count($definedStageIds),
-      'historical_stage_states' => $historicalStageStateCount,
-      'total_stage_states' => $totalStageStateCount,
-      'queue_items' => $queueItems,
-    ];
-  }
-
-  /**
-   * Resolve GitHub repo and token from settings/env fallback chain.
-   */
-  private function getRepoToken(): array {
-    $context = $this->githubClient->resolveContext();
-    return [
-      (string) ($context['repo'] ?? 'keithaumiller/forseti.life'),
-      (string) ($context['token'] ?? ''),
-    ];
-  }
-
-  /**
-   * Close a GitHub issue and add a reset note comment.
-   */
-  private function closeIssueWithResetNote(string $repo, string $token, int $issueNumber): bool {
-    $commentUrl = "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/comments";
-    $issueUrl = "https://api.github.com/repos/{$repo}/issues/{$issueNumber}";
-
-    $commented = $this->githubClient->mutate('POST', $commentUrl, [
-      'body' => 'Closing issue as part of SDLC reset initiated from tester dashboard. This item should be re-opened or recreated if still actionable after reset.',
-    ], $token, 10);
-
-    if (!$commented) {
-      return FALSE;
-    }
-
-    return $this->githubClient->mutate('PATCH', $issueUrl, ['state' => 'closed'], $token, 10);
-  }
-
-  /**
-   * Fetch open testing-related issue numbers by label.
-   */
-  private function fetchOpenTestingIssueNumbers(string $repo, string $token): array {
-    $issueNumbers = [];
-
-    foreach (self::RESET_TESTING_LABELS as $label) {
-      $payload = $this->githubClient->listOpenIssuesByLabel($repo, $label, $token, 100);
-      foreach ($payload as $item) {
-        if (!is_array($item)) {
-          continue;
-        }
-
-        if (!empty($item['pull_request'])) {
-          continue;
-        }
-
-        $number = (int) ($item['number'] ?? 0);
-        if ($number > 0) {
-          $issueNumbers[$number] = TRUE;
-        }
-      }
-    }
-
-    return array_values(array_map('intval', array_keys($issueNumbers)));
-  }
-
-  /**
-   * Return open PR numbers currently considered failed by merge state.
-   */
-  private function fetchFailedOpenPullRequestNumbers(string $repo, string $token): array {
-    $payload = $this->githubClient->listOpenPullRequests($repo, $token, 100);
-    $failedPrs = [];
-    foreach ($payload as $pull) {
-      if (!is_array($pull)) {
-        continue;
-      }
-
-      $headRef = (string) ($pull['head']['ref'] ?? '');
-      if (!str_starts_with($headRef, 'copilot/')) {
-        continue;
-      }
-
-      $mergeableState = strtolower((string) ($pull['mergeable_state'] ?? ''));
-      if (in_array($mergeableState, self::FAILED_PR_STATES, TRUE)) {
-        $number = (int) ($pull['number'] ?? 0);
-        if ($number > 0) {
-          $failedPrs[] = $number;
-        }
-      }
-    }
-
-    return array_values(array_unique(array_filter(array_map('intval', $failedPrs))));
-  }
-
-  /**
-   * Close an open pull request and add a reset note comment.
-   */
-  private function closePullRequestWithResetNote(string $repo, string $token, int $prNumber): bool {
-    $commentUrl = "https://api.github.com/repos/{$repo}/issues/{$prNumber}/comments";
-    $prUrl = "https://api.github.com/repos/{$repo}/pulls/{$prNumber}";
-
-    $commented = $this->githubClient->mutate('POST', $commentUrl, [
-      'body' => 'Closing pull request as part of SDLC reset initiated from tester dashboard because it is in failed state. Re-open or recreate if still actionable after reset.',
-    ], $token, 10);
-
-    if (!$commented) {
-      return FALSE;
-    }
-
-    return $this->githubClient->mutate('PATCH', $prUrl, ['state' => 'closed'], $token, 10);
-  }
-
-  /**
-   * Invalidate GitHub-derived dashboard cache entries after reset.
-   */
-  private function clearGithubDashboardCaches(string $repo): void {
-    $issuesCacheKeys = [
-      'dungeoncrawler_tester.github_issues.' . $repo . '.ci-failure',
-      'dungeoncrawler_tester.github_issues.' . $repo . '.testing-defect',
-      'dungeoncrawler_tester.github_issues.' . $repo . '.program-defect',
-      'dungeoncrawler_tester.github_open_prs.' . $repo,
-      'dungeoncrawler_tester.github_open_testing_issue_numbers.' . $repo,
-      'dungeoncrawler_tester.github_pr_automation_stats.' . $repo,
-      'dungeoncrawler_tester.github_workflow_summary.' . $repo . '.auto-ready-on-copilot-signal.yml',
-      'dungeoncrawler_tester.github_workflow_summary.' . $repo . '.merge-issue-branches-into-testing.yml',
-    ];
-
-    foreach ($issuesCacheKeys as $key) {
-      \Drupal::cache()->delete($key);
-    }
-
-    \Drupal::cache()->delete('dungeoncrawler_tester.github_open_prs.' . $repo);
   }
 
 }

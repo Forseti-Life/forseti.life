@@ -15,6 +15,7 @@ use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_tester\Service\StageDefinitionService;
 use Drupal\Component\Uuid\UuidInterface;
+use Drupal\dungeoncrawler_tester\Service\DashboardRunStateService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -54,13 +55,19 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
    */
   private ?LoggerChannelInterface $logger = NULL;
 
-  public function __construct(StateInterface $state, DateFormatterInterface $dateFormatter, StageDefinitionService $stageDefinitions, QueueFactory $queueFactory, UuidInterface $uuid, LoggerChannelFactoryInterface $loggerFactory) {
+  /**
+   * Stage/run state manager.
+   */
+  private ?DashboardRunStateService $runStateService = NULL;
+
+  public function __construct(StateInterface $state, DateFormatterInterface $dateFormatter, StageDefinitionService $stageDefinitions, QueueFactory $queueFactory, UuidInterface $uuid, LoggerChannelFactoryInterface $loggerFactory, DashboardRunStateService $runStateService) {
     $this->state = $state;
     $this->dateFormatter = $dateFormatter;
     $this->stageDefinitions = $stageDefinitions;
     $this->queueFactory = $queueFactory;
     $this->uuid = $uuid;
     $this->logger = $loggerFactory->get('dungeoncrawler_tester');
+    $this->runStateService = $runStateService;
   }
 
   public static function create(ContainerInterface $container): static {
@@ -71,6 +78,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
       $container->get('queue'),
       $container->get('uuid'),
       $container->get('logger.factory'),
+      $container->get('dungeoncrawler_tester.dashboard_run_state'),
     );
     return $instance;
   }
@@ -477,28 +485,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
    * Return stage ids that are currently pending/running.
    */
   private function getInProgressStageIds(array $runs, ?string $excludeStageId = NULL, ?array $allowedStageIds = NULL): array {
-    $stageIds = [];
-    $allowedSet = NULL;
-    if (is_array($allowedStageIds)) {
-      $allowedSet = array_fill_keys(array_values(array_filter(array_map('strval', $allowedStageIds))), TRUE);
-    }
-
-    foreach ($runs as $stageId => $run) {
-      if ($excludeStageId !== NULL && $stageId === $excludeStageId) {
-        continue;
-      }
-
-      if ($allowedSet !== NULL && !isset($allowedSet[(string) $stageId])) {
-        continue;
-      }
-
-      $status = $run['status'] ?? '';
-      if (in_array($status, ['pending', 'running'], TRUE)) {
-        $stageIds[] = (string) $stageId;
-      }
-    }
-
-    return $stageIds;
+    return $this->getRunStateService()->getInProgressStageIds($runs, $excludeStageId, $allowedStageIds);
   }
 
   /**
@@ -552,10 +539,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
    * Persist last run metadata per stage.
    */
   private function storeRun(string $stage_id, array $data): void {
-    $runs = $this->getState()->get('dungeoncrawler_tester.runs', []);
-    $current = $runs[$stage_id] ?? [];
-    $runs[$stage_id] = array_merge($current, $data);
-    $this->getState()->set('dungeoncrawler_tester.runs', $runs);
+    $this->getRunStateService()->storeRun($stage_id, $data);
   }
 
   /**
@@ -681,8 +665,7 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
    * Fetch per-stage state with defaults.
    */
   private function getStageState(string $stage_id): array {
-    $states = $this->getState()->get('dungeoncrawler_tester.stage_state', []);
-    return $states[$stage_id] ?? [];
+    return $this->getRunStateService()->getStageState($stage_id);
   }
 
   /**
@@ -739,59 +722,31 @@ class DashboardRunsForm extends FormBase implements ContainerInjectionInterface 
    * Persist per-stage state.
    */
   private function saveStageState(string $stage_id, array $data): void {
-    $states = $this->getState()->get('dungeoncrawler_tester.stage_state', []);
-    $current = $states[$stage_id] ?? [];
-    $states[$stage_id] = array_merge($current, $data);
-    $this->getState()->set('dungeoncrawler_tester.stage_state', $states);
+    $this->getRunStateService()->saveStageState($stage_id, $data);
   }
 
   /**
    * Determine if a stage is allowed to run.
    */
   private function isStageRunnable(array $stage_state): bool {
-    if (array_key_exists('active', $stage_state) && !$stage_state['active']) {
-      return FALSE;
-    }
-    $hasLinkedIssue = !empty($stage_state['issue_number'])
-      || (!empty($stage_state['issue_numbers']) && is_array($stage_state['issue_numbers']));
-    if ($hasLinkedIssue) {
-      $status = (string) ($stage_state['issue_status'] ?? 'open');
-      if ($status !== 'closed') {
-        return FALSE;
-      }
-    }
-    return TRUE;
+    return $this->getRunStateService()->isStageRunnable($stage_state);
   }
 
   /**
    * Human-friendly block reason for UI/messaging.
    */
   private function getBlockReason(array $stage_state): ?string {
-    if (array_key_exists('active', $stage_state) && !$stage_state['active']) {
-      if (!empty($stage_state['failure_reason'])) {
-        return $this->t('Stage paused after failure: @r', ['@r' => $stage_state['failure_reason']]);
-      }
-      return $this->t('Stage is paused.');
-    }
-    $issueNumbers = [];
-    if (!empty($stage_state['issue_numbers']) && is_array($stage_state['issue_numbers'])) {
-      $issueNumbers = array_values(array_unique(array_filter(array_map('intval', $stage_state['issue_numbers']))));
-    }
-    if (!empty($stage_state['issue_number'])) {
-      $issueNumbers[] = (int) $stage_state['issue_number'];
-    }
-    $issueNumbers = array_values(array_unique(array_filter($issueNumbers)));
+    return $this->getRunStateService()->getBlockReason($stage_state);
+  }
 
-    if (!empty($issueNumbers)) {
-      $status = (string) ($stage_state['issue_status'] ?? 'open');
-      if ($status !== 'closed') {
-        if (count($issueNumbers) === 1) {
-          return $this->t('Blocked by issue #@n (@s).', ['@n' => $issueNumbers[0], '@s' => $status]);
-        }
-        return $this->t('Blocked by @count linked issues (@s).', ['@count' => count($issueNumbers), '@s' => $status]);
-      }
+  /**
+   * Lazy-load dashboard run/state service.
+   */
+  private function getRunStateService(): DashboardRunStateService {
+    if (!$this->runStateService) {
+      $this->runStateService = \Drupal::service('dungeoncrawler_tester.dashboard_run_state');
     }
-    return NULL;
+    return $this->runStateService;
   }
 
   /**

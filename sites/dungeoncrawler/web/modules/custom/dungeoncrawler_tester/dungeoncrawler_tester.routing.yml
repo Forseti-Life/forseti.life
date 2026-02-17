@@ -9,7 +9,7 @@ dungeoncrawler_tester.dashboard:
 dungeoncrawler_tester.issue_pr_report:
   path: '/dungeoncrawler/testing/issue-pr-report'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::issuePrReport'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::issuePrReport'
     _title: 'Open Issues and PR Report'
   requirements:
     _permission: 'administer site configuration'
@@ -17,7 +17,7 @@ dungeoncrawler_tester.issue_pr_report:
 dungeoncrawler_tester.dead_value_close:
   path: '/dungeoncrawler/testing/issue-pr-report/dead-value-close'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::closeDeadValueAjax'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::closeDeadValueAjax'
   methods: [POST]
   requirements:
     _csrf_token: 'TRUE'
@@ -26,7 +26,7 @@ dungeoncrawler_tester.dead_value_close:
 dungeoncrawler_tester.bulk_close_query_run:
   path: '/dungeoncrawler/testing/issue-pr-report/bulk-close-query-run'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::runBulkCloseQueryAjax'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::runBulkCloseQueryAjax'
   methods: [POST]
   requirements:
     _csrf_token: 'TRUE'
@@ -35,7 +35,7 @@ dungeoncrawler_tester.bulk_close_query_run:
 dungeoncrawler_tester.documentation_home:
   path: '/dungeoncrawler/testing/documentation-home'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::documentationHome'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardDocsController::documentationHome'
     _title: 'Tester Documentation Home'
   requirements:
     _permission: 'administer site configuration'
@@ -43,7 +43,7 @@ dungeoncrawler_tester.documentation_home:
 dungeoncrawler_tester.docs_getting_started:
   path: '/dungeoncrawler/testing/documentation/getting-started'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsGettingStarted'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardDocsController::docsGettingStarted'
     _title: 'Getting Started'
   requirements:
     _permission: 'administer site configuration'
@@ -51,7 +51,7 @@ dungeoncrawler_tester.docs_getting_started:
 dungeoncrawler_tester.docs_execution_playbook:
   path: '/dungeoncrawler/testing/documentation/execution-playbook'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsExecutionPlaybook'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardDocsController::docsExecutionPlaybook'
     _title: 'Test Execution Playbook'
   requirements:
     _permission: 'administer site configuration'
@@ -59,7 +59,7 @@ dungeoncrawler_tester.docs_execution_playbook:
 dungeoncrawler_tester.docs_failure_triage:
   path: '/dungeoncrawler/testing/documentation/failure-triage'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsFailureTriage'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardDocsController::docsFailureTriage'
     _title: 'Failure Triage and Issue Workflow'
   requirements:
     _permission: 'administer site configuration'
@@ -67,7 +67,7 @@ dungeoncrawler_tester.docs_failure_triage:
 dungeoncrawler_tester.docs_process_flow:
   path: '/dungeoncrawler/testing/documentation/process-flow'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsProcessFlow'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardDocsController::docsProcessFlow'
     _title: 'Automated Testing Process Flow'
   requirements:
     _permission: 'administer site configuration'
@@ -75,7 +75,7 @@ dungeoncrawler_tester.docs_process_flow:
 dungeoncrawler_tester.docs_sdlc_process_flow:
   path: '/dungeoncrawler/testing/documentation/sdlc-process-flow'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsSdlcProcessFlow'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardDocsController::docsSdlcProcessFlow'
     _title: 'SDLC Process Flow'
   requirements:
     _permission: 'administer site configuration'
@@ -83,7 +83,7 @@ dungeoncrawler_tester.docs_sdlc_process_flow:
 dungeoncrawler_tester.docs_release_process_flow:
   path: '/dungeoncrawler/testing/documentation/release-process-flow'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsReleaseProcessFlow'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardDocsController::docsReleaseProcessFlow'
     _title: 'Release Process Flow'
   requirements:
     _permission: 'administer site configuration'
@@ -91,7 +91,7 @@ dungeoncrawler_tester.docs_release_process_flow:
 dungeoncrawler_tester.docs_module_readme:
   path: '/dungeoncrawler/testing/documentation/module-readme'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsModuleReadme'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardDocsController::docsModuleReadme'
     _title: 'Module README'
   requirements:
     _permission: 'administer site configuration'
@@ -99,7 +99,7 @@ dungeoncrawler_tester.docs_module_readme:
 dungeoncrawler_tester.docs_testing_module_readme:
   path: '/dungeoncrawler/testing/documentation/testing-module-readme'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsTestingModuleReadme'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardDocsController::docsTestingModuleReadme'
     _title: 'Testing Module README'
   requirements:
     _permission: 'administer site configuration'
@@ -107,7 +107,7 @@ dungeoncrawler_tester.docs_testing_module_readme:
 dungeoncrawler_tester.docs_tests_readme:
   path: '/dungeoncrawler/testing/documentation/tests-readme'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsTestsReadme'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardDocsController::docsTestsReadme'
     _title: 'Tests README'
   requirements:
     _permission: 'administer site configuration'
@@ -115,7 +115,7 @@ dungeoncrawler_tester.docs_tests_readme:
 dungeoncrawler_tester.docs_strategy_design:
   path: '/dungeoncrawler/testing/documentation/strategy-design'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsStrategyDesign'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardDocsController::docsStrategyDesign'
     _title: 'Testing Strategy Design'
   requirements:
     _permission: 'administer site configuration'
@@ -123,7 +123,7 @@ dungeoncrawler_tester.docs_strategy_design:
 dungeoncrawler_tester.docs_quick_start:
   path: '/dungeoncrawler/testing/documentation/quick-start'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsQuickStart'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardDocsController::docsQuickStart'
     _title: 'Testing Quick Start Guide'
   requirements:
     _permission: 'administer site configuration'
@@ -131,7 +131,7 @@ dungeoncrawler_tester.docs_quick_start:
 dungeoncrawler_tester.docs_issues_directory:
   path: '/dungeoncrawler/testing/documentation/issues-directory'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsIssuesDirectory'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardDocsController::docsIssuesDirectory'
     _title: 'Testing Issues Directory'
   requirements:
     _permission: 'administer site configuration'
@@ -139,7 +139,7 @@ dungeoncrawler_tester.docs_issues_directory:
 dungeoncrawler_tester.docs_issue_automation:
   path: '/dungeoncrawler/testing/documentation/issue-automation'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardController::docsIssueAutomation'
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardDocsController::docsIssueAutomation'
     _title: 'Copilot Issue Automation'
   requirements:
     _permission: 'administer site configuration'

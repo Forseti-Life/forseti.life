@@ -1,4 +1,12 @@
 services:
+  dungeoncrawler_tester.dashboard_run_state:
+    class: Drupal\dungeoncrawler_tester\Service\DashboardRunStateService
+    arguments: ['@state', '@string_translation']
+
+  dungeoncrawler_tester.sdlc_reset_service:
+    class: Drupal\dungeoncrawler_tester\Service\SdlcResetService
+    arguments: ['@state', '@dungeoncrawler_tester.github_issue_pr_client', '@database', '@dungeoncrawler_tester.stage_definitions', '@cache.default']
+
   dungeoncrawler_tester.github_context_resolver:
     class: Drupal\dungeoncrawler_tester\Service\GithubClientContextResolver
     arguments: ['@config.factory', '@state']
