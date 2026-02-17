@@ -891,7 +891,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return $tokenError;
 		}
 
-		$prResponse = $this->requestGitHubJson("https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $token);
+		$prResponse = $this->requestGitHubJson($this->buildPullApiUrl($repo, $prNumber), $token);
 		if (!empty($prResponse['error']) || !is_array($prResponse['items'])) {
 			return $this->errorJsonResponse(self::MSG_UNABLE_TO_LOAD_PR_DETAILS, self::HTTP_INTERNAL_SERVER_ERROR);
 		}
@@ -989,6 +989,27 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	}
 
 	/**
+	 * Build base GitHub REST API URL for repository.
+	 */
+	private function buildRepoApiBase(string $repo): string {
+		return "https://api.github.com/repos/{$repo}";
+	}
+
+	/**
+	 * Build GitHub REST API issue URL.
+	 */
+	private function buildIssueApiUrl(string $repo, int $issueNumber): string {
+		return $this->buildRepoApiBase($repo) . "/issues/{$issueNumber}";
+	}
+
+	/**
+	 * Build GitHub REST API pull request URL.
+	 */
+	private function buildPullApiUrl(string $repo, int $prNumber): string {
+		return $this->buildRepoApiBase($repo) . "/pulls/{$prNumber}";
+	}
+
+	/**
 	 * Comment on and close an issue.
 	 */
 	private function closeIssueWithComment(string $repo, string $token, int $issueNumber, string $comment): bool {
@@ -996,8 +1017,8 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return FALSE;
 		}
 
-		$commented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/comments", $token, ['body' => $comment]);
-		$closed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/issues/{$issueNumber}", $token, ['state' => 'closed']);
+		$commented = $this->requestGitHubMutation('POST', $this->buildIssueApiUrl($repo, $issueNumber) . '/comments', $token, ['body' => $comment]);
+		$closed = $this->requestGitHubMutation('PATCH', $this->buildIssueApiUrl($repo, $issueNumber), $token, ['state' => 'closed']);
 
 		return $commented && $closed;
 	}
@@ -1010,8 +1031,8 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return FALSE;
 		}
 
-		$commented = $this->requestGitHubMutation('POST', "https://api.github.com/repos/{$repo}/issues/{$prNumber}/comments", $token, ['body' => $comment]);
-		$closed = $this->requestGitHubMutation('PATCH', "https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $token, ['state' => 'closed']);
+		$commented = $this->requestGitHubMutation('POST', $this->buildIssueApiUrl($repo, $prNumber) . '/comments', $token, ['body' => $comment]);
+		$closed = $this->requestGitHubMutation('PATCH', $this->buildPullApiUrl($repo, $prNumber), $token, ['state' => 'closed']);
 
 		return $commented && $closed;
 	}
@@ -1111,7 +1132,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return NULL;
 		}
 
-		$response = $this->requestGitHubJsonWithFallback("https://api.github.com/repos/{$repo}/pulls/{$prNumber}", $tokenCandidates, [], FALSE);
+		$response = $this->requestGitHubJsonWithFallback($this->buildPullApiUrl($repo, $prNumber), $tokenCandidates, [], FALSE);
 		if (!empty($response['error']) || !is_array($response['items'])) {
 			return NULL;
 		}
@@ -1319,7 +1340,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return $cached;
 		}
 
-		$url = "https://api.github.com/repos/{$repo}/issues?state=open&per_page=100";
+		$url = $this->buildRepoApiBase($repo) . '/issues?state=open&per_page=100';
 		$response = $this->requestGitHubJsonWithFallback($url, $tokenCandidates, [], TRUE);
 		if (!empty($response['error'])) {
 			return ['items' => [], 'error' => $response['error']];
@@ -1382,7 +1403,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return $cached;
 		}
 
-		$url = "https://api.github.com/repos/{$repo}/pulls?state=open&per_page=100";
+		$url = $this->buildRepoApiBase($repo) . '/pulls?state=open&per_page=100';
 		$response = $this->requestGitHubJsonWithFallback($url, $tokenCandidates, [], TRUE);
 		if (!empty($response['error'])) {
 			return ['items' => [], 'error' => $response['error']];
@@ -1431,7 +1452,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return $cached;
 		}
 
-		$url = "https://api.github.com/repos/{$repo}/pulls?state=closed&per_page=100";
+		$url = $this->buildRepoApiBase($repo) . '/pulls?state=closed&per_page=100';
 		$response = $this->requestGitHubJsonWithFallback($url, $tokenCandidates, [], TRUE);
 		if (!empty($response['error'])) {
 			return ['items' => [], 'error' => $response['error']];
@@ -1474,7 +1495,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return $cached;
 		}
 
-		$url = "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/timeline?per_page=100";
+		$url = $this->buildIssueApiUrl($repo, $issueNumber) . '/timeline?per_page=100';
 		$response = $this->requestGitHubJsonWithFallback($url, $tokenCandidates, [
 			'Accept' => 'application/vnd.github+json',
 			'X-GitHub-Api-Version' => '2022-11-28',
