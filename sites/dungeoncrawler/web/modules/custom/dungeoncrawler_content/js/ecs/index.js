@@ -10,7 +10,7 @@ export { System } from './System.js';
 export { EntityManager } from './EntityManager.js';
 
 // Components
-export { PositionComponent } from './components/PositionComponent.js';
+export { PositionComponent, HexDirection } from './components/PositionComponent.js';
 export { RenderComponent } from './components/RenderComponent.js';
 export { IdentityComponent, EntityType } from './components/IdentityComponent.js';
 export { MovementComponent, MovementMode } from './components/MovementComponent.js';
