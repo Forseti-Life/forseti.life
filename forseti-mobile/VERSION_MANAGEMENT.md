@@ -66,7 +66,6 @@ The build script (`increment-build.sh`) automatically updates:
 
 ### Documentation
 - ✅ `README.md` - Version info in header
-- ✅ `FEATURE_STATUS.md` - Current build status
 - ✅ `TODO.md` - Current version reference
 - ✅ `ANDROID_BUILD.md` - Build examples
 

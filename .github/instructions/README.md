@@ -147,7 +147,6 @@ The `instructions.md` file serves as the primary reference for AI-assisted devel
 - `/home/keithaumiller/forseti.life/sites/forseti/ARCHITECTURE.md` - Drupal architecture
 
 ### Mobile Development
-- `/home/keithaumiller/forseti.life/forseti-mobile/FEATURE_STATUS.md` - Feature implementation status
 - `/home/keithaumiller/forseti.life/forseti-mobile/patches/` - React Native library fixes
 - `/home/keithaumiller/forseti.life/script/setup-forseti-mobile-dev.sh` - Automated environment setup
 
